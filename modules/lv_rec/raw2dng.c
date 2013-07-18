@@ -488,7 +488,8 @@ static void apply_vertical_stripes_correction()
 
 /* choose interpolation method (define only one of these) */
 #undef INTERP_MEAN_2RB_3G
-#define INTERP_MEDIAN_6
+#undef INTERP_MEDIAN_6
+#define INTERP_MEAN23_EDGE
 
 /* quick check to see if this looks like a HDR frame */
 static int hdr_check()
@@ -667,6 +668,13 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
 #ifdef INTERP_MEDIAN_6
 #define INTERP_METHOD_NAME "median6"
 #define interp6 median6
+#elif defined(INTERP_MEAN_2RB_3G)
+#define INTERP_METHOD_NAME "mean2rb3g"
+#elif defined(INTERP_MEAN23_EDGE)
+#define INTERP_METHOD_NAME "mean23-edge"
+#define interp6 median6
+#endif
+
 /* median of 6 numbers */
 static int median6(int a, int b, int c, int d, int e, int f, int white)
 {
@@ -684,13 +692,9 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
     int median = (x[2] + x[3]) / 2;
     return median;
 }
-#endif
 
-#ifdef INTERP_MEAN_2RB_3G
-#define INTERP_METHOD_NAME "mean2rb3g"
 #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
 #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
-#endif
 
 #define EV_RESOLUTION 1000
 
@@ -714,7 +718,7 @@ static int hdr_interpolate()
     for (i = 0; i < 16384; i++)
         raw2ev[i] = (int)round(log2(MAX(1, i - black)) * EV_RESOLUTION);
     for (i = 0; i < 14*EV_RESOLUTION; i++)
-        ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white),
+        ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white);
 
     /* first we need to know which lines are dark and which are bright */
     /* the pattern is not always the same, so we need to autodetect it */
@@ -776,7 +780,7 @@ static int hdr_interpolate()
     if (first_frame)
         printf("Interpolation  : %s\n", INTERP_METHOD_NAME);
 
-#ifdef INTERP_MEAN_2RB_3G
+#if defined(INTERP_MEAN_2RB_3G) || defined(INTERP_MEAN23_EDGE)
     for (y = 2; y < h-2; y ++)
     {
         short* native = BRIGHT_ROW ? bright : dark;
@@ -856,7 +860,78 @@ static int hdr_interpolate()
         }
     }
 #endif
-    
+
+#ifdef INTERP_MEAN23_EDGE /* second step, for detecting edges */
+    for (y = 2; y < h-2; y ++)
+    {
+        short* interp = BRIGHT_ROW ? dark : bright;
+        
+        for (x = 2; x < w-2; x ++)
+        {
+            int Ra = raw_get_pixel(x, y-2);
+            int Rb = raw_get_pixel(x, y+2);
+            int Ral = raw_get_pixel(x-2, y-2);
+            int Rbl = raw_get_pixel(x-2, y+2);
+            int Rar = raw_get_pixel(x+2, y-2);
+            int Rbr = raw_get_pixel(x+2, y+2);
+            
+            int rae = raw2ev[Ra & 16383];
+            int rbe = raw2ev[Rb & 16383];
+            int rale = raw2ev[Ral & 16383];
+            int rble = raw2ev[Rbl & 16383];
+            int rare = raw2ev[Rar & 16383];
+            int rbre = raw2ev[Rbr & 16383];
+            int whitee = raw2ev[white];
+
+            /* median */
+            int ri = ev2raw[interp6(rae, rbe, rale, rble, rare, rbre, whitee)];
+            
+            /* mean23, computed at previous step */
+            int ri0 = interp[x + y * w];
+            
+            /* mean23 overexposed? use median without thinking twice */
+            if (ri0 >= white)
+            {
+                interp[x + y * w] = ri;
+                continue;
+            }
+            
+            int ri0e = raw2ev[ri0 & 16383];
+            
+            /* threshold for edges */
+            int thr = EV_RESOLUTION / 8;
+            
+            /* detect diagonal edge patterns, where median looks best:
+             *       
+             *       . . *          . * *           * * *
+             *         ?              ?               ?            and so on
+             *       * * *          * * *           * . . 
+             */
+            
+            if (rbe < ri0e - thr && rble < ri0e - thr && rbre < ri0e - thr) /* bottom dark */
+            {
+                if ((rale < ri0e - thr && rare > ri0e + thr) || (rare < ri0e - thr && rale > ri0e - thr))
+                    interp[x + y * w] = ri;
+            }
+            else if (rbe > ri0e + thr && rble > ri0e + thr && rbre > ri0e + thr) /* bottom bright */
+            {
+                if ((rale > ri0e + thr && rare < ri0e - thr) || (rare > ri0e + thr && rale < ri0e - thr))
+                    interp[x + y * w] = ri;
+            }
+            else if (rae < ri0e - thr && rale < ri0e - thr && rare < ri0e - thr) /* top dark */
+            {
+                if ((rble > ri0e + thr && rbre < ri0e - thr) || (rbre > ri0e + thr && rble < ri0e - thr))
+                    interp[x + y * w] = ri;
+            }
+            else if (rae > ri0e + thr && rale > ri0e + thr && rare > ri0e + thr) /* top bright */
+            {
+                if ((rble > ri0e + thr && rbre < ri0e - thr) || (rbre > ri0e + thr && rble < ri0e - thr))
+                    interp[x + y * w] = ri;
+            }
+        }
+    }
+#endif
+
     /* border interpolation */
     for (y = 0; y < 2; y ++)
     {
