@@ -692,6 +692,8 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
 #endif
 
+#define EV_RESOLUTION 1000
+
 static int hdr_interpolate()
 {
     static int first_frame = 1;
@@ -705,14 +707,14 @@ static int hdr_interpolate()
     int x, y;
 
     /* for fast EV - raw conversion */
-    static int raw2ev[16384];   /* EV x1000 */
-    static int ev2raw[14000];
+    static int raw2ev[16384];   /* EV x EV_RESOLUTION */
+    static int ev2raw[14*EV_RESOLUTION];
     
     int i;
     for (i = 0; i < 16384; i++)
-        raw2ev[i] = (int)round(log2(MAX(1, i - black)) * 1000.0);
-    for (i = 0; i < 14000; i++)
-        ev2raw[i] = COERCE(black + pow(2, (i/1000.0)), black, white);
+        raw2ev[i] = (int)round(log2(MAX(1, i - black)) * EV_RESOLUTION);
+    for (i = 0; i < 14*EV_RESOLUTION; i++)
+        ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white),
 
     /* first we need to know which lines are dark and which are bright */
     /* the pattern is not always the same, so we need to autodetect it */
@@ -908,7 +910,7 @@ static int hdr_interpolate()
         int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
         if (!ok) goto err;
     }
-    int corr = (int)roundf(corr_ev * 1000);
+    int corr = (int)roundf(corr_ev * EV_RESOLUTION);
 
 #if 0 /* for debugging only */
     save_dng("normal.dng");
@@ -1016,7 +1018,7 @@ static int hdr_interpolate()
             int f = fullres_curve[b0 & 16383];
 
             /* beware of hot pixels */
-            int is_hot = (k > 0 && b0 < white && dev > bev + 2000);
+            int is_hot = (k > 0 && b0 < white && dev > bev + 2 * EV_RESOLUTION);
             if (is_hot)
             {
                 hot_pixels++;
@@ -1033,7 +1035,7 @@ static int hdr_interpolate()
             int output = (mixed*(FIXP_ONE-f) + fullres*f) / FIXP_ONE;
             
             /* safeguard */
-            output = COERCE(output, 0, 14000-1);
+            output = COERCE(output, 0, 14*EV_RESOLUTION-1);
             
             /* back to linear space and commit */
             raw_set_pixel(x, y, ev2raw[output] + black_delta/8);
