@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.1.0 firmware for the 100D.
+ * in the Canon 1.0.0 firmware for the 100D.
  *
  *  I've copied the skeleton from the 5D3. This should probably be common
  *  practice for future ports as the 5D3 is updated most often.
