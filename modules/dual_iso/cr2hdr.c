@@ -1087,7 +1087,7 @@ static int hdr_interpolate()
 
     /* you get better colors, less noise, but a little more jagged edges if we underestimate the overlap amount */
     /* maybe expose a tuning factor? (preference towards resolution or colors) */
-    overlap -= MIN(2, overlap - 2);
+    overlap -= MIN(1, overlap - 1);
     
     printf("ISO overlap    : %.1f EV (approx)\n", overlap);
     
@@ -1100,6 +1100,9 @@ static int hdr_interpolate()
     {
         printf("Overlap too small, use a smaller ISO difference for better results.\n");
     }
+
+    /* force full resolution recovery in shadows (1 = full res, 0 = use only high ISO) - reduces aliasing, but increases noise */
+    double f_shadow = 0.5;
 
     /* mixing curves */
     double max_ev = log2(white - black);
@@ -1115,7 +1118,10 @@ static int hdr_interpolate()
         /* this looks very ugly at iso > 1600 */
         if (corr_ev > 4.5)
             f = 0;
-        
+
+        if (ev < max_ev - overlap/2)
+            f = f_shadow + f * (1 - f_shadow);
+
         mix_curve[i] = FIXP_ONE * k;
         fullres_curve[i] = FIXP_ONE * f;
     }
