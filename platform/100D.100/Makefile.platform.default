@@ -5,7 +5,7 @@
 # Definitions for version unkown
 ifeq ($(FW_VERSION),100)
 
-#CANON_NAME_FIR=CCF12105.FIR
+CANON_NAME_FIR=5D300113.FIR
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

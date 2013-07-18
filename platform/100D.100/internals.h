@@ -7,13 +7,13 @@
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 5D3 port is young, but... let's give it a try! **/
-#define CONFIG_PROP_REQUEST_CHANGE
+#undef CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
  * They might slow down Canon code, so here you can disable all of them (useful for debugging or early ports) 
  */
-#define CONFIG_STATE_OBJECT_HOOKS
+#undef CONFIG_STATE_OBJECT_HOOKS
 
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
@@ -22,7 +22,7 @@
 #define CONFIG_DIGIC_V
 
 /** This camera has a full-frame sensor */
-#define CONFIG_FULLFRAME
+#undef CONFIG_FULLFRAME
 
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW

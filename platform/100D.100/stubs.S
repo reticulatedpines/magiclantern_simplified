@@ -45,7 +45,7 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
-#define RAM_OFFSET g //~ Subtract 0x1900 from sub_foo at ROM:FF0C0098.
+#define RAM_OFFSET 0xFFA97810 //~ Subtract 0x1900 from sub_foo at ROM:FF0C0098.
 
 /** Startup **/
 NSTUB(0xFF0C1BD0, cstart)
@@ -60,16 +60,16 @@ NSTUB(0xFF13AB60, LoadCalendarFromRTC)
 NSTUB(0xFFAD03A0 - RAM_OFFSET, vsnprintf)
 
 /** File I/O **/
-NSTUB(0xFF33E3AC, _FIO_CreateFile)
-NSTUB(0xFF33E2F0, _FIO_Open) // or OpenFile?
+NSTUB(0xFF33E3AC,  FIO_CreateFile)
+NSTUB(0xFF33E2F0,  FIO_Open) // or OpenFile?
 NSTUB(0xFF33E750,  FIO_CloseFile)
 NSTUB(0xFF33E680,  FIO_SeekFile)
 NSTUB(0xFF33E500,  FIO_ReadFile)
 NSTUB(0xFF33E6A0,  FIO_WriteFile)
-NSTUB(0xFF33E8CC, _FIO_GetFileSize)
-NSTUB(0xFF33E458, _FIO_RemoveFile)
-NSTUB(0xFF33EFAC, _FIO_CreateDirectory)
-NSTUB(0xFF33F328, _FIO_FindFirstEx)
+NSTUB(0xFF33E8CC,  FIO_GetFileSize)
+NSTUB(0xFF33E458,  FIO_RemoveFile)
+NSTUB(0xFF33EFAC,  FIO_CreateDirectory)
+NSTUB(0xFF33F328,  FIO_FindFirstEx)
 NSTUB(0xFF33F668,  FIO_FindNextEx)
 NSTUB(0xFF33F748,  FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
 
@@ -228,15 +228,15 @@ NSTUB(0xFF608254, PackMem_StartEDmac)
 
 
 
-/** EVERYTHING BELOW IS UNTOUCHED FROM 5D3 **/
-
 /** Making the card bootable (not working on 5D3) **/
-// NSTUB(0xff6ab324, cfReadBlk)
+NSTUB(0xFF64BB20, cfReadBlk)
 // NSTUB(   0x20890, cf_device) idk...
-// NSTUB(0xff6b16ac, sdReadBlk)
-// NSTUB(   0x399D4, sd_device)
-// NSTUB(0xff5bb2c8, fsuDecodePartitionTable) // AJ_fsuGetPart_related
+NSTUB(0xFF652028, sdReadBlk)
+NSTUB(   0x7FB50, sd_device)
+NSTUB(0xFF4F64AC, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 
+
+/** EVERYTHING BELOW IS UNTOUCHED FROM 5D3 **/
 /** Unused **/
 // NSTUB(0x23D08, pre_isr_hook)
 // NSTUB(0x23D0C, post_isr_hook)
