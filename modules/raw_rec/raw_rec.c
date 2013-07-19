@@ -1422,7 +1422,7 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_RECORDING;
 
     /* try a sync beep (not very precise, but better than nothing) */
-    if (sound_rec == 2 && frame_count == 1)
+    if (sound_rec == 2)
     {
         beep();
     }
