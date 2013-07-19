@@ -696,7 +696,7 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
 #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
 
-#define EV_RESOLUTION 1000
+#define EV_RESOLUTION 2000
 
 static int hdr_interpolate()
 {
@@ -718,7 +718,10 @@ static int hdr_interpolate()
     for (i = 0; i < 16384; i++)
         raw2ev[i] = (int)round(log2(MAX(1, i - black)) * EV_RESOLUTION);
     for (i = 0; i < 14*EV_RESOLUTION; i++)
+    {
         ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white);
+        if (i > raw2ev[white]) ev2raw[i] = white;
+    }
 
     /* first we need to know which lines are dark and which are bright */
     /* the pattern is not always the same, so we need to autodetect it */
@@ -997,6 +1000,24 @@ static int hdr_interpolate()
         for (x = 0; x < w; x ++)
             raw_set_pixel(x, y, dark[x + y*w]);
     save_dng("dark.dng");
+    int yb = 1;
+    int yd = h/2;
+    for (y = 0; y < h; y ++)
+    {
+        if (BRIGHT_ROW)
+        {
+            for (x = 0; x < w; x ++)
+                raw_set_pixel(x, yb, bright[x + y*w]);
+            yb++;
+        }
+        else
+        {
+            for (x = 0; x < w; x ++)
+                raw_set_pixel(x, yd, dark[x + y*w]);
+            yd++;
+        }
+    }
+    save_dng("split.dng");
 #endif
 
     /* mix the two images */
@@ -1045,13 +1066,13 @@ static int hdr_interpolate()
         double k = (c+1)/2;
         double f = 1 - pow(c, 4);
         
+        if (ev < max_ev - overlap/2)
+            f = f_shadow + f * (1 - f_shadow);
+    
         /* this looks very ugly at iso > 1600 */
         if (corr_ev > 4.5)
             f = 0;
-    
-        if (ev < max_ev - overlap/2)
-            f = f_shadow + f * (1 - f_shadow);
-        
+
         mix_curve[i] = FIXP_ONE * k;
         fullres_curve[i] = FIXP_ONE * f;
     }
@@ -1087,6 +1108,15 @@ static int hdr_interpolate()
             int b0 = bright[x + y*w];
             int d = dark[x + y*w] - black_delta;
             
+#ifdef BLEND_LINEAR
+            double b = ((b0-black) / pow(2, corr_ev)) + black;
+            double k = (double)mix_curve[b0 & 16383] / FIXP_ONE;
+            double f = (double)fullres_curve[b0 & 16383] / FIXP_ONE;
+            double mixed = b * (1-k) + d * k;
+            double fullres = BRIGHT_ROW ? b : d;
+            double output = mixed * (1-f) + fullres * f;
+            raw_set_pixel(x, y, output + black_delta/8);
+#else
             /* go from linear to EV space */
             int bev = raw2ev[b0 & 16383];
             int dev = raw2ev[d & 16383];
@@ -1122,6 +1152,7 @@ static int hdr_interpolate()
             raw_set_pixel(x, y, ev2raw[output] + black_delta/8);
             
             /* fixme: why black_delta/8? it looks good for the Batman shot, but why? */
+#endif
         }
     }
 

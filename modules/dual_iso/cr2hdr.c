@@ -791,8 +791,15 @@ static int hdr_interpolate()
     for (i = 0; i < 16384; i++)
         raw2ev[i] = (int)round(log2(MAX(1, i - black)) * EV_RESOLUTION);
     for (i = 0; i < 14*EV_RESOLUTION; i++)
-        ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white),
+    {
+        ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white);
         ev2raw16[i] = COERCE(black*4 + pow(2, ((double)i/EV_RESOLUTION))*4.0, black*4, white*4);
+        if (i > raw2ev[white])
+        {
+            ev2raw[i] = white;
+            ev2raw16[i] = white * 4;
+        }
+    }
 
     /* first we need to know which lines are dark and which are bright */
     /* the pattern is not always the same, so we need to autodetect it */
@@ -1060,6 +1067,25 @@ static int hdr_interpolate()
             raw_set_pixel16(x, y, dark[x + y*w]);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("dark.dng");
+    int yb = 0;
+    int yd = h/2;
+    for (y = 0; y < h; y ++)
+    {
+        if (BRIGHT_ROW)
+        {
+            for (x = 0; x < w; x ++)
+                raw_set_pixel16(x, yb, bright[x + y*w]);
+            yb++;
+        }
+        else
+        {
+            for (x = 0; x < w; x ++)
+                raw_set_pixel16(x, yd, dark[x + y*w]);
+            yd++;
+        }
+    }
+    reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+    save_dng("split.dng");
 #endif
 
     /* estimate ISO and black difference between bright and dark exposures */
@@ -1114,13 +1140,13 @@ static int hdr_interpolate()
         double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
         double k = (c+1)/2;
         double f = 1 - pow(c, 4);
-        
-        /* this looks very ugly at iso > 1600 */
-        if (corr_ev > 4.5)
-            f = 0;
 
         if (ev < max_ev - overlap/2)
             f = f_shadow + f * (1 - f_shadow);
+
+        /* this looks very ugly at iso > 1600 */
+        if (corr_ev > 4.5)
+            f = 0;
 
         mix_curve[i] = FIXP_ONE * k;
         fullres_curve[i] = FIXP_ONE * f;
