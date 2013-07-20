@@ -34,6 +34,7 @@
 
 /* post interpolation enhancements */
 #define VERTICAL_SMOOTH
+#define CONTRAST_BLEND
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +221,7 @@ int main(int argc, char** argv)
         raw_info.jpeg.y = 0;
         raw_info.jpeg.width = raw_info.width - left_margin;
         raw_info.jpeg.height = raw_info.height - top_margin;
-        
+
         if (hdr_check())
         {
             white_detect();
@@ -719,14 +720,10 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 
 #ifdef INTERP_MEAN23
 #define INTERP_METHOD_NAME "mean23"
-#define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
-#define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
 #endif
 
 #ifdef INTERP_MEAN23_EDGE
 #define INTERP_METHOD_NAME "mean23-edge"
-#define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
-#define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
 
 #define interp6 median6
 /* median of 6 numbers */
@@ -746,13 +743,34 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
     int median = (x[2] + x[3]) / 2;
     return median;
 }
-
 #endif
 
-#define INTERP_POSTPROCESS ""
-#ifdef VERTICAL_SMOOTH
-#undef INTERP_POSTPROCESS
-#define INTERP_POSTPROCESS "-vsmooth3"
+#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
+static int mean2(int a, int b, int white, int* err)
+{
+    if (a >= white || b >= white)
+        return white;
+    
+    int m = (a + b) / 2;
+
+    if (err)
+        *err = MAX(ABS(a - m), ABS(b - m));
+
+    return m;
+}
+
+static int mean3(int a, int b, int c, int white, int* err)
+{
+    if (a >= white || b >= white || c >= white)
+        return white;
+
+    int m = (a + b + c) / 3;
+
+    if (err)
+        *err = MAX(MAX(ABS(a - m), ABS(b - m)), ABS(c - m));
+
+    return m;
+}
 #endif
 
 #define EV_RESOLUTION 2000
@@ -858,13 +876,25 @@ static int hdr_interpolate()
     CHECK(dark, "malloc");
     short* bright = malloc(w * h * sizeof(short));
     CHECK(bright, "malloc");
-
     memset(dark, 0, w * h * sizeof(short));
     memset(bright, 0, w * h * sizeof(short));
 
+    #ifdef CONTRAST_BLEND
+    short* contrast = malloc(w * h * sizeof(short));
+    CHECK(contrast, "malloc");
+    memset(contrast, 0, w * h * sizeof(short));
+    #endif
+
     #define BRIGHT_ROW (is_bright[y % 4])
     
-    printf("Interpolation  : %s%s\n", INTERP_METHOD_NAME, INTERP_POSTPROCESS);
+    printf("Interpolation  : %s\n", INTERP_METHOD_NAME
+        #ifdef VERTICAL_SMOOTH
+        "-vsmooth3"
+        #endif
+        #ifdef CONTRAST_BLEND
+        "-contrast"
+        #endif
+    );
 
 #if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
     for (y = 2; y < h-2; y ++)
@@ -883,35 +913,45 @@ static int hdr_interpolate()
             
             if (is_rg)
             {
-                int ra = raw_get_pixel16(x, y-2);
-                int rb = raw_get_pixel16(x, y+2);
-                int ri = (ra < white && rb < white) ? EV_MEAN2(ra, rb) : white;
+                int ra = raw_get_pixel(x, y-2);
+                int rb = raw_get_pixel(x, y+2);
+                int er=0; int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
                 
-                int ga = raw_get_pixel16(x+1+1, y+s);
-                int gb = raw_get_pixel16(x+1-1, y+s);
-                int gc = raw_get_pixel16(x+1, y-2*s);
-                int gi = (ga < white && gb < white && gc < white) ? EV_MEAN3(ga, gb, gc) : white;
+                int ga = raw_get_pixel(x+1+1, y+s);
+                int gb = raw_get_pixel(x+1-1, y+s);
+                int gc = raw_get_pixel(x+1, y-2*s);
+                int eg=0; int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], &eg);
 
-                interp[x   + y * w] = ri;
-                interp[x+1 + y * w] = gi;
+                interp[x   + y * w] = ev2raw[ri];
+                interp[x+1 + y * w] = ev2raw[gi];
+
+                #ifdef CONTRAST_BLEND
+                contrast[x   + y * w] = ABS(er);
+                contrast[x+1 + y * w] = ABS(eg);
+                #endif
             }
             else
             {
-                int ba = raw_get_pixel16(x+1  , y-2);
-                int bb = raw_get_pixel16(x+1  , y+2);
-                int bi = (ba < white && bb < white) ? EV_MEAN2(ba, bb) : white;
+                int ba = raw_get_pixel(x+1  , y-2);
+                int bb = raw_get_pixel(x+1  , y+2);
+                int eb=0; int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
 
-                int ga = raw_get_pixel16(x+1, y+s);
-                int gb = raw_get_pixel16(x-1, y+s);
-                int gc = raw_get_pixel16(x, y-2*s);
-                int gi = (ga < white && gb < white && gc < white) ? EV_MEAN3(ga, gb, gc) : white;
+                int ga = raw_get_pixel(x+1, y+s);
+                int gb = raw_get_pixel(x-1, y+s);
+                int gc = raw_get_pixel(x, y-2*s);
+                int eg=0; int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], &eg);
 
-                interp[x   + y * w] = gi;
-                interp[x+1 + y * w] = bi;
+                interp[x   + y * w] = ev2raw[gi];
+                interp[x+1 + y * w] = ev2raw[bi];
+                
+                #ifdef CONTRAST_BLEND
+                contrast[x   + y * w] = ABS(eg);
+                contrast[x+1 + y * w] = ABS(eb);
+                #endif
             }
 
-            native[x   + y * w] = raw_get_pixel16(x, y);
-            native[x+1 + y * w] = raw_get_pixel16(x+1, y);
+            native[x   + y * w] = raw_get_pixel(x, y);
+            native[x+1 + y * w] = raw_get_pixel(x+1, y);
         }
     }
 #else
@@ -1125,6 +1165,42 @@ static int hdr_interpolate()
     save_dng("split.dng");
 #endif
 
+#ifdef CONTRAST_BLEND
+    short* contrast_aux = malloc(w * h * sizeof(short));
+    CHECK(contrast_aux, "malloc");
+
+    memcpy(contrast_aux, contrast, w * h * sizeof(short));
+    
+    /* trial and error - too high = aliasing, too low = noisy */
+    int CONTRAST_MAX = 20000;
+    
+    /* gaussian blur */
+    static double blur[5][5] = {
+        {1.0000, 0.8007, 0.4111, 0.1353, 0.0286},
+        {0.8007, 0.6412, 0.3292, 0.1084, 0.0229},
+        {0.4111, 0.3292, 0.1690, 0.0556, 0.0117},
+        {0.1353, 0.1084, 0.0556, 0.0183, 0.0039},
+        {0.0286, 0.0229, 0.0117, 0.0039, 0.0008},
+    };
+    for (y = 4; y < h-4; y ++)
+    {
+        for (x = 4; x < w-4; x ++)
+        {
+            int dx, dy;
+            double c = 0;
+            for (dy = -4; dy <= 4; dy++)
+            {
+                for (dx = -4; dx <= 4; dx++)
+                {
+                    c += contrast_aux[x + dx + (y + dy) * w] * blur[ABS(dx)][ABS(dy)];
+                }
+            }
+            contrast[x + y * w] = COERCE(c, 0, CONTRAST_MAX);
+        }
+    }
+    free(contrast_aux);
+#endif
+
     /* estimate ISO and black difference between bright and dark exposures */
     float corr_ev = 0;
     int black_delta = 0;
@@ -1150,7 +1226,7 @@ static int hdr_interpolate()
 
     /* you get better colors, less noise, but a little more jagged edges if we underestimate the overlap amount */
     /* maybe expose a tuning factor? (preference towards resolution or colors) */
-    overlap -= MIN(1, overlap - 1);
+    overlap -= MIN(2, overlap - 2);
     
     printf("ISO overlap    : %.1f EV (approx)\n", overlap);
     
@@ -1164,9 +1240,6 @@ static int hdr_interpolate()
         printf("Overlap too small, use a smaller ISO difference for better results.\n");
     }
 
-    /* force full resolution recovery in shadows (1 = full res, 0 = use only high ISO) - reduces aliasing, but increases noise */
-    double f_shadow = 0.5;
-
     /* mixing curves */
     double max_ev = log2(white - black);
     static int mix_curve[16384];
@@ -1177,9 +1250,6 @@ static int hdr_interpolate()
         double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
         double k = (c+1)/2;
         double f = 1 - pow(c, 4);
-
-        if (ev < max_ev - overlap/2)
-            f = f_shadow + f * (1 - f_shadow);
 
         /* this looks very ugly at iso > 1600 */
         if (corr_ev > 4.5)
@@ -1247,22 +1317,37 @@ static int hdr_interpolate()
             int k = mix_curve[b0 & 16383];
             int f = fullres_curve[b0 & 16383];
 
-            /* beware of hot pixels */
-            int is_hot = (k > 0 && b0 < white && dev > bev + 2 * EV_RESOLUTION);
-            if (is_hot)
-            {
-                hot_pixels++;
-                k = f = 0;
-            }
-
             /* mix bright and dark exposures */
-            double mixed = (bsev*(FIXP_ONE-k) + dsev*k) / FIXP_ONE;
-            
+            double mixed_soft = (bsev*(FIXP_ONE-k) + dsev*k) / FIXP_ONE;
+            double mixed = (bev*(FIXP_ONE-k) + dev*k) / FIXP_ONE;
+
+            #ifdef CONTRAST_BLEND
+            int co = contrast[x + y*w];
+            co = co * MIN(d - black, 32) / 32;
+            double c = co / (double) CONTRAST_MAX;
+            c = (1 - cos(c * M_PI)) / 2;
+            #else
+            double c = 1;
+            #endif
+
+            mixed = mixed_soft * c + mixed * (1-c);
+
+            if (b0 < white && d < white)
+                f = MAX(f, c * FIXP_ONE / 2);
+
             /* recover the full resolution where possible */
             double fullres = BRIGHT_ROW ? bev : dev;
             
             /* blend "mixed" and "full-res" images smoothly to avoid banding*/
             int output = (mixed*(FIXP_ONE-f) + fullres*f) / FIXP_ONE;
+
+            /* beware of hot pixels */
+            int is_hot = ((k > 0 || f > 0) && (b0 < white) && (ABS(dev - bev) > (2+c) * EV_RESOLUTION));
+            if (is_hot)
+            {
+                hot_pixels++;
+                output = bev;
+            }
             
             /* safeguard */
             output = COERCE(output, 0, 14*EV_RESOLUTION-1);
@@ -1282,6 +1367,9 @@ static int hdr_interpolate()
 
     free(dark);
     free(bright);
+    #ifdef CONTRAST_BLEND
+    free(contrast);
+    #endif
     #ifdef VERTICAL_SMOOTH
     free(dark_smooth);
     free(bright_smooth);
@@ -1291,6 +1379,9 @@ static int hdr_interpolate()
 err:
     free(dark);
     free(bright);
+    #ifdef CONTRAST_BLEND
+    free(contrast);
+    #endif
     #ifdef VERTICAL_SMOOTH
     free(dark_smooth);
     free(bright_smooth);
