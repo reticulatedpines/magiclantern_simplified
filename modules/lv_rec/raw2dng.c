@@ -487,9 +487,11 @@ static void apply_vertical_stripes_correction()
 /** Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf */
 
 /* choose interpolation method (define only one of these) */
-#undef INTERP_MEAN_2RB_3G
+#define INTERP_MEAN23
 #undef INTERP_MEDIAN_6
-#define INTERP_MEAN23_EDGE
+
+/* post interpolation enhancements */
+#define VERTICAL_SMOOTH
 
 /* quick check to see if this looks like a HDR frame */
 static int hdr_check()
@@ -665,16 +667,21 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
     return 1;
 }
 
+#define INTERP_POSTPROCESS ""
 #ifdef INTERP_MEDIAN_6
 #define INTERP_METHOD_NAME "median6"
 #define interp6 median6
-#elif defined(INTERP_MEAN_2RB_3G)
-#define INTERP_METHOD_NAME "mean2rb3g"
-#elif defined(INTERP_MEAN23_EDGE)
-#define INTERP_METHOD_NAME "mean23-edge"
+#elif defined(INTERP_MEAN23)
+#define INTERP_METHOD_NAME "mean23"
 #define interp6 median6
 #endif
 
+#ifdef VERTICAL_SMOOTH
+#undef INTERP_POSTPROCESS
+#define INTERP_POSTPROCESS "-vsmooth3"
+#endif
+
+#ifdef INTERP_MEDIAN_6
 /* median of 6 numbers */
 static int median6(int a, int b, int c, int d, int e, int f, int white)
 {
@@ -692,6 +699,7 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
     int median = (x[2] + x[3]) / 2;
     return median;
 }
+#endif
 
 #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
 #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
@@ -781,9 +789,9 @@ static int hdr_interpolate()
     #define BRIGHT_ROW (is_bright[y % 4])
 
     if (first_frame)
-        printf("Interpolation  : %s\n", INTERP_METHOD_NAME);
+        printf("Interpolation  : %s%s\n", INTERP_METHOD_NAME, INTERP_POSTPROCESS);
 
-#if defined(INTERP_MEAN_2RB_3G) || defined(INTERP_MEAN23_EDGE)
+#if defined(INTERP_MEAN23)
     for (y = 2; y < h-2; y ++)
     {
         short* native = BRIGHT_ROW ? bright : dark;
@@ -864,77 +872,6 @@ static int hdr_interpolate()
     }
 #endif
 
-#ifdef INTERP_MEAN23_EDGE /* second step, for detecting edges */
-    for (y = 2; y < h-2; y ++)
-    {
-        short* interp = BRIGHT_ROW ? dark : bright;
-        
-        for (x = 2; x < w-2; x ++)
-        {
-            int Ra = raw_get_pixel(x, y-2);
-            int Rb = raw_get_pixel(x, y+2);
-            int Ral = raw_get_pixel(x-2, y-2);
-            int Rbl = raw_get_pixel(x-2, y+2);
-            int Rar = raw_get_pixel(x+2, y-2);
-            int Rbr = raw_get_pixel(x+2, y+2);
-            
-            int rae = raw2ev[Ra & 16383];
-            int rbe = raw2ev[Rb & 16383];
-            int rale = raw2ev[Ral & 16383];
-            int rble = raw2ev[Rbl & 16383];
-            int rare = raw2ev[Rar & 16383];
-            int rbre = raw2ev[Rbr & 16383];
-            int whitee = raw2ev[white];
-
-            /* median */
-            int ri = ev2raw[interp6(rae, rbe, rale, rble, rare, rbre, whitee)];
-            
-            /* mean23, computed at previous step */
-            int ri0 = interp[x + y * w];
-            
-            /* mean23 overexposed? use median without thinking twice */
-            if (ri0 >= white)
-            {
-                interp[x + y * w] = ri;
-                continue;
-            }
-            
-            int ri0e = raw2ev[ri0 & 16383];
-            
-            /* threshold for edges */
-            int thr = EV_RESOLUTION / 8;
-            
-            /* detect diagonal edge patterns, where median looks best:
-             *       
-             *       . . *          . * *           * * *
-             *         ?              ?               ?            and so on
-             *       * * *          * * *           * . . 
-             */
-            
-            if (rbe < ri0e - thr && rble < ri0e - thr && rbre < ri0e - thr) /* bottom dark */
-            {
-                if ((rale < ri0e - thr && rare > ri0e + thr) || (rare < ri0e - thr && rale > ri0e - thr))
-                    interp[x + y * w] = ri;
-            }
-            else if (rbe > ri0e + thr && rble > ri0e + thr && rbre > ri0e + thr) /* bottom bright */
-            {
-                if ((rale > ri0e + thr && rare < ri0e - thr) || (rare > ri0e + thr && rale < ri0e - thr))
-                    interp[x + y * w] = ri;
-            }
-            else if (rae < ri0e - thr && rale < ri0e - thr && rare < ri0e - thr) /* top dark */
-            {
-                if ((rble > ri0e + thr && rbre < ri0e - thr) || (rbre > ri0e + thr && rble < ri0e - thr))
-                    interp[x + y * w] = ri;
-            }
-            else if (rae > ri0e + thr && rale > ri0e + thr && rare > ri0e + thr) /* top bright */
-            {
-                if ((rble > ri0e + thr && rbre < ri0e - thr) || (rbre > ri0e + thr && rble < ri0e - thr))
-                    interp[x + y * w] = ri;
-            }
-        }
-    }
-#endif
-
     /* border interpolation */
     for (y = 0; y < 2; y ++)
     {
@@ -977,6 +914,34 @@ static int hdr_interpolate()
             native[x + y * w] = raw_get_pixel(x, y);
         }
     }
+
+#ifdef VERTICAL_SMOOTH
+    short* dark_smooth = malloc(w * h * sizeof(short));
+    CHECK(dark_smooth, "malloc");
+    short* bright_smooth = malloc(w * h * sizeof(short));
+    CHECK(bright_smooth, "malloc");
+
+    memcpy(dark_smooth, dark, w * h * sizeof(short));
+    memcpy(bright_smooth, bright, w * h * sizeof(short));
+    for (y = 4; y < h-4; y ++)
+    {
+        for (x = 2; x < w-2; x ++)
+        {
+            {
+                int a = bright[x + (y-2)*w];
+                int b = bright[x + (y  )*w];
+                int c = bright[x + (y+2)*w];
+                bright_smooth[x + y*w] = ev2raw[(raw2ev[a] + raw2ev[b] + raw2ev[b] + raw2ev[c]) / 4];
+            }
+            {
+                int a = dark[x + (y-2)*w];
+                int b = dark[x + (y  )*w];
+                int c = dark[x + (y+2)*w];
+                dark_smooth[x + y*w] = ev2raw[(raw2ev[a] + raw2ev[b] + raw2ev[b] + raw2ev[c]) / 4];
+            }
+        }
+    }
+#endif
 
     /* estimate ISO and black difference between bright and dark exposures */
     static float corr_ev = 0;
@@ -1107,22 +1072,24 @@ static int hdr_interpolate()
             /* they may be real or interpolated */
             int b0 = bright[x + y*w];
             int d = dark[x + y*w] - black_delta;
-            
-#ifdef BLEND_LINEAR
-            double b = ((b0-black) / pow(2, corr_ev)) + black;
-            double k = (double)mix_curve[b0 & 16383] / FIXP_ONE;
-            double f = (double)fullres_curve[b0 & 16383] / FIXP_ONE;
-            double mixed = b * (1-k) + d * k;
-            double fullres = BRIGHT_ROW ? b : d;
-            double output = mixed * (1-f) + fullres * f;
-            raw_set_pixel(x, y, output + black_delta/8);
-#else
+
+            #ifdef VERTICAL_SMOOTH
+            int b0s = bright_smooth[x + y*w];
+            int ds = dark_smooth[x + y*w] - black_delta;
+            #else
+            int b0s = b0;
+            int ds = d;
+            #endif
+
             /* go from linear to EV space */
             int bev = raw2ev[b0 & 16383];
             int dev = raw2ev[d & 16383];
-            
+            int bsev = raw2ev[b0s & 16383];
+            int dsev = raw2ev[ds & 16383];
+
             /* darken bright pixel so it looks like its darker sibling  */
             bev -= corr;
+            bsev -= corr;
             
             /* blending factors */
             int k = mix_curve[b0 & 16383];
@@ -1137,7 +1104,7 @@ static int hdr_interpolate()
             }
 
             /* mix bright and dark exposures */
-            double mixed = (bev*(FIXP_ONE-k) + dev*k) / FIXP_ONE;
+            double mixed = (bsev*(FIXP_ONE-k) + dsev*k) / FIXP_ONE;
             
             /* recover the full resolution where possible */
             double fullres = BRIGHT_ROW ? bev : dev;
@@ -1152,7 +1119,6 @@ static int hdr_interpolate()
             raw_set_pixel(x, y, ev2raw[output] + black_delta/8);
             
             /* fixme: why black_delta/8? it looks good for the Batman shot, but why? */
-#endif
         }
     }
 
@@ -1165,13 +1131,20 @@ static int hdr_interpolate()
     }
 
     first_frame = 0;
-    free(dark);
-    free(bright);
+
+    #ifdef VERTICAL_SMOOTH
+    free(dark_smooth);
+    free(bright_smooth);
+    #endif
     return 1;
 
 err:
     free(dark);
     free(bright);
+    #ifdef VERTICAL_SMOOTH
+    free(dark_smooth);
+    free(bright_smooth);
+    #endif
     return 0;
 }
 

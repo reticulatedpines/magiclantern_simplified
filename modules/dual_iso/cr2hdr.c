@@ -25,12 +25,15 @@
  */
 
 /* choose interpolation method (define only one of these) */
-#undef INTERP_MEAN_2RB_3G
+#define INTERP_MEAN23
 #undef INTERP_MEAN_6
 #undef INTERP_MEAN_4_OUT_OF_6
 #undef INTERP_MEAN_5_OUT_OF_6
 #undef INTERP_MEDIAN_6
-#define INTERP_MEAN23_EDGE
+#undef INTERP_MEAN23_EDGE
+
+/* post interpolation enhancements */
+#define VERTICAL_SMOOTH
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -714,8 +717,8 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 }
 #endif
 
-#ifdef INTERP_MEAN_2RB_3G
-#define INTERP_METHOD_NAME "mean2rb3g"
+#ifdef INTERP_MEAN23
+#define INTERP_METHOD_NAME "mean23"
 #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
 #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
 #endif
@@ -744,6 +747,12 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
     return median;
 }
 
+#endif
+
+#define INTERP_POSTPROCESS ""
+#ifdef VERTICAL_SMOOTH
+#undef INTERP_POSTPROCESS
+#define INTERP_POSTPROCESS "-vsmooth3"
 #endif
 
 #define EV_RESOLUTION 2000
@@ -855,9 +864,9 @@ static int hdr_interpolate()
 
     #define BRIGHT_ROW (is_bright[y % 4])
     
-    printf("Interpolation  : %s\n", INTERP_METHOD_NAME);
+    printf("Interpolation  : %s%s\n", INTERP_METHOD_NAME, INTERP_POSTPROCESS);
 
-#if defined(INTERP_MEAN_2RB_3G) || defined(INTERP_MEAN23_EDGE)
+#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
     for (y = 2; y < h-2; y ++)
     {
         short* native = BRIGHT_ROW ? bright : dark;
@@ -1052,6 +1061,34 @@ static int hdr_interpolate()
         }
     }
 
+#ifdef VERTICAL_SMOOTH
+    short* dark_smooth = malloc(w * h * sizeof(short));
+    CHECK(dark_smooth, "malloc");
+    short* bright_smooth = malloc(w * h * sizeof(short));
+    CHECK(bright_smooth, "malloc");
+
+    memcpy(dark_smooth, dark, w * h * sizeof(short));
+    memcpy(bright_smooth, bright, w * h * sizeof(short));
+    for (y = 4; y < h-4; y ++)
+    {
+        for (x = 2; x < w-2; x ++)
+        {
+            {
+                int a = bright[x + (y-2)*w];
+                int b = bright[x + (y  )*w];
+                int c = bright[x + (y+2)*w];
+                bright_smooth[x + y*w] = ev2raw[(raw2ev[a] + raw2ev[b] + raw2ev[b] + raw2ev[c]) / 4];
+            }
+            {
+                int a = dark[x + (y-2)*w];
+                int b = dark[x + (y  )*w];
+                int c = dark[x + (y+2)*w];
+                dark_smooth[x + y*w] = ev2raw[(raw2ev[a] + raw2ev[b] + raw2ev[b] + raw2ev[c]) / 4];
+            }
+        }
+    }
+#endif
+
 #if 0 /* for debugging only */
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("normal.dng");
@@ -1187,14 +1224,25 @@ static int hdr_interpolate()
             /* they may be real or interpolated */
             int b0 = bright[x + y*w];
             int d = dark[x + y*w] - black_delta;
-            
+
+            #ifdef VERTICAL_SMOOTH
+            int b0s = bright_smooth[x + y*w];
+            int ds = dark_smooth[x + y*w] - black_delta;
+            #else
+            int b0s = b0;
+            int ds = d;
+            #endif
+
             /* go from linear to EV space */
             int bev = raw2ev[b0 & 16383];
             int dev = raw2ev[d & 16383];
-            
+            int bsev = raw2ev[b0s & 16383];
+            int dsev = raw2ev[ds & 16383];
+
             /* darken bright pixel so it looks like its darker sibling  */
             bev -= corr;
-            
+            bsev -= corr;
+
             /* blending factors */
             int k = mix_curve[b0 & 16383];
             int f = fullres_curve[b0 & 16383];
@@ -1208,7 +1256,7 @@ static int hdr_interpolate()
             }
 
             /* mix bright and dark exposures */
-            double mixed = (bev*(FIXP_ONE-k) + dev*k) / FIXP_ONE;
+            double mixed = (bsev*(FIXP_ONE-k) + dsev*k) / FIXP_ONE;
             
             /* recover the full resolution where possible */
             double fullres = BRIGHT_ROW ? bev : dev;
@@ -1234,10 +1282,18 @@ static int hdr_interpolate()
 
     free(dark);
     free(bright);
+    #ifdef VERTICAL_SMOOTH
+    free(dark_smooth);
+    free(bright_smooth);
+    #endif
     return 1;
 
 err:
     free(dark);
     free(bright);
+    #ifdef VERTICAL_SMOOTH
+    free(dark_smooth);
+    free(bright_smooth);
+    #endif
     return 0;
 }
