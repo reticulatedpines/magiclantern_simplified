@@ -606,6 +606,10 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
                 num_medians++;
             }
             free(aux);
+
+            /* no more useful data beyond this point */
+            if (m >= white - 1000)
+                break;
         }
         
         i = j;

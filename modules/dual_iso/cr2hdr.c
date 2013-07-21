@@ -225,35 +225,37 @@ int main(int argc, char** argv)
         if (hdr_check())
         {
             white_detect();
-            int ok = 0;
-            ok = black_subtract(left_margin, top_margin);
-            if (!ok)
+            if (!black_subtract(left_margin, top_margin))
                 printf("Black subtract didn't work\n");
-            ok = hdr_interpolate();
-            CHECK(ok, "hdr_interpolate");
+            if (hdr_interpolate())
+            {
+                char out_filename[1000];
+                snprintf(out_filename, sizeof(out_filename), "%s", filename);
+                int len = strlen(out_filename);
+                out_filename[len-3] = 'D';
+                out_filename[len-2] = 'N';
+                out_filename[len-1] = 'G';
 
-            char out_filename[1000];
-            snprintf(out_filename, sizeof(out_filename), "%s", filename);
-            int len = strlen(out_filename);
-            out_filename[len-3] = 'D';
-            out_filename[len-2] = 'N';
-            out_filename[len-1] = 'G';
+                raw_info.black_level *= 4;
+                raw_info.white_level *= 4;
+                reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
-            raw_info.black_level *= 4;
-            raw_info.white_level *= 4;
-            reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+                printf("Output file    : %s\n", out_filename);
+                save_dng(out_filename);
 
-            printf("Output file    : %s\n", out_filename);
-            save_dng(out_filename);
+                raw_info.black_level /= 4;
+                raw_info.white_level /= 4;
 
-            raw_info.black_level /= 4;
-            raw_info.white_level /= 4;
-
-            char exif_cmd[100];
-            snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" \"%s\" -overwrite_original", filename, out_filename);
-            int r = system(exif_cmd);
-            if (r != 0)
-                printf("Exiftool didn't work\n");
+                char exif_cmd[100];
+                snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" \"%s\" -overwrite_original", filename, out_filename);
+                int r = system(exif_cmd);
+                if (r != 0)
+                    printf("Exiftool didn't work\n");
+            }
+            else
+            {
+                printf("ISO blending didn't work\n");
+            }
         }
         else
         {
@@ -426,6 +428,7 @@ static int black_subtract(int left_margin, int top_margin)
             int black_delta = raw_info.black_level - blackframe[x + y*w];
             p += black_delta;
             p = p * raw_info.white_level / (raw_info.white_level + black_delta);
+            p = COERCE(p, 0, 16383);
             raw_set_pixel16(x, y, p);
         }
     }
@@ -550,6 +553,10 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
                 num_medians++;
             }
             free(aux);
+            
+            /* no more useful data beyond this point */
+            if (m >= white - 1000)
+                break;
         }
         
         i = j;
@@ -903,7 +910,7 @@ static int hdr_interpolate()
         short* interp = BRIGHT_ROW ? dark : bright;
         int is_rg = (y % 2 == 0); /* RG or GB? */
         
-        for (x = 2; x < w-2; x += 2)
+        for (x = 2; x < w-3; x += 2)
         {
         
             /* red/blue: interpolate from (x,y+2) and (x,y-2) */
