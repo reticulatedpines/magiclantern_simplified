@@ -254,3 +254,9 @@
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
+
+
+#define DISPLAY_ORIENTATION MEM(0x65AF0+0xB4) // read-only; string: UpdateReverseTFT.
+
+#define IMGPLAY_ZOOM_POS_DELTA_Y 0
+#define IMGPLAY_ZOOM_POS_DELTA_X 0

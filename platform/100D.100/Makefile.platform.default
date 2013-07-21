@@ -1,16 +1,12 @@
 #Makefile.setup.platform for 100D
 
-
-
-# Definitions for version unkown
 ifeq ($(FW_VERSION),100)
-
 CANON_NAME_FIR=5D300113.FIR
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF0C0000
+ROMBASEADDR	    = 0xFF0C0000
 RESTARTSTART	= 0x000C5400
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120

@@ -1,17 +1,13 @@
+#Makefile for 100D
 
-ML_BITRATE_OBJ = bitrate-6d.o
-ML_AF_PATTERNS_OBJ = n
-ML_BOOTFLAGS_OBJ = n
+# compile position independent (experimental)
+CONFIG_PIC=n
 
 ML_SRC_EXTRA_OBJS = \
-	video_hacks.o \
 	misc.o \
-	ph_info_disp.o \
-	flexinfo.o \
-	afma.o \
-	raw.o \
-	chdk-dng.o \
-	edmac-memcpy.o \
-	asm.o \
+#	ph_info_disp.o \
+#	flexinfo.o \
+#	raw.o \
+#	chdk-dng.o \
+#	edmac-memcpy.o \
 
-CFLAGS += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1

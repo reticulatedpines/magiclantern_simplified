@@ -1,4 +1,4 @@
-// misc functions specific to 60D/109
+// misc functions specific to 700D
 
 #include <dryos.h>
 #include <property.h>
@@ -6,16 +6,13 @@
 #include <config.h>
 #include <consts.h>
 #include <lens.h>
-#include <version.h>
 
-// gcc mempcy has odd alignment issues?
-void
-my_memcpy(
-    void *       dest,
-    const void *     src,
-    size_t          len
-)
-{
-    while( len-- > 0 )
-        *(uint8_t*)dest++ = *(const uint8_t*)src++;
-}
+int new_LiveViewApp_handler = 0xff123456;
+
+
+
+// dummy stubs
+int lcd_release_running = 0;
+void lcd_release_step() {};
+int get_lcd_sensor_shortcuts() { return 0; }
+void display_lcd_remote_icon(int x0, int y0) {}

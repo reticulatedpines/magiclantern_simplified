@@ -1,31 +1,44 @@
+/*
+ * Just a copy of the 650D stuff. Indented = WRONG
+ */
+
 #include "all_features.h"
 
-#undef FEATURE_IMAGE_REVIEW_PLAY // not needed, one can press Zoom right away
-#undef FEATURE_QUICK_ZOOM // Canon has it
-#undef FEATURE_QUICK_ERASE // Canon has it
-#undef FEATURE_IMAGE_EFFECTS // none working
-#undef FEATURE_MOVIE_REC_KEY // Canon has it
-#undef FEATURE_NITRATE_WAV_RECORD // not implemented
-#undef FEATURE_AF_PATTERNS // Canon has it
-#undef FEATURE_MLU_HANDHELD // not needed, Canon's silent mode is much better
-#undef FEATURE_SHUTTER_LOCK // Canon has a dedicated button for it
-#undef FEATURE_FLASH_TWEAKS // no built-in flash
+//~ #define FEATURE_LV_3RD_PARTY_FLASH // requires props
+#define FEATURE_EYEFI_TRICKS
 
-//~ #define FEATURE_ISR_HOOKS // doesn't compile
-#define FEATURE_KEN_ROCKWELL_ZOOM_5D3
-#define FEATURE_ZOOM_TRICK_5D3 // not reliable
-//~ #define FEATURE_REMEMBER_LAST_ZOOM_POS_5D3 // too many conflicts with other features
-#undef FEATURE_IMAGE_POSITION
+// Disable all audio stuff
+#undef FEATURE_WAV_RECORDING
+#undef FEATURE_FPS_WAV_RECORD
+#undef FEATURE_BEEP
+#undef FEATURE_VOICE_TAGS
+#undef FEATURE_AUDIO_REMOTE_SHOT
+#undef FEATURE_AUDIO_METERS
 
+#undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
 
-#undef FEATURE_LV_ZOOM_AUTO_EXPOSURE // seems to cause black pictures
+#undef FEATURE_ARROW_SHORTCUTS
 
-//~ #define FEATURE_VIDEO_HACKS
+// Not working :(
+#undef FEATURE_IMAGE_EFFECTS
+#undef FEATURE_DEFISHING_PREVIEW
+#undef FEATURE_ANAMORPHIC_PREVIEW
 
-#define FEATURE_AFMA_TUNING
+#undef FEATURE_LV_BUTTON_PROTECT
+#undef FEATURE_LV_BUTTON_RATE
 
-#undef FEATURE_VOICE_TAGS // no sound recorded
+#undef FEATURE_TRAP_FOCUS
 
-#define FEATURE_JOY_CENTER_ACTIONS 
+// Glitchy
+#undef FEATURE_STICKY_DOF
+#undef FEATURE_STICKY_HALFSHUTTER
+//~ #undef FLEXINFO_DEVELOPER_MENU - disable from flexinfo.h
 
-#define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+#define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
+//~ #define FEATURE_SHOW_SIGNATURE
+//~ #define FEATURE_SHOW_STATE_FPS
+#define FEATURE_FOCUS_PEAK_DISP_FILTER
+
+//edit by Science
+#undef FEATURE_SILENT_PIC
+#undef CONFIG_STATE_OBJECT_HOOKS

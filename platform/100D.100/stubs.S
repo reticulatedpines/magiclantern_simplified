@@ -68,6 +68,7 @@ NSTUB(0xFF33E500,  FIO_ReadFile)
 NSTUB(0xFF33E6A0,  FIO_WriteFile)
 NSTUB(0xFF33E8CC,  FIO_GetFileSize)
 NSTUB(0xFF33E458,  FIO_RemoveFile)
+NSTUB(0xFF33EDE4,  FIO_RenameFile)
 NSTUB(0xFF33EFAC,  FIO_CreateDirectory)
 NSTUB(0xFF33F328,  FIO_FindFirstEx)
 NSTUB(0xFF33F668,  FIO_FindNextEx)
@@ -234,6 +235,14 @@ NSTUB(0xFF64BB20, cfReadBlk)
 NSTUB(0xFF652028, sdReadBlk)
 NSTUB(   0x7FB50, sd_device)
 NSTUB(0xFF4F64AC, fsuDecodePartitionTable) // AJ_fsuGetPart_related
+
+NSTUB(0xFF2B11EC, mvrFixQScale)
+NSTUB(0x6BCE4, mvr_config)
+NSTUB(0xFF2B0CE4, mvrSetDefQScale)
+NSTUB(0xFF139008, NormalDisplay)
+NSTUB(0xFF138FCC, MirrorDisplay)
+NSTUB(0xFF138F90, ReverseDisplay)
+NSTUB(0xFF70B978, LiveViewShutterApp_handler)
 
 
 /** EVERYTHING BELOW IS UNTOUCHED FROM 5D3 **/
