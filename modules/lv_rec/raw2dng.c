@@ -1002,26 +1002,21 @@ static int hdr_interpolate()
     int CONTRAST_MAX = 20000;
     
     /* gaussian blur */
-    static double blur[5][5] = {
-        {1.0000, 0.8007, 0.4111, 0.1353, 0.0286},
-        {0.8007, 0.6412, 0.3292, 0.1084, 0.0229},
-        {0.4111, 0.3292, 0.1690, 0.0556, 0.0117},
-        {0.1353, 0.1084, 0.0556, 0.0183, 0.0039},
-        {0.0286, 0.0229, 0.0117, 0.0039, 0.0008},
-    };
     for (y = 4; y < h-4; y ++)
     {
         for (x = 4; x < w-4; x ++)
         {
-            int dx, dy;
-            double c = 0;
-            for (dy = -4; dy <= 4; dy++)
-            {
-                for (dx = -4; dx <= 4; dx++)
-                {
-                    c += contrast_aux[x + dx + (y + dy) * w] * blur[ABS(dx)][ABS(dy)];
-                }
-            }
+            /* optimizing... the brute force way */
+            int c = 
+                (contrast_aux[x+0 + (y+0) * w])+ 
+                (contrast_aux[x+0 + (y-1) * w] + contrast_aux[x-1 + (y+0) * w] + contrast_aux[x+1 + (y+0) * w] + contrast_aux[x+0 + (y+1) * w]) * 820 / 1024 + 
+                (contrast_aux[x-1 + (y-1) * w] + contrast_aux[x+1 + (y-1) * w] + contrast_aux[x-1 + (y+1) * w] + contrast_aux[x+1 + (y+1) * w]) * 657 / 1024 + 
+                (contrast_aux[x+0 + (y-2) * w] + contrast_aux[x-2 + (y+0) * w] + contrast_aux[x+2 + (y+0) * w] + contrast_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
+                (contrast_aux[x-1 + (y-2) * w] + contrast_aux[x+1 + (y-2) * w] + contrast_aux[x-2 + (y-1) * w] + contrast_aux[x+2 + (y-1) * w] + contrast_aux[x-2 + (y+1) * w] + contrast_aux[x+2 + (y+1) * w] + contrast_aux[x-1 + (y+2) * w] + contrast_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
+                (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
+                (contrast_aux[x+0 + (y-3) * w] + contrast_aux[x-3 + (y+0) * w] + contrast_aux[x+3 + (y+0) * w] + contrast_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
+                (contrast_aux[x-1 + (y-3) * w] + contrast_aux[x+1 + (y-3) * w] + contrast_aux[x-3 + (y-1) * w] + contrast_aux[x+3 + (y-1) * w] + contrast_aux[x-3 + (y+1) * w] + contrast_aux[x+3 + (y+1) * w] + contrast_aux[x-1 + (y+3) * w] + contrast_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
+                (contrast_aux[x-2 + (y-3) * w] + contrast_aux[x+2 + (y-3) * w] + contrast_aux[x-3 + (y-2) * w] + contrast_aux[x+3 + (y-2) * w] + contrast_aux[x-3 + (y+2) * w] + contrast_aux[x+3 + (y+2) * w] + contrast_aux[x-2 + (y+3) * w] + contrast_aux[x+2 + (y+3) * w]) * 57 / 1024;
             contrast[x + y * w] = COERCE(c, 0, CONTRAST_MAX);
         }
     }
