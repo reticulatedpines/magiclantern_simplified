@@ -828,7 +828,7 @@ static int hdr_interpolate()
     {
         ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white);
         ev2raw16[i] = COERCE(black*4 + pow(2, ((double)i/EV_RESOLUTION))*4.0, black*4, white*4);
-        if (i > raw2ev[white])
+        if (i >= raw2ev[white])
         {
             ev2raw[i] = white;
             ev2raw16[i] = white * 4;
@@ -889,7 +889,10 @@ static int hdr_interpolate()
     #ifdef CONTRAST_BLEND
     short* contrast = malloc(w * h * sizeof(short));
     CHECK(contrast, "malloc");
+    short* overexposed = malloc(w * h * sizeof(short));
+    CHECK(overexposed, "malloc");
     memset(contrast, 0, w * h * sizeof(short));
+    memset(overexposed, 0, w * h * sizeof(short));
     #endif
 
     #define BRIGHT_ROW (is_bright[y % 4])
@@ -1182,9 +1185,9 @@ static int hdr_interpolate()
     int CONTRAST_MAX = 20000;
     
     /* gaussian blur */
-    for (y = 4; y < h-4; y ++)
+    for (y = 3; y < h-3; y ++)
     {
-        for (x = 4; x < w-4; x ++)
+        for (x = 3; x < w-3; x ++)
         {
 
 /* code generation
@@ -1229,6 +1232,36 @@ static int hdr_interpolate()
             contrast[x + y * w] = COERCE(c, 0, CONTRAST_MAX);
         }
     }
+
+    /* where the image is overexposed? */
+    for (y = 0; y < h; y ++)
+    {
+        for (x = 0; x < w; x ++)
+        {
+            overexposed[x + y * w] = bright[x + y * w] >= white ? 100 : 0;
+        }
+    }
+    
+    /* "blur" the overexposed map */
+    memcpy(contrast_aux, overexposed, w * h * sizeof(short));
+
+    for (y = 3; y < h-3; y ++)
+    {
+        for (x = 3; x < w-3; x ++)
+        {
+            overexposed[x + y * w] = 
+                (contrast_aux[x+0 + (y+0) * w])+ 
+                (contrast_aux[x+0 + (y-1) * w] + contrast_aux[x-1 + (y+0) * w] + contrast_aux[x+1 + (y+0) * w] + contrast_aux[x+0 + (y+1) * w]) * 820 / 1024 + 
+                (contrast_aux[x-1 + (y-1) * w] + contrast_aux[x+1 + (y-1) * w] + contrast_aux[x-1 + (y+1) * w] + contrast_aux[x+1 + (y+1) * w]) * 657 / 1024 + 
+                (contrast_aux[x+0 + (y-2) * w] + contrast_aux[x-2 + (y+0) * w] + contrast_aux[x+2 + (y+0) * w] + contrast_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
+                (contrast_aux[x-1 + (y-2) * w] + contrast_aux[x+1 + (y-2) * w] + contrast_aux[x-2 + (y-1) * w] + contrast_aux[x+2 + (y-1) * w] + contrast_aux[x-2 + (y+1) * w] + contrast_aux[x+2 + (y+1) * w] + contrast_aux[x-1 + (y+2) * w] + contrast_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
+                (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
+                (contrast_aux[x+0 + (y-3) * w] + contrast_aux[x-3 + (y+0) * w] + contrast_aux[x+3 + (y+0) * w] + contrast_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
+                (contrast_aux[x-1 + (y-3) * w] + contrast_aux[x+1 + (y-3) * w] + contrast_aux[x-3 + (y-1) * w] + contrast_aux[x+3 + (y-1) * w] + contrast_aux[x-3 + (y+1) * w] + contrast_aux[x+3 + (y+1) * w] + contrast_aux[x-1 + (y+3) * w] + contrast_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
+                (contrast_aux[x-2 + (y-3) * w] + contrast_aux[x+2 + (y-3) * w] + contrast_aux[x-3 + (y-2) * w] + contrast_aux[x+3 + (y-2) * w] + contrast_aux[x-3 + (y+2) * w] + contrast_aux[x+3 + (y+2) * w] + contrast_aux[x-2 + (y+3) * w] + contrast_aux[x+2 + (y+3) * w]) * 57 / 1024;
+        }
+    }
+
     free(contrast_aux);
 #endif
 
@@ -1355,16 +1388,20 @@ static int hdr_interpolate()
             #ifdef CONTRAST_BLEND
             int co = contrast[x + y*w];
             co = co * MIN(d - black, 32) / 32;
-            double c = co / (double) CONTRAST_MAX;
-            c = (1 - cos(c * M_PI)) / 2;
+            double c = COERCE(co / (double) CONTRAST_MAX, 0, 1);
+            double ovf = COERCE(overexposed[x + y*w] / 200.0, 0, 1);
+            c = MAX(c, ovf);
             #else
             double c = 1;
             #endif
-
+            
             mixed = mixed_soft * c + mixed * (1-c);
 
-            if (b0 < white && d < white)
-                f = MAX(f, c * FIXP_ONE / 2);
+            /* use data from both ISOs in high-detail areas, even if it's noisier (less aliasing) */
+            f = MAX(f, c * FIXP_ONE * 3 / 4);
+            
+            /* don't use full resolution in near-overexposed areas */
+            f = f * (1 - ovf) * (1 - ovf);
 
             /* recover the full resolution where possible */
             double fullres = BRIGHT_ROW ? bev : dev;
