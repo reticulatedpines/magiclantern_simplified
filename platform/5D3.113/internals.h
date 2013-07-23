@@ -135,3 +135,9 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/** Zoom on half-shutter may cause black pictures.
+ *  Workaround: block the shutter button while switching zoom, to avoid the race condition
+ *  todo: find a proper fix that does not prevent picture taking
+ */
+#define CONFIG_ZOOM_HALFSHUTTER_UILOCK

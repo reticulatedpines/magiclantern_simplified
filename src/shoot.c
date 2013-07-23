@@ -762,11 +762,18 @@ void set_lv_zoom(int zoom)
     if (is_movie_mode() && video_mode_crop) return;
     zoom = COERCE(zoom, 1, 10);
     if (zoom > 1 && zoom < 10) zoom = 5;
-    
+
+    #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
+    int hs = get_halfshutter_pressed();
+    if (hs) SW1(0,0);
     ui_lock(UILOCK_EVERYTHING);
+    #endif
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
     msleep(200);
+    #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
     ui_lock(UILOCK_NONE);
+    if (hs) SW1(1,0);
+    #endif
 }
 
 int get_mlu_delay(int raw)
@@ -3061,7 +3068,9 @@ static void zoom_halfshutter_step()
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1)
         {
-            msleep(100);
+            #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
+            msleep(200);
+            #endif
             if (hs && lv_dispsize == 1)
             {
                 zoom_was_triggered_by_halfshutter = 1;
