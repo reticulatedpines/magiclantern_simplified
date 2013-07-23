@@ -223,7 +223,7 @@ void hist_draw_image(
 #endif /* defined(FEATURE_FALSE_COLOR) */
         }
 
-#if defined(FEATURE_HISTORGRAM)
+#if defined(FEATURE_HISTOGRAM)
         if (hist_warn && i == HIST_WIDTH - 1)
         {
             unsigned int thr = histogram.total_px / 100000; // start at 0.0001 with a tiny dot
