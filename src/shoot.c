@@ -739,6 +739,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 }
 
 static int zoom_was_triggered_by_halfshutter = 0;
+static int lv_zoom_ack = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
@@ -752,6 +753,7 @@ ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
     zoom_auto_exposure_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
+    lv_zoom_ack = 1;
 }
 #endif // FEATURE_LV_ZOOM_SETTINGS
 
@@ -768,12 +770,14 @@ void set_lv_zoom(int zoom)
     if (hs) SW1(0,0);
     ui_lock(UILOCK_EVERYTHING);
     #endif
+    lv_zoom_ack = 0;
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-    msleep(200);
+    while (!lv_zoom_ack) msleep(10);
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
     ui_lock(UILOCK_NONE);
     if (hs) SW1(1,0);
     #endif
+    msleep(150);
 }
 
 int get_mlu_delay(int raw)
@@ -3066,12 +3070,15 @@ static void zoom_halfshutter_step()
     if (zoom_halfshutter && is_manual_focus())
     {
         int hs = get_halfshutter_pressed();
-        if (hs && lv_dispsize == 1)
+        if (hs && lv_dispsize == 1 && display_idle())
         {
             #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
             msleep(200);
+            #else
+            msleep(50);
             #endif
-            if (hs && lv_dispsize == 1)
+            int hs2 = get_halfshutter_pressed();
+            if (hs2 && lv_dispsize == 1 && display_idle())
             {
                 zoom_was_triggered_by_halfshutter = 1;
                 int zoom = zoom_disable_x10 ? 5 : 10;
