@@ -399,12 +399,16 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
 
 static unsigned int isoless_auto_step(unsigned int ctx)
 {
-    if (ISOLESS_AUTO && lv && !recording)
+    if (ISOLESS_AUTO && lv && !recording && lv_dispsize == 1 && !is_movie_mode())
     {
+        static int aux = INT_MIN;
+        if (!should_run_polling_action(200, &aux))
+            return;
+        
         raw_lv_request();
         
         /* target: 5% percentile above (DR-3) EV */
-        int p = raw_hist_get_percentile_level(50, GRAY_PROJECTION_AVERAGE_RGB, 2);
+        int p = raw_hist_get_percentile_level(50, GRAY_PROJECTION_AVERAGE_RGB, 4);
         float ev = raw_to_ev(p);
         
         int dxo_dr = get_dxo_dynamic_range(lens_info.raw_iso);
@@ -426,6 +430,14 @@ static unsigned int isoless_auto_step(unsigned int ctx)
             isoless_auto_iso_index = canon_iso_index + MAX(under, 0);
         }
         
+        /* hacked status display */
+        if (zebra_should_run())
+        {
+            int iso1 = 72 + isoless_recovery_iso_index() * 8;
+            bmp_printf(FONT(FONT_MED, COLOR_WHITE, bmp_getpixel(359, os.y_max - 30)), 360, os.y_max - 33, "     ");
+            bmp_printf(SHADOW_FONT(FONT_MED), 360, os.y_max - 33, "/%d ", raw2iso(iso1));
+        }
+        
         raw_lv_release();
     }
 }
@@ -445,7 +457,7 @@ static MENU_UPDATE_FUNC(isoless_check)
     {
         int dxo_dr = get_dxo_dynamic_range(lens_info.raw_iso);
         int target_ev = -((dxo_dr + 50) / 100 - 3);
-        if (!lv) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto option only works in LiveView.");
+        if (!lv || is_movie_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto option only works in photo mode LiveView.");
         else MENU_SET_WARNING(MENU_WARN_INFO, "Auto shadow recovery: 5th percentile at %d EV.", target_ev);
     }
 
@@ -641,7 +653,7 @@ MODULE_STRINGS_END()
 MODULE_CBRS_START()
     MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, 0)
     MODULE_CBR(CBR_SECONDS_CLOCK, isoless_playback_fix, 0)
-    MODULE_CBR(CBR_SECONDS_CLOCK, isoless_auto_step, 0)
+    MODULE_CBR(CBR_SHOOT_TASK, isoless_auto_step, 0)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
