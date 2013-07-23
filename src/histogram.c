@@ -34,14 +34,19 @@ struct Histogram histogram;
 #define HIST_METER_DYNAMIC_RANGE 1
 #define HIST_METER_ETTR_HINT 2
 
-void hist_build_raw()
+void FAST hist_build_raw()
 {
     if (!raw_update_params()) return;
 
     memset(&histogram, 0, sizeof(histogram));
     histogram.is_raw = 1;
     
-    int step = lv ? 8 : 4;
+    int step = lv ? 4 : 2;
+    
+    /* only show a 12-bit hisogram, since the rest is just noise */
+    char r2ev[4096];
+    for (int i = 0; i < 4095; i++)
+        r2ev[i] = COERCE((raw_to_ev(i*4) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
 
     for (int i = os.y0; i < os.y_max; i += step)
     {
@@ -57,10 +62,9 @@ void hist_build_raw()
             int g = raw_green_pixel_dark(x, y);
             int b = raw_blue_pixel_dark(x, y);
 
-            /* only show a 12-bit hisogram, since the rest is just noise */
-            int ir = COERCE((raw_to_ev(r) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ig = COERCE((raw_to_ev(g) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ib = COERCE((raw_to_ev(b) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+            int ir = r2ev[(r>>2) & 4095];
+            int ig = r2ev[(g>>2) & 4095];
+            int ib = r2ev[(b>>2) & 4095];
             histogram.hist_r[ir]++;
             histogram.hist_g[ig]++;
             histogram.hist_b[ib]++;

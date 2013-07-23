@@ -867,7 +867,7 @@ int can_use_raw_overlays_menu()
 
 static CONFIG_INT("raw.zebra", raw_zebra_enable, 1);
 
-static void draw_zebras_raw()
+static void FAST draw_zebras_raw()
 {
     if (!raw_update_params()) return;
 
@@ -926,6 +926,8 @@ static void draw_zebras_raw()
                 #undef BP
             }
         }
+
+        if (!PLAY_OR_QR_MODE) break;
     }
 }
 
@@ -945,8 +947,8 @@ static void FAST draw_zebras_raw_lv()
     int off = get_y_skip_offset_for_overlays();
     for(int i = os.y0 + off; i < os.y_max - off; i += 2 )
     {
-        uint64_t * const b_row = (uint32_t*)( bvram        + BM_R(i)       );  // 2 pixels
-        uint64_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(i)       );  // 2 pixels
+        uint64_t * const b_row = (uint64_t*)( bvram        + BM_R(i)       );  // 2 pixels
+        uint64_t * const m_row = (uint64_t*)( bvram_mirror + BM_R(i)       );  // 2 pixels
         
         uint64_t* bp;  // through bmp vram
         uint64_t* mp;  // through mirror
@@ -5477,8 +5479,8 @@ livev_lopriority_task( void* unused )
 
 #define HIPRIORITY_TASK_PRIO 0x18
 
-TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x2000 );
-TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x2000 );
+TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x4000 );
+TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
 
 // these may be out of order for config compatibility
 void update_disp_mode_bits_from_params()
