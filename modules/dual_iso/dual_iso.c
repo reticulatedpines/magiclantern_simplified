@@ -71,6 +71,8 @@ static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 4);
 static CONFIG_INT("isoless.alt", isoless_alternate, 0);
 
+#define ISOLESS_AUTO (isoless_recovery_iso == 8)
+
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
 extern WEAK_FUNC(ret_0) int is_play_or_qr_mode();
@@ -94,11 +96,17 @@ uint32_t CMOS_EXPECTED_FLAG = 0;
 #define CMOS_ISO_MASK ((1 << CMOS_ISO_BITS) - 1)
 #define CMOS_FLAG_MASK ((1 << CMOS_FLAG_BITS) - 1)
 
-int isoless_recovery_iso_index()
+static int isoless_auto_iso_index;
+
+static int isoless_recovery_iso_index()
 {
     /* CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800") */
 
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
+    
+    /* auto mode */
+    if (ISOLESS_AUTO)
+        return COERCE(isoless_auto_iso_index, 0, max_index);
     
     /* absolute mode */
     if (isoless_recovery_iso >= 0)
@@ -256,7 +264,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) return 0;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + file_number + lens_info.raw_iso * 1234;
+    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + file_number + lens_info.raw_iso * 1234 + isoless_auto_iso_index * 315;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -389,6 +397,39 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
     return 0;
 }
 
+static unsigned int isoless_auto_step(unsigned int ctx)
+{
+    if (ISOLESS_AUTO && lv && !recording)
+    {
+        raw_lv_request();
+        
+        /* target: 5% percentile above (DR-3) EV */
+        int p = raw_hist_get_percentile_level(50, GRAY_PROJECTION_AVERAGE_RGB, 2);
+        float ev = raw_to_ev(p);
+        
+        int dxo_dr = get_dxo_dynamic_range(lens_info.raw_iso);
+        int target_ev = -((dxo_dr + 50) / 100 - 3);
+        
+        int under = target_ev - (int) roundf(ev);
+        int canon_iso_index = MAX((lens_info.iso_analog_raw - 72) / 8, 0);
+
+        if (canon_iso_index > 0 && under <= 2)
+        {
+            /* does it look grossly overexposed? screw shadows and protect the highlights instead */
+            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB) / 100.0;
+            if (overexposed > 1)
+                isoless_auto_iso_index = 0;
+        }
+        else
+        {
+            /* recover the shadows */
+            isoless_auto_iso_index = canon_iso_index + MAX(under, 0);
+        }
+        
+        raw_lv_release();
+    }
+}
+
 static MENU_UPDATE_FUNC(isoless_check)
 {
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
@@ -396,9 +437,20 @@ static MENU_UPDATE_FUNC(isoless_check)
     
     if (!iso2)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Auto ISO => cannot estimate dynamic range.");
+    
+    if (!iso2 && iso1 < 0)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ISO => cannot use relative recovery ISO.");
+    
+    if (ISOLESS_AUTO)
+    {
+        int dxo_dr = get_dxo_dynamic_range(lens_info.raw_iso);
+        int target_ev = -((dxo_dr + 50) / 100 - 3);
+        if (!lv) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto option only works in LiveView.");
+        else MENU_SET_WARNING(MENU_WARN_INFO, "Auto shadow recovery: 5th percentile at %d EV.", target_ev);
+    }
 
     if (iso1 == iso2)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Both ISOs are identical, nothing to do.");
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Both ISOs are identical, nothing to do.");
 
     if (!get_dxo_dynamic_range(72))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
@@ -499,9 +551,9 @@ static struct menu_entry isoless_menu[] =
                 .name = "Recovery ISO",
                 .priv = &isoless_recovery_iso,
                 .min = -12,
-                .max = 7,
+                .max = 8,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800"),
+                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800", "Auto shadow"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
@@ -589,6 +641,7 @@ MODULE_STRINGS_END()
 MODULE_CBRS_START()
     MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, 0)
     MODULE_CBR(CBR_SECONDS_CLOCK, isoless_playback_fix, 0)
+    MODULE_CBR(CBR_SECONDS_CLOCK, isoless_auto_step, 0)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
