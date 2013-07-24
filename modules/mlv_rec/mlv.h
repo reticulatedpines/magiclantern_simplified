@@ -1,4 +1,22 @@
-
+/*
+ * Copyright (C) 2013 Magic Lantern Team
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */ 
 
 #ifndef _mlv_h_
 #define _mlv_h_
@@ -74,7 +92,10 @@ typedef struct {
     uint8_t     blockType[4];
     uint32_t    blockSize;    /* total frame size */
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
-    uint32_t    isoValue;    /* camera delivered ISO value */
+    uint32_t    isoMode;    /* 0=manual, 1=auto */
+    uint32_t    isoValue;;    /* camera delivered ISO value */
+    uint32_t    isoAnalog;    /* camera delivered ISO value */
+    uint32_t    digitalGain;    /* digital ISO gain */
     uint32_t    shutterValue;    /* exposure time in µs */
 } mlv_expo_hdr_t;
 
