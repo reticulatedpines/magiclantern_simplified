@@ -258,7 +258,7 @@ static MENU_SELECT_FUNC(iso_range_set)
 	if(ABS(last_d) == 1) iso_min += last_d * 5;
 	else if(ABS(last_d) == 5) iso_max += last_d;
 
-	iso_min = COERCE(iso_min, 40, 130);
+	iso_min = COERCE(iso_min, 50, 130);
 	iso_max = COERCE(iso_max, iso_min, 130);
 }
 
@@ -299,7 +299,7 @@ static struct menu_entry autoexpo_menu[] =
 		.submenu_height = 410,
 		.submenu_width = 720,
 		.help = "Automatic exposure algorithm based on predefined curves.",
-		.help2 = "Approximately 500ms response + 60ms to set new exposure",
+		.help2 = "Approximately 500ms response + 60ms to set new exposure.",
 		.children = (struct menu_entry[]) {
 			{
 				.name = "TV minimum",
