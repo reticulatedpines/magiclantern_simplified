@@ -1002,13 +1002,13 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
         autodetect_black_level_calc(
             4, raw_info.active_area.x1 - 4,
             raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
-            3, 4,
+            3, 16,
             &mean1, &stdev1
         );
         autodetect_black_level_calc(
             4, raw_info.active_area.x1 - 4,
             raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20, 
-            3, 4,
+            3, 16,
             &mean2, &stdev2
         );
     }
@@ -1017,13 +1017,13 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
         autodetect_black_level_calc(
             raw_info.active_area.x1 + 20, raw_info.active_area.x2 - 20, 
             4, raw_info.active_area.y1 - 4,
-            5, 4,
+            16, 4,
             &mean1, &stdev1
         );
         autodetect_black_level_calc(
             raw_info.active_area.x1 + 20, raw_info.active_area.x2 - 20, 
             6, raw_info.active_area.y1 - 4,
-            5, 4,
+            16, 4,
             &mean2, &stdev2
         );
     }
