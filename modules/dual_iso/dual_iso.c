@@ -422,13 +422,16 @@ static unsigned int isoless_auto_step(unsigned int ctx)
             /* does it look grossly overexposed? screw shadows and protect the highlights instead */
             float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB) / 100.0;
             if (overexposed > 1)
+            {
                 isoless_auto_iso_index = 0;
+                goto after_shadow;
+            }
         }
-        else
-        {
-            /* recover the shadows */
-            isoless_auto_iso_index = canon_iso_index + MAX(under, 0);
-        }
+
+        /* recover the shadows */
+        isoless_auto_iso_index = canon_iso_index + MAX(under, 0);
+
+    after_shadow:
         
         /* hacked status display */
         if (zebra_should_run())
