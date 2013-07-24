@@ -87,6 +87,8 @@
 
 #define AE_VALUE 0 // 404
 
+#define EXPO_COMP (*(int16_t*)0x13024)
+
 #define CURRENT_DIALOG_MAYBE (*(int*)0x37F0)
 
 #define DLG_PLAY 1
