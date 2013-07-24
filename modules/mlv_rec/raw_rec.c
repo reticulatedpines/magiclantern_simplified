@@ -66,6 +66,7 @@
 #include "edmac.h"
 #include "../file_man/file_man.h"
 #include "cache_hacks.h"
+#include "mlv.h"
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -74,6 +75,10 @@ static int cam_5d2 = 0;
 static int cam_50d = 0;
 static int cam_5d3 = 0;
 static int cam_6d = 0;
+
+
+static unsigned int raw_rec_edmac_align = 4096;
+
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -113,6 +118,10 @@ static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
+/* mlv information */
+static uint64_t mlv_start_timestamp = 0;
+static mlv_file_hdr_t mlv_file_hdr;
+
 /* state variables */
 static int res_x = 0;
 static int res_y = 0;
@@ -120,7 +129,6 @@ static int max_res_x = 0;
 static int max_res_y = 0;
 static float squeeze_factor = 0;
 int frame_size = 0;
-int frame_size_real = 0;
 int skip_x = 0;
 int skip_y = 0;
 
@@ -146,7 +154,7 @@ static int raw_previewing = 0;
 /* one video frame */
 struct frame_slot
 {
-    void* ptr;          /* image data, size=frame_size */
+    void *ptr;
     int frame_number;   /* from 0 to n */
     enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
 };
@@ -269,21 +277,10 @@ static void update_resolution_params()
     int den = aspect_ratio_presets_den[aspect_ratio_index];
     res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
 
-    /* frame size */
-    /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
-    /* should be multiple of 4096 for proper EDMAC alignment */
-    int frame_size_padded = (res_x * res_y * 14/8 + 4095) & ~4095;
-    
     /* frame size without rounding */
     /* must be multiple of 4 */
-    frame_size_real = res_x * res_y * 14/8;
-    ASSERT(frame_size_real % 4 == 0);
-    
-    /* needed for EDMAC double-checking; unlikely to happen, but possible */
-    if (frame_size_real == frame_size_padded)
-        frame_size_padded += 4096;
-    
-    frame_size = frame_size_padded;
+    frame_size = res_x * res_y * 14/8;
+    ASSERT(frame_size % 4 == 0);
     
     update_cropping_offsets();
 }
@@ -653,16 +650,24 @@ static int setup_buffers()
                 chunk_index++;
             }
 
-            /* align at 4K */
-            ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
-            
             /* fit as many frames as we can */
             while (size >= frame_size + 8192 && slot_count < COUNT(slots))
             {
+                mlv_vidf_hdr_t *hdr = (mlv_vidf_hdr_t *)ptr;
+                memset(hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+                mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
+                
+                /* write frame header */
+                int dataStart = (int)&hdr + sizeof(mlv_vidf_hdr_t);
+                int space = ((dataStart + (raw_rec_edmac_align-1)) & ~(raw_rec_edmac_align-1)) - dataStart;
+                hdr->frameSpace = space;
+                hdr->blockSize = sizeof(mlv_vidf_hdr_t) + frame_size + space;
+                
+                /* store this slot */
                 slots[slot_count].ptr = ptr;
                 slots[slot_count].status = SLOT_FREE;
-                ptr += frame_size;
-                size -= frame_size;
+                ptr += hdr->blockSize;
+                size -= hdr->blockSize;
                 slot_count++;
                 //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
             }
@@ -670,11 +675,13 @@ static int setup_buffers()
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
     
+    
+    #if 0
     /* try to recycle the waste */
     if (waste >= frame_size + 8192)
     {
         int size = waste;
-        void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
+        void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + (raw_rec_edmac_align-1)) & ~(raw_rec_edmac_align-1));
         while (size >= frame_size + 8192 && slot_count < COUNT(slots))
         {
             slots[slot_count].ptr = ptr;
@@ -685,6 +692,7 @@ static int setup_buffers()
             //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
         }
     }
+    #endif
     
     char msg[100];
     snprintf(msg, sizeof(msg), "Alloc: %d frames", slot_count);
@@ -1172,22 +1180,15 @@ static int FAST choose_next_capture_slot()
 static void frame_add_checks(int slot_index)
 {
     void* ptr = slots[slot_index].ptr;
-    uint32_t* frame_end = ptr + frame_size_real - 4;
-    uint32_t* after_frame = ptr + frame_size_real;
+    int blockSize = ((mlv_hdr_t*)ptr)->blockSize;
+    uint32_t* frame_end = ptr + blockSize - 4;
     *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
-    *(volatile uint32_t*) after_frame = FRAME_SENTINEL; /* this shalt not be overwritten */
 }
 
 static int frame_check_saved(int slot_index)
 {
     void* ptr = slots[slot_index].ptr;
-    uint32_t* frame_end = ptr + frame_size_real - 4;
-    uint32_t* after_frame = ptr + frame_size_real;
-    if (*(volatile uint32_t*) after_frame != FRAME_SENTINEL)
-    {
-        /* EDMAC overflow */
-        return -1;
-    }
+    uint32_t* frame_end = ptr + frame_size - 4;
     
     if (*(volatile uint32_t*) frame_end == FRAME_SENTINEL)
     {
@@ -1211,19 +1212,7 @@ static int FAST process_frame()
     /* where to save the next frame? */
     capture_slot = choose_next_capture_slot(capture_slot);
     
-    if (capture_slot >= 0)
-    {
-        /* okay */
-        slots[capture_slot].frame_number = frame_count;
-        slots[capture_slot].status = SLOT_FULL;
-        frame_add_checks(capture_slot);
-
-        /* send it for saving, even if it isn't done yet */
-        /* it's quite unlikely that FIO DMA will be faster than EDMAC */
-        writing_queue[writing_queue_tail] = capture_slot;
-        writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
-    }
-    else
+    if (capture_slot < 0)
     {
         /* card too slow */
         frame_skips++;
@@ -1235,9 +1224,28 @@ static int FAST process_frame()
         }
         return 0;
     }
-
+    
     /* copy current frame to our buffer and crop it to its final size */
-    void* ptr = slots[capture_slot].ptr;
+    slots[capture_slot].frame_number = frame_count;
+    slots[capture_slot].status = SLOT_FULL;
+    frame_add_checks(capture_slot);
+
+    /* send it for saving, even if it isn't done yet */
+    /* it's quite unlikely that FIO DMA will be faster than EDMAC */
+    writing_queue[writing_queue_tail] = capture_slot;
+    writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
+
+    mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
+    mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+    
+    /* frame number in file is off by one. nobody needs to know we skipped the first frame */
+    hdr->frameNumber = slots[capture_slot].frame_number - 1;
+    hdr->cropPosX = (skip_x + 7) & ~7;
+    hdr->cropPosY = (skip_y + 7) & ~7;
+    hdr->panPosX = skip_x;
+    hdr->panPosY = skip_y;
+    
+    void* ptr = (void*)((int)hdr + sizeof(mlv_vidf_hdr_t) + hdr->frameSpace);
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
     /* advance to next buffer for the upcoming capture */
@@ -1247,6 +1255,12 @@ static int FAST process_frame()
     if(raw_rec_cbr_skip_frame(fullSizeBuffer))
     {
         return 0;
+    }
+    
+    /* try a sync beep */
+    if (sound_rec == 2 && frame_count == 1)
+    {
+        beep();
     }
 
     //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
@@ -1344,6 +1358,60 @@ static char* get_wav_file_name(char* movie_filename)
     return wavfile;
 }
 
+static void mlv_init_header()
+{
+    /* recording start timestamp */
+    mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
+    
+    /* setup header */
+    mlv_init_fileheader(&mlv_file_hdr);
+    mlv_file_hdr.fileGuid = mlv_generate_guid();
+    mlv_file_hdr.fileNum = 0;
+    mlv_file_hdr.fileCount = 1;
+    mlv_file_hdr.fileFlags = 0;
+    
+    /* for now only raw video, no sound */
+    mlv_file_hdr.videoClass = 1;
+    mlv_file_hdr.audioClass = 0;
+    mlv_file_hdr.videoFrameCount = 0;
+    mlv_file_hdr.audioFrameCount = 0;
+    
+    /* can be improved to make use of nom/denom */
+    mlv_file_hdr.sourceFpsNom = fps_get_current_x1000();
+    mlv_file_hdr.sourceFpsDenom = 1000;
+}
+
+static int mlv_write_rawi(FILE* f, struct raw_info raw_info)
+{
+    mlv_rawi_hdr_t rawi;
+    
+    mlv_set_type((mlv_hdr_t *)&rawi, "RAWI");
+    mlv_set_timestamp((mlv_hdr_t *)&rawi, mlv_start_timestamp);
+    rawi.blockSize = sizeof(mlv_rawi_hdr_t);
+    rawi.xRes = res_x;
+    rawi.yRes = res_y;
+    rawi.raw_info = raw_info;
+    
+    int written = FIO_WriteFile(f, &rawi, sizeof(mlv_rawi_hdr_t));
+    
+    return written == sizeof(mlv_rawi_hdr_t);
+}
+
+static int mlv_write_header(FILE* f, int restore_pos)
+{
+    /* (re)-write header */
+    unsigned int old_pos = FIO_SeekFile(f, 0, SEEK_CUR);
+    FIO_SeekFile(f, 0, SEEK_SET);
+    int written = FIO_WriteFile(f, &mlv_file_hdr, sizeof(mlv_file_hdr_t));
+    
+    if(restore_pos)
+    {
+        FIO_SeekFile(f, old_pos, SEEK_SET);
+    }
+    
+    return written == sizeof(mlv_file_hdr_t);
+}
+
 static void raw_video_rec_task()
 {
     //~ console_show();
@@ -1358,19 +1426,6 @@ static void raw_video_rec_task()
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-
-    /* create a backup file, to make sure we can save the file footer even if the card is full */
-    char backup_filename[100];
-    snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
-    FILE* bf = FIO_CreateFileEx(backup_filename);
-    if (bf == INVALID_PTR)
-    {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
-        goto cleanup;
-    }
-    FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
-    FIO_CloseFile(bf);
-    
     
     /* create output file */
     int chunk = 0;
@@ -1417,15 +1472,14 @@ static void raw_video_rec_task()
     }
     
     hack_liveview(0);
+    
+    /* setup MLV stuff */
+    mlv_init_header();
+    mlv_write_header(f, 0);
+    mlv_write_rawi(f, raw_info);
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
-
-    /* try a sync beep (not very precise, but better than nothing) */
-    if (sound_rec == 2)
-    {
-        beep();
-    }
 
     /* signal that we are starting */
     raw_rec_cbr_starting();
@@ -1468,26 +1522,35 @@ static void raw_video_rec_task()
             continue;
         }
 
-        /* group items from the queue in a contiguous block - as many as we can */
+        /* save a block with maximum size at once */
+        void* group_ptr = slots[first_slot].ptr;
+        int group_size = 0;
         int last_grouped = w_head;
         
+        /* group items from the queue in a contiguous block - as many as we can */
+        int next_addr = 0;
         for (int i = w_head; i != w_tail; i = mod(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
-            int group_pos = mod(i - w_head, COUNT(writing_queue));
 
-            /* TBH, I don't care if these are part of the same group or not,
-             * as long as pointers are ordered correctly */
-            if (slots[slot_index].ptr == slots[first_slot].ptr + frame_size * group_pos)
+            /* the first element doesnt need any check */
+            if((i == w_head) || ((int)slots[slot_index].ptr == next_addr))
+            {
+                int blockSize = ((mlv_hdr_t*)slots[slot_index].ptr)->blockSize;
+                
                 last_grouped = i;
+                group_size += blockSize;
+                next_addr = (int)slots[slot_index].ptr + blockSize;
+            }
             else
+            {
                 break;
+            }
         }
         
         /* grouped frames from w_head to last_grouped (including both ends) */
         int num_frames = mod(last_grouped - w_head + 1, COUNT(writing_queue));
         
-        int free_slots = get_free_slots();
         
         /* if we are about to overflow, save a smaller number of frames, so they can be freed quicker */
         if (measured_write_speed)
@@ -1495,6 +1558,7 @@ static void raw_video_rec_task()
             /* measured_write_speed unit: 0.01 MB/s */
             /* FPS unit: 0.001 Hz */
             /* overflow time unit: 0.1 seconds */
+            int free_slots = get_free_slots();
             int overflow_time = free_slots * 1000 * 10 / fps;
             /* better underestimate write speed a little */
             int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
@@ -1513,8 +1577,6 @@ static void raw_video_rec_task()
             force_new_buffer = 1;
         }
 
-        void* ptr = slots[first_slot].ptr;
-        int size_used = frame_size * num_frames;
 
         /* mark these frames as "writing" */
         for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
@@ -1537,10 +1599,10 @@ static void raw_video_rec_task()
             int t0 = get_ms_clock_value();
             if (!last_write_timestamp) last_write_timestamp = t0;
             idle_time += t0 - last_write_timestamp;
-            int r = FIO_WriteFile(f, ptr, size_used);
+            int r = FIO_WriteFile(f, group_ptr, group_size);
             last_write_timestamp = get_ms_clock_value();
 
-            if (r != size_used) /* 4GB limit or card full? */
+            if (r != group_size) /* 4GB limit or card full? */
             {
                 /* it failed right away? card must be full */
                 if (written == 0) goto abort;
@@ -1548,7 +1610,7 @@ static void raw_video_rec_task()
                 if (r == -1)
                 {
                     /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    //if ((uint64_t)written_chunk + size_used > 4294967295)
+                    //if ((uint64_t)written_chunk + group_size > 4294967295)
                     if (1) // renato says it's not working?!
                     {
                         r = 4294967295 - written_chunk;
@@ -1556,7 +1618,7 @@ static void raw_video_rec_task()
                         /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
                         /* this one should cover both cases in a portable way */
                         /* on 5D2 will succeed, on 5D3 should fail right away */
-                        FIO_WriteFile(f, ptr, r);
+                        FIO_WriteFile(f, group_ptr, r);
                     }
                     else /* idk */
                     {
@@ -1570,12 +1632,12 @@ static void raw_video_rec_task()
                 if (g == INVALID_PTR) goto abort;
                 
                 /* write the remaining data in the new chunk */
-                int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
-                if (r2 == size_used - r) /* new chunk worked, continue with it */
+                int r2 = FIO_WriteFile(g, group_ptr + r, group_size - r);
+                if (r2 == group_size - r) /* new chunk worked, continue with it */
                 {
                     FIO_CloseFile(f);
                     f = g;
-                    written += size_used / 1024;
+                    written += group_size / 1024;
                     written_chunk = r2;
                 }
                 else /* new chunk didn't work, card full */
@@ -1590,8 +1652,8 @@ static void raw_video_rec_task()
             else
             {
                 /* all fine */
-                written += size_used / 1024;
-                written_chunk += size_used;
+                written += group_size / 1024;
+                written_chunk += group_size;
             }
             
             writing_time += last_write_timestamp - t0;
@@ -1692,37 +1754,21 @@ abort:
 
         slots[slot_index].status = SLOT_WRITING;
         show_buffer_status();
-        written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
+        int blockSize = ((mlv_hdr_t*)slots[slot_index].ptr)->blockSize;
+        written += FIO_WriteFile(f, slots[slot_index].ptr, blockSize) / 1024;
         slots[slot_index].status = SLOT_FREE;
     }
 
-    /* remove the backup file, to make sure we can save the footer even if card is full */
-    FIO_RemoveFile(backup_filename);
-    msleep(500);
 
     if (written && f)
     {
-        /* write footer (metadata) */
-        int footer_ok = lv_rec_save_footer(f);
-        if (!footer_ok)
-        {
-            /* try to save footer in a new chunk */
-            FIO_CloseFile(f); f = 0;
-            chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
-            FILE* g = FIO_CreateFileEx(chunk_filename);
-            if (g != INVALID_PTR)
-            {
-                footer_ok = lv_rec_save_footer(g);
-                FIO_CloseFile(g);
-            }
-        }
-
+        mlv_file_hdr.videoFrameCount = frame_count - 1;
+        int write_ok = mlv_write_header(f, 1);
+        
         /* still didn't succeed? */
-        if (!footer_ok)
+        if (!write_ok)
         {
-            bmp_printf( FONT_MED, 30, 110, 
-                "Footer save error"
-            );
+            bmp_printf( FONT_MED, 30, 110, "Failed to update header");
             beep_times(3);
             msleep(2000);
         }
@@ -1735,11 +1781,11 @@ abort:
         beep_times(3);
         msleep(2000);
     }
+    
 
 cleanup:
     if (f) FIO_CloseFile(f);
     if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
-    FIO_RemoveFile(backup_filename);
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
