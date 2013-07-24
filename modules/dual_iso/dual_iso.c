@@ -402,13 +402,13 @@ static unsigned int isoless_auto_step(unsigned int ctx)
     if (ISOLESS_AUTO && lv && !recording && lv_dispsize == 1 && !is_movie_mode())
     {
         static int aux = INT_MIN;
-        if (!should_run_polling_action(200, &aux))
+        if (!should_run_polling_action(liveview_display_idle() ? 1000 : 200, &aux))
             return;
         
         raw_lv_request();
         
         /* target: 5% percentile above (DR-3) EV */
-        int p = raw_hist_get_percentile_level(50, GRAY_PROJECTION_AVERAGE_RGB, 4);
+        int p = raw_hist_get_percentile_level(50, GRAY_PROJECTION_AVERAGE_RGB, 8);
         float ev = raw_to_ev(p);
         
         int dxo_dr = get_dxo_dynamic_range(lens_info.raw_iso);
