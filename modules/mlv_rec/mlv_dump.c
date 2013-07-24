@@ -23,23 +23,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../lv_rec/lv_rec.h"
 #include "../../src/raw.h"
 #include "mlv.h"
 
 
 int main (int argc, char *argv[])
 {
-    if(argc != 2)
+    lv_rec_file_footer_t lv_rec_footer;
+    char *frame_buffer = NULL;
+    
+    if(argc < 2)
     {
-        printf("Usage: %s <file.mlv>\n", argv[0]);
+        printf("Usage: %s <file.mlv> [out.raw]\n", argv[0]);
         return 0;
     }
     
+    FILE *out_file = NULL;
     FILE *file = fopen(argv[1], "r");
     if(!file)
     {
         printf("Failed to open file '%s'\n", argv[1]);
         return 0;
+    }
+    
+    if(argc >= 3)
+    {
+        printf("writing to legacy file '%s'\n", argv[2]);
+        frame_buffer = malloc(32*1024*1024);
+        if(!frame_buffer)
+        {
+            printf("Failed to alloc mem\n");
+            return 0;
+        }
+        out_file = fopen(argv[2], "w+");
+        if(!out_file)
+        {
+            printf("Failed to open file '%s'\n", argv[2]);
+            return 0;
+        }
     }
     
     do
@@ -49,7 +71,7 @@ int main (int argc, char *argv[])
         if(fread(&buf, sizeof(mlv_hdr_t), 1, file) != 1)
         {
             printf("End of file\n");
-            return 0;
+            break;
         }
         fseek(file, -sizeof(mlv_hdr_t), SEEK_CUR);
         
@@ -73,6 +95,10 @@ int main (int argc, char *argv[])
             printf("    Frames Video: %d\n", file_hdr.videoFrameCount);
             printf("    Frames Audio: %d\n", file_hdr.audioFrameCount);
             
+            if(out_file)
+            {
+                lv_rec_footer.frameCount = file_hdr.videoFrameCount;
+            }
         }
         else
         {
@@ -89,10 +115,28 @@ int main (int argc, char *argv[])
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_vidf_hdr_t), SEEK_CUR);
+                
+                if(out_file)
+                {
+                    int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+                    printf("Writing: %d\n", frame_size);
+                    fseek(file, block_hdr.frameSpace, SEEK_CUR);
+                    if(fread(frame_buffer, frame_size, 1, file) != 1)
+                    {
+                        printf("Reached file end within block.\n");
+                        return 0;
+                    }
+                    lv_rec_footer.frameSize = frame_size;
+                    fwrite(frame_buffer, frame_size, 1, out_file);
+                }
+                else
+                {
+                    fseek(file, block_hdr.blockSize-sizeof(mlv_vidf_hdr_t), SEEK_CUR);
+                }
                 
                 printf("     Pad: 0x%08X\n", block_hdr.frameSpace);
                 printf("   Frame: #%d\n", block_hdr.frameNumber);
+                
             }
             else if(!memcmp(buf.blockType, "RAWI", 4))
             {
@@ -122,6 +166,14 @@ int main (int argc, char *argv[])
                 printf("      exposure_bias    %d, %d\n", block_hdr.raw_info.exposure_bias[0], block_hdr.raw_info.exposure_bias[1]);
                 printf("      cfa_pattern      0x%08X\n", block_hdr.raw_info.cfa_pattern);
                 printf("      calibration_ill  %d\n", block_hdr.raw_info.calibration_illuminant1);
+                
+                if(out_file)
+                {
+                    strncpy((char*)lv_rec_footer.magic, "RAWM", 4);
+                    lv_rec_footer.xRes = block_hdr.xRes;
+                    lv_rec_footer.yRes = block_hdr.yRes;
+                    lv_rec_footer.raw_info = block_hdr.raw_info;
+                }
             }
             else 
             {
@@ -131,4 +183,10 @@ int main (int argc, char *argv[])
     }
     while(!feof(file));
     
+    fclose(file);
+    if(out_file)
+    {
+        fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
+        fclose(out_file);
+    }
 }
