@@ -29,8 +29,8 @@ extern uint64_t get_us_clock_value();
 extern char *strcpy(char *dest, const char *src);
 extern char *strncpy(char *dest, const char *src, int n);
 
-extern int WEAK_FUNC(ret_1) _prop_get_value(unsigned property, void** addr, size_t* len);
-extern int WEAK_FUNC(_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
+extern int  _prop_get_value(unsigned property, void** addr, size_t* len);
+//extern int WEAK_FUNC(_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
 
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
 {
@@ -56,6 +56,7 @@ void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
     hdr->blockSize = sizeof(mlv_expo_hdr_t);
     
+    /* iso is zero when auto-iso is enabled */
     if(lens_info.iso == 0)
     {
         hdr->isoMode = 1;
@@ -110,19 +111,24 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     hdr->blockSize = sizeof(mlv_idnt_hdr_t);
     
     /* get camera properties */
-    err |= prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
-    err |= prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
+    err |= _prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
+    err |= _prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
     
     if(err || model_len < 36 || body_len < 4 || !model_data || !body_data)
     {
-        hdr->cameraModel = 0xDEADBEEF;
+        strcpy(hdr->cameraName, "Failed to get properties.");
+        hdr->cameraModel = 0;
+        hdr->cameraIdent[0] = 0;
+        hdr->cameraIdent[1] = 0;
+        hdr->cameraIdent[2] = 0;
+        hdr->cameraIdent[3] = 0;
         return;
     }
     
     /* properties are ok, so read data */
     memcpy((char *)hdr->cameraName, &model_data[0], 32);
-    memcpy((char *)hdr->cameraIdent, &model_data[32], 4);
-    memcpy((char *)&hdr->cameraModel, &body_data, 4);
+    memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
+    memcpy((char *)hdr->cameraIdent, &body_data, 4);
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)

@@ -158,6 +158,21 @@ int main (int argc, char *argv[])
                 printf("     Lens ID:     0x%08X\n", block_hdr.lensID);
                 printf("     Flags:       0x%08X\n", block_hdr.flags);
             }
+            else if(!memcmp(buf.blockType, "IDNT", 4))
+            {
+                mlv_idnt_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_idnt_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                fseek(file, block_hdr.blockSize-sizeof(mlv_idnt_hdr_t), SEEK_CUR);
+                
+                printf("     Camera Name:   '%s'\n", block_hdr.cameraName);
+                printf("     Camera Model:  0x%08X\n", block_hdr.cameraModel);
+                printf("     Camera Ident:  0x%08X\n", *((uint32_t*)&block_hdr.cameraIdent));
+            }
             else if(!memcmp(buf.blockType, "RTCI", 4))
             {
                 mlv_rtci_hdr_t block_hdr;
