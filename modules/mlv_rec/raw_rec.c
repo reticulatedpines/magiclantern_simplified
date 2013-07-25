@@ -1320,7 +1320,7 @@ static char* get_next_raw_movie_file_name()
          * Get unique file names from the current date/time
          * last field gets incremented if there's another video with the same name
          */
-        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.RAW", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
         
         /* already existing file? */
         uint32_t size;
@@ -1477,6 +1477,23 @@ static void raw_video_rec_task()
     mlv_init_header();
     mlv_write_header(f, 0);
     mlv_write_rawi(f, raw_info);
+    
+    /* fill and write camera and lens information */
+    mlv_rtci_hdr_t rtci_hdr;
+    mlv_expo_hdr_t expo_hdr;
+    mlv_lens_hdr_t lens_hdr;
+    mlv_idnt_hdr_t idnt_hdr;
+
+    mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
+    mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
+    mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
+    mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);    
+    
+    FIO_WriteFile(f, &rtci_hdr, sizeof(mlv_rtci_hdr_t));
+    FIO_WriteFile(f, &expo_hdr, sizeof(mlv_expo_hdr_t));
+    FIO_WriteFile(f, &lens_hdr, sizeof(mlv_lens_hdr_t));
+    FIO_WriteFile(f, &idnt_hdr, sizeof(mlv_idnt_hdr_t));
+    
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;

@@ -138,6 +138,61 @@ int main (int argc, char *argv[])
                 printf("   Frame: #%d\n", block_hdr.frameNumber);
                 
             }
+            else if(!memcmp(buf.blockType, "LENS", 4))
+            {
+                mlv_lens_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_lens_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                fseek(file, block_hdr.blockSize-sizeof(mlv_lens_hdr_t), SEEK_CUR);
+                
+                printf("     Name:       '%s'\n", block_hdr.lensName);
+                printf("     Focal Len:   %d mm\n", block_hdr.focalLength);
+                printf("     Focus Dist:  %d mm\n", block_hdr.focalDist);
+                printf("     Aperture:    f/%.2f\n", (double)block_hdr.aperture / 100.0d);
+                printf("     IS Mode:     %d\n", block_hdr.stabilizerMode);
+                printf("     AF Mode:     %d\n", block_hdr.autofocusMode);
+                printf("     Lens ID:     0x%08X\n", block_hdr.lensID);
+                printf("     Flags:       0x%08X\n", block_hdr.flags);
+            }
+            else if(!memcmp(buf.blockType, "RTCI", 4))
+            {
+                mlv_rtci_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_rtci_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                fseek(file, block_hdr.blockSize-sizeof(mlv_rtci_hdr_t), SEEK_CUR);
+                
+                printf("     Date:        %02d.%02d.%04d\n", block_hdr.tm_mday, block_hdr.tm_mon, 1900 + block_hdr.tm_year);
+                printf("     Time:        %02d:%02d:%02d (GMT+%d)\n", block_hdr.tm_hour, block_hdr.tm_min, block_hdr.tm_sec, block_hdr.tm_gmtoff);
+                printf("     Zone:        '%s'\n", block_hdr.tm_zone);
+                printf("     Day of week: %d\n", block_hdr.tm_wday);
+                printf("     Day of year: %d\n", block_hdr.tm_yday);
+                printf("     Daylight s.: %d\n", block_hdr.tm_isdst);
+            }
+            else if(!memcmp(buf.blockType, "EXPO", 4))
+            {
+                mlv_expo_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_expo_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                fseek(file, block_hdr.blockSize-sizeof(mlv_expo_hdr_t), SEEK_CUR);
+                
+                printf("     ISO Mode:   %d\n", block_hdr.isoMode);
+                printf("     ISO:        %d\n", block_hdr.isoValue);
+                printf("     ISO Analog: %d\n", block_hdr.isoAnalog);
+                printf("     ISO DGain:  %d EV\n", block_hdr.digitalGain);
+                printf("     Shutter:    1/%f s\n", block_hdr.shutterValue / 1000.0f);
+            }
             else if(!memcmp(buf.blockType, "RAWI", 4))
             {
                 mlv_rawi_hdr_t block_hdr;

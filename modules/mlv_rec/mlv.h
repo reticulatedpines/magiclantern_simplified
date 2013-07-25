@@ -93,10 +93,10 @@ typedef struct {
     uint32_t    blockSize;    /* total frame size */
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint32_t    isoMode;    /* 0=manual, 1=auto */
-    uint32_t    isoValue;;    /* camera delivered ISO value */
+    uint32_t    isoValue;    /* camera delivered ISO value */
     uint32_t    isoAnalog;    /* camera delivered ISO value */
     uint32_t    digitalGain;    /* digital ISO gain */
-    uint32_t    shutterValue;    /* exposure time in µs */
+    uint32_t    shutterValue;    /* exposure time in 1000/x */
 } mlv_expo_hdr_t;
 
 typedef struct {
@@ -179,6 +179,13 @@ typedef struct {
 
 
 #pragma pack(pop)
+
+/* helper routines for filling structures from generic camera information */
+void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp);
+void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp);
+void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp);
+void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
+
 
 /* randomize the 64 bits passed in parameter using LFSR */
 uint64_t mlv_prng_lfsr(uint64_t value);

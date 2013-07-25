@@ -20,6 +20,8 @@
 
 #include <dryos.h>
 #include <stdint.h>
+#include <lens.h>
+#include <property.h>
 #include "raw.h"
 #include "mlv.h"
 
@@ -27,6 +29,101 @@ extern uint64_t get_us_clock_value();
 extern char *strcpy(char *dest, const char *src);
 extern char *strncpy(char *dest, const char *src, int n);
 
+extern int WEAK_FUNC(ret_1) _prop_get_value(unsigned property, void** addr, size_t* len);
+extern int WEAK_FUNC(_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
+
+void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
+{
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)hdr, "LENS");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+    hdr->blockSize = sizeof(mlv_lens_hdr_t);
+    
+    hdr->focalLength = lens_info.focal_len;
+    hdr->focalDist = lens_info.focus_dist;
+    hdr->aperture = lens_info.aperture * 10;
+    hdr->stabilizerMode = lens_info.IS;
+    hdr->autofocusMode = 0;
+    hdr->flags = 0;
+    hdr->lensID = 0;
+    strncpy((char *)hdr->lensName, lens_info.name, 32);
+}
+
+void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
+{
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)hdr, "EXPO");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+    hdr->blockSize = sizeof(mlv_expo_hdr_t);
+    
+    if(lens_info.iso == 0)
+    {
+        hdr->isoMode = 1;
+        hdr->isoValue = lens_info.iso_auto;
+    }
+    else
+    {
+        hdr->isoMode = 0;
+        hdr->isoValue = lens_info.iso;
+    }
+    hdr->isoAnalog = lens_info.iso_analog_raw;
+    hdr->digitalGain = lens_info.iso_digital_ev;
+    hdr->shutterValue = get_current_shutter_reciprocal_x1000();
+}
+
+void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
+{
+    struct tm now;
+    
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)hdr, "RTCI");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+    hdr->blockSize = sizeof(mlv_rtci_hdr_t);
+    
+    /* get calendar time from real time clock */
+    LoadCalendarFromRTC(&now);
+    
+    hdr->tm_sec = now.tm_sec;    
+    hdr->tm_min = now.tm_min;    
+    hdr->tm_hour = now.tm_hour;   
+    hdr->tm_mday = now.tm_mday;   
+    hdr->tm_mon = now.tm_mon;    
+    hdr->tm_year = now.tm_year;   
+    hdr->tm_wday = now.tm_wday;   
+    hdr->tm_yday = now.tm_yday;   
+    hdr->tm_isdst = now.tm_isdst;  
+    hdr->tm_gmtoff = now.tm_gmtoff; 
+    strncpy((char *)hdr->tm_zone, now.tm_zone, 8);
+}
+
+void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
+{
+    char *model_data = NULL;
+    char *body_data = NULL;
+    size_t model_len = 0;
+    size_t body_len = 0;
+    int err = 0;
+    
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)hdr, "IDNT");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+    hdr->blockSize = sizeof(mlv_idnt_hdr_t);
+    
+    /* get camera properties */
+    err |= prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
+    err |= prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
+    
+    if(err || model_len < 36 || body_len < 4 || !model_data || !body_data)
+    {
+        hdr->cameraModel = 0xDEADBEEF;
+        return;
+    }
+    
+    /* properties are ok, so read data */
+    memcpy((char *)hdr->cameraName, &model_data[0], 32);
+    memcpy((char *)hdr->cameraIdent, &model_data[32], 4);
+    memcpy((char *)&hdr->cameraModel, &body_data, 4);
+}
 
 uint64_t mlv_prng_lfsr(uint64_t value)
 {
