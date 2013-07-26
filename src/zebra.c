@@ -5564,7 +5564,6 @@ static void do_disp_mode_change()
         return; 
     }
     
-    ResumeLiveView();
     display_on();
     bmp_on();
     clrscr();
