@@ -163,8 +163,7 @@ replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
 
 
 #~ system_or_exit(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
-os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
-#~ os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
+system_or_exit("lualatex -interaction=batchmode UserGuide-cam.tex")
 #system_or_exit(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
@@ -177,7 +176,7 @@ os.system("mkdir cam")
 execfile("menuindex.py")
 
 print 'pdf to png...'
-os.system("pdftoppm -r 152.2 -png UserGuide-cam.pdf cam/page")
+system_or_exit("pdftoppm -r 152.2 -png UserGuide-cam.pdf cam/page")
 
 # from remap.py
 from pylab import *
