@@ -186,6 +186,7 @@ static void build_file_menu()
 {
     /* HaCKeD Sort */
     int done = 0;
+    int start_time = get_ms_clock_value();
     while (!done)
     {
         done = 1;
@@ -197,12 +198,17 @@ static void build_file_menu()
                 /* are there any entries that should be before "fe" ? */
                 /* if yes, skip "fe", add those entries, and try again */
                 int should_skip = 0;
-                for (struct file_entry * e = file_entries; e; e = e->next)
+
+                /* todo: use a O(n log n) sorting algorithm */
+                if (get_ms_clock_value() - start_time < 1000)
                 {
-                    if (!e->added && e != fe && fe->type != TYPE_ACTION && e->type != TYPE_ACTION)
+                    for (struct file_entry * e = file_entries; e; e = e->next)
                     {
-                        if (e->type < fe->type) { should_skip = 1; break; }
-                        if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
+                        if (!e->added && e != fe && fe->type != TYPE_ACTION && e->type != TYPE_ACTION)
+                        {
+                            if (e->type < fe->type) { should_skip = 1; break; }
+                            if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
+                        }
                     }
                 }
 
