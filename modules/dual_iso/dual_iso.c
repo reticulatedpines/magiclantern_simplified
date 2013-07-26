@@ -399,7 +399,7 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
 
 static unsigned int isoless_auto_step(unsigned int ctx)
 {
-    if (ISOLESS_AUTO && lv && !recording && lv_dispsize == 1 && !is_movie_mode())
+    if (isoless_hdr && ISOLESS_AUTO && lv && !recording && lv_dispsize == 1 && !is_movie_mode())
     {
         static int aux = INT_MIN;
         if (!should_run_polling_action(liveview_display_idle() ? 1000 : 200, &aux))
@@ -429,7 +429,9 @@ static unsigned int isoless_auto_step(unsigned int ctx)
         }
 
         /* recover the shadows */
-        isoless_auto_iso_index = canon_iso_index + MAX(under, 0);
+        int max_auto_iso = auto_iso_range & 0xFF;
+        int max_gain = MAX((max_auto_iso - 72) / 8 - canon_iso_index, 0);
+        isoless_auto_iso_index = canon_iso_index + COERCE(under, 0, max_gain);
 
     after_shadow:
         
@@ -486,7 +488,7 @@ static MENU_UPDATE_FUNC(isoless_dr_update)
     isoless_check(entry, info);
     if (info->warning_level)
     {
-        MENU_SET_VALUE("N/A");
+        MENU_SET_VALUE("N/A" >= MENU_WARN_ADVICE);
         return;
     }
     
@@ -512,7 +514,7 @@ static MENU_UPDATE_FUNC(isoless_overlap_update)
     int iso_lo = MIN(iso1, iso2);
     
     isoless_check(entry, info);
-    if (info->warning_level)
+    if (info->warning_level >= MENU_WARN_ADVICE)
     {
         MENU_SET_VALUE("N/A");
         return;
@@ -535,7 +537,7 @@ static MENU_UPDATE_FUNC(isoless_update)
     MENU_SET_VALUE("%d/%d", raw2iso(iso2), raw2iso(iso1));
 
     isoless_check(entry, info);
-    if (info->warning_level)
+    if (info->warning_level >= MENU_WARN_ADVICE)
         return;
     
     int iso_hi = MAX(iso1, iso2);
