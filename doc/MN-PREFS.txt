@@ -1,7 +1,7 @@
 Prefs
 ~~~~~
 
-.. figure:: 08.prefs.png
+.. figure:: 08_prefs.png
     :align: center
     :width: 5cm
 

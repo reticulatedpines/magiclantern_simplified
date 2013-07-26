@@ -3,7 +3,7 @@ Expo
 
 .. _image settings:
 
-.. figure:: 02.expo.png
+.. figure:: 02_expo.png
     :align: center
     :width: 5cm
 

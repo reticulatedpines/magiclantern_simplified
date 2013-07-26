@@ -1,7 +1,7 @@
 Movie
 ~~~~~
 
-.. figure:: 04.movie.png
+.. figure:: 04_movie.png
     :align: center
     :width: 5cm
 

@@ -1,7 +1,7 @@
 Focus
 ~~~~~
 
-.. figure:: 06.focus.png
+.. figure:: 06_focus.png
     :align: center
     :width: 5cm
 

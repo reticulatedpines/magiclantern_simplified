@@ -1,7 +1,7 @@
 Audio
 ~~~~~
 
-.. figure:: 01.audio.png
+.. figure:: 01_audio.png
     :alt: Audio menu
     :align: center
     :width: 5cm

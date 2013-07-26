@@ -1,7 +1,7 @@
 Shoot
 ~~~~~
 
-.. figure:: 05.shoot.png
+.. figure:: 05_shoot.png
     :align: center
     :width: 5cm
 

@@ -2,7 +2,7 @@
 Display
 ~~~~~~~
 
-.. figure:: 07.display.png
+.. figure:: 07_display.png
     :align: center
     :width: 5cm
 

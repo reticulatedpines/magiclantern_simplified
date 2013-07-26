@@ -2,7 +2,7 @@
 Debug
 ~~~~~
 
-.. figure:: 09.debug.png
+.. figure:: 09_debug.png
     :align: center
     :width: 5cm
 
