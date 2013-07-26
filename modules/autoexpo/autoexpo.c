@@ -23,7 +23,7 @@
 #include <menu.h>
 #include <lens.h>
 
-#define BV_MAX 150
+#define BV_MAX 160
 #define BV_MIN -120
 
 #define RAW2TV(raw) APEX_TV(raw) * 10 / 8
@@ -36,7 +36,7 @@
 #define SV2RAW(apex) -APEX_SV(-apex * 100 / 125)
 #define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
-#define GRAPH_XSIZE 2.5f
+#define GRAPH_XSIZE 2.4f
 #define GRAPH_YSIZE 1 //doesnt like floats
 #define GRAPH_STEP 5
 #define GRAPH_XOFF (720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2
@@ -232,7 +232,7 @@ static MENU_SELECT_FUNC(aperture_range_set)
 
 static MENU_UPDATE_FUNC(aperture_curve_upd)
 {
-	MENU_SET_VALUE("at %s%d.%d -%d.%d EVpEV", FMT_FIXEDPOINT1(av_off), av_step /10, av_step % 10);
+	MENU_SET_VALUE("at %s%d.%d -%d.%d EVpBV", FMT_FIXEDPOINT1(av_off), av_step /10, av_step % 10);
 }
 
 static MENU_SELECT_FUNC(aperture_curve_set)
@@ -264,7 +264,7 @@ static MENU_SELECT_FUNC(iso_range_set)
 
 static MENU_UPDATE_FUNC(iso_curve_upd)
 {
-	MENU_SET_VALUE("at %s%d.%d +%d.%d EVpEV", FMT_FIXEDPOINT1(iso_off), iso_step / 10, iso_step % 10);
+	MENU_SET_VALUE("at %s%d.%d +%d.%d EVpBV", FMT_FIXEDPOINT1(iso_off), iso_step / 10, iso_step % 10);
 }
 
 static MENU_SELECT_FUNC(iso_curve_set)
@@ -322,7 +322,7 @@ static struct menu_entry autoexpo_menu[] =
 				.select = aperture_curve_set,
 				.icon_type = IT_DICE,
 				.help = "Main dial - change curve offset.",
-				.help2 = "Left & right - set EV steps per EV.",
+				.help2 = "Left & right - set EV steps per BV.",
 			},
 			{
 				.name = "ISO range",
@@ -338,7 +338,7 @@ static struct menu_entry autoexpo_menu[] =
 				.select = iso_curve_set,
 				.icon_type = IT_DICE,
 				.help = "Main dial - change curve offset.",
-				.help2 = "Left & right - set EV steps per EV.",
+				.help2 = "Left & right - set EV steps per BV.",
 			},
 			{
 				.name = "Lock ISO & AV",
