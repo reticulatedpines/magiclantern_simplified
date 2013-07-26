@@ -3078,7 +3078,7 @@ static void zoom_halfshutter_step()
             msleep(50);
             #endif
             int hs2 = get_halfshutter_pressed();
-            if (hs2 && lv_dispsize == 1 && display_idle())
+            if (hs2 && lv && lv_dispsize == 1 && display_idle())
             {
                 zoom_was_triggered_by_halfshutter = 1;
                 int zoom = zoom_disable_x10 ? 5 : 10;
