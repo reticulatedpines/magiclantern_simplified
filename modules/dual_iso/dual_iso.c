@@ -467,7 +467,7 @@ static MENU_UPDATE_FUNC(isoless_check)
     }
 
     if (iso1 == iso2)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Both ISOs are identical, nothing to do.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Both ISOs are identical, nothing to do.");
 
     if (!get_dxo_dynamic_range(72))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
@@ -486,9 +486,9 @@ static MENU_UPDATE_FUNC(isoless_dr_update)
     int iso2 = lens_info.raw_iso/8*8;
     
     isoless_check(entry, info);
-    if (info->warning_level)
+    if (info->warning_level >= MENU_WARN_ADVICE)
     {
-        MENU_SET_VALUE("N/A" >= MENU_WARN_ADVICE);
+        MENU_SET_VALUE("N/A");
         return;
     }
     
