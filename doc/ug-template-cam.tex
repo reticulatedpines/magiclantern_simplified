@@ -63,7 +63,9 @@
 %~ \def\overexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=red, minimum width=5mm, minimum height=3mm] {}; }}
 %~ \def\underexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=blue, minimum width=5mm, minimum height=3mm] {}; }}
 
-\usepackage[colorlinks=true,linkcolor=cyan,urlcolor=cyan]{hyperref}
+% use the 'draft' option to show the hyperlink as plain text,
+% since you don't have net on the camera :)
+\usepackage[colorlinks=true,linkcolor=cyan,urlcolor=cyan,draft]{hyperref}
 %~ \hypersetup{
   %~ pdftitle={Magic Lantern v2.3 -- User's Guide},
   %~ pdfauthor = {Alex Dumitrache <broscutamaker@gmail.com>},
@@ -144,11 +146,6 @@
 \usepackage{everypage}
 \AddEverypageHook{\nextpagehint}
 %~ \AddEverypageHook{\cornerlogo}
-
-% redefine href to show the hyperlink as plain text, since you don't have 'net on the camera :)
-\let\oldhref=\href
-\directlua{dofile("showlink.lua")}
-\renewcommand{\href}[2]{\directlua{ShowLink("#1", "#2")}}
 
 %~ \sloppy
 
