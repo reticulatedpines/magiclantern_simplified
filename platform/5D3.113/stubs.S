@@ -222,12 +222,15 @@ NSTUB(0xFF57645C, PackMem_StartEDmac)
 // NSTUB(   0x399D4, sd_device)
 // NSTUB(0xff5bb2c8, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 
+/* Electronic level - roll/pitch info */
+NSTUB(0xFF272050, GUI_SetRollingPitchingLevelStatus); // RequestRollingPitching - no side effects :)
+// NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus) // has side effects
+
 /** Unused **/
 // NSTUB(0x23D08, pre_isr_hook)
 // NSTUB(0x23D0C, post_isr_hook)
 // NSTUB(0xff181314, ENCODE_StartEncodeJpeg)
 // NSTUB(0xFF9EB650 - RAM_OFFSET, dma_memcpy)
-// NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus) // has side effects
 // NSTUB(0xff1064c8, PD_RemoteRelease)
 // NSTUB(0xff144a3c, copy_malloc_info_maybe)
 // NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now

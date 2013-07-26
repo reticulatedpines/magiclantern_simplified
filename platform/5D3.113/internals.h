@@ -40,8 +40,8 @@
 /** This camera reports focus info in LiveView **/
 #define CONFIG_LV_FOCUS_INFO
 
-/** Reports roll and pitch angle, but it's unstable, leave it off **/
-//~ #define CONFIG_ELECTRONIC_LEVEL
+/** Reports roll and pitch angle **/
+#define CONFIG_ELECTRONIC_LEVEL
 
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
 #define CONFIG_AUTO_BRIGHTNESS
