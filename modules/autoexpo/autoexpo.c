@@ -1,19 +1,18 @@
 /*
 
 	BRIGHTNESS VALUE = SHUTTER + APERTURE - ISO + EXPOSURE COMPENSATION 
-	in M mode EXPO_COMP is indicator of under/over exposure
-
+	in M mode exposure compensation is indicator of under/over exposure
+	
 	http://www.magiclantern.fm/forum/index.php?topic=7208
 	https://bitbucket.org/pravdomil/magic-lantern-hack
 
-	###EXPO_COMP only set on 5D2 v 212###
 	use ae_spy module to find it on other cameras
 	https://bitbucket.org/pravdomil/magic-lantern-hack/commits/2e2ad5262575971a5d29cc8418854c31f9cd0d72
 	or send me a camera I will find it!
 
-	EXPO_COMP value overflows its Canon bug
+	AE_VALUE value overflows its Canon bug
 	how to reproduce: set high iso and watch AE compension in M on bright sky
-
+	
 */
 #include <module.h>
 #include <dryos.h>
@@ -29,7 +28,7 @@
 #define RAW2TV(raw) APEX_TV(raw) * 10 / 8
 #define RAW2AV(raw) APEX_AV(raw) * 10 / 8
 #define RAW2SV(raw) APEX_SV(raw) * 10 / 8
-#define RAW2EC(raw) (raw - 1) * 10 / 2048
+#define RAW2EC(raw) raw * 10 / 8
 
 #define TV2RAW(apex) -APEX_TV(-apex * 100 / 125)
 #define AV2RAW(apex) -APEX_AV(-apex * 100 / 125)
@@ -62,6 +61,25 @@ static int autoexpo_running = 0;
 static int last_key = 0;
 static int last_bv = INT_MIN;
 
+static int cam_5d2 = 0;
+static int cam_500d = 0;
+static int cam_550d = 0;
+static int cam_600d = 0;
+static int cam_60d = 0;
+static int cam_6d = 0;
+static int cam_eos_m = 0;
+
+int get_ae_value(){
+	if(cam_5d2) return ((*(int16_t*)0x13024)-1) * 8 / 2048;
+	if(cam_500d) return (*(int8_t*)0x14E20);
+	if(cam_550d) return (*(int8_t*)0x14c25);
+	if(cam_600d) return (*(int8_t*)0x7E14);
+	if(cam_60d) return (*(int8_t*)0x24bd9);
+	if(cam_6d) return (*(int8_t*)0x7F5B0);
+	if(cam_eos_m) return (*(int8_t*)0x51C58);
+	return 0;
+}
+
 int get_shutter_from_bv(int bv, int aperture, int iso){
 	return COERCE(bv - aperture + iso, tv_min, 130);
 }
@@ -88,13 +106,13 @@ static void autoexpo_task()
 
 	if(!lens_info.raw_shutter) goto cleanup; //open menus
 
-	int bv = RAW2TV(lens_info.raw_shutter) + RAW2AV(lens_info.raw_aperture) - RAW2SV(lens_info.iso_equiv_raw) + RAW2EC(EXPO_COMP);
-
-	if(bv < -200){ //EXPO_COMP overflows, set some low values
+	int bv = RAW2TV(lens_info.raw_shutter) + RAW2AV(lens_info.raw_aperture) - RAW2SV(lens_info.iso_equiv_raw) + RAW2EC(get_ae_value());
+	
+	if(bv < -200){ //AE_VALUE overflows, set some low values
 		lens_set_rawshutter(60 + 56);
 		lens_set_rawaperture(1);
 		lens_set_rawiso(1);
-		NotifyBox(1000, "EXPO_COMP overflows");
+		NotifyBox(1000, "AE_VALUE overflows");
 		goto cleanup;
 	}
 
@@ -118,7 +136,7 @@ static unsigned int autoexpo_shoot_task(){
 		auto_expo_enabled &&
 		shooting_mode == SHOOTMODE_M &&
 		!lv &&
-		EXPO_COMP != 0 &&
+		get_ae_value() != 0 &&
 		!autoexpo_running
 	)
 		task_create("autoexpo_task", 0x1c, 0x1000, autoexpo_task, (void*)0);
@@ -354,8 +372,15 @@ static struct menu_entry autoexpo_menu[] =
 
 unsigned int autoexpo_init()
 {
-	if(streq(camera_model_short, "5D2"))
-		menu_add("Expo", autoexpo_menu, COUNT(autoexpo_menu));
+	cam_5d2 = streq(camera_model_short, "5D2");
+	cam_500d = streq(camera_model_short, "500D");
+	cam_550d = streq(camera_model_short, "550D");
+	cam_600d = streq(camera_model_short, "600D");
+	cam_60d = streq(camera_model_short, "60D");
+	cam_6d = streq(camera_model_short, "6D");
+	cam_eos_m = streq(camera_model_short, "EOSM");
+	
+	menu_add("Expo", autoexpo_menu, COUNT(autoexpo_menu));
 	return 0;
 }
 
