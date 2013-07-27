@@ -158,6 +158,31 @@ int main (int argc, char *argv[])
                 printf("     Lens ID:     0x%08X\n", block_hdr.lensID);
                 printf("     Flags:       0x%08X\n", block_hdr.flags);
             }
+            else if(!memcmp(buf.blockType, "INFO", 4))
+            {
+                mlv_info_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_info_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                
+                /* get the string length and malloc a buffer for that string */
+                int str_length = block_hdr.blockSize - sizeof(mlv_info_hdr_t);
+                char *buf = malloc(str_length + 1);
+                
+                if(fread(buf, str_length, 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                
+                buf[str_length] = '\000';                
+                printf("     String:   '%s'\n", buf);
+                
+                free(buf);
+            }
             else if(!memcmp(buf.blockType, "IDNT", 4))
             {
                 mlv_idnt_hdr_t block_hdr;

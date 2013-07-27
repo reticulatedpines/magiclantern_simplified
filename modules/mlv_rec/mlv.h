@@ -158,8 +158,6 @@ typedef struct {
     uint8_t     blockType[4];    /* user definable info string. take number, location, etc. */
     uint32_t    blockSize;
     uint64_t    timestamp;
-    uint32_t    length;
-    uint8_t     string;    /* can be structured: "tag1: value1; tag2: value2" */
 } mlv_info_hdr_t;
 
 typedef struct {

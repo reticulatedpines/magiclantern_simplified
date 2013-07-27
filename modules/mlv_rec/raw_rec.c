@@ -65,6 +65,7 @@
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
+#include "../ime_base/ime_base.h"
 #include "cache_hacks.h"
 #include "mlv.h"
 
@@ -121,6 +122,11 @@ static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 /* mlv information */
 static uint64_t mlv_start_timestamp = 0;
 static mlv_file_hdr_t mlv_file_hdr;
+
+/* info block data */
+static char raw_tag_str[1024];
+static char raw_tag_str_tmp[1024];
+static int raw_tag_take = 0;
 
 /* state variables */
 static int res_x = 0;
@@ -1358,6 +1364,47 @@ static char* get_wav_file_name(char* movie_filename)
     return wavfile;
 }
 
+static int mlv_write_info(FILE* f)
+{
+    mlv_info_hdr_t *hdr = malloc(1080);
+    char *str_pos = (char *)((unsigned int)hdr + sizeof(mlv_info_hdr_t));
+    int ret = 0;
+    
+    /* init empty string */
+    strcpy(str_pos, "");
+    
+    /* if any text is given, set it first */
+    if(strlen(raw_tag_str) > 0)
+    {
+        strcpy(&str_pos[strlen(str_pos)], "text: ");
+        strcpy(&str_pos[strlen(str_pos)], raw_tag_str);
+        strcpy(&str_pos[strlen(str_pos)], "; ");
+    }
+    
+    /* if take number is enabled, append it */
+    if(raw_tag_take)
+    {
+        char buf[32];
+        
+        snprintf(buf, 32, "%d", raw_tag_take);
+        
+        strcpy(&str_pos[strlen(str_pos)], "take: ");
+        strcpy(&str_pos[strlen(str_pos)], buf);
+        strcpy(&str_pos[strlen(str_pos)], "; ");
+    }
+    
+    /* now build block header */
+    mlv_set_type((mlv_hdr_t *)hdr, "INFO");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+    hdr->blockSize = sizeof(mlv_info_hdr_t) + strlen(str_pos);
+    
+    int written = FIO_WriteFile(f, hdr, hdr->blockSize);
+    ret = written == (int)hdr->blockSize;
+    
+    free(hdr);
+    return ret;
+}
+
 static void mlv_init_header()
 {
     /* recording start timestamp */
@@ -1477,6 +1524,7 @@ static void raw_video_rec_task()
     mlv_init_header();
     mlv_write_header(f, 0);
     mlv_write_rawi(f, raw_info);
+    mlv_write_info(f);
     
     /* fill and write camera and lens information */
     mlv_rtci_hdr_t rtci_hdr;
@@ -1805,6 +1853,12 @@ cleanup:
     if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
     free_buffers();
     
+    /* count up take number */
+    if(raw_tag_take)
+    {
+        raw_tag_take++;
+    }
+    
     #ifdef DEBUG_BUFFERING_GRAPH
     take_screenshot(0);
     #endif
@@ -1919,6 +1973,44 @@ FILETYPE_HANDLER(raw_rec_filehandler)
     return 0; /* command not handled */
 }
 
+IME_DONE_FUNC(raw_tag_str_done)
+{
+    if(status == IME_OK)
+    {
+        strcpy(raw_tag_str, raw_tag_str_tmp);
+    }
+}
+
+static MENU_SELECT_FUNC(raw_tag_str_start)
+{
+    strcpy(raw_tag_str_tmp, raw_tag_str);
+    ime_base_start((unsigned char *)"Enter text", (unsigned char *)raw_tag_str_tmp, sizeof(raw_tag_str_tmp)-1, IME_UTF8, IME_CHARSET_ANY, NULL, raw_tag_str_done, 0, 0, 0, 0);
+}
+
+static MENU_UPDATE_FUNC(raw_tag_str_update)
+{
+    if(strlen(raw_tag_str))
+    {
+        MENU_SET_VALUE(raw_tag_str);
+    }
+    else
+    {
+        MENU_SET_VALUE("none");
+    }
+}
+
+static MENU_UPDATE_FUNC(raw_tag_take_update)
+{
+    if(raw_tag_take)
+    {
+        MENU_SET_VALUE("#%d", raw_tag_take);
+    }
+    else
+    {
+        MENU_SET_VALUE("OFF");
+    }
+}
+
 static MENU_SELECT_FUNC(raw_playback_start)
 {
     if (!raw_playing && RAW_IS_IDLE)
@@ -2031,7 +2123,22 @@ static struct menu_entry raw_video_menu[] =
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
             },
             {
-                .name = "Playback",
+                .name = "Tag: Text",
+                .priv = raw_tag_str,
+                .select = raw_tag_str_start,
+                .update = raw_tag_str_update,
+                .help  = "Free text field",
+            },
+            {
+                .name = "Tag: Take",
+                .priv = &raw_tag_take,
+                .min = 0,
+                .max = 99,
+                .update = raw_tag_take_update,
+                .help  = "Auto-Counting take number",
+            },
+            {
+                .name = "Playback (doesnt work)",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
                 .icon_type = IT_ACTION,
@@ -2186,6 +2293,9 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 
 static unsigned int raw_rec_init()
 {
+    /* default free text string is empty */
+    strcpy(raw_tag_str, "");
+
     cam_eos_m = streq(camera_model_short, "EOSM");
     cam_5d2 = streq(camera_model_short, "5D2");
     cam_50d = streq(camera_model_short, "50D");
