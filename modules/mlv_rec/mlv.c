@@ -75,6 +75,7 @@ void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
 void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
 {
     struct tm now;
+    memset(&now, 0x00, sizeof(struct tm));
     
     /* prepare header */
     mlv_set_type((mlv_hdr_t *)hdr, "RTCI");
