@@ -247,7 +247,7 @@ int main(int argc, char** argv)
                 raw_info.white_level /= 4;
 
                 char exif_cmd[100];
-                snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" \"%s\" -overwrite_original", filename, out_filename);
+                snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"%s\" -overwrite_original", filename, out_filename);
                 int r = system(exif_cmd);
                 if (r != 0)
                     printf("Exiftool didn't work\n");
