@@ -265,6 +265,15 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
     
     switch (key)
     {
+        case MODULE_KEY_PRESS_HALFSHUTTER:
+        case MODULE_KEY_UNPRESS_HALFSHUTTER:
+        case MODULE_KEY_PRESS_FULLSHUTTER:
+        case MODULE_KEY_UNPRESS_FULLSHUTTER:
+            /* cancel was pressed, set return code and return */
+            ctx->returncode = IME_CANCEL;
+            ctx->active = 0;
+            break;
+            
         case MODULE_KEY_WHEEL_UP:
             if(ctx->caret_pos > 0)
             {
@@ -422,9 +431,6 @@ static void ime_std_input(unsigned int parm)
 {
     ime_std_ctx_t *ctx = (ime_std_ctx_t *)parm;
     
-    /* stop menu painting */
-    menu_redraw_blocked = 1;
-    
     /* select appropriate punctuation for filenames */
     if(ctx->charset_type & IME_CHARSET_FILENAME)
     {
@@ -443,6 +449,12 @@ static void ime_std_input(unsigned int parm)
         ime_std_charcounts[IME_STD_VAR_CHARSET] = sizeof(IME_STD_VAR_CHARSET_DEF);
     }
         
+    /* stop menu painting */
+    menu_redraw_blocked = 1;
+    
+    /* start text input */    
+    ime_std_current_ctx = ctx;
+    
     /* redraw periodically */
     while(ctx->active)
     {
@@ -451,9 +463,11 @@ static void ime_std_input(unsigned int parm)
         msleep(250);
     }
     
+    ctx->done_cbr(ctx, ctx->returncode, ctx->string);
+    ime_std_current_ctx = NULL;
+    
     /* re-enable menu painting */
     menu_redraw_blocked = 0;
-    ctx->done_cbr(ctx, ctx->returncode, ctx->string);
     
     free(ctx);
 }
@@ -478,9 +492,8 @@ static void *ime_std_start(unsigned char *caption, unsigned char *text, int max_
     ctx->valid = 1;
     ctx->returncode = IME_CANCEL;
 
-    
-    /* fill remaining space with zeros just to make sure */
-    for(int pos = strlen((char*)ctx->string); pos < max_length; pos++)
+    /* fill remaining space with zeros just to make sure. trailing zero is placed behind text */
+    for(int pos = strlen((char*)ctx->string); pos <= max_length; pos++)
     {
         ctx->string[pos] = '\000';
     }

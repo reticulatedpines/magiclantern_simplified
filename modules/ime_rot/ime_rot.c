@@ -274,6 +274,15 @@ static unsigned int ime_rot_keypress_cbr(unsigned int key)
     
     switch (key)
     {
+        case MODULE_KEY_PRESS_HALFSHUTTER:
+        case MODULE_KEY_UNPRESS_HALFSHUTTER:
+        case MODULE_KEY_PRESS_FULLSHUTTER:
+        case MODULE_KEY_UNPRESS_FULLSHUTTER:
+            /* cancel was pressed, set return code and return */
+            ctx->returncode = IME_CANCEL;
+            ctx->active = 0;
+            break;
+
         case MODULE_KEY_Q:
             ime_rot_select_charset(ctx, IME_ROT_FUNC_CHARSET);
             ctx->selection = 1;
@@ -434,9 +443,6 @@ static void ime_rot_input(unsigned int parm)
 {
     ime_rot_ctx_t *ctx = (ime_rot_ctx_t *)parm;
     
-    /* stop menu painting */
-    menu_redraw_blocked = 1;
-    
     /* select appropriate punctuation for filenames */
     if(ctx->charset_type & IME_CHARSET_FILENAME)
     {
@@ -454,7 +460,13 @@ static void ime_rot_input(unsigned int parm)
         ime_rot_charset_types[IME_ROT_VAR_CHARSET] = IME_ROT_VAR_CHARSET_DEF_TYPE;
         ime_rot_charcounts[IME_ROT_VAR_CHARSET] = sizeof(IME_ROT_VAR_CHARSET_DEF);
     }
-        
+    
+    /* stop menu painting */
+    menu_redraw_blocked = 1;
+    
+    /* start text input */    
+    ime_rot_current_ctx = ctx;
+    
     /* redraw periodically */
     while(ctx->active)
     {
@@ -463,9 +475,11 @@ static void ime_rot_input(unsigned int parm)
         msleep(250);
     }
     
+    ctx->done_cbr(ctx, ctx->returncode, ctx->string);
+    ime_rot_current_ctx = NULL;
+    
     /* re-enable menu painting */
     menu_redraw_blocked = 0;
-    ctx->done_cbr(ctx, ctx->returncode, ctx->string);
     
     free(ctx);
 }
@@ -490,9 +504,8 @@ static void *ime_rot_start(unsigned char *caption, unsigned char *text, int max_
     ctx->valid = 1;
     ctx->returncode = IME_CANCEL;
 
-    
-    /* fill remaining space with zeros just to make sure */
-    for(int pos = strlen((char*)ctx->string); pos < max_length; pos++)
+    /* fill remaining space with zeros just to make sure. trailing zero is placed behind text */
+    for(int pos = strlen((char*)ctx->string); pos <= max_length; pos++)
     {
         ctx->string[pos] = '\000';
     }
@@ -518,7 +531,6 @@ static void *ime_rot_start(unsigned char *caption, unsigned char *text, int max_
     }
     
     /* start input system - ToDo: add a lock to make sure only one thread starts the IME */
-    ime_rot_current_ctx = ctx;
     task_create("ime_rot_input", 0x1c, 0x1000, ime_rot_input, ctx);
     
     return ctx;
