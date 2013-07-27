@@ -50,6 +50,8 @@ typedef unsigned int (*t_ime_done_cbr)(void *ctx, unsigned int status, unsigned 
    it will call 'update' if (update != NULL) periodically or on any update_cbr (caret pos or string) and done_cbr when the dialog is finished.
    return the context of the dialog if it was started. this is a paramete for future functions and used to identify the exact dialog.
    
+   the passed text buffer must reserve max_length characters plus the trailing zero byte.
+   
    in case of any other error (e.g. unavailability of some resource) it will return NULL.
    if an error occured, the error message will be placed in the 'text' pointer given, so make sure you use a separate buffer.
    
@@ -57,7 +59,7 @@ typedef unsigned int (*t_ime_done_cbr)(void *ctx, unsigned int status, unsigned 
    placed its text field that should not be overwritten. your update cbr must handle displaying the string in this case. 
    if you dont care about this, pass all values as zero. 
  */
-extern void * ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
+extern void * WEAK_FUNC(ret_0) ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
 typedef void * (*t_ime_start) (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
 
 /* this structure is passed when registering */
@@ -73,7 +75,7 @@ typedef struct
 #ifndef _ime_base_c_
 static unsigned int ime_base_unavail(t_ime_handler *handler)
 {
-    bmp_printf(FONT_MED, 30, 190, "IME Handler %s intalled, but 'ime_base' missing.", handler->name);
+    bmp_printf(FONT_MED, 30, 190, "IME Handler %s installed, but 'ime_base' missing.", handler->name);
     beep();
     msleep(2000);
     return IME_ERR_UNAVAIL;
