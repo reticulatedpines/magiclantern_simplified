@@ -136,6 +136,9 @@ int main (int argc, char *argv[])
                 
                 printf("     Pad: 0x%08X\n", block_hdr.frameSpace);
                 printf("   Frame: #%d\n", block_hdr.frameNumber);
+                printf("    Crop: %dx%d\n", block_hdr.cropPosX, block_hdr.cropPosY);
+                printf("     Pan: %dx%d\n", block_hdr.panPosX, block_hdr.panPosY);
+                printf("   Space: %d\n", block_hdr.frameSpace);
                 
             }
             else if(!memcmp(buf.blockType, "LENS", 4))
@@ -170,18 +173,22 @@ int main (int argc, char *argv[])
                 
                 /* get the string length and malloc a buffer for that string */
                 int str_length = block_hdr.blockSize - sizeof(mlv_info_hdr_t);
-                char *buf = malloc(str_length + 1);
                 
-                if(fread(buf, str_length, 1, file) != 1)
+                if(str_length)
                 {
-                    printf("Reached file end within block.\n");
-                    return 0;
+                    char *buf = malloc(str_length + 1);
+                    
+                    if(fread(buf, str_length, 1, file) != 1)
+                    {
+                        printf("Reached file end within block.\n");
+                        return 0;
+                    }
+                    
+                    buf[str_length] = '\000';                
+                    printf("     String:   '%s'\n", buf);
+                    
+                    free(buf);
                 }
-                
-                buf[str_length] = '\000';                
-                printf("     String:   '%s'\n", buf);
-                
-                free(buf);
             }
             else if(!memcmp(buf.blockType, "IDNT", 4))
             {

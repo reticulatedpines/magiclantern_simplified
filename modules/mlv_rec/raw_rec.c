@@ -735,7 +735,8 @@ static void show_buffer_status()
     int y = 50;
     for (int i = 0; i < slot_count; i++)
     {
-        if (i > 0 && slots[i].ptr != slots[i-1].ptr + frame_size)
+        mlv_vidf_hdr_t *hdr = (mlv_vidf_hdr_t *)slots[i-1].ptr;
+        if (i > 0 && slots[i].ptr != slots[i-1].ptr + hdr->blockSize)
             x += MAX(2, scale);
 
         int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
@@ -1121,12 +1122,14 @@ static void hack_liveview(int unhack)
 
 static int FAST choose_next_capture_slot()
 {
+    mlv_vidf_hdr_t *cap_hdr = (mlv_vidf_hdr_t *)slots[capture_slot].ptr;
+    
     /* keep on rolling? */
     /* O(1) */
     if (
         capture_slot >= 0 && 
         capture_slot + 1 < slot_count && 
-        slots[capture_slot + 1].ptr == slots[capture_slot].ptr + frame_size && 
+        slots[capture_slot + 1].ptr == slots[capture_slot].ptr + cap_hdr->blockSize && 
         slots[capture_slot + 1].status == SLOT_FREE &&
         !force_new_buffer
        )
@@ -1137,16 +1140,19 @@ static int FAST choose_next_capture_slot()
     /* O(n), n = slot_count */
     int len = 0;
     void* prev_ptr = INVALID_PTR;
+    int prev_blockSize = 0;
     int best_len = 0;
     int best_index = -1;
     for (int i = 0; i < slot_count; i++)
     {
         if (slots[i].status == SLOT_FREE)
         {
-            if (slots[i].ptr == prev_ptr + frame_size)
+            mlv_vidf_hdr_t *hdr = (mlv_vidf_hdr_t *)slots[i].ptr;
+            if (slots[i].ptr == prev_ptr + prev_blockSize)
             {
                 len++;
                 prev_ptr = slots[i].ptr;
+                prev_blockSize = hdr->blockSize;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1157,6 +1163,7 @@ static int FAST choose_next_capture_slot()
             {
                 len = 1;
                 prev_ptr = slots[i].ptr;
+                prev_blockSize = hdr->blockSize;
                 if (len > best_len)
                 {
                     best_len = len;
