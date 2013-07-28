@@ -29,8 +29,13 @@ extern uint64_t get_us_clock_value();
 extern char *strcpy(char *dest, const char *src);
 extern char *strncpy(char *dest, const char *src, int n);
 
-extern int  _prop_get_value(unsigned property, void** addr, size_t* len);
-//extern int WEAK_FUNC(_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
+extern int WEAK_FUNC(ret_1) _prop_get_value(unsigned property, void** addr, size_t* len);
+extern int WEAK_FUNC(own_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
+
+int own_prop_get_value(unsigned property, void** addr, size_t* len)
+{
+    return _prop_get_value(property, addr, len);
+}
 
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
 {
@@ -50,9 +55,9 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
     hdr->flags = 0;
     
     /* get lens information and save the 16 bit lens id. tools detect the lens by its name instead, so its not important anyway */
-    if(!_prop_get_value(PROP_LENS, (void **) &lens_data, &lens_data_len))
+    if(!prop_get_value(PROP_LENS, (void **) &lens_data, &lens_data_len))
     {
-        hdr->lensID = lens_data[4] || (lens_data[5] << 8);
+        hdr->lensID = lens_data[4] | (lens_data[5] << 8);
     }
     else
     {
@@ -133,8 +138,8 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     hdr->cameraModel = 0;
     
     /* get camera properties */
-    err |= _prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
-    err |= _prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
+    err |= prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
+    err |= prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
     
     if(err || model_len < 36 || body_len < 4 || !model_data || !body_data)
     {
