@@ -136,7 +136,7 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint8_t     cameraName[32];    /* PROP (0x00000002), offset 0, length 32 */
     uint32_t    cameraModel;    /* PROP (0x00000002), offset 32, length 4 */
-    uint8_t     cameraIdent[4];    /* PROP_BODY_ID (0x01000006), offset 0, length 4 */
+    uint32_t    cameraIdent;    /* PROP_BODY_ID (0x01000006), offset 0, length 4 */
 } mlv_idnt_hdr_t;
 
 typedef struct {

@@ -121,17 +121,14 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     {
         strcpy((char*)hdr->cameraName, "Failed to get properties.");
         hdr->cameraModel = 0;
-        hdr->cameraIdent[0] = 0;
-        hdr->cameraIdent[1] = 0;
-        hdr->cameraIdent[2] = 0;
-        hdr->cameraIdent[3] = 0;
+        hdr->cameraIdent = 0;
         return;
     }
     
     /* properties are ok, so read data */
     memcpy((char *)hdr->cameraName, &model_data[0], 32);
     memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
-    memcpy((char *)hdr->cameraIdent, &body_data, 4);
+    memcpy((char *)&hdr->cameraIdent, &body_data, 4);
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)

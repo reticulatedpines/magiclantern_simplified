@@ -203,7 +203,7 @@ int main (int argc, char *argv[])
                 
                 printf("     Camera Name:   '%s'\n", block_hdr.cameraName);
                 printf("     Camera Model:  0x%08X\n", block_hdr.cameraModel);
-                printf("     Camera Ident:  0x%08X\n", *((uint32_t*)&block_hdr.cameraIdent));
+                printf("     Camera Ident:  0x%08X\n", block_hdr.cameraIdent));
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))
             {
