@@ -405,7 +405,6 @@ MODULE_STRINGS_START()
 	MODULE_STRING("Desc", "Auto exposure algorithm")
 	MODULE_STRING("Author", "Pravdomil.cz")
 	MODULE_STRING("Credits", "ML dev.")
-	MODULE_STRING("5D2", "only")
 MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
