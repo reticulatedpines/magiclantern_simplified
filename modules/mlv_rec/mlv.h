@@ -96,7 +96,7 @@ typedef struct {
     uint32_t    isoValue;    /* camera delivered ISO value */
     uint32_t    isoAnalog;    /* camera delivered ISO value */
     uint32_t    digitalGain;    /* digital ISO gain */
-    uint32_t    shutterValue;    /* exposure time in 1000/x */
+    uint64_t    shutterValue;    /* exposure time in microseconds */
 } mlv_expo_hdr_t;
 
 typedef struct {
@@ -111,6 +111,7 @@ typedef struct {
     uint32_t    flags;    /* 1=CA avail, 2=Vign avail, ... */
     uint32_t    lensID;    /* hexadecimal lens ID (delivered by properties?) */
     uint8_t     lensName[32];    /* full lens string */
+    uint8_t     lensSerial[32]; /* full lens serial number */
 } mlv_lens_hdr_t;
 
 typedef struct {
@@ -136,7 +137,7 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint8_t     cameraName[32];    /* PROP (0x00000002), offset 0, length 32 */
     uint32_t    cameraModel;    /* PROP (0x00000002), offset 32, length 4 */
-    uint32_t    cameraIdent;    /* PROP_BODY_ID (0x01000006), offset 0, length 4 */
+    uint8_t     cameraSerial[32];    /* Camera serial number (if available) */
 } mlv_idnt_hdr_t;
 
 typedef struct {

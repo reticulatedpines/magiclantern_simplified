@@ -152,7 +152,8 @@ int main (int argc, char *argv[])
                 }
                 fseek(file, block_hdr.blockSize-sizeof(mlv_lens_hdr_t), SEEK_CUR);
                 
-                printf("     Name:       '%s'\n", block_hdr.lensName);
+                printf("     Name:        '%s'\n", block_hdr.lensName);
+                printf("     Serial:      '%s'\n", block_hdr.lensSerial);
                 printf("     Focal Len:   %d mm\n", block_hdr.focalLength);
                 printf("     Focus Dist:  %d mm\n", block_hdr.focalDist);
                 printf("     Aperture:    f/%.2f\n", (double)block_hdr.aperture / 100.0d);
@@ -202,8 +203,8 @@ int main (int argc, char *argv[])
                 fseek(file, block_hdr.blockSize-sizeof(mlv_idnt_hdr_t), SEEK_CUR);
                 
                 printf("     Camera Name:   '%s'\n", block_hdr.cameraName);
+                printf("     Camera Serial: '%s'\n", block_hdr.cameraSerial);
                 printf("     Camera Model:  0x%08X\n", block_hdr.cameraModel);
-                printf("     Camera Ident:  0x%08X\n", block_hdr.cameraIdent));
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))
             {
@@ -238,7 +239,7 @@ int main (int argc, char *argv[])
                 printf("     ISO:        %d\n", block_hdr.isoValue);
                 printf("     ISO Analog: %d\n", block_hdr.isoAnalog);
                 printf("     ISO DGain:  %d EV\n", block_hdr.digitalGain);
-                printf("     Shutter:    1/%f s\n", block_hdr.shutterValue / 1000.0f);
+                printf("     Shutter:    %llu µs (1/%.2f)\n", block_hdr.shutterValue, 1000000.0f/block_hdr.shutterValue);
             }
             else if(!memcmp(buf.blockType, "RAWI", 4))
             {

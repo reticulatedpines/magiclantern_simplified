@@ -34,6 +34,9 @@ extern int  _prop_get_value(unsigned property, void** addr, size_t* len);
 
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
 {
+    uint8_t *lens_data = NULL;
+    size_t lens_data_len = 0;
+    
     /* prepare header */
     mlv_set_type((mlv_hdr_t *)hdr, "LENS");
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
@@ -45,8 +48,19 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
     hdr->stabilizerMode = lens_info.IS;
     hdr->autofocusMode = 0;
     hdr->flags = 0;
-    hdr->lensID = 0;
+    
+    /* get lens information and save the 16 bit lens id. tools detect the lens by its name instead, so its not important anyway */
+    if(!_prop_get_value(PROP_LENS, (void **) &lens_data, &lens_data_len))
+    {
+        hdr->lensID = lens_data[4] || (lens_data[5] << 8);
+    }
+    else
+    {
+        hdr->lensID = 0;
+    }
+    
     strncpy((char *)hdr->lensName, lens_info.name, 32);
+    strncpy((char *)hdr->lensSerial, "", 32);
 }
 
 void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
@@ -69,7 +83,7 @@ void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
     }
     hdr->isoAnalog = lens_info.iso_analog_raw;
     hdr->digitalGain = lens_info.iso_digital_ev;
-    hdr->shutterValue = get_current_shutter_reciprocal_x1000();
+    hdr->shutterValue = (uint32_t)(1000.0f * (1000000.0f / (float)get_current_shutter_reciprocal_x1000()));
 }
 
 void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
@@ -103,7 +117,7 @@ void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
 {
     char *model_data = NULL;
-    char *body_data = NULL;
+    uint64_t *body_data = NULL;
     size_t model_len = 0;
     size_t body_len = 0;
     int err = 0;
@@ -113,6 +127,11 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
     hdr->blockSize = sizeof(mlv_idnt_hdr_t);
     
+    /* default values */
+    hdr->cameraName[0] = '\000';
+    hdr->cameraSerial[0] = '\000';
+    hdr->cameraModel = 0;
+    
     /* get camera properties */
     err |= _prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
     err |= _prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
@@ -120,15 +139,13 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     if(err || model_len < 36 || body_len < 4 || !model_data || !body_data)
     {
         strcpy((char*)hdr->cameraName, "Failed to get properties.");
-        hdr->cameraModel = 0;
-        hdr->cameraIdent = 0;
         return;
     }
     
     /* properties are ok, so read data */
     memcpy((char *)hdr->cameraName, &model_data[0], 32);
     memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
-    memcpy((char *)&hdr->cameraIdent, &body_data, 4);
+    snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)
