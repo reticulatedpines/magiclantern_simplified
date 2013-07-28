@@ -69,17 +69,6 @@ static int cam_60d = 0;
 static int cam_6d = 0;
 static int cam_eos_m = 0;
 
-int get_ae_value(){
-	if(cam_5d2) return ((*(int16_t*)0x13024)-1) * 8 / 2048;
-	if(cam_500d) return (*(int8_t*)0x14E20);
-	if(cam_550d) return (*(int8_t*)0x14c25);
-	if(cam_600d) return (*(int8_t*)0x7E14);
-	if(cam_60d) return (*(int8_t*)0x24bd9);
-	if(cam_6d) return (*(int8_t*)0x7F5B0);
-	if(cam_eos_m) return (*(int8_t*)0x51C58);
-	return 0;
-}
-
 int get_shutter_from_bv(int bv, int aperture, int iso){
 	return COERCE(bv - aperture + iso, tv_min, 130);
 }
