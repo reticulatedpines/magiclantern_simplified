@@ -1435,6 +1435,13 @@ static void mlv_init_header()
     mlv_file_hdr.sourceFpsDenom = 1000;
 }
 
+static int mlv_write_hdr(FILE* f, mlv_hdr_t *hdr)
+{
+    unsigned int written = FIO_WriteFile(f, hdr, hdr->blockSize);
+    
+    return written == hdr->blockSize;
+}
+
 static int mlv_write_rawi(FILE* f, struct raw_info raw_info)
 {
     mlv_rawi_hdr_t rawi;
@@ -1446,9 +1453,7 @@ static int mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
     
-    int written = FIO_WriteFile(f, &rawi, sizeof(mlv_rawi_hdr_t));
-    
-    return written == sizeof(mlv_rawi_hdr_t);
+    return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
 
 static int mlv_write_header(FILE* f, int restore_pos)
@@ -1456,14 +1461,14 @@ static int mlv_write_header(FILE* f, int restore_pos)
     /* (re)-write header */
     unsigned int old_pos = FIO_SeekFile(f, 0, SEEK_CUR);
     FIO_SeekFile(f, 0, SEEK_SET);
-    int written = FIO_WriteFile(f, &mlv_file_hdr, sizeof(mlv_file_hdr_t));
+    int written = mlv_write_hdr(f, (mlv_hdr_t *)&mlv_file_hdr);
     
     if(restore_pos)
     {
         FIO_SeekFile(f, old_pos, SEEK_SET);
     }
     
-    return written == sizeof(mlv_file_hdr_t);
+    return written;
 }
 
 static void raw_video_rec_task()
@@ -1544,10 +1549,10 @@ static void raw_video_rec_task()
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
     mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);    
     
-    FIO_WriteFile(f, &rtci_hdr, sizeof(mlv_rtci_hdr_t));
-    FIO_WriteFile(f, &expo_hdr, sizeof(mlv_expo_hdr_t));
-    FIO_WriteFile(f, &lens_hdr, sizeof(mlv_lens_hdr_t));
-    FIO_WriteFile(f, &idnt_hdr, sizeof(mlv_idnt_hdr_t));
+    mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
+    mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
+    mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr);
+    mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
     
 
     /* this will enable the vsync CBR and the other task(s) */
@@ -1986,6 +1991,7 @@ IME_DONE_FUNC(raw_tag_str_done)
     {
         strcpy(raw_tag_str, raw_tag_str_tmp);
     }
+    return IME_OK;
 }
 
 static MENU_SELECT_FUNC(raw_tag_str_start)

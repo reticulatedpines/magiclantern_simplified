@@ -119,7 +119,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     
     if(err || model_len < 36 || body_len < 4 || !model_data || !body_data)
     {
-        strcpy(hdr->cameraName, "Failed to get properties.");
+        strcpy((char*)hdr->cameraName, "Failed to get properties.");
         hdr->cameraModel = 0;
         hdr->cameraIdent[0] = 0;
         hdr->cameraIdent[1] = 0;
