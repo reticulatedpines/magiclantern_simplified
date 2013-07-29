@@ -212,10 +212,10 @@ static void update_graph()
 }
 
 static int last_delta(){
-	if(last_key == 6 || last_key == 15) return 1;
-	if(last_key == 8 ) return 5;
-	if(last_key == 5 || last_key == 16) return -1;
-	if(last_key == 7 ) return -5;
+	if(last_key == MODULE_KEY_WHEEL_DOWN || last_key ==  MODULE_KEY_PRESS_RIGHT) return 1;
+	if(last_key == MODULE_KEY_WHEEL_RIGHT ) return 5;
+	if(last_key == MODULE_KEY_WHEEL_UP || last_key == MODULE_KEY_PRESS_LEFT) return -1;
+	if(last_key == MODULE_KEY_WHEEL_LEFT ) return -5;
 	return 0;
 }
 
