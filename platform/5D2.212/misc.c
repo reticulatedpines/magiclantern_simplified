@@ -14,6 +14,7 @@ void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 
+/* ported in flexinfo
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -44,4 +45,4 @@ void display_shooting_info() // called from debug task
 	display_lcd_remote_icon(555, 460);
 	display_trap_focus_info();
 }
-
+*/

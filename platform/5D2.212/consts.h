@@ -126,19 +126,12 @@
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 38 : 2)
 // outside LiveView, Canon menu is a good choice
 
-// position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 435
-#define DISPLAY_CLOCK_POS_Y 452
-
-#define MENU_DISP_ISO_POS_X 500
-#define MENU_DISP_ISO_POS_Y 27
-
-// for HDR status
-#define HDR_STATUS_POS_X 180
-#define HDR_STATUS_POS_Y 460
+// for ISO
+#define ISO_RANGE_POS_X 450
+#define ISO_RANGE_POS_Y 90
 
 // for displaying battery
-#define DISPLAY_BATTERY_POS_X 195
+#define DISPLAY_BATTERY_POS_X 185
 #define DISPLAY_BATTERY_POS_Y 404
 
 // for displaying TRAP FOCUS msg outside LV
