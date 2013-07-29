@@ -61,22 +61,15 @@ static int autoexpo_running = 0;
 static int last_key = 0;
 static int last_bv = INT_MIN;
 
-static int cam_5d2 = 0;
-static int cam_500d = 0;
-static int cam_550d = 0;
-static int cam_600d = 0;
-static int cam_60d = 0;
-static int cam_6d = 0;
-static int cam_eos_m = 0;
-
 int get_shutter_from_bv(int bv, int aperture, int iso){
 	return COERCE(bv - aperture + iso, tv_min, 130);
 }
 
 int get_aperture_from_bv(int bv, int limit){
 	int ap = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
-	if(lock_iso || limit)
+	if(lock_iso || limit){
 		ap = COERCE(ap, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
+	}
 	return ap;
 }
 
@@ -163,8 +156,9 @@ static void update_graph()
 			//av
 			next = get_aperture_from_bv(bv, 0);
 			if(IS_IN_RANGE(next, last_av)){
-				if(bv != BV_MAX)
+				if(bv != BV_MAX){
 					draw_line(x_last, GRAPH_YOFF - last_av * GRAPH_YSIZE, x, GRAPH_YOFF - next * GRAPH_YSIZE, COLOR_GREEN2);
+				}
 				if(odd && next != last_av_odd){
 					int ap = AV2STR(next);
 					bmp_printf(sfont, x + 2, GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE), "%d.%d", ap / 10, ap % 10);
@@ -176,8 +170,9 @@ static void update_graph()
 			//sv
 			next = get_iso_from_bv(bv);
 			if(IS_IN_RANGE(next, last_iso)){
-				if(bv != BV_MAX)
+				if(bv != BV_MAX){
 					draw_line(x_last, GRAPH_YOFF - last_iso * GRAPH_YSIZE, x, GRAPH_YOFF - next * GRAPH_YSIZE, COLOR_LIGHT_BLUE);
+				}
 				if(odd && next != last_iso_odd){
 					bmp_printf(sfont, x + 2, GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE), "%d", raw2iso(SV2RAW(next)));
 					last_iso_odd = next;
@@ -188,8 +183,9 @@ static void update_graph()
 			//tv
 			next = get_shutter_from_bv(bv, last_av, last_iso);
 			if(IS_IN_RANGE(next, last_tv)){
-				if(bv != BV_MAX)
+				if(bv != BV_MAX){
 					draw_line(x_last, GRAPH_YOFF - last_tv * GRAPH_YSIZE, x, GRAPH_YOFF - next * GRAPH_YSIZE, COLOR_RED);
+				}
 				if(odd && next != last_tv_odd){
 					bmp_printf(sfont, x + 2, GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE), "%s", lens_format_shutter(TV2RAW(next)));
 					last_tv_odd = next;
@@ -198,10 +194,10 @@ static void update_graph()
 			last_tv = next;
 
 			//lines
-			if(!(bv % 10))
+			if(!(bv % 10)){
 				draw_line(x, GRAPH_YOFF - GRAPH_MAX, x, GRAPH_YOFF, 
 					(last_tv + last_av - last_iso != bv) ? COLOR_ORANGE : COLOR_BLACK);
-			
+			}
 		}
 		if(last_bv != INT_MIN){
 			int x = GRAPH_XOFF + (BV_MAX - last_bv) * GRAPH_XSIZE;
@@ -361,14 +357,6 @@ static struct menu_entry autoexpo_menu[] =
 
 unsigned int autoexpo_init()
 {
-	cam_5d2 = streq(camera_model_short, "5D2");
-	cam_500d = streq(camera_model_short, "500D");
-	cam_550d = streq(camera_model_short, "550D");
-	cam_600d = streq(camera_model_short, "600D");
-	cam_60d = streq(camera_model_short, "60D");
-	cam_6d = streq(camera_model_short, "6D");
-	cam_eos_m = streq(camera_model_short, "EOSM");
-	
 	menu_add("Expo", autoexpo_menu, COUNT(autoexpo_menu));
 	return 0;
 }
@@ -380,8 +368,7 @@ unsigned int autoexpo_deinit()
 
 unsigned int autoexpo_keypress(unsigned int key)
 {
-	if(gui_menu_shown())
-		last_key = key;
+	if(gui_menu_shown()) last_key = key;
 	return 1;
 }
 
