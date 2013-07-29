@@ -120,6 +120,7 @@ static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
 /* mlv information */
+struct msg_queue *mlv_block_queue = NULL;
 static uint64_t mlv_start_timestamp = 0;
 static mlv_file_hdr_t mlv_file_hdr;
 
@@ -212,6 +213,11 @@ extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
 extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+
+
+// extern int msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
+extern int msg_queue_count(struct msg_queue *queue, uint32_t *count);
+extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -735,10 +741,29 @@ static void show_buffer_status()
     int y = 50;
     for (int i = 0; i < slot_count; i++)
     {
-        mlv_vidf_hdr_t *hdr = (mlv_vidf_hdr_t *)slots[i-1].ptr;
-        if (i > 0 && slots[i].ptr != slots[i-1].ptr + hdr->blockSize)
-            x += MAX(2, scale);
-
+        if (i > 0)
+        {
+            int size = 0;
+            mlv_vidf_hdr_t *hdr = (mlv_vidf_hdr_t *)slots[i-1].ptr;
+            
+            /* normal VIDF blocks are easy to check */
+            if(!memcmp(hdr->blockType, "VIDF", 4))
+            {
+                size = hdr->blockSize;
+            } 
+            else if(!memcmp(hdr->blockType, "NULL", 4))
+            {
+                /* if this is a NULL frame introduced by inserting blocks into frameSpace, we have to read out the backed up size */
+                size = ((uint32_t *)hdr)[sizeof(mlv_vidf_hdr_t) / 4];
+            }
+            
+            /* now we can check that */
+            if(slots[i].ptr != slots[i-1].ptr + size)
+            {
+                x += MAX(2, scale);
+            }
+        }
+        
         int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
         for (int k = 0; k < scale; k++)
         {
@@ -1249,6 +1274,13 @@ static int FAST process_frame()
     writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
 
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
+
+    /* restore from NULL block used when prepending data */
+    if(!memcmp(hdr->blockType, "NULL", 4))
+    {
+        hdr->blockSize = ((uint32_t*) hdr)[sizeof(mlv_vidf_hdr_t)/4];
+        mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
+    }
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
@@ -1471,6 +1503,121 @@ static int mlv_write_header(FILE* f, int restore_pos)
     return written;
 }
 
+static void raw_update_task()
+{
+    while(raw_recording_state == RAW_PREPARING)
+    {
+        msleep(250);
+    }
+    
+    /* when recording, embed LENS, EXPO and RTCI information every 250 ms */
+    while(raw_recording_state == RAW_RECORDING)
+    {
+        msleep(250);
+        
+        mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
+        mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
+        mlv_lens_hdr_t *lens_hdr = malloc(sizeof(mlv_lens_hdr_t));
+        
+        mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
+        mlv_fill_expo(expo_hdr, mlv_start_timestamp);
+        mlv_fill_lens(lens_hdr, mlv_start_timestamp);
+        
+        msg_queue_post(mlv_block_queue, rtci_hdr);
+        msg_queue_post(mlv_block_queue, expo_hdr);
+        msg_queue_post(mlv_block_queue, lens_hdr);
+    }
+}
+
+/* this function uses the frameSpace area in a VIDF that was meant for padding to insert some other block before */
+static int mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
+{
+    if(!memcmp(vidf->blockType, "VIDF", 4))
+    {
+        /* it's a VIDF block that should get shrinked and data prepended.
+           new layout:
+            NULL (with the old VIDF data content plus a backup of the original size, which is 4 bytes)
+            BLOCK
+            VIDF
+        */
+        if(vidf->frameSpace < block->blockSize + sizeof(mlv_vidf_hdr_t) + 4 + 8)
+        {
+            /* there is not enough room */
+            return 1;
+        }
+        
+        /* calculate start address of repositioned VIDF block */
+        uint32_t block_offset = sizeof(mlv_vidf_hdr_t) + 4;
+        uint32_t new_vidf_offset = block_offset + block->blockSize;
+        
+        mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)vidf + new_vidf_offset);
+        
+        /* copy VIDF header to new position and fix frameSpace */
+        memcpy(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
+        new_vidf->blockSize -= new_vidf_offset;
+        new_vidf->frameSpace -= new_vidf_offset;
+        
+        /* copy block to prepend */
+        memcpy((void*)((uint32_t)vidf + block_offset), block, block->blockSize);
+        
+        /* set old header to a skipped header format */
+        mlv_set_type((mlv_hdr_t *)vidf, "NULL");
+        
+        /* backup old size into free space */
+        ((uint32_t*) vidf)[sizeof(mlv_vidf_hdr_t)/4] = vidf->blockSize;
+        
+        /* then set the header to be totally skipped */
+        vidf->blockSize = sizeof(mlv_vidf_hdr_t) + 4;
+        
+        return 0;
+    }
+    else if(!memcmp(vidf->blockType, "NULL", 4))
+    {
+        /* there is already something injected, try to add a new block behind prepended */
+        mlv_vidf_hdr_t *hdr = NULL;
+        uint32_t offset = vidf->blockSize;
+        
+        /* now skip until the VIDF is reached */
+        while(offset < vidf->frameSpace)
+        {
+            hdr = (mlv_vidf_hdr_t *)((uint32_t)vidf + offset);
+            
+            ASSERT(hdr->blockSize > 0);
+            
+            if(!memcmp(hdr->blockType, "VIDF", 4))
+            {
+                if(hdr->frameSpace < block->blockSize)
+                {
+                    /* there is not enough room */
+                    return 2;
+                }
+                
+                /* calculate start address of the again repositioned VIDF block */
+                mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)hdr + block->blockSize);
+                
+                /* copy VIDF header to new position and fix frameSpace */
+                memcpy(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
+                new_vidf->blockSize -= block->blockSize;
+                new_vidf->frameSpace -= block->blockSize;
+                
+                /* copy block to prepend */
+                memcpy(hdr, block, block->blockSize);
+                
+                return 0;
+            }
+            else
+            {
+                /* skip to next block */
+                offset += hdr->blockSize;
+            }
+        }
+        
+        return 0;
+    }
+    
+    return 4;
+}
+
 static void raw_video_rec_task()
 {
     //~ console_show();
@@ -1671,7 +1818,54 @@ static void raw_video_rec_task()
         int ext_gating = 1;
         if (ext_gating)
         {
+            static int queued = 0;
+            static int failed = 0;
             writing_task_busy = 1;
+            
+            /* write updating data if anything changed */
+            uint32_t msg_count = 0;
+            msg_queue_count(mlv_block_queue, &msg_count);
+            
+            while(msg_count > 0)
+            {
+                mlv_hdr_t *block = NULL;
+                int success = 0;
+            
+                /* there is a block in the queue, try to get that block */
+                if(msg_queue_receive(mlv_block_queue, &block, 0))
+                {
+                    bmp_printf(FONT_MED, 0, 400, "MESSAGE RECEIVE ERROR!!");
+                    break;
+                }
+                
+                /* now try to prepend it to every frame being written */
+                uint32_t offset = 0;
+                while(offset < group_size)
+                {
+                    mlv_vidf_hdr_t *vidf = (mlv_vidf_hdr_t *)((uint32_t)group_ptr + offset);
+                    
+                    ASSERT(vidf->blockSize > 0);
+                    
+                    int ret = mlv_prepend_block(vidf, block);
+                    if(!ret)
+                    {
+                        queued++;
+                        free(block);
+                        success = 1;
+                        break;
+                    }
+                    failed++;
+                    offset += vidf->blockSize;
+                }
+                
+                if(!success)
+                {
+                    bmp_printf(FONT_MED, 0, 430, "FAILED TO PREPEND. queued: %d failed: %d (requeue)", queued, failed);
+                    msg_queue_post(mlv_block_queue, block);
+                    break;
+                }
+                msg_queue_count(mlv_block_queue, &msg_count);
+            }
             
             int t0 = get_ms_clock_value();
             if (!last_write_timestamp) last_write_timestamp = t0;
@@ -1891,6 +2085,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
         raw_recording_state = RAW_PREPARING;
         gui_stop_menu();
         task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
+        task_create("raw_update_task", 0x18, 0x1000, raw_update_task, (void*)0);
     }
 }
 
@@ -2306,6 +2501,8 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 
 static unsigned int raw_rec_init()
 {
+    mlv_block_queue = (struct msg_queue *) msg_queue_create("mlv_block_queue", 100);
+    
     /* default free text string is empty */
     strcpy(raw_tag_str, "");
 
