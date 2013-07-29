@@ -12,7 +12,5 @@ ML_SRC_EXTRA_OBJS = \
 	video_hacks.o \
 	misc.o \
 	ptpbuf.o \
-	ph_info_disp.o \
-	flexinfo.o \
 	afma.o
 

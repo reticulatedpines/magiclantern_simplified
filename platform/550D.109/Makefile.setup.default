@@ -6,8 +6,6 @@ ML_PICSTYLE_AUTO = n
 
 ML_SRC_EXTRA_OBJS = \
 	misc.o \
-	ph_info_disp.o \
-	flexinfo.o \
 	lcdsensor.o \
 	raw.o \
 	chdk-dng.o \

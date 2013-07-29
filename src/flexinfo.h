@@ -1,6 +1,8 @@
 #ifndef _flexinfo_h_
 #define _flexinfo_h_
 
+#ifdef FEATURE_FLEXINFO
+
 #define FLEXINFO_DEFAULT_FILENAME CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML"
 
 
@@ -203,4 +205,5 @@ typedef union
     info_elem_icon_t icon;
 } info_elem_t;
 
+#endif
 #endif

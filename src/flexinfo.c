@@ -8,6 +8,8 @@
 #include <version.h>
 #include <flexinfo.h>
 
+#ifdef FEATURE_FLEXINFO
+
 #if !defined(BGMT_Q) //use picstyle button if Q is not present
 #define BGMT_Q BGMT_PICSTYLE
 #endif
@@ -2913,3 +2915,4 @@ TASK_CREATE( "info_edit_task", info_edit_task, 0, 0x16, 0x1000 );
 INIT_FUNC("info.init", info_init);
 
 #endif // FLEXINFO_DEVELOPER_MENU
+#endif // FEATURE_FLEXINFO

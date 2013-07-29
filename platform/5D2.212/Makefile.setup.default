@@ -9,7 +9,3 @@ ML_SRC_EXTRA_OBJS = \
 	chdk-dng.o \
 	edmac-memcpy.o \
 	asm.o \
-	ph_info_disp.o \
-	flexinfo.o
-
-
