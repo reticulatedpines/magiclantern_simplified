@@ -35,6 +35,7 @@
 #define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
 
 int get_htp();
+int get_ae_value();
 
 struct lens_info
 {
