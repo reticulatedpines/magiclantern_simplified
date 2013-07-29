@@ -8,7 +8,7 @@
 #include <version.h>
 #include <flexinfo.h>
 
-#if !defined(BGMT_Q)
+#if !defined(BGMT_Q) //use picstyle button if Q is not present
 #define BGMT_Q BGMT_PICSTYLE
 #endif
 
@@ -165,9 +165,9 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, 16, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, .name = "Space" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
 
     /* entry 18, clock */
-    { .string = { { INFO_TYPE_STRING, { 35, 250, 2, .name = "Hrs" }}, INFO_STRING_TIME_HH24, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
-    { .text = { { INFO_TYPE_TEXT, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 18, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .name = ":" }}, ":", COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
-    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 19, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .name = "Min" }}, INFO_STRING_TIME_MM, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 38, 250, 2, .name = "Hrs" }}, INFO_STRING_TIME_HH24, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .text = { { INFO_TYPE_TEXT, { -4, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 18, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .name = ":" }}, ":", COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, { -4, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 19, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .name = "Min" }}, INFO_STRING_TIME_MM, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_LARGE } },
     { .string = { { INFO_TYPE_STRING, { 0, -2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, 20, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, .name = "Sec" }}, INFO_STRING_TIME_SS, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
 #endif
 
