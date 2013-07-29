@@ -2,7 +2,7 @@
 
 x: prepare-all autoexec-all autoexec.bin
 #	cp autoexec-all.bin autoexec.bin
-	$(STAT_CMD) autoexec.bin;
+	$(call build,STAT,$(STAT_CMD) autoexec.bin)
 
 prepare-all:
 	$(MAKE) -C .. all-supported-models
@@ -10,7 +10,7 @@ prepare-all:
 reboot-all.o : prepare-all
 
 autoexec.bin: autoexec-all.bin
-	$(CP) autoexec-all.bin autoexec.bin
+	$(call build,CP,$(CP) autoexec-all.bin autoexec.bin)
 
 autoexec-all: reboot-all.o
 	$(call build,LD,$(LD) \
@@ -34,7 +34,7 @@ ML_MODEL_DIR = all
 include  ../Makefile.platform
 
 install:: $(PLATFORM_INSTALL_SUPPORTED_TARGETS) autoexec.bin
-	$(CP) autoexec.bin $(INSTALL_DIR)/
+	$(call build,CP,$(CP) autoexec.bin $(INSTALL_DIR)/)
 
 $(PLATFORM_INSTALL_ALL_TARGETS):
 	$(call call_make_platform)
