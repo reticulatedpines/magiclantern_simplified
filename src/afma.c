@@ -762,7 +762,7 @@ static struct menu_entry afma_menu[] = {
                 .name = "Scan passes",
                 .update = afma_scan_passes_display,
                 .select = afma_scan_passes_toggle,
-                .help  = "Number of time to check for focus confirmation in the scan range.",
+                .help  = "Number of time to check for focus confirmation.",
                 .edit_mode = EM_MANY_VALUES,
             },
             {
