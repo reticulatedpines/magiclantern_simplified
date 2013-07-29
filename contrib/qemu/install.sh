@@ -45,7 +45,7 @@ echo
 echo "1) Compile QEMU"
 echo
 echo "   cd `pwd`/${QEMU_DIR}"
-echo "   ./configure --target-list=arm-softmmu"
+echo "   ./configure --target-list=arm-softmmu --disable-docs"
 echo "   make"
 echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
