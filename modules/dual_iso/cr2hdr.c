@@ -271,8 +271,32 @@ int main(int argc, char** argv)
     return 0;
 }
 
+static int white_detect_brute_force()
+{
+    /* sometimes the white level is much lower than 15000; this would cause pink highlights */
+    /* workaround: consider the white level as a little under the maximum pixel value from the raw file */
+    /* caveat: bright and dark exposure may have different white levels, so we'll take the minimum value */
+    /* side effect: if the image is not overexposed, it may get brightened a little; shouldn't hurt */
+    
+    int white = raw_info.white_level * 2 / 3;
+    int whites[4] = {white, white, white, white};
+
+    int x,y;
+    for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
+        for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
+            whites[y%4] = MAX(whites[y%4], raw_get_pixel16(x, y));
+    
+    white = MIN(MIN(whites[0], whites[1]), MIN(whites[2], whites[3]));
+    raw_info.white_level = white - 100;
+    printf("White level    : %d\n", raw_info.white_level);
+    return 1;
+}
+
 static int white_detect()
 {
+    return white_detect_brute_force();
+
+#if 0
     int w = raw_info.width;
     int p0 = raw_get_pixel16(0, 0);
     if (p0 < 10000) return 0;
@@ -280,11 +304,12 @@ static int white_detect()
     for (x = 0; x < w; x++)
         if (raw_get_pixel16(x, 0) != p0)
             return 0;
-    
+
     /* first line is white level, cool! */
     raw_info.white_level = p0 - 1000;       /* pink pixels at aggressive values */
     printf("White level    : %d\n", raw_info.white_level);
     return 1;
+#endif
 }
 
 
