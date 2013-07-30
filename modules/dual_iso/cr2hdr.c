@@ -345,11 +345,13 @@ static int black_subtract(int left_margin, int top_margin)
     for (y = 0; y < h; y++)
     {
         int avg = 0;
-        for (x = 2; x < left_margin - 2; x++)
+        int num = 0;
+        for (x = 2; x < left_margin - 8; x++)
         {
             avg += raw_get_pixel16(x, y);
+            num++;
         }
-        vblack[y] = avg / (left_margin - 4);
+        vblack[y] = avg / num;
     }
     
     /* perform some slight filtering (averaging) so we don't add noise to the image */
@@ -391,7 +393,7 @@ static int black_subtract(int left_margin, int top_margin)
         int offset = 0;
         {
             int num = 0;
-            for (y = y0; y < top_margin-2; y += 4)
+            for (y = y0; y < top_margin-4; y += 4)
             {
                 offset += blackframe[y*w];
                 num++;
@@ -403,7 +405,7 @@ static int black_subtract(int left_margin, int top_margin)
         {
             int num = 0;
             int avg = 0;
-            for (y = y0; y < top_margin-2; y += 4)
+            for (y = y0; y < top_margin-4; y += 4)
             {
                 avg += raw_get_pixel16(x, y) - offset;
                 num++;
