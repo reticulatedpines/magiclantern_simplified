@@ -142,6 +142,7 @@
     // 650D / EOSM hacks
     //~ #define FEATURE_CROP_MODE_HACK
 /** Shoot menu **/
+    #define FEATURE_FLEXINFO
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_HDR_BRACKETING

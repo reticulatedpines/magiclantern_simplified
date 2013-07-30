@@ -8,6 +8,4 @@ ML_SRC_EXTRA_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
-	asm.o
-
-
+	asm.o \

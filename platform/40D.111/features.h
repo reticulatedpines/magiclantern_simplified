@@ -26,5 +26,6 @@
 /** Shoot menu **/
 
 #define FEATURE_INTERVALOMETER
+#undef FEATURE_FLEXINFO
 
 // anything else working? no idea

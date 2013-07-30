@@ -6280,7 +6280,9 @@ static void misc_shooting_info()
         BMP_LOCK
         (
             display_shooting_info();
+            #ifndef FEATURE_FLEXINFO
             free_space_show_photomode();
+            #endif
         )
         #endif
     

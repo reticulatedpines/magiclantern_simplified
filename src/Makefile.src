@@ -163,6 +163,8 @@ ML_SRC_OBJS = \
 	$(ML_ZEBRA_OBJ) \
 	beep.o \
 	crop-mode-hack.o \
+	ph_info_disp.o \
+	flexinfo.o \
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 

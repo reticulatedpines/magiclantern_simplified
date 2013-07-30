@@ -5,8 +5,6 @@ CONFIG_PIC=n
 
 ML_SRC_EXTRA_OBJS = \
 	misc.o \
-#	ph_info_disp.o \
-#	flexinfo.o \
 #	raw.o \
 #	chdk-dng.o \
 #	edmac-memcpy.o \
