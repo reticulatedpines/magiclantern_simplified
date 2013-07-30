@@ -142,7 +142,6 @@
     // 650D / EOSM hacks
     //~ #define FEATURE_CROP_MODE_HACK
 /** Shoot menu **/
-    #define FEATURE_FLEXINFO
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_HDR_BRACKETING
@@ -286,6 +285,8 @@
     //~ #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
 
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
+
+    #define FEATURE_FLEXINFO
 
 /** Debug menu **/
 

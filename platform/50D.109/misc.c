@@ -14,6 +14,7 @@ int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 int new_LiveViewApp_handler = 0xff123456;
 
+#if 0
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -60,7 +61,7 @@ void display_shooting_info() // called from debug task
 	display_lcd_remote_icon(480, 0);
 	display_trap_focus_info();
 }
-
+#endif
 
 int audio_meters_are_drawn() { return 0; }
 void volume_up(){};
