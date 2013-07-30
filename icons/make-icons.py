@@ -11,18 +11,18 @@ Hpadded = H - Ypad*2
 Wpadded = W - Xpad*2
 
 icons = [
-    'audio.png', 
-    'expo.png', 
-    'overlay.png', 
-    'movie.png', 
-    'shoot.png', 
-    'focus.png', 
-    'display.png', 
-    'prefs.png', 
-    'debug.png', 
-    'info.png', 
-    'mymenu.png', 
-    'script.png', 
+    'audio.png',
+    'expo.png',
+    'overlay.png',
+    'movie.png',
+    'shoot.png',
+    'focus.png',
+    'display.png',
+    'prefs.png',
+    'debug.png',
+    'info.png',
+    'mymenu.png',
+    'script.png',
     'Q-forward.png',
     'Q-back.png',
     'forward.png',
@@ -30,22 +30,23 @@ icons = [
 
 # On low-res screens, the audio and focus icons are aliasing
 icons_lowres = [
-    'audio-lowres.png', 
-    'expo.png', 
-    'overlay.png', 
-    'movie.png', 
-    'shoot.png', 
-    'focus-lowres.png', 
-    'display.png', 
-    'prefs.png', 
-    'debug.png', 
-    'info.png', 
-    'mymenu.png', 
-    'script.png', 
+    'audio-lowres.png',
+    'expo.png',
+    'overlay.png',
+    'movie.png',
+    'shoot.png',
+    'focus-lowres.png',
+    'display.png',
+    'prefs.png',
+    'debug.png',
+    'info.png',
+    'mymenu.png',
+    'script.png',
     'Q-forward.png',
     'Q-back.png',
     'forward.png',
 ]
+
 
 def process(icons, outfile):
     tmp = open("ico.in", "w")
@@ -62,7 +63,7 @@ def process(icons, outfile):
 
     tmp.close()
 
-    os.system("perl mkfont-canon < ico.in > %s -width %d -height %d" % (outfile, Wpadded,Hpadded))
+    os.system("perl mkfont-canon < ico.in > %s -width %d -height %d" % (outfile, Wpadded, Hpadded))
 
 process(icons, "ico.c")
 process(icons_lowres, "ico-lowres.c")
