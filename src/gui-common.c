@@ -5,6 +5,7 @@
 #include <propvalues.h>
 #include <bmp.h>
 #include <property.h>
+#include <boot-hack.h>
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
@@ -171,9 +172,8 @@ int handle_common_events_startup(struct event * event)
     if (handle_tricky_canon_calls(event) == 0) return 0;
 
     extern int ml_started;
-    extern int magic_off_request;
     if (!ml_started)    {
-        if (event->param == BGMT_PRESS_SET) { magic_off_request = 1; return 0;} // don't load ML
+        if (event->param == BGMT_PRESS_SET) { _disable_ml_startup(); return 0;} // don't load ML
 
         #ifdef CONFIG_60D
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase

@@ -312,13 +312,16 @@ static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
-unsigned int magic_off = 0; // Set to 1 to disable ML
-unsigned int magic_off_request = 0;
-unsigned int magic_is_off() 
+unsigned short int magic_off = 0; // Set to 1 to disable ML
+unsigned short int magic_off_request = 0;
+unsigned short int magic_is_off() 
 {
     return magic_off; 
 }
 
+void _disable_ml_startup() {
+    magic_off_request = 1;
+}
 
 #if defined(CONFIG_AUTOBACKUP_ROM)
 
