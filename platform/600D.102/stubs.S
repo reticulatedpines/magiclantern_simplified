@@ -78,6 +78,7 @@ NSTUB( 0xFF071578, task_create )
 NSTUB( 0xFF1E6254, FIO_Open)
 NSTUB( 0xFF1E6310, FIO_CreateFile )
 NSTUB( 0xFF1E66B4, FIO_CloseFile )
+NSTUB( 0xFF1E65E4, FIO_SeekFile)
 NSTUB( 0xFF1E6830, FIO_GetFileSize )
 NSTUB( 0xFF1E6604, FIO_WriteFile )
 NSTUB( 0xFF1E6464, FIO_ReadFile )
@@ -132,8 +133,8 @@ NSTUB( 0xff230e48, prop_request_icu_auto_poweroff )           // "PROP_Request P
 NSTUB( 0xff1fd2e4, alloc_dma_memory )
 NSTUB( 0xff1fd318, free_dma_memory )
 
-NSTUB( 0xFF4F2648, cfReadBlk )
-NSTUB( 0x15728, cf_device )                // in cfReadBlk
+//NSTUB( 0xFF4F2648, cfReadBlk )
+//NSTUB( 0x15728, cf_device )                // in cfReadBlk
 NSTUB( 0xFF4F838C, sdReadBlk )
 NSTUB( 0x1574C, sd_device )                // in sdReadBlk
 
@@ -289,6 +290,26 @@ NSTUB(0xFF055F48, SetNextASIFDACBuffer)
 NSTUB(0xff055950, StopASIFDMADAC)
 NSTUB(0xff06a9e0, SetSamplingRate )
 NSTUB(0xff06a420, SetAudioVolumeOut)
+
+/** EDMAC routines */
+NSTUB(0xFF1E0560, SetEDmac)
+NSTUB(0xFF1E0860, StartEDmac)
+NSTUB(0xFF1E09F8, PopEDmac)
+NSTUB(0xFF1E09B0, AbortEDmac)
+NSTUB(0xFF1E0618, ConnectWriteEDmac)
+NSTUB(0xFF1E06DC, ConnectReadEDmac)
+
+
+/** keep the old name until all are refcatored **/
+NSTUB(0xFF1E0A50, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0xFF1E0A50, RegisterEDmacCompleteCBR) 
+NSTUB(0xFF1E0A78, RegisterEDmacAbortCBR)
+NSTUB(0xFF1E0B80, RegisterEDmacPopCBR)
+NSTUB(0xFF1E0A64, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF1E0AB8, UnregisterEDmacAbortCBR)
+NSTUB(0xFF1E0B94, UnregisterEDmacPopCBR) 
 
 /** Unused **/
 //NSTUB(0xFF073580, GetRemainOfMemoryChunk)

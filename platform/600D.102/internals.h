@@ -119,3 +119,7 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/** for 600D */
+#define CONFIG_EDMAC_MEMCPY
+
