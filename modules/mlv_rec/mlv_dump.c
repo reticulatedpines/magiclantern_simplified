@@ -98,6 +98,8 @@ int main (int argc, char *argv[])
             if(out_file)
             {
                 lv_rec_footer.frameCount = file_hdr.videoFrameCount;
+                lv_rec_footer.sourceFpsx1000 = (double)file_hdr.sourceFpsNom / (double)file_hdr.sourceFpsDenom * 1000;
+                lv_rec_footer.frameSkip = 0;
             }
         }
         else
@@ -127,6 +129,8 @@ int main (int argc, char *argv[])
                         return 0;
                     }
                     lv_rec_footer.frameSize = frame_size;
+                    
+                    fseek(out_file, block_hdr.frameNumber * frame_size, SEEK_SET);
                     fwrite(frame_buffer, frame_size, 1, out_file);
                 }
                 else
@@ -289,6 +293,7 @@ int main (int argc, char *argv[])
     fclose(file);
     if(out_file)
     {
+        fseek(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
         fclose(out_file);
     }
