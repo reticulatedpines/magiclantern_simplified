@@ -11,7 +11,7 @@ extern struct state_object * mvr_state;
 *  mvr_config  (also called aAJ_Movie_CompressionRate_struct_0x86AC_0x00_to_0xA8 in AJ 2.0.4  *
 *                                                                                             *
 ***********************************************************************************************
-*  Callable DRYOS functions that relate to configuring the H264 compression. 
+*  Callable DRYOS functions that relate to configuring the H264 compression.
 *
 *  "mvrSetQscale"
 *  "mvrSetQscaleYC"
@@ -39,41 +39,41 @@ struct mvr_config   // used in aj_bitrate.c to change the CBR and VBR     mvr_co
    uint16_t   db_filter_a;             // 0x04, AJ_mvrSetDefDBFilter()  Alex: No effect?
    uint16_t   db_filter_b;             // 0x06, AJ_mvrSetDefDBFilter()  Alex: No effect?
 
-   int16_t    def_q_scale;             // 0x08, AJ_mvrSetDefQScale() VBR works when qscale_mode=1      
-   int16_t    def_q_scale2;            // 0x0A  
+   int16_t    def_q_scale;             // 0x08, AJ_mvrSetDefQScale() VBR works when qscale_mode=1
+   int16_t    def_q_scale2;            // 0x0A
 
    int16_t    qscale_limit_L;          // 0x0C, AJ_mvrSetLimitQScale()
    int16_t    qscale_limit_H;          // 0x0E, AJ_mvrSetLimitQScale()
 
    uint16_t   time_const;              // 0x10, AJ_mvrSetTimeConst()  [0..255]?
                                        //       AJ_mvrFixQScale() <-- prints out in this
-   uint16_t   x12;                     // 0x12					
+   uint16_t   x12;                     // 0x12
 
    /***************************************
    *   1920 pix @ 30 fps  -------  CBR    *
-   ***************************************/ 
+   ***************************************/
 
    unsigned int   v1920_30fps_opt_size_I;    // 0x14   AJ_mvrSetFullHDOptSize() [I]
    unsigned int   v1920_30fps_opt_size_P;    // 0x18   AJ_mvrSetFullHDOptSize() [P]
    unsigned int   v1920_30fps_D_H;           // 0x1C   AJ_mvrSetD_FULLHD() copy to -> 0x30
    unsigned int   v1920_30fps_D_L;           // 0x20   AJ_mvrSetD_FULLHD() copy to -> 0x34,0x44,0x48
-   unsigned int   v1920_30fps_kinda_counter; // 0x24 
+   unsigned int   v1920_30fps_kinda_counter; // 0x24
 
 
    /***************************************
    *   1920 pix @ 25 fps  -------  CBR    *
-   ***************************************/ 
+   ***************************************/
 
    unsigned int   v1920_25fps_opt_size_I;    // 0x28  AJ_mvrSetFullHDOptSize() [I]
    unsigned int   v1920_25fps_opt_size_P;    // 0x2C  AJ_mvrSetFullHDOptSize() [P]
    unsigned int   v1920_25fps_D_H;           // 0x30  AJ_mvrSetD_FULLHD() <-- 0x1C
    unsigned int   v1920_25fps_D_L;           // 0x34  AJ_mvrSetD_FULLHD() <-- 0x20
-   unsigned int   v1920_25fps_kinda_counter; // 0x38  
+   unsigned int   v1920_25fps_kinda_counter; // 0x38
 
 
    /***************************************
    *   1920 pix @ 24 fps  -------  CBR    *
-   ***************************************/ 
+   ***************************************/
 
    unsigned int   v1920_24fps_opt_size_I;    // 0x3C  AJ_mvrSetFullHDOptSize()   IOptSize
    unsigned int   v1920_24fps_opt_size_P;    // 0x40  AJ_mvrSetFullHDOptSize()   POptSize
@@ -83,28 +83,28 @@ struct mvr_config   // used in aj_bitrate.c to change the CBR and VBR     mvr_co
 
    /***************************************
    *   640 pix @ 30 fps   -------  CBR    *
-   ***************************************/   
+   ***************************************/
 
-   unsigned int   v640_30fps_opt_size_I;     // 0x50   AJ_mvrSetVGAOptSize() [I]   
-   unsigned int   v640_30fps_opt_size_P;     // 0x54   AJ_mvrSetVGAOptSize() [P] 
+   unsigned int   v640_30fps_opt_size_I;     // 0x50   AJ_mvrSetVGAOptSize() [I]
+   unsigned int   v640_30fps_opt_size_P;     // 0x54   AJ_mvrSetVGAOptSize() [P]
    unsigned int   v640_30fps_D_H;            // 0x58   AJ_mvrSetD_VGA() --> 0x6C
    unsigned int   v640_30fps_D_L;            // 0x5C   AJ_mvrSetD_VGA() --> 0x70
-   unsigned int   v640_30fps_kinda_counter;  // 0x60 
+   unsigned int   v640_30fps_kinda_counter;  // 0x60
 
    /***************************************
    *   640 pix @ 25 fps   -------  CBR    *
-   ***************************************/ 
+   ***************************************/
 
    unsigned int   v640_25fps_opt_size_I;     // 0x64   AJ_mvrSetVGAOptSize() [I]
    unsigned int   v640_25fps_opt_size_P;     // 0x68   AJ_mvrSetVGAOptSize() [P]
    unsigned int   v640_25fps_D_H;            // 0x6C   AJ_mvrSetD_VGA() <-- 0x58
    unsigned int   v640_25fps_D_L;            // 0x70   AJ_mvrSetD_VGA() <-- 0x70
-   unsigned int   v640_25fps_kinda_counter;  // 0x74 
+   unsigned int   v640_25fps_kinda_counter;  // 0x74
 
 
-   /***************************************/ 
-   /***************************************/ 
-   /***************************************/ 
+   /***************************************/
+   /***************************************/
+   /***************************************/
 
 
    unsigned int   DefQScale;            // 0x78  AJ_Movie_CompressionRateAdjuster.c
@@ -122,8 +122,8 @@ struct mvr_config   // used in aj_bitrate.c to change the CBR and VBR     mvr_co
    unsigned int   GopOpt_struct_ptr;    // 0x9C   &Struct [2,3,4,5,6] -> Copied into here
 
    unsigned int   D1_DH;                // 0xA0  XXX GOPT XXX
-   unsigned int   D2_DL;     		// 0xA4  XXX GOPT XXX   
-   unsigned int   kinda_counter;            
+   unsigned int   D2_DL;     		// 0xA4  XXX GOPT XXX
+   unsigned int   kinda_counter;
 
 	uint32_t		fullhd_30fps_gop_opt_0; // 0xac
 	uint32_t		fullhd_30fps_gop_opt_1; // 0xb0
