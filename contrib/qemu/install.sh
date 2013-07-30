@@ -1,6 +1,7 @@
 #!/bin/bash
 
 QEMU_DIR=qemu-1.4.0
+ML=magic-lantern
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."
@@ -13,11 +14,11 @@ fi
 
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
 
-pwd | grep magic-lantern/contrib/qemu > /dev/null || die "error: we should be in magic-lantern/contrib/qemu"
+pwd | grep $ML/contrib/qemu > /dev/null || die "error: we should be in $ML/contrib/qemu"
 
 # go to the parent of magic-lantern folder
 cd ../../..
-ls | grep magic-lantern > /dev/null || die "error: expecting to find magic-lantern here"
+ls | grep $ML > /dev/null || die "error: expecting to find $ML here"
 
 mkdir qemu
 cd qemu
@@ -31,11 +32,11 @@ wget -c http://wiki.qemu-project.org/download/qemu-1.4.0.tar.bz2
 tar jxf qemu-1.4.0.tar.bz2
 
 # apply our patch
-cp -v ../magic-lantern/contrib/qemu/scripts/* .
+cp -v ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 cd ${QEMU_DIR}
-cp -v ../../magic-lantern/contrib/qemu/hw/* hw/
-patch -N -p1 < ../../magic-lantern/contrib/qemu/qemu-1.4.0.patch
+cp -v ../../$ML/contrib/qemu/hw/* hw/
+patch -N -p1 < ../../$ML/contrib/qemu/qemu-1.4.0.patch
 cd ..
 
 echo ""
@@ -45,7 +46,7 @@ echo
 echo "1) Compile QEMU"
 echo
 echo "   cd `pwd`/${QEMU_DIR}"
-echo "   ./configure --target-list=arm-softmmu"
+echo "   ./configure --target-list=arm-softmmu --disable-docs"
 echo "   make"
 echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
