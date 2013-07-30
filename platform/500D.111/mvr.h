@@ -1,3 +1,5 @@
+#ifndef __PLATFORM_MVR_H__
+#define __PLATFORM_MVR_H__
 
 // Movie recording.
 
@@ -200,3 +202,5 @@ extern struct mvr_config mvr_config;
 };
 
 SIZE_CHECK_STRUCT( mvr_struct, 512 );*/
+
+#endif /* __PLATFORM_MVR_H__ */
