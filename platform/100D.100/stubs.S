@@ -35,11 +35,6 @@
 
 .text
 
-#define XSTUB(addr,name) \
-	.global STUB_##name; \
-	.extern STUB_##name; \
-	STUB_##name = addr
-
 NSTUB( ROMBASEADDR, firmware_entry )
 
 #define RAM_OFFSET 0xFFA97810 //~ Subtract 0x1900 from sub_foo at ROM:FF0C0098.

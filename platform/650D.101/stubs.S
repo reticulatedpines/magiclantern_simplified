@@ -34,11 +34,6 @@
 
 .text
 
-#define XSTUB(addr,name) \
-	.global STUB_##name; \
-	.extern STUB_##name; \
-	STUB_##name = addr
-
 NSTUB( ROMBASEADDR, firmware_entry )
 
 NSTUB(0xFF376650, lv_change_raw)

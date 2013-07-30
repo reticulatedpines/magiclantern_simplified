@@ -34,11 +34,6 @@
 
 .text
 
-#define XSTUB(addr,name) \
-	.global STUB_##name; \
-	.extern STUB_##name; \
-	STUB_##name = addr
-
 // Some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
 NSTUB( ROMBASEADDR, firmware_entry )
 

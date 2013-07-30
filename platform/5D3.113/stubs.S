@@ -29,11 +29,6 @@
 
 .text
 
-#define XSTUB(addr,name) \
-	.global STUB_##name; \
-	.extern STUB_##name; \
-	STUB_##name = addr
-
 NSTUB( ROMBASEADDR, firmware_entry )
 
 #define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
