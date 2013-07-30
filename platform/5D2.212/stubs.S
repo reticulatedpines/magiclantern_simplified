@@ -8,17 +8,17 @@
  */
 /*
  * Copyright (C) 2010 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -36,16 +36,16 @@
 NSTUB( ROMBASEADDR, firmware_entry )
 
 NSTUB(0xFF9B3E68, AcquireRecursiveLock)
-NSTUB(0xFF86F16C, AllocateMemory)      
+NSTUB(0xFF86F16C, AllocateMemory)
 NSTUB(0xFFAACD38, BeginMovieRecSequence)
-NSTUB(0xFFAD2828, ChangeColorPalette)   
-NSTUB(0xFFA6D108, CreateDialogBox)      
-NSTUB(0xFF8724EC, CreateRecursiveLock)  
-NSTUB(0xFFA6CBA0, DeleteDialogBox)      
-NSTUB(0xFF9D8250, DispSensorStart)      
-NSTUB(0xFF86AF64, DryosDebugMsg)        
+NSTUB(0xFFAD2828, ChangeColorPalette)
+NSTUB(0xFFA6D108, CreateDialogBox)
+NSTUB(0xFF8724EC, CreateRecursiveLock)
+NSTUB(0xFFA6CBA0, DeleteDialogBox)
+NSTUB(0xFF9D8250, DispSensorStart)
+NSTUB(0xFF86AF64, DryosDebugMsg)
 NSTUB(0xFF9ABE20, FIO_CleanupAfterFindNext_maybe)
-NSTUB(0xFF9AAD10, FIO_CloseFile)      
+NSTUB(0xFF9AAD10, FIO_CloseFile)
 NSTUB(0xFF9AB574, FIO_CreateDirectory)
 NSTUB(0xFF9AAC68, FIO_CreateFile)
 NSTUB(0xFF9ABBF4, FIO_FindFirstEx)

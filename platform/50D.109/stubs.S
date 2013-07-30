@@ -6,24 +6,24 @@
  *
  *
  * Copyright (C) 2010 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
- 
+
 .text
 
 #define NSTUB(addr,name) \
@@ -91,7 +91,7 @@ NSTUB( 0xff982820, FIO_ReadFile )								//d
 NSTUB( 0xff982704, FIO_RemoveFile )								//d
 NSTUB( 0xff982df4, FIO_CreateDirectory)
 NSTUB( 0xFF9829A0, FIO_SeekFile) 								// mk11174 and Chucho  0xff9829b0
-	
+
 NSTUB( 0xff866a1c, give_semaphore )																		//d
 NSTUB( 0xff866934, take_semaphore )																		//d
 NSTUB( 0xff863e5c, dm_set_store_level ) // called by "dmstore"											//d
@@ -99,7 +99,7 @@ NSTUB( 0xff85978c, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xff8598c4, _prop_request_change )																//d
 NSTUB( 0xff859704, prop_deliver )																		//d
 NSTUB( 0xff8599e0, prop_get_value )																		//d
-	
+
 NSTUB( 0xff85ed2c, dispcheck )																		//d
 NSTUB( 0xff85f114, SetBitmapVramAddress ) // where to find bmp_vram_info							//d
 NSTUB( 0x24284	 , bmp_vram_info )																	//d

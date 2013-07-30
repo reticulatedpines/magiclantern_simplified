@@ -8,17 +8,17 @@
  */
 /*
  * Copyright (C) 2010 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -39,7 +39,7 @@ NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( 0xFF010ff4, cstart )
 NSTUB( 0xFF44f8f4, bzero32 ) // called by cstart()
 NSTUB( 0xff018d1c, init_task ) // passed as arg to create_init_task, look for dmSetup
-NSTUB( 0xFF017518, create_init_task ) 
+NSTUB( 0xFF017518, create_init_task )
 
 /** Look for the normal printf strings */
 NSTUB( 0xff0673ec, DryosDebugMsg )
@@ -90,9 +90,9 @@ NSTUB( 0xFF067748, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF0676E0, dm_set_print_level )
 NSTUB( 0xFF0574A0, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xFF056E38, _prop_request_change )
-NSTUB( 0xFF057418, prop_deliver ) 
+NSTUB( 0xFF057418, prop_deliver )
 NSTUB( 0xFF057654, prop_get_value )
-	
+
 NSTUB( 0xFF1C924C, dispcheck )
 NSTUB( 0xFF05DAF8, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x2E5B0, bmp_vram_info )
@@ -132,13 +132,13 @@ NSTUB( 0x26258, cf_device )                // in cfReadBlk
 NSTUB( 0xFF3F1664, sdReadBlk )
 NSTUB( 0x26284, sd_device )                // in sdReadBlk
 
-// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
+// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory)
 // => first partition table; see http://www.datarescue.com/laboratory/partition.htm
 NSTUB( 0xFF386714, fsuDecodePartitionTable )
 
 NSTUB( 0xFF01A734, hotplug_task )
 NSTUB( 0x1A6C, hotplug_struct )
-NSTUB( 0x1AA0, hotplug_usb_buf )          // after "USB Disconnect" 
+NSTUB( 0x1AA0, hotplug_usb_buf )          // after "USB Disconnect"
 
 NSTUB( 0xFF067014, bootdisk_enable )
 NSTUB( 0xFF067020, bootdisk_disable )

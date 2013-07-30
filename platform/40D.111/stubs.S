@@ -8,17 +8,17 @@
  */
 /*
  * Copyright (C) 2010 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -36,13 +36,13 @@
 NSTUB( ROMBASEADDR, firmware_entry )
 
 NSTUB(0xffd4376c, AcquireRecursiveLock)
-NSTUB(0xffd5b3e8, AllocateMemory)      
-NSTUB(0xff9a34ec, CreateDialogBox)      
-NSTUB(0xffd4b150, CreateRecursiveLock)  
+NSTUB(0xffd5b3e8, AllocateMemory)
+NSTUB(0xff9a34ec, CreateDialogBox)
+NSTUB(0xffd4b150, CreateRecursiveLock)
     //NSTUB(0xff2ff7c4, DeleteDialogBox)
-NSTUB(0xffd4c1ec, DryosDebugMsg)        
+NSTUB(0xffd4c1ec, DryosDebugMsg)
 NSTUB(0xffd17100, FIO_CleanupAfterFindNext_maybe) // AJ__switch_0x1A50_n_calls_fstOpenDir, FIO_FindClose
-NSTUB(0xffd16ca8, FIO_CloseFile)      
+NSTUB(0xffd16ca8, FIO_CloseFile)
 NSTUB(0xffd16ed0, FIO_CreateDirectory)
 NSTUB(0xffd168f8, FIO_CreateFile)
 NSTUB(0xffd164c4, FIO_FindFirstEx)
@@ -139,7 +139,7 @@ NSTUB(0xffd4464c, task_create)
     //NSTUB(0xff2cb1e0, vram_get_number)
 NSTUB(0x0001E010, vram_info)
 NSTUB(0xFFD4D2F0, vsnprintf)
-    
+
 NSTUB(0xff8e2a94, LiveViewApp_handler)
 NSTUB(0xff8b6da8, PlayMain_handler)
     //NSTUB(0xFF42B700, PlayMovieGuideApp_handler)

@@ -10,17 +10,17 @@
  */
 /*
  * Copyright (C) 2012 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -221,7 +221,7 @@ NSTUB(0xFF5B6688, lvae_setdispgain)
 NSTUB(0xFF0E5808, MVR_NotifyLvFrameTiming)
 
 
-// Edmac 
+// Edmac
 // Ram Offset:FFCC34E4
 //M RAM_OFFSET 0xFFA68D58
 NSTUB(0x92E0, CreateMemorySuite) //FFCCEF34
@@ -230,7 +230,7 @@ NSTUB(0x90D8, DeleteMemorySuite) // FFCCED2C
 NSTUB(0x1C530, SetEDmac) //FFA85288
 NSTUB(0x1C848, StartEDmac) //FFA855A0
 NSTUB(0x1C9DC, PopEDmac) //From popedmacformemorysuite
-NSTUB(0x1C994, AbortEDmac) //FFCF7BBC 
+NSTUB(0x1C994, AbortEDmac) //FFCF7BBC
 NSTUB(0x1C5DC, ConnectWriteEDmac) //FFA85334
 NSTUB(0x1C6A0, ConnectReadEDmac) //FFA853F8
 
@@ -238,12 +238,12 @@ NSTUB(0x1C6A0, ConnectReadEDmac) //FFA853F8
 NSTUB(0x1CA34, EDMAC_RegisterCompleteCBR)
 
 /** register/unregister CBR names **/
-NSTUB(0x1CA34, RegisterEDmacCompleteCBR) //FFCF7C5C 
+NSTUB(0x1CA34, RegisterEDmacCompleteCBR) //FFCF7C5C
 NSTUB(0x1CB1C, RegisterEDmacAbortCBR) //FFCF7CF0
 NSTUB(0x1CBB0, RegisterEDmacPopCBR) //FFCF7D84
 NSTUB(0x1CA70, UnregisterEDmacCompleteCBR)
-NSTUB(0x1CB58, UnregisterEDmacAbortCBR) //FFCF7D2C 
-NSTUB(0x1CBEC , UnregisterEDmacPopCBR) //FFCF7DC0 
+NSTUB(0x1CB58, UnregisterEDmacAbortCBR) //FFCF7D2C
+NSTUB(0x1CBEC , UnregisterEDmacPopCBR) //FFCF7DC0
 
 NSTUB(0xFF5FE6E8, PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF5FEA70, PackMem_RegisterEDmacPopCBRForMemorySuite)

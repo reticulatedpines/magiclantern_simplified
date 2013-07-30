@@ -8,17 +8,17 @@
  */
 /*
  * Copyright (C) 2011 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -127,7 +127,7 @@ NSTUB(0xAF6C, gui_task_list)
 NSTUB( 0x3AC8, gui_timer_struct )     // in GUI_Control_Post
 NSTUB( 0x1A7C, hotplug_struct )
 NSTUB(0xFF01B2CC, hotplug_task)                   // might be good (dumps=1, score=11)
-NSTUB( 0x1A8C, hotplug_usb_buf )          // after "USB Disconnect" 
+NSTUB( 0x1A8C, hotplug_usb_buf )          // after "USB Disconnect"
 NSTUB(0xFF0197D8, init_task)                      // might be good (dumps=1, score=10)
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
 NSTUB(0xFF018D34, malloc)                         // might be good (dumps=1, score=11)

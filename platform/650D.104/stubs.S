@@ -6,23 +6,23 @@
  *
  *  This is a straight copy from the 5d3, EOS M stubs need found/verified still.
  *  Indented line = incorrect.
- *  Initial stubs identified by Indy, most of the other stubs were matched by hand 
- * 
+ *  Initial stubs identified by Indy, most of the other stubs were matched by hand
+ *
  * \todo Sort this file?  Generate it from the IDA map?
  */
 /*
  * Copyright (C) 2012 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
