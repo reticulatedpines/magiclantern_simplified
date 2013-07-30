@@ -26,11 +26,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
-.text
+#include <stub.h>
 
-#define NSTUB(addr,name)\
-    .global name; \
-    name = addr
+.text
 
 NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( 0xFF81005C, firmware_entry_2_params )

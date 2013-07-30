@@ -23,11 +23,9 @@ end
 # header
 
 puts <<HEADER
-.text
+#include <stub.h>
 
-#define NSTUB(addr,name) \
-	.global name; \
-	name = addr
+.text
 
 HEADER
 
