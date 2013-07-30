@@ -1262,6 +1262,7 @@ static int hdr_interpolate()
     free(bright);
     #ifdef CONTRAST_BLEND
     free(contrast);
+    free(overexposed);
     #endif
     #ifdef VERTICAL_SMOOTH
     free(dark_smooth);
@@ -1274,6 +1275,7 @@ err:
     free(bright);
     #ifdef CONTRAST_BLEND
     free(contrast);
+    free(overexposed);
     #endif
     #ifdef VERTICAL_SMOOTH
     free(dark_smooth);
