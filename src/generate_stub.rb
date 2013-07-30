@@ -29,10 +29,6 @@ puts <<HEADER
 	.global name; \
 	name = addr
 
-#define NILSTUB(addr,name) \
-	.global name; \
-	name: BX LR
-
 HEADER
 
 stubs.sort.each do |v,k|

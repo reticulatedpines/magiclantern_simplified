@@ -33,12 +33,6 @@
 	.extern name; \
 	name = addr
 
-#define NILSTUB(addr,name) \
-	.global name; \
-	.extern name; \
-	name: BX LR
-	
-
 NSTUB( ROMBASEADDR, firmware_entry )
 
 /** These must be found first for any progress to be made */
