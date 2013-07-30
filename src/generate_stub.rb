@@ -23,15 +23,9 @@ end
 # header
 
 puts <<HEADER
+#include <stub.h>
+
 .text
-
-#define NSTUB(addr,name) \
-	.global name; \
-	name = addr
-
-#define NILSTUB(addr,name) \
-	.global name; \
-	name: BX LR
 
 HEADER
 

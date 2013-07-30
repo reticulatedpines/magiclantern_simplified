@@ -8,17 +8,17 @@
  */
 /*
  * Copyright (C) 2010 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -26,18 +26,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <stub.h>
+
 .text
-
-#define NSTUB(addr,name) \
-	.global name; \
-	.extern name; \
-	name = addr
-
-#define NILSTUB(addr,name) \
-	.global name; \
-	.extern name; \
-	name: BX LR
-	
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
@@ -45,7 +36,7 @@ NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( 0xff011028, cstart )
 NSTUB( 0xFF53801C, bzero32 ) // called by cstart()
 NSTUB( 0xFF0193C0, init_task ) // passed as arg to create_init_task, look for dmSetup
-NSTUB( 0xFF017B68, create_init_task ) 
+NSTUB( 0xFF017B68, create_init_task )
 
 NSTUB( 0xFF325704, MirrorDisplay )
 NSTUB( 0xFF325764, NormalDisplay )
@@ -100,32 +91,32 @@ NSTUB( 0xff06bc3c, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xFF06BBD4, dm_set_print_level )
 NSTUB( 0xff05b058, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xff05a9f0, _prop_request_change )
-NSTUB( 0xff05afd0, prop_deliver ) 
+NSTUB( 0xff05afd0, prop_deliver )
 NSTUB( 0xff05b210, prop_get_value )
 NSTUB( 0xff05b178, _prop_cleanup )
 
 NSTUB( 0xff061a68, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x3D7B0, bmp_vram_info )   // same as 60d 108
 NSTUB( 0x55500, vram_info )
- 
-NSTUB( 0xff01891c, malloc )     
+
+NSTUB( 0xff01891c, malloc )
 NSTUB( 0xff018974, free )
-NSTUB( 0xff06f934, _AllocateMemory ) 
-NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure 
+NSTUB( 0xff06f934, _AllocateMemory )
+NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 NSTUB( 0xFF06FCC4, FreeMemory )
- 	
+
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
 NSTUB( 0xff067b68, LoadCalendarFromRTC )
 NSTUB( 0xff07b8ac, task_trampoline )
 
-NSTUB( 0xff0681c4, _audio_ic_write )    
-NSTUB( 0xff068078, _audio_ic_read )     
+NSTUB( 0xff0681c4, _audio_ic_write )
+NSTUB( 0xff068078, _audio_ic_read )
 NSTUB( 0xff056e4c, sounddev_task )
 NSTUB( 0xff0571bc, sounddev_active_in )
 NSTUB( 0xFF5ADA3C, audio_thresholds )        // after ptr to "ALVFactorySemSignature"
 NSTUB( 0x1F50, sounddev )                    // in sounddev_task
 
-NSTUB( 0xff0728c0, CreateBinarySemaphore )    // called CreateBinarySemaphore 
+NSTUB( 0xff0728c0, CreateBinarySemaphore )    // called CreateBinarySemaphore
 NSTUB( 0xff06e3d4, create_named_semaphore )   // found by finsig
 
 NSTUB( 0xFF306208, gui_task_create )
@@ -140,13 +131,13 @@ NSTUB( 0x350FC, cf_device )                // in cfReadBlk
 NSTUB( 0xFF4C0EF4, sdReadBlk )
 NSTUB( 0x35120, sd_device )                // in sdReadBlk
 
-// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
+// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory)
 // => first partition table; see http://www.datarescue.com/laboratory/partition.htm
 NSTUB( 0xFF404AC4, fsuDecodePartitionTable )
 
 NSTUB( 0xFF01B1A0, hotplug_task )
 NSTUB( 0x1A7C, hotplug_struct )            // found only by Alex tool!
-NSTUB( 0x1AC8, hotplug_usb_buf )          // after "USB Disconnect" 
+NSTUB( 0x1AC8, hotplug_usb_buf )          // after "USB Disconnect"
 
 NSTUB( 0xff010500, cli_save )
 NSTUB( 0xFF010514, sei_restore )

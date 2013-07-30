@@ -6,23 +6,23 @@
  *
  *  This is a straight copy from the 5d3, EOS M, 650D stubs need found/verified still.
  *  Indented line = incorrect.
- *  Initial stubs identified by Nanomad, most of the other stubs were matched by hand 
- * 
+ *  Initial stubs identified by Nanomad, most of the other stubs were matched by hand
+ *
  * \todo Sort this file?  Generate it from the IDA map?
  */
 /*
  * Copyright (C) 2012 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -30,17 +30,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <stub.h>
+
 .text
-
-#define NSTUB(addr,name) \
-	.global name; \
-	.extern name; \
-	name = addr
-
-#define XSTUB(addr,name) \
-	.global STUB_##name; \
-	.extern STUB_##name; \
-	STUB_##name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
@@ -77,8 +69,8 @@ NSTUB(0xFF5F317C, PackMem_StartEDmac)
 
 #define RAM_OFFSET (FFA5E120-0x1900) // Nanomad: some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
 
-NSTUB(0xFF0C10F4, cli_save) 
-NSTUB(0xFF0C1108, sei_restore) 
+NSTUB(0xFF0C10F4, cli_save)
+NSTUB(0xFF0C1108, sei_restore)
 NSTUB(0xFF0C1C20, cstart )
 
 NSTUB(0x138A8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
@@ -89,9 +81,9 @@ NSTUB(0xFF4B5938, DeleteDialogBox)
 NSTUB(0x395C, DryosDebugMsg)
 
 //FIO Functions
-NSTUB(0xFF344AE8, FIO_CreateFile) 
-NSTUB(0xFF344DDC, FIO_WriteFile) 
-NSTUB(0xFF344E8C, FIO_CloseFile) 
+NSTUB(0xFF344AE8, FIO_CreateFile)
+NSTUB(0xFF344DDC, FIO_WriteFile)
+NSTUB(0xFF344E8C, FIO_CloseFile)
 NSTUB(0xFF345E84, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
 NSTUB(0xFF3456E8, FIO_CreateDirectory)
 NSTUB(0xFF345CB0, FIO_FindFirstEx)

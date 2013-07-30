@@ -7,17 +7,17 @@
  */
 /*
  * Copyright (C) 2011 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -25,12 +25,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
-.text
+#include <stub.h>
 
-#define NSTUB(addr,name) \
-	.global name; \
-	.extern name; \
-	name = addr
+.text
 
 NSTUB( ROMBASEADDR, firmware_entry )
 // ROMBASE = 0xff010000
@@ -40,7 +37,7 @@ NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( 0xFF011028, cstart )
 NSTUB( 0xFF5683E8, bzero32 ) // called by cstart()
 NSTUB( 0xFF0197FC, init_task ) // passed as arg to create_init_task, look for dmSetup
-NSTUB( 0xFF017FA4, create_init_task ) 
+NSTUB( 0xFF017FA4, create_init_task )
 
 /** Look for the normal printf strings */
 NSTUB( 0xFF06E398, DryosDebugMsg )
@@ -95,21 +92,21 @@ NSTUB( 0xFF06E6F8, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xff06e690, dm_set_print_level )
 NSTUB( 0xFF05BD4C, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
 NSTUB( 0xFF05B6E4, _prop_request_change )
-NSTUB( 0xFF05BCC4, prop_deliver ) 
+NSTUB( 0xFF05BCC4, prop_deliver )
 NSTUB( 0xFF05BF04, prop_get_value )
-	
+
 NSTUB( 0xff1e8fe0, dispcheck )
 NSTUB( 0xFF062CEC, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x1db6c, bmp_vram_info )
 NSTUB( 0x75DDC, vram_info )
 NSTUB( 0xFF2E1124, vram_get_number ) // after "[ImgPlyer]   Rate"
 NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
-                 
+
 NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
 NSTUB( 0xFF018DB0, free )
 
 NSTUB( 0xff0723f0, _AllocateMemory ) // "[MEM] NG AllocateMemory"
-NSTUB( 0xFF072780, FreeMemory ) 
+NSTUB( 0xFF072780, FreeMemory )
 NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
@@ -119,7 +116,7 @@ NSTUB( 0xff07e3f4, task_trampoline )
 
 NSTUB( 0xFF05BE6C, _prop_cleanup )
 
-NSTUB( 0xFF06A144, _audio_ic_write ) 
+NSTUB( 0xFF06A144, _audio_ic_write )
 NSTUB( 0xFF069FF8, _audio_ic_read )
 NSTUB( 0xFF057774, sounddev_task )            // "[SND] _SoundDeviceTask"
 NSTUB( 0xFF057BE0, sounddev_active_in )      // "SoundDevActiveIn"
@@ -140,14 +137,14 @@ NSTUB( 0x15728, cf_device )                // in cfReadBlk
 NSTUB( 0xFF4F838C, sdReadBlk )
 NSTUB( 0x1574C, sd_device )                // in sdReadBlk
 
-// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
+// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory)
 // => first partition table; see http://www.datarescue.com/laboratory/partition.htm
 NSTUB( 0xFF4319A4, fsuDecodePartitionTable )
 
 
 NSTUB( 0xff01b5d8, hotplug_task )
 NSTUB( 0x1A7C, hotplug_struct )
-NSTUB( 0x1AC8, hotplug_usb_buf )          // after "USB Disconnect" 
+NSTUB( 0x1AC8, hotplug_usb_buf )          // after "USB Disconnect"
 
 NSTUB( 0xFF06DFC0, bootdisk_enable )
 NSTUB( 0xFF06DFCC, bootdisk_disable )
@@ -159,7 +156,7 @@ NSTUB( 0xff14b8f4, gui_lock )             // PtpPropSetUILock
 NSTUB( 0xff06fce4, oneshot_timer )
 NSTUB( 0xFF02156C, gui_main_task )       //  message at 0x30, counter at 0x0c
 NSTUB( 0xff021f78, gui_init_end )     // EndGuiInit
-NSTUB( 0x4588, gui_timer_struct )     // in GUI_Control_Post  
+NSTUB( 0x4588, gui_timer_struct )     // in GUI_Control_Post
 NSTUB( 0x1C38, gui_main_struct )      //  in gui_main_task
 NSTUB( 0xff1f5a54, msg_queue_receive )
 NSTUB( 0xFF0AA5A4, gui_local_post )
@@ -198,7 +195,7 @@ NSTUB( 0xFF0A7F90, gui_massive_event_loop )   // GUI_Control_Post
 
 // NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )               // not found
 // NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
-NSTUB( 0xFF08397C, DispSensorStart ) 
+NSTUB( 0xFF08397C, DispSensorStart )
 
 NSTUB( 0xff234fcc, ChangeColorPalette )
 

@@ -8,17 +8,17 @@
  */
 /*
  * Copyright (C) 2010 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -26,12 +26,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
-.text
+#include <stub.h>
 
-#define NSTUB(addr,name) \
-	.global name; \
-	.extern name; \
-	name = addr
+.text
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
@@ -40,11 +37,11 @@ NSTUB(0x1940, post_isr_hook)
 
 NSTUB(0x67C, next_task_ctx)
 NSTUB(0x680, current_task_ctx)
-                          
+
 NSTUB(0xFF1F5418, ConnectWriteEDmac)
 NSTUB(0xFF1F54DC, ConnectReadEDmac)
 
-             
+
 NSTUB(0xFF3D26EC, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF3D27CC, PackMem_RegisterEDmacAbortCBRForMemorySuite)
 NSTUB(0xFF3D275C, PackMem_RegisterEDmacPopCBRForMemorySuite)
@@ -83,13 +80,13 @@ NSTUB(0xFF11A8EC, GetJpegSizeForLV)
 
 NSTUB(0xFF0705E4, set_brightness_registers)
 NSTUB(0xFF205FA8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-NSTUB(0xff07cd24, AllocateMemory)      
-NSTUB(0xff2ffd3c, CreateDialogBox)      
-NSTUB(0xff07fe0c, CreateRecursiveLock)  
-NSTUB(0xff2ff7c4, DeleteDialogBox)      
-NSTUB(0xff0776ac, DryosDebugMsg)        
+NSTUB(0xff07cd24, AllocateMemory)
+NSTUB(0xff2ffd3c, CreateDialogBox)
+NSTUB(0xff07fe0c, CreateRecursiveLock)
+NSTUB(0xff2ff7c4, DeleteDialogBox)
+NSTUB(0xff0776ac, DryosDebugMsg)
 NSTUB(0xff1fd554, FIO_CleanupAfterFindNext_maybe) // AJ__switch_0x1A50_n_calls_fstOpenDir
-NSTUB(0xff1fc684, FIO_CloseFile)      
+NSTUB(0xff1fc684, FIO_CloseFile)
 NSTUB(0xff1fccf4, FIO_CreateDirectory) // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
 NSTUB(0xff1fc2e0, FIO_CreateFile)
 NSTUB(0xff1fd2b8, FIO_FindFirstEx)
@@ -166,7 +163,7 @@ NSTUB(0xff1e0870, mvrSetDeblockingFilter)
 NSTUB(0xff1e08e0, mvrSetDefQScale)
 NSTUB(0xff1e0e24, mvrSetPrintMovieLog)
 NSTUB(    0xA39C, mvr_config)
-NSTUB(0xFF080224, dma_memcpy)             
+NSTUB(0xFF080224, dma_memcpy)
 NSTUB(0xff078e6c, oneshot_timer)
 NSTUB(0xff068734, _prop_cleanup)
 NSTUB(0xff06858c, prop_deliver)
