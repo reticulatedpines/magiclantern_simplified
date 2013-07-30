@@ -18,5 +18,5 @@ void display_lcd_remote_icon(int x0, int y0) {}
 
 void* AllocateMemory(size_t size) // this won't throw ERR70
 {
-	return (void*) AllocateMemory_do((void*)0x2B48, size);
+	return (void*) AllocateMemory_do((void*)(*(int*)0x2B48), size);
 }
