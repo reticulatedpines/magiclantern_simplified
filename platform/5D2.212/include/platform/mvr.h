@@ -2,10 +2,6 @@
 #define __PLATFORM_MVR_H__
 
 // Movie recording.
-
-extern struct mvr_struct * mvr_struct;
-extern struct state_object * mvr_state;
-
 // tab size: 4
 
 /***** Added by from AJ 2.0.4 IDC *************************************************************
@@ -156,7 +152,5 @@ struct mvr_config   // used in aj_bitrate.c to change the CBR and VBR     mvr_co
 } __attribute__((aligned,packed));
 
 //~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
-
-extern struct mvr_config mvr_config;
 
 #endif /* __PLATFORM_MVR_H__ */
