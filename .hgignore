@@ -47,6 +47,7 @@ platform/*/autoexec
 platform/*/magiclantern
 platform/*/magiclantern.lds
 platform/*/*.sym
+platform/*/qemu-helper
 platform/all/autoexec-all
 platform/all/autoexec-fir
 doc/*.aux
