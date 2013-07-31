@@ -5,6 +5,9 @@ MKDIR=mkdir
 CP=cp
 export BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
 
+# redefine to 'date' if you want see you zone time in version timestamp
+DATE=date -u
+
 BINARIES_PATH=binaries
 LUA_PATH=$(TOP_DIR)/lua
 PICOC_DIR=$(TOP_DIR)/picoc
