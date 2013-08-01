@@ -75,7 +75,7 @@ static struct semaphore * mfile_sem = 0; /* exclusive access to the list of sele
     else beep(); \
 }
 
-int fileman_filetype_registered = 0;
+static int fileman_filetype_registered = 0;
 
 //Prototypes
 static MENU_SELECT_FUNC(select_dir);
@@ -111,7 +111,7 @@ unsigned int fileman_register_type(char *ext, char *type, filetype_handler_func 
     return 0;
 }
 
-struct filetype_handler *fileman_find_filetype(char *extension)
+static struct filetype_handler *fileman_find_filetype(char *extension)
 {
     for(int pos = 0; pos < fileman_filetype_registered; pos++)
     {
@@ -555,7 +555,7 @@ static MENU_UPDATE_FUNC(update_dir)
     if (entry->selected) view_file = 0;
 }
 
-const char * format_size( unsigned size)
+static const char * format_size( unsigned size)
 {
     static char str[ 32 ];
 
@@ -1161,7 +1161,7 @@ static int InitRootDir()
     return 0;
 }
 
-unsigned int fileman_init()
+static unsigned int fileman_init()
 {
     scandir_sem = create_named_semaphore("scandir", 1);
     mfile_sem = create_named_semaphore("mfile", 1);
@@ -1175,7 +1175,7 @@ unsigned int fileman_init()
     return 0;
 }
 
-unsigned int fileman_deinit()
+static unsigned int fileman_deinit()
 {
     //experimental. maybe not working yet.
     if(mfile_root->next) return -1;
