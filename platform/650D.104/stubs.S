@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.1 firmware for the 650D.
+ * in the Canon 1.0.4 firmware for the 650D.
  *
  *  This is a straight copy from the 5d3, EOS M stubs need found/verified still.
  *  Indented line = incorrect.

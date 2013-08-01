@@ -30,9 +30,9 @@
 
 #define DRYOS_ASSERT_HANDLER 0x233B8 // dec TH_assert or assert_0
 
-#define YUV422_LV_BUFFER_1 0x4bde7800
-#define YUV422_LV_BUFFER_2 0x4b9d7800
-#define YUV422_LV_BUFFER_3 0x4c1f7800
+    #define YUV422_LV_BUFFER_1 0x4bde7800
+    #define YUV422_LV_BUFFER_2 0x4b9d7800
+    #define YUV422_LV_BUFFER_3 0x4c1f7800
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
@@ -47,8 +47,8 @@
 
 
     // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-#define YUV422_HD_BUFFER_1 0x463cc080
-#define YUV422_HD_BUFFER_2 0x46000080
+    #define YUV422_HD_BUFFER_1 0x463cc080
+    #define YUV422_HD_BUFFER_2 0x46000080
 #define IS_HD_BUFFER(x)  (1) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
@@ -61,7 +61,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xff7ef1e8 // dec gui_main_task
+#define GMT_FUNCTABLE 0xFF7EFE40 // dec gui_main_task
 
 #define SENSOR_RES_X 5184
 #define SENSOR_RES_Y 3456
@@ -179,12 +179,12 @@
 
     #define BULB_MIN_EXPOSURE 1000
 
-// http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xffcca8a8
-#define BFNT_BITMAP_OFFSET 0xffccd7b8
-#define BFNT_BITMAP_DATA   0xffcd06c8
+    // http://magiclantern.wikia.com/wiki/Fonts
+    #define BFNT_CHAR_CODES    0xffcca8a8
+    #define BFNT_BITMAP_OFFSET 0xffccd7b8
+    #define BFNT_BITMAP_DATA   0xffcd06c8
 
-#define DLG_SIGNATURE 0x4c414944 
+    #define DLG_SIGNATURE 0x4c414944 
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -192,8 +192,8 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x3689C+0xC) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-#define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
-#define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
+#define IMGPLAY_ZOOM_POS_X MEM(0x6E504) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x6E508)
 #define IMGPLAY_ZOOM_POS_X_CENTER 0x144
 #define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
 #define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
@@ -266,12 +266,5 @@
  *
  *  And that's how Canon's touch screen works :)
  *******************************************************************************************************************/
-    //~ not used [was for early implemenation]
-    #define TOUCH_XY_RAW1 0x4D868
-    #define TOUCH_XY_RAW2 (TOUCH_XY_RAW1+4)
-    #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
-    //--------------
-    #define HIJACK_TOUCH_CBR_PTR 0x4D858
-
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5

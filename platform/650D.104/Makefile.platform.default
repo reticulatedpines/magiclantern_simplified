@@ -1,6 +1,8 @@
-#Makefile.setup.platform for EOS 650D
+#Makefile.setup.platform for EOS 650D v104
 
-ifeq ($(FW_VERSION),101)
+FW_VERSION=104
+
+ifeq ($(FW_VERSION),104)
 ROMBASEADDR		= 0xFF0C0000
 
 # DryOSmemory map
@@ -8,5 +10,5 @@ ROMBASEADDR		= 0xFF0C0000
 #
 RESTARTSTART	= 0x0007E100
 
-#End of FW_VERSION == 101
+#End of FW_VERSION == 104
 endif

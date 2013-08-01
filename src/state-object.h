@@ -25,6 +25,7 @@
  */
 
 #include "compiler.h"
+#include <platform/state-object.h>
 
 #ifdef CONFIG_VXWORKS
 //~ Calls CreateTaskClass from canon startup task.
