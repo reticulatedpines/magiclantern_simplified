@@ -114,7 +114,7 @@ struct mvr_config
 	uint32_t		hd_50fps_gop_opt_3;		// 0x184
 	uint32_t		hd_50fps_gop_opt_4;		// 0x188
 	uint32_t		unk_xfps_gop_opt_0;		// 0x18c // ??
-	uint32_t		unk_xfps_gop_opt_1;		// 0x190 
+	uint32_t		unk_xfps_gop_opt_1;		// 0x190
 	uint32_t		unk_xfps_gop_opt_2;		// 0x194
 	uint32_t		unk_xfps_gop_opt_3;		// 0x198
 	uint32_t		unk_xfps_gop_opt_4;		// 0x19c
