@@ -141,7 +141,7 @@ err:
     return 0;
 }
 
-int bmp_show(char* file)
+static int bmp_show(char* file)
 {
     void* bmp = bmp_load(file, 1);
     if (!bmp) return 0;
@@ -150,7 +150,7 @@ int bmp_show(char* file)
     return 1;
 }
 
-int yuv422_show(char* filename)
+static int yuv422_show(char* filename)
 {
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;

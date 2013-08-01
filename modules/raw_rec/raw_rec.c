@@ -119,10 +119,10 @@ static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
 static float squeeze_factor = 0;
-int frame_size = 0;
-int frame_size_real = 0;
-int skip_x = 0;
-int skip_y = 0;
+static int frame_size = 0;
+static int frame_size_real = 0;
+static int skip_x = 0;
+static int skip_y = 0;
 
 static int frame_offset_x = 0;
 static int frame_offset_y = 0;

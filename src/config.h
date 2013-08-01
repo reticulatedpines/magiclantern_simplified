@@ -79,10 +79,15 @@ struct config_var
         int          default_value;
 };
 
+#ifdef MODULE
+#define CONFIG_VAR_ATTR static
+#else
+#define CONFIG_VAR_ATTR
+#endif
 
 #define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE ) \
 TYPE VAR = VALUE; \
-struct config_var \
+CONFIG_VAR_ATTR struct config_var \
 __attribute__((section(".config_vars"))) \
 __config_##VAR = \
 { \
