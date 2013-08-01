@@ -5,121 +5,14 @@
  * 
  **/
 
+#ifdef CONFIG_STATE_OBJECT_HOOKS
+
 #include "dryos.h"
 #include "bmp.h"
 #include "state-object.h"
 #include "property.h"
 #if defined(CONFIG_MODULES)
 #include "module.h"
-#endif
-
-#ifdef CONFIG_STATE_OBJECT_HOOKS
-
-#ifdef CONFIG_7D
-#define LV_STATE (*(struct state_object **)0x4458)
-#endif
-
-#ifdef CONFIG_7D_MASTER
-#define LV_STATE (*(struct state_object **)0x2A8C)
-#endif
-
-#ifdef CONFIG_550D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
-#define MOVREC_STATE (*(struct state_object **)0x5B34)
-#define LV_STATE (*(struct state_object **)0x4B74)
-#define LVCAE_STATE (*(struct state_object **)0x51E4)
-#define SDS_FRONT3_STATE (*(struct state_object **)0x3840)
-#endif
-
-#ifdef CONFIG_60D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
-#define VOI_STATE (*(struct state_object **)0x269D8)
-#define EVF_STATE (*(struct state_object **)0x4ff8)
-#define MOVREC_STATE (*(struct state_object **)0x5A40)
-#endif
-
-#ifdef CONFIG_600D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
-#define EVF_STATE (*(struct state_object **)0x51CC)
-#define MOVREC_STATE (*(struct state_object **)0x5EF8)
-#endif
-
-#ifdef CONFIG_5D2
-#define MOVREC_STATE (*(struct state_object **)0x7C90)
-#define LV_STATE (*(struct state_object **)0x4528)
-#define SDS_FRONT3_STATE (*(struct state_object **)0x36B8)
-#endif
-
-#ifdef CONFIG_500D
-#define MOVREC_STATE (*(struct state_object **)0x7AF4)
-#define LV_STATE (*(struct state_object **)0x4804)
-#endif
-
-#ifdef CONFIG_50D
-#define MOVREC_STATE (*(struct state_object **)0x6CDC)
-#define LV_STATE (*(struct state_object **)0x4580)
-#endif
-
-#ifdef CONFIG_5D3
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
-#define EVF_STATE (*(struct state_object **)0x2600c)
-#define MOVREC_STATE (*(struct state_object **)0x27850)
-#define SSS_STATE (*(struct state_object **)0x25E44)
-#endif
-
-#ifdef CONFIG_EOSM
-#define EVF_STATE (*(struct state_object **)0x40944)
-#define SSS_STATE (*(struct state_object **)0x405EC)
-#define MOVREC_STATE (*(struct state_object **)0x426A4)
-#define DISPLAY_STATE DISPLAY_STATEOBJ //Works for Photo Overlay
-#define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 26
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 27
-#define FACE_STATE (*(struct state_object **)0x40A4C)
-#define DISP2_STATE (*(struct state_object **)0x3EBBC)
-#define LVCDEV_STATE (*(struct state_object **)0x43978)
-#define CLR_CALC_STATE (*(struct state_object **)0x43B74) 
-//~ #define DISPLAY_STATE FACE_STATE
-#endif
-
-#ifdef CONFIG_6D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 23
-#define EVF_STATE (*(struct state_object**)0x76D1C) //Sub 4 for for 112
-#define SSS_STATE (*(struct state_object **)0x76B78)
-#define MOVREC_STATE (*(struct state_object **)0x787EC)
-#endif
-
-#ifdef CONFIG_650D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 23
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
-#define EVF_STATE (*(struct state_object **)0x25B00)
-#define MOVREC_STATE (*(struct state_object **)0x27704)
-#define SSS_STATE (*(struct state_object **)0x257B8)
-#endif
-
-#ifdef CONFIG_700D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-    #define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 23
-    #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
-#define EVF_STATE (*(struct state_object **)0x25B0C)
-#define SSS_STATE (*(struct state_object **)0x257C4)
-#endif
-
-#ifdef CONFIG_1100D
-#define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
-#define EVF_STATE (*(struct state_object **)0x4C34)
-#define MOVREC_STATE (*(struct state_object **)0x5720)
-#endif
-
-#ifdef CONFIG_5DC
-// we need to detect halfshutter press from EMState.
-#define EMState (*(struct state_object **)0x4f24)
 #endif
 
 /*
@@ -445,6 +338,6 @@ void update_state_fps() {
     NotifyBox(1000,"Done");
 
 }
-
 #endif
+
 #endif

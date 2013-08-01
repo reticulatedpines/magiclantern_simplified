@@ -40,7 +40,8 @@ FLAGS=\
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
-	-I$(TOP_DIR)/include
+	-I$(TOP_DIR)/include \
+	-I$(PLATFORM_DIR)/include
 
 TARGET_COMPILER ?= arm-gcc
 
