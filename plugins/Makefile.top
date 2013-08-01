@@ -82,8 +82,6 @@ $(PLUGIN_NAME): $(PLUGIN_MAIN_OBJS)
 		-o $@ \
 		-N \
 		-nostdlib \
-		-mthumb-interwork \
-		-march=armv5te \
 		-T \
 		$^ \
 		-lm \

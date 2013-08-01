@@ -16,7 +16,6 @@ autoexec-all: reboot-all.o
 	$(call build,LD,$(LD) \
 		-o autoexec-all \
 		-nostdlib \
-		-march=armv5te \
 		-e _start \
 		-Ttext 0x800000 \
 		$^ \

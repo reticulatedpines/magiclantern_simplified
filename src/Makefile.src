@@ -211,7 +211,6 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
-		-march=armv5te \
 		-e _start \
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
@@ -222,7 +221,6 @@ autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
-		-march=armv5te \
 		-e _start \
 		-Ttext $(FIR_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
