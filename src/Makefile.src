@@ -324,7 +324,11 @@ $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
 		cd $(DOC_DIR); $(PYTHON) menuindex.py; \
 	else \
-		echo "No menuindex.txt not running \"$(PYTHON) menuindex.py\""; \
+		echo ; \
+		echo "No menuindex.txt! The \"Complete user guide\" menu is empty!" ; \
+		echo "Run make docq to update menuindex.txt." ; \
+		echo ; \
+		truncate -s 0 $@ ; \
 	fi)
 
 menuindex.o: $(SRC_DIR)/menuindexentries.h
