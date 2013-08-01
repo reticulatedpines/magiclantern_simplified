@@ -75,6 +75,7 @@ CFLAGS +=\
 	-fshort-double \
 	-std=gnu99 \
 	-I$(PLATFORM_INC) \
+	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
 	-I$(PICOC_PATH) \
 
