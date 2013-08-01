@@ -76,6 +76,11 @@ static CONFIG_INT("isoless.alt", isoless_alternate, 0);
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
 extern WEAK_FUNC(ret_0) int is_play_or_qr_mode();
+extern WEAK_FUNC(ret_0) int raw_hist_get_percentile_level();
+extern WEAK_FUNC(ret_0) int raw_hist_get_overexposure_percentage();
+extern WEAK_FUNC(ret_0) void raw_lv_request();
+extern WEAK_FUNC(ret_0) void raw_lv_release();
+extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
 /* camera-specific constants */
 
@@ -127,6 +132,8 @@ static int isoless_recovery_iso_index()
 extern WEAK_FUNC(ret_0) uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), uint32_t cb_parm);
 extern WEAK_FUNC(ret_0) uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), uint32_t cb_parm);
 
+static uint8_t* local_buf = 0;
+
 static void bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
 {
     *parm = 0;
@@ -136,14 +143,9 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
 {
         /* for 7D */
         int start_addr_0 = start_addr;
-        static uint8_t * local_buf = 0;
         
         if (is_7d) /* start_addr is on master */
         {
-            /* with static alloc, it sometimes works and sometimes not */
-            /* with this seems to be OK */
-            /* fixme: memory leaks on error paths */
-            local_buf = alloc_dma_memory(size * count);
             volatile uint32_t wait = 1;
             BulkInIPCTransfer(0, local_buf, size * count, start_addr, &bulk_cb, (uint32_t) &wait);
             while(wait) msleep(20);
@@ -204,7 +206,6 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             volatile uint32_t wait = 1;
             BulkOutIPCTransfer(0, (uint8_t*)start_addr - 2, size * count, start_addr_0, &bulk_cb, (uint32_t) &wait);
             while(wait) msleep(20);
-            free(local_buf);
         }
 
         /* success */
@@ -215,11 +216,9 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* b
 {
     /* for 7D */
     int start_addr_0 = start_addr;
-    static uint8_t * local_buf = 0;
     
     if (is_7d) /* start_addr is on master */
     {
-        local_buf = alloc_dma_memory(size * count);
         volatile uint32_t wait = 1;
         BulkInIPCTransfer(0, local_buf, size * count, start_addr, &bulk_cb, (uint32_t) &wait);
         while(wait) msleep(20);
@@ -237,7 +236,6 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* b
         volatile uint32_t wait = 1;
         BulkOutIPCTransfer(0, (uint8_t*)start_addr - 2, size * count, start_addr_0, &bulk_cb, (uint32_t) &wait);
         while(wait) msleep(20);
-        free(local_buf);
     }
 
     /* success */
@@ -399,11 +397,14 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
 
 static unsigned int isoless_auto_step(unsigned int ctx)
 {
+    if (is_7d)
+        return 0;
+    
     if (isoless_hdr && ISOLESS_AUTO && lv && !recording && lv_dispsize == 1 && !is_movie_mode())
     {
         static int aux = INT_MIN;
         if (!should_run_polling_action(liveview_display_idle() ? 1000 : 200, &aux))
-            return;
+            return 0;
         
         raw_lv_request();
         
@@ -445,6 +446,7 @@ static unsigned int isoless_auto_step(unsigned int ctx)
         
         raw_lv_release();
     }
+    return 0;
 }
 
 static MENU_UPDATE_FUNC(isoless_check)
@@ -626,6 +628,8 @@ static unsigned int isoless_init()
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
+        
+        local_buf = alloc_dma_memory(PHOTO_CMOS_ISO_COUNT * PHOTO_CMOS_ISO_SIZE + 4);
     }
     
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
