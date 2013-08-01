@@ -9,6 +9,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "state-object.h"
+#include <platform/state-object.h>
 #include "property.h"
 #if defined(CONFIG_MODULES)
 #include "module.h"
