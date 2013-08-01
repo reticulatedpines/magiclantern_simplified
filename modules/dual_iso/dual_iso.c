@@ -84,19 +84,19 @@ extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
 /* camera-specific constants */
 
-int is_7d = 0;
+static int is_7d = 0;
 
-uint32_t FRAME_CMOS_ISO_START = 0;
-uint32_t FRAME_CMOS_ISO_COUNT = 0;
-uint32_t FRAME_CMOS_ISO_SIZE = 0;
+static uint32_t FRAME_CMOS_ISO_START = 0;
+static uint32_t FRAME_CMOS_ISO_COUNT = 0;
+static uint32_t FRAME_CMOS_ISO_SIZE = 0;
 
-uint32_t PHOTO_CMOS_ISO_START = 0;
-uint32_t PHOTO_CMOS_ISO_COUNT = 0;
-uint32_t PHOTO_CMOS_ISO_SIZE = 0;
+static uint32_t PHOTO_CMOS_ISO_START = 0;
+static uint32_t PHOTO_CMOS_ISO_COUNT = 0;
+static uint32_t PHOTO_CMOS_ISO_SIZE = 0;
 
-uint32_t CMOS_ISO_BITS = 0;
-uint32_t CMOS_FLAG_BITS = 0;
-uint32_t CMOS_EXPECTED_FLAG = 0;
+static uint32_t CMOS_ISO_BITS = 0;
+static uint32_t CMOS_FLAG_BITS = 0;
+static uint32_t CMOS_EXPECTED_FLAG = 0;
 
 #define CMOS_ISO_MASK ((1 << CMOS_ISO_BITS) - 1)
 #define CMOS_FLAG_MASK ((1 << CMOS_FLAG_BITS) - 1)
