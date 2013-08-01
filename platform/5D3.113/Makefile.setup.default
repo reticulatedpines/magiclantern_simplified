@@ -7,6 +7,7 @@ ML_AF_PATTERNS_OBJ = n
 ML_BOOTFLAGS_OBJ = n
 
 ML_SRC_EXTRA_OBJS = \
+	video_hacks.o \
 	fio-5d3.o \
 	misc.o \
 	afma.o \
@@ -14,8 +15,6 @@ ML_SRC_EXTRA_OBJS = \
 	chdk-dng.o \
 	edmac-memcpy.o \
 	asm.o
-
-#	video_hacks.o \
 
 
 CFLAG_USER += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1
