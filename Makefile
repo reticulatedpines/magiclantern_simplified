@@ -72,7 +72,9 @@ clean: platform_clean doxygen_clean
 		doc/UserGuide.pdf \
 		doc/UserGuide.tex \
 		doc/UserGuide.toc \
-		*.pdf)
+		*.pdf \
+		platform/*/qemu-helper.bin \
+		)
 	$(call rm_dir, doc/cam)
 	$(call rm_dir, $(BINARIES_PATH))
 
