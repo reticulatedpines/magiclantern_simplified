@@ -11,7 +11,7 @@
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
-#include <mvr.h>
+#include "mvr.h"
 
 
 #if defined(FEATURE_VIDEO_HACKS)

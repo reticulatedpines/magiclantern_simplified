@@ -10,7 +10,7 @@
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
-#include <mvr.h>
+#include "mvr.h"
 
 //----------------begin qscale-----------------
 static CONFIG_INT( "h264.qscale", qscale_neg, 8 );
