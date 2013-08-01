@@ -5,17 +5,17 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -32,12 +32,12 @@
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
-{	
+{
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	if (!ml_started) return 1;
-	
+
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	if (event->param == BGMT_LV && recording)
@@ -85,7 +85,7 @@ static void gui_main_task_7d()
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
-		
+
 		if (!magic_is_off())
 		{
 			if (event->type == 0)
@@ -99,15 +99,15 @@ static void gui_main_task_7d()
 					continue;
 			}
 		}
-		
+
 		if (IS_FAKE(event)) event->arg = 0;
 
 		if ((index >= GMT_NFUNCS) || (index < 0))
 			continue;
-		
+
 		void(*f)(struct event *) = funcs[index];
 		f(event);
 	}
-} 
+}
 
 TASK_OVERRIDE( gui_main_task, gui_main_task_7d );
