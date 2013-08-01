@@ -20,7 +20,7 @@ $(MODULE_OUTPUT): $(MODULE_OBJS)
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
 
 %.sym: %.mo
-	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*" | $(AWK) '{print $$2 " " $$8;}' | sort > $@ && cat $@)
+	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) '{print $$2 " " $$8;}' | sort > $@ && cat $@)
 %.dep: %.mo
 	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) '{print $$8;}' | sort > $@ && cd $(MODULES_DIR) && python checkdep.py $(MODULE_NAME))
 

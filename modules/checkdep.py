@@ -60,13 +60,17 @@ not_working_cameras = []
 not_checked_cameras = []
 
 for c in cameras:
+    # camera with a single firmware version? just use the camera name, skip the version number
+    # one camera with two firmware versions? use full name
     cam_name = c.split(".")[0]
+    if cam_name in [c2.split(".")[0] for c2 in cameras if c2 != c]: cam_name = c
+    
     cam_sym = os.path.join(platformdir, c, "magiclantern.sym")
 
     solved = try_solve_deps(cam_sym, deps)
     
     if solved:
-        unsolved_deps = list(set(deps)-set(solved))
+        unsolved_deps = list(set(deps) - set(solved))
         if unsolved_deps:
             not_working_cameras.append((cam_name, unsolved_deps))
         else:
@@ -90,4 +94,7 @@ if not_working_cameras:
 if not_checked_cameras:
     print "Not checked (compile ML for these cameras first):\n   ", ", ".join(not_checked_cameras)
 
-os.system("pwd");
+if not working_cameras:
+    # no cameras working? force dep checking again on next "make" and exit with error
+    os.system("rm " + os.path.join(module, module + ".dep"))
+    exit(1)
