@@ -43,7 +43,6 @@
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x23C20+0x11c))
 
 
-#define EVF_STATEOBJ (*(struct state_object**)0x25B0C)
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
