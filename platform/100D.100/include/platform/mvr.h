@@ -7,10 +7,6 @@
 
 
 // Movie recording.
-
-extern struct mvr_struct * mvr_struct;
-extern struct state_object * mvr_state;
-
 // tab size: 4
 
 struct mvr_config
@@ -143,7 +139,5 @@ struct mvr_config
 } __attribute__((aligned,packed));
 
 //~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
-
-extern struct mvr_config mvr_config;
 
 #endif /* __PLATFORM_MVR_H__ */
