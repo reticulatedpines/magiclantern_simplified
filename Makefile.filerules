@@ -16,7 +16,7 @@ all::
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
 %.sym: %
-	$(call build,SYMBOLS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) -E 'FUNC|OBJECT|ABS' | $(AWK) '{print $$2 " " $$8;}' | $(GREP) -v '^ ' | sort > $@)
+	$(call build,SYMBOLS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) -E 'FUNC|OBJECT|ABS' | $(AWK) '{print $$2 " " $$8;}' | $(GREP) -v '^ ' | $(GREP) -v __config_ | $(GREP) -v -E ' _[a-zA-Z]' | sort > $@)
 %.o: $(PLATFORM_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
