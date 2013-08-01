@@ -18,6 +18,7 @@ clean::
 $(MODULE_OUTPUT): $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
+	$(call build,EXPORTS,readelf $(MODULE_OUTPUT) -a | grep GLOBAL | grep -v UND | grep -v COM |grep -v "__module_.*$(MODULE_NAME)" || true)
 
 install:: all
 	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/
