@@ -19,6 +19,7 @@ struct file_entry
     unsigned int size;
     unsigned int type: 2;
     unsigned int added: 1;
+    unsigned int timestamp;
 };
 
 typedef struct _multi_files
@@ -127,7 +128,7 @@ static struct filetype_handler *fileman_find_filetype(char *extension)
 static struct menu_entry fileman_menu[] =
 {
     {
-        .name = "File Browser",
+        .name = "File Manager",
         .select = menu_open_submenu,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
@@ -141,20 +142,21 @@ static void clear_file_menu()
     while (file_entries)
     {
         struct file_entry * next = file_entries->next;
-        menu_remove("File Browser", &(file_entries->menu_entry), 1);
+        menu_remove("File Manager", &(file_entries->menu_entry), 1);
         console_printf("%s\n", file_entries->name);
         FreeMemory(file_entries);
         file_entries = next;
     }
 }
 
-static struct file_entry * add_file_entry(char* txt, int type, int size)
+static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
 {
     struct file_entry * fe = AllocateMemory(sizeof(struct file_entry));
     if (!fe) return 0;
     memset(fe, 0, sizeof(struct file_entry));
     snprintf(fe->name, sizeof(fe->name), "%s", txt);
     fe->size = size;
+    fe->timestamp = timestamp;
 
     fe->menu_entry.name = fe->name;
     fe->menu_entry.priv = fe;
@@ -214,7 +216,7 @@ static void build_file_menu()
 
                 if (!should_skip)
                 {
-                    menu_add("File Browser", &(fe->menu_entry), 1);
+                    menu_add("File Manager", &(fe->menu_entry), 1);
                     fe->added = 1;
                 }
                 else done = 0;
@@ -234,8 +236,8 @@ static void ScanDir(char *path)
 
     if (strlen(path) == 0)
     {
-        add_file_entry("A:/", TYPE_DIR, 0);
-        add_file_entry("B:/", TYPE_DIR, 0);
+        add_file_entry("A:/", TYPE_DIR, 0, 0);
+        add_file_entry("B:/", TYPE_DIR, 0, 0);
         build_file_menu();
         give_semaphore(scandir_sem);
         return;
@@ -247,7 +249,7 @@ static void ScanDir(char *path)
     dirent = FIO_FindFirstEx( path, &file );
     if( IS_ERROR(dirent) )
     {
-        add_file_entry("../", TYPE_DIR, 0);
+        add_file_entry("../", TYPE_DIR, 0, 0);
         build_file_menu();
         give_semaphore(scandir_sem);
         return;
@@ -262,11 +264,11 @@ static void ScanDir(char *path)
         {
             int len = strlen(file.name);
             snprintf(file.name + len, sizeof(file.name) - len, "/");
-            add_file_entry(file.name, TYPE_DIR, 0);
+            add_file_entry(file.name, TYPE_DIR, 0, 0);
         }
         else
         {
-            add_file_entry(file.name, TYPE_FILE, file.size);
+            add_file_entry(file.name, TYPE_FILE, file.size, file.timestamp);
         }
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
@@ -274,7 +276,7 @@ static void ScanDir(char *path)
     if (!n)
     {
         /* nothing here, add this so menu won't crash */
-        add_file_entry("../", TYPE_DIR, 0);
+        add_file_entry("../", TYPE_DIR, 0, 0);
     }
 
     if(op_mode != FILE_OP_NONE)
@@ -295,17 +297,17 @@ static void ScanDir(char *path)
             
             /* need to add these in reverse order */
 
-            e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0);
+            e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0, 0);
             if (e) e->menu_entry.select = FileOpCancel;
 
             switch (op_mode)
             {
                 case FILE_OP_COPY:
-                    e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0);
+                    e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0, 0);
                     if (e) e->menu_entry.select = FileCopyStart;
                     break;
                 case FILE_OP_MOVE:
-                    e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0);
+                    e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0, 0);
                     if (e) e->menu_entry.select = FileMoveStart;
                     break;
             }
@@ -555,28 +557,66 @@ static MENU_UPDATE_FUNC(update_dir)
     if (entry->selected) view_file = 0;
 }
 
-static const char * format_size( unsigned size)
+static const char * format_date_size( unsigned size, unsigned timestamp )
 {
-    static char str[ 32 ];
+    static char str[32];
+    static char datestr [11];
+    int year=1970;                   // Unix Epoc begins 1970-01-01
+    int month=11;                    // This will be the returned MONTH NUMBER.
+    int day;                         // This will be the returned day number. 
+    int dayInSeconds=86400;          // 60secs*60mins*24hours
+    int daysInYear=365;              // Non Leap Year
+    int daysInLYear=daysInYear+1;    // Leap year
+    int days=timestamp/dayInSeconds; // Days passed since UNIX Epoc
+    int tmpDays=days+1;              // If passed (timestamp < dayInSeconds), it will return 0, so add 1
 
-    if( size > 1024*1024*1024 )
-    {
-        int size_gb = (size/1024 + 5) * 10 / 1024 / 1024;
-        snprintf( str, sizeof(str), "%d.%dGB", size_gb/10, size_gb%10);
+    while(tmpDays>=daysInYear)       // Start adding years to 1970
+	{      
+        year++;
+        if ((year)%4==0&&((year)%100!=0||(year)%400==0)) tmpDays-=daysInLYear; else tmpDays-=daysInYear;
     }
-    else if( size > 1024*1024 )
-    {
-        int size_mb = (size/1024 + 5) * 10 / 1024;
-        snprintf( str, sizeof(str), "%d.%dMB", size_mb/10, size_mb%10);
+
+    int monthsInDays[12] = {-1,30,59,90,120,151,181,212,243,273,304,334};
+    if (!(year)%4==0&&((year)%100!=0||(year)%400==0))  // The year is not a leap year
+	{
+        monthsInDays[0] = 0;
+		monthsInDays[1] =31;
     }
-    else if( size > 1024 )
+
+    while (month>0)
     {
-        int size_kb = (size/1024 + 5) * 10;
-        snprintf( str, sizeof(str), "%d.%dkB", size_kb/10, size_kb%10);
+        if (tmpDays>monthsInDays[month]) break;       // month+1 is now the month number.
+        month--;
+    }
+    day=tmpDays-monthsInDays[month];                  // Setup the date
+    month++;                                          // Increment by one to give the accurate month
+    if (day==0) {year--; month=12; day=31;}			  // Ugly hack but it works, eg. 1971.01.00 -> 1970.12.31
+	
+    if (date_format==DATE_FORMAT_YYYY_MM_DD)          // Use the date format of the camera to format the date string
+        snprintf( datestr, sizeof(datestr), "%d.%02d.%02d ", year, month, day);
+    else if (date_format==DATE_FORMAT_MM_DD_YYYY)
+        snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", month, day, year);
+    else  
+        snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
+	
+    if ( size > 1024*1024*1024 )
+    {
+        int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
+        snprintf( str, sizeof(str), "%s %3d.%dGB", datestr, size_gb/10, size_gb%10);
+    }
+    else if ( size > 1024*1024 )
+    {
+        int size_mb = (size * 10 + 5) / 1024 / 1024;
+        snprintf( str, sizeof(str), "%s %3d.%dMB", datestr, size_mb/10, size_mb%10);
+    }
+    else if ( size > 1024 )
+    {
+        int size_kb = (size * 10 + 5) / 1024;
+        snprintf( str, sizeof(str), "%s %3d.%dkB", datestr, size_kb/10, size_kb%10);
     }
     else
     {
-        snprintf( str, sizeof(str), "%db", size);
+        snprintf( str, sizeof(str), "%s   %3d B", datestr, size);
     }
 
     return str;
@@ -922,6 +962,8 @@ static MENU_SELECT_FUNC(file_menu)
     char name[MAX_PATH_LEN];
     snprintf(name, sizeof(name), "%s", fe->name);
     int size = fe->size;
+    int timestamp = fe->timestamp;
+	
     STR_APPEND(gPath, "%s", name);
 
     clear_file_menu();
@@ -941,7 +983,7 @@ static MENU_SELECT_FUNC(file_menu)
         {
             char msg[100];
             snprintf(msg, sizeof(msg), "Select *%s", ext);
-            e = add_file_entry(msg, TYPE_ACTION, 0);
+            e = add_file_entry(msg, TYPE_ACTION, 0, 0);
             if (e)
             {
                 e->menu_entry.select = select_by_extension;
@@ -952,25 +994,25 @@ static MENU_SELECT_FUNC(file_menu)
 
     if (sel)
     {
-        e = add_file_entry("Clear selection", TYPE_ACTION, 0);
+        e = add_file_entry("Clear selection", TYPE_ACTION, 0, 0);
         if (e) e->menu_entry.select = mfile_clear_all_selected_menu;
     }
 
-    e = add_file_entry("Delete", TYPE_ACTION, 0);
+    e = add_file_entry("Delete", TYPE_ACTION, 0, 0);
     if (e)
     {
         e->menu_entry.select = delete_file;
         e->menu_entry.update = delete_confirm;
     }
 
-    e = add_file_entry("Move", TYPE_ACTION, 0);
+    e = add_file_entry("Move", TYPE_ACTION, 0, 0);
     if (e)
     {
         e->menu_entry.select = MoveFile;
         //e->menu_entry.update = MoveFileProgress;
     }
 
-    e = add_file_entry("Copy", TYPE_ACTION, 0);
+    e = add_file_entry("Copy", TYPE_ACTION, 0, 0);
     if (e)
     {
         e->menu_entry.select = CopyFile;
@@ -979,7 +1021,7 @@ static MENU_SELECT_FUNC(file_menu)
 
     if (!sel)
     {
-        e = add_file_entry("View", TYPE_ACTION, 0);
+        e = add_file_entry("View", TYPE_ACTION, 0, 0);
         if (e)
         {
             e->menu_entry.select = viewfile_toggle;
@@ -989,7 +1031,7 @@ static MENU_SELECT_FUNC(file_menu)
 
     if (sel == 0)
     {
-        e = add_file_entry(name, TYPE_FILE, size);
+        e = add_file_entry(name, TYPE_FILE, size, timestamp);
         if (e)
         {
             e->menu_entry.select = BrowseUpMenu;
@@ -1004,7 +1046,7 @@ static MENU_SELECT_FUNC(file_menu)
             snprintf(msg, sizeof(msg), "%d files from %d folders", sel, dirs);
         else
             snprintf(msg, sizeof(msg), "%d selected files", sel);
-        e = add_file_entry(msg, TYPE_ACTION, 0);
+        e = add_file_entry(msg, TYPE_ACTION, 0, 0);
         if (e)
         {
             e->menu_entry.icon_type = IT_BOOL,
@@ -1074,7 +1116,7 @@ static MENU_UPDATE_FUNC(update_file)
 {
     struct file_entry * fe = (struct file_entry *) entry->priv;
     MENU_SET_VALUE("");
-    MENU_SET_RINFO("%s", format_size(fe->size));
+    MENU_SET_RINFO("%s", format_date_size(fe->size,fe->timestamp));
 
     char filename[MAX_PATH_LEN];
     snprintf(filename, sizeof(filename), "%s%s", gPath, fe->name);
@@ -1197,5 +1239,5 @@ MODULE_INFO_END()
 MODULE_STRINGS_START()
     MODULE_STRING("Author", "ML dev.")
     MODULE_STRING("License", "GPL")
-    MODULE_STRING("Description", "File browser")
+    MODULE_STRING("Description", "File manager")
 MODULE_STRINGS_END()
