@@ -70,7 +70,7 @@ docq:
 installdoc:
 	mkdir -p $(INSTALL_DOC_DIR)
 	-$(CP) -v $(DOC_DIR)/cam/* $(INSTALL_DOC_DIR)
-	-$(CP) $(TOP_DIR)/README $(INSTALL_ML_DIR)
+	-$(CP) $(DOC_DIR)/README.user $(INSTALL_ML_DIR)/README
 	-$(CP) $(DOC_DIR)/INSTALL.pdf $(INSTALL_DIR) || echo "warning Unable to copy INSTALL.pdf"
 	-$(CP) $(DOC_DIR)/UserGuide.pdf $(INSTALL_DIR) || echo "warning Unable to copy UserGuide.pdf"
 	-$(CP) $(SRC_DIR)/logo.bmp $(INSTALL_ML_DIR)/docs || echo "warning Unable to copy logo.bmp"

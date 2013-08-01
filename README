@@ -1,36 +1,19 @@
-          ***************************************************
-          *                                                 *
-          * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
-          *  NO WARRANTIES.  NO GUARANTEES.  DO NOT TAUNT.  *
-          *                                                 *
-          ***************************************************
+Magic Lantern
+=============
 
-If you are not comfortable with this, stop reading and delete the
-software before you are tempted to try running it on your camera.
+Magic Lantern (ML) is a software enhancement that offers increased
+functionality to the excellent Canon DSLR cameras. It's an open
+framework, licensed under GPL, for developing extensions to the
+official firmware.
 
-Please read the user guide carefully before installing this software.
+Magic Lantern is not a "hack", or a modified firmware, it is an
+independent program that runs alongside Canon's own software. Each
+time you start your camera, Magic Lantern is loaded from your memory
+card. Our only modification was to enable the ability to run software
+from the memory card.
 
-To repeat this important point:
+ML is being developed by photo and video enthusiasts, adding
+functionality such as: HDR images and video, timelapse, motion
+detection, focus assist tools, manual audio controls much more.
 
-          ***************************************************
-          *                                                 *
-          * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
-          *   IF IT BREAKS, YOU GET TO KEEP BOTH PIECES.    *
-          *                                                 *
-          ***************************************************
-
-IMPORTANT NOTES
-
-* If you have a bootable CF/SD card and have the DISKBOOT flag
-  set in the camera (which the installer does), and you do not
-  have an AUTOEXEC.BIN file on the card the camera WILL NOT BOOT.
-  It will hang and not wake up until the battery is removed.
-
-* If you encounter a "locked up" camera, quickly remove the battery.
-  Otherwise the ARM might be in a tight-loop and get very hot, very quickly.
-  Your battery will run down and your LCD might show some discoloration.
-
-* When in doubt, remove the battery and reboot.
-
-* And, remember that this software can damage or destroy your camera.
-
+For more details on Magic Lantern please see http://www.magiclantern.fm/
