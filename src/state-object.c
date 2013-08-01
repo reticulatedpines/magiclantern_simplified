@@ -5,7 +5,6 @@
  * 
  **/
 
-#ifdef CONFIG_STATE_OBJECT_HOOKS
 
 #include "dryos.h"
 #include "bmp.h"
@@ -14,6 +13,8 @@
 #if defined(CONFIG_MODULES)
 #include "module.h"
 #endif
+
+#ifdef CONFIG_STATE_OBJECT_HOOKS
 
 /*
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
