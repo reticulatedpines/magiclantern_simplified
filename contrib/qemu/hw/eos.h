@@ -1,5 +1,7 @@
 #ifndef HW_EOS_H
 
+#define HW_EOS_H
+
 /* macros to define CPU types */
 #define ML_MACHINE(cam, addr) \
     static void ml_init_##cam(QEMUMachineInitArgs *args) \
@@ -177,4 +179,4 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
                                 uint16_t id2, uint16_t id3, int be);
 #endif
 
-#endif
+#endif /* HW_EOS_H */
