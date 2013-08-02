@@ -23,7 +23,6 @@ updater: reboot-ins.o
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
-		-march=armv5te \
 		-e _start \
 		-Ttext 0x800000 \
 		$^ \
