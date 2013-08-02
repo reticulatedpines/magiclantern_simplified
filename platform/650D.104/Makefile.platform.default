@@ -1,7 +1,5 @@
 #Makefile.setup.platform for EOS 650D v104
 
-FW_VERSION=104
-
 ifeq ($(FW_VERSION),104)
 ROMBASEADDR		= 0xFF0C0000
 
