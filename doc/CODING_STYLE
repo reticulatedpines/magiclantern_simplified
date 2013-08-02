@@ -1,6 +1,9 @@
 ML Coding Style
 ===============
 
+Please use the script check-before-hg-commit.sh in the scripts
+directory to check your changes before commiting.
+
 1. Whitespace
 
 ML indents are four spaces. Tabs are never used, except in Makefiles
