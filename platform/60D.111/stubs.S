@@ -256,3 +256,9 @@ NSTUB(0xFF1C48C8, RegisterEDmacPopCBR)
 NSTUB(0xFF1C47AC, UnregisterEDmacCompleteCBR)
 NSTUB(0xFF1C4800, UnregisterEDmacAbortCBR)
 NSTUB(0xFF1C48DC, UnregisterEDmacPopCBR)
+
+/* ResLock */
+NSTUB(0xff1c8658, CreateResLockEntry)
+NSTUB(0xff1c8b98, LockEngineResources)
+NSTUB(0xff1c8cd4, UnLockEngineResources)
+

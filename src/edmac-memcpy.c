@@ -18,6 +18,9 @@ uint32_t edmac_write_chan = 0x3;
 #elif defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x13;
+#elif defined(CONFIG_60D)
+uint32_t edmac_read_chan = 0x18;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
+uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
 #else
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x11;
@@ -35,8 +38,8 @@ static void edmac_memcpy_init()
 
 #ifdef CONFIG_ENGINE_RESLOCK
     /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
-    int read_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
-    int write_edmacs[] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
+    int write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
+    int read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
     
     /* lookup the edmac channel indices for reslock */
     int read_edmac_index = -1;
@@ -45,21 +48,22 @@ static void edmac_memcpy_init()
     for (int i = 0; i < COUNT(read_edmacs); i++)
         if (read_edmacs[i] == edmac_read_chan)
             read_edmac_index = i;
-    ASSERT(read_edmac_index >= 0);
 
     for (int i = 0; i < COUNT(write_edmacs); i++)
         if (write_edmacs[i] == edmac_write_chan)
             write_edmac_index = i;
-    ASSERT(write_edmac_index >= 0);
-    
-    int resIds[] = {
-        0x00000008, /* write edmac 0x11 */
-        0x00010007, /* read edmac 0x19 */
-        0x00020000 + dmaConnection, /* write connection */
-        0x00030000 + dmaConnection, /* read connection */
-    };
 
-    resLock = CreateResLockEntry(resIds, 4);
+    if (read_edmac_index >= 0 && write_edmac_index >= 0)
+    {
+        int resIds[] = {
+            0x00000000 + write_edmac_index, /* write edmac channel */
+            0x00010000 + read_edmac_index, /* read edmac channel */
+            0x00020000 + dmaConnection, /* write connection */
+            0x00030000 + dmaConnection, /* read connection */
+        };
+        resLock = CreateResLockEntry(resIds, 4);
+    }
+    //~ else bmp_printf(FONT_MED, 50, 50, "%d %d %d %d %d ", edmac_write_chan, write_edmac_index, edmac_read_chan, read_edmac_index, dmaConnection, resLock);
     
     ASSERT(resLock);
 #endif
@@ -80,8 +84,14 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
 {
     take_semaphore(edmac_memcpy_sem, 0);
     #ifdef CONFIG_ENGINE_RESLOCK
+    //~ bmp_printf(FONT_MED, 50, 50, "Locking");
     int r = LockEngineResources(resLock);
-    if (r & 1) return 0;
+    if (r & 1)
+    {
+        NotifyBox(2000, "ResLock fail %x %x", resLock, r);
+        return 0;
+    }
+    //~ bmp_printf(FONT_MED, 50, 50, "Locked!");
     #endif
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
@@ -259,4 +269,61 @@ void edmac_memcpy_finish()
     return edmac_copy_rectangle_adv_finish();
 }
 
+#endif
+
+
+/* use this to detect unused edmac channels (call from don't click me) */
+#if 0
+#include "property.h"
+void find_free_edmac_channels()
+{
+    msleep(2000);
+    
+    for (int i = 0; i < 16; i++)
+    {
+        {
+            if (!lv) force_liveview();
+            
+            bmp_printf(FONT_MED, 50, 50, 
+                "Trying write channel [%d]...\n"
+                "Press PLAY if not working", 
+                i
+            );
+            
+            int res[] = { 0x00000000 + i }; /* write edmac channel */
+            struct LockEntry * resLock = CreateResLockEntry(res, 1);
+            LockEngineResources(resLock);
+            UnLockEngineResources(resLock);
+            if (lv)
+            {
+                bmp_printf(FONT_MED, 50, 70, "Write channel [%d] seems to work", i);
+                console_printf("Write channel [%d] seems to work\n", i);
+                beep();
+            }
+            msleep(2000);
+        }
+        {
+            if (!lv) force_liveview();
+            
+            bmp_printf(FONT_MED, 50, 50, 
+                "Trying read channel [%d]...\n"
+                "Press PLAY if not working", 
+                i
+            );
+            
+            int res[] = { 0x00010000 + i }; /* read edmac channel */
+            struct LockEntry * resLock = CreateResLockEntry(res, 1);
+            LockEngineResources(resLock);
+            UnLockEngineResources(resLock);
+            if (lv)
+            {
+                bmp_printf(FONT_MED, 50, 70, "Read channel [%d] seems to work", i);
+                console_printf("Read channel [%d] seems to work\n", i);
+                beep();
+            }
+            msleep(2000);
+        }
+        console_show();
+    }
+}
 #endif

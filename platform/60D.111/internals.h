@@ -117,3 +117,5 @@
 /** We know how to use edmac_memcpy */
 #define CONFIG_EDMAC_MEMCPY
 
+/** We know how to use engine resource locks */
+#define CONFIG_ENGINE_RESLOCK
