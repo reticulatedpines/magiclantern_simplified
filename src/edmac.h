@@ -70,4 +70,8 @@ uint32_t edmac_get_length(uint32_t channel);
 uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
 uint32_t edmac_get_dir(uint32_t channel);
 
+struct LockEntry *CreateResLockEntry(uint32_t *resIds, uint32_t resIdCount);
+unsigned int LockEngineResources(struct LockEntry *lockEntry);
+unsigned int UnLockEngineResources(struct LockEntry *lockEntry);
+
 #endif

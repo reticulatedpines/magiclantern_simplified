@@ -215,6 +215,12 @@ NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF576564, PackMem_PopEDmacForMemorySuite)
 NSTUB(0xFF57645C, PackMem_StartEDmac)
 
+/** ResLock */
+NSTUB(0xff290b94, CreateResLockEntry)
+NSTUB(0xff29105c, LockEngineResources)
+NSTUB(0xff291200, UnLockEngineResources)
+
+
 /** Making the card bootable (not working on 5D3) **/
 // NSTUB(0xff6ab324, cfReadBlk)
 // NSTUB(   0x20890, cf_device) idk...
@@ -249,3 +255,4 @@ NSTUB(0xFF272050, GUI_SetRollingPitchingLevelStatus); // RequestRollingPitching 
 // NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
 // NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
 // NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
+

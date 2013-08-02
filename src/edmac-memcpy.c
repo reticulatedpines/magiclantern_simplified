@@ -26,10 +26,43 @@ uint32_t edmac_write_chan = 0x11;
 /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
 uint32_t dmaConnection = 6;
 
+static struct LockEntry * resLock = 0;
+
 static void edmac_memcpy_init()
 {
     edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
     edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", 0);
+
+#ifdef CONFIG_ENGINE_RESLOCK
+    /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
+    int read_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
+    int write_edmacs[] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
+    
+    /* lookup the edmac channel indices for reslock */
+    int read_edmac_index = -1;
+    int write_edmac_index = -1;
+    
+    for (int i = 0; i < COUNT(read_edmacs); i++)
+        if (read_edmacs[i] == edmac_read_chan)
+            read_edmac_index = i;
+    ASSERT(read_edmac_index >= 0);
+
+    for (int i = 0; i < COUNT(write_edmacs); i++)
+        if (write_edmacs[i] == edmac_write_chan)
+            write_edmac_index = i;
+    ASSERT(write_edmac_index >= 0);
+    
+    int resIds[] = {
+        0x00000008, /* write edmac 0x11 */
+        0x00010007, /* read edmac 0x19 */
+        0x00020000 + dmaConnection, /* write connection */
+        0x00030000 + dmaConnection, /* read connection */
+    };
+
+    resLock = CreateResLockEntry(resIds, 4);
+    
+    ASSERT(resLock);
+#endif
 }
 
 INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
@@ -46,6 +79,10 @@ static void edmac_write_complete_cbr (int ctx)
 void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
 {
     take_semaphore(edmac_memcpy_sem, 0);
+    #ifdef CONFIG_ENGINE_RESLOCK
+    int r = LockEngineResources(resLock);
+    if (r & 1) return 0;
+    #endif
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
     uint32_t dmaFlags = 0x20001000;
@@ -91,7 +128,9 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
 void edmac_copy_rectangle_adv_finish()
 {
     /* wait until read is finished */
-    take_semaphore(edmac_read_done_sem, 0);
+    int r = take_semaphore(edmac_read_done_sem, 1000);
+    if (r != 0)
+        NotifyBox(2000, "EDMAC timeout");
 
     /* set default CBRs again and stop both DMAs */
     UnregisterEDmacCompleteCBR(edmac_read_chan);
@@ -101,6 +140,9 @@ void edmac_copy_rectangle_adv_finish()
     UnregisterEDmacAbortCBR(edmac_write_chan);
     UnregisterEDmacPopCBR(edmac_write_chan);
 
+    #ifdef CONFIG_ENGINE_RESLOCK
+    UnLockEngineResources(resLock);
+    #endif
     give_semaphore(edmac_memcpy_sem);
 }
 
@@ -202,6 +244,9 @@ void* edmac_memcpy_start(void* dst, void* src, size_t length)
         void * ret = memcpy(dst, src, length);
         /* simulate a started copy operation */
         take_semaphore(edmac_memcpy_sem, 0);
+        #ifdef CONFIG_ENGINE_RESLOCK
+        LockEngineResources(resLock);
+        #endif
         give_semaphore(edmac_read_done_sem);
         return ret;
     }
