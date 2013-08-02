@@ -100,7 +100,7 @@ typedef struct
     uint32_t irq_schedule[INT_ENTRIES];
     uint32_t irq_id;
     uint32_t flash_state_machine;
-    
+
     RTCState rtc;
 } EOSState;
 
@@ -109,7 +109,7 @@ typedef struct
     SysBusDevice busdev;
     MemoryRegion mem;
     void *storage;
-    
+
     BlockDriverState *bs;
     uint32_t nb_blocs;
     uint64_t sector_len;
@@ -127,17 +127,14 @@ typedef struct
     char *name;
 } ROMState;
 
-
 typedef struct
 {
-	const char *name;
-	unsigned int start;
-	unsigned int end;
-	unsigned int (*handle) ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
-	unsigned int parm;
+    const char *name;
+    unsigned int start;
+    unsigned int end;
+    unsigned int (*handle) ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
+    unsigned int parm;
 } EOSRegionHandler;
-
-
 
 unsigned int eos_handle_rom ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
@@ -179,6 +176,5 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
                                 uint16_t id0, uint16_t id1,
                                 uint16_t id2, uint16_t id3, int be);
 #endif
-
 
 #endif
