@@ -778,6 +778,14 @@ static void bsod()
 
 static void run_test()
 {
+
+#ifdef FEATURE_SHOW_SIGNATURE
+    console_show();
+    console_printf("FW Signature 0x%08x 0x%08x", compute_signature((int*)SIG_START, SIG_LEN), SIG_650D_104);
+    msleep(1000);
+    return;
+#endif
+
     #ifdef CONFIG_EDMAC_MEMCPY
     msleep(2000);
     
@@ -805,12 +813,6 @@ static void run_test()
     call("aewb_enableaewb", 0);
     return;
     
-#ifdef FEATURE_SHOW_SIGNATURE
-    console_show();
-    console_printf("FW Signature 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
-    msleep(1000);
-#endif
-
 #if 0
     void exmem_test();
 
