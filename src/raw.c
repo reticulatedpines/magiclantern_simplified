@@ -49,7 +49,7 @@ static int dirty = 0;
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
-#if defined(CONFIG_500D) || defined(CONFIG_550D)
+#if defined(CONFIG_500D) || defined(CONFIG_550D) || defined(CONFIG_7D)
 #define RAW_LV_EDMAC 0xC0F26008
 #endif
 
@@ -67,7 +67,7 @@ static int dirty = 0;
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -222,6 +222,15 @@ void raw_buffer_intercept_from_stateobj()
      -975, 10000,     2039, 10000,    6148, 10000
 #endif
 
+#ifdef CONFIG_7D
+    //~ { "Canon EOS 7D", 0, 0x3510,
+    //~ { 6844,-996,-856,-3876,11761,2396,-593,1772,6198 } },
+    #define CAM_COLORMATRIX1                     \
+     6844, 10000,     -996, 10000,    -856, 10000,\
+    -3876, 10000,    11761, 10000,    2396, 10000, \
+     -593, 10000,     1772, 10000,    6198, 10000
+#endif
+
 struct raw_info raw_info = {
     .api_version = 1,
     .bits_per_pixel = 14,
@@ -285,6 +294,10 @@ static int dynamic_ranges[] = {1100, 1094, 1060, 1005, 919, 826, 726, 633};
 
 #ifdef CONFIG_EOSM
 static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+#endif
+
+#ifdef CONFIG_7D
+static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 #endif
 
 static int autodetect_black_level(float* black_mean, float* black_stdev);
@@ -412,7 +425,12 @@ int raw_update_params()
         skip_right  = 0;
         skip_bottom = 4;
         #endif
-        
+
+        #ifdef CONFIG_7D
+        skip_top    = 26;
+        skip_left   = zoom ? 0 : 256;
+        #endif
+
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -530,6 +548,16 @@ int raw_update_params()
         height = 3528;
         skip_left = 72;
         skip_top = 52;
+        #endif
+
+        #ifdef CONFIG_7D /* very similar to 5D2 */
+        width = 5360;
+        height = 3516;
+        skip_left = 158;
+        skip_top = 52;
+        /* first pixel should be red, but here it isn't, so we'll skip one line */
+        /* also we have a 16-pixel border on the left that contains image data */
+        raw_info.buffer += width * 14/8 + 16*14/8;
         #endif
 
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);

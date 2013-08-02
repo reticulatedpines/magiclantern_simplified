@@ -102,3 +102,7 @@
 
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** We have access to raw data in both photo mode and in LiveView */
+#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW

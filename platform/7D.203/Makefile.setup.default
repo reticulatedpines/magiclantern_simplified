@@ -12,5 +12,7 @@ ML_SRC_EXTRA_OBJS = \
 	video_hacks.o \
 	misc.o \
 	ptpbuf.o \
+	raw.o \
+	chdk-dng.o \
 	afma.o
 
