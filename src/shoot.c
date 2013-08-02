@@ -3737,39 +3737,53 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
 }
 
 static int deflicker_last_correction_x100 = 0;
+static volatile int deflicker_running = 0;
 
-static void post_deflicker_save_task(float* correction)
+static void post_deflicker_task()
 {
-    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, *correction);
+    deflicker_running = 1;
+    
+    int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
+    if (raw < 0)
+    {
+        deflicker_last_correction_x100 = 0;
+        deflicker_running = 0;
+        return;
+    }
+    float ev = raw_to_ev(raw);
+    float correction = post_deflicker_target_level - ev;
+    deflicker_last_correction_x100 = (int)roundf(correction * 100);
+
+    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
+    deflicker_running = 0;
 }
 
 static void post_deflicker_step()
 {
     if (!post_deflicker) return;
     if (HDR_ENABLED) return;
+    if (deflicker_running) return;
     
-    int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
-    if (raw < 0)
-    {
-        deflicker_last_correction_x100 = 0;
-        return;
-    }
-    float ev = raw_to_ev(raw);
-    static float correction;
-    correction = post_deflicker_target_level - ev;
-    deflicker_last_correction_x100 = (int)roundf(correction * 100);
-    
-    /* not a really good idea to save files from property task */
-    task_create("deflicker_task", 0x1c, 0x1000, post_deflicker_save_task, (void*) &correction);
+    /* not a really good idea to slow down the property task */
+    /* must have a lower priority than clock_task */
+    task_create("deflicker_task", 0x1a, 0x1000, post_deflicker_task, (void*) 0);
 }
 
 /* called from QR zebras */
 void post_deflicker_show_info()
 {
+    while (deflicker_running)
+    {
+        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
+            "Deflickering..."
+        );
+        msleep(50);
+    }
+
     if (post_deflicker && deflicker_last_correction_x100)
     {
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
-            "Post exposure: %s%d.%02d EV\n",
+            "Post exposure: %s%d.%02d EV",
             FMT_FIXEDPOINT2S(deflicker_last_correction_x100)
         );
         deflicker_last_correction_x100 = 0;
@@ -6925,7 +6939,10 @@ shoot_task( void* unused )
                     if (intervalometer_pictures_taken == 0)
                         intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
                     else
+                    {
                         intervalometer_next_shot_time++;
+                        if (!gui_menu_shown()) beep();
+                    }
                     continue;
                 }
                 
@@ -6965,9 +6982,6 @@ shoot_task( void* unused )
             if (LV_PAUSED) ResumeLiveView();
 
             if (!intervalometer_running) continue; // back to start of shoot_task loop
-            if (gui_menu_shown() || get_halfshutter_pressed()) continue;
-
-            if (!intervalometer_running) continue;
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
             int dt = timer_values[interval_timer_index];
