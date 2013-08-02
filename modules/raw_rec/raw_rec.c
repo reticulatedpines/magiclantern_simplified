@@ -412,6 +412,8 @@ static MENU_UPDATE_FUNC(write_speed_update)
 
 static void refresh_raw_settings(int force)
 {
+    if (!lv) return;
+    
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
@@ -844,7 +846,7 @@ static void raw_lv_request_update()
 {
     static int raw_lv_requested = 0;
 
-    if (raw_video_enabled && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (raw_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
@@ -870,7 +872,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (!raw_video_enabled)
         return 0;
     
-    if (!is_movie_mode())
+    if (!lv || !is_movie_mode())
         return 0;
 
     /* refresh cropmark (faster when panning, slower when idle) */
