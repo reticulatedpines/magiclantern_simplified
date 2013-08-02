@@ -50,6 +50,11 @@
 /** Compute the number of entries in a static array */
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
+/** Useful to debug macros */
+#define VALUE_TO_STRING(x) #x
+#define VALUE(x) VALUE_TO_STRING(x)
+#define VAR_NAME_VALUE(var) #var "="  VALUE(var)
+
 #ifdef __ARM__
 #include "arm-mcr.h"
 #elif __GNUC__
