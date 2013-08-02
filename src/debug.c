@@ -787,13 +787,13 @@ static void run_test()
     int xOff = 2;
     int yPos = 0;
     
-    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 960, 560);
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 120, 50, 960, 120, 50, 720, 440);
     while(true)
     {
-        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 0, 0, 960, xPos, yPos, 960-xPos, 560-yPos);
+        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 120, 50, 960, 120+xPos, 50+yPos, 720-xPos, 440-yPos);
         xPos += xOff;
         
-        if(xPos >= 720 || xPos < 0)
+        if(xPos >= 100 || xPos <= -100)
         {
             xOff *= -1;
         }
