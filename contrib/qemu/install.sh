@@ -20,7 +20,7 @@ pwd | grep $ML/contrib/qemu > /dev/null || die "error: we should be in $ML/contr
 cd ../../..
 ls | grep $ML > /dev/null || die "error: expecting to find $ML here"
 
-mkdir qemu
+mkdir -p qemu
 cd qemu
 
 echo
