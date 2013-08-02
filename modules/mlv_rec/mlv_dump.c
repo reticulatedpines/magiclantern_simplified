@@ -33,6 +33,8 @@ int main (int argc, char *argv[])
     lv_rec_file_footer_t lv_rec_footer;
     char *frame_buffer = NULL;
     
+    lv_rec_footer.frameCount = 0;
+    
     if(argc < 2)
     {
         printf("Usage: %s <file.mlv> [out.raw]\n", argv[0]);
@@ -97,7 +99,7 @@ int main (int argc, char *argv[])
             
             if(out_file)
             {
-                lv_rec_footer.frameCount = file_hdr.videoFrameCount;
+                lv_rec_footer.frameCount += file_hdr.videoFrameCount;
                 lv_rec_footer.sourceFpsx1000 = (double)file_hdr.sourceFpsNom / (double)file_hdr.sourceFpsDenom * 1000;
                 lv_rec_footer.frameSkip = 0;
             }
@@ -106,7 +108,7 @@ int main (int argc, char *argv[])
         {
             printf("Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
             printf("    Size: 0x%08X\n", buf.blockSize);
-            printf("    Time: %f ms\n", (double)buf.timestamp / 1000.0d);
+            printf("    Time: %f ms\n", (double)buf.timestamp / 1000.0f);
             
             if(!memcmp(buf.blockType, "VIDF", 4))
             {
@@ -160,7 +162,7 @@ int main (int argc, char *argv[])
                 printf("     Serial:      '%s'\n", block_hdr.lensSerial);
                 printf("     Focal Len:   %d mm\n", block_hdr.focalLength);
                 printf("     Focus Dist:  %d mm\n", block_hdr.focalDist);
-                printf("     Aperture:    f/%.2f\n", (double)block_hdr.aperture / 100.0d);
+                printf("     Aperture:    f/%.2f\n", (double)block_hdr.aperture / 100.0f);
                 printf("     IS Mode:     %d\n", block_hdr.stabilizerMode);
                 printf("     AF Mode:     %d\n", block_hdr.autofocusMode);
                 printf("     Lens ID:     0x%08X\n", block_hdr.lensID);
