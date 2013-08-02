@@ -1,0 +1,53 @@
+ML Coding Style
+===============
+
+1. Whitespace
+
+ML indents are four spaces. Tabs are never used, except in Makefiles
+where they have been irreversibly coded into the syntax.
+
+Do not leave whitespace dangling off the ends of lines.
+
+
+2. Line width
+
+Lines are 80 characters; not longer.
+
+
+3. Line ending Style
+
+Use Unix line ending style (LF).
+
+Setup your text editor to use Unix line endings or use
+dos2unix-like software.
+
+
+4. Naming
+
+Variables are lower_case_with_underscores.
+
+
+5. Block structure
+
+a1ex following the Allman indent style
+(see http://en.wikipedia.org/wiki/Indent_style#Allman_style).
+
+Here is an example:
+
+    if (i < 4)
+    {
+        /* here we go again... */
+        auto_ettr_wait_lv_frames(15);
+    }
+    else
+    {
+        /* or... not? */
+        beep();
+        NotifyBox(2000, "Whoops");
+        goto end;
+    }
+
+You can use the Artistic Style software (http://astyle.sourceforge.net)
+to beautify your code according to the Allman style:
+
+ astyle --style=allman <file_name.c>
