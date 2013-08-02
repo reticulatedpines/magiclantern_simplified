@@ -710,7 +710,6 @@ static int32_t setup_buffers()
                 memset(write_align_hdr, 0xA5, write_size_align);
                 mlv_set_type(write_align_hdr, "NULL");
                 write_align_hdr->blockSize = write_size_align;
-                write_align_hdr->timeStamp = 0;
                 
                 
                 /* store this slot */
