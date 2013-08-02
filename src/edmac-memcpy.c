@@ -19,7 +19,7 @@ uint32_t edmac_write_chan = 0x3;
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x13;
 #elif defined(CONFIG_60D)
-uint32_t edmac_read_chan = 0x18;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
+uint32_t edmac_read_chan = 0x19;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
 uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
 #else
 uint32_t edmac_read_chan = 0x19;
@@ -80,9 +80,8 @@ static void edmac_write_complete_cbr (int ctx)
 {
 }
 
-void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+void edmac_memcpy_res_lock()
 {
-    take_semaphore(edmac_memcpy_sem, 0);
     #ifdef CONFIG_ENGINE_RESLOCK
     //~ bmp_printf(FONT_MED, 50, 50, "Locking");
     int r = LockEngineResources(resLock);
@@ -93,6 +92,18 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
     }
     //~ bmp_printf(FONT_MED, 50, 50, "Locked!");
     #endif
+}
+
+void edmac_memcpy_res_unlock()
+{
+    #ifdef CONFIG_ENGINE_RESLOCK
+    UnLockEngineResources(resLock);
+    #endif
+}
+
+void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+{
+    take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
     uint32_t dmaFlags = 0x20001000;
@@ -150,9 +161,6 @@ void edmac_copy_rectangle_adv_finish()
     UnregisterEDmacAbortCBR(edmac_write_chan);
     UnregisterEDmacPopCBR(edmac_write_chan);
 
-    #ifdef CONFIG_ENGINE_RESLOCK
-    UnLockEngineResources(resLock);
-    #endif
     give_semaphore(edmac_memcpy_sem);
 }
 

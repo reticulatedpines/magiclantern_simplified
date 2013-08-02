@@ -795,6 +795,7 @@ static void run_test()
     int xOff = 2;
     int yPos = 0;
     
+    edmac_memcpy_res_lock();
     edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 120, 50, 960, 120, 50, 720, 440);
     while(true)
     {
@@ -806,6 +807,7 @@ static void run_test()
             xOff *= -1;
         }
     }
+    edmac_memcpy_res_unlock();
     return;
     #endif
     
@@ -3419,7 +3421,7 @@ extern int show_cpu_usage_flag;
 
 
 static struct menu_entry debug_menus[] = {
-    MENU_PLACEHOLDER("File Browser"),
+    MENU_PLACEHOLDER("File Manager"),
 #ifdef CONFIG_HEXDUMP
     {
         .name = "Memory Browser",

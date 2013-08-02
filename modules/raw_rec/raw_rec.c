@@ -1420,6 +1420,9 @@ static void raw_video_rec_task()
     }
     
     hack_liveview(0);
+    
+    /* get exclusive access to our edmac channels */
+    edmac_memcpy_res_lock();
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -1675,6 +1678,9 @@ abort_and_check_early_stop:
 
     /* wait until the other tasks calm down */
     msleep(500);
+
+    /* exclusive edmac access no longer needed */
+    edmac_memcpy_res_unlock();
 
     recording = 0;
 
