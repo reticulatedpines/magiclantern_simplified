@@ -188,7 +188,7 @@ static void *eos_interrupt_thread(void *parm)
                     }
 
                     s->irq_id = pos;
-                    cpu_interrupt(&(s->cpu->env), CPU_INTERRUPT_HARD);
+                    cpu_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
                 }
             }
 
@@ -520,7 +520,7 @@ unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
     {
         printf("[EOS] trigger int 0x%02X\n", id);
         ws->irq_id = id;
-        cpu_interrupt(&(ws->cpu->env), CPU_INTERRUPT_HARD);
+        cpu_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
     }
     else
     {
@@ -564,7 +564,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
                     printf("[Int] Enabled interrupt ID 0x%02X PC: [0x%08X]\r\n", value, pc);
                 }
 
-                cpu_reset_interrupt(&(ws->cpu->env), CPU_INTERRUPT_HARD);
+                cpu_reset_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
                 ws->irq_id = 0;
                 ws->irq_enabled[value] = 1;
                 return 0;

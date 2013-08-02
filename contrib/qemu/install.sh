@@ -1,6 +1,6 @@
 #!/bin/bash
 
-QEMU_NAME=qemu-1.4.0
+QEMU_NAME=qemu-1.5.0
 ML=magic-lantern
 
 echo
@@ -35,7 +35,7 @@ tar jxf $QEMU_NAME.tar.bz2
 cp -v ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 cd ${QEMU_NAME}
-cp -v ../../$ML/contrib/qemu/hw/* hw/
+cp -v ../../$ML/contrib/qemu/hw/* hw/arm
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
 
