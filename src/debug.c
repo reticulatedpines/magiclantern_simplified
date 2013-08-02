@@ -781,7 +781,7 @@ static void run_test()
 
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
-    console_printf("FW Signature 0x%08x 0x%08x", compute_signature((int*)SIG_START, SIG_LEN), SIG_650D_104);
+    console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
     msleep(1000);
     return;
 #endif
