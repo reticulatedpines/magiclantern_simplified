@@ -194,7 +194,7 @@ NSTUB(0xFF108E98, SetNextASIFADCBuffer)
 NSTUB(0xFF108F4C, SetNextASIFDACBuffer)
 NSTUB(0xFF132D30, SetSamplingRate )
 NSTUB(0xFF1326A4, SetAudioVolumeOut) // FIXME: use call()
-NSTUB(0xFF1178C8, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xFF13BBD4, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13BC20, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13BD38, FreeMemoryResource) // m_pfFreeMemoryCBR
 
