@@ -877,7 +877,8 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
     /* refresh cropmark (faster when panning, slower when idle) */
     static int aux = INT_MIN;
-    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
+    int cropmark_delay = RAW_IS_IDLE ? 500 : 10000;
+    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(cropmark_delay, &aux))
     {
         if (liveview_display_idle())
         {
@@ -1073,7 +1074,7 @@ static void hack_liveview(int unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
         
-        /* change dialog refresh timer from 50ms to 1024ms */
+        /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
@@ -1081,7 +1082,7 @@ static void hack_liveview(int unhack)
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
-        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00b02; /* change to mov r0, #2048 */
+        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00a02; /* change to mov r0, #8192 */
 
         if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
         {
@@ -1447,7 +1448,7 @@ static void raw_video_rec_task()
     while (RAW_IS_RECORDING && lv)
     {
         if (!allow_frame_skip && frame_skips)
-            goto abort;
+            goto abort_and_check_early_stop;
         
         int w_tail = writing_queue_tail; /* this one can be modified outside the loop, so grab it here, just in case */
         int w_head = writing_queue_head; /* this one is modified only here, but use it just for the shorter name */
@@ -1503,7 +1504,7 @@ static void raw_video_rec_task()
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
                 //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
-                num_frames = MAX(1, frame_limit - 2);
+                num_frames = MAX(1, frame_limit - 1);
             }
         }
         
@@ -1600,6 +1601,9 @@ static void raw_video_rec_task()
             writing_task_busy = 0;
         }
 
+        /* for detecting early stops */
+        int last_block_size = mod(after_last_grouped - w_head, COUNT(writing_queue));
+
         /* mark these frames as "free" so they can be reused */
         for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
@@ -1640,11 +1644,25 @@ static void raw_video_rec_task()
         if (0)
         {
 abort:
-            bmp_printf( FONT_MED, 30, 90, 
-                "Movie recording stopped automagically     "
-            );
-            /* this is error beep, not audio sync beep */
-            beep_times(2);
+            last_block_size = 0; /* ignore early stop check */
+
+abort_and_check_early_stop:
+
+            if (last_block_size > 2)
+            {
+                bmp_printf( FONT_MED, 30, 90, 
+                    "Early stop (%d). This is a bug, please report it.", last_block_size
+                );
+                beep_times(last_block_size);
+            }
+            else
+            {
+                bmp_printf( FONT_MED, 30, 90, 
+                    "Movie recording stopped automagically         "
+                );
+                /* this is error beep, not audio sync beep */
+                beep_times(2);
+            }
             break;
         }
     }
