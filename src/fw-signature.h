@@ -1,6 +1,8 @@
 #ifndef _fw_signature_h_
 #define _fw_signature_h_
 
+#include<internals.h>
+
 #define SIG_LEN 0x10000
 
 #if defined(CONFIG_DIGIC_V)
@@ -28,6 +30,7 @@
 #define SIG_7D_203   0x50163E93
 #define SIG_7D_MASTER_203 0x640BF4D1
 #define SIG_650D_101 0x12AEB7B3
+#define SIG_650D_104 0x4B7FC4D0
 //TODO: Fix CONFIG_700D and CONFIG_100D
     #define SIG_700D_111 0xDEADBEEF
     #define SIG_100D_101 0xDEADBEEF

@@ -78,10 +78,10 @@ static void blink(int n)
     {
         #if defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
         *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
-		busy_wait(n);
-		*(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
-		busy_wait(n);
-		#endif
+    	busy_wait(n);
+	    *(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
+	    busy_wait(n);
+    	#endif
     }
 }
 
@@ -128,7 +128,14 @@ cstart( void )
     #endif
 
     #ifdef CONFIG_650D
-    if (s != (int)SIG_650D_101)
+        #if (CONFIG_FW_VERSION == 104)
+            #define SIG_650D SIG_650D_104
+        #elif (CONFIG_FW_VERSION == 101)
+            #define SIG_650D SIG_650D_101
+        #else
+            #error Unknown 650D FW version
+        #endif
+    if (s != (int)SIG_650D)
         fail();
     #endif
     
