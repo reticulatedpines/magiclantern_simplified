@@ -62,6 +62,8 @@ def __get_args():
     parser.add_argument('old_file', help="path to the old stubs.S file")
     parser.add_argument('new_file', help="path to the new stubs.S file")
     parser.add_argument('-s', '--skip-delta', action='store_true', help="skips delta checking")
+    parser.add_argument('-n', '--no-colors', action='store_true', help="does not use colors")
+    parser.add_argument('-m', '--missing-only', action='store_true', help="show only missing stubs")
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -93,15 +95,21 @@ if __name__ == '__main__':
         elif(old_pos is None):
             warning = True
             message = ("%s %s -> 0x%08x [?????]" % (name.ljust(max_len), "MISSING".ljust(10), new_pos))
-        else:
+        elif not args.missing_only:
             delta = abs(old_pos - new_pos)
             if(not args.skip_delta and ((new_pos < 0xFF000000 and delta > 0) or (delta == 0 and new_pos > 0xFF000000) or (delta > 0x1000))):
                 warning = True
             else:
                 warning = False
             message = ("%s 0x%08x -> 0x%08x [0x%03x]" % (name.ljust(max_len), old_pos, new_pos ,delta))
+        else:
+            warning = False
+            message = ""
 
         if(warning):
-            print(colored(message, 'yellow', attrs=['reverse']))
-        else:
+            if(args.no_colors):
+                print(message + " [!!!]")
+            else:
+                print(colored(message, 'yellow', attrs=['reverse']))
+        elif len(message) > 0:
             print(message)
