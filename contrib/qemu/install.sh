@@ -1,6 +1,6 @@
 #!/bin/bash
 
-QEMU_DIR=qemu-1.4.0
+QEMU_NAME=qemu-1.4.0
 ML=magic-lantern
 
 echo
@@ -28,15 +28,15 @@ echo "*** Setting up QEMU in `pwd`..."
 echo
 
 # get qemu
-wget -c http://wiki.qemu-project.org/download/qemu-1.4.0.tar.bz2
-tar jxf qemu-1.4.0.tar.bz2
+wget -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
+tar jxf $QEMU_NAME.tar.bz2
 
 # apply our patch
 cp -v ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
-cd ${QEMU_DIR}
+cd ${QEMU_NAME}
 cp -v ../../$ML/contrib/qemu/hw/* hw/
-patch -N -p1 < ../../$ML/contrib/qemu/qemu-1.4.0.patch
+patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
 
 echo ""
@@ -45,7 +45,7 @@ echo "==========="
 echo
 echo "1) Compile QEMU"
 echo
-echo "   cd `pwd`/${QEMU_DIR}"
+echo "   cd `pwd`/${QEMU_NAME}"
 echo "   ./configure --target-list=arm-softmmu --disable-docs"
 echo "   make"
 echo
