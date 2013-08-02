@@ -15,8 +15,8 @@ my $V = '0.31';
 use Getopt::Long qw(:config no_auto_abbrev);
 
 my $quiet = 0;
-my $tree = 1;
-my $chk_signoff = 1;
+my $tree = 0;
+my $chk_signoff = 0;
 my $chk_patch = 1;
 my $tst_only;
 my $emacs = 0;
@@ -212,11 +212,7 @@ our $typeTypedefs = qr{(?x:
 )};
 
 our $logFunctions = qr{(?x:
-	printk|
-	pr_(debug|dbg|vdbg|devel|info|warning|err|notice|alert|crit|emerg|cont)|
-	(dev|netdev|netif)_(printk|dbg|vdbg|info|warn|err|notice|alert|crit|emerg|WARN)|
-	WARN|
-	panic
+	bmp_printf
 )};
 
 our @typeList = (
@@ -1497,7 +1493,7 @@ sub process {
 # check we are in a valid source file C or perl if not then ignore this hunk
 		next if ($realfile !~ /\.(h|c|pl)$/);
 
-# in QEMU, no tabs are allowed
+# in ML, no tabs are allowed
 		if ($rawline =~ /^\+.*\t/) {
 			my $herevet = "$here\n" . cat_vet($rawline) . "\n";
 			ERROR("code indent should never use tabs\n" . $herevet);
@@ -1609,45 +1605,6 @@ sub process {
 			}
 			if ($err ne '') {
 				ERROR("switch and case should be at the same indent\n$hereline$err");
-			}
-		}
-
-# if/while/etc brace do not go on next line, unless defining a do while loop,
-# or if that brace on the next line is for something else
-		if ($line =~ /(.*)\b((?:if|while|for|switch)\s*\(|do\b|else\b)/ && $line !~ /^.\s*\#/) {
-			my $pre_ctx = "$1$2";
-
-			my ($level, @ctx) = ctx_statement_level($linenr, $realcnt, 0);
-			my $ctx_cnt = $realcnt - $#ctx - 1;
-			my $ctx = join("\n", @ctx);
-
-			my $ctx_ln = $linenr;
-			my $ctx_skip = $realcnt;
-
-			while ($ctx_skip > $ctx_cnt || ($ctx_skip == $ctx_cnt &&
-					defined $lines[$ctx_ln - 1] &&
-					$lines[$ctx_ln - 1] =~ /^-/)) {
-				##print "SKIP<$ctx_skip> CNT<$ctx_cnt>\n";
-				$ctx_skip-- if (!defined $lines[$ctx_ln - 1] || $lines[$ctx_ln - 1] !~ /^-/);
-				$ctx_ln++;
-			}
-
-			#print "realcnt<$realcnt> ctx_cnt<$ctx_cnt>\n";
-			#print "pre<$pre_ctx>\nline<$line>\nctx<$ctx>\nnext<$lines[$ctx_ln - 1]>\n";
-
-			if ($ctx !~ /{\s*/ && defined($lines[$ctx_ln -1]) && $lines[$ctx_ln - 1] =~ /^\+\s*{/) {
-				ERROR("that open brace { should be on the previous line\n" .
-					"$here\n$ctx\n$rawlines[$ctx_ln - 1]\n");
-			}
-			if ($level == 0 && $pre_ctx !~ /}\s*while\s*\($/ &&
-			    $ctx =~ /\)\s*\;\s*$/ &&
-			    defined $lines[$ctx_ln - 1])
-			{
-				my ($nlength, $nindent) = line_stats($lines[$ctx_ln - 1]);
-				if ($nindent > $indent) {
-					WARN("trailing semicolon indicates no statements, indent implies otherwise\n" .
-						"$here\n$ctx\n$rawlines[$ctx_ln - 1]\n");
-				}
 			}
 		}
 
@@ -2870,11 +2827,6 @@ sub process {
 			    $realfile !~ m@^drivers/base/core@) {
 				ERROR("lockdep_no_validate class is reserved for device->mutex.\n" . $herecurr);
 			}
-		}
-
-# QEMU specific tests
-		if ($rawline =~ /\b(?:Qemu|QEmu)\b/) {
-			WARN("use QEMU instead of Qemu or QEmu\n" . $herecurr);
 		}
 	}
 
