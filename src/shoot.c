@@ -3737,32 +3737,60 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
 }
 
 static int deflicker_last_correction_x100 = 0;
-static volatile int deflicker_running = 0;
+static struct semaphore * deflicker_sem = 0;
+static volatile int deflicker_waiting = 0;
+
+static void post_deflicker_init()
+{
+    deflicker_sem = create_named_semaphore("deflicker_sem", 1);
+}
+INIT_FUNC("deflicker", post_deflicker_init);
 
 static void post_deflicker_task()
 {
-    deflicker_running = 1;
+    /* not quite correct in burst mode, but at least only one task will run at a time */
+    /* so at least the last deflicker in a burst sequence should be correct */
+    deflicker_waiting = 1;
+    take_semaphore(deflicker_sem, 0);
+    deflicker_waiting = 0;
     
-    int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
-    if (raw < 0)
+    int raw_fast = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 4);
+    //~ console_printf("fast deflick: %d\n", raw_fast);
+    int raw = raw_fast;
+        
+    /* no rush? do a precise deflicker */
+    for (int i = 0; i < 10; i++)
+    {
+        msleep(100);
+        if (deflicker_waiting) break;
+    }
+    if (!deflicker_waiting)
+    {
+        int raw_precise = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
+        //~ console_printf("precise deflick: %d\n", raw_precise);
+        if (raw_precise > 0 && raw_precise < 16384) raw = raw_precise;
+    }
+    //~ else console_printf("hurry, hurry\n");
+    
+    if (raw <= 0 || raw >= 16384)
     {
         deflicker_last_correction_x100 = 0;
-        deflicker_running = 0;
+        give_semaphore(deflicker_sem);
         return;
     }
     float ev = raw_to_ev(raw);
     float correction = post_deflicker_target_level - ev;
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
 
+    console_printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
     post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
-    deflicker_running = 0;
+    give_semaphore(deflicker_sem);
 }
 
 static void post_deflicker_step()
 {
     if (!post_deflicker) return;
     if (HDR_ENABLED) return;
-    if (deflicker_running) return;
     
     /* not a really good idea to slow down the property task */
     /* must have a lower priority than clock_task */
@@ -3772,14 +3800,12 @@ static void post_deflicker_step()
 /* called from QR zebras */
 void post_deflicker_show_info()
 {
-    while (deflicker_running)
-    {
-        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
-            "Deflickering..."
-        );
-        msleep(50);
-    }
-
+    /* if a deflicker operation is in progress, wait until it finishes */
+    bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
+        "Deflickering..."
+    );
+    while (deflicker_waiting) msleep(50);
+    take_semaphore(deflicker_sem, 0);
     if (post_deflicker && deflicker_last_correction_x100)
     {
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
@@ -3788,6 +3814,7 @@ void post_deflicker_show_info()
         );
         deflicker_last_correction_x100 = 0;
     }
+    give_semaphore(deflicker_sem);
 }
 
 static MENU_UPDATE_FUNC(post_deflicker_update)

@@ -387,7 +387,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     int off = get_y_skip_offset_for_histogram();
     if (speed == 0 && gray_projection == GRAY_PROJECTION_GREEN)
     {
-        /* time: 126ms on full raw 5D3 */
+        /* time: 1-2 seconds on full raw 5D3 */
         //~ int t0 = get_ms_clock_value();
         for (struct raw_pixblock * row = (struct raw_pixblock *) raw_info.buffer + raw_info.active_area.y1 * raw_info.width / 8 + (raw_info.active_area.x1 + 7) / 8; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.active_area.y2; row += 2 * raw_info.width / 8)
         {
