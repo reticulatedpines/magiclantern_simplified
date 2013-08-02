@@ -3800,13 +3800,15 @@ static void post_deflicker_step()
 /* called from QR zebras */
 void post_deflicker_show_info()
 {
+    if (!post_deflicker) return;
+    
     /* if a deflicker operation is in progress, wait until it finishes */
     bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
         "Deflickering..."
     );
     while (deflicker_waiting) msleep(50);
     take_semaphore(deflicker_sem, 0);
-    if (post_deflicker && deflicker_last_correction_x100)
+    if (deflicker_last_correction_x100)
     {
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
             "Post exposure: %s%d.%02d EV",
