@@ -3750,9 +3750,9 @@ static void post_deflicker_task()
 {
     /* not quite correct in burst mode, but at least only one task will run at a time */
     /* so at least the last deflicker in a burst sequence should be correct */
-    deflicker_waiting = 1;
+    deflicker_waiting++;
     take_semaphore(deflicker_sem, 0);
-    deflicker_waiting = 0;
+    deflicker_waiting--;
     
     int raw_fast = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 4);
     //~ console_printf("fast deflick: %d\n", raw_fast);
