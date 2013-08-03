@@ -50,6 +50,11 @@ def cam_shortname(c):
     c = c.split(".")[0]
     return c
 
+def cam_longname(cam):
+    for c in cams:
+        if c.startswith(cam):
+            return c
+
 #print "%30s" % "",
 #for c in cams:
 #    print "%3s" % cam_shortname(c),
@@ -71,6 +76,7 @@ for c in cams:
 
 # let's see in which menu we have these features
 menus = []
+menus.append("Modules")
 current_menu = "Other"
 MN_DICT = {}
 MN_COUNT = {}
@@ -106,8 +112,72 @@ porting_threads = {
     '700D': 'http://www.magiclantern.fm/forum/index.php?topic=5951.0',
 }
 
+feature_links = {
+    'MODULE__raw_rec'   : 'http://www.magiclantern.fm/forum/index.php?board=49.0',
+    'MODULE__ettr'      : 'http://www.magiclantern.fm/forum/index.php?topic=5693.0',
+    'MODULE__autoexpo'  : 'http://www.magiclantern.fm/forum/index.php?topic=7208.0',
+    'MODULE__file_man'  : 'http://www.magiclantern.fm/forum/index.php?topic=5522.0',
+    'MODULE__ime_base'  : 'http://www.magiclantern.fm/forum/index.php?topic=6899.0',
+    'MODULE__dual_iso'  : 'http://www.magiclantern.fm/forum/index.php?topic=7139.0',
+    'MODULE__bolt_rec'  : 'http://www.magiclantern.fm/forum/index.php?topic=6303.0',
+    'FEATURE_POST_DEFLICKER' : 'http://www.magiclantern.fm/forum/index.php?topic=5705',
+    'FEATURE_LV_DISPLAY_PRESETS': 'http://www.magiclantern.fm/forum/index.php?topic=1729.0',
+    'FEATURE_IMAGE_EFFECTS': 'http://www.magiclantern.fm/forum/index.php?topic=2120.0',
+}
+
+# modules
+
+mn = current_menu = "Modules"
+modules = os.listdir("../modules/")
+modules = [m for m in modules if os.path.isdir(os.path.join("../modules/", m))]
+modules.sort()
+
+# only show whitelisted modules, at least for now
+modules = [m for m in modules if "MODULE__" + m in feature_links or m in "pic_view"]
+
+# called only for modules that load
+def module_get_status(m, cam):
+    c = cam_shortname(cam)
+
+    # this loads everywhere, but only works on 5D3 and 7D
+    if m == "dual_iso":
+        return c in ["5D3", "7D"]
+        
+    # no idea, assume it's OK if it loads
+    return True
+
+def module_check_cams(m):
+    out = run("cd ../modules/ && python checkdep.py " + m)
+    lines = out.split("\n")
+    cameras = []
+    for i,l in enumerate(lines):
+        if l.strip() == "Will load on:":
+            next_line = lines[i+1]
+            cams = next_line.split(",")
+            cams = [cam_longname(c.strip()) for c in cams if len(c.strip())]
+            cams = [(c, module_get_status(m, c)) for c in cams]
+            cameras += cams
+        if l.strip().startswith("Not checked"):
+            next_line = lines[i+1]
+            cams = next_line.split(",")
+            cams = [cam_longname(c.strip()) for c in cams if len(c.strip())]
+            cams = [(c, "?") for c in cams]
+            cameras += cams
+    return cameras
+
+
+for m in modules:
+    f = "MODULE__" + m
+    MN_DICT[m] = current_menu
+    MN_COUNT[mn] = MN_COUNT.get(mn,0) + 1
+    ok_cams = module_check_cams(m)
+    for c,s in ok_cams:
+        if s:
+            FD[c,f] = s
+    AF.append(f)
+
 data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames, 'menus':menus, 'MN_COUNT': MN_COUNT, 'MN_DICT': MN_DICT,
-        'porting_threads': porting_threads}
+        'porting_threads': porting_threads, 'feature_links': feature_links}
 mytemplate = Template(filename='features.tmpl')
 print mytemplate.render(**data)
 

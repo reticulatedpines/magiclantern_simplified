@@ -30,12 +30,17 @@
             %for f in AF:
                 %if MN_DICT.get(f[8:], "Other") == mn:
                 <tr>
-                    <td><a href="http://wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>
+                    %if f in feature_links:
+                        <td><a href="${feature_links[f]}">${f[8:]}</a></td>
+                    %else:
+                        <!--<td><a href="http://wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>-->
+                        <td>${f[8:]}</td>
+                    %endif
                     %for c in cams:
                         %if FD.get((c,f))==True:
                             <td>&#x2713;</td>
                         %else:
-                            <td></td>
+                            <td>${FD.get((c,f), "")}</td>
                         %endif
                     %endfor 
                 </tr>
