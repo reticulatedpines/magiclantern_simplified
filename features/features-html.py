@@ -123,6 +123,12 @@ feature_links = {
     'FEATURE_POST_DEFLICKER' : 'http://www.magiclantern.fm/forum/index.php?topic=5705',
     'FEATURE_LV_DISPLAY_PRESETS': 'http://www.magiclantern.fm/forum/index.php?topic=1729.0',
     'FEATURE_IMAGE_EFFECTS': 'http://www.magiclantern.fm/forum/index.php?topic=2120.0',
+    'FEATURE_FLEXINFO': 'http://www.magiclantern.fm/forum/index.php?topic=4157.0',
+    'FEATURE_AFMA_TUNING': 'http://www.magiclantern.fm/forum/index.php?topic=4648.0',
+    'FEATURE_RAW_HISTOGRAM': 'http://www.magiclantern.fm/forum/index.php?topic=5149.msg31247#msg31247',
+    'FEATURE_FPS_RAMPING': 'http://www.magiclantern.fm/forum/index.php?topic=2963.0',
+    'FEATURE_VIDEO_HACKS': 'http://www.magiclantern.fm/forum/index.php?topic=3404.0',
+    'FEATURE_VIGNETTING_CORRECTION': 'http://www.magiclantern.fm/forum/index.php?topic=4598',
 }
 
 # modules
