@@ -667,13 +667,15 @@ void set_flash_firing(int mode)
     prop_request_change(PROP_STROBO_FIRING, &mode, 4);
 }
 
-#ifdef FEATURE_FLASH_TWEAKS
+#ifdef FEATURE_FLASH_NOFLASH
+    #ifndef FEATURE_FLASH_TWEAKS
+    #error This requires FEATURE_FLASH_TWEAKS
+    #endif
 static MENU_UPDATE_FUNC(flash_and_no_flash_display)
 {
     if (strobo_firing == 2)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Flash is automatic, can't adjust.");
 }
-
 #endif
 
 static MENU_UPDATE_FUNC(silent_pic_display)
@@ -6602,6 +6604,8 @@ shoot_task( void* unused )
         }
 
         #ifdef FEATURE_FLASH_TWEAKS
+        
+        #ifdef FEATURE_FLASH_NOFLASH
         // toggle flash on/off for next picture
         if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
         {
@@ -6613,6 +6617,7 @@ shoot_task( void* unused )
         if (!flash_and_no_flash && prev_flash_and_no_flash && strobo_firing==1)
             set_flash_firing(0);
         prev_flash_and_no_flash = flash_and_no_flash;
+        #endif
 
         #ifdef FEATURE_LV_3RD_PARTY_FLASH
         /* when pressing half-shutter in LV mode, this code will first switch to photo mode, wait for half-

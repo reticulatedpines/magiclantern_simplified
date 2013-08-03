@@ -10,6 +10,7 @@
 #undef FEATURE_MLU_HANDHELD // not needed, Canon's silent mode is much better
 #undef FEATURE_SHUTTER_LOCK // Canon has a dedicated button for it
 #undef FEATURE_FLASH_TWEAKS // no built-in flash
+#undef FEATURE_FLASH_NOFLASH
 
 #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
 #define FEATURE_ZOOM_TRICK_5D3 // not reliable
