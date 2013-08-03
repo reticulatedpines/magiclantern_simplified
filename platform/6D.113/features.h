@@ -13,21 +13,16 @@
 /*Work Relatively well*/
 #define CONFIG_FPS_AGGRESSIVE_UPDATE
 #define FEATURE_MOVIE_AUTOSTOP_RECORDING
-#define FEATURE_REC_ON_RESUME
 #define FEATURE_FOCUS_PEAK_DISP_FILTER
 #define FEATURE_ZOOM_TRICK_5D3 // Doubleclick to zoom/shortcut
 #define FEATURE_KEN_ROCKWELL_ZOOM_5D3 // Play From Image Review Mode - Did not bring up play
 #define FEATURE_AFMA_TUNING
 #define CONFIG_AFMA_EXTENDED
-#define FEATURE_NOHELP //No one can help you now
-#define FEATURE_PREFIX		
 /* Development */
 
 /* Debugging Stuff */
-#define FEATURE_PROP_DISPLAY
 #define CONFIG_HEXDUMP
 #define CONFIG_DIGIC_POKE
-#define FEATURE_DEBUG_INTERCEPT
 //~ #define FEATURE_SHOW_SIGNATURE
 //~ #define CONFIG_DUMPROM Lawyers will kill your camera.. and you.
 
