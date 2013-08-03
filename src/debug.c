@@ -3553,16 +3553,6 @@ static struct menu_entry debug_menus[] = {
         .help = "Log TryPostEvents"
     },
 #endif
-#if defined(CONFIG_7D)
-    {
-        .name        = "LV dumping",
-        .priv = (int*) 0x60D8,
-        .max = 6,
-        .icon_type = IT_DICE_OFF,
-        .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
-        .choices = (const char *[]) {"Disabled", "A:/.JPEG", "B:/.JPEG", "A:/.422", "B:/.422", "A:/.JPEG/.422", "B:/.JPEG/.422"},
-    },
-#endif
 #ifdef CONFIG_ISO_TESTS
     {
         .name        = "ISO tests...",
