@@ -128,14 +128,7 @@ cstart( void )
     #endif
 
     #ifdef CONFIG_650D
-        #if (CONFIG_FW_VERSION == 104)
-            #define SIG_650D SIG_650D_104
-        #elif (CONFIG_FW_VERSION == 101)
-            #define SIG_650D SIG_650D_101
-        #else
-            #error Unknown 650D FW version
-        #endif
-    if (s != (int)SIG_650D)
+    if (s != (int)SIG_650D_104)
         fail();
     #endif
     
