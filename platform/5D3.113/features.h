@@ -22,6 +22,4 @@
 
 #undef FEATURE_VOICE_TAGS // no sound recorded
 
-#define FEATURE_JOY_CENTER_ACTIONS 
-
 #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW

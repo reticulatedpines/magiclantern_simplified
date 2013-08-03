@@ -62,7 +62,7 @@
 
 struct semaphore * gui_sem;
 
-#ifdef FEATURE_JOY_CENTER_ACTIONS
+#ifdef CONFIG_JOY_CENTER_ACTIONS
 static int joy_center_press_count = 0;
 static int joy_center_action_disabled = 0;
 static void joypress_task()
@@ -108,7 +108,7 @@ static void joypress_task()
 	}
 }
 TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
-#endif // FEATURE_JOY_CENTER_ACTIONS
+#endif // CONFIG_JOY_CENTER_ACTIONS
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -123,7 +123,7 @@ static int handle_buttons(struct event * event)
 
     if (handle_common_events_by_feature(event) == 0) return 0;
 
-#ifdef FEATURE_JOY_CENTER_ACTIONS
+#ifdef CONFIG_JOY_CENTER_ACTIONS
 	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
 	{
 		joy_center_press_count = 1;
@@ -139,7 +139,7 @@ static int handle_buttons(struct event * event)
 	if (event->param == BGMT_UNPRESS_UDLR)
 		joy_center_action_disabled = 0;
     
-#endif // FEATURE_JOY_CENTER_ACTIONS
+#endif // CONFIG_JOY_CENTER_ACTIONS
 
     return 1;
 }
