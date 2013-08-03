@@ -12,7 +12,6 @@
 
 /*Work Relatively well*/
 #define CONFIG_FPS_AGGRESSIVE_UPDATE
-#define FEATURE_MOVIE_AUTOSTOP_RECORDING
 #define FEATURE_FOCUS_PEAK_DISP_FILTER
 #define FEATURE_ZOOM_TRICK_5D3 // Doubleclick to zoom/shortcut
 #define FEATURE_KEN_ROCKWELL_ZOOM_5D3 // Play From Image Review Mode - Did not bring up play

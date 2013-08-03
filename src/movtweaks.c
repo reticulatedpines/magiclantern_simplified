@@ -302,7 +302,7 @@ static void shutter_lock_step()
 }
 #endif
 
-#ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
+#ifdef CONFIG_MOVIE_RECORDING_50D_SHUTTER_HACK
 
 CONFIG_INT("shutter.btn.rec", shutter_btn_rec, 1);
 
@@ -982,7 +982,7 @@ static struct menu_entry mov_menus[] = {
         .depends_on = DEP_LIVEVIEW,
     },
     #endif
-    #ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
+    #ifdef CONFIG_MOVIE_RECORDING_50D_SHUTTER_HACK
     {
         .name = "Shutter Button",
         .priv = &shutter_btn_rec,

@@ -10,6 +10,13 @@
 <title> Feature comparison matrix </title>
 </head>
 <body style="margin:10px">
+
+<b>Magic Lantern Nightly ${version}</b>
+
+<p>This table was generated automatically from ML source code. It only shows what things are enabled - they may work or they may not.</p>
+
+<p>Need some help in adding links to relevant forum threads or user guide sections (edit features-html.py to add them). Also, if you find something enabled, but not working, please <a href="http://www.magiclantern.fm/forum/index.php?board=23.0">report a bug.</a></p>
+
 <table id="matrixTable" class="table table-hover">
 %for mn in menus:
     %if MN_COUNT.get(mn,0) != 0:

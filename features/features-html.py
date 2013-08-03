@@ -176,8 +176,10 @@ for m in modules:
             FD[c,f] = s
     AF.append(f)
 
+version = run("LC_TIME=EN date +'%Y%b%d' && hg id")
+
 data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames, 'menus':menus, 'MN_COUNT': MN_COUNT, 'MN_DICT': MN_DICT,
-        'porting_threads': porting_threads, 'feature_links': feature_links}
+        'porting_threads': porting_threads, 'feature_links': feature_links, 'version': version}
 mytemplate = Template(filename='features.tmpl')
 print mytemplate.render(**data)
 

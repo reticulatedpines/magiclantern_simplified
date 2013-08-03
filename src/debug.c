@@ -4219,7 +4219,7 @@ void config_save_at_shutdown()
 #endif
 }
 
-#ifdef FEATURE_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
+#ifdef CONFIG_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
     #ifndef FEATURE_EXPO_ISO
     #error This requires FEATURE_EXPO_ISO.
     #endif
