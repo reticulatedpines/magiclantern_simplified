@@ -3617,7 +3617,7 @@ static struct menu_entry debug_menus[] = {
             #endif
             #if defined(CONFIG_7D)
             {
-                .name = "RPC reliability test (infinite loop)",
+                .name = "RPC reliability test (infinite)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = rpc_test_task,
                 .help = "Flood master with RPC requests and print delay. "
