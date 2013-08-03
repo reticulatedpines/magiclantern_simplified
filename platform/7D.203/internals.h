@@ -106,3 +106,7 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/** We know how to unregister properties */
+/** (but that doesn't mean we should use it, because existing prop handlers were not designed with this in mind */
+//~ #define CONFIG_UNREGISTER_PROP

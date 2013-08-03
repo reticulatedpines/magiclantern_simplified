@@ -123,7 +123,7 @@ void prop_add_internal_handlers ()
 static void 
 prop_unregister_handlers()
 {
-#if defined(FEATURE_UNREGISTER_PROP)
+#if defined(CONFIG_UNREGISTER_PROP)
     if(global_token != NULL)
     {
         prop_unregister_slave(global_token);

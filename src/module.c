@@ -1106,7 +1106,7 @@ static void module_submenu_update(int mod_number)
             if(module_submenu[entry].priv != MENU_EOL_PRIV)
             {
                 module_submenu[entry].name = "----Properties----";
-                #if !defined(FEATURE_UNREGISTER_PROP)
+                #if !defined(CONFIG_UNREGISTER_PROP)
                 module_submenu[entry].priv = " (no support)";
                 #endif
                 module_submenu[entry].update = module_menu_update_parameter;
