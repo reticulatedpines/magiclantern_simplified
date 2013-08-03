@@ -146,15 +146,20 @@ changelog:
 	hg log $(call HG_DATE_RANGE, today - 30 days, today - 2 days) $(HG_TEMPLATE) >> ChangeLog.txt ;
 	echo "" >> ChangeLog.txt
 	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 30 days) -r $(call HG_CHANGESET_BEFORE_DATE, today - 2 days) | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
+
+features.html:
+	cd features; python features-html.py > ../features.html
  
-nightly: changelog clean zip
+nightly: changelog clean zip features.html
 	mkdir -p $(NIGHTLY_DIR)
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
 	mv build.log $(NIGHTLY_DIR)
 	mv ChangeLog.txt $(NIGHTLY_DIR)
+	mv features.html $(NIGHTLY_DIR)
 	ln -s $(NIGHTLY_DIR)/build.log $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/ChangeLog.txt $(NIGHTLY_ROOT)
+	ln -s $(NIGHTLY_DIR)/features.html $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/magiclantern*.zip $(NIGHTLY_ROOT)
 
 FORCE:
