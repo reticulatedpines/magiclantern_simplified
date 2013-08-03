@@ -1245,7 +1245,7 @@ static void hack_liveview(int32_t unhack)
 
 static int32_t FAST choose_next_capture_slot()
 {
-    /* new: return next free slot for out-of-order writing */
+    /* new: return next free slot for out-of-order writing 
     for (int32_t i = 0; i < slot_count; i++)
     {
         if (slots[i].status == SLOT_FREE)
@@ -1255,7 +1255,7 @@ static int32_t FAST choose_next_capture_slot()
     }
     
     return -1;
-  
+  */
     
     /* keep on rolling? */
     /* O(1) */
@@ -1279,12 +1279,11 @@ static int32_t FAST choose_next_capture_slot()
     {
         if (slots[i].status == SLOT_FREE)
         {
-            mlv_vidf_hdr_t *hdr = (mlv_vidf_hdr_t *)slots[i].ptr;
             if (slots[i].ptr == prev_ptr + prev_blockSize)
             {
                 len++;
                 prev_ptr = slots[i].ptr;
-                prev_blockSize = hdr->blockSize;
+                prev_blockSize = slots[capture_slot].size;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1295,7 +1294,7 @@ static int32_t FAST choose_next_capture_slot()
             {
                 len = 1;
                 prev_ptr = slots[i].ptr;
-                prev_blockSize = hdr->blockSize;
+                prev_blockSize = slots[capture_slot].size;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1318,34 +1317,6 @@ static int32_t FAST choose_next_capture_slot()
     force_new_buffer = 0;
 
     return best_index;
-}
-
-
-#define FRAME_SENTINEL 0xA5A5A5A5 /* for double-checking EDMAC operations */
-
-static void frame_add_checks(int32_t slot_index)
-{
-    void* ptr = slots[slot_index].ptr;
-    int32_t blockSize = ((mlv_hdr_t*)ptr)->blockSize;
-    uint32_t* frame_end = ptr + blockSize - 4;
-    *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
-}
-
-static int32_t frame_check_saved(int32_t slot_index)
-{
-    void* ptr = slots[slot_index].ptr;
-    int32_t size = slots[slot_index].size;
-
-    uint32_t* frame_end = ptr + size - 4;
-    
-    if (*(volatile uint32_t*) frame_end == FRAME_SENTINEL)
-    {
-        /* frame not yet complete */
-        return 0;
-    }
-    
-    /* looks alright */
-    return 1;
 }
 
 /* this function uses the frameSpace area in a VIDF that was meant for padding to insert some other block before */
@@ -1473,7 +1444,6 @@ static int32_t FAST process_frame()
         ASSERT(hdr->blockSize > 0);
     }
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
-    frame_add_checks(capture_slot);
     
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
