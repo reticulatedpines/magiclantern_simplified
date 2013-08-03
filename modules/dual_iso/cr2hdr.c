@@ -1209,12 +1209,34 @@ static int hdr_interpolate()
     memcpy(contrast_aux, contrast, w * h * sizeof(short));
     
     /* trial and error - too high = aliasing, too low = noisy */
-    int CONTRAST_MAX = 20000;
-    
-    /* gaussian blur */
-    for (y = 3; y < h-3; y ++)
+    int CONTRAST_MAX = 30000;
+
+#if 1
+    printf("Dilating contrast map...\n");
+    /* dilate the contrast maps (for each channel) */
+    for (y = 6; y < h-6; y ++)
     {
-        for (x = 3; x < w-3; x ++)
+        for (x = 6; x < w-6; x ++)
+        {
+            /* optimizing... the brute force way */
+            int c0 = contrast[x+0 + (y+0) * w];
+            int c1 = MAX(MAX(contrast[x+0 + (y-2) * w], contrast[x-2 + (y+0) * w]), MAX(contrast[x+2 + (y+0) * w], contrast[x+0 + (y+2) * w]));
+            int c2 = MAX(MAX(contrast[x-2 + (y-2) * w], contrast[x+2 + (y-2) * w]), MAX(contrast[x-2 + (y+2) * w], contrast[x+2 + (y+2) * w]));
+            int c3 = MAX(MAX(contrast[x+0 + (y-4) * w], contrast[x-4 + (y+0) * w]), MAX(contrast[x+4 + (y+0) * w], contrast[x+0 + (y+4) * w]));
+            int c4 = MAX(MAX(contrast[x-2 + (y-4) * w], contrast[x+2 + (y-4) * w]), MAX(contrast[x-4 + (y-2) * w], contrast[x+4 + (y-2) * w]));
+            int c5 = MAX(MAX(contrast[x-4 + (y+2) * w], contrast[x+4 + (y+2) * w]), MAX(contrast[x-2 + (y+4) * w], contrast[x+2 + (y+4) * w]));
+            int c = MAX(MAX(MAX(c0, c1), MAX(c2, c3)), MAX(c4, c5));
+            //~ int c = MAX(MAX(c0, c1), MAX(c2, c3));
+            contrast_aux[x + y * w] = c;
+        }
+    }
+#endif
+
+    printf("Smoothing contrast map...\n");
+    /* gaussian blur */
+    for (y = 6; y < h-6; y ++)
+    {
+        for (x = 6; x < w-6; x ++)
         {
 
 /* code generation
@@ -1248,15 +1270,42 @@ static int hdr_interpolate()
             /* optimizing... the brute force way */
             int c = 
                 (contrast_aux[x+0 + (y+0) * w])+ 
-                (contrast_aux[x+0 + (y-1) * w] + contrast_aux[x-1 + (y+0) * w] + contrast_aux[x+1 + (y+0) * w] + contrast_aux[x+0 + (y+1) * w]) * 820 / 1024 + 
-                (contrast_aux[x-1 + (y-1) * w] + contrast_aux[x+1 + (y-1) * w] + contrast_aux[x-1 + (y+1) * w] + contrast_aux[x+1 + (y+1) * w]) * 657 / 1024 + 
+                (contrast_aux[x+0 + (y-2) * w] + contrast_aux[x-2 + (y+0) * w] + contrast_aux[x+2 + (y+0) * w] + contrast_aux[x+0 + (y+2) * w]) * 820 / 1024 + 
+                (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 657 / 1024 + 
                 (contrast_aux[x+0 + (y-2) * w] + contrast_aux[x-2 + (y+0) * w] + contrast_aux[x+2 + (y+0) * w] + contrast_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
-                (contrast_aux[x-1 + (y-2) * w] + contrast_aux[x+1 + (y-2) * w] + contrast_aux[x-2 + (y-1) * w] + contrast_aux[x+2 + (y-1) * w] + contrast_aux[x-2 + (y+1) * w] + contrast_aux[x+2 + (y+1) * w] + contrast_aux[x-1 + (y+2) * w] + contrast_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
-                (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
-                (contrast_aux[x+0 + (y-3) * w] + contrast_aux[x-3 + (y+0) * w] + contrast_aux[x+3 + (y+0) * w] + contrast_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
-                (contrast_aux[x-1 + (y-3) * w] + contrast_aux[x+1 + (y-3) * w] + contrast_aux[x-3 + (y-1) * w] + contrast_aux[x+3 + (y-1) * w] + contrast_aux[x-3 + (y+1) * w] + contrast_aux[x+3 + (y+1) * w] + contrast_aux[x-1 + (y+3) * w] + contrast_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
-                (contrast_aux[x-2 + (y-3) * w] + contrast_aux[x+2 + (y-3) * w] + contrast_aux[x-3 + (y-2) * w] + contrast_aux[x+3 + (y-2) * w] + contrast_aux[x-3 + (y+2) * w] + contrast_aux[x+3 + (y+2) * w] + contrast_aux[x-2 + (y+3) * w] + contrast_aux[x+2 + (y+3) * w]) * 57 / 1024;
+                (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 337 / 1024 + 
+                //~ (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
+                //~ (contrast_aux[x+0 + (y-6) * w] + contrast_aux[x-6 + (y+0) * w] + contrast_aux[x+6 + (y+0) * w] + contrast_aux[x+0 + (y+6) * w]) * 139 / 1024 + 
+                //~ (contrast_aux[x-2 + (y-6) * w] + contrast_aux[x+2 + (y-6) * w] + contrast_aux[x-6 + (y-2) * w] + contrast_aux[x+6 + (y-2) * w] + contrast_aux[x-6 + (y+2) * w] + contrast_aux[x+6 + (y+2) * w] + contrast_aux[x-2 + (y+6) * w] + contrast_aux[x+2 + (y+6) * w]) * 111 / 1024 + 
+                //~ (contrast_aux[x-2 + (y-6) * w] + contrast_aux[x+2 + (y-6) * w] + contrast_aux[x-6 + (y-2) * w] + contrast_aux[x+6 + (y-2) * w] + contrast_aux[x-6 + (y+2) * w] + contrast_aux[x+6 + (y+2) * w] + contrast_aux[x-2 + (y+6) * w] + contrast_aux[x+2 + (y+6) * w]) * 57 / 1024;
+                0;
             contrast[x + y * w] = COERCE(c, 0, CONTRAST_MAX);
+        }
+    }
+
+    /* make it grayscale and lower it in dark areas where it's just noise */
+    for (y = 2; y < h-2; y += 2)
+    {
+        for (x = 2; x < w-2; x += 2)
+        {
+            int a = contrast[x   +     y * w];
+            int b = contrast[x+1 +     y * w];
+            int c = contrast[x   + (y+1) * w];
+            int d = contrast[x+1 + (y+1) * w];
+            int C = MAX(MAX(a,b), MAX(c,d));
+            
+            int da = dark[x   +     y * w];
+            int db = dark[x+1 +     y * w];
+            int dc = dark[x   + (y+1) * w];
+            int dd = dark[x+1 + (y+1) * w];
+            int D = MAX(MAX(da,db), MAX(dc,dd));
+            
+            C = MIN(C, CONTRAST_MAX) * MIN(D - black, 128) / 128;
+
+            contrast[x   +     y * w] = 
+            contrast[x+1 +     y * w] = 
+            contrast[x   + (y+1) * w] = 
+            contrast[x+1 + (y+1) * w] = C;
         }
     }
 
@@ -1280,18 +1329,20 @@ static int hdr_interpolate()
                 (contrast_aux[x+0 + (y+0) * w])+ 
                 (contrast_aux[x+0 + (y-1) * w] + contrast_aux[x-1 + (y+0) * w] + contrast_aux[x+1 + (y+0) * w] + contrast_aux[x+0 + (y+1) * w]) * 820 / 1024 + 
                 (contrast_aux[x-1 + (y-1) * w] + contrast_aux[x+1 + (y-1) * w] + contrast_aux[x-1 + (y+1) * w] + contrast_aux[x+1 + (y+1) * w]) * 657 / 1024 + 
-                (contrast_aux[x+0 + (y-2) * w] + contrast_aux[x-2 + (y+0) * w] + contrast_aux[x+2 + (y+0) * w] + contrast_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
-                (contrast_aux[x-1 + (y-2) * w] + contrast_aux[x+1 + (y-2) * w] + contrast_aux[x-2 + (y-1) * w] + contrast_aux[x+2 + (y-1) * w] + contrast_aux[x-2 + (y+1) * w] + contrast_aux[x+2 + (y+1) * w] + contrast_aux[x-1 + (y+2) * w] + contrast_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
-                (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
-                (contrast_aux[x+0 + (y-3) * w] + contrast_aux[x-3 + (y+0) * w] + contrast_aux[x+3 + (y+0) * w] + contrast_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
-                (contrast_aux[x-1 + (y-3) * w] + contrast_aux[x+1 + (y-3) * w] + contrast_aux[x-3 + (y-1) * w] + contrast_aux[x+3 + (y-1) * w] + contrast_aux[x-3 + (y+1) * w] + contrast_aux[x+3 + (y+1) * w] + contrast_aux[x-1 + (y+3) * w] + contrast_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
-                (contrast_aux[x-2 + (y-3) * w] + contrast_aux[x+2 + (y-3) * w] + contrast_aux[x-3 + (y-2) * w] + contrast_aux[x+3 + (y-2) * w] + contrast_aux[x-3 + (y+2) * w] + contrast_aux[x+3 + (y+2) * w] + contrast_aux[x-2 + (y+3) * w] + contrast_aux[x+2 + (y+3) * w]) * 57 / 1024;
+                //~ (contrast_aux[x+0 + (y-2) * w] + contrast_aux[x-2 + (y+0) * w] + contrast_aux[x+2 + (y+0) * w] + contrast_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
+                //~ (contrast_aux[x-1 + (y-2) * w] + contrast_aux[x+1 + (y-2) * w] + contrast_aux[x-2 + (y-1) * w] + contrast_aux[x+2 + (y-1) * w] + contrast_aux[x-2 + (y+1) * w] + contrast_aux[x+2 + (y+1) * w] + contrast_aux[x-1 + (y+2) * w] + contrast_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
+                //~ (contrast_aux[x-2 + (y-2) * w] + contrast_aux[x+2 + (y-2) * w] + contrast_aux[x-2 + (y+2) * w] + contrast_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
+                //~ (contrast_aux[x+0 + (y-3) * w] + contrast_aux[x-3 + (y+0) * w] + contrast_aux[x+3 + (y+0) * w] + contrast_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
+                //~ (contrast_aux[x-1 + (y-3) * w] + contrast_aux[x+1 + (y-3) * w] + contrast_aux[x-3 + (y-1) * w] + contrast_aux[x+3 + (y-1) * w] + contrast_aux[x-3 + (y+1) * w] + contrast_aux[x+3 + (y+1) * w] + contrast_aux[x-1 + (y+3) * w] + contrast_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
+                //~ (contrast_aux[x-2 + (y-3) * w] + contrast_aux[x+2 + (y-3) * w] + contrast_aux[x-3 + (y-2) * w] + contrast_aux[x+3 + (y-2) * w] + contrast_aux[x-3 + (y+2) * w] + contrast_aux[x+3 + (y+2) * w] + contrast_aux[x-2 + (y+3) * w] + contrast_aux[x+2 + (y+3) * w]) * 57 / 1024;
+                0;
         }
     }
 
     free(contrast_aux);
 #endif
 
+    printf("Estimating ISO difference...\n");
     /* estimate ISO and black difference between bright and dark exposures */
     float corr_ev = 0;
     int black_delta = 0;
@@ -1317,6 +1368,7 @@ static int hdr_interpolate()
 
     /* you get better colors, less noise, but a little more jagged edges if we underestimate the overlap amount */
     /* maybe expose a tuning factor? (preference towards resolution or colors) */
+    double overlap2 = overlap + 3;
     overlap -= MIN(2, overlap - 2);
     
     printf("ISO overlap    : %.1f EV (approx)\n", overlap);
@@ -1339,12 +1391,27 @@ static int hdr_interpolate()
     {
         double ev = log2(MAX(i - black, 1));
         double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
+        double c2 = -cos(MAX(MIN(ev-(max_ev-overlap2),overlap2),0)*M_PI/overlap2);
         double k = (c+1)/2;
         double f = 1 - pow(c, 4);
+        
+        double f2 = (c2+1)/2;
 
-        /* this looks very ugly at iso > 1600 */
-        if (corr_ev > 4.5)
+        /* this looks very ugly at iso > 3200 */
+        if (corr_ev > 5.5)
             f = 0;
+        
+        if (ev > max_ev - overlap/2)
+        {
+            /* prefer full-res recovery in the upper half, since the data is very clean */
+            f = 1 - pow(c, 200);
+        }
+        else
+        {
+            /* force some slight detail recovery in not-so-dark shadows */
+            /* fixme: this curve can be smoother */
+            f = MAX(f, f2/4 + f*MIN(f2,0.5));
+        }
 
         mix_curve[i] = FIXP_ONE * k;
         fullres_curve[i] = FIXP_ONE * f;
@@ -1414,9 +1481,9 @@ static int hdr_interpolate()
 
             #ifdef CONTRAST_BLEND
             int co = contrast[x + y*w];
-            co = co * MIN(d - black, 32) / 32;
             double c = COERCE(co / (double) CONTRAST_MAX, 0, 1);
             double ovf = COERCE(overexposed[x + y*w] / 200.0, 0, 1);
+            //~ double c0 = c;
             c = MAX(c, ovf);
             #else
             double c = 1;
@@ -1425,7 +1492,7 @@ static int hdr_interpolate()
             mixed = mixed_soft * c + mixed * (1-c);
 
             /* use data from both ISOs in high-detail areas, even if it's noisier (less aliasing) */
-            f = MAX(f, c * FIXP_ONE * 3 / 4);
+            f = MAX(f, c * FIXP_ONE);
             
             /* don't use full resolution in near-overexposed areas */
             f = f * (1 - ovf) * (1 - ovf);
@@ -1433,8 +1500,15 @@ static int hdr_interpolate()
             /* recover the full resolution where possible */
             double fullres = BRIGHT_ROW ? bev : dev;
             
+            /* force full resolution (for debugging) */
+            //~ if (b0 < white) f = FIXP_ONE;
+            
             /* blend "mixed" and "full-res" images smoothly to avoid banding*/
             int output = (mixed*(FIXP_ONE-f) + fullres*f) / FIXP_ONE;
+
+            /* show full-res map (for debugging) */
+            //~ output = f * 14*EV_RESOLUTION / FIXP_ONE;
+            
 
             /* beware of hot pixels */
             int is_hot = ((k > 0 || f > 0) && (b0 < white) && (ABS(dev - bev) > (2+c) * EV_RESOLUTION));
