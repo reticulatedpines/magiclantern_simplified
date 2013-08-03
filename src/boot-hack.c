@@ -312,8 +312,8 @@ static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
-unsigned short int magic_off = 0; // Set to 1 to disable ML
-unsigned short int magic_off_request = 0;
+static unsigned short int magic_off = 0; // Set to 1 to disable ML
+static unsigned short int magic_off_request = 0;
 unsigned short int magic_is_off() 
 {
     return magic_off; 
