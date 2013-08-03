@@ -202,6 +202,20 @@ int main (int argc, char *argv[])
                     free(buf);
                 }
             }
+            else if(!memcmp(buf.blockType, "ELVL", 4))
+            {
+                mlv_elvl_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_elvl_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                fseek(file, block_hdr.blockSize-sizeof(mlv_elvl_hdr_t), SEEK_CUR);
+                
+                printf("     Roll:    %2.2f\n", (double)block_hdr.roll / 100.0f);
+                printf("     Pitch:   %2.2f\n", (double)block_hdr.pitch / 100.0f);
+            }
             else if(!memcmp(buf.blockType, "WBAL", 4))
             {
                 mlv_wbal_hdr_t block_hdr;

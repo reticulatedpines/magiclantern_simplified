@@ -2065,7 +2065,7 @@ static void raw_video_rec_task()
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
             mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
             mlv_lens_hdr_t *lens_hdr = malloc(sizeof(mlv_lens_hdr_t));
-            mlv_lens_hdr_t *wbal_hdr = malloc(sizeof(mlv_wbal_hdr_t));
+            mlv_wbal_hdr_t *wbal_hdr = malloc(sizeof(mlv_wbal_hdr_t));
             
             mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
             mlv_fill_expo(expo_hdr, mlv_start_timestamp);
@@ -2516,6 +2516,38 @@ IME_DONE_FUNC(raw_tag_str_done)
     return IME_OK;
 }
 
+struct rolling_pitching
+{
+    uint8_t status;
+    uint8_t cameraposture;
+    uint8_t roll_hi;
+    uint8_t roll_lo;
+    uint8_t pitch_hi;
+    uint8_t pitch_lo;
+};
+
+PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
+{
+    struct rolling_pitching * orientation = (struct rolling_pitching *) buf;
+    
+    if (RAW_IS_RECORDING && orientation->status == 2)
+    {
+        mlv_elvl_hdr_t *hdr = malloc(sizeof(mlv_elvl_hdr_t));
+        
+        /* prepare header */
+        mlv_set_type((mlv_hdr_t *)hdr, "ELVL");
+        mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+        hdr->blockSize = sizeof(mlv_elvl_hdr_t);
+    
+        /* fill in data */
+        hdr->roll = orientation->roll_hi * 256 + orientation->roll_lo;
+        hdr->pitch = orientation->pitch_hi * 256 + orientation->pitch_lo;
+        
+        /* put into block queue */
+        msg_queue_post(mlv_block_queue, hdr);
+    }
+}
+
 static MENU_SELECT_FUNC(raw_tag_str_start)
 {
     strcpy(raw_tag_str_tmp, raw_tag_str);
@@ -2913,6 +2945,10 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
     MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
 MODULE_CBRS_END()
+
+MODULE_PROPHANDLERS_START()
+    MODULE_PROPHANDLER(PROP_ROLLING_PITCHING_LEVEL)
+MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(raw_video_enabled)
