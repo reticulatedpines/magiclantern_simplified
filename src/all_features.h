@@ -201,6 +201,8 @@
     //~ #define FEATURE_MOVIE_AF // not reliable
 #endif
 
+    //~ FEATURE_AFMA_TUNING
+
 /** Display menu **/
     #define FEATURE_LV_BRIGHTNESS_CONTRAST
     #define FEATURE_LV_SATURATION
@@ -261,6 +263,7 @@
 
     #define FEATURE_LV_FOCUS_BOX_FAST
     #define FEATURE_LV_FOCUS_BOX_SNAP
+    //~ #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
     #define FEATURE_LV_FOCUS_BOX_AUTOHIDE
 
     #define FEATURE_ARROW_SHORTCUTS
