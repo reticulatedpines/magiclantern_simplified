@@ -108,7 +108,12 @@ int main (int argc, char *argv[])
         {
             printf("Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
             printf("    Size: 0x%08X\n", buf.blockSize);
-            printf("    Time: %f ms\n", (double)buf.timestamp / 1000.0f);
+            
+            /* NULL blocks usually dont have timestamps */
+            if(memcmp(buf.blockType, "NULL", 4))
+            {
+                printf("    Time: %f ms\n", (double)buf.timestamp / 1000.0f);
+            }
             
             if(!memcmp(buf.blockType, "VIDF", 4))
             {
