@@ -4,6 +4,7 @@
 #include "tasks.h"
 
 //#define CONFIG_TSKMON_TRACE
+//#define CONFIG_ISR_HOOKS
 
 #ifdef CONFIG_TSKMON
 
@@ -37,7 +38,7 @@ static uint32_t tskmon_idle_task_id = 0;
 static uint32_t tskmon_powermgr_task_id = 0;
 
 
-#ifdef FEATURE_ISR_HOOKS
+#ifdef CONFIG_ISR_HOOKS
 static uint32_t tskmon_isr_nesting = 0;
 static uint32_t tskmon_isr_task_active_time = 0;
 #endif
@@ -352,7 +353,7 @@ void tskmon_task_dispatch()
 #endif
 }
 
-#ifdef FEATURE_ISR_HOOKS
+#ifdef CONFIG_ISR_HOOKS
 
 void tskmon_pre_isr(uint32_t isr)
 {
@@ -424,7 +425,7 @@ void tskmon_init()
     tskmon_active_time = 0;
     tskmon_total_runtime = 0;
 
-#ifdef FEATURE_ISR_HOOKS
+#ifdef CONFIG_ISR_HOOKS
     extern void (*pre_isr_hook)();
     extern void (*post_isr_hook)();
 
