@@ -68,6 +68,22 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
     strncpy((char *)hdr->lensSerial, "", 32);
 }
 
+void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp)
+{
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)hdr, "WBAL");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+    hdr->blockSize = sizeof(mlv_wbal_hdr_t);
+    
+    hdr->wb_mode = lens_info.wb_mode; 
+    hdr->kelvin = lens_info.kelvin;    
+    hdr->wbgain_r = lens_info.WBGain_R;  
+    hdr->wbgain_g = lens_info.WBGain_G;  
+    hdr->wbgain_b = lens_info.WBGain_G;  
+    hdr->wbs_gm = lens_info.wbs_gm;  
+    hdr->wbs_ba = lens_info.wbs_ba;  
+}
+
 void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
 {
     /* prepare header */

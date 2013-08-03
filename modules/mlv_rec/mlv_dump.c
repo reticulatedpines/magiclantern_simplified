@@ -202,6 +202,25 @@ int main (int argc, char *argv[])
                     free(buf);
                 }
             }
+            else if(!memcmp(buf.blockType, "WBAL", 4))
+            {
+                mlv_wbal_hdr_t block_hdr;
+                
+                if(fread(&block_hdr, sizeof(mlv_wbal_hdr_t), 1, file) != 1)
+                {
+                    printf("Reached file end within block.\n");
+                    return 0;
+                }
+                fseek(file, block_hdr.blockSize-sizeof(mlv_wbal_hdr_t), SEEK_CUR);
+                
+                printf("     Mode:   %d\n", block_hdr.wb_mode);
+                printf("     Kelvin:   %d\n", block_hdr.kelvin);
+                printf("     Gain R:   %d\n", block_hdr.wbgain_r);
+                printf("     Gain G:   %d\n", block_hdr.wbgain_g);
+                printf("     Gain B:   %d\n", block_hdr.wbgain_b);
+                printf("     Shift GM:   %d\n", block_hdr.wbs_gm);
+                printf("     Shift BA:   %d\n", block_hdr.wbs_ba);
+            }
             else if(!memcmp(buf.blockType, "IDNT", 4))
             {
                 mlv_idnt_hdr_t block_hdr;

@@ -1751,16 +1751,19 @@ static void raw_writer_task(uint32_t writer)
         mlv_expo_hdr_t expo_hdr;
         mlv_lens_hdr_t lens_hdr;
         mlv_idnt_hdr_t idnt_hdr;
+        mlv_wbal_hdr_t wbal_hdr;
 
         mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
         mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
         mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
         mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);    
+        mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);    
         
         mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
+        mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
     }
     trace_write(trace_ctx, "   --> WRITER#%d: writing headers done", writer);
     
@@ -2062,14 +2065,17 @@ static void raw_video_rec_task()
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
             mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
             mlv_lens_hdr_t *lens_hdr = malloc(sizeof(mlv_lens_hdr_t));
+            mlv_lens_hdr_t *wbal_hdr = malloc(sizeof(mlv_wbal_hdr_t));
             
             mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
             mlv_fill_expo(expo_hdr, mlv_start_timestamp);
             mlv_fill_lens(lens_hdr, mlv_start_timestamp);
+            mlv_fill_wbal(wbal_hdr, mlv_start_timestamp);
             
             msg_queue_post(mlv_block_queue, rtci_hdr);
             msg_queue_post(mlv_block_queue, expo_hdr);
             msg_queue_post(mlv_block_queue, lens_hdr);
+            msg_queue_post(mlv_block_queue, wbal_hdr);
         }
         
         /* in out of order mode do that expensive precalculation in an extra task */
