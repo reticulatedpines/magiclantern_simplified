@@ -95,13 +95,15 @@ menus.append("Other")
 porting_threads = {
     '1100D': 'http://www.magiclantern.fm/forum/index.php?topic=1009.0',
     '5DC': 'http://www.magiclantern.fm/forum/index.php?topic=1010.0',
-    '650D': 'http://www.magiclantern.fm/forum/index.php?topic=3697.0',
+    '650D': 'http://www.magiclantern.fm/forum/index.php?topic=7473.0',
     '6D': 'http://www.magiclantern.fm/forum/index.php?topic=3904.0',
     '7D': 'http://www.magiclantern.fm/forum/index.php?topic=3974.0',
     '5D3': 'http://www.magiclantern.fm/forum/index.php?topic=2602.0',
     '40D': 'http://www.magiclantern.fm/forum/index.php?topic=1452.0',
     'EOSM': 'http://www.magiclantern.fm/forum/index.php?topic=3648.0',
     '500D': 'http://www.magiclantern.fm/forum/index.php?topic=2317.0',
+    '100D': 'http://www.magiclantern.fm/forum/index.php?topic=5529.0',
+    '700D': 'http://www.magiclantern.fm/forum/index.php?topic=5951.0',
 }
 
 data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames, 'menus':menus, 'MN_COUNT': MN_COUNT, 'MN_DICT': MN_DICT,
