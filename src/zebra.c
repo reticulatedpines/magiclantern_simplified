@@ -885,11 +885,13 @@ static void FAST draw_zebras_raw()
         {
             int x = BM2RAW_X(j);
 
-            /* for dual ISO: use dark lines for overexposure and bright lines for underexposure */
+            /* for dual ISO: show solid zebras if both sub-images are overexposed */
+            /* show semitransparent zebras if only one is overexposed */
             /* impact on normal ISOs should be minimal */
-            int r = raw_red_pixel_dark(x, y);
-            int g = raw_green_pixel_dark(x, y);
-            int b = raw_blue_pixel_dark(x, y);
+            int dark = (i + j) % 4;
+            int r = dark ? raw_red_pixel_dark(x, y) : raw_red_pixel_bright(x, y);
+            int g = dark ? raw_green_pixel_dark(x, y) : raw_green_pixel_bright(x, y);
+            int b = dark ? raw_blue_pixel_dark(x, y) : raw_blue_pixel_bright(x, y);
             int u = raw_green_pixel_bright(x, y);
 
             /* define this to check if color channels are identified correctly */
