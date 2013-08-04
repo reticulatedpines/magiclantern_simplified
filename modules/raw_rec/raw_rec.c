@@ -1361,6 +1361,7 @@ static void raw_video_rec_task()
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
+    int last_block_size = 0; /* for detecting early stops */
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1605,7 +1606,7 @@ static void raw_video_rec_task()
         }
 
         /* for detecting early stops */
-        int last_block_size = mod(after_last_grouped - w_head, COUNT(writing_queue));
+        last_block_size = mod(after_last_grouped - w_head, COUNT(writing_queue));
 
         /* mark these frames as "free" so they can be reused */
         for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
