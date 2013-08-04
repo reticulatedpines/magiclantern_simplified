@@ -74,6 +74,7 @@ CFLAGS +=\
 	-fsingle-precision-constant \
 	-fshort-double \
 	-std=gnu99 \
+	-Winline \
 	-I$(PLATFORM_INC) \
 	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
