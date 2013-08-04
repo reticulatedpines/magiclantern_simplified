@@ -497,7 +497,7 @@ int raw_update_params()
         height = 3950;
         skip_left = 126;
         skip_right = 20;
-        skip_top = 80;
+        skip_top = 82;
         #endif
 
         #ifdef CONFIG_550D
