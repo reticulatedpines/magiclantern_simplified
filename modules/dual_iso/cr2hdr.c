@@ -287,13 +287,34 @@ static int white_detect_brute_force()
     /* caveat: bright and dark exposure may have different white levels, so we'll take the minimum value */
     /* side effect: if the image is not overexposed, it may get brightened a little; shouldn't hurt */
     
-    int white = raw_info.white_level * 2 / 3;
+    /* ignore hot pixels when finding white level (at least 10 pixels should confirm it) */
+    
+    int white = raw_info.white_level * 5 / 6;
     int whites[4] = {white, white, white, white};
+    int maxies[4] = {white, white, white, white};
+    int counts[4] = {0, 0, 0, 0};
 
     int x,y;
     for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
+    {
         for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
-            whites[y%4] = MAX(whites[y%4], raw_get_pixel16(x, y));
+        {
+            int pix = raw_get_pixel16(x, y);
+            if (pix > maxies[y%4])
+            {
+                maxies[y%4] = pix;
+                counts[y%4] = 1;
+            }
+            else if (pix == maxies[y%4])
+            {
+                counts[y%4]++;
+                if (counts[y%4] > 10)
+                {
+                    whites[y%4] = maxies[y%4];
+                }
+            }
+        }
+    }
     
     white = MIN(MIN(whites[0], whites[1]), MIN(whites[2], whites[3]));
     raw_info.white_level = white - 100;
