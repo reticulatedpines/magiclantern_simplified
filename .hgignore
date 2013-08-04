@@ -82,5 +82,6 @@ modules/*/*.mo
 modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe
 tcc/localsyms
+src/menuindexentries.h
 
 syntax: regexp

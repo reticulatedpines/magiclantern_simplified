@@ -53,6 +53,7 @@ clean: platform_clean doxygen_clean
 		doc/install-body.tex \
 		doc/install.wiki \
 		doc/menuindex.txt \
+		src/menuindexentries.h \
 		doc/userguide.rst \
 		doc/INSTALL.aux \
 		doc/INSTALL.log \
@@ -78,8 +79,12 @@ clean: platform_clean doxygen_clean
 	$(call rm_dir, doc/cam)
 	$(call rm_dir, $(BINARIES_PATH))
 
-
-zip: all docs
+# We must build the docs first to use fresh doc/menuindex.txt
+# during 'make all'. We can't write 'zip: all docs' because
+# of possible problem in case of parallel build.
+# (see make's '-j' option documentation)
+zip: docs
+	$(MAKE) all
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 docs:
