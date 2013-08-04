@@ -3657,36 +3657,20 @@ menu_redraw_do()
     #endif
 }
 
-/*
-
-static int _t = 0;
-static int _get_timestamp(struct tm * t)
-{
-    return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
-}
-static void _tic()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    _t = _get_timestamp(&now);
-}
-static int _toc()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    return _get_timestamp(&now) - _t;
-}
-
-
 void menu_benchmark()
 {
-    _tic();
-    for (int i = 0; i < 500; i++) menu_redraw_do();
-    int t = _toc();
+    SetGUIRequestMode(1);
+    msleep(1000);
+    int t0 = get_ms_clock_value();
+    for (int i = 0; i < 500; i++)
+    {
+        menu_redraw_do();
+        bmp_printf(FONT_MED, 0, 0, "%d%% ", i/5);
+    }
+    int t1 = get_ms_clock_value();
     clrscr();
-    NotifyBox(20000, "Elapsed time: %d seconds", t);
+    NotifyBox(20000, "Elapsed time: %d ms", t1 - t0);
 }
-*/
 
 static struct msg_queue * menu_redraw_queue = 0;
 

@@ -3416,6 +3416,7 @@ extern MENU_UPDATE_FUNC(tasks_print);
 extern MENU_UPDATE_FUNC(batt_display);
 extern MENU_SELECT_FUNC(tasks_toggle_flags);
 extern void peaking_benchmark();
+extern void menu_benchmark();
 
 extern int show_cpu_usage_flag;
 
@@ -3734,6 +3735,12 @@ static struct menu_entry debug_menus[] = {
                 .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
             },
             #endif
+            {
+                .name = "Menu benchmark (10s)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = menu_benchmark,
+                .help = "Check speed of menu backend."
+            },
             MENU_EOL,
         }
     },
