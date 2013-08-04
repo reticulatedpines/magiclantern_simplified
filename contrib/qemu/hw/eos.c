@@ -1,4 +1,3 @@
-
 #include "hw/hw.h"
 #include "hw/loader.h"
 #include "sysemu/sysemu.h"
@@ -89,7 +88,7 @@ static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
         case REG_PRINT_CHAR:
             printf("%c", (uint8_t)val);
             return;
-        
+
         case REG_PRINT_NUM:
             printf("%x (%d)\n", (uint32_t)val, (uint32_t)val);
             return;
@@ -133,22 +132,22 @@ static void eos_load_image(EOSState *s, const char* file, uint32_t addr)
     }
 
     fprintf(stderr, "[EOS] loading '%s' to 0x%08X-0x%08X\n", file, addr, size + addr - 1);
-    
+
     uint8_t* buf = malloc(size);
     if (!buf)
     {
         fprintf(stderr, "%s: malloc error loading '%s'\n", __FUNCTION__, file);
         abort();
     }
-    
+
     if (load_image(file, buf) != size)
     {
         fprintf(stderr, "%s: error loading '%s'\n", __FUNCTION__, file);
         abort();
     }
-    
+
     cpu_physical_memory_write_rom(addr, buf, size);
-    
+
     free(buf);
 }
 
@@ -189,7 +188,7 @@ static void *eos_interrupt_thread(void *parm)
                     }
 
                     s->irq_id = pos;
-                    cpu_interrupt(&(s->cpu->env), CPU_INTERRUPT_HARD);
+                    cpu_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
                 }
             }
 
@@ -305,7 +304,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     eos_load_image(s, rom_filename,      0xF7000000);
 
     eos_load_image(s, "autoexec.bin",    0x00800000);
-    
+
     /* we will replace Canon stubs with our own implementations */
     /* see qemu-helper.c, stub_mappings[] */
     eos_load_image(s, "qemu-helper.bin", Q_HELPER_ADDR);
@@ -327,7 +326,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
         uint32_t jmp[] = {FAR_CALL_INSTR, new};
         printf("[QEMU_HELPER] stub %x -> %x\n", old, new);
         cpu_physical_memory_write_rom(old, (uint8_t*)jmp, 8);
-        
+
         addr += 8;
         if (addr > 0x30100000) { fprintf(stderr, "stub list error\n"); abort(); }
     }
@@ -521,7 +520,7 @@ unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
     {
         printf("[EOS] trigger int 0x%02X\n", id);
         ws->irq_id = id;
-        cpu_interrupt(&(ws->cpu->env), CPU_INTERRUPT_HARD);
+        cpu_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
     }
     else
     {
@@ -565,7 +564,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
                     printf("[Int] Enabled interrupt ID 0x%02X PC: [0x%08X]\r\n", value, pc);
                 }
 
-                cpu_reset_interrupt(&(ws->cpu->env), CPU_INTERRUPT_HARD);
+                cpu_reset_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
                 ws->irq_id = 0;
                 ws->irq_enabled[value] = 1;
                 return 0;
@@ -659,7 +658,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
                 /* master woke up on 7D */
                 ret = 0;
             }
-            
+
             if((address & 0xFFF) == 0x070)
             {
                 /* VIDEO on 600D */
@@ -795,7 +794,7 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
                         remain -= transfer;
                     }
                     free(buf);
-                    
+
                     printf("[DMA%i] OK\n", parm);
 
                     eos_trigger_int(ws, interruptId[parm], 0);
@@ -926,13 +925,13 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *ws, unsigned int addr
                 switch(ws->rtc.transfer_format)
                 {
                     /* no special mode */
-                    case 0xFF:        
+                    case 0xFF:
                     {
                         uint8_t cmd = value & 0x0F;
                         uint8_t reg = (value>>4) & 0x0F;
                         ws->rtc.transfer_format = cmd;
                         ws->rtc.current_reg = reg;
-                
+
                         switch(cmd)
                         {
                             /* burst writing */
@@ -944,39 +943,39 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *ws, unsigned int addr
                             /* 1 byte reading */
                             case 0x0C:
                                 break;
-                                
+
                             default:
                                 printf("[SIO%i] RTC: Requested invalid transfer mode 0x%02X at PC: 0x%08X\r\n", parm, value, pc );
                                 break;
                         }
                     }
-                    
+
                     /* burst writing */
                     case 0x00:
                         ws->rtc.regs[ws->rtc.current_reg] = value;
                         ws->rtc.current_reg++;
                         ws->rtc.current_reg %= 0x10;
                         break;
-                        
+
                     /* burst reading */
                     case 0x04:
                         last_sio_data = ws->rtc.regs[ws->rtc.current_reg];
                         ws->rtc.current_reg++;
                         ws->rtc.current_reg %= 0x10;
                         break;
-                        
+
                     /* 1 byte writing */
                     case 0x08:
                         ws->rtc.regs[ws->rtc.current_reg] = value;
                         ws->rtc.transfer_format = 0xFF;
                         break;
-                        
+
                     /* 1 byte reading */
                     case 0x0C:
                         last_sio_data = ws->rtc.regs[ws->rtc.current_reg];
                         ws->rtc.transfer_format = 0xFF;
                         break;
-               
+
                     default:
                         break;
                 }
@@ -1025,7 +1024,7 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *ws, unsigned int addr
             if(type & MODE_WRITE)
             {
                 last_sio_data = value;
-                
+
                 printf("[SIO%i] Write to TX register PC: 0x%08X\r\n", parm, pc);
                 return 0;
             }
@@ -1043,7 +1042,7 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *ws, unsigned int addr
             else
             {
                 printf("[SIO%i] Read from RX register PC: 0x%08X  read: 0x%02X\r\n", parm, pc, last_sio_data);
-                
+
                 return last_sio_data;
             }
     }
@@ -1082,7 +1081,6 @@ unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int addr
     }
     return ret;
 }
-
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {

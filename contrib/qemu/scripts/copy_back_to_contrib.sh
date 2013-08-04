@@ -2,8 +2,11 @@
 
 # run this if you make changes to qemu and want to commit them back into ML tree
 
-cp -v *.sh gdbopts ../magic-lantern/contrib/qemu/scripts
-cp -v qemu-1.4.0/hw/eos.c qemu-1.4.0/hw/eos.h ../magic-lantern/contrib/qemu/hw
+QEMU_PATH=qemu-1.5.0
+ML=magic-lantern
 
-cd ../magic-lantern/contrib/qemu/
+cp -v *.sh gdbopts ../$ML/contrib/qemu/scripts
+cp -v $QEMU_PATH/hw/arm/eos.c $QEMU_PATH/hw/arm/eos.h ../$ML/contrib/qemu/hw
+
+cd ../$ML/contrib/qemu/
 hg diff .

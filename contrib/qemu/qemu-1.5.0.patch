@@ -1,0 +1,74 @@
+commit e78e4086013e25c425d13124c05f539a82e5223f
+Author: Antony Pavlov <antonynpavlov@gmail.com>
+Date:   Sun Jul 28 22:56:37 2013 +0400
+
+    original ML qemu patch adapted for qemu-1.5.0
+    
+    Signed-off-by: Antony Pavlov <antonynpavlov@gmail.com>
+
+diff --git a/hw/arm/Makefile.objs b/hw/arm/Makefile.objs
+index 9e3a06f..b6a67b0 100644
+--- a/hw/arm/Makefile.objs
++++ b/hw/arm/Makefile.objs
+@@ -2,6 +2,7 @@ obj-y += boot.o collie.o exynos4_boards.o gumstix.o highbank.o
+ obj-y += integratorcp.o kzm.o mainstone.o musicpal.o nseries.o
+ obj-y += omap_sx1.o palm.o pic_cpu.o realview.o spitz.o stellaris.o
+ obj-y += tosa.o versatilepb.o vexpress.o xilinx_zynq.o z2.o
++obj-y += eos.o
+ 
+ obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
+ obj-y += omap1.o omap2.o strongarm.o
+diff --git a/memory.c b/memory.c
+index 75ca281..fbafdc0 100644
+--- a/memory.c
++++ b/memory.c
+@@ -1327,7 +1327,7 @@ static void memory_region_add_subregion_common(MemoryRegion *mr,
+                          int128_make64(other->addr))) {
+             continue;
+         }
+-#if 0
++#if 1
+         printf("warning: subregion collision %llx/%llx (%s) "
+                "vs %llx/%llx (%s)\n",
+                (unsigned long long)offset,
+@@ -1355,6 +1355,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
+                                  hwaddr offset,
+                                  MemoryRegion *subregion)
+ {
++    fprintf(stderr, "%08X - %08X: %s\n",
++                     (int)offset, (int)offset + (int)subregion->size.lo - 1,
++                     subregion->name);
+     subregion->may_overlap = false;
+     subregion->priority = 0;
+     memory_region_add_subregion_common(mr, offset, subregion);
+diff --git a/target-arm/cpu.c b/target-arm/cpu.c
+index 496a59f..5d4c689 100644
+--- a/target-arm/cpu.c
++++ b/target-arm/cpu.c
+@@ -244,6 +244,18 @@ static void arm926_initfn(Object *obj)
+     cpu->reset_sctlr = 0x00090078;
+ }
+ 
++static void arm946eos_initfn(Object *obj)
++{
++    ARMCPU *cpu = ARM_CPU(obj);
++    set_feature(&cpu->env, ARM_FEATURE_V5);
++    set_feature(&cpu->env, ARM_FEATURE_MPU);
++    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
++    cpu->midr = 0x41059461;
++    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
++             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
++    cpu->reset_sctlr = 0x00000078;
++}
++
+ static void arm946_initfn(Object *obj)
+ {
+     ARMCPU *cpu = ARM_CPU(obj);
+@@ -766,6 +778,7 @@ typedef struct ARMCPUInfo {
+ 
+ static const ARMCPUInfo arm_cpus[] = {
+     { .name = "arm926",      .initfn = arm926_initfn },
++    { .name = "arm946eos",   .initfn = arm946eos_initfn },
+     { .name = "arm946",      .initfn = arm946_initfn },
+     { .name = "arm1026",     .initfn = arm1026_initfn },
+     /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
