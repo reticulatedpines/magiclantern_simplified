@@ -2,20 +2,21 @@
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=raw_rec
 MODULE_OBJS=raw_rec.o mlv.o
+LFS_FLAGS=$(shell getconf LFS_CFLAGS)
 
 # include modules environment
 include ../Makefile.modules
 
 all:: raw2dng
 
-mlv_dump: mlv_dump.c
-	$(call build,GCC,gcc -c mlv_dump.c -o mlv_dump)
-
 # RAW to DNG converter for PC
 raw2dng: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
 	$(call build,GCC,gcc -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR))
 	$(call build,GCC,gcc -c ../lv_rec/raw2dng.c -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64)
 	$(call build,GCC,gcc raw2dng.o chdk-dng.o -o raw2dng -lm -m32)
+
+mlv_dump: mlv_dump.c
+	$(call build,GCC,gcc mlv_dump.c -o mlv_dump -m32 -O2 -Wall -I$(SRC_DIR) $(LFS_FLAGS))
 
 # debug tool
 dng2raw: dng2raw.c
@@ -28,5 +29,8 @@ raw2dng.exe: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
 	$(call build,MINGW,$(MINGW) -c ../lv_rec/raw2dng.c -m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64)
 	$(call build,MINGW,$(MINGW) raw2dng.o chdk-dng.o -o raw2dng.exe -lm -m32)
 
+mlv_dump.exe: mlv_dump.c
+	$(call build,MINGW,$(MINGW) -c mlv_dump.c -o mlv_dump -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64)
+
 clean::
-	$(call rm_files, raw2dng, mlv_dump)
+	$(call rm_files, raw2dng mlv_dump)
