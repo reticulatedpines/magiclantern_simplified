@@ -518,32 +518,25 @@ static int hdr_check()
         raw2ev[i] = log2(MAX(1, i - black));
 
     int x, y;
-    double avg_ev[4] = {0, 0, 0, 0};
-    int num[4] = {0, 0, 0, 0};
+    double avg_ev = 0;
+    int num = 0;
     for (y = 2; y < h-2; y ++)
     {
         for (x = 2; x < w-2; x ++)
         {
             int p = raw_get_pixel16(x, y);
             int p2 = raw_get_pixel16(x, y+2);
-            if (p < white && p2 < white)
+            if (p > black+32 && p2 > black+32 && p < white && p2 < white)
             {
-                avg_ev[y%4] += raw2ev[p & 16383];
-                num[y%4]++;
+                avg_ev += ABS(raw2ev[p2] - raw2ev[p]);
+                num++;
             }
         }
     }
-
-    double min_ev = 100;
-    double max_ev = 0;
-    for (i = 0; i < 4; i++)
-    {
-        avg_ev[i] /= num[i];
-        min_ev = MIN(min_ev, avg_ev[i]);
-        max_ev = MAX(max_ev, avg_ev[i]);
-    }
     
-    if (max_ev - min_ev > 0.5)
+    avg_ev /= num;
+
+    if (avg_ev > 0.5)
         return 1;
     
     return 0;
