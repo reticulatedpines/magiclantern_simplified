@@ -24,6 +24,8 @@
 #ifndef _arm_mcr_h_
 #define _arm_mcr_h_
 
+#define inline inline __attribute__((always_inline))
+
 asm(
     ".text\n"
     ".align 4\n"
