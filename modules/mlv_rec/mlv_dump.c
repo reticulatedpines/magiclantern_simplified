@@ -31,9 +31,13 @@
 int main (int argc, char *argv[])
 {
     lv_rec_file_footer_t lv_rec_footer;
+    mlv_file_hdr_t main_header;
+    
     char *frame_buffer = NULL;
+    int seq_number = 0;
     
     lv_rec_footer.frameCount = 0;
+    main_header.fileCount = 0;
     
     if(argc < 2)
     {
@@ -70,11 +74,36 @@ int main (int argc, char *argv[])
     {
         mlv_hdr_t buf;
         
+read_headers:
         if(fread(&buf, sizeof(mlv_hdr_t), 1, file) != 1)
         {
             printf("End of file\n");
-            break;
+            fclose(file);
+            file = NULL;
+            
+            /* check for the next file M00, M01 etc */
+            char seq_name[3];
+            char *next_name = malloc(strlen(argv[1]) + 1);
+            
+            sprintf(seq_name, "%02d", seq_number);
+            seq_number++;
+            
+            strcpy(next_name, argv[1]);
+            strcpy(&next_name[strlen(next_name) - 2], seq_name);
+            
+            /* try to open */
+            file = fopen(next_name, "r");
+            if(!file)
+            {
+                break;
+            }
+            
+            /* fine, it is available. so lets restart reading */
+            printf("Opened file '%s'\n", next_name);
+            
+            goto read_headers;
         }
+        
         fseek(file, -sizeof(mlv_hdr_t), SEEK_CUR);
         
         /* file header */
@@ -97,6 +126,21 @@ int main (int argc, char *argv[])
             printf("    Frames Video: %d\n", file_hdr.videoFrameCount);
             printf("    Frames Audio: %d\n", file_hdr.audioFrameCount);
             
+            /* is this the first file? */
+            if(main_header.fileCount == 0)
+            {
+                memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
+            }
+            else
+            {
+                /* no, its another chunk */
+                if(main_header.fileGuid != file_hdr.fileGuid)
+                {
+                    printf("Error: GUID within the file chunks mismatch!\n");
+                    break;
+                }
+            }
+            
             if(out_file)
             {
                 lv_rec_footer.frameCount += file_hdr.videoFrameCount;
@@ -106,8 +150,11 @@ int main (int argc, char *argv[])
         }
         else
         {
+            uint64_t position = ftello(file);
+            
             printf("Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
             printf("    Size: 0x%08X\n", buf.blockSize);
+            printf("  Offset: 0x%llX\n", position);
             
             /* NULL blocks usually dont have timestamps */
             if(memcmp(buf.blockType, "NULL", 4))
@@ -330,7 +377,11 @@ int main (int argc, char *argv[])
     }
     while(!feof(file));
     
-    fclose(file);
+    if(file)
+    {
+        fclose(file);
+    }
+    
     if(out_file)
     {
         fseek(out_file, 0, SEEK_END);
