@@ -66,10 +66,12 @@
 #include <raw.h>
 #include <lens.h>
 #include <math.h>
+#include <fileprefix.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 4);
 static CONFIG_INT("isoless.alt", isoless_alternate, 0);
+static CONFIG_INT("isoless.prefix", isoless_file_prefix, 0);
 
 #define ISOLESS_AUTO (isoless_recovery_iso == 8)
 
@@ -100,6 +102,7 @@ static uint32_t CMOS_EXPECTED_FLAG = 0;
 
 #define CMOS_ISO_MASK ((1 << CMOS_ISO_BITS) - 1)
 #define CMOS_FLAG_MASK ((1 << CMOS_FLAG_BITS) - 1)
+
 
 static int isoless_auto_iso_index;
 
@@ -294,7 +297,26 @@ static unsigned int isoless_refresh(unsigned int ctx)
             if (err) { NotifyBox(10000, "ISOless LV err(%d)", err); enabled_lv = 0; }
         }
     }
-    
+
+    if (isoless_file_prefix && setting_changed)
+    {
+        /* hack: this may when file_number is updated;
+         * if so, it will rename the previous picture, captured with the old setting,
+         * so it will mis-label the pics */
+        if (lens_info.job_state)
+            msleep(500);
+        
+        static int prefix_key = 0;
+        if (enabled_ph)
+        {
+            prefix_key = file_prefix_set("DUAL");
+        }
+        else
+        {
+            file_prefix_reset(prefix_key);
+        }
+    }
+
     return 0;
 }
 
@@ -596,6 +618,13 @@ static struct menu_entry isoless_menu[] =
                 .max = 1,
                 .help = "Shoot one image with the hack, one without.",
             },
+            {
+                .name = "Custom file prefix",
+                .priv = &isoless_file_prefix,
+                .max = 1,
+                .choices = CHOICES("OFF", "DUAL"),
+                .help  = "Change file prefix for dual ISO photos (e.g. DUAL0001.CR2).",
+            },
             MENU_EOL,
         },
     },
@@ -669,4 +698,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(isoless_hdr)
     MODULE_CONFIG(isoless_recovery_iso)
     MODULE_CONFIG(isoless_alternate)
+    MODULE_CONFIG(isoless_file_prefix)
 MODULE_CONFIGS_END()
