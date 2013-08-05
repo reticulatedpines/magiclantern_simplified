@@ -1425,12 +1425,6 @@ static int32_t FAST process_frame()
     {
         /* card too slow */
         frame_skips++;
-        if (allow_frame_skip)
-        {
-            bmp_printf( FONT_MED, 30, 70, 
-                "Skipping frames...   "
-            );
-        }
         return 0;
     }
     
@@ -1765,6 +1759,7 @@ static void raw_writer_task(uint32_t writer)
         mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
     }
+    written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
     trace_write(trace_ctx, "   --> WRITER#%d: writing headers done", writer);
     
     /* main recording loop */
@@ -1829,26 +1824,36 @@ static void raw_writer_task(uint32_t writer)
                 trace_write(trace_ctx, "   --> WRITER#%d: write error: %d", writer, r);
                 
                 /* it failed right away? card must be full */
-                if (written[writer] == 0) goto abort;
+                if (written[writer] == 0)
+                {
+                    trace_write(trace_ctx, "   --> WRITER#%d: write error: could not write anything, exiting", writer);
+                    goto abort;
+                }
 
                 if (r == -1)
                 {
+                    trace_write(trace_ctx, "   --> WRITER#%d: write error: write failed, writing partially...", writer);
+                    
                     /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    //if ((uint64_t)written_chunk + write_job.block_size > 4294967295)
-                    if (1) // renato says it's not working?!
-                    {
-                        r = 4294967295 - written_chunk;
-                        
-                        /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
-                        /* this one should cover both cases in a portable way */
-                        /* on 5D2 will succeed, on 5D3 should fail right away */
-                        FIO_WriteFile(f, write_job.block_ptr, r);
-                    }
-                    else /* idk */
-                    {
-                        r = 0;
-                    }
+                    r = 0xFFFFFFFFUL - written_chunk;
+                    
+                    /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
+                    /* this one should cover both cases in a portable way */
+                    /* on 5D2 will succeed, on 5D3 should fail right away */
+                    uint32_t part = FIO_WriteFile(f, write_job.block_ptr, r);
+                    trace_write(trace_ctx, "   --> WRITER#%d: write error: wrote another %d of %d bytes", writer, part, r);
                 }
+                
+                /* on both firmware variants we have now written exactly 0xFFFFFFFF bytes, NULL out the partial written block */
+                mlv_hdr_t null_hdr;
+                
+                mlv_set_type(&null_hdr, "NULL");
+                null_hdr.blockSize = r;
+                uint32_t new_pos = FIO_SeekFile(f, -r, SEEK_CUR);
+                trace_write(trace_ctx, "   --> WRITER#%d: writing NULL at pos 0x%08X", writer, new_pos);
+                
+                /* rewrite only the header part, no payload */
+                FIO_WriteFile(f, &null_hdr, sizeof(mlv_hdr_t));
                 
                 /* rewrite header */
                 file_header.videoFrameCount = frames_written;
@@ -1872,6 +1877,7 @@ static void raw_writer_task(uint32_t writer)
                 {
                     chunk_filename[writer][0] = 'A';
                 }
+                trace_write(trace_ctx, "   --> WRITER#%d: new file: '%s'", writer, chunk_filename[writer]);
                 
                 f = FIO_CreateFileEx(chunk_filename[writer]);
                 if (f == INVALID_PTR) goto abort;
@@ -1881,11 +1887,13 @@ static void raw_writer_task(uint32_t writer)
                 file_header.videoFrameCount = 0;
                 file_header.audioFrameCount = 0;
                 mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
+                written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
                 
-                /* write the remaining data in the new chunk */
-                int32_t r2 = FIO_WriteFile(f, write_job.block_ptr + r, write_job.block_size - r);
-                if (r2 == (int32_t)write_job.block_size - r) /* new chunk worked, continue with it */
+                /* write the whole block in the new chunk */
+                int32_t r2 = FIO_WriteFile(f, write_job.block_ptr, write_job.block_size);
+                if (r2 == (int32_t)write_job.block_size) /* new chunk worked, continue with it */
                 {
+                    trace_write(trace_ctx, "   --> WRITER#%d: wrote data to new file, all fine");
                     written[writer] += write_job.block_size / 1024;
                     written_chunk = r2;
                 }
@@ -2078,6 +2086,21 @@ static void raw_video_rec_task()
             msg_queue_post(mlv_block_queue, wbal_hdr);
         }
         
+        uint32_t used_slots = 0;
+        uint32_t writing_slots = 0;
+        for(int32_t slot = 0; slot < slot_count; slot++)
+        {
+            if(slots[slot].status != SLOT_FREE)
+            {
+                used_slots++;
+            }
+            if(slots[slot].status == SLOT_WRITING)
+            {
+                writing_slots++;
+            }
+        }
+        trace_write(trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
+        
         /* in out of order mode do that expensive precalculation in an extra task */
         write_job_t write_job;
         
@@ -2171,6 +2194,13 @@ static void raw_video_rec_task()
                     {
                         trace_write(trace_ctx, "<-- careful, will overflow in %d.%d seconds, better write only %d frames", overflow_time/10, overflow_time%10, frame_limit);
                         write_job.block_len = MAX(1, frame_limit - 2);
+                        write_job.block_size = 0;
+                        
+                        /* now fix the buffer size to write */
+                        for(int32_t slot = write_job.block_start; slot < write_job.block_start + write_job.block_len; slot++)
+                        {
+                            write_job.block_size += slots[slot].size;
+                        }
                     }
                 }
 
