@@ -95,6 +95,7 @@ struct raw_info raw_info = {
 static int hdr_check();
 static int hdr_interpolate();
 static int black_subtract(int left_margin, int top_margin);
+static int black_subtract_simple(int left_margin, int top_margin);
 static int white_detect();
 
 static inline int raw_get_pixel16(int x, int y) {
@@ -247,6 +248,10 @@ int main(int argc, char** argv)
 
                 raw_info.black_level *= 4;
                 raw_info.white_level *= 4;
+
+                /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
+                black_subtract_simple(left_margin, top_margin);
+
                 reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
                 printf("Output file    : %s\n", out_filename);
@@ -502,6 +507,56 @@ static int black_subtract(int left_margin, int top_margin)
     return 1;
 }
 
+
+static int black_subtract_simple(int left_margin, int top_margin)
+{
+    if (left_margin < 10) return 0;
+    if (top_margin < 10) return 0;
+    
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    /* average left bar */
+    int x,y;
+    long long avg = 0;
+    int num = 0;
+    for (y = 0; y < h; y++)
+    {
+        for (x = 2; x < left_margin - 8; x++)
+        {
+            int p = raw_get_pixel16(x, y);
+            if (p > 0)
+            {
+                avg += p;
+                num++;
+            }
+        }
+    }
+    
+    int new_black = avg / num;
+        
+    int black_delta = raw_info.black_level - new_black;
+    printf("Black adjust   : %d\n", (int)black_delta);
+
+    /* "subtract" the dark frame, keeping the exif black level and preserving the white level */
+    for (y = 0; y < h; y++)
+    {
+        for (x = 0; x < w; x++)
+        {
+            double p = raw_get_pixel16(x, y);
+            if (p > 0)
+            {
+                p += black_delta;
+                p = p * raw_info.white_level / (raw_info.white_level + black_delta);
+                p = COERCE(p, 0, 65535);
+                raw_set_pixel16(x, y, p);
+            }
+        }
+    }
+    
+    return 1;
+}
+
 /* quick check to see if this looks like a HDR frame */
 static int hdr_check()
 {
@@ -555,7 +610,7 @@ static int median_short(short* x, int n)
     return ans;
 }
 
-static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_delta)
+static int estimate_iso(short* dark, short* bright, double* corr_ev, int* black_delta)
 {
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
     /* method: for each X (dark image) level, compute median of corresponding Y (bright image) values */
@@ -861,8 +916,12 @@ static int hdr_interpolate()
 
     /* for fast EV - raw conversion */
     static int raw2ev[16384];   /* EV x EV_RESOLUTION */
-    static int ev2raw[14*EV_RESOLUTION];
-    static int ev2raw16[14*EV_RESOLUTION]; /* from 14-bit to 16-bit */
+    static int ev2raw_0[24*EV_RESOLUTION];
+    static int ev2raw16_0[24*EV_RESOLUTION]; /* from 14-bit to 16-bit */
+    
+    /* handle sub-black values (negative EV) */
+    int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
+    int* ev2raw16 = ev2raw16_0 + 10*EV_RESOLUTION;
     
     /* RGGB or GBRG? */
     double rggb_err = 0;
@@ -890,17 +949,39 @@ static int hdr_interpolate()
 
     int i;
     for (i = 0; i < 16384; i++)
-        raw2ev[i] = (int)round(log2(MAX(1, i - black)) * EV_RESOLUTION);
+    {
+        int signal = MAX(i - black, -1023);
+        if (signal > 0)
+            raw2ev[i] = (int)round(log2(1+signal) * EV_RESOLUTION);
+        else
+            raw2ev[i] = -(int)round(log2(1-signal) * EV_RESOLUTION);
+    }
+
+    for (i = -10*EV_RESOLUTION; i < 0; i++)
+    {
+        ev2raw[i] = COERCE(black+1 - pow(2, ((double)-i/EV_RESOLUTION)), 0, black);
+        ev2raw16[i] = COERCE((black+1)*4 - pow(2, ((double)-i/EV_RESOLUTION))*4.0, 0, black*4);
+    }
+
     for (i = 0; i < 14*EV_RESOLUTION; i++)
     {
-        ev2raw[i] = COERCE(black + pow(2, ((double)i/EV_RESOLUTION)), black, white);
-        ev2raw16[i] = COERCE(black*4 + pow(2, ((double)i/EV_RESOLUTION))*4.0, black*4, white*4);
+        ev2raw[i] = COERCE(black-1 + pow(2, ((double)i/EV_RESOLUTION)), black, white);
+        ev2raw16[i] = COERCE((black-1) * 4 + pow(2, ((double)i/EV_RESOLUTION))*4.0, black*4, white*4);
+        
         if (i >= raw2ev[white])
         {
             ev2raw[i] = white;
             ev2raw16[i] = white * 4;
         }
     }
+    
+    /* keep "bad" pixels, if any */
+    ev2raw[raw2ev[0]] = 0;
+    ev2raw[raw2ev[0]] = 0;
+    
+    /* check raw <--> ev conversion */
+    //~ printf("%d %d %d %d %d %d %d\n", raw2ev[0], raw2ev[1000], raw2ev[2000], raw2ev[2047], raw2ev[2048], raw2ev[2049], raw2ev[2050]);
+    //~ printf("%d %d %d %d %d %d %d\n", ev2raw[raw2ev[0]], ev2raw[raw2ev[1000]], ev2raw[raw2ev[2000]], ev2raw[raw2ev[2047]], ev2raw[raw2ev[2048]], ev2raw[raw2ev[2049]], ev2raw[raw2ev[2050]]);
 
     /* first we need to know which lines are dark and which are bright */
     /* the pattern is not always the same, so we need to autodetect it */
@@ -1517,11 +1598,11 @@ static int hdr_interpolate()
 
     printf("Estimating ISO difference...\n");
     /* estimate ISO and black difference between bright and dark exposures */
-    float corr_ev = 0;
+    double corr_ev = 0;
     int black_delta = 0;
     int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
     if (!ok) goto err;
-    int corr = (int)roundf(corr_ev * EV_RESOLUTION);
+    double corr = pow(2, corr_ev);
 
 
     /* mix the two images */
@@ -1634,15 +1715,16 @@ static int hdr_interpolate()
             int ds = d;
             #endif
 
-            /* go from linear to EV space */
-            int bev = raw2ev[b0 & 16383];
-            int dev = raw2ev[d & 16383];
-            int bsev = raw2ev[b0s & 16383];
-            int dsev = raw2ev[ds & 16383];
+            /* darken bright pixel so it looks like its darker sibling */
+            /* this is best done in linear space, to handle values under black level */
+            int bd = (b0 - black) / corr + black;
+            int bsd = (b0s - black) / corr + black;
 
-            /* darken bright pixel so it looks like its darker sibling  */
-            bev -= corr;
-            bsev -= corr;
+            /* go from linear to EV space */
+            int bev = raw2ev[bd & 16383];
+            int dev = raw2ev[d & 16383];
+            int bsev = raw2ev[bsd & 16383];
+            int dsev = raw2ev[ds & 16383];
 
             /* blending factors */
             int k = mix_curve[b0 & 16383];
@@ -1696,12 +1778,10 @@ static int hdr_interpolate()
             }
             
             /* safeguard */
-            output = COERCE(output, 0, 14*EV_RESOLUTION-1);
+            output = COERCE(output, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1);
             
             /* back to linear space and commit */
-            raw_set_pixel16(x, y, ev2raw16[output] + black_delta/8);
-            
-            /* fixme: why black_delta/8? it looks good for the Batman shot, but why? */
+            raw_set_pixel16(x, y, ev2raw16[output]);
         }
     }
     
