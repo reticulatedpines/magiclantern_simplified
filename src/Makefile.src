@@ -166,6 +166,7 @@ ML_SRC_OBJS = \
 	crop-mode-hack.o \
 	ph_info_disp.o \
 	flexinfo.o \
+	fileprefix.o \
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 
