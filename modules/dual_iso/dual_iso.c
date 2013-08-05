@@ -327,6 +327,10 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
     
     if (!isoless_hdr) return 0;
     if (!is_play_or_qr_mode()) return 0;
+    
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(1000, &aux))
+        return 0;
 
     uint32_t* lv = (uint32_t*)get_yuv422_vram()->vram;
 
@@ -347,7 +351,7 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
         int num = 0;
         for(int y = os.y0; y < os.y_max; y ++ )
         {
-            for (int x = os.x0; x < os.x_max; x += 2)
+            for (int x = os.x0; x < os.x_max; x += 32)
             {
                 uint32_t uyvy = lv[BM2LV(x,y)/4];
                 int luma = (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1);
@@ -690,7 +694,7 @@ MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, 0)
-    MODULE_CBR(CBR_SECONDS_CLOCK, isoless_playback_fix, 0)
+    MODULE_CBR(CBR_SHOOT_TASK, isoless_playback_fix, 0)
     MODULE_CBR(CBR_SHOOT_TASK, isoless_auto_step, 0)
 MODULE_CBRS_END()
 
