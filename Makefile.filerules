@@ -34,7 +34,7 @@ all::
 %.o: %.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.bin: %
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@) 
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 	$(call build,STAT,$(STAT_CMD) $@)
 
 %-stubs.S: %.map
