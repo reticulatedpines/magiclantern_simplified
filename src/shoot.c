@@ -742,7 +742,6 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 }
 
 static int zoom_was_triggered_by_halfshutter = 0;
-static int lv_zoom_ack = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
@@ -756,7 +755,6 @@ ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
     zoom_auto_exposure_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
-    lv_zoom_ack = 1;
 }
 #endif // FEATURE_LV_ZOOM_SETTINGS
 
@@ -773,9 +771,7 @@ void set_lv_zoom(int zoom)
     if (hs) SW1(0,0);
     ui_lock(UILOCK_EVERYTHING);
     #endif
-    lv_zoom_ack = 0;
-    prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
-    while (!lv_zoom_ack) msleep(10);
+    prop_request_change_wait(PROP_LV_DISPSIZE, &zoom, 4, 1000);
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
     ui_lock(UILOCK_NONE);
     if (hs) SW1(1,0);
