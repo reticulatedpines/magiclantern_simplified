@@ -27,6 +27,7 @@
 #include "compiler.h"
 #include "consts.h"
 #include "fw-signature.h"
+#include <version.h>
 
 #ifdef __ARM__
 asm(
@@ -38,7 +39,29 @@ asm(
        so cut the first 0x120 bytes off autoexec.bin before embedding into .fir
      */
     "B       skip_fir_header\n"
-    ".incbin \"version.bin\"\n" // this must have exactly 0x11C (284) bytes
+
+#define ML_HEADER_VERSION_PAIR(NAME, VALUE) \
+    ".ascii  \"" NAME "\"" "\"" VALUE "\"\n"
+#define ML_HEADER_VERSION_NL \
+    ".ascii  \"\\n\"\n"
+
+    ".ascii  \"\b\b\b\b\"\n"
+
+    ML_HEADER_VERSION_PAIR("Magic Lantern ", ML_VERSION)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Mercurial changeset: ", ML_HG_ID)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Built on ", ML_TIMESTAMP)
+    ML_HEADER_VERSION_PAIR(" by ", ML_COMPILE_BY)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Camera  : ", ML_CAMERA_MODEL)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Firmware: ", ML_FW_VERSION)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_NL
+
+    ".org    0x120\n"
     "skip_fir_header:\n"
 
     "MRS     R0, CPSR\n"

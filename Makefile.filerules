@@ -13,25 +13,25 @@ all::
 # file type rules
 #
 #
-%.s: %.c
+%.s: %.c prepare FORCE
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.sym: %
+%.sym: % prepare FORCE
 	$(call build,SYMBOLS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) -E 'FUNC|OBJECT|ABS' | $(AWK) '{print $$2 " " $$8;}' | $(GREP) -v '^ ' | $(GREP) -v __config_ | $(GREP) -v -E ' _[a-zA-Z]' | sort > $@)
-%.o: $(PLATFORM_DIR)/%.c
+%.o: $(PLATFORM_DIR)/%.c prepare FORCE
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(SRC_DIR)/%.c
+%.o: $(SRC_DIR)/%.c prepare FORCE
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PICOC_PATH)/%.c
+%.o: $(PICOC_PATH)/%.c prepare FORCE
 	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -fwhole-program -o $@ $<)
-%.i: %.c
+%.i: %.c prepare FORCE
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
-%: %.c
+%: %.c prepare FORCE
 	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: $(PLATFORM_DIR)/%.S
+%.o: $(PLATFORM_DIR)/%.S prepare FORCE
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
-%.o: $(SRC_DIR)/%.S
+%.o: $(SRC_DIR)/%.S prepare FORCE
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
-%.o: %.c
+%.o: %.c prepare FORCE
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)

@@ -25,6 +25,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <generated/compile.h>
+#include <platform/generated/compile.h>
+
 extern const char build_version[];
 extern const char build_id[];
 extern const char build_date[];
