@@ -562,8 +562,9 @@ OS_FUNCTION( 0x0600001,	void,	prop_request_change, unsigned property, const void
  * 
  * Returns 0 on success.
  */
-OS_FUNCTION( 0x0600002,	int,	prop_get_value, unsigned property, void** addr, size_t* len );
+//~ OS_FUNCTION( 0x0600002,	int,	prop_get_value, unsigned property, void** addr, size_t* len );
 
+int prop_request_change_wait(unsigned property, const void* addr, size_t len, int timeout);
 
 extern void
 prop_deliver(
@@ -576,7 +577,8 @@ prop_deliver(
 struct prop_handler
 {
         unsigned        property;
-        unsigned        property_length;
+        uint16_t        property_length;
+        uint16_t        property_ack;
 
         void          (*handler)(
                 unsigned                property,

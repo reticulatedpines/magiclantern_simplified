@@ -37,7 +37,7 @@ static void global_token_handler(void * token)
     global_token = token;
 }
 
-static int current_prop_handler = 0;
+//~ static int current_prop_handler = 0;
 
 static void *
 global_property_handler(
@@ -63,12 +63,15 @@ global_property_handler(
                 handler->property_length = len;
             }
             
+            /* signal that our property handler has fired */
+            handler->property_ack = 1;
+            
             /* execute handler, if any */
             if(handler->handler != NULL)
             {
-                current_prop_handler = property;
+                //~ current_prop_handler = property;
                 handler->handler(property, priv, buf, len);
-                current_prop_handler = 0;
+                //~ current_prop_handler = 0;
             }
         }
     }
@@ -245,6 +248,35 @@ static uint32_t prop_get_prop_len(uint32_t property)
     return 0;
 }
 
+/* return the acknowledge flag (set if the handler was executed) */
+static uint32_t prop_get_ack(uint32_t property)
+{
+    for(int entry = 0; entry < actual_num_handlers; entry++ )
+    {
+        struct prop_handler *handler = &property_handlers[entry];
+        if (handler->property == property)
+        {
+            return handler->property_ack;
+        }
+    }
+    
+    return 0;
+}
+
+/* reset the acknowledge flag (will be set when the handler will get executed again) */
+static void prop_reset_ack(uint32_t property)
+{
+    for(int entry = 0; entry < actual_num_handlers; entry++ )
+    {
+        struct prop_handler *handler = &property_handlers[entry];
+        if (handler->property == property)
+        {
+            handler->property_ack = 0;
+        }
+    }
+    
+    return 0;
+}
 
 /**
  * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's) 
@@ -319,6 +351,21 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 #endif
 }
 
+int prop_request_change_wait(unsigned property, const void* addr, size_t len, int timeout)
+{
+    prop_reset_ack(property);
+    prop_request_change(property, addr, len);
+    
+    for (int i = 0; i < timeout/20; i++)
+    {
+        msleep(20);
+        if (prop_get_ack(property))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /**
  * For new ports, disable this function on first boots (although it should be pretty much harmless).
