@@ -95,6 +95,17 @@ magiclantern-$(VERSION).zip: install installdoc install_fir
 zip:: | prepare_zip
 zip:: magiclantern-$(VERSION).zip
 
+TOP_COMPILE_H=$(TOP_DIR)/include/generated/compile.h
+
+$(TOP_COMPILE_H): FORCE
+	mkdir -p $(dir $@)
+	$(call build,"VERSION",echo -e '#define ML_VERSION "$(VERSION)"') > $@
+	@echo '#define ML_HG_ID "'`hg id`'"' >> $@
+	@echo '#define ML_TIMESTAMP "'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'"' >> $@
+	@echo '#define ML_COMPILE_BY "'`whoami`@`hostname`'"' >> $@
+
+prepare: $(TOP_COMPILE_H)
+
 clean::
 	$(call rm_dir, zip)
 	$(call rm_files, *.zip)

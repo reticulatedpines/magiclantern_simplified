@@ -6,17 +6,17 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -27,18 +27,41 @@
 #include "compiler.h"
 #include "consts.h"
 #include "fw-signature.h"
+#include <version.h>
 
 #ifdef __ARM__
 asm(
     ".text\n"
     ".globl _start\n"
     "_start:\n"
- 
+
     /* if used in a .fir file, there is a 0x120 byte address offset.
-       so cut the first 0x120 bytes off autoexec.bin before embedding into .fir 
+       so cut the first 0x120 bytes off autoexec.bin before embedding into .fir
      */
     "B       skip_fir_header\n"
-    ".incbin \"version.bin\"\n" // this must have exactly 0x11C (284) bytes
+
+#define ML_HEADER_VERSION_PAIR(NAME, VALUE) \
+    ".ascii  \"" NAME "\"" "\"" VALUE "\"\n"
+#define ML_HEADER_VERSION_NL \
+    ".ascii  \"\\n\"\n"
+
+    ".ascii  \"\b\b\b\b\"\n"
+
+    ML_HEADER_VERSION_PAIR("Magic Lantern ", ML_VERSION)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Mercurial changeset: ", ML_HG_ID)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Built on ", ML_TIMESTAMP)
+    ML_HEADER_VERSION_PAIR(" by ", ML_COMPILE_BY)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Camera  : ", ML_CAMERA_MODEL)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_PAIR("Firmware: ", ML_FW_VERSION)
+    ML_HEADER_VERSION_NL
+    ML_HEADER_VERSION_NL
+
+    ".org    0x120\n"
     "skip_fir_header:\n"
 
     "MRS     R0, CPSR\n"
@@ -78,10 +101,10 @@ static void blink(int n)
     {
         #if defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
         *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
-    	busy_wait(n);
-	    *(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
-	    busy_wait(n);
-    	#endif
+        busy_wait(n);
+        *(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
+        busy_wait(n);
+        #endif
     }
 }
 
@@ -106,7 +129,7 @@ cstart( void )
     if (s != (int)SIG_5D3_113)
         fail();
     #endif
-    
+
     #ifdef CONFIG_EOSM
     if (s != (int)SIG_EOSM_106)
         fail();
@@ -116,12 +139,12 @@ cstart( void )
     if (s != (int)SIG_7D_203)
         fail();
     #endif
-    
+
     #if defined(CONFIG_7D_MASTER)
     if (s != (int)SIG_7D_MASTER_203)
         fail();
     #endif
-    
+
     #ifdef CONFIG_6D
     if (s != (int)SIG_6D_113)
         fail();
@@ -131,23 +154,21 @@ cstart( void )
     if (s != (int)SIG_650D_104)
         fail();
     #endif
-    
+
     //TODO: Add CONFIG_700D and CONFIG_100D signature check
 #endif
-    
-    
 
 #ifdef __ARM__
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
-	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
+    #if defined(CONFIG_40D) || defined(CONFIG_5DC)
         *(volatile int*) (LEDBLUE) = (LEDON);
         *(volatile int*) (LEDRED)  = (LEDON); // do we need the red too ?
-	#elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
+    #elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
         *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
-	#endif
-	#if defined(CONFIG_7D)
-		*(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
-	#endif
+    #endif
+    #if defined(CONFIG_7D)
+        *(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
+    #endif
 
     blob_memcpy(
         (void*) RESTARTSTART,
@@ -159,15 +180,15 @@ cstart( void )
 
     /* Jump into the newly relocated code
        Q: Why target/compiler-specific attribute long_call?
-       A: If in any case the base address passed to linker (-Ttext 0x40800000) doesnt fit because we 
+       A: If in any case the base address passed to linker (-Ttext 0x40800000) doesnt fit because we
           e.g. run at the cached address 0x00800000, we wont risk jumping into nirvana here.
-          This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why? 
+          This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why?
           Because the code above (blob_memcpy) already made totally wrong assumptions about memory addresses.
      */
     void __attribute__((long_call)) (*copy_and_run_ml)() = (void*) RESTARTSTART;
 #endif /* __ARM__ */
     copy_and_run_ml();
-    
+
     // Unreachable
     while(1)
         ;
