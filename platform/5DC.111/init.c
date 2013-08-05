@@ -544,7 +544,6 @@ void ml_big_init_task()
 				//~ streq(task->name, "movtweak_task") ||
 				streq(task->name, "ms100_clock_task") || // missing ?
 				streq(task->name, "notifybox_task") ||
-				//~ streq(task->name, "plugins_task") ||
 				streq(task->name, "clock_task") ||
 				streq(task->name, "shoot_task") ||
 				streq(task->name, "tweak_task") ||

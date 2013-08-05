@@ -1,7 +1,6 @@
 /**
  *  Conditional defines for camera internals and ML features.
  */
-#ifndef PLUGIN_CLIENT
 #ifndef _config_defines_h_
 #define _config_defines_h_
 
@@ -68,5 +67,4 @@
 /** What features are enabled on each camera? **/
 #include "features.h" // from platform directory
 
-#endif
-#endif
+#endif // _config_defines_h_

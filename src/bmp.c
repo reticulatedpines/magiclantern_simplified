@@ -1575,28 +1575,32 @@ bfnt_printf(
     bfnt_puts(bfnt_printf_buf, x, y, fg, bg);
 }
 
-#if 0
+#if 1
 void
 bfnt_test()
 {
     while(1)
     {
-        beep();
         canon_gui_disable_front_buffer();
+
+	int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
         int* codes = (int*) BFNT_CHAR_CODES;
-        static int c = 0;
-        c = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4 - 50;
-        for (int i = 0; i < 5; i++)
-        {
-            for (int j = 0; j < 10; j++)
+	int* off = (int*) BFNT_BITMAP_OFFSET;
+
+	int c = 0;
+	while(c <= n) {
+            for (int i = 0; i < 5; i++)
             {
-                bfnt_draw_char(codes[c], j*70, i*80+20, COLOR_WHITE, COLOR_BLACK);
-                bmp_printf(FONT_MED, j*70, i*80, "%x", codes[c]);
-                c++;
+                for (int j = 0; j < 10; j++)
+                {
+                    bfnt_draw_char(codes[c], j*70, i*80+20, COLOR_WHITE, COLOR_BLACK);
+                    bmp_printf(FONT_SMALL, j*70, i*80, "%x", codes[c]);
+                    c++;
+                }
             }
-        }
-        msleep(2000);
-        clrscr();
+            msleep(2000);
+            clrscr();
+	}
     }
 }
 #endif

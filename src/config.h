@@ -118,7 +118,7 @@ __config_##VAR##INDEX = \
 #define CONFIG_ARRAY_ELEMENT( NAME, VAR, INDEX, VALUE ) \
         _CONFIG_ARRAY_ELEMENT( NAME, 0, VAR, INDEX, VALUE )
         
-OS_FUNCTION( 0x0A00001, struct config_var*,	get_config_vars_start );
-OS_FUNCTION( 0x0A00002, struct config_var*,	get_config_vars_end );
+struct config_var* get_config_vars_start ();
+struct config_var* get_config_vars_end ();
 
 #endif

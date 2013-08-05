@@ -90,7 +90,6 @@ ifndef CONFIG_GDB
 CONFIG_GDB          = n
 endif
 CONFIG_GDBSTUB      = n
-CONFIG_PLUGINS      = n
 ifndef CONFIG_CONSOLE
 CONFIG_CONSOLE      = y
 endif

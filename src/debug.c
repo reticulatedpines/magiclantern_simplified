@@ -10,7 +10,6 @@
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
-#include "plugin.h"
 #include "version.h"
 #include "edmac.h"
 #include "asm.h"
@@ -779,6 +778,7 @@ static void bsod()
 static void run_test()
 {
 
+   bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));

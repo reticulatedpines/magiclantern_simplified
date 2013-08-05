@@ -91,13 +91,6 @@ SECTIONS
 		*(.prop_handlers)
 		_prop_handlers_end = .;
 
-		/* Plugin handlers */
-		. = ALIGN(8);
-		_plugin_commands_start = .;
-		*(.plugin_commands)
-		_plugin_commands_end = .;
-
-
 		/* Read/write data */
 		. = ALIGN(64);
 		*(.data)

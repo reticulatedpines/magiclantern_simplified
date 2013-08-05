@@ -46,7 +46,6 @@ install_extra_data: prepare_install_dir
 	$(CP) $(SCRIPT_DIR)/*.lua $(INSTALL_SCRIPTS_DIR)/
 	$(CP) $(SCRIPT_DIR)/*.c $(INSTALL_SCRIPTS_DIR)/
 	$(CP) $(SCRIPT_DIR)/*.py $(INSTALL_SCRIPTS_DIR)/
-#$(CP) $(PLUGINS_DIR)/*/*.bin $(INSTALL_ML_DIR)/plugins/
 
 
 copy-autoexec: autoexec.bin

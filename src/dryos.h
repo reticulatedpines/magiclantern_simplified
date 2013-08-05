@@ -33,9 +33,7 @@
 #include "config-defines.h"
 #include "compiler.h"
 #include "dialog.h"
-#ifndef PLUGIN_CLIENT
 #include "gui.h"
-#endif
 #include "gui-common.h"
 #include "vram.h"
 #include "state-object.h"
@@ -43,11 +41,8 @@
 #include "tasks.h"
 #include "debug.h"
 #include "audio.h"
-#ifndef PLUGIN_CLIENT
 #include "consts.h"
-#endif
 #include <stdarg.h>
-#include "plugin.h"
 #include "exmem.h"
 
 /** Check a pointer for error code */
@@ -522,70 +517,67 @@ extern uint32_t _ml_base_address;
 #define PIC_RESOLVE(x) (x)
 #endif
 
-// export functions to plugins
 // main DryOs commands
-OS_FUNCTION( 0x0000001,	void,	msleep, int amount );
-OS_FUNCTION( 0x0000002,	void,	call, const char* name, ... );
+extern void msleep( int amount );
+extern void call( const char* name, ... );
 
 // file IO
-OS_FUNCTION( 0x0100001,	FILE*,	FIO_Open, const char* filename, unsigned mode );
-OS_FUNCTION( 0x0100002,	int,	FIO_ReadFile, FILE* stream, void* ptr, size_t count );
-OS_FUNCTION( 0x0100003,	int,	FIO_WriteFile, FILE* stream, const void* ptr, size_t count );
-OS_FUNCTION( 0x0100004,	void,	FIO_CloseFile, FILE* stream );
-OS_FUNCTION( 0x0100005,	FILE*,	FIO_CreateFile, const char* name );
+extern FILE* FIO_Open( const char* filename, unsigned mode );
+extern int FIO_ReadFile( FILE* stream, void* ptr, size_t count );
+extern int FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
+extern void FIO_CloseFile( FILE* stream );
+extern FILE* FIO_CreateFile( const char* name );
 /** Returns for 0 success */
-OS_FUNCTION( 0x0100006, int,	FIO_GetFileSize, const char * filename, uint32_t * size);
-OS_FUNCTION( 0x0100007, struct fio_dirent *,	FIO_FindFirstEx, const char * dirname, struct fio_file * file);
-OS_FUNCTION( 0x0100008, int,	FIO_FindNextEx, struct fio_dirent * dirent, struct fio_file * file);
-OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent * dirent);
-OS_FUNCTION( 0x010000a,	FILE*,	FIO_CreateFileEx, const char* name );
-OS_FUNCTION( 0x010000b,	int,	FIO_SeekFile, FILE* stream, size_t position, int whence);
+extern int FIO_GetFileSize( const char * filename, uint32_t * size );
+extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );
+extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
+extern void FIO_CleanupAfterFindNext_maybe( struct fio_dirent * dirent );
+extern FILE* FIO_CreateFileEx( const char* name );
+extern int FIO_SeekFile( FILE* stream, size_t position, int whence );
 
-unsigned GetFileSize(char* filename);
+unsigned GetFileSize( char* filename );
 
 // stdio
-int vsnprintf(char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
+int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
 
-OS_FUNCTION( 0x0200001,	size_t,	strlen, const char* str );
-OS_FUNCTION( 0x0200003,	int,	snprintf, char* str, size_t n, const char* fmt, ... );
-OS_FUNCTION( 0x0200004,	int,	strcmp, const char* s1, const char* s2 );
-OS_FUNCTION( 0x0200005,	long,	strtol, const char * str, char ** endptr, int base );
-OS_FUNCTION( 0x0200006,	char*,	strcpy, char* dst, const char * src );
-//OS_FUNCTION( 0x0200007,	char*,	strncpy, char *, const char *, size_t );
-OS_FUNCTION( 0x0200008,	void*,	memcpy, void *, const void *, size_t );
-//OS_FUNCTION( 0x0200009,	ssize_t,	read, int fd, void *, size_t );
-OS_FUNCTION( 0x020000A,	int,	atoi, const char * );
-OS_FUNCTION( 0x020000B,	int,	streq, const char *, const char * );
-OS_FUNCTION( 0x020000C,	void*,	AllocateMemory, size_t size );
-OS_FUNCTION( 0x020000D,	void,	FreeMemory, void* ptr );
-OS_FUNCTION( 0x020000E,	void,	my_memcpy, void* dst, const void* src, size_t size );
+extern size_t strlen( const char* str );
+extern int snprintf( char* str, size_t n, const char* fmt, ... );
+extern int strcmp( const char* s1, const char* s2 );
+extern long strtol( const char * str, char ** endptr, int base );
+extern char* strcpy( char* dst, const char * src );
+extern void*  memcpy( void *, const void *, size_t );
+extern int atoi( const char * );
+extern int streq( const char *, const char * );
+extern void* AllocateMemory( size_t size );
+extern void FreeMemory( void* ptr );
+extern void my_memcpy( void* dst, const void* src, size_t size );
 /** Allocate DMA memory for writing to the CF card */
-OS_FUNCTION( 0x020000F, void *,	alloc_dma_memory, size_t len);
-OS_FUNCTION( 0x0200010, void,	free_dma_memory, const void * ptr);
-OS_FUNCTION( 0x0200011, char*,	strstr, const char* str1, const char* str2);
-OS_FUNCTION( 0x0200012, char*,	strpbrk, const char* str1, const char* str2);
-OS_FUNCTION( 0x0200013, char*,	strchr, const char* str, int c);
-OS_FUNCTION( 0x0200015, int,	memcmp, const void* s1, const void* s2,size_t n);
-OS_FUNCTION( 0x0200016, void *,	memchr, const void *s, int c, size_t n);
-OS_FUNCTION( 0x0200017, size_t,	strspn, const char *s1, const char *s2);
-OS_FUNCTION( 0x0200018, int,	tolower, int c);
-OS_FUNCTION( 0x0200019, int,	toupper, int c);
-OS_FUNCTION( 0x020001A, int,	islower, int x);
-OS_FUNCTION( 0x020001B, int,	isupper, int x);
-OS_FUNCTION( 0x020001C, int,	isalpha, int x);
-OS_FUNCTION( 0x020001D, int,	isdigit, int x);
-OS_FUNCTION( 0x020001E, int,	isxdigit, int x);
-OS_FUNCTION( 0x020001F, int,	isalnum, int x);
-OS_FUNCTION( 0x0200020, int,	ispunct, int x);
-OS_FUNCTION( 0x0200021, int,	isgraph, int x);
-OS_FUNCTION( 0x0200022, int,	isspace, int x);
-OS_FUNCTION( 0x0200023, int,	iscntrl, int x);
+extern void * alloc_dma_memory( size_t len );
+extern void free_dma_memory( const void * ptr );
+extern char* strstr( const char* str1, const char* str2 );
+extern char* strpbrk( const char* str1, const char* str2 );
+extern char* strchr( const char* str, int c );
+extern int memcmp( const void* s1, const void* s2,size_t n );
+extern void * memchr( const void *s, int c, size_t n );
+extern size_t strspn( const char *s1, const char *s2 );
+extern int tolower( int c );
+extern int toupper( int c );
+extern int islower( int x );
+extern int isupper( int x );
+extern int isalpha( int x );
+extern int isdigit( int x );
+extern int isxdigit( int x );
+extern int isalnum( int x );
+extern int ispunct( int x );
+extern int isgraph( int x );
+extern int isspace( int x );
+extern int iscntrl( int x );
 
 // others
-OS_FUNCTION( 0x0300001,	int,	abs, int number );
+extern int abs( int number );
 
 // get OS constants
-OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
+extern const char* get_card_drive( void );
 
 
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
