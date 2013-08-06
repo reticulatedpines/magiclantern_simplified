@@ -99,7 +99,7 @@ TOP_COMPILE_H=$(TOP_DIR)/include/generated/compile.h
 
 $(TOP_COMPILE_H): FORCE
 	mkdir -p $(dir $@)
-	$(call build,"VERSION",echo -e '#define ML_VERSION "$(VERSION)"') > $@
+	$(call build,"VERSION",echo '#define ML_VERSION "$(VERSION)"') > $@
 	@echo '#define ML_HG_ID "'`hg id`'"' >> $@
 	@echo '#define ML_TIMESTAMP "'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'"' >> $@
 	@echo '#define ML_COMPILE_BY "'`whoami`@`hostname`'"' >> $@
