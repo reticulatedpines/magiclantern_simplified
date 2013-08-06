@@ -38,9 +38,21 @@ NSTUB(0x1940, post_isr_hook)
 NSTUB(0x67C, next_task_ctx)
 NSTUB(0x680, current_task_ctx)
 
+/** EDMAC routines **/
+NSTUB(0xFF1F5360, SetEDmac)
+NSTUB(0xFF1F5660, StartEDmac)
+NSTUB(0xFF1F5864, PopEDmac)
+//NSTUB([idk], AbortEDmac)
 NSTUB(0xFF1F5418, ConnectWriteEDmac)
 NSTUB(0xFF1F54DC, ConnectReadEDmac)
 
+/** register/unregister CBR names **/
+NSTUB(0xFF1F5850, RegisterEDmacCompleteCBR)
+NSTUB(0xFF1F5878, RegisterEDmacAbortCBR)
+NSTUB(0xFF1F5980, RegisterEDmacPopCBR)
+NSTUB(0xFF1F5864, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF1F58B8, UnregisterEDmacAbortCBR)
+NSTUB(0xFF1F5994, UnregisterEDmacPopCBR)
 
 NSTUB(0xFF3D26EC, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF3D27CC, PackMem_RegisterEDmacAbortCBRForMemorySuite)
@@ -234,4 +246,3 @@ NSTUB(0xff06e8b0, EnableImagePhysicalScreenParameter)
 
 NSTUB(0xFF41E17C, StartPlayProtectGuideApp)
 NSTUB(0xff41dde0, StopPlayProtectGuideApp)
-

@@ -110,3 +110,6 @@
 /** We know how to unregister properties */
 /** (but that doesn't mean we should use it, because existing prop handlers were not designed with this in mind */
 //~ #define CONFIG_UNREGISTER_PROP
+
+/** We can use the DMA controller to copy data */
+#define CONFIG_EDMAC_MEMCPY
