@@ -536,6 +536,10 @@ static int black_subtract_simple(int left_margin, int top_margin)
     int new_black = avg / num;
         
     int black_delta = raw_info.black_level - new_black;
+    
+    /* looks green without this */
+    black_delta += 3;
+    
     printf("Black adjust   : %d\n", (int)black_delta);
 
     /* "subtract" the dark frame, keeping the exif black level and preserving the white level */
@@ -1602,7 +1606,9 @@ static int hdr_interpolate()
     int black_delta = 0;
     int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
     if (!ok) goto err;
-    double corr = pow(2, corr_ev);
+    //~ double corr = pow(2, corr_ev);
+    int corr = (int)roundf(corr_ev * EV_RESOLUTION);
+ 
 
 
     /* mix the two images */
@@ -1715,16 +1721,15 @@ static int hdr_interpolate()
             int ds = d;
             #endif
 
-            /* darken bright pixel so it looks like its darker sibling */
-            /* this is best done in linear space, to handle values under black level */
-            int bd = (b0 - black) / corr + black;
-            int bsd = (b0s - black) / corr + black;
-
             /* go from linear to EV space */
-            int bev = raw2ev[bd & 16383];
+            int bev = raw2ev[b0 & 16383];
             int dev = raw2ev[d & 16383];
-            int bsev = raw2ev[bsd & 16383];
+            int bsev = raw2ev[b0s & 16383];
             int dsev = raw2ev[ds & 16383];
+
+            /* darken bright pixel so it looks like its darker sibling */
+            bev = (bev > corr) ? bev - corr : (bev < -corr) ? bev + corr : 0;
+            bsev = (bsev > corr) ? bsev - corr : (bsev < -corr) ? bsev + corr : 0;
 
             /* blending factors */
             int k = mix_curve[b0 & 16383];
