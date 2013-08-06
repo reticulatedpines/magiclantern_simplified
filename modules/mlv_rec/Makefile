@@ -16,7 +16,7 @@ raw2dng: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
 	$(call build,GCC,gcc raw2dng.o chdk-dng.o -o raw2dng -lm -m32)
 
 mlv_dump: mlv_dump.c
-	$(call build,GCC,gcc mlv_dump.c -o mlv_dump -m32 -O2 -Wall -I$(SRC_DIR) $(LFS_FLAGS))
+	$(call build,GCC,gcc mlv_dump.c -o mlv_dump -std=c99 -m32 -O2 -Wall -I$(SRC_DIR) $(LFS_FLAGS))
 
 # debug tool
 dng2raw: dng2raw.c
