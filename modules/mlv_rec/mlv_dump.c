@@ -104,7 +104,7 @@ read_headers:
             goto read_headers;
         }
         
-        fseek(file, -sizeof(mlv_hdr_t), SEEK_CUR);
+        fseeko(file, - (int64_t)sizeof(mlv_hdr_t), SEEK_CUR);
         
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
@@ -116,7 +116,7 @@ read_headers:
                 printf("MLVI: Reached end?\n");
                 return 0;
             }
-            fseek(file, file_hdr.blockSize-sizeof(mlv_file_hdr_t), SEEK_CUR);
+            fseeko(file, file_hdr.blockSize-sizeof(mlv_file_hdr_t), SEEK_CUR);
             
             printf("File Header (MLVI)\n");
             printf("    Size        : 0x%08X\n", file_hdr.blockSize);
@@ -176,7 +176,7 @@ read_headers:
                 {
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     printf("Writing: %d\n", frame_size);
-                    fseek(file, block_hdr.frameSpace, SEEK_CUR);
+                    fseeko(file, block_hdr.frameSpace, SEEK_CUR);
                     if(fread(frame_buffer, frame_size, 1, file) != 1)
                     {
                         printf("Reached file end within block.\n");
@@ -184,12 +184,12 @@ read_headers:
                     }
                     lv_rec_footer.frameSize = frame_size;
                     
-                    fseek(out_file, block_hdr.frameNumber * frame_size, SEEK_SET);
+                    fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
                     fwrite(frame_buffer, frame_size, 1, out_file);
                 }
                 else
                 {
-                    fseek(file, block_hdr.blockSize-sizeof(mlv_vidf_hdr_t), SEEK_CUR);
+                    fseeko(file, block_hdr.blockSize-sizeof(mlv_vidf_hdr_t), SEEK_CUR);
                 }
                 
                 printf("     Pad: 0x%08X\n", block_hdr.frameSpace);
@@ -208,7 +208,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_lens_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_lens_hdr_t), SEEK_CUR);
                 
                 printf("     Name:        '%s'\n", block_hdr.lensName);
                 printf("     Serial:      '%s'\n", block_hdr.lensSerial);
@@ -258,7 +258,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_elvl_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_elvl_hdr_t), SEEK_CUR);
                 
                 printf("     Roll:    %2.2f\n", (double)block_hdr.roll / 100.0f);
                 printf("     Pitch:   %2.2f\n", (double)block_hdr.pitch / 100.0f);
@@ -272,7 +272,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_wbal_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_wbal_hdr_t), SEEK_CUR);
                 
                 printf("     Mode:   %d\n", block_hdr.wb_mode);
                 printf("     Kelvin:   %d\n", block_hdr.kelvin);
@@ -291,7 +291,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_idnt_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_idnt_hdr_t), SEEK_CUR);
                 
                 printf("     Camera Name:   '%s'\n", block_hdr.cameraName);
                 printf("     Camera Serial: '%s'\n", block_hdr.cameraSerial);
@@ -306,7 +306,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_rtci_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_rtci_hdr_t), SEEK_CUR);
                 
                 printf("     Date:        %02d.%02d.%04d\n", block_hdr.tm_mday, block_hdr.tm_mon, 1900 + block_hdr.tm_year);
                 printf("     Time:        %02d:%02d:%02d (GMT+%d)\n", block_hdr.tm_hour, block_hdr.tm_min, block_hdr.tm_sec, block_hdr.tm_gmtoff);
@@ -324,7 +324,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_expo_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_expo_hdr_t), SEEK_CUR);
                 
                 printf("     ISO Mode:   %d\n", block_hdr.isoMode);
                 printf("     ISO:        %d\n", block_hdr.isoValue);
@@ -341,7 +341,7 @@ read_headers:
                     printf("Reached file end within block.\n");
                     return 0;
                 }
-                fseek(file, block_hdr.blockSize-sizeof(mlv_rawi_hdr_t), SEEK_CUR);
+                fseeko(file, block_hdr.blockSize-sizeof(mlv_rawi_hdr_t), SEEK_CUR);
                 
                 printf("    Res:  %dx%d\n", block_hdr.xRes, block_hdr.yRes);
                 printf("    raw_info:\n");
@@ -371,7 +371,7 @@ read_headers:
             }
             else 
             {
-                fseek(file, buf.blockSize, SEEK_CUR);
+                fseeko(file, buf.blockSize, SEEK_CUR);
             }
         }
     }
@@ -384,8 +384,10 @@ read_headers:
     
     if(out_file)
     {
-        fseek(out_file, 0, SEEK_END);
+        fseeko(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
         fclose(out_file);
     }
+    
+    return 0;
 }
