@@ -33,7 +33,6 @@ tags
 *.pyc
 location.map
 autoexec.map
-platform/*.OLD
 plugins/plugin.lds
 docs/html
 docs/latex
@@ -42,13 +41,18 @@ pymite-img.c
 toolchain/build
 toolchain/sources
 toolchain/stamps
+platform/*/*.sym
 platform/*/autoexec
+platform/*/include/platform/generated
 platform/*/magiclantern
 platform/*/magiclantern.lds
-platform/*/*.sym
+platform/*.OLD
 platform/*/qemu-helper
+platform/*/version.c
 platform/all/autoexec-all
 platform/all/autoexec-fir
+platform/all/ML
+platform/all/zip
 doc/*.aux
 doc/*.out
 doc/*.pdf
@@ -66,7 +70,6 @@ doc/install.wiki
 doc/menuindex.txt
 installer/*/*.lds
 doc/Cropmarks550D.png
-platform/all/zip
 plugins/loader.c
 contrib/ptpcam/ptpcam
 loader.c
@@ -74,15 +77,15 @@ doc/cam
 INSTALL.tex-e
 UserGuide.tex-e
 UserGuide-cam.tex-e
-platform/all/ML
 zip.txt
 doxygen-doc/*
+modules/*/*.dep
 modules/*/*.mo
+modules/*/*.sym
 modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe
 tcc/localsyms
 src/menuindexentries.h
 include/generated
-platform/*/include/platform/generated
 
 syntax: regexp
