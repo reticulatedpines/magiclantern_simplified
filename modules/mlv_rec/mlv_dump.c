@@ -25,6 +25,12 @@
 #include <string.h>
 #include <getopt.h>
 
+#define MLV_USE_LZMA
+
+#ifdef MLV_USE_LZMA
+#include <LzmaLib.h>
+#endif
+
 /* project includes */
 #include "../lv_rec/lv_rec.h"
 #include "../../src/raw.h"
@@ -45,29 +51,44 @@
 
 void show_usage(char *executable)
 {
-    fprintf(stderr, "Usage: %s [-o outputfile] [-c] [-z] [-r] <inputfile>\n", executable);
+    fprintf(stderr, "Usage: %s [-o output_file] [-rscd] [-l compression_level(0-9)] <inputfile>\n", executable);
+    fprintf(stderr, "Parameters:\n");
+    fprintf(stderr, " -o output_file      set the filename to write into\n");
+    fprintf(stderr, " -v                  verbose output\n");
+    fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
+    fprintf(stderr, " -s                  shrink output file by removing unnecessary padding and alignment space\n");
+#ifdef MLV_USE_LZMA
+    fprintf(stderr, " -c                  (re-)compress video and audio frames using LZMA\n");
+    fprintf(stderr, " -d                  decompress compressed video and audio frames using LZMA\n");
+    fprintf(stderr, " -l level            set compression level from 0=fastest to 9=best compression\n");
+#else
+    fprintf(stderr, " -c, -d, -l          NOT AVAILABLE: compression support was not compiled into this release\n");
+#endif
 }
 
 int main (int argc, char *argv[])
 {
     char *input_filename = NULL;
     char *output_filename = NULL;
+    int blocks_processed = 0;
     int mlv_output = 0;
     int raw_output = 0;
-    int clean_output = 0;
+    int shrink_output = 0;
     int compress_output = 0;
+    int decompress_output = 0;
     int verbose = 0;
-    int blocks_processed = 0;
+    int lzma_level = 5;
     char opt = ' ';
     
+    /* this may need some tuning */
+    int lzma_dict = 1<<27;
+    int lzma_lc = 7;
+    int lzma_lp = 1;
+    int lzma_pb = 1;
+    int lzma_fb = 8;
+    int lzma_threads = 8;
     
-    /* options we parse:
-           -o <file>  # output filename
-           -r         # write legacy raw file
-           -c         # clean output data (for MLV output)
-           -z         # compress output data (for MLV output)
-      */
-    while ((opt = getopt(argc, argv, "vrzco:")) != -1) 
+    while ((opt = getopt(argc, argv, "vrcdso:l:")) != -1) 
     {
         switch (opt)
         {
@@ -79,16 +100,34 @@ int main (int argc, char *argv[])
                 raw_output = 1;
                 break;
                 
-            case 'z':
+            case 'c':
+#ifdef MLV_USE_LZMA
                 compress_output = 1;
+#else
+                fprintf(stderr, "Error: Compression support was not compiled into this release\n");
+                return 0;
+#endif                
                 break;
                 
-            case 'c':
-                clean_output = 1;
+            case 'd':
+#ifdef MLV_USE_LZMA
+                decompress_output = 1;
+#else
+                fprintf(stderr, "Error: Compression support was not compiled into this release\n");
+                return 0;
+#endif                
+                break;
+                
+            case 's':
+                shrink_output = 1;
                 break;
                 
             case 'o':
                 output_filename = strdup(optarg);
+                break;
+                
+            case 'l':
+                lzma_level = MIN(9, MAX(0, atoi(optarg)));
                 break;
                 
             default:
@@ -121,7 +160,7 @@ int main (int argc, char *argv[])
         if(raw_output)
         {
             compress_output = 0;
-            clean_output = 0;
+            shrink_output = 0;
             mlv_output = 0;
             printf(" - Convert to legacy RAW\n"); 
         }
@@ -131,9 +170,9 @@ int main (int argc, char *argv[])
             printf(" - Rewrite MLV\n"); 
             if(compress_output)
             {
-                printf(" - Compress frame data (not implemented yet)\n"); 
+                printf(" - Compress frame data\n"); 
             }
-            if(clean_output)
+            if(shrink_output)
             {
                 printf(" - Clean output file\n"); 
             }
@@ -146,7 +185,7 @@ int main (int argc, char *argv[])
         /* those dont make sense then */
         raw_output = 0;
         compress_output = 0;
-        clean_output = 0;
+        shrink_output = 0;
         
         printf(" - Verify file structure\n"); 
         if(verbose)
@@ -167,8 +206,8 @@ int main (int argc, char *argv[])
     FILE *in_file = NULL;
 
     /* initialize stuff */
-    lv_rec_footer.frameCount = 0;
-    main_header.fileCount = 0;
+    memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
+    memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     /* open files */
     in_file = fopen(input_filename, "r");
@@ -281,6 +320,13 @@ read_headers:
             {
                 /* correct header size if needed */
                 file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+                
+                /* set the output compression flag */
+                if(compress_output)
+                {
+                    file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LZMA;
+                }
+                
                 if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
                 {
                     fprintf(stderr, "[E] Failed writing into output file\n");
@@ -292,6 +338,12 @@ read_headers:
         {
             uint64_t position = ftello(in_file);
 
+            if(main_header.fileCount == 0)
+            {
+                fprintf(stderr, "[E] Missing file header\n");
+                return 0;
+            }
+            
             if(verbose)
             {
                 printf("Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
@@ -350,6 +402,75 @@ read_headers:
                         return 0;
                     }
                     
+#ifdef MLV_USE_LZMA
+                    /* if already compressed, we have to decompress it first */
+                    int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
+                    int recompress = compressed && compress_output;
+                    int decompress = compressed && decompress_output;
+                    
+                    if(recompress || decompress)
+                    {
+                        size_t lzma_out_size = *(uint32_t *)frame_buffer;
+                        size_t lzma_in_size = frame_size - LZMA_PROPS_SIZE - 4;
+                        size_t lzma_props_size = LZMA_PROPS_SIZE;
+                        unsigned char *lzma_out = malloc(lzma_out_size);
+
+                        int ret = LzmaUncompress(
+                            lzma_out, &lzma_out_size, 
+                            (unsigned char *)&frame_buffer[4 + LZMA_PROPS_SIZE], &lzma_in_size, 
+                            (unsigned char *)&frame_buffer[4], lzma_props_size
+                            );
+
+                        if(ret == SZ_OK)
+                        {
+                            frame_size = lzma_out_size;
+                            memcpy(frame_buffer, lzma_out, frame_size);
+                            printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                        }
+                        else
+                        {
+                            printf("    LZMA: Failed (%d)\n", ret);
+                            return 0;
+                        }
+                    }
+                    
+                    if(compress_output)
+                    {
+                        size_t lzma_out_size = 2 * frame_size;
+                        size_t lzma_in_size = frame_size;
+                        size_t lzma_props_size = LZMA_PROPS_SIZE;
+                        unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
+
+                        
+                        int ret = LzmaCompress(
+                            &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
+                            (unsigned char *)frame_buffer, lzma_in_size, 
+                            &lzma_out[0], &lzma_props_size, 
+                            lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
+                            );
+
+                        if(ret == SZ_OK)
+                        {
+                            /* store original frame size */
+                            *(uint32_t *)frame_buffer = frame_size;
+                            
+                            /* set new compressed size and copy buffers */
+                            frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
+                            memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
+                            
+                            printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                        }
+                        else
+                        {
+                            printf("    LZMA: Failed (%d)\n", ret);
+                            return 0;
+                        }
+                        free(lzma_out);
+                    }
+#endif
+                    
+  //int res = LzmaCompress( &outBuf[LZMA_PROPS_SIZE], &destLen, &inBuf[0], inBuf.size(), &outBuf[0], &propsSize, -1, 0, -1, -1, -1, -1, -1);
+                    
                     /* delete free space and correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
                     block_hdr.frameSpace = 0;
@@ -401,8 +522,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_lens_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_lens_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;
@@ -443,8 +564,8 @@ read_headers:
                     if(mlv_output)
                     {
                         /* correct header size if needed */
-                        file_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
-                        if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                        block_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
+                        if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
                             return 0;
@@ -483,8 +604,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_elvl_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_elvl_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;
@@ -519,8 +640,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_wbal_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_wbal_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;
@@ -551,8 +672,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_idnt_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_idnt_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;
@@ -586,8 +707,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_rtci_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_rtci_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;
@@ -620,8 +741,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_expo_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_expo_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;
@@ -674,8 +795,8 @@ read_headers:
                 if(mlv_output)
                 {
                     /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         return 0;

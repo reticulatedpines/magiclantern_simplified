@@ -22,6 +22,14 @@
 #define _mlv_h_
 
 #define MLV_VERSION_STRING "v2.0"
+#define MLV_VIDEO_CLASS_RAW          0x01
+#define MLV_VIDEO_CLASS_YUV          0x02
+#define MLV_VIDEO_CLASS_JPEG         0x03
+#define MLV_VIDEO_CLASS_H264         0x04
+
+#define MLV_VIDEO_CLASS_FLAG_LZMA    0x80
+#define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
+
 
 #pragma pack(push,0)
 
