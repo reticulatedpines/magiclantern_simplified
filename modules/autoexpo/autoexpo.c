@@ -46,26 +46,27 @@
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
-static CONFIG_INT("auto.expo.lock_iso", lock_iso, 0);
-static CONFIG_INT("auto.expo.tv_min", tv_min, 0);
-static CONFIG_INT("auto.expo.av_min", av_min, 10);
-static CONFIG_INT("auto.expo.av_max", av_max, 100);
+/* these are for fullframe camereas */
+static CONFIG_INT("auto.expo.lock_iso", lock_iso, 1);
+static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  /* 1s */
+static CONFIG_INT("auto.expo.av_min", av_min, 10); /* f/1.4 */
+static CONFIG_INT("auto.expo.av_max", av_max, 80); /* f/16 */
 static CONFIG_INT("auto.expo.av_step", av_step, 10);
-static CONFIG_INT("auto.expo.av_off", av_off, 150);
-static CONFIG_INT("auto.expo.iso_min", iso_min, 50);
-static CONFIG_INT("auto.expo.iso_max", iso_max, 100);
-static CONFIG_INT("auto.expo.iso_step", iso_step, 5);
+static CONFIG_INT("auto.expo.av_off", av_off, 160);
+static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  /* ISO 100 */
+static CONFIG_INT("auto.expo.iso_max", iso_max, 120); /* ISO 12 800 */
+static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
 static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
 
 static int autoexpo_running = 0;
 static int last_key = 0;
 static int last_bv = INT_MIN;
 
-int get_shutter_from_bv(int bv, int aperture, int iso){
+static int get_shutter_from_bv(int bv, int aperture, int iso){
     return COERCE(bv - aperture + iso, tv_min, 130);
 }
 
-int get_aperture_from_bv(int bv, int limit){
+static int get_aperture_from_bv(int bv, int limit){
     int ap = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
     if(lock_iso || limit){
         ap = COERCE(ap, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
@@ -73,7 +74,7 @@ int get_aperture_from_bv(int bv, int limit){
     return ap;
 }
 
-int get_iso_from_bv(int bv){
+static int get_iso_from_bv(int bv){
     int offset = iso_off;
     if(lock_iso){
         int valid = RAW2AV(lens_info.raw_aperture_min) - av_min;
