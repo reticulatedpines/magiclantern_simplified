@@ -484,7 +484,7 @@ static void arkanoid_task()
         if(arkanoid_is_busy) goto cont;
         if(ARK_IS_IDLE)arkanoid_intro();
         
-        if(!game_startup && last_key != MODULE_KEY_TRASH) {
+        if((ARK_IS_GAME && !game_startup) && last_key != MODULE_KEY_TRASH) {
             ELEM_LOOP
             (
                 handle_fades(e);
