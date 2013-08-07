@@ -57,6 +57,7 @@ int main (int argc, char *argv[])
     int clean_output = 0;
     int compress_output = 0;
     int verbose = 0;
+    int blocks_processed = 0;
     char opt = ' ';
     
     
@@ -201,29 +202,28 @@ int main (int argc, char *argv[])
 read_headers:
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
-            printf("[i] Reached end of file\n");
+            printf("[i] Reached end of file after %i blocks\n", blocks_processed);
             fclose(in_file);
             in_file = NULL;
+            blocks_processed = 0;
 
             /* check for the next file M00, M01 etc */
             char seq_name[3];
-            char *next_name = malloc(strlen(argv[1]) + 1);
 
             sprintf(seq_name, "%02d", seq_number);
             seq_number++;
 
-            strcpy(next_name, argv[1]);
-            strcpy(&next_name[strlen(next_name) - 2], seq_name);
+            strcpy(&input_filename[strlen(input_filename) - 2], seq_name);
 
             /* try to open */
-            in_file = fopen(next_name, "r");
+            in_file = fopen(input_filename, "r");
             if(!in_file)
             {
                 break;
             }
 
             /* fine, it is available. so lets restart reading */
-            printf("[i] Opened file '%s'\n", next_name);
+            printf("[i] Opened file '%s'\n", input_filename);
 
             goto read_headers;
         }
@@ -687,6 +687,9 @@ read_headers:
                 fseeko(in_file, buf.blockSize, SEEK_CUR);
             }
         }
+        
+        /* count any read block, no matter if header or video frame */
+        blocks_processed++;
     }
     while(!feof(in_file));
 
@@ -702,5 +705,9 @@ read_headers:
         fclose(out_file);
     }
 
+    if(output_filename)
+    {
+        free(output_filename);
+    }
     return 0;
 }
