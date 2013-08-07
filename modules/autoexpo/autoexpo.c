@@ -4,13 +4,9 @@
     in M mode exposure compensation is indicator of under/over exposure
     
     http://www.magiclantern.fm/forum/index.php?topic=7208
-    https://bitbucket.org/pravdomil/magic-lantern-hack
+    https://bitbucket.org/pravdomil/
 
-    use ae_spy module to find it on other cameras
-    https://bitbucket.org/pravdomil/magic-lantern-hack/commits/2e2ad5262575971a5d29cc8418854c31f9cd0d72
-    or send me a camera I will find it!
-
-    AE_VALUE value overflows its Canon bug
+    AE_VALUE value overflows on 5D2 Canon bug
     how to reproduce: set high iso and watch AE compension in M on bright sky
     
 */
