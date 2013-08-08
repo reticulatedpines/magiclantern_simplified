@@ -25,7 +25,7 @@
 #include <string.h>
 #include <getopt.h>
 
-#define MLV_USE_LZMA
+//#define MLV_USE_LZMA
 
 #ifdef MLV_USE_LZMA
 #include <LzmaLib.h>
@@ -150,6 +150,7 @@ int main (int argc, char *argv[])
     int lzma_level = 5;
     char opt = ' ';
     
+#ifdef MLV_USE_LZMA
     /* this may need some tuning */
     int lzma_dict = 1<<27;
     int lzma_lc = 7;
@@ -157,6 +158,7 @@ int main (int argc, char *argv[])
     int lzma_pb = 1;
     int lzma_fb = 8;
     int lzma_threads = 8;
+#endif
     
     while ((opt = getopt(argc, argv, "vrcdo:l:b:f:")) != -1) 
     {
