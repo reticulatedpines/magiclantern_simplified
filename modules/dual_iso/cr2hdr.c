@@ -449,43 +449,49 @@ static int black_subtract(int left_margin, int top_margin)
             }
             offset /= num;
         }
-
-        for (x = 0; x < w; x++)
-        {
-            int num = 0;
-            int avg = 0;
-            for (y = y0; y < top_margin-4; y += 4)
-            {
-                avg += raw_get_pixel16(x, y) - offset;
-                num++;
-            }
-            hblack[x] = avg / num;
-        }
         
-        /* perform some stronger filtering (averaging), since this data is a lot noisier */
-        /* if we don't do that, we will add some strong FPN to the image */
-        for (x = 0; x < w; x++)
+        /* try to fix banding that repeats every 8 pixels */
+        int xg;
+        for (xg = 0; xg < 8; xg++)
         {
-            int x2;
-            int avg = 0;
-            int num = 0;
-            for (x2 = x - 1000; x2 < x + 1000; x2 ++)
+            for (x = xg; x < w; x += 8)
             {
-                if (x2 < 0) continue;
-                if (x2 >= w) continue;
-                avg += hblack[x2];
-                num++;
+                int num = 0;
+                int avg = 0;
+                for (y = y0; y < top_margin-4; y += 4)
+                {
+                    avg += raw_get_pixel16(x, y) - offset;
+                    num++;
+                }
+                hblack[x] = avg / num;
             }
-            avg /= num;
-            aux[x] = avg;
-        }
-        memcpy(hblack, aux, w * sizeof(hblack[0]));
+            
+            /* perform some stronger filtering (averaging), since this data is a lot noisier */
+            /* if we don't do that, we will add some strong FPN to the image */
+            for (x = xg; x < w; x += 8)
+            {
+                int x2;
+                int avg = 0;
+                int num = 0;
+                for (x2 = x - 1024; x2 < x + 1024; x2 += 8)
+                {
+                    if (x2 < 0) continue;
+                    if (x2 >= w) continue;
+                    avg += hblack[x2];
+                    num++;
+                }
+                avg /= num;
+                aux[x] = avg;
+            }
+            memcpy(hblack, aux, w * sizeof(hblack[0]));
 
-        /* update the dark frame */
-        for (y = y0; y < h; y += 4)
-            for (x = 0; x < w; x++)
-                blackframe[x + y*w] += hblack[x];
+            /* update the dark frame */
+            for (y = y0; y < h; y += 4)
+                for (x = xg; x < w; x += 8)
+                    blackframe[x + y*w] += hblack[x];
+        }
     }
+    
 
 #if 0 /* for debugging only */
     void* old_buffer = raw_info.buffer;
