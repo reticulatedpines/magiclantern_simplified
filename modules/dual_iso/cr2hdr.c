@@ -974,7 +974,7 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
     int h = raw_info.height;
     int x,y;
 
-    for (y = 4; y < h-4; y += 2)
+    for (y = 4; y < h-5; y += 2)
     {
         for (x = 4; x < w-4; x += 2)
         {
@@ -1050,7 +1050,14 @@ static int hdr_interpolate()
     int rggb = (rggb_err < gbrg_err);
     
     if (!rggb) /* this code assumes RGGB, so we need to skip one line */
+    {
         raw_info.buffer += raw_info.pitch;
+        raw_info.active_area.y1++;
+        raw_info.jpeg.y++;
+        raw_info.jpeg.height--;
+        raw_info.height--;
+        h--;
+    }
 
     int i;
     for (i = 0; i < 65536; i++)
@@ -1427,14 +1434,14 @@ static int hdr_interpolate()
 
     printf("Looking for hot pixels...\n");
     int hot_pixels = 0;
-    for (y = 0; y < h; y ++)
+    for (y = 4; y < h-4; y ++)
     {
-        for (x = 0; x < w; x ++)
+        for (x = 4; x < w-4; x ++)
         {
             {
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
-                
+
                 /* don't check hot pixels near overexposed areas */
                 int i,j;
                 int over = 0;
@@ -1941,7 +1948,14 @@ static int hdr_interpolate()
     }
 
     if (!rggb) /* back to GBRG */
+    {
         raw_info.buffer -= raw_info.pitch;
+        raw_info.active_area.y1--;
+        raw_info.jpeg.y--;
+        raw_info.jpeg.height++;
+        raw_info.height++;
+        h++;
+    }
 
     free(dark);
     free(bright);
