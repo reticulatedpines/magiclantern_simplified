@@ -1657,7 +1657,7 @@ static int hdr_interpolate()
     memcpy(contrast_aux, contrast, w * h * sizeof(unsigned short));
     
     /* trial and error - too high = aliasing, too low = noisy */
-    int CONTRAST_MAX = 2000;
+    int CONTRAST_MAX = 3000;
 
 #if 1
     printf("Dilating contrast map...\n");
@@ -1822,7 +1822,7 @@ static int hdr_interpolate()
     static double mix_curve[65536];
     static double fullres_curve[65536];
     
-    static double fullres_start = 3.5;
+    static double fullres_start = 4.5;
     static double fullres_transition = 2;
     
     for (i = 0; i < 65536; i++)
