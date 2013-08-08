@@ -48,6 +48,70 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
+void bitinsert(uint16_t *dst, int position, int depth, uint16_t new_value)
+{
+    uint16_t old_value = 0;
+    int dst_pos = position * depth / 16;
+    int bits_to_left = ((depth * position) - (16 * dst_pos)) % 16;
+    int shift_right = 16 - depth - bits_to_left;
+
+    old_value = dst[dst_pos];
+    if(shift_right >= 0)
+    {
+        /* this case is a bit simpler. the word fits into this uint16_t */
+        uint16_t mask = ((1<<depth)-1) << shift_right;
+        
+        /* shift and mask out */
+        new_value <<= shift_right;
+        new_value &= mask;
+        old_value &= ~mask;
+        
+        /* now combine */
+        new_value |= old_value;
+        dst[dst_pos] = new_value;
+    }
+    else
+    {
+        /* here we need two operations as the bits are split over two words */
+        uint16_t mask1 = ((1<<(depth + shift_right))-1);
+        uint16_t mask2 = ((1<<(-shift_right))-1) << (16+shift_right);
+        
+        /* write the upper bits */
+        old_value &= ~mask1;
+        old_value |= (new_value >> (-shift_right)) & mask1;
+        dst[dst_pos] = old_value;
+        
+        /* write the lower bits */
+        old_value = dst[dst_pos + 1];
+        old_value &= ~mask2;
+        old_value |= (new_value << (16+shift_right)) & mask2;
+        dst[dst_pos + 1] = old_value;
+    }
+}
+
+
+uint16_t bitextract(uint16_t *src, int position, int depth)
+{
+    uint16_t value = 0;
+    int src_pos = position * depth / 16;
+    int bits_to_left = ((depth * position) - (16 * src_pos)) % 16;
+    int shift_right = 16 - depth - bits_to_left;
+
+    value = src[src_pos];
+
+    if(shift_right >= 0)
+    {
+        value >>= shift_right;
+    }
+    else
+    {
+        value <<= -shift_right;
+        value |= src[src_pos + 1] >> (16 + shift_right);
+    }
+    value &= (1<<depth) - 1;
+    
+    return value;
+}
 
 void show_usage(char *executable)
 {
@@ -56,7 +120,8 @@ void show_usage(char *executable)
     fprintf(stderr, " -o output_file      set the filename to write into\n");
     fprintf(stderr, " -v                  verbose output\n");
     fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
-    fprintf(stderr, " -s                  shrink output file by removing unnecessary padding and alignment space\n");
+    fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
+    fprintf(stderr, " -f frames           stop after that number of frames\n");
 #ifdef MLV_USE_LZMA
     fprintf(stderr, " -c                  (re-)compress video and audio frames using LZMA\n");
     fprintf(stderr, " -d                  decompress compressed video and audio frames using LZMA\n");
@@ -71,9 +136,14 @@ int main (int argc, char *argv[])
     char *input_filename = NULL;
     char *output_filename = NULL;
     int blocks_processed = 0;
+    
+    int frame_limit = 0;
+    int vidf_frames_processed = 0;
+    int vidf_max_number = 0;
+    
     int mlv_output = 0;
     int raw_output = 0;
-    int shrink_output = 0;
+    int bit_depth = 0;
     int compress_output = 0;
     int decompress_output = 0;
     int verbose = 0;
@@ -88,7 +158,7 @@ int main (int argc, char *argv[])
     int lzma_fb = 8;
     int lzma_threads = 8;
     
-    while ((opt = getopt(argc, argv, "vrcdso:l:")) != -1) 
+    while ((opt = getopt(argc, argv, "vrcdo:l:b:f:")) != -1) 
     {
         switch (opt)
         {
@@ -98,6 +168,7 @@ int main (int argc, char *argv[])
                 
             case 'r':
                 raw_output = 1;
+                bit_depth = 14;
                 break;
                 
             case 'c':
@@ -118,16 +189,23 @@ int main (int argc, char *argv[])
 #endif                
                 break;
                 
-            case 's':
-                shrink_output = 1;
-                break;
-                
             case 'o':
                 output_filename = strdup(optarg);
                 break;
                 
             case 'l':
                 lzma_level = MIN(9, MAX(0, atoi(optarg)));
+                break;
+                
+            case 'f':
+                frame_limit = MAX(0, atoi(optarg));
+                break;
+                
+            case 'b':
+                if(!raw_output)
+                {
+                    bit_depth = MIN(16, MAX(1, atoi(optarg)));
+                }
                 break;
                 
             default:
@@ -160,7 +238,6 @@ int main (int argc, char *argv[])
         if(raw_output)
         {
             compress_output = 0;
-            shrink_output = 0;
             mlv_output = 0;
             printf(" - Convert to legacy RAW\n"); 
         }
@@ -172,9 +249,9 @@ int main (int argc, char *argv[])
             {
                 printf(" - Compress frame data\n"); 
             }
-            if(shrink_output)
+            if(bit_depth)
             {
-                printf(" - Clean output file\n"); 
+                printf(" - Convert to %d bpp\n", bit_depth); 
             }
         }
         
@@ -185,7 +262,6 @@ int main (int argc, char *argv[])
         /* those dont make sense then */
         raw_output = 0;
         compress_output = 0;
-        shrink_output = 0;
         
         printf(" - Verify file structure\n"); 
         if(verbose)
@@ -279,7 +355,7 @@ read_headers:
             if(fread(&file_hdr, hdr_size, 1, in_file) != 1)
             {
                 fprintf(stderr, "[E] File ends in the middle of a block\n");
-                return 0;
+                goto abort;
             }
             fseeko(in_file, file_hdr.blockSize - hdr_size, SEEK_CUR);
 
@@ -326,11 +402,15 @@ read_headers:
                 {
                     file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LZMA;
                 }
+                else
+                {
+                    file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
+                }
                 
                 if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
                 {
                     fprintf(stderr, "[E] Failed writing into output file\n");
-                    return 0;
+                    goto abort;
                 }
             }
         }
@@ -338,17 +418,17 @@ read_headers:
         {
             uint64_t position = ftello(in_file);
 
-            if(main_header.fileCount == 0)
+            if(main_header.blockSize == 0)
             {
                 fprintf(stderr, "[E] Missing file header\n");
-                return 0;
+                goto abort;
             }
             
             if(verbose)
             {
                 printf("Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                printf("    Size: 0x%08X\n", buf.blockSize);
                 printf("  Offset: 0x%llX\n", position);
+                printf("    Size: %d\n", buf.blockSize);
 
                 /* NULL blocks don't have timestamps */
                 if(memcmp(buf.blockType, "NULL", 4))
@@ -365,7 +445,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
 
                 if(verbose)
@@ -376,40 +456,25 @@ read_headers:
                     printf("   Space: %d\n", block_hdr.frameSpace);
                 }
                 
-                if(raw_output)
+                if(raw_output || mlv_output)
                 {
-                    int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
-                    
-                    fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
-                    if(fread(frame_buffer, frame_size, 1, in_file) != 1)
-                    {
-                        fprintf(stderr, "[E] File ends in the middle of a block\n");
-                        return 0;
-                    }
-                    lv_rec_footer.frameSize = frame_size;
-
-                    fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
-                    fwrite(frame_buffer, frame_size, 1, out_file);
-                }
-                else if(mlv_output)
-                {
-                    int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
-                    
-                    fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
-                    if(fread(frame_buffer, frame_size, 1, in_file) != 1)
-                    {
-                        fprintf(stderr, "[E] File ends in the middle of a block\n");
-                        return 0;
-                    }
-                    
-#ifdef MLV_USE_LZMA
                     /* if already compressed, we have to decompress it first */
                     int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
                     int recompress = compressed && compress_output;
                     int decompress = compressed && decompress_output;
                     
-                    if(recompress || decompress)
+                    int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+                    
+                    fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
+                    if(fread(frame_buffer, frame_size, 1, in_file) != 1)
                     {
+                        fprintf(stderr, "[E] File ends in the middle of a block\n");
+                        goto abort;
+                    }
+                    
+                    if(recompress || decompress || (raw_output && compressed))
+                    {
+#ifdef MLV_USE_LZMA
                         size_t lzma_out_size = *(uint32_t *)frame_buffer;
                         size_t lzma_in_size = frame_size - LZMA_PROPS_SIZE - 4;
                         size_t lzma_props_size = LZMA_PROPS_SIZE;
@@ -425,65 +490,134 @@ read_headers:
                         {
                             frame_size = lzma_out_size;
                             memcpy(frame_buffer, lzma_out, frame_size);
-                            printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                            if(verbose)
+                            {
+                                printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                            }
                         }
                         else
                         {
                             printf("    LZMA: Failed (%d)\n", ret);
-                            return 0;
+                            goto abort;
                         }
-                    }
-                    
-                    if(compress_output)
-                    {
-                        size_t lzma_out_size = 2 * frame_size;
-                        size_t lzma_in_size = frame_size;
-                        size_t lzma_props_size = LZMA_PROPS_SIZE;
-                        unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
-
-                        
-                        int ret = LzmaCompress(
-                            &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
-                            (unsigned char *)frame_buffer, lzma_in_size, 
-                            &lzma_out[0], &lzma_props_size, 
-                            lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
-                            );
-
-                        if(ret == SZ_OK)
-                        {
-                            /* store original frame size */
-                            *(uint32_t *)frame_buffer = frame_size;
-                            
-                            /* set new compressed size and copy buffers */
-                            frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
-                            memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
-                            
-                            printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
-                        }
-                        else
-                        {
-                            printf("    LZMA: Failed (%d)\n", ret);
-                            return 0;
-                        }
-                        free(lzma_out);
-                    }
+#else
+                        printf("    LZMA: not compiled into this release, aborting.\n");
+                        goto abort;
 #endif
-                    
-  //int res = LzmaCompress( &outBuf[LZMA_PROPS_SIZE], &destLen, &inBuf[0], inBuf.size(), &outBuf[0], &propsSize, -1, 0, -1, -1, -1, -1, -1);
-                    
-                    /* delete free space and correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
-                    block_hdr.frameSpace = 0;
-                    
-                    if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
-                    {
-                        fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
                     }
-                    if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+                    
+                    int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
+                    int new_depth = bit_depth;
+                    
+                    /* now resample bit depth if requested */
+                    if(new_depth && (old_depth != new_depth))
                     {
-                        fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        int new_size = (frame_size * new_depth + (old_depth - 1)) / old_depth;
+                        unsigned char *new_buffer = malloc(new_size);
+                        
+                        if(verbose)
+                        {
+                            printf("   depth: %d -> %d, size: %d -> %d (%2.2f%%)\n", old_depth, new_depth, frame_size, new_size, ((float)new_depth * 100.0f) / (float)old_depth);
+                        }
+
+                        int width = lv_rec_footer.raw_info.width;
+                        int height = lv_rec_footer.raw_info.height;
+                        int old_pitch = width * old_depth / 8;
+                        int new_pitch = width * new_depth / 8;
+                        
+                        for(int y = 0; y < height; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * old_pitch];
+                            uint16_t *dst_line = (uint16_t *)&new_buffer[y * new_pitch];
+                            
+                            for(int x = 0; x < width; x++)
+                            {
+                                uint16_t value = bitextract(src_line, x, old_depth);
+                                
+                                /* normalize the old value to 16 bits */
+                                value <<= (16-old_depth);
+                                
+                                /* convert the old value to destination depth */
+                                value >>= (16-new_depth);
+                                
+                                bitinsert(dst_line, x, new_depth, value);
+                            }
+                        }
+                        
+                        frame_size = new_size;
+                        memcpy(frame_buffer, new_buffer, frame_size);
+                        free(new_buffer);
+                    }
+                    
+                    if(raw_output)
+                    {
+                        if(!lv_rec_footer.frameSize)
+                        {
+                            lv_rec_footer.frameSize = frame_size;
+                        }
+
+                        fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
+                        fwrite(frame_buffer, frame_size, 1, out_file);
+                    }
+                    
+                    if(mlv_output)
+                    {
+                        if(compress_output)
+                        {
+#ifdef MLV_USE_LZMA
+                            size_t lzma_out_size = 2 * frame_size;
+                            size_t lzma_in_size = frame_size;
+                            size_t lzma_props_size = LZMA_PROPS_SIZE;
+                            unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
+
+                            
+                            int ret = LzmaCompress(
+                                &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
+                                (unsigned char *)frame_buffer, lzma_in_size, 
+                                &lzma_out[0], &lzma_props_size, 
+                                lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
+                                );
+
+                            if(ret == SZ_OK)
+                            {
+                                /* store original frame size */
+                                *(uint32_t *)frame_buffer = frame_size;
+                                
+                                /* set new compressed size and copy buffers */
+                                frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
+                                memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
+                                
+                                if(verbose)
+                                {
+                                    printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                                }
+                            }
+                            else
+                            {
+                                printf("    LZMA: Failed (%d)\n", ret);
+                                goto abort;
+                            }
+                            free(lzma_out);
+#else
+                            printf("    LZMA: not compiled into this release, aborting.\n");
+                            goto abort;
+#endif
+                        }
+                        
+                        /* delete free space and correct header size if needed */
+                        block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+                        block_hdr.frameSpace = 0;
+                        
+                        if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
+                        {
+                            fprintf(stderr, "[E] Failed writing into output file\n");
+                            goto abort;
+                        }
+                        if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+                        {
+                            fprintf(stderr, "[E] Failed writing into output file\n");
+                            goto abort;
+                        }
                     }
                 }
                 else
@@ -491,6 +625,14 @@ read_headers:
                     fseeko(in_file, block_hdr.blockSize - sizeof(mlv_vidf_hdr_t), SEEK_CUR);
                 }
 
+                vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
+                
+                vidf_frames_processed++;
+                if(frame_limit && vidf_frames_processed > frame_limit)
+                {
+                    printf("[i] Reached limit of %i frames\n", frame_limit);
+                    break;
+                }
             }
             else if(!memcmp(buf.blockType, "LENS", 4))
             {
@@ -500,7 +642,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -526,7 +668,7 @@ read_headers:
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -538,7 +680,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
 
                 /* get the string length and malloc a buffer for that string */
@@ -551,7 +693,7 @@ read_headers:
                     if(fread(buf, str_length, 1, in_file) != 1)
                     {
                         fprintf(stderr, "[E] File ends in the middle of a block\n");
-                        return 0;
+                        goto abort;
                     }
 
                     if(verbose)
@@ -568,12 +710,12 @@ read_headers:
                         if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
-                            return 0;
+                            goto abort;
                         }
                         if(fwrite(buf, str_length, 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
-                            return 0;
+                            goto abort;
                         }
                     }
 
@@ -589,7 +731,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -608,7 +750,7 @@ read_headers:
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -620,7 +762,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -644,7 +786,7 @@ read_headers:
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -656,7 +798,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -676,7 +818,7 @@ read_headers:
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -688,7 +830,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -711,7 +853,7 @@ read_headers:
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -723,7 +865,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -745,7 +887,7 @@ read_headers:
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -757,7 +899,7 @@ read_headers:
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
-                    return 0;
+                    goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
@@ -784,7 +926,8 @@ read_headers:
                     printf("      calibration_ill  %d\n", block_hdr.raw_info.calibration_illuminant1);
                 }
 
-                if(raw_output)
+                /* cache these bits when we convert to legacy or resample bit depth */
+                if(raw_output || bit_depth)
                 {
                     strncpy((char*)lv_rec_footer.magic, "RAWM", 4);
                     lv_rec_footer.xRes = block_hdr.xRes;
@@ -796,10 +939,16 @@ read_headers:
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
+                    
+                    if(bit_depth)
+                    {
+                        block_hdr.raw_info.bits_per_pixel = bit_depth;
+                    }
+                    
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
-                        return 0;
+                        goto abort;
                     }
                 }
             }
@@ -814,6 +963,7 @@ read_headers:
     }
     while(!feof(in_file));
 
+abort:
     if(in_file)
     {
         fclose(in_file);
@@ -821,6 +971,9 @@ read_headers:
 
     if(raw_output)
     {
+        lv_rec_footer.frameCount = vidf_max_number;
+        lv_rec_footer.raw_info.bits_per_pixel = 14;
+        
         fseeko(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
         fclose(out_file);
