@@ -738,7 +738,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     *black_delta = - b / a;
 
     printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
-    printf("Black delta    : %d\n", (int)round(*black_delta));
+    printf("Black delta    : %.2f\n", *black_delta);
 
     return 1;
 }
@@ -1398,7 +1398,6 @@ static int hdr_interpolate()
     printf("Matching brightness...\n");
     double corr = pow(2, corr_ev);
     int white_darkened = (white - black) / corr + black;
-    int hot_pixels = 0;
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -1414,18 +1413,61 @@ static int hdr_interpolate()
             {
                 /* adjust the black level in the dark image, so it matches the high-ISO one */
                 int d = dark[x + y*w];
-                int b = bright[x + y*w];
                 int da = d - black_delta*4;
+                dark[x + y*w] = da;
+            }
+        }
+    }
+
+    printf("Looking for hot pixels...\n");
+    int hot_pixels = 0;
+    for (y = 0; y < h; y ++)
+    {
+        for (x = 0; x < w; x ++)
+        {
+            {
+                /* adjust the black level in the dark image, so it matches the high-ISO one */
+                int d = dark[x + y*w];
+                int b = bright[x + y*w];
 
                 /* beware of hot pixels */
-                int is_hot = (b < white_darkened) && (ABS(raw2ev[b] - raw2ev[d]) > EV_RESOLUTION);
-                if (is_hot)
+                int maybe_hot = (b < white_darkened) && (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > 64);
+                if (maybe_hot)
                 {
-                    hot_pixels++;
-                    da = b;
-                }
+                    /* these hot pixels should be isolated, otherwise it's probably aliasing, which shouldn't be touched */
+                    int is_hot = 1;
+                    int i,j;
+                    
+                    int delta_ev = raw2ev[d] - raw2ev[b];
+                    int delta_raw = d - b;
+                    
+                    /* test case from IMG_6706.CR2 from Danne */
+                    //~ if (x == 3538 + 124 && y == 1285 + 80)
+                        //~ printf("gotcha %f %f\n", (double) raw2ev[b] / EV_RESOLUTION, raw2ev[d] / (double) EV_RESOLUTION);
+                    for (i = -2; i <= 2; i++)
+                    {
+                        for (j = -2; j <= 2; j++)
+                        {
+                            if (i == 0 && j == 0) continue;
+                            if (j == 0) continue;
+                            int d = dark[x+j*2 + (y+i*2)*w];
+                            int b = bright[x+j*2 + (y+i*2)*w];
+                            if ((d - b > delta_raw / 2) && (raw2ev[d] - raw2ev[b] > delta_ev - 1))
+                            {
+                                //~ if (x == 3538 + 124 && y == 1285 + 80)
+                                    //~ printf("whoops (%d,%d) raw=%d,%d ev=%f,%f\n", i, j, b, d, (double) raw2ev[b] / EV_RESOLUTION,  (double)raw2ev[d] / EV_RESOLUTION);
 
-                dark[x + y*w] = da;
+                                is_hot = 0;
+                                break; 
+                            }
+                        }
+                    }
+                    if (is_hot)
+                    {
+                        hot_pixels++;
+                        dark[x + y*w] = b;
+                    }
+                }
             }
         }
     }
