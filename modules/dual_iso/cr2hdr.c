@@ -52,6 +52,8 @@
 /* it will still benefit from chroma smoothing, so leave it on */
 #endif
 
+#define EV_RESOLUTION 32768
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -915,7 +917,93 @@ static int mean3(int a, int b, int c, int white, int* err)
 }
 #endif
 
-#define EV_RESOLUTION 32768
+#ifdef CHROMA_SMOOTH
+#if 0
+static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int x, y;
+
+    for (y = 2; y < h-2; y += 2)
+    {
+        for (x = 2; x < w-2; x += 2)
+        {
+            int i,j;
+            int k = 0;
+            int med_r[9];
+            int med_b[9];
+            for (i = -2; i <= 2; i += 2)
+            {
+                for (j = -2; j <= 2; j += 2)
+                {
+                    int r  = inp[x+i   +   (y+j) * w];
+                    int g1 = inp[x+i+1 +   (y+j) * w];
+                    int g2 = inp[x+i   + (y+j+1) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+                    
+                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+                    med_r[k] = raw2ev[r] - ge;
+                    med_b[k] = raw2ev[b] - ge;
+                    k++;
+                }
+            }
+            int dr = opt_med9(med_r);
+            int db = opt_med9(med_b);
+
+            int g1 = inp[x+1 +     y * w];
+            int g2 = inp[x   + (y+1) * w];
+            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+        }
+    }
+}
+#endif
+
+static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int x,y;
+
+    for (y = 4; y < h-4; y += 2)
+    {
+        for (x = 4; x < w-4; x += 2)
+        {
+            int i,j;
+            int k = 0;
+            int med_r[25];
+            int med_b[25];
+            for (i = -4; i <= 4; i += 2)
+            {
+                for (j = -4; j <= 4; j += 2)
+                {
+                    int r  = inp[x+i   +   (y+j) * w];
+                    int g1 = inp[x+i+1 +   (y+j) * w];
+                    int g2 = inp[x+i   + (y+j+1) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+                    
+                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+                    med_r[k] = raw2ev[r] - ge;
+                    med_b[k] = raw2ev[b] - ge;
+                    k++;
+                }
+            }
+            int dr = opt_med25(med_r);
+            int db = opt_med25(med_b);
+
+            int g1 = inp[x+1 +     y * w];
+            int g2 = inp[x   + (y+1) * w];
+            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+        }
+    }
+}
+#endif
 
 static int hdr_interpolate()
 {
@@ -1310,6 +1398,7 @@ static int hdr_interpolate()
     printf("Matching brightness...\n");
     double corr = pow(2, corr_ev);
     int white_darkened = (white - black) / corr + black;
+    int hot_pixels = 0;
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -1325,11 +1414,24 @@ static int hdr_interpolate()
             {
                 /* adjust the black level in the dark image, so it matches the high-ISO one */
                 int d = dark[x + y*w];
+                int b = bright[x + y*w];
                 int da = d - black_delta*4;
+
+                /* beware of hot pixels */
+                int is_hot = (b < white_darkened) && (ABS(raw2ev[b] - raw2ev[d]) > EV_RESOLUTION);
+                if (is_hot)
+                {
+                    hot_pixels++;
+                    da = b;
+                }
+
                 dark[x + y*w] = da;
             }
         }
     }
+
+    if (hot_pixels)
+        printf("Hot pixels     : %d\n", hot_pixels);
 
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
@@ -1361,40 +1463,7 @@ static int hdr_interpolate()
 #endif
 
 #ifdef CHROMA_SMOOTH
-    for (y = 4; y < h-4; y += 2)
-    {
-        for (x = 2; x < w-2; x += 2)
-        {
-            int i,j;
-            int k = 0;
-            int med_r[25];
-            int med_b[25];
-            for (i = -4; i <= 4; i += 2)
-            {
-                for (j = -4; j <= 4; j += 2)
-                {
-                    int r  = fullres[x+i   +   (y+j) * w];
-                    int g1 = fullres[x+i+1 +   (y+j) * w];
-                    int g2 = fullres[x+i   + (y+j+1) * w];
-                    int b  = fullres[x+i+1 + (y+j+1) * w];
-                    
-                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-                    med_r[k] = raw2ev[r] - ge;
-                    med_b[k] = raw2ev[b] - ge;
-                    k++;
-                }
-            }
-            int dr = opt_med25(med_r);
-            int db = opt_med25(med_b);
-
-            int g1 = fullres[x+1 +     y * w];
-            int g2 = fullres[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-
-            fullres_smooth[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
-            fullres_smooth[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
-        }
-    }
+    chroma_smooth_5x5(fullres, fullres_smooth, raw2ev, ev2raw);
 #endif
 
 #ifdef VERTICAL_SMOOTH
@@ -1444,6 +1513,19 @@ static int hdr_interpolate()
             fullres_smooth[x + y*w] = median7(a,b,c,d,e,f,g,white);
         }
     }
+#endif
+
+#ifdef CHROMA_SMOOTH
+    printf("Dark chroma filtering...\n");
+    unsigned short* smooth_aux = malloc(w * h * sizeof(unsigned short));
+    CHECK(smooth_aux, "malloc");
+
+    memcpy(smooth_aux, dark, w * h * sizeof(unsigned short));
+    chroma_smooth_5x5(smooth_aux, dark, raw2ev, ev2raw);
+
+    memcpy(smooth_aux, bright, w * h * sizeof(unsigned short));
+    chroma_smooth_5x5(smooth_aux, bright, raw2ev, ev2raw);
+    free(smooth_aux);
 #endif
 
 #if 0 /* for debugging only */
@@ -1498,6 +1580,8 @@ static int hdr_interpolate()
 #endif
 
 #ifdef CONTRAST_BLEND
+    printf("Building contrast map...\n");
+
     unsigned short* contrast_aux = malloc(w * h * sizeof(unsigned short));
     CHECK(contrast_aux, "malloc");
 
@@ -1724,8 +1808,6 @@ static int hdr_interpolate()
     system("octave --persist mix-curve.m");
 #endif
     
-    int hot_pixels = 0;
-    
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -1788,14 +1870,6 @@ static int hdr_interpolate()
             
             /* show contrast map (for debugging) */
             //~ output = c * 14*EV_RESOLUTION;
-
-            /* beware of hot pixels */
-            int is_hot = ((k > 0 || f > 0) && !ovf && (ABS(dev - bev) > (2+c) * EV_RESOLUTION));
-            if (is_hot)
-            {
-                hot_pixels++;
-                output = bev;
-            }
 #endif
             /* safeguard */
             output = COERCE(output, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1);
@@ -1804,9 +1878,6 @@ static int hdr_interpolate()
             raw_set_pixel16(x, y, ev2raw[output]);
         }
     }
-    
-    if (hot_pixels)
-        printf("Hot pixels     : %d\n", hot_pixels);
 
     if (!rggb) /* back to GBRG */
         raw_info.buffer -= raw_info.pitch;
