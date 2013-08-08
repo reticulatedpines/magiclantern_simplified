@@ -915,7 +915,7 @@ static int mean3(int a, int b, int c, int white, int* err)
 }
 #endif
 
-#define EV_RESOLUTION 2000
+#define EV_RESOLUTION 32768
 
 static int hdr_interpolate()
 {
@@ -1794,7 +1794,7 @@ static int hdr_interpolate()
             if (is_hot)
             {
                 hot_pixels++;
-                //~ output = bev;
+                output = bev;
             }
 #endif
             /* safeguard */
