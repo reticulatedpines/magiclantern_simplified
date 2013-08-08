@@ -1426,12 +1426,25 @@ static int hdr_interpolate()
         for (x = 0; x < w; x ++)
         {
             {
-                /* adjust the black level in the dark image, so it matches the high-ISO one */
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
+                
+                /* don't check hot pixels near overexposed areas */
+                int i,j;
+                int over = 0;
+                for (i = -3; i <= 3; i++)
+                {
+                    for (j = -3; j <= 3; j++)
+                    {
+                        if (bright[x+j + (y+i)*w] >= white_darkened || dark[x+j + (y+i)*w] >= white_darkened)
+                        {
+                            over = 1;
+                            break;
+                        }
+                    }
+                }
 
-                /* beware of hot pixels */
-                int maybe_hot = (b < white_darkened) && (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > 64);
+                int maybe_hot = !over && (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > 64);
                 if (maybe_hot)
                 {
                     /* these hot pixels should be isolated, otherwise it's probably aliasing, which shouldn't be touched */
@@ -1452,7 +1465,7 @@ static int hdr_interpolate()
                             if (j == 0) continue;
                             int d = dark[x+j*2 + (y+i*2)*w];
                             int b = bright[x+j*2 + (y+i*2)*w];
-                            if ((d - b > delta_raw / 2) && (raw2ev[d] - raw2ev[b] > delta_ev - 1))
+                            if ((d - b > delta_raw / 2) && (raw2ev[d] - raw2ev[b] > delta_ev - EV_RESOLUTION))
                             {
                                 //~ if (x == 3538 + 124 && y == 1285 + 80)
                                     //~ printf("whoops (%d,%d) raw=%d,%d ev=%f,%f\n", i, j, b, d, (double) raw2ev[b] / EV_RESOLUTION,  (double)raw2ev[d] / EV_RESOLUTION);
