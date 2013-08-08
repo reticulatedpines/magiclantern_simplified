@@ -650,8 +650,8 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     for (i = 0; i < w * h; i++)
         order[i] = i;
     
-    /* sort the low ISO tones and process them as RLE */
-    #define darkidx_lt(a,b) (dark[(*a)]<dark[(*b)])
+    /* sort the high ISO tones and process them as RLE */
+    #define darkidx_lt(a,b) (bright[(*a)]<bright[(*b)])
     QSORT(int, order, w*h, darkidx_lt);
     
     int* medians_x = malloc(white * sizeof(medians_x[0]));
@@ -660,17 +660,17 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
 
     for (i = 0; i < w*h; )
     {
-        int ref = dark[order[i]];
-        for (j = i+1; j < w*h && dark[order[j]] == ref; j++);
+        int ref = bright[order[i]];
+        for (j = i+1; j < w*h && bright[order[j]] == ref; j++);
 
         /* same dark value from i to j (without j) */
         int num = (j - i);
         
-        if (num > 1000 && ref > black + 32)
+        if (num > 200 && ref > black + 32 && ref < white - 1000)
         {
             unsigned short* aux = malloc(num * sizeof(aux[0]));
             for (k = 0; k < num; k++)
-                aux[k] = bright[order[k+i]];
+                aux[k] = dark[order[k+i]];
             int m = median_short(aux, num);
             if (m > black + 32 && m < white - 1000)
             {
@@ -679,10 +679,6 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
                 num_medians++;
             }
             free(aux);
-            
-            /* no more useful data beyond this point */
-            if (m >= white - 1000)
-                break;
         }
         
         i = j;
@@ -733,7 +729,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     free(medians_y);
     free(order);
 
-    double factor = a;
+    double factor = 1/a;
     if (factor < 1.2 || !isfinite(factor))
     {
         printf("Doesn't look like interlaced ISO\n");
@@ -741,7 +737,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     }
     
     *corr_ev = log2(factor);
-    *black_delta = - b / a;
+    *black_delta = b;
 
     printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
     printf("Black delta    : %.2f\n", *black_delta);
