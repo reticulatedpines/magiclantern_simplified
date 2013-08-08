@@ -2,6 +2,12 @@
 #ifndef _ime_base_h_
 #define _ime_base_h_
 
+#ifndef _ime_base_c_
+#define IME_WEAK(x) WEAK_FUNC(x)
+#else
+#define IME_WEAK(x)
+#endif
+
 #define IME_MAX_METHODS 32
 
 /* for now UTF-8 is the only method that is obligatory */
@@ -59,7 +65,7 @@ typedef unsigned int (*t_ime_done_cbr)(void *ctx, unsigned int status, unsigned 
    placed its text field that should not be overwritten. your update cbr must handle displaying the string in this case. 
    if you dont care about this, pass all values as zero. 
  */
-extern void * WEAK_FUNC(ret_0) ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
+extern IME_WEAK(ret_0) void * ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
 typedef void * (*t_ime_start) (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
 
 /* this structure is passed when registering */
@@ -81,7 +87,7 @@ static unsigned int ime_base_unavail(t_ime_handler *handler)
     return IME_ERR_UNAVAIL;
 }
 
-extern WEAK_FUNC(ime_base_unavail) unsigned int ime_base_register(t_ime_handler *handler);
+extern IME_WEAK(ime_base_unavail) unsigned int ime_base_register(t_ime_handler *handler);
 
 #endif
 
