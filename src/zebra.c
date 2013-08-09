@@ -2896,19 +2896,22 @@ static void spotmeter_step()
     xcb -= 2 * font_med.width;
 
     #ifdef FEATURE_RAW_SPOTMETER
-    if (spotmeter_formula == 5 && can_use_raw_overlays())
+    if (spotmeter_formula == 5)
     {
-        bmp_printf(
-            fnt,
-            xcb - font_med.width - 5, ycb, 
-            "-%d.%d EV",
-            -raw_ev/10, 
-            -raw_ev%10
-        );
-    }
-    else // will fall back to percent if no raw data is available
-    {
-        goto fallback_from_raw;
+        if (can_use_raw_overlays())
+        {
+            bmp_printf(
+                fnt,
+                xcb - font_med.width - 5, ycb, 
+                "-%d.%d EV",
+                -raw_ev/10, 
+                -raw_ev%10
+            );
+        }
+        else // will fall back to percent if no raw data is available
+        {
+            goto fallback_from_raw;
+        }
     }
     #endif
     
