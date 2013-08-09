@@ -2402,6 +2402,8 @@ static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
 #define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -1)
 #define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
 
+static CONFIG_INT("lv.crazy", preview_crazy, 0);         // range: 0:2
+
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 
 static CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
@@ -2456,7 +2458,13 @@ static void preview_contrast_n_saturation_step()
     
     int saturation_register = 0xC0F140c4;
 #ifndef CONFIG_5DC
-    int current_saturation = (int) shamem_read(saturation_register) & 0xFF;
+    int current_saturation = (int) shamem_read(saturation_register);
+
+    #ifdef FEATURE_LV_CRAZY_COLORS
+    current_saturation &= 0xFF00FF;
+    #else
+    current_saturation &= 0xFF;
+    #endif
 #endif
 
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
@@ -2475,6 +2483,11 @@ static void preview_contrast_n_saturation_step()
         cor = altered_saturation - desired_saturation;
         desired_saturation = altered_saturation;
     }
+
+#ifdef FEATURE_LV_CRAZY_COLORS
+    if (preview_crazy == 2)
+        desired_saturation |= 0x10000;
+#endif
 
 #ifdef CONFIG_5DC
     EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
@@ -2526,6 +2539,23 @@ static void preview_contrast_n_saturation_step()
     if (current_contrast != desired_contrast)
     {
         EngDrvOutLV(brightness_contrast_register, desired_contrast);
+    }
+#endif
+
+#ifdef FEATURE_LV_CRAZY_COLORS
+    int crazy_register = 0xC0F14040;
+    static int crazy_dirty = 0;
+    
+    int current_crazy_value = (int) shamem_read(crazy_register);
+    int desired_crazy_value = preview_crazy == 1 ? 0x10 : preview_crazy == 2 ? 0xA00001 : 1;
+
+    if (preview_crazy || crazy_dirty)
+    {
+        if (current_crazy_value != desired_crazy_value)
+        {
+            EngDrvOutLV(crazy_register, desired_crazy_value);
+            crazy_dirty = preview_crazy;
+        }
     }
 #endif
 }
@@ -3350,6 +3380,22 @@ static struct menu_entry display_menus[] = {
                     },
                     MENU_EOL
                 }*/
+            },
+            #endif
+            #ifdef FEATURE_LV_CRAZY_COLORS
+            {
+                .name = "LV crazy colors",
+                .priv     = &preview_crazy,
+                .min = 0,
+                .max = 2,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"OFF", "Swap U-V", "Extreme Chroma"},
+                .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_PERCENT_OFF,
+                .help  = "Crazy color effects that may help with white balance.",
+                .help2 = "For LiveView preview only. Does not affect recording.\n"
+                         "Swap U-V: reverses red and blue components\n"
+                         "Extreme Chroma: highly saturated image showing WB direction\n",
             },
             #endif
             #ifdef FEATURE_LV_DISPLAY_GAIN
