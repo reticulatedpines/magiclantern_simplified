@@ -501,19 +501,31 @@ static int black_subtract(int left_margin, int top_margin)
     raw_info.buffer = old_buffer;
 #endif
 
-    /* "subtract" the dark frame, keeping the exif black level and preserving the white level */
+    /* subtract the dark frame, keeping the average black level */
+    double avg_black = 0;
+    for (y = top_margin; y < h; y++)
+    {
+        for (x = left_margin; x < w; x++)
+        {
+            avg_black += blackframe[x + y*w];
+        }
+    }
+    avg_black /= (w * h);
+
     for (y = 0; y < h; y++)
     {
         for (x = 0; x < w; x++)
         {
             int p = raw_get_pixel16(x, y);
-            int black_delta = raw_info.black_level - blackframe[x + y*w];
+            int black_delta = avg_black - blackframe[x + y*w];
             p += black_delta;
-            p = p * raw_info.white_level / (raw_info.white_level + black_delta);
             p = COERCE(p, 0, 16383);
             raw_set_pixel16(x, y, p);
         }
     }
+
+    raw_info.black_level = round(avg_black);
+    printf("Black level    : %d\n", raw_info.black_level);
 
 #if 0
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
