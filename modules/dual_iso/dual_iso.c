@@ -87,6 +87,7 @@ extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 /* camera-specific constants */
 
 static int is_7d = 0;
+static int is_5d2 = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
 static uint32_t FRAME_CMOS_ISO_COUNT = 0;
@@ -172,6 +173,9 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             if (flag != CMOS_EXPECTED_FLAG)
                 return 2;
             
+            if (is_5d2)
+                iso2 += iso1; /* iso2 is 0 by default */
+            
             if (iso1 != iso2)
                 return 3;
             
@@ -181,7 +185,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             prev_iso = iso1;
         }
         
-        if (prev_iso < 10 && !is_7d)
+        if (prev_iso < 10 && !is_7d && !is_5d2)
             return 5;
         
         /* backup old values */
@@ -196,6 +200,19 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
         {
             uint16_t raw = *(uint16_t*)(start_addr + i * size);
             int my_raw = backup[COERCE(isoless_recovery_iso_index(), 0, count-1)];
+            
+            if (is_5d2)
+            {
+                /* iso2 is 0 by default, but our algorithm expects two identical values => let's mangle them */
+                int iso1 = (raw >> CMOS_FLAG_BITS) & CMOS_ISO_MASK;
+                int my_iso1 = (my_raw >> CMOS_FLAG_BITS) & CMOS_ISO_MASK;
+                raw |= (iso1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
+                my_raw |= (my_iso1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
+                
+                /* enable the dual ISO flag */
+                raw |= 1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS + CMOS_ISO_BITS);
+            }
+
 
             int my_iso2 = (my_raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
             raw &= ~(CMOS_ISO_MASK << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
@@ -663,6 +680,18 @@ static unsigned int isoless_init()
         CMOS_EXPECTED_FLAG = 0;
         
         local_buf = alloc_dma_memory(PHOTO_CMOS_ISO_COUNT * PHOTO_CMOS_ISO_SIZE + 4);
+    }
+    else if (streq(camera_model_short, "5D2"))
+    {
+        is_5d2 = 1;
+        
+        PHOTO_CMOS_ISO_START = 0x404b3b5c; // CMOS register 0000 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_COUNT =          5; // from ISO 100 to 1600
+        PHOTO_CMOS_ISO_SIZE  =         14; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 2;
+        CMOS_EXPECTED_FLAG = 3;
     }
     
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
