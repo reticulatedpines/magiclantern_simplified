@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <inttypes.h>
 
 //#define MLV_USE_LZMA
 
@@ -88,7 +89,6 @@ void bitinsert(uint16_t *dst, int position, int depth, uint16_t new_value)
         dst[dst_pos + 1] = old_value;
     }
 }
-
 
 uint16_t bitextract(uint16_t *src, int position, int depth)
 {
@@ -159,6 +159,12 @@ int main (int argc, char *argv[])
     int lzma_fb = 8;
     int lzma_threads = 8;
 #endif
+    
+    if(sizeof(mlv_file_hdr_t) != 52)
+    {
+        printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is %d on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
+        return 0;
+    }
     
     while ((opt = getopt(argc, argv, "vrcdo:l:b:f:")) != -1) 
     {
@@ -288,7 +294,7 @@ int main (int argc, char *argv[])
     memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     /* open files */
-    in_file = fopen(input_filename, "r");
+    in_file = fopen(input_filename, "rb");
     if(!in_file)
     {
         fprintf(stderr, "Failed to open file '%s'\n", input_filename);
@@ -304,7 +310,7 @@ int main (int argc, char *argv[])
             return 0;
         }
         
-        out_file = fopen(output_filename, "w+");
+        out_file = fopen(output_filename, "wb+");
         if(!out_file)
         {
             fprintf(stderr, "Failed to open file '%s'\n", output_filename);
@@ -315,8 +321,11 @@ int main (int argc, char *argv[])
     do
     {
         mlv_hdr_t buf;
-
+        uint64_t position = 0;
+        
 read_headers:
+        position = ftello(in_file);
+        
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
             printf("[i] Reached end of file after %i blocks\n", blocks_processed);
@@ -333,7 +342,7 @@ read_headers:
             strcpy(&input_filename[strlen(input_filename) - 2], seq_name);
 
             /* try to open */
-            in_file = fopen(input_filename, "r");
+            in_file = fopen(input_filename, "rb");
             if(!in_file)
             {
                 break;
@@ -344,9 +353,11 @@ read_headers:
 
             goto read_headers;
         }
+        
+        /* jump back to the beginning of the block just read */
+        fseeko(in_file, position, SEEK_SET);
 
-        fseeko(in_file, - (int64_t)sizeof(mlv_hdr_t), SEEK_CUR);
-
+        position = ftello(in_file);
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
         {
@@ -359,14 +370,14 @@ read_headers:
                 fprintf(stderr, "[E] File ends in the middle of a block\n");
                 goto abort;
             }
-            fseeko(in_file, file_hdr.blockSize - hdr_size, SEEK_CUR);
+            fseeko(in_file, position + file_hdr.blockSize, SEEK_SET);
 
             if(verbose)
             {
                 printf("File Header (MLVI)\n");
                 printf("    Size        : 0x%08X\n", file_hdr.blockSize);
                 printf("    Ver         : %s\n", file_hdr.versionString);
-                printf("    GUID        : %08llX\n", file_hdr.fileGuid);
+                printf("    GUID        : %08" PRIu64 "\n", file_hdr.fileGuid);
                 printf("    FPS         : %f\n", (double)file_hdr.sourceFpsNom / (double)file_hdr.sourceFpsDenom);
                 printf("    Frames Video: %d\n", file_hdr.videoFrameCount);
                 printf("    Frames Audio: %d\n", file_hdr.audioFrameCount);
@@ -418,8 +429,6 @@ read_headers:
         }
         else
         {
-            uint64_t position = ftello(in_file);
-
             if(main_header.blockSize == 0)
             {
                 fprintf(stderr, "[E] Missing file header\n");
@@ -429,7 +438,7 @@ read_headers:
             if(verbose)
             {
                 printf("Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                printf("  Offset: 0x%llX\n", position);
+                printf("  Offset: 0x%08" PRIx64 "\n", position);
                 printf("    Size: %d\n", buf.blockSize);
 
                 /* NULL blocks don't have timestamps */
@@ -610,21 +619,24 @@ read_headers:
                         block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
                         block_hdr.frameSpace = 0;
                         
+                        printf("Current pos: %08"PRIx64" size: %08x\n", ftello(out_file), frame_size);
                         if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
                             goto abort;
                         }
+                        printf("Current pos: %08"PRIx64"\n", ftello(out_file));
                         if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
                             goto abort;
                         }
+                        printf("Current pos: %08"PRIx64"\n", ftello(out_file));
                     }
                 }
                 else
                 {
-                    fseeko(in_file, block_hdr.blockSize - sizeof(mlv_vidf_hdr_t), SEEK_CUR);
+                    fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
                 }
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
@@ -648,7 +660,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -737,7 +749,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -768,7 +780,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -804,7 +816,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -836,7 +848,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -871,7 +883,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -879,7 +891,7 @@ read_headers:
                     printf("     ISO:        %d\n", block_hdr.isoValue);
                     printf("     ISO Analog: %d\n", block_hdr.isoAnalog);
                     printf("     ISO DGain:  %d EV\n", block_hdr.digitalGain);
-                    printf("     Shutter:    %llu µs (1/%.2f)\n", block_hdr.shutterValue, 1000000.0f/block_hdr.shutterValue);
+                    printf("     Shutter:    %" PRIu64 " µs (1/%.2f)\n", block_hdr.shutterValue, 1000000.0f/(float)block_hdr.shutterValue);
                 }
             
                 if(mlv_output)
@@ -905,7 +917,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, block_hdr.blockSize - hdr_size, SEEK_CUR);
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
@@ -956,7 +968,7 @@ read_headers:
             }
             else
             {
-                fseeko(in_file, buf.blockSize, SEEK_CUR);
+                fseeko(in_file, position + buf.blockSize, SEEK_SET);
             }
         }
         

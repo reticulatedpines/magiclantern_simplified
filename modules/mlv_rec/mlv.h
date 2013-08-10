@@ -30,14 +30,14 @@
 #define MLV_VIDEO_CLASS_FLAG_LZMA    0x80
 #define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
 
-
 #pragma pack(push,0)
+#define PACKED __attribute__ ((gcc_struct, __packed__))
 
 typedef struct {
     uint8_t     blockType[4];
     uint32_t    blockSize;
     uint64_t    timestamp;
-} mlv_hdr_t;
+} PACKED mlv_hdr_t;
 
 typedef struct {
     uint8_t     fileMagic[4];    /* Magic Lantern Video file header */
@@ -53,7 +53,7 @@ typedef struct {
     uint32_t    audioFrameCount;    /* number of audio frames in this file. set to 0 on start, updated when finished. */
     uint32_t    sourceFpsNom;    /* configured fps in 1/s multiplied by sourceFpsDenom */
     uint32_t    sourceFpsDenom;    /* denominator for fps. usually set to 1000, but may be 1001 for NTSC */
-} mlv_file_hdr_t;
+} PACKED mlv_file_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* this block contains one frame of video data */
@@ -65,7 +65,7 @@ typedef struct {
     uint16_t    panPosX;    /* specifies the panning offset which is cropPos, but with higher resolution (1x1 blocks) */
     uint16_t    panPosY;    /* (it's the frame area from sensor the user wants to see) */
     uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
-} mlv_vidf_hdr_t;
+} PACKED mlv_vidf_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* this block contains audio data */
@@ -73,7 +73,7 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint32_t    frameNumber;    /* unique audio frame number */
     uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
-} mlv_audf_hdr_t;
+} PACKED mlv_audf_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* when videoClass is RAW, this block will contain detailed format information */
@@ -82,7 +82,7 @@ typedef struct {
     uint16_t    xRes;    /* Configured video resolution, may differ from payload resolution */
     uint16_t    yRes;    /* Configured video resolution, may differ from payload resolution */
     struct raw_info    raw_info;    /* the raw_info structure delivered by raw.c of ML Core */
-} mlv_rawi_hdr_t;
+} PACKED mlv_rawi_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* when audioClass is WAV, this block contains format details  compatible to RIFF */
@@ -94,7 +94,7 @@ typedef struct {
     uint32_t    bytesPerSecond;    /* audio data rate */
     uint16_t    blockAlign;    /* see RIFF WAV hdr description */
     uint16_t    bitsPerSample;    /* audio ADC resolution */
-} mlv_wavi_hdr_t;
+} PACKED mlv_wavi_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];
@@ -105,7 +105,7 @@ typedef struct {
     uint32_t    isoAnalog;    /* camera delivered ISO value */
     uint32_t    digitalGain;    /* digital ISO gain */
     uint64_t    shutterValue;    /* exposure time in microseconds */
-} mlv_expo_hdr_t;
+} PACKED mlv_expo_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];
@@ -120,7 +120,7 @@ typedef struct {
     uint32_t    lensID;    /* hexadecimal lens ID (delivered by properties?) */
     uint8_t     lensName[32];    /* full lens string */
     uint8_t     lensSerial[32]; /* full lens serial number */
-} mlv_lens_hdr_t;
+} PACKED mlv_lens_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];
@@ -137,7 +137,7 @@ typedef struct {
     uint16_t    tm_isdst;    /* daylight saving */
     uint16_t    tm_gmtoff;    /* GMT offset */
     uint8_t     tm_zone[8];    /* time zone string */
-} mlv_rtci_hdr_t;
+} PACKED mlv_rtci_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];
@@ -146,13 +146,13 @@ typedef struct {
     uint8_t     cameraName[32];    /* PROP (0x00000002), offset 0, length 32 */
     uint32_t    cameraModel;    /* PROP (0x00000002), offset 32, length 4 */
     uint8_t     cameraSerial[32];    /* Camera serial number (if available) */
-} mlv_idnt_hdr_t;
+} PACKED mlv_idnt_hdr_t;
 
 typedef struct {
     uint16_t    fileNumber;    /* the logical file number as specified in header */
     uint16_t    empty;    /* for future use. set to zero. */
     uint64_t    frameOffset;    /* the file offset at which the frame is stored (VIDF/AUDF) */
-} mlv_xref_t;
+} PACKED mlv_xref_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* can be added in post processing when out of order data is present */
@@ -161,13 +161,13 @@ typedef struct {
     uint32_t    frameType;    /* bitmask: 1=video, 2=audio */
     uint32_t    frameCount;    /* number of xrefs that follow here */
     mlv_xref_t    xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
-} mlv_xref_hdr_t;
+} PACKED mlv_xref_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* user definable info string. take number, location, etc. */
     uint32_t    blockSize;
     uint64_t    timestamp;
-} mlv_info_hdr_t;
+} PACKED mlv_info_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* Dual-ISO information */
@@ -175,14 +175,14 @@ typedef struct {
     uint64_t    timestamp;
     uint32_t    dualMode;    /* bitmask: 0=off, 1=odd lines, 2=even lines, upper bits may be defined later */
     uint32_t    isoValue;
-} mlv_diso_hdr_t;
+} PACKED mlv_diso_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* markers set by user while recording */
     uint32_t    blockSize;
     uint64_t    timestamp;
     uint32_t    type;    /* value may depend on the button being pressed or counts up (t.b.d) */
-} mlv_mark_hdr_t;
+} PACKED mlv_mark_hdr_t;
 
 typedef struct {            
     uint8_t     blockType[4];    /* Electronic level (orientation) data */
@@ -190,7 +190,7 @@ typedef struct {
     uint64_t    timestamp;    
     uint32_t    roll;    /* degrees x100 (here, 45.00 degrees) */
     uint32_t    pitch;    /* 10.00 degrees */
-} mlv_elvl_hdr_t;
+} PACKED mlv_elvl_hdr_t;
 
 typedef struct {            
     uint8_t     blockType[4];    /* White balance info */
@@ -203,7 +203,7 @@ typedef struct {
     uint32_t    wbgain_b;    /* note: it's 1/canon_gain (uses dcraw convention) */
     uint32_t    wbs_gm;    /* WBShift (no idea how to use these in post) */
     uint32_t    wbs_ba;    /* range: -9...9 */
-} mlv_wbal_hdr_t;            
+} PACKED mlv_wbal_hdr_t;            
 
 #pragma pack(pop)
 
