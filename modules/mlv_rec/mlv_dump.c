@@ -619,19 +619,16 @@ read_headers:
                         block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
                         block_hdr.frameSpace = 0;
                         
-                        printf("Current pos: %08"PRIx64" size: %08x\n", ftello(out_file), frame_size);
                         if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
                             goto abort;
                         }
-                        printf("Current pos: %08"PRIx64"\n", ftello(out_file));
                         if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
                             goto abort;
                         }
-                        printf("Current pos: %08"PRIx64"\n", ftello(out_file));
                     }
                 }
                 else

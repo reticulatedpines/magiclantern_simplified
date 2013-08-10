@@ -31,7 +31,11 @@
 #define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
 
 #pragma pack(push,0)
+#ifdef WIN32
 #define PACKED __attribute__ ((gcc_struct, __packed__))
+#else
+#define PACKED __attribute__ ((__packed__))
+#endif
 
 typedef struct {
     uint8_t     blockType[4];
