@@ -155,7 +155,12 @@ cstart( void )
         fail();
     #endif
 
-    //TODO: Add CONFIG_700D and CONFIG_100D signature check
+    #ifdef CONFIG_700D
+    if (s != (int)SIG_700D_111)
+        fail();
+    #endif
+
+    //TODO: Add CONFIG_100D signature check
 #endif
 
 #ifdef __ARM__

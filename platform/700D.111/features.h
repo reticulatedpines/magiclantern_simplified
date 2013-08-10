@@ -4,7 +4,7 @@
 
 #include "all_features.h"
 
-//~ #define FEATURE_LV_3RD_PARTY_FLASH // requires props
+//#define FEATURE_LV_3RD_PARTY_FLASH // requires props
 #define FEATURE_EYEFI_TRICKS
 
 // Disable all audio stuff
@@ -28,7 +28,7 @@
 #undef FEATURE_LV_BUTTON_RATE
 
 #undef FEATURE_TRAP_FOCUS
-#undef FEATURE_FLEXINFO
+//#undef FEATURE_FLEXINFO
 
 // Glitchy
 #undef FEATURE_STICKY_DOF
@@ -40,6 +40,4 @@
 //~ #define FEATURE_SHOW_STATE_FPS
 #define FEATURE_FOCUS_PEAK_DISP_FILTER
 
-//edit by Science
-#undef FEATURE_SILENT_PIC
-#undef CONFIG_STATE_OBJECT_HOOKS
+#define FEATURE_CROP_MODE_HACK

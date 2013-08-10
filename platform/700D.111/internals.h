@@ -95,7 +95,7 @@
 /** We can use DMA_MEMCPY **/
 // #define CONFIG_DMA_MEMCPY
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
-//#define CONFIG_EDMAC_MEMCPY - Science edit
+#define CONFIG_EDMAC_MEMCPY
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
@@ -121,5 +121,5 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-//#define CONFIG_RAW_LIVEVIEW
-//#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW
+#define CONFIG_RAW_PHOTO

@@ -1,10 +1,6 @@
 /*
  *  700D 1.1.1 consts
  */
- 
- /*
-  * Just a copy of the 650D stuff. Indented = WRONG
-  */
 
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
@@ -224,7 +220,7 @@
     #define Q_BTN_NAME "[Q]"
     #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x23C20+0x10C)
+#define DISPLAY_STATEOBJ (*(struct state_object **)(0x23C20+0x10C))
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x25AE4) // Look for MAX_FRAMEDATA_DEBUGMEMBER then go up -> 0x25AA4 + 0x40
