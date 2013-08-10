@@ -74,6 +74,7 @@ static int cam_5d2 = 0;
 static int cam_50d = 0;
 static int cam_5d3 = 0;
 static int cam_6d = 0;
+static int cam_700d = 0;
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -1079,6 +1080,7 @@ static void hack_liveview(int unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
+            cam_700d ? 0xFF52B53C :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -2155,6 +2157,7 @@ static unsigned int raw_rec_init()
     cam_50d = streq(camera_model_short, "50D");
     cam_5d3 = streq(camera_model_short, "5D3");
     cam_6d = streq(camera_model_short, "6D");
+    cam_700d = streq(camera_model_short, "700D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {

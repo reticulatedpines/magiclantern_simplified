@@ -223,7 +223,7 @@
 #define DISPLAY_STATEOBJ (*(struct state_object **)(0x23C20+0x10C))
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x25AE4) // Look for MAX_FRAMEDATA_DEBUGMEMBER then go up -> 0x25AA4 + 0x40
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x25AF0)
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
