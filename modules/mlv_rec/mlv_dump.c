@@ -150,6 +150,9 @@ int main (int argc, char *argv[])
     int lzma_level = 5;
     char opt = ' ';
     
+    int video_xRes = 0;
+    int video_yRes = 0;
+    
 #ifdef MLV_USE_LZMA
     /* this may need some tuning */
     int lzma_dict = 1<<27;
@@ -475,6 +478,7 @@ read_headers:
                     int decompress = compressed && decompress_output;
                     
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+                    int prev_frame_size = frame_size;
                     
                     fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
                     if(fread(frame_buffer, frame_size, 1, in_file) != 1)
@@ -523,25 +527,29 @@ read_headers:
                     /* now resample bit depth if requested */
                     if(new_depth && (old_depth != new_depth))
                     {
-                        int new_size = (frame_size * new_depth + (old_depth - 1)) / old_depth;
+                        int new_size = (video_xRes * video_yRes * new_depth + 7) / 8;
                         unsigned char *new_buffer = malloc(new_size);
                         
                         if(verbose)
                         {
                             printf("   depth: %d -> %d, size: %d -> %d (%2.2f%%)\n", old_depth, new_depth, frame_size, new_size, ((float)new_depth * 100.0f) / (float)old_depth);
                         }
-
-                        int width = lv_rec_footer.raw_info.width;
-                        int height = lv_rec_footer.raw_info.height;
-                        int old_pitch = width * old_depth / 8;
-                        int new_pitch = width * new_depth / 8;
                         
-                        for(int y = 0; y < height; y++)
+                        if(((video_xRes * video_yRes * new_depth + old_depth - 1) / 8) > frame_size)
+                        {
+                            printf("Error: old frame size is too small for %dx%d at %d bpp. Input data corrupt\n", video_xRes, video_yRes, old_depth);
+                            break;
+                        }
+
+                        int old_pitch = video_xRes * old_depth / 8;
+                        int new_pitch = video_xRes * new_depth / 8;
+                        
+                        for(int y = 0; y < video_yRes; y++)
                         {
                             uint16_t *src_line = (uint16_t *)&frame_buffer[y * old_pitch];
                             uint16_t *dst_line = (uint16_t *)&new_buffer[y * new_pitch];
                             
-                            for(int x = 0; x < width; x++)
+                            for(int x = 0; x < video_xRes; x++)
                             {
                                 uint16_t value = bitextract(src_line, x, old_depth);
                                 
@@ -581,7 +589,6 @@ read_headers:
                             size_t lzma_props_size = LZMA_PROPS_SIZE;
                             unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
 
-                            
                             int ret = LzmaCompress(
                                 &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
                                 (unsigned char *)frame_buffer, lzma_in_size, 
@@ -613,6 +620,11 @@ read_headers:
                             printf("    LZMA: not compiled into this release, aborting.\n");
                             goto abort;
 #endif
+                        }
+                        
+                        if(frame_size != prev_frame_size)
+                        {
+                            printf("  saving: %d -> %d  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
                         }
                         
                         /* delete free space and correct header size if needed */
@@ -916,6 +928,8 @@ read_headers:
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
 
+                video_xRes = block_hdr.xRes;
+                video_yRes = block_hdr.yRes;
                 if(verbose)
                 {
                     printf("    Res:  %dx%d\n", block_hdr.xRes, block_hdr.yRes);
