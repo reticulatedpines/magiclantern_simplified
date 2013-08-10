@@ -20,8 +20,8 @@ MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -m32 -O2 -Wall $(L
 LZMA_DIR=lzma/
 LZMA_CFLAGS=-c -O2 -Wall -c
 LZMA_INC=-I$(LZMA_DIR)
-LZMA_LIB=$(LZMA_DIR)Util/7z/lib7z.a
-LZMA_LIB_MINGW=$(LZMA_DIR)Util/7z/lib7z.w32.a
+LZMA_LIB=$(LZMA_DIR)lib7z.a
+LZMA_LIB_MINGW=$(LZMA_DIR)lib7z.w32.a
 # linux version doesnt support multi threading?
 LZMA_OBJS=$(LZMA_DIR)7zAlloc.host.o $(LZMA_DIR)7zBuf.host.o $(LZMA_DIR)7zBuf2.host.o $(LZMA_DIR)7zCrc.host.o $(LZMA_DIR)7zCrcOpt.host.o $(LZMA_DIR)7zDec.host.o $(LZMA_DIR)7zFile.host.o $(LZMA_DIR)7zIn.host.o $(LZMA_DIR)7zStream.host.o $(LZMA_DIR)Alloc.host.o $(LZMA_DIR)Bcj2.host.o $(LZMA_DIR)Bra.host.o $(LZMA_DIR)Bra86.host.o $(LZMA_DIR)BraIA64.host.o $(LZMA_DIR)CpuArch.host.o $(LZMA_DIR)Delta.host.o $(LZMA_DIR)LzFind.host.o $(LZMA_DIR)Lzma2Dec.host.o $(LZMA_DIR)Lzma2Enc.host.o $(LZMA_DIR)Lzma86Dec.host.o $(LZMA_DIR)Lzma86Enc.host.o $(LZMA_DIR)LzmaDec.host.o $(LZMA_DIR)LzmaEnc.host.o $(LZMA_DIR)LzmaLib.host.o $(LZMA_DIR)Ppmd7.host.o $(LZMA_DIR)Ppmd7Dec.host.o $(LZMA_DIR)Ppmd7Enc.host.o $(LZMA_DIR)Sha256.host.o $(LZMA_DIR)Xz.host.o $(LZMA_DIR)XzCrc64.host.o
 LZMA_OBJS_MINGW=$(LZMA_DIR)Threads.w32.o $(LZMA_DIR)LzFindMt.w32.o $(LZMA_DIR)MtCoder.w32.o $(LZMA_DIR)7zAlloc.w32.o $(LZMA_DIR)7zBuf.w32.o $(LZMA_DIR)7zBuf2.w32.o $(LZMA_DIR)7zCrc.w32.o $(LZMA_DIR)7zCrcOpt.w32.o $(LZMA_DIR)7zDec.w32.o $(LZMA_DIR)7zFile.w32.o $(LZMA_DIR)7zIn.w32.o $(LZMA_DIR)7zStream.w32.o $(LZMA_DIR)Alloc.w32.o $(LZMA_DIR)Bcj2.w32.o $(LZMA_DIR)Bra.w32.o $(LZMA_DIR)Bra86.w32.o $(LZMA_DIR)BraIA64.w32.o $(LZMA_DIR)CpuArch.w32.o $(LZMA_DIR)Delta.w32.o $(LZMA_DIR)LzFind.w32.o $(LZMA_DIR)Lzma2Dec.w32.o $(LZMA_DIR)Lzma2Enc.w32.o $(LZMA_DIR)Lzma86Dec.w32.o $(LZMA_DIR)Lzma86Enc.w32.o $(LZMA_DIR)LzmaDec.w32.o $(LZMA_DIR)LzmaEnc.w32.o $(LZMA_DIR)LzmaLib.w32.o $(LZMA_DIR)Ppmd7.w32.o $(LZMA_DIR)Ppmd7Dec.w32.o $(LZMA_DIR)Ppmd7Enc.w32.o $(LZMA_DIR)Sha256.w32.o $(LZMA_DIR)Xz.w32.o $(LZMA_DIR)XzCrc64.w32.o
