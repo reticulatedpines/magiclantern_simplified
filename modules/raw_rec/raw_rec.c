@@ -258,6 +258,9 @@ static void update_resolution_params()
     {
         /* assume the raw image should be 16:9 when de-squeezed */
         int correct_height = max_res_x * 9 / 16;
+        #ifndef CONFIG_FULLFRAME
+            correct_height = max_res_x * 2 / 3;
+        #endif
         squeeze_factor = (float)correct_height / max_res_y;
     }
     else squeeze_factor = 1.0f;
