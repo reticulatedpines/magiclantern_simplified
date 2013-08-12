@@ -46,4 +46,3 @@
 /** RAW **/
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
-
