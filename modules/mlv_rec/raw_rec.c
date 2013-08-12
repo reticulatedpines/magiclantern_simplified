@@ -86,7 +86,7 @@ static uint32_t raw_rec_write_align = 4096;
 
 static uint32_t mlv_writer_threads = 2;
 static uint32_t trace_ctx = TRACE_ERROR;
-
+static uint32_t abort_test = 0;
 /**
  * resolution should be multiple of 16 horizontally
  * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
@@ -105,7 +105,8 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.video.buffer_fill_method", buffer_fill_method, 0);
-static CONFIG_INT("raw.video.fast_card_buffers", fast_card_buffers, 2);
+static CONFIG_INT("raw.video.fast_card_buffers", fast_card_buffers, 3);
+static CONFIG_INT("raw.video.test_mode", test_mode, 0);
 static CONFIG_INT("raw.video.tracing", enable_tracing, 0);
 
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
@@ -209,7 +210,8 @@ static char* movie_filename = 0;                  /* file name for current (or l
 
 /* per-thread data */
 static char chunk_filename[MAX_WRITER_THREADS][100];                  /* file name for current movie chunk */
-static uint32_t written[MAX_WRITER_THREADS];                      /* how many KB we have written in this movie */
+static uint32_t written[MAX_WRITER_THREADS];                          /* how many KB we have written in this movie */
+static uint32_t frames_written[MAX_WRITER_THREADS];                   /* how many frames we have written in this movie */
 static int32_t writing_time[MAX_WRITER_THREADS];                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int32_t idle_time[MAX_WRITER_THREADS];                         /* time spent by raw_video_rec_task doing something else */
 static FILE *mlv_handles[MAX_WRITER_THREADS];
@@ -1662,7 +1664,7 @@ static int32_t FAST process_frame()
     }
     
     /* try a sync beep */
-    if (sound_rec == 2 && frame_count == 1)
+    if ((sound_rec == 2 && frame_count == 1) && !test_mode)
     {
         beep();
     }
@@ -1952,8 +1954,6 @@ retry_find:
                 block_start = 0;
             }
         }
-
-        trace_write(trace_ctx, "<-- group %d has %d frames", group, job.block_len);
         
         /* methods 3 and 4 want the "fast card" buffers to fill before queueing */
         if(buffer_fill_method == 3 || buffer_fill_method == 4)
@@ -1961,7 +1961,6 @@ retry_find:
             /* the queued group is not ready to be queued yet, reset */
             if(!group_full && (group < fast_card_buffers) && !get_partial)
             {
-                trace_write(trace_ctx, "<-- group %d is not full yet, don't queue", group);
                 memset(&job, 0x00, sizeof(write_job_t));
             }
         }
@@ -2010,9 +2009,6 @@ static void raw_writer_task(uint32_t writer)
     sei(old_int);
     trace_write(trace_ctx, "   --> WRITER#%d: done, we are #%d", writer, file_header.fileNum);
     
-    writing_time[writer] = 0;
-    idle_time[writer] = 0;
-    written[writer] = 0;
     
     mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
     
@@ -2141,6 +2137,12 @@ static void raw_writer_task(uint32_t writer)
                 FIO_CloseFile(f);
                 f = INVALID_PTR;
                 
+                /* in test mode remove all files after closing */
+                if(test_mode)
+                {
+                    FIO_RemoveFile(chunk_filename[writer]);
+                }
+                
                 /* try to create a new chunk */
                 uint32_t old_int = cli();
                 int32_t new_chunk = ++mlv_chunk_number;
@@ -2223,6 +2225,11 @@ abort:
         mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
         FIO_CloseFile(f);
     }
+    
+    if(test_mode)
+    {
+        FIO_RemoveFile(chunk_filename[writer]);
+    }
 }
 
 
@@ -2297,49 +2304,12 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
 }
 
 static void raw_video_rec_task()
-{  
-    write_job_t *write_job = NULL;
-        
+{
+    int test_loop = 0;
+    int test_case_loop = 0;
+    
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
-    slot_count = 0;
-    capture_slot = -1;
-    fullsize_buffer_pos = 0;
-    frame_count = 0;
-    frame_skips = 0;
-    mlv_chunk_number = 0;
-    
-    /* create output file name */
-    movie_filename = get_next_raw_movie_file_name();
-    
-    /* fill in file names for threads */
-    strcpy(chunk_filename[0], movie_filename);
-    
-    if(card_spanning)
-    {
-        mlv_writer_threads = 2;
-        get_next_chunk_file_name(movie_filename, chunk_filename[1], ++mlv_chunk_number);
-        chunk_filename[1][0] = 'B';
-    }
-    else
-    {
-        mlv_writer_threads = 1;
-    }
-    
-    
-    /* create files for writers */
-    for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
-    {
-        trace_write(trace_ctx, "Filename(%d): '%s'", writer, chunk_filename[writer]);
-        
-        mlv_handles[writer] = FIO_CreateFileEx(chunk_filename[writer]);
-        if (mlv_handles[writer] == INVALID_PTR)
-        {
-            trace_write(trace_ctx, "FIO_CreateFileEx(#%d): FAILED", writer);
-            bmp_printf(FONT_MED, 30, 50, "File create error");
-            return;
-        }
-    }
     
     /* wait for two frames to be sure everything is refreshed */
     frame_countdown = 2;
@@ -2356,9 +2326,11 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
         goto cleanup;
     }
-    
+
     update_resolution_params();
 
+    trace_write(trace_ctx, "Resolution: %dx%d @ %d.%04d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
+    
     /* allocate memory */
     if (!setup_buffers())
     {
@@ -2376,203 +2348,303 @@ static void raw_video_rec_task()
     
     hack_liveview(0);
     
-    /* get exclusive access to our edmac channels */
-    edmac_memcpy_res_lock();
-	
-    /* setup MLV stuff */
-    mlv_init_header();
-
-    /* this will enable the vsync CBR and the other task(s) */
-    raw_recording_state = RAW_RECORDING;
-
-    /* signal that we are starting */
-    raw_rec_cbr_starting();
-    
-    /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
-    recording = -1;
-    
-    /* create writer threads with decreasing priority */
-    for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+    if(test_mode)
     {
-        task_create("writer_thread", 0x01 + writer, 0x1000, raw_writer_task, (void*)writer);
+        buffer_fill_method = 0;
+        fast_card_buffers = 0;
+        abort_test = 0;
     }
+    clrscr();
     
-    while(raw_recording_state == RAW_PREPARING)
-    {
-        msleep(20);
-    }
-    
-    /* send dummy command to ensure manager generates writer jobs after entering loop */
-    msg_queue_post(mlv_mgr_queue, NULL);
-    task_create("update_block", 0x15, 0x1000, raw_video_update_block_task, NULL);
-    
-    uint32_t used_slots = 0;
-    uint32_t writing_slots = 0;
-    
-    while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
-    {
-        /* here we receive a previously sent job back. process it after refilling the queue */
-        write_job_t *returned_job = NULL;
-        if(msg_queue_receive(mlv_mgr_queue, (struct event **)&returned_job, 500))
-        {
-            returned_job = NULL;
-        }
-        
-        /* when capture task had to skip a frame, stop recording */
-        if (!allow_frame_skip && frame_skips)
-        {
-            raw_recording_state = RAW_FINISHING;
-        }
-        
-        
-        /* check if there is a writer without jobs */
-        uint32_t msg_count = 0;
-
-        
-        /* check CF queue */
-        msg_queue_count(mlv_writer_queues[0], &msg_count);
-        if(msg_count < 1)
-        {
-            write_job_t write_job;
-            trace_write(trace_ctx, "<-- No jobs in fast-card queue", msg_count, mlv_writer_threads);
-            
-            /* in case there is something to write... */
-            if(find_largest_buffer(0, &write_job))
-            {
-                enqueue_buffer(0, &write_job);
-            }
-            else
-            {
-                trace_write(trace_ctx, "<-- (nothing found to enqueue)");
-            }
-        }
-
-        /* check SD queue */
-        msg_queue_count(mlv_writer_queues[1], &msg_count);
-        if((mlv_writer_threads > 1) && (msg_count < 1))
-        {
-            write_job_t write_job;
-            trace_write(trace_ctx, "<-- No jobs in slow-card queue");
-            
-            /* in case there is something to write... SD must not use the two largest buffers */
-            if(find_largest_buffer(fast_card_buffers, &write_job))
-            {
-                enqueue_buffer(1, &write_job);
-            }
-            else
-            {
-                trace_write(trace_ctx, "<-- (nothing found to enqueue)");
-            }
-        }
-        
-        /* do a explicit context switch to activate writer tasks. 
-           as both queues are full, we are not losing any time here at this point*/
-        msleep(20);
-        
-        /* a writer finished and we have to update statistics etc */
-        if(returned_job)
-        {
-            trace_write(trace_ctx, "<-- processing returned_job 0x%08X from %d", returned_job, returned_job->writer);
-            /* set all slots as free again */
-            for(uint32_t slot = returned_job->block_start; slot < (returned_job->block_start + returned_job->block_len); slot++)
-            {
-                slots[slot].status = SLOT_FREE;
-                trace_write(trace_ctx, "   --> WRITER#%d: free slot %d", returned_job->writer, slot);
-            }
-            
-            /* calc writing and idle time */
-            int32_t write_time = (uint32_t)(returned_job->time_after - returned_job->time_before);
-            int32_t mgmt_time = 0;
-            
-            /* wait until first block is written before counting */
-            if(returned_job->last_time_after)
-            {
-                mgmt_time = (uint32_t)(returned_job->time_before - returned_job->last_time_after);
-            }
-            
-            trace_write(trace_ctx, "   --> WRITER#%d: write took: %d µs (%dKiB/s)", returned_job->writer, write_time, (returned_job->block_size/1024 * 1000) / (write_time / 1000));
-            trace_write(trace_ctx, "   --> WRITER#%d: mgmt  took: %d µs", returned_job->writer, mgmt_time);
-            
-            /* update statistics */
-            writing_time[returned_job->writer] += write_time / 1000;
-            idle_time[returned_job->writer] += mgmt_time / 1000;
-            written[returned_job->writer] += returned_job->block_size / 1024;
-            
-            free(returned_job);
-            returned_job = NULL;
-        }
-        
-        /* update some statistics. do this last, to make sure the writers have enough jobs */
-        used_slots = 0;
-        writing_slots = 0;
-        for(int32_t slot = 0; slot < slot_count; slot++)
-        {
-            if(slots[slot].status != SLOT_FREE)
-            {
-                used_slots++;
-            }
-            if(slots[slot].status == SLOT_WRITING)
-            {
-                writing_slots++;
-            }
-        }
-        trace_write(trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
-        
-        //if(raw_recording_state != RAW_RECORDING)
-        {
-            show_buffer_status();
-        }
-    }
-    
-    /* wait until all jobs done */
-    int32_t has_data = 0;
     do
     {
-        show_buffer_status();
-        trace_write(trace_ctx, "<-- still have data to write...");
-        has_data = 0;
+        /* get exclusive access to our edmac channels */
+        edmac_memcpy_res_lock();
         
-        for(int32_t slot = 0; slot < slot_count; slot++)
+        write_job_t *write_job = NULL;
+        
+        frame_count = 0;
+        frame_skips = 0;
+        mlv_chunk_number = 0;
+        capture_slot = -1;
+        fullsize_buffer_pos = 0;
+        
+        /* setup MLV stuff */
+        mlv_init_header();
+
+        /* this will enable the vsync CBR and the other task(s) */
+        raw_recording_state = RAW_RECORDING;
+
+        /* signal that we are starting */
+        raw_rec_cbr_starting();
+        
+        /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
+        recording = -1;
+    
+        /* create output file name */
+        movie_filename = get_next_raw_movie_file_name();
+        
+        /* fill in file names for threads */
+        strcpy(chunk_filename[0], movie_filename);
+        
+        if(card_spanning && cam_5d3)
         {
-            if(slots[slot].status == SLOT_WRITING)
+            mlv_writer_threads = 2;
+            get_next_chunk_file_name(movie_filename, chunk_filename[1], ++mlv_chunk_number);
+            chunk_filename[1][0] = 'B';
+        }
+        else
+        {
+            mlv_writer_threads = 1;
+        }
+        
+        
+        if(test_mode)
+        {
+            int ypos = 210 + ((test_loop % 13) * font_med.height);
+            
+            bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 30, ypos, "[Test #%03d] M: %d B: %d                                    ", test_loop + 1, buffer_fill_method, fast_card_buffers);
+        }
+        
+        /* create files for writers */
+        for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+        {
+            trace_write(trace_ctx, "Filename(%d): '%s'", writer, chunk_filename[writer]);
+            
+            written[writer] = 0;
+            frames_written[writer] = 0;
+            writing_time[writer] = 0;
+            idle_time[writer] = 0;
+            mlv_handles[writer] = FIO_CreateFileEx(chunk_filename[writer]);
+            
+            if (mlv_handles[writer] == INVALID_PTR)
             {
-                has_data = 1;
+                trace_write(trace_ctx, "FIO_CreateFileEx(#%d): FAILED", writer);
+                bmp_printf(FONT_MED, 30, 50, "File create error");
+                return;
             }
         }
+        
+        /* create writer threads with decreasing priority */
+        for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+        {
+            task_create("writer_thread", 0x01 + writer, 0x1000, raw_writer_task, (void*)writer);
+        }
+        
+        /* send dummy command to ensure manager generates writer jobs after entering loop */
+        msg_queue_post(mlv_mgr_queue, NULL);
+        task_create("update_block", 0x15, 0x1000, raw_video_update_block_task, NULL);
+        
+        uint32_t used_slots = 0;
+        uint32_t writing_slots = 0;
+        
+        while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
+        {
+            /* here we receive a previously sent job back. process it after refilling the queue */
+            write_job_t *returned_job = NULL;
+            if(msg_queue_receive(mlv_mgr_queue, (struct event **)&returned_job, 500))
+            {
+                returned_job = NULL;
+            }
+            
+            /* when capture task had to skip a frame, stop recording */
+            if (!allow_frame_skip && frame_skips)
+            {
+                raw_recording_state = RAW_FINISHING;
+            }
+            
+            if(test_mode && (frames_written[0] + frames_written[1] > 4000))
+            {
+                raw_recording_state = RAW_FINISHING;
+            }
+            
+            /* check if there is a writer without jobs */
+            uint32_t msg_count = 0;
+
+            
+            /* check CF queue */
+            msg_queue_count(mlv_writer_queues[0], &msg_count);
+            if(msg_count < 1)
+            {
+                write_job_t write_job;
+                trace_write(trace_ctx, "<-- No jobs in fast-card queue", msg_count, mlv_writer_threads);
+                
+                /* in case there is something to write... */
+                if(find_largest_buffer(0, &write_job))
+                {
+                    enqueue_buffer(0, &write_job);
+                }
+                else
+                {
+                    trace_write(trace_ctx, "<-- (nothing found to enqueue)");
+                }
+            }
+
+            /* check SD queue */
+            msg_queue_count(mlv_writer_queues[1], &msg_count);
+            if((mlv_writer_threads > 1) && (msg_count < 1))
+            {
+                write_job_t write_job;
+                trace_write(trace_ctx, "<-- No jobs in slow-card queue");
+                
+                /* in case there is something to write... SD must not use the two largest buffers */
+                if(find_largest_buffer(fast_card_buffers, &write_job))
+                {
+                    enqueue_buffer(1, &write_job);
+                }
+                else
+                {
+                    trace_write(trace_ctx, "<-- (nothing found to enqueue)");
+                }
+            }
+            
+            /* do a explicit context switch to activate writer tasks. 
+               as both queues are full, we are not losing any time here at this point*/
+            msleep(20);
+            
+            /* a writer finished and we have to update statistics etc */
+            if(returned_job)
+            {
+                trace_write(trace_ctx, "<-- processing returned_job 0x%08X from %d", returned_job, returned_job->writer);
+                /* set all slots as free again */
+                for(uint32_t slot = returned_job->block_start; slot < (returned_job->block_start + returned_job->block_len); slot++)
+                {
+                    slots[slot].status = SLOT_FREE;
+                    trace_write(trace_ctx, "   --> WRITER#%d: free slot %d", returned_job->writer, slot);
+                }
+                
+                /* calc writing and idle time */
+                int32_t write_time = (uint32_t)(returned_job->time_after - returned_job->time_before);
+                int32_t mgmt_time = 0;
+                
+                /* wait until first block is written before counting */
+                if(returned_job->last_time_after)
+                {
+                    mgmt_time = (uint32_t)(returned_job->time_before - returned_job->last_time_after);
+                }
+                
+                trace_write(trace_ctx, "   --> WRITER#%d: write took: %d µs (%dKiB/s)", returned_job->writer, write_time, (returned_job->block_size/1024 * 1000) / (write_time / 1000));
+                trace_write(trace_ctx, "   --> WRITER#%d: mgmt  took: %d µs", returned_job->writer, mgmt_time);
+                
+                /* update statistics */
+                writing_time[returned_job->writer] += write_time / 1000;
+                idle_time[returned_job->writer] += mgmt_time / 1000;
+                written[returned_job->writer] += returned_job->block_size / 1024;
+                frames_written[returned_job->writer] += returned_job->block_len;
+                
+                free(returned_job);
+                returned_job = NULL;
+            }
+            
+            /* update some statistics. do this last, to make sure the writers have enough jobs */
+            used_slots = 0;
+            writing_slots = 0;
+            for(int32_t slot = 0; slot < slot_count; slot++)
+            {
+                if(slots[slot].status != SLOT_FREE)
+                {
+                    used_slots++;
+                }
+                if(slots[slot].status == SLOT_WRITING)
+                {
+                    writing_slots++;
+                }
+            }
+            trace_write(trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
+            
+            //if(raw_recording_state != RAW_RECORDING)
+            {
+                show_buffer_status();
+            }
+            
+        }
+        
+        /* wait until all jobs done */
+        int32_t has_data = 0;
+        do
+        {
+            show_buffer_status();
+            has_data = 0;
+            
+            for(int32_t slot = 0; slot < slot_count; slot++)
+            {
+                if(slots[slot].status == SLOT_WRITING)
+                {
+                    has_data = 1;
+                }
+            }
+            
+            if(has_data)
+            {
+                trace_write(trace_ctx, "<-- still have data to write...");
+            }
+            msleep(200);
+        } while(has_data);
+        
+        /* done, this will stop the vsync CBR and the copying task */
+        raw_recording_state = RAW_FINISHING;
+
+        /* signal that we are stopping */
+        raw_rec_cbr_stopping();
+        
+        /* queue two aborts to cancel tasks */
+        write_job = malloc(sizeof(write_job_t));
+        write_job->block_len = 0;
+        msg_queue_post(mlv_writer_queues[0], write_job);
+        
+        write_job = malloc(sizeof(write_job_t));
+        write_job->block_len = 0;
+        msg_queue_post(mlv_writer_queues[1], write_job);
+        
+        /* flush queues */
+        msleep(250);
+        
+        /* exclusive edmac access no longer needed */
+        edmac_memcpy_res_unlock();
+
+        /* make sure all queues are empty */
+        flush_queue(mlv_writer_queues[0]);
+        flush_queue(mlv_writer_queues[1]);
+        flush_queue(mlv_block_queue);
+        flush_queue(mlv_mgr_queue);
+        
+        /* wait until the other tasks calm down */
         msleep(500);
-    } while(has_data);
+        
+        recording = 0;
+        
+        if(test_mode)
+        {
+            int written_kbytes = written[0] + written[1];
+            int written_frames = frames_written[0] + frames_written[1];
+            char msg[100];
+            snprintf(msg, sizeof(msg), "%d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
+            
+            trace_write(trace_ctx, "[Test #%03d] M: %d, B: %d, W: %d KiB, F: %d, Rate: %s", test_loop + 1, buffer_fill_method, fast_card_buffers, written_kbytes, written_frames, msg);
+            
+        
+            int ypos = 210 + ((test_loop % 13) * font_med.height);
+            bmp_printf(FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK), 30, ypos, "[Test #%03d] M: %d B: %d W: %5d MiB F: %4d (%s)   ", test_loop + 1, buffer_fill_method, fast_card_buffers, written_kbytes / 1024, written_frames, msg);
+            
+            test_loop++;
+        }
+        
+        test_case_loop++;
+        test_case_loop %= 4;
+        
+        if(test_case_loop == 0)
+        {
+            buffer_fill_method++;
+            buffer_fill_method %= 5;
+            
+            if(!buffer_fill_method)
+            {
+                fast_card_buffers++;
+                fast_card_buffers %= MIN((slot_count - 1), 5);
+            }
+        }
+    } while(test_mode && !abort_test);
     
-    
-    /* signal that we are stopping */
-    raw_rec_cbr_stopping();
-    
-    /* queue two aborts to cancel tasks */
-    write_job = malloc(sizeof(write_job_t));
-    write_job->block_len = 0;
-    msg_queue_post(mlv_writer_queues[0], write_job);
-    
-    write_job = malloc(sizeof(write_job_t));
-    write_job->block_len = 0;
-    msg_queue_post(mlv_writer_queues[1], write_job);
-    
-    /* flush queues */
-    msleep(250);
-    
-    flush_queue(mlv_writer_queues[0]);
-    flush_queue(mlv_writer_queues[1]);
-    flush_queue(mlv_block_queue);
-    flush_queue(mlv_mgr_queue);
-    
-    /* done, this will stop the vsync CBR and the copying task */
-    raw_recording_state = RAW_FINISHING;
-
-    /* wait until the other tasks calm down */
-    msleep(500);
-
-    /* exclusive edmac access no longer needed */
-    edmac_memcpy_res_unlock();
-
-    recording = 0;
 
     if (sound_rec == 1)
     {
@@ -2606,6 +2678,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
 {
     if (!RAW_IS_IDLE)
     {
+        abort_test = 1;
         raw_recording_state = RAW_FINISHING;
         if (sound_rec == 2) beep();
     }
@@ -2876,6 +2949,12 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .help = "Write an execution trace to memory card. Causes perfomance drop.",
                 .help2 = "You have to restart camera before setting takes effect.",
+            },
+            {
+                .name = "Test mode",
+                .priv = &test_mode,
+                .max = 1,
+                .help = "Record repeatedly, changing buffering methods etc",
             },
             {
                 .name = "Card warm-up",
@@ -3189,4 +3268,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(buffer_fill_method)
     MODULE_CONFIG(fast_card_buffers)
     MODULE_CONFIG(enable_tracing)
+    MODULE_CONFIG(test_mode)
 MODULE_CONFIGS_END()
