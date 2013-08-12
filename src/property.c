@@ -9,7 +9,7 @@
 
 /** \file
  * Property handler installation
- * 
+ *
  * Rather than registering a handler for each property (which seems to overload DryOS),
  * it's probably better to have a single global property handler.
  *
@@ -50,24 +50,24 @@ global_property_handler(
 #ifdef CONFIG_5DC
     if (property == 0x80010001) return (void*)_prop_cleanup(global_token, property);
 #endif
-    
-    for(int entry = 0; entry < actual_num_handlers; entry++ )
+
+    for (int entry = 0; entry < actual_num_handlers; entry++)
     {
         struct prop_handler *handler = &property_handlers[entry];
-        
+
         if (handler->property == property)
         {
             /* cache length of property if not set yet */
-            if(handler->property_length == 0)
+            if (handler->property_length == 0)
             {
                 handler->property_length = len;
             }
-            
+
             /* signal that our property handler has fired */
             handler->property_ack = 1;
-            
+
             /* execute handler, if any */
-            if(handler->handler != NULL)
+            if (handler->handler != NULL)
             {
                 //~ current_prop_handler = property;
                 handler->handler(property, priv, buf, len);
@@ -87,7 +87,7 @@ void prop_add_handler (uint32_t property, void *handler)
     property_handlers[actual_num_handlers].handler = handler;
     property_handlers[actual_num_handlers].property = property;
     actual_num_handlers++;
-    
+
     int duplicate = 0;
     for (int i = 0; i < actual_num_properties; i++)
     {
@@ -113,7 +113,7 @@ void prop_add_internal_handlers ()
 {
     struct prop_handler * handler = _prop_handlers_start;
 
-    for( ; handler < _prop_handlers_end ; handler++ )
+    for ( ; handler < _prop_handlers_end; handler++)
     {
 #if defined(POSITION_INDEPENDENT)
         handler->handler = PIC_RESOLVE(handler->handler);
@@ -123,11 +123,11 @@ void prop_add_internal_handlers ()
 }
 
 /* this unregisters all ML handlers from canon fiormware */
-static void 
+static void
 prop_unregister_handlers()
 {
 #if defined(CONFIG_UNREGISTER_PROP)
-    if(global_token != NULL)
+    if (global_token != NULL)
     {
         prop_unregister_slave(global_token);
         global_token = 0;
@@ -135,10 +135,10 @@ prop_unregister_handlers()
 #endif
 }
 
-static void 
+static void
 prop_register_handlers()
 {
-    if(global_token == NULL)
+    if (global_token == NULL)
     {
         prop_register_slave(
             property_list,
@@ -175,7 +175,6 @@ prop_init( void* unused )
 {
     prop_reset_registration();
 }
-
 
 #if 0
 // for reading simple integer properties
@@ -236,7 +235,7 @@ int _get_prop_len(int prop)
 /* return cached length of property */
 static uint32_t prop_get_prop_len(uint32_t property)
 {
-    for(int entry = 0; entry < actual_num_handlers; entry++ )
+    for (int entry = 0; entry < actual_num_handlers; entry++)
     {
         struct prop_handler *handler = &property_handlers[entry];
         if (handler->property == property)
@@ -244,14 +243,14 @@ static uint32_t prop_get_prop_len(uint32_t property)
             return handler->property_length;
         }
     }
-    
+
     return 0;
 }
 
 /* return the acknowledge flag (set if the handler was executed) */
 static uint32_t prop_get_ack(uint32_t property)
 {
-    for(int entry = 0; entry < actual_num_handlers; entry++ )
+    for (int entry = 0; entry < actual_num_handlers; entry++)
     {
         struct prop_handler *handler = &property_handlers[entry];
         if (handler->property == property)
@@ -259,14 +258,14 @@ static uint32_t prop_get_ack(uint32_t property)
             return handler->property_ack;
         }
     }
-    
+
     return 0;
 }
 
 /* reset the acknowledge flag (will be set when the handler will get executed again) */
 static void prop_reset_ack(uint32_t property)
 {
-    for(int entry = 0; entry < actual_num_handlers; entry++ )
+    for (int entry = 0; entry < actual_num_handlers; entry++)
     {
         struct prop_handler *handler = &property_handlers[entry];
         if (handler->property == property)
@@ -274,18 +273,18 @@ static void prop_reset_ack(uint32_t property)
             handler->property_ack = 0;
         }
     }
-    
+
     return 0;
 }
 
 /**
- * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's) 
+ * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's)
  * Double-check the len parameter => less chances that our call will cause permanent damage.
  */
 
 /**
  * You can also pass len=0; in this case, the length will be detected automatically.
- * Don't abuse this, only use it for properties where length is camera-specific, 
+ * Don't abuse this, only use it for properties where length is camera-specific,
  * and if you call something with len=0, don't forget to back it up with an ASSERT
  * which checks if len is not higher than the max len assumed by ML.
  */
@@ -305,11 +304,11 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 #ifdef CONFIG_PROP_REQUEST_CHANGE
 
 	#if defined(CONFIG_40D)
-	if(property != PROP_AFPOINT) {
+	if (property != PROP_AFPOINT) {
 		return;
 	}
 	#endif
-    
+
     #if defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
     if (property == PROP_VIDEO_MODE) // corrupted video headers on 5D3
         return;
@@ -326,14 +325,14 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
         info_led_blink(10,50,50);
         return;
     }
-    
+
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
-    
+
     #ifndef CONFIG_5DC
     if (property == PROP_REMOTE_SW1 || property == PROP_REMOTE_SW2)
         ASSERT(len <= 4); // some cameras have len=2, others 4; we pass a single integer as param, so max len is 4
     #endif
-    
+
     if (correct_len != (int)len)
     {
         char msg[100];
@@ -346,7 +345,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 
     ok:
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
-    
+
     _prop_request_change(property, addr, len);
 #endif
 }
@@ -355,7 +354,7 @@ int prop_request_change_wait(unsigned property, const void* addr, size_t len, in
 {
     prop_reset_ack(property);
     prop_request_change(property, addr, len);
-    
+
     for (int i = 0; i < timeout/20; i++)
     {
         msleep(20);
