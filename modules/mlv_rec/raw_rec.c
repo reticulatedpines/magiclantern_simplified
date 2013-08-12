@@ -51,7 +51,7 @@
 
 
 //#define CONFIG_CONSOLE
-#define TRACE_DISABLED
+//#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
 #undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
@@ -105,6 +105,8 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.video.buffer_fill_method", buffer_fill_method, 0);
+static CONFIG_INT("raw.video.fast_card_buffers", fast_card_buffers, 2);
+static CONFIG_INT("raw.video.tracing", enable_tracing, 0);
 
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
@@ -694,6 +696,8 @@ static int32_t setup_buffers()
     /* use all chunks larger than frame_size for recording */
     chunk = GetFirstChunkFromSuite(mem_suite);
     slot_count = 0;
+    slot_group_count = 0;
+    
     while(chunk)
     {
         int32_t size = GetSizeOfMemoryChunk(chunk);
@@ -867,59 +871,97 @@ static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
+    char buffer_str[256];
+    int buffer_str_pos = 0;
+    
     int32_t scale = MAX(1, (300 / slot_count + 1) & ~1);
     int32_t x = 30;
     int32_t y = 50;
-    for (int32_t i = 0; i < slot_count; i++)
-    {
-        if (i > 0)
-        {
-            /* now we can check that */
-            if(slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
-            {
-                x += MAX(2, scale);
-            }
-        }
-        
-        int32_t color = COLOR_BLACK;
-        
-        if(slots[i].status == SLOT_FREE)
-        {
-            color = COLOR_BLACK;
-        }
-        else if(slots[i].status == SLOT_WRITING)
-        {
-            if(slots[i].writer == 0)
-            {
-                color = COLOR_GREEN1;
-            }
-            else
-            {
-                color = COLOR_YELLOW;
-            }
-        }
-        else if(slots[i].status == SLOT_FULL)
-        {
-            color = COLOR_LIGHT_BLUE;
-        }
-        else
-        {
-            color = COLOR_BLACK;
-        }
-        
-        for (int32_t k = 0; k < scale; k++)
-        {
-            draw_line(x, y+5, x, y+17, color);
-            x++;
-        }
-        
-        if (scale > 3)
-            x++;
-    }
     
+    for (int32_t group = 0; group < slot_group_count; group++)
+    {
+        if(enable_tracing)
+        {
+            buffer_str[buffer_str_pos++] = '[';
+        }
+    
+        for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
+        {
+            int32_t color = COLOR_BLACK;
+            
+            switch(slots[slot].status)
+            {
+                case SLOT_FREE:
+                    if(enable_tracing)
+                    {
+                        buffer_str[buffer_str_pos++] = ' ';
+                    }
+                    color = COLOR_BLACK;
+                    break;
+                    
+                case SLOT_WRITING:
+                    if(slots[slot].writer == 0)
+                    {
+                        if(enable_tracing)
+                        {
+                            buffer_str[buffer_str_pos++] = '0';
+                        }
+                        color = COLOR_GREEN1;
+                    }
+                    else
+                    {
+                        if(enable_tracing)
+                        {
+                            buffer_str[buffer_str_pos++] = '1';
+                        }
+                        color = COLOR_YELLOW;
+                    }
+                    break;
+                    
+                case SLOT_FULL:
+                    if(enable_tracing)
+                    {
+                        buffer_str[buffer_str_pos++] = 'F';
+                    }
+                    color = COLOR_LIGHT_BLUE;
+                    break;
+                    
+                default:
+                    if(enable_tracing)
+                    {
+                        buffer_str[buffer_str_pos++] = '?';
+                    }
+                    color = COLOR_BLACK;
+                    break;
+            }
+            
+            for(int32_t k = 0; k < scale; k++)
+            {
+                draw_line(x, y+5, x, y+17, color);
+                x++;
+            }
+            
+            if(scale > 3)
+            {
+                x++;
+            }
+        }
+        x += MAX(2, scale);
+        
+        if(enable_tracing)
+        {
+            buffer_str[buffer_str_pos++] = ']';
+        }    
+    }   
+    if(enable_tracing)
+    {
+        buffer_str[buffer_str_pos++] = '\000';
+        trace_write(trace_ctx, buffer_str);
+    }   
+
     if (frame_skips > 0)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skipped frames", frame_skips);
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skips", frame_skips);
     }
 
 #ifdef DEBUG_BUFFERING_GRAPH
@@ -1376,8 +1418,8 @@ static int32_t FAST choose_next_capture_slot()
     
             return -1;
             
+        case 4:
         case 1:
-    
             /* new method: first fill largest group */
             for (int32_t group = 0; group < slot_group_count; group++)
             {
@@ -1389,9 +1431,25 @@ static int32_t FAST choose_next_capture_slot()
                     }
                 }
             }
-            
             return -1;
             
+        case 3:
+            /* new method: first fill largest groups */
+            for (int32_t group = 0; group < fast_card_buffers; group++)
+            {
+                for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
+                {
+                    if (slots[slot].status == SLOT_FREE)
+                    {
+                        return slot;
+                    }
+                }
+            }
+            
+            /* if those are already filled, queue anywhere */
+            break;
+            
+        case 2:
         default:
             /* use default method below */
             break;
@@ -1843,60 +1901,80 @@ static int32_t mlv_write_header(FILE* f, int32_t restore_pos)
 
 static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job)
 {
-    uint32_t block_len = 0;
-    uint32_t block_start = 0;
-    uint32_t block_size = 0;
-    
+    write_job_t job;
+    uint32_t get_partial = 0;
+
+retry_find:
+
     /* initialize write job */
     memset(write_job, 0x00, sizeof(write_job_t));
+    memset(&job, 0x00, sizeof(write_job_t));
     
     for (int32_t group = start_group; group < slot_group_count; group++)
     {
-        block_len = 0;
-        block_size = 0;
-        block_start = 0;
+        uint32_t block_len = 0;
+        uint32_t block_start = 0;
+        uint32_t block_size = 0;
+        
+        uint32_t group_full = 1;
         
         for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
         {
-            /* we have a new candidate */
-            if(block_len > write_job->block_len)
-            {
-                write_job->block_start = block_start;
-                write_job->block_len = block_len;
-                write_job->block_size = block_size;
-            }
-            
             /* check for the slot being ready for saving */
             if(slots[slot].status == SLOT_FULL)
             {
                 /* the first time or on a non contiguous area reset all counters */
                 if(block_len == 0)
                 {
-                    block_len = 1;
                     block_start = slot;
                 }
-                else
-                {
-                    block_len++;
-                }
+                
+                block_len++;
                 block_size += slots[slot].size;
+                
+                /* we have a new candidate */
+                if(block_len > job.block_len)
+                {
+                    job.block_start = block_start;
+                    job.block_len = block_len;
+                    job.block_size = block_size;
+                }
             }
             else
             {
+                group_full = 0;
                 block_len = 0;
                 block_size = 0;
                 block_start = 0;
             }
         }
+
+        trace_write(trace_ctx, "<-- group %d has %d frames", group, job.block_len);
         
-        /* update with current loop status */
-        if(block_len > write_job->block_len)
+        /* methods 3 and 4 want the "fast card" buffers to fill before queueing */
+        if(buffer_fill_method == 3 || buffer_fill_method == 4)
         {
-            write_job->block_start = block_start;
-            write_job->block_len = block_len;
-            write_job->block_size = block_size;
+            /* the queued group is not ready to be queued yet, reset */
+            if(!group_full && (group < fast_card_buffers) && !get_partial)
+            {
+                trace_write(trace_ctx, "<-- group %d is not full yet, don't queue", group);
+                memset(&job, 0x00, sizeof(write_job_t));
+            }
+        }
+        
+        /* if the current group has more frames, use it */
+        if(job.block_len > write_job->block_len)
+        {
+            *write_job = job;
         }
     }    
+    
+    /* if nothing was found, even a partially filled buffer is better than nothing */
+    if(write_job->block_len == 0 && !get_partial)
+    {
+        get_partial = 1;
+        goto retry_find;
+    }
     
     
     /* if we were able to locate blocks for writing, return 1 */
@@ -2370,7 +2448,7 @@ static void raw_video_rec_task()
             trace_write(trace_ctx, "<-- No jobs in slow-card queue");
             
             /* in case there is something to write... SD must not use the two largest buffers */
-            if(find_largest_buffer(2, &write_job))
+            if(find_largest_buffer(fast_card_buffers, &write_job))
             {
                 enqueue_buffer(1, &write_job);
             }
@@ -2433,7 +2511,7 @@ static void raw_video_rec_task()
         }
         trace_write(trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
         
-        if(raw_recording_state != RAW_RECORDING)
+        //if(raw_recording_state != RAW_RECORDING)
         {
             show_buffer_status();
         }
@@ -2783,6 +2861,13 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
+                .name = "Debug trace",
+                .priv = &enable_tracing,
+                .max = 1,
+                .help = "Write an execution trace to memory card. Causes perfomance drop.",
+                .help2 = "You have to restart camera before setting takes effect.",
+            },
+            {
                 .name = "Card warm-up",
                 .priv = &warm_up,
                 .max = 7,
@@ -2793,8 +2878,14 @@ static struct menu_entry raw_video_menu[] =
             {
                 .name = "Buffer fill method",
                 .priv = &buffer_fill_method,
-                .max = 2,
+                .max = 4,
                 .help  = "Method for filling buffers. Will affect write speed.",
+            },
+            {
+                .name = "CF-only buffers",
+                .priv = &fast_card_buffers,
+                .max = 9,
+                .help  = "How many of the largest buffers are for CF writing.",
             },
             {
                 .name = "Memory hack",
@@ -2986,10 +3077,13 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 static unsigned int raw_rec_init()
 {
     /* enable tracing */
-    char filename[100];
-    snprintf(filename, sizeof(filename), "%sraw_rec.txt", MODULE_CARD_DRIVE);
-    trace_ctx = trace_start("raw_rec", filename);
-    trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
+    if(enable_tracing)
+    {
+        char filename[100];
+        snprintf(filename, sizeof(filename), "%sraw_rec.txt", MODULE_CARD_DRIVE);
+        trace_ctx = trace_start("raw_rec", filename);
+        trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
+    }
     
     /* create message queues */
     mlv_block_queue = (struct msg_queue *) msg_queue_create("mlv_block_queue", 100);
@@ -3083,4 +3177,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(warm_up)
     MODULE_CONFIG(card_spanning)
     MODULE_CONFIG(buffer_fill_method)
+    MODULE_CONFIG(fast_card_buffers)
+    MODULE_CONFIG(enable_tracing)
 MODULE_CONFIGS_END()
