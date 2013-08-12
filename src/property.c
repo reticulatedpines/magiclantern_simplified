@@ -273,8 +273,6 @@ static void prop_reset_ack(uint32_t property)
             handler->property_ack = 0;
         }
     }
-
-    return 0;
 }
 
 /**
