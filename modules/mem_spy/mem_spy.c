@@ -301,7 +301,7 @@ static MENU_UPDATE_FUNC(start_addr_upd){
 }
 
 static MENU_SELECT_FUNC(start_addr_sel){
-    start_addr += delta * 1000;
+    start_addr += delta * 10000;
 }
 
 static MENU_UPDATE_FUNC(var_count_upd){
@@ -347,6 +347,7 @@ static struct menu_entry mem_spy_menu[] =
                 .max = 4,
                 .update = look_for_upd,
                 .help = "In fact this convert int32 to you choice.",
+                .help2 = "Memory is always scanned by 4B.",
             },
             {
                 .name = "Halfshutter related",
@@ -367,6 +368,7 @@ static struct menu_entry mem_spy_menu[] =
                 .icon_type = IT_DICE,
                 .update = start_addr_upd,
                 .select = start_addr_sel,
+                .help = "Edit module config file for specific address.",
             },
             {
                 .name = "Var count",
