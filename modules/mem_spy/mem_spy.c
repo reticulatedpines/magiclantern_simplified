@@ -45,6 +45,8 @@ static int start_delay_counter;
 #define FONT_HEIGHT 12
 #define POSITION_COUNT 480 / FONT_HEIGHT * COLUMN_COUNT
 
+#define MEM(x) *(volatile int*)(x)
+
 static int position[POSITION_COUNT][3];
 
 static void init_position(){
@@ -113,7 +115,7 @@ static int init_mem() // initial state of the analyzed memory
     int i;
     for (i = 0; i < var_count; i++) {
         uint32_t addr = get_addr(i);
-        mem_mirror[i] = (int)MEMX(addr);
+        mem_mirror[i] = MEM(addr);
         mem_changes[i] = 0;
         mem_position[i] = -1;
     }
@@ -169,7 +171,7 @@ static void mem_spy_task()
             uint32_t addr = get_addr(i);
             
             int oldval = mem_mirror[i];
-            int newval = (int) MEMX(addr);
+            int newval = MEM(addr);
             
             bool changed = oldval != newval;
             
