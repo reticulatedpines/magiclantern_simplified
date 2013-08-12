@@ -1585,7 +1585,6 @@ bfnt_test()
 
         int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
         int* codes = (int*) BFNT_CHAR_CODES;
-        int* off = (int*) BFNT_BITMAP_OFFSET;
 
         int c = 0;
         while(c <= n) {
