@@ -294,8 +294,9 @@ void hist_draw_image(
                 if (!stops_until_overexposure)
                     stops_until_overexposure = INT_MIN;
 
-                int ettr_stops = INT_MIN;
                 #ifdef CONFIG_MODULES
+                int ettr_stops = INT_MIN;
+
                 if (module_exec(NULL, "auto_ettr_export_correction", 1, &ettr_stops) == 1)
                     if (ettr_stops != INT_MIN)
                         stops_until_overexposure = (ettr_stops+5)/10;
