@@ -2982,7 +2982,6 @@ static void guess_free_mem_task(void* priv, int delta)
         uint32_t empty = 1;
         uint32_t start = MEMORY_MAP_INDEX_TO_ADDRESS(i);
         uint32_t end = MEMORY_MAP_INDEX_TO_ADDRESS(i+1);
-        uint32_t val0 = MEM(start);
 
         for (uint32_t p = start; p < end; p += 4)
         {
