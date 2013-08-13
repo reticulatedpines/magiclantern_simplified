@@ -536,9 +536,10 @@ read_headers:
                             printf("   depth: %d -> %d, size: %d -> %d (%2.2f%%)\n", old_depth, new_depth, frame_size, new_size, ((float)new_depth * 100.0f) / (float)old_depth);
                         }
                         
-                        if(((video_xRes * video_yRes * new_depth + old_depth - 1) / 8) > frame_size)
+                        int calced_size = ((video_xRes * video_yRes * old_depth + 7) / 8);
+                        if(calced_size > frame_size)
                         {
-                            printf("Error: old frame size is too small for %dx%d at %d bpp. Input data corrupt\n", video_xRes, video_yRes, old_depth);
+                            printf("Error: old frame size is too small for %dx%d at %d bpp. Input data corrupt. (%d < %d)\n", video_xRes, video_yRes, old_depth, frame_size, calced_size);
                             break;
                         }
 
@@ -731,7 +732,7 @@ read_headers:
                     {
                         /* correct header size if needed */
                         block_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
-                        if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                        if(fwrite(&block_hdr, sizeof(mlv_info_hdr_t), 1, out_file) != 1)
                         {
                             fprintf(stderr, "[E] Failed writing into output file\n");
                             goto abort;
