@@ -3425,22 +3425,6 @@ static struct menu_entry display_menus[] = {
                 }*/
             },
             #endif
-            #ifdef FEATURE_LV_CRAZY_COLORS
-            {
-                .name = "LV crazy colors",
-                .priv     = &preview_crazy,
-                .min = 0,
-                .max = 2,
-                .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"OFF", "Swap U-V", "Extreme Chroma"},
-                .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_PERCENT_OFF,
-                .help  = "Crazy color effects that may help with white balance.",
-                .help2 = "For LiveView preview only. Does not affect recording.\n"
-                         "Swap U-V: reverses red and blue components\n"
-                         "Extreme Chroma: highly saturated image showing WB direction\n",
-            },
-            #endif
             #ifdef FEATURE_LV_DISPLAY_GAIN
             {
                 .name = "LV display gain",
@@ -3454,16 +3438,6 @@ static struct menu_entry display_menus[] = {
                 .help2  = "Tip: if it gets really dark, also enable FPS override.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW | DEP_PHOTO_MODE,
-            },
-            #endif
-            #ifdef FEATURE_COLOR_SCHEME
-            {
-                .name = "Color scheme",
-                .priv     = &bmp_color_scheme,
-                .max = 5,
-                .choices = (const char *[]) {"Default", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
-                .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
-                .icon_type = IT_DICE_OFF,
             },
             #endif
     #ifdef FEATURE_CLEAR_OVERLAYS
@@ -3486,18 +3460,6 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
         */
-    },
-    #endif
-    #ifdef FEATURE_DISPLAY_SHAKE
-        #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-        #define This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
-        #endif
-    {
-        .name = "Display Shake",
-        .priv     = &display_shake,
-        .max = 1,
-        .help = "Emphasizes camera shake on LiveView display.",
-        .depends_on = DEP_LIVEVIEW,
     },
     #endif
     #ifdef FEATURE_DEFISHING_PREVIEW
@@ -3592,6 +3554,16 @@ static struct menu_entry display_menus[] = {
                     .depends_on = DEP_LIVEVIEW,
                 },
             #endif
+            #ifdef FEATURE_COLOR_SCHEME
+            {
+                .name = "Color scheme",
+                .priv     = &bmp_color_scheme,
+                .max = 5,
+                .choices = (const char *[]) {"Default", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
+                .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
+                .icon_type = IT_DICE_OFF,
+            },
+            #endif
             #ifdef FEATURE_IMAGE_POSITION
                 {
                     .name = "Image position",
@@ -3630,6 +3602,34 @@ static struct menu_entry display_menus[] = {
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                 },
+            #endif
+            #ifdef FEATURE_LV_CRAZY_COLORS
+            {
+                .name = "LV crazy colors",
+                .priv     = &preview_crazy,
+                .min = 0,
+                .max = 2,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"OFF", "Swap U-V", "Extreme Chroma"},
+                .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_PERCENT_OFF,
+                .help  = "Crazy color effects that may help with white balance.",
+                .help2 = "For LiveView preview only. Does not affect recording.\n"
+                         "Swap U-V: reverses red and blue components\n"
+                         "Extreme Chroma: highly saturated image showing WB direction\n",
+            },
+            #endif
+            #ifdef FEATURE_DISPLAY_SHAKE
+                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+                #define This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
+                #endif
+            {
+                .name = "Display Shake",
+                .priv     = &display_shake,
+                .max = 1,
+                .help = "Emphasizes camera shake on LiveView display.",
+                .depends_on = DEP_LIVEVIEW,
+            },
             #endif
             #ifdef FEATURE_FORCE_HDMI_VGA
                 {
