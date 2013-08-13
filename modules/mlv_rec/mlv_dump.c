@@ -382,6 +382,7 @@ read_headers:
                 printf("    Ver         : %s\n", file_hdr.versionString);
                 printf("    GUID        : %08" PRIu64 "\n", file_hdr.fileGuid);
                 printf("    FPS         : %f\n", (double)file_hdr.sourceFpsNom / (double)file_hdr.sourceFpsDenom);
+                printf("    File        : %d / %d\n", file_hdr.fileNum, file_hdr.fileCount);
                 printf("    Frames Video: %d\n", file_hdr.videoFrameCount);
                 printf("    Frames Audio: %d\n", file_hdr.audioFrameCount);
             }
