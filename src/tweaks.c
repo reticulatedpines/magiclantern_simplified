@@ -2403,6 +2403,7 @@ static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
 #define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
 
 static CONFIG_INT("lv.crazy", preview_crazy, 0);         // range: 0:2
+static CONFIG_INT("lv.peak", preview_peaking, 0);        // range: 0:2
 
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 
@@ -2455,7 +2456,7 @@ static void preview_contrast_n_saturation_step()
 #endif
     
 #ifdef FEATURE_LV_SATURATION
-    
+
     int saturation_register = 0xC0F140c4;
 #ifndef CONFIG_5DC
     int current_saturation = (int) shamem_read(saturation_register);
@@ -2472,6 +2473,11 @@ static void preview_contrast_n_saturation_step()
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
+
+    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    if (preview_peaking == 2)
+        desired_saturation = 0;
+    #endif
 
     if (joke_mode)
     {
@@ -2532,7 +2538,12 @@ static void preview_contrast_n_saturation_step()
         else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[PREVIEW_CONTRAST_INDEX];
         else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[PREVIEW_CONTRAST_INDEX];
     }
-    
+
+    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    if (preview_peaking == 2)
+        desired_contrast = contrast_values_at_brigthness_2[4];
+    #endif
+
     if (gui_menu_shown() && !menu_active_but_hidden())
         desired_contrast = contrast_values_at_brigthness_0[3]; // do not apply this adjustment while ML menu is on (so you can read it in low contrast modes)
 
@@ -2555,6 +2566,27 @@ static void preview_contrast_n_saturation_step()
         {
             EngDrvOutLV(crazy_register, desired_crazy_value);
             crazy_dirty = preview_crazy;
+        }
+    }
+#endif
+
+#ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    int filter_register = 0xC0F14140; /* EnableFilter */
+    static int filter_dirty = 0;
+    
+    int current_filter_value = (int) shamem_read(crazy_register);
+    int desired_filter_value = 
+        gui_menu_shown() && !menu_active_but_hidden() ? 0 :
+        preview_peaking == 1 ? 0xd4 :
+        preview_peaking == 2 ? 0xc0 :
+        preview_peaking;
+
+    if (preview_peaking || filter_dirty)
+    {
+        if (current_filter_value != desired_filter_value)
+        {
+            EngDrvOutLV(filter_register, desired_filter_value);
+            filter_dirty = preview_peaking;
         }
     }
 #endif
@@ -3327,6 +3359,17 @@ extern MENU_UPDATE_FUNC(display_gain_print);
 extern int display_gain_menu_index;
 
 static struct menu_entry display_menus[] = {
+            #ifdef FEATURE_DIGIC_FOCUS_PEAKING
+            {
+                .name = "LV DIGIC peaking",
+                .priv = &preview_peaking,
+                .min = 0,
+                .max = 2,   /* set .max = 0x1000 and .unit = UNIT_HEX to get raw values */
+                .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"OFF", "Slight", "Strong"},
+                .help  = "Focus peaking via DIGIC. No CPU usage!",
+            },
+            #endif
             #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
             {
                 .name = "LV brightness", 
