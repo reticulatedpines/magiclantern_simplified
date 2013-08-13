@@ -2329,7 +2329,7 @@ static void raw_video_rec_task()
 
     update_resolution_params();
 
-    trace_write(trace_ctx, "Resolution: %dx%d @ %d.%04d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
+    trace_write(trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
     
     /* allocate memory */
     if (!setup_buffers())
