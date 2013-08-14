@@ -2388,18 +2388,18 @@ struct menu_entry expo_tweak_menus[] = {
 
 static CONFIG_INT("lv.bri", preview_brightness, 0);         // range: 0-2
 static CONFIG_INT("lv.con", preview_contrast,   0);         // range: -3:3
-static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
+static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -2:2, 3 special
 
 #define PREVIEW_BRIGHTNESS_INDEX preview_brightness
 #define PREVIEW_CONTRAST_INDEX (preview_contrast + 3)
 
-#define PREVIEW_SATURATION_INDEX_RAW (preview_saturation + 1)
+#define PREVIEW_SATURATION_INDEX_RAW (preview_saturation + 2)
 
 // when adjusting WB, you can see color casts easier if saturation is increased
 #define PREVIEW_SATURATION_BOOST_WB (preview_saturation == 3)
-#define PREVIEW_SATURATION_INDEX (PREVIEW_SATURATION_BOOST_WB ? (is_adjusting_wb() ? 3 : 1) : PREVIEW_SATURATION_INDEX_RAW)
+#define PREVIEW_SATURATION_INDEX (PREVIEW_SATURATION_BOOST_WB ? (is_adjusting_wb() ? 4 : 2) : PREVIEW_SATURATION_INDEX_RAW)
 
-#define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -1)
+#define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -2)
 #define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
 
 static CONFIG_INT("lv.crazy", preview_crazy, 0);         // range: 0:2
@@ -2468,7 +2468,7 @@ static void preview_contrast_n_saturation_step()
     #endif
 #endif
 
-    static int saturation_values[] = {0,0x80,0xC0,0xFF};
+    static int saturation_values[] = {0,0x40,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[PREVIEW_SATURATION_INDEX];
     
     if (focus_peaking_grayscale_running())
@@ -2658,10 +2658,11 @@ static MENU_UPDATE_FUNC(preview_brightness_display)
 #ifdef FEATURE_ARROW_SHORTCUTS
 static void adjust_saturation_level(int delta)
 {
-    preview_saturation = COERCE((int)preview_saturation + delta, -1, 3);
+    preview_saturation = COERCE((int)preview_saturation + delta, -2, 2);
     NotifyBox(2000, 
         "LCD Saturation  : %s",
-        preview_saturation == -1 ? "0 (Grayscale)" :
+        preview_saturation == -2 ? "0 (Grayscale)" :
+        preview_saturation == -1 ? "Low" :
         preview_saturation == 0 ? "Normal" :
         preview_saturation == 1 ? "High" :
                                   "Very high"
@@ -3399,7 +3400,7 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "LV saturation",
                 .priv     = &preview_saturation,
-                .min = -1,
+                .min = -2,
                 .max = 3,
                 .update = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
@@ -3407,9 +3408,10 @@ static struct menu_entry display_menus[] = {
                          " \n"
                          " \n"
                          " \n"
+                         " \n"
                          "Boost on WB: increase saturation when you are adjusting WB.",
                 .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high", "Boost on WB adjust"},
+                .choices = (const char *[]) {"Grayscale", "Low", "Normal", "High", "Very high", "Boost on WB adjust"},
                 .depends_on = DEP_LIVEVIEW,
                 .icon_type = IT_PERCENT_OFF,
                 /*
