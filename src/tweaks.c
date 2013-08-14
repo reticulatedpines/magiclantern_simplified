@@ -2477,6 +2477,8 @@ static void preview_contrast_n_saturation_step()
     #ifdef FEATURE_DIGIC_FOCUS_PEAKING
     if (preview_peaking == 2)
         desired_saturation = 0;
+    else if (preview_peaking == 3)
+        desired_saturation = 0x40;
     #endif
 
     if (joke_mode)
@@ -2540,7 +2542,7 @@ static void preview_contrast_n_saturation_step()
     }
 
     #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    if (preview_peaking == 2)
+    if (preview_peaking == 2 || preview_peaking == 3)
         desired_contrast = contrast_values_at_brigthness_2[4];
     #endif
 
@@ -2578,7 +2580,7 @@ static void preview_contrast_n_saturation_step()
     int desired_filter_value = 
         gui_menu_shown() && !menu_active_but_hidden() ? 0 :
         preview_peaking == 1 ? 0x4d4 :
-        preview_peaking == 2 ? 0x4c0 :
+        preview_peaking == 2 || preview_peaking == 3 ? 0x4c0 :
         preview_peaking;
 
     if (preview_peaking || filter_dirty)
@@ -3365,9 +3367,9 @@ static struct menu_entry display_menus[] = {
                 .name = "LV DIGIC peaking",
                 .priv = &preview_peaking,
                 .min = 0,
-                .max = 2,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
+                .max = 3,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
                 .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image"},
+                .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image", "Edge + chroma"},
                 .help  = "Focus peaking via DIGIC. No CPU usage!",
             },
             #endif
