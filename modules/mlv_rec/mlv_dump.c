@@ -49,6 +49,8 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
+#define COERCE(val,min,max) MIN(MAX((value),(min)),(max))
+     
 void bitinsert(uint16_t *dst, int position, int depth, uint16_t new_value)
 {
     uint16_t old_value = 0;
@@ -113,6 +115,98 @@ uint16_t bitextract(uint16_t *src, int position, int depth)
     return value;
 }
 
+int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
+{
+    FILE *in_file = NULL;
+    int ret = 0;
+    
+    /* open files */
+    in_file = fopen(filename, "rb");
+    if(!in_file)
+    {
+        fprintf(stderr, "[E] Failed to open file '%s'\n", filename);
+        return 1;
+    }
+
+    do
+    {
+        mlv_hdr_t buf;
+        uint64_t position = 0;
+        
+        position = ftello(in_file);
+        
+        if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
+        {
+            fprintf(stderr, "[E] Failed to read from file '%s'\n", filename);
+            ret = 2;
+            goto load_frame_finish;
+        }
+        
+        /* jump back to the beginning of the block just read */
+        fseeko(in_file, position, SEEK_SET);
+
+        position = ftello(in_file);
+        
+        if(!memcmp(buf.blockType, "MLVI", 4))
+        {
+            mlv_file_hdr_t file_hdr;
+            uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
+
+            /* read the whole header block, but limit size to either our local type size or the written block size */
+            if(fread(&file_hdr, hdr_size, 1, in_file) != 1)
+            {
+                fprintf(stderr, "[E] File ends in the middle of a block\n");
+                ret = 3;
+                goto load_frame_finish;
+            }
+            fseeko(in_file, position + file_hdr.blockSize, SEEK_SET);
+
+            if(file_hdr.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA)
+            {
+                fprintf(stderr, "[E] Compressed formats not supported for frame extraction\n");
+                ret = 5;
+                goto load_frame_finish;
+            }
+        }
+        else if(!memcmp(buf.blockType, "VIDF", 4))
+        {
+            mlv_vidf_hdr_t block_hdr;
+            uint32_t hdr_size = MIN(sizeof(mlv_vidf_hdr_t), buf.blockSize);
+
+            if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+            {
+                fprintf(stderr, "[E] File '%s' ends in the middle of a block\n", filename);
+                ret = 3;
+                goto load_frame_finish;
+            }
+            
+            int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+
+            fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
+            if(fread(frame_buffer, frame_size, 1, in_file) != 1)
+            {
+                fprintf(stderr, "[E] File '%s' ends in the middle of a block\n", filename);
+                ret = 4;
+                goto load_frame_finish;
+            }
+            
+            ret = 0;
+            goto load_frame_finish;
+        }
+        else
+        {
+            fseeko(in_file, position + buf.blockSize, SEEK_SET);
+        }
+    }
+    while(!feof(in_file));
+    
+load_frame_finish:
+
+    fclose(in_file);
+    
+    return ret;
+}
+
 void show_usage(char *executable)
 {
     fprintf(stderr, "Usage: %s [-o output_file] [-rscd] [-l compression_level(0-9)] <inputfile>\n", executable);
@@ -122,6 +216,14 @@ void show_usage(char *executable)
     fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     fprintf(stderr, " -f frames           stop after that number of frames\n");
+    
+    fprintf(stderr, " -m                  write only metadata, no audio or video frames\n");
+    fprintf(stderr, " -n                  write no metadata, only audio and video frames\n");
+    
+    fprintf(stderr, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
+    fprintf(stderr, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
+    
+    //fprintf(stderr, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
 #ifdef MLV_USE_LZMA
     fprintf(stderr, " -c                  (re-)compress video and audio frames using LZMA\n");
     fprintf(stderr, " -d                  decompress compressed video and audio frames using LZMA\n");
@@ -135,11 +237,19 @@ int main (int argc, char *argv[])
 {
     char *input_filename = NULL;
     char *output_filename = NULL;
+    char *subtract_filename = NULL;
+    char *lut_filename = NULL;
     int blocks_processed = 0;
     
     int frame_limit = 0;
     int vidf_frames_processed = 0;
     int vidf_max_number = 0;
+    
+    int average_mode = 0;
+    int subtract_mode = 0;
+    int no_metadata_mode = 0;
+    int only_metadata_mode = 0;
+    int average_samples = 0;
     
     int mlv_output = 0;
     int raw_output = 0;
@@ -163,16 +273,55 @@ int main (int argc, char *argv[])
     int lzma_threads = 8;
 #endif
     
+    printf("\n"); 
+    printf(" MLV Dumper v1.0\n"); 
+    printf("-----------------\n"); 
+    printf("\n"); 
+    
     if(sizeof(mlv_file_hdr_t) != 52)
     {
         printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is %d on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
         return 0;
     }
     
-    while ((opt = getopt(argc, argv, "vrcdo:l:b:f:")) != -1) 
+    while ((opt = getopt(argc, argv, "mnas:uvrcdo:l:b:f:")) != -1) 
     {
         switch (opt)
         {
+            case 'm':
+                only_metadata_mode = 1;
+                break;
+                
+            case 'n':
+                no_metadata_mode = 1;
+                break;
+                
+            case 'a':
+                average_mode = 1;
+                decompress_output = 1;
+                no_metadata_mode = 1;
+                break;
+                
+            case 's':
+                if(!optarg)
+                {
+                    fprintf(stderr, "Error: Missing subtract frame filename\n");
+                    return 0;
+                }
+                subtract_filename = strdup(optarg);
+                subtract_mode = 1;
+                decompress_output = 1;
+                break;
+                
+            case 'u':
+                if(!optarg)
+                {
+                    fprintf(stderr, "Error: Missing LUT filename\n");
+                    return 0;
+                }
+                lut_filename = strdup(optarg);
+                break;
+                
             case 'v':
                 verbose = 1;
                 break;
@@ -201,6 +350,11 @@ int main (int argc, char *argv[])
                 break;
                 
             case 'o':
+                if(!optarg)
+                {
+                    fprintf(stderr, "Error: Missing output filename\n");
+                    return 0;
+                }
                 output_filename = strdup(optarg);
                 break;
                 
@@ -232,15 +386,16 @@ int main (int argc, char *argv[])
         return 0;
     }
     
+    
     /* get first file */
     input_filename = argv[optind];
     
-    printf("Operating mode:\n"); 
-    printf(" - Input MLV file: '%s'\n", input_filename); 
+    printf("[i] Mode of operation:\n"); 
+    printf("   - Input MLV file: '%s'\n", input_filename); 
     
     if(verbose)
     {
-        printf(" - Verbose messages\n"); 
+        printf("   - Verbose messages\n"); 
     }
     
     /* display and set/unset variables according to parameters to have a consistent state */
@@ -248,25 +403,40 @@ int main (int argc, char *argv[])
     {
         if(raw_output)
         {
+            printf("   - Convert to legacy RAW\n"); 
+            
             compress_output = 0;
             mlv_output = 0;
-            printf(" - Convert to legacy RAW\n"); 
+            if(average_mode)
+            {
+                printf("   - disabled average mode, not possible\n");
+                average_mode = 0;
+            }
         }
         else
         {
             mlv_output = 1;
-            printf(" - Rewrite MLV\n"); 
+            printf("   - Rewrite MLV\n"); 
             if(compress_output)
             {
-                printf(" - Compress frame data\n"); 
+                printf("   - Compress frame data\n"); 
             }
             if(bit_depth)
             {
-                printf(" - Convert to %d bpp\n", bit_depth); 
+                printf("   - Convert to %d bpp\n", bit_depth); 
+            }
+            if(average_mode)
+            {
+                printf("   - Output only one frame with averaged pixel values\n");
+                subtract_mode = 0;
+            }
+            if(subtract_mode)
+            {
+                printf("   - Subtract reference frame '%s' from single images\n", subtract_filename); 
             }
         }
         
-        printf(" - Output into '%s'\n", output_filename); 
+        printf("   - Output into '%s'\n", output_filename); 
     }
     else
     {
@@ -274,21 +444,22 @@ int main (int argc, char *argv[])
         raw_output = 0;
         compress_output = 0;
         
-        printf(" - Verify file structure\n"); 
+        printf("   - Verify file structure\n"); 
         if(verbose)
         {
-            printf(" - Dump all block information\n"); 
+            printf("   - Dump all block information\n"); 
         }
     }
-
-
+    
     /* start processing */
     lv_rec_file_footer_t lv_rec_footer;
     mlv_file_hdr_t main_header;
     
     uint32_t seq_number = 0;
     uint32_t frame_buffer_size = 32*1024*1024;
-    char *frame_buffer = NULL;
+    
+    uint32_t *frame_arith_buffer = NULL;
+    uint8_t *frame_buffer = NULL;
     FILE *out_file = NULL;
     FILE *in_file = NULL;
 
@@ -303,6 +474,29 @@ int main (int argc, char *argv[])
         fprintf(stderr, "Failed to open file '%s'\n", input_filename);
         return 0;
     }
+    
+    if(average_mode || subtract_mode)
+    {
+        frame_arith_buffer = malloc(frame_buffer_size);
+        if(!frame_arith_buffer)
+        {
+            fprintf(stderr, "Failed to alloc mem\n");
+            return 0;
+        }
+        memset(frame_arith_buffer, 0x00, frame_buffer_size);
+    }
+    
+    if(subtract_mode)
+    {
+        int ret = load_frame(subtract_filename, 0, frame_arith_buffer);
+        
+        if(ret)
+        {
+            fprintf(stderr, "Failed to load subtract frame (%d)\n", ret);
+            return 0;
+        }
+    }
+    
 
     if(output_filename)
     {
@@ -321,6 +515,7 @@ int main (int argc, char *argv[])
         }
     }
 
+    printf("[i] Processing...\n"); 
     do
     {
         mlv_hdr_t buf;
@@ -401,7 +596,7 @@ read_headers:
                     break;
                 }
             }
-
+            
             if(raw_output)
             {
                 lv_rec_footer.frameCount += file_hdr.videoFrameCount;
@@ -409,10 +604,15 @@ read_headers:
                 lv_rec_footer.frameSkip = 0;
             }
             
-            if(mlv_output)
+            if(mlv_output && (main_header.fileCount == 0))
             {
                 /* correct header size if needed */
                 file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+                
+                if(average_mode)
+                {
+                    file_hdr.videoFrameCount = 1;
+                }
                 
                 /* set the output compression flag */
                 if(compress_output)
@@ -525,6 +725,50 @@ read_headers:
                     int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
                     int new_depth = bit_depth;
                     
+                    /* in average mode, sum up all pixel values of a pixel position */
+                    if(average_mode)
+                    {
+                        int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+                        
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                uint16_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                
+                                frame_arith_buffer[y * video_xRes + x] += value;
+                            }
+                        }
+                        
+                        average_samples++;
+                    }
+                    
+                    /* in subtract mode, subtrace reference frame */
+                    if(subtract_mode)
+                    {
+                        int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+                        
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            uint16_t *sub_line = (uint16_t *)&((uint8_t*)frame_arith_buffer)[y * pitch];
+                            
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                int32_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                int32_t sub_value = bitextract(sub_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                
+                                value -= sub_value;
+                                value += lv_rec_footer.raw_info.black_level;
+                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
+                                
+                                bitinsert(src_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                            }
+                        }
+                    }
+                    
                     /* now resample bit depth if requested */
                     if(new_depth && (old_depth != new_depth))
                     {
@@ -581,7 +825,7 @@ read_headers:
                         fwrite(frame_buffer, frame_size, 1, out_file);
                     }
                     
-                    if(mlv_output)
+                    if(mlv_output && !only_metadata_mode && !average_mode)
                     {
                         if(compress_output)
                         {
@@ -686,7 +930,7 @@ read_headers:
                     printf("     Flags:       0x%08X\n", block_hdr.flags);
                 }
             
-                if(mlv_output)
+                if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_lens_hdr_t);
@@ -728,7 +972,7 @@ read_headers:
                     }
                     
                     /* only output this block if there is any data */
-                    if(mlv_output)
+                    if(mlv_output && !no_metadata_mode)
                     {
                         /* correct header size if needed */
                         block_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
@@ -746,7 +990,6 @@ read_headers:
 
                     free(buf);
                 }
-            
             }
             else if(!memcmp(buf.blockType, "ELVL", 4))
             {
@@ -768,7 +1011,7 @@ read_headers:
                     printf("     Pitch:   %2.2f\n", (double)block_hdr.pitch / 100.0f);
                 }
             
-                if(mlv_output)
+                if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_elvl_hdr_t);
@@ -804,7 +1047,7 @@ read_headers:
                     printf("     Shift BA:   %d\n", block_hdr.wbs_ba);
                 }
             
-                if(mlv_output)
+                if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_wbal_hdr_t);
@@ -836,7 +1079,7 @@ read_headers:
                     printf("     Camera Model:  0x%08X\n", block_hdr.cameraModel);
                 }
             
-                if(mlv_output)
+                if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_idnt_hdr_t);
@@ -871,7 +1114,7 @@ read_headers:
                     printf("     Daylight s.: %d\n", block_hdr.tm_isdst);
                 }
             
-                if(mlv_output)
+                if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rtci_hdr_t);
@@ -905,7 +1148,7 @@ read_headers:
                     printf("     Shutter:    %" PRIu64 " µs (1/%.2f)\n", block_hdr.shutterValue, 1000000.0f/(float)block_hdr.shutterValue);
                 }
             
-                if(mlv_output)
+                if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_expo_hdr_t);
@@ -954,7 +1197,7 @@ read_headers:
                 }
 
                 /* cache these bits when we convert to legacy or resample bit depth */
-                if(raw_output || bit_depth)
+                //if(raw_output || bit_depth)
                 {
                     strncpy((char*)lv_rec_footer.magic, "RAWM", 4);
                     lv_rec_footer.xRes = block_hdr.xRes;
@@ -962,7 +1205,8 @@ read_headers:
                     lv_rec_footer.raw_info = block_hdr.raw_info;
                 }
             
-                if(mlv_output)
+                /* always output RAWI blocks, its not just metadata, but important frame format data */
+                if(mlv_output /*&& !no_metadata_mode*/)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
@@ -989,26 +1233,65 @@ read_headers:
         blocks_processed++;
     }
     while(!feof(in_file));
-
+    
 abort:
-    if(in_file)
+
+    printf("[i] Processed %d video frames\n", vidf_frames_processed);
+    
+    /* in average mode, finalize average calculation and output the resulting average */
+    if(average_mode)
     {
-        fclose(in_file);
+        int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+        for(int y = 0; y < video_yRes; y++)
+        {
+            uint16_t *dst_line = (uint16_t *)&frame_buffer[y * new_pitch];
+            for(int x = 0; x < video_xRes; x++)
+            {
+                uint32_t value = frame_arith_buffer[y * video_xRes + x];
+                
+                value /= average_samples;
+                bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+            }
+        }
+        
+        int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
+        
+        mlv_vidf_hdr_t hdr;
+        
+        memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+        memcpy(hdr.blockType, "VIDF", 4);
+        hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+        
+        fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file);
+        fwrite(frame_buffer, frame_size, 1, out_file);
     }
 
     if(raw_output)
     {
-        lv_rec_footer.frameCount = vidf_max_number;
+        lv_rec_footer.frameCount = vidf_max_number + 1;
         lv_rec_footer.raw_info.bits_per_pixel = 14;
         
         fseeko(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
-        fclose(out_file);
     }
 
     if(output_filename)
     {
         free(output_filename);
     }
+    
+    if(in_file)
+    {
+        fclose(in_file);
+    }
+
+    if(out_file)
+    {
+        fclose(out_file);
+    }
+
+    printf("[i] Done\n"); 
+    printf("\n"); 
+
     return 0;
 }
