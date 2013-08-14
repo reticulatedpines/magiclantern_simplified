@@ -2577,8 +2577,8 @@ static void preview_contrast_n_saturation_step()
     int current_filter_value = (int) shamem_read(crazy_register);
     int desired_filter_value = 
         gui_menu_shown() && !menu_active_but_hidden() ? 0 :
-        preview_peaking == 1 ? 0xd4 :
-        preview_peaking == 2 ? 0xc0 :
+        preview_peaking == 1 ? 0x4d4 :
+        preview_peaking == 2 ? 0x4c0 :
         preview_peaking;
 
     if (preview_peaking || filter_dirty)
@@ -3364,9 +3364,9 @@ static struct menu_entry display_menus[] = {
                 .name = "LV DIGIC peaking",
                 .priv = &preview_peaking,
                 .min = 0,
-                .max = 2,   /* set .max = 0x1000 and .unit = UNIT_HEX to get raw values */
+                .max = 2,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
                 .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"OFF", "Slight", "Strong"},
+                .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image"},
                 .help  = "Focus peaking via DIGIC. No CPU usage!",
             },
             #endif
