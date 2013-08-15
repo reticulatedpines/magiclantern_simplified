@@ -207,13 +207,15 @@ PUB_FUNC void tcc_free(void *ptr)
 #ifdef MEM_DEBUG
     mem_cur_size -= malloc_usable_size(ptr);
 #endif
-    free(ptr);
+    //~ printf("tcc_free %x\n ", ptr);
+    if (ptr) free_dma_memory(ptr);
 }
 
 PUB_FUNC void *tcc_malloc(unsigned long size)
 {
     void *ptr;
-    ptr = malloc(size);
+    //~ printf("tcc_malloc %d\n ", size);
+    ptr = alloc_dma_memory(size);
     if (!ptr && size)
         tcc_error("memory full");
 #ifdef MEM_DEBUG
@@ -238,7 +240,16 @@ PUB_FUNC void *tcc_realloc(void *ptr, unsigned long size)
 #ifdef MEM_DEBUG
     mem_cur_size -= malloc_usable_size(ptr);
 #endif
-    ptr1 = realloc(ptr, size);
+    //~ printf("tcc_realloc %x %d\n ", ptr, size);
+    //~ ptr1 = realloc(ptr, size);
+    
+    ptr1 = tcc_malloc(size);
+    if (ptr)
+    {
+        memcpy(ptr1, ptr, size);
+        tcc_free(ptr);
+    }
+    
     if (!ptr1 && size)
         tcc_error("memory full");
 #ifdef MEM_DEBUG
