@@ -196,6 +196,14 @@ PUB_FUNC char *tcc_fileextension (const char *name)
 #undef malloc
 #undef realloc
 
+/*
+#define malloc(len)         memcheck_malloc(len,__FILE__,__LINE__,1)
+#define free(buf)           memcheck_free(buf,1)
+
+#define AllocateMemory(len) memcheck_malloc(len,__FILE__,__LINE__,0)
+#define FreeMemory(buf)     memcheck_free(buf,0)
+*/
+
 #ifdef MEM_DEBUG
 ST_DATA int mem_cur_size;
 ST_DATA int mem_max_size;
@@ -564,7 +572,7 @@ static void strcat_vprintf(char *buf, int buf_size, const char *fmt, va_list ap)
 {
     int len;
     len = strlen(buf);
-    vsnprintf(buf + len, buf_size - len, fmt, ap);
+    vsnprintf(buf + len, buf_size - len - 1, fmt, ap);
 }
 
 static void strcat_printf(char *buf, int buf_size, const char *fmt, ...)
@@ -575,9 +583,34 @@ static void strcat_printf(char *buf, int buf_size, const char *fmt, ...)
     va_end(ap);
 }
 
+static void error_sprint_line(char* buf, int size, BufferedFile * f)
+{
+    char* linepos = f->buf_ptr;
+    while (linepos > (char*)(f->buffer) && *(linepos-1) != '\n')
+        linepos--;
+
+    strcat_printf(buf, size, "\n");
+    
+    char* pos = linepos;
+    while (pos < (char*)(f->buf_end) && *pos != '\n')
+    {
+        // workaround for missing %s in Canon's vnsprintf
+        int chr = *pos++;
+        strcat_printf(buf, size, "%s", &chr);
+    }
+
+    strcat_printf(buf, size, "\n");
+
+    pos = linepos;
+    while (pos < (char*)(f->buf_ptr) - 1)
+        strcat_printf(buf, size, *pos++ == '\t' ? "\t" : " ");
+    
+    strcat_printf(buf, size, "^\n");
+}
+
 static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
 {
-    char buf[2048];
+    char buf[256];
     BufferedFile **pf, *f;
     
     buf[0] = '\0';
@@ -588,6 +621,7 @@ static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
             strcat_printf(buf, sizeof(buf), "In file included from %s:%d:\n",
                 (*pf)->filename, (*pf)->line_num);
         if (f->line_num > 0) {
+            error_sprint_line(buf, sizeof(buf), f);
             strcat_printf(buf, sizeof(buf), "%s:%d: ",
                 f->filename, f->line_num);
         } else {
@@ -605,7 +639,7 @@ static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
 
     if (!s1->error_func) {
         /* default case: stderr */
-        fprintf(stderr, "%s\n", buf);
+        printf("%s\n", buf);
     } else {
         s1->error_func(s1->error_opaque, buf);
     }
