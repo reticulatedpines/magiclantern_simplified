@@ -1,6 +1,3 @@
-include ../Makefile.user.default
--include ../Makefile.user
-
 CFLAGS=-Os
 LDFLAGS=
 LIBSUF=.a
