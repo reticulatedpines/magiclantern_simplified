@@ -9,38 +9,10 @@
 #include "dryos.h"
 #include "libtcc.h"
 
-/* this function is called by the generated code */
-static int add(int a, int b)
-{
-    return a + b;
-}
-
-void tcc_init_library(TCCState *s)
-{
-    /* as a test, we add a symbol that the compiled program can use.
-       You may also open a dll with tcc_add_dll() and use symbols from that */
-    tcc_add_symbol(s, "add", add);
-}
-
-int tcc_compile_and_run(char* filename)
-{
-}
-
 void exit(int code) 
 {
     console_printf("exit(%d)\n", code); 
     while(1) msleep(100); // fixme: stop the task and exit cleanly
-}
-
-int fprintf(FILE* unused, const char * fmt, ...)
-{
-    va_list            ap;
-    char buf[128];
-    va_start( ap, fmt );
-    vsnprintf( buf, sizeof(buf)-1, fmt, ap );
-    va_end( ap );
-    console_puts(buf);
-    return 0;
 }
 
 int printf(const char * fmt, ...)
@@ -191,8 +163,6 @@ DUMMY(time)
 DUMMY(localtime)
 DUMMY(getcwd)
 DUMMY(system)
-int _impure_ptr;
-
 
 
 /*

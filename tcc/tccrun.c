@@ -708,7 +708,7 @@ static TCCSyms tcc_syms[] = {
 #if !defined(CONFIG_TCCBOOT)
 #define TCCSYM(a) { #a, &a, },
     TCCSYM(printf)
-    TCCSYM(fprintf)
+    //~ TCCSYM(fprintf)
     TCCSYM(fopen)
     TCCSYM(fclose)
 #undef TCCSYM

@@ -1376,4 +1376,8 @@ ST_FUNC void tcc_set_num_callers(int n);
 #define ST_DATA
 #endif
 /********************************************************/
+
+/* stderr depends on _impure_ptr, and it looks complicated */
+#define fprintf(stderr, ...) printf(# __VA_ARGS__)
+
 #endif /* _TCC_H */

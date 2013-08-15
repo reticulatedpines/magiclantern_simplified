@@ -122,6 +122,7 @@ static void exec_other_tcc(TCCState *s, char **argv, const char *optarg)
 
 static void gen_makedeps(TCCState *s, const char *target, const char *filename)
 {
+#if 0
     FILE *depout;
     char buf[1024], *ext;
     int i;
@@ -148,6 +149,7 @@ static void gen_makedeps(TCCState *s, const char *target, const char *filename)
         fprintf(depout, " %s \\\n", s->target_deps[i]);
     fprintf(depout, "\n");
     fclose(depout);
+#endif
 }
 
 static char *default_outputfile(TCCState *s, const char *first_file)
