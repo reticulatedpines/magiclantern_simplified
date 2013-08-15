@@ -139,7 +139,7 @@ endif
 
 #all: $(PROGS) $(TCCLIBS) $(TCCDOCS)
 
-all: libtcc.a
+all: libtccx.o
 
 # Host Tiny C Compiler
 tcc$(EXESUF): tcc.o $(LIBTCC)
@@ -192,6 +192,31 @@ $(LIBTCC_OBJ) tcc.o : %.o : %.c $(LIBTCC_INC)
 
 libtcc.a: $(LIBTCC_OBJ)
 	$(AR) rcs $@ $^
+
+# I'm sure there's a cleanest solution, but... I just don't know how
+localsyms: libtcctmp.o
+	$(READELF) $< -Ws | $(AWK) '{print $$8}' | sort | uniq \
+		| grep -v "^tcc_new$$" \
+		| grep -v "^tcc_delete$$" \
+		| grep -v "^tcc_add_file$$" \
+		| grep -v "^tcc_relocate$$" \
+		| grep -v "^tcc_get_symbol$$" \
+		| grep -v "^tcc_add_symbol$$" \
+		| grep -v "^tcc_set_options$$" \
+		| grep -v "^tcc_malloc$$" \
+		| grep -v "^tcc_realloc$$" \
+		| grep -v "^tcc_free$$" \
+		> $@
+
+#~ libtcc.a: libtcctmp.a localsyms
+	#~ $(OBJCOPY) libtcctmp.a libtcc.a --localize-symbols localsyms
+
+libtcctmp.o: libtcc.o tccpp.o tccgen.o tccelf.o tccasm.o tccrun.o arm-gen.o
+	$(LD_REAL) -r -o $@ $^
+
+libtccx.o: libtcctmp.o localsyms
+	$(OBJCOPY) $< $@ --localize-symbols localsyms
+
 
 libtcc.so.1.0: $(LIBTCC_OBJ)
 	$(CC) -shared -Wl,-soname,$@ -o $@ $^ $(LDFLAGS)
