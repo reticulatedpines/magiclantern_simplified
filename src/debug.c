@@ -788,20 +788,20 @@ static void run_test()
 
     #ifdef CONFIG_EDMAC_MEMCPY
     msleep(2000);
-    
+
     uint8_t* real = bmp_vram_real();
     uint8_t* idle = bmp_vram_idle();
     int xPos = 0;
     int xOff = 2;
     int yPos = 0;
-    
+
     edmac_memcpy_res_lock();
     edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 120, 50, 960, 120, 50, 720, 440);
     while(true)
     {
         edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 120, 50, 960, 120+xPos, 50+yPos, 720-xPos, 440-yPos);
         xPos += xOff;
-        
+
         if(xPos >= 100 || xPos <= -100)
         {
             xOff *= -1;
@@ -810,11 +810,11 @@ static void run_test()
     edmac_memcpy_res_unlock();
     return;
     #endif
-    
+
     call("lv_save_raw", 1);
     call("aewb_enableaewb", 0);
     return;
-    
+
 #if 0
     void exmem_test();
 
@@ -950,7 +950,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
 static char* print_benchmark_header()
 {
     bmp_printf(FONT_MED, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
-    
+
     static char mode[100];
     snprintf(mode, sizeof(mode), "Mode: ");
     if (lv)
@@ -973,9 +973,9 @@ static char* print_benchmark_header()
     {
         STR_APPEND(mode, PLAY_MODE ? "playback" : display_idle() ? "photo" : "idk");
     }
-    
+
     STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
-    
+
     bmp_printf(FONT_MED, 0, 60, mode);
     return mode;
 }
@@ -994,7 +994,7 @@ static void card_benchmark_task()
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
-    
+
     print_benchmark_header();
 
     #ifdef CARD_A_MAKER
@@ -1077,13 +1077,13 @@ static void twocard_benchmark_task()
 
     for (uint32_t i = 0; i < n; i++)
         msg_queue_post(twocard_mq, i);
-    
+
     twocard_done = 0;
     task_create("twocard_cf", 0x1d, 0x2000, twocard_write_task, "A:/bench.tmp");
     task_create("twocard_sd", 0x1d, 0x2000, twocard_write_task, "B:/bench.tmp");
 
     while (twocard_done < 2) msleep(100);
-    
+
     call("dispcheck");
     msleep(3000);
     canon_gui_enable_front_buffer(0);
@@ -1097,10 +1097,10 @@ static void card_bufsize_benchmark_task()
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
     canon_gui_disable_front_buffer();
     clrscr();
-    
+
     int x = 0;
     int y = 100;
-    
+
     FILE* log = FIO_CreateFileEx(CARD_DRIVE"bench.log");
     if (log == INVALID_PTR) goto cleanup;
 
@@ -1108,11 +1108,11 @@ static void card_bufsize_benchmark_task()
     my_fprintf(log, "ML %s, %s\n", build_version, build_id); // this includes camera name
     char* mode = print_benchmark_header();
     my_fprintf(log, "%s\n", mode);
-    
+
     #ifdef CARD_A_MAKER
     my_fprintf(log, "CF %s %s\n", CARD_A_MAKER, CARD_A_MODEL);
     #endif
-    
+
     while(1)
     {
         /* random buffer size between 1K and 32M, with 1K increments */
@@ -1138,9 +1138,9 @@ static void card_bufsize_benchmark_task()
         int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
         bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         if (y > 450) y = 100;
-        
+
         my_fprintf(log, "%d %d\n", bufsize, speed);
-        
+
     }
 cleanup:
     if (log != INVALID_PTR) FIO_CloseFile(log);
@@ -1165,7 +1165,7 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
     {
         bench_fun(arg0, arg1, arg2, arg3);
         if (i%2) info_led_off(); else info_led_on();
-        
+
         /* run the benchmark for roughly 1 second */
         if (get_ms_clock_value_fast() - t0 > 1000)
         {
@@ -1175,15 +1175,15 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
     }
     int t1 = get_ms_clock_value();
     int dt = t1 - t0;
-    
+
     info_led_off();
-    
+
     /* units: KB/s */
     int speed = bufsize * times / dt;
 
     /* transform in MB/s x100 */
     speed = speed * 100 / 1024;
-    
+
     bmp_printf(FONT_MED, 0, *y += font_med.height, "%s :%4d.%02d MB/s", msg, speed/100, speed%100);
     msleep(10);
 }
@@ -1212,7 +1212,7 @@ static uint64_t FAST mem_test_read64(uint64_t* buf, uint32_t n)
      * CMP     R0, R1
      * BNE     loc_7433C
      */
-    
+
     /* note: this kind of loops are much faster with -funroll-all-loops */
     register uint64_t tmp = 0;
     for (uint32_t i = 0; i < n/8; i++)
@@ -1228,7 +1228,7 @@ static uint32_t FAST mem_test_read32(uint32_t* buf, uint32_t n)
      * CMP     R3, R2
      * BNE     loc_74310
      */
-    
+
     register uint32_t tmp = 0;
     for (uint32_t i = 0; i < n/4; i++)
         tmp = buf[i];
@@ -1245,7 +1245,7 @@ static void mem_benchmark_task()
     print_benchmark_header();
 
     int bufsize = 16*1024*1024;
-    
+
     void* buf1 = 0;
     void* buf2 = 0;
     buf1 = shoot_malloc(bufsize);
@@ -1418,7 +1418,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
 
         // mallocs
-        // run this test 200 times to check for memory leaks 
+        // run this test 200 times to check for memory leaks
         for (int i = 0; i < 200; i++)
         {
             int silence = (i > 0);
@@ -1459,9 +1459,9 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m02-m12), < 2048);
         }
-        
+
         // exmem
-        // run this test 20 times to check for memory leaks 
+        // run this test 20 times to check for memory leaks
         for (int i = 0; i < 20; i++)
         {
             int silence = (i > 0);
@@ -1535,7 +1535,7 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(total, == suite->size);
             TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
         }
-        
+
         // engio
         TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
         TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
@@ -2918,7 +2918,7 @@ static void guess_free_mem_task(void* priv, int delta)
     max_shoot_malloc_frag_mem = 0;
 
     bin_search(1, 1024, stack_size_crit);
-    
+
     {
         struct memSuite * hSuite = shoot_malloc_suite_contig(0);
         if (!hSuite)
@@ -2940,14 +2940,14 @@ static void guess_free_mem_task(void* priv, int delta)
         return;
     }
     max_shoot_malloc_frag_mem = hSuite->size;
-    
+
     struct memChunk *currentChunk;
     int chunkAvail;
     void* chunkAddress;
     int total = 0;
-    
+
     currentChunk = GetFirstChunkFromSuite(hSuite);
-    
+
     snprintf(shoot_malloc_frag_desc, sizeof(shoot_malloc_frag_desc), "");
     memset(memory_map, 0, sizeof(memory_map));
 
@@ -2955,7 +2955,7 @@ static void guess_free_mem_task(void* priv, int delta)
     {
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
         chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
-    
+
         int mb = 10*chunkAvail/1024/1024;
         STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
         total += chunkAvail;
@@ -2970,20 +2970,19 @@ static void guess_free_mem_task(void* priv, int delta)
     ASSERT(max_shoot_malloc_frag_mem == total);
 
     exmem_clear(hSuite, 0);
-    
+
     shoot_free_suite(hSuite);
-    
+
     /* memory analysis: how much appears unused? */
     for (uint32_t i = 0; i < 720; i++)
     {
         if (memory_map[i])
             continue;
-        
+
         uint32_t empty = 1;
         uint32_t start = MEMORY_MAP_INDEX_TO_ADDRESS(i);
         uint32_t end = MEMORY_MAP_INDEX_TO_ADDRESS(i+1);
-        uint32_t val0 = MEM(start);
-        
+
         for (uint32_t p = start; p < end; p += 4)
         {
             uint32_t v = MEM(p);
@@ -2997,7 +2996,7 @@ static void guess_free_mem_task(void* priv, int delta)
                 break;
             }
         }
-        
+
         memory_map[i] = empty ? COLOR_BLUE : COLOR_RED;
     }
 
@@ -3082,7 +3081,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
             );
             if (ml_reserved_mem < ml_used_mem)
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
-            
+
             break;
         }
         #endif
@@ -3254,11 +3253,11 @@ static void edmac_display_page(int i0, int x0, int y0)
     );
 
     y0 += font_med.height * 2;
-    
+
     for (int i = 0; i < 16; i++)
     {
         char msg[100];
-        
+
         uint32_t base = edmac_get_base(i0+i);
         uint32_t addr = shamem_read(base + 8);
         union edmac_size_t
@@ -3266,15 +3265,15 @@ static void edmac_display_page(int i0, int x0, int y0)
             struct { short x, y; } size;
             uint32_t raw;
         };
-        
+
         union edmac_size_t size = (union edmac_size_t) shamem_read(base + 0x10);
-        
+
         int state = MEM(base + 0);
-        int color = 
+        int color =
             state == 0 ? COLOR_GRAY(50) :   // inactive?
             state == 1 ? COLOR_GREEN1 :     // active?
             COLOR_RED;                      // no idea
-        
+
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
             snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
@@ -3283,20 +3282,20 @@ static void edmac_display_page(int i0, int x0, int y0)
         {
             snprintf(msg, sizeof(msg), "[%2d] %8x: %x", i0+i, addr, size.raw);
         }
-        
+
         if (color == COLOR_RED)
             STR_APPEND(msg, " (%x)", state);
 
         uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
         uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
-        
+
         if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
         else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
         else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
 
         bmp_printf(
             FONT(FONT_MED, color, COLOR_BLACK),
-            x0, y0 + i * font_med.height, 
+            x0, y0 + i * font_med.height,
             msg
         );
     }
@@ -3311,12 +3310,12 @@ static void edmac_display_detailed(int channel)
     bmp_printf(
         FONT_LARGE,
         x, y,
-        "EDMAC #%d - %x\n", 
+        "EDMAC #%d - %x\n",
         channel,
         base
     );
     y += font_large.height;
-    
+
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
     uint32_t state = MEM(base + 0);
@@ -3328,11 +3327,11 @@ static void edmac_display_detailed(int channel)
         struct { short x, y; } size;
         uint32_t raw;
     };
-    
+
     union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + 0x0C);
     union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + 0x10);
     union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + 0x14);
-    
+
     uint32_t off1b = shamem_read(base + 0x18);
     uint32_t off2b = shamem_read(base + 0x1C);
     uint32_t off1a = shamem_read(base + 0x20);
@@ -3341,7 +3340,7 @@ static void edmac_display_detailed(int channel)
 
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
-    
+
     bmp_printf(FONT_MED, 50, y += font_med.height, "Address    : %8x ", addr);
     bmp_printf(FONT_MED, 50, y += font_med.height, "State      : %8x ", state);
     bmp_printf(FONT_MED, 50, y += font_med.height, "Flags      : %8x ", flags);
@@ -3357,7 +3356,7 @@ static void edmac_display_detailed(int channel)
     bmp_printf(FONT_MED, 50, y += font_med.height, "off3       : %8x ", off3);
     y += font_med.height;
     bmp_printf(FONT_MED, 50, y += font_med.height, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
-    
+
     #ifdef CONFIG_5D3
     /**
      * ConnectReadEDmac(channel, conn)

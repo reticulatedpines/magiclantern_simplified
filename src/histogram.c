@@ -40,9 +40,9 @@ void FAST hist_build_raw()
 
     memset(&histogram, 0, sizeof(histogram));
     histogram.is_raw = 1;
-    
+
     int step = lv ? 4 : 2;
-    
+
     /* only show a 12-bit hisogram, since the rest is just noise */
     char r2ev[4096];
     for (int i = 0; i < 4095; i++)
@@ -52,12 +52,12 @@ void FAST hist_build_raw()
     {
         int y = BM2RAW_Y(i);
         if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
-        
+
         for (int j = os.x0; j < os.x_max; j += 8)
         {
             int x = BM2RAW_X(j);
             if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
-            
+
             int r = raw_red_pixel_dark(x, y);
             int g = raw_green_pixel_dark(x, y);
             int b = raw_blue_pixel_dark(x, y);
@@ -119,20 +119,20 @@ static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int l
         draw_circle(x + 1, y, r, fg_color);
     }
     draw_circle(x, y, radius, bg_color);
-    
+
     if (label)
     {
         if (label < 10)
             bmp_printf(
-                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)), 
-                x - 4, 
+                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)),
+                x - 4,
                 y - font_med.height/2,
                 "%d", label
             );
         else
             bmp_printf(
-                SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)), 
-                x - 8, 
+                SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)),
+                x - 8,
                 y - font_small.height/2,
                 "%d", label
             );
@@ -144,7 +144,7 @@ static int hist_dot_radius(int over, int hist_total_px)
     // overexposures stronger than 1% are displayed at max radius (10)
     int p = 100 * over / hist_total_px;
     if (p > 1) return 10;
-    
+
     // for smaller overexposure percentages, use dot radius to suggest the amount
     unsigned p1000 = 100 * 1000 * over / hist_total_px;
     int plog = p1000 ? (int)log2f(p1000) : 0;
@@ -183,8 +183,8 @@ void hist_draw_image(
         histogram.max = 1;
 
     unsigned i, y;
-    
-    if (highlight_level >= 0) 
+
+    if (highlight_level >= 0)
         highlight_level = (highlight_level * HIST_WIDTH) >> 8;
 
     int log_max = log_length(histogram.max);
@@ -294,20 +294,21 @@ void hist_draw_image(
                 if (!stops_until_overexposure)
                     stops_until_overexposure = INT_MIN;
 
-                int ettr_stops = INT_MIN;
                 #ifdef CONFIG_MODULES
+                int ettr_stops = INT_MIN;
+
                 if (module_exec(NULL, "auto_ettr_export_correction", 1, &ettr_stops) == 1)
                     if (ettr_stops != INT_MIN)
                         stops_until_overexposure = (ettr_stops+5)/10;
                 #endif
-                
+
                 if (stops_until_overexposure != INT_MIN)
                     snprintf(msg, sizeof(msg), "E%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));
                 else
                     snprintf(msg, sizeof(msg), "OVER");
                 break;
             }
-            
+
             default:
                 snprintf(msg, sizeof(msg), "RAW");
                 break;
@@ -349,7 +350,7 @@ MENU_UPDATE_FUNC(hist_warn_display)
         hist_warn == 0 ? "OFF" :
         hist_warn == 1 ? "0.001% px" :
         hist_warn == 2 ? "0.01% px" :
-        hist_warn == 3 ? "0.1% px" : 
+        hist_warn == 3 ? "0.1% px" :
         hist_warn == 4 ? "1% px" :
                          "Gradual"
     );
@@ -379,7 +380,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
-    
+
     int* hist = SmallAlloc(16384*4);
     if (!hist) return -1;
     memset(hist, 0, 16384*4);
@@ -392,20 +393,20 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
         for (struct raw_pixblock * row = (struct raw_pixblock *) raw_info.buffer + raw_info.active_area.y1 * raw_info.width / 8 + (raw_info.active_area.x1 + 7) / 8; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.active_area.y2; row += 2 * raw_info.width / 8)
         {
             struct raw_pixblock * row2 = row + raw_info.pitch / sizeof(struct raw_pixblock);
-            
+
             struct raw_pixblock * p;
             struct raw_pixblock * q;
             for (p = row, q = row2; (void*)p < (void*)row + raw_info.jpeg.width * 14/8; p++, q++)
             {
-                
-                /**    
+
+                /**
                  *  p: abcdefgh abcdefgh
                  *  q: abcdefgh abcdefgh
-                 * 
+                 *
                  *     rgrgrgrg rgrgrgrg
                  *     gbgbgbgb gbgbgbgb
                  */
-                
+
                 //~ int pa = ((int)(p->a));
                 int pb = ((int)(p->b_lo | (p->b_hi << 12)));
                 //~ int pc = ((int)(p->c_lo | (p->c_hi << 10)));
@@ -431,7 +432,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
                 hist[qc]++;
                 hist[qe]++;
                 hist[qg]++;
-                
+
                 /* to check if we sample only the active area */
                 //~ p->a = rand();
             }
@@ -461,13 +462,13 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     int i;
     for( i=0 ; i < 16384 ; i++ )
         total += hist[i];
-    
+
     for (int k = 0; k < n; k++)
     {
         int thr = (uint64_t)total * percentiles_x10[k] / 1000 - 2;  // 50% => median; allow up to 2 stuck pixels
         int n = 0;
         int ans = -1;
-        
+
         for( i=0 ; i < 16384; i++ )
         {
             n += hist[i];
@@ -477,7 +478,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
                 break;
             }
         }
-        
+
         output_raw_values[k] = ans;
     }
 
@@ -497,14 +498,14 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
-    
+
     /* use some tolerance when checking for overexposure, because white level might vary a little */
     int white = raw_info.white_level * 80 / 100;
     int over = 0;
     int total = 0;
-    
+
     int step = lv ? 4 : 2;
-    
+
     for (int i = os.y0; i < os.y_max; i += step)
     {
         int y = BM2RAW_Y(i);
@@ -518,7 +519,7 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
             total++;
         }
     }
-    
+
     /* percentage x100 */
     return over * 10000 / total;
 }
