@@ -90,6 +90,7 @@ static int is_7d = 0;
 static int is_5d2 = 0;
 static int is_50d = 0;
 static int is_6d = 0;
+static int is_600d = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
 static uint32_t FRAME_CMOS_ISO_COUNT = 0;
@@ -186,9 +187,6 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             
             prev_iso = iso1;
         }
-        
-        if (prev_iso < 10 && !is_7d && !is_5d2 && !is_6d && !is_50d)
-            return 5;
         
         /* backup old values */
         for (int i = 0; i < count; i++)
@@ -730,7 +728,31 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 3;
         CMOS_EXPECTED_FLAG = 4;
     }
-    
+    else if (streq(camera_model_short, "600D"))
+    {  
+        /*
+        100 - 0
+        200 - 0x024
+        400 - 0x048
+        800 - 0x06c
+        1600 -0x090
+        3200 -0x0b4
+        */
+        is_600d = 1;    
+
+        FRAME_CMOS_ISO_START = 0x40452196; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
+        FRAME_CMOS_ISO_COUNT =          7; // from ISO 100 to 25600
+        FRAME_CMOS_ISO_SIZE  =         32; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        PHOTO_CMOS_ISO_START = 0x4069464C; // CMOS register 0000 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 12800
+        PHOTO_CMOS_ISO_SIZE  =         18; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 2;
+        CMOS_EXPECTED_FLAG = 0;
+    }
+
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
     {
         menu_add("Expo", isoless_menu, COUNT(isoless_menu));
