@@ -164,6 +164,7 @@ nightly: changelog clean zip features.html
 	mv features.html $(NIGHTLY_DIR)
 	ln -s $(NIGHTLY_DIR)/build.log $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/ChangeLog.txt $(NIGHTLY_ROOT)
+	rm -f $(NIGHTLY_ROOT)/features.html
 	ln -s $(NIGHTLY_DIR)/features.html $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/magiclantern*.zip $(NIGHTLY_ROOT)
 
