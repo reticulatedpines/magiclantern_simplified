@@ -101,7 +101,9 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-#define AE_VALUE 0 // 404
+#define EXPO_COMP (*(int16_t*)0x2e780)
+
+#define AE_VALUE (EXPO_COMP-1) * 8 / 2048
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x26634) // not sure
 
