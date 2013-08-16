@@ -18,6 +18,7 @@ a.out
 chdk
 eos
 font-*.c
+version.c
 font-*.in
 *.zip
 *.orig
@@ -43,7 +44,6 @@ toolchain/sources
 toolchain/stamps
 platform/*/*.sym
 platform/*/autoexec
-platform/*/include/platform/generated
 platform/*/magiclantern
 platform/*/magiclantern.lds
 platform/*.OLD
@@ -86,6 +86,5 @@ modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe
 tcc/localsyms
 src/menuindexentries.h
-include/generated
 
 syntax: regexp

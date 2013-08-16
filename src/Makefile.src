@@ -2,9 +2,7 @@
 # Magic Lantern Core source files and rules
 #
 
-PLATFORM_COMPILE_H=$(PLATFORM_DIR)/include/platform/generated/compile.h
-
-all:: $(PLATFORM_COMPILE_H) autoexec.bin
+all:: autoexec.bin
 
 clean::
 	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
@@ -202,7 +200,7 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
         -Xlinker -Map=location.map \
 	)
 
-reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
+reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 ifndef ML_SRC_REBOOT_OBJ
 ML_SRC_REBOOT_OBJ = reboot.o
@@ -304,13 +302,23 @@ newlib-libc.a: $(NEWLIB_OBJ)
 clean::
 	$(call rm_files, newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
 
-$(PLATFORM_COMPILE_H): FORCE
-	mkdir -p $(dir $@)
-	@echo '#define ML_CAMERA_MODEL "$(MODEL)"' > $@
-	@echo '#define ML_FW_VERSION "$(FW_VERSION)"' >> $@
+$(PLATFORM_DIR)/version.c: FORCE
+	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
+	@echo 'const char build_id[] = "'`hg id`'";' >> $@
+	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
+	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
-clean::
-	$(call rm_dir, $(PLATFORM_COMPILE_H))
+# this must have exactly 0x11C (284) bytes, see reboot.c
+$(PLATFORM_DIR)/version.bin: FORCE
+	$(call build,"VERSION",echo -e '\b\b\b\bMagic Lantern $(VERSION)') > $@
+	@echo 'Mercurial changeset: '`hg id` >> $@
+	@echo 'Built on '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	@echo '' >> $@
+	@echo 'Camera  : $(MODEL)' >> $@
+	@echo 'Firmware: $(FW_VERSION)' >> $@
+	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
+	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
+	@truncate -s 284 $@
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
@@ -324,5 +332,8 @@ $(SRC_DIR)/menuindexentries.h:
 	fi)
 
 menuindex.o: $(SRC_DIR)/menuindexentries.h
+
+clean::
+	$(call rm_files, version.c version.bin)
 
 FORCE:

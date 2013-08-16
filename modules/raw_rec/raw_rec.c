@@ -2166,15 +2166,23 @@ static unsigned int raw_rec_init()
         
         /* 50D doesn't have sound and can't even beep */
         if (cam_50d && streq(e->name, "Sound"))
+        {
             e->shidden = 1;
+            //sound_rec = 0;
+        }
 
         /* Memory hack confirmed to work only on 5D3 and 6D */
         if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
+        {
             e->shidden = 1;
+            memory_hack = 0;
+        }
     }
 
     if (cam_5d2 || cam_50d)
+    {
        raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
+    }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);

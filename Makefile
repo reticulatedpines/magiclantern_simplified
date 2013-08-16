@@ -78,7 +78,6 @@ clean: platform_clean doxygen_clean
 		)
 	$(call rm_dir, doc/cam)
 	$(call rm_dir, $(BINARIES_PATH))
-	$(call rm_dir, include/generated)
 
 # We must build the docs first to use fresh doc/menuindex.txt
 # during 'make all'. We can't write 'zip: all docs' because

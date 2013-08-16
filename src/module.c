@@ -528,7 +528,7 @@ static void _module_unload_all(void)
 #endif
 }
 
-void *module_load(char *filename)
+void* module_load(char *filename)
 {
     int ret = -1;
     TCCState *state = NULL;
@@ -562,26 +562,23 @@ void *module_load(char *filename)
 
 unsigned int module_get_symbol(void *module, char *symbol)
 {
-#ifdef CONFIG_TCC_UNLOAD
-    return 0;
-#else
+#ifndef CONFIG_TCC_UNLOAD
     if (module == NULL) module = module_state;
+#endif
     if (module == NULL) return 0;
     
     TCCState *state = (TCCState *)module;
     
     return tcc_get_symbol(state, symbol);
-#endif
 }
 
 
 int module_exec(void *module, char *symbol, int count, ...)
 {
-#ifdef CONFIG_TCC_UNLOAD
-    return -1;
-#else
     int ret = -1;
+#ifndef CONFIG_TCC_UNLOAD
     if (module == NULL) module = module_state;
+#endif
     if (module == NULL) return ret;
     
     TCCState *state = (TCCState *)module;
@@ -645,16 +642,13 @@ int module_exec(void *module, char *symbol, int count, ...)
     }
     va_end(args);
     return ret;
-#endif
 }
 
 
 int module_unload(void *module)
 {
-#ifndef CONFIG_TCC_UNLOAD
     TCCState *state = (TCCState *)module;
     tcc_delete(state);
-#endif
     return 0;
 }
 

@@ -88,6 +88,8 @@ extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
 static int is_7d = 0;
 static int is_5d2 = 0;
+static int is_50d = 0;
+static int is_6d = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
 static uint32_t FRAME_CMOS_ISO_COUNT = 0;
@@ -167,8 +169,8 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             int iso2 = (raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
             int reg  = (raw >> 12) & 0xF;
 
-            if (reg != 0)
-                return 1;
+            if (reg != 0 && !is_6d)
+                return reg;
             
             if (flag != CMOS_EXPECTED_FLAG)
                 return 2;
@@ -179,13 +181,13 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             if (iso1 != iso2)
                 return 3;
             
-            if (iso1 < prev_iso) /* the list should be ascending */
+            if ( (iso1 < prev_iso) && !is_50d) /* the list should be ascending */
                 return 4;
             
             prev_iso = iso1;
         }
         
-        if (prev_iso < 10 && !is_7d && !is_5d2)
+        if (prev_iso < 10 && !is_7d && !is_5d2 && !is_6d && !is_50d)
             return 5;
         
         /* backup old values */
@@ -692,6 +694,41 @@ static unsigned int isoless_init()
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
+    }
+    else if (streq(camera_model_short, "6D"))
+    {
+        is_6d = 1;
+
+        FRAME_CMOS_ISO_START = 0x40452196; // CMOS register 0003 - for LiveView, ISO 100 (check in movie mode, not photo!)
+        FRAME_CMOS_ISO_COUNT =          7; // from ISO 100 to 25600
+        FRAME_CMOS_ISO_SIZE  =         32; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        PHOTO_CMOS_ISO_START = 0x40450E08; // CMOS register 0003 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_COUNT =          7; // from ISO 100 to 12800
+        PHOTO_CMOS_ISO_SIZE  =         18; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 4;
+        CMOS_FLAG_BITS = 0;
+        CMOS_EXPECTED_FLAG = 0;
+    }
+    else if (streq(camera_model_short, "50D"))
+    {  
+        // 100 - 0x04 - 160 - 0x94
+        /* 00:00:04.078911     100   0004 404B548E */
+        /* 00:00:14.214376     160   0094 404B549C */
+        /* 00:00:26.551116     320   01B4 404B54AA */
+        /*                     640   01FC 404B54B8 */
+        /* 00:00:47.349194     1250+ 016C 404B54C6 */
+
+        is_50d = 1;    
+
+        PHOTO_CMOS_ISO_START = 0x404B548E; // CMOS register 0000 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_COUNT =          5; // from ISO 100 to 12800
+        PHOTO_CMOS_ISO_SIZE  =         14; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 3;
+        CMOS_EXPECTED_FLAG = 4;
     }
     
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)

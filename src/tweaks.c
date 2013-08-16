@@ -2388,21 +2388,22 @@ struct menu_entry expo_tweak_menus[] = {
 
 static CONFIG_INT("lv.bri", preview_brightness, 0);         // range: 0-2
 static CONFIG_INT("lv.con", preview_contrast,   0);         // range: -3:3
-static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
+static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -2:2, 3 special
 
 #define PREVIEW_BRIGHTNESS_INDEX preview_brightness
 #define PREVIEW_CONTRAST_INDEX (preview_contrast + 3)
 
-#define PREVIEW_SATURATION_INDEX_RAW (preview_saturation + 1)
+#define PREVIEW_SATURATION_INDEX_RAW (preview_saturation + 2)
 
 // when adjusting WB, you can see color casts easier if saturation is increased
 #define PREVIEW_SATURATION_BOOST_WB (preview_saturation == 3)
-#define PREVIEW_SATURATION_INDEX (PREVIEW_SATURATION_BOOST_WB ? (is_adjusting_wb() ? 3 : 1) : PREVIEW_SATURATION_INDEX_RAW)
+#define PREVIEW_SATURATION_INDEX (PREVIEW_SATURATION_BOOST_WB ? (is_adjusting_wb() ? 4 : 2) : PREVIEW_SATURATION_INDEX_RAW)
 
-#define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -1)
+#define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -2)
 #define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
 
 static CONFIG_INT("lv.crazy", preview_crazy, 0);         // range: 0:2
+static CONFIG_INT("lv.peak", preview_peaking, 0);        // range: 0:2
 
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 
@@ -2455,7 +2456,7 @@ static void preview_contrast_n_saturation_step()
 #endif
     
 #ifdef FEATURE_LV_SATURATION
-    
+
     int saturation_register = 0xC0F140c4;
 #ifndef CONFIG_5DC
     int current_saturation = (int) shamem_read(saturation_register);
@@ -2467,11 +2468,18 @@ static void preview_contrast_n_saturation_step()
     #endif
 #endif
 
-    static int saturation_values[] = {0,0x80,0xC0,0xFF};
+    static int saturation_values[] = {0,0x40,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[PREVIEW_SATURATION_INDEX];
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
+
+    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    if (preview_peaking == 2)
+        desired_saturation = 0;
+    else if (preview_peaking == 3)
+        desired_saturation = 0x40;
+    #endif
 
     if (joke_mode)
     {
@@ -2532,7 +2540,12 @@ static void preview_contrast_n_saturation_step()
         else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[PREVIEW_CONTRAST_INDEX];
         else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[PREVIEW_CONTRAST_INDEX];
     }
-    
+
+    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    if (preview_peaking == 2 || preview_peaking == 3)
+        desired_contrast = contrast_values_at_brigthness_2[4];
+    #endif
+
     if (gui_menu_shown() && !menu_active_but_hidden())
         desired_contrast = contrast_values_at_brigthness_0[3]; // do not apply this adjustment while ML menu is on (so you can read it in low contrast modes)
 
@@ -2555,6 +2568,27 @@ static void preview_contrast_n_saturation_step()
         {
             EngDrvOutLV(crazy_register, desired_crazy_value);
             crazy_dirty = preview_crazy;
+        }
+    }
+#endif
+
+#ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    int filter_register = 0xC0F14140; /* EnableFilter */
+    static int filter_dirty = 0;
+    
+    int current_filter_value = (int) shamem_read(crazy_register);
+    int desired_filter_value = 
+        gui_menu_shown() && !menu_active_but_hidden() ? 0 :
+        preview_peaking == 1 ? 0x4d4 :
+        preview_peaking == 2 || preview_peaking == 3 ? 0x4c0 :
+        preview_peaking;
+
+    if (preview_peaking || filter_dirty)
+    {
+        if (current_filter_value != desired_filter_value)
+        {
+            EngDrvOutLV(filter_register, desired_filter_value);
+            filter_dirty = preview_peaking;
         }
     }
 #endif
@@ -2626,10 +2660,11 @@ static MENU_UPDATE_FUNC(preview_brightness_display)
 #ifdef FEATURE_ARROW_SHORTCUTS
 static void adjust_saturation_level(int delta)
 {
-    preview_saturation = COERCE((int)preview_saturation + delta, -1, 3);
+    preview_saturation = COERCE((int)preview_saturation + delta, -2, 2);
     NotifyBox(2000, 
         "LCD Saturation  : %s",
-        preview_saturation == -1 ? "0 (Grayscale)" :
+        preview_saturation == -2 ? "0 (Grayscale)" :
+        preview_saturation == -1 ? "Low" :
         preview_saturation == 0 ? "Normal" :
         preview_saturation == 1 ? "High" :
                                   "Very high"
@@ -3327,6 +3362,17 @@ extern MENU_UPDATE_FUNC(display_gain_print);
 extern int display_gain_menu_index;
 
 static struct menu_entry display_menus[] = {
+            #ifdef FEATURE_DIGIC_FOCUS_PEAKING
+            {
+                .name = "LV DIGIC peaking",
+                .priv = &preview_peaking,
+                .min = 0,
+                .max = 3,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
+                .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image", "Edge + chroma"},
+                .help  = "Focus peaking via DIGIC. No CPU usage!",
+            },
+            #endif
             #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
             {
                 .name = "LV brightness", 
@@ -3356,7 +3402,7 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "LV saturation",
                 .priv     = &preview_saturation,
-                .min = -1,
+                .min = -2,
                 .max = 3,
                 .update = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
@@ -3364,9 +3410,10 @@ static struct menu_entry display_menus[] = {
                          " \n"
                          " \n"
                          " \n"
+                         " \n"
                          "Boost on WB: increase saturation when you are adjusting WB.",
                 .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high", "Boost on WB adjust"},
+                .choices = (const char *[]) {"Grayscale", "Low", "Normal", "High", "Very high", "Boost on WB adjust"},
                 .depends_on = DEP_LIVEVIEW,
                 .icon_type = IT_PERCENT_OFF,
                 /*
@@ -3382,22 +3429,6 @@ static struct menu_entry display_menus[] = {
                 }*/
             },
             #endif
-            #ifdef FEATURE_LV_CRAZY_COLORS
-            {
-                .name = "LV crazy colors",
-                .priv     = &preview_crazy,
-                .min = 0,
-                .max = 2,
-                .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"OFF", "Swap U-V", "Extreme Chroma"},
-                .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_PERCENT_OFF,
-                .help  = "Crazy color effects that may help with white balance.",
-                .help2 = "For LiveView preview only. Does not affect recording.\n"
-                         "Swap U-V: reverses red and blue components\n"
-                         "Extreme Chroma: highly saturated image showing WB direction\n",
-            },
-            #endif
             #ifdef FEATURE_LV_DISPLAY_GAIN
             {
                 .name = "LV display gain",
@@ -3411,16 +3442,6 @@ static struct menu_entry display_menus[] = {
                 .help2  = "Tip: if it gets really dark, also enable FPS override.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW | DEP_PHOTO_MODE,
-            },
-            #endif
-            #ifdef FEATURE_COLOR_SCHEME
-            {
-                .name = "Color scheme",
-                .priv     = &bmp_color_scheme,
-                .max = 5,
-                .choices = (const char *[]) {"Default", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
-                .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
-                .icon_type = IT_DICE_OFF,
             },
             #endif
     #ifdef FEATURE_CLEAR_OVERLAYS
@@ -3443,18 +3464,6 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
         */
-    },
-    #endif
-    #ifdef FEATURE_DISPLAY_SHAKE
-        #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-        #define This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
-        #endif
-    {
-        .name = "Display Shake",
-        .priv     = &display_shake,
-        .max = 1,
-        .help = "Emphasizes camera shake on LiveView display.",
-        .depends_on = DEP_LIVEVIEW,
     },
     #endif
     #ifdef FEATURE_DEFISHING_PREVIEW
@@ -3549,6 +3558,16 @@ static struct menu_entry display_menus[] = {
                     .depends_on = DEP_LIVEVIEW,
                 },
             #endif
+            #ifdef FEATURE_COLOR_SCHEME
+            {
+                .name = "Color scheme",
+                .priv     = &bmp_color_scheme,
+                .max = 5,
+                .choices = (const char *[]) {"Default", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
+                .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
+                .icon_type = IT_DICE_OFF,
+            },
+            #endif
             #ifdef FEATURE_IMAGE_POSITION
                 {
                     .name = "Image position",
@@ -3587,6 +3606,34 @@ static struct menu_entry display_menus[] = {
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                 },
+            #endif
+            #ifdef FEATURE_LV_CRAZY_COLORS
+            {
+                .name = "LV crazy colors",
+                .priv     = &preview_crazy,
+                .min = 0,
+                .max = 2,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"OFF", "Swap U-V", "Extreme Chroma"},
+                .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_PERCENT_OFF,
+                .help  = "Crazy color effects that may help with white balance.",
+                .help2 = "For LiveView preview only. Does not affect recording.\n"
+                         "Swap U-V: reverses red and blue components\n"
+                         "Extreme Chroma: highly saturated image showing WB direction\n",
+            },
+            #endif
+            #ifdef FEATURE_DISPLAY_SHAKE
+                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+                #define This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
+                #endif
+            {
+                .name = "Display Shake",
+                .priv     = &display_shake,
+                .max = 1,
+                .help = "Emphasizes camera shake on LiveView display.",
+                .depends_on = DEP_LIVEVIEW,
+            },
             #endif
             #ifdef FEATURE_FORCE_HDMI_VGA
                 {

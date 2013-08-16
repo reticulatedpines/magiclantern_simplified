@@ -3264,12 +3264,13 @@ menu_entry_select(
     }
     else if (mode == 2) // Q
     {
-        if (menu_lv_transparent_mode || edit_mode) { menu_lv_transparent_mode = edit_mode = submenu_mode = 0; }
+        if (menu_lv_transparent_mode) { menu_lv_transparent_mode = 0; }
+        else if (edit_mode) { edit_mode = submenu_mode = 0; }
         else if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
-        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry))
+        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children))
             edit_mode = 1;
     }
     else if (mode == 3) // SET
@@ -3327,37 +3328,34 @@ menu_move(
     // Deselect the current one
     menu->selected      = 0;
 
-    if( direction < 0 )
+    do
     {
-        if( menu->prev )
-            menu = menu->prev;
-        else {
-            // Go to the last one
-            while( menu->next )
-                menu = menu->next;
-        }
-    } else {
-        if( menu->next )
-            menu = menu->next;
-        else {
-            // Go to the first one
-            while( menu->prev )
+        if( direction < 0 )
+        {
+            if( menu->prev )
                 menu = menu->prev;
+            else {
+                // Go to the last one
+                while( menu->next )
+                    menu = menu->next;
+            }
+        } else {
+            if( menu->next )
+                menu = menu->next;
+            else {
+                // Go to the first one
+                while( menu->prev )
+                    menu = menu->prev;
+            }
         }
     }
+    while ((IS_SUBMENU(menu)) || /* always skip submenus */
+          (!menu_has_visible_items(menu) && are_there_any_visible_menus())); /* skip empty menus */
 
     // Select the new one (which might be the same)
     menu->selected      = 1;
     menu_first_by_icon = menu->icon;
     give_semaphore( menu_sem );
-    
-
-    if (IS_SUBMENU(menu))
-        menu_move(menu, direction); // always skip submenus
-
-    else if (!menu_has_visible_items(menu) && are_there_any_visible_menus())
-        menu_move(menu, direction); // this menu is hidden, skip it (try again)
-            // would fail if no menus are displayed, so we double check before trying
 }
 
 
@@ -3397,32 +3395,32 @@ menu_entry_move(
     // Deslect the current one
     entry->selected = 0;
 
-    if( direction < 0 )
+    do
     {
-        // First and moving up?
-        if( entry->prev ){
-            entry = entry->prev;
-        }else {
-            // Go to the last one
-            while( entry->next ) entry = entry->next;
-        }
-    } else {
-        // Last and moving down?
-        if( entry->next ){
-            entry = entry->next;
-        }else {
-            // Go to the first one
-            while( entry->prev ) entry = entry->prev;
+        if( direction < 0 )
+        {
+            // First and moving up?
+            if( entry->prev ){
+                entry = entry->prev;
+            }else {
+                // Go to the last one
+                while( entry->next ) entry = entry->next;
+            }
+        } else {
+            // Last and moving down?
+            if( entry->next ){
+                entry = entry->next;
+            }else {
+                // Go to the first one
+                while( entry->prev ) entry = entry->prev;
+            }
         }
     }
+    while (!is_visible(entry) && menu_has_visible_items(menu)); /* skip hidden items */
 
     // Select the new one, which might be the same as the old one
     entry->selected = 1;
     give_semaphore( menu_sem );
-    
-    if (!is_visible(entry) && menu_has_visible_items(menu))
-        menu_entry_move(menu, direction); // try again, skip hidden items
-        // warning: would block if the menu is empty
 
     if (junkie_mode && menu->selected)
     {
