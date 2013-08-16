@@ -440,7 +440,7 @@ static void ime_rot_input(unsigned int parm)
     /* select appropriate punctuation for filenames */
     if(ctx->charset_type & IME_CHARSET_FILENAME)
     {
-        ctx->max_length = 12;
+        //ctx->max_length = 12;
         ime_rot_charsets[IME_ROT_VAR_CHARSET] = ime_rot_charset_file;
         ime_rot_charset_types[IME_ROT_VAR_CHARSET] = IME_CHARSET_FILENAME;
         ime_rot_charcounts[IME_ROT_VAR_CHARSET] = sizeof(ime_rot_charset_file);
