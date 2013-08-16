@@ -28,7 +28,6 @@ static int elem_c;
 #define ELEM_LOOP2(code) for(elem_c = 0; elem[elem_c].type != ELEM_END; elem_c++) { element *e = &elem[elem_c]; code; };
 
 #define COERCE_ABS(i, min, max) if(i < min) { i = (min) - (i - (min)); } if(i > max){ i = (max) - (i - (max)); }
-#define COERCE_COND(i, min, max) if(i < min) { i = min; } if(i > max){ i = max; }
 #define EXCLUDE_RANGE(i, min, max) if(i > min && i < max) { if(i > ((max) - (min)) / 2) i = max; else i = min;}
 
 #define ARK_IDLE 0
@@ -50,8 +49,9 @@ static int cur_elem = 0;
 static int last_key;
 static int brick_count;
 static int ball_count;
-static int level = 1;
 static element elem[MAX_ELEMS+1];
+
+static CONFIG_INT("games.arkanoid.level", level, 1);
 
 extern int menu_redraw_blocked;
 extern int menu_shown;
@@ -69,6 +69,7 @@ static void arkanoid_redraw()
             ELEM_LOOP
             (
                 if(e->z != z)continue;
+                if(e->fade == -1) continue;
                 switch(e->type){
                     case ELEM_PAD:
                         bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 4);
@@ -110,14 +111,18 @@ static int last_delta(){
     return 0;
 }
 
+static void fade(element *e, int fade_delta){
+    e->fade = e->fade_delta = fade_delta;
+}
+
 static void generate_level() {
     int x, y;
     int width = 0;
     int i = - NUM_ML_ICONS - 2 + rand()%100;
-    for(y = 20; y < 400;y += 44){
+    for(y = 20; y < 380;y += 44){
         for(x = 50; x < 720 - 50;){
-            if((rand() % (level * 100)) < 95){
-                x+= rand()%20;
+            if((level * level < rand() % 100)){
+                x += rand()%20;
                 continue;
             }
             element *e = new_elem(ELEM_BRICK);
@@ -133,7 +138,7 @@ static void generate_level() {
             e->w = width;
             e->h = 40;
             e->c1 = i;
-            e->color = COLOR_WHITE;
+            fade(e, 1 + (rand() % 5));
             
             if(cur_elem == MAX_ELEMS)return;
             
@@ -195,17 +200,13 @@ static element* new_ball(){
     return e;
 }
 
-static void fade(element *e, int fade_delta){
-    e->fade = e->fade_delta = fade_delta;
-}
-
 static void handle_fades(element *e) {
     if(!e->fade_delta)return;
     
     e->color = COLOR_GRAY(e->fade);
     e->fade += e->fade_delta;
     if(e->fade < 0 || e->fade > 100)e->fade_delta = 0;
-    COERCE_COND(e->fade, 0, 100);
+    e->fade = COERCE(e->fade, -1, 100);
 }
 
 static void reset_elems() {
@@ -229,7 +230,7 @@ void arkanoid_game(){
     reset_elems();
     
     element *p = new_elem(ELEM_PAD);
-    p->w = MIN(120 * level, 720);
+    p->w = MIN(60 * level, 720);
     p->h = 20;
     p->x = 720 / 2 - p->w / 2;
     p->y = 450;
@@ -269,7 +270,7 @@ static void hit_test(element *a){
         
         if(e->type == ELEM_PAD) {
             int angle = 180 - ABS((a->x + a->w / 2) - e->x) / e->w * 180;
-            COERCE_COND(angle, 10, 170);
+            angle = COERCE(angle, 10, 170);
             set_direction(a, angle);
         }
         else {
@@ -384,7 +385,7 @@ static void ml_ef(element* e){
     
     if(e->fade == 100)e->fade_delta*=-1;
     
-    if(e->fade == 0){
+    if(e->fade == -1){
         e->type = ELEM_PRESENT;
         fade(e, 4);
     }
@@ -397,7 +398,7 @@ static void present_ef(element* e){
     fade(b, 2);
 
     if(e->fade == 100)e->fade_delta*=-1;
-    if(e->fade == 0)arkanoid_logo();
+    if(e->fade == -1)arkanoid_logo();
 }
 
 static void ball_coerce(element* e){
@@ -484,20 +485,20 @@ static void arkanoid_task()
         if(arkanoid_is_busy) goto cont;
         if(ARK_IS_IDLE)arkanoid_intro();
         
-        if(!(ARK_IS_GAME && game_startup) && last_key != MODULE_KEY_TRASH) {
-            ELEM_LOOP
-            (
-                handle_fades(e);
-                
-                switch (e->type) {
-                    case ELEM_ML: ml_ef(e); break;
-                    case ELEM_PRESENT: present_ef(e); break;
-                    case ELEM_BALL: ball_ef(e); break;
-                    case ELEM_PAD: pad_ef(e); break;
-                    case ELEM_FALL_BRICK: fall_brick_ef(e); break;
-                }
-            )
-        }
+        ELEM_LOOP
+        (
+            handle_fades(e);
+            
+            if((ARK_IS_GAME && game_startup) || last_key == MODULE_KEY_TRASH) continue;
+            
+            switch (e->type) {
+                case ELEM_ML: ml_ef(e); break;
+                case ELEM_PRESENT: present_ef(e); break;
+                case ELEM_BALL: ball_ef(e); break;
+                case ELEM_PAD: pad_ef(e); break;
+                case ELEM_FALL_BRICK: fall_brick_ef(e); break;
+            }
+        )
         
         arkanoid_redraw();
         cont:
@@ -512,16 +513,34 @@ static MENU_SELECT_FUNC(arkanoid_start) {
     task_create("arkanoid_task", 0x1c, 0x1000, arkanoid_task, (void*)0);
 }
 
+static MENU_SELECT_FUNC(level_select) {
+    level += delta;
+    level = COERCE(level, 1, 10);
+    if(ARK_IS_GAME) arkanoid_logo();
+}
+
 static struct menu_entry arkanoid_menu[] =
 {
     {
-        .name = "Play Arkanoid",
+        .name = "Arkanoid",
         .select = arkanoid_start,
+        .help = "Second game for Magic Lantern. Try it in LiveView.",
+        .children = (struct menu_entry[])
+        {
+            {
+                .name = "Level",
+                .priv = &level,
+                .select = level_select,
+                .max = 10,
+                .min = 1,
+            },
+            MENU_EOL,
+        }
     }
 };
 
 unsigned int arkanoid_init() {
-    menu_add("MyMenu", arkanoid_menu, COUNT(arkanoid_menu));
+    menu_add("Games", arkanoid_menu, COUNT(arkanoid_menu));
     return 0;
 }
 
@@ -555,9 +574,13 @@ MODULE_INFO_END()
 
 MODULE_STRINGS_START()
     MODULE_STRING("Desc", "Arkanoid game")
-    MODULE_STRING("Author", "Pravdomil.cz")
+    MODULE_STRING("Author", "pravdomil.cz")
 MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_KEYPRESS, arkanoid_keypress, 0)
 MODULE_CBRS_END()
+
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(level)
+MODULE_CONFIGS_END()
