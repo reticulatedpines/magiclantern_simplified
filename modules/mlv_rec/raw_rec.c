@@ -706,8 +706,14 @@ static int32_t setup_buffers()
     {
         int32_t size = GetSizeOfMemoryChunk(chunk);
         void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
+        
         if (ptr != fullsize_buffers[0]) /* already used */
         {
+            /* write alignment */
+            uint32_t pre_align = raw_rec_write_align - ((uint32_t)ptr % raw_rec_write_align);
+            ptr += pre_align;
+            size -= pre_align;
+            
             /* write it down for future frame predictions */
             if (chunk_index < COUNT(chunk_list) && size > 8192)
             {
@@ -718,6 +724,7 @@ static int32_t setup_buffers()
             /* fit as many frames as we can */
             while ((uint32_t)size >= frame_size + raw_rec_edmac_align + raw_rec_write_align && slot_count < COUNT(slots))
             {
+                
                 mlv_vidf_hdr_t *vidf_hdr = (mlv_vidf_hdr_t *)ptr;
                 memset(vidf_hdr, 0x00, sizeof(mlv_vidf_hdr_t));
                 mlv_set_type((mlv_hdr_t *)vidf_hdr, "VIDF");
@@ -1140,10 +1147,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 frame_count
             );
 
-        show_buffer_status();
-        
-        int32_t temp_speed = 0;
-
         /* how fast are we writing? does this speed match our benchmarks? */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
@@ -1151,7 +1154,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             {
                 int32_t speed = written[writer] * 100 / writing_time[writer] * 1000 / 1024; // MB/s x100
                 int32_t idle_percent = idle_time[writer] * 100 / (writing_time[writer] + idle_time[writer]);
-                temp_speed += speed;
                 speed /= 10;
 
                 char msg[100];
@@ -1180,7 +1182,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             }
         }
         
-        measured_write_speed = temp_speed;
         
         char msg[100];
         snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
@@ -2079,7 +2080,7 @@ static void raw_writer_task(uint32_t writer)
         /* wake up manager to queue next job */
         //msg_queue_post(mlv_mgr_queue, NULL);
         
-        trace_write(trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB)", writer, write_job.block_len, write_job.block_start, write_job.block_size/1024);
+        trace_write(trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB, addr 0x%08X, size 0x%08X)", writer, write_job.block_len, write_job.block_start, write_job.block_size/1024, write_job.block_ptr, write_job.block_size);
         
         /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
         int32_t ext_gating = 1;
@@ -2087,47 +2088,10 @@ static void raw_writer_task(uint32_t writer)
         {
             write_job.last_time_after = last_time_after;
             write_job.time_before = get_us_clock_value();
-            int32_t r = FIO_WriteFile(f, write_job.block_ptr, write_job.block_size);
-            write_job.time_after = get_us_clock_value();
             
-            last_time_after = write_job.time_after;
-            
-            /* handle disk full and 4GiB reached cases */
-            if (r != (int32_t)write_job.block_size) /* 4GB limit or card full? */
+            if(0xFFFFFFFF - written_chunk < write_job.block_size)
             {
-                trace_write(trace_ctx, "   --> WRITER#%d: write error: %d", writer, r);
-                
-                /* it failed right away? card must be full */
-                if (written[writer] == 0)
-                {
-                    trace_write(trace_ctx, "   --> WRITER#%d: write error: could not write anything, exiting", writer);
-                    goto abort;
-                }
-
-                if (r == -1)
-                {
-                    trace_write(trace_ctx, "   --> WRITER#%d: write error: write failed, writing partially...", writer);
-                    
-                    /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    r = 0xFFFFFFFFUL - written_chunk;
-                    
-                    /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
-                    /* this one should cover both cases in a portable way */
-                    /* on 5D2 will succeed, on 5D3 should fail right away */
-                    uint32_t part = FIO_WriteFile(f, write_job.block_ptr, r);
-                    trace_write(trace_ctx, "   --> WRITER#%d: write error: wrote another %d of %d bytes", writer, part, r);
-                }
-                
-                /* on both firmware variants we have now written exactly 0xFFFFFFFF bytes, NULL out the partial written block */
-                mlv_hdr_t null_hdr;
-                
-                mlv_set_type(&null_hdr, "NULL");
-                null_hdr.blockSize = r;
-                uint32_t new_pos = FIO_SeekFile(f, -r, SEEK_CUR);
-                trace_write(trace_ctx, "   --> WRITER#%d: writing NULL at pos 0x%08X", writer, new_pos);
-                
-                /* rewrite only the header part, no payload */
-                FIO_WriteFile(f, &null_hdr, sizeof(mlv_hdr_t));
+                trace_write(trace_ctx, "   --> WRITER#%d: reached 4GiB", writer);
                 
                 /* rewrite header */
                 file_header.videoFrameCount = frames_written;
@@ -2160,7 +2124,10 @@ static void raw_writer_task(uint32_t writer)
                 trace_write(trace_ctx, "   --> WRITER#%d: new file: '%s'", writer, chunk_filename[writer]);
                 
                 f = FIO_CreateFileEx(chunk_filename[writer]);
-                if (f == INVALID_PTR) goto abort;
+                if (f == INVALID_PTR)
+                {
+                    goto abort;
+                }
                 
                 /* write next header */
                 frames_written = 0;
@@ -2168,24 +2135,33 @@ static void raw_writer_task(uint32_t writer)
                 file_header.audioFrameCount = 0;
                 mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
                 written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+            }
+            
+            int32_t r = FIO_WriteFile(f, write_job.block_ptr, write_job.block_size);
+            write_job.time_after = get_us_clock_value();
+            
+            last_time_after = write_job.time_after;
+            
+            /* handle disk full cases */
+            if (r != (int32_t)write_job.block_size) /* 4GB limit or card full? */
+            {
+                trace_write(trace_ctx, "   --> WRITER#%d: write error: %d", writer, r);
                 
-                /* write the whole block in the new chunk */
-                int32_t r2 = FIO_WriteFile(f, write_job.block_ptr, write_job.block_size);
-                if (r2 == (int32_t)write_job.block_size) /* new chunk worked, continue with it */
+                /* it failed right away? card must be full */
+                if (written[writer] == 0)
                 {
-                    trace_write(trace_ctx, "   --> WRITER#%d: wrote data to new file, all fine");
-                    written_chunk = r2;
-                }
-                else /* new chunk didn't work, card full */
-                {
-                    /* let's hope we can still save the footer in the current chunk (don't create a new one) */
-                    FIO_CloseFile(f);
-                    FIO_RemoveFile(chunk_filename[writer]);
-                    uint32_t old_int = cli();
-                    mlv_chunk_number--;
-                    sei(old_int);
+                    trace_write(trace_ctx, "   --> WRITER#%d: write error: could not write anything, exiting", writer);
                     goto abort;
                 }
+
+                if (r == -1)
+                {
+                    trace_write(trace_ctx, "   --> WRITER#%d: write error: write failed", writer);
+                    goto abort;
+                }
+                
+                trace_write(trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, r, write_job.block_size);
+                goto abort;
             }
             else
             {
@@ -2285,6 +2261,20 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
             }
         }
     }
+    
+#if 0
+    while(write_job->block_size > 16*1024*1024 - 2048)
+    {
+        write_job->block_len--;
+        write_job->block_size = 0;
+        
+        /* now fix the buffer size to write */
+        for(int32_t slot = write_job->block_start; slot < write_job->block_start + write_job->block_len; slot++)
+        {
+            write_job->block_size += slots[slot].size;
+        }
+    }
+#endif  
 
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
@@ -2458,9 +2448,20 @@ static void raw_video_rec_task()
                 raw_recording_state = RAW_FINISHING;
             }
             
+            /* how fast are we writing? does this speed match our benchmarks? */
+            int32_t temp_speed = 0;
+            for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+            {
+                if (writing_time[writer] || idle_time[writer])
+                {
+                    int32_t speed = written[writer] * 100 / writing_time[writer] * 1000 / 1024; // MB/s x100
+                    temp_speed += speed;
+                }
+            }
+            measured_write_speed = temp_speed;
+            
             /* check if there is a writer without jobs */
             uint32_t msg_count = 0;
-
             
             /* check CF queue */
             msg_queue_count(mlv_writer_queues[0], &msg_count);
@@ -2479,7 +2480,7 @@ static void raw_video_rec_task()
                     trace_write(trace_ctx, "<-- (nothing found to enqueue)");
                 }
             }
-
+            
             /* check SD queue */
             msg_queue_count(mlv_writer_queues[1], &msg_count);
             if((mlv_writer_threads > 1) && (msg_count < 1))
@@ -2497,10 +2498,6 @@ static void raw_video_rec_task()
                     trace_write(trace_ctx, "<-- (nothing found to enqueue)");
                 }
             }
-            
-            /* do a explicit context switch to activate writer tasks. 
-               as both queues are full, we are not losing any time here at this point*/
-            msleep(20);
             
             /* a writer finished and we have to update statistics etc */
             if(returned_job)
@@ -2537,6 +2534,8 @@ static void raw_video_rec_task()
             }
             
             /* update some statistics. do this last, to make sure the writers have enough jobs */
+            
+            
             used_slots = 0;
             writing_slots = 0;
             for(int32_t slot = 0; slot < slot_count; slot++)
@@ -2556,7 +2555,6 @@ static void raw_video_rec_task()
             {
                 show_buffer_status();
             }
-            
         }
         
         /* wait until all jobs done */
