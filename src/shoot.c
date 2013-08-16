@@ -4837,8 +4837,8 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Pics at once",
                 .priv = &pics_to_take_at_once,
-                .max = 4,
-                .choices = CHOICES("1 (OFF)", "2", "3", "4", "5"),
+                .max = 8,
+                .choices = CHOICES("1 (OFF)", "2", "3", "4", "5", "6", "7", "8", "9"),
                 .update = pics_at_once_update,
                 .icon_type = IT_PERCENT_OFF,
                 .help = "How many pictures to take at once (for each trigger event).",
