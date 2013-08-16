@@ -3270,7 +3270,7 @@ menu_entry_select(
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
-        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry))
+        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children))
             edit_mode = 1;
     }
     else if (mode == 3) // SET
