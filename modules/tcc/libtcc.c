@@ -594,7 +594,7 @@ static void error_sprint_line(char* buf, int size, BufferedFile * f)
     char* pos = linepos;
     while (pos < (char*)(f->buf_end) && *pos != '\n')
     {
-        // workaround for missing %s in Canon's vnsprintf
+        // workaround for missing %c in Canon's vnsprintf
         int chr = *pos++;
         strcat_printf(buf, size, "%s", &chr);
     }
@@ -1174,7 +1174,7 @@ ST_FUNC int tcc_add_file_internal(TCCState *s1, const char *filename, int flags)
         goto the_end;
     }
 
-    if (!ext[0] || !PATHCMP(ext, "c")) {
+    if (!ext[0] || !PATHCMP(ext, "c") || !PATHCMP(ext, "C")) {
         /* C file assumed */
         ret = tcc_compile(s1);
         goto the_end;

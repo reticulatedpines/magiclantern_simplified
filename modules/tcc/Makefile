@@ -4,9 +4,15 @@
 
 TOP ?= .
 
-include $(TOP)/../../Makefile.user.default
+# this is a very simple makefile for modules
+TOP_DIR=$(TOP)/../..
 
--include $(TOP)/../../Makefile.user
+# define the module name - make sure name is max 8 characters
+MODULE_NAME=tcc
+MODULE_OBJS=libtccx.o
+
+# include modules environment
+include $(TOP_DIR)/modules/Makefile.modules
 
 include $(TOP)/config.mak
 
@@ -139,7 +145,7 @@ endif
 
 #all: $(PROGS) $(TCCLIBS) $(TCCDOCS)
 
-all: libtccx.o
+#~ all: libtccx.o
 
 # Host Tiny C Compiler
 tcc$(EXESUF): tcc.o $(LIBTCC)
@@ -203,9 +209,7 @@ localsyms: libtcctmp.o
 		| grep -v "^tcc_get_symbol$$" \
 		| grep -v "^tcc_add_symbol$$" \
 		| grep -v "^tcc_set_options$$" \
-		| grep -v "^tcc_malloc$$" \
-		| grep -v "^tcc_realloc$$" \
-		| grep -v "^tcc_free$$" \
+		| grep -v "^tcc_set_output_type$$" \
 		> $@
 
 #~ libtcc.a: libtcctmp.a localsyms
@@ -237,97 +241,6 @@ lib/%/libtcc1.a : FORCE $(PROGS_CROSS)
 
 FORCE:
 
-# install
-TCC_INCLUDES = stdarg.h stddef.h stdbool.h float.h varargs.h tcclib.h
-INSTALL=install
-ifdef STRIP_BINARIES
-INSTALLBIN=$(INSTALL) -s
-else
-INSTALLBIN=$(INSTALL)
-endif
-
-ifndef CONFIG_WIN32
-install: $(PROGS) $(TCCLIBS) $(TCCDOCS)
-	mkdir -p "$(bindir)"
-ifeq ($(CC),tcc)
-	$(INSTALL) -m755 $(PROGS) "$(bindir)"
-else
-	$(INSTALLBIN) -m755 $(PROGS) "$(bindir)"
-endif
-	mkdir -p "$(mandir)/man1"
-	-$(INSTALL) tcc.1 "$(mandir)/man1"
-	mkdir -p "$(infodir)"
-	-$(INSTALL) tcc-doc.info "$(infodir)"
-	mkdir -p "$(tccdir)"
-	mkdir -p "$(tccdir)/include"
-ifneq ($(LIBTCC1),)
-	$(INSTALL) -m644 $(LIBTCC1) "$(tccdir)"
-endif
-	$(INSTALL) -m644 $(addprefix $(top_srcdir)/include/,$(TCC_INCLUDES)) "$(tccdir)/include"
-	mkdir -p "$(libdir)"
-	$(INSTALL) -m755 $(LIBTCC) "$(libdir)"
-ifdef DISABLE_STATIC
-	ln -sf "$(ln_libdir)/libtcc.so.1.0" "$(libdir)/libtcc.so.1"
-	ln -sf "$(ln_libdir)/libtcc.so.1.0" "$(libdir)/libtcc.so"
-endif
-	mkdir -p "$(includedir)"
-	$(INSTALL) -m644 $(top_srcdir)/libtcc.h "$(includedir)"
-	mkdir -p "$(docdir)"
-	-$(INSTALL) -m644 tcc-doc.html "$(docdir)"
-ifdef CONFIG_CROSS
-	mkdir -p "$(tccdir)/win32/lib/32"
-	mkdir -p "$(tccdir)/win32/lib/64"
-ifeq ($(ARCH),x86-64)
-	mkdir -p "$(tccdir)/i386"
-	$(INSTALL) -m644 lib/i386/libtcc1.a "$(tccdir)/i386"
-	cp -r "$(tccdir)/include" "$(tccdir)/i386"
-endif
-	$(INSTALL) -m644 win32/lib/*.def "$(tccdir)/win32/lib"
-	$(INSTALL) -m644 lib/i386-win32/libtcc1.a "$(tccdir)/win32/lib/32"
-	$(INSTALL) -m644 lib/x86_64-win32/libtcc1.a "$(tccdir)/win32/lib/64"
-	cp -r win32/include/. "$(tccdir)/win32/include"
-	cp -r include/. "$(tccdir)/win32/include"
-endif
-
-uninstall:
-	rm -fv $(foreach P,$(PROGS),"$(bindir)/$P")
-	rm -fv $(foreach P,$(LIBTCC1),"$(tccdir)/$P")
-	rm -fv $(foreach P,$(TCC_INCLUDES),"$(tccdir)/include/$P")
-	rm -fv "$(docdir)/tcc-doc.html" "$(mandir)/man1/tcc.1" "$(infodir)/tcc-doc.info"
-	rm -fv "$(libdir)/$(LIBTCC)" "$(includedir)/libtcc.h"
-	rm -fv "$(libdir)/libtcc.so*"
-	rm -rf "$(tccdir)/win32"
-	-rmdir $(tccdir)/include
-ifeq ($(ARCH),x86-64)
-	rm -rf "$(tccdir)/i386"
-endif
-else
-# on windows
-install: $(PROGS) $(TCCLIBS) $(TCCDOCS)
-	mkdir -p "$(tccdir)"
-	mkdir -p "$(tccdir)/lib"
-	mkdir -p "$(tccdir)/include"
-	mkdir -p "$(tccdir)/examples"
-	mkdir -p "$(tccdir)/doc"
-	mkdir -p "$(tccdir)/libtcc"
-	$(INSTALLBIN) -m755 $(PROGS) "$(tccdir)"
-	$(INSTALL) -m644 $(LIBTCC1) win32/lib/*.def "$(tccdir)/lib"
-	cp -r win32/include/. "$(tccdir)/include"
-	cp -r win32/examples/. "$(tccdir)/examples"
-	$(INSTALL) -m644 $(addprefix include/,$(TCC_INCLUDES)) "$(tccdir)/include"
-	$(INSTALL) -m644 tcc-doc.html win32/tcc-win32.txt "$(tccdir)/doc"
-	$(INSTALL) -m644 $(LIBTCC) libtcc.h "$(tccdir)/libtcc"
-ifdef CONFIG_CROSS
-	mkdir -p "$(tccdir)/lib/32"
-	mkdir -p "$(tccdir)/lib/64"
-	-$(INSTALL) -m644 lib/i386-win32/libtcc1.a "$(tccdir)/lib/32"
-	-$(INSTALL) -m644 lib/x86_64-win32/libtcc1.a "$(tccdir)/lib/64"
-endif
-
-uninstall:
-	rm -rfv "$(tccdir)/*"
-endif
-
 # documentation and man page
 tcc-doc.html: tcc-doc.texi
 	-texi2html -monolithic -number $<
@@ -345,9 +258,9 @@ export LIBTCC1
 %est:
 	$(MAKE) -C tests $@
 
-clean:
+clean::
 	rm -vf $(PROGS) tcc_p$(EXESUF) tcc.pod *~ *.o *.a *.so* *.out *.exe libtcc_test$(EXESUF)
-	$(MAKE) -C tests $@
+	#~ $(MAKE) -C tests $@
 ifneq ($(LIBTCC1),)
 	$(MAKE) -C lib $@
 endif
