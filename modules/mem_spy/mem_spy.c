@@ -45,8 +45,6 @@ static int start_delay_counter;
 #define FONT_HEIGHT 12
 #define POSITION_COUNT 480 / FONT_HEIGHT * COLUMN_COUNT
 
-#define MEM(x) *(volatile int*)(x)
-
 static int position[POSITION_COUNT][3];
 
 static void init_position(){
