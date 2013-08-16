@@ -91,6 +91,7 @@ static int is_5d2 = 0;
 static int is_50d = 0;
 static int is_6d = 0;
 static int is_600d = 0;
+static int is_700d = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
 static uint32_t FRAME_CMOS_ISO_COUNT = 0;
@@ -751,6 +752,22 @@ static unsigned int isoless_init()
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
+    }
+    else if (streq(camera_model_short, "700D"))
+    {
+        is_700d = 1;    
+
+        FRAME_CMOS_ISO_START = 0x4045328E;
+        FRAME_CMOS_ISO_COUNT =          6;
+        FRAME_CMOS_ISO_SIZE  =         34;
+
+        PHOTO_CMOS_ISO_START = 0x40452044;
+        PHOTO_CMOS_ISO_COUNT =          6;
+        PHOTO_CMOS_ISO_SIZE  =         16;
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 2;
+        CMOS_EXPECTED_FLAG = 3;
     }
 
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
