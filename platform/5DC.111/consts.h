@@ -33,7 +33,6 @@
 // from a screenshot
 #define COLOR_FG_NONLV 1
 
-#define MEM(x) (*(volatile int*)(x))
 
 #define AE_VALUE 0 // 404
 

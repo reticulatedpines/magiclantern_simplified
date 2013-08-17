@@ -28,7 +28,6 @@
 
 #define MVR_992_STRUCT (*(void**)0x1e44) // look in MVR_Initialize for AllocateMemory call
 
-#define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70

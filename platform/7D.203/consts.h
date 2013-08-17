@@ -92,7 +92,6 @@
 #define MVR_516_STRUCT (*(void**)0x1EC4) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 #define MVR_516_STRUCT_MASTER (*(void**)0x1B80) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
