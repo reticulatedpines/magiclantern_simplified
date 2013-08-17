@@ -130,11 +130,13 @@ void raw_buffer_intercept_from_stateobj()
 #define RAW_TYPE_ADDRESS 0x351B8
 #endif
 
+/*
+// NOT WORKING
 #ifdef CONFIG_650D
-/* Lets remove those ugly pink dots :) */
 #define PREFERRED_RAW_TYPE 78
 #define RAW_TYPE_ADDRESS 0x350B4
 #endif
+*/
 
 /** 
  * White level
