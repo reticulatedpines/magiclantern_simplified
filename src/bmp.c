@@ -1533,7 +1533,7 @@ int bfnt_draw_char_half(int c, int px, int py, int fg, int bg, int g1, int g2)
     return crw>>1;
 }*/
 
-int bfnt_puts(char* s, int x, int y, int fg, int bg)
+int bfnt_puts(const char* s, int x, int y, int fg, int bg)
 {
     int ox=x;
     while (*s)

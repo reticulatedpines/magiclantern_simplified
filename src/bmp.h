@@ -208,7 +208,7 @@ bfnt_printf(
 
 int 
 bfnt_puts(
-        char* s, 
+        const char* s, 
         int x, 
         int y, 
         int fg, 
