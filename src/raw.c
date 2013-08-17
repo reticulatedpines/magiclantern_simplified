@@ -126,15 +126,13 @@ void raw_buffer_intercept_from_stateobj()
 #ifdef CONFIG_700D
 /* http://www.magiclantern.fm/forum/index.php?topic=6658.0 */
 /* Lets remove those ugly pink dots :) */
-/* 78 or 99, both look good */
-/* NOTE : Is 99 good on all cameras? */
-#define PREFERRED_RAW_TYPE 99
+#define PREFERRED_RAW_TYPE 78
 #define RAW_TYPE_ADDRESS 0x351B8
 #endif
 
 #ifdef CONFIG_650D
 /* Lets remove those ugly pink dots :) */
-#define PREFERRED_RAW_TYPE 99
+#define PREFERRED_RAW_TYPE 78
 #define RAW_TYPE_ADDRESS 0x350B4
 #endif
 
