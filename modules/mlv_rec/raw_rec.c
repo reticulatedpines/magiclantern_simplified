@@ -54,7 +54,7 @@
 //#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
+//#define DEBUG_BUFFERING_GRAPH      /* some funky graphs */
 
 #include <module.h>
 #include <dryos.h>
@@ -104,7 +104,7 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
-static CONFIG_INT("raw.video.buffer_fill_method", buffer_fill_method, 0);
+static CONFIG_INT("raw.video.buffer_fill_method", buffer_fill_method, 4);
 static CONFIG_INT("raw.video.fast_card_buffers", fast_card_buffers, 3);
 static CONFIG_INT("raw.video.test_mode", test_mode, 0);
 static CONFIG_INT("raw.video.tracing", enable_tracing, 0);
@@ -174,6 +174,7 @@ struct frame_slot
 struct frame_slot_group
 {
     int32_t slot;
+    int32_t len;
     int32_t size;
 };
 
@@ -195,7 +196,6 @@ static struct memSuite * mem_suite = 0;           /* memory suite for our buffer
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int32_t fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
-static int32_t chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
 
 static struct frame_slot slots[512];              /* frame slots */
 static struct frame_slot_group slot_groups[512];
@@ -398,20 +398,24 @@ static char* guess_aspect_ratio(int32_t res_x, int32_t res_y)
     }
     return msg;
 }
-
+ 
 static int32_t predict_frames(int32_t write_speed)
 {
+    int32_t slot_size = frame_size + 64 + raw_rec_edmac_align + raw_rec_write_align;
+    
     int32_t fps = fps_get_current_x1000();
-    int32_t capture_speed = frame_size / 1000 * fps;
+    int32_t capture_speed = slot_size / 1000 * fps;
     int32_t buffer_fill_speed = capture_speed - write_speed;
     if (buffer_fill_speed <= 0)
         return INT_MAX;
     
-    int32_t total_slots = 0;
-    for (int32_t i = 0; i < COUNT(chunk_list); i++)
-        total_slots += chunk_list[i] / frame_size;
+    int32_t write_size = 0;
+    for (int32_t group = 0; group < slot_group_count; group++)
+    {
+        write_size += slot_groups[group].size;
+    }
     
-    float buffer_fill_time = total_slots * frame_size / (float) buffer_fill_speed;
+    float buffer_fill_time = write_size / (float) buffer_fill_speed;
     int32_t frames = buffer_fill_time * fps / 1000;
     return frames;
 }
@@ -420,7 +424,6 @@ static int32_t predict_frames(int32_t write_speed)
 static char* guess_how_many_frames()
 {
     if (!measured_write_speed) return "";
-    if (!chunk_list[0]) return "";
     
     int32_t write_speed_lo = measured_write_speed * 1024 / 100 * 1024 - 512 * 1024;
     int32_t write_speed_hi = measured_write_speed * 1024 / 100 * 1024 + 512 * 1024;
@@ -643,13 +646,60 @@ static uint32_t lv_rec_read_footer(FILE *f)
     return 1;
 }
 
+static void setup_chunk(uint32_t ptr, uint32_t size)
+{
+    if(size < frame_size)
+    {
+        return;
+    }
+    
+    /* write alignment */
+    uint32_t pre_align = raw_rec_write_align - (ptr % raw_rec_write_align);
+    ptr += pre_align;
+    size -= pre_align;
+    
+    /* fit as many frames as we can */
+    while (size >= (frame_size + raw_rec_edmac_align + raw_rec_write_align) && (slot_count < COUNT(slots)))
+    {
+        mlv_vidf_hdr_t *vidf_hdr = (mlv_vidf_hdr_t *)ptr;
+        memset(vidf_hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+        mlv_set_type((mlv_hdr_t *)vidf_hdr, "VIDF");
+        
+        /* write frame header */
+        uint32_t dataStart = (uint32_t)vidf_hdr + sizeof(mlv_vidf_hdr_t);
+        int32_t edmac_size_align = raw_rec_edmac_align - (dataStart % raw_rec_edmac_align);
+        vidf_hdr->frameSpace = edmac_size_align;
+        vidf_hdr->blockSize = sizeof(mlv_vidf_hdr_t) + edmac_size_align + frame_size;
+        
+        /* now add a NULL block for aligning the whole slot size to optimal write size */
+        int32_t write_size_align = raw_rec_write_align - (vidf_hdr->blockSize % raw_rec_write_align);
+        if(write_size_align < sizeof(mlv_hdr_t))
+        {
+            write_size_align += raw_rec_write_align;
+        }
+        
+        mlv_hdr_t *write_align_hdr = (mlv_hdr_t *)((uint32_t)vidf_hdr + vidf_hdr->blockSize);
+        memset(write_align_hdr, 0xA5, write_size_align);
+        mlv_set_type(write_align_hdr, "NULL");
+        write_align_hdr->blockSize = write_size_align;
+        
+        /* store this slot */
+        slots[slot_count].ptr = ptr;
+        slots[slot_count].status = SLOT_FREE;
+        slots[slot_count].size = vidf_hdr->blockSize + write_align_hdr->blockSize;
+        
+        trace_write(trace_ctx, "slot %d: edmac_size_align = %d, write_size_align = %d, data_start = 0x%X, size = 0x%X", slot_count, edmac_size_align, write_size_align, dataStart + vidf_hdr->frameSpace, slots[slot_count].size);
+        
+        ptr += slots[slot_count].size;
+        size -= slots[slot_count].size;
+        slot_count++;
+    }
+}
 
 static int32_t setup_buffers()
 {
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
-    
-    memset(chunk_list, 0, sizeof(chunk_list));
     
     if (memory_hack) { PauseLiveView(); msleep(200); }
     
@@ -694,7 +744,6 @@ static int32_t setup_buffers()
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
     
-    chunk_list[0] = waste;
     int32_t chunk_index = 1;
 
     /* use all chunks larger than frame_size for recording */
@@ -704,84 +753,26 @@ static int32_t setup_buffers()
     
     while(chunk)
     {
-        int32_t size = GetSizeOfMemoryChunk(chunk);
-        void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
+        uint32_t size = GetSizeOfMemoryChunk(chunk);
+        uint32_t ptr = GetMemoryAddressOfMemoryChunk(chunk);
         
         if (ptr != fullsize_buffers[0]) /* already used */
         {
-            /* write alignment */
-            uint32_t pre_align = raw_rec_write_align - ((uint32_t)ptr % raw_rec_write_align);
-            ptr += pre_align;
-            size -= pre_align;
-            
-            /* write it down for future frame predictions */
-            if (chunk_index < COUNT(chunk_list) && size > 8192)
-            {
-                chunk_list[chunk_index] = size - 8192;
-                chunk_index++;
-            }
-
-            /* fit as many frames as we can */
-            while ((uint32_t)size >= frame_size + raw_rec_edmac_align + raw_rec_write_align && slot_count < COUNT(slots))
-            {
-                
-                mlv_vidf_hdr_t *vidf_hdr = (mlv_vidf_hdr_t *)ptr;
-                memset(vidf_hdr, 0x00, sizeof(mlv_vidf_hdr_t));
-                mlv_set_type((mlv_hdr_t *)vidf_hdr, "VIDF");
-                
-                /* write frame header */
-                uint32_t dataStart = (uint32_t)vidf_hdr + sizeof(mlv_vidf_hdr_t);
-                int32_t edmac_size_align = raw_rec_edmac_align - (dataStart % raw_rec_edmac_align);
-                vidf_hdr->frameSpace = edmac_size_align;
-                vidf_hdr->blockSize = sizeof(mlv_vidf_hdr_t) + edmac_size_align + frame_size;
-                
-                
-                /* now add a NULL block for aligning the whole slot size to optimal write size */
-                int32_t write_size_align = raw_rec_write_align - (vidf_hdr->blockSize % raw_rec_write_align);
-                if(write_size_align < sizeof(mlv_hdr_t))
-                {
-                    write_size_align += raw_rec_write_align;
-                }
-                mlv_hdr_t *write_align_hdr = (mlv_hdr_t *)((uint32_t)vidf_hdr + vidf_hdr->blockSize);
-                memset(write_align_hdr, 0xA5, write_size_align);
-                mlv_set_type(write_align_hdr, "NULL");
-                write_align_hdr->blockSize = write_size_align;
-                
-                
-                /* store this slot */
-                slots[slot_count].ptr = ptr;
-                slots[slot_count].status = SLOT_FREE;
-                slots[slot_count].size = vidf_hdr->blockSize + write_align_hdr->blockSize;
-                
-                trace_write(trace_ctx, "slot %d: edmac_size_align = %d, write_size_align = %d, data_start = 0x%X, size = 0x%X", slot_count, edmac_size_align, write_size_align, dataStart + vidf_hdr->frameSpace, slots[slot_count].size);
-                
-                ptr += slots[slot_count].size;
-                size -= slots[slot_count].size;
-                slot_count++;
-                //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-            }
+            setup_chunk(ptr, size);
         }
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
     
-    
-    #if 0
+#if 0
     /* try to recycle the waste */
-    if (waste >= frame_size + 8192)
+    if (waste >= frame_size)
     {
-        int32_t size = waste;
-        void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + (raw_rec_edmac_align-1)) & ~(raw_rec_edmac_align-1));
-        while (size >= frame_size + 8192 && slot_count < COUNT(slots))
-        {
-            slots[slot_count].ptr = ptr;
-            slots[slot_count].status = SLOT_FREE;
-            ptr += frame_size;
-            size -= frame_size;
-            slot_count++;
-            //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-        }
+        uint32_t size = waste;
+        uint32_t ptr = (uint32_t)fullsize_buffers[0] + buf_size;
+        
+        setup_chunk(ptr, size);
     }
-    #endif
+#endif
     
     char msg[100];
     snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
@@ -795,6 +786,7 @@ static int32_t setup_buffers()
     trace_write(trace_ctx, "Building a group list...");
     uint32_t block_start = 0;
     uint32_t block_len = 0;
+    uint32_t block_size = 0;
     uint32_t last_slot_end = 0;
     
     for(int32_t slot = 0; slot <= slot_count; slot++)
@@ -812,7 +804,8 @@ static int32_t setup_buffers()
         if((block_len != 0) && ((slot == slot_count) || (slot_start != last_slot_end)))
         {
             slot_groups[slot_group_count].slot = block_start;
-            slot_groups[slot_group_count].size = block_len;
+            slot_groups[slot_group_count].len = block_len;
+            slot_groups[slot_group_count].size = block_size;
             
             trace_write(trace_ctx, "group: %d block_len: %d block_start: %d", slot_group_count, block_len, block_start);
             slot_group_count++;
@@ -828,11 +821,13 @@ static int32_t setup_buffers()
         {
             block_len = 1;
             block_start = slot;
+            block_size = slots[slot].size;
         }
         else
         {
             /* its a contiguous area, increase counters */
             block_len++;
+            block_size += slots[slot].size;
         }
         last_slot_end = slot_end;
     }
@@ -845,7 +840,7 @@ static int32_t setup_buffers()
         int newn = 1;
         for (int i = 0; i < n-1; ++i)
         {
-            if (slot_groups[i].size < slot_groups[i+1].size)
+            if (slot_groups[i].len < slot_groups[i+1].len)
             {
                 struct frame_slot_group tmp = slot_groups[i+1];
                 slot_groups[i+1] = slot_groups[i];
@@ -858,7 +853,7 @@ static int32_t setup_buffers()
     
     for(int group = 0; group < slot_group_count; group++)
     {
-        trace_write(trace_ctx, "group: %d size: %d slot: %d", group, slot_groups[group].size, slot_groups[group].slot);
+        trace_write(trace_ctx, "group: %d length: %d slot: %d", group, slot_groups[group].len, slot_groups[group].slot);
     }
     return 1;
 }
@@ -896,7 +891,7 @@ static void show_buffer_status()
             buffer_str[buffer_str_pos++] = '[';
         }
     
-        for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
+        for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
         {
             int32_t color = COLOR_BLACK;
             
@@ -907,7 +902,7 @@ static void show_buffer_status()
                     {
                         buffer_str[buffer_str_pos++] = ' ';
                     }
-                    color = COLOR_BLACK;
+                    color = COLOR_GRAY(10);
                     break;
                     
                 case SLOT_WRITING:
@@ -979,22 +974,29 @@ static void show_buffer_status()
     {
         int32_t free = get_free_slots();
         int32_t x = frame_count % 720;
-        int32_t ymin = 120;
+        int32_t ymin = 190;
         int32_t ymax = 400;
         int32_t y = ymin + free * (ymax - ymin) / slot_count;
-        dot(x-16, y-16, COLOR_BLACK, 3);
         static int32_t prev_x = 0;
         static int32_t prev_y = 0;
         if (prev_x && prev_y && prev_x < x)
         {
-            draw_line(prev_x, prev_y, x, y, COLOR_BLACK);
+            draw_line(prev_x, prev_y, x, y, COLOR_GREEN1);
         }
+        dot(x-16, y-16, COLOR_GREEN1, 3);
         prev_x = x;
         prev_y = y;
-        bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
         
+        static int32_t prev_xp = 0;
+        if(prev_xp)
+        {
+            draw_line(prev_xp, ymax, prev_xp, ymin, COLOR_BLACK);
+        }
         int32_t xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
         draw_line(xp, ymax, xp, ymin, COLOR_RED);
+        prev_xp = xp;
+        
+        bmp_draw_rect(COLOR_GRAY(20), 0, ymin, 720, ymax-ymin);
     }
 #endif
 }
@@ -1146,6 +1148,8 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 t/60, t%60,
                 frame_count
             );
+    
+        show_buffer_status();
 
         /* how fast are we writing? does this speed match our benchmarks? */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
@@ -1296,31 +1300,6 @@ static void hack_liveview_vsync()
 /* this is a separate task */
 static void unhack_liveview_vsync(int32_t unused)
 {
-#if 0
-    for(int id = 1; id < 127; id++)
-    {
-        char *name = get_task_name_from_id(id);
-        if(name)
-        {
-            if(streq(name, "AeWb"))
-            {
-                task_resume(id);
-            }
-            if(streq(name, "CLR_CALC"))
-            {
-                task_resume(id);
-            }
-            if(streq(name, "LV_FACE"))
-            {
-                task_resume(id);
-            }
-            if(streq(name, "AudioLevel"))
-            {
-                task_resume(id);
-            }
-        }
-    }
-#endif
     while (!RAW_IS_IDLE) msleep(100);
     PauseLiveView();
     ResumeLiveView();
@@ -1347,34 +1326,8 @@ static void hack_liveview(int32_t unhack)
         call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
-    
-#if 0
-        for(int id = 1; id < 127; id++)
-        {
-            char *name = get_task_name_from_id(id);
-            if(name)
-            {
-                if(streq(name, "AeWb"))
-                {
-                    task_suspend(id);
-                }
-                if(streq(name, "CLR_CALC"))
-                {
-                    task_suspend(id);
-                }
-                if(streq(name, "LV_FACE"))
-                {
-                    task_suspend(id);
-                }
-                if(streq(name, "AudioLevel"))
-                {
-                    task_suspend(id);
-                }
-            }
-        }
-#endif
-
-        /* change dialog refresh timer from 50ms to 1024ms */
+        
+        /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
@@ -1382,7 +1335,7 @@ static void hack_liveview(int32_t unhack)
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
-        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00b02; /* change to mov r0, #2048 */
+        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00a02; /* change to mov r0, #8192 */
 
         if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
         {
@@ -1430,7 +1383,7 @@ static int32_t FAST choose_next_capture_slot()
             /* new method: first fill largest group */
             for (int32_t group = 0; group < slot_group_count; group++)
             {
-                for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
+                for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
                 {
                     if (slots[slot].status == SLOT_FREE)
                     {
@@ -1444,7 +1397,7 @@ static int32_t FAST choose_next_capture_slot()
             /* new method: first fill largest groups */
             for (int32_t group = 0; group < fast_card_buffers; group++)
             {
-                for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
+                for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
                 {
                     if (slots[slot].status == SLOT_FREE)
                     {
@@ -1489,7 +1442,7 @@ static int32_t FAST choose_next_capture_slot()
             {
                 len++;
                 prev_ptr = slots[i].ptr;
-                prev_blockSize = slots[capture_slot].size;
+                prev_blockSize = slots[i].size;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1500,7 +1453,7 @@ static int32_t FAST choose_next_capture_slot()
             {
                 len = 1;
                 prev_ptr = slots[i].ptr;
-                prev_blockSize = slots[capture_slot].size;
+                prev_blockSize = slots[i].size;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1925,7 +1878,7 @@ retry_find:
         
         uint32_t group_full = 1;
         
-        for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].size); slot++)
+        for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
         {
             /* check for the slot being ready for saving */
             if(slots[slot].status == SLOT_FULL)
@@ -2077,9 +2030,6 @@ static void raw_writer_task(uint32_t writer)
             break;
         }
         
-        /* wake up manager to queue next job */
-        //msg_queue_post(mlv_mgr_queue, NULL);
-        
         trace_write(trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB, addr 0x%08X, size 0x%08X)", writer, write_job.block_len, write_job.block_start, write_job.block_size/1024, write_job.block_ptr, write_job.block_size);
         
         /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
@@ -2192,7 +2142,6 @@ abort:
         }
     }
     
-    
     if(f != INVALID_PTR)
     {
         file_header.videoFrameCount = frames_written;
@@ -2214,7 +2163,7 @@ static void raw_video_update_block_task()
     while(raw_recording_state == RAW_RECORDING)
     {
         /* ToDo: make this more periodic - timer event? */
-        msleep(500);
+        msleep(750);
         
         mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
         mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
@@ -2245,7 +2194,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         int32_t free_slots = get_free_slots();
         int32_t overflow_time = free_slots * 1000 * 10 / fps;
         /* better underestimate write speed a little */
-        int32_t frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
+        int32_t frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / (write_job->block_size / write_job->block_len) / 10;
         
         /* do not decrease write size if skipping is allowed */
         if (!allow_frame_skip && frame_limit >= 0 && frame_limit < (int32_t)write_job->block_len)
@@ -2259,7 +2208,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
             {
                 write_job->block_size += slots[slot].size;
             }
-        }
+        }    
     }
     
 #if 0
@@ -2421,18 +2370,25 @@ static void raw_video_rec_task()
             task_create("writer_thread", 0x01 + writer, 0x1000, raw_writer_task, (void*)writer);
         }
         
-        /* send dummy command to ensure manager generates writer jobs after entering loop */
-        msg_queue_post(mlv_mgr_queue, NULL);
-        task_create("update_block", 0x15, 0x1000, raw_video_update_block_task, NULL);
+        task_create("update_block", 0x1e, 0x1000, raw_video_update_block_task, NULL);
         
         uint32_t used_slots = 0;
         uint32_t writing_slots = 0;
+        uint32_t queued_writes = 0;
         
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
             /* here we receive a previously sent job back. process it after refilling the queue */
             write_job_t *returned_job = NULL;
-            if(msg_queue_receive(mlv_mgr_queue, (struct event **)&returned_job, 500))
+            int timeout = 500;
+            
+            /* send dummy command to ensure manager generates writer jobs after entering loop and on empty queues */
+            if(used_slots == 0 || queued_writes == 0)
+            {
+                msg_queue_post(mlv_mgr_queue, NULL);
+            }
+            
+            if(msg_queue_receive(mlv_mgr_queue, (struct event **)&returned_job, timeout))
             {
                 returned_job = NULL;
             }
@@ -2461,19 +2417,20 @@ static void raw_video_rec_task()
             measured_write_speed = temp_speed;
             
             /* check if there is a writer without jobs */
-            uint32_t msg_count = 0;
+            uint32_t msg_count[2];
             
             /* check CF queue */
-            msg_queue_count(mlv_writer_queues[0], &msg_count);
-            if(msg_count < 1)
+            msg_queue_count(mlv_writer_queues[0], &msg_count[0]);
+            if(msg_count[0] < 1)
             {
                 write_job_t write_job;
-                trace_write(trace_ctx, "<-- No jobs in fast-card queue", msg_count, mlv_writer_threads);
+                trace_write(trace_ctx, "<-- No jobs in fast-card queue");
                 
                 /* in case there is something to write... */
                 if(find_largest_buffer(0, &write_job))
                 {
                     enqueue_buffer(0, &write_job);
+                    msg_count[0]++;
                 }
                 else
                 {
@@ -2482,8 +2439,8 @@ static void raw_video_rec_task()
             }
             
             /* check SD queue */
-            msg_queue_count(mlv_writer_queues[1], &msg_count);
-            if((mlv_writer_threads > 1) && (msg_count < 1))
+            msg_queue_count(mlv_writer_queues[1], &msg_count[1]);
+            if((mlv_writer_threads > 1) && (msg_count[1] < 1))
             {
                 write_job_t write_job;
                 trace_write(trace_ctx, "<-- No jobs in slow-card queue");
@@ -2492,6 +2449,7 @@ static void raw_video_rec_task()
                 if(find_largest_buffer(fast_card_buffers, &write_job))
                 {
                     enqueue_buffer(1, &write_job);
+                    msg_count[1]++;
                 }
                 else
                 {
@@ -2534,7 +2492,7 @@ static void raw_video_rec_task()
             }
             
             /* update some statistics. do this last, to make sure the writers have enough jobs */
-            
+            queued_writes = msg_count[0] + msg_count[1];
             
             used_slots = 0;
             writing_slots = 0;
@@ -2551,7 +2509,7 @@ static void raw_video_rec_task()
             }
             trace_write(trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
             
-            //if(raw_recording_state != RAW_RECORDING)
+            if(raw_recording_state != RAW_RECORDING)
             {
                 show_buffer_status();
             }
@@ -2761,7 +2719,7 @@ static void raw_video_playback(char *filename)
     raw_playing = 1;
     gui_stop_menu();
     
-    task_create("raw_video_playback_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
+    task_create("raw_play", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
 }
 
 FILETYPE_HANDLER(raw_rec_filehandler)
