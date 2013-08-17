@@ -113,7 +113,7 @@ static int init_mem() // initial state of the analyzed memory
     int i;
     for (i = 0; i < var_count; i++) {
         uint32_t addr = get_addr(i);
-        mem_mirror[i] = (int)MEMX(addr);
+        mem_mirror[i] = MEM(addr);
         mem_changes[i] = 0;
         mem_position[i] = -1;
     }
@@ -169,7 +169,7 @@ static void mem_spy_task()
             uint32_t addr = get_addr(i);
             
             int oldval = mem_mirror[i];
-            int newval = (int) MEMX(addr);
+            int newval = MEM(addr);
             
             bool changed = oldval != newval;
             
@@ -299,7 +299,7 @@ static MENU_UPDATE_FUNC(start_addr_upd){
 }
 
 static MENU_SELECT_FUNC(start_addr_sel){
-    start_addr += delta * 1000;
+    start_addr += delta * 10000;
 }
 
 static MENU_UPDATE_FUNC(var_count_upd){
@@ -345,6 +345,7 @@ static struct menu_entry mem_spy_menu[] =
                 .max = 4,
                 .update = look_for_upd,
                 .help = "In fact this convert int32 to you choice.",
+                .help2 = "Memory is always scanned by 4B.",
             },
             {
                 .name = "Halfshutter related",
@@ -365,6 +366,7 @@ static struct menu_entry mem_spy_menu[] =
                 .icon_type = IT_DICE,
                 .update = start_addr_upd,
                 .select = start_addr_sel,
+                .help = "Edit module config file for specific address.",
             },
             {
                 .name = "Var count",
