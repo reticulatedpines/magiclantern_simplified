@@ -3149,8 +3149,8 @@ submenu_display(struct menu * submenu)
 
         submenu_key_hint(720-bx-45, by+5, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER, ICON_ML_Q_BACK);
     }
-                                                   /* titlebar + padding */
-    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + 10, edit_mode ? 1 : 0);
+                                                   /* titlebar + padding difference for large submenus */
+    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), edit_mode ? 1 : 0);
     show_hidden_items(submenu, 1);
 }
 

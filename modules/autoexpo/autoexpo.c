@@ -35,11 +35,11 @@
 #define GRAPH_YSIZE 1
 #define GRAPH_STEP 2 //divisible by 20
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
-#define GRAPH_YOFF 394
+#define GRAPH_YOFF 400
 #define GRAPH_MAX (int)(GRAPH_YSIZE * 130)
 #define GRAPH_BG 45
-#define GRAPH_PADD 5
-#define GRAPH_TEXT_PADD 10
+#define GRAPH_PADD 2
+#define GRAPH_TEXT_PADD 4
 
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
 #define GRAPH_Y(val) (int)(GRAPH_YOFF - (val) * GRAPH_YSIZE)
@@ -51,18 +51,18 @@ static CONFIG_INT("auto.expo.lock_iso", lock_iso, 1);
 static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
 static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  /* 1s */
 static CONFIG_INT("auto.expo.av_min", av_min, 10); /* f/1.4 */
-static CONFIG_INT("auto.expo.av_max", av_max, 80); /* f/16 */
+static CONFIG_INT("auto.expo.av_max", av_max, 75); /* f/13.4 */
 static CONFIG_INT("auto.expo.av_step", av_step, 10);
 static CONFIG_INT("auto.expo.av_off", av_off, 160);
 static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  /* ISO 100 */
 static CONFIG_INT("auto.expo.iso_max", iso_max, 120); /* ISO 12 800 */
 static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
 static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
-static CONFIG_INT("auto.expo.ec", ec, 0);  /* exposure compensation */
-static CONFIG_INT("auto.expo.ec_min", ec_min, -20);
+static CONFIG_INT("auto.expo.ec", ec, 5);  /* exposure compensation */
+static CONFIG_INT("auto.expo.ec_min", ec_min, -15);
 static CONFIG_INT("auto.expo.ec_max", ec_max, 20);
-static CONFIG_INT("auto.expo.ec_step", ec_step, 2);
-static CONFIG_INT("auto.expo.ec_off", ec_off, -2);
+static CONFIG_INT("auto.expo.ec_step", ec_step, -3);
+static CONFIG_INT("auto.expo.ec_off", ec_off, -15);
 
 static int autoexpo_running = 0;
 static int last_key = 0;
@@ -70,8 +70,17 @@ static int last_bv = INT_MIN;
 
 extern int advanced_mode;
 
+static int get_ec(int bv){
+    int offset = ec_off;
+    if(lock_iso){
+        int valid = RAW2AV(lens_info.raw_aperture_min) - av_min;
+        if(valid > 0) offset += valid;
+    }
+    return COERCE(ec - (MIN(bv - offset, 0) * ec_step) / 10, ec_min, ec_max);
+}
+
 static int get_shutter_from_bv(int bv, int aperture, int iso){
-    return COERCE(bv - aperture + iso, tv_min, 130);
+    return COERCE((bv - aperture + iso) - get_ec(bv), tv_min, 130);
 }
 
 static int get_aperture_from_bv(int bv, int limit){
@@ -91,7 +100,7 @@ static int get_iso_from_bv(int bv){
     int iso = MIN(iso_min - (MIN(bv - offset, 0) * iso_step) / 10, iso_max);
     if(round_iso){
         iso /= 10;
-        iso *=10;
+        iso *= 10;
     }
     return iso;
 }
@@ -163,7 +172,7 @@ static void update_graph()
         for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
             int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
             int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
-            int odd = !(bv % 20);
+            bool odd = !(bv % 20) && bv != BV_MIN;
 
             //bv
             if(odd){
@@ -323,6 +332,48 @@ static MENU_UPDATE_FUNC(tv_min_upd){
     if(!advanced_mode)update_graph();
 }
 
+static MENU_UPDATE_FUNC(ec_upd)
+{
+    MENU_SET_VALUE("%s%d.%d EV", FMT_FIXEDPOINT1S(ec));
+}
+
+static MENU_SELECT_FUNC(ec_sel)
+{
+    ec += delta;
+}
+
+static MENU_UPDATE_FUNC(ec_range_upd)
+{
+    MENU_SET_VALUE("%s%d.%d EV - %s%d.%d EV", FMT_FIXEDPOINT1S(ec_min), FMT_FIXEDPOINT1S(ec_max));
+}
+
+static MENU_SELECT_FUNC(ec_range_set)
+{
+    int last_d = last_delta();
+    
+    if(ABS(last_d) == 1) ec_min += last_d;
+    else if(ABS(last_d) == 5) ec_max += last_d / 5;
+    
+    ec_min = MIN(ec_min, ec_max);
+    ec_max = MAX(ec_min, ec_max);
+}
+
+static MENU_UPDATE_FUNC(ec_curve_upd)
+{
+    MENU_SET_VALUE("at %s%d.%d %s%d.%d EVpBV", FMT_FIXEDPOINT1(ec_off), FMT_FIXEDPOINT1S(ec_step));
+}
+
+static MENU_SELECT_FUNC(ec_curve_set)
+{
+    int last_d = last_delta();
+
+    if(ABS(last_d) == 1) ec_step += last_d;
+    else if(ABS(last_d) == 5) ec_off -= last_d;
+
+    ec_off = COERCE(ec_off, BV_MIN - 100, BV_MAX + 100);
+    ec_step = COERCE(ec_step, -50, 50);
+}
+
 static struct menu_entry autoexpo_menu[] =
 {
     {
@@ -375,10 +426,35 @@ static struct menu_entry autoexpo_menu[] =
                 .help2 = "Left & right - set EV steps per BV.",
             },
             {
-                .name = "Lock ISO & AV",
+                .name = "EC",
+                .update = ec_upd,
+                .select = ec_sel,
+                .icon_type = IT_DICE,
+                .help = "Exposure compensation.",
+                .advanced = 1,
+            },
+            {
+                .name = "EC range",
+                .update = ec_range_upd,
+                .select = ec_range_set,
+                .icon_type = IT_DICE,
+                .help = "Use main dial for minimum and left & right for maximum.",
+                .advanced = 1,
+            },
+            {
+                .name = "EC curve",
+                .update = ec_curve_upd,
+                .select = ec_curve_set,
+                .icon_type = IT_DICE,
+                .help = "Main dial - change curve offset.",
+                .help2 = "Left & right - set EV steps per BV.",
+                .advanced = 1,
+            },
+            {
+                .name = "Lock ISO AV EC",
                 .priv = &lock_iso,
                 .max = 1,
-                .help = "Move ISO curve left if min aperture is not in valid range.",
+                .help = "Move ISO & EC left if min aperture is not in valid range.",
                 .help2 = "To get same shutter curve.",
                 .advanced = 1,
             },
