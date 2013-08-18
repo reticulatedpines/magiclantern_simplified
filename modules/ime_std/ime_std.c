@@ -428,7 +428,6 @@ static void ime_std_input(unsigned int parm)
     /* select appropriate punctuation for filenames */
     if(ctx->charset_type & IME_CHARSET_FILENAME)
     {
-        ctx->max_length = 12;
         ime_std_charsets[IME_STD_VAR_CHARSET] = ime_std_charset_file;
         ime_std_charset_types[IME_STD_VAR_CHARSET] = IME_CHARSET_FILENAME;
         ime_std_charcounts[IME_STD_VAR_CHARSET] = sizeof(ime_std_charset_file);
