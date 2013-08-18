@@ -48,6 +48,7 @@
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 /* these are for fullframe camereas */
 static CONFIG_INT("auto.expo.lock_iso", lock_iso, 1);
+static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
 static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  /* 1s */
 static CONFIG_INT("auto.expo.av_min", av_min, 10); /* f/1.4 */
 static CONFIG_INT("auto.expo.av_max", av_max, 80); /* f/16 */
@@ -82,7 +83,12 @@ static int get_iso_from_bv(int bv){
         int valid = RAW2AV(lens_info.raw_aperture_min) - av_min;
         if(valid > 0) offset += valid;
     }
-    return MIN(iso_min - (MIN(bv - offset, 0) * iso_step) / 10, iso_max);
+    int iso = MIN(iso_min - (MIN(bv - offset, 0) * iso_step) / 10, iso_max);
+    if(round_iso){
+        iso /= 10;
+        iso *=10;
+    }
+    return iso;
 }
 
 static void autoexpo_task()
@@ -358,6 +364,13 @@ static struct menu_entry autoexpo_menu[] =
                 .help2 = "To get same shutter curve.",
                 .advanced = 1,
             },
+            {
+                .name = "Round ISO",
+                .priv = &round_iso,
+                .max = 1,
+                .help = "Stop using digital ISO - 100, 200, 400, 800, etc.",
+                .advanced = 1,
+            },
             MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         }
@@ -400,6 +413,7 @@ MODULE_CBRS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_expo_enabled)
     MODULE_CONFIG(lock_iso)
+    MODULE_CONFIG(round_iso)
     MODULE_CONFIG(tv_min)
     MODULE_CONFIG(av_min)
     MODULE_CONFIG(av_max)
