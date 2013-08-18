@@ -33,7 +33,7 @@
 
 #define GRAPH_XSIZE 2.4f
 #define GRAPH_YSIZE 1
-#define GRAPH_STEP 5
+#define GRAPH_STEP 2 //divisible by 20
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
 #define GRAPH_YOFF 394
 #define GRAPH_MAX (int)(GRAPH_YSIZE * 130)
@@ -156,7 +156,7 @@ static void update_graph()
         for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
             int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
             int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
-            int odd = !((BV_MAX - bv) % (GRAPH_STEP * 4));
+            int odd = !(bv % 20);
 
             //bv
             if(odd){
