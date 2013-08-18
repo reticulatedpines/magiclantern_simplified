@@ -32,14 +32,18 @@
 #define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 #define GRAPH_XSIZE 2.4f
-#define GRAPH_YSIZE 1 //doesnt like floats
+#define GRAPH_YSIZE 1
 #define GRAPH_STEP 5
-#define GRAPH_XOFF (720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2
-#define GRAPH_YOFF 400
-#define GRAPH_MAX GRAPH_YSIZE * 130
+#define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
+#define GRAPH_YOFF 394
+#define GRAPH_MAX (int)(GRAPH_YSIZE * 130)
 #define GRAPH_BG 45
+#define GRAPH_PADD 5
+#define GRAPH_TEXT_PADD 10
 
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
+#define GRAPH_Y(val) (int)(GRAPH_YOFF - val * GRAPH_YSIZE)
+#define GRAPH_Y_TEXT (int)(GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE))
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 /* these are for fullframe camereas */
@@ -57,6 +61,8 @@ static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
 static int autoexpo_running = 0;
 static int last_key = 0;
 static int last_bv = INT_MIN;
+
+extern int advanced_mode;
 
 static int get_shutter_from_bv(int bv, int aperture, int iso){
     return COERCE(bv - aperture + iso, tv_min, 130);
@@ -135,8 +141,12 @@ static void update_graph()
     int sfont = FONT(FONT_SMALL, COLOR_WHITE, GRAPH_BG);
 
     BMP_LOCK(
-        bmp_fill(GRAPH_BG, 1, GRAPH_YOFF - GRAPH_MAX - 2, 720 - 2, GRAPH_MAX + 2 + 4 + font_med.height);
-
+        bmp_fill(GRAPH_BG, 1,
+            GRAPH_YOFF - GRAPH_MAX - GRAPH_PADD,
+            720 - 2,
+            GRAPH_MAX + GRAPH_TEXT_PADD + GRAPH_PADD + font_med.height
+        );
+        
         for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
             int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
             int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
@@ -147,18 +157,18 @@ static void update_graph()
                 char bv_str[4];
                 snprintf(bv_str, sizeof(bv_str), "%d", bv / 10);
                 bmp_printf(FONT(FONT_MED, COLOR_WHITE, GRAPH_BG),
-                    x + 3 - strlen(bv_str) * font_med.width / 2, GRAPH_YOFF + 4, bv_str);
+                    x + 3 - strlen(bv_str) * font_med.width / 2, GRAPH_YOFF + GRAPH_TEXT_PADD, bv_str);
             }
 
             //av
             next = get_aperture_from_bv(bv, 0);
             if(IS_IN_RANGE(next, last_av)){
                 if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_YOFF - last_av * GRAPH_YSIZE, x, GRAPH_YOFF - next * GRAPH_YSIZE, COLOR_GREEN2);
+                    draw_line(x_last, GRAPH_Y(last_av), x, GRAPH_Y(next), COLOR_GREEN2);
                 }
                 if(odd && next != last_av_odd){
                     int ap = AV2STR(next);
-                    bmp_printf(sfont, x + 2, GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE), "%d.%d", ap / 10, ap % 10);
+                    bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%d.%d", ap / 10, ap % 10);
                     last_av_odd = next;
                 }
             }
@@ -168,10 +178,10 @@ static void update_graph()
             next = get_iso_from_bv(bv);
             if(IS_IN_RANGE(next, last_iso)){
                 if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_YOFF - last_iso * GRAPH_YSIZE, x, GRAPH_YOFF - next * GRAPH_YSIZE, COLOR_LIGHT_BLUE);
+                    draw_line(x_last, GRAPH_Y(last_iso), x, GRAPH_Y(next), COLOR_LIGHT_BLUE);
                 }
                 if(odd && next != last_iso_odd){
-                    bmp_printf(sfont, x + 2, GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE), "%d", raw2iso(SV2RAW(next)));
+                    bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%d", raw2iso(SV2RAW(next)));
                     last_iso_odd = next;
                 }
             }
@@ -181,10 +191,10 @@ static void update_graph()
             next = get_shutter_from_bv(bv, last_av, last_iso);
             if(IS_IN_RANGE(next, last_tv)){
                 if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_YOFF - last_tv * GRAPH_YSIZE, x, GRAPH_YOFF - next * GRAPH_YSIZE, COLOR_RED);
+                    draw_line(x_last, GRAPH_Y(last_tv), x, GRAPH_Y(next), COLOR_RED);
                 }
                 if(odd && next != last_tv_odd){
-                    bmp_printf(sfont, x + 2, GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE), "%s", lens_format_shutter(TV2RAW(next)));
+                    bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%s", lens_format_shutter(TV2RAW(next)));
                     last_tv_odd = next;
                 }
             }
@@ -286,7 +296,7 @@ static MENU_SELECT_FUNC(tv_min_set)
 
 static MENU_UPDATE_FUNC(tv_min_upd){
     MENU_SET_VALUE("%s", lens_format_shutter(TV2RAW(tv_min)));
-    update_graph();
+    if(!advanced_mode)update_graph();
 }
 
 static struct menu_entry autoexpo_menu[] =
@@ -314,7 +324,7 @@ static struct menu_entry autoexpo_menu[] =
                 .update = aperture_range_upd,
                 .select = aperture_range_set,
                 .icon_type = IT_DICE,
-                .help = "Use main dial for maximum and left & right for minimum.",
+                .help = "Use main dial for minimum and left & right for maximum.",
             },
             {
                 .name = "AV curve",
@@ -329,7 +339,7 @@ static struct menu_entry autoexpo_menu[] =
                 .update = iso_range_upd,
                 .select = iso_range_set,
                 .icon_type = IT_DICE,
-                .help = "Use main dial for maximum and left & right for minimum.",
+                .help = "Use main dial for minimum and left & right for maximum.",
                 .help2 = "Make sure that it correspond to your extended ISO settings.",
             },
             {
@@ -346,7 +356,9 @@ static struct menu_entry autoexpo_menu[] =
                 .max = 1,
                 .help = "Move ISO curve left if min aperture is not in valid range.",
                 .help2 = "To get same shutter curve.",
+                .advanced = 1,
             },
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         }
     }
