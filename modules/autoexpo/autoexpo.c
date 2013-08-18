@@ -42,7 +42,7 @@
 #define GRAPH_TEXT_PADD 10
 
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
-#define GRAPH_Y(val) (int)(GRAPH_YOFF - val * GRAPH_YSIZE)
+#define GRAPH_Y(val) (int)(GRAPH_YOFF - (val) * GRAPH_YSIZE)
 #define GRAPH_Y_TEXT (int)(GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE))
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
@@ -58,6 +58,11 @@ static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  /* ISO 100 */
 static CONFIG_INT("auto.expo.iso_max", iso_max, 120); /* ISO 12 800 */
 static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
 static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
+static CONFIG_INT("auto.expo.ec", ec, 0);  /* exposure compensation */
+static CONFIG_INT("auto.expo.ec_min", ec_min, -20);
+static CONFIG_INT("auto.expo.ec_max", ec_max, 20);
+static CONFIG_INT("auto.expo.ec_step", ec_step, 2);
+static CONFIG_INT("auto.expo.ec_off", ec_off, -2);
 
 static int autoexpo_running = 0;
 static int last_key = 0;
@@ -140,9 +145,11 @@ static void update_graph()
     int last_tv = 0;
     int last_av = 0;
     int last_iso = 0;
+    int last_ec = 0;
     int last_tv_odd = 0;
     int last_av_odd = 0;
     int last_iso_odd = 0;
+    int last_ec_odd = 0;
     int next = 0;
     int sfont = FONT(FONT_SMALL, COLOR_WHITE, GRAPH_BG);
 
@@ -205,12 +212,23 @@ static void update_graph()
                 }
             }
             last_tv = next;
+            
+            //ec
+            int ec_val = bv - (last_tv + last_av - last_iso);
+            next = (GRAPH_MAX / 2) + ec_val;
+            if(IS_IN_RANGE(next, last_ec)){
+                if(bv != BV_MAX){
+                    draw_line(x_last, GRAPH_Y(last_ec), x, GRAPH_Y(next), ec_val == 0 ? COLOR_BLACK : COLOR_ORANGE);
+                }
+                if(odd && next != last_ec_odd){
+                    if(ec_val)bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%s%d.%d", FMT_FIXEDPOINT1S(ec_val));
+                    last_ec_odd = next;
+                }
+            }
+            last_ec = next;
 
             //lines
-            if(!(bv % 10)){
-                draw_line(x, GRAPH_YOFF - GRAPH_MAX, x, GRAPH_YOFF, 
-                    (last_tv + last_av - last_iso != bv) ? COLOR_ORANGE : COLOR_BLACK);
-            }
+            if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX, x, GRAPH_YOFF, COLOR_BLACK);
         }
         if(last_bv != INT_MIN){
             int x = GRAPH_XOFF + (BV_MAX - last_bv) * GRAPH_XSIZE;
@@ -423,4 +441,9 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(iso_max)
     MODULE_CONFIG(iso_step)
     MODULE_CONFIG(iso_off)
+    MODULE_CONFIG(ec)
+    MODULE_CONFIG(ec_min)
+    MODULE_CONFIG(ec_max)
+    MODULE_CONFIG(ec_step)
+    MODULE_CONFIG(ec_off)
 MODULE_CONFIGS_END()
