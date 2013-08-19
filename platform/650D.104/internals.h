@@ -31,7 +31,7 @@
 /** We only have a single LED **/
 //~ #define CONFIG_BLUE_LED
 
-/** There's a display sensor, but I've yet to find the correct stubs **/
+/** There's a display sensor **/
 #define CONFIG_LCD_SENSOR
 
 /** This camera has a mirror lockup feature **/
