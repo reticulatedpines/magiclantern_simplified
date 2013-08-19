@@ -462,6 +462,9 @@ static MENU_UPDATE_FUNC(interval_start_after_display)
     );
 
     MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
+    
+    if (auto_power_off_time && auto_power_off_time <= d)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
 }
 
 static MENU_UPDATE_FUNC(interval_stop_after_display)
@@ -6962,7 +6965,9 @@ shoot_task( void* unused )
                     wait_till_next_second();
 
                     if (intervalometer_pictures_taken == 0)
+                    {
                         intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
+                    }
                     else
                     {
                         intervalometer_next_shot_time++;
