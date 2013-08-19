@@ -436,7 +436,7 @@ int raw_update_params()
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
-        skip_bottom = 4;
+        skip_bottom = 6;
         #endif
 
         #ifdef CONFIG_7D
