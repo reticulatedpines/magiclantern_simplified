@@ -275,3 +275,6 @@ NSTUB(0x16C44, TryPostEvent)
 NSTUB(0x16CA0, TryPostEvent_end)
 NSTUB(0x16564, TryPostStageEvent)
 NSTUB(0x165C0, TryPostStageEvent_end)
+
+/** LCD Sensor **/
+NSTUB(0xFF145E84, DispSensorStart)
