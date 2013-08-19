@@ -1904,6 +1904,7 @@ entry_default_display_info(
     info->warning = warning;
     info->rinfo = rinfo;
     info->custom_drawing = 0;
+    info->can_custom_draw = 1;
     info->icon = 0;
     info->icon_arg = 0;
 
@@ -1991,7 +1992,7 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
         batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
-static void
+void
 entry_print(
     int x,
     int y,
@@ -2252,6 +2253,7 @@ menu_entry_process(
     info.x = x;
     info.y = y;
     info.x_val = x + font_large.width * ABS(menu->split_pos);
+    info.can_custom_draw = !streq(menu->name, MY_MENU_NAME);
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
@@ -2707,6 +2709,7 @@ menu_entry_process_junkie(
     info.x = 0;
     info.y = 0;
     info.x_val = 0;
+    info.can_custom_draw = 0;
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;

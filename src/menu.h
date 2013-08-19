@@ -68,6 +68,7 @@ struct menu_display_info
     int x;
     int y; // for custom drawing
     int x_val;
+    int can_custom_draw; //do not custom draw in junkie or MyMenu
     // etc
 };
 

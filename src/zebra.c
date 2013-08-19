@@ -2386,7 +2386,7 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
          num_cropmarks ? cropmark_names[index] : "N/A"
     );
 
-    if (info->x)
+    if (info->can_custom_draw)
     {
         int h = 170;
         int w = h * 720 / 480;
