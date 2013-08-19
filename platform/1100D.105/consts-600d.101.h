@@ -1,6 +1,5 @@
 // these were found in ROM, but not tested yet
 
-#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
