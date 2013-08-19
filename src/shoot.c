@@ -58,7 +58,9 @@ void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
 void display_trap_focus_info();
+#ifdef FEATURE_LCD_SENSOR_REMOTE
 void display_lcd_remote_icon(int x0, int y0);
+#endif
 void intervalometer_stop();
 void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
@@ -6050,8 +6052,9 @@ void display_shooting_info_lv()
     int screen_layout = get_screen_layout();
     int audio_meters_at_top = audio_meters_are_drawn() 
         && (screen_layout == SCREENLAYOUT_3_2);
-
+#ifdef FEATURE_LCD_SENSOR_REMOTE
     display_lcd_remote_icon(450, audio_meters_at_top ? 25 : 3);
+#endif
 #endif
     display_trap_focus_info();
     display_expsim_status();

@@ -132,6 +132,7 @@ ML_SRC_OBJS = \
 	config.o \
 	stdio.o \
 	$(ML_BITRATE_OBJ) \
+	lcdsensor.o \
 	tweaks.o \
 	lens.o \
 	property.o \

@@ -13,7 +13,7 @@
 
 #undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
 
-#undef FEATURE_ARROW_SHORTCUTS
+//~ #undef FEATURE_ARROW_SHORTCUTS
 
 // Not working :(
 #undef FEATURE_IMAGE_EFFECTS

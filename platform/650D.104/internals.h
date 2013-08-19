@@ -32,7 +32,7 @@
 //~ #define CONFIG_BLUE_LED
 
 /** There's a display sensor, but I've yet to find the correct stubs **/
-//~ #define CONFIG_LCD_SENSOR
+#define CONFIG_LCD_SENSOR
 
 /** This camera has a mirror lockup feature **/
 #define CONFIG_MLU

@@ -915,14 +915,4 @@ my_init_task(int a, int b, int c, int d)
 #endif // !CONFIG_EARLY_PORT
 }
 
-#ifdef CONFIG_5D3
-// dummy stubs
-int lcd_release_running = 0;
-void lcd_release_step() {};
-int get_lcd_sensor_shortcuts() { return 0; }
-void display_lcd_remote_icon(int x0, int y0) {}
-int new_LiveViewApp_handler = 0xff123456;
-void bootflag_write_bootblock(){};
-int handle_af_patterns(struct event * event) { return 1; }
-#endif
 

@@ -56,7 +56,7 @@
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x24878)
 
-    #define DISPLAY_SENSOR_POWERED 0
+#define DISPLAY_SENSOR_POWERED (*(int*)0x24874) //~ Near HALFSHUTTER_PRESSED. Use Memspy
 
 // for gui_main_task
 #define GMT_NFUNCS 7
@@ -221,7 +221,7 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
-#define ARROW_MODE_TOGGLE_KEY "DISP"
+#define ARROW_MODE_TOGGLE_KEY "LCD SENSOR"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)

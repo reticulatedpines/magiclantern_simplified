@@ -4019,14 +4019,19 @@ int handle_zoom_overlay(struct event * event)
     
     if (get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
     {
+        #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+        int lcd_sensor_trigger = (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED);
+        #else
+        int lcd_sensor_trigger = 0;
+        #endif
         // magic zoom toggled by sensor+zoom in (modes Zr and Zr+F)
-        if (get_zoom_overlay_trigger_mode() < 3 && get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED)
+        if (get_zoom_overlay_trigger_mode() < 3 && lcd_sensor_trigger)
         {
             zoom_overlay_toggle();
             return 0;
         }
         // (*): magic zoom toggled by zoom in, normal zoom by sensor+zoom in
-        else if (get_zoom_overlay_trigger_mode() == MZ_TAKEOVER_ZOOM_IN_BTN && !get_halfshutter_pressed() && !(get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED))
+        else if (get_zoom_overlay_trigger_mode() == MZ_TAKEOVER_ZOOM_IN_BTN && !get_halfshutter_pressed() && !lcd_sensor_trigger)
         {
             zoom_overlay_toggle();
             return 0;

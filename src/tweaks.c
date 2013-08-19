@@ -1735,7 +1735,7 @@ static void arrow_key_step()
     if (!lv) return;
     if (gui_menu_shown()) return;
 
-    #if defined(CONFIG_500D) || defined(CONFIG_550D)
+    #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
     extern int lcd_release_running;
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED && !lcd_release_running;
     static int prev_lcd = 0;
@@ -1765,8 +1765,12 @@ void display_shortcut_key_hints_lv()
     #endif
     if (NotifyBoxActive()) return;
 
+    #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
     extern int lcd_release_running;
     int lcd = get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED && !lcd_release_running;
+    #else
+    int lcd = 0;
+    #endif
     if (arrow_keys_shortcuts_active()) mode = arrow_keys_mode;
     else if (!mode && is_follow_focus_active() && get_follow_focus_mode()==0 && !is_manual_focus() && !lcd) mode = 10;
     if (mode == 0 && old_mode == 0) return;
@@ -2129,14 +2133,14 @@ static struct menu_entry key_menus[] = {
     },
     #endif
 
-    #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
+    #if defined(FEATURE_LCD_SENSOR_SHORTCUTS) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
     {
         .name       = "Misc key settings",
         .select = menu_open_submenu,
         .submenu_width = 656,
         .help = "Misc options related to shortcut keys.",
         .children =  (struct menu_entry[]) {
-            #ifdef CONFIG_LCD_SENSOR
+            #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
             {
                 .name = "LCD Sensor Shortcuts",
                 .priv       = &lcd_sensor_shortcuts,

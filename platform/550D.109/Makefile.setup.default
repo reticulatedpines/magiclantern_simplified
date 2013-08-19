@@ -6,7 +6,6 @@ ML_PICSTYLE_AUTO = n
 
 ML_SRC_EXTRA_OBJS = \
 	misc.o \
-	lcdsensor.o \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o

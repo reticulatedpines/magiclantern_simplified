@@ -77,7 +77,9 @@ int is_follow_focus_active()
     if (is_manual_focus()) return 0;
     if (!liveview_display_idle()) return 0;
     if (gui_menu_shown()) return 0;
+#ifdef FEATURE_LCD_SENSOR_SHORTCUTS
     if (display_sensor && get_lcd_sensor_shortcuts() && follow_focus_mode==0) return 0;
+#endif
     if (get_halfshutter_pressed()) return 0;
     return 1;
 #else
@@ -396,9 +398,11 @@ static MENU_UPDATE_FUNC(focus_show_a)
 
 static MENU_UPDATE_FUNC(rack_focus_print)
 {
+#ifdef FEATURE_LCD_SENSOR_REMOTE
     extern int lcd_release_running;
     if (lcd_release_running && lcd_release_running < 3 && recording)
         MENU_APPEND_VALUE(" (also w. LCD sensor)");
+#endif
     MENU_SET_ENABLED(0);
 }
 
