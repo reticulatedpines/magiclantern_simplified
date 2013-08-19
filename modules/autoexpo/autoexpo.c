@@ -77,8 +77,6 @@ static bool show_graph = 1;
 static int last_key = 0;
 static int last_bv = INT_MIN;
 
-extern int advanced_mode;
-
 extern void entry_print(
     int x,
     int y,

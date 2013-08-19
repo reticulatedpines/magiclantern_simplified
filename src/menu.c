@@ -99,7 +99,7 @@ static int menu_redraw_cancel = 0;
 static int submenu_mode = 0;
 static int edit_mode = 0;
 static int customize_mode = 0;
-int advanced_mode = 0;       /* cached value; only for submenus for now */
+static int advanced_mode = 0;       /* cached value; only for submenus for now */
 
 #define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
 
