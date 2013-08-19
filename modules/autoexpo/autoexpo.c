@@ -32,11 +32,12 @@
 #define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 #define GRAPH_XSIZE 2.4f
-#define GRAPH_YSIZE 1
+#define GRAPH_YSIZE 2.3f
 #define GRAPH_STEP 2 //divisible by 20
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
 #define GRAPH_YOFF 400
-#define GRAPH_MAX (int)(GRAPH_YSIZE * 130)
+#define GRAPH_MAX 130 /* APEX value 1/8000 */
+#define GRAPH_MAX_PX (int)(GRAPH_MAX * GRAPH_YSIZE)
 #define GRAPH_BG 45
 #define GRAPH_PADD 2
 #define GRAPH_TEXT_PADD 4
@@ -44,6 +45,13 @@
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
 #define GRAPH_Y(val) (int)(GRAPH_YOFF - (val) * GRAPH_YSIZE)
 #define GRAPH_Y_TEXT (int)(GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE))
+
+#define MENU_CUSTOM_DRAW \
+    if(show_graph) { \
+        info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
+        if(entry->selected)entry_print(info->x, 60, 20, entry, info, 0); \
+    }
+
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 /* these are for fullframe camereas */
@@ -65,10 +73,21 @@ static CONFIG_INT("auto.expo.ec_step", ec_step, -3);
 static CONFIG_INT("auto.expo.ec_off", ec_off, -15);
 
 static int autoexpo_running = 0;
+static bool show_graph = 1;
 static int last_key = 0;
 static int last_bv = INT_MIN;
 
 extern int advanced_mode;
+
+extern void entry_print(
+    int x,
+    int y,
+    int w,
+    struct menu_entry * entry,
+    struct menu_display_info * info,
+    int in_submenu
+);
+
 
 static int get_ec(int bv){
     int offset = ec_off;
@@ -164,9 +183,9 @@ static void update_graph()
 
     BMP_LOCK(
         bmp_fill(GRAPH_BG, 1,
-            GRAPH_YOFF - GRAPH_MAX - GRAPH_PADD,
+            GRAPH_YOFF - GRAPH_MAX_PX - GRAPH_PADD,
             720 - 2,
-            GRAPH_MAX + GRAPH_TEXT_PADD + GRAPH_PADD + font_med.height
+            GRAPH_MAX_PX + GRAPH_TEXT_PADD + GRAPH_PADD + font_med.height
         );
         
         for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
@@ -237,12 +256,12 @@ static void update_graph()
             last_ec = next;
 
             //lines
-            if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX, x, GRAPH_YOFF, COLOR_BLACK);
+            if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
         }
         if(last_bv != INT_MIN){
             int x = GRAPH_XOFF + (BV_MAX - last_bv) * GRAPH_XSIZE;
-            draw_line(x - 1, GRAPH_YOFF - GRAPH_MAX, x - 1, GRAPH_YOFF, COLOR_CYAN);
-            draw_line(x + 1, GRAPH_YOFF - GRAPH_MAX, x + 1, GRAPH_YOFF, COLOR_CYAN);
+            draw_line(x - 1, GRAPH_YOFF - GRAPH_MAX_PX, x - 1, GRAPH_YOFF, COLOR_CYAN);
+            draw_line(x + 1, GRAPH_YOFF - GRAPH_MAX_PX, x + 1, GRAPH_YOFF, COLOR_CYAN);
         }
     )
 }
@@ -260,6 +279,7 @@ static MENU_UPDATE_FUNC(aperture_range_upd)
     int apmin = AV2STR(av_min);
     int apmax = AV2STR(av_max);
     MENU_SET_VALUE("f/%d.%d - f/%d.%d", apmin / 10, apmin % 10, apmax / 10, apmax % 10);
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(aperture_range_set)
@@ -276,6 +296,7 @@ static MENU_SELECT_FUNC(aperture_range_set)
 static MENU_UPDATE_FUNC(aperture_curve_upd)
 {
     MENU_SET_VALUE("at %s%d.%d -%d.%d EVpBV", FMT_FIXEDPOINT1(av_off), av_step /10, av_step % 10);
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(aperture_curve_set)
@@ -292,6 +313,7 @@ static MENU_SELECT_FUNC(aperture_curve_set)
 static MENU_UPDATE_FUNC(iso_range_upd)
 {
     MENU_SET_VALUE("%d - %d", raw2iso(SV2RAW(iso_min)), raw2iso(SV2RAW(iso_max)));
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(iso_range_set)
@@ -308,6 +330,7 @@ static MENU_SELECT_FUNC(iso_range_set)
 static MENU_UPDATE_FUNC(iso_curve_upd)
 {
     MENU_SET_VALUE("at %s%d.%d +%d.%d EVpBV", FMT_FIXEDPOINT1(iso_off), iso_step / 10, iso_step % 10);
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(iso_curve_set)
@@ -329,12 +352,13 @@ static MENU_SELECT_FUNC(tv_min_set)
 
 static MENU_UPDATE_FUNC(tv_min_upd){
     MENU_SET_VALUE("%s", lens_format_shutter(TV2RAW(tv_min)));
-    if(!advanced_mode)update_graph();
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_UPDATE_FUNC(ec_upd)
 {
     MENU_SET_VALUE("%s%d.%d EV", FMT_FIXEDPOINT1S(ec));
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(ec_sel)
@@ -345,6 +369,7 @@ static MENU_SELECT_FUNC(ec_sel)
 static MENU_UPDATE_FUNC(ec_range_upd)
 {
     MENU_SET_VALUE("%s%d.%d EV - %s%d.%d EV", FMT_FIXEDPOINT1S(ec_min), FMT_FIXEDPOINT1S(ec_max));
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(ec_range_set)
@@ -361,6 +386,7 @@ static MENU_SELECT_FUNC(ec_range_set)
 static MENU_UPDATE_FUNC(ec_curve_upd)
 {
     MENU_SET_VALUE("at %s%d.%d %s%d.%d EVpBV", FMT_FIXEDPOINT1(ec_off), FMT_FIXEDPOINT1S(ec_step));
+    MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(ec_curve_set)
@@ -372,6 +398,17 @@ static MENU_SELECT_FUNC(ec_curve_set)
 
     ec_off = COERCE(ec_off, BV_MIN - 100, BV_MAX + 100);
     ec_step = COERCE(ec_step, -50, 50);
+}
+
+static MENU_UPDATE_FUNC(show_graph_upd)
+{
+    if(show_graph)update_graph();
+    MENU_CUSTOM_DRAW;
+}
+
+static MENU_UPDATE_FUNC(menu_custom_draw_upd)
+{
+    MENU_CUSTOM_DRAW;
 }
 
 static struct menu_entry autoexpo_menu[] =
@@ -431,7 +468,6 @@ static struct menu_entry autoexpo_menu[] =
                 .select = ec_sel,
                 .icon_type = IT_DICE,
                 .help = "Exposure compensation.",
-                .advanced = 1,
             },
             {
                 .name = "EC range",
@@ -439,7 +475,6 @@ static struct menu_entry autoexpo_menu[] =
                 .select = ec_range_set,
                 .icon_type = IT_DICE,
                 .help = "Use main dial for minimum and left & right for maximum.",
-                .advanced = 1,
             },
             {
                 .name = "EC curve",
@@ -448,24 +483,28 @@ static struct menu_entry autoexpo_menu[] =
                 .icon_type = IT_DICE,
                 .help = "Main dial - change curve offset.",
                 .help2 = "Left & right - set EV steps per BV.",
-                .advanced = 1,
             },
             {
                 .name = "Lock ISO AV EC",
                 .priv = &lock_iso,
+                .update = menu_custom_draw_upd,
                 .max = 1,
                 .help = "Move ISO & EC left if min aperture is not in valid range.",
                 .help2 = "To get same shutter curve.",
-                .advanced = 1,
             },
             {
                 .name = "Round ISO",
                 .priv = &round_iso,
+                .update = menu_custom_draw_upd,
                 .max = 1,
                 .help = "Stop using digital ISO - 100, 200, 400, 800, etc.",
-                .advanced = 1,
             },
-            MENU_ADVANCED_TOGGLE,
+            {
+                .name = "Show graph",
+                .priv = &show_graph,
+                .update = show_graph_upd,
+                .max = 1,
+            },
             MENU_EOL,
         }
     }

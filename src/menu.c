@@ -1991,7 +1991,7 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
         batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
-static void
+void
 entry_print(
     int x,
     int y,
