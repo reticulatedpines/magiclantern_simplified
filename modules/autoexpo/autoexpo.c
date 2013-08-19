@@ -47,7 +47,7 @@
 #define GRAPH_Y_TEXT (int)(GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE))
 
 #define MENU_CUSTOM_DRAW \
-    if(show_graph) { \
+    if(show_graph && info->can_custom_draw) { \
         info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
         if(entry->selected)entry_print(info->x, 60, 15, entry, info, 1); \
     }
