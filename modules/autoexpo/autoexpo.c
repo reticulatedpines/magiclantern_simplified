@@ -400,7 +400,7 @@ static MENU_SELECT_FUNC(ec_curve_set)
 
 static MENU_UPDATE_FUNC(show_graph_upd)
 {
-    if(show_graph)update_graph();
+    if(show_graph && info->can_custom_draw)update_graph();
     MENU_CUSTOM_DRAW;
 }
 
