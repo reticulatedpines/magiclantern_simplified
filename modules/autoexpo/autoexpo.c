@@ -49,7 +49,7 @@
 #define MENU_CUSTOM_DRAW \
     if(show_graph) { \
         info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
-        if(entry->selected)entry_print(info->x, 60, 20, entry, info, 0); \
+        if(entry->selected)entry_print(info->x, 60, 15, entry, info, 1); \
     }
 
 
