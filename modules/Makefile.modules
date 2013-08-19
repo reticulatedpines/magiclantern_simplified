@@ -9,11 +9,13 @@ PLATFORM_INC=$(TOP_DIR)/platform/all
 CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) $(MODULE_CFLAGS)
 
 MODULE_OUTPUT = $(MODULE_NAME).mo
+MODULE_SYM = $(MODULE_NAME).sym
+MODULE_DEP = $(MODULE_NAME).dep
 
-all:: $(MODULE_OUTPUT) $(MODULE_NAME).sym $(MODULE_NAME).dep
+all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 
 clean::
-	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) *.o *.d)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) *.o *.d)
 
 $(MODULE_OUTPUT): $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
