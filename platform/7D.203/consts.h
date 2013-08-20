@@ -115,8 +115,7 @@
 #define MOV_OPT_OFFSET (0x06) /* look for e.g. mvrSetFullHDOptSize */ 
 #define MOV_GOP_OFFSET (0x36) /* look for e.g. mvrSetGopOptSizeFULLHD */ 
 
-#define EXPO_COMP (*(int16_t*)0x16b4c) //CHECK THIS
-#define AE_VALUE (EXPO_COMP-1) * 8 / 2048
+#define AE_VALUE (*(int8_t*)0x16b4d) //CHECK THIS
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3500)
 
