@@ -262,7 +262,7 @@ bmp_fill(
 
 #define COLOR_EMPTY             0x00 // total transparent
 #define COLOR_WHITE             0x01 // Normal white
-#define COLOR_BLACK 2
+#define COLOR_BLACK             0x02
 #ifdef CONFIG_4_3_SCREEN
 #define COLOR_BG                0x03 // transparent black
 #else
