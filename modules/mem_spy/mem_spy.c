@@ -37,7 +37,7 @@ static int* mem_position = 0;
 
 static int mem_spy_running = 0;
 static int init_done = 0;
-static int var_lenght = 4;
+static int var_length = 4;
 static int start_delay_counter;
 
 #define COLUMN_COUNT 3
@@ -75,7 +75,7 @@ static int next_position() {
 static int get_addr(int i)
 {
     if (fixed_addresses) return addresses[i];
-    else return start_addr + i * var_lenght;
+    else return start_addr + i * var_length;
 }
 
 int _t = 0;
@@ -99,15 +99,15 @@ static int _toc()
 static int init_mem() // initial state of the analyzed memory
 {
     // local copy of mem area analyzed
-    if (!mem_mirror) mem_mirror = SmallAlloc(var_count * var_lenght + 100);
+    if (!mem_mirror) mem_mirror = SmallAlloc(var_count * var_length + 100);
     if (!mem_mirror) return 0;
     
     // store changes
-    if (!mem_changes) mem_changes = SmallAlloc(var_count * var_lenght + 100);
+    if (!mem_changes) mem_changes = SmallAlloc(var_count * var_length + 100);
     if (!mem_changes) return 0;
     
     // store position
-    if (!mem_position) mem_position = SmallAlloc(var_count * var_lenght + 100);
+    if (!mem_position) mem_position = SmallAlloc(var_count * var_length + 100);
     if (!mem_position) return 0;
     
     int i;
@@ -268,10 +268,11 @@ static void mem_spy_task()
 }
 
 static void start() {
+    var_length = get_byte_length();
     init_position();
     init_done = 0;
     start_delay_counter = start_delay;
-    if(fixed_addresses)var_count = COUNT(addresses);
+    if(fixed_addresses) var_count = COUNT(addresses);
     
     if(mem_spy && !mem_spy_running){
         task_create("mem_spy_task", 0x1c, 0x1000, mem_spy_task, (void*)0);
@@ -285,7 +286,8 @@ static MENU_SELECT_FUNC(mem_spy_sel){
 
 static MENU_UPDATE_FUNC(look_for_upd){
     mem_spy = 0;
-    MENU_SET_RINFO("%dB", get_byte_length());
+    var_length = get_byte_length();
+    MENU_SET_RINFO("%dB", var_length);
 }
 
 static MENU_UPDATE_FUNC(fixed_addresses_upd){
@@ -306,14 +308,14 @@ static MENU_UPDATE_FUNC(var_count_upd){
     MENU_SET_ENABLED(!fixed_addresses);
     MENU_SET_ICON(!fixed_addresses ? IT_DICE : IT_DICE_OFF, 0);
     if(!fixed_addresses) {
-        MENU_SET_RINFO("0x%x", start_addr + var_count * var_lenght);
+        MENU_SET_RINFO("0x%x", start_addr + var_count * var_length);
     } else {
         MENU_SET_RINFO("");
     }
 }
 
 static MENU_SELECT_FUNC(next_range){
-    start_addr += var_count * var_lenght;
+    start_addr += var_count * var_length;
 }
 
 static MENU_UPDATE_FUNC(zero_disable){
