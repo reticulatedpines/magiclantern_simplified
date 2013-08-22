@@ -17,6 +17,12 @@ CFLAGS += \
 	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
 	-DCONFIG_FW_VERSION=$(FW_VERSION)
 
+ifeq ($(ML_BOOT_HACK_OBJ), n)
+ML_BOOT_HACK_OBJ =
+else ifndef ML_BOOT_HACK_OBJ
+ML_BOOT_HACK_OBJ = boot-hack.o
+endif
+
 ifeq ($(ML_PICSTYLE_AUTO), n)
 ML_PICSTYLE_OBJ = picstyle-noauto.o
 else
@@ -118,7 +124,7 @@ ML_OBJS-y += \
 	version.o
 
 ML_SRC_OBJS = \
-	boot-hack.o \
+	$(ML_BOOT_HACK_OBJ) \
 	ico.o \
 	edmac.o \
 	menu.o \
