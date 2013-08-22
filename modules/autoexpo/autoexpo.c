@@ -55,18 +55,19 @@
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 /* these are for fullframe camereas */
-static CONFIG_INT("auto.expo.lock_iso", lock_iso, 1);
+static CONFIG_INT("auto.expo.same_tv", same_tv, 1);
+static CONFIG_INT("auto.expo.lens_av", lens_av, 0);
 static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
 static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  /* 1s */
 static CONFIG_INT("auto.expo.av_min", av_min, 10); /* f/1.4 */
-static CONFIG_INT("auto.expo.av_max", av_max, 75); /* f/13.4 */
+static CONFIG_INT("auto.expo.av_max", av_max, 80); /* f/16 */
 static CONFIG_INT("auto.expo.av_step", av_step, 10);
 static CONFIG_INT("auto.expo.av_off", av_off, 160);
 static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  /* ISO 100 */
 static CONFIG_INT("auto.expo.iso_max", iso_max, 120); /* ISO 12 800 */
 static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
 static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
-static CONFIG_INT("auto.expo.ec", ec, 5);  /* exposure compensation */
+static CONFIG_INT("auto.expo.ec", ec, 0);  /* exposure compensation */
 static CONFIG_INT("auto.expo.ec_min", ec_min, -15);
 static CONFIG_INT("auto.expo.ec_max", ec_max, 20);
 static CONFIG_INT("auto.expo.ec_step", ec_step, -3);
@@ -86,36 +87,37 @@ extern void entry_print(
     int in_submenu
 );
 
+static int same_tv_offset(int simul){
+    if(simul && lens_av != 5) return MAX(0, lens_av - av_min);
+    return MAX(0, RAW2AV(lens_info.raw_aperture_min) - av_min);
+}
 
-static int get_ec(int bv){
+static int get_ec(int bv, bool simul){
     int offset = ec_off;
-    if(lock_iso){
-        int valid = RAW2AV(lens_info.raw_aperture_min) - av_min;
-        if(valid > 0) offset += valid;
-    }
+    if(same_tv) offset += same_tv_offset(simul);
+    
     return COERCE(ec - (MIN(bv - offset, 0) * ec_step) / 10, ec_min, ec_max);
 }
 
-static int get_shutter_from_bv(int bv, int aperture, int iso){
-    return COERCE((bv - aperture + iso) - get_ec(bv), tv_min, 130);
+static int get_shutter_from_bv(int bv, int aperture, int iso, bool simul){
+    return COERCE((bv - aperture + iso) - get_ec(bv, simul), tv_min, 130);
 }
 
-static int get_aperture_from_bv(int bv, int limit){
+static int get_aperture_from_bv(int bv, bool simul){
     int ap = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
-    if(lock_iso || limit){
-        ap = COERCE(ap, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
-    }
+    if(simul && lens_av != 5) ap = MAX(lens_av, ap);
+    else ap = COERCE(ap, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
+    
     return ap;
 }
 
-static int get_iso_from_bv(int bv){
+static int get_iso_from_bv(int bv, bool simul){
     int offset = iso_off;
-    if(lock_iso){
-        int valid = RAW2AV(lens_info.raw_aperture_min) - av_min;
-        if(valid > 0) offset += valid;
-    }
+    if(same_tv) offset += same_tv_offset(simul);
+    
     int iso = MIN(iso_min - (MIN(bv - offset, 0) * iso_step) / 10, iso_max);
-    if(round_iso){
+    if(round_iso)
+    {
         iso /= 10;
         iso *= 10;
     }
@@ -140,13 +142,13 @@ static void autoexpo_task()
 
     last_bv = bv;
 
-    int av = get_aperture_from_bv(bv, 1);
+    int av = get_aperture_from_bv(bv, 0);
     lens_set_rawaperture(AV2RAW(av));
 
-    int iso = get_iso_from_bv(bv);
+    int iso = get_iso_from_bv(bv, 0);
     lens_set_rawiso(SV2RAW(iso));
 
-    int tv = get_shutter_from_bv(bv, av, iso);
+    int tv = get_shutter_from_bv(bv, av, iso, 0);
     lens_set_rawshutter(TV2RAW(tv));
 
     cleanup:
@@ -200,7 +202,8 @@ static void update_graph()
             }
 
             //av
-            next = get_aperture_from_bv(bv, 0);
+            next = get_aperture_from_bv(bv, 1);
+            
             if(IS_IN_RANGE(next, last_av)){
                 if(bv != BV_MAX){
                     draw_line(x_last, GRAPH_Y(last_av), x, GRAPH_Y(next), COLOR_GREEN2);
@@ -214,7 +217,7 @@ static void update_graph()
             last_av = next;
 
             //sv
-            next = get_iso_from_bv(bv);
+            next = get_iso_from_bv(bv, 1);
             if(IS_IN_RANGE(next, last_iso)){
                 if(bv != BV_MAX){
                     draw_line(x_last, GRAPH_Y(last_iso), x, GRAPH_Y(next), COLOR_LIGHT_BLUE);
@@ -227,7 +230,7 @@ static void update_graph()
             last_iso = next;
 
             //tv
-            next = get_shutter_from_bv(bv, last_av, last_iso);
+            next = get_shutter_from_bv(bv, last_av, last_iso, 1);
             if(IS_IN_RANGE(next, last_tv)){
                 if(bv != BV_MAX){
                     draw_line(x_last, GRAPH_Y(last_tv), x, GRAPH_Y(next), COLOR_RED);
@@ -284,7 +287,12 @@ static MENU_SELECT_FUNC(aperture_range_set)
 {
     int last_d = last_delta();
 
-    if(ABS(last_d) == 1) av_min += last_d * 5;
+    if(ABS(last_d) == 1) {
+        av_min += last_d * 5;
+        if(same_tv) {
+            iso_off = COERCE(iso_off + last_d * 5, BV_MIN - 100, BV_MAX + 100);
+        }
+    }
     else if(ABS(last_d) == 5) av_max += last_d;
 
     av_min = COERCE(av_min, 5, 100);
@@ -404,6 +412,27 @@ static MENU_UPDATE_FUNC(show_graph_upd)
     MENU_CUSTOM_DRAW;
 }
 
+static MENU_UPDATE_FUNC(lens_av_upd)
+{
+    if(!lens_av) {
+        MENU_SET_VALUE("OFF");
+        MENU_SET_ICON(IT_DICE_OFF, 0);
+    } else if (lens_av == 5) {
+        MENU_SET_VALUE("this lens");
+        MENU_SET_ICON(IT_DICE, 0);
+    } else {
+        int ap = AV2STR(lens_av);
+        MENU_SET_VALUE("f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_ICON(IT_DICE, 0);
+    }
+    MENU_CUSTOM_DRAW;
+}
+
+static MENU_SELECT_FUNC(lens_av_set)
+{
+    lens_av = COERCE(lens_av + delta * 5, 0, 80);
+}
+
 static MENU_UPDATE_FUNC(menu_custom_draw_upd)
 {
     MENU_CUSTOM_DRAW;
@@ -483,12 +512,25 @@ static struct menu_entry autoexpo_menu[] =
                 .help2 = "Left & right - set EV steps per BV.",
             },
             {
-                .name = "Lock ISO AV EC",
-                .priv = &lock_iso,
+                .name = "Show graph",
+                .priv = &show_graph,
+                .update = show_graph_upd,
+                .max = 1,
+            },
+            {
+                .name = "Same TV curve",
+                .priv = &same_tv,
                 .update = menu_custom_draw_upd,
                 .max = 1,
-                .help = "Move ISO & EC left if min aperture is not in valid range.",
-                .help2 = "To get same shutter curve.",
+                .help = "Move ISO & EC left if minimum aperture changes.",
+                .help2 = "Or minimum aperture is not in valid range.",
+            },
+            {
+                .name = "Lens AV",
+                .update = lens_av_upd,
+                .select = lens_av_set,
+                .icon_type = IT_DICE,
+                .help = "Simulate graph for lens with minimum aperture.",
             },
             {
                 .name = "Round ISO",
@@ -496,12 +538,6 @@ static struct menu_entry autoexpo_menu[] =
                 .update = menu_custom_draw_upd,
                 .max = 1,
                 .help = "Stop using digital ISO - 100, 200, 400, 800, etc.",
-            },
-            {
-                .name = "Show graph",
-                .priv = &show_graph,
-                .update = show_graph_upd,
-                .max = 1,
             },
             MENU_EOL,
         }
@@ -543,7 +579,8 @@ MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_expo_enabled)
-    MODULE_CONFIG(lock_iso)
+    MODULE_CONFIG(same_tv)
+    MODULE_CONFIG(lens_av)
     MODULE_CONFIG(round_iso)
     MODULE_CONFIG(tv_min)
     MODULE_CONFIG(av_min)
