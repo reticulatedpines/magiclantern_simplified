@@ -2618,4 +2618,6 @@ TASK_CREATE( "lens_task", lens_task, 0, 0x1a, 0x1000 );
 
 int get_max_analog_iso() { return MAX_ANALOG_ISO; }
 int get_max_ae_ev() { return MAX_AE_EV; }
-int get_ae_value() { int res = AE_VALUE; return res == 0 ? lens_info.ae : res; }
+#ifdef AE_VALUE
+int get_ae_value() { return AE_VALUE; }
+#endif
