@@ -256,7 +256,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
         "ML ASSERT:\n%s\n"
         "at %s:%d (%s), task %s\n",
         msg, 
-        file, line, func, get_task_name_from_id(get_current_task())
+        file, line, func, get_task_name_from_id((int)get_current_task())
     );
     request_crash_log(2);
 }
