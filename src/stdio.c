@@ -33,14 +33,6 @@ my_fprintf(
     return len;
 }
 
-
-static inline int
-ISSPACE( char c )
-{
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-}
-
-
 // Don't use strcmp since we don't have it
 int
 streq( const char * a, const char * b )
