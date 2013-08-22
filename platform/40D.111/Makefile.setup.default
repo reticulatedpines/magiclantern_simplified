@@ -1,5 +1,7 @@
 #Makefile for 40D
 
+ML_BOOT_HACK_OBJ = n
+
 ML_BITRATE_OBJ = n
 
 ML_AUDIO_OBJ = n
