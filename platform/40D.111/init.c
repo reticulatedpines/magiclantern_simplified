@@ -239,8 +239,10 @@ void copy_and_restart()
     
     configure_cache_replaces(); 
 
-    /* now restart firmware */
-    firmware_entry();
+    /* now start main firmware */
+    /* I don't know why, the firmware_entry() method don't work */
+    void (*reset)(void) = (void*) ROMBASEADDR;
+    reset();
     
     // unreachable
     while(1) LEDBLUE = LEDON;
