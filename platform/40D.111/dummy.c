@@ -27,3 +27,5 @@ int time_indic_y = 0;
 
 void free_space_show(){};
 void fps_show(){};
+
+struct memChunk * GetNextMemoryChunk(struct memSuite * suite, struct memChunk * chunk) { return 0; }
