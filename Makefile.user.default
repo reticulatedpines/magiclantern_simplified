@@ -96,11 +96,11 @@ endif
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
 ifndef CONFIG_PICOC
-CONFIG_PICOC        = y
+CONFIG_PICOC        = n
 endif
-CONFIG_TCC          = n
+CONFIG_TCC          = y
 CONFIG_MEMCHECK     = n
-CONFIG_MODULES      = n
+CONFIG_MODULES      = y
 CONFIG_TINYPY       = n
 
 # Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
