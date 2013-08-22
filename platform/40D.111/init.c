@@ -20,19 +20,23 @@ static inline void zero_bss( void )
 
 
 int magic_off = 0; // Set to 1 to disable ML
-int magic_off_request = 0;
+
+static unsigned short int magic_off_request = 0;
+
+unsigned short int magic_is_off()
+{
+    return magic_off;
+}
+
+void _disable_ml_startup() {
+    magic_off_request = 1;
+}
 
 int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started
 
 int bmp_vram_idle_ptr;
-
-
-int magic_is_off() 
-{
-    return magic_off; 
-}
 
 static void call_init_funcs( void * priv )
 {
