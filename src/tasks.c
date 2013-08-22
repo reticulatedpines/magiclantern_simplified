@@ -5,7 +5,6 @@
 // * Indy for task information: http://groups.google.com/group/ml-devel/browse_thread/thread/26cb46acd262b953
 // * AJ for the idea of shutting down ML tasks manually, rather than letting DryOS do this job
 
-#define _TASKS_C
 #include "dryos.h"
 #include "property.h"
 #include "bmp.h"
@@ -14,6 +13,8 @@
 
 extern int is_taskid_valid(int, int, void*);
 extern int get_obj_attr(void*, unsigned char*, int, int);
+
+int ml_shutdown_requested = 0;
 
 char* get_task_name_from_id(int id)
 {
