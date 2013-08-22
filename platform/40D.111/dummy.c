@@ -11,7 +11,6 @@ void display_lcd_remote_icon(int x0, int y0) {}
 int new_LiveViewApp_handler = 0xff123456;
 
 void free_space_show_photomode(){}
-void display_shooting_info(){}
 
 int audio_meters_are_drawn() { return 0; }
 void volume_up(){};
