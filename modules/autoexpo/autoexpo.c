@@ -35,7 +35,7 @@
 
 #define GRAPH_XSIZE 2.4f
 #define GRAPH_YSIZE 2.3f
-#define GRAPH_STEP 2 //divisible by 10
+#define GRAPH_STEP 5 //divisible by 10
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
 #define GRAPH_YOFF 400
 #define GRAPH_MAX 130 // APEX value 1/8000
@@ -176,10 +176,10 @@ static unsigned int autoexpo_shoot_task(){
 
 static void update_graph()
 {
-    int last_ec = -1;
-    int last_tv = -1;
-    int last_av = -1;
     int last_sv = -1;
+    int last_av = -1;
+    int last_tv = -1;
+    int last_ec = -1;
     
     bool draw_label = 0;
     
@@ -212,17 +212,18 @@ static void update_graph()
                 // bg lines
                 if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
                 
-                // ec curve
-                GRAPH_DRAW_CURVE(ec, ec_val == 0 ? COLOR_BLACK : COLOR_ORANGE);
-                
-                // tv curve
-                GRAPH_DRAW_CURVE(tv, COLOR_RED);
+                // sv curve
+                GRAPH_DRAW_CURVE(sv, COLOR_LIGHT_BLUE);
                 
                 // av curve
                 GRAPH_DRAW_CURVE(av, COLOR_GREEN2);
 
-                // sv curve
-                GRAPH_DRAW_CURVE(sv, COLOR_LIGHT_BLUE);
+                // ec curve
+                GRAPH_DRAW_CURVE(ec, (last_ec == GRAPH_MAX / 2 && ec_val == 0) ? COLOR_BLACK : COLOR_ORANGE);
+                
+                // tv curve
+                GRAPH_DRAW_CURVE(tv, COLOR_RED);
+                
             } else {
                 // bv value
                 {
@@ -231,6 +232,19 @@ static void update_graph()
                     int center = strlen(bv_str) * font_med.width / 2;
                     if(bv < 0) center += font_med.width;
                     bmp_printf(GRAPH_FONT, x + 3 - center, GRAPH_YOFF + GRAPH_TEXT_PADD, "%d", bv / 10);
+                }
+                
+                if(BV_MAX + bv <= 40) continue;
+                
+                // sv value
+                if(next_sv != last_sv) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_sv), "%d", raw2iso(SV2RAW(next_sv)));
+                }
+                
+                // av value
+                if(next_av != last_av) {
+                    int ap = AV2STR(next_av);
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_av), "%d.%d", ap / 10, ap % 10);
                 }
                 
                 // ec value
@@ -245,22 +259,12 @@ static void update_graph()
                         "%s", lens_format_shutter(TV2RAW(next_tv)));
                 }
                 
-                // av value
-                if(next_av != last_av) {
-                    int ap = AV2STR(next_av);
-                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_av), "%d.%d", ap / 10, ap % 10);
-                }
-                
-                // sv value
-                if(next_sv != last_sv) {
-                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_sv), "%d", raw2iso(SV2RAW(next_sv)));
-                }
             }
             
-            last_ec = next_ec;
-            last_tv = next_tv;
-            last_av = next_av;
             last_sv = next_sv;
+            last_av = next_av;
+            last_tv = next_tv;
+            last_ec = next_ec;
         }
         
         if(!draw_label) {
@@ -454,6 +458,32 @@ static MENU_SELECT_FUNC(lens_av_set)
     lens_av = COERCE(lens_av, 0, 80);
 }
 
+static MENU_UPDATE_FUNC(last_bv_upd)
+{
+    if(last_bv != INT_MIN) {
+        int av = get_aperture_from_bv(last_bv, 1);
+        int iso = get_iso_from_bv(last_bv, 1);
+        int tv = get_shutter_from_bv(last_bv, av, iso, 1);
+        int ec = last_bv - (tv + av - iso);
+        int ap = AV2STR(av);
+        
+        MENU_SET_VALUE("%s%d.%d BV", FMT_FIXEDPOINT1(last_bv));
+        MENU_SET_HELP("%s f/%d.%d   %d ISO   %s%d.%d EC",
+            lens_format_shutter(TV2RAW(tv)),
+            ap / 10, ap % 10,
+            raw2iso(SV2RAW(iso)),
+            FMT_FIXEDPOINT1S(ec)
+        );
+    }
+    MENU_CUSTOM_DRAW;
+}
+
+static MENU_SELECT_FUNC(last_bv_set)
+{
+    if(last_bv == INT_MIN) last_bv = 20;
+    else last_bv = COERCE(last_bv + delta * -5, BV_MIN, BV_MAX);
+}
+
 static MENU_UPDATE_FUNC(menu_custom_draw_upd)
 {
     MENU_CUSTOM_DRAW;
@@ -559,6 +589,12 @@ static struct menu_entry autoexpo_menu[] =
                 .update = menu_custom_draw_upd,
                 .max = 1,
                 .help = "Stop using digital ISO - 100, 200, 400, 800, etc.",
+            },
+            {
+                .name = "Browse",
+                .update = last_bv_upd,
+                .select = last_bv_set,
+                .icon_type = IT_DICE,
             },
             MENU_EOL,
         }
