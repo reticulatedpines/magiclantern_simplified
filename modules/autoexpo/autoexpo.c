@@ -429,14 +429,17 @@ static MENU_UPDATE_FUNC(lens_av_upd)
 {
     if(!lens_av) {
         MENU_SET_VALUE("OFF");
+        MENU_SET_ENABLED(0);
         MENU_SET_ICON(IT_DICE_OFF, 0);
     } else if (lens_av == LENS_AV_THIS) {
         int ap = AV2STR(RAW2AV(lens_info.raw_aperture_min));
         MENU_SET_VALUE("this lens f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
     } else {
         int ap = AV2STR(lens_av);
         MENU_SET_VALUE("f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
     }
     MENU_CUSTOM_DRAW;
@@ -538,15 +541,15 @@ static struct menu_entry autoexpo_menu[] =
                 .priv = &same_tv,
                 .update = menu_custom_draw_upd,
                 .max = 1,
-                .help = "Compensate minimum aperture changes with ISO offset.",
-                .help2 = "And EC changes with max aperture & EC offset & ISO offset.",
+                .help = "Compensate min AV changes with EC offset & ISO offset.",
+                .help2 = "And EC changes with max AV & EC offset & ISO offset.",
             },
             {
                 .name = "Lens AV",
                 .update = lens_av_upd,
                 .select = lens_av_set,
                 .icon_type = IT_DICE,
-                .help = "Simulate graph for this lens aperture.",
+                .help = "Simulate graph for specific lens aperture.",
             },
             {
                 .name = "Round ISO",
