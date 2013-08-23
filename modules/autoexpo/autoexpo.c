@@ -38,15 +38,16 @@
 #define GRAPH_STEP 2 //divisible by 10
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
 #define GRAPH_YOFF 400
-#define GRAPH_MAX 130 /* APEX value 1/8000 */
+#define GRAPH_MAX 130 // APEX value 1/8000
 #define GRAPH_MAX_PX (int)(GRAPH_MAX * GRAPH_YSIZE)
 #define GRAPH_BG 45
 #define GRAPH_FONT SHADOW_FONT(FONT_MED)
+#define GRAPH_FONT_H ((int)font_med.height)
 #define GRAPH_PADD 2
 #define GRAPH_TEXT_PADD 4
 
 #define GRAPH_Y(val) (int)(GRAPH_YOFF - (val) * GRAPH_YSIZE)
-#define GRAPH_Y_TEXT (int)(GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE))
+#define GRAPH_Y_TEXT(val) (int)(GRAPH_YOFF - COERCE(val * GRAPH_YSIZE + GRAPH_FONT_H - 3, 0, GRAPH_MAX_PX))
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
 #define GRAPH_DRAW_CURVE(val, col) \
     if(IS_IN_RANGE(next_##val, last_##val)) { \
@@ -165,7 +166,7 @@ static unsigned int autoexpo_shoot_task(){
         auto_expo_enabled &&
         shooting_mode == SHOOTMODE_M &&
         !lv &&
-        get_ae_value() != 0 &&
+        get_ae_value() != 0 && //fixme differentiate EC=0 and metering off
         !autoexpo_running
     )
         task_create("autoexpo_task", 0x1c, 0x1000, autoexpo_task, (void*)0);
@@ -180,10 +181,7 @@ static void update_graph()
     int last_av = -1;
     int last_sv = -1;
     
-    int print_ec = -1;
-    int print_tv = -1;
-    int print_av = -1;
-    int print_sv = -1;
+    bool draw_label = 0;
     
     BMP_LOCK(
         bmp_fill(GRAPH_BG, 1,
@@ -198,72 +196,76 @@ static void update_graph()
             draw_line(x + 1, GRAPH_YOFF - GRAPH_MAX_PX, x + 1, GRAPH_YOFF, COLOR_CYAN);
         }
         
-        for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
+        graph_draw:
+        for(int bv = BV_MAX; bv >= BV_MIN; bv -= (draw_label) ? 20 : GRAPH_STEP){
             int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
-            int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
-            bool print_str = !((bv - BV_MAX) % 30);
             
             int next_av = get_aperture_from_bv(bv, 1);
             int next_sv = get_iso_from_bv(bv, 1);
             int next_tv = get_shutter_from_bv(bv, next_av, next_sv, 1);
-            
             int ec_val = bv - (next_tv + next_av - next_sv);
             int next_ec = (GRAPH_MAX / 2) + ec_val;
             
-            // bg lines
-            if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
-            
-            // bv value
-            if(!((bv - BV_MAX) % 20)){
-                char bv_str[3];
-                snprintf(bv_str, sizeof(bv_str), "%d", ABS(bv / 10));
-                int center = strlen(bv_str) * font_med.width / 2;
-                if(bv < 0) center += font_med.width;
-                bmp_printf(GRAPH_FONT, x + 3 - center, GRAPH_YOFF + GRAPH_TEXT_PADD, "%d", bv / 10);
-            }
-            
-            // ec value
-            if(print_str && next_ec != print_ec){
-                if(ec_val)bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_ec), "%s%d.%d", FMT_FIXEDPOINT1S(ec_val));
-                print_ec = next_ec;
-            }
-            
-            // tv value
-            if(print_str && next_tv != print_tv){
-                bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_tv), "%s", lens_format_shutter(TV2RAW(next_tv)));
-                print_tv = next_tv;
-            }
-            
-            // av value
-            if(print_str && next_av != print_av){
-                int ap = AV2STR(next_av);
-                bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_av), "%d.%d", ap / 10, ap % 10);
-                print_av = next_av;
-            }
-            
-            // sv value
-            if(print_str && next_sv != print_sv){
-                bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_sv), "%d", raw2iso(SV2RAW(next_sv)));
-                print_sv = next_sv;
-            }
-            
-            // ec curve
-            GRAPH_DRAW_CURVE(ec, ec_val == 0 ? COLOR_BLACK : COLOR_ORANGE);
-            
-            // tv curve
-            GRAPH_DRAW_CURVE(tv, COLOR_RED);
-            
-            // av curve
-            GRAPH_DRAW_CURVE(av, COLOR_GREEN2);
+            if(!draw_label) {
+                int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
+                
+                // bg lines
+                if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
+                
+                // ec curve
+                GRAPH_DRAW_CURVE(ec, ec_val == 0 ? COLOR_BLACK : COLOR_ORANGE);
+                
+                // tv curve
+                GRAPH_DRAW_CURVE(tv, COLOR_RED);
+                
+                // av curve
+                GRAPH_DRAW_CURVE(av, COLOR_GREEN2);
 
-            // sv curve
-            GRAPH_DRAW_CURVE(sv, COLOR_LIGHT_BLUE);
-            
+                // sv curve
+                GRAPH_DRAW_CURVE(sv, COLOR_LIGHT_BLUE);
+            } else {
+                // bv value
+                {
+                    char bv_str[3];
+                    snprintf(bv_str, sizeof(bv_str), "%d", ABS(bv / 10));
+                    int center = strlen(bv_str) * font_med.width / 2;
+                    if(bv < 0) center += font_med.width;
+                    bmp_printf(GRAPH_FONT, x + 3 - center, GRAPH_YOFF + GRAPH_TEXT_PADD, "%d", bv / 10);
+                }
+                
+                // ec value
+                if(last_ec != next_ec && ec_val) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_ec),
+                        "%s%d.%d", FMT_FIXEDPOINT1S(ec_val));
+                }
+                
+                // tv value
+                if(next_tv != last_tv) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_tv),
+                        "%s", lens_format_shutter(TV2RAW(next_tv)));
+                }
+                
+                // av value
+                if(next_av != last_av) {
+                    int ap = AV2STR(next_av);
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_av), "%d.%d", ap / 10, ap % 10);
+                }
+                
+                // sv value
+                if(next_sv != last_sv) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_sv), "%d", raw2iso(SV2RAW(next_sv)));
+                }
+            }
             
             last_ec = next_ec;
             last_tv = next_tv;
             last_av = next_av;
             last_sv = next_sv;
+        }
+        
+        if(!draw_label) {
+            draw_label = 1;
+            goto graph_draw;
         }
     )
 }
