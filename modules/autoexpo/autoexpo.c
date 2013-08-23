@@ -537,7 +537,7 @@ static struct menu_entry autoexpo_menu[] =
                 .update = menu_custom_draw_upd,
                 .max = 1,
                 .help = "Compensate minimum aperture changes with ISO offset.",
-                .help2 = "And EC changes with maximum aperture and EC & ISO offset.",
+                .help2 = "And EC changes with max aperture & EC offset & ISO offset.",
             },
             {
                 .name = "Lens AV",
