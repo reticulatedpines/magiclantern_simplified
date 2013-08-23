@@ -20,6 +20,8 @@
 
 #define BV_MAX 160
 #define BV_MIN -120
+#define AV_MIN 5
+#define AV_MAX 100
 
 #define RAW2TV(raw) APEX_TV(raw) * 10 / 8
 #define RAW2AV(raw) APEX_AV(raw) * 10 / 8
@@ -51,6 +53,7 @@
         info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
         if(entry->selected)entry_print(info->x, 60, 15, entry, info, 1); \
     }
+#define LENS_AV_THIS 5
 
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
@@ -88,15 +91,13 @@ extern void entry_print(
 );
 
 static int same_tv_offset(int simul){
-    if(simul && lens_av != 5) return MAX(0, lens_av - av_min);
+    if(!same_tv) return 0;
+    if(simul && lens_av != LENS_AV_THIS) return MAX(0, lens_av - av_min);
     return MAX(0, RAW2AV(lens_info.raw_aperture_min) - av_min);
 }
 
 static int get_ec(int bv, bool simul){
-    int offset = ec_off;
-    if(same_tv) offset += same_tv_offset(simul);
-    
-    return COERCE(ec - (MIN(bv - offset, 0) * ec_step) / 10, ec_min, ec_max);
+    return COERCE(ec - (MIN(bv - (ec_off + same_tv_offset(simul)), 0) * ec_step) / 10, ec_min, ec_max);
 }
 
 static int get_shutter_from_bv(int bv, int aperture, int iso, bool simul){
@@ -105,17 +106,15 @@ static int get_shutter_from_bv(int bv, int aperture, int iso, bool simul){
 
 static int get_aperture_from_bv(int bv, bool simul){
     int ap = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
-    if(simul && lens_av != 5) ap = MAX(lens_av, ap);
+    
+    if(simul && lens_av != LENS_AV_THIS) ap = MAX(lens_av, ap);
     else ap = COERCE(ap, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
     
     return ap;
 }
 
 static int get_iso_from_bv(int bv, bool simul){
-    int offset = iso_off;
-    if(same_tv) offset += same_tv_offset(simul);
-    
-    int iso = MIN(iso_min - (MIN(bv - offset, 0) * iso_step) / 10, iso_max);
+    int iso = MIN(iso_min - (MIN(bv - (iso_off + same_tv_offset(simul)), 0) * iso_step) / 10, iso_max);
     if(round_iso)
     {
         iso /= 10;
@@ -289,14 +288,14 @@ static MENU_SELECT_FUNC(aperture_range_set)
 
     if(ABS(last_d) == 1) {
         av_min += last_d * 5;
-        if(same_tv) {
+        if(same_tv && av_min >= AV_MIN && av_min <= AV_MAX) {
             iso_off = COERCE(iso_off + last_d * 5, BV_MIN - 100, BV_MAX + 100);
         }
     }
     else if(ABS(last_d) == 5) av_max += last_d;
 
-    av_min = COERCE(av_min, 5, 100);
-    av_max = COERCE(av_max, av_min, 100);
+    av_min = COERCE(av_min, AV_MIN, AV_MAX);
+    av_max = COERCE(av_max, av_min, AV_MAX);
 }
 
 static MENU_UPDATE_FUNC(aperture_curve_upd)
@@ -369,7 +368,19 @@ static MENU_UPDATE_FUNC(ec_upd)
 
 static MENU_SELECT_FUNC(ec_sel)
 {
+    delta *= 5;
     ec += delta;
+    
+    if(ABS(ec) > 50) {
+        ec = COERCE(ec, -50, 50);
+        return;
+    }
+    
+    if(same_tv) {
+        av_max -= delta;
+        ec_off += delta;
+        iso_off += delta;
+    }
 }
 
 static MENU_UPDATE_FUNC(ec_range_upd)
@@ -385,8 +396,8 @@ static MENU_SELECT_FUNC(ec_range_set)
     if(ABS(last_d) == 1) ec_min += last_d;
     else if(ABS(last_d) == 5) ec_max += last_d / 5;
     
-    ec_min = MIN(ec_min, ec_max);
-    ec_max = MAX(ec_min, ec_max);
+    ec_min = COERCE(ec_min, -50, ec_max);
+    ec_max = COERCE(ec_max, ec_min, 50);
 }
 
 static MENU_UPDATE_FUNC(ec_curve_upd)
@@ -417,8 +428,9 @@ static MENU_UPDATE_FUNC(lens_av_upd)
     if(!lens_av) {
         MENU_SET_VALUE("OFF");
         MENU_SET_ICON(IT_DICE_OFF, 0);
-    } else if (lens_av == 5) {
-        MENU_SET_VALUE("this lens");
+    } else if (lens_av == LENS_AV_THIS) {
+        int ap = AV2STR(RAW2AV(lens_info.raw_aperture_min));
+        MENU_SET_VALUE("this lens f/%d.%d", ap / 10, ap % 10);
         MENU_SET_ICON(IT_DICE, 0);
     } else {
         int ap = AV2STR(lens_av);
@@ -430,7 +442,9 @@ static MENU_UPDATE_FUNC(lens_av_upd)
 
 static MENU_SELECT_FUNC(lens_av_set)
 {
-    lens_av = COERCE(lens_av + delta * 5, 0, 80);
+    lens_av += delta * 5;
+    if(lens_av < 0) lens_av = LENS_AV_THIS;
+    lens_av = COERCE(lens_av, 0, 80);
 }
 
 static MENU_UPDATE_FUNC(menu_custom_draw_upd)
@@ -522,15 +536,15 @@ static struct menu_entry autoexpo_menu[] =
                 .priv = &same_tv,
                 .update = menu_custom_draw_upd,
                 .max = 1,
-                .help = "Move ISO & EC left if minimum aperture changes.",
-                .help2 = "Or minimum aperture is not in valid range.",
+                .help = "Compensate minimum aperture changes with ISO offset.",
+                .help2 = "And EC changes with maximum aperture and EC & ISO offset.",
             },
             {
                 .name = "Lens AV",
                 .update = lens_av_upd,
                 .select = lens_av_set,
                 .icon_type = IT_DICE,
-                .help = "Simulate graph for lens with minimum aperture.",
+                .help = "Simulate graph for this lens aperture.",
             },
             {
                 .name = "Round ISO",
