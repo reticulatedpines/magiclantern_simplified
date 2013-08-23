@@ -35,18 +35,24 @@
 
 #define GRAPH_XSIZE 2.4f
 #define GRAPH_YSIZE 2.3f
-#define GRAPH_STEP 2 //divisible by 20
+#define GRAPH_STEP 2 //divisible by 10
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
 #define GRAPH_YOFF 400
 #define GRAPH_MAX 130 /* APEX value 1/8000 */
 #define GRAPH_MAX_PX (int)(GRAPH_MAX * GRAPH_YSIZE)
 #define GRAPH_BG 45
+#define GRAPH_FONT SHADOW_FONT(FONT_MED)
 #define GRAPH_PADD 2
 #define GRAPH_TEXT_PADD 4
 
-#define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
 #define GRAPH_Y(val) (int)(GRAPH_YOFF - (val) * GRAPH_YSIZE)
 #define GRAPH_Y_TEXT (int)(GRAPH_YOFF - MAX(5, next * GRAPH_YSIZE))
+#define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
+#define GRAPH_DRAW_CURVE(val, col) \
+    if(IS_IN_RANGE(next_##val, last_##val)) { \
+        draw_line(x_last, GRAPH_Y(last_##val), x, GRAPH_Y(next_##val), col); \
+    } \
+
 
 #define MENU_CUSTOM_DRAW \
     if(show_graph && info->can_custom_draw) { \
@@ -57,20 +63,20 @@
 
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
-/* these are for fullframe camereas */
+// these are for fullframe camereas
 static CONFIG_INT("auto.expo.same_tv", same_tv, 1);
 static CONFIG_INT("auto.expo.lens_av", lens_av, 0);
 static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
-static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  /* 1s */
-static CONFIG_INT("auto.expo.av_min", av_min, 10); /* f/1.4 */
-static CONFIG_INT("auto.expo.av_max", av_max, 80); /* f/16 */
+static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  // 1s
+static CONFIG_INT("auto.expo.av_min", av_min, 10); // f/1.4
+static CONFIG_INT("auto.expo.av_max", av_max, 80); // f/16
 static CONFIG_INT("auto.expo.av_step", av_step, 10);
 static CONFIG_INT("auto.expo.av_off", av_off, 160);
-static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  /* ISO 100 */
-static CONFIG_INT("auto.expo.iso_max", iso_max, 120); /* ISO 12 800 */
+static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  // ISO 100
+static CONFIG_INT("auto.expo.iso_max", iso_max, 120); // ISO 12 800
 static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
 static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
-static CONFIG_INT("auto.expo.ec", ec, 0);  /* exposure compensation */
+static CONFIG_INT("auto.expo.ec", ec, 0);  // exposure compensation
 static CONFIG_INT("auto.expo.ec_min", ec_min, -15);
 static CONFIG_INT("auto.expo.ec_max", ec_max, 20);
 static CONFIG_INT("auto.expo.ec_step", ec_step, -3);
@@ -169,17 +175,16 @@ static unsigned int autoexpo_shoot_task(){
 
 static void update_graph()
 {
-    int last_tv = 0;
-    int last_av = 0;
-    int last_iso = 0;
-    int last_ec = 0;
-    int last_tv_odd = 0;
-    int last_av_odd = 0;
-    int last_iso_odd = 0;
-    int last_ec_odd = 0;
-    int next = 0;
-    int sfont = FONT(FONT_SMALL, COLOR_WHITE, GRAPH_BG);
-
+    int last_ec = -1;
+    int last_tv = -1;
+    int last_av = -1;
+    int last_sv = -1;
+    
+    int print_ec = -1;
+    int print_tv = -1;
+    int print_av = -1;
+    int print_sv = -1;
+    
     BMP_LOCK(
         bmp_fill(GRAPH_BG, 1,
             GRAPH_YOFF - GRAPH_MAX_PX - GRAPH_PADD,
@@ -187,81 +192,78 @@ static void update_graph()
             GRAPH_MAX_PX + GRAPH_TEXT_PADD + GRAPH_PADD + font_med.height
         );
         
-        for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
-            int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
-            int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
-            bool odd = !(bv % 20) && bv != BV_MIN;
-
-            //bv
-            if(odd){
-                char bv_str[4];
-                snprintf(bv_str, sizeof(bv_str), "%d", bv / 10);
-                bmp_printf(FONT(FONT_MED, COLOR_WHITE, GRAPH_BG),
-                    x + 3 - strlen(bv_str) * font_med.width / 2, GRAPH_YOFF + GRAPH_TEXT_PADD, bv_str);
-            }
-
-            //av
-            next = get_aperture_from_bv(bv, 1);
-            
-            if(IS_IN_RANGE(next, last_av)){
-                if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_Y(last_av), x, GRAPH_Y(next), COLOR_GREEN2);
-                }
-                if(odd && next != last_av_odd){
-                    int ap = AV2STR(next);
-                    bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%d.%d", ap / 10, ap % 10);
-                    last_av_odd = next;
-                }
-            }
-            last_av = next;
-
-            //sv
-            next = get_iso_from_bv(bv, 1);
-            if(IS_IN_RANGE(next, last_iso)){
-                if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_Y(last_iso), x, GRAPH_Y(next), COLOR_LIGHT_BLUE);
-                }
-                if(odd && next != last_iso_odd){
-                    bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%d", raw2iso(SV2RAW(next)));
-                    last_iso_odd = next;
-                }
-            }
-            last_iso = next;
-
-            //tv
-            next = get_shutter_from_bv(bv, last_av, last_iso, 1);
-            if(IS_IN_RANGE(next, last_tv)){
-                if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_Y(last_tv), x, GRAPH_Y(next), COLOR_RED);
-                }
-                if(odd && next != last_tv_odd){
-                    bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%s", lens_format_shutter(TV2RAW(next)));
-                    last_tv_odd = next;
-                }
-            }
-            last_tv = next;
-            
-            //ec
-            int ec_val = bv - (last_tv + last_av - last_iso);
-            next = (GRAPH_MAX / 2) + ec_val;
-            if(IS_IN_RANGE(next, last_ec)){
-                if(bv != BV_MAX){
-                    draw_line(x_last, GRAPH_Y(last_ec), x, GRAPH_Y(next), ec_val == 0 ? COLOR_BLACK : COLOR_ORANGE);
-                }
-                if(odd && next != last_ec_odd){
-                    if(ec_val)bmp_printf(sfont, x + 2, GRAPH_Y_TEXT, "%s%d.%d", FMT_FIXEDPOINT1S(ec_val));
-                    last_ec_odd = next;
-                }
-            }
-            last_ec = next;
-
-            //lines
-            if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
-        }
         if(last_bv != INT_MIN){
             int x = GRAPH_XOFF + (BV_MAX - last_bv) * GRAPH_XSIZE;
             draw_line(x - 1, GRAPH_YOFF - GRAPH_MAX_PX, x - 1, GRAPH_YOFF, COLOR_CYAN);
             draw_line(x + 1, GRAPH_YOFF - GRAPH_MAX_PX, x + 1, GRAPH_YOFF, COLOR_CYAN);
+        }
+        
+        for(int bv = BV_MAX; bv >= BV_MIN; bv-=GRAPH_STEP){
+            int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
+            int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
+            bool print_str = !((bv - BV_MAX) % 30);
+            
+            int next_av = get_aperture_from_bv(bv, 1);
+            int next_sv = get_iso_from_bv(bv, 1);
+            int next_tv = get_shutter_from_bv(bv, next_av, next_sv, 1);
+            
+            int ec_val = bv - (next_tv + next_av - next_sv);
+            int next_ec = (GRAPH_MAX / 2) + ec_val;
+            
+            // bg lines
+            if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
+            
+            // bv value
+            if(!((bv - BV_MAX) % 20)){
+                char bv_str[3];
+                snprintf(bv_str, sizeof(bv_str), "%d", ABS(bv / 10));
+                int center = strlen(bv_str) * font_med.width / 2;
+                if(bv < 0) center += font_med.width;
+                bmp_printf(GRAPH_FONT, x + 3 - center, GRAPH_YOFF + GRAPH_TEXT_PADD, "%d", bv / 10);
+            }
+            
+            // ec value
+            if(print_str && next_ec != print_ec){
+                if(ec_val)bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_ec), "%s%d.%d", FMT_FIXEDPOINT1S(ec_val));
+                print_ec = next_ec;
+            }
+            
+            // tv value
+            if(print_str && next_tv != print_tv){
+                bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_tv), "%s", lens_format_shutter(TV2RAW(next_tv)));
+                print_tv = next_tv;
+            }
+            
+            // av value
+            if(print_str && next_av != print_av){
+                int ap = AV2STR(next_av);
+                bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_av), "%d.%d", ap / 10, ap % 10);
+                print_av = next_av;
+            }
+            
+            // sv value
+            if(print_str && next_sv != print_sv){
+                bmp_printf(GRAPH_FONT, x + 2, GRAPH_Y(next_sv), "%d", raw2iso(SV2RAW(next_sv)));
+                print_sv = next_sv;
+            }
+            
+            // ec curve
+            GRAPH_DRAW_CURVE(ec, ec_val == 0 ? COLOR_BLACK : COLOR_ORANGE);
+            
+            // tv curve
+            GRAPH_DRAW_CURVE(tv, COLOR_RED);
+            
+            // av curve
+            GRAPH_DRAW_CURVE(av, COLOR_GREEN2);
+
+            // sv curve
+            GRAPH_DRAW_CURVE(sv, COLOR_LIGHT_BLUE);
+            
+            
+            last_ec = next_ec;
+            last_tv = next_tv;
+            last_av = next_av;
+            last_sv = next_sv;
         }
     )
 }
