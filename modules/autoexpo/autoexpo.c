@@ -440,7 +440,7 @@ static struct menu_entry autoexpo_menu[] =
         .submenu_height = 410,
         .submenu_width = 720,
         .help = "Automatic exposure algorithm based on predefined curves.",
-        .help2 = "Approximately 500ms response + 60ms to set new exposure.",
+        .help2 = "You have to press halfshutter for at least 60ms.",
         .children = (struct menu_entry[]) {
             {
                 .name = "TV minimum",
