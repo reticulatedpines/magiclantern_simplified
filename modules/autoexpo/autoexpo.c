@@ -105,45 +105,35 @@ extern void entry_print(
     int in_submenu
 );
 
-static int same_tv_offset(int simul){
-    if(!same_tv) return 0;
-    if(simul && lens_av != LENS_AV_THIS) return MAX(0, lens_av - av_min);
-    return MAX(0, RAW2AV(lens_info.raw_aperture_min) - av_min);
-}
-
-static int get_ec(int bv, bool simul){
-    return COERCE(ec - (MIN(bv - (ec_off + same_tv_offset(simul)), 0) * ec_step) / 10, ec_min, ec_max);
-}
-
-static int get_shutter_from_bv(int bv, int aperture, int iso, bool simul){
-    return COERCE((bv - aperture + iso) - get_ec(bv, simul), tv_min, 130);
-}
-
-static int get_aperture_from_bv(int bv, bool simul){
-    int ap = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
-    
-    if(simul && lens_av != LENS_AV_THIS) ap = MAX(lens_av, ap);
-    else ap = COERCE(ap, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
-    
-    return ap;
-}
-
-static int get_iso_from_bv(int bv, bool simul){
-    int iso = MIN(iso_min - (MIN(bv - (iso_off + same_tv_offset(simul)), 0) * iso_step) / 10, iso_max);
-    if(round_iso)
-    {
-        iso /= 10;
-        iso *= 10;
-    }
-    return iso;
-}
-
 static exposure get_exposure(int bv, int simul) {
     exposure expo;
     
-    expo.av = get_aperture_from_bv(bv, simul);
-    expo.sv = get_iso_from_bv(bv, simul);
-    expo.tv = get_shutter_from_bv(bv, expo.av, expo.sv, simul);
+    //same_tv 
+    int same_tv_offset = 0;
+    if(same_tv) {
+        if(simul && lens_av != LENS_AV_THIS) same_tv_offset = MAX(0, lens_av - av_min);
+        same_tv_offset = MAX(0, RAW2AV(lens_info.raw_aperture_min) - av_min);
+    }
+    
+    //av
+    expo.av = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
+    if(simul && lens_av != LENS_AV_THIS) expo.av = MAX(lens_av, expo.av);
+    else expo.av = COERCE(expo.av, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
+    
+    //av
+    expo.sv  = MIN(iso_min - (MIN(bv - (iso_off + same_tv_offset), 0) * iso_step) / 10, iso_max);
+    if(round_iso) {
+        expo.sv /= 10;
+        expo.sv *= 10;
+    }
+    
+    //ec
+    expo.ec = COERCE(ec - (MIN(bv - (ec_off + same_tv_offset), 0) * ec_step) / 10, ec_min, ec_max);
+    
+    //tv
+    expo.tv = COERCE((bv - expo.av + expo.sv) - expo.ec, tv_min, 130);
+    
+    //ec
     expo.ec = bv - (expo.tv + expo.av - expo.sv);
     
     return expo;
