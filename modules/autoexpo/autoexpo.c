@@ -52,10 +52,14 @@
         draw_line(x_last, GRAPH_Y(last_expo.val), x, GRAPH_Y(expo.val), col); \
     } \
 
-#define MENU_CUSTOM_DRAW \
+#define MENU_CUSTOM_DRAW(item) \
     if(show_graph && info->can_custom_draw) { \
         info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
-        if(entry->selected)entry_print(info->x, 60, 15, entry, info, 1); \
+        if(entry->selected) { \
+            entry_print(info->x, 60, 15, entry, info, 1); \
+            current_item = item; \
+            update_graph(); \
+        } \
     }
 #define RANGE_SET(val, min, max) \
     if(!rear_dial()) { \
@@ -74,6 +78,17 @@
     val##_step = COERCE( val##_step, step_min, step_max);
 
 #define LENS_AV_THIS 5
+
+#define IS_SEL(item) current_item == ITEM_##item
+#define ITEM_TV_MIN 1
+#define ITEM_AV_RANGE 2
+#define ITEM_AV_CURVE 3
+#define ITEM_ISO_RANGE 4
+#define ITEM_ISO_CURVE 5
+#define ITEM_EC 6
+#define ITEM_EC_RANGE 7
+#define ITEM_EC_CURVE 8
+#define ITEM_LENS_AV 9
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 // these are for fullframe camereas
@@ -99,6 +114,7 @@ static int autoexpo_running = 0;
 static bool show_graph = 1;
 static int last_key = 0;
 static int last_bv = INT_MIN;
+static int current_item = 0;
 
 typedef struct
 {
@@ -224,16 +240,20 @@ static void update_graph()
             if(!(bv % 10))draw_line(x, GRAPH_YOFF - GRAPH_MAX_PX, x, GRAPH_YOFF, COLOR_BLACK);
             
             // sv curve
-            GRAPH_DRAW_CURVE(sv, COLOR_LIGHT_BLUE);
+            GRAPH_DRAW_CURVE(sv, IS_SEL(ISO_RANGE) || IS_SEL(ISO_CURVE) ?
+                COLOR_WHITE : COLOR_LIGHT_BLUE );
             
             // av curve
-            GRAPH_DRAW_CURVE(av, COLOR_GREEN2);
-
+            GRAPH_DRAW_CURVE(av, IS_SEL(AV_RANGE) || IS_SEL(AV_CURVE) || IS_SEL(LENS_AV) ?
+                COLOR_WHITE : COLOR_GREEN2);
+            
             // ec curve
-            GRAPH_DRAW_CURVE(ec, (last_expo.ec - (GRAPH_MAX / 2) == 0 && ec_val == 0) ? COLOR_BLACK : COLOR_ORANGE);
+            GRAPH_DRAW_CURVE(ec, IS_SEL(EC) || IS_SEL(EC_RANGE) || IS_SEL(EC_CURVE) ?
+                COLOR_WHITE : (last_expo.ec - (GRAPH_MAX / 2) == 0 && ec_val == 0) ? COLOR_BLACK : COLOR_ORANGE);
             
             // tv curve
-            GRAPH_DRAW_CURVE(tv, COLOR_RED);
+            GRAPH_DRAW_CURVE(tv, IS_SEL(TV_MIN) ?
+                COLOR_WHITE : COLOR_RED);
             
         } else {
             // bv value
@@ -292,19 +312,19 @@ static void unset_rear() { last_key = 0; }
 static MENU_SELECT_FUNC(aperture_curve_set) { CURVE_SET(av, 0, 50); }
 static MENU_UPDATE_FUNC(aperture_curve_upd) {
     MENU_SET_VALUE("at %s%d.%d -%d.%d EVpBV", FMT_FIXEDPOINT1(av_off), av_step /10, av_step % 10);
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_AV_CURVE);
 }
 
 static MENU_SELECT_FUNC(iso_curve_set) { CURVE_SET(iso, 0, 50); }
 static MENU_UPDATE_FUNC(iso_curve_upd) {
     MENU_SET_VALUE("at %s%d.%d +%d.%d EVpBV", FMT_FIXEDPOINT1(iso_off), iso_step / 10, iso_step % 10);
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_ISO_CURVE);
 }
 
 static MENU_SELECT_FUNC(ec_curve_set) { CURVE_SET(ec, -50, 50); }
 static MENU_UPDATE_FUNC(ec_curve_upd) {
     MENU_SET_VALUE("at %s%d.%d %s%d.%d EVpBV", FMT_FIXEDPOINT1(ec_off), FMT_FIXEDPOINT1S(ec_step));
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_EC_CURVE);
 }
 
 //others
@@ -312,7 +332,7 @@ static MENU_UPDATE_FUNC(aperture_range_upd) {
     int apmin = AV2STR(av_min);
     int apmax = AV2STR(av_max);
     MENU_SET_VALUE("f/%d.%d - f/%d.%d", apmin / 10, apmin % 10, apmax / 10, apmax % 10);
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_AV_RANGE);
 }
 
 static MENU_SELECT_FUNC(aperture_range_set) {
@@ -328,7 +348,7 @@ static MENU_SELECT_FUNC(aperture_range_set) {
 
 static MENU_UPDATE_FUNC(iso_range_upd) {
     MENU_SET_VALUE("%d - %d", raw2iso(SV2RAW(iso_min)), raw2iso(SV2RAW(iso_max)));
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_ISO_RANGE);
 }
 
 static MENU_SELECT_FUNC(iso_range_set) {
@@ -348,12 +368,12 @@ static MENU_SELECT_FUNC(tv_min_set) {
 
 static MENU_UPDATE_FUNC(tv_min_upd) {
     MENU_SET_VALUE("%s", lens_format_shutter(TV2RAW(tv_min)));
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_TV_MIN);
 }
 
 static MENU_UPDATE_FUNC(ec_upd) {
     MENU_SET_VALUE("%s%d.%d EV", FMT_FIXEDPOINT1S(ec));
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_EC);
 }
 
 static MENU_SELECT_FUNC(ec_sel) {
@@ -370,15 +390,10 @@ static MENU_SELECT_FUNC(ec_sel) {
 
 static MENU_UPDATE_FUNC(ec_range_upd) {
     MENU_SET_VALUE("%s%d.%d EV - %s%d.%d EV", FMT_FIXEDPOINT1S(ec_min), FMT_FIXEDPOINT1S(ec_max));
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_EC_RANGE);
 }
 
 static MENU_SELECT_FUNC(ec_range_set) { RANGE_SET(ec, -50, 50); }
-
-static MENU_UPDATE_FUNC(show_graph_upd) {
-    if(show_graph && info->can_custom_draw) update_graph();
-    MENU_CUSTOM_DRAW;
-}
 
 static MENU_UPDATE_FUNC(lens_av_upd) {
     if(!lens_av) {
@@ -398,7 +413,7 @@ static MENU_UPDATE_FUNC(lens_av_upd) {
         MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
     }
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(ITEM_LENS_AV);
 }
 
 static MENU_SELECT_FUNC(lens_av_set) {
@@ -420,7 +435,7 @@ static MENU_UPDATE_FUNC(last_bv_upd) {
             FMT_FIXEDPOINT1S(expo.ec)
         );
     }
-    MENU_CUSTOM_DRAW;
+    MENU_CUSTOM_DRAW(0);
 }
 
 static MENU_SELECT_FUNC(last_bv_set) {
@@ -428,7 +443,7 @@ static MENU_SELECT_FUNC(last_bv_set) {
     else last_bv = COERCE(last_bv + delta * -5, BV_MIN, BV_MAX);
 }
 
-static MENU_UPDATE_FUNC(menu_custom_draw_upd) { MENU_CUSTOM_DRAW; }
+static MENU_UPDATE_FUNC(menu_custom_draw_upd) { MENU_CUSTOM_DRAW(0); }
 
 static struct menu_entry autoexpo_menu[] =
 {
@@ -506,7 +521,7 @@ static struct menu_entry autoexpo_menu[] =
             {
                 .name = "Show graph",
                 .priv = &show_graph,
-                .update = show_graph_upd,
+                .update = menu_custom_draw_upd,
                 .max = 1,
             },
             {
