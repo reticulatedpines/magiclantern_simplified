@@ -2621,3 +2621,6 @@ int get_max_ae_ev() { return MAX_AE_EV; }
 #ifdef AE_VALUE
 int get_ae_value() { return AE_VALUE; }
 #endif
+#ifdef AE_STATE
+int get_ae_state() { return AE_STATE; }
+#endif

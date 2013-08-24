@@ -180,7 +180,7 @@ static unsigned int autoexpo_shoot_task(){
         auto_expo_enabled &&
         shooting_mode == SHOOTMODE_M &&
         !lv &&
-        get_ae_value() != 0 && //fixme differentiate EC=0 and metering off
+        get_ae_state() != 0 &&
         !autoexpo_running
     )
         task_create("autoexpo_task", 0x1c, 0x1000, autoexpo_task, (void*)0);
