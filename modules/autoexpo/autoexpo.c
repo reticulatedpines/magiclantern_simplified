@@ -47,11 +47,11 @@
 #define GRAPH_TEXT_PADD 4
 
 #define GRAPH_Y(val) (int)(GRAPH_YOFF - (val) * GRAPH_YSIZE)
-#define GRAPH_Y_TEXT(val) (int)(GRAPH_YOFF - COERCE(val * GRAPH_YSIZE + GRAPH_FONT_H - 3, 0, GRAPH_MAX_PX))
+#define GRAPH_Y_TEXT(val) (int)(GRAPH_YOFF - COERCE(val * GRAPH_YSIZE + GRAPH_FONT_H - 3, GRAPH_FONT_H, GRAPH_MAX_PX))
 #define IS_IN_RANGE(val1, val2) (val1 >= 0 && val1 <= GRAPH_MAX && val2 >=0 && val2 <= GRAPH_MAX)
 #define GRAPH_DRAW_CURVE(val, col) \
-    if(IS_IN_RANGE(next_##val, last_##val)) { \
-        draw_line(x_last, GRAPH_Y(last_##val), x, GRAPH_Y(next_##val), col); \
+    if(IS_IN_RANGE(expo.val, last_expo.val)) { \
+        draw_line(x_last, GRAPH_Y(last_expo.val), x, GRAPH_Y(expo.val), col); \
     } \
 
 
@@ -66,7 +66,7 @@
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 // these are for fullframe camereas
 static CONFIG_INT("auto.expo.same_tv", same_tv, 1);
-static CONFIG_INT("auto.expo.lens_av", lens_av, 0);
+static CONFIG_INT("auto.expo.lens_av", lens_av, LENS_AV_THIS);
 static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
 static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  // 1s
 static CONFIG_INT("auto.expo.av_min", av_min, 10); // f/1.4
@@ -87,6 +87,14 @@ static int autoexpo_running = 0;
 static bool show_graph = 1;
 static int last_key = 0;
 static int last_bv = INT_MIN;
+
+typedef struct
+{
+    int ec; // E
+    int tv; // T
+    int av; // A
+    int sv; // S
+} exposure;
 
 extern void entry_print(
     int x,
@@ -130,6 +138,17 @@ static int get_iso_from_bv(int bv, bool simul){
     return iso;
 }
 
+static exposure get_exposure(int bv, int simul) {
+    exposure expo;
+    
+    expo.av = get_aperture_from_bv(bv, simul);
+    expo.sv = get_iso_from_bv(bv, simul);
+    expo.tv = get_shutter_from_bv(bv, expo.av, expo.sv, simul);
+    expo.ec = bv - (expo.tv + expo.av - expo.sv);
+    
+    return expo;
+}
+
 static void autoexpo_task()
 {
     autoexpo_running = 1;
@@ -147,15 +166,11 @@ static void autoexpo_task()
     }
 
     last_bv = bv;
-
-    int av = get_aperture_from_bv(bv, 0);
-    lens_set_rawaperture(AV2RAW(av));
-
-    int iso = get_iso_from_bv(bv, 0);
-    lens_set_rawiso(SV2RAW(iso));
-
-    int tv = get_shutter_from_bv(bv, av, iso, 0);
-    lens_set_rawshutter(TV2RAW(tv));
+    
+    exposure expo = get_exposure(bv, 0);
+    lens_set_rawaperture(AV2RAW(expo.av));
+    lens_set_rawiso(SV2RAW(expo.sv));
+    lens_set_rawshutter(TV2RAW(expo.tv));
 
     cleanup:
     autoexpo_running = 0;
@@ -176,11 +191,7 @@ static unsigned int autoexpo_shoot_task(){
 
 static void update_graph()
 {
-    int last_sv = -1;
-    int last_av = -1;
-    int last_tv = -1;
-    int last_ec = -1;
-    
+    exposure last_expo = {-1, -1, -1, -1};
     bool draw_label = 0;
     
     BMP_LOCK(
@@ -190,6 +201,7 @@ static void update_graph()
             GRAPH_MAX_PX + GRAPH_TEXT_PADD + GRAPH_PADD + font_med.height
         );
         
+        // current BV
         if(last_bv != INT_MIN){
             int x = GRAPH_XOFF + (BV_MAX - last_bv) * GRAPH_XSIZE;
             draw_line(x - 1, GRAPH_YOFF - GRAPH_MAX_PX, x - 1, GRAPH_YOFF, COLOR_CYAN);
@@ -200,11 +212,9 @@ static void update_graph()
         for(int bv = BV_MAX; bv >= BV_MIN; bv -= (draw_label) ? 20 : GRAPH_STEP){
             int x = GRAPH_XOFF + (BV_MAX - bv) * GRAPH_XSIZE;
             
-            int next_av = get_aperture_from_bv(bv, 1);
-            int next_sv = get_iso_from_bv(bv, 1);
-            int next_tv = get_shutter_from_bv(bv, next_av, next_sv, 1);
-            int ec_val = bv - (next_tv + next_av - next_sv);
-            int next_ec = (GRAPH_MAX / 2) + ec_val;
+            exposure expo =  get_exposure(bv, 1);
+            int ec_val = expo.ec;
+            expo.ec = (GRAPH_MAX / 2) + expo.ec;
             
             if(!draw_label) {
                 int x_last = x - GRAPH_XSIZE * GRAPH_STEP;
@@ -219,7 +229,7 @@ static void update_graph()
                 GRAPH_DRAW_CURVE(av, COLOR_GREEN2);
 
                 // ec curve
-                GRAPH_DRAW_CURVE(ec, (last_ec == GRAPH_MAX / 2 && ec_val == 0) ? COLOR_BLACK : COLOR_ORANGE);
+                GRAPH_DRAW_CURVE(ec, (last_expo.ec == 0 && expo.ec == 0) ? COLOR_BLACK : COLOR_ORANGE);
                 
                 // tv curve
                 GRAPH_DRAW_CURVE(tv, COLOR_RED);
@@ -234,37 +244,35 @@ static void update_graph()
                     bmp_printf(GRAPH_FONT, x + 3 - center, GRAPH_YOFF + GRAPH_TEXT_PADD, "%d", bv / 10);
                 }
                 
+                //do not print on the right edge of graph
                 if(BV_MAX + bv <= 40) continue;
                 
                 // sv value
-                if(next_sv != last_sv) {
-                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_sv), "%d", raw2iso(SV2RAW(next_sv)));
+                if(expo.sv != last_expo.sv) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.sv), "%d", raw2iso(SV2RAW(expo.sv)));
                 }
                 
                 // av value
-                if(next_av != last_av) {
-                    int ap = AV2STR(next_av);
-                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_av), "%d.%d", ap / 10, ap % 10);
+                if(expo.av != last_expo.av) {
+                    int ap = AV2STR(expo.av);
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.av), "%d.%d", ap / 10, ap % 10);
                 }
                 
                 // ec value
-                if(last_ec != next_ec && ec_val) {
-                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_ec),
+                if(last_expo.ec != expo.ec && ec_val) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.ec),
                         "%s%d.%d", FMT_FIXEDPOINT1S(ec_val));
                 }
                 
                 // tv value
-                if(next_tv != last_tv) {
-                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(next_tv),
-                        "%s", lens_format_shutter(TV2RAW(next_tv)));
+                if(expo.tv != last_expo.tv) {
+                    bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.tv),
+                        "%s", lens_format_shutter(TV2RAW(expo.tv)));
                 }
                 
             }
             
-            last_sv = next_sv;
-            last_av = next_av;
-            last_tv = next_tv;
-            last_ec = next_ec;
+            last_expo = expo;
         }
         
         if(!draw_label) {
@@ -461,18 +469,15 @@ static MENU_SELECT_FUNC(lens_av_set)
 static MENU_UPDATE_FUNC(last_bv_upd)
 {
     if(last_bv != INT_MIN) {
-        int av = get_aperture_from_bv(last_bv, 1);
-        int iso = get_iso_from_bv(last_bv, 1);
-        int tv = get_shutter_from_bv(last_bv, av, iso, 1);
-        int ec = last_bv - (tv + av - iso);
-        int ap = AV2STR(av);
+        exposure expo = get_exposure(last_bv, 1);
+        expo.av = AV2STR(expo.av);
         
         MENU_SET_VALUE("%s%d.%d BV", FMT_FIXEDPOINT1(last_bv));
         MENU_SET_HELP("%s f/%d.%d   %d ISO   %s%d.%d EC",
-            lens_format_shutter(TV2RAW(tv)),
-            ap / 10, ap % 10,
-            raw2iso(SV2RAW(iso)),
-            FMT_FIXEDPOINT1S(ec)
+            lens_format_shutter(TV2RAW(expo.tv)),
+            expo.av / 10, expo.av % 10,
+            raw2iso(SV2RAW(expo.sv)),
+            FMT_FIXEDPOINT1S(expo.ec)
         );
     }
     MENU_CUSTOM_DRAW;
