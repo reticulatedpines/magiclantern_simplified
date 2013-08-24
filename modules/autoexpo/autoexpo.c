@@ -26,9 +26,9 @@
 #define RAW2SV(raw) APEX_SV(raw) * 10 / 8
 #define RAW2EC(raw) raw * 10 / 8
 
-#define TV2RAW(apex) -APEX_TV(-apex * 100 / 125)
-#define AV2RAW(apex) -APEX_AV(-apex * 100 / 125)
-#define SV2RAW(apex) -APEX_SV(-apex * 100 / 125)
+#define TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
+#define AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
+#define SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
 #define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 #define GRAPH_XSIZE 2.4f
@@ -52,7 +52,6 @@
         draw_line(x_last, GRAPH_Y(last_expo.val), x, GRAPH_Y(expo.val), col); \
     } \
 
-
 #define MENU_CUSTOM_DRAW \
     if(show_graph && info->can_custom_draw) { \
         info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
@@ -61,12 +60,12 @@
 #define RANGE_SET(val, min, max) \
     if(!rear_dial()) { \
         val##_min += delta * 5; \
-        val##_min = COERCE(val##_min, min, val##_max); \
-        val##_max = COERCE(val##_max, min, max); \
+        val##_min = COERCE(val##_min, min, max); \
+        val##_max = COERCE(val##_max, val##_min, max); \
     } else { \
         val##_max += delta * 5; \
-        val##_max = COERCE(val##_max, val##_min, max); \
-        val##_min = COERCE(val##_min, min, max); \
+        val##_max = COERCE(val##_max, min, max); \
+        val##_min = COERCE(val##_min, min, val##_max); \
     }
 #define CURVE_SET(val, step_min, step_max) \
     if(!rear_dial()) val##_step += delta; \
@@ -75,7 +74,6 @@
     val##_step = COERCE( val##_step, step_min, step_max);
 
 #define LENS_AV_THIS 5
-
 
 static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 // these are for fullframe camereas
@@ -287,14 +285,8 @@ static void update_graph()
 static int rear_dial() {
     return last_key == MODULE_KEY_WHEEL_RIGHT || last_key == MODULE_KEY_WHEEL_LEFT;
 }
-
-static void set_rear() {
-    last_key = MODULE_KEY_WHEEL_RIGHT;
-}
-
-static void unset_rear() {
-    last_key = 0;
-}
+static void set_rear() { last_key = MODULE_KEY_WHEEL_RIGHT; }
+static void unset_rear() { last_key = 0; }
 
 // curves
 static MENU_SELECT_FUNC(aperture_curve_set) { CURVE_SET(av, 0, 50); }
@@ -316,16 +308,14 @@ static MENU_UPDATE_FUNC(ec_curve_upd) {
 }
 
 //others
-static MENU_UPDATE_FUNC(aperture_range_upd)
-{
+static MENU_UPDATE_FUNC(aperture_range_upd) {
     int apmin = AV2STR(av_min);
     int apmax = AV2STR(av_max);
     MENU_SET_VALUE("f/%d.%d - f/%d.%d", apmin / 10, apmin % 10, apmax / 10, apmax % 10);
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_SELECT_FUNC(aperture_range_set)
-{
+static MENU_SELECT_FUNC(aperture_range_set) {
     int set = av_min;
     RANGE_SET(av, 5, 100);
     
@@ -336,14 +326,12 @@ static MENU_SELECT_FUNC(aperture_range_set)
     }
 }
 
-static MENU_UPDATE_FUNC(iso_range_upd)
-{
+static MENU_UPDATE_FUNC(iso_range_upd) {
     MENU_SET_VALUE("%d - %d", raw2iso(SV2RAW(iso_min)), raw2iso(SV2RAW(iso_max)));
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_SELECT_FUNC(iso_range_set)
-{
+static MENU_SELECT_FUNC(iso_range_set) {
     int set = iso_min;
     RANGE_SET(iso, 50, 130);
     
@@ -354,24 +342,21 @@ static MENU_SELECT_FUNC(iso_range_set)
     }
 }
 
-static MENU_SELECT_FUNC(tv_min_set)
-{
+static MENU_SELECT_FUNC(tv_min_set) {
     tv_min = COERCE(tv_min + delta * 5, -50, 130);
 }
 
-static MENU_UPDATE_FUNC(tv_min_upd){
+static MENU_UPDATE_FUNC(tv_min_upd) {
     MENU_SET_VALUE("%s", lens_format_shutter(TV2RAW(tv_min)));
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_UPDATE_FUNC(ec_upd)
-{
+static MENU_UPDATE_FUNC(ec_upd) {
     MENU_SET_VALUE("%s%d.%d EV", FMT_FIXEDPOINT1S(ec));
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_SELECT_FUNC(ec_sel)
-{
+static MENU_SELECT_FUNC(ec_sel) {
     int set = ec;
     ec = COERCE(ec + delta * 5, -50, 50);
     
@@ -383,22 +368,19 @@ static MENU_SELECT_FUNC(ec_sel)
     }
 }
 
-static MENU_UPDATE_FUNC(ec_range_upd)
-{
+static MENU_UPDATE_FUNC(ec_range_upd) {
     MENU_SET_VALUE("%s%d.%d EV - %s%d.%d EV", FMT_FIXEDPOINT1S(ec_min), FMT_FIXEDPOINT1S(ec_max));
     MENU_CUSTOM_DRAW;
 }
 
 static MENU_SELECT_FUNC(ec_range_set) { RANGE_SET(ec, -50, 50); }
 
-static MENU_UPDATE_FUNC(show_graph_upd)
-{
+static MENU_UPDATE_FUNC(show_graph_upd) {
     if(show_graph && info->can_custom_draw) update_graph();
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_UPDATE_FUNC(lens_av_upd)
-{
+static MENU_UPDATE_FUNC(lens_av_upd) {
     if(!lens_av) {
         MENU_SET_VALUE("OFF");
         MENU_SET_ENABLED(0);
@@ -419,15 +401,13 @@ static MENU_UPDATE_FUNC(lens_av_upd)
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_SELECT_FUNC(lens_av_set)
-{
+static MENU_SELECT_FUNC(lens_av_set) {
     lens_av += delta * 5;
     if(lens_av < 0) lens_av = LENS_AV_THIS;
     lens_av = COERCE(lens_av, 0, 80);
 }
 
-static MENU_UPDATE_FUNC(last_bv_upd)
-{
+static MENU_UPDATE_FUNC(last_bv_upd) {
     if(last_bv != INT_MIN) {
         exposure expo = get_exposure(last_bv, 1);
         expo.av = AV2STR(expo.av);
@@ -443,8 +423,7 @@ static MENU_UPDATE_FUNC(last_bv_upd)
     MENU_CUSTOM_DRAW;
 }
 
-static MENU_SELECT_FUNC(last_bv_set)
-{
+static MENU_SELECT_FUNC(last_bv_set) {
     if(last_bv == INT_MIN) last_bv = 20;
     else last_bv = COERCE(last_bv + delta * -5, BV_MIN, BV_MAX);
 }
