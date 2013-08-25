@@ -86,7 +86,7 @@ static uint32_t raw_rec_edmac_align = 4096;
 static uint32_t raw_rec_write_align = 4096;
 
 static uint32_t mlv_writer_threads = 2;
-static uint32_t trace_ctx = TRACE_ERROR;
+uint32_t trace_ctx = TRACE_ERROR;
 static uint32_t abort_test = 0;
 /**
  * resolution should be multiple of 16 horizontally
@@ -253,6 +253,7 @@ static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
  */
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_starting();
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_stopping();
+extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_frame(unsigned char *frame_data);
 extern WEAK_FUNC(ret_1) uint32_t raw_rec_cbr_save_buffer(uint32_t used, uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_buffer(uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
@@ -1608,7 +1609,7 @@ static int32_t FAST process_frame()
     /* try a sync beep */
     if ((sound_rec == 2 && frame_count == 1) && !test_mode)
     {
-        beep();
+        //beep();
     }
 
     int32_t ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
@@ -1633,6 +1634,8 @@ static int32_t FAST process_frame()
         }
         else
         {
+            trace_write(trace_ctx, "--> call cbr for '%4s' block", block->blockType);
+            raw_rec_cbr_mlv_block(block);
             trace_write(trace_ctx, "--> prepend '%4s' block", block->blockType);
             
             /* prepend the given block if possible or requeue it in case of error */
@@ -2190,6 +2193,20 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     }
 #endif  
 
+#if 0
+    //while(write_job->block_size > 16*1024*1024 - 2048)
+    {
+        write_job->block_len = 3;
+        write_job->block_size = 0;
+        
+        /* now fix the buffer size to write */
+        for(int32_t slot = write_job->block_start; slot < write_job->block_start + write_job->block_len; slot++)
+        {
+            write_job->block_size += slots[slot].size;
+        }
+    }
+#endif  
+
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
     {
@@ -2235,6 +2252,9 @@ static void raw_video_rec_task()
 
     trace_write(trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
     
+    /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
+    raw_rec_cbr_starting();
+    
     /* allocate memory */
     if (!setup_buffers())
     {
@@ -2242,6 +2262,7 @@ static void raw_video_rec_task()
         goto cleanup;
     }
 
+    /*
     if (sound_rec == 1)
     {
         char* wavfile = get_wav_file_name(movie_filename);
@@ -2249,6 +2270,7 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
+    */
     
     hack_liveview(0);
     
@@ -2279,8 +2301,6 @@ static void raw_video_rec_task()
         /* this will enable the vsync CBR and the other task(s) */
         raw_recording_state = RAW_RECORDING;
 
-        /* signal that we are starting */
-        raw_rec_cbr_starting();
         
         /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
         recording = -1;
@@ -2331,7 +2351,7 @@ static void raw_video_rec_task()
         /* create writer threads with decreasing priority */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            task_create("writer_thread", 0x01 + writer, 0x1000, raw_writer_task, (void*)writer);
+            task_create("writer_thread", 0x10 + writer, 0x1000, raw_writer_task, (void*)writer);
         }
         
         uint32_t used_slots = 0;
@@ -2501,9 +2521,6 @@ static void raw_video_rec_task()
         
         /* done, this will stop the vsync CBR and the copying task */
         raw_recording_state = RAW_FINISHING;
-
-        /* signal that we are stopping */
-        raw_rec_cbr_stopping();
         
         /* queue two aborts to cancel tasks */
         write_job = malloc(sizeof(write_job_t));
@@ -2563,7 +2580,9 @@ static void raw_video_rec_task()
         }
     } while(test_mode && !abort_test);
     
-
+    /* signal that we are stopping */
+    raw_rec_cbr_stopping();
+    
     if (sound_rec == 1)
     {
         WAV_StopRecord();
@@ -2599,13 +2618,13 @@ static MENU_SELECT_FUNC(raw_start_stop)
     {
         abort_test = 1;
         raw_recording_state = RAW_FINISHING;
-        if (sound_rec == 2) beep();
+        //if (sound_rec == 2) beep();
     }
     else
     {
         raw_recording_state = RAW_PREPARING;
         gui_stop_menu();
-        task_create("raw_rec_task", 0x1e, 0x1000, raw_video_rec_task, (void*)0);
+        task_create("raw_rec_task", 0x15, 0x1000, raw_video_rec_task, (void*)0);
     }
 }
 
@@ -3030,6 +3049,11 @@ static unsigned int raw_rec_init()
 
 static unsigned int raw_rec_deinit()
 {
+    if(trace_ctx != TRACE_ERROR)
+    {
+        trace_stop(trace_ctx, 0);
+        trace_ctx = TRACE_ERROR;
+    }
     return 0;
 }
 
