@@ -30,6 +30,10 @@
 #define MLV_VIDEO_CLASS_FLAG_LZMA    0x80
 #define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
 
+#if defined(PACKED)
+#undef PACKED
+#endif
+
 #pragma pack(push,0)
 #ifdef WIN32
 #define PACKED __attribute__ ((gcc_struct, __packed__))

@@ -24,13 +24,22 @@
 #include <property.h>
 #include "raw.h"
 #include "mlv.h"
+#include "../trace/trace.h"
+
+extern uint32_t trace_ctx;
 
 extern uint64_t get_us_clock_value();
 extern char *strcpy(char *dest, const char *src);
 extern char *strncpy(char *dest, const char *src, int n);
 
-extern int WEAK_FUNC(ret_1) _prop_get_value(unsigned property, void** addr, size_t* len);
+extern int WEAK_FUNC(fail_prop_get_value) _prop_get_value(unsigned property, void** addr, size_t* len);
 extern int WEAK_FUNC(own_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
+
+int fail_prop_get_value(unsigned property, void** addr, size_t* len)
+{
+    trace_write(trace_ctx, "WARNING: This model doesn't have 'prop_get_value' or '_prop_get_value' defined. Reading properties not possible.");
+    return 1;
+}
 
 int own_prop_get_value(unsigned property, void** addr, size_t* len)
 {
@@ -155,9 +164,12 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     
     /* get camera properties */
     err |= prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
-    err |= prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
+    trace_write(trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
     
-    if(err || model_len < 36 || body_len < 4 || !model_data || !body_data)
+    err |= prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
+    trace_write(trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
+    
+    if(err || model_len < 36 || body_len != 8 || !model_data || !body_data)
     {
         strcpy((char*)hdr->cameraName, "Failed to get properties.");
         return;
@@ -167,6 +179,8 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     memcpy((char *)hdr->cameraName, &model_data[0], 32);
     memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
     snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
+    
+    trace_write(trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)
