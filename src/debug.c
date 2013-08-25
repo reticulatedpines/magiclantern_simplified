@@ -368,9 +368,15 @@ static MENU_UPDATE_FUNC(show_modified_settings)
     struct menu * menu = (struct menu *) menu_get_root();
     for( ; menu ; menu = menu->next )
     {
+        if (streq(menu->name, "MyMenu") || streq(menu->name, "Modified"))
+            continue;
+
         struct menu_entry * entry = menu->children;
         for( ; entry ; entry = entry->next )
         {
+            if (entry->shidden)
+                continue;
+            
             if (config_var_was_changed(entry->priv))
             {
                 k++;

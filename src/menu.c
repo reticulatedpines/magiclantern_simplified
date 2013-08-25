@@ -59,6 +59,11 @@ extern int bmp_color_scheme;
 static struct menu * my_menu;
 static int my_menu_dirty = 0;
 
+/* modified settings menu */
+#define MOD_MENU_NAME "Modified"
+static struct menu * mod_menu;
+static int mod_menu_dirty = 1;
+
 //for vscroll
 #define MENU_LEN 11
 
@@ -339,6 +344,64 @@ static struct menu_entry menu_prefs[] = {
 };
 */
 
+/* todo: use dynamic entries, like in file_man */
+static struct menu_entry mod_menu_placeholders[] = {
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+};
+
 void customize_menu_init()
 {
     menu_add("Prefs", customize_menu, COUNT(customize_menu));
@@ -346,6 +409,9 @@ void customize_menu_init()
     // this is added at the end, after all the others
     my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
+    
+    mod_menu = menu_find_by_name(MOD_MENU_NAME, ICON_TAB);
+    menu_add(MOD_MENU_NAME, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
 void menu_prefs_init()
@@ -831,6 +897,7 @@ menu_has_visible_items(struct menu * menu)
             streq(menu->name, "Help") ||
             //~ streq(menu->name, "Scripts") ||
             streq(menu->name, "Modules") ||
+            streq(menu->name, MOD_MENU_NAME) ||
            0)
             return 0;
     }
@@ -2257,7 +2324,11 @@ menu_entry_process(
     info.x = x;
     info.y = y;
     info.x_val = x + font_large.width * ABS(menu->split_pos);
-    info.can_custom_draw = !streq(menu->name, MY_MENU_NAME) && !menu_lv_transparent_mode;
+    info.can_custom_draw = menu != my_menu && menu != mod_menu && !menu_lv_transparent_mode;
+    
+    /* temporary hack for code that doesn't know about can_custom_draw, but checks info->x and/or info->y */
+    if (!info.can_custom_draw)
+        info.x = info.y = 0;
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
@@ -2286,39 +2357,46 @@ menu_entry_process(
 }
 
 static void
-my_menu_add_entry(struct menu_entry * entry, int i)
+dyn_menu_add_entry(struct menu * dyn_menu, struct menu_entry * entry, struct menu_entry * dyn_entry)
 {
-    struct menu_entry * my_entry = &(my_menu_placeholders[i]);
-    
     // copy most things from old menu structure to this one
     // except for some essential things :P
-    void* next = my_entry->next;
-    void* prev = my_entry->prev;
-    int selected = my_entry->selected;
-    memcpy(my_entry, entry, sizeof(struct menu_entry));
-    my_entry->next = next;
-    my_entry->prev = prev;
-    my_entry->selected = selected;
-    my_entry->shidden = entry->shidden;
-    my_entry->hidden = 0;
-    my_entry->jhidden = 0;
-    my_entry->starred = 0;
+    void* next = dyn_entry->next;
+    void* prev = dyn_entry->prev;
+    int selected = dyn_entry->selected;
+    memcpy(dyn_entry, entry, sizeof(struct menu_entry));
+    dyn_entry->next = next;
+    dyn_entry->prev = prev;
+    dyn_entry->selected = selected;
+    dyn_entry->shidden = entry->shidden;
+    dyn_entry->hidden = 0;
+    dyn_entry->jhidden = 0;
+    dyn_entry->starred = 0;
     
     // update split position
-    menu_update_split_pos(my_menu, my_entry);
+    menu_update_split_pos(dyn_menu, dyn_entry);
+}
+
+static int my_menu_select_func(struct menu_entry * entry)
+{
+    return entry->starred ? 1 : 0;
+}
+
+static int mod_menu_select_func(struct menu_entry * entry)
+{
+    return config_var_was_changed(entry->priv);
 }
 
 static int
-my_menu_rebuild()
+dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders)
 {
-    my_menu_dirty = 0;
-    my_menu->split_pos = -12;
+    dyn_menu->split_pos = -12;
 
     int i = 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (menu == my_menu)
+        if (menu == my_menu || menu == mod_menu)
             continue;
         
         if (IS_SUBMENU(menu))
@@ -2331,12 +2409,12 @@ my_menu_rebuild()
             if (entry->shidden)
                 continue;
             
-            if (entry->starred)
+            if (select_func(entry))
             {
-                if (i >= COUNT(my_menu_placeholders)) // too many starred items
+                if (i >= max_placeholders) // too many items in our dynamic menu
                     return 0; // whoops
                 
-                my_menu_add_entry(entry, i);
+                dyn_menu_add_entry(dyn_menu, entry, &placeholders[i]);
                 i++;
             }
             
@@ -2350,12 +2428,12 @@ my_menu_rebuild()
                     
                     for(; e ; e = e->next)
                     {
-                        if (e->starred)
+                        if (select_func(e))
                         {
-                            if (i >= COUNT(my_menu_placeholders)) // too many starred items
+                            if (i >= max_placeholders) // too many items in our dynamic menu
                                 return 0; // whoops
                             
-                            my_menu_add_entry(e, i);
+                            dyn_menu_add_entry(dyn_menu, e, &placeholders[i]);
                             i++;
                         }
                     }
@@ -2364,20 +2442,33 @@ my_menu_rebuild()
         }
     }
     
-    for ( ; i < COUNT(my_menu_placeholders); i++)
+    for ( ; i < max_placeholders; i++)
     {
-        struct menu_entry * my_entry = &(my_menu_placeholders[i]);
-        my_entry->shidden = 1;
-        my_entry->hidden = 1;
-        my_entry->jhidden = 1;
-        my_entry->name = 0;
-        my_entry->priv = 0;
-        my_entry->select = 0;
-        my_entry->select_Q = 0;
-        my_entry->update = menu_placeholder_unused_update;
+        struct menu_entry * dyn_entry = &(placeholders[i]);
+        dyn_entry->shidden = 1;
+        dyn_entry->hidden = 1;
+        dyn_entry->jhidden = 1;
+        dyn_entry->name = 0;
+        dyn_entry->priv = 0;
+        dyn_entry->select = 0;
+        dyn_entry->select_Q = 0;
+        dyn_entry->update = menu_placeholder_unused_update;
     }
     
     return 1; // success
+}
+
+static int
+my_menu_rebuild()
+{
+    my_menu_dirty = 0;
+    return dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders));
+}
+
+static int mod_menu_rebuild()
+{
+    mod_menu_dirty = 0;
+    return dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
 static int get_menu_count(struct menu * menu)
@@ -2918,6 +3009,9 @@ menus_display(
 
     if (my_menu_dirty)
         my_menu_rebuild();
+    
+    if (mod_menu_dirty)
+        mod_menu_rebuild();
 
     struct menu * submenu = 0;
     if (submenu_mode)
@@ -3362,6 +3456,10 @@ menu_move(
     // Select the new one (which might be the same)
     menu->selected      = 1;
     menu_first_by_icon = menu->icon;
+    
+    /* rebuild the modified settings menu */
+    mod_menu_dirty = 1;
+    
     give_semaphore( menu_sem );
 }
 
@@ -4707,6 +4805,7 @@ static void menu_save_flags(char* filename)
     for( ; menu ; menu = menu->next )
     {
         if (menu == my_menu) continue;
+        if (menu == mod_menu) continue;
         
         struct menu_entry * entry = menu->children;
         
@@ -5022,6 +5121,7 @@ static void menu_duplicate_test()
     for( ; menu ; menu = menu->next )
     {
         if (menu == my_menu) continue;
+        if (menu == mod_menu) continue;
         
         struct menu_entry * entry = menu->children;
         for( ; entry ; entry = entry->next )
