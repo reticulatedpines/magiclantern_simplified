@@ -122,12 +122,18 @@ static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
 }
 
 
-static void eos_load_image(EOSState *s, const char* file, uint32_t addr)
+static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr)
 {
     int size = get_image_size(file);
     if (size < 0)
     {
         fprintf(stderr, "%s: file not found '%s'\n", __FUNCTION__, file);
+        abort();
+    }
+
+    if (size < offset) {
+        fprintf(stderr, "%s: file '%s': offset '%d' is too big\n", __func__,
+            file, offset);
         abort();
     }
 
@@ -146,7 +152,13 @@ static void eos_load_image(EOSState *s, const char* file, uint32_t addr)
         abort();
     }
 
-    cpu_physical_memory_write_rom(addr, buf, size);
+    size = size - offset;
+
+    if ((max_size > 0) && (size > max_size)) {
+        size = max_size;
+    }
+
+    cpu_physical_memory_write_rom(addr, buf + offset, size);
 
     free(buf);
 }
@@ -291,7 +303,10 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
 {
     EOSState *s = eos_init_cpu();
 
-    eos_load_image(s, rom_filename, 0xF7000000);
+    /* populate ROM0 */
+    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR);
+    /* populate ROM1 */
+    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR);
 
     s->cpu->env.regs[15] = rom_start;
 }
@@ -300,14 +315,16 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
 {
     EOSState *s = eos_init_cpu();
 
-    /* trick: loading 32MB from 0xF7000000 will populate both ROM0 and ROM1 */
-    eos_load_image(s, rom_filename,      0xF7000000);
+    /* populate ROM0 */
+    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR);
+    /* populate ROM1 */
+    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR);
 
-    eos_load_image(s, "autoexec.bin",    0x00800000);
+    eos_load_image(s, "autoexec.bin", 0, -1, 0x00800000);
 
     /* we will replace Canon stubs with our own implementations */
     /* see qemu-helper.c, stub_mappings[] */
-    eos_load_image(s, "qemu-helper.bin", Q_HELPER_ADDR);
+    eos_load_image(s, "qemu-helper.bin", 0, -1, Q_HELPER_ADDR);
     uint32_t magic  = 0x12345678;
     uint32_t addr   = Q_HELPER_ADDR;
     while (eos_get_mem_w(s, addr) != magic || eos_get_mem_w(s, addr + 4) != magic)
