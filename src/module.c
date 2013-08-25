@@ -36,6 +36,7 @@ static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_enabled, 0);
 CONFIG_INT("module.console", module_console_enabled, 0);
+CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
 
 static struct msg_queue * module_mq = 0;
@@ -1295,6 +1296,12 @@ static struct menu_entry module_menu[] = {
         .help = "Loads modules every startup",
     },
     {
+        .name = "Ingore unclean shutdown",
+        .priv = &module_ignore_crashes,
+        .max = 1,
+        .help = "When enabled, modules are even loaded after camera crashed.",
+    },
+    {
         .name = "Show console",
         .priv = &module_console_enabled,
         .select = console_toggle,
@@ -1371,7 +1378,7 @@ void module_load_task(void* unused)
     if(module_autoload_enabled)
     {
         uint32_t size;
-        if( FIO_GetFileSize( module_lockfile, &size ) == 0 )
+        if(!module_ignore_crashes && FIO_GetFileSize( module_lockfile, &size ) == 0 )
         {
             /* uh, it seems the camera didnt shut down cleanly, skip module loading this time */
             msleep(1000);
