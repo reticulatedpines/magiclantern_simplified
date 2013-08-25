@@ -2253,7 +2253,7 @@ menu_entry_process(
     info.x = x;
     info.y = y;
     info.x_val = x + font_large.width * ABS(menu->split_pos);
-    info.can_custom_draw = !streq(menu->name, MY_MENU_NAME);
+    info.can_custom_draw = !streq(menu->name, MY_MENU_NAME) && !menu_lv_transparent_mode;
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
