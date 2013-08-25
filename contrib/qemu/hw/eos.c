@@ -41,7 +41,12 @@ static int B[] = {255, 235, 0, 0, 0, 216, 0, 1, 1, 211, 139, 126, 0, 168, 154, 0
 
 static void eos_dump_vram(uint32_t address)
 {
-    FILE* f = fopen("vram.txt", "w");
+    static int screenshot_count = 0;
+    char fn[100];
+    snprintf(fn, sizeof(fn), "vram%02d.txt", screenshot_count);
+    screenshot_count++;
+    
+    FILE* f = fopen(fn, "w");
     fprintf(f, "# ImageMagick pixel enumeration: 720,480,255,rgb\n");
 
     int i,j;
@@ -342,7 +347,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
         if (old < 0xFF000000)
             old += ram_offset;
         uint32_t jmp[] = {FAR_CALL_INSTR, new};
-        printf("[QEMU_HELPER] stub %x -> %x\n", old, new);
+        printf("[QEMU_HELPER] stub %x -> %x (%x)\n", old, new, eos_get_mem_w(s, old));
         cpu_physical_memory_write_rom(old, (uint8_t*)jmp, 8);
 
         addr += 8;
