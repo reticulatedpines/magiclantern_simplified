@@ -310,17 +310,17 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     eos_load_image(s, "qemu-helper.bin", Q_HELPER_ADDR);
     uint32_t magic  = 0x12345678;
     uint32_t addr   = Q_HELPER_ADDR;
-    while (MEM32(addr) != magic || MEM32(addr + 4) != magic)
+    while (eos_get_mem_w(s, addr) != magic || eos_get_mem_w(s, addr + 4) != magic)
     {
         addr += 4;
         if (addr > 0x30100000) { fprintf(stderr, "stub list not found\n"); abort(); }
     }
-    uint32_t ram_offset = MEM32(addr + 8);
+    uint32_t ram_offset = eos_get_mem_w(s, addr + 8);
     addr += 12;
-    while (MEM32(addr) != magic || MEM32(addr + 4) != magic)
+    while (eos_get_mem_w(s, addr) != magic || eos_get_mem_w(s, addr + 4) != magic)
     {
-        uint32_t old = MEM32(addr);
-        uint32_t new = MEM32(addr + 4);
+        uint32_t old = eos_get_mem_w(s, addr);
+        uint32_t new = eos_get_mem_w(s, addr + 4);
         if (old < 0xFF000000)
             old += ram_offset;
         uint32_t jmp[] = {FAR_CALL_INSTR, new};
