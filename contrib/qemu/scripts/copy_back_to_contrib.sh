@@ -2,7 +2,7 @@
 
 # run this if you make changes to qemu and want to commit them back into ML tree
 
-QEMU_PATH=qemu-1.5.0
+QEMU_PATH=qemu-1.6.0
 ML=magic-lantern
 
 cp -v *.sh gdbopts ../$ML/contrib/qemu/scripts

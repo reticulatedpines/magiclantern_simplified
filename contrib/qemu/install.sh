@@ -1,6 +1,6 @@
 #!/bin/bash
 
-QEMU_NAME=qemu-1.5.0
+QEMU_NAME=qemu-1.6.0
 ML=magic-lantern
 
 echo

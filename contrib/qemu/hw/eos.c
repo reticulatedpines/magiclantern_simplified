@@ -4,6 +4,7 @@
 #include "hw/devices.h"
 #include "hw/boards.h"
 #include "exec/address-spaces.h"
+#include "exec/memory-internal.h"
 #include "hw/sysbus.h"
 #include "qemu/thread.h"
 #include "eos.h"
@@ -234,13 +235,13 @@ static EOSState *eos_init_cpu(void)
     /* set up RAM, cached and uncached */
     #undef TCM_SIZE
     #define TCM_SIZE 0
-    memory_region_init_ram(&s->ram, "eos.ram", RAM_SIZE - TCM_SIZE);
+    memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, TCM_SIZE, &s->ram);
-    memory_region_init_alias(&s->ram_uncached, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
+    memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, CACHING_BIT | TCM_SIZE, &s->ram_uncached);
 
     /* set up ROM0 */
-    memory_region_init_ram(&s->rom0, "eos.rom0", ROM0_SIZE);
+    memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE);
     memory_region_add_subregion(s->system_mem, ROM0_ADDR, &s->rom0);
 
     uint64_t offset;
@@ -250,12 +251,12 @@ static EOSState *eos_init_cpu(void)
         MemoryRegion *image = g_new(MemoryRegion, 1);
         sprintf(name, "eos.rom0_mirror_%02X", (uint32_t)offset >> 24);
 
-        memory_region_init_alias(image, name, &s->rom0, 0x00000000, ROM0_SIZE);
+        memory_region_init_alias(image, NULL, name, &s->rom0, 0x00000000, ROM0_SIZE);
         memory_region_add_subregion(s->system_mem, offset, image);
     }
 
     /* set up ROM1 */
-    memory_region_init_ram(&s->rom1, "eos.rom1", ROM1_SIZE);
+    memory_region_init_ram(&s->rom1, NULL, "eos.rom1", ROM1_SIZE);
     memory_region_add_subregion(s->system_mem, ROM1_ADDR, &s->rom1);
 
     // uint64_t offset;
@@ -265,7 +266,7 @@ static EOSState *eos_init_cpu(void)
         MemoryRegion *image = g_new(MemoryRegion, 1);
         sprintf(name, "eos.rom1_mirror_%02X", (uint32_t)offset >> 24);
 
-        memory_region_init_alias(image, name, &s->rom1, 0x00000000, ROM1_SIZE);
+        memory_region_init_alias(image, NULL, name, &s->rom1, 0x00000000, ROM1_SIZE);
         memory_region_add_subregion(s->system_mem, offset, image);
     }
 
@@ -273,7 +274,7 @@ static EOSState *eos_init_cpu(void)
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
     /* set up io space */
-    memory_region_init_io(&s->iomem, &iomem_ops, s, "eos.iomem", IO_MEM_LEN);
+    memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", IO_MEM_LEN);
     memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
 
     /*ROMState *rom0 = eos_rom_register(0xF8000000, NULL, "ROM1", ROM1_SIZE,
