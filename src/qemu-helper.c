@@ -268,7 +268,9 @@ void*  stub_mappings[] = {
     STUB_MAP(LoadCalendarFromRTC)
     STUB_MAP(is_taskid_valid)
     STUB_MAP(GUI_Control)
+    #ifdef CONFIG_ENGINE_RESLOCK
     STUB_MAP(CreateResLockEntry)
+    #endif
     
     MAGIC, MAGIC,
 };
