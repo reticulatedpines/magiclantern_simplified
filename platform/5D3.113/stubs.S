@@ -141,7 +141,7 @@ NSTUB(0xff12340c, prop_register_slave)
 NSTUB(0xff123c88, _prop_cleanup)
 NSTUB(0xff123bbc, prop_deliver)
 NSTUB(0xff123600, _prop_request_change)
-NSTUB(0xff123de4, prop_get_value)
+NSTUB(0xff123de4, _prop_get_value) // unsafe
 
 /** Memory allocation **/
 NSTUB(0xff0c80ec, malloc)
