@@ -102,7 +102,7 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-#define AE_VALUE 0 // 404
+#define AE_VALUE 0 // http://www.magiclantern.fm/forum/index.php?topic=7208.100
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x26634) // not sure
 

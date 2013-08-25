@@ -84,7 +84,8 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-#define AE_VALUE (*(int8_t*)0x13025)
+#define AE_STATE (*(int8_t*)(0x13008 + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x13008 + 0x1D))
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x37F0)
 

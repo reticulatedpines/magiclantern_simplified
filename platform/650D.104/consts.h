@@ -90,7 +90,8 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-#define AE_VALUE (*(int8_t*)0x366d5) // ~ OLC_STRUCT offset 0x1D. OLC_STRUCT is used by copyOlcDataToStorage
+#define AE_STATE (*(int8_t*)(0x366B8 + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x366B8 + 0x1D))
 
 #define DLG_PLAY 1
 #define DLG_MENU 2

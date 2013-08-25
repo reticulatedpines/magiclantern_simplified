@@ -105,6 +105,7 @@
 #define MOV_OPT_STEP 2
 #define MOV_GOP_OPT_STEP 2
 
+// http://www.magiclantern.fm/forum/index.php?topic=7208.100
 #define AE_VALUE 0 // (*(int8_t*)0xfb30) - reported as not working
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x387C)

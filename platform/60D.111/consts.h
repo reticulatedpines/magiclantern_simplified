@@ -131,7 +131,8 @@
 //~ #define MOV_GOP_OPT_SIZE_VGA 0x5f84
 
 
-#define AE_VALUE (*(int8_t*)0x24bd9)
+#define AE_STATE (*(int8_t*)(0x24BBC + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x24BBC + 0x1D))
 
 #define CURRENT_DIALOG_MAYBE_2 MEM(0x5680)
 #define CURRENT_DIALOG_MAYBE MEM(0x3d70) // that's actually GUIMode
