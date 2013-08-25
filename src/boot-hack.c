@@ -454,7 +454,11 @@ static void my_big_init_task()
     #endif
     
     #ifdef CONFIG_QEMU
-    qemu_hello(); // see qemu-util.c
+        #ifdef CONFIG_QEMU_MENU_SCREENSHOTS
+        qemu_menu_screenshots();
+        #else
+        qemu_hello(); // see qemu-util.c
+        #endif
     #endif
 
     #if defined(CONFIG_AUTOBACKUP_ROM)
