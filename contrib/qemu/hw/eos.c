@@ -127,7 +127,7 @@ static void eos_load_image(EOSState *s, const char* file, int offset, int max_si
     int size = get_image_size(file);
     if (size < 0)
     {
-        fprintf(stderr, "%s: file not found '%s'\n", __FUNCTION__, file);
+        fprintf(stderr, "%s: file not found '%s'\n", __func__, file);
         abort();
     }
 
@@ -142,13 +142,13 @@ static void eos_load_image(EOSState *s, const char* file, int offset, int max_si
     uint8_t* buf = malloc(size);
     if (!buf)
     {
-        fprintf(stderr, "%s: malloc error loading '%s'\n", __FUNCTION__, file);
+        fprintf(stderr, "%s: malloc error loading '%s'\n", __func__, file);
         abort();
     }
 
     if (load_image(file, buf) != size)
     {
-        fprintf(stderr, "%s: error loading '%s'\n", __FUNCTION__, file);
+        fprintf(stderr, "%s: error loading '%s'\n", __func__, file);
         abort();
     }
 
