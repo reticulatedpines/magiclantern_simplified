@@ -57,10 +57,6 @@
 
 #define Q_HELPER_ADDR 0x30000000
 
-#define MEM32(addr) (* (uint32_t*) qemu_get_ram_ptr(addr))
-#define MEM16(addr) (* (uint16_t*) qemu_get_ram_ptr(addr))
-#define MEM8(addr)  (* (uint8_t*)  qemu_get_ram_ptr(addr))
-
 /* defines for memory/register access */
 #define INT_ENTRIES 0x100
 

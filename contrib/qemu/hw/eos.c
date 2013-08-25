@@ -374,32 +374,44 @@ machine_init(eos_machine_init);
 
 void eos_set_mem_w ( EOSState *ws, uint32_t addr, uint32_t val )
 {
-    MEM32(addr) = val;
+    cpu_physical_memory_write(addr, &val, sizeof(val));
 }
 
 void eos_set_mem_h ( EOSState *ws, uint32_t addr, uint16_t val )
 {
-    MEM16(addr) = val;
+    cpu_physical_memory_write(addr, &val, sizeof(val));
 }
 
 void eos_set_mem_b ( EOSState *ws, uint32_t addr, uint8_t val )
 {
-    MEM8(addr) = val;
+    cpu_physical_memory_write(addr, &val, sizeof(val));
 }
 
 uint32_t eos_get_mem_w ( EOSState *ws, uint32_t addr )
 {
-    return MEM32(addr);
+    uint32_t buf;
+
+    cpu_physical_memory_read(addr, &buf, sizeof(buf));
+
+    return buf;
 }
 
 uint16_t eos_get_mem_h ( EOSState *ws, uint32_t addr )
 {
-    return MEM16(addr);
+    uint16_t buf;
+
+    cpu_physical_memory_read(addr, &buf, sizeof(buf));
+
+    return buf;
 }
 
 uint8_t eos_get_mem_b ( EOSState *ws, uint32_t addr )
 {
-    return MEM8(addr);
+    uint8_t buf;
+
+    cpu_physical_memory_read(addr, &buf, sizeof(buf));
+
+    return buf;
 }
 
 unsigned int eos_default_handle ( EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
