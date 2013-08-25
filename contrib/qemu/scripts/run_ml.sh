@@ -9,9 +9,16 @@ make qemu-helper.bin -C $ML_PATH || exit
 cp $ML_PATH/autoexec.bin .
 cp $ML_PATH/qemu-helper.bin .
 
-rm -f vram.txt
-rm -f vram.png
+rm -f vram*.txt
+rm -f vram*.png
 
 $QEMU_PATH/arm-softmmu/qemu-system-arm -M ML-$1
 
-convert vram.txt vram.png && eog vram.png
+for f in `ls vram*.txt`;
+do
+    echo "Processing $f..."
+    convert $f `basename $f .txt`.png
+done
+
+eog vram00.png
+
