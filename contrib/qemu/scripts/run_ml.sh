@@ -9,8 +9,8 @@ make qemu-helper.bin -C $ML_PATH || exit
 cp $ML_PATH/autoexec.bin .
 cp $ML_PATH/qemu-helper.bin .
 
-rm vram.txt
-rm vram.png
+rm -f vram.txt
+rm -f vram.png
 
 $QEMU_PATH/arm-softmmu/qemu-system-arm -M ML-$1
 
