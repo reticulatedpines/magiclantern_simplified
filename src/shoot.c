@@ -4626,7 +4626,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv = &motion_detect_level, 
                 .min = 1,   
                 .max = 30,
-                .help = "Higher values = more sensitive to motion.",
+                .help = "Higher values = less sensitive to motion.",
             },
             {
                 .name = "Detect Size",
