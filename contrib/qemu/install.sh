@@ -1,6 +1,6 @@
 #!/bin/bash
 
-QEMU_NAME=qemu-1.5.0
+QEMU_NAME=qemu-1.6.0
 ML=magic-lantern
 
 echo
@@ -57,8 +57,9 @@ echo "   Copy those in `pwd`/ and then run (for 60D):"
 echo
 echo "   cat ROM0.BIN ROM1.BIN > ROM-60D.BIN"
 echo
-echo "3) Enable CONFIG_QEMU=y in your Makefile.user from magic-lantern directory,"
-echo "   then run 'make clean' to make sure you will rebuild ML from scratch."
+echo "3) Enable CONFIG_QEMU=y and ML_SRC_STATIC_FONTS=y in your Makefile.user"
+echo "   from magic-lantern directory, then run 'make clean' to make sure"
+echo "   you will rebuild ML from scratch."
 echo
 echo "4) Start emulation with:"
 echo
