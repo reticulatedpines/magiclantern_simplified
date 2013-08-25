@@ -343,6 +343,33 @@ static MENU_SELECT_FUNC(aperture_range_set) {
     }
 }
 
+static MENU_UPDATE_FUNC(lens_av_upd) {
+    if(!lens_av) {
+        MENU_SET_VALUE("OFF");
+        MENU_SET_ENABLED(0);
+        MENU_SET_ICON(IT_DICE_OFF, 0);
+    }
+    else if (lens_av == LENS_AV_THIS) {
+        int ap = AV2STR(RAW2AV(lens_info.raw_aperture_min));
+        MENU_SET_VALUE("this lens f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_ENABLED(1);
+        MENU_SET_ICON(IT_DICE, 0);
+    }
+    else {
+        int ap = AV2STR(lens_av);
+        MENU_SET_VALUE("f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_ENABLED(1);
+        MENU_SET_ICON(IT_DICE, 0);
+    }
+    MENU_CUSTOM_DRAW(av);
+}
+
+static MENU_SELECT_FUNC(lens_av_set) {
+    lens_av += delta * 5;
+    if(lens_av < 0) lens_av = LENS_AV_THIS;
+    lens_av = COERCE(lens_av, 0, 80);
+}
+
 static MENU_UPDATE_FUNC(iso_range_upd) {
     MENU_SET_VALUE("%d - %d", raw2iso(SV2RAW(iso_min)), raw2iso(SV2RAW(iso_max)));
     MENU_CUSTOM_DRAW(sv);
@@ -395,33 +422,6 @@ static MENU_UPDATE_FUNC(ec_range_upd) {
 }
 
 static MENU_SELECT_FUNC(ec_range_set) { RANGE_SET(ec, -50, 50); }
-
-static MENU_UPDATE_FUNC(lens_av_upd) {
-    if(!lens_av) {
-        MENU_SET_VALUE("OFF");
-        MENU_SET_ENABLED(0);
-        MENU_SET_ICON(IT_DICE_OFF, 0);
-    }
-    else if (lens_av == LENS_AV_THIS) {
-        int ap = AV2STR(RAW2AV(lens_info.raw_aperture_min));
-        MENU_SET_VALUE("this lens f/%d.%d", ap / 10, ap % 10);
-        MENU_SET_ENABLED(1);
-        MENU_SET_ICON(IT_DICE, 0);
-    }
-    else {
-        int ap = AV2STR(lens_av);
-        MENU_SET_VALUE("f/%d.%d", ap / 10, ap % 10);
-        MENU_SET_ENABLED(1);
-        MENU_SET_ICON(IT_DICE, 0);
-    }
-    MENU_CUSTOM_DRAW(av);
-}
-
-static MENU_SELECT_FUNC(lens_av_set) {
-    lens_av += delta * 5;
-    if(lens_av < 0) lens_av = LENS_AV_THIS;
-    lens_av = COERCE(lens_av, 0, 80);
-}
 
 static MENU_UPDATE_FUNC(last_bv_upd) {
     if(last_bv != INT_MIN) {
