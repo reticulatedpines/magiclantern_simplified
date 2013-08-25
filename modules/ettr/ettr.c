@@ -21,6 +21,10 @@ static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
+static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 0);
+static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 0);
+
+static int debug_info = 0;
 
 #define AUTO_ETTR_TRIGGER_ALWAYS_ON (auto_ettr_trigger == 0 || is_intervalometer_running())
 #define AUTO_ETTR_TRIGGER_AUTO_SNAP (auto_ettr_trigger == 1)
@@ -48,7 +52,7 @@ static int auto_ettr_get_correction()
     
     /* compute the raw levels for more percentile values; will help if the image is overexposed */
     /* if it's not, we'll use only the first value (the one from menu) */
-    int percentiles[12] = {(1000 - auto_ettr_ignore), 950, 900, 800, 750, 700, 600, 500, 300, 200, 150, 100};
+    int percentiles[13] = {(1000 - auto_ettr_ignore), 950, 900, 800, 750, 700, 600, 500, 300, 200, 150, 100, 50};
 
     int raw_values[COUNT(percentiles)];
     static float diff_from_lower_percentiles[COUNT(percentiles)-1] = {0};
@@ -62,7 +66,9 @@ static int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw_values[0]);
-    
+    float ev_median = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
+    float ev_shadow = raw_to_ev(raw_values[11]); /* 5th percentile */
+
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
@@ -134,6 +140,49 @@ static int auto_ettr_get_correction()
 
         /* use the average value for correction */
         correction = sum / num;
+    }
+
+    if (debug_info)
+    {
+        float dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
+        float midtone_snr = dr + ev_median;
+        float shadow_snr = dr + ev_shadow;
+        int mid_snr = (int)roundf(midtone_snr * 10);
+        int shad_snr = (int)roundf(shadow_snr * 10);
+        bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr));
+        bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr));
+        int clipped = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB);
+        bmp_printf(FONT_MED, 50, 120, "Clipped highs: %s%d.%02d%% ", FMT_FIXEDPOINT2(clipped));
+    }
+    
+    /* are we underexposing too much? */
+    if (lens_info.raw_iso && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit))
+    {
+        float dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
+
+        float midtone_snr = dr + ev_median;
+        float shadow_snr = dr + ev_shadow;
+        float correction0 = correction;
+
+        if (auto_ettr_midtone_snr_limit)
+        {
+            float midtone_expected_snr = midtone_snr + correction0;
+            int midtone_desired_snr = auto_ettr_midtone_snr_limit - 1;
+            if (midtone_expected_snr < midtone_desired_snr)
+            {
+                correction = MAX(correction, correction0 + midtone_desired_snr - midtone_expected_snr);
+            }
+        }
+
+        if (auto_ettr_shadow_snr_limit)
+        {
+            float shadow_expected_snr = shadow_snr + correction0;
+            int shadow_desired_snr = auto_ettr_shadow_snr_limit - 1;
+            if (shadow_expected_snr < shadow_desired_snr)
+            {
+                correction = MAX(correction, correction0 + shadow_desired_snr - shadow_expected_snr);
+            }
+        }
     }
     
     last_value = (int)(correction * 100);
@@ -885,6 +934,26 @@ static struct menu_entry ettr_menu[] =
                 .help = "Choose what color channels are allowed to be clipped.",
             },
             {
+                .name = "Midtone SNR limit",
+                .priv = &auto_ettr_midtone_snr_limit,
+                .min = 0,
+                .max = 9,
+                .choices = CHOICES("OFF", "0 EV", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV", "7 EV", "8 EV"),
+                .help  = "Stop underexposing when at least half of the image gets",
+                .help2 = "noisier than selected SNR => will clip more highlights.",
+                .depends_on = DEP_MANUAL_ISO,
+            },
+            {
+                .name = "Shadow SNR limit",
+                .priv = &auto_ettr_shadow_snr_limit,
+                .min = 0,
+                .max = 5,
+                .choices = CHOICES("OFF", "0 EV", "1 EV", "2 EV", "3 EV", "4 EV"),
+                .help  = "Stop underexposing when at least 5% of the image gets",
+                .help2 = "noisier than selected SNR => will clip more highlights.",
+                .depends_on = DEP_MANUAL_ISO,
+            },
+            {
                 .name = "Slowest shutter",
                 .priv = &auto_ettr_max_shutter,
                 .select = auto_ettr_max_shutter_toggle,
@@ -899,6 +968,12 @@ static struct menu_entry ettr_menu[] =
                 .priv = &auto_ettr_adjust_mode,
                 .max = 1,
                 .help = "Hack to adjust slowest shutter from main dial.",
+            },
+            {
+                .name = "Show debug info",
+                .priv = &debug_info,
+                .max = 1,
+                .help = "For camera nerds.",
             },
             MENU_EOL,
         },
@@ -945,4 +1020,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_ettr_max_shutter)
     MODULE_CONFIG(auto_ettr_clip)
     MODULE_CONFIG(auto_ettr_adjust_mode)
+    MODULE_CONFIG(auto_ettr_midtone_snr_limit)
+    MODULE_CONFIG(auto_ettr_shadow_snr_limit)
 MODULE_CONFIGS_END()
