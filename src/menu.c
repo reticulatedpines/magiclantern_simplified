@@ -2109,6 +2109,47 @@ entry_print(
         x_font_offset = font_large.width * 2;
         y_font_offset = (font_large.height - font_med.height) / 2;
         fnt = (fnt & ~FONT_MASK) | FONT_MED;
+
+        if (my_menu->selected)                   /* in My Menu, we will include the submenu name in the original entry */
+        {
+            /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
+            int max_len = w * font_large.width / font_med.width - 1;
+            int extra_len = max_len - strlen(info->name) - 4;
+
+            /* try to modify the name to show where it's coming from */
+            char new_name[100];
+            new_name[0] = 0;
+            
+            if (extra_len > 0)
+            {
+                /* we have some space to show the menu where the original entry is coming from */
+                /* (or at least some part of it) */
+                snprintf(new_name, MIN(extra_len + 1, sizeof(new_name)), "%s", entry->parent_menu->name);
+                STR_APPEND(new_name, " - ");
+            }
+
+            /* print the original name */
+            STR_APPEND(new_name, "%s", info->name);
+
+            /* if it's too long, add some dots */
+            if ((int)strlen(new_name) > max_len)
+            {
+                new_name[max_len-1] = new_name[max_len-2] = new_name[max_len-3] = '.';
+                new_name[max_len] = 0;
+            }
+
+            bmp_printf(
+                fnt,
+                x, y + y_font_offset,
+                new_name
+            );
+            
+            /* don't indent */
+            x_font_offset = 0;
+            
+            /* don't print the name in the normal way */
+            goto skip_name;
+        }
     }
 
     bmp_printf(
@@ -2116,6 +2157,8 @@ entry_print(
         x + x_font_offset, y + y_font_offset,
         info->name
     );
+
+skip_name:
 
     // debug
     if (0)
@@ -2413,26 +2456,7 @@ dyn_menu_add_entry(struct menu * dyn_menu, struct menu_entry * entry, struct men
 
 static int my_menu_select_func(struct menu_entry * entry)
 {
-    if (entry->starred)
-        return 1;
-    
-    /* anything from submenu was starred? show the main entry too */
-    if (entry->children)
-    {
-        struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
-        if (submenu)
-        {
-            struct menu_entry * e = submenu->children;
-            
-            for(; e ; e = e->next)
-            {
-                if (e->starred)
-                    return 1;
-            }
-        }
-    }
-    
-    return 0;
+    return entry->starred ? 1 : 0;
 }
 
 static int mod_menu_select_func(struct menu_entry * entry)
