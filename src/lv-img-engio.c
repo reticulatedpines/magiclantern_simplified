@@ -688,9 +688,6 @@ static MENU_UPDATE_FUNC(vignetting_graphs_update)
         #endif
         
     }
-    
-    if (!vignetting_correction_enable)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Vignetting correction is disabled.");
 }
 
 #ifdef FEATURE_SHUTTER_FINE_TUNING
