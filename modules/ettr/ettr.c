@@ -813,9 +813,6 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     
     if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
-    
-    if (auto_ettr)
-        MENU_SET_RINFO("%dEV/%d.%d%%", auto_ettr_target_level, auto_ettr_ignore/10, auto_ettr_ignore%10);
 
     if (auto_ettr)
         MENU_SET_VALUE(
