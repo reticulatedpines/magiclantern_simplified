@@ -55,11 +55,13 @@
 
 #define MENU_CUSTOM_DRAW(item) \
     if(show_graph && info->can_custom_draw) { \
-        info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
-        if(entry->selected) { \
-            entry_print(info->x, 60, 15, entry, info, 1); \
+        entry->parent_menu->scroll_pos = 20;     /* force this entry to be the first one (menu backend will bring it back in range) */ \
+        if (entry->selected) { \
             sel_item = ITEM_##item; \
             update_graph(); \
+        } \
+        else if (entry->prev && entry->prev->selected) { \
+            info->custom_drawing = CUSTOM_DRAW_THIS_MENU; /* stop drawing after the selected entry */ \
         } \
     }
 #define RANGE_SET(val, min, max) \
