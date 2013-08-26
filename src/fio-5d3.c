@@ -116,6 +116,19 @@ void card_tests()
     }
 }
 
+static MENU_SELECT_FUNC(card_test_toggle)
+{
+    card_test_enabled = !card_test_enabled;
+}
+
+static MENU_UPDATE_FUNC(card_test_update)
+{
+    MENU_SET_VALUE(card_test_enabled ? "ON" : "OFF");
+    MENU_SET_ICON(MNI_BOOL(card_test_enabled), 0);
+    MENU_SET_ENABLED(card_test_enabled);
+}
+
+
 void find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
@@ -327,8 +340,9 @@ struct menu_entry card_menus[] = {
             },*/
             {
                 .name = "Card test at startup", 
-                .priv = &card_test_enabled,
-                .max = 1,
+                //~ .priv = &card_test_enabled, /* don't use priv, so it doesn't get displayed in the modified settings menu */
+                .select = card_test_toggle,
+                .update = card_test_update,
                 .help = "File write test. Some cards may have compatibility issues.",
             },
             {
