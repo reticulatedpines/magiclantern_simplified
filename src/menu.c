@@ -1863,6 +1863,21 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
 {
     warning[0] = 0;
     
+    /* all submenu entries depend on the master entry, if any */
+    if (IS_SUBMENU(entry->parent_menu))
+    {
+        struct menu_entry * parent_entry = entry_find_by_name(0, entry->parent_menu->name);
+        if (parent_entry && IS_ML_PTR(parent_entry->priv))
+        {
+            if (!MENU_INT(parent_entry))
+            {
+                int is_plural = parent_entry->name[strlen(parent_entry->name)-1] == 's';
+                snprintf(warning, MENU_MAX_WARNING_LEN, "%s %s disabled.", parent_entry->name, is_plural ? "are" : "is");
+                return MENU_WARN_NOT_WORKING;
+            }
+        }
+    }
+    
     // default warnings
          if (DEPENDS_ON(DEP_GLOBAL_DRAW) && !get_global_draw())
         snprintf(warning, MENU_MAX_WARNING_LEN, GDR_WARNING_MSG);
