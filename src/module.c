@@ -1455,7 +1455,9 @@ int module_shutdown()
 {
     _module_unload_all();
     
-    module_save_configs();
+    extern int config_autosave;
+    if (config_autosave)
+        module_save_configs();
     
     if(module_autoload_enabled)
     {
