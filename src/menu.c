@@ -2241,9 +2241,8 @@ skip_name:
     }
 
     // selection bar params
-
-    // bar middle
-    int xc = x - 5;
+    int xl = x - 5 + x_font_offset;
+    int xc = x - 5 + x_font_offset;
     if ((in_submenu || edit_mode) && info->value[0])
         xc = x + font_large.width * w - 15;
 
@@ -2255,7 +2254,7 @@ skip_name:
         if (junkie_mode && !in_submenu) color_left = color_right = COLOR_BLACK;
         if (customize_mode) { color_left = color_right = get_customize_color(); }
 
-        selection_bar_backend(color_left, COLOR_BLACK, x-5, y, xc-x+5, 31);
+        selection_bar_backend(color_left, COLOR_BLACK, xl, y, xc-xl, 31);
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
         
         // use a pickbox if possible
