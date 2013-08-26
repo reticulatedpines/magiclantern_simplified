@@ -2121,7 +2121,7 @@ entry_print(
     {
         /* use a smaller font */
         use_small_font = 1;
-        x_font_offset = font_large.width * 2;
+        x_font_offset = 28;
         y_font_offset = (font_large.height - font_med.height) / 2;
         fnt = (fnt & ~FONT_MASK) | FONT_MED;
 
