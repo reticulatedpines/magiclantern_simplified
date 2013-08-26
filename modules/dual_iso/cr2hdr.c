@@ -643,6 +643,18 @@ static int median_short(unsigned short* x, int n)
     return ans;
 }
 
+static int median_int(int* x, int n)
+{
+    int* aux = malloc(n * sizeof(x[0]));
+    CHECK(aux, "malloc");
+    memcpy(aux, x, n * sizeof(aux[0]));
+    #define int_lt(a,b) ((*a)<(*b))
+    QSORT(int, aux, n, int_lt);
+    int ans = aux[n/2];
+    free(aux);
+    return ans;
+}
+
 static int estimate_iso(unsigned short* dark, unsigned short* bright, double* corr_ev, double* black_delta)
 {
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
@@ -678,7 +690,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         /* same dark value from i to j (without j) */
         int num = (j - i);
         
-        if (num > 200 && ref > black + 32 && ref < white - 1000)
+        if (num > 100 && ref > black + 32 && ref < white - 1000)
         {
             unsigned short* aux = malloc(num * sizeof(aux[0]));
             for (k = 0; k < num; k++)
@@ -696,6 +708,26 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         i = j;
     }
 
+    /*
+     * some sort of robust linear fitting
+     * median for X, median for Y, median for angle (atan2)
+     */
+    int mx = median_int(medians_x, num_medians);
+    int my = median_int(medians_y, num_medians);
+    
+    int* medians_ang = malloc(num_medians * sizeof(medians_ang[0]));
+    for (i = 0; i < num_medians; i++)
+    {
+        double ang = atan2(medians_y[i] - my, medians_x[i] - mx);
+        while (ang < 0) ang += M_PI;
+        medians_ang[i] = (int)round(ang * 1000000);
+    }
+    int ma = median_int(medians_ang, num_medians);
+
+    /* convert to y = ax + b */
+    double a = tan(ma / 1000000.0);
+    double b = my - a * mx;
+
 #if 0
     FILE* f = fopen("iso-curve.m", "w");
 
@@ -709,34 +741,16 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         fprintf(f, "%d ", medians_y[i]);
     fprintf(f, "];\n");
 
-    fprintf(f, "plot(x, y);\n");
+    fprintf(f, "plot(x, y); hold on;\n");
+    fprintf(f, "a = %f;\n", a);
+    fprintf(f, "b = %f;\n", b);
+    fprintf(f, "plot(x, a * x + b, 'r');\n");
     fclose(f);
     
     system("octave --persist iso-curve.m");
 #endif
 
-    /**
-     * plain least squares
-     * y = ax + b
-     * a = (mean(xy) - mean(x)mean(y)) / (mean(x^2) - mean(x)^2)
-     * b = mean(y) - a mean(x)
-     */
-    
-    double mx = 0, my = 0, mxy = 0, mx2 = 0;
-    for (i = 0; i < num_medians; i++)
-    {
-        mx += medians_x[i];
-        my += medians_y[i];
-        mxy += medians_x[i] * medians_y[i];
-        mx2 += medians_x[i] * medians_x[i];
-    }
-    mx /= num_medians;
-    my /= num_medians;
-    mxy /= num_medians;
-    mx2 /= num_medians;
-    double a = (mxy - mx*my) / (mx2 - mx*mx);
-    double b = my - a * mx;
-
+    free(medians_ang);
     free(medians_x);
     free(medians_y);
     free(order);
@@ -1061,8 +1075,9 @@ static int hdr_interpolate()
     {
         raw_info.buffer += raw_info.pitch;
         raw_info.active_area.y1++;
+        raw_info.active_area.y2--;
         raw_info.jpeg.y++;
-        raw_info.jpeg.height--;
+        raw_info.jpeg.height -= 3;
         raw_info.height--;
         h--;
     }
@@ -1959,8 +1974,9 @@ static int hdr_interpolate()
     {
         raw_info.buffer -= raw_info.pitch;
         raw_info.active_area.y1--;
+        raw_info.active_area.y2++;
         raw_info.jpeg.y--;
-        raw_info.jpeg.height++;
+        raw_info.jpeg.height += 3;
         raw_info.height++;
         h++;
     }
