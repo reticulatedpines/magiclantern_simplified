@@ -21,8 +21,8 @@ static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
-static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 0);
-static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 0);
+static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6+1);
+static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 3+1);
 
 static int debug_info = 0;
 
