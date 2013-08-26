@@ -557,18 +557,18 @@ static struct menu_entry autoexpo_menu[] =
     }
 };
 
-unsigned int autoexpo_init()
+static unsigned int autoexpo_init()
 {
     menu_add("Expo", autoexpo_menu, COUNT(autoexpo_menu));
     return 0;
 }
 
-unsigned int autoexpo_deinit()
+static unsigned int autoexpo_deinit()
 {
     return 0;
 }
 
-unsigned int autoexpo_keypress(unsigned int key)
+static unsigned int autoexpo_keypress(unsigned int key)
 {
     if(gui_menu_shown()) last_key = key;
     return 1;
