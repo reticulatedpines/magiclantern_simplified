@@ -347,69 +347,6 @@ delete_config( void * priv, int delta )
     config_deleted = 1;
 }
 
-static int modified_settings_page = 0;
-static int modified_settings_need_more_pages;
-static MENU_UPDATE_FUNC(show_modified_settings)
-{
-    if (!entry->selected) modified_settings_page = 0;
-    if (!modified_settings_page)
-    {
-        MENU_SET_VALUE("");
-        return;
-    }
-
-    if (!info->x) return;
-    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-
-    int skip = (modified_settings_page - 1) * (460 / font_med.height);
-    int k = 0;
-    int y = 0;
-    struct menu * menu = (struct menu *) menu_get_root();
-    for( ; menu ; menu = menu->next )
-    {
-        if (streq(menu->name, "MyMenu") || streq(menu->name, "Modified"))
-            continue;
-
-        struct menu_entry * entry = menu->children;
-        for( ; entry ; entry = entry->next )
-        {
-            if (entry->shidden)
-                continue;
-            
-            if (config_var_was_changed(entry->priv))
-            {
-                k++;
-                if (k <= skip) continue;
-
-                char* value = (char*) menu_get_str_value_from_script(menu->name, entry->name);
-                if (k%2) bmp_fill(COLOR_GRAY(10), 0, y, 720, font_med.height);
-                bmp_printf(SHADOW_FONT(FONT_MED), 10, y, "%s - %s", menu->name, entry->name);
-                bmp_printf(SHADOW_FONT(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK)), 720 - strlen(value)*font_med.width, y, "%s", value);
-                y += font_med.height;
-                if (y > 450)
-                {
-                    modified_settings_need_more_pages = 1;
-                    bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 710 - 7*font_med.width, y, "more...");
-                    return;
-                }
-            }
-        }
-    }
-    if (k == 0) bmp_printf(FONT_LARGE, 10, 10, "No settings changed.");
-    modified_settings_need_more_pages = 0;
-}
-
-static MENU_SELECT_FUNC(toggle_modified_settings)
-{
-    if (delta < 0)
-        modified_settings_page--;
-    else if (modified_settings_need_more_pages)
-        modified_settings_page++;
-    else
-        modified_settings_page = !modified_settings_page;
-}
-
 #endif
 
 #if CONFIG_DEBUGMSG
@@ -3969,15 +3906,6 @@ static struct menu_entry cfg_menus[] = {
             .select        = delete_config,
             .update        = delete_config_update,
             .help  = "This restore ML default settings, by deleting MAGIC.CFG.",
-        },
-
-        {
-            .name = "Show modified settings",
-            .update = show_modified_settings,
-            .select = toggle_modified_settings,
-            .max = 1,
-            .icon_type = IT_ACTION,
-            .help =  "Displays the settings that were changed from ML defaults.",
         },
 
         #ifdef CONFIG_PICOC
