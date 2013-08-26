@@ -987,7 +987,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
     if (entry->name && menu->split_pos < 0)// && entry->priv)
     {
         menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
-        if (-menu->split_pos > 25) menu->split_pos = -25;
+        if (-menu->split_pos > 28) menu->split_pos = -28;
     }
 }
 
@@ -1074,6 +1074,7 @@ menu_add(
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
+        new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
         new_entry++;
@@ -1089,6 +1090,7 @@ menu_add(
         new_entry->selected = 0;
         new_entry->next     = head->next;
         new_entry->prev     = head;
+        new_entry->parent_menu = menu;
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
@@ -2083,11 +2085,69 @@ entry_print(
     if (submenu_mode && !in_submenu)
         fnt = MENU_FONT_GRAY;
     
-    bmp_printf(
-        fnt,
-        x, y,
-        info->name
-    );
+    int use_small_font = 0;
+    int y_font_offset = 0;
+    
+    int not_at_home = 
+            !entry->parent_menu->selected &&     /* is it in some dynamic menu? (not in its original place) */
+            !submenu_mode &&                     /* hack: submenus are not marked as "selected", so we can't have dynamic submenus for now */
+            1;
+    
+    /* do not show right-side info in dynamic menus (looks a little tidier) */
+    if (not_at_home)
+        info->rinfo[0] = 0;
+    
+    if (
+            not_at_home &&                       /* special display to show where it's coming from */
+            IS_SUBMENU(entry->parent_menu) &&    /* if it's from a top-level menu, it's obvious where it's coming from */
+            !edit_mode &&                        /* show unmodified entry when editing */
+       1)
+    {
+        /* use a smaller font, because we'll use a longer name */
+        use_small_font = 1;
+        y_font_offset = (font_large.height - font_med.height) / 2;
+        fnt = (fnt & ~FONT_MASK) | FONT_MED;
+
+        /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
+        int max_len = w * font_large.width / font_med.width - 1;
+        int extra_len = max_len - strlen(info->name) - 4;
+
+        /* try to modify the name to show where it's coming from */
+        char new_name[100];
+        new_name[0] = 0;
+        
+        if (extra_len > 0)
+        {
+            /* we have some space to show the menu where the original entry is coming from */
+            /* (or at least some part of it) */
+            snprintf(new_name, MIN(extra_len + 1, sizeof(new_name)), "%s", entry->parent_menu->name);
+            STR_APPEND(new_name, " - ");
+        }
+    
+        /* print the original name */
+        STR_APPEND(new_name, "%s", info->name);
+        
+        /* if it's too long, add some dots */
+        if ((int)strlen(new_name) > max_len)
+        {
+            new_name[max_len-1] = new_name[max_len-2] = new_name[max_len-3] = '.';
+            new_name[max_len] = 0;
+        }
+        
+        bmp_printf(
+            fnt,
+            x, y + y_font_offset,
+            new_name
+        );
+    }
+    else
+    {
+        bmp_printf(
+            fnt,
+            x, y,
+            info->name
+        );
+    }
 
     // debug
     if (0)
@@ -2095,6 +2155,9 @@ entry_print(
 
     if (info->enabled == 0) 
         fnt = MENU_FONT_GRAY;
+    
+    if (use_small_font)
+        fnt = (fnt & ~FONT_MASK) | FONT_MED;
     
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
@@ -2107,11 +2170,11 @@ entry_print(
     
     // value string too big? move it to the left
     int end = w + strlen(info->value);
-    int wmax = (x_end - x) / font_large.width;
+    int wmax = (x_end - x) / fontspec_font(fnt)->width;
 
     // right-justified info field?
     int rlen = strlen(info->rinfo);
-    int rinfo_x = x_end - font_large.width * (rlen + 1);
+    int rinfo_x = x_end - fontspec_font(fnt)->width * (rlen + 1);
     if (rlen) wmax -= rlen + 1;
     
     // no right info? then make sure there's room for the Q symbol
@@ -2128,7 +2191,7 @@ entry_print(
     // print value field
     bmp_printf(
         fnt,
-        xval, y,
+        xval, y + y_font_offset,
         "%s",
         info->value
     );
@@ -2138,7 +2201,7 @@ entry_print(
     {
         bmp_printf(
             MENU_FONT_GRAY,
-            rinfo_x, y,
+            rinfo_x, y + y_font_offset,
             "%s",
             info->rinfo
         );
@@ -3305,7 +3368,7 @@ menu_entry_customize_toggle(
         // lookup the corresponding entry in normal menus, and toggle that one instead
         char* name = (char*) entry->name;   // trick so we don't find the same menu
         entry->name = 0;                    // (this menu will be rebuilt anyway, so... no big deal)
-        entry = entry_find_by_name(0, name);
+        entry = entry_find_by_name(entry->parent_menu->name, name);
         if (!entry) { beep(); return; }
         if (!entry->starred) return;
         menu_entry_star_toggle(entry); // should not fail

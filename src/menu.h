@@ -140,6 +140,7 @@ struct menu_entry
         struct menu_entry *     next;
         struct menu_entry *     prev;
         struct menu_entry * children;
+        struct menu * parent_menu; // mostly for custom menus, so we know where each entry comes from
 
         const char * name;
         void * priv;
@@ -168,8 +169,6 @@ struct menu_entry
         
         const char * help;
         const char * help2;
-        //~ const char * short_name; // used for junkie mode (well... never used)
-        //~ uint32_t id; // unique ID (not supported; menus are identified by strings)
     
         // not required for entry item, but makes it easier to declare in existing menu structures
         int16_t submenu_width; 
