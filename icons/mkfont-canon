@@ -14,7 +14,7 @@ use Getopt::Long;
 
 my $font_width		= 8;
 my $font_height		= 12;
-my @font_range		= 97 .. 111; # a-n
+my @font_range		= 97 .. 113; # a-q
 my $font_chars		= @font_range;
 my $font_type		= 'const unsigned';
 my $font_name		= 'menu_icons';

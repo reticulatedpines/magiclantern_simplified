@@ -410,7 +410,7 @@ void customize_menu_init()
     my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
     
-    mod_menu = menu_find_by_name(MOD_MENU_NAME, ICON_TAB);
+    mod_menu = menu_find_by_name(MOD_MENU_NAME, ICON_ML_MODIFIED);
     menu_add(MOD_MENU_NAME, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
@@ -4210,6 +4210,7 @@ menu_init( void )
     m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );if (m) m->split_pos = 17;
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );if (m) m->split_pos = 11;
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );if (m) m->split_pos = 27;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );if (m) m->split_pos = 15;
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );if (m) m->split_pos = 13;
 }

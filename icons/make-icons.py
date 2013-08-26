@@ -26,6 +26,8 @@ icons = [
     'Q-forward.png',
     'Q-back.png',
     'forward.png',
+    'modules.png',
+    'modified.png',
 ]
 
 # On low-res screens, the audio and focus icons are aliasing
@@ -45,6 +47,8 @@ icons_lowres = [
     'Q-forward.png',
     'Q-back.png',
     'forward.png',
+    'modules.png',
+    'modified.png',
 ]
 
 
