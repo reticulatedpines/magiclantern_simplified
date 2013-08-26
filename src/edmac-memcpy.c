@@ -21,6 +21,9 @@ uint32_t edmac_write_chan = 0x13;
 #elif defined(CONFIG_60D)
 uint32_t edmac_read_chan = 0x19;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
 uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
+#elif defined(CONFIG_7D)
+uint32_t edmac_read_chan = 0x19;  
+uint32_t edmac_write_chan = 0x04;
 #else
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x11;

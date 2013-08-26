@@ -21,8 +21,8 @@ static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
-static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 0);
-static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 0);
+static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6+1);
+static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 3+1);
 
 static int debug_info = 0;
 
@@ -813,9 +813,6 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     
     if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
-    
-    if (auto_ettr)
-        MENU_SET_RINFO("%dEV/%d.%d%%", auto_ettr_target_level, auto_ettr_ignore/10, auto_ettr_ignore%10);
 
     if (auto_ettr)
         MENU_SET_VALUE(

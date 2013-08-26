@@ -59,6 +59,11 @@ extern int bmp_color_scheme;
 static struct menu * my_menu;
 static int my_menu_dirty = 0;
 
+/* modified settings menu */
+#define MOD_MENU_NAME "Modified"
+static struct menu * mod_menu;
+static int mod_menu_dirty = 1;
+
 //for vscroll
 #define MENU_LEN 11
 
@@ -339,6 +344,64 @@ static struct menu_entry menu_prefs[] = {
 };
 */
 
+/* todo: use dynamic entries, like in file_man */
+static struct menu_entry mod_menu_placeholders[] = {
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+    MY_MENU_ENTRY
+};
+
 void customize_menu_init()
 {
     menu_add("Prefs", customize_menu, COUNT(customize_menu));
@@ -346,6 +409,9 @@ void customize_menu_init()
     // this is added at the end, after all the others
     my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
+    
+    mod_menu = menu_find_by_name(MOD_MENU_NAME, ICON_ML_MODIFIED);
+    menu_add(MOD_MENU_NAME, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
 void menu_prefs_init()
@@ -831,6 +897,7 @@ menu_has_visible_items(struct menu * menu)
             streq(menu->name, "Help") ||
             //~ streq(menu->name, "Scripts") ||
             streq(menu->name, "Modules") ||
+            streq(menu->name, MOD_MENU_NAME) ||
            0)
             return 0;
     }
@@ -920,7 +987,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
     if (entry->name && menu->split_pos < 0)// && entry->priv)
     {
         menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
-        if (-menu->split_pos > 25) menu->split_pos = -25;
+        if (-menu->split_pos > 28) menu->split_pos = -28;
     }
 }
 
@@ -1007,6 +1074,7 @@ menu_add(
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
+        new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
         new_entry++;
@@ -1022,6 +1090,7 @@ menu_add(
         new_entry->selected = 0;
         new_entry->next     = head->next;
         new_entry->prev     = head;
+        new_entry->parent_menu = menu;
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
@@ -1794,6 +1863,21 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
 {
     warning[0] = 0;
     
+    /* all submenu entries depend on the master entry, if any */
+    if (IS_SUBMENU(entry->parent_menu))
+    {
+        struct menu_entry * parent_entry = entry_find_by_name(0, entry->parent_menu->name);
+        if (parent_entry && IS_ML_PTR(parent_entry->priv))
+        {
+            if (!MENU_INT(parent_entry))
+            {
+                int is_plural = parent_entry->name[strlen(parent_entry->name)-1] == 's';
+                snprintf(warning, MENU_MAX_WARNING_LEN, "%s %s disabled.", parent_entry->name, is_plural ? "are" : "is");
+                return MENU_WARN_NOT_WORKING;
+            }
+        }
+    }
+    
     // default warnings
          if (DEPENDS_ON(DEP_GLOBAL_DRAW) && !get_global_draw())
         snprintf(warning, MENU_MAX_WARNING_LEN, GDR_WARNING_MSG);
@@ -1996,7 +2080,7 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
         batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
-void
+static void
 entry_print(
     int x,
     int y,
@@ -2016,11 +2100,80 @@ entry_print(
     if (submenu_mode && !in_submenu)
         fnt = MENU_FONT_GRAY;
     
+    int use_small_font = 0;
+    int x_font_offset = 0;
+    int y_font_offset = 0;
+    
+    int not_at_home = 
+            !entry->parent_menu->selected &&     /* is it in some dynamic menu? (not in its original place) */
+            !submenu_mode &&                     /* hack: submenus are not marked as "selected", so we can't have dynamic submenus for now */
+            1;
+    
+    /* do not show right-side info in dynamic menus (looks a little tidier) */
+    if (not_at_home)
+        info->rinfo[0] = 0;
+    
+    if (
+            not_at_home &&                       /* special display to show where it's coming from */
+            IS_SUBMENU(entry->parent_menu) &&    /* if it's from a top-level menu, it's obvious where it's coming from */
+            !edit_mode &&                        /* show unmodified entry when editing */
+       1)
+    {
+        /* use a smaller font */
+        use_small_font = 1;
+        x_font_offset = 28;
+        y_font_offset = (font_large.height - font_med.height) / 2;
+        fnt = (fnt & ~FONT_MASK) | FONT_MED;
+
+        if (my_menu->selected)                   /* in My Menu, we will include the submenu name in the original entry */
+        {
+            /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
+            int max_len = w * font_large.width / font_med.width - 1;
+            int extra_len = max_len - strlen(info->name) - 4;
+
+            /* try to modify the name to show where it's coming from */
+            char new_name[100];
+            new_name[0] = 0;
+            
+            if (extra_len > 0)
+            {
+                /* we have some space to show the menu where the original entry is coming from */
+                /* (or at least some part of it) */
+                snprintf(new_name, MIN(extra_len + 1, sizeof(new_name)), "%s", entry->parent_menu->name);
+                STR_APPEND(new_name, " - ");
+            }
+
+            /* print the original name */
+            STR_APPEND(new_name, "%s", info->name);
+
+            /* if it's too long, add some dots */
+            if ((int)strlen(new_name) > max_len)
+            {
+                new_name[max_len-1] = new_name[max_len-2] = new_name[max_len-3] = '.';
+                new_name[max_len] = 0;
+            }
+
+            bmp_printf(
+                fnt,
+                x, y + y_font_offset,
+                new_name
+            );
+            
+            /* don't indent */
+            x_font_offset = 0;
+            
+            /* don't print the name in the normal way */
+            goto skip_name;
+        }
+    }
+
     bmp_printf(
         fnt,
-        x, y,
+        x + x_font_offset, y + y_font_offset,
         info->name
     );
+
+skip_name:
 
     // debug
     if (0)
@@ -2028,6 +2181,9 @@ entry_print(
 
     if (info->enabled == 0) 
         fnt = MENU_FONT_GRAY;
+    
+    if (use_small_font)
+        fnt = (fnt & ~FONT_MASK) | FONT_MED;
     
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
@@ -2039,12 +2195,12 @@ entry_print(
         w += 2;
     
     // value string too big? move it to the left
-    int end = w + strlen(info->value);
+    int end = w + (use_small_font ? strlen(info->value) * font_med.width / font_large.width: strlen(info->value));
     int wmax = (x_end - x) / font_large.width;
 
     // right-justified info field?
     int rlen = strlen(info->rinfo);
-    int rinfo_x = x_end - font_large.width * (rlen + 1);
+    int rinfo_x = x_end - fontspec_font(fnt)->width * (rlen + 1);
     if (rlen) wmax -= rlen + 1;
     
     // no right info? then make sure there's room for the Q symbol
@@ -2061,7 +2217,7 @@ entry_print(
     // print value field
     bmp_printf(
         fnt,
-        xval, y,
+        xval, y + y_font_offset,
         "%s",
         info->value
     );
@@ -2071,7 +2227,7 @@ entry_print(
     {
         bmp_printf(
             MENU_FONT_GRAY,
-            rinfo_x, y,
+            rinfo_x, y + y_font_offset,
             "%s",
             info->rinfo
         );
@@ -2100,9 +2256,8 @@ entry_print(
     }
 
     // selection bar params
-
-    // bar middle
-    int xc = x - 5;
+    int xl = x - 5 + x_font_offset;
+    int xc = x - 5 + x_font_offset;
     if ((in_submenu || edit_mode) && info->value[0])
         xc = x + font_large.width * w - 15;
 
@@ -2114,7 +2269,7 @@ entry_print(
         if (junkie_mode && !in_submenu) color_left = color_right = COLOR_BLACK;
         if (customize_mode) { color_left = color_right = get_customize_color(); }
 
-        selection_bar_backend(color_left, COLOR_BLACK, x-5, y, xc-x+5, 31);
+        selection_bar_backend(color_left, COLOR_BLACK, xl, y, xc-xl, 31);
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
         
         // use a pickbox if possible
@@ -2192,6 +2347,9 @@ entry_print(
                 info->warning
         );
     }
+    
+    /* from now on, we'll draw the icon only, which should be shifted */
+    x += x_font_offset;
 
     // customization markers
     if (customize_mode)
@@ -2257,7 +2415,11 @@ menu_entry_process(
     info.x = x;
     info.y = y;
     info.x_val = x + font_large.width * ABS(menu->split_pos);
-    info.can_custom_draw = !streq(menu->name, MY_MENU_NAME) && !menu_lv_transparent_mode;
+    info.can_custom_draw = menu != my_menu && menu != mod_menu && !menu_lv_transparent_mode;
+    
+    /* temporary hack for code that doesn't know about can_custom_draw, but checks info->x and/or info->y */
+    if (!info.can_custom_draw)
+        info.x = info.y = 0;
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
@@ -2286,39 +2448,65 @@ menu_entry_process(
 }
 
 static void
-my_menu_add_entry(struct menu_entry * entry, int i)
+dyn_menu_add_entry(struct menu * dyn_menu, struct menu_entry * entry, struct menu_entry * dyn_entry)
 {
-    struct menu_entry * my_entry = &(my_menu_placeholders[i]);
-    
     // copy most things from old menu structure to this one
     // except for some essential things :P
-    void* next = my_entry->next;
-    void* prev = my_entry->prev;
-    int selected = my_entry->selected;
-    memcpy(my_entry, entry, sizeof(struct menu_entry));
-    my_entry->next = next;
-    my_entry->prev = prev;
-    my_entry->selected = selected;
-    my_entry->shidden = entry->shidden;
-    my_entry->hidden = 0;
-    my_entry->jhidden = 0;
-    my_entry->starred = 0;
+    void* next = dyn_entry->next;
+    void* prev = dyn_entry->prev;
+    int selected = dyn_entry->selected;
+    memcpy(dyn_entry, entry, sizeof(struct menu_entry));
+    dyn_entry->next = next;
+    dyn_entry->prev = prev;
+    dyn_entry->selected = selected;
+    dyn_entry->shidden = entry->shidden;
+    dyn_entry->hidden = 0;
+    dyn_entry->jhidden = 0;
+    dyn_entry->starred = 0;
     
     // update split position
-    menu_update_split_pos(my_menu, my_entry);
+    menu_update_split_pos(dyn_menu, dyn_entry);
+}
+
+static int my_menu_select_func(struct menu_entry * entry)
+{
+    return entry->starred ? 1 : 0;
+}
+
+static int mod_menu_select_func(struct menu_entry * entry)
+{
+    if (config_var_was_changed(entry->priv))
+        return 1;
+    
+    /* anything from submenu was changed? */
+    if (entry->children)
+    {
+        struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
+        if (submenu)
+        {
+            struct menu_entry * e = submenu->children;
+            
+            for(; e ; e = e->next)
+            {
+                if (config_var_was_changed(e->priv))
+                    return 1;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 static int
-my_menu_rebuild()
+dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders)
 {
-    my_menu_dirty = 0;
-    my_menu->split_pos = -12;
+    dyn_menu->split_pos = -12;
 
     int i = 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (menu == my_menu)
+        if (menu == my_menu || menu == mod_menu)
             continue;
         
         if (IS_SUBMENU(menu))
@@ -2331,12 +2519,12 @@ my_menu_rebuild()
             if (entry->shidden)
                 continue;
             
-            if (entry->starred)
+            if (select_func(entry))
             {
-                if (i >= COUNT(my_menu_placeholders)) // too many starred items
+                if (i >= max_placeholders) // too many items in our dynamic menu
                     return 0; // whoops
                 
-                my_menu_add_entry(entry, i);
+                dyn_menu_add_entry(dyn_menu, entry, &placeholders[i]);
                 i++;
             }
             
@@ -2350,12 +2538,12 @@ my_menu_rebuild()
                     
                     for(; e ; e = e->next)
                     {
-                        if (e->starred)
+                        if (select_func(e))
                         {
-                            if (i >= COUNT(my_menu_placeholders)) // too many starred items
+                            if (i >= max_placeholders) // too many items in our dynamic menu
                                 return 0; // whoops
                             
-                            my_menu_add_entry(e, i);
+                            dyn_menu_add_entry(dyn_menu, e, &placeholders[i]);
                             i++;
                         }
                     }
@@ -2364,20 +2552,33 @@ my_menu_rebuild()
         }
     }
     
-    for ( ; i < COUNT(my_menu_placeholders); i++)
+    for ( ; i < max_placeholders; i++)
     {
-        struct menu_entry * my_entry = &(my_menu_placeholders[i]);
-        my_entry->shidden = 1;
-        my_entry->hidden = 1;
-        my_entry->jhidden = 1;
-        my_entry->name = 0;
-        my_entry->priv = 0;
-        my_entry->select = 0;
-        my_entry->select_Q = 0;
-        my_entry->update = menu_placeholder_unused_update;
+        struct menu_entry * dyn_entry = &(placeholders[i]);
+        dyn_entry->shidden = 1;
+        dyn_entry->hidden = 1;
+        dyn_entry->jhidden = 1;
+        dyn_entry->name = 0;
+        dyn_entry->priv = 0;
+        dyn_entry->select = 0;
+        dyn_entry->select_Q = 0;
+        dyn_entry->update = menu_placeholder_unused_update;
     }
     
     return 1; // success
+}
+
+static int
+my_menu_rebuild()
+{
+    my_menu_dirty = 0;
+    return dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders));
+}
+
+static int mod_menu_rebuild()
+{
+    mod_menu_dirty = 0;
+    return dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
 static int get_menu_count(struct menu * menu)
@@ -2918,6 +3119,9 @@ menus_display(
 
     if (my_menu_dirty)
         my_menu_rebuild();
+    
+    if (mod_menu_dirty)
+        mod_menu_rebuild();
 
     struct menu * submenu = 0;
     if (submenu_mode)
@@ -3211,7 +3415,7 @@ menu_entry_customize_toggle(
         // lookup the corresponding entry in normal menus, and toggle that one instead
         char* name = (char*) entry->name;   // trick so we don't find the same menu
         entry->name = 0;                    // (this menu will be rebuilt anyway, so... no big deal)
-        entry = entry_find_by_name(0, name);
+        entry = entry_find_by_name(entry->parent_menu->name, name);
         if (!entry) { beep(); return; }
         if (!entry->starred) return;
         menu_entry_star_toggle(entry); // should not fail
@@ -3362,6 +3566,10 @@ menu_move(
     // Select the new one (which might be the same)
     menu->selected      = 1;
     menu_first_by_icon = menu->icon;
+    
+    /* rebuild the modified settings menu */
+    mod_menu_dirty = 1;
+    
     give_semaphore( menu_sem );
 }
 
@@ -4112,6 +4320,7 @@ menu_init( void )
     m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );if (m) m->split_pos = 17;
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );if (m) m->split_pos = 11;
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );if (m) m->split_pos = 27;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );if (m) m->split_pos = 15;
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );if (m) m->split_pos = 13;
 }
@@ -4707,6 +4916,7 @@ static void menu_save_flags(char* filename)
     for( ; menu ; menu = menu->next )
     {
         if (menu == my_menu) continue;
+        if (menu == mod_menu) continue;
         
         struct menu_entry * entry = menu->children;
         
@@ -5022,6 +5232,7 @@ static void menu_duplicate_test()
     for( ; menu ; menu = menu->next )
     {
         if (menu == my_menu) continue;
+        if (menu == mod_menu) continue;
         
         struct menu_entry * entry = menu->children;
         for( ; entry ; entry = entry->next )

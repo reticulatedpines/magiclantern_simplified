@@ -1296,7 +1296,7 @@ static struct menu_entry module_menu[] = {
         .help = "Loads modules every startup",
     },
     {
-        .name = "Ingore unclean shutdown",
+        .name = "Ignore unclean shutdown",
         .priv = &module_ignore_crashes,
         .max = 1,
         .help = "When enabled, modules are even loaded after camera crashed.",
@@ -1455,7 +1455,9 @@ int module_shutdown()
 {
     _module_unload_all();
     
-    module_save_configs();
+    extern int config_autosave;
+    if (config_autosave)
+        module_save_configs();
     
     if(module_autoload_enabled)
     {
