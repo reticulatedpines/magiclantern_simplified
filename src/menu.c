@@ -2086,6 +2086,7 @@ entry_print(
         fnt = MENU_FONT_GRAY;
     
     int use_small_font = 0;
+    int x_font_offset = 0;
     int y_font_offset = 0;
     
     int not_at_home = 
@@ -2103,51 +2104,18 @@ entry_print(
             !edit_mode &&                        /* show unmodified entry when editing */
        1)
     {
-        /* use a smaller font, because we'll use a longer name */
+        /* use a smaller font */
         use_small_font = 1;
+        x_font_offset = font_large.width * 2;
         y_font_offset = (font_large.height - font_med.height) / 2;
         fnt = (fnt & ~FONT_MASK) | FONT_MED;
-
-        /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
-        int max_len = w * font_large.width / font_med.width - 1;
-        int extra_len = max_len - strlen(info->name) - 4;
-
-        /* try to modify the name to show where it's coming from */
-        char new_name[100];
-        new_name[0] = 0;
-        
-        if (extra_len > 0)
-        {
-            /* we have some space to show the menu where the original entry is coming from */
-            /* (or at least some part of it) */
-            snprintf(new_name, MIN(extra_len + 1, sizeof(new_name)), "%s", entry->parent_menu->name);
-            STR_APPEND(new_name, " - ");
-        }
-    
-        /* print the original name */
-        STR_APPEND(new_name, "%s", info->name);
-        
-        /* if it's too long, add some dots */
-        if ((int)strlen(new_name) > max_len)
-        {
-            new_name[max_len-1] = new_name[max_len-2] = new_name[max_len-3] = '.';
-            new_name[max_len] = 0;
-        }
-        
-        bmp_printf(
-            fnt,
-            x, y + y_font_offset,
-            new_name
-        );
     }
-    else
-    {
-        bmp_printf(
-            fnt,
-            x, y,
-            info->name
-        );
-    }
+
+    bmp_printf(
+        fnt,
+        x + x_font_offset, y + y_font_offset,
+        info->name
+    );
 
     // debug
     if (0)
@@ -2169,8 +2137,8 @@ entry_print(
         w += 2;
     
     // value string too big? move it to the left
-    int end = w + strlen(info->value);
-    int wmax = (x_end - x) / fontspec_font(fnt)->width;
+    int end = w + (use_small_font ? strlen(info->value) * font_med.width / font_large.width: strlen(info->value));
+    int wmax = (x_end - x) / font_large.width;
 
     // right-justified info field?
     int rlen = strlen(info->rinfo);
@@ -2322,6 +2290,9 @@ entry_print(
                 info->warning
         );
     }
+    
+    /* from now on, we'll draw the icon only, which should be shifted */
+    x += x_font_offset;
 
     // customization markers
     if (customize_mode)
@@ -2442,12 +2413,50 @@ dyn_menu_add_entry(struct menu * dyn_menu, struct menu_entry * entry, struct men
 
 static int my_menu_select_func(struct menu_entry * entry)
 {
-    return entry->starred ? 1 : 0;
+    if (entry->starred)
+        return 1;
+    
+    /* anything from submenu was starred? show the main entry too */
+    if (entry->children)
+    {
+        struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
+        if (submenu)
+        {
+            struct menu_entry * e = submenu->children;
+            
+            for(; e ; e = e->next)
+            {
+                if (e->starred)
+                    return 1;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 static int mod_menu_select_func(struct menu_entry * entry)
 {
-    return config_var_was_changed(entry->priv);
+    if (config_var_was_changed(entry->priv))
+        return 1;
+    
+    /* anything from submenu was changed? */
+    if (entry->children)
+    {
+        struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
+        if (submenu)
+        {
+            struct menu_entry * e = submenu->children;
+            
+            for(; e ; e = e->next)
+            {
+                if (config_var_was_changed(e->priv))
+                    return 1;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 static int
