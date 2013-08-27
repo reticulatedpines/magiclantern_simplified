@@ -1223,10 +1223,6 @@ static MENU_UPDATE_FUNC(fps_wav_record_print)
     MENU_SET_ICON(CURRENT_VALUE ? MNI_ON : MNI_DISABLE, 0);
 }
 
-static MENU_UPDATE_FUNC(fps_ramp_update)
-{
-    if (!fps_override) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS override should be enabled.");
-}
 static MENU_UPDATE_FUNC(fps_ramp_duration_update)
 {
     if (!fps_ramp) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS ramping disabled.");
@@ -1379,7 +1375,6 @@ static struct menu_entry fps_menu[] = {
                 .name = "FPS ramping", 
                 .priv = &fps_ramp,
                 .max = 1,
-                .update = fps_ramp_update,
                 .help = "Ramp between overridden FPS and default FPS. Undercrank only.",
                 .help2 = "To start ramping, press " INFO_BTN_NAME " or just start recording.",
                 .depends_on = DEP_MOVIE_MODE,
