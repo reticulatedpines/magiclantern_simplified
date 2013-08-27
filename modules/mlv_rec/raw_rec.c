@@ -137,9 +137,9 @@ static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
 static float squeeze_factor = 0;
-int32_t frame_size = 0;
-int32_t skip_x = 0;
-int32_t skip_y = 0;
+static int32_t frame_size = 0;
+static int32_t skip_x = 0;
+static int32_t skip_y = 0;
 
 static int32_t frame_offset_x = 0;
 static int32_t frame_offset_y = 0;
@@ -467,6 +467,8 @@ static MENU_UPDATE_FUNC(write_speed_update)
 
 static void refresh_raw_settings(int32_t force)
 {
+    if (!lv) return;
+    
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
@@ -1068,7 +1070,7 @@ static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (raw_video_enabled && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (raw_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
@@ -1094,12 +1096,14 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (!raw_video_enabled)
         return 0;
     
-    if (!is_movie_mode())
+    if (!lv || !is_movie_mode())
         return 0;
 
     /* refresh cropmark (faster when panning, slower when idle) */
     static int32_t aux = INT_MIN;
-    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
+    int cropmark_delay = RAW_IS_IDLE ? 500 : 10000;
+	
+    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(cropmark_delay, &aux))
     {
         if (liveview_display_idle())
         {
@@ -2372,6 +2376,9 @@ static void raw_video_rec_task()
     
     hack_liveview(0);
     
+    /* get exclusive access to our edmac channels */
+    edmac_memcpy_res_lock();
+	
     /* setup MLV stuff */
     mlv_init_header();
 
@@ -2561,6 +2568,9 @@ static void raw_video_rec_task()
 
     /* wait until the other tasks calm down */
     msleep(500);
+
+    /* exclusive edmac access no longer needed */
+    edmac_memcpy_res_unlock();
 
     recording = 0;
 
