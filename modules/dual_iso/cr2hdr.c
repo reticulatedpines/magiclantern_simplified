@@ -531,7 +531,6 @@ static int black_subtract(int left_margin, int top_margin)
 
 static int black_subtract_simple(int left_margin, int top_margin)
 {
-    return;
     if (left_margin < 10) return 0;
     if (top_margin < 10) return 0;
     
@@ -578,6 +577,40 @@ static int black_subtract_simple(int left_margin, int top_margin)
     }
     
     return 1;
+}
+
+static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, double* out_mean, double* out_stdev)
+{
+    double black = 0;
+    int num = 0;
+    /* compute average level */
+    int x, y;
+    for (y = y1; y < y2; y += dy)
+    {
+        for (x = x1; x < x2; x += dx)
+        {
+            black += raw_get_pixel(x, y);
+            num++;
+        }
+    }
+
+    double mean = black / num;
+
+    /* compute standard deviation */
+    double stdev = 0;
+    for (y = y1; y < y2; y += dy)
+    {
+        for (x = x1; x < x2; x += dx)
+        {
+            int dif = raw_get_pixel(x, y) - mean;
+            stdev += dif * dif;
+        }
+    }
+    stdev /= num;
+    stdev = sqrt(stdev);
+
+    *out_mean = mean;
+    *out_stdev = stdev;
 }
 
 /* quick check to see if this looks like a HDR frame */
@@ -1134,6 +1167,17 @@ static int hdr_interpolate()
     }
 
     #define BRIGHT_ROW (is_bright[y % 4])
+    
+    double noise_std[4];
+    double noise_avg;
+    for (y = 0; y < 4; y++)
+        compute_black_noise(8, raw_info.active_area.x1 - 8, 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
+
+    printf("Noise levels   : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
+    double dark_noise = MIN(MIN(noise_std[0], noise_std[1]), MIN(noise_std[2], noise_std[3]));
+    double bright_noise = MAX(MAX(noise_std[0], noise_std[1]), MAX(noise_std[2], noise_std[3]));
+    double dark_noise_ev = log2(dark_noise);
+    double bright_noise_ev = log2(bright_noise);
 
     /* dark and bright exposures, interpolated */
     unsigned short* dark   = malloc(w * h * sizeof(unsigned short));
@@ -1392,7 +1436,16 @@ static int hdr_interpolate()
             native[x + y * w] = raw_get_pixel_14to16(x-2, y);
         }
     }
+    
+    /* we have now switched to 16-bit, update noise numbers */
+    dark_noise *= 4;
+    bright_noise *= 4;
+    dark_noise_ev += 2;
+    bright_noise_ev += 2;
 
+    double lowiso_dr = log2(white - black) - dark_noise_ev;
+    double highiso_dr = log2(white - black) - bright_noise_ev;
+    printf("Dynamic range  : %.02f (+) %.02f => %.02f EV (in theory)\n", lowiso_dr, highiso_dr, highiso_dr + corr_ev);
     printf("Matching brightness...\n");
     double corr = pow(2, corr_ev);
     int white_darkened = (white - black) / corr + black;
@@ -1416,75 +1469,115 @@ static int hdr_interpolate()
             }
         }
     }
-
-    printf("Looking for hot pixels...\n");
-    int hot_pixels = 0;
-    for (y = 4; y < h-4; y ++)
+    
+    /* update bright noise measurements, so they can be compared after scaling */
+    bright_noise /= corr;
+    bright_noise_ev -= corr_ev;
+    
+#if 1
     {
-        for (x = 4; x < w-4; x ++)
+        printf("Looking for hot pixels...\n");
+        int hot_pixels = 0;
+        unsigned short* hot = malloc(w * h * sizeof(unsigned short));
+        CHECK(hot, "malloc");
+        memset(hot, 0, w * h * sizeof(unsigned short));
+        for (y = 4; y < h-4; y ++)
         {
+            for (x = 4; x < w-4; x ++)
             {
-                int d = dark[x + y*w];
-                int b = bright[x + y*w];
-
-                /* don't check hot pixels near overexposed areas */
-                int i,j;
-                int over = 0;
-                for (i = -3; i <= 3; i++)
                 {
-                    for (j = -3; j <= 3; j++)
-                    {
-                        if (bright[x+j + (y+i)*w] >= white_darkened || dark[x+j + (y+i)*w] >= white_darkened)
-                        {
-                            over = 1;
-                            break;
-                        }
-                    }
-                }
+                    int d = dark[x + y*w];
+                    int b = bright[x + y*w];
 
-                int maybe_hot = !over && (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > 64);
-                if (maybe_hot)
-                {
-                    /* these hot pixels should be isolated, otherwise it's probably aliasing, which shouldn't be touched */
-                    int is_hot = 1;
+                    /* don't check hot pixels near overexposed areas */
                     int i,j;
-                    
-                    int delta_ev = raw2ev[d] - raw2ev[b];
-                    int delta_raw = d - b;
-                    
-                    /* test case from IMG_6706.CR2 from Danne */
-                    //~ if (x == 3538 + 124 && y == 1285 + 80)
-                        //~ printf("gotcha %f %f\n", (double) raw2ev[b] / EV_RESOLUTION, raw2ev[d] / (double) EV_RESOLUTION);
-                    for (i = -2; i <= 2; i++)
+                    int over = 0;
+                    for (i = -3; i <= 3; i++)
                     {
-                        for (j = -2; j <= 2; j++)
+                        for (j = -3; j <= 3; j++)
                         {
-                            if (i == 0 && j == 0) continue;
-                            if (j == 0) continue;
-                            int d = dark[x+j*2 + (y+i*2)*w];
-                            int b = bright[x+j*2 + (y+i*2)*w];
-                            if ((d - b > delta_raw / 2) && (raw2ev[d] - raw2ev[b] > delta_ev - EV_RESOLUTION))
+                            if (bright[x+j + (y+i)*w] >= white_darkened || dark[x+j + (y+i)*w] >= white_darkened)
                             {
-                                //~ if (x == 3538 + 124 && y == 1285 + 80)
-                                    //~ printf("whoops (%d,%d) raw=%d,%d ev=%f,%f\n", i, j, b, d, (double) raw2ev[b] / EV_RESOLUTION,  (double)raw2ev[d] / EV_RESOLUTION);
-
-                                is_hot = 0;
-                                break; 
+                                over = 1;
+                                break;
                             }
                         }
                     }
+                    if (over)
+                        continue;
+                    
+                    /* for speedup */
+                    int maybe_hot = (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > dark_noise);
+                    if (!maybe_hot)
+                        continue;
+
+                    /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
+                    int neighbours[50];
+                    int k = 0;
+                    for (i = -3; i <= 3; i++)
+                    {
+                        for (j = -3; j <= 3; j++)
+                        {
+                            if (ABS(i) <= 1 && ABS(j) <= 1)
+                                continue;
+                            
+                            int d = dark[x+j*2 + (y+i*2)*w];
+                            int b = bright[x+j*2 + (y+i*2)*w];
+                            int p = BRIGHT_ROW ? b : d;
+                            neighbours[k++] = p;
+                        }
+                    }
+                    int max = 0;
+                    int imax = 0;
+                    for (i = 0; i < k; i++)
+                    {
+                        if (neighbours[i] > max)
+                        {
+                            max = neighbours[i];
+                            imax = i;
+                        }
+                    }
+
+                    int second_max = 0;
+                    for (i = 0; i < k; i++)
+                    {
+                        if (neighbours[i] > second_max && i != imax)
+                        {
+                            second_max = neighbours[i];
+                        }
+                    }
+
+                    int is_hot =
+                        (raw2ev[d] - raw2ev[max] > -EV_RESOLUTION/2) &&
+                        (raw2ev[d] - raw2ev[second_max] > EV_RESOLUTION/2) &&
+                        (d - second_max > dark_noise/2);
+
                     if (is_hot)
                     {
                         hot_pixels++;
-                        dark[x + y*w] = b;
+                        hot[x + y*w] = 1;
                     }
                 }
             }
         }
-    }
 
-    if (hot_pixels)
-        printf("Hot pixels     : %d\n", hot_pixels);
+        /* correct all hot pixels from the high-ISO image, which is usually clean */
+        for (y = 4; y < h-4; y ++)
+        {
+            for (x = 4; x < w-4; x ++)
+            {
+                if (hot[x + y*w])
+                {
+                    dark[x + y*w] = bright[x + y*w];
+                }
+            }
+        }
+        free(hot);
+
+        if (hot_pixels)
+            printf("Hot pixels     : %d\n", hot_pixels);
+    }
+#endif
 
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
@@ -1519,7 +1612,6 @@ static int hdr_interpolate()
       Combined:  XX##..............  (14 stops)
     */
     double clipped_ev = corr_ev;
-    double lowiso_dr = 11;
     double overlap = lowiso_dr - clipped_ev;
 
     /* you get better colors, less noise, but a little more jagged edges if we underestimate the overlap amount */
@@ -1679,7 +1771,7 @@ static int hdr_interpolate()
 
     unsigned short* alias_aux = malloc(w * h * sizeof(unsigned short));
     CHECK(alias_aux, "malloc");
-
+    
     /* build the aliasing maps (where it's likely to get aliasing) */
     /* do this by comparing fullres and halfres images */
     /* if the difference is small, we'll prefer halfres for less noise, otherwise fullres for less aliasing */
@@ -1691,9 +1783,10 @@ static int hdr_interpolate()
             int h = halfres_smooth[x + y*w];
             int fe = raw2ev[f];
             int he = raw2ev[h];
-            int e_lin = ABS(f - h) * 8; /* error in linear space, for shadows */
-            int e_log = ABS(fe - he) / 8; /* error in EV space, for highlights */
-            alias_map[x + y*w] = MIN(e_lin, e_log);
+            int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
+            e_lin = MAX(e_lin - dark_noise, 0);
+            int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
+            alias_map[x + y*w] = MIN(e_lin*16, e_log/8);
         }
     }
 
@@ -1706,9 +1799,8 @@ static int hdr_interpolate()
     memcpy(alias_aux, alias_map, w * h * sizeof(unsigned short));
     
     /* trial and error - too high = aliasing, too low = noisy */
-    int ALIAS_MAP_MAX = 10000;
+    int ALIAS_MAP_MAX = 15000;
 
-#if 1
     printf("Dilating alias map...\n");
     for (y = 6; y < h-6; y ++)
     {
@@ -1727,12 +1819,13 @@ static int hdr_interpolate()
             alias_aux[x + y * w] = c;
         }
     }
+
+#if 0
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
             raw_set_pixel16(x, y, ev2raw[COERCE(alias_aux[x + y*w] * 1024, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("alias-dilated.dng");
-
 #endif
 
     printf("Smoothing alias map...\n");
@@ -1956,6 +2049,11 @@ static int hdr_interpolate()
             raw_set_pixel16(x, y, ev2raw[output]);
         }
     }
+
+    /* let's see how much dynamic range we actually got */
+    compute_black_noise(8, raw_info.active_area.x1 - 8, 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+    printf("Noise level    : %.02f (16-bit)\n", noise_std[0]);
+    printf("Dynamic range  : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
     if (!rggb) /* back to GBRG */
     {
