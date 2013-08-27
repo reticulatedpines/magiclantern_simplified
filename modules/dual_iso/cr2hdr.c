@@ -688,7 +688,7 @@ static int median_int(int* x, int n)
     return ans;
 }
 
-static int estimate_iso(unsigned short* dark, unsigned short* bright, double* corr_ev, double* black_delta)
+static int estimate_iso(unsigned short* dark, unsigned short* bright, double* corr_ev)
 {
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
     /* method: for each X (dark image) level, compute median of corresponding Y (bright image) values */
@@ -711,9 +711,12 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     #define darkidx_lt(a,b) (bright[(*a)]<bright[(*b)])
     QSORT(int, order, w*h, darkidx_lt);
     
-    int* medians_x = malloc(white * sizeof(medians_x[0]));
-    int* medians_y = malloc(white * sizeof(medians_y[0]));
+    int* medians_x = malloc(16384 * sizeof(medians_x[0]));
+    int* medians_y = malloc(16384 * sizeof(medians_y[0]));
     int num_medians = 0;
+
+    int* all_medians = malloc(16384 * sizeof(all_medians[0]));
+    memset(all_medians, 0, 16384 * sizeof(all_medians[0]));
 
     for (i = 0; i < w*h; )
     {
@@ -723,43 +726,54 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         /* same dark value from i to j (without j) */
         int num = (j - i);
         
-        if (num > 100 && ref > black + 32 && ref < white - 1000)
+        unsigned short* aux = malloc(num * sizeof(aux[0]));
+        for (k = 0; k < num; k++)
+            aux[k] = dark[order[k+i]];
+        
+        int m = median_short(aux, num);
+        all_medians[ref] = m;
+        
+        if (num > 100 && ref > black && ref < white - 1000 && m > black && m < white - 1000)
         {
-            unsigned short* aux = malloc(num * sizeof(aux[0]));
-            for (k = 0; k < num; k++)
-                aux[k] = dark[order[k+i]];
-            int m = median_short(aux, num);
-            if (m > black + 32 && m < white - 1000)
-            {
-                medians_x[num_medians] = ref - black;
-                medians_y[num_medians] = m - black;
-                num_medians++;
-            }
-            free(aux);
+            medians_x[num_medians] = ref - black;
+            medians_y[num_medians] = m - black;
+            num_medians++;
         }
+        
+        free(aux);
         
         i = j;
     }
 
-    /*
-     * some sort of robust linear fitting
-     * median for X, median for Y, median for angle (atan2)
-     */
-    int mx = median_int(medians_x, num_medians);
-    int my = median_int(medians_y, num_medians);
-    
+    /* estimate ISO (median angle) */
     int* medians_ang = malloc(num_medians * sizeof(medians_ang[0]));
     for (i = 0; i < num_medians; i++)
     {
-        double ang = atan2(medians_y[i] - my, medians_x[i] - mx);
+        double ang = atan2(medians_y[i], medians_x[i]);
         while (ang < 0) ang += M_PI;
         medians_ang[i] = (int)round(ang * 1000000);
     }
     int ma = median_int(medians_ang, num_medians);
 
-    /* convert to y = ax + b */
+    /* y = ax */
     double a = tan(ma / 1000000.0);
-    double b = my - a * mx;
+
+    /* adjust ISO 100 nonlinearly so it matches the y = ax */
+    int x, y;
+    for (y = 0; y < h-1; y ++)
+    {
+        for (x = 0; x < w; x ++)
+        {
+            int ref = bright[x + y*w];
+            ref = MIN(ref, white);
+            int med = all_medians[ref];
+            if (med == 0)
+                continue;
+            int ideal = (ref - black) * a + black;
+            int corr = ideal - med;
+            dark[x + y*w] += corr;
+        }
+    }
 
 #if 0
     FILE* f = fopen("iso-curve.m", "w");
@@ -776,7 +790,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
 
     fprintf(f, "plot(x, y); hold on;\n");
     fprintf(f, "a = %f;\n", a);
-    fprintf(f, "b = %f;\n", b);
+    fprintf(f, "b = %f;\n", 0.0);
     fprintf(f, "plot(x, a * x + b, 'r');\n");
     fclose(f);
     
@@ -787,6 +801,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     free(medians_x);
     free(medians_y);
     free(order);
+    free(all_medians);
 
     double factor = 1/a;
     if (factor < 1.2 || !isfinite(factor))
@@ -796,10 +811,8 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     }
     
     *corr_ev = log2(factor);
-    *black_delta = b;
 
     printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
-    printf("Black delta    : %.2f\n", *black_delta);
 
     return 1;
 }
@@ -1231,18 +1244,26 @@ static int hdr_interpolate()
             native[x + y * w] = raw_get_pixel(x, y);
         }
     }
-    /* estimate ISO and black difference between bright and dark exposures */
+    /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
-    double black_delta = 0;
     
     /* don't forget that estimate_iso only works on 14-bit data, but we are working on 16 */
     raw_info.black_level /= 4;
     raw_info.white_level /= 4;
-    int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
+    int ok = estimate_iso(dark, bright, &corr_ev);
     raw_info.black_level *= 4;
     raw_info.white_level *= 4;
     if (!ok) goto err;
-    
+
+    /* propagate the adjustments for black image, performed by estimate_iso */
+    for (y = 2; y < h-2; y ++)
+    {
+        if (BRIGHT_ROW)
+            continue;
+        for (x = 0; x < w; x ++)
+            raw_set_pixel16(x, y, dark[x + y*w]);
+    }
+
     printf("Interpolation  : %s\n", INTERP_METHOD_NAME
         #ifdef CHROMA_SMOOTH
         "-chroma5x5"
@@ -1470,12 +1491,6 @@ static int hdr_interpolate()
                 int b = bright[x + y*w];
                 int bd = (b - black) / corr + black;
                 bright[x + y*w] = bd;
-            }
-            {
-                /* adjust the black level in the dark image, so it matches the high-ISO one */
-                int d = dark[x + y*w];
-                int da = d - black_delta*4;
-                dark[x + y*w] = da;
             }
         }
     }
