@@ -1489,9 +1489,9 @@ static int hdr_interpolate()
         unsigned short* hot = malloc(w * h * sizeof(unsigned short));
         CHECK(hot, "malloc");
         memset(hot, 0, w * h * sizeof(unsigned short));
-        for (y = 4; y < h-4; y ++)
+        for (y = 6; y < h-6; y ++)
         {
-            for (x = 4; x < w-4; x ++)
+            for (x = 6; x < w-6; x ++)
             {
                 {
                     int d = dark[x + y*w];
@@ -1596,9 +1596,9 @@ static int hdr_interpolate()
         }
 
         /* correct all hot pixels from the high-ISO image, which is usually clean */
-        for (y = 4; y < h-4; y ++)
+        for (y = 0; y < h; y ++)
         {
-            for (x = 4; x < w-4; x ++)
+            for (x = 0; x < w; x ++)
             {
                 if (hot[x + y*w])
                 {
