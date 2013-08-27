@@ -771,6 +771,8 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
                 continue;
             int ideal = (ref - black) * a + black;
             int corr = ideal - med;
+            if (ABS(corr) > 100)
+                continue;           /* outlier? */
             dark[x + y*w] += corr;
         }
     }
@@ -1727,7 +1729,7 @@ static int hdr_interpolate()
             /* they may be real or interpolated */
             /* they both have the same brightness (they were adjusted before this loop), so we are ready to mix them */ 
             int b = bright[x + y*w];
-            int d  = dark[x + y*w];
+            int d = dark[x + y*w];
 
             /* go from linear to EV space */
             int bev = raw2ev[b];
