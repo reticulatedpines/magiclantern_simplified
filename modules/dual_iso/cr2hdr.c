@@ -219,6 +219,9 @@ int main(int argc, char** argv)
             //~ printf("%d ", raw_get_pixel16(i, 0));
         //~ printf("\n");
         
+        raw_info.black_level = 2048;
+        raw_info.white_level = 15000;
+
         raw_info.width = width;
         raw_info.height = height;
         raw_info.pitch = width * 2;
