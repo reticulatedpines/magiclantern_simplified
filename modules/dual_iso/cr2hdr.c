@@ -298,9 +298,9 @@ static int white_detect_brute_force()
     /* ignore hot pixels when finding white level (at least 10 pixels should confirm it) */
     
     int white = raw_info.white_level * 5 / 6;
-    int whites[4] = {white, white, white, white};
-    int maxies[4] = {white, white, white, white};
-    int counts[4] = {0, 0, 0, 0};
+    int whites[8] = {white, white, white, white, white, white, white, white};
+    int maxies[8] = {white, white, white, white, white, white, white, white};
+    int counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
     int x,y;
     for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
@@ -308,23 +308,30 @@ static int white_detect_brute_force()
         for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
         {
             int pix = raw_get_pixel16(x, y);
-            if (pix > maxies[y%4])
+            #define BIN_IDX ((y%4) + (x%2)*4)
+            if (pix > maxies[BIN_IDX])
             {
-                maxies[y%4] = pix;
-                counts[y%4] = 1;
+                maxies[BIN_IDX] = pix;
+                counts[BIN_IDX] = 1;
             }
-            else if (pix == maxies[y%4])
+            else if (pix == maxies[BIN_IDX])
             {
-                counts[y%4]++;
-                if (counts[y%4] > 10)
+                counts[BIN_IDX]++;
+                if (counts[BIN_IDX] > 10)
                 {
-                    whites[y%4] = maxies[y%4];
+                    whites[BIN_IDX] = maxies[BIN_IDX];
                 }
             }
+            #undef BIN_IDX
         }
     }
+
+    //~ printf("%8d %8d %8d %8d %8d %8d %8d %8d\n", whites[0], whites[1], whites[2], whites[3], whites[4], whites[5], whites[6], whites[7]);
+    //~ printf("%8d %8d %8d %8d %8d %8d %8d %8d\n", counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[7]);
     
-    white = MIN(MIN(whites[0], whites[1]), MIN(whites[2], whites[3]));
+    int white1 = MIN(MIN(whites[0], whites[1]), MIN(whites[2], whites[3]));
+    int white2 = MIN(MIN(whites[4], whites[5]), MIN(whites[6], whites[7]));
+    white = MIN(white1, white2);
     raw_info.white_level = white - 100;
     printf("White level    : %d\n", raw_info.white_level);
     return 1;
