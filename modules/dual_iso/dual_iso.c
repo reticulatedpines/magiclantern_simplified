@@ -90,6 +90,7 @@ static int is_7d = 0;
 static int is_5d2 = 0;
 static int is_50d = 0;
 static int is_6d = 0;
+static int is_500d = 0;
 static int is_600d = 0;
 static int is_700d = 0;
 
@@ -183,7 +184,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             if (iso1 != iso2)
                 return 3;
             
-            if ( (iso1 < prev_iso) && !is_50d) /* the list should be ascending */
+            if ( (iso1 < prev_iso) && !is_50d && !is_500d) /* the list should be ascending */
                 return 4;
             
             prev_iso = iso1;
@@ -728,6 +729,18 @@ static unsigned int isoless_init()
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 3;
         CMOS_EXPECTED_FLAG = 4;
+    }
+    else if (streq(camera_model_short, "500D"))
+    {  
+        is_500d = 1;    
+
+        PHOTO_CMOS_ISO_START = 0x405C56C2; // CMOS register 0000 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_COUNT =          5; // from ISO 100 to 1600
+        PHOTO_CMOS_ISO_SIZE  =         14; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 3;
+        CMOS_EXPECTED_FLAG = 0;
     }
     else if (streq(camera_model_short, "600D"))
     {  
