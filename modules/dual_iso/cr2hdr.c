@@ -1207,6 +1207,10 @@ static int hdr_interpolate()
     memset(halfres, 0, w * h * sizeof(unsigned short));
     unsigned short* halfres_smooth = 0;
 
+    /* hot pixel map */
+    unsigned short* hotpixel = malloc(w * h * sizeof(unsigned short));
+    CHECK(hotpixel, "malloc");
+
     #ifdef ALIAS_BLEND
     unsigned short* alias_map = malloc(w * h * sizeof(unsigned short));
     CHECK(alias_map, "malloc");
@@ -1489,9 +1493,7 @@ static int hdr_interpolate()
         printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
         int cold_pixels = 0;
-        unsigned short* hot = malloc(w * h * sizeof(unsigned short));
-        CHECK(hot, "malloc");
-        memset(hot, 0, w * h * sizeof(unsigned short));
+        memset(hotpixel, 0, w * h * sizeof(unsigned short));
         for (y = 6; y < h-6; y ++)
         {
             for (x = 6; x < w-6; x ++)
@@ -1586,30 +1588,17 @@ static int hdr_interpolate()
                     if (is_hot)
                     {
                         hot_pixels++;
-                        hot[x + y*w] = 1;
+                        hotpixel[x + y*w] = 1;
                     }
 
                     if (is_cold)
                     {
                         cold_pixels++;
-                        hot[x + y*w] = -1;
+                        hotpixel[x + y*w] = -1;
                     }
                 }
             }
         }
-
-        /* correct all hot pixels from the high-ISO image, which is usually clean */
-        for (y = 0; y < h; y ++)
-        {
-            for (x = 0; x < w; x ++)
-            {
-                if (hot[x + y*w])
-                {
-                    dark[x + y*w] = bright[x + y*w];
-                }
-            }
-        }
-        free(hot);
 
         if (hot_pixels)
             printf("Hot pixels     : %d\n", hot_pixels);
@@ -1721,6 +1710,9 @@ static int hdr_interpolate()
             /* blending factor */
             double k = COERCE(mix_curve[b & 65535], 0, 1);
             
+            if (hotpixel[x + y*w])
+                k = 0;
+            
             /* mix bright and dark exposures */
             int mixed = bev * (1-k) + dev * k;
             halfres[x + y*w] = ev2raw[mixed];
@@ -1827,6 +1819,9 @@ static int hdr_interpolate()
             e_lin = MAX(e_lin - dark_noise, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
             alias_map[x + y*w] = MIN(e_lin*16, e_log/8);
+            
+            if (hotpixel[x + y*w])
+                alias_map[x + y*w] = 0;
         }
     }
 
@@ -2078,6 +2073,10 @@ static int hdr_interpolate()
             
             /* use smoothing in noisy near-overexposed areas to hide color artifacts */
             double fev = noisy_or_overexposed * frsev + (1-noisy_or_overexposed) * frev;
+
+            /* don't use fullres on hot pixels */
+            if (hotpixel[x + y*w])
+                f = 0;
             
             /* blend "half-res" and "full-res" images smoothly to avoid banding*/
             int output = hrev * (1-f) + fev * f;
@@ -2122,6 +2121,7 @@ cleanup:
     free(bright);
     free(fullres);
     free(halfres);
+    free(hotpixel);
     #ifdef ALIAS_BLEND
     free(alias_map);
     free(overexposed);
