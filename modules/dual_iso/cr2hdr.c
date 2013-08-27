@@ -1827,11 +1827,13 @@ static int hdr_interpolate()
         }
     }
 
+#if 0
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
             raw_set_pixel16(x, y, ev2raw[COERCE(alias_map[x + y*w] * 1024, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("alias.dng");
+#endif
 
     memcpy(alias_aux, alias_map, w * h * sizeof(unsigned short));
     
@@ -1916,11 +1918,13 @@ static int hdr_interpolate()
         }
     }
 
+#if 0
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
             raw_set_pixel16(x, y, ev2raw[COERCE(alias_map[x + y*w] * 128, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("alias-smooth.dng");
+#endif
 
     /* make it grayscale */
     for (y = 2; y < h-2; y += 2)
@@ -1942,11 +1946,13 @@ static int hdr_interpolate()
         }
     }
 
+#if 0
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
             raw_set_pixel16(x, y, ev2raw[(long long)alias_map[x + y*w] * 13*EV_RESOLUTION / ALIAS_MAP_MAX]);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("alias-filtered.dng");
+#endif
 
     /* where the image is overexposed? */
     for (y = 0; y < h; y ++)
