@@ -1476,8 +1476,9 @@ static int hdr_interpolate()
     
 #if 1
     {
-        printf("Looking for hot pixels...\n");
+        printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
+        int cold_pixels = 0;
         unsigned short* hot = malloc(w * h * sizeof(unsigned short));
         CHECK(hot, "malloc");
         memset(hot, 0, w * h * sizeof(unsigned short));
@@ -1508,7 +1509,8 @@ static int hdr_interpolate()
                     
                     /* for speedup */
                     int maybe_hot = (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > dark_noise);
-                    if (!maybe_hot)
+                    int maybe_cold = (raw2ev[d] - raw2ev[b] < -EV_RESOLUTION) && (d - b < -dark_noise);
+                    if (!maybe_hot && !maybe_cold)
                         continue;
 
                     /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
@@ -1529,6 +1531,8 @@ static int hdr_interpolate()
                     }
                     int max = 0;
                     int imax = 0;
+                    int min = 1000000;
+                    int imin = 0;
                     for (i = 0; i < k; i++)
                     {
                         if (neighbours[i] > max)
@@ -1536,14 +1540,24 @@ static int hdr_interpolate()
                             max = neighbours[i];
                             imax = i;
                         }
+                        if (neighbours[i] < min)
+                        {
+                            min = neighbours[i];
+                            imin = i;
+                        }
                     }
 
                     int second_max = 0;
+                    int second_min = 1000000;
                     for (i = 0; i < k; i++)
                     {
                         if (neighbours[i] > second_max && i != imax)
                         {
                             second_max = neighbours[i];
+                        }
+                        if (neighbours[i] < second_min && i != imin)
+                        {
+                            second_min = neighbours[i];
                         }
                     }
 
@@ -1552,10 +1566,23 @@ static int hdr_interpolate()
                         (raw2ev[d] - raw2ev[second_max] > EV_RESOLUTION/2) &&
                         (d - second_max > dark_noise/2);
 
+                    int is_cold = 
+                        (raw2ev[d] - raw2ev[min] < EV_RESOLUTION/2) &&
+                        (raw2ev[d] - raw2ev[second_min] < -EV_RESOLUTION/2) &&
+                        (d - second_min < -dark_noise);
+                    
+                    //~ int is_cold = d < black + dark_noise;
+
                     if (is_hot)
                     {
                         hot_pixels++;
                         hot[x + y*w] = 1;
+                    }
+
+                    if (is_cold)
+                    {
+                        cold_pixels++;
+                        hot[x + y*w] = -1;
                     }
                 }
             }
@@ -1576,6 +1603,9 @@ static int hdr_interpolate()
 
         if (hot_pixels)
             printf("Hot pixels     : %d\n", hot_pixels);
+
+        if (cold_pixels)
+            printf("Cold pixels    : %d\n", cold_pixels);
     }
 #endif
 
