@@ -1819,9 +1819,25 @@ static int hdr_interpolate()
             e_lin = MAX(e_lin - dark_noise, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
             alias_map[x + y*w] = MIN(e_lin*16, e_log/8);
-            
+        }
+    }
+
+    /* do not apply antialias correction on hot pixels or right near them */
+    for (y = 0; y < h; y ++)
+    {
+        for (x = 0; x < w; x ++)
+        {
             if (hotpixel[x + y*w])
-                alias_map[x + y*w] = 0;
+            {
+                int i,j;
+                for (i = -1; i <= 1; i++)
+                {
+                    for (j = -1; j <= 1; j++)
+                    {
+                        alias_map[x+j + (y+i)*w] = 0;
+                    }
+                }
+            }
         }
     }
 
@@ -1836,24 +1852,56 @@ static int hdr_interpolate()
     memcpy(alias_aux, alias_map, w * h * sizeof(unsigned short));
     
     /* trial and error - too high = aliasing, too low = noisy */
-    int ALIAS_MAP_MAX = 15000;
+    int ALIAS_MAP_MAX = 10000;
 
     printf("Dilating alias map...\n");
     for (y = 6; y < h-6; y ++)
     {
         for (x = 6; x < w-6; x ++)
         {
-            /* optimizing... the brute force way */
-            int c0 = alias_map[x+0 + (y+0) * w];
-            int c1 = MAX(MAX(alias_map[x+0 + (y-2) * w], alias_map[x-2 + (y+0) * w]), MAX(alias_map[x+2 + (y+0) * w], alias_map[x+0 + (y+2) * w]));
-            int c2 = MAX(MAX(alias_map[x-2 + (y-2) * w], alias_map[x+2 + (y-2) * w]), MAX(alias_map[x-2 + (y+2) * w], alias_map[x+2 + (y+2) * w]));
-            int c3 = MAX(MAX(alias_map[x+0 + (y-4) * w], alias_map[x-4 + (y+0) * w]), MAX(alias_map[x+4 + (y+0) * w], alias_map[x+0 + (y+4) * w]));
-            //~ int c4 = MAX(MAX(alias_map[x-2 + (y-4) * w], alias_map[x+2 + (y-4) * w]), MAX(alias_map[x-4 + (y-2) * w], alias_map[x+4 + (y-2) * w]));
-            //~ int c5 = MAX(MAX(alias_map[x-4 + (y+2) * w], alias_map[x+4 + (y+2) * w]), MAX(alias_map[x-2 + (y+4) * w], alias_map[x+2 + (y+4) * w]));
-            //~ int c = MAX(MAX(MAX(c0, c1), MAX(c2, c3)), MAX(c4, c5));
-            int c = MAX(MAX(c0, c1), MAX(c2, c3));
-            
-            alias_aux[x + y * w] = c;
+            /* use third max (out of 25) to filter isolated pixels */
+            int neighbours[50];
+            int k = 0;
+            int i,j;
+            for (i = -3; i <= 3; i++)
+            {
+                for (j = -3; j <= 3; j++)
+                {
+                    neighbours[k++] = alias_map[x+j*2 + (y+i*2)*w];
+                }
+            }
+            int max = 0;
+            int imax = 0;
+            for (i = 0; i < k; i++)
+            {
+                if (neighbours[i] > max)
+                {
+                    max = neighbours[i];
+                    imax = i;
+                }
+            }
+
+            int second_max = 0;
+            int imax2 = 0;
+            for (i = 0; i < k; i++)
+            {
+                if (neighbours[i] > second_max && i != imax)
+                {
+                    second_max = neighbours[i];
+                    imax2 = i;
+                }
+            }
+
+            int third_max = 0;
+            for (i = 0; i < k; i++)
+            {
+                if (neighbours[i] > third_max && i != imax && i != imax2)
+                {
+                    third_max = neighbours[i];
+                }
+            }
+
+            alias_aux[x + y * w] = third_max;
         }
     }
 
@@ -1907,12 +1955,16 @@ static int hdr_interpolate()
                 (alias_aux[x-2 + (y-2) * w] + alias_aux[x+2 + (y-2) * w] + alias_aux[x-2 + (y+2) * w] + alias_aux[x+2 + (y+2) * w]) * 657 / 1024 + 
                 (alias_aux[x+0 + (y-2) * w] + alias_aux[x-2 + (y+0) * w] + alias_aux[x+2 + (y+0) * w] + alias_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
                 (alias_aux[x-2 + (y-2) * w] + alias_aux[x+2 + (y-2) * w] + alias_aux[x-2 + (y-2) * w] + alias_aux[x+2 + (y-2) * w] + alias_aux[x-2 + (y+2) * w] + alias_aux[x+2 + (y+2) * w] + alias_aux[x-2 + (y+2) * w] + alias_aux[x+2 + (y+2) * w]) * 337 / 1024 + 
-                //~ (alias_aux[x-2 + (y-2) * w] + alias_aux[x+2 + (y-2) * w] + alias_aux[x-2 + (y+2) * w] + alias_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
-                //~ (alias_aux[x+0 + (y-6) * w] + alias_aux[x-6 + (y+0) * w] + alias_aux[x+6 + (y+0) * w] + alias_aux[x+0 + (y+6) * w]) * 139 / 1024 + 
-                //~ (alias_aux[x-2 + (y-6) * w] + alias_aux[x+2 + (y-6) * w] + alias_aux[x-6 + (y-2) * w] + alias_aux[x+6 + (y-2) * w] + alias_aux[x-6 + (y+2) * w] + alias_aux[x+6 + (y+2) * w] + alias_aux[x-2 + (y+6) * w] + alias_aux[x+2 + (y+6) * w]) * 111 / 1024 + 
-                //~ (alias_aux[x-2 + (y-6) * w] + alias_aux[x+2 + (y-6) * w] + alias_aux[x-6 + (y-2) * w] + alias_aux[x+6 + (y-2) * w] + alias_aux[x-6 + (y+2) * w] + alias_aux[x+6 + (y+2) * w] + alias_aux[x-2 + (y+6) * w] + alias_aux[x+2 + (y+6) * w]) * 57 / 1024;
+                (alias_aux[x-2 + (y-2) * w] + alias_aux[x+2 + (y-2) * w] + alias_aux[x-2 + (y+2) * w] + alias_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
+                (alias_aux[x+0 + (y-6) * w] + alias_aux[x-6 + (y+0) * w] + alias_aux[x+6 + (y+0) * w] + alias_aux[x+0 + (y+6) * w]) * 139 / 1024 + 
+                (alias_aux[x-2 + (y-6) * w] + alias_aux[x+2 + (y-6) * w] + alias_aux[x-6 + (y-2) * w] + alias_aux[x+6 + (y-2) * w] + alias_aux[x-6 + (y+2) * w] + alias_aux[x+6 + (y+2) * w] + alias_aux[x-2 + (y+6) * w] + alias_aux[x+2 + (y+6) * w]) * 111 / 1024 + 
+                (alias_aux[x-2 + (y-6) * w] + alias_aux[x+2 + (y-6) * w] + alias_aux[x-6 + (y-2) * w] + alias_aux[x+6 + (y-2) * w] + alias_aux[x-6 + (y+2) * w] + alias_aux[x+6 + (y+2) * w] + alias_aux[x-2 + (y+6) * w] + alias_aux[x+2 + (y+6) * w]) * 57 / 1024;
                 0;
             alias_map[x + y * w] = c;
+            
+            /* alias map may become nonzero here because of blurring from neighbouring pixels; we want it zero */
+            if (hotpixel[x + y * w])
+                alias_map[x + y * w] = 0;
         }
     }
 
