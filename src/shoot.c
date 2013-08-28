@@ -506,7 +506,8 @@ static MENU_UPDATE_FUNC(intervalometer_display)
             BULB_EXPOSURE_CONTROL_ACTIVE ? ", BRamp" : ""
         );
         
-        if (auto_power_off_time && auto_power_off_time <= d)
+        int d_start = timer_values[interval_start_timer_index];
+        if (auto_power_off_time && auto_power_off_time <= MAX(d, d_start))
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
         
         #ifdef CONFIG_MODULES
