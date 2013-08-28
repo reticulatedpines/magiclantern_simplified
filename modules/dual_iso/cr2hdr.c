@@ -116,15 +116,6 @@ int raw_get_pixel_14to16(int x, int y) {
     return (raw_get_pixel16(x,y) << 2) & 0xFFFF;
 }
 
-static int startswith(char* str, char* prefix)
-{
-    char* s = str;
-    char* p = prefix;
-    for (; *p; s++,p++)
-        if (*s != *p) return 0;
-    return 1;
-}
-
 static void reverse_bytes_order(char* buf, int count)
 {
     unsigned short* buf16 = (unsigned short*) buf;
@@ -158,8 +149,10 @@ int main(int argc, char** argv)
         int out_width = 0, out_height = 0;
         
         char line[1000];
-        fgets(line, sizeof(line), t); // Skip header
-        fgets(line, sizeof(line), t); 
+        char* res = fgets(line, sizeof(line), t); // Skip header
+        CHECK(res != 0, "%s", "Error while reading CSV header from tmp.txt");
+        res = fgets(line, sizeof(line), t); 
+        CHECK(res != 0, "%s", "Error while reading CSV data from tmp.txt");
         sscanf(&(line[strlen(filename)+1]), "%d,%d,%d,%d\n", &raw_width, &raw_height, &out_width, &out_height);
         fclose(t);
 
@@ -273,6 +266,7 @@ int main(int argc, char** argv)
         }
         
         unlink("tmp.pgm");
+        unlink("tmp.txt");
         
         free(buf);
     }
