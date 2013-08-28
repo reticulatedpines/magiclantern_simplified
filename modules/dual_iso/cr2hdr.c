@@ -148,7 +148,7 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[100];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "LANG=en LC_CTYPE=en LANGUAGE=en dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
