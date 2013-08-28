@@ -148,7 +148,7 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[100];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "LANG=en LC_CTYPE=en LANGUAGE=en dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "exiftool -SensorWidth -SensorHeight -ImageWidth -ImageHeight -csv \"%s\" > tmp.txt", filename);
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
@@ -157,20 +157,10 @@ int main(int argc, char** argv)
         int raw_width = 0, raw_height = 0;
         int out_width = 0, out_height = 0;
         
-        char line[100];
-        while (fgets(line, sizeof(line), t))
-        {
-            if (startswith(line, "Full size: "))
-            {
-                r = sscanf(line, "Full size: %d x %d\n", &raw_width, &raw_height);
-                CHECK(r == 2, "sscanf");
-            }
-            else if (startswith(line, "Output size: "))
-            {
-                r = sscanf(line, "Output size: %d x %d\n", &out_width, &out_height);
-                CHECK(r == 2, "sscanf");
-            }
-        }
+        char line[1000];
+        fgets(line, sizeof(line), t); // Skip header
+        fgets(line, sizeof(line), t); 
+        sscanf(&(line[strlen(filename)+1]), "%d,%d,%d,%d\n", &raw_width, &raw_height, &out_width, &out_height);
         fclose(t);
 
         printf("Full size      : %d x %d\n", raw_width, raw_height);
@@ -283,7 +273,6 @@ int main(int argc, char** argv)
         }
         
         unlink("tmp.pgm");
-        unlink("tmp.txt");
         
         free(buf);
     }
