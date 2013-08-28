@@ -696,6 +696,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     
     int* medians_x = malloc(16384 * sizeof(medians_x[0]));
     int* medians_y = malloc(16384 * sizeof(medians_y[0]));
+    int* medians_ang = malloc(16384 * sizeof(medians_ang[0]));
     int num_medians = 0;
 
     int* all_medians = malloc(16384 * sizeof(all_medians[0]));
@@ -729,7 +730,6 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     }
 
     /* estimate ISO (median angle) */
-    int* medians_ang = malloc(num_medians * sizeof(medians_ang[0]));
     for (i = 0; i < num_medians; i++)
     {
         double ang = atan2(medians_y[i], medians_x[i]);
@@ -742,20 +742,58 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     double a = tan(ma / 1000000.0);
 
     /* adjust ISO 100 nonlinearly so it matches the y = ax */
+    
+    /* first filter the correction data a little */
+    for (i = 0; i <= white; i++)
+    {
+        int med = all_medians[i];
+        if (med == 0)
+            continue;
+        int ideal = (i - black) * a + black;
+        int corr = ideal - med;
+        if (ABS(corr) > 100)
+            corr = 0;           /* outlier? */
+        all_medians[i] = corr;
+    }
+
+    /* averaging filter */
+    for (i = 0; i <= white; i++)
+    {
+        int j;
+        int avg = 0;
+        int num = 0;
+        for (j = i - 10; j <= i + 10; j++)
+        {
+            if (j < 0) continue;
+            if (j > white) continue;
+            avg += all_medians[j];
+            num++;
+        }
+        if (num > 0)
+        {
+            avg /= num;
+            medians_ang[i] = avg;   /* reuse this */
+        }
+        else
+        {
+            medians_ang[i] = 0;
+        }
+    }
+
+    for (i = 0; i <= white; i++)
+    {
+        all_medians[i] = medians_ang[i];
+    }
+
+    /* apply the correction */
     int x, y;
     for (y = 0; y < h-1; y ++)
     {
         for (x = 0; x < w; x ++)
         {
             int ref = bright[x + y*w];
-            ref = MIN(ref, white);
-            int med = all_medians[ref];
-            if (med == 0)
-                continue;
-            int ideal = (ref - black) * a + black;
-            int corr = ideal - med;
-            if (ABS(corr) > 100)
-                continue;           /* outlier? */
+            ref = COERCE(ref, 0, white);
+            int corr = all_medians[ref];
             dark[x + y*w] += corr;
         }
     }
@@ -773,7 +811,13 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         fprintf(f, "%d ", medians_y[i]);
     fprintf(f, "];\n");
 
+    fprintf(f, "corr = [");
+    for (i = 0; i < num_medians; i++)
+        fprintf(f, "%d ", all_medians[medians_x[i] + black]);
+    fprintf(f, "];\n");
+
     fprintf(f, "plot(x, y); hold on;\n");
+    fprintf(f, "plot(x, y + corr, 'g');\n");
     fprintf(f, "a = %f;\n", a);
     fprintf(f, "b = %f;\n", 0.0);
     fprintf(f, "plot(x, a * x + b, 'r');\n");
