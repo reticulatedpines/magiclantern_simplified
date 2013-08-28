@@ -91,6 +91,7 @@ static int is_5d2 = 0;
 static int is_50d = 0;
 static int is_6d = 0;
 static int is_500d = 0;
+static int is_550d = 0;
 static int is_600d = 0;
 static int is_700d = 0;
 
@@ -742,6 +743,29 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 3;
         CMOS_EXPECTED_FLAG = 0;
     }
+    else if (streq(camera_model_short, "550D"))
+    {
+    	is_550d = 1;
+		
+		FRAME_CMOS_ISO_START = 0x40695494; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
+		FRAME_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
+		FRAME_CMOS_ISO_SIZE  =         30; // distance between ISO 100 and ISO 200 addresses, in bytes
+		
+		//  00 0000 406941E4  = 100
+		//  00 0024 406941F6  = 200
+		//  00 0048 40694208  = 400
+		//  00 006C 4069421A  = 800
+		//  00 0090 4069422C  = 1600
+		//  00 00B4 4069423E  = 3200
+		
+		PHOTO_CMOS_ISO_START = 0x406941E4; // CMOS register 0000 - for photo mode, ISO 100
+		PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
+		PHOTO_CMOS_ISO_SIZE  =         18; // distance between ISO 100 and ISO 200 addresses, in bytes
+		
+		CMOS_ISO_BITS = 3;
+		CMOS_FLAG_BITS = 2;
+		CMOS_EXPECTED_FLAG = 0;
+	}
     else if (streq(camera_model_short, "600D"))
     {  
         /*
