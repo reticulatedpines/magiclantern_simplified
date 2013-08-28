@@ -1488,7 +1488,7 @@ static int hdr_interpolate()
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
     
-#if 1
+#if 0
     {
         printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
@@ -1854,12 +1854,12 @@ static int hdr_interpolate()
     /* trial and error - too high = aliasing, too low = noisy */
     int ALIAS_MAP_MAX = 10000;
 
-    printf("Dilating alias map...\n");
+    printf("Filtering alias map...\n");
     for (y = 6; y < h-6; y ++)
     {
         for (x = 6; x < w-6; x ++)
         {
-            /* use third max (out of 25) to filter isolated pixels */
+            /* use 5th max (out of 49) to filter isolated pixels */
             int neighbours[50];
             int k = 0;
             int i,j;
@@ -1870,38 +1870,9 @@ static int hdr_interpolate()
                     neighbours[k++] = alias_map[x+j*2 + (y+i*2)*w];
                 }
             }
-            int max = 0;
-            int imax = 0;
-            for (i = 0; i < k; i++)
-            {
-                if (neighbours[i] > max)
-                {
-                    max = neighbours[i];
-                    imax = i;
-                }
-            }
-
-            int second_max = 0;
-            int imax2 = 0;
-            for (i = 0; i < k; i++)
-            {
-                if (neighbours[i] > second_max && i != imax)
-                {
-                    second_max = neighbours[i];
-                    imax2 = i;
-                }
-            }
-
-            int third_max = 0;
-            for (i = 0; i < k; i++)
-            {
-                if (neighbours[i] > third_max && i != imax && i != imax2)
-                {
-                    third_max = neighbours[i];
-                }
-            }
-
-            alias_aux[x + y * w] = third_max;
+            /* quite slow, but trivial to write and tweak */
+            QSORT(int, neighbours, k, int_lt);
+            alias_aux[x + y * w] = neighbours[k-5];
         }
     }
 
@@ -2138,6 +2109,8 @@ static int hdr_interpolate()
             
             /* show alias map (for debugging) */
             //~ output = c * 14*EV_RESOLUTION;
+
+            //~ output = hotpixel[x+y*w] ? 14*EV_RESOLUTION : 0;
 #endif
             /* safeguard */
             output = COERCE(output, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1);
