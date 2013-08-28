@@ -363,13 +363,13 @@ static int white_detect()
 
 static int black_subtract(int left_margin, int top_margin)
 {
-    if (left_margin < 10) return 0;
-    if (top_margin < 10) return 0;
-
 #if 0
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("untouched.dng");
 #endif
+
+    if (left_margin < 10) return 0;
+    if (top_margin < 10) return 0;
 
     printf("Black borders  : %d left, %d top\n", left_margin, top_margin);
 
@@ -618,6 +618,12 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
     }
     stdev /= num;
     stdev = sqrt(stdev);
+    
+    if (num == 0)
+    {
+        mean = raw_info.black_level;
+        stdev = 8; /* default to 11 stops of DR */
+    }
 
     *out_mean = mean;
     *out_stdev = stdev;
