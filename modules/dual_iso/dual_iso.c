@@ -765,7 +765,7 @@ static unsigned int isoless_init()
 		CMOS_ISO_BITS = 3;
 		CMOS_FLAG_BITS = 2;
 		CMOS_EXPECTED_FLAG = 0;
-	}
+    }
     else if (streq(camera_model_short, "600D"))
     {  
         /*
