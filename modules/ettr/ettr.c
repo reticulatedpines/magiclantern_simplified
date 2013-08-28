@@ -815,22 +815,34 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
 
     if (auto_ettr)
+    {
         MENU_SET_VALUE(
             AUTO_ETTR_TRIGGER_ALWAYS_ON ? "Always ON" : 
             AUTO_ETTR_TRIGGER_AUTO_SNAP ? "Auto Snap" : 
             AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" : 
             AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK ? "HalfS DBC" : "err"
         );
+    }
 
     if (!AUTO_ETTR_TRIGGER_PHOTO)
+    {
         MENU_SET_HELP("Press the shortcut key to optimize the exposure (ETTR).");
+    }
     else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
     {
         if (lv) MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
         else MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
     }
     else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
+    {
         MENU_SET_HELP("Press shutter once. ML will take a pic and retry if needed.");
+    }
+    
+    /* recommended: move AF to back button */
+    if (auto_ettr && AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK)
+        entry->works_best_in = DEP_CFN_AF_BACK_BUTTON;
+    else
+        entry->works_best_in = 0;
 }
 
 static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
