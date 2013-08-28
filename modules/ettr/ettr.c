@@ -839,7 +839,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     }
     
     /* recommended: move AF to back button */
-    if (auto_ettr && AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK)
+    if (auto_ettr && AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && !is_manual_focus())
         entry->works_best_in = DEP_CFN_AF_BACK_BUTTON;
     else
         entry->works_best_in = 0;
