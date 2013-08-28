@@ -264,7 +264,7 @@ int main(int argc, char** argv)
                 save_dng(out_filename);
 
                 char exif_cmd[1000];
-                snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"%s\" -overwrite_original", filename, out_filename);
+                snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original", filename, out_filename);
                 int r = system(exif_cmd);
                 if (r != 0)
                     printf("Exiftool didn't work\n");
