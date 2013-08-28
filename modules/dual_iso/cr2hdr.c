@@ -116,6 +116,15 @@ int raw_get_pixel_14to16(int x, int y) {
     return (raw_get_pixel16(x,y) << 2) & 0xFFFF;
 }
 
+static int startswith(char* str, char* prefix)
+{
+    char* s = str;
+    char* p = prefix;
+    for (; *p; s++,p++)
+        if (*s != *p) return 0;
+    return 1;
+}
+
 static void reverse_bytes_order(char* buf, int count)
 {
     unsigned short* buf16 = (unsigned short*) buf;
@@ -139,7 +148,7 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[100];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "exiftool -SensorWidth -SensorHeight -ImageWidth -ImageHeight -csv \"%s\" > tmp.txt", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
@@ -148,12 +157,20 @@ int main(int argc, char** argv)
         int raw_width = 0, raw_height = 0;
         int out_width = 0, out_height = 0;
         
-        char line[1000];
-        char* res = fgets(line, sizeof(line), t); // Skip header
-        CHECK(res != 0, "%s", "Error while reading CSV header from tmp.txt");
-        res = fgets(line, sizeof(line), t); 
-        CHECK(res != 0, "%s", "Error while reading CSV data from tmp.txt");
-        sscanf(&(line[strlen(filename)+1]), "%d,%d,%d,%d\n", &raw_width, &raw_height, &out_width, &out_height);
+        char line[100];
+        while (fgets(line, sizeof(line), t))
+        {
+            if (startswith(line, "Full size: "))
+            {
+                r = sscanf(line, "Full size: %d x %d\n", &raw_width, &raw_height);
+                CHECK(r == 2, "sscanf");
+            }
+            else if (startswith(line, "Output size: "))
+            {
+                r = sscanf(line, "Output size: %d x %d\n", &out_width, &out_height);
+                CHECK(r == 2, "sscanf");
+            }
+        }
         fclose(t);
 
         printf("Full size      : %d x %d\n", raw_width, raw_height);
