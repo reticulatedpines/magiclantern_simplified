@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 
         printf("\nInput file     : %s\n", filename);
 
-        char dcraw_cmd[100];
+        char dcraw_cmd[1000];
         snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
@@ -263,7 +263,7 @@ int main(int argc, char** argv)
                 printf("Output file    : %s\n", out_filename);
                 save_dng(out_filename);
 
-                char exif_cmd[100];
+                char exif_cmd[1000];
                 snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"%s\" -overwrite_original", filename, out_filename);
                 int r = system(exif_cmd);
                 if (r != 0)
