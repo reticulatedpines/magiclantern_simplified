@@ -1271,6 +1271,7 @@ static int hdr_interpolate()
     /* hot pixel map */
     unsigned short* hotpixel = malloc(w * h * sizeof(unsigned short));
     CHECK(hotpixel, "malloc");
+    memset(hotpixel, 0, w * h * sizeof(unsigned short));
 
     #ifdef ALIAS_BLEND
     unsigned short* alias_map = malloc(w * h * sizeof(unsigned short));
@@ -1554,7 +1555,6 @@ static int hdr_interpolate()
         printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
         int cold_pixels = 0;
-        memset(hotpixel, 0, w * h * sizeof(unsigned short));
         for (y = 6; y < h-6; y ++)
         {
             for (x = 6; x < w-6; x ++)
@@ -1991,7 +1991,6 @@ static int hdr_interpolate()
                 (alias_aux[x+0 + (y-6) * w] + alias_aux[x-6 + (y+0) * w] + alias_aux[x+6 + (y+0) * w] + alias_aux[x+0 + (y+6) * w]) * 139 / 1024 + 
                 (alias_aux[x-2 + (y-6) * w] + alias_aux[x+2 + (y-6) * w] + alias_aux[x-6 + (y-2) * w] + alias_aux[x+6 + (y-2) * w] + alias_aux[x-6 + (y+2) * w] + alias_aux[x+6 + (y+2) * w] + alias_aux[x-2 + (y+6) * w] + alias_aux[x+2 + (y+6) * w]) * 111 / 1024 + 
                 (alias_aux[x-2 + (y-6) * w] + alias_aux[x+2 + (y-6) * w] + alias_aux[x-6 + (y-2) * w] + alias_aux[x+6 + (y-2) * w] + alias_aux[x-6 + (y+2) * w] + alias_aux[x+6 + (y+2) * w] + alias_aux[x-2 + (y+6) * w] + alias_aux[x+2 + (y+6) * w]) * 57 / 1024;
-                0;
             alias_map[x + y * w] = c;
             
             /* alias map may become nonzero here because of blurring from neighbouring pixels; we want it zero */
