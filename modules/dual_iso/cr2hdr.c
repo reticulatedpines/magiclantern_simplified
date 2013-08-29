@@ -752,19 +752,28 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         i = j;
     }
 
+    /*
+     * some sort of robust linear fitting
+     * median for X, median for Y, median for angle (atan2)
+     */
+    int mx = median_int(medians_x, num_medians);
+    int my = median_int(medians_y, num_medians);
+    
     /* estimate ISO (median angle) */
     for (i = 0; i < num_medians; i++)
     {
-        double ang = atan2(medians_y[i], medians_x[i]);
+        double ang = atan2(medians_y[i] - my, medians_x[i] - mx);
         while (ang < 0) ang += M_PI;
         medians_ang[i] = (int)round(ang * 1000000);
     }
     int ma = median_int(medians_ang, num_medians);
-
-    /* y = ax */
+ 
+    /* convert to y = ax + b */
     double a = tan(ma / 1000000.0);
+    double b = my - a * mx;
 
-    /* adjust ISO 100 nonlinearly so it matches the y = ax */
+
+    /* adjust ISO 100 nonlinearly so it matches the y = ax + b */
     
     /* first filter the correction data a little */
     for (i = 0; i <= white; i++)
@@ -774,8 +783,8 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
             continue;
         int ideal = (i - black) * a + black;
         int corr = ideal - med;
-        if (ABS(corr) > 100)
-            corr = 0;           /* outlier? */
+        if (ABS(corr - (-b)) > 100)
+            corr = -b;           /* outlier? */
         all_medians[i] = corr;
     }
 
@@ -799,7 +808,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         }
         else
         {
-            medians_ang[i] = 0;
+            medians_ang[i] = -b;
         }
     }
 
@@ -842,8 +851,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     fprintf(f, "plot(x, y); hold on;\n");
     fprintf(f, "plot(x, y + corr, 'g');\n");
     fprintf(f, "a = %f;\n", a);
-    fprintf(f, "b = %f;\n", 0.0);
-    fprintf(f, "plot(x, a * x + b, 'r');\n");
+    fprintf(f, "plot(x, a * x, 'r');\n");
     fclose(f);
     
     system("octave --persist iso-curve.m");
@@ -865,6 +873,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     *corr_ev = log2(factor);
 
     printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
+    printf("Black delta    : %.2f\n", b);
 
     return 1;
 }
