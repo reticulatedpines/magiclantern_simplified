@@ -298,7 +298,7 @@ static int white_detect_brute_force()
     /* caveat: bright and dark exposure may have different white levels, so we'll take the minimum value */
     /* side effect: if the image is not overexposed, it may get brightened a little; shouldn't hurt */
     
-    /* ignore hot pixels when finding white level (at least 10 pixels should confirm it) */
+    /* ignore hot pixels when finding white level (at least 50 pixels should confirm it) */
     
     int white = raw_info.white_level * 5 / 6;
     int whites[8] = {white, white, white, white, white, white, white, white};
@@ -320,7 +320,7 @@ static int white_detect_brute_force()
             else if (pix == maxies[BIN_IDX])
             {
                 counts[BIN_IDX]++;
-                if (counts[BIN_IDX] > 10)
+                if (counts[BIN_IDX] > 50)
                 {
                     whites[BIN_IDX] = maxies[BIN_IDX];
                 }
@@ -335,7 +335,7 @@ static int white_detect_brute_force()
     int white1 = MIN(MIN(whites[0], whites[1]), MIN(whites[2], whites[3]));
     int white2 = MIN(MIN(whites[4], whites[5]), MIN(whites[6], whites[7]));
     white = MIN(white1, white2);
-    raw_info.white_level = white - 100;
+    raw_info.white_level = white - 500;
     printf("White level    : %d\n", raw_info.white_level);
     return 1;
 }
