@@ -107,6 +107,7 @@ NSTUB(0xFF0C5438, init_task)
 NSTUB(0xFF0C8D50, malloc)
 NSTUB(0xFFCF9F00 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xFFCF9D14 - RAM_OFFSET, msg_queue_receive)
+NSTUB(0xFFCF9F40 - RAM_OFFSET, msg_queue_count) // 0x36A5C Above "!!!!!!! QUE Overflo"
 NSTUB(0xFFCCCB6C - RAM_OFFSET, msleep)
 NSTUB(0xFF1303BC, _prop_cleanup)
 NSTUB(0xFF1302F0, prop_deliver)
@@ -137,6 +138,7 @@ NSTUB(0xFF52C3DC, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 
 NSTUB(0xFF3A1970, PlayMain_handler)
 NSTUB(0xFF558BC0, PlayMovieGuideApp_handler)
+NSTUB(0xFF55D170, PlayQMenu_handler)
 NSTUB(0xFF6BEBB8, ErrCardForLVApp_handler) // not sure
 NSTUB(0xFF50C528, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xFF52A27C, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
@@ -186,6 +188,8 @@ NSTUB(0xFF11D0EC, SetNextASIFADCBuffer)
 NSTUB(0xFF11D2D4, SetNextASIFDACBuffer) // From Event Generating Functions
 NSTUB(0xFF143D0C, PowerMicAmp)
 
+NSTUB(0xFF143638, SetFilterRec)
+NSTUB(0xFF142A74, UnpowerSpeakerForWav)
 NSTUB(0xFF142DE4, SetSamplingRate) //AudioIC.c_SetRate_hHPTimer Identical
 NSTUB(0xFF142B70, SetAudioVolumeOut) //Keep Volume (%d->%d)
 NSTUB(0xFF11E9F4, SetAudioVolumeIn) // SetVolumeIn(alc, L, R)
@@ -209,7 +213,8 @@ NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
 NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
 
-NSTUB(0xFF19A92C, GUI_SetRollingPitchingLevelStatus)
+/* Electronic level - roll/pitch info */
+NSTUB(0xFF270968, GUI_SetRollingPitchingLevelStatus); // RequestRollingPitching - no side effects :)
 NSTUB(0xFF2AD104, mvrSetPrintMovieLog)
 NSTUB(   0x7AE8C, mvr_config)
 
@@ -256,6 +261,16 @@ NSTUB(0xFFCFCD8C - RAM_OFFSET, TryPostStageEvent_end)
 NSTUB(0xFFCF8BE4 - RAM_OFFSET, MREQ_ISR)
 NSTUB(0xFFCF8C68 - RAM_OFFSET, SIO3_ISR)
 NSTUB(0xFFCCC4C8 - RAM_OFFSET, register_interrupt)
+/* ISR */
+
+NSTUB(0x74AD0, pre_isr_hook)
+NSTUB(0x74AD4, post_isr_hook)
+
+
+/* ResLock */
+NSTUB(0xFF2B20A4, CreateResLockEntry)
+NSTUB(0xFF2B2564, LockEngineResources)
+NSTUB(0xFF2B2708, UnLockEngineResources)
 
 /** Unused **/
 //NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
