@@ -4879,7 +4879,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Intervalometer Script",
                 .priv       = &interval_scripts,
                 .max = 3,
-                .help = "Post-processing scripts for sorting intervalometer sequences.",
+                .help = "Scripts for sorting intervalometer sequences.",
                 .choices = CHOICES("OFF", "Bash", "MS-DOS", "File List"),
             },
             #endif
@@ -5474,28 +5474,22 @@ void interval_create_script(int f0)
         return;
     }
     
-    FILE * f = FIO_Open(name, O_RDWR | O_SYNC);
+    uint32_t file_size = 0;
+    int append_header = FIO_GetFileSize(name, &file_size);
+    FILE * f = FIO_CreateFileOrAppend(name);
     
-    if(f == INVALID_PTR)
-    {
-        f = FIO_CreateFileEx(name);
-        if (interval_scripts == 1)
-        {
-            my_fprintf(f, "#!/bin/bash \n");
-        }
-    }
-    else
-    {
-        FIO_SeekFile(f,0,SEEK_END);
-    }
     if ( f == INVALID_PTR )
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
+        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileOrAppend: error for %s", name );
         return;
     }
     
     if (interval_scripts == 1)
     {
+        if (append_header)
+        {
+            my_fprintf(f, "#!/bin/bash \n");
+        }
         my_fprintf(f, "\nmkdir INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
