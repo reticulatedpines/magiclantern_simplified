@@ -134,7 +134,8 @@ Output size: 5496 x 3670
 #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
 //~ #define MVR_BYTES_WRITTEN (*(int*)(0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
 
-#define AE_VALUE (*(int8_t*)0x7F5B0)
+#define AE_STATE (*(int8_t*)(0x7F554 + 0x1C)) 
+#define AE_VALUE (*(int8_t*)(0x7F554 + 0x1D))
 //Metering for LV in Manual Mode
 //FF6C98FC:	ebf28def 	bl	sub_FF36D0C0		⬁
 //FF6C9900:	e5c50007 	strb	r0, [r5, #7]
