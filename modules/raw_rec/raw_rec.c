@@ -74,7 +74,7 @@ static int cam_5d2 = 0;
 static int cam_50d = 0;
 static int cam_5d3 = 0;
 static int cam_6d = 0;
-static int cam_700d = 0;
+static int cam_7d = 0;
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -258,7 +258,6 @@ static void update_resolution_params()
     {
         /* assume the raw image should be 16:9 when de-squeezed */
         int correct_height = max_res_x * 9 / 16;
-        //int correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
         squeeze_factor = (float)correct_height / max_res_y;
     }
     else squeeze_factor = 1.0f;
@@ -971,7 +970,7 @@ static void unhack_liveview_vsync(int unused);
 
 static void hack_liveview_vsync()
 {
-    if (cam_5d2 || cam_50d)
+    if (cam_5d2 || cam_50d || cam_7d )
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
         if (lv_dispsize > 1 && !get_halfshutter_pressed())
@@ -1081,7 +1080,7 @@ static void hack_liveview(int unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
-            cam_700d ? 0xFF52B53C :
+            cam_7d  ? 0xFF345788 :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -2158,7 +2157,7 @@ static unsigned int raw_rec_init()
     cam_50d = streq(camera_model_short, "50D");
     cam_5d3 = streq(camera_model_short, "5D3");
     cam_6d = streq(camera_model_short, "6D");
-    cam_700d = streq(camera_model_short, "700D");
+    cam_7d = streq(camera_model_short, "7D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
@@ -2166,23 +2165,15 @@ static unsigned int raw_rec_init()
         
         /* 50D doesn't have sound and can't even beep */
         if (cam_50d && streq(e->name, "Sound"))
-        {
             e->shidden = 1;
-            //sound_rec = 0;
-        }
 
         /* Memory hack confirmed to work only on 5D3 and 6D */
         if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
-        {
             e->shidden = 1;
-            memory_hack = 0;
-        }
     }
 
     if (cam_5d2 || cam_50d)
-    {
        raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
-    }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
