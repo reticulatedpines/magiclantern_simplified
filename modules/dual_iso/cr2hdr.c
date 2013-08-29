@@ -301,7 +301,7 @@ static int white_detect_brute_force()
     /* ignore hot pixels when finding white level (at least 50 pixels should confirm it) */
     
     int white = raw_info.white_level * 5 / 6;
-    int whites[8] = {white, white, white, white, white, white, white, white};
+    int whites[8] = {white+500, white+500, white+500, white+500, white+500, white+500, white+500, white+500};
     int maxies[8] = {white, white, white, white, white, white, white, white};
     int counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
