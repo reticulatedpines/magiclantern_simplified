@@ -1567,7 +1567,7 @@ static int hdr_interpolate()
     
 #if 1
     {
-        printf("Looking for hot pixels...\n");
+        printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
         int cold_pixels = 0;
         for (y = 6; y < h-6; y ++)
@@ -1647,11 +1647,30 @@ static int hdr_interpolate()
                         hotpixel[x + y*w] = 1;
                     }
 
-                    if (is_hot_large)
+                    else if (is_hot_large)
                     {
                         hot_pixels++;
                         hotpixel[x + y*w] = 2;
                     }
+                }
+            }
+        }
+
+        for (y = 6; y < h-6; y ++)
+        {
+            for (x = 6; x < w-6; x ++)
+            {
+                {
+                    int d = dark[x + y*w];
+                    int b = bright[x + y*w];
+                    
+                    /* really dark pixels (way below the black level) are probably noise */
+                    int is_cold = (d < black - dark_noise*8);
+                    if (!is_cold)
+                        continue;
+
+                    cold_pixels++;
+                    hotpixel[x + y*w] = 1;
                 }
             }
         }
