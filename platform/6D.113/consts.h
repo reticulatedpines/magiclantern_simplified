@@ -134,7 +134,8 @@ Output size: 5496 x 3670
 #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
 //~ #define MVR_BYTES_WRITTEN (*(int*)(0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
 
-#define AE_VALUE (*(int8_t*)0x7F5B0)
+#define AE_STATE (*(int8_t*)(0x7F554 + 0x1C)) 
+#define AE_VALUE (*(int8_t*)(0x7F554 + 0x1D))
 //Metering for LV in Manual Mode
 //FF6C98FC:	ebf28def 	bl	sub_FF36D0C0		⬁
 //FF6C9900:	e5c50007 	strb	r0, [r5, #7]
@@ -286,6 +287,11 @@ Output size: 5496 x 3670
 //calculated frame bv (faster?)
 
 // see "Malloc Information"
+#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404514CC) // ADTG register 805f
+#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404514D0) // ADTG register 8061
+
+#define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
+#define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 #define MALLOC_STRUCT 0x94818
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
@@ -296,6 +302,3 @@ Output size: 5496 x 3670
 #define UNAVI (MEM(0x8418c) ==2) // Between the "17s" find with mem browser
 #define SCROLLHACK (MEM(0x841C0) !=0)
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
-//~ #define RAW_WHITE_LEVEL 13225
-//~ #define RAW_SKIP_H 152 // to ignore the black border 
-//~ #define RAW_SKIP_V 12

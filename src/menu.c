@@ -1893,9 +1893,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires autofocus enabled.");
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
-    else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+    else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
+    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
     else if (DEPENDS_ON(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
@@ -1936,9 +1936,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with autofocus enabled.");
         else if (WORKS_BEST_IN(DEP_MANUAL_FOCUS) && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual focus.");
-        else if (WORKS_BEST_IN(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+        else if (WORKS_BEST_IN(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
+        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
         //~ else if (WORKS_BEST_IN(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");

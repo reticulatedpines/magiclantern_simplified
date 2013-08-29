@@ -18,6 +18,9 @@
 /** This camera has an APS-C sensor */
 //~ #define CONFIG_FULLFRAME
 
+/** This camera loads ML into the AllocateMemory pool **/
+//~ #define CONFIG_ALLOCATE_MEMORY_POOL
+
 /** This camera has LiveView and can record video [ ;) ] **/
 #define CONFIG_LIVEVIEW
 #define CONFIG_MOVIE
@@ -64,15 +67,18 @@
 /** Zoom button can be used while recording (for Magic Zoom) - if I remember well **/
 //~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
-/** We can't redirect the display buffer **/
+/** We can redirect the display buffer **/
 //~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-//~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
-/** Therefore, we can't implement display filters (features that alter the LiveView image in real-time) **/
-//~ #define CONFIG_DISPLAY_FILTERS
+/** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
+#define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 #define CONFIG_FRAME_ISO_OVERRIDE
+
+/** We can also override shutter on a per-frame basis */
+#define CONFIG_FRAME_SHUTTER_OVERRIDE
 
 /** And we can override the digital ISO component via FRAME_ISO too **/
 //~ #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
@@ -89,8 +95,8 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
-//~ #define CONFIG_DMA_MEMCPY
+/** DMA_MEMCPY  **/
+#define CONFIG_DMA_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
@@ -120,3 +126,6 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/** We know how to use engine resource locks */
+#define CONFIG_ENGINE_RESLOCK
