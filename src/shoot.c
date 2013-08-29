@@ -4656,6 +4656,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &silent_pic_enabled,
         .max  = 1,
         .depends_on = DEP_LIVEVIEW,
+        .works_best_in = DEP_CFN_AF_BACK_BUTTON,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
         .help2 = "File format: 14-bit DNG.",
         
