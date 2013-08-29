@@ -138,6 +138,20 @@ FILE* FIO_CreateFileEx(const char* name)
     return f;
 }
 
+FILE* FIO_CreateFileOrAppend(const char* name)
+{
+    /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
+    FILE * f = FIO_Open(name, O_RDWR | O_SYNC);
+    if (f == INVALID_PTR)
+    {
+        f = FIO_CreateFileEx(name);
+    }
+    else
+    {
+        FIO_SeekFile(f,0,SEEK_END);
+    }
+    return f;
+}
 
 int
 snprintf(
