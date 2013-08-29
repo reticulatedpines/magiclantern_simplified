@@ -205,6 +205,7 @@ NSTUB( 0xFFA850e0, EndMovieRecSequence )
 NSTUB(0xff9a4674, GUI_SetLvMode)
 NSTUB(0xff9a474c, GUI_SetMovieSize_a)
 NSTUB(0xFF9A4848, GUI_SetMovieSize_b)
+NSTUB(0xFF9A4630, GUI_SetLvTimer)
 
 NSTUB(0xff85dddc, MuteOff_0) // not quite the same as in other cameras, but should work
 NSTUB(0xff85dd98, MuteOn_0) // idem
@@ -241,6 +242,12 @@ NSTUB(0xff8166b4, get_current_task)
 NSTUB(0x242C0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(0xFF86AD34, msg_queue_create) // CreateMessageQueue
+NSTUB(0xFF866760, msg_queue_count) // Above "!!!!!!! QUE Overflo"
+
+NSTUB(0xFF86B278, dma_memcpy) //Str HPC
+
+//Display Filter
+NSTUB(0xFF85E90C , EnableImagePhysicalScreenParameter)
 
 // for task information
 NSTUB(0x30f8, task_max)
@@ -251,7 +258,9 @@ NSTUB(0xFF8875E4, SetGUIRequestMode)
 
 NSTUB(0xff8542c4, PowerAudioOutput)
 NSTUB(0xff852494, StartASIFDMADAC)
+NSTUB(0xFF852A80, StopASIFDMADAC)
 NSTUB(0xff855290, SetSamplingRate )
+//NSTUB(0xFF8527B0, SetSamplingRate )
 NSTUB(0xff85460c, SetAudioVolumeOut)
 NSTUB(0xff853250, TH_asif_initialize)
 NSTUB(0xff854fc8, TH_audio_ic_initialize)
@@ -282,3 +291,7 @@ NSTUB(0xFF97CB14, RegisterEDmacPopCBR)
 NSTUB(0xFF97CA98, UnregisterEDmacCompleteCBR)
 NSTUB(0xFF97CAE4, UnregisterEDmacAbortCBR)
 NSTUB(0xFF97CB28, UnregisterEDmacPopCBR)
+/* ResLock */
+NSTUB(0xFFA6C918, CreateResLockEntry)
+NSTUB(0xFFA6CD5C, LockEngineResources)
+NSTUB(0xFFA6CE4C, UnLockEngineResources)

@@ -263,7 +263,7 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
-    #ifdef CONFIG_5D2
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (display_broken_for_mz()) return 0;
     #endif
     
@@ -2486,7 +2486,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
-    #ifdef CONFIG_5D2
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (display_broken_for_mz())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
     #endif
@@ -4148,7 +4148,7 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
     // select buffer where MZ should be written (camera-specific, guesswork)
-    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM)
+    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_50D)
     /* fixme: ugly hack */
     void busy_vsync(int hd, int timeout_ms)
     {
@@ -5216,7 +5216,7 @@ livev_hipriority_task( void* unused )
 #endif
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
-                disable_electronic_level();
+				if (lv) disable_electronic_level();
                 #endif
                 #ifdef CONFIG_RAW_LIVEVIEW
                 if (raw_flag) { raw_lv_release(); raw_flag = 0; }

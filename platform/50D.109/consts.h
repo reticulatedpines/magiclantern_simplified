@@ -11,13 +11,34 @@
 #define FORMAT_BTN "[FUNC]"
 #define STR_LOC 6
 
+//~ Reloc Boot
 #define HIJACK_INSTR_BL_CSTART  0xff812ae8
-#define HIJACK_INSTR_BSS_END 0xff81093c
+#define HIJACK_INSTR_BSS_END 0xff81093c //Maloc
+//~ #define HIJACK_INSTR_BSS_END 0xFF813230 //Allocate
 #define HIJACK_FIXBR_BZERO32 0xff8108a4
 #define HIJACK_FIXBR_CREATE_ITASK 0xff81092c
 #define HIJACK_INSTR_MY_ITASK 0xff810948
 #define HIJACK_TASK_ADDR 0x1A70
 
+//~ Allocate Mem Boot
+/*
+#define ROM_ITASK_START 0xFF811DBC
+#define ROM_ITASK_END  0xFF81C8C4
+#define ROM_CREATETASK_MAIN_START 0xFF813210
+#define ROM_CREATETASK_MAIN_END 0xFF8134A0
+#define ROM_ALLOCMEM_END 0xFF813230
+#define ROM_ALLOCMEM_INIT 0xFF813238 
+#define ROM_B_CREATETASK_MAIN 0xFF811E30
+*/
+//~ Cache Hack Boot Doesn't shrink memory
+//~ #define HIJACK_CACHE_HACK
+//~ #define HIJACK_CACHE_HACK_INITTASK_ADDR 0xff810948
+//~ #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF813230
+//0xA0000 - 640K Should Be enough for everyone
+//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xE3A018C6
+//~ #define ML_RESERVED_MEM 640*1024
+
+#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF84D358
 #define ARMLIB_OVERFLOWING_BUFFER 0x1e948 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x1A14 // dec TH_assert or assert_0
@@ -196,14 +217,14 @@
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x10dd0
-#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x10)) // EP_SetControlBv
+#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x10)) // EP_SetControlBv //10DE0
 #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x12)) // EP_SetControlParam
 #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x14))
 #define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x16))
 #define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x18))
 #define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
 #define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // string: ISOMin:%d
-#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2c)) // no idea what this is
+#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2c)) // 10DFC 88 ISO LIMIT
 #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x1a)) // lvae_setdispgain
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x54)) // lvae_setmoviemanualcontrol
 
@@ -216,9 +237,28 @@
 #define DISPLAY_IS_ON MEM(0x2860) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
 
 #define LV_STRUCT_PTR 0x1D74
+//Set 1
+#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
+#define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
+//Smoother I think
+#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
+//~ #define FRAME_BV *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x60) //Looks like BV
+
+//set 2 Doesn't do HDR
+//~ #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x68)
+//~ #define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x69)
+//~ #define FRAME_ISO *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x6A)
+
+
+#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404B5A2C) // ADTG register 105F
+#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404B5A30) // ADTG register 1061
+#define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
+#define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x1F1C8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5
