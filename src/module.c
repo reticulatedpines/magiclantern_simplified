@@ -392,6 +392,10 @@ static void _module_load_all(uint32_t list_only)
                         snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OldAPI");
                         snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Wrong version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
                         console_printf("  [E] %s\n", module_list[mod].long_status);
+                        
+                        /* disable active stuff, since the results are unpredictable */
+                        module_list[mod].cbr = 0;
+                        module_list[mod].prop_handlers = 0;
                     }
                 }
                 else
