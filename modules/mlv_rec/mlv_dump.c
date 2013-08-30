@@ -215,6 +215,7 @@ void show_usage(char *executable)
     fprintf(stderr, " -v                  verbose output\n");
     fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
+    fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16)\n");
     fprintf(stderr, " -f frames           stop after that number of frames\n");
     
     fprintf(stderr, " -m                  write only metadata, no audio or video frames\n");
@@ -256,6 +257,7 @@ int main (int argc, char *argv[])
     int mlv_output = 0;
     int raw_output = 0;
     int bit_depth = 0;
+    int bit_zap = 0;
     int compress_output = 0;
     int decompress_output = 0;
     int verbose = 0;
@@ -286,7 +288,7 @@ int main (int argc, char *argv[])
         return 0;
     }
     
-    while ((opt = getopt(argc, argv, "emnas:uvrcdo:l:b:f:")) != -1) 
+    while ((opt = getopt(argc, argv, "z:emnas:uvrcdo:l:b:f:")) != -1) 
     {
         switch (opt)
         {
@@ -376,6 +378,13 @@ int main (int argc, char *argv[])
                 if(!raw_output)
                 {
                     bit_depth = MIN(16, MAX(1, atoi(optarg)));
+                }
+                break;
+                
+            case 'z':
+                if(!raw_output)
+                {
+                    bit_zap = MIN(16, MAX(1, atoi(optarg)));
                 }
                 break;
                 
@@ -847,6 +856,33 @@ read_headers:
                         free(new_buffer);
                     }
                     
+                    if(bit_zap)
+                    {
+                        int pitch = video_xRes * current_depth / 8;
+                        uint32_t mask = ~((1 << (16 - bit_zap)) - 1);
+                        
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                int32_t value = bitextract(src_line, x, current_depth);
+                                
+                                /* normalize the old value to 16 bits */
+                                value <<= (16-current_depth);
+                                
+                                value &= mask;
+                                
+                                /* convert the old value to destination depth */
+                                value >>= (16-current_depth);
+                                
+                                
+                                bitinsert(src_line, x, current_depth, value);
+                            }
+                        }
+                    }
+                    
                     if(delta_encode_mode)
                     {
                         uint8_t *current_frame_buffer = malloc(frame_size);
@@ -864,8 +900,8 @@ read_headers:
                             
                             for(int x = 0; x < video_xRes; x++)
                             {
-                                uint16_t value = bitextract(src_line, x, current_depth);
-                                uint16_t ref_value = bitextract(ref_line, x, current_depth);
+                                int32_t value = bitextract(src_line, x, current_depth);
+                                int32_t ref_value = bitextract(ref_line, x, current_depth);
                                 
                                 /* when e.g. using 16 bit values:
                                        delta =  1      -> encode to 0x8001
@@ -876,7 +912,7 @@ read_headers:
                                    so this is basically a signed int with overflow and a max/2 offset.
                                    this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
                                 */
-                                int32_t delta = (int32_t) offset + (int32_t)value - (int32_t)ref_value;
+                                int32_t delta = offset + value - ref_value;
                                 
                                 uint16_t new_value = (uint16_t)(delta & max_val);
                                 
