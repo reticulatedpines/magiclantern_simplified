@@ -15,6 +15,7 @@ a.out
 *.list
 *.raw
 *.dis
+*/compile.h
 chdk
 eos
 font-*.c
