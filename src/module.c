@@ -268,6 +268,25 @@ static void _module_load_all(uint32_t list_only)
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
     FIO_CleanupAfterFindNext_maybe(dirent);
+    
+    /* sort modules */
+    for (int i = 0; i < module_cnt-1; i++)
+    {
+        for (int j = i+1; j < module_cnt; j++)
+        {
+            if (
+                    /* loaded modules first, then alphabetically */
+                    (module_list[i].enabled == 0 && module_list[j].enabled) || 
+                    (module_list[i].enabled == module_list[j].enabled && strcmp(module_list[i].name, module_list[j].name) > 0)
+               )
+            {
+                module_entry_t aux = module_list[i];
+                module_list[i] = module_list[j];
+                module_list[j] = aux;
+            }
+        }
+    }
+    
 
     /* dont load anything, just return */
     if(list_only)
