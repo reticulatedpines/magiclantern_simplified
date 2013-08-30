@@ -5474,8 +5474,7 @@ void interval_create_script(int f0)
         return;
     }
     
-    uint32_t file_size = 0;
-    int append_header = FIO_GetFileSize(name, &file_size);
+    int append_header = is_file(name);
     FILE * f = FIO_CreateFileOrAppend(name);
     
     if ( f == INVALID_PTR )
