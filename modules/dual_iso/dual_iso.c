@@ -285,7 +285,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) return 0;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + file_number + lens_info.raw_iso * 1234 + isoless_auto_iso_index * 315;
+    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + file_number * isoless_alternate + lens_info.raw_iso * 1234 + isoless_auto_iso_index * 315;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -320,7 +320,6 @@ static unsigned int isoless_refresh(unsigned int ctx)
 
     if (setting_changed)
     {
-        beep();
         /* hack: this may be executed when file_number is updated;
          * if so, it will rename the previous picture, captured with the old setting,
          * so it will mis-label the pics */
