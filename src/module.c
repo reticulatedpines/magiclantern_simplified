@@ -34,7 +34,7 @@ static TCCState *module_state = NULL;
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
-CONFIG_INT("module.autoload", module_autoload_enabled, 0);
+CONFIG_INT("module.autoload", module_autoload_enabled, 1);
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -231,14 +231,14 @@ static void _module_load_all(uint32_t list_only)
             strncpy(module_list[module_cnt].name, module_name, sizeof(module_list[module_cnt].name));
             
             /* check for a .dis file that tells the module is disabled */
-            char disable_file[MODULE_FILENAME_LENGTH];
-            snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[module_cnt].name);
+            char enable_file[MODULE_FILENAME_LENGTH];
+            snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[module_cnt].name);
             
             /* if disable-file is existent, dont load module */
-            if(config_flag_file_setting_load(disable_file))
+            if(!config_flag_file_setting_load(enable_file))
             {
                 module_list[module_cnt].enabled = 0;
-                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "Off");
+                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "OFF");
                 snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module disabled");
                 //console_printf("  [i] %s\n", module_list[module_cnt].long_status);
             }
@@ -936,12 +936,12 @@ static MENU_UPDATE_FUNC(module_menu_update_autoload)
 
 static MENU_SELECT_FUNC(module_menu_update_select)
 {
-    char disable_file[MODULE_FILENAME_LENGTH];
+    char enable_file[MODULE_FILENAME_LENGTH];
     int mod_number = (int) priv;
     
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
-    snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[mod_number].name);
-    config_flag_file_setting_save(disable_file, !module_list[mod_number].enabled);
+    snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[mod_number].name);
+    config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
 
 static MENU_UPDATE_FUNC(module_menu_update_parameter)
