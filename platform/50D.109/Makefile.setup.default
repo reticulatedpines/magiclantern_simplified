@@ -8,7 +8,7 @@ ML_SRC_EXTRA_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
-	dm-spy.o \
+#	dm-spy.o \
 #	video_hacks.o
 
 #	reloc.o \

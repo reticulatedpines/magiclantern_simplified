@@ -4,7 +4,8 @@
 #define FEATURE_MOVIE_RECORDING_50D
 #define CONFIG_MOVIE_RECORDING_50D_SHUTTER_HACK
 
-#define FEATURE_FOCUS_PEAK_DISP_FILTER //oh yea!
+/* slows down LiveView; has other side effects on 5D2/50D */
+#undef FEATURE_FOCUS_PEAK_DISP_FILTER //oh yea!
 #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
 
 // no audio at all

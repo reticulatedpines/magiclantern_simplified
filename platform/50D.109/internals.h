@@ -78,7 +78,8 @@
 #define CONFIG_FRAME_ISO_OVERRIDE
 
 /** We can also override shutter on a per-frame basis */
-#define CONFIG_FRAME_SHUTTER_OVERRIDE
+/* really? no other old camera can do this */
+//~ #define CONFIG_FRAME_SHUTTER_OVERRIDE
 
 /** And we can override the digital ISO component via FRAME_ISO too **/
 //~ #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
@@ -96,7 +97,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** DMA_MEMCPY  **/
-#define CONFIG_DMA_MEMCPY
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
