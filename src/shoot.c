@@ -5903,6 +5903,11 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     if (!skip0) hdr_shutter_release(0);
     if (hdr_check_cancel(0)) goto end;
     
+    while (HALFSHUTTER_PRESSED)
+    {
+        msleep(100);
+    }
+    
     switch (hdr_sequence)
     {
         case 1: // 0 - + -- ++ 

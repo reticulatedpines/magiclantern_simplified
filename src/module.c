@@ -34,7 +34,7 @@ static TCCState *module_state = NULL;
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
-CONFIG_INT("module.autoload", module_autoload_enabled, 0);
+CONFIG_INT("module.autoload", module_autoload_enabled, 1);
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -211,6 +211,7 @@ static void _module_load_all(uint32_t list_only)
             memset(module_name, 0x00, sizeof(module_name));
             strncpy(module_name, file.name, MODULE_NAME_LENGTH);
             strncpy(module_list[module_cnt].filename, file.name, MODULE_FILENAME_LENGTH);
+            snprintf(module_list[module_cnt].long_filename, sizeof(module_list[module_cnt].long_filename), "%s%s", MODULE_PATH, module_list[module_cnt].filename);
 
             uint32_t pos = 0;
             while(module_name[pos])
@@ -231,14 +232,14 @@ static void _module_load_all(uint32_t list_only)
             strncpy(module_list[module_cnt].name, module_name, sizeof(module_list[module_cnt].name));
             
             /* check for a .dis file that tells the module is disabled */
-            char disable_file[MODULE_FILENAME_LENGTH];
-            snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[module_cnt].name);
+            char enable_file[MODULE_FILENAME_LENGTH];
+            snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[module_cnt].name);
             
-            /* if disable-file is existent, dont load module */
-            if(config_flag_file_setting_load(disable_file))
+            /* if enable-file is nonexistent, dont load module */
+            if(!config_flag_file_setting_load(enable_file))
             {
                 module_list[module_cnt].enabled = 0;
-                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "Off");
+                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "OFF");
                 snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module disabled");
                 //console_printf("  [i] %s\n", module_list[module_cnt].long_status);
             }
@@ -267,6 +268,25 @@ static void _module_load_all(uint32_t list_only)
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
     FIO_CleanupAfterFindNext_maybe(dirent);
+    
+    /* sort modules */
+    for (int i = 0; i < module_cnt-1; i++)
+    {
+        for (int j = i+1; j < module_cnt; j++)
+        {
+            if (
+                    /* loaded modules first, then alphabetically */
+                    (module_list[i].enabled == 0 && module_list[j].enabled) || 
+                    (module_list[i].enabled == module_list[j].enabled && strcmp(module_list[i].name, module_list[j].name) > 0)
+               )
+            {
+                module_entry_t aux = module_list[i];
+                module_list[i] = module_list[j];
+                module_list[j] = aux;
+            }
+        }
+    }
+    
 
     /* dont load anything, just return */
     if(list_only)
@@ -282,7 +302,6 @@ static void _module_load_all(uint32_t list_only)
         if(module_list[mod].enabled)
         {
             console_printf("  [i] load: %s\n", module_list[mod].filename);
-            snprintf(module_list[mod].long_filename, sizeof(module_list[mod].long_filename), "%s%s", MODULE_PATH, module_list[mod].filename);
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
             module_list[mod].valid = 1;
 
@@ -392,6 +411,10 @@ static void _module_load_all(uint32_t list_only)
                         snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OldAPI");
                         snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Wrong version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
                         console_printf("  [E] %s\n", module_list[mod].long_status);
+                        
+                        /* disable active stuff, since the results are unpredictable */
+                        module_list[mod].cbr = 0;
+                        module_list[mod].prop_handlers = 0;
                     }
                 }
                 else
@@ -936,12 +959,12 @@ static MENU_UPDATE_FUNC(module_menu_update_autoload)
 
 static MENU_SELECT_FUNC(module_menu_update_select)
 {
-    char disable_file[MODULE_FILENAME_LENGTH];
+    char enable_file[MODULE_FILENAME_LENGTH];
     int mod_number = (int) priv;
     
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
-    snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[mod_number].name);
-    config_flag_file_setting_save(disable_file, !module_list[mod_number].enabled);
+    snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[mod_number].name);
+    config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
 
 static MENU_UPDATE_FUNC(module_menu_update_parameter)

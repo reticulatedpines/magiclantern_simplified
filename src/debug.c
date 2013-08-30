@@ -4516,10 +4516,12 @@ static void HijackFormatDialogBox_main()
     // make sure we have something to restore :)
     if (!check_autoexec() && !check_fir()) return;
 
-    if (!TmpMem_Init()) return;
+    ui_lock(UILOCK_EVERYTHING);
+    
+    while (!TmpMem_Init())  /* may fail because of not enough memory */
+        msleep(100);
 
     // before user attempts to do something, copy ML files to RAM
-    ui_lock(UILOCK_EVERYTHING);
     CopyMLFilesToRAM_BeforeFormat();
     ui_lock(UILOCK_NONE);
 

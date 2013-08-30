@@ -69,11 +69,11 @@
 #include <fileprefix.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
-static CONFIG_INT("isoless.iso", isoless_recovery_iso, 4);
+static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
 static CONFIG_INT("isoless.alt", isoless_alternate, 0);
 static CONFIG_INT("isoless.prefix", isoless_file_prefix, 0);
 
-#define ISOLESS_AUTO (isoless_recovery_iso == 8)
+#define ISOLESS_AUTO (isoless_recovery_iso == 7)
 
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
@@ -285,7 +285,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) return 0;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + file_number + lens_info.raw_iso * 1234 + isoless_auto_iso_index * 315;
+    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + file_number * isoless_alternate + lens_info.raw_iso * 1234 + isoless_auto_iso_index * 315;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -318,22 +318,30 @@ static unsigned int isoless_refresh(unsigned int ctx)
         }
     }
 
-    if (isoless_file_prefix && setting_changed)
+    if (setting_changed)
     {
-        /* hack: this may when file_number is updated;
+        /* hack: this may be executed when file_number is updated;
          * if so, it will rename the previous picture, captured with the old setting,
          * so it will mis-label the pics */
-        if (lens_info.job_state)
+        if (isoless_file_prefix && lens_info.job_state)
             msleep(500);
         
         static int prefix_key = 0;
-        if (enabled_ph)
+        if (isoless_file_prefix && enabled_ph)
         {
-            prefix_key = file_prefix_set("DUAL");
+            if (!prefix_key)
+            {
+                //~ NotifyBox(1000, "DUAL");
+                prefix_key = file_prefix_set("DUAL");
+            }
         }
-        else
+        else if (prefix_key)
         {
-            file_prefix_reset(prefix_key);
+            if (file_prefix_reset(prefix_key))
+            {
+                //~ NotifyBox(1000, "IMG_");
+                prefix_key = 0;
+            }
         }
     }
 
@@ -516,6 +524,9 @@ static MENU_UPDATE_FUNC(isoless_check)
 
     if (iso1 == iso2)
         MENU_SET_WARNING(MENU_WARN_INFO, "Both ISOs are identical, nothing to do.");
+    
+    if (iso1 && iso2 && ABS(iso1 - iso2) > 8 * (is_movie_mode() ? MIN(FRAME_CMOS_ISO_COUNT-2, 3) : MIN(PHOTO_CMOS_ISO_COUNT-2, 4)))
+        MENU_SET_WARNING(MENU_WARN_INFO, "Consider using a less aggressive setting (e.g. 100/800).");
 
     if (!get_dxo_dynamic_range(72))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
@@ -615,10 +626,11 @@ static struct menu_entry isoless_menu[] =
             {
                 .name = "Recovery ISO",
                 .priv = &isoless_recovery_iso,
+                .update = isoless_check,
                 .min = -12,
-                .max = 8,
+                .max = 7,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800", "Auto shadow"),
+                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "Auto shadow"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
