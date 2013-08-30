@@ -28,6 +28,8 @@
 #define MLV_VIDEO_CLASS_H264         0x04
 
 #define MLV_VIDEO_CLASS_FLAG_LZMA    0x80
+#define MLV_VIDEO_CLASS_FLAG_DELTA   0x40
+
 #define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
 
 #if defined(PACKED)

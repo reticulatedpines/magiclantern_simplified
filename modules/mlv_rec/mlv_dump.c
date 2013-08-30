@@ -223,6 +223,7 @@ void show_usage(char *executable)
     fprintf(stderr, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
     fprintf(stderr, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
     
+    fprintf(stderr, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
     //fprintf(stderr, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
 #ifdef MLV_USE_LZMA
     fprintf(stderr, " -c                  (re-)compress video and audio frames using LZMA\n");
@@ -245,6 +246,7 @@ int main (int argc, char *argv[])
     int vidf_frames_processed = 0;
     int vidf_max_number = 0;
     
+    int delta_encode_mode = 0;
     int average_mode = 0;
     int subtract_mode = 0;
     int no_metadata_mode = 0;
@@ -284,7 +286,7 @@ int main (int argc, char *argv[])
         return 0;
     }
     
-    while ((opt = getopt(argc, argv, "mnas:uvrcdo:l:b:f:")) != -1) 
+    while ((opt = getopt(argc, argv, "emnas:uvrcdo:l:b:f:")) != -1) 
     {
         switch (opt)
         {
@@ -294,6 +296,10 @@ int main (int argc, char *argv[])
                 
             case 'n':
                 no_metadata_mode = 1;
+                break;
+                
+            case 'e':
+                delta_encode_mode = 1;
                 break;
                 
             case 'a':
@@ -460,6 +466,8 @@ int main (int argc, char *argv[])
     
     uint32_t *frame_arith_buffer = NULL;
     uint8_t *frame_buffer = NULL;
+    uint8_t *prev_frame_buffer = NULL;
+    
     FILE *out_file = NULL;
     FILE *in_file = NULL;
 
@@ -488,7 +496,7 @@ int main (int argc, char *argv[])
     
     if(subtract_mode)
     {
-        int ret = load_frame(subtract_filename, 0, frame_arith_buffer);
+        int ret = load_frame(subtract_filename, 0, (uint8_t*)frame_arith_buffer);
         
         if(ret)
         {
@@ -498,6 +506,17 @@ int main (int argc, char *argv[])
     }
     
 
+    if(delta_encode_mode)
+    {
+        prev_frame_buffer = malloc(frame_buffer_size);
+        if(!prev_frame_buffer)
+        {
+            fprintf(stderr, "Failed to alloc mem\n");
+            return 0;
+        }
+        memset(prev_frame_buffer, 0x00, frame_buffer_size);
+    }
+    
     if(output_filename)
     {
         frame_buffer = malloc(frame_buffer_size);
@@ -583,9 +602,45 @@ read_headers:
             }
 
             /* is this the first file? */
-            if(main_header.fileCount == 0)
+            if(file_hdr.fileNum == 0)
             {
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
+                
+                if(mlv_output)
+                {
+                    /* correct header size if needed */
+                    file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+                    
+                    if(average_mode)
+                    {
+                        file_hdr.videoFrameCount = 1;
+                    }
+                    
+                    /* set the output compression flag */
+                    if(compress_output)
+                    {
+                        file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LZMA;
+                    }
+                    else
+                    {
+                        file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
+                    }
+                    
+                    if(delta_encode_mode)
+                    {
+                        file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_DELTA;
+                    }
+                    else
+                    {
+                        file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_DELTA;
+                    }
+                    
+                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    {
+                        fprintf(stderr, "[E] Failed writing into output file\n");
+                        goto abort;
+                    }
+                }
             }
             else
             {
@@ -602,33 +657,6 @@ read_headers:
                 lv_rec_footer.frameCount += file_hdr.videoFrameCount;
                 lv_rec_footer.sourceFpsx1000 = (double)file_hdr.sourceFpsNom / (double)file_hdr.sourceFpsDenom * 1000;
                 lv_rec_footer.frameSkip = 0;
-            }
-            
-            if(mlv_output && (main_header.fileCount == 0))
-            {
-                /* correct header size if needed */
-                file_hdr.blockSize = sizeof(mlv_file_hdr_t);
-                
-                if(average_mode)
-                {
-                    file_hdr.videoFrameCount = 1;
-                }
-                
-                /* set the output compression flag */
-                if(compress_output)
-                {
-                    file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LZMA;
-                }
-                else
-                {
-                    file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
-                }
-                
-                if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
-                {
-                    fprintf(stderr, "[E] Failed writing into output file\n");
-                    goto abort;
-                }
             }
         }
         else
@@ -725,6 +753,9 @@ read_headers:
                     int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
                     int new_depth = bit_depth;
                     
+                    /* this value changes in this context */
+                    int current_depth = old_depth;
+                    
                     /* in average mode, sum up all pixel values of a pixel position */
                     if(average_mode)
                     {
@@ -810,8 +841,52 @@ read_headers:
                         }
                         
                         frame_size = new_size;
+                        current_depth = new_depth;
+                        
                         memcpy(frame_buffer, new_buffer, frame_size);
                         free(new_buffer);
+                    }
+                    
+                    if(delta_encode_mode)
+                    {
+                        uint8_t *current_frame_buffer = malloc(frame_size);
+                        int pitch = video_xRes * current_depth / 8;
+                        
+                        /* backup current frame for later */
+                        memcpy(current_frame_buffer, frame_buffer, frame_size);
+                        
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            uint16_t *ref_line = (uint16_t *)&prev_frame_buffer[y * pitch];
+                            int32_t offset = 1 << (current_depth - 1);
+                            int32_t max_val = (1 << current_depth) - 1;
+                            
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                uint16_t value = bitextract(src_line, x, current_depth);
+                                uint16_t ref_value = bitextract(ref_line, x, current_depth);
+                                
+                                /* when e.g. using 16 bit values:
+                                       delta =  1      -> encode to 0x8001
+                                       delta =  0      -> encode to 0x8000
+                                       delta = -1      -> encode to 0x7FFF
+                                       delta = -0xFFFF -> encode to 0x0001
+                                       delta =  0xFFFF -> encode to 0x7FFF
+                                   so this is basically a signed int with overflow and a max/2 offset.
+                                   this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
+                                */
+                                int32_t delta = (int32_t) offset + (int32_t)value - (int32_t)ref_value;
+                                
+                                uint16_t new_value = (uint16_t)(delta & max_val);
+                                
+                                bitinsert(src_line, x, current_depth, new_value);
+                            }
+                        }
+                        
+                        /* save current original frame to prev buffer */
+                        memcpy(prev_frame_buffer, current_frame_buffer, frame_size);
+                        free(current_frame_buffer);
                     }
                     
                     if(raw_output)
