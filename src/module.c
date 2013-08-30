@@ -211,6 +211,7 @@ static void _module_load_all(uint32_t list_only)
             memset(module_name, 0x00, sizeof(module_name));
             strncpy(module_name, file.name, MODULE_NAME_LENGTH);
             strncpy(module_list[module_cnt].filename, file.name, MODULE_FILENAME_LENGTH);
+            snprintf(module_list[module_cnt].long_filename, sizeof(module_list[module_cnt].long_filename), "%s%s", MODULE_PATH, module_list[module_cnt].filename);
 
             uint32_t pos = 0;
             while(module_name[pos])
@@ -234,7 +235,7 @@ static void _module_load_all(uint32_t list_only)
             char enable_file[MODULE_FILENAME_LENGTH];
             snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[module_cnt].name);
             
-            /* if disable-file is existent, dont load module */
+            /* if enable-file is nonexistent, dont load module */
             if(!config_flag_file_setting_load(enable_file))
             {
                 module_list[module_cnt].enabled = 0;
@@ -282,7 +283,6 @@ static void _module_load_all(uint32_t list_only)
         if(module_list[mod].enabled)
         {
             console_printf("  [i] load: %s\n", module_list[mod].filename);
-            snprintf(module_list[mod].long_filename, sizeof(module_list[mod].long_filename), "%s%s", MODULE_PATH, module_list[mod].filename);
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
             module_list[mod].valid = 1;
 
