@@ -69,11 +69,11 @@
 #include <fileprefix.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
-static CONFIG_INT("isoless.iso", isoless_recovery_iso, 4);
+static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
 static CONFIG_INT("isoless.alt", isoless_alternate, 0);
 static CONFIG_INT("isoless.prefix", isoless_file_prefix, 0);
 
-#define ISOLESS_AUTO (isoless_recovery_iso == 8)
+#define ISOLESS_AUTO (isoless_recovery_iso == 7)
 
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
@@ -516,6 +516,9 @@ static MENU_UPDATE_FUNC(isoless_check)
 
     if (iso1 == iso2)
         MENU_SET_WARNING(MENU_WARN_INFO, "Both ISOs are identical, nothing to do.");
+    
+    if (iso1 && iso2 && ABS(iso1 - iso2) > 8 * (is_movie_mode() ? MIN(FRAME_CMOS_ISO_COUNT-2, 3) : MIN(PHOTO_CMOS_ISO_COUNT-2, 4)))
+        MENU_SET_WARNING(MENU_WARN_INFO, "Consider using a less aggressive setting (e.g. 100/800).");
 
     if (!get_dxo_dynamic_range(72))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
@@ -615,10 +618,11 @@ static struct menu_entry isoless_menu[] =
             {
                 .name = "Recovery ISO",
                 .priv = &isoless_recovery_iso,
+                .update = isoless_check,
                 .min = -12,
-                .max = 8,
+                .max = 7,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800", "Auto shadow"),
+                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "Auto shadow"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
