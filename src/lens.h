@@ -278,7 +278,7 @@ void shutter_toggle(void* priv, int sign);
 void aperture_toggle( void* priv, int sign);
 
 #define MIN_ISO (get_htp() ? 80 : 72)
-#define MAX_ISO 136 // may be better to fine-tune this for each camera
+#define MAX_ISO 128 // may be better to fine-tune this for each camera
 
 // max iso with expo override
 #if defined(CONFIG_6D)
@@ -295,7 +295,7 @@ void aperture_toggle( void* priv, int sign);
 // I think it's the same as max analog ISO
 // todo: ask Guillermo Luijk :)
 #if defined(CONFIG_DIGIC_V)
-#define MAX_ANALOG_ISO 136 // iso 25600
+#define MAX_ANALOG_ISO 128 // iso 12800
 #else
 #define MAX_ANALOG_ISO 112 // iso 3200
 #endif
