@@ -1236,6 +1236,36 @@ read_headers:
                     }
                 }
             }
+            else if(!memcmp(buf.blockType, "MARK", 4))
+            {
+                mlv_mark_hdr_t block_hdr;
+                uint32_t hdr_size = MIN(sizeof(mlv_mark_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    fprintf(stderr, "[E] File ends in the middle of a block\n");
+                    goto abort;
+                }
+                
+                /* skip remaining data, if there is any */
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+
+                if(verbose)
+                {
+                    printf("  Button: 0x%02X\n", block_hdr.type);
+                }
+            
+                if(mlv_output && !no_metadata_mode)
+                {
+                    /* correct header size if needed */
+                    block_hdr.blockSize = sizeof(mlv_mark_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    {
+                        fprintf(stderr, "[E] Failed writing into output file\n");
+                        goto abort;
+                    }
+                }
+            }
             else if(!memcmp(buf.blockType, "EXPO", 4))
             {
                 mlv_expo_hdr_t block_hdr;

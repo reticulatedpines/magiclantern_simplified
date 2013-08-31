@@ -2927,6 +2927,20 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         }
     }
     
+    /* nothing to handle, log keypress */
+    if(raw_recording_state == RAW_RECORDING)
+    {
+        mlv_mark_hdr_t *hdr = malloc(sizeof(mlv_mark_hdr_t));
+        
+        /* prepare header */
+        mlv_set_type((mlv_hdr_t *)hdr, "MARK");
+        mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+        hdr->blockSize = sizeof(mlv_mark_hdr_t);
+        hdr->type = key;
+        
+        msg_queue_post(mlv_block_queue, hdr);
+    }
+    
     return 1;
 }
 
