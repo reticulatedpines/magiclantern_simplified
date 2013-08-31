@@ -169,8 +169,8 @@ typedef struct {
     uint32_t    blockSize;    /* this can also be placed in a separate file with only file header plus this block */
     uint64_t    timestamp;
     uint32_t    frameType;    /* bitmask: 1=video, 2=audio */
-    uint32_t    frameCount;    /* number of xrefs that follow here */
-    mlv_xref_t    xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
+    uint32_t    entryCount;    /* number of xrefs that follow here */
+    mlv_xref_t  xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
 } PACKED mlv_xref_hdr_t;
 
 typedef struct {
