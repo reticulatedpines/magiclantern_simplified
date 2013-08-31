@@ -26,6 +26,9 @@
 #include <getopt.h>
 #include <inttypes.h>
 
+/* some compile warning, why? */
+char *strdup(const char *s);
+
 //#define MLV_USE_LZMA
 
 #ifdef MLV_USE_LZMA
@@ -50,7 +53,55 @@
      _a < _b ? _a : _b; })
 
 #define COERCE(val,min,max) MIN(MAX((value),(min)),(max))
-     
+
+/* this structure is used to build the mlv_xref_t table */
+typedef struct 
+{
+    uint64_t    frameTime;
+    uint64_t    frameOffset;
+    uint32_t    fileNumber;
+} frame_xref_t;
+
+
+
+
+
+void xref_resize(frame_xref_t **table, int entries, int *allocated)
+{
+    /* make sure there is no crappy pointer before using */
+    if(*allocated == 0)
+    {
+        *table = NULL;
+    }
+    
+    /* only resize if the buffer is too small */
+    if(entries * sizeof(frame_xref_t) > *allocated)
+    {
+        *allocated += (entries + 1) * sizeof(frame_xref_t);
+        *table = realloc(*table, *allocated);
+    }
+}
+
+void xref_sort(frame_xref_t *table, int entries)
+{
+    int n = entries;
+    do
+    {
+        int newn = 1;
+        for (int i = 0; i < n-1; ++i)
+        {
+            if (table[i].frameTime > table[i+1].frameTime)
+            {
+                frame_xref_t tmp = table[i+1];
+                table[i+1] = table[i];
+                table[i] = tmp;
+                newn = i + 1;
+            }
+        }
+        n = newn;
+    } while (n > 1);
+}
+
 void bitinsert(uint16_t *dst, int position, int depth, uint16_t new_value)
 {
     uint16_t old_value = 0;
@@ -207,6 +258,176 @@ load_frame_finish:
     return ret;
 }
 
+mlv_xref_hdr_t *load_index(char *base_filename)
+{
+    mlv_xref_hdr_t *block_hdr = NULL;
+    char filename[128];
+    FILE *in_file = NULL;
+
+    strncpy(filename, base_filename, sizeof(filename));
+    strcpy(&filename[strlen(filename) - 3], "IDX");
+    
+    in_file = fopen(filename, "rb");
+    
+    if(!in_file)
+    {
+        return NULL;
+    }
+
+    printf("[i] File %s opened (XREF)\n", filename);
+    
+    do
+    {
+        mlv_hdr_t buf;
+        uint64_t position = 0;
+        
+        position = ftello(in_file);
+        
+        if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
+        {
+            break;
+        }
+        
+        /* jump back to the beginning of the block just read */
+        fseeko(in_file, position, SEEK_SET);
+
+        position = ftello(in_file);
+        
+        /* we should check the MLVI header for matching UID value to make sure its the right index... */
+        if(!memcmp(buf.blockType, "XREF", 4))
+        {
+            block_hdr = malloc(buf.blockSize);
+
+            if(fread(block_hdr, buf.blockSize, 1, in_file) != 1)
+            {
+                fprintf(stderr, "[E] File '%s' ends in the middle of a block\n", filename);
+                free(block_hdr);
+                block_hdr = NULL;
+            }
+        }
+        else
+        {
+            fseeko(in_file, position + buf.blockSize, SEEK_SET);
+        }
+    }
+    while(!feof(in_file));
+    
+    fclose(in_file);
+    
+    return block_hdr;
+}
+
+void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount, frame_xref_t *index, int entries)
+{
+    char filename[128];
+    FILE *out_file = NULL;
+
+    strncpy(filename, base_filename, sizeof(filename));
+    strcpy(&filename[strlen(filename) - 3], "IDX");
+    
+    out_file = fopen(filename, "wb+");
+    
+    if(!out_file)
+    {
+        fprintf(stderr, "[E] Failed writing into output file\n");
+        return;
+    }
+
+    printf("[i] File %s opened for writing\n", filename);
+    
+    
+    /* first write MLVI header */
+    mlv_file_hdr_t file_hdr = *ref_file_hdr;
+    
+    /* update fields */
+    file_hdr.videoFrameCount = 0;
+    file_hdr.audioFrameCount = 0;
+    file_hdr.fileNum = fileCount + 1;
+    
+    fwrite(&file_hdr, sizeof(mlv_file_hdr_t), 1, out_file);
+
+    
+    /* now write XREF block */
+    mlv_xref_hdr_t hdr;
+    
+    memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+    memcpy(hdr.blockType, "XREF", 4);
+    hdr.blockSize = sizeof(mlv_xref_hdr_t) + entries * sizeof(mlv_xref_t);
+    hdr.entryCount = entries;
+    
+    if(fwrite(&hdr, sizeof(mlv_xref_hdr_t), 1, out_file) != 1)
+    {
+        fprintf(stderr, "[E] Failed writing into output file\n");
+        fclose(out_file);
+        return;
+    }
+    
+    /* and then the single entries */
+    for(int entry = 0; entry < entries; entry++)
+    {
+        mlv_xref_t field;
+        
+        memset(&field, 0x00, sizeof(mlv_xref_t));
+        
+        field.frameOffset = index[entry].frameOffset;
+        field.fileNumber = index[entry].fileNumber;
+        
+        if(fwrite(&field, sizeof(mlv_xref_t), 1, out_file) != 1)
+        {
+            fprintf(stderr, "[E] Failed writing into output file\n");
+            fclose(out_file);
+            return;
+        }
+    }
+    
+    fclose(out_file);
+}
+
+
+FILE **load_all_chunks(char *base_filename, int *entries)
+{
+    int seq_number = 0;
+    char filename[128];
+    
+    strncpy(filename, base_filename, sizeof(filename));
+    FILE **files = malloc(sizeof(FILE*));
+    
+    files[0] = fopen(filename, "rb");
+    if(!files[0])
+    {
+        return NULL;
+    }
+    
+    printf("[i] File %s opened\n", filename);
+    
+    (*entries)++;
+    while(seq_number < 99)
+    {
+        files = realloc(files, (*entries + 1) * sizeof(FILE*));
+        
+        /* check for the next file M00, M01 etc */
+        char seq_name[3];
+
+        sprintf(seq_name, "%02d", seq_number);
+        seq_number++;
+
+        strcpy(&filename[strlen(filename) - 2], seq_name);
+
+        /* try to open */
+        files[*entries] = fopen(filename, "rb");
+        if(files[*entries])
+        {
+            printf("[i] File %s opened\n", filename);
+            (*entries)++;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return files;
+}
+
 void show_usage(char *executable)
 {
     fprintf(stderr, "Usage: %s [-o output_file] [-rscd] [-l compression_level(0-9)] <inputfile>\n", executable);
@@ -217,6 +438,8 @@ void show_usage(char *executable)
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
     fprintf(stderr, " -f frames           stop after that number of frames\n");
+    
+    fprintf(stderr, " -x                  build xref file (indexing)\n");
     
     fprintf(stderr, " -m                  write only metadata, no audio or video frames\n");
     fprintf(stderr, " -n                  write no metadata, only audio and video frames\n");
@@ -250,6 +473,7 @@ int main (int argc, char *argv[])
     int vidf_max_number = 0;
     
     int delta_encode_mode = 0;
+    int xref_mode = 0;
     int average_mode = 0;
     int subtract_mode = 0;
     int no_metadata_mode = 0;
@@ -290,10 +514,14 @@ int main (int argc, char *argv[])
         return 0;
     }
     
-    while ((opt = getopt(argc, argv, "z:emnas:uvrcdo:l:b:f:")) != -1) 
+    while ((opt = getopt(argc, argv, "xz:emnas:uvrcdo:l:b:f:")) != -1) 
     {
         switch (opt)
         {
+            case 'x':
+                xref_mode = 1;
+                break;
+                
             case 'm':
                 only_metadata_mode = 1;
                 break;
@@ -451,7 +679,6 @@ int main (int argc, char *argv[])
             {
                 printf("   - Compress frame data\n"); 
             }
-            
             if(average_mode)
             {
                 printf("   - Output only one frame with averaged pixel values\n");
@@ -478,11 +705,19 @@ int main (int argc, char *argv[])
         }
     }
     
+    if(xref_mode)
+    {
+        printf("   - Output .idx file for faster processing\n"); 
+    }
+
     /* start processing */
     lv_rec_file_footer_t lv_rec_footer;
     mlv_file_hdr_t main_header;
     
-    uint32_t seq_number = 0;
+    /* this table contains the XREF chunk read from idx file, if existing */
+    mlv_xref_hdr_t *block_xref = NULL;
+    int block_xref_pos = 0;
+
     uint32_t frame_buffer_size = 32*1024*1024;
     
     uint32_t *frame_arith_buffer = NULL;
@@ -490,18 +725,50 @@ int main (int argc, char *argv[])
     uint8_t *prev_frame_buffer = NULL;
     
     FILE *out_file = NULL;
+    FILE **in_files = NULL;
     FILE *in_file = NULL;
+    
+    int in_file_count = 0;
+    int in_file_num = 0;
+
+    /* this is for our generated XREF table */
+    frame_xref_t *frame_xref_table = NULL;
+    int frame_xref_allocated = 0;
+    int frame_xref_entries = 0;
 
     /* initialize stuff */
     memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
     memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     /* open files */
-    in_file = fopen(input_filename, "rb");
-    if(!in_file)
+    in_files = load_all_chunks(input_filename, &in_file_count);
+    if(!in_files || !in_file_count)
     {
-        fprintf(stderr, "Failed to open file '%s'\n", input_filename);
+        fprintf(stderr, "[E] Failed to open file '%s'\n", input_filename);
         return 0;
+    }
+    else
+    {
+        in_file_num = 0;
+        in_file = in_files[in_file_num];
+    }
+    
+    if(!xref_mode)
+    {
+        block_xref = load_index(input_filename);
+        
+        if(block_xref)
+        {   
+            printf("[i] XREF table contains %d entries\n", block_xref->entryCount);
+        }
+        else
+        {
+            if(delta_encode_mode)
+            {
+                fprintf(stderr, "[E] Delta encoding is not possible without an index file. Please create one using -x option.");
+                return 0;
+            }
+        }
     }
     
     if(average_mode || subtract_mode)
@@ -509,7 +776,7 @@ int main (int argc, char *argv[])
         frame_arith_buffer = malloc(frame_buffer_size);
         if(!frame_arith_buffer)
         {
-            fprintf(stderr, "Failed to alloc mem\n");
+            fprintf(stderr, "[E] Failed to alloc mem\n");
             return 0;
         }
         memset(frame_arith_buffer, 0x00, frame_buffer_size);
@@ -521,18 +788,17 @@ int main (int argc, char *argv[])
         
         if(ret)
         {
-            fprintf(stderr, "Failed to load subtract frame (%d)\n", ret);
+            fprintf(stderr, "[E] Failed to load subtract frame (%d)\n", ret);
             return 0;
         }
     }
     
-
     if(delta_encode_mode)
     {
         prev_frame_buffer = malloc(frame_buffer_size);
         if(!prev_frame_buffer)
         {
-            fprintf(stderr, "Failed to alloc mem\n");
+            fprintf(stderr, "[E] Failed to alloc mem\n");
             return 0;
         }
         memset(prev_frame_buffer, 0x00, frame_buffer_size);
@@ -543,14 +809,14 @@ int main (int argc, char *argv[])
         frame_buffer = malloc(frame_buffer_size);
         if(!frame_buffer)
         {
-            fprintf(stderr, "Failed to alloc mem\n");
+            fprintf(stderr, "[E] Failed to alloc mem\n");
             return 0;
         }
         
         out_file = fopen(output_filename, "wb+");
         if(!out_file)
         {
-            fprintf(stderr, "Failed to open file '%s'\n", output_filename);
+            fprintf(stderr, "[E] Failed to open file '%s'\n", output_filename);
             return 0;
         }
     }
@@ -562,32 +828,47 @@ int main (int argc, char *argv[])
         uint64_t position = 0;
         
 read_headers:
+
+        if(block_xref)
+        {
+            block_xref_pos++;
+            if(block_xref_pos >= block_xref->entryCount)
+            {
+                printf("[i] Reached end of all files after %i blocks\n", blocks_processed);
+                break;
+            }
+            
+            /* get the file and position of the next block */
+            in_file_num = ((mlv_xref_t*)&block_xref->xrefEntries)[block_xref_pos].fileNumber;
+            position = ((mlv_xref_t*)&block_xref->xrefEntries)[block_xref_pos].frameOffset;
+            
+            /* select file and seek to the right position */
+            in_file = in_files[in_file_num];
+            fseeko(in_file, position, SEEK_SET);
+        }
+        
         position = ftello(in_file);
         
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
-            printf("[i] Reached end of file after %i blocks\n", blocks_processed);
-            fclose(in_file);
-            in_file = NULL;
-            blocks_processed = 0;
-
-            /* check for the next file M00, M01 etc */
-            char seq_name[3];
-
-            sprintf(seq_name, "%02d", seq_number);
-            seq_number++;
-
-            strcpy(&input_filename[strlen(input_filename) - 2], seq_name);
-
-            /* try to open */
-            in_file = fopen(input_filename, "rb");
-            if(!in_file)
+            if(block_xref)
+            {
+                printf("[i] Reached EOF of chunk %d/%d after %i blocks total. This should never happen or your index file is wrong.\n", in_file_num, in_file_count, blocks_processed);
+                break;
+            }
+            printf("[i] Reached end of chunk %d/%d after %i blocks\n", in_file_num, in_file_count, blocks_processed);
+            
+            if(in_file_num < (in_file_count - 1))
+            {
+                in_file_num++;
+                in_file = in_files[in_file_num];
+            }
+            else
             {
                 break;
             }
-
-            /* fine, it is available. so lets restart reading */
-            printf("[i] Opened file '%s'\n", input_filename);
+            
+            blocks_processed = 0;
 
             goto read_headers;
         }
@@ -596,6 +877,7 @@ read_headers:
         fseeko(in_file, position, SEEK_SET);
 
         position = ftello(in_file);
+        
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
         {
@@ -625,6 +907,19 @@ read_headers:
             /* is this the first file? */
             if(file_hdr.fileNum == 0)
             {
+                /* in xref mode, use every block and get its timestamp etc */
+                if(xref_mode)
+                {
+                    xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+                    
+                    /* add xref data */
+                    frame_xref_table[frame_xref_entries].frameTime = 0;
+                    frame_xref_table[frame_xref_entries].frameOffset = position;
+                    frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                    
+                    frame_xref_entries++;
+                }
+                
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
                 
                 if(mlv_output)
@@ -682,6 +977,19 @@ read_headers:
         }
         else
         {
+            /* in xref mode, use every block and get its timestamp etc */
+            if(xref_mode)
+            {
+                xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+                
+                /* add xref data */
+                frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
+                frame_xref_table[frame_xref_entries].frameOffset = position;
+                frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                
+                frame_xref_entries++;
+            }
+                
             if(main_header.blockSize == 0)
             {
                 fprintf(stderr, "[E] Missing file header\n");
@@ -1427,21 +1735,34 @@ abort:
         fseeko(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
     }
-
-    if(output_filename)
-    {
-        free(output_filename);
-    }
     
-    if(in_file)
+    if(xref_mode)
     {
-        fclose(in_file);
+        printf("[i] XREF table contains %d entries\n", frame_xref_entries);
+        xref_sort(frame_xref_table, frame_xref_entries);
+        save_index(input_filename, &main_header, in_file_count, frame_xref_table, frame_xref_entries);
     }
 
+    /* free list of input files */
+    for(in_file_num = 0; in_file_num < in_file_count; in_file_num++)
+    {
+        fclose(in_files[in_file_num]);
+    }
+    free(in_files);
+    
     if(out_file)
     {
         fclose(out_file);
     }
+
+    /* passing NULL to free is absolutely legal, so no check required */
+    free(lut_filename);
+    free(subtract_filename);
+    free(output_filename);
+    free(prev_frame_buffer);
+    free(frame_arith_buffer);
+    free(block_xref);
+    
 
     printf("[i] Done\n"); 
     printf("\n"); 
