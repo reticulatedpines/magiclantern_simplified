@@ -30,7 +30,6 @@
 #include "version.h"
 #include "bmp.h"
 #include "menu.h"
-#include "version.h"
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
