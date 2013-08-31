@@ -215,7 +215,7 @@ void show_usage(char *executable)
     fprintf(stderr, " -v                  verbose output\n");
     fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
-    fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16)\n");
+    fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
     fprintf(stderr, " -f frames           stop after that number of frames\n");
     
     fprintf(stderr, " -m                  write only metadata, no audio or video frames\n");
@@ -225,9 +225,11 @@ void show_usage(char *executable)
     fprintf(stderr, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
     
     fprintf(stderr, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
+    
+    /* yet unclear which format to choose, so keep that as reminder */
     //fprintf(stderr, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
 #ifdef MLV_USE_LZMA
-    fprintf(stderr, " -c                  (re-)compress video and audio frames using LZMA\n");
+    fprintf(stderr, " -c                  (re-)compress video and audio frames using LZMA (set bpp to 16 to improve compression rate)\n");
     fprintf(stderr, " -d                  decompress compressed video and audio frames using LZMA\n");
     fprintf(stderr, " -l level            set compression level from 0=fastest to 9=best compression\n");
 #else
@@ -420,6 +422,7 @@ int main (int argc, char *argv[])
         {
             printf("   - Convert to legacy RAW\n"); 
             
+            delta_encode_mode = 0;
             compress_output = 0;
             mlv_output = 0;
             if(average_mode)
@@ -432,14 +435,23 @@ int main (int argc, char *argv[])
         {
             mlv_output = 1;
             printf("   - Rewrite MLV\n"); 
-            if(compress_output)
+            if(bit_zap)
             {
-                printf("   - Compress frame data\n"); 
+                printf("   - Only store %d bits of information per pixel\n", bit_zap); 
             }
             if(bit_depth)
             {
                 printf("   - Convert to %d bpp\n", bit_depth); 
             }
+            if(delta_encode_mode)
+            {
+                printf("   - Only store changes to previous frame\n"); 
+            }
+            if(compress_output)
+            {
+                printf("   - Compress frame data\n"); 
+            }
+            
             if(average_mode)
             {
                 printf("   - Output only one frame with averaged pixel values\n");
