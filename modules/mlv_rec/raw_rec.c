@@ -79,7 +79,8 @@ static int32_t cam_5d2 = 0;
 static int32_t cam_50d = 0;
 static int32_t cam_5d3 = 0;
 static int32_t cam_6d = 0;
-static int cam_700d = 0;
+static int32_t cam_7d = 0;
+static int32_t cam_700d = 0;
 
 #define MAX_WRITER_THREADS 2
 
@@ -1213,7 +1214,7 @@ static void unhack_liveview_vsync(int32_t unused);
 
 static void hack_liveview_vsync()
 {
-    if (cam_5d2 || cam_50d)
+    if (cam_5d2 || cam_50d || cam_7d )
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
         if (lv_dispsize > 1 && !get_halfshutter_pressed())
@@ -1323,6 +1324,7 @@ static void hack_liveview(int32_t unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
+            cam_7d  ? 0xFF345788 :
             cam_700d ? 0xFF52B53C :
             /* ... */
             0;
@@ -3029,6 +3031,7 @@ static unsigned int raw_rec_init()
     cam_50d = streq(camera_model_short, "50D");
     cam_5d3 = streq(camera_model_short, "5D3");
     cam_6d = streq(camera_model_short, "6D");
+    cam_7d = streq(camera_model_short, "7D");
     cam_700d = streq(camera_model_short, "700D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
