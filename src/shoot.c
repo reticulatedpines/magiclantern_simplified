@@ -139,6 +139,7 @@ static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
+static CONFIG_INT( "interval.scripts", interval_scripts, 0); //1 bash, 2 ms-dos, 3 text
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
@@ -4873,6 +4874,15 @@ static struct menu_entry shoot_menus[] = {
                 .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
             },
             #endif
+            #ifdef FEATURE_INTERVALOMETER
+            {
+                .name = "Intervalometer Script",
+                .priv       = &interval_scripts,
+                .max = 3,
+                .help = "Scripts for sorting intervalometer sequences.",
+                .choices = CHOICES("OFF", "Bash", "MS-DOS", "File List"),
+            },
+            #endif
             #ifdef FEATURE_SNAP_SIM
             {
                 .name = "Snap Simulation",
@@ -5435,6 +5445,77 @@ void hdr_create_script(int f0, int focus_stack)
     NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
+
+#ifdef FEATURE_INTERVALOMETER
+// create a post script for sorting intervalometer sequences,
+// starting from file number f0 till the current file_number
+void interval_create_script(int f0)
+{
+    if (!interval_scripts) return;
+    
+    int steps = mod(file_number - f0 + 1, 10000);
+    if (steps <= 1) return;
+    
+    char name[100];
+    if(interval_scripts == 1)
+    {
+        snprintf(name, sizeof(name), "%s/INTERVAL.sh", get_dcim_dir());
+    }
+    else if(interval_scripts == 2)
+    {
+        snprintf(name, sizeof(name), "%s/INTERVAL.bat", get_dcim_dir());
+    }
+    else if(interval_scripts == 3)
+    {
+        snprintf(name, sizeof(name), "%s/INTERVAL.txt", get_dcim_dir());
+    }
+    else
+    {
+        return;
+    }
+    
+    int append_header = !is_file(name);
+    FILE * f = FIO_CreateFileOrAppend(name);
+    
+    if ( f == INVALID_PTR )
+    {
+        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileOrAppend: error for %s", name );
+        return;
+    }
+    
+    if (interval_scripts == 1)
+    {
+        if (append_header)
+        {
+            my_fprintf(f, "#!/bin/bash \n");
+        }
+        my_fprintf(f, "\nmkdir INT_%04d\n", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+        }
+    }
+    else if (interval_scripts == 2)
+    {
+        my_fprintf(f, "\nMD INT_%04d\n", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+        }
+    }
+    else if(interval_scripts == 3)
+    {
+        my_fprintf(f, "\n*** New Sequence ***\n");
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), mod(f0 + i, 10000));
+        }
+    }
+    
+    FIO_CloseFile(f);
+    NotifyBox(5000, "Saved %s", name);
+}
+#endif // FEATURE_INTERVALOMETER
 
 // normal pic, silent pic, bulb pic...
 void take_a_pic(int should_af, int allow_bulb)
@@ -6143,6 +6224,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
+        interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
         //~ display_on();
     }
 #endif
