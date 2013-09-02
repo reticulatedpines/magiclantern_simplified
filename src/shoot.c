@@ -128,6 +128,10 @@ static PROP_INT(PROP_AEB, aeb_setting);
 #define HDR_ENABLED 0
 #endif
 
+// The min and max EV delta encoded in 1/8 of EV
+#define HDR_STEPSIZE_MIN 4
+#define HDR_STEPSIZE_MAX 64
+
 static CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
@@ -3342,8 +3346,9 @@ static MENU_SELECT_FUNC(hdr_stepsize_toggle)
     int h = hdr_stepsize;
     delta *= (h+delta < 16 ? 4 : 8);
     h += delta;
-    if (h > 40) h = 4;
-    if (h < 4) h = 40;
+    // Why not COERCE()? Because we need to wrap the value around
+    if (h > HDR_STEPSIZE_MAX) h = HDR_STEPSIZE_MIN;
+    if (h < HDR_STEPSIZE_MIN) h = HDR_STEPSIZE_MAX;
     hdr_stepsize = h;
 }
 #endif
@@ -4434,8 +4439,8 @@ static struct menu_entry shoot_menus[] = {
                 .name = "EV increment",
                 .priv       = &hdr_stepsize,
                 .select     = hdr_stepsize_toggle,
-                .min = 4,
-                .max = 40,
+                .min = HDR_STEPSIZE_MIN,
+                .max = HDR_STEPSIZE_MAX,
                 .unit = UNIT_1_8_EV,
                 .icon_type = IT_PERCENT,
                 .help = "Exposure difference between two frames.",
