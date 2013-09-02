@@ -21,7 +21,7 @@ static MENU_UPDATE_FUNC(menu_edit_lv_print)
 {
     MENU_SET_NAME("");
     
-    if (!info->x) return;
+    if (!info->can_custom_draw) return;
     bmp_printf(FONT_LARGE, info->x, info->y, "  /ZoomIn");
     // draw a LiveView icon (like the display one, but erase the lines)
     bfnt_draw_char(ICON_ML_DISPLAY, info->x-4, info->y-4, COLOR_WHITE, COLOR_BLACK);

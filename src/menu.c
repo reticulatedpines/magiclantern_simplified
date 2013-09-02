@@ -2417,10 +2417,6 @@ menu_entry_process(
     info.x_val = x + font_large.width * ABS(menu->split_pos);
     info.can_custom_draw = menu != my_menu && menu != mod_menu && !menu_lv_transparent_mode;
     
-    /* temporary hack for code that doesn't know about can_custom_draw, but checks info->x and/or info->y */
-    if (!info.can_custom_draw)
-        info.x = info.y = 0;
-
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
 

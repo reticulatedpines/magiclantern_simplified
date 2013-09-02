@@ -647,7 +647,7 @@ static MENU_UPDATE_FUNC(follow_focus_print)
     {
         int x = info->x;
         int y = info->y;
-        if (x)
+        if (info->can_custom_draw)
         {
             bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
             bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");

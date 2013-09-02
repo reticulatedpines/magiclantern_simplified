@@ -2924,7 +2924,7 @@ static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
         get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
     );
     //~ MENU_SET_RINFO(
-    if (info->x) bmp_printf(MENU_FONT_GRAY, info->x_val, info->y + font_large.height,
+    if (info->can_custom_draw) bmp_printf(MENU_FONT_GRAY, info->x_val, info->y + font_large.height,
         "%d,%d,%d,%d",
         lens_get_from_other_picstyle_sharpness(picstyle_rec),
         lens_get_from_other_picstyle_contrast(picstyle_rec),

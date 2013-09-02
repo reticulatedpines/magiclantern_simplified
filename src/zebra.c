@@ -2421,7 +2421,7 @@ static MENU_UPDATE_FUNC(global_draw_display)
     if (disp_profiles_0)
     {
         MENU_SET_RINFO("DISP %d", get_disp_mode());
-        if (entry->selected && info->x) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 700 - font_med.width * strlen(Q_BTN_NAME), info->y + font_large.height, Q_BTN_NAME);
+        if (entry->selected && info->can_custom_draw) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 700 - font_med.width * strlen(Q_BTN_NAME), info->y + font_large.height, Q_BTN_NAME);
     }
 
     #ifdef CONFIG_5D3

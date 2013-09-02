@@ -988,13 +988,12 @@ static MENU_UPDATE_FUNC(show_update)
         }
     }
     
-    if (changed)
+    if (changed && info->can_custom_draw)
     {
         /* just a little trick to avoid transient redrawing artifacts */
         /* todo: better backend support for dynamic menus? */
         info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        if (info->x)
-            bmp_printf(FONT_LARGE, info->x, info->y, "Updating...");
+        bmp_printf(FONT_LARGE, info->x, info->y, "Updating...");
     }
 }
 

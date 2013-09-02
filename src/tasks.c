@@ -158,7 +158,7 @@ MENU_SELECT_FUNC(tasks_toggle_flags)
 
 MENU_UPDATE_FUNC(tasks_print)
 {
-    if (!info->x) return;
+    if (!info->can_custom_draw) return;
 
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     

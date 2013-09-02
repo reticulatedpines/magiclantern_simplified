@@ -301,7 +301,7 @@ static int mrc_dump_page = 1;
 
 static MENU_UPDATE_FUNC(mrc_dump_update_all)
 {
-    if (!info->x) return;
+    if (!info->can_custom_draw) return;
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
