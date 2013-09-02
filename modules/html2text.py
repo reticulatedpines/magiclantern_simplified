@@ -35,6 +35,8 @@ import optparse, re, sys, codecs, types
 try: from textwrap import wrap
 except: pass
 
+from align_string import align_paragraph
+
 # Use Unicode characters instead of their ascii psuedo-replacements
 UNICODE_SNOB = 0
 
@@ -139,7 +141,7 @@ def optwrap(text):
     for para in text.split("\n"):
         if len(para) > 0:
             if para[0] != ' ' and para[0] != '-' and para[0] != '*':
-                for line in wrap(para, BODY_WIDTH):
+                for line in align_paragraph(str(para), BODY_WIDTH):
                     result += line + "\n"
                 result += "\n"
                 newlines = 2
@@ -150,7 +152,7 @@ def optwrap(text):
                         prefix = para[0] + prefix
                         para = para[1:]
                     
-                    for line in wrap(para, BODY_WIDTH - len(prefix)):
+                    for line in align_paragraph(str(para), BODY_WIDTH - len(prefix)):
                         result += prefix + line + "\n"
                         prefix = " " * len(prefix)
                     newlines = 1
