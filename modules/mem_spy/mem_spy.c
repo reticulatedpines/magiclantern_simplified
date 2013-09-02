@@ -363,7 +363,7 @@ static struct menu_entry mem_spy_menu[] =
                 .choices = CHOICES("MEM", "MEMX"),
                 .max = 1,
                 .help = "How are the values read.",
-                .help2 = "MMIO device.\nShadow copy.",
+                .help2 = "MMIO device.\nShadow copy.", //fixme: this text is never shown?
             },
             {
                 .name = "Halfshutter related",
