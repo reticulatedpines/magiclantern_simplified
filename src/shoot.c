@@ -128,6 +128,10 @@ static PROP_INT(PROP_AEB, aeb_setting);
 #define HDR_ENABLED 0
 #endif
 
+// The min and max EV delta encoded in 1/8 of EV
+#define HDR_STEPSIZE_MIN 4
+#define HDR_STEPSIZE_MAX 64
+
 static CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
@@ -3292,9 +3296,19 @@ static MENU_UPDATE_FUNC(hdr_display)
     }
     else
     {
-        MENU_SET_VALUE("%s%Xx%d%sEV,%s%s%s",
+        // trick: when steps=1 (auto) it will display A :)
+        char hdr_steps_str[10];
+        if(hdr_steps == 1)
+        {
+            snprintf(hdr_steps_str, 10, "%s", "A");
+        }
+        else
+        {
+            snprintf(hdr_steps_str, 10, "%d", hdr_steps);
+        }
+        MENU_SET_VALUE("%s%sx%d%sEV,%s%s%s",
             hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
-            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+            hdr_steps_str, 
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "",
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
@@ -3310,14 +3324,32 @@ static MENU_UPDATE_FUNC(hdr_display)
     
 }
 
+static MENU_UPDATE_FUNC(hdr_steps_update)
+{
+    if(hdr_steps <= 1)
+    {
+        MENU_SET_VALUE("Autodetect");
+    }
+    else
+    {
+        MENU_SET_VALUE("%d", hdr_steps);
+        if(hdr_steps > 9)
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "CAUTION! May cause excessive shutter wear");
+        }
+    }
+
+}
+
 // 0,4,8,12,16, 24, 32, 40
 static MENU_SELECT_FUNC(hdr_stepsize_toggle)
 {
     int h = hdr_stepsize;
     delta *= (h+delta < 16 ? 4 : 8);
     h += delta;
-    if (h > 40) h = 4;
-    if (h < 4) h = 40;
+    // Why not COERCE()? Because we need to wrap the value around
+    if (h > HDR_STEPSIZE_MAX) h = HDR_STEPSIZE_MIN;
+    if (h < HDR_STEPSIZE_MIN) h = HDR_STEPSIZE_MAX;
     hdr_stepsize = h;
 }
 #endif
@@ -4400,17 +4432,16 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Frames",
                 .priv       = &hdr_steps,
                 .min = 1,
-                .max = 9,
-                .icon_type = IT_PERCENT,
-                .choices = CHOICES("Autodetect", "2", "3", "4", "5", "6", "7", "8", "9"),
+                .update = hdr_steps_update,
+                .icon_type = IT_DICE,
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
                 .name = "EV increment",
                 .priv       = &hdr_stepsize,
                 .select     = hdr_stepsize_toggle,
-                .min = 4,
-                .max = 40,
+                .min = HDR_STEPSIZE_MIN,
+                .max = HDR_STEPSIZE_MAX,
                 .unit = UNIT_1_8_EV,
                 .icon_type = IT_PERCENT,
                 .help = "Exposure difference between two frames.",
