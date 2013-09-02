@@ -145,7 +145,14 @@ def optwrap(text):
                 newlines = 2
             else:
                 if not onlywhite(para):
-                    result += para + "\n"
+                    prefix = ""
+                    while para[0] in " -*":
+                        prefix = para[0] + prefix
+                        para = para[1:]
+                    
+                    for line in wrap(para, BODY_WIDTH - len(prefix)):
+                        result += prefix + line + "\n"
+                        prefix = " " * len(prefix)
                     newlines = 1
         else:
             if newlines < 2:
