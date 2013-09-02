@@ -3291,9 +3291,19 @@ static MENU_UPDATE_FUNC(hdr_display)
     }
     else
     {
-        MENU_SET_VALUE("%s%Xx%d%sEV,%s%s%s",
+        // trick: when steps=1 (auto) it will display A :)
+        char hdr_steps_str[10];
+        if(hdr_steps == 1)
+        {
+            snprintf(hdr_steps_str, 10, "%s", "A");
+        }
+        else
+        {
+            snprintf(hdr_steps_str, 10, "%d", hdr_steps);
+        }
+        MENU_SET_VALUE("%s%sx%d%sEV,%s%s%s",
             hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
-            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+            hdr_steps_str, 
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "",
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
@@ -3307,6 +3317,23 @@ static MENU_UPDATE_FUNC(hdr_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Turn off Canon bracketing (AEB)!");
     }
     
+}
+
+static MENU_UPDATE_FUNC(hdr_steps_update)
+{
+    if(hdr_steps <= 1)
+    {
+        MENU_SET_VALUE("Autodetect");
+    }
+    else
+    {
+        MENU_SET_VALUE("%d", hdr_steps);
+        if(hdr_steps > 9)
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "CAUTION! May cause excessive shutter wear");
+        }
+    }
+
 }
 
 // 0,4,8,12,16, 24, 32, 40
@@ -4399,9 +4426,8 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Frames",
                 .priv       = &hdr_steps,
                 .min = 1,
-                .max = 9,
-                .icon_type = IT_PERCENT,
-                .choices = CHOICES("Autodetect", "2", "3", "4", "5", "6", "7", "8", "9"),
+                .update = hdr_steps_update,
+                .icon_type = IT_DICE,
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
