@@ -19,6 +19,7 @@ const int addresses[] = {}; //not tested
 
 static CONFIG_INT("mem.spy.enabled", mem_spy, 0);
 static CONFIG_INT("mem.spy.look_for", look_for, TYPE_INT32);
+static CONFIG_INT("mem.spy.mem_type", mem_type, 0);
 static CONFIG_INT("mem.spy.halfshutter_related", halfshutter_related, 0);
 static CONFIG_INT("mem.spy.fixed_addresses", fixed_addresses, 0);
 static CONFIG_INT("mem.spy.start_addr", start_addr, 0);
@@ -44,6 +45,8 @@ static int start_delay_counter;
 #define COLUMN_WIDTH 720 / COLUMN_COUNT
 #define FONT_HEIGHT 12
 #define POSITION_COUNT 480 / FONT_HEIGHT * COLUMN_COUNT
+
+#define VAL_READ(addr) mem_type == 0 ? MEM(addr) : (int)MEMX(addr);
 
 static int position[POSITION_COUNT][3];
 
@@ -99,21 +102,21 @@ static int _toc()
 static int init_mem() // initial state of the analyzed memory
 {
     // local copy of mem area analyzed
-    if (!mem_mirror) mem_mirror = SmallAlloc(var_count * var_length + 100);
+    if (!mem_mirror) mem_mirror = shoot_malloc(var_count * var_length + 100);
     if (!mem_mirror) return 0;
     
     // store changes
-    if (!mem_changes) mem_changes = SmallAlloc(var_count * var_length + 100);
+    if (!mem_changes) mem_changes = shoot_malloc(var_count * var_length + 100);
     if (!mem_changes) return 0;
     
     // store position
-    if (!mem_position) mem_position = SmallAlloc(var_count * var_length + 100);
+    if (!mem_position) mem_position = shoot_malloc(var_count * var_length + 100);
     if (!mem_position) return 0;
     
     int i;
     for (i = 0; i < var_count; i++) {
         uint32_t addr = get_addr(i);
-        mem_mirror[i] = MEM(addr);
+        mem_mirror[i] = VAL_READ(addr);
         mem_changes[i] = 0;
         mem_position[i] = -1;
     }
@@ -136,8 +139,16 @@ static int get_byte_length() {
 
 static void mem_spy_task()
 {
+    mem_spy = 1;
     mem_spy_running = 1;
+	
+    init_done = 0;
+    var_length = get_byte_length();
+    if(fixed_addresses) var_count = COUNT(addresses);
+    start_delay_counter = start_delay;
     
+    init_position();
+	
     int i;
     TASK_LOOP
     {
@@ -152,7 +163,7 @@ static void mem_spy_task()
         
         if (!init_done) {
             if(!init_mem()) {
-                NotifyBox(1000, "SmallAlloc failed");
+                NotifyBox(1000, "shoot_malloc failed");
                 break;
             }
             init_done = 1;
@@ -164,12 +175,12 @@ static void mem_spy_task()
         
         for (i = 0; i < var_count; i++)
         {
-            if(mem_changes[i] == -1)continue;
+            if(mem_changes[i] == -1) continue;
             
             uint32_t addr = get_addr(i);
             
             int oldval = mem_mirror[i];
-            int newval = MEM(addr);
+            int newval = VAL_READ(addr);
             
             bool changed = oldval != newval;
             
@@ -268,15 +279,11 @@ static void mem_spy_task()
 }
 
 static void start() {
-    var_length = get_byte_length();
-    init_position();
-    init_done = 0;
-    start_delay_counter = start_delay;
-    if(fixed_addresses) var_count = COUNT(addresses);
-    
     if(mem_spy && !mem_spy_running){
         task_create("mem_spy_task", 0x1c, 0x1000, mem_spy_task, (void*)0);
-    }
+    } else {
+		mem_spy = 0;
+	}
 }
 
 static MENU_SELECT_FUNC(mem_spy_sel){
@@ -329,7 +336,7 @@ static struct menu_entry mem_spy_menu[] =
 {
     {
         .name = "Memory spy",
-        .priv = &mem_spy,
+        .priv = &mem_spy_running,
         .max = 1,
         .select = mem_spy_sel,
         .submenu_width = 700,
@@ -348,6 +355,14 @@ static struct menu_entry mem_spy_menu[] =
                 .update = look_for_upd,
                 .help = "In fact this convert int32 to you choice.",
                 .help2 = "Memory is always scanned by 4B.",
+            },
+            {
+                .name = "Memory type",
+                .priv = &mem_type,
+                .choices = CHOICES("MEM", "MEMX"),
+                .max = 1,
+                .help = "How are the values read.",
+                .help2 = "MMIO device.\nShadow copy.",
             },
             {
                 .name = "Halfshutter related",
@@ -468,6 +483,7 @@ MODULE_STRINGS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mem_spy)
     MODULE_CONFIG(look_for)
+    MODULE_CONFIG(mem_type)
     MODULE_CONFIG(halfshutter_related)
     MODULE_CONFIG(fixed_addresses)
     MODULE_CONFIG(start_addr)
