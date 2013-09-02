@@ -336,6 +336,7 @@ static struct menu_entry mem_spy_menu[] =
 {
     {
         .name = "Memory spy",
+        .help = "Use with care, it can cause ERR 70 and endless loop.",
         .priv = &mem_spy_running,
         .max = 1,
         .select = mem_spy_sel,
