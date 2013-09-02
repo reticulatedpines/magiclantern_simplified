@@ -4432,8 +4432,9 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Frames",
                 .priv       = &hdr_steps,
                 .min = 1,
+                .max = 100,
                 .update = hdr_steps_update,
-                .icon_type = IT_DICE,
+                .icon_type = IT_PERCENT,
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
