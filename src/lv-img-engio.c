@@ -644,7 +644,7 @@ static void vignetting_measure_luma(int samples)
 
 static MENU_UPDATE_FUNC(vignetting_graphs_update)
 {
-    if (entry->selected && info->x)
+    if (entry->selected && info->can_custom_draw)
     {
         int yb = 400;
         int xa = 720-218 - 70;

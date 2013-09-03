@@ -122,7 +122,7 @@ MENU_UPDATE_FUNC(falsecolor_display)
         MENU_SET_VALUE(
             falsecolor_palette_name()
         );
-        if (info->x) falsecolor_palette_preview(info->x, info->y);
+        if (info->can_custom_draw) falsecolor_palette_preview(info->x, info->y);
     }
 }
 
@@ -131,7 +131,7 @@ MENU_UPDATE_FUNC(falsecolor_display_palette)
     MENU_SET_VALUE(
         falsecolor_palette_name()
     );
-    if (info->x) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
+    if (info->can_custom_draw) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
 }
 
 #endif

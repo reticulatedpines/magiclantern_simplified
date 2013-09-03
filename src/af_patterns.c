@@ -333,7 +333,7 @@ static void draw_af_point(int x, int y, int r, int color)
 
 static MENU_UPDATE_FUNC(pattern_display)
 {
-    if (!info->x) return;
+    if (!info->can_custom_draw) return;
     
     int cx = 500;
     int cy = 350;
