@@ -3125,10 +3125,32 @@ show_vscroll(struct menu * parent){
 
     int menu_len = MENU_LEN;
     
-    if(max > menu_len + 2){
-        bmp_draw_rect(50, 718, 43, 1, 385);
-        int16_t posx = 43 + (335 * (pos-1) / (max-1));
-        bmp_fill(COLOR_WHITE, 717, posx, 4, 50);
+    if(max > menu_len + (submenu_mode ? 1 : 2)){
+        int y_lo = submenu_mode ? 50 : 44;
+        int h = submenu_mode ? 367 : 385;
+        int size = (h - y_lo) * menu_len / max;
+        int y = y_lo + ((h - size) * (pos-1) / (max-1));
+        int x = MIN(360 + g_submenu_width/2, 720-3);
+        
+        if (!submenu_mode)
+            bmp_draw_rect(50, x + 1, y_lo, 2, h);
+        bmp_fill(COLOR_WHITE, x, y, 3, size);
+
+#if 0 // looks a bit ugly
+        int y_hi = y_lo + h;
+        x = MIN(x, 720-6);
+        
+        for (int i = -6; i <= 6; i++)
+        {
+            /* top arrow */
+            if (pos > 1)
+                draw_line(x, y_lo - 20, x + i, y_lo - 10, COLOR_WHITE);
+            
+            /* bottom arrow */
+            if (pos < max)
+                draw_line(x, y_hi + 20, x + i, y_hi + 10, COLOR_WHITE);
+        }
+#endif
     }
 }
 
@@ -3301,6 +3323,7 @@ menus_display(
             //~ bmp_dim(45, 480-50);
         
         submenu_display(submenu);
+        show_vscroll(submenu);
     }
     
     give_semaphore( menu_sem );
