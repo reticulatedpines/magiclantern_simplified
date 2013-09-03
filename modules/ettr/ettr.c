@@ -1005,12 +1005,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(ettr_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "Auto ETTR")
-    MODULE_STRING("License", "GPL")
-    MODULE_STRING("Author", "a1ex")
-MODULE_STRINGS_END()
-
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC_SETPARAM, auto_ettr_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, auto_ettr_keypress_cbr, 0)

@@ -272,4 +272,8 @@ int module_exec_cbr(unsigned int type);
 int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *));
 int module_unset_config_cbr();
 
+#ifdef MODULE
+#include "module_strings.h"
+#endif
+
 #endif

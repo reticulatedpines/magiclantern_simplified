@@ -6,26 +6,34 @@ include $(TOP_DIR)/Makefile.setup
 
 # should we define a platform for modules? for now use 'all' platform
 PLATFORM_INC=$(TOP_DIR)/platform/all
-CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) $(MODULE_CFLAGS)
+CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) $(MODULE_CFLAGS) -I.
 
+MODULE_SRC    = $(MODULE_NAME).c
 MODULE_OUTPUT = $(MODULE_NAME).mo
-MODULE_SYM = $(MODULE_NAME).sym
-MODULE_DEP = $(MODULE_NAME).dep
+MODULE_SYM    = $(MODULE_NAME).sym
+MODULE_DEP    = $(MODULE_NAME).dep
+
+MODULE_STRINGS   = module_strings.h
 
 all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 
 clean::
-	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) *.o *.d)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym)
 
-$(MODULE_OUTPUT): $(MODULE_OBJS)
-	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
+module_strings.h: README.rst
+	$(call build,README,python ../readme2modulestrings.py > $@)
+
+README.rst:
+	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
+
+$(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS)
+	$(call build,MODULE,$(LD_REAL) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
 
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) '{print $$2 " " $$8;}' | sort > $@ && cat $@)
 %.dep: %.mo
 	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) '{print $$8;}' | sort > $@ && cd $(MODULES_DIR) && python checkdep.py $(MODULE_NAME))
-
 
 install:: all
 	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/

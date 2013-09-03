@@ -7,6 +7,7 @@
 #include "config.h"
 #include "string.h"
 #include "property.h"
+#include "bmp.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
 #error Not defined file name with symbols
@@ -270,9 +271,9 @@ static void _module_load_all(uint32_t list_only)
     FIO_CleanupAfterFindNext_maybe(dirent);
     
     /* sort modules */
-    for (int i = 0; i < module_cnt-1; i++)
+    for (int i = 0; i < (int) module_cnt-1; i++)
     {
-        for (int j = i+1; j < module_cnt; j++)
+        for (int j = i+1; j < (int) module_cnt; j++)
         {
             if (
                     /* loaded modules first, then alphabetically */
@@ -593,7 +594,7 @@ unsigned int module_get_symbol(void *module, char *symbol)
     
     TCCState *state = (TCCState *)module;
     
-    return tcc_get_symbol(state, symbol);
+    return (int) tcc_get_symbol(state, symbol);
 }
 
 
@@ -933,30 +934,6 @@ int module_display_filter_update()
     return 0;
 }
 
-static MENU_UPDATE_FUNC(module_menu_update_autoload)
-{
-    int mod_number = (int) entry->priv;
-
-    MENU_SET_VALUE(module_list[mod_number].enabled?"ON":"OFF");
-    if(module_list[mod_number].enabled)
-    {
-        if(!module_list[mod_number].error)
-        {
-            MENU_SET_ICON(MNI_ON, 0);
-        }
-        else
-        {
-            MENU_SET_ICON(MNI_OFF, 0);
-        }
-    }
-    else
-    {
-        MENU_SET_ICON(MNI_NEUTRAL, 0);
-    }
-    
-    MENU_SET_WARNING(MENU_WARN_ADVICE, module_list[mod_number].name);
-}
-
 static MENU_SELECT_FUNC(module_menu_update_select)
 {
     char enable_file[MODULE_FILENAME_LENGTH];
@@ -967,20 +944,7 @@ static MENU_SELECT_FUNC(module_menu_update_select)
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
 
-static MENU_UPDATE_FUNC(module_menu_update_parameter)
-{
-    char *str = (char*)entry->priv;
-    
-    if(str)
-    {
-        MENU_SET_VALUE(str);
-    }
-    else
-    {
-        MENU_SET_VALUE("");
-    }
-}
-
+static const char* module_get_string(int mod_number, const char* name);
 
 static MENU_UPDATE_FUNC(module_menu_update_entry)
 {
@@ -996,18 +960,51 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         {
             MENU_SET_NAME(module_list[mod_number].name);
         }
-        MENU_SET_ICON(MNI_ON, 0);
-        MENU_SET_ENABLED(1);
-        MENU_SET_VALUE(module_list[mod_number].status);
-        MENU_SET_WARNING(MENU_WARN_ADVICE, module_list[mod_number].long_status);
+
+        if (!module_list[mod_number].enabled)
+        {
+            MENU_SET_ICON(MNI_NEUTRAL, 0);
+            MENU_SET_ENABLED(0);
+            MENU_SET_VALUE("OFF, will not load");
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This module will no longer be loaded at next reboot.");
+        }
+        else
+        {
+            MENU_SET_ICON(MNI_ON, 0);
+            MENU_SET_ENABLED(1);
+            MENU_SET_VALUE(module_list[mod_number].status);
+            const char* summary = module_get_string(mod_number, "Summary");
+            if (summary)
+            {
+                int has_dot = summary[strlen(summary)-1] == '.';
+                MENU_SET_HELP("%s%s", summary, has_dot ? "" : ".");
+            }
+            MENU_SET_WARNING(
+                module_list[mod_number].error ? MENU_WARN_NOT_WORKING : MENU_WARN_ADVICE, 
+                "%s. Press %s for more info.",
+                module_list[mod_number].long_status,
+                Q_BTN_NAME
+            );
+        }
     }
     else if(strlen(module_list[mod_number].filename))
     {
         MENU_SET_NAME(module_list[mod_number].filename);
-        MENU_SET_ICON(MNI_OFF, 0);
-        MENU_SET_ENABLED(1);
-        MENU_SET_VALUE(module_list[mod_number].status);
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, module_list[mod_number].long_status);
+        str_make_lowercase(info->name);
+        if (module_list[mod_number].enabled)
+        {
+            MENU_SET_ICON(MNI_ON, 0);
+            MENU_SET_ENABLED(0);
+            MENU_SET_VALUE("ON, will load");
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "This module will be loaded at next reboot.");
+        }
+        else
+        {
+            MENU_SET_ICON(MNI_OFF, 0);
+            MENU_SET_ENABLED(1);
+            MENU_SET_VALUE(module_list[mod_number].status);
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, module_list[mod_number].long_status);
+        }
     }
     else
     {
@@ -1056,12 +1053,149 @@ static void module_menu_update()
 /* check which modules are loaded and hide others */
 static void module_submenu_update(int mod_number)
 {
-    /* displaying two menus before parameters */
-    int entry = 1;
-
     /* set autoload menu's priv to module id */
     module_submenu[0].priv = (void*)mod_number;
+};
 
+static int module_info_type = 0;
+
+static MENU_SELECT_FUNC(module_info_toggle)
+{
+    module_info_type++;
+    if (module_info_type > 1)
+    {
+        module_info_type = 0;
+        menu_close_submenu();
+    }
+}
+
+static int startswith(const char* str, const char* prefix)
+{
+    const char* s = str;
+    const char* p = prefix;
+    for (; *p; s++,p++)
+        if (*s != *p) return 0;
+    return 1;
+}
+
+static const char* module_get_string(int mod_number, const char* name)
+{
+    module_strpair_t *strings = module_list[mod_number].strings;
+
+    if (strings)
+    {
+        for ( ; strings->name != NULL; strings++)
+        {
+            if (streq(strings->name, name))
+            {
+                return strings->value;
+            }
+        }
+    }
+    return 0;
+}
+
+static int module_is_special_string(const char* name)
+{
+    if (
+            streq(name, "Name") ||
+            streq(name, "Description") ||
+            streq(name, "Build user") ||
+            streq(name, "Build date") ||
+            streq(name, "Last update") ||
+            streq(name, "Summary") ||
+            startswith(name, "Help page") ||
+        0)
+            return 1;
+    return 0;
+}
+
+static int module_show_about_page(int mod_number)
+{
+    module_strpair_t *strings = module_list[mod_number].strings;
+
+    if (strings)
+    {
+        int max_width = 0;
+        int max_width_value = 0;
+        int num_extra_strings = 0;
+        for ( ; strings->name != NULL; strings++)
+        {
+            if (!module_is_special_string(strings->name))
+            {
+                max_width = MAX(max_width, strlen(strings->name) + strlen(strings->value) + 3);
+                max_width_value = MAX(max_width_value, strlen(strings->value) + 2);
+                num_extra_strings++;
+            }
+        }
+
+        const char* desc = module_get_string(mod_number, "Description");
+        const char* name = module_get_string(mod_number, "Name");
+        const char* module_build_user = module_get_string(mod_number, "Build user");
+        const char* module_build_date = module_get_string(mod_number, "Build date");
+        const char* module_last_update = module_get_string(mod_number, "Last update");
+
+        if (name && desc)
+        {
+            bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+            int fnt_special = FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK);
+
+            bmp_printf(FONT_LARGE, 10, 10, "%s", name);
+            big_bmp_printf(FONT_MED, 10, 60, "%s", desc);
+
+            int xm = 710 - max_width_value * font_med.width;
+            int xl = 710 - max_width * font_med.width;
+            xm = xm - xl + 10;
+            xl = 10;
+            int yr = 480 - (num_extra_strings + 2) * font_med.height;
+
+            for (strings = module_list[mod_number].strings ; strings->name != NULL; strings++)
+            {
+                if (!module_is_special_string(strings->name))
+                {
+                    bmp_printf(fnt_special, xl, yr, "%s", strings->name);
+                    bmp_printf(fnt_special, xm, yr, ": %s", strings->value);
+                    yr += font_med.height;
+                }
+            }
+            
+            if (module_build_date && module_build_user)
+            {
+                bmp_printf(fnt_special, 10, 480-font_med.height, "Built on %s by %s.", module_build_date, module_build_user);
+            }
+            
+            if (module_last_update)
+            {
+                bmp_printf(fnt_special, 10, 480-font_med.height*2, "Last update: %s", module_last_update);
+            }
+            
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static MENU_UPDATE_FUNC(module_menu_info_update)
+{
+    int mod_number = (int) module_submenu[0].priv;
+    
+    int x = info->x;
+    int y = info->y;
+    int x_val = info->x_val;
+    if (!x || !y)
+        return;
+
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+
+    if (module_info_type == 0 && strlen(module_list[mod_number].long_filename))
+    {
+        /* try to show an About page for the module */
+        if (module_show_about_page(mod_number))
+            return;
+    }
+     
     /* make sure this module is being used */
     if(module_list[mod_number].valid && !module_list[mod_number].error)
     {
@@ -1072,111 +1206,90 @@ static void module_submenu_update(int mod_number)
 
         if (strings)
         {
-            if(module_submenu[entry].priv != MENU_EOL_PRIV)
+            y += 10;
+            bmp_printf(FONT_MED, x - 32, y, "Information:");
+            y += font_med.height;
+            for ( ; strings->name != NULL; strings++)
             {
-                module_submenu[entry].name = "----Information---";
-                module_submenu[entry].priv = (void*)0;
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                entry++;
-            }
-            
-            while((strings->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
-            {
-                module_submenu[entry].name = strings->name;
-                module_submenu[entry].priv = (void*)strings->value;
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                strings++;
-                entry++;
+                if (strchr(strings->name, '\n'))
+                {
+                    continue; /* don't display multiline strings here */
+                }
+                
+                bmp_printf(FONT_MED, x, y, "%s", strings->name);
+                if (strlen(strings->value) * font_med.width + x_val < 710)
+                {
+                    /* short string */
+                    bmp_printf(FONT_MED, x_val, y, "%s", strings->value);
+                }
+                else
+                {
+                    /* long string */
+                    if ((strlen(strings->name) + strlen(strings->value)) * font_med.width > 710)
+                    {
+                        /* doesn't fit? print on the next line */
+                        y += font_med.height;
+                    }
+                    
+                    /* right-align if possible */
+                    int new_x = MAX(x, 710 - strlen(strings->value) * font_med.width);
+                    bmp_printf(FONT_MED, new_x, y, "%s", strings->value);
+                }
+                y += font_med.height;
             }
         }
-        
+
         if (parms)
         {
-            if(module_submenu[entry].priv != MENU_EOL_PRIV)
-            {
-                module_submenu[entry].name = "----Parameters----";
-                module_submenu[entry].priv = (void*)0;
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                entry++;
-            }
+            y += 10;
+            bmp_printf(FONT_MED, x - 32, y, "Parameters:");
+            y += font_med.height;
 
-            while((parms->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            for (; parms->name != NULL; parms++)
             {
-                module_submenu[entry].name = parms->name;
-                module_submenu[entry].priv = (void*)parms->type;
-                module_submenu[entry].help = parms->desc;
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                parms++;
-                entry++;
+                bmp_printf(FONT_MED, x, y, "%s", parms->name);
+                bmp_printf(FONT_MED, x_val, y, "%s", parms->type);
+                y += font_med.height;
             }
         }
-        
+         
         if (props && *props)
         {
-            if(module_submenu[entry].priv != MENU_EOL_PRIV)
-            {
-                module_submenu[entry].name = "----Properties----";
-                #if !defined(CONFIG_UNREGISTER_PROP)
-                module_submenu[entry].priv = " (no support)";
+            y += 10;
+            bmp_printf(FONT_MED, x - 32, y, 
+                #if defined(CONFIG_UNREGISTER_PROP)
+                "Properties:"
+                #else
+                "Properties (no support):"
                 #endif
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                entry++;
-            }
-
-            while((*props != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            );
+            y += font_med.height;
+            for (; *props != NULL; props++)
             {
-                module_submenu[entry].name = (*props)->name;
-                module_submenu[entry].priv = (void*)0;
-                module_submenu[entry].help = "";
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                props++;
-                entry++;
+                bmp_printf(FONT_MED, x, y, "%s", (*props)->name);
+                y += font_med.height;
             }
         }
-        
+
         if (cbr)
         {
-            if(module_submenu[entry].priv != MENU_EOL_PRIV)
-            {
-                module_submenu[entry].name = "----Callbacks-----";
-                module_submenu[entry].priv = (void*)0;
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                entry++;
-            }
+            y += 10;
+            bmp_printf(FONT_MED, x - 32, y, "Callbacks:");
+            y += font_med.height;
 
-            while((cbr->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            for ( ; cbr->name != NULL; cbr++)
             {
-                module_submenu[entry].name = cbr->name;
-                module_submenu[entry].priv = (void*)cbr->symbol;
-                module_submenu[entry].help = "";
-                module_submenu[entry].update = module_menu_update_parameter;
-                module_submenu[entry].select = module_menu_select_empty;
-                module_submenu[entry].shidden = 0;
-                cbr++;
-                entry++;
+                bmp_printf(FONT_MED, x, y, "%s", cbr->name);
+                bmp_printf(FONT_MED, x_val, y, "%s", cbr->symbol);
+                y += font_med.height;
             }
         }
     }
-
-    /* disable other entries */
-    while(module_submenu[entry].priv != MENU_EOL_PRIV)
+    else
     {
-        module_submenu[entry].shidden = 1;
-        entry++;
+        bmp_printf(FONT_MED, x - 32, y, "%s", module_list[mod_number].long_filename);
+        y += font_med.height;
+        bmp_printf(FONT_MED, x - 32, y, "More info after you load this module.");
     }
 }
 
@@ -1209,78 +1322,10 @@ static MENU_SELECT_FUNC(console_toggle)
 
 static struct menu_entry module_submenu[] = {
         {
-            .name = "Autoload module",
-            .icon_type = MNI_ON,
-            .max = 1,
-            .update = module_menu_update_autoload,
-            .select = module_menu_update_select,
-            .help = "Load automatically on startup.",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
-        },
-        {
-            .help = "",
+            .name = "Module info",
+            .update = module_menu_info_update,
+            .select = module_info_toggle,
+            .icon_type = IT_ACTION,
         },
         MENU_EOL
 };
@@ -1289,53 +1334,15 @@ static struct menu_entry module_submenu[] = {
         { \
             .name = "Module", \
             .priv = (void*)i, \
-            .select = module_open_submenu, \
+            .select = module_menu_update_select, \
             .select_Q = module_open_submenu, \
             .update = module_menu_update_entry, \
-            .icon_type = IT_SUBMENU, \
             .submenu_width = 700, \
+            .submenu_height = 400, \
             .children = module_submenu, \
-            .help = "", \
-            .help2 = "", \
         },
 
 static struct menu_entry module_menu[] = {
-    {
-        .name = "Load modules now...",
-        .select = module_menu_load,
-        .help = "Loads modules in "MODULE_PATH,
-    },
-#ifdef CONFIG_MODULE_UNLOAD
-    {
-        .name = "Unload modules now...",
-        .select = module_menu_unload,
-        .help = "Unload loaded modules",
-    },
-#endif
-    {
-        .name = "Autoload modules on startup",
-        .priv = &module_autoload_enabled,
-        .max = 1,
-        .help = "Loads modules every startup",
-    },
-    {
-        .name = "Ignore unclean shutdown",
-        .priv = &module_ignore_crashes,
-        .max = 1,
-        .help = "When enabled, modules are even loaded after camera crashed.",
-    },
-    {
-        .name = "Show console",
-        .priv = &module_console_enabled,
-        .select = console_toggle,
-        .max = 1,
-        .help = "Keep console shown after modules were loaded",
-    },
-    {
-        .name = "----Modules----",
-        .icon_type = MNI_NONE,
-        .select = module_menu_select_empty,
-    },
     MODULE_ENTRY(0)
     MODULE_ENTRY(1)
     MODULE_ENTRY(2)
@@ -1370,6 +1377,53 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(31)
 };
 
+static struct menu_entry module_debug_menu[] = {
+    {
+        .name = "Module debug",
+        .select = menu_open_submenu,
+        .submenu_width = 710,
+        .help = "Diagnostic options for modules.",
+        .children =  (struct menu_entry[]) {
+            #if 0
+            {
+                .name = "Load modules now",
+                .select = module_menu_load,
+                .help = "Loads modules in "MODULE_PATH,
+            },
+            #endif
+            #ifdef CONFIG_MODULE_UNLOAD
+            {
+                .name = "Unload modules now...",
+                .select = module_menu_unload,
+                .help = "Unload loaded modules",
+            },
+            #endif
+            {
+                 .name = "Disable all modules",
+                 .priv = &module_autoload_enabled,
+                 .max = 1,
+                 .choices = CHOICES("ON", "OFF"),
+                 .help = "For troubleshooting.",
+            },
+            {
+                .name = "Alert unclean shutdown",
+                .priv = &module_ignore_crashes,
+                .max = 1,
+                .choices = CHOICES("ON", "OFF"),
+                .help = "Do not load modules after camera crashed.",
+            },
+            {
+                .name = "Show console",
+                .priv = &module_console_enabled,
+                .select = console_toggle,
+                .max = 1,
+                .help = "Keep console shown after modules were loaded",
+            },
+            MENU_EOL,
+        },
+    },
+};
+
 struct config_var* module_config_var_lookup(int* ptr)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
@@ -1391,6 +1445,7 @@ static void module_init()
 {
     module_mq = (struct msg_queue *) msg_queue_create("module_mq", 1);
     menu_add("Modules", module_menu, COUNT(module_menu));
+    menu_add("Debug", module_debug_menu, COUNT(module_debug_menu));
     module_menu_update();
 }
 
@@ -1424,7 +1479,7 @@ void module_load_task(void* unused)
         _module_load_all(1);
         module_menu_update();
     }
-        
+
     /* main loop, also wait until clean shutdown */
     TASK_LOOP
     {
