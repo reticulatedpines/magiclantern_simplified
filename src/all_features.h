@@ -149,7 +149,7 @@
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
-    #define FEATURE_BULB_RAMPING
+    #define FEATURE_FOCUS_RAMPING
     #define FEATURE_BULB_TIMER
 #endif
 
