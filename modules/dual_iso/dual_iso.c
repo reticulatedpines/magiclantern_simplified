@@ -851,6 +851,7 @@ static unsigned int isoless_init()
     else
     {
         isoless_hdr = 0;
+        return 1;
     }
     return 0;
 }

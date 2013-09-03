@@ -468,11 +468,23 @@ static void _module_load_all(uint32_t list_only)
             /* initialize module */
             if(module_list[mod].info->init)
             {
-                module_list[mod].info->init();
+                int err = module_list[mod].info->init();
+                
+                if (err)
+                {
+                    module_list[mod].error = err;
+
+                    snprintf(module_list[mod].status, sizeof(module_list[mod].status), "Err");
+                    snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Module init failed");
+
+                    /* disable active stuff, since the results are unpredictable */
+                    module_list[mod].cbr = 0;
+                    module_list[mod].prop_handlers = 0;
+                }
             }
             
             /* register property handlers */
-            if(module_list[mod].prop_handlers)
+            if(module_list[mod].prop_handlers && !module_list[mod].error)
             {
                 module_prophandler_t **props = module_list[mod].prop_handlers;
                 while(*props != NULL)
@@ -488,8 +500,11 @@ static void _module_load_all(uint32_t list_only)
             {
                 console_printf("-----------------------------\n");
             }
-            snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OK");
-            snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Module loaded successfully");
+            if (!module_list[mod].error)
+            {
+                snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OK");
+                snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Module loaded successfully");
+            }
         }
     }
     
@@ -979,12 +994,14 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
                 int has_dot = summary[strlen(summary)-1] == '.';
                 MENU_SET_HELP("%s%s", summary, has_dot ? "" : ".");
             }
-            MENU_SET_WARNING(
-                module_list[mod_number].error ? MENU_WARN_NOT_WORKING : MENU_WARN_ADVICE, 
-                "%s. Press %s for more info.",
-                module_list[mod_number].long_status,
-                Q_BTN_NAME
-            );
+            if (module_list[mod_number].error)
+            {
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", module_list[mod_number].long_status);
+            }
+            else
+            {
+                MENU_SET_WARNING(MENU_WARN_INFO, "%s. Press %s for more info.", module_list[mod_number].long_status, Q_BTN_NAME);
+            }
         }
     }
     else if(strlen(module_list[mod_number].filename))

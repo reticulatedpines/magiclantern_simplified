@@ -1049,7 +1049,7 @@ static unsigned int adtg_gui_init()
         CMOS_WRITE_FUNC = 0xFF2DD0E8; //"[REG] ############ Start CMOS"
     }
     
-    else return 0;
+    else return 1;
 
     
     menu_add("Debug", adtg_gui_menu, COUNT(adtg_gui_menu));
