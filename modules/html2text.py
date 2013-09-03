@@ -146,7 +146,7 @@ def optwrap(text):
             else:
                 if not onlywhite(para):
                     prefix = ""
-                    while para[0] in " -*":
+                    while len(para) and para[0] in " -*":
                         prefix = para[0] + prefix
                         para = para[1:]
                     
