@@ -981,8 +981,9 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             }
             MENU_SET_WARNING(
                 module_list[mod_number].error ? MENU_WARN_NOT_WORKING : MENU_WARN_ADVICE, 
-                "%s. Press " Q_BTN_NAME " for more info.",
-                module_list[mod_number].long_status
+                "%s. Press %s for more info.",
+                module_list[mod_number].long_status,
+                Q_BTN_NAME
             );
         }
     }
