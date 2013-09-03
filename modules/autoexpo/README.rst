@@ -1,11 +1,11 @@
-autoexpo
-========
+Auto exposure
+=============
 
-Auto exposure algorithm.
+Automatic exposure algorithm based on predefined curves.
+It's like a real 'P' where you actually program what you want the camera to do depending on the light.
+http://www.magiclantern.fm/forum/?topic=7208
 
-Please write a one-page description for your module here.
-
-:Author: Pravdomil.cz
+:Author: pravdomil.cz
 :License: GPL
 :Credits: ML devs
 :Summary: Auto exposure algorithm
