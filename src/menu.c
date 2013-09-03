@@ -2644,7 +2644,7 @@ menu_display(
         cram = 4;
         menu_len += 2;
     }
-    else if (num_visible <= MENU_LEN - 2)
+    else if (num_visible <= MENU_LEN - 2 && !submenu_mode)
     {
         /* and while we are at it, why not relax the spacing a little for non-full menus? */
         cram = -2;
