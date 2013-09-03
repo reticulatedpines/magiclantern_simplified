@@ -3288,6 +3288,26 @@ void zoom_auto_exposure_step()
 #endif // FEATURE_LV_ZOOM_SETTINGS
 
 #ifdef FEATURE_HDR_BRACKETING
+
+static MENU_UPDATE_FUNC(hdr_check_excessive_settings)
+{
+    char what[10] = "";
+
+    if (hdr_steps > 7)
+    {
+        snprintf(what, sizeof(what), "%d frames", hdr_steps);
+    }
+    else if (hdr_stepsize < 8 && hdr_steps > 5)
+    {
+        snprintf(what, sizeof(what), "0.5 EV", hdr_steps);
+    }
+    
+    if (what[0])
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "%s unnecessary and may cause excessive shutter wear.", what);
+    }
+}
+
 static MENU_UPDATE_FUNC(hdr_display)
 {
     if (!hdr_enabled)
@@ -3322,6 +3342,7 @@ static MENU_UPDATE_FUNC(hdr_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Turn off Canon bracketing (AEB)!");
     }
     
+    hdr_check_excessive_settings(entry, info);
 }
 
 static MENU_UPDATE_FUNC(hdr_steps_update)
@@ -3333,12 +3354,9 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
     else
     {
         MENU_SET_VALUE("%d", hdr_steps);
-        if(hdr_steps > 9)
-        {
-            MENU_SET_WARNING(MENU_WARN_ADVICE, "CAUTION! May cause excessive shutter wear");
-        }
     }
 
+    hdr_check_excessive_settings(entry, info);
 }
 
 // 0,4,8,12,16, 24, 32, 40
@@ -4430,17 +4448,19 @@ static struct menu_entry shoot_menus[] = {
             },
             {
                 .name = "Frames",
-                .priv       = &hdr_steps,
+                .priv = &hdr_steps,
                 .min = 1,
-                .max = 100,
+                .max = 15,
                 .update = hdr_steps_update,
                 .icon_type = IT_PERCENT,
+                .choices = CHOICES("Autodetect", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"),
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
                 .name = "EV increment",
                 .priv       = &hdr_stepsize,
                 .select     = hdr_stepsize_toggle,
+                .update = hdr_check_excessive_settings,
                 .min = HDR_STEPSIZE_MIN,
                 .max = HDR_STEPSIZE_MAX,
                 .unit = UNIT_1_8_EV,
