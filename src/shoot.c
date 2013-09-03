@@ -128,6 +128,10 @@ static PROP_INT(PROP_AEB, aeb_setting);
 #define HDR_ENABLED 0
 #endif
 
+// The min and max EV delta encoded in 1/8 of EV
+#define HDR_STEPSIZE_MIN 4
+#define HDR_STEPSIZE_MAX 64
+
 static CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
@@ -139,6 +143,7 @@ static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
+static CONFIG_INT( "interval.scripts", interval_scripts, 0); //1 bash, 2 ms-dos, 3 text
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
@@ -3291,9 +3296,19 @@ static MENU_UPDATE_FUNC(hdr_display)
     }
     else
     {
-        MENU_SET_VALUE("%s%Xx%d%sEV,%s%s%s",
+        // trick: when steps=1 (auto) it will display A :)
+        char hdr_steps_str[10];
+        if(hdr_steps == 1)
+        {
+            snprintf(hdr_steps_str, 10, "%s", "A");
+        }
+        else
+        {
+            snprintf(hdr_steps_str, 10, "%d", hdr_steps);
+        }
+        MENU_SET_VALUE("%s%sx%d%sEV,%s%s%s",
             hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
-            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+            hdr_steps_str, 
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "",
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
@@ -3309,14 +3324,32 @@ static MENU_UPDATE_FUNC(hdr_display)
     
 }
 
+static MENU_UPDATE_FUNC(hdr_steps_update)
+{
+    if(hdr_steps <= 1)
+    {
+        MENU_SET_VALUE("Autodetect");
+    }
+    else
+    {
+        MENU_SET_VALUE("%d", hdr_steps);
+        if(hdr_steps > 9)
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "CAUTION! May cause excessive shutter wear");
+        }
+    }
+
+}
+
 // 0,4,8,12,16, 24, 32, 40
 static MENU_SELECT_FUNC(hdr_stepsize_toggle)
 {
     int h = hdr_stepsize;
     delta *= (h+delta < 16 ? 4 : 8);
     h += delta;
-    if (h > 40) h = 4;
-    if (h < 4) h = 40;
+    // Why not COERCE()? Because we need to wrap the value around
+    if (h > HDR_STEPSIZE_MAX) h = HDR_STEPSIZE_MIN;
+    if (h < HDR_STEPSIZE_MIN) h = HDR_STEPSIZE_MAX;
     hdr_stepsize = h;
 }
 #endif
@@ -4399,17 +4432,17 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Frames",
                 .priv       = &hdr_steps,
                 .min = 1,
-                .max = 9,
+                .max = 100,
+                .update = hdr_steps_update,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("Autodetect", "2", "3", "4", "5", "6", "7", "8", "9"),
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
                 .name = "EV increment",
                 .priv       = &hdr_stepsize,
                 .select     = hdr_stepsize_toggle,
-                .min = 4,
-                .max = 40,
+                .min = HDR_STEPSIZE_MIN,
+                .max = HDR_STEPSIZE_MAX,
                 .unit = UNIT_1_8_EV,
                 .icon_type = IT_PERCENT,
                 .help = "Exposure difference between two frames.",
@@ -4871,6 +4904,15 @@ static struct menu_entry shoot_menus[] = {
                 .max = 3,
                 .help = "Post-processing scripts for bracketing and focus stacking.",
                 .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
+            },
+            #endif
+            #ifdef FEATURE_INTERVALOMETER
+            {
+                .name = "Intervalometer Script",
+                .priv       = &interval_scripts,
+                .max = 3,
+                .help = "Scripts for sorting intervalometer sequences.",
+                .choices = CHOICES("OFF", "Bash", "MS-DOS", "File List"),
             },
             #endif
             #ifdef FEATURE_SNAP_SIM
@@ -5435,6 +5477,77 @@ void hdr_create_script(int f0, int focus_stack)
     NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
+
+#ifdef FEATURE_INTERVALOMETER
+// create a post script for sorting intervalometer sequences,
+// starting from file number f0 till the current file_number
+void interval_create_script(int f0)
+{
+    if (!interval_scripts) return;
+    
+    int steps = mod(file_number - f0 + 1, 10000);
+    if (steps <= 1) return;
+    
+    char name[100];
+    if(interval_scripts == 1)
+    {
+        snprintf(name, sizeof(name), "%s/INTERVAL.sh", get_dcim_dir());
+    }
+    else if(interval_scripts == 2)
+    {
+        snprintf(name, sizeof(name), "%s/INTERVAL.bat", get_dcim_dir());
+    }
+    else if(interval_scripts == 3)
+    {
+        snprintf(name, sizeof(name), "%s/INTERVAL.txt", get_dcim_dir());
+    }
+    else
+    {
+        return;
+    }
+    
+    int append_header = !is_file(name);
+    FILE * f = FIO_CreateFileOrAppend(name);
+    
+    if ( f == INVALID_PTR )
+    {
+        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileOrAppend: error for %s", name );
+        return;
+    }
+    
+    if (interval_scripts == 1)
+    {
+        if (append_header)
+        {
+            my_fprintf(f, "#!/bin/bash \n");
+        }
+        my_fprintf(f, "\nmkdir INT_%04d\n", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+        }
+    }
+    else if (interval_scripts == 2)
+    {
+        my_fprintf(f, "\nMD INT_%04d\n", f0);
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+        }
+    }
+    else if(interval_scripts == 3)
+    {
+        my_fprintf(f, "\n*** New Sequence ***\n");
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), mod(f0 + i, 10000));
+        }
+    }
+    
+    FIO_CloseFile(f);
+    NotifyBox(5000, "Saved %s", name);
+}
+#endif // FEATURE_INTERVALOMETER
 
 // normal pic, silent pic, bulb pic...
 void take_a_pic(int should_af, int allow_bulb)
@@ -6143,6 +6256,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
+        interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
         //~ display_on();
     }
 #endif
