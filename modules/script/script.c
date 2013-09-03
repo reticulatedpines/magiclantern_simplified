@@ -718,12 +718,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(tccgui_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "Scripting GUI")
-    MODULE_STRING("License", "GPL")
-    MODULE_STRING("Author", "a1ex")
-MODULE_STRINGS_END()
-
 MODULE_CBRS_START()
     //~ MODULE_CBR(CBR_KEYPRESS, script_keypress_cbr, 0)
 MODULE_CBRS_END()

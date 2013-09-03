@@ -581,12 +581,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(autoexpo_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Desc", "Auto exposure algorithm")
-    MODULE_STRING("Author", "Pravdomil.cz")
-    MODULE_STRING("Credits", "ML dev.")
-MODULE_STRINGS_END()
-
 MODULE_CBRS_START()
     MODULE_CBR(CBR_SHOOT_TASK, autoexpo_shoot_task, 0)
     MODULE_CBR(CBR_KEYPRESS, autoexpo_keypress, 0)

@@ -572,11 +572,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(arkanoid_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Desc", "Arkanoid game")
-    MODULE_STRING("Author", "pravdomil.cz")
-MODULE_STRINGS_END()
-
 MODULE_CBRS_START()
     MODULE_CBR(CBR_KEYPRESS, arkanoid_keypress, 0)
 MODULE_CBRS_END()

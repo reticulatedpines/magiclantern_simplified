@@ -264,12 +264,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(pic_view_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "Image viewer")
-    MODULE_STRING("License", "GPL")
-    MODULE_STRING("Author", "a1ex")
-MODULE_STRINGS_END()
-
 //~ MODULE_CBRS_START()
 //~ MODULE_CBRS_END()
 
