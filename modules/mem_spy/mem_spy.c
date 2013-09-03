@@ -477,10 +477,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(mem_spy_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "Spy your memory")
-MODULE_STRINGS_END()
-
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mem_spy)
     MODULE_CONFIG(look_for)
