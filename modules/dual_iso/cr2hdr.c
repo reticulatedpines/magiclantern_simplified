@@ -1233,9 +1233,27 @@ static int hdr_interpolate()
             acc_bright[y % 4] += raw_get_pixel16(x, y);
         }
     }
-    double avg_bright = (acc_bright[0] + acc_bright[1] + acc_bright[2] + acc_bright[3]) / 4;
-    int is_bright[4] = { acc_bright[0] > avg_bright, acc_bright[1] > avg_bright, acc_bright[2] > avg_bright, acc_bright[3] > avg_bright};
 
+    /* very crude way to compute median */
+    double sorted_bright[4];
+    memcpy(sorted_bright, acc_bright, sizeof(sorted_bright));
+    {
+        int i,j;
+        for (i = 0; i < 4; i++)
+        {
+            for (j = i+1; j < 4; j++)
+            {
+                if (sorted_bright[i] > sorted_bright[j])
+                {
+                    double aux = sorted_bright[i];
+                    sorted_bright[i] = sorted_bright[j];
+                    sorted_bright[j] = aux;
+                }
+            }
+        }
+    }
+    double median_bright = (sorted_bright[1] + sorted_bright[2]) / 2;
+    int is_bright[4] = { acc_bright[0] > median_bright, acc_bright[1] > median_bright, acc_bright[2] > median_bright, acc_bright[3] > median_bright};
     printf("ISO pattern    : %c%c%c%c %s\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd', rggb ? "RGGB" : "GBRG");
     
     if (is_bright[0] + is_bright[1] + is_bright[2] + is_bright[3] != 2)
@@ -1662,7 +1680,7 @@ static int hdr_interpolate()
             {
                 {
                     int d = dark[x + y*w];
-                    int b = bright[x + y*w];
+                    //~ int b = bright[x + y*w];
                     
                     /* really dark pixels (way below the black level) are probably noise */
                     int is_cold = (d < black - dark_noise*8);
@@ -1693,7 +1711,7 @@ static int hdr_interpolate()
                             int b = bright[x+j*2 + (y+i*2)*w];
                             int p = BRIGHT_ROW && b < white_darkened ? b : d;
 
-                            med[k++] = p;
+                            med[k] = p;
                             k++;
                         }
                     }
@@ -1713,7 +1731,7 @@ static int hdr_interpolate()
                             int b = bright[x+j*2 + (y+i*2)*w];
                             int p = BRIGHT_ROW && b < white_darkened ? b : d;
 
-                            med[k++] = p;
+                            med[k] = p;
                             k++;
                         }
                     }
