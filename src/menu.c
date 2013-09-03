@@ -169,10 +169,8 @@ static int g_submenu_width = 0;
 //~ #define g_submenu_width 720
 static int redraw_flood_stop = 0;
 
-static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
 static int redraw_in_progress = 0;
-#define MENU_REDRAW_FULL 1
-#define MENU_REDRAW_QUICK 2
+#define MENU_REDRAW 1
 
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
@@ -2408,9 +2406,6 @@ menu_entry_process(
     int only_selected
 )
 {
-    //~ if (quick_redraw && !entry->selected)
-        //~ return 1;
-
     // fill in default text, warning checks etc 
     static struct menu_display_info info;
     entry_default_display_info(entry, &info);
@@ -2424,9 +2419,6 @@ menu_entry_process(
 
     if ((!menu_lv_transparent_mode && !only_selected) || entry->selected)
     {
-        if (quick_redraw) // menu was not erased, so there may be leftovers on the screen
-            bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x-MENU_OFFSET, y, g_submenu_width-x+MENU_OFFSET, h);
-        
         // should we override some things?
         if (entry->update)
             entry->update(entry, &info);
@@ -2941,9 +2933,6 @@ menu_entry_process_junkie(
 
     //~ if ((!menu_lv_transparent_mode && !only_selected) || entry->selected)
     {
-        //~ if (quick_redraw) // menu was not erased, so there may be leftovers on the screen
-            //~ bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x-8, y, g_submenu_width-x+8, font_large.height);
-        
         // should we override some things?
         if (entry->update)
             entry->update(entry, &info);
@@ -3272,10 +3261,6 @@ menus_display(
             }
             x += icon_spacing;
         }
-
-        //~ int skip_this = 0; 
-        //~ if (submenu)// && (quick_redraw || menu_lv_transparent_mode || edit_mode))
-            //~ skip_this = 1;
         
         if (submenu) continue;
         
@@ -3315,8 +3300,6 @@ menus_display(
     if (submenu)
     {
         //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
-        //~ if (!quick_redraw && !menu_lv_transparent_mode && !edit_mode)
-            //~ bmp_dim(45, 480-50);
         
         submenu_display(submenu);
         show_vscroll(submenu);
@@ -3770,8 +3753,6 @@ menu_redraw_do()
         if (sensor_cleaning) return;
         if (gui_state == GUISTATE_MENUDISP) return;
         
-        if (junkie_mode) quick_redraw = 0;
-        
         if (menu_help_active)
         {
             BMP_LOCK( menu_help_redraw(); )
@@ -3801,8 +3782,7 @@ menu_redraw_do()
 
                 if (menu_lv_transparent_mode)
                 {
-                    if (!quick_redraw)
-                        bmp_fill( 0, 0, 0, 720, 480 );
+                    bmp_fill( 0, 0, 0, 720, 480 );
                     
                     /*
                     if (z)
@@ -3820,8 +3800,7 @@ menu_redraw_do()
                 }
                 else
                 {
-                    if (!quick_redraw)
-                        bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
+                    bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
                 }
                 //~ prev_z = z;
 
@@ -3943,7 +3922,6 @@ menu_redraw_task()
         if (gui_menu_shown())
         {
             redraw_in_progress = 1;
-            quick_redraw = (msg == MENU_REDRAW_QUICK);
             
             if (!menu_redraw_blocked)
             {
@@ -3964,7 +3942,7 @@ menu_redraw()
     if (!DISPLAY_IS_ON) return;
     if (ml_shutdown_requested) return;
     if (menu_help_active) bmp_draw_request_stop();
-    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, redraw_in_progress ? MENU_REDRAW_QUICK : MENU_REDRAW_FULL);
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW);
 }
 
 static void
@@ -3973,7 +3951,7 @@ menu_redraw_full()
     if (!DISPLAY_IS_ON) return;
     if (ml_shutdown_requested) return;
     if (menu_help_active) bmp_draw_request_stop();
-    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
+    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW);
 }
 
 
