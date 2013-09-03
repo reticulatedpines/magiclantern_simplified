@@ -35,7 +35,7 @@ static TCCState *module_state = NULL;
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
-#define module_autoload_enabled 1
+CONFIG_INT("module.autoload", module_autoload_enabled, 1);
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -965,7 +965,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         {
             MENU_SET_ICON(MNI_NEUTRAL, 0);
             MENU_SET_ENABLED(0);
-            MENU_SET_VALUE("will not load");
+            MENU_SET_VALUE("OFF, will not load");
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This module will no longer be loaded at next reboot.");
         }
         else
@@ -981,7 +981,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             }
             MENU_SET_WARNING(
                 module_list[mod_number].error ? MENU_WARN_NOT_WORKING : MENU_WARN_ADVICE, 
-                "%s. Press Q for more info.",
+                "%s. Press " Q_BTN_NAME " for more info.",
                 module_list[mod_number].long_status
             );
         }
@@ -989,11 +989,12 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
     else if(strlen(module_list[mod_number].filename))
     {
         MENU_SET_NAME(module_list[mod_number].filename);
+        str_make_lowercase(info->name);
         if (module_list[mod_number].enabled)
         {
             MENU_SET_ICON(MNI_ON, 0);
             MENU_SET_ENABLED(0);
-            MENU_SET_VALUE("will load");
+            MENU_SET_VALUE("ON, will load");
             MENU_SET_WARNING(MENU_WARN_ADVICE, "This module will be loaded at next reboot.");
         }
         else
@@ -1139,13 +1140,13 @@ static int module_show_about_page(int mod_number)
 
             int fnt_special = FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK);
 
-            bmp_printf(FONT_LARGE, 0, 10, "%s", name);
-            big_bmp_printf(FONT_MED, 0, 60, "%s", desc);
+            bmp_printf(FONT_LARGE, 10, 10, "%s", name);
+            big_bmp_printf(FONT_MED, 10, 60, "%s", desc);
 
             int xm = 710 - max_width_value * font_med.width;
             int xl = 710 - max_width * font_med.width;
-            xm -= xl;
-            xl = 0;
+            xm = xm - xl + 10;
+            xl = 10;
             int yr = 480 - (num_extra_strings + 2) * font_med.height;
 
             for (strings = module_list[mod_number].strings ; strings->name != NULL; strings++)
@@ -1160,12 +1161,12 @@ static int module_show_about_page(int mod_number)
             
             if (module_build_date && module_build_user)
             {
-                bmp_printf(fnt_special, 0, 480-font_med.height, "Built on %s by %s.", module_build_date, module_build_user);
+                bmp_printf(fnt_special, 10, 480-font_med.height, "Built on %s by %s.", module_build_date, module_build_user);
             }
             
             if (module_last_update)
             {
-                bmp_printf(fnt_special, 0, 480-font_med.height*2, "Last update: %s", module_last_update);
+                bmp_printf(fnt_special, 10, 480-font_med.height*2, "Last update: %s", module_last_update);
             }
             
             return 1;
@@ -1341,41 +1342,6 @@ static struct menu_entry module_submenu[] = {
         },
 
 static struct menu_entry module_menu[] = {
-    {
-        .name = "Module options",
-        .select = menu_open_submenu,
-        .submenu_width = 710,
-        .help = "Module options, manual load/unload...",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Load modules now",
-                .select = module_menu_load,
-                .help = "Loads modules in "MODULE_PATH,
-            },
-            #ifdef CONFIG_MODULE_UNLOAD
-            {
-                .name = "Unload modules now...",
-                .select = module_menu_unload,
-                .help = "Unload loaded modules",
-            },
-            #endif
-            {
-                .name = "Ignore unclean shutdown",
-                .priv = &module_ignore_crashes,
-                .max = 1,
-                .help = "When enabled, modules are even loaded after camera crashed.",
-            },
-            {
-                .name = "Show console",
-                .priv = &module_console_enabled,
-                .select = console_toggle,
-                .max = 1,
-                .help = "Keep console shown after modules were loaded",
-            },
-            MENU_EOL,
-        }
-
-    },
     MODULE_ENTRY(0)
     MODULE_ENTRY(1)
     MODULE_ENTRY(2)
@@ -1410,6 +1376,53 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(31)
 };
 
+static struct menu_entry module_debug_menu[] = {
+    {
+        .name = "Module debug",
+        .select = menu_open_submenu,
+        .submenu_width = 710,
+        .help = "Diagnostic options for modules.",
+        .children =  (struct menu_entry[]) {
+            #if 0
+            {
+                .name = "Load modules now",
+                .select = module_menu_load,
+                .help = "Loads modules in "MODULE_PATH,
+            },
+            #endif
+            #ifdef CONFIG_MODULE_UNLOAD
+            {
+                .name = "Unload modules now...",
+                .select = module_menu_unload,
+                .help = "Unload loaded modules",
+            },
+            #endif
+            {
+                 .name = "Disable all modules",
+                 .priv = &module_autoload_enabled,
+                 .max = 1,
+                 .choices = CHOICES("ON", "OFF"),
+                 .help = "For troubleshooting.",
+            },
+            {
+                .name = "Alert unclean shutdown",
+                .priv = &module_ignore_crashes,
+                .max = 1,
+                .choices = CHOICES("ON", "OFF"),
+                .help = "Do not load modules after camera crashed.",
+            },
+            {
+                .name = "Show console",
+                .priv = &module_console_enabled,
+                .select = console_toggle,
+                .max = 1,
+                .help = "Keep console shown after modules were loaded",
+            },
+            MENU_EOL,
+        },
+    },
+};
+
 struct config_var* module_config_var_lookup(int* ptr)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
@@ -1431,6 +1444,7 @@ static void module_init()
 {
     module_mq = (struct msg_queue *) msg_queue_create("module_mq", 1);
     menu_add("Modules", module_menu, COUNT(module_menu));
+    menu_add("Debug", module_debug_menu, COUNT(module_debug_menu));
     module_menu_update();
 }
 
@@ -1464,7 +1478,7 @@ void module_load_task(void* unused)
         _module_load_all(1);
         module_menu_update();
     }
-        
+
     /* main loop, also wait until clean shutdown */
     TASK_LOOP
     {
