@@ -720,8 +720,13 @@ static void bsod()
 
 static void run_test()
 {
+    msleep(2000);
+    
+    bmp_printf(font_by_name("ml_40",COLOR_WHITE, COLOR_BLACK), 10, 300, "RBF Test");
+    
+    return;
 
-   bfnt_test();
+    bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
@@ -3362,9 +3367,16 @@ extern void menu_benchmark();
 
 extern int show_cpu_usage_flag;
 
+extern int bmp_dyn_remap;
 
 static struct menu_entry debug_menus[] = {
     MENU_PLACEHOLDER("File Manager"),
+    {
+        .name = "Menu Font",
+        .priv       = &bmp_dyn_remap,
+        .min = 0,
+        .max = MAX_DYN_FONTS,
+    },
 #ifdef CONFIG_HEXDUMP
     {
         .name = "Memory Browser",

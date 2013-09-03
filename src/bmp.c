@@ -343,6 +343,7 @@ _draw_char(
 #endif
 }
 
+int bmp_dyn_remap = -1;
 
 void
 bmp_puts(
@@ -354,6 +355,29 @@ bmp_puts(
 {
     *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
     *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
+    
+    if(bmp_dyn_remap >= 0)
+    {
+        fontspec = FONT_DYN(bmp_dyn_remap, fontspec_fg( fontspec ), fontspec_bg( fontspec ));
+    }
+    
+    /* in case of dynamically loaded fonts, use rbf code */
+    if((fontspec & FONT_MASK) == FONT_DYNAMIC) 
+    {
+        uint32_t    fg_color    = fontspec_fg( fontspec );
+        uint32_t    bg_color    = fontspec_bg( fontspec );
+
+        // Special case -- fg=bg=0 => white on black
+        if( fg_color == 0 && bg_color == 0 )
+        {
+            fg_color = COLOR_WHITE;
+            bg_color = COLOR_BLACK;
+        }
+        
+        *x += rbf_draw_string(font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
+        
+        return;
+    }
 
     const uint32_t        pitch = BMPPITCH;
     uint8_t * vram = bmp_vram();
@@ -370,7 +394,8 @@ bmp_puts(
     char c;
 
     const struct font * const font = fontspec_font( fontspec );
-
+    
+    
     while( (c = *s++) )
     {
         if( c == '\n' )
@@ -1756,6 +1781,7 @@ int load_vram(const char * filename)
 
 
 void * bmp_lock = 0;
+
 
 static void bmp_init(void* unused)
 {

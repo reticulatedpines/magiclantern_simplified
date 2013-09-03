@@ -30,6 +30,7 @@
 
 #include "dryos.h"
 #include "font.h"
+#include "rbf_font.h"
 
 uint8_t* read_entire_file(const char * filename, int* buf_size);
 
@@ -135,7 +136,9 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 
 /** Font specifiers include the font, the fg color and bg color */
+#define FONT_ID_MASK            0xFF000000
 #define FONT_MASK               0x000F0000
+#define FONT_DYNAMIC            0x000F0000
 //~ #define FONT_HUGE           0x00080000
 #define FONT_LARGE              0x00030000
 #define FONT_MED                0x00020000
@@ -144,14 +147,25 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define SHADOW_MASK             0x00100000
 #define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)
 
+#define FONT_DYN(font_id,fg,bg) FONT(FONT_DYNAMIC | ((font_id)<<24),fg,bg)
+
 #define FONT(font,fg,bg)        ( 0 \
-        | ((font) & (FONT_MASK | SHADOW_MASK)) \
+        | ((font) & (FONT_ID_MASK | FONT_MASK | SHADOW_MASK)) \
         | ((bg) & 0xFF) << 8 \
         | ((fg) & 0xFF) << 0 \
 )
 
+
+#define FONT_ID(font) (((font) >> 24) & 0xFF)
 #define FONT_BG(font) (((font) & 0xFF00) >> 8)
 #define FONT_FG(font) (((font) & 0x00FF) >> 0)
+
+/* RBF stuff */
+#define MAX_DYN_FONTS 32
+extern struct font font_dynamic[MAX_DYN_FONTS];
+
+/* this function is used to dynamically load a font identified by its filename without extension */
+extern uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color);
 
 static inline struct font *
 fontspec_font(
@@ -164,6 +178,7 @@ fontspec_font(
         case FONT_SMALL:        return &font_small;
         case FONT_MED:          return &font_med;
         case FONT_LARGE:        return &font_large;
+        case FONT_DYNAMIC:      return &(font_dynamic[FONT_ID(fontspec) % MAX_DYN_FONTS]);
     //~ case FONT_HUGE:             return &font_huge;
     }
 }

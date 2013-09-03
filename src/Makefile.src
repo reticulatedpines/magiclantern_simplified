@@ -134,6 +134,7 @@ ML_SRC_OBJS = \
 	$(ML_PICSTYLE_OBJ) \
 	exmem.o \
 	bmp.o \
+	rbf_font.o \
 	$(ML_FONT_OBJS) \
 	config.o \
 	stdio.o \
