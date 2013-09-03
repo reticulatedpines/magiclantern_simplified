@@ -4320,7 +4320,7 @@ menu_init( void )
     m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );if (m) m->split_pos = 17;
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );if (m) m->split_pos = 11;
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );if (m) m->split_pos = 27;
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );if (m) m->split_pos = 16;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );if (m) m->split_pos = 15;
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );if (m) m->split_pos = 13;
 }
