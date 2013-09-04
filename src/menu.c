@@ -2187,31 +2187,32 @@ skip_name:
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
     
-    w = MAX(w, strlen(info->name)+1);
+    int char_width = fontspec_font(fnt)->width;
+    w = MAX(w, bmp_string_width(fnt, info->name) + char_width);
 
     // both submenu marker and value? make sure they don't overlap
     if (entry->icon_type == IT_SUBMENU && info->value[0])
-        w += 2;
+        w += 2 * char_width;
     
     // value string too big? move it to the left
-    int end = w + (use_small_font ? strlen(info->value) * font_med.width / font_large.width: strlen(info->value));
-    int wmax = (x_end - x) / font_large.width;
+    int end = w + bmp_string_width(fnt, info->value);
+    int wmax = x_end - x;
 
     // right-justified info field?
-    int rlen = strlen(info->rinfo);
-    int rinfo_x = x_end - fontspec_font(fnt)->width * (rlen + 1);
-    if (rlen) wmax -= rlen + 1;
+    int rlen = bmp_string_width(fnt, info->rinfo);
+    int rinfo_x = x_end - rlen - 30;
+    if (rlen) wmax -= rlen + char_width;
     
     // no right info? then make sure there's room for the Q symbol
     else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
     {
-        wmax--;
+        wmax -= 30;
     }
     
     if (end > wmax)
         w -= (end - wmax);
     
-    int xval = x + font_large.width * w;
+    int xval = x + w;
 
     // print value field
     bmp_printf(
@@ -2249,16 +2250,16 @@ skip_name:
     else if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
     {
         if (entry->selected)
-            submenu_key_hint(720-38, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
+            submenu_key_hint(720-40, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
         else
-            submenu_key_hint(720-34, y, 40, COLOR_BLACK, ICON_ML_FORWARD);
+            submenu_key_hint(720-36, y, 40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
     // selection bar params
     int xl = x - 5 + x_font_offset;
     int xc = x - 5 + x_font_offset;
     if ((in_submenu || edit_mode) && info->value[0])
-        xc = x + font_large.width * w - 15;
+        xc = x + w - 15;
 
     // selection bar
     if (entry->selected)
@@ -2274,7 +2275,7 @@ skip_name:
         // use a pickbox if possible
         if (edit_mode && CAN_HAVE_PICKBOX(entry))
         {
-            int px = x + font_large.width * w0;
+            int px = x + w0;
             pickbox_draw(entry, px, y);
         }
     }
@@ -2432,7 +2433,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(x, y, ABS(menu->split_pos), h, entry, &info, IS_SUBMENU(menu));
+            entry_print(x, y, ABS(menu->split_pos)*20, h, entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
