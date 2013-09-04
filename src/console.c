@@ -18,7 +18,7 @@ int console_printf(const char* fmt, ...); // how to replace the normal printf?
 
 #define CONSOLE_W 58
 #define CONSOLE_H 21
-#define CONSOLE_FONT FONT_MED
+#define CONSOLE_FONT FONT_MONO_20
 
 // buffer is circular and filled with spaces
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
