@@ -258,21 +258,10 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     {
         for (yy=0; yy<height; ++yy)
         {
-            #ifdef CONFIG_VXWORKS
             for (xx=0; xx<pixel_width; ++xx)
             {
-                bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg;
+                bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg);
             }
-            #else
-            for (xx=0; xx<pixel_width; xx += 4)
-            {
-                int p1 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+0))) ? fg : bg;
-                int p2 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+1))) ? fg : bg;
-                int p3 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+2))) ? fg : bg;
-                int p4 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+3))) ? fg : bg;
-                bmp[BM(x+xx,y+yy)/4] = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
-            }
-            #endif
         }
     }
 }
