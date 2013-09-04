@@ -94,6 +94,7 @@ static int is_60d = 0;
 static int is_500d = 0;
 static int is_550d = 0;
 static int is_600d = 0;
+static int is_650d = 0;
 static int is_700d = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
@@ -838,6 +839,22 @@ static unsigned int isoless_init()
         PHOTO_CMOS_ISO_START = 0x40452044;
         PHOTO_CMOS_ISO_COUNT =          6;
         PHOTO_CMOS_ISO_SIZE  =         16;
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 2;
+        CMOS_EXPECTED_FLAG = 3;
+    }
+    else if (streq(camera_model_short, "650D"))
+    {
+        is_650d = 1;    
+
+        FRAME_CMOS_ISO_START = 0x404a038e;
+        FRAME_CMOS_ISO_COUNT =          6;
+        FRAME_CMOS_ISO_SIZE  =       0x22;
+
+        PHOTO_CMOS_ISO_START = 0x4049f144;
+        PHOTO_CMOS_ISO_COUNT =          6;
+        PHOTO_CMOS_ISO_SIZE  =       0x10;
 
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
