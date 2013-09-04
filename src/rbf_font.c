@@ -266,12 +266,52 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     }
 }
 
+static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
+    int xx, yy;
+    uint32_t * bmp = bmp_vram();
+    int fg = FG_COLOR(cl);
+    int bg = BG_COLOR(cl);
+    
+    // draw pixels for font character
+    if (cdata)
+    {
+        for (yy=0; yy<height; ++yy)
+        {
+            for (xx=0; xx<pixel_width; ++xx)
+            {
+                int px = (cdata[yy*width/8+xx/8] & (1<<(xx%8)));
+                if (px)
+                {
+                    bmp_putpixel_fast(bmp, x+xx, y+yy, fg);
+                    
+                    /* shadow: background pixels are only drawn near a foreground pixel */
+                    /* heuristic: usually there are much less fg pixels than bg, so it makes sense to look for neighbours here */
+                    for (int xxx = MAX(xx-1, 0); xxx <= MIN(xx+1, pixel_width-1); xxx++)
+                    {
+                        for (int yyy = MAX(yy-1, 0); yyy <= MIN(yy+1, height-1); yyy++)
+                        {
+                            int pxx = (cdata[yyy*width/8+xxx/8] & (1<<(xxx%8)));
+                            if (!pxx)
+                            {
+                                bmp_putpixel_fast(bmp, x+xxx, y+yyy, bg);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 //-------------------------------------------------------------------
 static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
     // Get char data pointer
     char* cdata = rbf_font_char(rbf_font, ch);
 
-    font_draw_char(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], cl);
+    if (cl & SHADOW_MASK)
+        font_draw_char_shadow(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], cl);
+    else
+        font_draw_char(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], cl);
 
     return rbf_font->wTable[ch];
 }
