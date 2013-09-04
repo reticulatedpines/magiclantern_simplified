@@ -53,6 +53,8 @@
 
 #include "optmed.h"
 
+#include "dcraw-bridge.h"
+
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
@@ -73,11 +75,6 @@
    ({ __typeof__ (a) _a = (a); \
      _a > 0 ? _a : -_a; })
 
-#define CAM_COLORMATRIX1                       \
- 6722, 10000,     -635, 10000,    -963, 10000, \
--4287, 10000,    12460, 10000,    2028, 10000, \
- -908, 10000,     2162, 10000,    5668, 10000
-
 struct raw_info raw_info = {
     .api_version = 1,
     .bits_per_pixel = 16,
@@ -85,7 +82,6 @@ struct raw_info raw_info = {
     .white_level = 15000,
     .cfa_pattern = 0x02010100,          // Red  Green  Green  Blue
     .calibration_illuminant1 = 1,       // Daylight
-    .color_matrix1 = {CAM_COLORMATRIX1},
 };
 
 static int hdr_check();
@@ -152,6 +148,10 @@ int main(int argc, char** argv)
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
+        exit_code = raw_info_for_file(filename, &raw_info);
+
+        CHECK(exit_code == 0, "RAW INFO INJECTION FAILED");
+
         FILE* t = fopen("tmp.txt", "rb");
         CHECK(t, "tmp.txt");
         int raw_width = 0, raw_height = 0;
