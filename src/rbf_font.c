@@ -25,7 +25,7 @@ uint32_t dyn_fonts = 0;
 
 //-------------------------------------------------------------------
 
-font *new_font() {
+static font *new_font() {
     // allocate font from cached memory
     font *f = AllocateMemory(sizeof(font));
     if (f) {
@@ -92,7 +92,7 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     return FONT_DYN(dyn_fonts - 1, fg_color, bg_color);
 }
 
-void alloc_cTable(font *f) {
+static void alloc_cTable(font *f) {
 
     // Calculate additional values for font
     f->width = 8 * f->hdr.charSize / f->hdr.height;
@@ -127,7 +127,7 @@ void alloc_cTable(font *f) {
 
 //-------------------------------------------------------------------
 // Return address of 'character' data for specified font & char
-char* rbf_font_char(font* f, int ch)
+static inline char* FAST rbf_font_char(font* f, int ch)
 {
     if (f && (ch >= f->hdr.charFirst) && (ch <= f->hdr.charLast))
     {
@@ -139,7 +139,7 @@ char* rbf_font_char(font* f, int ch)
 //-------------------------------------------------------------------
 // Read data from SD file using uncached buffer and copy to cached
 // font memory
-int font_read(int fd, unsigned char *dest, int len)
+static int font_read(int fd, unsigned char *dest, int len)
 {
     // Return actual bytes read
     int bytes_read = 0;
@@ -247,19 +247,38 @@ int rbf_str_clipped_width(font *rbf_font, const char *str, int l, int maxlen) {
 }
 
 //-------------------------------------------------------------------
-static void font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
+static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
     int xx, yy;
-    void *vram = bmp_vram();
+    uint32_t * bmp = bmp_vram();
+    int fg = FG_COLOR(cl);
+    int bg = BG_COLOR(cl);
     
     // draw pixels for font character
     if (cdata)
+    {
         for (yy=0; yy<height; ++yy)
+        {
+            #ifdef CONFIG_VXWORKS
             for (xx=0; xx<pixel_width; ++xx)
-                bmp_putpixel_fast(vram,x+xx ,y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? FG_COLOR(cl) : BG_COLOR(cl));
+            {
+                bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg;
+            }
+            #else
+            for (xx=0; xx<pixel_width; xx += 4)
+            {
+                int p1 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+0))) ? fg : bg;
+                int p2 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+1))) ? fg : bg;
+                int p3 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+2))) ? fg : bg;
+                int p4 = (cdata[yy*width/8+xx/8] & (1<<(xx%8+3))) ? fg : bg;
+                bmp[BM(x+xx,y+yy)/4] = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
+            }
+            #endif
+        }
+    }
 }
 
 //-------------------------------------------------------------------
-static int rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
+static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
     // Get char data pointer
     char* cdata = rbf_font_char(rbf_font, ch);
 
