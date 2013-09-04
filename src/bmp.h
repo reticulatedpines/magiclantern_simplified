@@ -156,8 +156,8 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_MONO_32  FONT_DYN(4, 0, 0)
 
 #define FONT_SMALL FONT_MONO_12
-#define FONT_MED   FONT_MONO_20
-#define FONT_LARGE FONT_MONO_32
+#define FONT_MED   FONT_SANS_20
+#define FONT_LARGE FONT_SANS_32
 
 #define FONT_ID(font) (((font) >> 16) & 0xF)
 #define FONT_BG(font) (((font) & 0xFF00) >> 8)
