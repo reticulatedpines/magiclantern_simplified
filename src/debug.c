@@ -722,7 +722,9 @@ static void run_test()
 {
     msleep(2000);
     
-    bmp_printf(font_by_name("ml_40",COLOR_WHITE, COLOR_BLACK), 10, 300, "RBF Test");
+    beep();
+    NotifyBox(2000, "%d %d\n", font_large.width, font_large.height);
+    msleep(2000);
     
     return;
 
@@ -3367,16 +3369,8 @@ extern void menu_benchmark();
 
 extern int show_cpu_usage_flag;
 
-extern int bmp_dyn_remap;
-
 static struct menu_entry debug_menus[] = {
     MENU_PLACEHOLDER("File Manager"),
-    {
-        .name = "Menu Font",
-        .priv       = &bmp_dyn_remap,
-        .min = 0,
-        .max = MAX_DYN_FONTS,
-    },
 #ifdef CONFIG_HEXDUMP
     {
         .name = "Memory Browser",

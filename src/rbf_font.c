@@ -28,7 +28,7 @@ uint32_t dyn_fonts = 0;
 
 font *new_font() {
     // allocate font from cached memory
-    font *f = malloc(sizeof(font));
+    font *f = AllocateMemory(sizeof(font));
     if (f) {
         memset(f,0,sizeof(font));      // wipe memory
         // return address in cached memory
@@ -76,12 +76,12 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     if(!rbf_font_load(filename, font, 0))
     {
         bmp_printf(FONT_MED, 10, 30, "File '%s' failed to load", filename);
-        free(font);
+        FreeMemory(font);
         return FONT_LARGE;
     }
 
     /* now updated cached font name (not filename) */
-    dyn_font_name[dyn_fonts] = malloc(strlen(filename) + 1);
+    dyn_font_name[dyn_fonts] = AllocateMemory(strlen(filename) + 1);
     strcpy(dyn_font_name[dyn_fonts], file);
     
     /* and measure font sizes */
@@ -106,9 +106,9 @@ void alloc_cTable(font *f) {
 
     // If existing data has been allocated then we are re-using the font data
     // See if it the existing cTable data is large enough to hold the new font data
-    // If not free it so new memory will be allocated
+    // If not FreeMemory it so new memory will be allocated
     if ((f->cTable != 0) && (f->cTableSizeMax < (f->charCount*f->hdr.charSize))) {
-        free(f->cTable);              // free the memory
+        FreeMemory(f->cTable);              // free the memory
         f->cTable = 0;                // clear pointer so new memory is allocated
         f->cTableSizeMax = 0;
     }
@@ -116,7 +116,9 @@ void alloc_cTable(font *f) {
     // Allocated memory if needed
     if (f->cTable == 0) {
         // Allocate memory from cached pool
-        f->cTable = malloc(f->charCount*f->hdr.charSize);
+        int size = f->charCount*f->hdr.charSize;
+        NotifyBox(1000, "%d %d %d ", size, f->charCount, f->hdr.charSize);
+        f->cTable = AllocateMemory(size);
 
         // save size
         f->cTableSize = f->charCount*f->hdr.charSize;
@@ -305,6 +307,14 @@ int rbf_draw_string_c(font *rbf_font, int x, int y, const char *str, color c1, i
      int l=0, i=0;
 
      while (*str) {
+          if (*str == '\n')
+          {
+              l = 0;
+              y += rbf_font->hdr.height;
+              str++;
+              i++;
+              continue;
+          }
           l+=rbf_draw_char(rbf_font, x+l, y, *str++, (i==c)?c2:c1);
           ++i;
      }
@@ -377,3 +387,16 @@ int rbf_draw_string_right_len(font *rbf_font, int x, int y, int len, const char 
 
     return l;
 }
+
+static void rbf_init()
+{
+    /* load some fonts */
+    font_by_name("sans20", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("sans32", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
+}
+
+INIT_FUNC("rbf", rbf_init);
+
