@@ -868,6 +868,11 @@ uint32_t gdb_install_handler()
 
 uint32_t gdb_setup()
 {
+#if defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME)
+    // Crop sensor digicV models need this memory location fixed
+    // before enablin GDB
+    *(volatile uint32_t *)(0x0C) = 0xE59FF000;
+#endif
     int pos = 0;
 
     for(pos = 0; pos < GDB_BKPT_COUNT; pos++)
