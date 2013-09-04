@@ -54,6 +54,7 @@
 #include "optmed.h"
 
 #include "dcraw-bridge.h"
+#include "exiftool-bridge.h"
 
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
@@ -148,7 +149,8 @@ int main(int argc, char** argv)
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
-        exit_code = raw_info_for_file(filename, &raw_info);
+        unsigned int model = get_model_id(filename);
+        exit_code = get_raw_info(model, &raw_info);
 
         CHECK(exit_code == 0, "RAW INFO INJECTION FAILED");
 
@@ -263,11 +265,7 @@ int main(int argc, char** argv)
                 printf("Output file    : %s\n", out_filename);
                 save_dng(out_filename);
 
-                char exif_cmd[1000];
-                snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original", filename, out_filename);
-                int r = system(exif_cmd);
-                if (r != 0)
-                    printf("Exiftool didn't work\n");
+                copy_tags_from_source(filename, out_filename);
             }
             else
             {

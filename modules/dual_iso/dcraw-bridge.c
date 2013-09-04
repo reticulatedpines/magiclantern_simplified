@@ -121,7 +121,7 @@ static int* trans_to_calib(const short* trans)
     return calib;
 }
 
-static int get_raw_info(int model_id, struct raw_info* orig)
+int get_raw_info(unsigned model_id, struct raw_info* orig)
 {
     const char* model = NULL;
     int i = 0;
@@ -157,21 +157,4 @@ static int get_raw_info(int model_id, struct raw_info* orig)
 
     printf("No table found for camera model: %s\n", model);
     return -1;
-}
-
-int raw_info_for_file(const char* filename, struct raw_info* orig) 
-{
-    char out_filename[] = "model.txt";
-    FILE* exif_file = fopen(out_filename, "w");
-    char exif_cmd[10000];
-    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -CanonModelID -b \"%s\"> \"%s\"", filename, out_filename);
-    int r = system(exif_cmd);
-    if(r!=0) return -1;
-    fclose(exif_file);
-    exif_file = fopen(out_filename, "rb");
-    unsigned tag;
-    fscanf(exif_file, "%u", &tag); 
-    fclose(exif_file);
-    unlink(out_filename);
-    return get_raw_info(tag&0xFFF, orig);
 }
