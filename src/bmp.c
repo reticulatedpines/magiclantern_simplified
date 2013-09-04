@@ -283,6 +283,11 @@ big_bmp_printf(
              )
 }
 
+int bmp_string_width(int fontspec, char* str)
+{
+    return rbf_str_width(font_dynamic[FONT_ID(fontspec)].bitmap, str);
+}
+
 #if 0
 void
 con_printf(

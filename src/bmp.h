@@ -203,6 +203,8 @@ fontspec_width(uint32_t fontspec)
 }
 
 void bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... );
+int bmp_string_width(int fontspec, char* str);
+
 size_t read_file( const char * filename, void * buf, size_t size);
 
 void
