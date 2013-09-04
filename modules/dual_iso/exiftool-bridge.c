@@ -12,7 +12,7 @@ void copy_tags_from_source(const char* source, const char* dest)
     int r = system(exif_cmd);
     if(r!=0)
     {
-        printf("**WARNING** exiftool couldn't overwrite DNG tag data\n");
+        printf("**WARNING** exiftool couldn't update DNG tag data\n");
     }
 }
 
@@ -32,7 +32,7 @@ unsigned int get_model_id(const char* filename)
     }
     else
     {
-        printf("**WARNING** exiftool didn't work, returing a default MODEL_ID of 0x%x\n", tag);
+        printf("**WARNING** could not identify the camera (exiftool problem). Assuming it's a 5D Mark III\n");
     }
     return tag & 0xFFF;
 }
