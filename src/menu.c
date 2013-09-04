@@ -2691,11 +2691,11 @@ static inline int islovowel(char c)
         return 1;
     return 0;
 }
-static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
+static char* junkie_get_shortname(struct menu_display_info * info, int fnt, int maxlen)
 {
     static char tmp[30];
     static char sname[20];
-    if (maxlen > 19) maxlen = 19;
+    memset(sname, 0, sizeof(sname));
 
     if (info->short_name[0])
     {
@@ -2726,27 +2726,28 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
 
     int N = strlen(tmp);
 
+    int char_width = fontspec_font(fnt)->width;
+
     int i,j;
-    for (i = 0, j = 0; i < maxlen && j < N; j++)
+    for (i = 0, j = 0; i < COUNT(sname)-1 && j < N && bmp_string_width(fnt, sname) < maxlen - char_width; j++)
     {
         char c = tmp[j];
         if (c == ' ') { tmp[j+1] = toupper(tmp[j+1]); continue; }
         if (c == '.') continue;
         if (c == '(') break;
-        if (maxlen < 5 && islower(c)) continue;
+        if (maxlen < 5*char_width && islower(c)) continue;
         sname[i] = c;
         i++;
     }
-    sname[i] = 0;
     
     return sname;
 }
 
-static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
+static char* junkie_get_shortvalue(struct menu_display_info * info, int fnt, int maxlen)
 {
     static char tmp[30];
     static char svalue[20];
-    if (maxlen > 19) maxlen = 19;
+    memset(svalue, 0, sizeof(svalue));
 
     if (info->short_value[0])
     {
@@ -2765,8 +2766,10 @@ static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
 
     int N = strlen(tmp);
 
+    int char_width = fontspec_font(fnt)->width;
+
     int i,j;
-    for (i = 0, j = 0; i < maxlen && j < N; j++)
+    for (i = 0, j = 0; i < COUNT(svalue)-1 && j < N && bmp_string_width(fnt, svalue) < maxlen - char_width; j++)
     {
         char c = tmp[j];
         if (c == ' ') continue;
@@ -2774,28 +2777,28 @@ static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
         svalue[i] = c;
         i++;
     }
-    svalue[i] = 0;
     
     return svalue;
 }
 
-static char* junkie_get_shorttext(struct menu_display_info * info, int maxlen)
+static char* junkie_get_shorttext(struct menu_display_info * info, int fnt, int maxlen)
 {
     // print name or value?
     if (streq(info->value, "ON") || streq(info->value, "Default") || startswith(info->value, "OFF") || streq(info->value, "Normal") || (!info->value[0] && !info->short_value[0]))
     {
         // ON/OFF is obvious by color; print just the name
-        return junkie_get_shortname(info, maxlen);
+        return junkie_get_shortname(info, fnt, maxlen);
     }
     else // print value only
     {
-        char* svalue = junkie_get_shortvalue(info, maxlen);
-        int len = strlen(svalue);
-        if (maxlen - len >= 4) // still plenty of space? try to print part of name too
+        char* svalue = junkie_get_shortvalue(info, fnt, maxlen);
+        int len = bmp_string_width(fnt, svalue);
+        int char_width = fontspec_font(fnt)->width;
+        if (maxlen - len >= char_width * 4) // still plenty of space? try to print part of name too
         {
             static char nv[30];
-            char* sname = junkie_get_shortname(info, maxlen - len - 1);
-            if (strlen(sname) > 1)
+            char* sname = junkie_get_shortname(info, fnt, maxlen - len - 1);
+            if (bmp_string_width(fnt, sname) >= char_width * 2)
             {
                 snprintf(nv, sizeof(nv), "%s %s", sname, svalue);
                 return nv;
@@ -2864,16 +2867,16 @@ entry_print_junkie(
     if (h > 30 && w > 130) // we can use large font when we have 5 or fewer tabs
         fnt = FONT(FONT_LARGE, fg, bg);
 
-    int maxlen = (w - 8) / fontspec_width(fnt);
+    int maxlen = (w - 8);
 
     bmp_fill(bg, x+2, y+2, w-4, h-4);
     //~ bmp_draw_rect(bg, x+2, y+2, w-4, h-4);
 
-    char* shorttext = junkie_get_shorttext(info, maxlen);
+    char* shorttext = junkie_get_shorttext(info, fnt, maxlen);
     
     bmp_printf(
         fnt,
-        x + (w - fontspec_width(fnt) * strlen(shorttext)) / 2 + 2, 
+        x + (w - bmp_string_width(fnt, shorttext)) / 2 + 2, 
         y + (h - fontspec_height(fnt)) / 2,
         "%s", shorttext
     );
