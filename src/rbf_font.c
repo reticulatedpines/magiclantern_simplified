@@ -375,6 +375,11 @@ int rbf_draw_string_right_len(font *rbf_font, int x, int y, int len, const char 
     return l;
 }
 
+/* for compatibility with existing code */
+struct font font_small;
+struct font font_med;
+struct font font_large;
+
 static void rbf_init()
 {
     /* load some fonts */
@@ -383,6 +388,10 @@ static void rbf_init()
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
+    
+    font_small = *fontspec_font(FONT_SMALL);
+    font_med = *fontspec_font(FONT_MED);
+    font_large = *fontspec_font(FONT_LARGE);
 }
 
 INIT_FUNC("rbf", rbf_init);

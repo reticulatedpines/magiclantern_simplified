@@ -178,11 +178,6 @@ fontspec_font(
     return &(font_dynamic[FONT_ID(fontspec) % MAX_DYN_FONTS]);
 }
 
-#define font_small (*fontspec_font(FONT_SMALL))
-#define font_med (*fontspec_font(FONT_MED))
-#define font_large (*fontspec_font(FONT_LARGE))
-
-
 static inline uint32_t
 fontspec_fg(uint32_t fontspec)
 {
