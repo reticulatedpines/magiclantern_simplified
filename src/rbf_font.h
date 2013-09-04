@@ -6,17 +6,6 @@
 // Note: used in modules and platform independent code. 
 // Do not add platform dependent stuff in here (#ifdef/#endif compile options or camera dependent values)
 
-//-------------------------------------------------------------------
-#define FONT_CP_WIN     0
-#define FONT_CP_DOS     1
-
-#define  FONT_CP_WIN_1250       0
-#define  FONT_CP_WIN_1251       1
-#define  FONT_CP_WIN_1252       2
-#define  FONT_CP_WIN_1254       3
-#define  FONT_CP_WIN_1257       4
-/* 1253 (Greek) */
-#define  FONT_CP_WIN_1253       5
 
 //-------------------------------------------------------------------
 #define RBF_MAX_NAME        64
@@ -73,17 +62,12 @@ typedef struct _font {
 typedef uint32_t color;
 
 //-------------------------------------------------------------------
-extern void font_init();
-extern void font_set(int codepage);
-extern unsigned char *get_current_font_data(char ch);
 extern int rbf_font_load(char *file, font* f, int maxchar);
 extern int rbf_load_symbol(char *file);
 extern void rbf_load_from_file(char *file, int codepage);
 extern int rbf_font_height(font *rbf_font);
 extern int rbf_char_width(font *rbf_font, int ch);
 extern int rbf_str_width(font *rbf_font, const char *str);
-extern void rbf_set_codepage(int codepage);
-extern int rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl);
 extern int rbf_draw_string(font *rbf_font, int x, int y, const char *str, color cl);
 extern int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str, color cl, int l, int maxlen);
 extern int rbf_draw_string_len(font *rbf_font, int x, int y, int len, const char *str, color cl);

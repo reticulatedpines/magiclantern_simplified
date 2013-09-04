@@ -18,7 +18,6 @@ static unsigned int RBF_HDR_MAGIC2 = 0x00000003;
 
 
 static unsigned char *ubuffer = 0;                  // uncached memory buffer for reading font data from SD card
-static int rbf_codepage = FONT_CP_WIN; 
 
 struct font font_dynamic[MAX_DYN_FONTS];
 static char *dyn_font_name[MAX_DYN_FONTS];
@@ -127,28 +126,6 @@ void alloc_cTable(font *f) {
 }
 
 //-------------------------------------------------------------------
-static const char tbl_dos2win[] = {
-    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-    0x2D, 0x2D, 0x2D, 0xA6, 0x2B, 0xA6, 0xA6, 0xAC, 0xAC, 0xA6, 0xA6, 0xAC, 0x2D, 0x2D, 0x2D, 0xAC,
-    0x4C, 0x2B, 0x54, 0x2B, 0x2D, 0x2B, 0xA6, 0xA6, 0x4C, 0xE3, 0xA6, 0x54, 0xA6, 0x3D, 0x2B, 0xA6,
-    0xA6, 0x54, 0x54, 0x4C, 0x4C, 0x2D, 0xE3, 0x2B, 0x2B, 0x2D, 0x2D, 0x2D, 0x2D, 0xA6, 0xA6, 0x2D,
-    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF,
-    0xA8, 0xB8, 0xAA, 0xBA, 0xAF, 0xBF, 0xA1, 0xA2, 0xB0, 0x95, 0xB7, 0x76, 0xB9, 0xA4, 0xA6, 0xA0
-};
-
-int code_page_char(int ch)
-{
-    // convert character value based on selected code page
-    if ((rbf_codepage == FONT_CP_DOS) && (ch >= 128) && (ch < 256)) {
-        // Convert DOS to WIN char
-        ch = tbl_dos2win[ch-128];
-    }
-    return ch;
-}
-
-//-------------------------------------------------------------------
 // Return address of 'character' data for specified font & char
 char* rbf_font_char(font* f, int ch)
 {
@@ -241,19 +218,13 @@ int rbf_font_load(char *file, font* f, int maxchar)
     return 1;
 }
 
-
-//-------------------------------------------------------------------
-void rbf_set_codepage(int codepage) {
-    rbf_codepage = codepage;
-}
-
 //-------------------------------------------------------------------
 int rbf_font_height(font *rbf_font) {
     return rbf_font->hdr.height;
 }
 //-------------------------------------------------------------------
 int rbf_char_width(font *rbf_font, int ch) {
-    return rbf_font->wTable[code_page_char(ch)];
+    return rbf_font->wTable[ch];
 }
 
 //-------------------------------------------------------------------
@@ -276,7 +247,7 @@ int rbf_str_clipped_width(font *rbf_font, const char *str, int l, int maxlen) {
 }
 
 //-------------------------------------------------------------------
-void font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
+static void font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
     int xx, yy;
     void *vram = bmp_vram();
     
@@ -288,10 +259,7 @@ void font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int he
 }
 
 //-------------------------------------------------------------------
-int rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
-    // Convert char for code page
-    ch = code_page_char(ch);
-
+static int rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
     // Get char data pointer
     char* cdata = rbf_font_char(rbf_font, ch);
 
@@ -303,7 +271,7 @@ int rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
 
 //-------------------------------------------------------------------
 // Draw a string colored 'c1' with the character at string-position 'c' colored 'c2'.
-int rbf_draw_string_c(font *rbf_font, int x, int y, const char *str, color c1, int c, color c2) {
+static int rbf_draw_string_c(font *rbf_font, int x, int y, const char *str, color c1, int c, color c2) {
      int l=0, i=0;
 
      while (*str) {
