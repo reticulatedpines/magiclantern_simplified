@@ -112,8 +112,8 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint32_t    isoMode;    /* 0=manual, 1=auto */
     uint32_t    isoValue;    /* camera delivered ISO value */
-    uint32_t    isoAnalog;    /* camera delivered ISO value */
-    uint32_t    digitalGain;    /* digital ISO gain */
+    uint32_t    isoAnalog;    /* ISO obtained by hardware amplification (most full-stop ISOs, except extreme values) */
+    uint32_t    digitalGain;    /* digital ISO gain (1024 = 1 EV) - it's not baked in the raw data, so you may want to scale it or adjust the white level */
     uint64_t    shutterValue;    /* exposure time in microseconds */
 } PACKED mlv_expo_hdr_t;
 
@@ -193,6 +193,17 @@ typedef struct {
     uint64_t    timestamp;
     uint32_t    type;    /* value may depend on the button being pressed or counts up (t.b.d) */
 } PACKED mlv_mark_hdr_t;
+
+typedef struct {
+    uint8_t     blockType[4];
+    uint32_t    blockSize;
+    uint64_t    timestamp;
+    uint32_t    picStyle; 
+    int32_t     contrast; 
+    int32_t     sharpness; 
+    int32_t     saturation; 
+    int32_t     colortone; 
+} PACKED mlv_styl_hdr_t;
 
 typedef struct {            
     uint8_t     blockType[4];    /* Electronic level (orientation) data */

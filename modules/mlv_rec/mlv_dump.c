@@ -1453,6 +1453,40 @@ read_headers:
                     }
                 }
             }
+            else if(!memcmp(buf.blockType, "STYL", 4))
+            {
+                mlv_styl_hdr_t block_hdr;
+                uint32_t hdr_size = MIN(sizeof(mlv_styl_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    fprintf(stderr, "[E] File ends in the middle of a block\n");
+                    goto abort;
+                }
+                
+                /* skip remaining data, if there is any */
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+
+                if(verbose)
+                {
+                    printf("     picStyle:   %d\n", block_hdr.picStyle);
+                    printf("     contrast:   %d\n", block_hdr.contrast);
+                    printf("     sharpness:  %d\n", block_hdr.sharpness);
+                    printf("     saturation: %d\n", block_hdr.saturation);
+                    printf("     colortone:  %d\n", block_hdr.colortone);
+                }
+            
+                if(mlv_output && !no_metadata_mode)
+                {
+                    /* correct header size if needed */
+                    block_hdr.blockSize = sizeof(mlv_styl_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    {
+                        fprintf(stderr, "[E] Failed writing into output file\n");
+                        goto abort;
+                    }
+                }
+            }
             else if(!memcmp(buf.blockType, "WBAL", 4))
             {
                 mlv_wbal_hdr_t block_hdr;
@@ -1605,7 +1639,7 @@ read_headers:
                     printf("     ISO Mode:   %d\n", block_hdr.isoMode);
                     printf("     ISO:        %d\n", block_hdr.isoValue);
                     printf("     ISO Analog: %d\n", block_hdr.isoAnalog);
-                    printf("     ISO DGain:  %d EV\n", block_hdr.digitalGain);
+                    printf("     ISO DGain:  %d/1024 EV\n", block_hdr.digitalGain);
                     printf("     Shutter:    %" PRIu64 " µs (1/%.2f)\n", block_hdr.shutterValue, 1000000.0f/(float)block_hdr.shutterValue);
                 }
             
@@ -1686,6 +1720,7 @@ read_headers:
             }
             else
             {
+                printf("[i] Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
                 fseeko(in_file, position + buf.blockSize, SEEK_SET);
             }
         }
