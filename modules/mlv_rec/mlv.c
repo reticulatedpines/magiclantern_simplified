@@ -93,6 +93,23 @@ void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp)
     hdr->wbs_ba = lens_info.wbs_ba;  
 }
 
+
+extern struct prop_picstyle_settings picstyle_settings[];
+
+void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp)
+{
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)hdr, "STYL");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+    hdr->blockSize = sizeof(mlv_styl_hdr_t);
+    
+    hdr->picStyle = lens_info.raw_picstyle; 
+    hdr->contrast = picstyle_settings[lens_info.picstyle].contrast;    
+    hdr->sharpness = picstyle_settings[lens_info.picstyle].sharpness;
+    hdr->saturation = picstyle_settings[lens_info.picstyle].saturation;
+    hdr->colortone = picstyle_settings[lens_info.picstyle].color_tone;
+}
+
 void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
 {
     /* prepare header */
