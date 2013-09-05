@@ -3396,6 +3396,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image", "Edge + chroma"},
                 .help  = "Focus peaking via DIGIC. No CPU usage!",
+                .depends_on = DEP_LIVEVIEW,
             },
             #endif
             #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
