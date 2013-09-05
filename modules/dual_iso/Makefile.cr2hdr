@@ -18,7 +18,7 @@ endif
 HOST_CR2HDR_OBJS=$(patsubst %.c, %-$(HOST).o, $(CR2HDR_DEPS))
 
 $(CR2HDR_BIN): $(CR2HDR_BIN)-clean $(HOST_CR2HDR_OBJS)
-	$(call build,HOSTLD,$(HOSTCC) $(CR2HDR_LDFLAGS) -o $@ $(HOST_CR2HDR_OBJS))
+	$(call build,HOSTLD,$(HOSTCC) -o $@ $(HOST_CR2HDR_OBJS) $(CR2HDR_LDFLAGS)) 
 
 $(CR2HDR_BIN).exe: $(CR2HDR_BIN)-clean
 	CROSS=1 $(MAKE) $@ 
