@@ -54,7 +54,8 @@
 //#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#define MLV_INFO_BLOCK_INTERVAL 750
+#define MLV_RTCI_BLOCK_INTERVAL 500
+#define MLV_INFO_BLOCK_INTERVAL 2000
 
 
 #include <module.h>
@@ -164,6 +165,17 @@ static int32_t raw_previewing = 0;
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
+
+
+/* if these get set, on the next frame the according blocks get queued */
+static int32_t mlv_update_lens = 0;
+static int32_t mlv_update_styl = 0;
+static int32_t mlv_update_wbal = 0;
+    
+static mlv_expo_hdr_t last_expo_hdr;
+static mlv_lens_hdr_t last_lens_hdr;
+static mlv_wbal_hdr_t last_wbal_hdr;
+static mlv_styl_hdr_t last_styl_hdr;
 
 /* one video frame */
 struct frame_slot
@@ -595,7 +607,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
 
 static void setup_chunk(uint32_t ptr, uint32_t size)
 {
-    if(size < frame_size)
+    if((int32_t)size < frame_size)
     {
         return;
     }
@@ -620,7 +632,7 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         
         /* now add a NULL block for aligning the whole slot size to optimal write size */
         int32_t write_size_align = raw_rec_write_align - (vidf_hdr->blockSize % raw_rec_write_align);
-        if(write_size_align < sizeof(mlv_hdr_t))
+        if(write_size_align < (int32_t)sizeof(mlv_hdr_t))
         {
             write_size_align += raw_rec_write_align;
         }
@@ -712,9 +724,9 @@ static int32_t setup_buffers()
     while(chunk)
     {
         uint32_t size = GetSizeOfMemoryChunk(chunk);
-        uint32_t ptr = GetMemoryAddressOfMemoryChunk(chunk);
+        uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
         
-        if (ptr != fullsize_buffers[0]) /* already used */
+        if (ptr != (uint32_t)fullsize_buffers[0]) /* already used */
         {
             setup_chunk(ptr, size);
         }
@@ -1099,23 +1111,27 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     /* update status messages */
     static int32_t auxrec = INT_MIN;
     static int32_t block_queueing = INT_MIN;
+    static int32_t rtci_queueing = INT_MIN;
     
     if (RAW_IS_RECORDING)
     {
         /* enqueue lens, rtc, expo etc status */
-        if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing))
+        if(should_run_polling_action(MLV_RTCI_BLOCK_INTERVAL, &rtci_queueing))
         {
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
+            mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
+            msg_queue_post(mlv_block_queue, rtci_hdr);
+        }
+        if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing))
+        {
             mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
             mlv_lens_hdr_t *lens_hdr = malloc(sizeof(mlv_lens_hdr_t));
             mlv_wbal_hdr_t *wbal_hdr = malloc(sizeof(mlv_wbal_hdr_t));
             
-            mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
             mlv_fill_expo(expo_hdr, mlv_start_timestamp);
             mlv_fill_lens(lens_hdr, mlv_start_timestamp);
             mlv_fill_wbal(wbal_hdr, mlv_start_timestamp);
             
-            msg_queue_post(mlv_block_queue, rtci_hdr);
             msg_queue_post(mlv_block_queue, expo_hdr);
             msg_queue_post(mlv_block_queue, lens_hdr);
             msg_queue_post(mlv_block_queue, wbal_hdr);
@@ -1701,6 +1717,76 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
     dma_transfer_in_progress = process_frame();
+    
+    if(mlv_update_lens)
+    {
+        mlv_update_lens = 0;
+        
+        mlv_expo_hdr_t old_expo = last_expo_hdr;
+        mlv_lens_hdr_t old_lens = last_lens_hdr;
+        
+        mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
+        mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
+        
+        /* update timestamp for comparing content changes */
+        old_expo.timestamp = last_expo_hdr.timestamp;
+        old_lens.timestamp = last_lens_hdr.timestamp;
+        
+        /* write new state if something changed */
+        if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
+            memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+        
+        /* write new state if something changed */
+        if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
+            memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+    
+    if(mlv_update_styl)
+    {
+        mlv_update_styl = 0;
+        
+        mlv_styl_hdr_t old_hdr = last_styl_hdr;
+        mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
+        
+        /* update timestamp for comparing content changes */
+        old_hdr.timestamp = last_styl_hdr.timestamp;
+        
+        /* write new state if something changed */
+        if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
+            memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+    
+    if(mlv_update_wbal)
+    {
+        mlv_update_wbal = 0;
+        
+        /* capture last state and get new one */
+        mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
+        mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
+        
+        /* update timestamp for comparing content changes */
+        old_hdr.timestamp = last_wbal_hdr.timestamp;
+        
+        /* write new state if something changed */
+        if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
+            memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
 
     return 0;
 }
@@ -1950,18 +2036,21 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
         mlv_lens_hdr_t lens_hdr;
         mlv_idnt_hdr_t idnt_hdr;
         mlv_wbal_hdr_t wbal_hdr;
+        mlv_styl_hdr_t styl_hdr;
 
         mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
         mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
         mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
         mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);    
         mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);    
+        mlv_fill_styl(&styl_hdr, mlv_start_timestamp);    
         
         mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);    
+        mlv_write_hdr(f, (mlv_hdr_t *)&styl_hdr);    
     }
 }
 
@@ -2177,7 +2266,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
             write_job->block_size = 0;
             
             /* now fix the buffer size to write */
-            for(int32_t slot = write_job->block_start; slot < write_job->block_start + write_job->block_len; slot++)
+            for(uint32_t slot = write_job->block_start; slot < write_job->block_start + write_job->block_len; slot++)
             {
                 write_job->block_size += slots[slot].size;
             }
@@ -2653,6 +2742,95 @@ struct rolling_pitching
     uint8_t pitch_lo;
 };
 
+/* LENS changes */
+PROP_HANDLER( PROP_LV_LENS_STABILIZE )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_STROBO_AECOMP )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_ISO_AUTO )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_ISO )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_LV_LENS )
+{ 
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_APERTURE )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_APERTURE2 )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_SHUTTER )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_SHUTTER_ALSO )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_BV )
+{
+    mlv_update_lens = 1;
+}
+
+PROP_HANDLER( PROP_AE )
+{
+    mlv_update_lens = 1;
+}
+
+/* STYL changes */
+PROP_HANDLER( PROP_PICTURE_STYLE )
+{
+    mlv_update_styl = 1;
+}
+
+/* any WBAL change */
+PROP_HANDLER( PROP_WB_MODE_LV )
+{
+    mlv_update_wbal = 1;
+}
+
+PROP_HANDLER( PROP_WBS_GM )
+{
+    mlv_update_wbal = 1;
+}
+
+PROP_HANDLER( PROP_WBS_BA )
+{
+    mlv_update_wbal = 1;
+}
+
+PROP_HANDLER( PROP_WB_KELVIN_LV )
+{
+    mlv_update_wbal = 1;
+}
+
+PROP_HANDLER( PROP_CUSTOM_WB )
+{
+    mlv_update_wbal = 1;
+}
+
+
 PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 {
     struct rolling_pitching * orientation = (struct rolling_pitching *) buf;
@@ -3107,6 +3285,23 @@ MODULE_CBRS_END()
 
 MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_ROLLING_PITCHING_LEVEL)
+    MODULE_PROPHANDLER(PROP_LV_LENS_STABILIZE)
+    MODULE_PROPHANDLER(PROP_STROBO_AECOMP)
+    MODULE_PROPHANDLER(PROP_ISO_AUTO)
+    MODULE_PROPHANDLER(PROP_ISO)
+    MODULE_PROPHANDLER(PROP_LV_LENS)
+    MODULE_PROPHANDLER(PROP_APERTURE)
+    MODULE_PROPHANDLER(PROP_APERTURE2)
+    MODULE_PROPHANDLER(PROP_SHUTTER)
+    MODULE_PROPHANDLER(PROP_SHUTTER_ALSO)
+    MODULE_PROPHANDLER(PROP_BV)
+    MODULE_PROPHANDLER(PROP_AE)
+    MODULE_PROPHANDLER(PROP_PICTURE_STYLE)
+    MODULE_PROPHANDLER(PROP_WB_MODE_LV)
+    MODULE_PROPHANDLER(PROP_WBS_GM)
+    MODULE_PROPHANDLER(PROP_WBS_BA)
+    MODULE_PROPHANDLER(PROP_WB_KELVIN_LV)
+    MODULE_PROPHANDLER(PROP_CUSTOM_WB)
 MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
