@@ -865,7 +865,8 @@ int can_use_raw_overlays_menu()
 
 #ifdef FEATURE_RAW_ZEBRAS
 
-static CONFIG_INT("raw.zebra", raw_zebra_enable, 1);
+static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo only */
+#define RAW_ZEBRA_ENABLE (raw_zebra_enable == 1 || !lv)
 
 static void FAST draw_zebras_raw()
 {
@@ -995,7 +996,7 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
     else if (raw_zebra_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras in LiveView and after taking a pic.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras %safter taking a pic.", raw_zebra_enable == 1 ? "in LiveView and " : "");
 }
 #endif
 
@@ -1373,7 +1374,7 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (raw_zebra_enable && can_use_raw_overlays())
+        if (RAW_ZEBRA_ENABLE && can_use_raw_overlays())
         {
             if (lv) draw_zebras_raw_lv();
             else draw_zebras_raw();
@@ -2296,7 +2297,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     if (z && can_use_raw_overlays_menu())
     {
         raw_zebra_update(entry, info);
-        if (raw_zebra_enable) MENU_SET_VALUE("RAW RGB");
+        if (RAW_ZEBRA_ENABLE) MENU_SET_VALUE("RAW RGB");
     }
     #endif
 }
@@ -2305,7 +2306,7 @@ static MENU_UPDATE_FUNC(zebra_param_not_used_for_raw)
 {
     #ifdef FEATURE_RAW_ZEBRAS
     if (raw_zebra_enable && can_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not used for RAW zebras.");
+        MENU_SET_WARNING(RAW_ZEBRA_ENABLE ? MENU_WARN_NOT_WORKING : MENU_WARN_ADVICE, "Not used for RAW zebras.");
     #endif
 }
 
@@ -3176,9 +3177,10 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Use RAW zebras",
                 .priv = &raw_zebra_enable,
-                .max = 1,
+                .max = 2,
                 .update = raw_zebra_update,
-                .help = "Use RAW zebras whenever possible.",
+                .choices = (const char *[]) {"OFF", "ON", "Photo only"},
+                .help = "Use RAW zebras if possible.",
             },
             #endif
             MENU_EOL
