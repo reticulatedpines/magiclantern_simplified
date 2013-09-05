@@ -5412,7 +5412,7 @@ static void default_movie_cropmarks()
         else
         {
             cropmark_x = -1;
-            cropmark_y = (os.off_169 << 16) | (os.x_max - os.off_169);
+            cropmark_y = (os.off_169 << 16) | (os.y_max - os.off_169);
         }
     }
     
@@ -5420,12 +5420,13 @@ static void default_movie_cropmarks()
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
     ASSERT(bvram_mirror);
+    
     for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
     {
-        bool draw = i > (cropmark_y >> 16) || i > (cropmark_y & 0xFFFF);
+        bool draw = cropmark_y != -1 && (i < (cropmark_y >> 16) || i > (cropmark_y & 0xFFFF));
         for (j = os.x0; j < os.x_max; j++)
         {
-            if(draw || i < (cropmark_x >> 16) || i > (cropmark_x & 0xFFFF))
+            if(draw || (cropmark_x != -1 && (i < (cropmark_x >> 16) || i > (cropmark_x & 0xFFFF))))
             {
                 bvram_mirror[BM(j,i)] = COLOR_BLACK | 0x80;
             }
@@ -5435,8 +5436,8 @@ static void default_movie_cropmarks()
 
 void set_movie_cropmarks(int x, int y, int w, int h)
 {
-    cropmark_x = (x << 16) | w;
-    cropmark_x = (y << 16) | h;
+    cropmark_x = (x << 16) | (x + w);
+    cropmark_x = (y << 16) | (y + h);
     default_movie_cropmarks();
 }
 
