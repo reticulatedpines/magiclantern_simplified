@@ -141,14 +141,14 @@ static void mem_spy_task()
 {
     mem_spy = 1;
     mem_spy_running = 1;
-	
+    
     init_done = 0;
     var_length = get_byte_length();
     if(fixed_addresses) var_count = COUNT(addresses);
     start_delay_counter = start_delay;
     
     init_position();
-	
+    
     int i;
     TASK_LOOP
     {
@@ -282,8 +282,8 @@ static void start() {
     if(mem_spy && !mem_spy_running){
         task_create("mem_spy_task", 0x1c, 0x1000, mem_spy_task, (void*)0);
     } else {
-		mem_spy = 0;
-	}
+        mem_spy = 0;
+    }
 }
 
 static MENU_SELECT_FUNC(mem_spy_sel){
