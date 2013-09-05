@@ -5426,7 +5426,7 @@ static void default_movie_cropmarks()
         bool draw = cropmark_y != -1 && (i < (cropmark_y >> 16) || i > (cropmark_y & 0xFFFF));
         for (j = os.x0; j < os.x_max; j++)
         {
-            if(draw || (cropmark_x != -1 && (i < (cropmark_x >> 16) || i > (cropmark_x & 0xFFFF))))
+            if(draw || (cropmark_x != -1 && (j < (cropmark_x >> 16) || j > (cropmark_x & 0xFFFF))))
             {
                 bvram_mirror[BM(j,i)] = COLOR_BLACK | 0x80;
             }
