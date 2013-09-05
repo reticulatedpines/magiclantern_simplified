@@ -2378,7 +2378,7 @@ struct menu_entry expo_tweak_menus[] = {
         .icon_type = IT_DICE,
         .help = "Exposure simulation (LiveView display type).",
         #else
-        .name = "Exp.Sim",
+        .name = "ExpSim",
         .max = 1,
         .help = "Exposure simulation.",
         #endif
