@@ -8,7 +8,7 @@
 void copy_tags_from_source(const char* source, const char* dest)
 {
     char exif_cmd[1000];
-    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original", source, dest);
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all -xmp:subject=Dual-ISO \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original", source, dest);
     int r = system(exif_cmd);
     if(r!=0)
     {
