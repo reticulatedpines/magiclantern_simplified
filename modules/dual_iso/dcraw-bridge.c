@@ -107,6 +107,7 @@ static const struct {
     { 0x254, "EOS 1000D" },
     { 0x288, "EOS 1100D" },
     { 0x346, "EOS 100D" },
+    { 0x331, "EOS M" },
 };
 
 static int* trans_to_calib(const short* trans)
