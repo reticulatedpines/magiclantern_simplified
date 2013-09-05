@@ -866,7 +866,7 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-    new_menu->split_pos = -12;
+    new_menu->split_pos = -17;
     new_menu->scroll_pos = 0;
     new_menu->advanced = 0;
     // menu points to the last entry or NULL if there are none
@@ -984,7 +984,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
     // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
     if (entry->name && menu->split_pos < 0)// && entry->priv)
     {
-        menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
+        menu->split_pos = -MAX(-menu->split_pos, bmp_string_width(FONT_LARGE, entry->name)/20 + 2);
         if (-menu->split_pos > 28) menu->split_pos = -28;
     }
 }
@@ -1850,7 +1850,7 @@ static void submenu_marker(int x, int y)
 static void menu_clean_footer()
 {
     int h = 50;
-    if (is_menu_active("Help")) h += 10;
+    if (is_menu_active("Help")) h = font_med.height * 3 + 2;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
     int fgu = 50;
     bmp_fill(fgu, 0, 480-h-2, 720, 2);
@@ -2412,7 +2412,7 @@ menu_entry_process(
     entry_default_display_info(entry, &info);
     info.x = x;
     info.y = y;
-    info.x_val = x + font_large.width * ABS(menu->split_pos);
+    info.x_val = x + 20 * ABS(menu->split_pos);
     info.can_custom_draw = menu != my_menu && menu != mod_menu && !menu_lv_transparent_mode;
     
     // display icon (only the first icon is drawn)
@@ -2491,7 +2491,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
 static int
 dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders)
 {
-    dyn_menu->split_pos = -12;
+    dyn_menu->split_pos = -17;
 
     int i = 0;
     struct menu * menu = menus;
@@ -4336,18 +4336,18 @@ menu_init( void )
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
     struct menu * m = NULL;
-    m = menu_find_by_name( "Audio",     ICON_ML_AUDIO   );if (m) m->split_pos = 17;
-    m = menu_find_by_name( "Expo",      ICON_ML_EXPO    );if (m) m->split_pos = 14;
+    m = menu_find_by_name( "Audio",     ICON_ML_AUDIO   );
+    m = menu_find_by_name( "Expo",      ICON_ML_EXPO    );
     m = menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
-    m = menu_find_by_name( "Movie",     ICON_ML_MOVIE   );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Movie",     ICON_ML_MOVIE   );
     m = menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
-    m = menu_find_by_name( "Focus",     ICON_ML_FOCUS   );if (m) m->split_pos = 17;
-    m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Focus",     ICON_ML_FOCUS   );
+    m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
-    m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );if (m) m->split_pos = 11;
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );if (m) m->split_pos = 16;
-    m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );if (m) m->split_pos = 15;
-    m = menu_find_by_name( "Help",      ICON_ML_INFO    );if (m) m->split_pos = 13;
+    m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );
+    m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
+    m = menu_find_by_name( "Help",      ICON_ML_INFO    );
 }
 
 /*
@@ -4823,7 +4823,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    big_bmp_printf(FONT(FONT_MED, 60, MENU_BG_COLOR_HEADER_FOOTER),  10,  420,
+    big_bmp_printf(FONT(FONT_MED, 60, MENU_BG_COLOR_HEADER_FOOTER),  10,  480 - font_med.height * 3,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",
