@@ -137,15 +137,38 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 /** Font specifiers include the font, the fg color and bg color */
 #define FONT_MASK               0x000F0000
+
+/* shadow flag */
 #define SHADOW_MASK             0x00100000
 #define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)
 
+/* font alignment helper macros */
+#define FONT_ALIGN_TYPE_MASK        0x03000000
+#define FONT_ALIGN_WIDTH_MASK       0xFC000000
+#define FONT_ALIGN_MASK             0xFF000000
+
+#define FONT_ALIGN_TYPE_LEFT        0x00000000
+#define FONT_ALIGN_TYPE_CENTER      0x01000000
+#define FONT_ALIGN_TYPE_RIGHT       0x02000000
+#define FONT_ALIGN_TYPE_JUSTIFIED   0x03000000
+#define FONT_ALIGN_PREP_WIDTH(width)  ((((width+8) >> 4) << 26) & FONT_ALIGN_WIDTH_MASK) /* range: 0-1015; round to 6 bits */
+
+/* font alignment macros */
+#define FONT_ALIGN_LEFT(width)      FONT_ALIGN_TYPE_LEFT      | FONT_ALIGN_PREP_WIDTH(width)
+#define FONT_ALIGN_CENTER(width)    FONT_ALIGN_TYPE_CENTER    | FONT_ALIGN_PREP_WIDTH(width)
+#define FONT_ALIGN_RIGHT(width)     FONT_ALIGN_TYPE_RIGHT     | FONT_ALIGN_PREP_WIDTH(width)
+#define FONT_ALIGN_JUSTIFIED(width) FONT_ALIGN_TYPE_JUSTIFIED | FONT_ALIGN_PREP_WIDTH(width)
+
+/* when aligning text, fill the blank space with background color (so you get a nice solid box) */
+#define FONT_ALIGN_FILL             0x00800000
+
 #define FONT(font,fg,bg)        ( 0 \
-        | ((font) & (FONT_MASK | SHADOW_MASK)) \
+        | ((font) & (0xFFFF0000)) \
         | ((bg) & 0xFF) << 8 \
         | ((fg) & 0xFF) << 0 \
 )
 
+/* font by ID */
 #define FONT_DYN(font_id,fg,bg) FONT((font_id)<<16,fg,bg)
 
 /* should match the font loading order from rbf_font.c, rbf_init */
@@ -155,13 +178,16 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_MONO_20  FONT_DYN(3, 0, 0)
 #define FONT_MONO_32  FONT_DYN(4, 0, 0)
 
+/* common fonts */
 #define FONT_SMALL FONT_MONO_12
 #define FONT_MED   FONT_SANS_20
 #define FONT_LARGE FONT_SANS_32
 
+/* retrieve fontspec fields */
 #define FONT_ID(font) (((font) >> 16) & 0xF)
 #define FONT_BG(font) (((font) & 0xFF00) >> 8)
 #define FONT_FG(font) (((font) & 0x00FF) >> 0)
+#define FONT_ALIGN_WIDTH(font)    (((font >> 26) & 0x3F) << 4)
 
 /* RBF stuff */
 #define MAX_DYN_FONTS 16

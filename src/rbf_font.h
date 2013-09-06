@@ -59,22 +59,11 @@ typedef struct _font {
     int cTableSizeMax;                // max size of cTable (max size currently allocated)
 } font;
 
-typedef uint32_t color;
-
 //-------------------------------------------------------------------
-extern int rbf_font_load(char *file, font* f, int maxchar);
-extern int rbf_load_symbol(char *file);
-extern void rbf_load_from_file(char *file, int codepage);
 extern int rbf_font_height(font *rbf_font);
 extern int rbf_char_width(font *rbf_font, int ch);
 extern int rbf_str_width(font *rbf_font, const char *str);
-extern int rbf_draw_string(font *rbf_font, int x, int y, const char *str, color cl);
-extern int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str, color cl, int l, int maxlen);
-extern int rbf_draw_string_len(font *rbf_font, int x, int y, int len, const char *str, color cl);
-extern int rbf_draw_string_right_len(font *rbf_font, int x, int y, int len, const char *str, color cl);
-extern void rbf_enable_cursor(int s, int e);
-extern void rbf_disable_cursor();
-
+extern int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int cl);
 //-------------------------------------------------------------------
 #endif
 

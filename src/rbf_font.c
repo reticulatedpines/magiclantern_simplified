@@ -10,7 +10,7 @@
 
 #define draw_char(x,y,c,h) do{}while(0)
 
-
+static int rbf_font_load(char *file, font* f, int maxchar);
 
 //-------------------------------------------------------------------
 static unsigned int RBF_HDR_MAGIC1 = 0x0DF00EE0;
@@ -53,8 +53,9 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     /* too many fonts loaded, return default font */
     if(dyn_fonts >= MAX_DYN_FONTS)
     {
-        bmp_printf(FONT_MED, 10, 30, "too many fonts");
-        return FONT_SMALL;
+        beep();
+        bfnt_printf(10, 30, COLOR_WHITE, COLOR_BLACK, "too many fonts");
+        return 0;
     }
     
     /* was not loaded, try to load */
@@ -65,8 +66,9 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     if((FIO_GetFileSize( filename, &size ) != 0) || (size == 0))
     {
         /* failed to load, return default font */
-        bmp_printf(FONT_MED, 10, 30, "File '%s' not found", filename);
-        return FONT_MED;
+        beep();
+        bfnt_printf(10, 30, COLOR_WHITE, COLOR_BLACK, "File '%s' not found", filename);
+        return 0;
     }
     
     void *font = new_font();
@@ -74,9 +76,9 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     /* load the font here */
     if(!rbf_font_load(filename, font, 0))
     {
-        bmp_printf(FONT_MED, 10, 30, "File '%s' failed to load", filename);
+        bfnt_printf(10, 30, COLOR_WHITE, COLOR_BLACK, "File '%s' failed to load", filename);
         FreeMemory(font);
-        return FONT_LARGE;
+        return 0;
     }
 
     /* now updated cached font name (not filename) */
@@ -172,7 +174,7 @@ static int font_read(int fd, unsigned char *dest, int len)
 }
 //-------------------------------------------------------------------
 // Load from from file. If maxchar != 0 limit charLast (for symbols)
-int rbf_font_load(char *file, font* f, int maxchar)
+static int rbf_font_load(char *file, font* f, int maxchar)
 {
     int i;
 
@@ -247,11 +249,11 @@ int rbf_str_clipped_width(font *rbf_font, const char *str, int l, int maxlen) {
 }
 
 //-------------------------------------------------------------------
-static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
+static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, int fontspec) {
     int xx, yy;
     uint32_t * bmp = bmp_vram();
-    int fg = FG_COLOR(cl);
-    int bg = BG_COLOR(cl);
+    int fg = FG_COLOR(fontspec);
+    int bg = BG_COLOR(fontspec);
     
     // draw pixels for font character
     if (cdata)
@@ -266,11 +268,11 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     }
 }
 
-static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, color cl) {
+static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, int fontspec) {
     int xx, yy;
     uint32_t * bmp = bmp_vram();
-    int fg = FG_COLOR(cl);
-    int bg = BG_COLOR(cl);
+    int fg = FG_COLOR(fontspec);
+    int bg = BG_COLOR(fontspec);
     
     // draw pixels for font character
     if (cdata)
@@ -304,14 +306,14 @@ static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata
 }
 
 //-------------------------------------------------------------------
-static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
+static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, int fontspec) {
     // Get char data pointer
     char* cdata = rbf_font_char(rbf_font, ch);
 
-    if (cl & SHADOW_MASK)
-        font_draw_char_shadow(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], cl);
+    if (fontspec & SHADOW_MASK)
+        font_draw_char_shadow(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], fontspec);
     else
-        font_draw_char(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], cl);
+        font_draw_char(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], fontspec);
 
     return rbf_font->wTable[ch];
 }
@@ -319,7 +321,7 @@ static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, color cl) {
 
 //-------------------------------------------------------------------
 // Draw a string colored 'c1' with the character at string-position 'c' colored 'c2'.
-static int rbf_draw_string_c(font *rbf_font, int x, int y, const char *str, color c1, int c, color c2) {
+static int rbf_draw_string_c(font *rbf_font, int x, int y, const char *str, int fontspec1, int c, int fontspec2) {
      int l=0, i=0;
 
      while (*str) {
@@ -331,78 +333,187 @@ static int rbf_draw_string_c(font *rbf_font, int x, int y, const char *str, colo
               i++;
               continue;
           }
-          l+=rbf_draw_char(rbf_font, x+l, y, *str++, (i==c)?c2:c1);
+          l+=rbf_draw_char(rbf_font, x+l, y, *str++, (i==c)?fontspec1:fontspec2);
           ++i;
      }
      return l;
 }
 
 //-------------------------------------------------------------------
-int rbf_draw_string(font *rbf_font, int x, int y, const char *str, color cl) {
-    return rbf_draw_string_c(rbf_font, x, y, str, cl, -1, 0);
+static int rbf_draw_string_simple(font *rbf_font, int x, int y, const char *str, int fontspec) {
+    return rbf_draw_string_c(rbf_font, x, y, str, fontspec, -1, fontspec);
 }
 
 //-------------------------------------------------------------------
-static int cursor_on = 0;
-static int cursor_start = 0;
-static int cursor_end = 0;
-
-void rbf_enable_cursor(int s, int e)
-{
-    cursor_on = 1;
-    cursor_start = s;
-    cursor_end = e;
-}
-
-void rbf_disable_cursor()
-{
-    cursor_on = 0;
-}
-
-int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str, color cl, int l, int maxlen)
+static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str, int fontspec, int maxlen)
 {
     int i = 0;
-    color inv_cl = ((cl & 0xFF00) >> 8) | ((cl & 0xFF) << 8);
-
-    // Draw chars from string up to max pixel length
-    while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
+    int l = 0;
+    
+    int justified = (fontspec & FONT_ALIGN_TYPE_MASK) == FONT_ALIGN_TYPE_JUSTIFIED;
+    
+    if (justified)
     {
-        if (cursor_on && (cursor_start <= i) && (i <= cursor_end))
-            l+=rbf_draw_char(rbf_font, x+l, y, *str++, inv_cl);
-        else
-            l+=rbf_draw_char(rbf_font, x+l, y, *str++, cl);
-        i++;
-    }
+        int should_fill = !(fontspec & SHADOW_MASK);
+        int bg = FONT_BG(fontspec);
+        int len = FONT_ALIGN_WIDTH(fontspec);
+        int space = len - rbf_str_width(rbf_font, str);
+        
+        /* divide the space across the chars: a space character can accept 5 times more stretch space than a regular letter */
+        /* first non-letter (indent) can't be stretched (to render bullet points correctly) */
+        int bins = 0;
+        char* c = (char*) str;
+        int indent = 1;
+        while (*c)
+        {
+            if (*c != ' ' && *c != '*') indent = 0;
+            bins += indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
+            c++;
+        }
+        
+        /* use Bresenham line-drawing algorithm to divide space with integer-only math */
+        /* http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#Algorithm_with_Integer_Arithmetic */
+        /* x: from 0 to bins */
+        /* y: space accumulated (from 0 to space) */
+        int dx = bins;
+        int dy = ABS(space);
+        
+        /* if it requires too much stretching, give up */
+        if (dy > dx)
+            dy = 0;
+        
+        int D = 2*dy - dx;
 
+        // Draw chars from string up to max pixel length
+        indent = 1;
+        while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
+        {
+            l += rbf_draw_char(rbf_font, x+l, y, *str, fontspec);
+            
+            /* Bresenham step */
+            int l0 = l;
+            if (*str != ' ' && *str != '*') indent = 0;
+            int repeat = indent ? 0 : space < 0 ? 1 : *str == ' ' ? 10 : 2;
+            for (int i = 0; i < repeat; i++)
+            {
+                if (D > 0)
+                {
+                    l += SGN(space);
+                    D = D + (2*dy - 2*dx);
+                }
+                else
+                {
+                    D = D + 2*dy;
+                }
+            }
+            
+            if (should_fill && l > l0)
+            {
+                bmp_fill(bg, x+l0, y, l-l0, rbf_font->hdr.height);
+            }
+            
+            i++; str++;
+        }
+    }
+    else
+    {
+        // Draw chars from string up to max pixel length
+        while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
+        {
+            l+=rbf_draw_char(rbf_font, x+l, y, *str++, fontspec);
+            i++;
+        }
+    }
     return l;
 }
 
 //-------------------------------------------------------------------
-int rbf_draw_string_len(font *rbf_font, int x, int y, int len, const char *str, color cl) {
-    // Draw string characters
-    int l = rbf_draw_clipped_string(rbf_font, x, y, str, cl, 0, len);
+static int rbf_draw_string_single_line(font *rbf_font, int x, int y, const char *str, int fontspec) {
+    
+    /* how much space do we have to draw the string? */
+    int len = FONT_ALIGN_WIDTH(fontspec);
+    
+    if (len == 0)
+    {
+        /* no fancy alignment */
+        return rbf_draw_string_simple(rbf_font, x, y, str, fontspec);
+    }
+    
+    // Calulate amount of padding needed
+    int padding = len - rbf_str_clipped_width(rbf_font, str, 0, len);
+    
+    /* is that padding on the left? on the right? or both? */
+    int padding_left = 0;
+    int padding_right = 0;
+    
+    switch (fontspec & FONT_ALIGN_TYPE_MASK)
+    {
+        case FONT_ALIGN_TYPE_LEFT:
+            padding_right = padding;
+            break;
+        
+        case FONT_ALIGN_TYPE_CENTER:
+            padding_left = padding/2;
+            padding_right = padding - padding/2;
+            break;
+        
+        case FONT_ALIGN_TYPE_RIGHT:
+            padding_left = padding;
+            break;
+        
+        case FONT_ALIGN_TYPE_JUSTIFIED:
+            padding_left = 0;
+            padding_right = 0;
+    }
+    
+    int bg = FONT_BG(fontspec);
+    int should_fill = fontspec & FONT_ALIGN_FILL;
 
-    // Fill any remaining space on right with background color
-    if (l < len)
-        bmp_fill(x+l, y, len-2, rbf_font->hdr.height-1, cl);
+    // Fill left padding with background color
+    if (should_fill && padding_left)
+        bmp_fill(bg, x, y, padding_left, rbf_font->hdr.height);
+
+    // Draw chars
+    rbf_draw_clipped_string(rbf_font, x + padding_left, y, str, fontspec, len - padding_right - padding_left);
+
+    // Fill right padding with background color
+    if (should_fill && padding_right)
+        bmp_fill(bg, x+len-padding_right, y, padding_right, rbf_font->hdr.height);
 
     return len;
 }
 
-//-------------------------------------------------------------------
-int rbf_draw_string_right_len(font *rbf_font, int x, int y, int len, const char *str, color cl) {
-    // Calulate amount of padding needed on the left
-    int l = len - rbf_str_clipped_width(rbf_font, str, 0, len);
-
-    // Fill padding with background color
-    if (l > 0)
-        bmp_fill(x, y, l-1, rbf_font->hdr.height-1, cl);
-
-    // Draw chars
-    l = rbf_draw_clipped_string(rbf_font, x, y, str, cl, l, len);
-
-    return l;
+int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int fontspec) {
+    char* start = (char*) str;
+    char* end = start;
+    
+    /* for each line in string */
+    while (*start)
+    {
+        /* where does this line end? */
+        while (*end && *end != '\n')
+            end++;
+        
+        /* chop the string here */
+        char old = *end;
+        *end = 0;
+        
+        /* draw this line */
+        rbf_draw_string_single_line(rbf_font, x, y, start, fontspec);
+        
+        /* finished? */
+        if (old == 0)
+            break;
+        
+        /* undo chopping */
+        *end = old;
+        
+        /* okay, let's go to next line */
+        y += rbf_font->hdr.height;
+        start = end = end+1;
+    }
 }
+
 
 /* for compatibility with existing code */
 struct font font_small;
@@ -412,11 +523,11 @@ struct font font_large;
 static void rbf_init()
 {
     /* load some fonts */
-    font_by_name("sans20", COLOR_BLACK, COLOR_WHITE);
-    font_by_name("sans32", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("mlsans23", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("mlsans33", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
-    font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
+    #font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
     
     font_small = *fontspec_font(FONT_SMALL);
     font_med = *fontspec_font(FONT_MED);
