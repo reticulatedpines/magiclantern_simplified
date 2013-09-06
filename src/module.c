@@ -1134,13 +1134,16 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             MENU_SET_HELP("%s%s", summary, has_dot ? "" : ".");
         }
 
-        const char* name = module_get_string(mod_number, "Name");
-        if (name && !startswith(info->name, name))
+        if (module_list[mod_number].valid == module_list[mod_number].enabled)
         {
-            int fg = COLOR_GRAY(40);
-            int bg = COLOR_BLACK;
-            int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
-            bmp_printf(fnt, 680 - strlen(name)*font_med.width, info->y+5, name);
+            const char* name = module_get_string(mod_number, "Name");
+            if (name && !startswith(info->name, name))
+            {
+                int fg = COLOR_GRAY(40);
+                int bg = COLOR_BLACK;
+                int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
+                bmp_printf(fnt, 680 - strlen(name)*font_med.width, info->y+5, name);
+            }
         }
     }
 }
