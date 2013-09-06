@@ -225,14 +225,12 @@ uint64_t mlv_generate_guid()
     guid = mlv_prng_lfsr(guid);
     
     /* then seed shuffled bits with rtc time */
-    for(int pos = 0; pos < 64; pos += 8)
-    {
-        guid = guid ^ now.tm_sec;
-        guid = guid ^ now.tm_min;
-        guid = guid ^ now.tm_hour;
-        guid = guid ^ now.tm_yday;
-        guid = guid ^ now.tm_year;
-    }
+    guid ^= now.tm_sec;
+    guid ^= now.tm_min << 7;
+    guid ^= now.tm_hour << 12;
+    guid ^= now.tm_yday << 17;
+    guid ^= now.tm_year << 26;
+    guid ^= get_us_clock_value() << 37;
     
     /* now run through final prng pass */
     return mlv_prng_lfsr(guid);
