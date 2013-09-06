@@ -1068,7 +1068,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
 
     if (entry->selected)
     {
-        if (!module_list[mod_number].enabled && !module_list[mod_number].strings)
+        if (!module_list[mod_number].valid && !module_list[mod_number].strings)
         {
             char* fn = module_list[mod_number].long_filename;
             if (fn)
@@ -1113,7 +1113,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
     if (!entry->selected && get_ms_clock_value() > 1000 + last_offline_load_time)
     {
         if (
-                !module_list[mod_number].enabled &&
+                !module_list[mod_number].valid &&
                 module_list[mod_number].strings && 
                 module_list[mod_number].strings != default_strings
             )
