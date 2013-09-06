@@ -31,6 +31,7 @@ install:: prepare_install_dir install_extra_data $(_CONFIGS_install)
 
 prepare_install_dir:
 	mkdir -p $(INSTALL_ML_DIR)
+	mkdir -p $(INSTALL_FONTS_DIR)
 	mkdir -p $(INSTALL_SETTINGS_DIR)
 	mkdir -p $(INSTALL_DATA_DIR)
 	mkdir -p $(INSTALL_CROPMARKS_DIR)
@@ -39,7 +40,7 @@ prepare_install_dir:
 	mkdir -p $(INSTALL_DOC_DIR)
 
 install_extra_data: prepare_install_dir
-	$(CP) $(SRC_DIR)/FONTS.DAT $(INSTALL_DATA_DIR)/
+	$(CP) $(FONT_DIR)/*.rbf $(INSTALL_FONTS_DIR)/
 	$(CP) $(VRAM_DIR)/*.lut $(INSTALL_DATA_DIR)/
 	$(CP) $(CROP_DIR)/*.bmp $(INSTALL_CROPMARKS_DIR)/
 #TODO: This should be moved to plugins or something more related

@@ -1168,7 +1168,7 @@ static struct menu_entry movie_tweaks_menus[] = {
 #ifdef FEATURE_EXPO_OVERRIDE
 struct menu_entry expo_override_menus[] = {
     {
-        .name = "Exp.Override",
+        .name = "Expo. Override",
         .priv = &bv_auto,
         .select     = bv_toggle,
         .update     = bv_display,

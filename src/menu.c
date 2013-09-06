@@ -866,7 +866,7 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-    new_menu->split_pos = -12;
+    new_menu->split_pos = -17;
     new_menu->scroll_pos = 0;
     new_menu->advanced = 0;
     // menu points to the last entry or NULL if there are none
@@ -984,7 +984,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
     // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
     if (entry->name && menu->split_pos < 0)// && entry->priv)
     {
-        menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
+        menu->split_pos = -MAX(-menu->split_pos, bmp_string_width(FONT_LARGE, entry->name)/20 + 2);
         if (-menu->split_pos > 28) menu->split_pos = -28;
     }
 }
@@ -1850,7 +1850,7 @@ static void submenu_marker(int x, int y)
 static void menu_clean_footer()
 {
     int h = 50;
-    if (is_menu_active("Help")) h += 10;
+    if (is_menu_active("Help")) h = font_med.height * 3 + 2;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
     int fgu = 50;
     bmp_fill(fgu, 0, 480-h-2, 720, 2);
@@ -2187,31 +2187,32 @@ skip_name:
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
     
-    w = MAX(w, strlen(info->name)+1);
+    int char_width = fontspec_font(fnt)->width;
+    w = MAX(w, bmp_string_width(fnt, info->name) + char_width);
 
     // both submenu marker and value? make sure they don't overlap
     if (entry->icon_type == IT_SUBMENU && info->value[0])
-        w += 2;
+        w += 2 * char_width;
     
     // value string too big? move it to the left
-    int end = w + (use_small_font ? strlen(info->value) * font_med.width / font_large.width: strlen(info->value));
-    int wmax = (x_end - x) / font_large.width;
+    int end = w + bmp_string_width(fnt, info->value);
+    int wmax = x_end - x;
 
     // right-justified info field?
-    int rlen = strlen(info->rinfo);
-    int rinfo_x = x_end - fontspec_font(fnt)->width * (rlen + 1);
-    if (rlen) wmax -= rlen + 1;
+    int rlen = bmp_string_width(fnt, info->rinfo);
+    int rinfo_x = x_end - rlen - 30;
+    if (rlen) wmax -= rlen + char_width;
     
     // no right info? then make sure there's room for the Q symbol
     else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
     {
-        wmax--;
+        wmax -= 30;
     }
     
     if (end > wmax)
         w -= (end - wmax);
     
-    int xval = x + font_large.width * w;
+    int xval = x + w;
 
     // print value field
     bmp_printf(
@@ -2249,16 +2250,16 @@ skip_name:
     else if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
     {
         if (entry->selected)
-            submenu_key_hint(720-38, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
+            submenu_key_hint(720-40, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
         else
-            submenu_key_hint(720-34, y, 40, COLOR_BLACK, ICON_ML_FORWARD);
+            submenu_key_hint(720-36, y, 40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
     // selection bar params
     int xl = x - 5 + x_font_offset;
     int xc = x - 5 + x_font_offset;
     if ((in_submenu || edit_mode) && info->value[0])
-        xc = x + font_large.width * w - 15;
+        xc = x + w - 15;
 
     // selection bar
     if (entry->selected)
@@ -2274,7 +2275,7 @@ skip_name:
         // use a pickbox if possible
         if (edit_mode && CAN_HAVE_PICKBOX(entry))
         {
-            int px = x + font_large.width * w0;
+            int px = x + w0;
             pickbox_draw(entry, px, y);
         }
     }
@@ -2411,7 +2412,7 @@ menu_entry_process(
     entry_default_display_info(entry, &info);
     info.x = x;
     info.y = y;
-    info.x_val = x + font_large.width * ABS(menu->split_pos);
+    info.x_val = x + 20 * ABS(menu->split_pos);
     info.can_custom_draw = menu != my_menu && menu != mod_menu && !menu_lv_transparent_mode;
     
     // display icon (only the first icon is drawn)
@@ -2432,7 +2433,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(x, y, ABS(menu->split_pos), h, entry, &info, IS_SUBMENU(menu));
+            entry_print(x, y, ABS(menu->split_pos)*20, h, entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
@@ -2490,7 +2491,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
 static int
 dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders)
 {
-    dyn_menu->split_pos = -12;
+    dyn_menu->split_pos = -17;
 
     int i = 0;
     struct menu * menu = menus;
@@ -2690,11 +2691,11 @@ static inline int islovowel(char c)
         return 1;
     return 0;
 }
-static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
+static char* junkie_get_shortname(struct menu_display_info * info, int fnt, int maxlen)
 {
     static char tmp[30];
     static char sname[20];
-    if (maxlen > 19) maxlen = 19;
+    memset(sname, 0, sizeof(sname));
 
     if (info->short_name[0])
     {
@@ -2725,27 +2726,28 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
 
     int N = strlen(tmp);
 
+    int char_width = fontspec_font(fnt)->width;
+
     int i,j;
-    for (i = 0, j = 0; i < maxlen && j < N; j++)
+    for (i = 0, j = 0; i < COUNT(sname)-1 && j < N && bmp_string_width(fnt, sname) < maxlen - char_width; j++)
     {
         char c = tmp[j];
         if (c == ' ') { tmp[j+1] = toupper(tmp[j+1]); continue; }
         if (c == '.') continue;
         if (c == '(') break;
-        if (maxlen < 5 && islower(c)) continue;
+        if (maxlen < 5*char_width && islower(c)) continue;
         sname[i] = c;
         i++;
     }
-    sname[i] = 0;
     
     return sname;
 }
 
-static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
+static char* junkie_get_shortvalue(struct menu_display_info * info, int fnt, int maxlen)
 {
     static char tmp[30];
     static char svalue[20];
-    if (maxlen > 19) maxlen = 19;
+    memset(svalue, 0, sizeof(svalue));
 
     if (info->short_value[0])
     {
@@ -2764,8 +2766,10 @@ static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
 
     int N = strlen(tmp);
 
+    int char_width = fontspec_font(fnt)->width;
+
     int i,j;
-    for (i = 0, j = 0; i < maxlen && j < N; j++)
+    for (i = 0, j = 0; i < COUNT(svalue)-1 && j < N && bmp_string_width(fnt, svalue) < maxlen - char_width; j++)
     {
         char c = tmp[j];
         if (c == ' ') continue;
@@ -2773,28 +2777,28 @@ static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
         svalue[i] = c;
         i++;
     }
-    svalue[i] = 0;
     
     return svalue;
 }
 
-static char* junkie_get_shorttext(struct menu_display_info * info, int maxlen)
+static char* junkie_get_shorttext(struct menu_display_info * info, int fnt, int maxlen)
 {
     // print name or value?
     if (streq(info->value, "ON") || streq(info->value, "Default") || startswith(info->value, "OFF") || streq(info->value, "Normal") || (!info->value[0] && !info->short_value[0]))
     {
         // ON/OFF is obvious by color; print just the name
-        return junkie_get_shortname(info, maxlen);
+        return junkie_get_shortname(info, fnt, maxlen);
     }
     else // print value only
     {
-        char* svalue = junkie_get_shortvalue(info, maxlen);
-        int len = strlen(svalue);
-        if (maxlen - len >= 4) // still plenty of space? try to print part of name too
+        char* svalue = junkie_get_shortvalue(info, fnt, maxlen);
+        int len = bmp_string_width(fnt, svalue);
+        int char_width = fontspec_font(fnt)->width;
+        if (maxlen - len >= char_width * 4) // still plenty of space? try to print part of name too
         {
             static char nv[30];
-            char* sname = junkie_get_shortname(info, maxlen - len - 1);
-            if (strlen(sname) > 1)
+            char* sname = junkie_get_shortname(info, fnt, maxlen - len - 1);
+            if (bmp_string_width(fnt, sname) >= char_width * 2)
             {
                 snprintf(nv, sizeof(nv), "%s %s", sname, svalue);
                 return nv;
@@ -2863,16 +2867,16 @@ entry_print_junkie(
     if (h > 30 && w > 130) // we can use large font when we have 5 or fewer tabs
         fnt = FONT(FONT_LARGE, fg, bg);
 
-    int maxlen = (w - 8) / fontspec_width(fnt);
+    int maxlen = (w - 8);
 
     bmp_fill(bg, x+2, y+2, w-4, h-4);
     //~ bmp_draw_rect(bg, x+2, y+2, w-4, h-4);
 
-    char* shorttext = junkie_get_shorttext(info, maxlen);
+    char* shorttext = junkie_get_shorttext(info, fnt, maxlen);
     
     bmp_printf(
         fnt,
-        x + (w - fontspec_width(fnt) * strlen(shorttext)) / 2 + 2, 
+        x + (w - bmp_string_width(fnt, shorttext)) / 2 + 2, 
         y + (h - fontspec_height(fnt)) / 2,
         "%s", shorttext
     );
@@ -4332,18 +4336,18 @@ menu_init( void )
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
     struct menu * m = NULL;
-    m = menu_find_by_name( "Audio",     ICON_ML_AUDIO   );if (m) m->split_pos = 17;
-    m = menu_find_by_name( "Expo",      ICON_ML_EXPO    );if (m) m->split_pos = 14;
+    m = menu_find_by_name( "Audio",     ICON_ML_AUDIO   );
+    m = menu_find_by_name( "Expo",      ICON_ML_EXPO    );
     m = menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
-    m = menu_find_by_name( "Movie",     ICON_ML_MOVIE   );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Movie",     ICON_ML_MOVIE   );
     m = menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
-    m = menu_find_by_name( "Focus",     ICON_ML_FOCUS   );if (m) m->split_pos = 17;
-    m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Focus",     ICON_ML_FOCUS   );
+    m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
-    m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );if (m) m->split_pos = 11;
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );if (m) m->split_pos = 16;
-    m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );if (m) m->split_pos = 15;
-    m = menu_find_by_name( "Help",      ICON_ML_INFO    );if (m) m->split_pos = 13;
+    m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );
+    m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
+    m = menu_find_by_name( "Help",      ICON_ML_INFO    );
 }
 
 /*
@@ -4688,6 +4692,7 @@ int is_menu_active(char* name)
 {
     if (!menu_shown) return 0;
     if (menu_help_active) return 0;
+    if (beta_should_warn()) return 0;
     return is_menu_selected(name);
 }
 
@@ -4819,7 +4824,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    big_bmp_printf(FONT(FONT_MED, 60, MENU_BG_COLOR_HEADER_FOOTER),  10,  420,
+    big_bmp_printf(FONT(FONT_MED, 60, MENU_BG_COLOR_HEADER_FOOTER),  10,  480 - font_med.height * 3,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",

@@ -2797,9 +2797,6 @@ static MENU_UPDATE_FUNC(picstyle_display)
     
     if (picstyle_rec && is_movie_mode())
     {
-        MENU_SET_VALUE(
-            get_picstyle_shortname(get_prop_picstyle_from_index(i))
-        );
         MENU_SET_RINFO(
             "REC:%s",
             get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
@@ -4833,7 +4830,7 @@ extern int digic_shadow_lift;
 static struct menu_entry expo_menus[] = {
     #ifdef FEATURE_WHITE_BALANCE
     {
-        .name = "WhiteBalance",
+        .name = "White Balance",
         .update    = kelvin_wbs_display,
         .select     = kelvin_toggle,
         .help  = "Adjust Kelvin white balance and GM/BA WBShift.",
@@ -5050,7 +5047,7 @@ static struct menu_entry expo_menus[] = {
     #endif
     #ifdef FEATURE_PICSTYLE
     {
-        .name = "PictureStyle",
+        .name = "Picture Style",
         .update     = picstyle_display,
         .select     = picstyle_toggle,
         .priv = &lens_info.picstyle,
@@ -5140,7 +5137,7 @@ static struct menu_entry expo_menus[] = {
     MENU_PLACEHOLDER("Auto ETTR"),
     #ifdef FEATURE_EXPO_LOCK
     {
-        .name       = "Expo.Lock",
+        .name       = "Expo. Lock",
         .priv       = &expo_lock,
         .max        = 1,
         .update     = expo_lock_display,
@@ -5178,7 +5175,7 @@ static struct menu_entry expo_menus[] = {
     #endif
     #ifdef FEATURE_EXPO_PRESET
     {
-        .name = "Expo.Presets",
+        .name = "Expo. Presets",
         .priv = &expo_preset,
         .max = 2,
         .choices = CHOICES("OFF", "Press SET", "Press " INFO_BTN_NAME),
