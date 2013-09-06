@@ -5338,7 +5338,7 @@ void interval_create_script(int f0)
 #endif // FEATURE_INTERVALOMETER
 
 // normal pic, silent pic, bulb pic...
-void take_a_pic(int should_af, int allow_bulb)
+void take_a_pic(int should_af)
 {
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
@@ -5361,8 +5361,15 @@ void take_a_pic(int should_af, int allow_bulb)
     else
     #endif
     {
-        if (allow_bulb && is_bulb_mode()) hdr_shot(0, 1);
-        else lens_take_picture(64, should_af);
+        if (is_bulb_mode())
+        {
+            /* bulb mode? take a bulb exposure with bulb timer settings */
+            bulb_take_pic(timer_values[bulb_duration_index] * 1000);
+        }
+        else
+        {
+            lens_take_picture(64, should_af);
+        }
     }
     lens_wait_readytotakepic(64);
 }
@@ -5426,7 +5433,7 @@ static int hdr_shutter_release(int ev_x8)
 
     if (dont_change_exposure)
     {
-        take_a_pic(AF_DONT_CHANGE, 1);
+        take_a_pic(AF_DONT_CHANGE);
         return 1;
     }
     
@@ -5439,7 +5446,7 @@ static int hdr_shutter_release(int ev_x8)
             ev_x8 = hdr_iso_shift(ev_x8);
             int fae0 = lens_info.flash_ae;
             ans = hdr_set_flash_ae(fae0 + ev_x8);
-            take_a_pic(AF_DONT_CHANGE, 0);
+            take_a_pic(AF_DONT_CHANGE);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
             return ans;
@@ -5459,7 +5466,7 @@ static int hdr_shutter_release(int ev_x8)
         hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_get_ae();
         ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
-        take_a_pic(AF_DONT_CHANGE, 0);
+        take_a_pic(AF_DONT_CHANGE);
         hdr_set_ae(ae0);
         hdr_iso_shift_restore();
     }
@@ -5500,7 +5507,7 @@ static int hdr_shutter_release(int ev_x8)
             if (get_expsim() == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans = MIN(ans, hdr_set_rawshutter(rc));
-            take_a_pic(AF_DONT_CHANGE, 0);
+            take_a_pic(AF_DONT_CHANGE);
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
@@ -6177,7 +6184,7 @@ void take_fast_pictures( int number )
     {
         for (int i = 0; i < number; i++)
         {
-            take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE, 1);
+            take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE);
         }
     }
 }
