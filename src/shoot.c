@@ -2219,7 +2219,7 @@ static MENU_UPDATE_FUNC(shutter_display)
         int deg = 3600 * fps_get_current_x1000() / s;
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
-            "1/%d.%d, %d ",
+            SYM_1_SLASH "%d.%d, %d"SYM_DEGREE,
             s/1000, (s%1000)/100,
             deg);
     }
@@ -2293,7 +2293,7 @@ static MENU_UPDATE_FUNC(aperture_display)
     if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
         a = av = 0;
     MENU_SET_VALUE(
-        "f/%d.%d",
+        SYM_F_SLASH"%d.%d",
         a / 10,
         a % 10, 
         av / 8, 
@@ -4134,7 +4134,7 @@ static void expo_preset_toggle()
     int ap = values_aperture[raw2index_aperture(pre_av)];
     if (lv)
         NotifyBox(2000, 
-            "ISO %d 1/%d f/%d.%d %dK", 
+            SYM_ISO"%d "SYM_1_SLASH"%d "SYM_F_SLASH"%d.%d %dK", 
             raw2iso(pre_iso), 
             (int)roundf(1/raw2shutterf(pre_tv)), 
             ap/10, ap%10, 
