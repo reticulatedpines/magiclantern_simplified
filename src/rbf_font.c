@@ -527,7 +527,7 @@ static void rbf_init()
     font_by_name("mlsans33", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
-    #font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
+    //font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
     
     font_small = *fontspec_font(FONT_SMALL);
     font_med = *fontspec_font(FONT_MED);
