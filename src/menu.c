@@ -2624,7 +2624,7 @@ menu_display(
     int cram = 0;
     if (num_visible == MENU_LEN + 1)
     {
-        cram = 2;
+        cram = submenu_mode ? 3 : 2;
         menu_len += 1;
     }
     else if (num_visible == MENU_LEN + 2 && !submenu_mode)

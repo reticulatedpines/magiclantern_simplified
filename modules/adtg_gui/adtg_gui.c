@@ -1048,8 +1048,13 @@ static unsigned int adtg_gui_init()
         ADTG_WRITE_FUNC = 0xFF2DCEF4; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0xFF2DD0E8; //"[REG] ############ Start CMOS"
     }
+    else if (streq(camera_model_short, "650D"))
+    {
+        ADTG_WRITE_FUNC = 0x178FC; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
+        CMOS_WRITE_FUNC = 0x17A1C; //"[REG] ############ Start CMOS"
+    }
     
-    else return 0;
+    else return 1;
 
     
     menu_add("Debug", adtg_gui_menu, COUNT(adtg_gui_menu));

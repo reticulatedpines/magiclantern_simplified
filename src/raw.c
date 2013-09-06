@@ -396,7 +396,7 @@ int raw_update_params()
         #ifdef CONFIG_5D3
         skip_top        = zoom ?   60 : mv720 ?  20 :   30;
         skip_left       = 146;
-        skip_right      = 6;
+        skip_right      = 2;
         #endif
 
         #ifdef CONFIG_600D

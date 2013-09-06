@@ -206,6 +206,7 @@ localsyms: libtcctmp.o
 		| grep -v "^tcc_malloc$$" \
 		| grep -v "^tcc_realloc$$" \
 		| grep -v "^tcc_free$$" \
+		| grep -v "^tcc_get_section_ptr$$" \
 		> $@
 
 #~ libtcc.a: libtcctmp.a localsyms
