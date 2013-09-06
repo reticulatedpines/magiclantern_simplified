@@ -94,7 +94,7 @@ LIBTCCAPI int tcc_relocate(TCCState *s1, void *ptr);
 LIBTCCAPI void *tcc_get_symbol(TCCState *s, const char *name);
 
 /* return a reference to section data area */
-LIBTCCAPI void *tcc_get_section_ptr(TCCState *s, const char *name);
+LIBTCCAPI void *tcc_get_section_ptr(TCCState *s, const char *name, int* size);
 
 #ifdef __cplusplus
 }

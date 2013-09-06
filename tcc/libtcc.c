@@ -1016,7 +1016,7 @@ LIBTCCAPI int tcc_add_library_path(TCCState *s, const char *pathname)
 }
 
 /* return a reference to section data area */
-LIBTCCAPI void *tcc_get_section_ptr(TCCState *s, const char *name)
+LIBTCCAPI void *tcc_get_section_ptr(TCCState *s, const char *name, int* size)
 {
     Section *sec;
     int i;
@@ -1025,10 +1025,12 @@ LIBTCCAPI void *tcc_get_section_ptr(TCCState *s, const char *name)
         sec = s->sections[i];
         if (!strcmp(name, sec->name)) 
         {
+            *size = sec->data_allocated;
             return sec->data;
         }
     }
-
+    
+    *size = 0;
     return NULL;
 }
 

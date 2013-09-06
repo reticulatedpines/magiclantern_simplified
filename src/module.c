@@ -962,9 +962,40 @@ static MENU_SELECT_FUNC(module_menu_update_select)
 
 static const char* module_get_string(int mod_number, const char* name);
 
+/* careful: result must be freed with FreeMemory */
+static void* module_get_section_offline(char* filename, char* section_name)
+{
+    /* uses a little memory while loading, but can be probably optimized */
+    TCCState *state = tcc_new();
+    tcc_add_file(state, filename);
+    int size;
+    void* buf = 0;
+    void* section = (void*) tcc_get_section_ptr(state, section_name, &size);
+    if (size)
+    {
+        buf = AllocateMemory(size);
+        memcpy(buf, section, size);
+    }
+    tcc_delete(state);
+    return buf;
+}
+
+static int startswith(const char* str, const char* prefix)
+{
+    const char* s = str;
+    const char* p = prefix;
+    for (; *p; s++,p++)
+        if (*s != *p) return 0;
+    return 1;
+}
+
 static MENU_UPDATE_FUNC(module_menu_update_entry)
 {
     int mod_number = (int) entry->priv;
+
+    static module_strpair_t default_strings [] = {
+        {0, 0}
+    };
 
     if(module_list[mod_number].valid)
     {
@@ -989,15 +1020,9 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             MENU_SET_ICON(MNI_ON, 0);
             MENU_SET_ENABLED(1);
             MENU_SET_VALUE(module_list[mod_number].status);
-            const char* summary = module_get_string(mod_number, "Summary");
-            if (summary)
-            {
-                int has_dot = summary[strlen(summary)-1] == '.';
-                MENU_SET_HELP("%s%s", summary, has_dot ? "" : ".");
-            }
             if (module_list[mod_number].error)
             {
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", module_list[mod_number].long_status);
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s.", module_list[mod_number].long_status);
             }
             else
             {
@@ -1021,7 +1046,14 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             MENU_SET_ICON(MNI_OFF, 0);
             MENU_SET_ENABLED(1);
             MENU_SET_VALUE(module_list[mod_number].status);
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, module_list[mod_number].long_status);
+            if (module_list[mod_number].strings && module_list[mod_number].strings != default_strings)
+            {
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s. Press %s for more info.", module_list[mod_number].long_status, Q_BTN_NAME);
+            }
+            else
+            {
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s.", module_list[mod_number].long_status);
+            }
         }
     }
     else
@@ -1031,6 +1063,89 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         MENU_SET_ENABLED(1);
         MENU_SET_VALUE("(nonexistent)");
         MENU_SET_HELP("You should never see this");
+    }
+
+    static int last_offline_load_time = 0;
+
+    if (entry->selected)
+    {
+        if (!module_list[mod_number].valid && !module_list[mod_number].strings)
+        {
+            char* fn = module_list[mod_number].long_filename;
+            if (fn)
+            {
+                /* default value, if it won't work */
+                module_list[mod_number].strings = default_strings;
+                
+                module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
+                last_offline_load_time = get_ms_clock_value();
+
+                if (strings)
+                {
+                    int looks_ok = 1;
+                    
+                    /* relocate strings from the unprocessed elf section */
+                    /* question: is the string structure always at the very beginning of the section? */
+                    for (module_strpair_t * str = strings; str->name != NULL; str++)
+                    {
+                        if ((intptr_t)str->name < 10000) /* does it look like a non-relocated pointer? */
+                        {
+                            str->name = (void*) str->name + (intptr_t) strings;
+                            str->value = (void*) str->value + (intptr_t) strings;
+                        }
+                        else
+                        {
+                            looks_ok = 0;
+                            break;
+                        }
+                    }
+                    
+                    if (looks_ok)
+                    {
+                        /* use as module strings */
+                        module_list[mod_number].strings = strings;
+                    }
+                }
+            }
+        }
+    }
+
+    /* clean up offline strings (leave them allocated for at least once per second, so it won't slow down fast scrolling) */
+    if (!entry->selected && get_ms_clock_value() > 1000 + last_offline_load_time)
+    {
+        if (
+                !module_list[mod_number].valid &&
+                module_list[mod_number].strings && 
+                module_list[mod_number].strings != default_strings
+            )
+        {
+            /* module strings loaded from elf, module not loaded, clean them up */
+            FreeMemory(module_list[mod_number].strings);
+            module_list[mod_number].strings = 0;
+        }
+    }
+
+    /* show info based on module strings metadata */
+    if (module_list[mod_number].strings)
+    {
+        const char* summary = module_get_string(mod_number, "Summary");
+        if (summary)
+        {
+            int has_dot = summary[strlen(summary)-1] == '.';
+            MENU_SET_HELP("%s%s", summary, has_dot ? "" : ".");
+        }
+
+        if (module_list[mod_number].valid == module_list[mod_number].enabled)
+        {
+            const char* name = module_get_string(mod_number, "Name");
+            if (name && !startswith(info->name, name))
+            {
+                int fg = COLOR_GRAY(40);
+                int bg = COLOR_BLACK;
+                int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
+                bmp_printf(fnt, 680 - strlen(name)*font_med.width, info->y+5, name);
+            }
+        }
     }
 }
 
@@ -1085,15 +1200,6 @@ static MENU_SELECT_FUNC(module_info_toggle)
         module_info_type = 0;
         menu_close_submenu();
     }
-}
-
-static int startswith(const char* str, const char* prefix)
-{
-    const char* s = str;
-    const char* p = prefix;
-    for (; *p; s++,p++)
-        if (*s != *p) return 0;
-    return 1;
 }
 
 static const char* module_get_string(int mod_number, const char* name)

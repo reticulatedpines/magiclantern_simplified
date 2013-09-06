@@ -10,9 +10,9 @@
 #define MODULE_PROPHANDLERS_PREFIX    __module_prophandlers_
 #define MODULE_CBR_PREFIX             __module_cbr_
 #define MODULE_CONFIG_PREFIX          __module_config_
-
-
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
+
+#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
 
 #define MODULE_MAGIC                  0x5A
 #define STR(x)                        STR_(x)
@@ -201,7 +201,7 @@ typedef struct
                                                                 
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)                   MODULE_STRINGS_START__(prefix,modname)
-#define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] = {
+#define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {
 #define MODULE_STRING(field,value)                                  { field, value },
 #define MODULE_STRINGS_END()                                        { (const char *)0, (const char *)0 }\
                                                                 };                                                                

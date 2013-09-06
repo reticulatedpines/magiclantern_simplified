@@ -6,6 +6,34 @@ import commands
 def run(cmd):
     return commands.getstatusoutput(cmd)[1]
 
+# see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37506 for how to place some strings in a custom section
+# (you must declare all strings as variables, not only the pointers)
+
+def c_repr(name):
+    if "\n" in name:
+        s = "\n"
+        for l in name.split("\n"):
+            s += "    %s\n" % ('"%s\\n"' % l.replace('"', r'\"'))
+        return s
+    else:
+        return '"%s"' % name.replace('"', r'\"')
+
+strings = []
+def add_string(name, value):
+    a = chr(ord('a') + len(strings))
+    print "static char __module_string_%s_name [] MODULE_STRINGS_SECTION = %s;" % (a, c_repr(name))
+    print "static char __module_string_%s_value[] MODULE_STRINGS_SECTION = %s;" % (a, c_repr(value))
+
+    strings.append((name, value))
+
+def declare_string_section():
+    print
+    print('MODULE_STRINGS_START()')
+    for i, s in enumerate(strings):
+        a = chr(ord('a') + i)
+        print "    MODULE_STRING(__module_string_%s_name, __module_string_%s_value)" % (a, a)
+    print('MODULE_STRINGS_END()')
+
 inp = open("README.rst").read().replace("\r\n", "\n")
 lines = inp.strip("\n").split("\n")
 title = lines[0]
@@ -20,8 +48,7 @@ for l in lines[2:]:
 inp = "\n".join(used_lines)
 inp = inp.split("\n\n")
 
-print('MODULE_STRINGS_START()')
-print('    MODULE_STRING("Name", "%s")' % title)
+add_string("Name", title)
 
 # extract user metadata from RST meta tags
 tags = {}
@@ -33,7 +60,7 @@ for l in lines[2:]:
         value = m.groups()[1].strip()
         if value.startswith("<") and value.endswith(">"):
             continue
-        print('    MODULE_STRING("%s", "%s")' % (name, value))
+        add_string(name, value)
         tags[name] = value
 
 if "Author" not in tags and "Authors" not in tags:
@@ -48,28 +75,29 @@ if "Summary" not in tags:
 # extract readme body:
 # intro -> "Description" tag;
 # each section will become "Help page 1", "Help page 2" and so on
-print('    MODULE_STRING("Description", ')
 
 # render the RST as html -> txt without the metadata tags
 txt = run('cat README.rst | grep -v -E "^:([^:])+:([^:])+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700')
 
+desc = ""
+last_str = "Description"
 help_page_num = 0
 lines_per_page = 0
 for p in txt.strip("\n").split("\n")[2:]:
     if p.startswith("# "): # new section
-        print('    )')
         help_page_num += 1
-        print('    MODULE_STRING("Help page %d", ' % help_page_num)
+        add_string(last_str, desc)
+        desc = ""
+        last_str = "Help page %d" % help_page_num
         lines_per_page = 0
         p = p[2:].strip()
-    print '        "%s\\n"' % p.replace('"', '\\"')
+    desc += "%s\n" % p
     lines_per_page += 1
-    if lines_per_page > 20:
+    if lines_per_page > 18:
         print >> sys.stderr, "Too many lines per page\n"
-        print('    )')
         exit(1)
 
-print('    )')
+add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
@@ -78,8 +106,8 @@ last_change_date = run("LC_TIME=EN date -u -d \"`hg log . -l 1 --template '{date
 build_date = run("LC_TIME=EN date -u '+%Y-%m-%d %H:%M:%S %Z'")
 build_user = run("echo `whoami`@`hostname`")
 
-print('    MODULE_STRING("Last update", "%s (%s)")' % (last_change_date, last_changeset))
-print('    MODULE_STRING("Build date", "%s")' % build_date)
-print('    MODULE_STRING("Build user", "%s")' % build_user)
+add_string("Last update", "%s (%s)" % (last_change_date, last_changeset))
+add_string("Build date", build_date)
+add_string("Build user", build_user)
 
-print('MODULE_STRINGS_END()')
+declare_string_section()
