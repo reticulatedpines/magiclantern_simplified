@@ -51,7 +51,7 @@ if "Summary" not in tags:
 print('    MODULE_STRING("Description", ')
 
 # render the RST as html -> txt without the metadata tags
-txt = run('cat README.rst | grep -v -E "^:([^:])+:([^:])+$" | rst2html --no-xml-declaration | python ../html2text.py -b 59')
+txt = run('cat README.rst | grep -v -E "^:([^:])+:([^:])+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700')
 
 help_page_num = 0
 lines_per_page = 0
