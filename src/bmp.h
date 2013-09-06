@@ -229,7 +229,8 @@ fontspec_width(uint32_t fontspec)
 }
 
 void bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... );
-int bmp_string_width(int fontspec, char* str);
+int bmp_string_width(int fontspec, char* str);                  /* string width in pixels, with a given font */
+int bmp_strlen_clipped(int fontspec, char* str, int maxlen);    /* string len (in chars), if you want to clip at maxlen pix */
 
 size_t read_file( const char * filename, void * buf, size_t size);
 

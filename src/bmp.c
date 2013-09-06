@@ -288,6 +288,11 @@ int bmp_string_width(int fontspec, char* str)
     return rbf_str_width(font_dynamic[FONT_ID(fontspec)].bitmap, str);
 }
 
+int bmp_strlen_clipped(int fontspec, char* str, int maxwidth)
+{
+    return rbf_strlen_clipped(font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth);
+}
+
 #if 0
 void
 con_printf(

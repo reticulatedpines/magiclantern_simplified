@@ -248,6 +248,15 @@ int rbf_str_clipped_width(font *rbf_font, const char *str, int l, int maxlen) {
     return l;
 }
 
+int rbf_strlen_clipped(font *rbf_font, const char *str, int l, int maxlen) {
+    // Calculate how long the string is in characters (possibly clipped to 'maxlen')
+    char* str0 = str;
+    while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
+        l+=rbf_char_width(rbf_font, *str++);
+
+    return str - str0;
+}
+
 //-------------------------------------------------------------------
 static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, int fontspec) {
     int xx, yy;
