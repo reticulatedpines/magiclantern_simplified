@@ -4692,6 +4692,7 @@ int is_menu_active(char* name)
 {
     if (!menu_shown) return 0;
     if (menu_help_active) return 0;
+    if (beta_should_warn()) return 0;
     return is_menu_selected(name);
 }
 
