@@ -88,7 +88,7 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     /* and measure font sizes */
     font_dynamic[dyn_fonts].bitmap = font;
     font_dynamic[dyn_fonts].height = rbf_font_height(font_dynamic[dyn_fonts].bitmap);
-    font_dynamic[dyn_fonts].width = rbf_char_width(font_dynamic[dyn_fonts].bitmap, 'X');
+    font_dynamic[dyn_fonts].width = rbf_char_width(font_dynamic[dyn_fonts].bitmap, '0');
     dyn_fonts++;
 
     return FONT_DYN(dyn_fonts - 1, fg_color, bg_color);
