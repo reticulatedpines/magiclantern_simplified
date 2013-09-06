@@ -76,8 +76,8 @@ struct menu_display_info
 #define MENU_MAX_VALUE_LEN 25
 #define MENU_MAX_SHORT_NAME_LEN 15
 #define MENU_MAX_SHORT_VALUE_LEN 15
-#define MENU_MAX_HELP_LEN 60
-#define MENU_MAX_WARNING_LEN 60
+#define MENU_MAX_HELP_LEN 100
+#define MENU_MAX_WARNING_LEN 100
 #define MENU_MAX_RINFO_LEN 30
 
 #define MENU_SET_NAME(fmt, ...)        snprintf(info->name,        MENU_MAX_NAME_LEN,        fmt, ## __VA_ARGS__)

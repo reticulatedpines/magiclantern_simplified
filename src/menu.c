@@ -2312,8 +2312,8 @@ skip_name:
                 default_help_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
-                    int len = strlen(help2);
-                    if (len > 58) break;
+                    int len = bmp_string_width(FONT_MED, help2);
+                    if (len > 700) break;
                     STR_APPEND(default_help_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
                 help_color = 50;
@@ -2735,7 +2735,7 @@ static char* junkie_get_shortname(struct menu_display_info * info, int fnt, int 
         if (c == ' ') { tmp[j+1] = toupper(tmp[j+1]); continue; }
         if (c == '.') continue;
         if (c == '(') break;
-        if (maxlen < 5*char_width && islower(c)) continue;
+        if (maxlen < 3*char_width && islower(c)) continue;
         sname[i] = c;
         i++;
     }
@@ -3066,7 +3066,7 @@ show_hidden_items(struct menu * menu, int force_clear)
     // show any items that may be hidden
     if (!menu_lv_transparent_mode)
     {
-        char hidden_msg[70];
+        char hidden_msg[100];
         snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
         int hidden_count = 0;
 
@@ -3087,10 +3087,11 @@ show_hidden_items(struct menu * menu, int force_clear)
         }
         STR_APPEND(hidden_msg, customize_mode ? "." : " (Prefs->Customize).");
         
-        if (strlen(hidden_msg) > 60)
+        int maxlen = bmp_strlen_clipped(FONT_MED, hidden_msg, 700);
+        if (strlen(hidden_msg) > maxlen)
         {
-            hidden_msg[59] = hidden_msg[58] = hidden_msg[57] = '.';
-            hidden_msg[60] = '\0';
+            hidden_msg[maxlen-1] = hidden_msg[maxlen-2] = hidden_msg[maxlen-3] = '.';
+            hidden_msg[maxlen] = '\0';
         }
 
         int hidden_pos_y = 410;
