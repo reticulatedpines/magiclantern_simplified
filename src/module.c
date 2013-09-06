@@ -35,7 +35,8 @@ static TCCState *module_state = NULL;
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
-CONFIG_INT("module.autoload", module_autoload_enabled, 1);
+CONFIG_INT("module.autoload", module_autoload_disabled, 0);
+#define module_autoload_enabled (!module_autoload_disabled)
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -1396,7 +1397,7 @@ static struct menu_entry module_menu[] = {
 
 static struct menu_entry module_debug_menu[] = {
     {
-        .name = "Module debug",
+        .name = "Modules debug",
         .select = menu_open_submenu,
         .submenu_width = 710,
         .help = "Diagnostic options for modules.",
@@ -1417,17 +1418,15 @@ static struct menu_entry module_debug_menu[] = {
             #endif
             {
                  .name = "Disable all modules",
-                 .priv = &module_autoload_enabled,
+                 .priv = &module_autoload_disabled,
                  .max = 1,
-                 .choices = CHOICES("ON", "OFF"),
                  .help = "For troubleshooting.",
             },
             {
-                .name = "Alert unclean shutdown",
+                .name = "Load modules after crash",
                 .priv = &module_ignore_crashes,
                 .max = 1,
-                .choices = CHOICES("ON", "OFF"),
-                .help = "Do not load modules after camera crashed.",
+                .help = "Load modules even after camera crashed and you took battery out.",
             },
             {
                 .name = "Show console",
