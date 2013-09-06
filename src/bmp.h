@@ -531,6 +531,17 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_LV 0x989aee
 #endif
 
+#define SYM_DOTS        "\x7F"
+#define SYM_ISO         "\x80"
+#define SYM_F_SLASH     "\x81"
+#define SYM_1_SLASH     "\x82"
+#define SYM_DEGREE      "\x83"
+#define SYM_MICRO       "\x84"
+#define SYM_PLUSMINUS   "\x85"
+#define SYM_LV          "\x86"
+#define SYM_BULLET      "\x87"
+#define SYM_EM_DASH     "\x88"
+
 void bfnt_test();
 
 #endif //#ifndef _bmp_h_
