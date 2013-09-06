@@ -6968,6 +6968,10 @@ shoot_task( void* unused )
         #endif // FEATURE_INTERVALOMETER
         {
             #ifdef FEATURE_INTERVALOMETER
+            if (intervalometer_pictures_taken)
+            {
+                interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
+            }
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
             #endif
