@@ -3269,13 +3269,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(raw_rec_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "14-bit RAW video")
-    MODULE_STRING("License", "GPL")
-    MODULE_STRING("Author", "a1ex")
-    MODULE_STRING("Credits", "g3gg0 (lv_rec)")
-MODULE_STRINGS_END()
-
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
