@@ -309,6 +309,13 @@ mlv_xref_hdr_t *load_index(char *base_filename)
         {
             fseeko(in_file, position + buf.blockSize, SEEK_SET);
         }
+        
+        /* we are at the same position as before, so abort */
+        if(position == ftello(in_file))
+        {
+            fprintf(stderr, "[E] File '%s' has invalid blocks\n", filename);
+            break;
+        }
     }
     while(!feof(in_file));
     
@@ -340,6 +347,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     mlv_file_hdr_t file_hdr = *ref_file_hdr;
     
     /* update fields */
+    file_hdr.blockSize = sizeof(mlv_file_hdr_t);
     file_hdr.videoFrameCount = 0;
     file_hdr.audioFrameCount = 0;
     file_hdr.fileNum = fileCount + 1;
@@ -496,10 +504,10 @@ int main (int argc, char *argv[])
 #ifdef MLV_USE_LZMA
     /* this may need some tuning */
     int lzma_dict = 1<<27;
-    int lzma_lc = 7;
+    int lzma_lc = 0;
     int lzma_lp = 1;
     int lzma_pb = 1;
-    int lzma_fb = 8;
+    int lzma_fb = 16;
     int lzma_threads = 8;
 #endif
     
@@ -765,7 +773,7 @@ int main (int argc, char *argv[])
         {
             if(delta_encode_mode)
             {
-                fprintf(stderr, "[E] Delta encoding is not possible without an index file. Please create one using -x option.");
+                fprintf(stderr, "[E] Delta encoding is not possible without an index file. Please create one using -x option.\n");
                 return 0;
             }
         }
@@ -793,7 +801,7 @@ int main (int argc, char *argv[])
         }
     }
     
-    if(delta_encode_mode)
+    //if(delta_encode_mode)
     {
         prev_frame_buffer = malloc(frame_buffer_size);
         if(!prev_frame_buffer)
@@ -1205,44 +1213,88 @@ read_headers:
                     
                     if(delta_encode_mode)
                     {
-                        uint8_t *current_frame_buffer = malloc(frame_size);
-                        int pitch = video_xRes * current_depth / 8;
-                        
-                        /* backup current frame for later */
-                        memcpy(current_frame_buffer, frame_buffer, frame_size);
-                        
-                        for(int y = 0; y < video_yRes; y++)
+                        /* only delta encode, if not already encoded */
+                        if(!(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_DELTA))
                         {
-                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
-                            uint16_t *ref_line = (uint16_t *)&prev_frame_buffer[y * pitch];
-                            int32_t offset = 1 << (current_depth - 1);
-                            int32_t max_val = (1 << current_depth) - 1;
+                            uint8_t *current_frame_buffer = malloc(frame_size);
+                            int pitch = video_xRes * current_depth / 8;
                             
-                            for(int x = 0; x < video_xRes; x++)
+                            /* backup current frame for later */
+                            memcpy(current_frame_buffer, frame_buffer, frame_size);
+                            
+                            for(int y = 0; y < video_yRes; y++)
                             {
-                                int32_t value = bitextract(src_line, x, current_depth);
-                                int32_t ref_value = bitextract(ref_line, x, current_depth);
+                                uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                                uint16_t *ref_line = (uint16_t *)&prev_frame_buffer[y * pitch];
+                                int32_t offset = 1 << (current_depth - 1);
+                                int32_t max_val = (1 << current_depth) - 1;
                                 
-                                /* when e.g. using 16 bit values:
-                                       delta =  1      -> encode to 0x8001
-                                       delta =  0      -> encode to 0x8000
-                                       delta = -1      -> encode to 0x7FFF
-                                       delta = -0xFFFF -> encode to 0x0001
-                                       delta =  0xFFFF -> encode to 0x7FFF
-                                   so this is basically a signed int with overflow and a max/2 offset.
-                                   this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
-                                */
-                                int32_t delta = offset + value - ref_value;
-                                
-                                uint16_t new_value = (uint16_t)(delta & max_val);
-                                
-                                bitinsert(src_line, x, current_depth, new_value);
+                                for(int x = 0; x < video_xRes; x++)
+                                {
+                                    int32_t value = bitextract(src_line, x, current_depth);
+                                    int32_t ref_value = bitextract(ref_line, x, current_depth);
+                                    
+                                    /* when e.g. using 16 bit values:
+                                           delta =  1      -> encode to 0x8001
+                                           delta =  0      -> encode to 0x8000
+                                           delta = -1      -> encode to 0x7FFF
+                                           delta = -0xFFFF -> encode to 0x0001
+                                           delta =  0xFFFF -> encode to 0x7FFF
+                                       so this is basically a signed int with overflow and a max/2 offset.
+                                       this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
+                                    */
+                                    int32_t delta = offset + value - ref_value;
+                                    
+                                    uint16_t new_value = (uint16_t)(delta & max_val);
+                                    
+                                    bitinsert(src_line, x, current_depth, new_value);
+                                }
                             }
+                            
+                            /* save current original frame to prev buffer */
+                            memcpy(prev_frame_buffer, current_frame_buffer, frame_size);
+                            free(current_frame_buffer);
                         }
-                        
-                        /* save current original frame to prev buffer */
-                        memcpy(prev_frame_buffer, current_frame_buffer, frame_size);
-                        free(current_frame_buffer);
+                    }
+                    else
+                    {
+                        /* delta decode, if input data is encoded */
+                        if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_DELTA)
+                        {
+                            int pitch = video_xRes * current_depth / 8;
+                           
+                            for(int y = 0; y < video_yRes; y++)
+                            {
+                                uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                                uint16_t *ref_line = (uint16_t *)&prev_frame_buffer[y * pitch];
+                                int32_t offset = 1 << (current_depth - 1);
+                                int32_t max_val = (1 << current_depth) - 1;
+                                
+                                for(int x = 0; x < video_xRes; x++)
+                                {
+                                    int32_t value = bitextract(src_line, x, current_depth);
+                                    int32_t ref_value = bitextract(ref_line, x, current_depth);
+                                    
+                                    /* when e.g. using 16 bit values:
+                                           delta =  1      -> encode to 0x8001
+                                           delta =  0      -> encode to 0x8000
+                                           delta = -1      -> encode to 0x7FFF
+                                           delta = -0xFFFF -> encode to 0x0001
+                                           delta =  0xFFFF -> encode to 0x7FFF
+                                       so this is basically a signed int with overflow and a max/2 offset.
+                                       this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
+                                    */
+                                    int32_t delta = offset + value + ref_value;
+                                    
+                                    uint16_t new_value = (uint16_t)(delta & max_val);
+                                    
+                                    bitinsert(src_line, x, current_depth, new_value);
+                                }
+                            }
+                            
+                            /* save current original frame to prev buffer */
+                            memcpy(prev_frame_buffer, frame_buffer, frame_size);
+                        }
                     }
                     
                     if(raw_output)
