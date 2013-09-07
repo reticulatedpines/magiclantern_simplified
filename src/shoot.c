@@ -3248,14 +3248,16 @@ static MENU_UPDATE_FUNC(hdr_display)
         {
             snprintf(hdr_steps_str, 10, "%d", hdr_steps);
         }
-        MENU_SET_VALUE("%s%sx%d%sEV,%s%s%s",
-            hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
+        MENU_SET_VALUE("%s%sx%d%sEV",
+            hdr_type == 0 ? "" : hdr_type == 1 ? "F " : "DOF ",
             hdr_steps_str, 
             hdr_stepsize / 8,
-            ((hdr_stepsize/4) % 2) ? ".5" : "",
+            ((hdr_stepsize/4) % 2) ? ".5" : ""
+        );
+        MENU_SET_RINFO("%s%s%s",
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
-            hdr_delay ? ",2s" : "",
-            hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
+            hdr_delay ? ", 2s" : "",
+            hdr_iso == 1 ? ", ISO" : hdr_iso == 2 ? ", iso" : ""
         );
     }
 

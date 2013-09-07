@@ -866,7 +866,7 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-    new_menu->split_pos = -17;
+    new_menu->split_pos = -16;
     new_menu->scroll_pos = 0;
     new_menu->advanced = 0;
     // menu points to the last entry or NULL if there are none
@@ -2491,7 +2491,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
 static int
 dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders)
 {
-    dyn_menu->split_pos = -17;
+    dyn_menu->split_pos = -16;
 
     int i = 0;
     struct menu * menu = menus;

@@ -866,8 +866,8 @@ char* lens_format_shutter(int tv)
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
       if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "1/%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "1/%d  ", shutter_reciprocal);
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK ", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
       return shutter;

@@ -326,8 +326,8 @@ MENU_UPDATE_FUNC(hist_print)
         MENU_SET_VALUE(
             "%s%s%s",
             hist_colorspace == 0 ? "Luma" : "RGB",
-            hist_log ? ",Log" : ",Lin",
-            hist_warn ? ",dots" : ""
+            hist_log ? ", Log" : ", Lin",
+            hist_warn ? ", dots" : ""
         );
     }
 #endif
@@ -335,7 +335,7 @@ MENU_UPDATE_FUNC(hist_print)
     if (hist_draw && can_use_raw_overlays_menu())
     {
         raw_histo_update(entry, info);
-        MENU_APPEND_VALUE(",RAW");
+        MENU_APPEND_VALUE(", RAW");
     }
     #endif
 }

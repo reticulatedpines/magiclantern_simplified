@@ -2449,26 +2449,26 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         "%s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
 #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
-        zoom_overlay_trigger_mode == 1 ? "HalfS," :
-        zoom_overlay_trigger_mode == 2 ? "Focus," :
-        zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
+        zoom_overlay_trigger_mode == 1 ? "HalfS, " :
+        zoom_overlay_trigger_mode == 2 ? "Focus, " :
+        zoom_overlay_trigger_mode == 3 ? "F+HS, " : "ALW, ",
 #else
-        zoom_overlay_trigger_mode == 1 ? "Zrec," :
-        zoom_overlay_trigger_mode == 2 ? "F+Zr," :
-        zoom_overlay_trigger_mode == 3 ? "(+)," : "ALW,",
+        zoom_overlay_trigger_mode == 1 ? "Zrec, " :
+        zoom_overlay_trigger_mode == 2 ? "F+Zr, " :
+        zoom_overlay_trigger_mode == 3 ? "(+), " : "ALW, ",
 #endif
 
         zoom_overlay_trigger_mode == 0 ? "" :
-            zoom_overlay_size == 0 ? "Small," :
-            zoom_overlay_size == 1 ? "Med," :
-            zoom_overlay_size == 2 ? "Large," : "FullScreen",
+            zoom_overlay_size == 0 ? "Small, " :
+            zoom_overlay_size == 1 ? "Med, " :
+            zoom_overlay_size == 2 ? "Large, " : "FullScreen",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
-            zoom_overlay_pos == 0 ? "AFbox," :
-            zoom_overlay_pos == 1 ? "TL," :
-            zoom_overlay_pos == 2 ? "TR," :
-            zoom_overlay_pos == 3 ? "BR," :
-            zoom_overlay_pos == 4 ? "BL," : "err",
+            zoom_overlay_pos == 0 ? "AFbox, " :
+            zoom_overlay_pos == 1 ? "TL, " :
+            zoom_overlay_pos == 2 ? "TR, " :
+            zoom_overlay_pos == 3 ? "BR, " :
+            zoom_overlay_pos == 4 ? "BL, " : "err",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_x == 0 ? "1:1" :
@@ -2478,8 +2478,8 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_split == 0 ? "" :
-            zoom_overlay_split == 1 ? ",Ss" :
-            zoom_overlay_split == 2 ? ",Sz" : "err"
+            zoom_overlay_split == 1 ? ", Ss" :
+            zoom_overlay_split == 2 ? ", Sz" : "err"
 
     );
 

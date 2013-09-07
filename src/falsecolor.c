@@ -111,7 +111,7 @@ void falsecolor_palette_preview(int x, int y)
 {
     for (int i = 0; i < 256; i++)
     {
-        draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
+        draw_line(x + i, y, x + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
     }
 }
 
@@ -122,7 +122,6 @@ MENU_UPDATE_FUNC(falsecolor_display)
         MENU_SET_VALUE(
             falsecolor_palette_name()
         );
-        if (info->can_custom_draw) falsecolor_palette_preview(info->x, info->y);
     }
 }
 
@@ -131,7 +130,7 @@ MENU_UPDATE_FUNC(falsecolor_display_palette)
     MENU_SET_VALUE(
         falsecolor_palette_name()
     );
-    if (info->can_custom_draw) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
+    if (info->can_custom_draw) falsecolor_palette_preview(info->x, info->y + font_large.height + 10);
 }
 
 #endif
