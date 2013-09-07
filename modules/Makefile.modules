@@ -12,10 +12,13 @@ MODULE_SRC    = $(MODULE_NAME).c
 MODULE_OUTPUT = $(MODULE_NAME).mo
 MODULE_SYM    = $(MODULE_NAME).sym
 MODULE_DEP    = $(MODULE_NAME).dep
+MODULE_DEPS   = $(MODULE_NAME).d
 
 MODULE_STRINGS   = module_strings.h
 
 all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
+
+-include $(MODULE_DEPS)
 
 clean::
 	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym)
