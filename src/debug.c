@@ -3095,26 +3095,19 @@ static void ambient_display(
 }
 #endif
 
-#if CONFIG_DEBUGMSG
-CONFIG_INT("prop.i", prop_i, 0);
-CONFIG_INT("prop.j", prop_j, 0);
-CONFIG_INT("prop.k", prop_k, 0);
+#ifdef FEATURE_DEBUG_PROP_DISPLAY
+static CONFIG_INT("prop.i", prop_i, 0);
+static CONFIG_INT("prop.j", prop_j, 0);
+static CONFIG_INT("prop.k", prop_k, 0);
 
-static void prop_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (prop_display)
 {
     unsigned prop = (prop_i << 24) | (prop_j << 16) | (prop_k);
     int* data = 0;
     size_t len = 0;
     int err = prop_get_value(prop, (void **) &data, &len);
-    bmp_printf(
-        FONT_MED,
-        x, y,
-        "PROP %8x: %d: %8x %8x %8x %8x\n"
+    MENU_SET_VALUE(
+    "%8x: %d: %x %x %x %x\n"
         "'%s' ",
         prop,
         len,
@@ -3124,7 +3117,6 @@ static void prop_display(
         len > 0x0c ? data[3] : 0,
         strlen((const char *) data) < 100 ? (const char *) data : ""
     );
-    menu_draw_icon(x, y, MNI_BOOL(!err), 0);
 }
 
 void prop_dump()
@@ -3300,7 +3292,7 @@ static void edmac_display_detailed(int channel)
     y += font_med.height;
     bmp_printf(FONT_MED, 50, y += font_med.height, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
 
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3)
     /**
      * ConnectReadEDmac(channel, conn)
      * RAM:edmac_register_interrupt(channel, cbr_handler, ...)
@@ -3392,30 +3384,30 @@ static struct menu_entry debug_menus[] = {
             },
             {
                 .name = "Val hex32",
-                //~.display = hexdump_print_value_hex,
+                .update = hexdump_print_value_hex,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as hex."
             },
             {
                 .name = "Val int32",
-                //~.display = hexdump_print_value_int32,
+                .update = hexdump_print_value_int32,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as int32."
             },
             {
                 .name = "Val int16",
-                //~.display = hexdump_print_value_int16,
+                .update = hexdump_print_value_int16,
                 .select = hexdump_toggle_value_int16,
                 .help = "Value as 2 x int16. Toggle: changes second value."
             },
             {
                 .name = "Val int8",
-                //~.display = hexdump_print_value_int8,
+                .update = hexdump_print_value_int8,
                 .help = "Value as 4 x int8."
             },
             {
                 .name = "Val string",
-                //~.display = hexdump_print_value_str,
+                .update = hexdump_print_value_str,
                 .help = "Value as string."
             },
             MENU_EOL
@@ -3442,7 +3434,7 @@ static struct menu_entry debug_menus[] = {
         .help = "Take a screenshot for each ML menu.",
     }, */
 #if CONFIG_DEBUGMSG
-    #ifndef CONFIG_5DC
+    #if 0
     {
         .name = "Draw palette",
         .select        = (void(*)(void*,int))bmp_draw_palette,
@@ -3862,15 +3854,17 @@ static struct menu_entry debug_menus[] = {
         .icon_type = IT_ALWAYS_ON,
     },
 #endif
-#if CONFIG_DEBUGMSG
+#ifdef FEATURE_DEBUG_PROP_DISPLAY
     {
-        .name = "PROP display",
-        //~.display = prop_display,
+        .name = "PROP Display",
+        .update = prop_display,
         .select = prop_toggle_k,
         // .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
     },
+#endif
+#if CONFIG_DEBUGMSG
     {
         .name = "Dump LV Buffers",
         //~.display = lvbuf_display,
