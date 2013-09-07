@@ -1,4 +1,4 @@
-Magic Lantern {#mainpage}
+Magic Lantern
 =============
 
 Magic Lantern (ML) is a software enhancement that offers increased
