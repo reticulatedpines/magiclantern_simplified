@@ -11,6 +11,8 @@
 #define draw_char(x,y,c,h) do{}while(0)
 
 static int rbf_font_load(char *file, font* f, int maxchar);
+static inline int rbf_font_height(font *rbf_font);
+static inline int rbf_char_width(font *rbf_font, int ch);
 
 //-------------------------------------------------------------------
 static unsigned int RBF_HDR_MAGIC1 = 0x0DF00EE0;
@@ -221,26 +223,41 @@ static int rbf_font_load(char *file, font* f, int maxchar)
 }
 
 //-------------------------------------------------------------------
-int rbf_font_height(font *rbf_font) {
+static inline int rbf_font_height(font *rbf_font) {
     return rbf_font->hdr.height;
 }
 //-------------------------------------------------------------------
-int rbf_char_width(font *rbf_font, int ch) {
+static inline int rbf_char_width(font *rbf_font, int ch) {
     return rbf_font->wTable[ch];
 }
 
 //-------------------------------------------------------------------
 int rbf_str_width(font *rbf_font, const char *str) {
     int l=0;
+    int maxl = 0;
 
     // Calculate how long the string is in pixels
+    // and return the length of the longest line
     while (*str)
-        l+=rbf_char_width(rbf_font, *str++);
+    {
+        if (*str == '\n')
+        {
+            maxl = MAX(l, maxl);
+            l = 0;
+        }
+        else
+        {
+            l += rbf_char_width(rbf_font, *str);
+        }
+        str++;
+    }
+    maxl = MAX(l, maxl);
 
-    return l;
+    return maxl;
 }
 
-int rbf_str_clipped_width(font *rbf_font, const char *str, int l, int maxlen) {
+int rbf_str_clipped_width(font *rbf_font, const char *str, int maxlen) {
+    int l = 0;
     // Calculate how long the string is in pixels (possibly clipped to 'maxlen')
     while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
         l+=rbf_char_width(rbf_font, *str++);
@@ -248,10 +265,11 @@ int rbf_str_clipped_width(font *rbf_font, const char *str, int l, int maxlen) {
     return l;
 }
 
-int rbf_strlen_clipped(font *rbf_font, const char *str, int l, int maxlen) {
+int rbf_strlen_clipped(font *rbf_font, const char *str, int maxlen) {
+    int l = 0;
     // Calculate how long the string is in characters (possibly clipped to 'maxlen')
     char* str0 = str;
-    while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
+    while (*str && rbf_char_width(rbf_font, *str)<=maxlen)
         l+=rbf_char_width(rbf_font, *str++);
 
     return str - str0;
@@ -437,45 +455,14 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
 }
 
 //-------------------------------------------------------------------
-static int rbf_draw_string_single_line(font *rbf_font, int x, int y, const char *str, int fontspec) {
+static int rbf_draw_string_single_line(font *rbf_font, int x, int y, const char *str, int fontspec, int maxlen) {
     
     /* how much space do we have to draw the string? */
-    int len = FONT_GET_TEXT_WIDTH(fontspec);
+    int len = maxlen;
+    
+    // Calulate amount of padding needed
+    int padding = len - rbf_str_clipped_width(rbf_font, str, len);
 
-    int padding = -1;
-    
-    /* choose some reasonable defaults for text width, if it's not specified */
-    if (len == 0)
-    {
-        if (fontspec & FONT_ALIGN_MASK == FONT_ALIGN_LEFT)
-        {
-            /* no fancy alignment */
-            return rbf_draw_string_simple(rbf_font, x, y, str, fontspec);
-        }
-        else if (fontspec & FONT_ALIGN_MASK == FONT_ALIGN_JUSTIFIED)
-        {
-            /* default to centered box */
-            len = 720 - x*2;
-            if (len <= 50)
-            {
-                /* didn't work? then just print as much as possible */
-                len = 720 - x;
-            }
-        }
-        else
-        {
-            /* use natural string length, no padding */
-            len = rbf_str_width(rbf_font, str);
-            padding = 0;
-        }
-    }
-    
-    if (padding < 0)
-    {
-        // Calulate amount of padding needed
-        padding = len - rbf_str_clipped_width(rbf_font, str, 0, len);
-    }
-    
     /* is that padding on the left? on the right? or both? */
     int padding_left = 0;
     int padding_right = 0;
@@ -520,9 +507,28 @@ static int rbf_draw_string_single_line(font *rbf_font, int x, int y, const char 
 }
 
 int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int fontspec) {
+
+    /* how much space do we have to draw the string? */
+    int len = FONT_GET_TEXT_WIDTH(fontspec);
+
+    /* choose some reasonable defaults for text width, if it's not specified */
+    if (len == 0)
+    {
+        if ((fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_LEFT && (fontspec & FONT_ALIGN_FILL) == 0)
+        {
+            /* no fancy alignment */
+            return rbf_draw_string_simple(rbf_font, x, y, str, fontspec);
+        }
+        else
+        {
+            /* use natural string length */
+            len = rbf_str_width(rbf_font, str);
+        }
+    }
+
     char* start = (char*) str;
     char* end = start;
-    
+
     /* for each line in string */
     while (*start)
     {
@@ -535,7 +541,7 @@ int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int fontspec)
         *end = 0;
         
         /* draw this line */
-        rbf_draw_string_single_line(rbf_font, x, y, start, fontspec);
+        rbf_draw_string_single_line(rbf_font, x, y, start, fontspec, len);
         
         /* finished? */
         if (old == 0)

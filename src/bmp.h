@@ -150,7 +150,7 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_ALIGN_JUSTIFIED   0x03000000   /* anchor: left   */
 
 /* optional text width (for clipping, filling and justified) */
-/* default: no effect on normal text; centered box for justified text */
+/* default: longest line from the string */
 #define FONT_TEXT_WIDTH_MASK   0xFC000000
 #define FONT_TEXT_WIDTH(width)  ((((width+8) >> 4) << 26) & FONT_TEXT_WIDTH_MASK) /* range: 0-1015; round to 6 bits */
 
