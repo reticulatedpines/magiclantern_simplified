@@ -1065,7 +1065,13 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         MENU_SET_HELP("You should never see this");
     }
 
-    static int last_offline_load_time = 0;
+    static int last_menu_activity_time = 0;
+    static void* prev_selected = 0;
+    if (entry->selected && entry != prev_selected)
+    {
+        last_menu_activity_time = get_ms_clock_value();
+        prev_selected = entry;
+    }
 
     if (entry->selected)
     {
@@ -1078,7 +1084,6 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
                 module_list[mod_number].strings = default_strings;
                 
                 module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
-                last_offline_load_time = get_ms_clock_value();
 
                 if (strings)
                 {
@@ -1110,8 +1115,8 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         }
     }
 
-    /* clean up offline strings (leave them allocated for at least once per second, so it won't slow down fast scrolling) */
-    if (!entry->selected && get_ms_clock_value() > 1000 + last_offline_load_time)
+    /* clean up offline strings if the module menu is no longer used */
+    if (!entry->selected && get_ms_clock_value() > 3000 + last_menu_activity_time)
     {
         if (
                 !module_list[mod_number].valid &&
