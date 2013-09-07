@@ -89,13 +89,18 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
-//~ #define CONFIG_DMA_MEMCPY
+/** We can use DMA_MEMCPY **/
+// #define CONFIG_DMA_MEMCPY
+/** We don't know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+// #define CONFIG_EDMAC_MEMCPY
+
+/** We know how to use engine resource locks */
+#define CONFIG_ENGINE_RESLOCK
 
 /** We should't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
 
-/** We can display extra info in photo mode (not LiveView) **/
+/** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
 /** FIO_RenameFile works **/
@@ -126,3 +131,8 @@
 
 /** This camera uses the exposure comp button to open ML menu */
 #define CONFIG_MENU_WITH_AV
+
+/** We don't have access to Raw data (yet) */
+//~ #define CONFIG_RAW_LIVEVIEW
+//~ #define CONFIG_RAW_PHOTO
+
