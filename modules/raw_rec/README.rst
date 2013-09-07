@@ -1,5 +1,5 @@
-raw_rec
-========
+Raw recording
+=============
 
 Records 14-bit RAW video.
 

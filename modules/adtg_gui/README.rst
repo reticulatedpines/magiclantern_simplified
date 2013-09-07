@@ -1,5 +1,5 @@
-adtg_gui
-========
+ADTG register GUI
+=================
 
 ADTG and CMOS register editing GUI.
 
