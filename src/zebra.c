@@ -866,7 +866,7 @@ int can_use_raw_overlays_menu()
 #ifdef FEATURE_RAW_ZEBRAS
 
 static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo only */
-#define RAW_ZEBRA_ENABLE (raw_zebra_enable == 1 || !lv)
+#define RAW_ZEBRA_ENABLE (raw_zebra_enable == 1 || (raw_zebra_enable == 2 && !lv))
 
 static void FAST draw_zebras_raw()
 {
@@ -3179,7 +3179,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &raw_zebra_enable,
                 .max = 2,
                 .update = raw_zebra_update,
-                .choices = (const char *[]) {"OFF", "ON", "Photo only"},
+                .choices = (const char *[]) {"OFF", "Always", "Photo only"},
                 .help = "Use RAW zebras if possible.",
             },
             #endif
