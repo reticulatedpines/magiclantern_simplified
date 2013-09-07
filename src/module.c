@@ -1143,7 +1143,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
                 int fg = COLOR_GRAY(40);
                 int bg = COLOR_BLACK;
                 int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
-                bmp_printf(fnt, 680 - strlen(name)*font_med.width, info->y+5, name);
+                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(300), 690, info->y+5, name);
             }
         }
     }
@@ -1266,7 +1266,7 @@ static int module_show_about_page(int mod_number)
             int fnt_special = FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK);
 
             bmp_printf(FONT_LARGE, 10, 10, "%s", name);
-            big_bmp_printf(FONT_MED | FONT_ALIGN_JUSTIFIED(690) | FONT_ALIGN_FILL, 10, 60, "%s", desc);
+            big_bmp_printf(FONT_MED | FONT_ALIGN_JUSTIFIED | FONT_ALIGN_FILL, 10, 60, "%s", desc);
 
             int xm = 710 - max_width_value * font_med.width;
             int xl = 710 - max_width * font_med.width;

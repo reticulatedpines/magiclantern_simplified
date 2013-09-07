@@ -359,13 +359,13 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
     int i = 0;
     int l = 0;
     
-    int justified = (fontspec & FONT_ALIGN_TYPE_MASK) == FONT_ALIGN_TYPE_JUSTIFIED;
+    int justified = (fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_JUSTIFIED;
     
     if (justified)
     {
         int should_fill = !(fontspec & SHADOW_MASK);
         int bg = FONT_BG(fontspec);
-        int len = FONT_ALIGN_WIDTH(fontspec);
+        int len = maxlen;
         int space = len - rbf_str_width(rbf_font, str);
         
         /* divide the space across the chars: a space character can accept 5 times more stretch space than a regular letter */
@@ -440,37 +440,64 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
 static int rbf_draw_string_single_line(font *rbf_font, int x, int y, const char *str, int fontspec) {
     
     /* how much space do we have to draw the string? */
-    int len = FONT_ALIGN_WIDTH(fontspec);
+    int len = FONT_GET_TEXT_WIDTH(fontspec);
+
+    int padding = -1;
     
+    /* choose some reasonable defaults for text width, if it's not specified */
     if (len == 0)
     {
-        /* no fancy alignment */
-        return rbf_draw_string_simple(rbf_font, x, y, str, fontspec);
+        if (fontspec & FONT_ALIGN_MASK == FONT_ALIGN_LEFT)
+        {
+            /* no fancy alignment */
+            return rbf_draw_string_simple(rbf_font, x, y, str, fontspec);
+        }
+        else if (fontspec & FONT_ALIGN_MASK == FONT_ALIGN_JUSTIFIED)
+        {
+            /* default to centered box */
+            len = 720 - x*2;
+            if (len <= 50)
+            {
+                /* didn't work? then just print as much as possible */
+                len = 720 - x;
+            }
+        }
+        else
+        {
+            /* use natural string length, no padding */
+            len = rbf_str_width(rbf_font, str);
+            padding = 0;
+        }
     }
     
-    // Calulate amount of padding needed
-    int padding = len - rbf_str_clipped_width(rbf_font, str, 0, len);
+    if (padding < 0)
+    {
+        // Calulate amount of padding needed
+        padding = len - rbf_str_clipped_width(rbf_font, str, 0, len);
+    }
     
     /* is that padding on the left? on the right? or both? */
     int padding_left = 0;
     int padding_right = 0;
     
-    switch (fontspec & FONT_ALIGN_TYPE_MASK)
+    switch (fontspec & FONT_ALIGN_MASK)
     {
-        case FONT_ALIGN_TYPE_LEFT:
+        case FONT_ALIGN_LEFT:
             padding_right = padding;
             break;
         
-        case FONT_ALIGN_TYPE_CENTER:
+        case FONT_ALIGN_CENTER:
+            x -= len/2;
             padding_left = padding/2;
             padding_right = padding - padding/2;
             break;
         
-        case FONT_ALIGN_TYPE_RIGHT:
+        case FONT_ALIGN_RIGHT:
             padding_left = padding;
+            x -= len;
             break;
         
-        case FONT_ALIGN_TYPE_JUSTIFIED:
+        case FONT_ALIGN_JUSTIFIED:
             padding_left = 0;
             padding_right = 0;
     }

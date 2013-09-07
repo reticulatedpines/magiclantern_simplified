@@ -135,32 +135,32 @@ uint8_t* bmp_vram_idle();
 void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 
-/** Font specifiers include the font, the fg color and bg color */
-#define FONT_MASK               0x000F0000
+/** Font specifiers include the font, the fg color and bg color, shadow flag, text alignment, expanded/condensed */
+#define FONT_MASK              0x00070000
 
 /* shadow flag */
-#define SHADOW_MASK             0x00100000
+#define SHADOW_MASK            0x00080000
 #define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)
 
-/* font alignment helper macros */
-#define FONT_ALIGN_TYPE_MASK        0x03000000
-#define FONT_ALIGN_WIDTH_MASK       0xFC000000
-#define FONT_ALIGN_MASK             0xFF000000
-
-#define FONT_ALIGN_TYPE_LEFT        0x00000000
-#define FONT_ALIGN_TYPE_CENTER      0x01000000
-#define FONT_ALIGN_TYPE_RIGHT       0x02000000
-#define FONT_ALIGN_TYPE_JUSTIFIED   0x03000000
-#define FONT_ALIGN_PREP_WIDTH(width)  ((((width+8) >> 4) << 26) & FONT_ALIGN_WIDTH_MASK) /* range: 0-1015; round to 6 bits */
-
 /* font alignment macros */
-#define FONT_ALIGN_LEFT(width)      FONT_ALIGN_TYPE_LEFT      | FONT_ALIGN_PREP_WIDTH(width)
-#define FONT_ALIGN_CENTER(width)    FONT_ALIGN_TYPE_CENTER    | FONT_ALIGN_PREP_WIDTH(width)
-#define FONT_ALIGN_RIGHT(width)     FONT_ALIGN_TYPE_RIGHT     | FONT_ALIGN_PREP_WIDTH(width)
-#define FONT_ALIGN_JUSTIFIED(width) FONT_ALIGN_TYPE_JUSTIFIED | FONT_ALIGN_PREP_WIDTH(width)
+#define FONT_ALIGN_MASK        0x03000000
+#define FONT_ALIGN_LEFT        0x00000000   /* anchor: left   */
+#define FONT_ALIGN_CENTER      0x01000000   /* anchor: center */
+#define FONT_ALIGN_RIGHT       0x02000000   /* anchor: right  */
+#define FONT_ALIGN_JUSTIFIED   0x03000000   /* anchor: left   */
+
+/* optional text width (for clipping, filling and justified) */
+/* default: no effect on normal text; centered box for justified text */
+#define FONT_TEXT_WIDTH_MASK   0xFC000000
+#define FONT_TEXT_WIDTH(width)  ((((width+8) >> 4) << 26) & FONT_TEXT_WIDTH_MASK) /* range: 0-1015; round to 6 bits */
 
 /* when aligning text, fill the blank space with background color (so you get a nice solid box) */
-#define FONT_ALIGN_FILL             0x00800000
+#define FONT_ALIGN_FILL        0x00800000
+
+/* expanded/condensed */
+/* not yet implemented */
+#define FONT_EXPAND_MASK       0x00700000
+#define FONT_EXPAND(pix)       (((pix) << 20) & FONT_EXPAND_MASK) /* range: -4 ... +3 pixels per character */
 
 #define FONT(font,fg,bg)        ( 0 \
         | ((font) & (0xFFFF0000)) \
@@ -184,13 +184,14 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_LARGE FONT_SANS_32
 
 /* retrieve fontspec fields */
-#define FONT_ID(font) (((font) >> 16) & 0xF)
+#define FONT_ID(font) (((font) >> 16) & 0x7)
 #define FONT_BG(font) (((font) & 0xFF00) >> 8)
 #define FONT_FG(font) (((font) & 0x00FF) >> 0)
-#define FONT_ALIGN_WIDTH(font)    (((font >> 26) & 0x3F) << 4)
+#define FONT_GET_TEXT_WIDTH(font)    (((font) >> 22) & 0x3F0)
+#define FONT_GET_EXPAND_AMOUNT(font) (((font) >> 20) & 0x7)
 
 /* RBF stuff */
-#define MAX_DYN_FONTS 16
+#define MAX_DYN_FONTS 8
 extern struct font font_dynamic[MAX_DYN_FONTS];
 
 /* this function is used to dynamically load a font identified by its filename without extension */

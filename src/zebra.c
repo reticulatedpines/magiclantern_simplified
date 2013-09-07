@@ -2899,8 +2899,8 @@ static void spotmeter_step()
         if (can_use_raw_overlays())
         {
             bmp_printf(
-                fnt | FONT_ALIGN_CENTER(256),
-                xcb - 128, ycb, 
+                fnt | FONT_ALIGN_CENTER,
+                xcb, ycb, 
                 "-%d.%d EV",
                 -raw_ev/10, 
                 -raw_ev%10
@@ -2919,8 +2919,8 @@ static void spotmeter_step()
 fallback_from_raw:
 #endif
         bmp_printf(
-            fnt | FONT_ALIGN_CENTER(256),
-            xcb - 128, ycb, 
+            fnt | FONT_ALIGN_CENTER,
+            xcb, ycb, 
             "%3d%s",
             spotmeter_formula == 1 ? sy : scaled,
             spotmeter_formula == 1 ? "" : "%"
@@ -2932,8 +2932,8 @@ fallback_from_raw:
         int R,G,B,Y;
         COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
         bmp_printf(
-            fnt | FONT_ALIGN_CENTER(256),
-            xcb - 128, ycb, 
+            fnt | FONT_ALIGN_CENTER,
+            xcb, ycb, 
             "#%02x%02x%02x",
             R,G,B
         );

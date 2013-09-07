@@ -592,8 +592,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
     }
     else*/
     {
-        bmp_printf( text_font | FONT_ALIGN_CENTER(100),
-                x_origin + (shutter_x10 <= 3 ? 143 : 123) + 20, 
+        bmp_printf( text_font | FONT_ALIGN_CENTER,
+                x_origin + (shutter_x10 <= 3 ? 143 : 123) + 20 + 50,
                 y_origin, 
                 shutter);
     }
@@ -997,10 +997,10 @@ void fps_show()
     int y = time_indic_y + font_med.height - 4;
 
     // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-x, font_med.height - 4);
+    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height - 4);
 
     bmp_printf(
-        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT(710-x), x, y,
+        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
         "%2d.%03d", 
         f / 1000, f % 1000
     );
@@ -1050,10 +1050,10 @@ void free_space_show()
     int y = time_indic_y;
 
     // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-x, font_med.height);
+    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height);
 
     bmp_printf(
-        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT(710-x), x, y,
+        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
         "%d.%dGB",
         fsg,
         fsgf
