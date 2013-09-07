@@ -643,16 +643,6 @@ static MENU_UPDATE_FUNC(follow_focus_print)
     if (follow_focus) MENU_SET_VALUE(
         get_follow_focus_mode() == 0 ? "Arrows" : "LCD sensor"
     );
-    if (follow_focus == 1)
-    {
-        int x = info->x;
-        int y = info->y;
-        if (info->can_custom_draw)
-        {
-            bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
-            bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
-        }
-    }
 }
 
 static MENU_UPDATE_FUNC(focus_delay_update)

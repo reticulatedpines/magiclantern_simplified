@@ -1,5 +1,5 @@
-Arkanoid game.
-==============
+Arkanoid game
+=============
 
 A stripped-down version of the old 1980s brick breaker-style game "Arkanoid". Use LEFT and RIGHT keys (or joystick) to play.
 
