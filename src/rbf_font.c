@@ -560,7 +560,7 @@ static void rbf_init()
 {
     /* load some fonts */
     font_by_name("mlsans23", COLOR_BLACK, COLOR_WHITE);
-    font_by_name("mlsans33", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("argand33", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
     //font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
