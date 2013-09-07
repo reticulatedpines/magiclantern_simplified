@@ -14,15 +14,19 @@ PROP_HANDLER(PROP_VIDEO_MODE)
     memcpy(video_mode, buf, len);
 }
 
-unsigned int is_crop_hack_supported() {
-    if(recording || video_mode_resolution != 0) {
+unsigned int is_crop_hack_supported() 
+{
+    if(recording || video_mode_resolution != 0) 
+    {
          return 0;
     }
     return 1;
 }
 
-unsigned int movie_crop_hack_enable() {
-    if(!is_crop_hack_supported() || video_mode_crop) {
+unsigned int movie_crop_hack_enable() 
+{
+    if(!is_crop_hack_supported() || video_mode_crop) 
+    {
         return 0;
     }
     video_mode[0] = 0xc;
@@ -32,7 +36,8 @@ unsigned int movie_crop_hack_enable() {
 }
 
 unsigned int movie_crop_hack_disable() {
-    if(!is_crop_hack_supported() || !video_mode_crop) {
+    if(!is_crop_hack_supported() || !video_mode_crop) 
+    {
         return 0;
     }
     video_mode[0] = 0;
@@ -44,10 +49,14 @@ unsigned int movie_crop_hack_disable() {
 
 static void movie_crop_hack_toggle(void* priv, int sign)
 {
-    if(is_crop_hack_supported()) {
-        if(!video_mode_crop) {
+    if(is_crop_hack_supported()) 
+    {
+        if(!video_mode_crop) 
+        {
             movie_crop_hack_enable();
-        } else {
+        } 
+        else 
+        {
             movie_crop_hack_disable();
         }
     }
@@ -55,9 +64,12 @@ static void movie_crop_hack_toggle(void* priv, int sign)
 
 static MENU_UPDATE_FUNC(movie_crop_hack_display)
 {
-    if(recording) {
+    if(recording) 
+    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You can't change crop mode while recording");
-    } else if(video_mode_resolution != 0) {
+    }
+    else if(video_mode_resolution != 0) 
+    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Crop video mode works in 1080p only");
     }
 }
@@ -68,7 +80,7 @@ static struct menu_entry crop_hack_menus[] = {
         .update = movie_crop_hack_display,
         .select = movie_crop_hack_toggle,
         .max = 1,
-	.priv = &video_mode_crop,
+        .priv = &video_mode_crop,
         .help   = "Enables 600D movie crop-mode",
         .depends_on = DEP_MOVIE_MODE,
     },
