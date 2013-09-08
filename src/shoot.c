@@ -3824,14 +3824,6 @@ PROP_HANDLER(PROP_GUI_STATE)
 
 static void focus_ramp_step()
 {
-    static int prev_file_number = INT_MAX;
-    if (prev_file_number == file_number)
-    {
-        NotifyBox(2000, "Picture not taken :("); msleep(2000);
-        return;
-    }
-    prev_file_number = file_number;
-    
     int mf_steps = bramp_manual_speed_focus_steps_per_shot;
 
     if (mf_steps && !is_manual_focus())
