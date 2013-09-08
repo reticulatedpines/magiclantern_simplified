@@ -83,6 +83,7 @@ struct lens_info
         
         int flash_ae;
 
+        uint16_t                 lens_id;
         //~ float                   lens_rotation;
         //~ float                   lens_step;
 };

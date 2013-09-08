@@ -1548,6 +1548,8 @@ PROP_HANDLER(PROP_LENS)
     lens_info.raw_aperture_max = info[2];
     #endif
     
+    lens_info.lensID = lens_data[4] | (lens_data[5] << 8);
+    
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
     {
         int raw = COERCE(lens_info.raw_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
