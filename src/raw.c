@@ -922,25 +922,46 @@ int FAST raw_set_pixel(int x, int y, int value)
 
 int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
 {
-    switch (gray_projection)
+    int (*red_pixel)(int x, int y) = raw_red_pixel;
+    int (*green_pixel)(int x, int y) = raw_green_pixel;
+    int (*blue_pixel)(int x, int y) = raw_blue_pixel;
+
+    switch (gray_projection & GRAY_PROJECTION_BRIGHT_DARK_MASK)
+    {
+        case GRAY_PROJECTION_DARK_ONLY:
+            red_pixel = raw_red_pixel_dark;
+            green_pixel = raw_green_pixel_dark;
+            blue_pixel = raw_blue_pixel_dark;
+            break;
+        
+        case GRAY_PROJECTION_BRIGHT_ONLY:
+            red_pixel = raw_red_pixel_bright;
+            green_pixel = raw_green_pixel_bright;
+            blue_pixel = raw_blue_pixel_bright;
+            break;
+
+        default:
+            break;
+    }
+    switch (gray_projection & 0xFF)
     {
         case GRAY_PROJECTION_RED:
-            return raw_red_pixel(x, y);
+            return red_pixel(x, y);
         case GRAY_PROJECTION_GREEN:
-            return raw_green_pixel(x, y);
+            return green_pixel(x, y);
         case GRAY_PROJECTION_BLUE:
-            return raw_blue_pixel(x, y);
+            return blue_pixel(x, y);
         case GRAY_PROJECTION_AVERAGE_RGB:
-            return (raw_red_pixel(x, y) + raw_green_pixel(x, y) + raw_blue_pixel(x, y)) / 3;
+            return (red_pixel(x, y) + green_pixel(x, y) + blue_pixel(x, y)) / 3;
         case GRAY_PROJECTION_MAX_RGB:
-            return MAX(MAX(raw_red_pixel(x, y), raw_green_pixel(x, y)), raw_blue_pixel(x, y));
+            return MAX(MAX(red_pixel(x, y), green_pixel(x, y)), blue_pixel(x, y));
         case GRAY_PROJECTION_MAX_RB:
-            return MAX(raw_red_pixel(x, y), raw_blue_pixel(x, y));
+            return MAX(red_pixel(x, y), blue_pixel(x, y));
         case GRAY_PROJECTION_MEDIAN_RGB:
         {
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
+            int r = red_pixel(x, y);
+            int g = green_pixel(x, y);
+            int b = blue_pixel(x, y);
             int M = MAX(MAX(r,g),b);
             int m = MIN(MIN(r,g),b);
             if (r >= m && r <= M) return r;

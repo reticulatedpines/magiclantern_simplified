@@ -104,6 +104,10 @@ int raw_red_pixel_bright(int x, int y);
 int raw_green_pixel_bright(int x, int y);
 int raw_blue_pixel_bright(int x, int y);
 
+#define GRAY_PROJECTION_BRIGHT_DARK_MASK 0x300
+#define GRAY_PROJECTION_DARK_ONLY        0x000 /* by default, analyze the dark exposure only (suitable for highlights, ETTR...) */
+#define GRAY_PROJECTION_BRIGHT_ONLY      0x100 /* you can also analyze the bright exposure (suitable for shadows, SNR... */
+#define GRAY_PROJECTION_DARK_AND_BRIGHT  0x200 /* warning: might be more accurate on regular images, but has undefined behavior on dual ISO images */
 
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */

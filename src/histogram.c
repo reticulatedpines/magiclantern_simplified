@@ -450,9 +450,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
             for (int j = os.x0; j < os.x_max; j += speed)
             {
                 int x = BM2RAW_X(j);
-                int px1 = raw_get_gray_pixel(x, y, gray_projection);
-                int px2 = raw_get_gray_pixel(x, y+2, gray_projection);
-                int px = MIN(px1, px2);
+                int px = raw_get_gray_pixel(x, y, gray_projection);
                 hist[px & 16383]++;
             }
         }
@@ -512,9 +510,7 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
         for (int j = os.x0; j < os.x_max; j += step)
         {
             int x = BM2RAW_X(j);
-            int px1 = raw_get_gray_pixel(x, y, gray_projection);
-            int px2 = raw_get_gray_pixel(x, y+2, gray_projection);
-            int px = MIN(px1, px2);
+            int px = raw_get_gray_pixel(x, y, gray_projection);
             if (px >= white) over++;
             total++;
         }
