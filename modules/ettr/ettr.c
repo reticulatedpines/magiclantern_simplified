@@ -491,6 +491,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
     static int was_in_lv = 1;
     static int old_expsim = -1;
     static int old_zoom = -1;
+    static int should_clear_bv = 0;
     
     if (!reset)
     {
@@ -509,15 +510,42 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
         }
 
         /* temporarily enable expsim while metering */
-        if (force_expsim_and_zoom && !expsim)
+        if (force_expsim_and_zoom)
         {
-            old_expsim = expsim;
-            set_expsim(1);
-            auto_ettr_wait_lv_frames(10);
+            if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])
+            {
+                /* workaround for Canon's manual lens underexposure bug */
+                /* use expo override instead of ExpSim */
+                extern int bv_auto;
+                if (!bv_auto)
+                {
+                    should_clear_bv = 1;
+                    bv_toggle(0, 1);
+                    auto_ettr_wait_lv_frames(10);
+                }
+            }
+            else if (!expsim)
+            {
+                /* ExpSim should work well */
+                old_expsim = expsim;
+                set_expsim(1);
+                auto_ettr_wait_lv_frames(10);
+            }
         }
     }
     else /* undo all that stuff */
     {
+        if (should_clear_bv)
+        {
+            extern int bv_auto;
+            if (bv_auto)
+            {
+                bv_toggle(0, -1);
+                auto_ettr_wait_lv_frames(5);
+            }
+            should_clear_bv = 0;
+        }
+        
         if (old_expsim >= 0)
         {
             set_expsim(old_expsim);
