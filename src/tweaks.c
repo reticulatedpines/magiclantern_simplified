@@ -2479,9 +2479,19 @@ static void preview_contrast_n_saturation_step()
         desired_saturation = 0;
 
     #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    if (preview_peaking == 2)
+    static int peaking_hs_last_press = 0;
+    int halfshutter_pressed = get_halfshutter_pressed();
+    if (halfshutter_pressed)
+    {
+        peaking_hs_last_press = get_ms_clock_value();
+    }
+    int preview_peaking_force_normal_image =
+        halfshutter_pressed ||                                  /* show normal image on half-hutter press */
+        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
+    
+    if (preview_peaking == 2 && !preview_peaking_force_normal_image)
         desired_saturation = 0;
-    else if (preview_peaking == 3)
+    else if (preview_peaking == 3 && !preview_peaking_force_normal_image)
         desired_saturation = 0x40;
     #endif
 
@@ -2546,7 +2556,7 @@ static void preview_contrast_n_saturation_step()
     }
 
     #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    if (preview_peaking == 2 || preview_peaking == 3)
+    if ((preview_peaking == 2 || preview_peaking == 3) && !preview_peaking_force_normal_image)
         desired_contrast = contrast_values_at_brigthness_2[4];
     #endif
 
@@ -2583,7 +2593,7 @@ static void preview_contrast_n_saturation_step()
     int current_filter_value = (int) shamem_read(crazy_register);
     int desired_filter_value = 
         gui_menu_shown() && !menu_active_but_hidden() ? 0 :
-        preview_peaking == 1 ? 0x4d4 :
+        preview_peaking == 1 || (preview_peaking > 1 && preview_peaking_force_normal_image) ? 0x4d4 :
         preview_peaking == 2 || preview_peaking == 3 ? 0x4c0 :
         preview_peaking;
 
