@@ -143,6 +143,10 @@ NSTUB(0xff123bbc, prop_deliver)
 NSTUB(0xff123600, _prop_request_change)
 NSTUB(0xff123de4, _prop_get_value) // unsafe
 
+/** corectly named canon property reading functions **/
+NSTUB(0xFF123DE4, PROP_GetMulticastProperty)
+NSTUB(0xFF12523C, PROPAD_GetPropertyData)
+
 /** Memory allocation **/
 NSTUB(0xff0c80ec, _malloc)
 NSTUB(0xFF0C8144, _free) // see "can't malloc"
