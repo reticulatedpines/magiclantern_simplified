@@ -528,9 +528,3 @@ MODULE_INFO_START()
     MODULE_DEINIT(trace_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "Trace library")
-    MODULE_STRING("License", "GPLv2")
-    MODULE_STRING("Author", "g3gg0")
-MODULE_STRINGS_END()
-
