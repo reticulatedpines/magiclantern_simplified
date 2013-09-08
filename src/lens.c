@@ -1543,12 +1543,12 @@ PROP_HANDLER(PROP_LENS)
     #ifdef CONFIG_5DC
     lens_info.raw_aperture_min = info[2];
     lens_info.raw_aperture_max = info[3];
+    lens_info.lens_id = 0;
     #else
     lens_info.raw_aperture_min = info[1];
     lens_info.raw_aperture_max = info[2];
+    lens_info.lens_id = info[4] | (info[5] << 8);
     #endif
-    
-    lens_info.lensID = lens_data[4] | (lens_data[5] << 8);
     
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
     {
