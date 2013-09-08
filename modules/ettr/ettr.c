@@ -57,7 +57,7 @@ static int auto_ettr_get_correction()
     int raw_values[COUNT(percentiles)];
     static float diff_from_lower_percentiles[COUNT(percentiles)-1] = {0};
 
-    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj, 2);
+    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_DARK_ONLY, 2);
     
     if (ok != 1)
     {
@@ -66,8 +66,19 @@ static int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw_values[0]);
-    float ev_median = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
-    float ev_shadow = raw_to_ev(raw_values[11]); /* 5th percentile */
+    float ev_median_for_snr = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
+    float ev_shadow_for_snr = raw_to_ev(raw_values[11]); /* 5th percentile */
+    
+    if (!lv && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit))
+    {
+        /* for dual ISO only: fix for metering the SNR */
+        /* little or no effect on normal images (mostly performance hit) */
+        int percentiles[2] = {500, 50};
+        int raw_values[2];
+        raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
+        ev_median_for_snr = raw_to_ev(raw_values[0]);
+        ev_shadow_for_snr = raw_to_ev(raw_values[1]);
+    }
 
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
@@ -129,7 +140,7 @@ static int auto_ettr_get_correction()
             /* scene changed? measurements from previous shot not confirmed or vary too much?
              * 
              * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 10EV */
-            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB) / 100.0;
+            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
             //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
             float corr = correction - log2f(1 + overexposed);
@@ -145,13 +156,13 @@ static int auto_ettr_get_correction()
     if (debug_info)
     {
         float dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
-        float midtone_snr = dr + ev_median;
-        float shadow_snr = dr + ev_shadow;
+        float midtone_snr = dr + ev_median_for_snr;
+        float shadow_snr = dr + ev_shadow_for_snr;
         int mid_snr = (int)roundf(midtone_snr * 10);
         int shad_snr = (int)roundf(shadow_snr * 10);
         bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr));
         bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr));
-        int clipped = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB);
+        int clipped = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY);
         bmp_printf(FONT_MED, 50, 120, "Clipped highs: %s%d.%02d%% ", FMT_FIXEDPOINT2(clipped));
     }
     
@@ -160,8 +171,8 @@ static int auto_ettr_get_correction()
     {
         float dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
 
-        float midtone_snr = dr + ev_median;
-        float shadow_snr = dr + ev_shadow;
+        float midtone_snr = dr + ev_median_for_snr;
+        float shadow_snr = dr + ev_shadow_for_snr;
         float correction0 = correction;
 
         if (auto_ettr_midtone_snr_limit)
