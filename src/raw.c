@@ -1096,9 +1096,11 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
         );
     }
     
-    /* does it look like dual ISO? take the DR from the cleanest half */
+    /* does it look like dual ISO? take the DR from the noisiest half */
+    /* (DR indicator will be broken, but at least ETTR SNR metering will work) */
+    /* correct DR is high-iso DR + ABS(ISO difference) */
     *black_mean = (mean1 + mean2) / 2;
-    *black_stdev = MIN(stdev1, stdev2);
+    *black_stdev = MAX(stdev1, stdev2);
 
     return *black_mean;
 }
