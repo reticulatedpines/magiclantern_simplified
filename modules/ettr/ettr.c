@@ -155,7 +155,14 @@ static int auto_ettr_get_correction()
 
     if (debug_info)
     {
-        float dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
+        float dr = 11;
+        
+        /* in LiveView, we can't do noise analysis, so use DxO estimations instead */
+        if (lv) dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
+        
+        /* in photo mode, I trust my own SNR computations more than DxO's */
+        else dr = raw_info.dynamic_range / 100.0;
+        
         float midtone_snr = dr + ev_median_for_snr;
         float shadow_snr = dr + ev_shadow_for_snr;
         int mid_snr = (int)roundf(midtone_snr * 10);
