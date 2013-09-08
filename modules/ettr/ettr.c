@@ -22,7 +22,7 @@ static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6+1);
-static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 3+1);
+static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2+1);
 
 static int debug_info = 0;
 
@@ -67,7 +67,7 @@ static int auto_ettr_get_correction()
     
     float ev = raw_to_ev(raw_values[0]);
     float ev_median_for_snr = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
-    float ev_shadow_for_snr = raw_to_ev(raw_values[11]); /* 5th percentile */
+    float ev_shadow_for_snr = raw_to_ev(raw_values[12]); /* 5th percentile */
     
     if (!lv && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit))
     {
