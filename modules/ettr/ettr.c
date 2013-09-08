@@ -392,8 +392,8 @@ static int auto_ettr_check_pre_lv()
 
 static int auto_ettr_check_in_lv()
 {
-    if (!expsim) return 0;
-    if (lv_dispsize != 1) return 0;
+    if (AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim) return 0;
+    if (AUTO_ETTR_TRIGGER_ALWAYS_ON && lv_dispsize != 1) return 0;
     if (LV_PAUSED) return 0;
     if (!liveview_display_idle()) return 0;
     return 1;
@@ -486,15 +486,68 @@ static int auto_ettr_wait_lv_frames(int num_frames)
     return 1;
 }
 
+static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
+{
+    static int was_in_lv = 1;
+    static int old_expsim = -1;
+    static int old_zoom = -1;
+    
+    if (!reset)
+    {
+        was_in_lv = lv;
+        old_expsim = -1;
+
+        if (!lv) force_liveview();
+        if (!lv) return 0; /* fail */
+
+        /* force 1x zoom */
+        if (force_expsim_and_zoom && lv_dispsize != 1)
+        {
+            old_zoom = lv_dispsize;
+            set_lv_zoom(1);
+            auto_ettr_wait_lv_frames(10);
+        }
+
+        /* temporarily enable expsim while metering */
+        if (force_expsim_and_zoom && !expsim)
+        {
+            old_expsim = expsim;
+            set_expsim(1);
+            auto_ettr_wait_lv_frames(10);
+        }
+    }
+    else /* undo all that stuff */
+    {
+        if (old_expsim >= 0)
+        {
+            set_expsim(old_expsim);
+            old_expsim = -1;
+        }
+        
+        if (old_zoom > 0)
+        {
+            set_lv_zoom(old_zoom);
+            old_zoom = -1;
+        }
+        
+        if (lv && !was_in_lv)
+        {
+            msleep(200);
+            close_liveview();
+            was_in_lv = 1;
+        }
+    }
+    return 1; /* ok */
+}
+
 static void auto_ettr_on_request_task_fast()
 {
     beep();
     
-    int was_in_lv = lv;
-    if (!lv) force_liveview();
-    if (!lv) goto end;
-    if (lv_dispsize != 1) set_lv_zoom(1);
+    /* requires LiveView and ExpSim */
+    if (!auto_ettr_prepare_lv(0, 1)) goto end;
     if (!auto_ettr_check_lv()) goto end;
+    
     if (get_halfshutter_pressed())
     {
         msleep(500);
@@ -597,8 +650,7 @@ end:
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
     raw_lv_release();
-
-    if (lv && !was_in_lv) { msleep(200); close_liveview(); }
+    auto_ettr_prepare_lv(1, 1);
 }
 
 static void auto_ettr_step_lv_fast()
@@ -606,16 +658,19 @@ static void auto_ettr_step_lv_fast()
     if (!auto_ettr || !AUTO_ETTR_TRIGGER_ALWAYS_ON)
         return;
     
+    if (!auto_ettr_prepare_lv(0, 0))
+        goto end;
+    
     if (!auto_ettr_check_lv())
-        return;
+        goto end;
     
     if (get_halfshutter_pressed())
-        return;
+        goto end;
 
     /* only poll exposure once per second */
     static int aux = INT_MIN;
     if (!should_run_polling_action(1000, &aux))
-        return;
+        goto end;
     
     raw_lv_request();
     int corr = auto_ettr_get_correction();
@@ -657,17 +712,19 @@ static void auto_ettr_step_lv_fast()
         auto_ettr_wait_lv_frames(15);
     }
     raw_lv_release();
+    
+end:
+    auto_ettr_prepare_lv(1, 0);
 }
 
 static void auto_ettr_on_request_task_slow()
 {
     beep();
     
-    int was_in_lv = lv;
-    if (!lv) force_liveview();
-    if (!lv) goto end;
-    if (lv_dispsize != 1) set_lv_zoom(1);
+    /* requires LiveView and ExpSim */
+    if (!auto_ettr_prepare_lv(0, 1)) goto end;
     if (!auto_ettr_check_lv()) goto end;
+
     if (get_halfshutter_pressed())
     {
         msleep(500);
@@ -708,7 +765,7 @@ static void auto_ettr_on_request_task_slow()
 
 end:
     beep();
-    if (lv && !was_in_lv) close_liveview();
+    auto_ettr_prepare_lv(1, 1);
     auto_ettr_running = 0;
 }
 
@@ -808,7 +865,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (HDR_ENABLED)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
 
-    if (lv && !expsim)
+    if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
     
     if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)
