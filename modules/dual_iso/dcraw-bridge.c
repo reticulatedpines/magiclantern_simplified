@@ -83,6 +83,8 @@ static const struct {
         { 6847,-614,-1014,-4669,12737,2139,-1197,2488,6846 } },
     { "EOS-1D", 0, 0xe20,
         { 6806,-179,-1020,-8097,16415,1687,-3267,4236,7690 } },
+    { NULL, 0, 0,
+        { 0,0,0,0,0,0,0,0,0 } },
 };
 
 static const struct {
@@ -108,6 +110,7 @@ static const struct {
     { 0x288, "EOS 1100D" },
     { 0x346, "EOS 100D" },
     { 0x331, "EOS M" },
+    { 0, "" }
 };
 
 static int* trans_to_calib(const short* trans)
@@ -126,13 +129,14 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
 {
     const char* model = NULL;
     int i = 0;
-    for(i=0; i<33; ++i)
+    while(unique[i].id != 0)
     {
         if(model_id == unique[i].id)
         {
             model = unique[i].model;
             break;
         }
+	++i;
     }
 
     if(model == NULL)
@@ -145,7 +149,8 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
         printf("Canon %s detected\n", model);
     }
 
-    for(i=0; i<33; ++i)
+    i = 0;
+    while(table[i].prefix != NULL)
     {
         if(strcmp(model, table[i].prefix) == 0)
         {
@@ -154,6 +159,7 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
             free(calib);
             return 0;
         }
+	++i;
     }
 
     printf("No table found for camera model: %s\n", model);
