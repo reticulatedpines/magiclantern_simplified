@@ -75,6 +75,7 @@ typedef struct {
     uint16_t    panPosX;    /* specifies the panning offset which is cropPos, but with higher resolution (1x1 blocks) */
     uint16_t    panPosY;    /* (it's the frame area from sensor the user wants to see) */
     uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
+ /* uint8_t     frameData[variable] */;
 } PACKED mlv_vidf_hdr_t;
 
 typedef struct {
@@ -83,6 +84,7 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint32_t    frameNumber;    /* unique audio frame number */
     uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
+ /* uint8_t     frameData[variable] */;
 } PACKED mlv_audf_hdr_t;
 
 typedef struct {
@@ -171,12 +173,14 @@ typedef struct {
     uint32_t    frameType;    /* bitmask: 1=video, 2=audio */
     uint32_t    entryCount;    /* number of xrefs that follow here */
     mlv_xref_t  xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
+ /* uint8_t     xrefData[variable] */;
 } PACKED mlv_xref_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* user definable info string. take number, location, etc. */
     uint32_t    blockSize;
     uint64_t    timestamp;
+ /* uint8_t     stringData[variable] */;
 } PACKED mlv_info_hdr_t;
 
 typedef struct {
@@ -198,11 +202,12 @@ typedef struct {
     uint8_t     blockType[4];
     uint32_t    blockSize;
     uint64_t    timestamp;
-    uint32_t    picStyle; 
+    uint32_t    picStyleId; 
     int32_t     contrast; 
     int32_t     sharpness; 
     int32_t     saturation; 
     int32_t     colortone; 
+    uint8_t     picStyleName[16];
 } PACKED mlv_styl_hdr_t;
 
 typedef struct {            

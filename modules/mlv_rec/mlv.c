@@ -26,31 +26,25 @@
 #include "mlv.h"
 #include "../trace/trace.h"
 
-extern uint32_t trace_ctx;
+extern uint32_t raw_rec_trace_ctx;
 
 extern uint64_t get_us_clock_value();
 extern char *strcpy(char *dest, const char *src);
 extern char *strncpy(char *dest, const char *src, int n);
+extern const char* get_picstyle_name(int raw_picstyle);
 
-extern int WEAK_FUNC(fail_prop_get_value) _prop_get_value(unsigned property, void** addr, size_t* len);
-extern int WEAK_FUNC(own_prop_get_value) prop_get_value(unsigned property, void** addr, size_t* len);
+extern struct prop_picstyle_settings picstyle_settings[];
 
-int fail_prop_get_value(unsigned property, void** addr, size_t* len)
+extern int WEAK_FUNC(own_PROPAD_GetPropertyData) PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len);
+
+static int own_PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len)
 {
-    trace_write(trace_ctx, "WARNING: This model doesn't have 'prop_get_value' or '_prop_get_value' defined. Reading properties not possible.");
+    trace_write(raw_rec_trace_ctx, "WARNING: This model doesn't have 'PROPAD_GetPropertyData' defined. Reading properties not possible.");
     return 1;
-}
-
-int own_prop_get_value(unsigned property, void** addr, size_t* len)
-{
-    return _prop_get_value(property, addr, len);
 }
 
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
 {
-    uint8_t *lens_data = NULL;
-    size_t lens_data_len = 0;
-    
     /* prepare header */
     mlv_set_type((mlv_hdr_t *)hdr, "LENS");
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
@@ -60,18 +54,9 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
     hdr->focalDist = lens_info.focus_dist;
     hdr->aperture = lens_info.aperture * 10;
     hdr->stabilizerMode = lens_info.IS;
+    hdr->lensID = lens_info.lens_id;
     hdr->autofocusMode = 0;
     hdr->flags = 0;
-    
-    /* get lens information and save the 16 bit lens id. tools detect the lens by its name instead, so its not important anyway */
-    if(!prop_get_value(PROP_LENS, (void **) &lens_data, &lens_data_len))
-    {
-        hdr->lensID = lens_data[4] | (lens_data[5] << 8);
-    }
-    else
-    {
-        hdr->lensID = 0;
-    }
     
     strncpy((char *)hdr->lensName, lens_info.name, 32);
     strncpy((char *)hdr->lensSerial, "", 32);
@@ -93,21 +78,20 @@ void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp)
     hdr->wbs_ba = lens_info.wbs_ba;  
 }
 
-
-extern struct prop_picstyle_settings picstyle_settings[];
-
 void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp)
-{
+{   
     /* prepare header */
     mlv_set_type((mlv_hdr_t *)hdr, "STYL");
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
     hdr->blockSize = sizeof(mlv_styl_hdr_t);
     
-    hdr->picStyle = lens_info.raw_picstyle; 
+    hdr->picStyleId = lens_info.raw_picstyle; 
     hdr->contrast = picstyle_settings[lens_info.picstyle].contrast;    
     hdr->sharpness = picstyle_settings[lens_info.picstyle].sharpness;
     hdr->saturation = picstyle_settings[lens_info.picstyle].saturation;
     hdr->colortone = picstyle_settings[lens_info.picstyle].color_tone;
+ 
+    strncpy((char *)hdr->picStyleName, get_picstyle_name(lens_info.raw_picstyle), sizeof(hdr->picStyleName));
 }
 
 void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp)
@@ -180,11 +164,11 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     hdr->cameraModel = 0;
     
     /* get camera properties */
-    err |= prop_get_value(PROP_CAM_MODEL, (void **) &model_data, &model_len);
-    trace_write(trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
+    err |= PROPAD_GetPropertyData(PROP_CAM_MODEL, (void **) &model_data, &model_len);
+    trace_write(raw_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
     
-    err |= prop_get_value(PROP_BODY_ID, (void **) &body_data, &body_len);
-    trace_write(trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
+    err |= PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
+    trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
     
     if(err || model_len < 36 || body_len != 8 || !model_data || !body_data)
     {
@@ -197,7 +181,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
     snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
     
-    trace_write(trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
+    trace_write(raw_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)
