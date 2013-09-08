@@ -71,6 +71,32 @@ void FAST hist_build_raw()
             histogram.total_px++;
         }
     }
+
+    
+    /* in dark areas, spread the histogram count to show solid histogram instead of isolated bars */
+    for (int i = 0; i < 5000; i++)
+    {
+        int ev0 = r2ev[i];
+        int evplus = r2ev[i+1];
+        int evminus = r2ev[i-1];
+        if (evplus - evminus > 2) /* will there be a gap? fill it */
+        {
+            int num_bins = evplus - evminus - 1;
+            int delta_r = histogram.hist_r[ev0] / num_bins;
+            int delta_g = histogram.hist_g[ev0] / num_bins;
+            int delta_b = histogram.hist_b[ev0] / num_bins;
+            for (int e = evminus+1; e <= evplus-1; e++)
+            {
+                histogram.hist_r[e] += delta_r;
+                histogram.hist_g[e] += delta_g;
+                histogram.hist_b[e] += delta_b;
+                histogram.hist_r[ev0] -= delta_r;
+                histogram.hist_g[ev0] -= delta_g;
+                histogram.hist_b[ev0] -= delta_b;
+            }
+        }
+    }
+    
     for (int i = 0; i < HIST_WIDTH; i++)
     {
         histogram.max = MAX(histogram.max, histogram.hist_r[i]);
