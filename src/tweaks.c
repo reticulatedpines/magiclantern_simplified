@@ -323,8 +323,17 @@ static MENU_UPDATE_FUNC(expsim_display)
         MENU_SET_ICON(MNI_DICE, 0);
         #endif
     }
-    else if (CONTROL_BV)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Exposure override is active.");
+    else
+    {
+        if (CONTROL_BV)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Exposure override is active.");
+        }
+        else if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])  /* Canon's LiveView underexposure bug with manual lenses */
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "LiveView exposure may be incorrect. Enable expo override to fix it.");
+        }
+    }
 }
 #endif
 
