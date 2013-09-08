@@ -21,8 +21,8 @@ static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
-static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6+1);
-static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2+1);
+static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6);
+static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2);
 
 static int debug_info = 0;
 
@@ -178,7 +178,7 @@ static int auto_ettr_get_correction()
         if (auto_ettr_midtone_snr_limit)
         {
             float midtone_expected_snr = midtone_snr + correction0;
-            int midtone_desired_snr = auto_ettr_midtone_snr_limit - 1;
+            int midtone_desired_snr = auto_ettr_midtone_snr_limit;
             if (midtone_expected_snr < midtone_desired_snr)
             {
                 correction = MAX(correction, correction0 + midtone_desired_snr - midtone_expected_snr);
@@ -188,7 +188,7 @@ static int auto_ettr_get_correction()
         if (auto_ettr_shadow_snr_limit)
         {
             float shadow_expected_snr = shadow_snr + correction0;
-            int shadow_desired_snr = auto_ettr_shadow_snr_limit - 1;
+            int shadow_desired_snr = auto_ettr_shadow_snr_limit;
             if (shadow_expected_snr < shadow_desired_snr)
             {
                 correction = MAX(correction, correction0 + shadow_desired_snr - shadow_expected_snr);
@@ -1042,8 +1042,8 @@ static struct menu_entry ettr_menu[] =
                 .name = "Midtone SNR limit",
                 .priv = &auto_ettr_midtone_snr_limit,
                 .min = 0,
-                .max = 9,
-                .choices = CHOICES("OFF", "0 EV", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV", "7 EV", "8 EV"),
+                .max = 8,
+                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV", "7 EV", "8 EV"),
                 .help  = "Stop underexposing when at least half of the image gets",
                 .help2 = "noisier than selected SNR => will clip more highlights.",
                 .depends_on = DEP_MANUAL_ISO,
@@ -1052,8 +1052,8 @@ static struct menu_entry ettr_menu[] =
                 .name = "Shadow SNR limit",
                 .priv = &auto_ettr_shadow_snr_limit,
                 .min = 0,
-                .max = 5,
-                .choices = CHOICES("OFF", "0 EV", "1 EV", "2 EV", "3 EV", "4 EV"),
+                .max = 4,
+                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV"),
                 .help  = "Stop underexposing when at least 5% of the image gets",
                 .help2 = "noisier than selected SNR => will clip more highlights.",
                 .depends_on = DEP_MANUAL_ISO,
