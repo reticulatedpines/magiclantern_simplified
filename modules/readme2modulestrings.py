@@ -2,6 +2,7 @@
 
 import sys, re
 import commands
+from datetime import datetime
 
 def run(cmd):
     return commands.getstatusoutput(cmd)[1]
@@ -102,8 +103,11 @@ add_string(last_str, desc)
 # extract version info
 # (prints the latest changeset that affected this module)
 last_changeset = run("hg log . -l 1 --template '{node|short}'")
-last_change_date = run("LC_TIME=EN date -u -d \"`hg log . -l 1 --template '{date|isodate}'`\" '+%Y-%m-%d %H:%M:%S %Z'")
-build_date = run("LC_TIME=EN date -u '+%Y-%m-%d %H:%M:%S %Z'")
+last_change_date = run("LC_TIME=EN hg log . -l 1 --template '{date|hgdate}'")
+split = last_change_date.split(" ")
+seconds = float(split[0]) + float(split[1])
+last_change_date = datetime.utcfromtimestamp(seconds).strftime("%Y-%m-%d %H:%M:%S UTC")
+build_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 build_user = run("echo `whoami`@`hostname`")
 
 add_string("Last update", "%s (%s)" % (last_change_date, last_changeset))
