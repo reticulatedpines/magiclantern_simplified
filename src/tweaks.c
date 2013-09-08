@@ -271,7 +271,7 @@ void set_expsim( int x )
 {
     if (get_expsim() != x)
     {
-        prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+        prop_request_change_wait(PROP_LIVE_VIEW_VIEWTYPE, &x, 4, 1000);
         
         #ifdef CONFIG_5D2
         // Canon bug: FPS is not updated when toggling photo->movie while LiveView is active
