@@ -669,7 +669,7 @@ int raw_update_params()
         int shad_gain = shamem_read(0xc0f08030);
         
         raw_info.white_level -= raw_info.black_level;
-        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+        raw_info.white_level = raw_info.white_level * 3444 / shad_gain; /* 0.25 EV correction, so LiveView matches CR2 exposure */
         raw_info.white_level += raw_info.black_level;
 
         /* in photo LiveView, ISO is not the one selected from Canon menu,
