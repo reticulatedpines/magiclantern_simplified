@@ -1150,6 +1150,9 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
     bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
 #endif
 
+    /* dual ISO enabled? */
+    dr += module_exec(NULL, "dual_iso_get_dr_improvement", 0);
+
     return dr;
 }
 
