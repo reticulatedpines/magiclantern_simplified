@@ -651,7 +651,7 @@ static int hdr_check()
         {
             int p = raw_get_pixel16(x, y);
             int p2 = raw_get_pixel16(x, y+2);
-            if (p > black+32 && p2 > black+32 && p < white && p2 < white)
+            if ((p > black+32 || p2 > black+32) && p < white && p2 < white)
             {
                 avg_ev += ABS(raw2ev[p2] - raw2ev[p]);
                 num++;
