@@ -18,17 +18,14 @@ void copy_tags_from_source(const char* source, const char* dest)
 
 unsigned int get_model_id(const char* filename)
 {
-    char out_filename[] = "model.txt";
     unsigned tag = DEFAULT_MODEL_ID;
     char exif_cmd[10000];
-    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -CanonModelID -b \"%s\"> \"%s\"", filename, out_filename);
-    int r = system(exif_cmd);
-    if(r==0) 
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -CanonModelID -b \"%s\"", filename);
+    FILE* exif_file = popen(exif_cmd, "r");
+    if(exif_file) 
     {
-        FILE* exif_file = fopen(out_filename, "rb");
         fscanf(exif_file, "%u", &tag);
-        fclose(exif_file);
-        unlink(out_filename);
+        pclose(exif_file);
     }
     else
     {

@@ -145,17 +145,15 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[1000];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
-        int exit_code = system(dcraw_cmd);
-        CHECK(exit_code == 0, "%s", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\"", filename);
+        FILE* t = popen(dcraw_cmd, "r");
+        CHECK(t, "%s", filename);
         
         unsigned int model = get_model_id(filename);
-        exit_code = get_raw_info(model, &raw_info);
+        int exit_code = get_raw_info(model, &raw_info);
 
         CHECK(exit_code == 0, "RAW INFO INJECTION FAILED");
 
-        FILE* t = fopen("tmp.txt", "rb");
-        CHECK(t, "tmp.txt");
         int raw_width = 0, raw_height = 0;
         int out_width = 0, out_height = 0;
         
@@ -173,7 +171,7 @@ int main(int argc, char** argv)
                 CHECK(r == 2, "sscanf");
             }
         }
-        fclose(t);
+        pclose(t);
 
         printf("Full size      : %d x %d\n", raw_width, raw_height);
         printf("Active area    : %d x %d\n", out_width, out_height);
@@ -181,12 +179,9 @@ int main(int argc, char** argv)
         int left_margin = raw_width - out_width;
         int top_margin = raw_height - out_height;
 
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\" > tmp.pgm", filename);
-        exit_code = system(dcraw_cmd);
-        CHECK(exit_code == 0, "%s", filename);
-        
-        FILE* f = fopen("tmp.pgm", "rb");
-        CHECK(f, "tmp.pgm");
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\"", filename);
+        FILE* f = popen(dcraw_cmd, "r");
+        CHECK(f, "%s", filename);
         
         char magic0, magic1;
         r = fscanf(f, "%c%c\n", &magic0, &magic1);
@@ -208,7 +203,7 @@ int main(int argc, char** argv)
         fseek(f, -width * height * 2, SEEK_END);
         int size = fread(buf, 1, width * height * 2, f);
         CHECK(size == width * height * 2, "fread");
-        fclose(f);
+        pclose(f);
 
         /* PGM is big endian, need to reverse it */
         reverse_bytes_order(buf, width * height * 2);
