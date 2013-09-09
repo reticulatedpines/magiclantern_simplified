@@ -684,7 +684,10 @@ int raw_update_params()
         last_iso = iso;
         if (!iso) return 0;
         
-        raw_info.dynamic_range = get_dxo_dynamic_range(iso);
+        int iso2 = module_exec(NULL, "dual_iso_get_recovery_iso", 0);
+        if (iso2) iso = MIN(iso, iso2);
+        int dr_boost = module_exec(NULL, "dual_iso_get_dr_improvement", 0);
+        raw_info.dynamic_range = get_dxo_dynamic_range(iso) + dr_boost;
         
         dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
     }
@@ -1096,11 +1099,11 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
         );
     }
     
-    /* does it look like dual ISO? take the DR from the noisiest half */
-    /* (DR indicator will be broken, but at least ETTR SNR metering will work) */
+    /* does it look like dual ISO? take the DR from the cleanest half */
     /* correct DR is high-iso DR + ABS(ISO difference) */
+    /* or low-iso DR + DR improvement */
     *black_mean = (mean1 + mean2) / 2;
-    *black_stdev = MAX(stdev1, stdev2);
+    *black_stdev = MIN(stdev1, stdev2);
 
     return *black_mean;
 }
