@@ -14,6 +14,9 @@
 #include <lens.h>
 #include <math.h>
 
+/* interface with dual ISO */
+#include "../dual_iso/dual_iso.h" 
+
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 2);
 static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 2);
@@ -34,6 +37,8 @@ static int debug_info = 0;
 
 extern int hdr_enabled;
 #define HDR_ENABLED hdr_enabled
+
+static int highlight_headroom_needed = 0;
 
 /* also used for display on histogram */
 static int auto_ettr_get_correction()
@@ -66,18 +71,22 @@ static int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw_values[0]);
-    float ev_median_for_snr = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
-    float ev_shadow_for_snr = raw_to_ev(raw_values[12]); /* 5th percentile */
+    float ev_median_lo = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
+    float ev_shadow_lo = raw_to_ev(raw_values[12]); /* 5th percentile */
     
-    if (!lv && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit))
+    int dual_iso = dual_iso_is_enabled();
+    float ev_median_hi = ev_median_lo;
+    float ev_shadow_hi = ev_shadow_lo; /* for dual ISO: for the bright exposure */
+    
+    if (!lv && dual_iso)
     {
-        /* for dual ISO only: fix for metering the SNR */
-        /* little or no effect on normal images (mostly performance hit) */
+        /* for dual ISO only:*/
+        /* we have metered the dark exposure (since ETTR is pushing that to the right), now meter the bright one too */
         int percentiles[2] = {500, 50};
         int raw_values[2];
         raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
-        ev_median_for_snr = raw_to_ev(raw_values[0]);
-        ev_shadow_for_snr = raw_to_ev(raw_values[1]);
+        ev_median_hi = raw_to_ev(raw_values[0]);
+        ev_shadow_hi = raw_to_ev(raw_values[1]);
     }
 
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
@@ -153,39 +162,54 @@ static int auto_ettr_get_correction()
         correction = sum / num;
     }
 
+    int iso1 = lens_info.raw_iso;
+    int iso2 = iso1;
+    if (dual_iso) iso2 = dual_iso_get_recovery_iso();
+    int iso_hi = MAX(iso1, iso2);
+    int iso_lo = MIN(iso1, iso2);
+    float dr_lo = get_dxo_dynamic_range(iso_lo) / 100.0;
+    float dr_hi = get_dxo_dynamic_range(iso_hi) / 100.0;
+
     if (debug_info)
     {
-        float dr = 11;
-        
-        /* in LiveView, we can't do noise analysis, so use DxO estimations instead */
-        if (lv) dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
-        
-        /* in photo mode, I trust my own SNR computations more than DxO's */
-        else dr = raw_info.dynamic_range / 100.0;
-        
-        float midtone_snr = dr + ev_median_for_snr;
-        float shadow_snr = dr + ev_shadow_for_snr;
-        int mid_snr = (int)roundf(midtone_snr * 10);
-        int shad_snr = (int)roundf(shadow_snr * 10);
-        bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr));
-        bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr));
+        if (dual_iso)
+        {
+            float midtone_snr_lo = dr_lo + ev_median_lo;
+            float shadow_snr_lo = dr_lo + ev_shadow_lo;
+            int mid_snr_lo = (int)roundf(midtone_snr_lo * 10);
+            int shad_snr_lo = (int)roundf(shadow_snr_lo * 10);
+            float midtone_snr_hi = dr_hi + ev_median_hi;
+            float shadow_snr_hi = dr_hi + ev_shadow_hi;
+            int mid_snr_hi = (int)roundf(midtone_snr_hi * 10);
+            int shad_snr_hi = (int)roundf(shadow_snr_hi * 10);
+            bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d / %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr_lo), FMT_FIXEDPOINT1(mid_snr_hi));
+            bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d / %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr_lo), FMT_FIXEDPOINT1(shad_snr_hi));
+        }
+        else
+        {
+            float midtone_snr = dr_lo + ev_median_lo;
+            float shadow_snr = dr_lo + ev_shadow_lo;
+            int mid_snr = (int)roundf(midtone_snr * 10);
+            int shad_snr = (int)roundf(shadow_snr * 10);
+            bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr));
+            bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr));
+        }
         int clipped = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY);
         bmp_printf(FONT_MED, 50, 120, "Clipped highs: %s%d.%02d%% ", FMT_FIXEDPOINT2(clipped));
     }
-    
+
     /* are we underexposing too much? */
+    float correction0 = correction;
     if (lens_info.raw_iso && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit))
     {
-        float dr = get_dxo_dynamic_range(lens_info.raw_iso) / 100.0;
-
-        float midtone_snr = dr + ev_median_for_snr;
-        float shadow_snr = dr + ev_shadow_for_snr;
-        float correction0 = correction;
+        float midtone_snr = dr_lo + ev_median_lo;
+        float shadow_snr = dr_lo + ev_shadow_lo;
 
         if (auto_ettr_midtone_snr_limit)
         {
             float midtone_expected_snr = midtone_snr + correction0;
             int midtone_desired_snr = auto_ettr_midtone_snr_limit;
+
             if (midtone_expected_snr < midtone_desired_snr)
             {
                 correction = MAX(correction, correction0 + midtone_desired_snr - midtone_expected_snr);
@@ -196,6 +220,7 @@ static int auto_ettr_get_correction()
         {
             float shadow_expected_snr = shadow_snr + correction0;
             int shadow_desired_snr = auto_ettr_shadow_snr_limit;
+
             if (shadow_expected_snr < shadow_desired_snr)
             {
                 correction = MAX(correction, correction0 + shadow_desired_snr - shadow_expected_snr);
@@ -203,7 +228,15 @@ static int auto_ettr_get_correction()
         }
     }
     
-    last_value = (int)(correction * 100);
+    /* how many highlights we have clipped? */
+    highlight_headroom_needed = (correction - correction0) * 100.0;
+    
+    if (debug_info)
+    {
+        bmp_printf(FONT_MED, 50, 140, "DR needed    : %s%d.%02d EV ", FMT_FIXEDPOINT2S(highlight_headroom_needed));
+    }
+    
+    last_value = (int)(correction * 100) - (dual_iso ? highlight_headroom_needed : 0);
     return last_value;
 }
 
@@ -211,7 +244,7 @@ int auto_ettr_export_correction(int* out)
 {
     int value = auto_ettr_get_correction();
     if (value == INT_MIN) return -1;
-    *out = value;
+    if (out) *out = value;
     return 1;
 }
 
@@ -223,6 +256,9 @@ static int auto_ettr_work_m(int corr)
     
     if (!tv || !iso) return 0;
     int old_expo = tv - iso;
+
+    int dual_iso = dual_iso_is_enabled();
+    if (dual_iso) corr += highlight_headroom_needed;
 
     int delta = -corr * 8 / 100;
 
@@ -280,6 +316,68 @@ static int auto_ettr_work_m(int corr)
     tvr += isor - iso;
     int tv0 = tvr;
     tvr = round_shutter(tvr, shutter_lim);
+    
+    /* can we use dual ISO to get a little more DR? */
+    if (dual_iso)
+    {
+        int base_iso = isor;
+        int recovery_iso = base_iso;
+        int highlight_headroom_recovered = 0;
+        int snr_delta = 0;
+        /* note: without dual ISO, ETTR exposes for shadows (SNR); if these are too noisy, it will clip some highlights */
+        /* how many highlights? "highlight_headroom_needed" (units EV x100) */
+        /* so, we have to bring the exposure down by "highlight_headroom_needed/100.0" EV */
+        /* and make sure the SNR doesn't get lower */
+
+        if (debug_info)
+        {
+            msleep(1000);
+            bmp_printf(FONT_MED, 50, 160, "Base setting : ISO %d %s (DR needed: %s%d.%02d)", raw2iso(base_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
+        }
+        
+        while (highlight_headroom_recovered < highlight_headroom_needed - 50 && base_iso > MIN_ISO) /* single-ISO exposure greater than 100? */
+        {
+            /* lower the base ISO */
+            /* this will bring back the highlights and will keep the SNR constant */
+            base_iso -= 8;
+            highlight_headroom_recovered += 100;
+            /* okay, I know, this loop can be a closed-form formula; feel free to do the math */
+        }
+
+        if (debug_info)
+        {
+            bmp_printf(FONT_MED, 50, 180, "At lowest ISO: ISO %d/%d %s (DR left: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
+        }
+
+        while (highlight_headroom_recovered < highlight_headroom_needed - 50 && recovery_iso < max_auto_iso) /* need more? use a faster shutter speed and increase recovery ISO */
+        {
+            /* recover 0.5 EV of highlights by using a faster shutter speed */
+            tvr += 4;
+            tv0 += 4;
+            highlight_headroom_recovered += 50;
+            
+            /* we will lose 0.5 EV of SNR */
+            snr_delta -= 50;
+            
+            /* bring back the SNR */
+            while (snr_delta < 0 && recovery_iso < max_auto_iso)
+            {
+                int old_rec_iso = recovery_iso;
+                recovery_iso += 8;
+                int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
+                snr_delta += dr_gained;
+            }
+        }
+
+        if (debug_info)
+        {
+            bmp_printf(FONT_MED, 50, 200, "Final setting: ISO %d/%d %s (DR left: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
+        }
+
+        /* apply dual ISO settings */
+        isor = base_iso;
+        dual_iso_set_recovery_iso(recovery_iso);
+    }
 
     /* apply the new settings */
     int oki = lens_set_rawiso(isor);    /* for expo overide */
@@ -300,8 +398,8 @@ static int auto_ettr_work_m(int corr)
     if (ABS(new_expo - old_expo) >= 3) /* something changed? consider it OK, better than nothing */
         return 1;
     
-    if (tvr > tv0 + 4) /* still underexposed? */
-        return -1;
+    //~ if (tvr > tv0 + 4) /* still underexposed? */
+        //~ return -1;
 
     return oks && oki ? 1 : -1;
 }
