@@ -78,15 +78,38 @@ static int auto_ettr_get_correction()
     float ev_median_hi = ev_median_lo;
     float ev_shadow_hi = ev_shadow_lo; /* for dual ISO: for the bright exposure */
     
-    if (!lv && dual_iso)
+    if (dual_iso)
     {
         /* for dual ISO only:*/
         /* we have metered the dark exposure (since ETTR is pushing that to the right), now meter the bright one too */
-        int percentiles[2] = {500, 50};
-        int raw_values[2];
-        raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
-        ev_median_hi = raw_to_ev(raw_values[0]);
-        ev_shadow_hi = raw_to_ev(raw_values[1]);
+        if (lv && !is_movie_mode())
+        {
+            /* photo LV (only one exposure) */
+            /* estimate it from settings */
+            float d = dual_iso_get_dr_improvement() / 100.0;
+            int rec_iso = dual_iso_get_recovery_iso();
+            if (rec_iso > lens_info.raw_iso) /* we are looking at the dark exposure */
+            {
+                ev_median_hi = ev_median_lo + d;
+                ev_shadow_hi = ev_shadow_lo + d;
+            }
+            else /* we are looking at the bright exposure */
+            {
+                ev_median_hi = ev_median_lo - d;
+                ev_shadow_hi = ev_shadow_lo - d;
+                float aux = ev_median_hi; ev_median_hi = ev_median_lo; ev_median_lo = aux;
+                aux = ev_shadow_hi; ev_shadow_hi = ev_shadow_lo; ev_shadow_lo = aux;
+            }
+        }
+        else
+        {
+            /* photo non-LV and movie */
+            int percentiles[2] = {500, 50};
+            int raw_values[2];
+            raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
+            ev_median_hi = raw_to_ev(raw_values[0]);
+            ev_shadow_hi = raw_to_ev(raw_values[1]);
+        }
     }
 
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
