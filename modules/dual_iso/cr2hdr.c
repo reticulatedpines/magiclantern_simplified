@@ -47,7 +47,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "../../src/raw.h"
 #include "qsort.h"  /* much faster than standard C qsort */
 
@@ -180,30 +182,40 @@ int main(int argc, char** argv)
         int top_margin = raw_height - out_height;
 
         snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\"", filename);
-        FILE* f = popen(dcraw_cmd, "r");
-        CHECK(f, "%s", filename);
-        
-        char magic0, magic1;
-        r = fscanf(f, "%c%c\n", &magic0, &magic1);
-        CHECK(r == 2, "fscanf");
-        CHECK(magic0 == 'P' && magic1 == '5', "pgm magic");
-        
-        int width, height;
-        r = fscanf(f, "%d %d\n", &width, &height);
-        CHECK(r == 2, "fscanf");
+        FILE* fp = popen(dcraw_cmd, "r");
+        CHECK(fp, "%s", filename);
+        #ifdef _O_BINARY
+        _setmode(_fileno(fp), _O_BINARY);
+        #endif
+
+        /* PGM read code from dcraw */
+          int dim[3]={0,0,0}, comment=0, number=0, error=0, nd=0, c;
+
+          if (fgetc(fp) != 'P' || fgetc(fp) != '5') error = 1;
+          while (!error && nd < 3 && (c = fgetc(fp)) != EOF) {
+            if (c == '#')  comment = 1;
+            if (c == '\n') comment = 0;
+            if (comment) continue;
+            if (isdigit(c)) number = 1;
+            if (number) {
+              if (isdigit(c)) dim[nd] = dim[nd]*10 + c -'0';
+              else if (isspace(c)) {
+            number = 0;  nd++;
+              } else error = 1;
+            }
+          }
+
+        CHECK(!(error || nd < 3), "dcraw output is not a valid PGM file\n");
+
+        int width = dim[0];
+        int height = dim[1];
         CHECK(width == raw_width, "pgm width");
         CHECK(height == raw_height, "pgm height");
-        
-        int max_value;
-        r = fscanf(f, "%d\n", &max_value);
-        CHECK(r == 1, "fscanf");
-        CHECK(max_value == 65535, "pgm max");
 
         void* buf = malloc(width * (height+1) * 2); /* 1 extra line for handling GBRG easier */
-        fseek(f, -width * height * 2, SEEK_END);
-        int size = fread(buf, 1, width * height * 2, f);
+        int size = fread(buf, 1, width * height * 2, fp);
         CHECK(size == width * height * 2, "fread");
-        pclose(f);
+        pclose(fp);
 
         /* PGM is big endian, need to reverse it */
         reverse_bytes_order(buf, width * height * 2);
@@ -274,9 +286,6 @@ int main(int argc, char** argv)
         {
             printf("Doesn't look like interlaced ISO\n");
         }
-        
-        unlink("tmp.pgm");
-        unlink("tmp.txt");
         
         free(buf);
     }
