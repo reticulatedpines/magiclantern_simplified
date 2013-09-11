@@ -13,6 +13,8 @@
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
 #define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
+#define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
 #define MODULE_MAGIC                  0x5A
 #define STR(x)                        STR_(x)

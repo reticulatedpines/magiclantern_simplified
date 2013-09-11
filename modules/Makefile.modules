@@ -23,8 +23,9 @@ all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 clean::
 	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym)
 
-module_strings.h: README.rst
+module_strings.h: FORCE README.rst
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
+	$(call build,DIFF, ../module_hginfo_create.sh >> $@)
 
 README.rst:
 	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
