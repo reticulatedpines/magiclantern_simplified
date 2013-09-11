@@ -11,11 +11,11 @@ elif [[ ! -f "$@" ]]; then
 fi
 
 echo "#-------- reading general hg information --------"
-arm-linux-gnueabihf-objcopy -O binary -j .module_hginfo $@ $TMP_FILE
+$OBJCOPY -O binary -j .module_hginfo $@ $TMP_FILE
 gunzip < $TMP_FILE
 
 echo "#-------- reading hg diff --------"
-arm-linux-gnueabihf-objcopy -O binary -j .module_hgdiff $@ $TMP_FILE
+$OBJCOPY -O binary -j .module_hgdiff $@ $TMP_FILE
 gunzip < $TMP_FILE
 
 rm $TMP_FILE
