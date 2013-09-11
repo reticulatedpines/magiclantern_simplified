@@ -5893,7 +5893,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
     #endif
 }
 

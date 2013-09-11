@@ -65,7 +65,6 @@ void intervalometer_stop();
 void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
-void zoom_auto_exposure_step();
 static void ensure_play_or_qr_mode_after_shot();
 void take_fast_pictures( int number );
 
@@ -674,7 +673,6 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
 }
 
 static int zoom_was_triggered_by_halfshutter = 0;
@@ -688,7 +686,6 @@ ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
    ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
 #endif    
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
 }
@@ -3136,7 +3133,7 @@ void zoom_sharpen_step()
 }
 
 #ifdef CONFIG_EXPSIM
-static void restore_expsim_task(int es)
+static void restore_expsim(int es)
 {
     for (int i = 0; i < 50; i++)
     {
@@ -3150,8 +3147,8 @@ static void restore_expsim_task(int es)
 }
 #endif
 
-// to be called from the same places as zoom_sharpen_step
-void zoom_auto_exposure_step()
+// to be called from shoot_task
+static void zoom_auto_exposure_step()
 {
 #ifdef FEATURE_LV_ZOOM_AUTO_EXPOSURE
     if (!zoom_auto_exposure) return;
@@ -3196,9 +3193,7 @@ void zoom_auto_exposure_step()
     {
         if (es >= 0)
         {
-            // not sure why, but when taking a picture, expsim can't be restored;
-            // workaround: create a task that retries a few times
-            task_create("restore_expsim", 0x1a, 0, restore_expsim_task, (void*)es);
+            restore_expsim(es);
             es = -1;
         }
         /* if (aem >= 0)
@@ -6403,6 +6398,10 @@ shoot_task( void* unused )
             center_lv_afframe_do();
             center_lv_aff = 0;
         }
+        #endif
+
+        #ifdef FEATURE_LV_ZOOM_SETTINGS
+        zoom_auto_exposure_step();
         #endif
 
         #if defined(FEATURE_HDR_BRACKETING)
