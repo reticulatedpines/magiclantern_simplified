@@ -65,6 +65,7 @@
 #include <menu.h>
 #include <config.h>
 #include <math.h>
+#include <zebra.h>
 #include "edmac.h"
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -165,6 +166,8 @@ static int32_t raw_previewing = 0;
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
+
+static unsigned int raw_rec_should_preview(unsigned int ctx);
 
 
 /* if these get set, on the next frame the according blocks get queued */
@@ -488,6 +491,37 @@ static MENU_UPDATE_FUNC(write_speed_update)
         );
 }
 
+static void cropmark_refresh()
+{
+    static int prev_x = 0;
+    static int prev_y = 0;
+    static int prev_w = 0;
+    static int prev_h = 0;
+    
+    if(!raw_video_enabled || lv_dispsize > 1)
+    {
+        reset_movie_cropmarks();
+        prev_x = -1; /* force refresh cropmark */
+        return;
+    }
+    
+    int x = RAW2BM_X(skip_x);
+    int y = RAW2BM_Y(skip_y);
+    int w = RAW2BM_DX(res_x);
+    int h = RAW2BM_DY(res_y);
+    
+    /* res changed? refresh cropmark */
+    if (prev_x != x || prev_y != y || prev_w != w || prev_h != h)
+    {
+        set_movie_cropmarks(x, y, w, h);
+    }
+    
+    prev_x = x;
+    prev_y = y;
+    prev_w = w;
+    prev_h = h;
+}
+
 static void refresh_raw_settings(int32_t force)
 {
     if (!lv) return;
@@ -502,6 +536,7 @@ static void refresh_raw_settings(int32_t force)
             {
                 update_resolution_params();
             }
+            cropmark_refresh();
         }
     }
 }
@@ -981,43 +1016,6 @@ static void show_buffer_status()
     }
 }
 
-static uint32_t raw_rec_should_preview(uint32_t ctx);
-
-static void cropmark_draw()
-{
-    if (lv_dispsize > 1) return;
-    
-    int32_t x = RAW2BM_X(skip_x);
-    int32_t y = RAW2BM_Y(skip_y);
-    int32_t w = RAW2BM_DX(res_x);
-    int32_t h = RAW2BM_DY(res_y);
-    int32_t p = raw_rec_should_preview(0);
-    static int32_t prev_x = 0;
-    static int32_t prev_y = 0;
-    static int32_t prev_w = 0;
-    static int32_t prev_h = 0;
-    static int32_t prev_p = 0;
-
-    /* window changed? erase the old cropmark */
-    if ((prev_p != p) ^ (prev_x != x || prev_y != y || prev_w != w || prev_h != h))
-    {
-        bmp_draw_rect(0, prev_x, prev_y, prev_w, prev_h);
-        bmp_draw_rect(0, prev_x-1, prev_y-1, prev_w+2, prev_h+2);
-    }
-    
-    prev_x = x;
-    prev_y = y;
-    prev_w = w;
-    prev_h = h;
-
-    if (!p)
-    {
-        /* display a simple cropmark */
-        bmp_draw_rect(COLOR_WHITE, x, y, w, h);
-        bmp_draw_rect(COLOR_BLACK, x-1, y-1, w+2, h+2);
-    }
-}
-
 static void panning_update()
 {
     if (!FRAMING_PANNING) return;
@@ -1089,19 +1087,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     
     if (!lv || !is_movie_mode())
         return 0;
-
-    /* refresh cropmark (faster when panning, slower when idle) */
-    static int32_t aux = INT_MIN;
-    int cropmark_delay = RAW_IS_IDLE ? 500 : 10000;
+    
+    static int aux = INT_MIN;
 	
-    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(cropmark_delay, &aux))
-    {
-        if (liveview_display_idle())
-        {
-            BMP_LOCK( cropmark_draw(); )
-        }
-    }
-
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
     {
