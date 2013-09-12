@@ -167,7 +167,7 @@ static int32_t raw_previewing = 0;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
-static unsigned int raw_rec_should_preview(unsigned int ctx);
+static uint32_t raw_rec_should_preview(uint32_t ctx);
 
 
 /* if these get set, on the next frame the according blocks get queued */
