@@ -148,7 +148,8 @@
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
-#define AE_VALUE 0 // http://www.magiclantern.fm/forum/index.php?topic=7208.100
+#define AE_STATE (*(int8_t*)(0x7E18 + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x7E18 + 0x1D))
 
 // position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 527
