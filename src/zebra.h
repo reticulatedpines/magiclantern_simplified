@@ -1,4 +1,6 @@
-// Temporary, until the one from Tobias will arrive
+/** \file
+ * Big file that need's to be splitted by features.
+ */
 #ifndef _zebra_h_
 #define _zebra_h_
 #include "dryos.h"
@@ -12,6 +14,7 @@ void NotifyBox( int timeout, char* fmt, ...);
  * @param y Y coordinate
  * @param w Width
  * @param h Height
+ * @addtogroup cropmark
  */
 void set_movie_cropmarks(int x, int y, int w, int h);
 /**
