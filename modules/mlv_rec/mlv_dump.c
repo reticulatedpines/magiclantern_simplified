@@ -1521,7 +1521,7 @@ read_headers:
 
                 if(verbose)
                 {
-                    printf("     picStyle:   %d\n", block_hdr.picStyle);
+                    printf("     picStyle:   %d\n", block_hdr.picStyleId);
                     printf("     contrast:   %d\n", block_hdr.contrast);
                     printf("     sharpness:  %d\n", block_hdr.sharpness);
                     printf("     saturation: %d\n", block_hdr.saturation);
