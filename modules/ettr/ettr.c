@@ -86,12 +86,12 @@ static int auto_ettr_get_correction()
         {
             /* photo LV (only one exposure) */
             /* estimate it from settings */
-            float d = dual_iso_get_dr_improvement() / 100.0;
+            float d = ABS(dual_iso_get_recovery_iso() - lens_info.iso_analog_raw) / 8.0;
             int rec_iso = dual_iso_get_recovery_iso();
-            if (rec_iso > lens_info.raw_iso) /* we are looking at the dark exposure */
+            if (rec_iso > lens_info.iso_analog_raw) /* we are looking at the dark exposure */
             {
-                ev_median_hi = ev_median_lo + d;
-                ev_shadow_hi = ev_shadow_lo + d;
+                ev_median_hi = MIN(ev_median_lo + d, 0); /* you can't get whiter than white */
+                ev_shadow_hi = MIN(ev_shadow_lo + d, 0);
             }
             else /* we are looking at the bright exposure */
             {
@@ -185,7 +185,7 @@ static int auto_ettr_get_correction()
         correction = sum / num;
     }
 
-    int iso1 = lens_info.raw_iso;
+    int iso1 = lens_info.iso_analog_raw;
     int iso2 = iso1;
     if (dual_iso) iso2 = dual_iso_get_recovery_iso();
     int iso_hi = MAX(iso1, iso2);
