@@ -251,7 +251,6 @@ void update_vram_params()
     
     os.x_max = os.x0 + os.x_ex;
     os.y_max = os.y0 + os.y_ex;
-    os.off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
     os.off_169 = (os.y_ex - os.y_ex * 3/2 * 9/16) / 2;
     os.off_1610 = (os.y_ex - os.y_ex * 3/2 * 10/16) / 2;
 

@@ -384,8 +384,7 @@ static uint8_t* bvram_mirror = 0;
 uint8_t* get_bvram_mirror() { return bvram_mirror; }
 //~ #define bvram_mirror bmp_vram_idle()
 
-static int cropmark_x = -1;  //movie cropmarks
-static int cropmark_y = -1;
+
 static int cropmark_cache_dirty = 1;
 static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
 
@@ -5388,7 +5387,7 @@ static void black_bars()
     {
         if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {
-            int newcolor = (i < os.y0 + os.off_169 || i > os.y_max - os.off_169) ? COLOR_BLACK : COLOR_BG;
+            int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
             for (j = os.x0; j < os.x_max; j++)
             {
                 if (bvram[BM(j,i)] == COLOR_BG)
@@ -5403,47 +5402,22 @@ static void default_movie_cropmarks()
     if (!get_global_draw()) return;
     if (!lv) return;
     if (!is_movie_mode()) return;
-    
-    if(cropmark_x == -1 || cropmark_y == -1)
-    {
-        if(video_mode_resolution > 1) //4:3
-        {
-            cropmark_x = (os.off_43 << 16) | (os.x_max - os.off_43);
-            cropmark_y = -1;
-        }
-        else
-        {
-            cropmark_x = -1;
-            cropmark_y = (os.off_169 << 16) | (os.y_max - os.off_169);
-        }
-    }
-    
+    if (video_mode_resolution > 1) return; // these are only for 16:9
     int i,j;
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
     ASSERT(bvram_mirror);
     for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
     {
-        bool draw = cropmark_y != -1 && (i < (cropmark_y >> 16) || i > (cropmark_y & 0xFFFF));
-        for (j = os.x0; j < os.x_max; j++)
+        if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
         {
-            int color = draw || (cropmark_x != -1 && (j < (cropmark_x >> 16) || j > (cropmark_x & 0xFFFF))) ? COLOR_BLACK : 0;
-            bvram_mirror[BM(j,i)] = color | 0x80;
+            int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
+            for (j = os.x0; j < os.x_max; j++)
+            {
+                bvram_mirror[BM(j,i)] = newcolor | 0x80;
+            }
         }
     }
-}
-
-void set_movie_cropmarks(int x, int y, int w, int h)
-{
-    cropmark_x = (x << 16) | (x + w);
-    cropmark_y = (y << 16) | (y + h);
-    default_movie_cropmarks();
-}
-
-void reset_movie_cropmarks()
-{
-    cropmark_x = cropmark_y = -1;
-    default_movie_cropmarks();
 }
 
 static void black_bars_16x9()
@@ -5454,8 +5428,9 @@ static void black_bars_16x9()
     get_yuv422_vram();
     if (video_mode_resolution > 1)
     {
-        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.off_43, os.y_ex);
-        bmp_fill(COLOR_BLACK, os.x_max - os.off_43, os.y0, os.off_43, os.y_ex);
+        int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
+        bmp_fill(COLOR_BLACK, os.x0, os.y0, off_43, os.y_ex);
+        bmp_fill(COLOR_BLACK, os.x_max - off_43, os.y0, off_43, os.y_ex);
     }
     else
     {
