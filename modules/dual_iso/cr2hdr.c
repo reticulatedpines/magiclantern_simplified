@@ -1585,7 +1585,7 @@ static int hdr_interpolate()
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
     
-#if 0
+#if 1
     {
         printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
@@ -1877,7 +1877,7 @@ static int hdr_interpolate()
     chroma_smooth_5x5(halfres, halfres_smooth, raw2ev, ev2raw);
 #endif
 
-#if 1 /* for debugging only */
+#if 0 /* for debugging only */
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("normal.dng");
 
