@@ -1275,7 +1275,7 @@ static int hdr_interpolate()
     double noise_std[4];
     double noise_avg;
     for (y = 0; y < 4; y++)
-        compute_black_noise(8, raw_info.active_area.x1 - 8, 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
+        compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
 
     printf("Noise levels   : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
     double dark_noise = MIN(MIN(noise_std[0], noise_std[1]), MIN(noise_std[2], noise_std[3]));
@@ -1585,7 +1585,7 @@ static int hdr_interpolate()
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
     
-#if 1
+#if 0
     {
         printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
@@ -1877,7 +1877,7 @@ static int hdr_interpolate()
     chroma_smooth_5x5(halfres, halfres_smooth, raw2ev, ev2raw);
 #endif
 
-#if 0 /* for debugging only */
+#if 1 /* for debugging only */
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("normal.dng");
 
@@ -2188,7 +2188,14 @@ static int hdr_interpolate()
     
     system("octave --persist mix-curve.m");
 #endif
-    
+
+    /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
+    for (y = 3; y < h-2; y ++)
+        for (x = 2; x < w-2; x ++)
+            raw_set_pixel16(x, y, halfres_smooth[x + y*w]);
+    compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+    double ideal_noise_std = noise_std[0];
+
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -2263,8 +2270,8 @@ static int hdr_interpolate()
     }
 
     /* let's see how much dynamic range we actually got */
-    compute_black_noise(8, raw_info.active_area.x1 - 8, 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
-    printf("Noise level    : %.02f (16-bit)\n", noise_std[0]);
+    compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+    printf("Noise level    : %.02f (16-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
     printf("Dynamic range  : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
     if (!rggb) /* back to GBRG */
