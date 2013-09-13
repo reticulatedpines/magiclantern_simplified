@@ -593,7 +593,7 @@ static int black_subtract_simple(int left_margin, int top_margin)
 
 static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, double* out_mean, double* out_stdev)
 {
-    double black = 0;
+    long long black = 0;
     int num = 0;
     /* compute average level */
     int x, y;
@@ -606,7 +606,7 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
         }
     }
 
-    double mean = black / num;
+    double mean = (double) black / num;
 
     /* compute standard deviation */
     double stdev = 0;
@@ -614,11 +614,11 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
     {
         for (x = x1; x < x2; x += dx)
         {
-            int dif = raw_get_pixel(x, y) - mean;
+            double dif = raw_get_pixel(x, y) - mean;
             stdev += dif * dif;
         }
     }
-    stdev /= num;
+    stdev /= (num-1);
     stdev = sqrt(stdev);
     
     if (num == 0)
