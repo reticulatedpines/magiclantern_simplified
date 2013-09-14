@@ -352,8 +352,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
         /* hack: this may be executed when file_number is updated;
          * if so, it will rename the previous picture, captured with the old setting,
          * so it will mis-label the pics */
-        if (isoless_file_prefix && lens_info.job_state)
-            msleep(500);
+        int file_prefix_needs_delay = (lens_info.job_state);
         
         static int prefix_key = 0;
         if (isoless_file_prefix && enabled_ph)
@@ -361,11 +360,13 @@ static unsigned int isoless_refresh(unsigned int ctx)
             if (!prefix_key)
             {
                 //~ NotifyBox(1000, "DUAL");
+                if (file_prefix_needs_delay) msleep(500);
                 prefix_key = file_prefix_set("DUAL");
             }
         }
         else if (prefix_key)
         {
+            if (file_prefix_needs_delay) msleep(500);
             if (file_prefix_reset(prefix_key))
             {
                 //~ NotifyBox(1000, "IMG_");
