@@ -43,8 +43,7 @@ static int debug_info = 0;
 extern int hdr_enabled;
 #define HDR_ENABLED hdr_enabled
 
-static int highlight_headroom_needed = 0;
-static int highlight_headroom_recovered = 0;
+static int extra_snr_needed = 0;
 
 /* metering on dual ISO images can be affected by black level delta */
 /* ideally, ev_hi = ev_lo + ev_delta, so we'll try to find a black level delta that matches this */
@@ -311,15 +310,31 @@ static int auto_ettr_get_correction()
         }
     }
     
-    /* how many highlights we have clipped? */
-    highlight_headroom_needed = (correction - correction0 + target) * 100.0;
+    /* exposure difference with and without SNR limits */
+    int expo_delta_snr = (correction - correction0) * 100.0;
     
     if (debug_info)
     {
-        bmp_printf(FONT_MED, 50, 140, "HR needed    : %s%d.%02d EV ", FMT_FIXEDPOINT2S(highlight_headroom_needed));
+        bmp_printf(FONT_MED, 50, 140, "Expo diff SNR: %s%d.%02d EV ", FMT_FIXEDPOINT2S(expo_delta_snr));
     }
-    
-    last_value = (int)(correction * 100) - (dual_iso ? highlight_headroom_needed : 0);
+
+    /* exposure correction so it doesn't clip anything more than allowed by highlight ignore */
+    int corr_without_clipping = (int)(correction * 100) - expo_delta_snr;
+
+    if (dual_iso)
+    {
+        /* with dual ISO: expose without clipping */
+        /* auto_ettr_work will have to do something and recover the SNR */
+        last_value = corr_without_clipping;
+        extra_snr_needed = expo_delta_snr;
+    }
+    else
+    {
+        /* without dual ISO: expose with clipping in order to meet the SNR */
+        /* no more SNR correction needed */
+        last_value = corr_without_clipping + expo_delta_snr;
+        extra_snr_needed = 0;
+    }
     return last_value;
 }
 
@@ -345,11 +360,11 @@ static int auto_ettr_work_m(int corr)
     if (!tv || !iso) return 0;
     //~ int old_expo = tv - iso;
 
+    /* note: expo compensation will not clip with dual ISO, but will clip highlights without it */
     int dual_iso = dual_iso_is_enabled();
-    if (dual_iso) corr += highlight_headroom_needed;
-
     int delta = -corr * 8 / 100;
-    int expected_expo = tv - iso + delta;
+    
+    int expected_expo = tv - iso + delta;               /* will clip without dual ISO */
 
     static int prev_tv = 0;
     if (auto_ettr_adjust_mode == 1)
@@ -407,63 +422,27 @@ static int auto_ettr_work_m(int corr)
         tvr += isor - iso;
         tvr = round_shutter(tvr, shutter_lim);
     }
-
+    
     /* can we use dual ISO to recover the highlights? (HR = highlight recovery) */
     if (dual_iso)
     {
         int base_iso = isor;
         int recovery_iso = base_iso;
-        int snr_delta = 0;
-        highlight_headroom_recovered = 0;
-        /* note: without dual ISO, ETTR exposes for shadows (SNR); if these are too noisy, it will clip some highlights */
-        /* how many highlights? "highlight_headroom_needed" (units EV x100) */
-        /* so, we have to bring the exposure down by "highlight_headroom_needed/100.0" EV */
-        /* and make sure the SNR doesn't get lower */
+
+        /* bring back the SNR */
+        int snr_delta = -extra_snr_needed;
+        while (snr_delta < 0 && recovery_iso < max_auto_iso)
+        {
+            int old_rec_iso = recovery_iso;
+            recovery_iso += 8;
+            int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
+            snr_delta += dr_gained;
+        }
 
         if (debug_info)
         {
             msleep(1000);
-            bmp_printf(FONT_MED, 50, 160, "Base setting : ISO %d %s (HR needed: %s%d.%02d)", raw2iso(base_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
-        }
-        
-        while (highlight_headroom_recovered < highlight_headroom_needed && base_iso > MIN_ISO) /* single-ISO exposure greater than 100? */
-        {
-            /* lower the base ISO */
-            /* this will bring back the highlights and will keep the SNR constant */
-            base_iso -= 8;
-            expected_expo += 8;
-            highlight_headroom_recovered += 100;
-            /* okay, I know, this loop can be a closed-form formula; feel free to do the math */
-        }
-
-        if (debug_info)
-        {
-            bmp_printf(FONT_MED, 50, 180, "At lowest ISO: ISO %d/%d %s (HR left: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
-        }
-
-        while (highlight_headroom_recovered < highlight_headroom_needed && recovery_iso < max_auto_iso) /* need more? use a faster shutter speed and increase recovery ISO */
-        {
-            /* recover 0.5 EV of highlights by using a faster shutter speed */
-            tvr += 4;
-            expected_expo += 4;
-            highlight_headroom_recovered += 50;
-            
-            /* we will lose 0.5 EV of SNR */
-            snr_delta -= 50;
-            
-            /* bring back the SNR */
-            while (snr_delta < 0 && recovery_iso < max_auto_iso)
-            {
-                int old_rec_iso = recovery_iso;
-                recovery_iso += 8;
-                int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
-                snr_delta += dr_gained;
-            }
-        }
-
-        if (debug_info)
-        {
-            bmp_printf(FONT_MED, 50, 200, "Final setting: ISO %d/%d %s (HR left: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
+            bmp_printf(FONT_MED, 50, 160, "Dual ISO ETTR: ISO %d/%d %s (SNR lost: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(-snr_delta));
         }
 
         /* apply dual ISO settings */
@@ -581,12 +560,12 @@ static void auto_ettr_step_task(int corr)
         beep();
         ettr_pics_took = 0;
 
-        int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered - corr) / 10;
-        if (blown_highlights > 2)
-        {
-            msleep(1000);
-            bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
-        }
+        //~ int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered) / 10;
+        //~ if (blown_highlights > 2)
+        //~ {
+            //~ msleep(1000);
+            //~ bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
+        //~ }
     }
     else if (ettr_pics_took >= 3)
     {
@@ -616,11 +595,11 @@ static void auto_ettr_step_task(int corr)
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: need some more pictures");
 
-        int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered - corr) / 10;
-        if (blown_highlights > 2)
-        {
-            bmp_printf(FONT_MED, 0, os.y0+20, "Clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
-        }
+        //~ int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered) / 10;
+        //~ if (blown_highlights > 2)
+        //~ {
+            //~ bmp_printf(FONT_MED, 0, os.y0+20, "Clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
+        //~ }
     }
     auto_ettr_running = 0;
 }
