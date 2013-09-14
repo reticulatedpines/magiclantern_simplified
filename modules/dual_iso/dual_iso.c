@@ -110,6 +110,9 @@ static uint32_t CMOS_EXPECTED_FLAG = 0;
 #define CMOS_ISO_MASK ((1 << CMOS_ISO_BITS) - 1)
 #define CMOS_FLAG_MASK ((1 << CMOS_FLAG_BITS) - 1)
 
+/* CBR macros (to know where they were called from) */
+#define CTX_SHOOT_TASK 0
+#define CTX_SET_RECOVERY_ISO 1
 
 static int isoless_recovery_iso_index()
 {
@@ -352,7 +355,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
         /* hack: this may be executed when file_number is updated;
          * if so, it will rename the previous picture, captured with the old setting,
          * so it will mis-label the pics */
-        int file_prefix_needs_delay = (lens_info.job_state);
+        int file_prefix_needs_delay = (ctx == CTX_SHOOT_TASK && lens_info.job_state);
 
         int iso1 = 72 + isoless_recovery_iso_index() * 8;
         int iso2 = lens_info.raw_iso/8*8;
@@ -405,7 +408,7 @@ int dual_iso_set_recovery_iso(int iso)
     isoless_recovery_iso = COERCE((iso - 72)/8, 0, max_index);
 
     /* apply the new settings right now */
-    isoless_refresh(0);
+    isoless_refresh(CTX_SET_RECOVERY_ISO);
     return 1;
 }
 
@@ -863,8 +866,8 @@ MODULE_INFO_START()
 MODULE_INFO_END()
 
 MODULE_CBRS_START()
-    MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, 0)
-    MODULE_CBR(CBR_SHOOT_TASK, isoless_playback_fix, 0)
+    MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, CTX_SHOOT_TASK)
+    MODULE_CBR(CBR_SHOOT_TASK, isoless_playback_fix, CTX_SHOOT_TASK)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
