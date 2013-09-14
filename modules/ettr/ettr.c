@@ -224,9 +224,11 @@ static int auto_ettr_get_correction()
                 }
             }
         }
+
+        /* use the average value for correction */
+        correction = sum / num;
         
-        float mean = sum/num;
-        if (num < 3 || max - mean > 1 || mean - min > 1)
+        if (num < 3 || max - correction > 1 || correction - min > 1 || correction > -1)
         {
             /* scene changed? measurements from previous shot not confirmed or vary too much?
              * 
@@ -234,14 +236,9 @@ static int auto_ettr_get_correction()
             float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
             //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
-            float corr = correction - log2f(1 + overexposed);
-            int weight = MAX(num, 2);
-            sum += corr * weight;
-            num += weight;
+            float corr = - log2f(2 + overexposed);
+            correction = MIN(correction, corr);
         }
-
-        /* use the average value for correction */
-        correction = sum / num;
     }
 
     int iso1 = lens_info.iso_analog_raw;
