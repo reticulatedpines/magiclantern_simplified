@@ -4041,7 +4041,7 @@ static void expo_lock_step()
     int diff = expo_lock_value - expo_lock_get_current_value();
     //~ NotifyBox(1000, "%d %d ", diff, what_changed);
 
-    if (diff >= -2 && diff <= 1) 
+    if (diff >= -1 && diff <= 1) 
         return; // difference is too small, ignore it
     
     if (what_changed == 1 && expo_lock_iso)
