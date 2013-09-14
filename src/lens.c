@@ -1667,7 +1667,6 @@ PROP_HANDLER( PROP_BV ) // camera-specific
 }
 #endif
 
-static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) 
@@ -1694,7 +1693,6 @@ PROP_HANDLER( PROP_SHUTTER )
     bv_auto_update();
     #endif
     lens_display_set_dirty();
-    shutter_ack = buf[0];
 }
 
 static int aperture_ack = -1;
@@ -2212,26 +2210,20 @@ static int prop_set_rawshutter(unsigned shutter)
     if (shutter < 16) return 0;
     if (shutter > FASTEST_SHUTTER_SPEED_RAW) return 0;
     
-    //~ bmp_printf(FONT_MED, 100, 100, "%d...", shutter);
     lens_wait_readytotakepic(64);
-    //~ shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
-    shutter_ack = -1;
+
     int s0 = shutter;
-    prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
-    //~ for (int i = 0; i < 5; i++) { if (shutter_also_ack == s0) return 1; msleep(20); }
-    //~ bmp_printf(FONT_MED, 100, 100, "%d %s ", shutter, shutter_ack == s0 ? ":)" : ":(");
-    return shutter_ack == s0;
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    
+    return lens_info.raw_shutter == s0;
 }
 
 static int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
-    shutter_ack = -1;
-    prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
-    return ABS(shutter_ack - shutter) <= 3;
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
+    return ABS((int)lens_info.raw_shutter - (int)shutter) <= 3;
 }
 
 static int prop_set_rawiso(unsigned iso)
@@ -2254,7 +2246,7 @@ extern int bv_av;
 
 int expo_override_active()
 {
-    return CONTROL_BV;
+    return CONTROL_BV && lv;
 }
 
 void bv_update_lensinfo()
