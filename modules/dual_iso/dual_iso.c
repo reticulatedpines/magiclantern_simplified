@@ -288,25 +288,30 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* b
     return 0;
 }
 
+static struct semaphore * isoless_sem = 0;
+
 /* Photo mode: always enable */
 /* LiveView: only enable in movie mode */
 /* Refresh the parameters whenever you change something from menu */
 static int enabled_lv = 0;
 static int enabled_ph = 0;
 
+/* thread safe */
 static unsigned int isoless_refresh(unsigned int ctx)
 {
     if (!job_state_ready_to_take_pic())
         return 0;
-    
+
+    take_semaphore(isoless_sem, 0);
+
     static uint16_t backup_lv[20];
     static uint16_t backup_ph[20];
     int mv = is_movie_mode() ? 1 : 0;
     int lvi = lv ? 1 : 0;
     int raw = (mv ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))) ? 1 : 0;
     
-    if (FRAME_CMOS_ISO_COUNT > COUNT(backup_ph)) return 0;
-    if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) return 0;
+    if (FRAME_CMOS_ISO_COUNT > COUNT(backup_ph)) goto end;
+    if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) goto end;
     
     static int prev_sig = 0;
     int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + file_number * isoless_alternate + lens_info.raw_iso * 1234;
@@ -369,6 +374,8 @@ static unsigned int isoless_refresh(unsigned int ctx)
         }
     }
 
+end:
+    give_semaphore(isoless_sem);
     return 0;
 }
 
@@ -392,6 +399,9 @@ int dual_iso_set_recovery_iso(int iso)
     
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
     isoless_recovery_iso = COERCE((iso - 72)/8, 0, max_index);
+
+    /* apply the new settings right now */
+    isoless_refresh(0);
     return 1;
 }
 
