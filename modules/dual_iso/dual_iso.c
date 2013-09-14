@@ -353,9 +353,12 @@ static unsigned int isoless_refresh(unsigned int ctx)
          * if so, it will rename the previous picture, captured with the old setting,
          * so it will mis-label the pics */
         int file_prefix_needs_delay = (lens_info.job_state);
-        
+
+        int iso1 = 72 + isoless_recovery_iso_index() * 8;
+        int iso2 = lens_info.raw_iso/8*8;
+
         static int prefix_key = 0;
-        if (isoless_file_prefix && enabled_ph)
+        if (isoless_file_prefix && enabled_ph && iso1 != iso2)
         {
             if (!prefix_key)
             {
