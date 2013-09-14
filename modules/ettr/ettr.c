@@ -26,6 +26,7 @@ static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6);
 static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2);
+static CONFIG_INT("auto.ettr.dual.iso", auto_ettr_dual_iso_link, 1);
 
 static int debug_info = 0;
 
@@ -108,7 +109,7 @@ static int auto_ettr_get_correction()
     float ev_median_lo = raw_to_ev(raw_median_lo);
     float ev_shadow_lo = raw_to_ev(raw_shadow_lo);
     
-    int dual_iso = dual_iso_is_enabled();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
     float ev_median_hi = ev_median_lo;
     float ev_shadow_hi = ev_shadow_lo; /* for dual ISO: for the bright exposure */
     
@@ -358,7 +359,7 @@ static int auto_ettr_work_m(int corr)
     //~ int old_expo = tv - iso;
 
     /* note: expo compensation will not clip with dual ISO, but will clip highlights without it */
-    int dual_iso = dual_iso_is_enabled();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
     int delta = -corr * 8 / 100;
     
     int expected_expo = tv - iso + delta;               /* will clip without dual ISO */
@@ -1239,12 +1240,23 @@ static struct menu_entry ettr_menu[] =
                          "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
             },
             {
+                .name = "Slowest shutter",
+                .priv = &auto_ettr_max_shutter,
+                .select = auto_ettr_max_shutter_toggle,
+                .update = auto_ettr_max_shutter_update,
+                .min = 16,
+                .max = 152,
+                .icon_type = IT_PERCENT,
+                .help = "Slowest shutter speed for ETTR."
+            },
+            {
                 .name = "Exposure target",
                 .priv = &auto_ettr_target_level,
                 .min = -4,
                 .max = 0,
                 .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "-1 EV", "-0.5 EV"),
                 .help = "Exposure target for ETTR. Recommended: -0.5 or -1 EV.",
+                .advanced = 1,
             },
             {
                 .name = "Highlight ignore",
@@ -1257,11 +1269,12 @@ static struct menu_entry ettr_menu[] =
                 .help2 = "Use this to allow spec(ta)cular highlights to be clipped.",
             },
             {
-                .name = "Clipping mode",
+                .name = "Allow clipping",
                 .priv = &auto_ettr_clip,
                 .max = 2,
-                .choices = CHOICES("No clipping", "Clip GREEN", "Clip ANY"),
+                .choices = CHOICES("OFF", "Green channel", "Any channel"),
                 .help = "Choose what color channels are allowed to be clipped.",
+                .advanced = 1,
             },
             {
                 .name = "Midtone SNR limit",
@@ -1284,27 +1297,28 @@ static struct menu_entry ettr_menu[] =
                 .depends_on = DEP_MANUAL_ISO,
             },
             {
-                .name = "Slowest shutter",
-                .priv = &auto_ettr_max_shutter,
-                .select = auto_ettr_max_shutter_toggle,
-                .update = auto_ettr_max_shutter_update,
-                .min = 16,
-                .max = 152,
-                .icon_type = IT_PERCENT,
-                .help = "Slowest shutter speed for ETTR."
-            },
-            {
                 .name = "Link to Canon shutter",
                 .priv = &auto_ettr_adjust_mode,
                 .max = 1,
                 .help = "Hack to adjust slowest shutter from main dial.",
+                .advanced = 1,
+            },
+            {
+                .name = "Link to Dual ISO",
+                .priv = &auto_ettr_dual_iso_link,
+                .max = 1,
+                .help  = "Let ETTR change DualISO settings so you get the SNR values",
+                .help2 = "in mids & shadows. It will disable dual ISO if not needed.",
+                .advanced = 1,
             },
             {
                 .name = "Show debug info",
                 .priv = &debug_info,
                 .max = 1,
                 .help = "For camera nerds.",
+                .advanced = 1,
             },
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         },
     },
@@ -1346,4 +1360,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_ettr_adjust_mode)
     MODULE_CONFIG(auto_ettr_midtone_snr_limit)
     MODULE_CONFIG(auto_ettr_shadow_snr_limit)
+    MODULE_CONFIG(auto_ettr_dual_iso_link)
 MODULE_CONFIGS_END()
