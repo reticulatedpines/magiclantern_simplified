@@ -160,7 +160,7 @@ static int is_visible(struct menu_entry * entry)
        )
        &&
        (
-            advanced_mode || !entry->advanced
+            advanced_mode || !entry->advanced || config_var_was_changed(entry->priv)
        )
        ;
 }
