@@ -2215,6 +2215,14 @@ static int prop_set_rawshutter(unsigned shutter)
     int s0 = shutter;
     prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
     
+    if (lens_info.raw_shutter != s0 && !(CONTROL_BV && lv))
+    {
+        /* no confirmation? try set shutter 2 stops away from final value, and back */
+        int sx = shutter > 128 ? shutter - 16 : shutter + 16;
+        prop_request_change_wait( PROP_SHUTTER, &sx, 4, 100);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    }
+    
     return lens_info.raw_shutter == s0;
 }
 
