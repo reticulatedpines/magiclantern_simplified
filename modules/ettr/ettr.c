@@ -46,6 +46,25 @@ extern int hdr_enabled;
 static int highlight_headroom_needed = 0;
 static int highlight_headroom_recovered = 0;
 
+/* metering on dual ISO images can be affected by black level delta */
+/* ideally, ev_hi = ev_lo + ev_delta, so we'll try to find a black level delta that matches this */
+/* => solve this: raw_to_ev(raw_value_hi - black_delta) = raw_to_ev(raw_value_lo + black_delta) + ev_delta */
+static int guess_black_delta(int raw_value_lo, int raw_value_hi, float ev_delta)
+{
+    float best_err = 100000;
+    int best_black_delta = 0;
+    for (int black_delta = -40; black_delta <= 40; black_delta++)
+    {
+        float err = ABS(raw_to_ev(raw_value_hi - black_delta) - raw_to_ev(raw_value_lo + black_delta) - ev_delta);
+        if (err < best_err)
+        {
+            best_err = err;
+            best_black_delta = black_delta;
+        }
+    }
+    return best_black_delta;
+}
+
 /* also used for display on histogram */
 static int auto_ettr_get_correction()
 {
@@ -85,8 +104,10 @@ static int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw_values[0]);
-    float ev_median_lo = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
-    float ev_shadow_lo = raw_to_ev(raw_values[12]); /* 5th percentile */
+    int raw_median_lo = raw_values[7];  /* 50th percentile (median) */
+    int raw_shadow_lo = raw_values[12]; /* 5th percentile */
+    float ev_median_lo = raw_to_ev(raw_median_lo);
+    float ev_shadow_lo = raw_to_ev(raw_shadow_lo);
     
     int dual_iso = dual_iso_is_enabled();
     float ev_median_hi = ev_median_lo;
@@ -96,21 +117,24 @@ static int auto_ettr_get_correction()
     {
         /* for dual ISO only:*/
         /* we have metered the dark exposure (since ETTR is pushing that to the right), now meter the bright one too */
+
+        /* EV difference between the two ISOs (from settings) */
+        float dual_iso_spacing = ABS(dual_iso_get_recovery_iso() - lens_info.iso_analog_raw) / 8.0;
+
         if (lv && !is_movie_mode())
         {
             /* photo LV (only one exposure) */
             /* estimate it from settings */
-            float d = ABS(dual_iso_get_recovery_iso() - lens_info.iso_analog_raw) / 8.0;
             int rec_iso = dual_iso_get_recovery_iso();
             if (rec_iso > (int)lens_info.iso_analog_raw) /* we are looking at the dark exposure */
             {
-                ev_median_hi = MIN(ev_median_lo + d, 0); /* you can't get whiter than white */
-                ev_shadow_hi = MIN(ev_shadow_lo + d, 0);
+                ev_median_hi = MIN(ev_median_lo + dual_iso_spacing, 0); /* you can't get whiter than white */
+                ev_shadow_hi = MIN(ev_shadow_lo + dual_iso_spacing, 0);
             }
             else /* we are looking at the bright exposure */
             {
-                ev_median_hi = ev_median_lo - d;
-                ev_shadow_hi = ev_shadow_lo - d;
+                ev_median_hi = ev_median_lo - dual_iso_spacing;
+                ev_shadow_hi = ev_shadow_lo - dual_iso_spacing;
                 float aux = ev_median_hi; ev_median_hi = ev_median_lo; ev_median_lo = aux;
                 aux = ev_shadow_hi; ev_shadow_hi = ev_shadow_lo; ev_shadow_lo = aux;
             }
@@ -118,11 +142,33 @@ static int auto_ettr_get_correction()
         else
         {
             /* photo non-LV and movie */
-            int percentiles[2] = {500, 50};
-            int raw_values[2];
-            raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
-            ev_median_hi = raw_to_ev(raw_values[0]);
-            ev_shadow_hi = raw_to_ev(raw_values[1]);
+            int percentiles_hi[2] = {500, 50};
+            int raw_values_hi[2];
+            raw_hist_get_percentile_levels(percentiles_hi, raw_values_hi, COUNT(percentiles_hi), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
+            int raw_median_hi = raw_values_hi[0];  /* 50th percentile (median) */
+            int raw_shadow_hi = raw_values_hi[1]; /* 5th percentile */
+
+            /* signal level for the higher exposure must be equal to signal level for the lower exposure plus dual ISO spacing (EV) */
+            /* if it's not, it's very likely to be a large black level difference messing with our formulas */
+            /* let's try to fight it! */
+
+            /* compute it from shadow levels, because this is where black delta has the largest effect */
+            /* if you compute it from median, shadow may be still wrong by 1-2 EV */
+            /* if you compute it from shadow, median may be wrong by only 0.1 - 0.2 EV - much better! */
+            int black_delta = guess_black_delta(raw_shadow_lo, raw_shadow_hi, dual_iso_spacing);
+
+            ev_median_lo = raw_to_ev(raw_median_lo + black_delta);
+            ev_shadow_lo = raw_to_ev(raw_shadow_lo + black_delta);
+
+            ev_median_hi = raw_to_ev(raw_median_hi - black_delta);
+            ev_shadow_hi = raw_to_ev(raw_shadow_hi - black_delta);
+
+            if (debug_info)
+            {
+                int gap_med = (ev_median_hi - ev_median_lo) * 100;
+                int gap_shad = (ev_shadow_hi - ev_shadow_lo) * 100;
+                bmp_printf(FONT_MED, 50,  60, "Black delta  : %d (EV gap mid:%s%d.%02d shad:%s%d.%02d)", black_delta, FMT_FIXEDPOINT2(gap_med), FMT_FIXEDPOINT2(gap_shad));
+            }
         }
     }
 
