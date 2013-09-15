@@ -1339,13 +1339,20 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
             y += font_med.height;
             for ( ; strings->name != NULL; strings++)
             {
-                if (strchr(strings->name, '\n'))
+                if (strchr(strings->value, '\n'))
                 {
                     continue; /* don't display multiline strings here */
                 }
                 
+                int is_short_string = strlen(strings->value) * font_med.width + x_val < 710;
+                
+                if (module_is_special_string(strings->name) && !is_short_string)
+                {
+                    continue; /* don't display long strings that are already shown on the info page */
+                }
+                
                 bmp_printf(FONT_MED, x, y, "%s", strings->name);
-                if (strlen(strings->value) * font_med.width + x_val < 710)
+                if (is_short_string)
                 {
                     /* short string */
                     bmp_printf(FONT_MED, x_val, y, "%s", strings->value);
