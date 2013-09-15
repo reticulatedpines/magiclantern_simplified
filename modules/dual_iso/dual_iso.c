@@ -144,7 +144,7 @@ int dual_iso_calc_dr_improvement(int iso1, int iso2)
     int dr_lo = get_dxo_dynamic_range(iso_lo);
     int dr_gained = (iso_hi - iso_lo) / 8 * 100;
     int dr_lost = dr_lo - dr_hi;
-    int dr_total = dr_gained - dr_lost - 1;
+    int dr_total = dr_gained - dr_lost;
     
     return dr_total;
 }
