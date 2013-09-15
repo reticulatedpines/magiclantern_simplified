@@ -480,21 +480,30 @@ static int auto_ettr_work_m(int corr)
     prev_tv = lens_info.raw_shutter;
     
     /* did it converge or not? */
+    int tv_after = lens_info.raw_shutter;
+    int iso_after = lens_info.raw_iso;
+    int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
+
     if (dual_iso)
     {
         int iso2_after = dual_iso_get_recovery_iso();
-        int dr2_before = get_dxo_dynamic_range(iso2_before);
-        int dr2_after = get_dxo_dynamic_range(iso2_after);
-        if (ABS(dr2_after - dr2_before) >= 50)
+        int dr2_before = dual_iso_calc_dr_improvement(iso_after, iso2_before);
+        int dr2_after = dual_iso_calc_dr_improvement(iso_after, iso2_after);
+
+        if (debug_info)
+        {
+            bmp_printf(FONT_MED, 50, 220, 
+                "iso2 %d->%d dr %d->%d ",
+                raw2iso(iso2_before), raw2iso(iso2_after), dr2_before, dr2_after
+            );
+        }
+
+        if (ABS(dr2_after - dr2_before) >= 40)
             return ETTR_NEED_MORE_SHOTS;
         
         //~ if (highlight_headroom_needed > 50)
             //~ return ETTR_EXPO_LIMITS_REACHED;
     }
-
-    int tv_after = lens_info.raw_shutter;
-    int iso_after = lens_info.raw_iso;
-    int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
 
     if (debug_info)
     {
