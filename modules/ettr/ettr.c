@@ -44,6 +44,20 @@ static int debug_info = 0;
 extern int hdr_enabled;
 #define HDR_ENABLED hdr_enabled
 
+static char* get_current_exposure_settings()
+{
+    static char msg[50];
+    int iso1 = lens_info.iso_analog_raw;
+    snprintf(msg, sizeof(msg), "ISO %d", raw2iso(iso1));
+    int iso2 = dual_iso_get_recovery_iso();
+    if (iso2 && iso2 != iso1)
+    {
+        STR_APPEND(msg, "/%d", raw2iso(iso2));
+    }
+    STR_APPEND(msg, " %s", lens_format_shutter(lens_info.raw_shutter));
+    return msg;
+}
+
 static int extra_snr_needed = 0;
 
 /* metering on dual ISO images can be affected by black level delta */
@@ -373,14 +387,14 @@ static int auto_ettr_work_m(int corr)
             auto_ettr_max_shutter = tv;
             if (lv)
             {
-                NotifyBox(2000, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+                NotifyBox(2000, "ETTR: Tv <= %s ", lens_format_shutter(tv));
                 prev_tv = tv;
                 return 0; /* wait for next iteration */
             }
             else
             {
                 msleep(1000);
-                bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+                bmp_printf(FONT_MED, 0, os.y0, "ETTR: Tv <= %s ", lens_format_shutter(tv));
             }
         }
     }
@@ -438,15 +452,10 @@ static int auto_ettr_work_m(int corr)
             snr_delta += dr_gained;
         }
 
-        if (debug_info)
-        {
-            msleep(1000);
-            bmp_printf(FONT_MED, 50, 160, "Dual ISO ETTR: ISO %d/%d %s (SNR lost: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(-snr_delta));
-        }
-
         /* apply dual ISO settings */
         isor = base_iso;
         dual_iso_set_recovery_iso(recovery_iso);
+        extra_snr_needed = -snr_delta;
     }
 
     /* apply the new settings */
@@ -460,6 +469,12 @@ static int auto_ettr_work_m(int corr)
 
     /* don't let expo lock undo our changes */
     expo_lock_update_value();
+
+    if (debug_info)
+    {
+        msleep(1000);
+        bmp_printf(FONT_MED, 50, 160, "Adjusted expo: %s (SNR lost: %s%d.%02d)", get_current_exposure_settings(), FMT_FIXEDPOINT2(extra_snr_needed));
+    }
 
     /* to know when the user changed shutter speed */
     prev_tv = lens_info.raw_shutter;
@@ -535,8 +550,14 @@ static int auto_ettr_work_auto(int corr)
     }
 }
 
+static char prev_exposure_settings[50];
+
 static int auto_ettr_work(int corr)
 {
+    /* save initial exposure settings so we can print them */
+    char* expo_settings = get_current_exposure_settings();
+    snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
+    
     if (expo_override_active())
         return auto_ettr_work_m(corr);
     else if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
@@ -558,12 +579,15 @@ static void auto_ettr_step_task(int corr)
         /* cool, we got the ideal exposure */
         beep();
         ettr_pics_took = 0;
+        
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: settled at %s", get_current_exposure_settings());
 
         //~ int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered) / 10;
         //~ if (blown_highlights > 2)
         //~ {
             //~ msleep(1000);
-            //~ bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
+            //~ bmp_printf(FONT_MED, 0, os.y0, "ETTR: clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
         //~ }
     }
     else if (ettr_pics_took >= 3)
@@ -572,14 +596,14 @@ static void auto_ettr_step_task(int corr)
         beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
-        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: giving up");
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: giving up\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_LIMITS_REACHED)
     {
         beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
-        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
     else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
     {
@@ -592,7 +616,7 @@ static void auto_ettr_step_task(int corr)
     {
         beep_times(2);
         msleep(1000);
-        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: need some more pictures");
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: next %s (was %s)", get_current_exposure_settings(), prev_exposure_settings);
 
         //~ int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered) / 10;
         //~ if (blown_highlights > 2)
@@ -851,12 +875,12 @@ static void auto_ettr_on_request_task_fast()
 #endif
 
 
-    NotifyBox(100000, "Auto ETTR...");
+    NotifyBox(100000, "ETTR...");
     raw_lv_request();
     
     for (int i = 0; i < 5; i++)
     {
-        NotifyBox(100000, "Auto ETTR (%d)...", i+1);
+        NotifyBox(100000, "ETTR (%d)...", i+1);
         if (fps_get_shutter_speed_shift(160) == 0)
         {
             auto_ettr_vsync_active = 1;
@@ -1000,7 +1024,7 @@ static void auto_ettr_on_request_task_slow()
         if (get_halfshutter_pressed()) goto end;
     }
 
-    NotifyBox(100000, "Auto ETTR...");
+    NotifyBox(100000, "ETTR...");
     for (int k = 0; k < 5; k++)
     {
         msleep(500);
