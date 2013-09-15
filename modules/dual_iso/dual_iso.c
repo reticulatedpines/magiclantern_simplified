@@ -570,11 +570,11 @@ static MENU_UPDATE_FUNC(isoless_overlap_update)
         return;
     }
     
-    int iso_diff = (iso_hi - iso_lo) / 8;
-    int dr_lo = (get_dxo_dynamic_range(iso_lo)+50)/100;
+    int iso_diff = (iso_hi - iso_lo) * 10/ 8;
+    int dr_lo = (get_dxo_dynamic_range(iso_lo)+5)/10;
     int overlap = dr_lo - iso_diff;
     
-    MENU_SET_VALUE("%d EV", overlap);
+    MENU_SET_VALUE("%d.%d EV", overlap/10, overlap%10);
 }
 
 static MENU_UPDATE_FUNC(isoless_update)
