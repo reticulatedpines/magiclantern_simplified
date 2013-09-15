@@ -574,12 +574,6 @@ MODULE_INFO_START()
     MODULE_DEINIT(ime_rot_deinit)
 MODULE_INFO_END()
 
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "IME Standard module")
-    MODULE_STRING("License", "GPL")
-    MODULE_STRING("Author", "g3gg0")
-MODULE_STRINGS_END()
-
 MODULE_CBRS_START()
     MODULE_CBR(CBR_KEYPRESS, ime_rot_keypress_cbr, 0)
 MODULE_CBRS_END()
