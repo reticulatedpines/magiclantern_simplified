@@ -238,6 +238,7 @@ static int auto_ettr_get_correction()
             //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
             float corr = - log2f(2 + overexposed);
+            if (dual_iso) corr -= 2; /* with dual ISO, the cost of underexposing is not that high, so prefer it to improve convergence */
             correction = MIN(correction, corr);
         }
     }
