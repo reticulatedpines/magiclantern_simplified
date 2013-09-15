@@ -1276,7 +1276,10 @@ static int module_show_about_page(int mod_number)
             int xl = 710 - max_width * font_med.width;
             xm = xm - xl + 10;
             xl = 10;
-            int yr = 480 - (num_extra_strings + 2) * font_med.height;
+            
+            int lines_for_update_msg = strchr(module_last_update, '\n') ? 3 : 2;
+
+            int yr = 480 - (num_extra_strings + lines_for_update_msg) * font_med.height;
 
             for (strings = module_list[mod_number].strings ; strings->name != NULL; strings++)
             {
@@ -1295,7 +1298,7 @@ static int module_show_about_page(int mod_number)
             
             if (module_last_update)
             {
-                bmp_printf(fnt_special, 10, 480-font_med.height*2, "Last update: %s", module_last_update);
+                bmp_printf(fnt_special, 10, 480-font_med.height * lines_for_update_msg, "Last update: %s", module_last_update);
             }
             
             return 1;

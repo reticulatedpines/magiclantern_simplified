@@ -102,13 +102,21 @@ add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
-last_changeset = run("hg log . -l 1 --template '{node|short}'")
-if len(last_changeset):
-    last_change_date = run("LC_TIME=EN hg log . -l 1 --template '{date|hgdate}'")
+last_change_info = run("LC_TIME=EN hg log . -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
+if len(last_change_info):
+    last_change_date, last_changeset, author, commit_msg = last_change_info.split("\n")
     split = last_change_date.split(" ")
     seconds = float(split[0]) + float(split[1])
-    last_change_date = datetime.utcfromtimestamp(seconds).strftime("%Y-%m-%d %H:%M:%S UTC")
-    add_string("Last update", "%s (%s)" % (last_change_date, last_changeset))
+    last_change_date = datetime.utcfromtimestamp(seconds).strftime("%Y-%m-%d %H:%M:%S") # UTC doesn't fit
+    
+    # trim changeset to 7 chars, like Bitbucket does
+    last_changeset = last_changeset[:7]
+    
+    # trim commit msg to 59 chars
+    if len(commit_msg) > 59:
+        commit_msg = commit_msg[:59-3] + "..."
+        
+    add_string("Last update", "%s on %s by %s:\n%s" % (last_changeset, last_change_date, author, commit_msg))
 
 build_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 build_user = run("echo `whoami`@`hostname`")
