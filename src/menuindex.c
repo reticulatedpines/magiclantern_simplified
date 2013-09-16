@@ -101,15 +101,15 @@ static struct menu_entry help_menus[] = {
     /* if BTN_ZEBRAS_FOR_PLAYBACK_NAME is undefined, you must define it (or undefine FEATURE_OVERLAYS_IN_PLAYBACK_MODE) */
     {
         .select = menu_nav_help_open,
-        .name = "PLAY: press "BTN_ZEBRAS_FOR_PLAYBACK_NAME,
-        .choices = CHOICES("Overlays in PLAY mode"),
+        .name = "Press "BTN_ZEBRAS_FOR_PLAYBACK_NAME,
+        .choices = CHOICES("Overlays (PLAY only)"),
     },
     #endif
     #ifdef ARROW_MODE_TOGGLE_KEY
     {
         .select = menu_nav_help_open,
-        .name = "LiveView: press "ARROW_MODE_TOGGLE_KEY,
-        .choices = CHOICES("Arrow Shortcuts"),
+        .name = "Press "ARROW_MODE_TOGGLE_KEY,
+        .choices = CHOICES("Shortcuts (LV only)"),
     },
     #endif
     {
