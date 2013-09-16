@@ -870,6 +870,8 @@ static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo on
 
 static void FAST draw_zebras_raw()
 {
+    if (!DISPLAY_IS_ON) return;
+    if (!PLAY_OR_QR_MODE) return;
     if (!raw_update_params()) return;
 
     uint8_t * bvram = bmp_vram();
@@ -930,8 +932,113 @@ static void FAST draw_zebras_raw()
             }
         }
 
+        if (!DISPLAY_IS_ON) break;
         if (!PLAY_OR_QR_MODE) break;
     }
+}
+
+void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight_info)
+{
+    if (!DISPLAY_IS_ON) return;
+    if (!raw_update_params()) return;
+
+    uint8_t * bvram = bmp_vram();
+    if (!bvram) return;
+    
+    int gray_projection = raw_highlight_info->gray_projection;
+
+    for (int i = os.y0; i < os.y_max; i ++)
+    {
+        int y = BM2RAW_Y(i);
+        int p_prev = 0;
+
+        for (int j = os.x0; j < os.x_max; j ++)
+        {
+            int x = BM2RAW_X(j);
+            
+            int color = 0;
+            int p = raw_get_gray_pixel(x, y, gray_projection);
+            for (struct raw_highlight_info * hinf = raw_highlight_info; hinf->raw_level_lo || hinf->raw_level_hi; hinf++)
+            {
+                /* gray projection changed? re-sample the pixel */
+                if (hinf->gray_projection != gray_projection)
+                {
+                    gray_projection = hinf->gray_projection;
+                    p = raw_get_gray_pixel(x, y, gray_projection);
+                }
+
+                #define SGN_TOL(a, tol) \
+                   ({ __typeof__ (a) _a = (a); __typeof__ (tol) _tol = ((tol)); \
+                     _a > _tol ? 1 : _a < -_tol ? -1 : 0; })
+
+                /* draw line around the highlighted area? */
+                if (hinf->line_type && p_prev)
+                {
+                    /* don't use exact checks in order to filter out some noise */
+                    int sign = SGN_TOL(p - hinf->raw_level_lo, 64);
+                    int sign_prev = SGN_TOL(p_prev - hinf->raw_level_lo, 64);
+                    int zerocross = sign != sign_prev;
+                    
+                    if (unlikely(hinf->raw_level_hi != hinf->raw_level_lo))
+                    {
+                        int sign = SGN_TOL(p - hinf->raw_level_hi, 64);
+                        int sign_prev = SGN_TOL(p_prev - hinf->raw_level_hi, 64);
+                        int zerocross_hi = sign != sign_prev;
+                        zerocross = zerocross || zerocross_hi;
+                    }
+                    
+                    if (zerocross)
+                    {
+                        color = hinf->color;
+                    }
+                }
+                
+                /* fill the highlighted area with something? */
+                if (!color && hinf->fill_type)
+                {
+                    int should_fill = 
+                        hinf->fill_type == ZEBRA_FILL_DIAG ? (i + j) % 4 == 0 : 
+                        hinf->fill_type == ZEBRA_FILL_50_PERCENT ? (i + j) % 2 :
+                        1;
+                    
+                    if (should_fill)
+                    {
+                        if (p >= hinf->raw_level_lo && p <= hinf->raw_level_hi)
+                        {
+                            color = hinf->color;
+                        }
+                    }
+                }
+
+                if (color)
+                {
+                    /* do not check further rules if a pixel was drawn */
+                    /* (first rules have higher priority) */
+                    break;
+                }
+            }
+            p_prev = p;
+
+            /* should we draw something? */
+            if (color)
+            {
+                uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
+                uint8_t* mp = (uint8_t*) &bvram_mirror[BM(j,i)];
+
+                #define BP (*bp)
+                #define MP (*mp)
+                if (BP != 0 && BP != MP) continue;
+                if ((MP & 0x80)) continue;
+                
+                BP = MP = color;
+                    
+                #undef MP
+                #undef BP
+            }
+        }
+
+        if (!DISPLAY_IS_ON) break;
+   }
 }
 
 static void FAST draw_zebras_raw_lv()
