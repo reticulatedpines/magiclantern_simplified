@@ -967,22 +967,18 @@ void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight
                     p = raw_get_gray_pixel(x, y, gray_projection);
                 }
 
-                #define SGN_TOL(a, tol) \
-                   ({ __typeof__ (a) _a = (a); __typeof__ (tol) _tol = ((tol)); \
-                     _a > _tol ? 1 : _a < -_tol ? -1 : 0; })
-
                 /* draw line around the highlighted area? */
                 if (hinf->line_type && p_prev)
                 {
                     /* don't use exact checks in order to filter out some noise */
-                    int sign = SGN_TOL(p - hinf->raw_level_lo, 64);
-                    int sign_prev = SGN_TOL(p_prev - hinf->raw_level_lo, 64);
+                    int sign = SGN(p - hinf->raw_level_lo);
+                    int sign_prev = SGN(p_prev - hinf->raw_level_lo);
                     int zerocross = sign != sign_prev;
                     
                     if (unlikely(hinf->raw_level_hi != hinf->raw_level_lo))
                     {
-                        int sign = SGN_TOL(p - hinf->raw_level_hi, 64);
-                        int sign_prev = SGN_TOL(p_prev - hinf->raw_level_hi, 64);
+                        int sign = SGN(p - hinf->raw_level_hi);
+                        int sign_prev = SGN(p_prev - hinf->raw_level_hi);
                         int zerocross_hi = sign != sign_prev;
                         zerocross = zerocross || zerocross_hi;
                     }
