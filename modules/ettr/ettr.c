@@ -13,6 +13,7 @@
 #include <raw.h>
 #include <lens.h>
 #include <math.h>
+#include <zebra.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
@@ -29,6 +30,7 @@ static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2);
 static CONFIG_INT("auto.ettr.dual.iso", auto_ettr_dual_iso_link, 1);
 
 static int debug_info = 0;
+static int show_metered_areas = 0;
 
 #define AUTO_ETTR_TRIGGER_ALWAYS_ON (auto_ettr_trigger == 0 || is_intervalometer_running())
 #define AUTO_ETTR_TRIGGER_AUTO_SNAP (auto_ettr_trigger == 1)
@@ -120,6 +122,7 @@ static int auto_ettr_get_correction()
     float ev = raw_to_ev(raw_values[0]);
     int raw_median_lo = raw_values[7];  /* 50th percentile (median) */
     int raw_shadow_lo = raw_values[12]; /* 5th percentile */
+    int raw_highlight_lo = raw_values[0]; /* "highlight ignore" percentile */
     float ev_median_lo = raw_to_ev(raw_median_lo);
     float ev_shadow_lo = raw_to_ev(raw_shadow_lo);
     
@@ -184,6 +187,44 @@ static int auto_ettr_get_correction()
                 bmp_printf(FONT_MED, 50,  60, "Black delta  : %d (EV gap mid:%s%d.%02d shad:%s%d.%02d)", black_delta, FMT_FIXEDPOINT2(gap_med), FMT_FIXEDPOINT2(gap_shad));
             }
         }
+    }
+
+    if (show_metered_areas)
+    {
+        /* show where exactly are those percentiles */
+        bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLUE),   0, 20, "Shadows    5%%   ");
+        bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, COLOR_ORANGE), 0, 32, "Midtones   50%%  ");
+        int hp = (1000 - auto_ettr_ignore);
+        bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED),    0, 44, "Highlights%3d.%d%%", hp/10, hp%10);
+        zebra_highlight_raw_advanced(
+            (struct raw_highlight_info [])
+            {
+                {
+                    .raw_level_lo = 0,
+                    .raw_level_hi = raw_shadow_lo,
+                    .color = COLOR_BLUE,
+                    .line_type = ZEBRA_LINE_SIMPLE,
+                    .fill_type = ZEBRA_FILL_DIAG,
+                    .gray_projection = gray_proj | GRAY_PROJECTION_DARK_ONLY,
+                },
+                {
+                    .raw_level_lo = raw_median_lo,
+                    .raw_level_hi = raw_median_lo,
+                    .color = COLOR_ORANGE,
+                    .line_type = ZEBRA_LINE_SIMPLE,
+                    .gray_projection = gray_proj | GRAY_PROJECTION_DARK_ONLY,
+                },
+                {
+                    .raw_level_lo = raw_highlight_lo,
+                    .raw_level_hi = 16384,
+                    .color = COLOR_RED,
+                    .line_type = ZEBRA_LINE_SIMPLE,
+                    .fill_type = ZEBRA_FILL_DIAG,
+                    .gray_projection = gray_proj | GRAY_PROJECTION_DARK_ONLY,
+                },
+                RAW_HIGHLIGHT_END
+            }
+        );
     }
 
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
@@ -1349,6 +1390,14 @@ static struct menu_entry ettr_menu[] =
                 .max = 1,
                 .help  = "Let ETTR change DualISO settings so you get the SNR values",
                 .help2 = "in mids & shadows. It will disable dual ISO if not needed.",
+                .advanced = 1,
+            },
+            {
+                .name = "Show metered areas",
+                .priv = &show_metered_areas,
+                .max = 1,
+                .help =  "Show where the white point and the SNR levels are metered",
+                .help2 = "(what exactly is considered highlight, midtone and shadow).",
                 .advanced = 1,
             },
             {
