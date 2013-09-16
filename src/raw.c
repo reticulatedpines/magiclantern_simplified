@@ -321,6 +321,7 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 
 static int autodetect_black_level(float* black_mean, float* black_stdev);
 static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
+static int autodetect_white_level();
 
 int raw_update_params()
 {
@@ -639,6 +640,8 @@ int raw_update_params()
 
     if (!lv)
     {
+        raw_info.white_level = autodetect_white_level();
+
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
         /* in LiveView, it doesn't change */
         int iso = 0;
@@ -650,6 +653,7 @@ int raw_update_params()
         if (!iso) return 0;
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
+        
         if (iso_digital <= 0)
         {
             raw_info.white_level -= raw_info.black_level;
@@ -1109,24 +1113,38 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
 }
 
 
-#if RAW_DEBUG_DR
 static int autodetect_white_level()
 {
-    int white = 10000;
+    int white = WHITE_LEVEL - 3000;
+    int max = white + 500;
+    int confirms = 0;
+
+    //~ bmp_printf(FONT_MED, 50, 50, "White...");
     
     struct raw_pixblock * start = raw_info.buffer + raw_info.active_area.y1 * raw_info.pitch;
     struct raw_pixblock * end = raw_info.buffer + raw_info.active_area.y2 * raw_info.pitch;
 
-    for (struct raw_pixblock * p = start; p < end; p += 4)
+    for (struct raw_pixblock * p = start; p < end; p += 5)
     {
-        white = MAX(white, p->a - 500);
-        white = MAX(white, p->h - 500);
+        if (p->a > max)
+        {
+            max = p->a;
+            confirms = 1;
+        }
+        else if (p->a == max)
+        {
+            confirms++;
+            if (confirms > 10)
+            {
+                white = max - 500;
+            }
+        }
     }
-    bmp_printf(FONT_MED, 50, 50, "White: %d", white);
-    
+
+    //~ bmp_printf(FONT_MED, 50, 50, "White: %d ", white);
+
     return white;
 }
-#endif
 
 static int compute_dynamic_range(float black_mean, float black_stdev, int white_level)
 {
