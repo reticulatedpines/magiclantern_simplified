@@ -640,8 +640,6 @@ int raw_update_params()
 
     if (!lv)
     {
-        raw_info.white_level = autodetect_white_level();
-
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
         /* in LiveView, it doesn't change */
         int iso = 0;
@@ -660,6 +658,8 @@ int raw_update_params()
             raw_info.white_level *= powf(2, iso_digital);
             raw_info.white_level += raw_info.black_level;
         }
+
+        raw_info.white_level = autodetect_white_level(raw_info.white_level);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
     else if (!is_movie_mode())
@@ -1113,9 +1113,9 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
 }
 
 
-static int autodetect_white_level()
+static int autodetect_white_level(int initial_guess)
 {
-    int white = WHITE_LEVEL - 3000;
+    int white = initial_guess - 3000;
     int max = white + 500;
     int confirms = 0;
 
