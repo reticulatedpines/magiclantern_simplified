@@ -78,7 +78,6 @@
 #define FASTEST_SHUTTER_SPEED_RAW 152
 #define MAX_AE_EV 5
 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "DISP outside menu: show LiveV tools         SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x8490) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14

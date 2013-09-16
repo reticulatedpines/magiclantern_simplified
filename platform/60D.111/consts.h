@@ -224,7 +224,6 @@
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 5
 
-//~ #define MENU_NAV_HELP_STRING (PLAY_MODE ? "UNLOCK outside menu: show LiveV tools       SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
 
 #define DIALOG_MnCardFormatBegin   (0x3031c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x35290+4) // similar
