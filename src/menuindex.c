@@ -97,6 +97,21 @@ static struct menu_entry help_menus[] = {
         .name = "Press MENU",
         .choices = CHOICES("Junkie mode"),
     },
+    #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
+    /* if BTN_ZEBRAS_FOR_PLAYBACK_NAME is undefined, you must define it (or undefine FEATURE_OVERLAYS_IN_PLAYBACK_MODE) */
+    {
+        .select = menu_nav_help_open,
+        .name = "PLAY: press "BTN_ZEBRAS_FOR_PLAYBACK_NAME,
+        .choices = CHOICES("Overlays in PLAY mode"),
+    },
+    #endif
+    #ifdef ARROW_MODE_TOGGLE_KEY
+    {
+        .select = menu_nav_help_open,
+        .name = "LiveView: press "ARROW_MODE_TOGGLE_KEY,
+        .choices = CHOICES("Arrow Shortcuts"),
+    },
+    #endif
     {
         .name = "Key Shortcuts",
         .select = menu_help_go_to_label,
