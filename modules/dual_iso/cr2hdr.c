@@ -832,7 +832,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         }
     }
 
-#if 1
+#if 0
     FILE* f = fopen("iso-curve.m", "w");
 
     fprintf(f, "x = [");
@@ -1877,7 +1877,7 @@ static int hdr_interpolate()
     chroma_smooth_5x5(halfres, halfres_smooth, raw2ev, ev2raw);
 #endif
 
-#if 1 /* for debugging only */
+#if 0 /* for debugging only */
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("normal.dng");
 
