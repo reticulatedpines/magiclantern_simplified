@@ -17,9 +17,9 @@
 #include "menu.h"
 
 #define MEM_SEC_ZONE 32
-#define MEMCHECK_ENTRIES 512
-#define HISTORY_ENTRIES 512
-#define TASK_NAME_SIZE 16
+#define MEMCHECK_ENTRIES 256
+#define HISTORY_ENTRIES 256
+#define TASK_NAME_SIZE 12
 
 typedef void* (*mem_init_func)();
 typedef void* (*mem_alloc_func)(size_t size);
@@ -158,17 +158,17 @@ struct memcheck_hdr
 {
     unsigned int id;
     unsigned int length;
-    unsigned int allocator;
-    unsigned int flags;
+    uint16_t allocator;
+    uint16_t flags;
 };
 
 struct memcheck_entry
 {
     unsigned int ptr;
-    unsigned int failed;
-    unsigned char * file;
-    unsigned int line;
-    unsigned char task_name[TASK_NAME_SIZE];
+    char * file;
+    uint16_t failed;
+    uint16_t line;
+    char task_name[TASK_NAME_SIZE];
 };
 
 static struct memcheck_entry memcheck_mallocbuf[MEMCHECK_ENTRIES];
@@ -940,7 +940,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
         {
             char msg[100];
             snprintf(msg, sizeof(msg), "%d small blocks, %s, ", small_blocks, format_memory_size(small_blocks_size));
-            STR_APPEND(msg, "overhead %s\n", format_memory_size(small_blocks * 2 * MEM_SEC_ZONE));
+            STR_APPEND(msg, "overhead %s", format_memory_size(small_blocks * 2 * MEM_SEC_ZONE));
             bmp_printf(FONT_MED, x, y, msg);
             y += font_med.height;
         }
