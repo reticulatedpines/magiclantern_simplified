@@ -941,6 +941,13 @@ void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight
 {
     if (!DISPLAY_IS_ON) return;
     if (!raw_update_params()) return;
+    
+    if (lv)
+    {
+        static int aux = -INT_MIN;
+        if (!should_run_polling_action(2000, &aux))
+            return;
+    }
 
     uint8_t * bvram = bmp_vram();
     if (!bvram) return;
@@ -1016,7 +1023,7 @@ void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight
             p_prev = p;
 
             /* should we draw something? */
-            if (color)
+            if (color || lv)
             {
                 uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
                 uint8_t* mp = (uint8_t*) &bvram_mirror[BM(j,i)];
