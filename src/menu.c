@@ -2342,7 +2342,7 @@ skip_name:
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, warn_y, 720, font_med.height);
         bmp_printf(
             FONT(FONT_MED, warn_color, MENU_BG_COLOR_HEADER_FOOTER),
-             10, warn_y, 
+             10, warn_y, "%s",
                 info->warning
         );
     }
