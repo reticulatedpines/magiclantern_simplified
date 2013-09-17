@@ -16,6 +16,8 @@ MODULE_DEPS   = $(MODULE_NAME).d
 
 MODULE_STRINGS   = module_strings.h
 
+MODULE_SOURCE_ATTACH = n
+
 all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 
 -include $(MODULE_DEPS)
@@ -25,7 +27,7 @@ clean::
 
 module_strings.h: FORCE README.rst
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
-	$(call build,DIFF, ../module_hginfo_create.sh >> $@)
+	$(call build,DIFF, ../module_hginfo_create.sh $(MODULE_NAME) $(MODULE_SOURCE_ATTACH) $(MODULE_OBJS:.o=.c) >> $@)
 
 README.rst:
 	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
