@@ -23,19 +23,24 @@ all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 -include $(MODULE_DEPS)
 
 clean::
-	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym *.tmp)
 
 module_strings.h: FORCE README.rst
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
-	$(call build,DIFF, ../module_hginfo_create.sh $(MODULE_NAME) $(MODULE_SOURCE_ATTACH) $(MODULE_OBJS:.o=.c) >> $@)
 
 README.rst:
 	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
 
-$(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS)
+$(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS) hginfo.tmp hgdiff.tmp
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
+	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hginfo=hginfo.tmp $@)
+	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hgdiff=hgdiff.tmp $@)
 
+hginfo.tmp: FORCE
+	$(call build,HGDIFF,(echo "Repo path:"; hg root; echo "\nSource:"; hg paths; echo "\nDir state:"; hg log --limit 1) | gzip > $@)
+hgdiff.tmp: FORCE
+	$(call build,HGDIFF,(hg diff -g .) | gzip > $@)
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) '{print $$2 " " $$8;}' | sort > $@ && cat $@)
 %.dep: %.mo
