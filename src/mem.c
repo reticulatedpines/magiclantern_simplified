@@ -1006,8 +1006,7 @@ static struct menu_entry mem_menus[] = {
                 .update = mem_total_display,
                 .priv = &total_ram_detailed,
                 .max = 1,
-                .help = "Show total memory allocated by ML.",
-                .help2 = "Press SET to see detailed info about each allocated block.",
+                .help = "Total memory allocated by ML. Press SET for detailed info.",
                 .icon_type = IT_ALWAYS_ON,
             },
             {
