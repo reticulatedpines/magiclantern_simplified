@@ -5,6 +5,8 @@
 #include "../../src/raw.h"
 #include "dcraw-bridge.h"
 
+/** Compute the number of entries in a static array */
+#define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
 // The follwing two tables are copied straight from dcraw.c
 // Update them as needed :)
@@ -126,7 +128,7 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
 {
     const char* model = NULL;
     int i = 0;
-    for(i=0; i<33; ++i)
+    for(i=0; i<COUNT(unique); ++i)
     {
         if(model_id == unique[i].id)
         {
@@ -145,7 +147,7 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
         printf("Canon %s detected\n", model);
     }
 
-    for(i=0; i<33; ++i)
+    for(i=0; i<COUNT(table); ++i)
     {
         if(strcmp(model, table[i].prefix) == 0)
         {

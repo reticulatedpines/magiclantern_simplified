@@ -65,7 +65,6 @@ void intervalometer_stop();
 void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
-void zoom_auto_exposure_step();
 static void ensure_play_or_qr_mode_after_shot();
 void take_fast_pictures( int number );
 
@@ -471,7 +470,10 @@ static MENU_SELECT_FUNC(interval_timer_toggle)
         *ptr = mod(*ptr + delta, COUNT(timer_values));
 }
 
+/* interface with ETTR module */
+static menu_update_func auto_ettr_intervalometer_warning = MODULE_FUNCTION(auto_ettr_intervalometer_warning);
 
+static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_intervalometer_wait);
 
 static MENU_UPDATE_FUNC(intervalometer_display)
 {
@@ -488,7 +490,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
         
         #ifdef CONFIG_MODULES
-        module_exec(NULL, "auto_ettr_intervalometer_warning", 2, entry, info);
+        auto_ettr_intervalometer_warning(entry, info);
         #endif
     }
     else
@@ -674,7 +676,6 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
 }
 
 static int zoom_was_triggered_by_halfshutter = 0;
@@ -688,7 +689,6 @@ ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
    ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
 #endif    
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
 }
@@ -3133,7 +3133,7 @@ void zoom_sharpen_step()
 }
 
 #ifdef CONFIG_EXPSIM
-static void restore_expsim_task(int es)
+static void restore_expsim(int es)
 {
     for (int i = 0; i < 50; i++)
     {
@@ -3147,8 +3147,8 @@ static void restore_expsim_task(int es)
 }
 #endif
 
-// to be called from the same places as zoom_sharpen_step
-void zoom_auto_exposure_step()
+// to be called from shoot_task
+static void zoom_auto_exposure_step()
 {
 #ifdef FEATURE_LV_ZOOM_AUTO_EXPOSURE
     if (!zoom_auto_exposure) return;
@@ -3193,9 +3193,7 @@ void zoom_auto_exposure_step()
     {
         if (es >= 0)
         {
-            // not sure why, but when taking a picture, expsim can't be restored;
-            // workaround: create a task that retries a few times
-            task_create("restore_expsim", 0x1a, 0, restore_expsim_task, (void*)es);
+            restore_expsim(es);
             es = -1;
         }
         /* if (aem >= 0)
@@ -3823,14 +3821,6 @@ PROP_HANDLER(PROP_GUI_STATE)
 
 static void focus_ramp_step()
 {
-    static int prev_file_number = INT_MAX;
-    if (prev_file_number == file_number)
-    {
-        NotifyBox(2000, "Picture not taken :("); msleep(2000);
-        return;
-    }
-    prev_file_number = file_number;
-    
     int mf_steps = bramp_manual_speed_focus_steps_per_shot;
 
     if (mf_steps && !is_manual_focus())
@@ -4053,7 +4043,7 @@ static void expo_lock_step()
     int diff = expo_lock_value - expo_lock_get_current_value();
     //~ NotifyBox(1000, "%d %d ", diff, what_changed);
 
-    if (diff >= -2 && diff <= 1) 
+    if (diff >= -1 && diff <= 1) 
         return; // difference is too small, ignore it
     
     if (what_changed == 1 && expo_lock_iso)
@@ -6416,6 +6406,10 @@ shoot_task( void* unused )
         }
         #endif
 
+        #ifdef FEATURE_LV_ZOOM_SETTINGS
+        zoom_auto_exposure_step();
+        #endif
+
         #if defined(FEATURE_HDR_BRACKETING)
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
@@ -6958,7 +6952,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken++;
             
             #ifdef CONFIG_MODULES
-            module_exec(NULL, "auto_ettr_intervalometer_wait", 0);
+            auto_ettr_intervalometer_wait();
             #endif
 
             #ifdef FEATURE_FOCUS_RAMPING

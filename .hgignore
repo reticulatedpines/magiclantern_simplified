@@ -89,5 +89,6 @@ modules/raw_rec/raw2dng.exe
 tcc/localsyms
 src/menuindexentries.h
 modules/dual_iso/cr2hdr*
+modules/*/module_strings.h
 
 syntax: regexp

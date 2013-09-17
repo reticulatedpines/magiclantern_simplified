@@ -492,13 +492,8 @@ read_file(
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
 
-#ifdef CONFIG_USE_MALLOC_FOR_BMP
 #define BmpAlloc malloc
 #define BmpFree free
-#else
-#define BmpAlloc AllocateMemory
-#define BmpFree FreeMemory
-#endif
 
 struct bmp_file_t *
 bmp_load(

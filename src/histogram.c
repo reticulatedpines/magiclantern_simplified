@@ -12,6 +12,7 @@
 #include "imgconv.h"
 
 #include "histogram.h"
+#include "module.h"
 
 
 #if defined(FEATURE_HISTOGRAM)
@@ -43,10 +44,9 @@ void FAST hist_build_raw()
 
     int step = lv ? 4 : 2;
 
-    /* only show a 12-bit hisogram, since the rest is just noise */
-    char r2ev[4096];
-    for (int i = 0; i < 4095; i++)
-        r2ev[i] = COERCE((raw_to_ev(i*4) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+    char r2ev[16384];
+    for (int i = 0; i < 16384; i++)
+        r2ev[i] = COERCE((raw_to_ev(i) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
 
     for (int i = os.y0; i < os.y_max; i += step)
     {
@@ -62,15 +62,42 @@ void FAST hist_build_raw()
             int g = raw_green_pixel_dark(x, y);
             int b = raw_blue_pixel_dark(x, y);
 
-            int ir = r2ev[(r>>2) & 4095];
-            int ig = r2ev[(g>>2) & 4095];
-            int ib = r2ev[(b>>2) & 4095];
+            int ir = r2ev[r];
+            int ig = r2ev[g];
+            int ib = r2ev[b];
+            
             histogram.hist_r[ir]++;
             histogram.hist_g[ig]++;
             histogram.hist_b[ib]++;
             histogram.total_px++;
         }
     }
+
+    
+    /* in dark areas, spread the histogram count to show solid histogram instead of isolated bars */
+    for (int i = 0; i < 5000; i++)
+    {
+        int ev0 = r2ev[i];
+        int evplus = r2ev[i+1];
+        int evminus = r2ev[i-1];
+        if (evplus - evminus > 2) /* will there be a gap? fill it */
+        {
+            int num_bins = evplus - evminus - 1;
+            int delta_r = histogram.hist_r[ev0] / num_bins;
+            int delta_g = histogram.hist_g[ev0] / num_bins;
+            int delta_b = histogram.hist_b[ev0] / num_bins;
+            for (int e = evminus+1; e <= evplus-1; e++)
+            {
+                histogram.hist_r[e] += delta_r;
+                histogram.hist_g[e] += delta_g;
+                histogram.hist_b[e] += delta_b;
+                histogram.hist_r[ev0] -= delta_r;
+                histogram.hist_g[ev0] -= delta_g;
+                histogram.hist_b[ev0] -= delta_b;
+            }
+        }
+    }
+    
     for (int i = 0; i < HIST_WIDTH; i++)
     {
         histogram.max = MAX(histogram.max, histogram.hist_r[i]);
@@ -155,6 +182,8 @@ static int hist_dot_label(int over, int hist_total_px)
 {
     return 100 * over / hist_total_px;
 }
+
+static int (*auto_ettr_export_correction)(int* out) = MODULE_FUNCTION(auto_ettr_export_correction);
 
 /** Draw the histogram image into the bitmap framebuffer.
  *
@@ -297,7 +326,7 @@ void hist_draw_image(
                 #ifdef CONFIG_MODULES
                 int ettr_stops = INT_MIN;
 
-                if (module_exec(NULL, "auto_ettr_export_correction", 1, &ettr_stops) == 1)
+                if (auto_ettr_export_correction(&ettr_stops) == 1)
                     if (ettr_stops != INT_MIN)
                         stops_until_overexposure = (ettr_stops+5)/10;
                 #endif
@@ -450,9 +479,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
             for (int j = os.x0; j < os.x_max; j += speed)
             {
                 int x = BM2RAW_X(j);
-                int px1 = raw_get_gray_pixel(x, y, gray_projection);
-                int px2 = raw_get_gray_pixel(x, y+2, gray_projection);
-                int px = MIN(px1, px2);
+                int px = raw_get_gray_pixel(x, y, gray_projection);
                 hist[px & 16383]++;
             }
         }
@@ -512,9 +539,7 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
         for (int j = os.x0; j < os.x_max; j += step)
         {
             int x = BM2RAW_X(j);
-            int px1 = raw_get_gray_pixel(x, y, gray_projection);
-            int px2 = raw_get_gray_pixel(x, y+2, gray_projection);
-            int px = MIN(px1, px2);
+            int px = raw_get_gray_pixel(x, y, gray_projection);
             if (px >= white) over++;
             total++;
         }

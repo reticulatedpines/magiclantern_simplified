@@ -181,8 +181,6 @@
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2
 
-//~ #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "FUNC outside menu: show LiveV tools      SET/PLAY/FUNC/INFO" : "SET/PLAY/FUNC=edit values    MENU=Easy/Advanced   INFO=Help")
 
 #define DIALOG_MnCardFormatBegin (0x1e704+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1E7B8+4) // similar

@@ -235,3 +235,8 @@ NSTUB(0x000165C0, TryPostStageEvent_end)
 
 /* LCD SENSOR */
 NSTUB(0xFF145480, DispSensorStart)
+
+/* ResLock */
+NSTUB(0xFF2C4614, CreateResLockEntry)
+NSTUB(0xFF2C4ADC, LockEngineResources)
+NSTUB(0xFF2C4C80, UnLockEngineResources)

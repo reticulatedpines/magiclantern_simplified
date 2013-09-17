@@ -99,11 +99,11 @@ NSTUB( 0xff061a68, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x3D7B0, bmp_vram_info )   // same as 60d 108
 NSTUB( 0x55500, vram_info )
 
-NSTUB( 0xff01891c, malloc )
-NSTUB( 0xff018974, free )
+NSTUB( 0xff01891c, _malloc )
+NSTUB( 0xff018974, _free )
 NSTUB( 0xff06f934, _AllocateMemory )
-NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
-NSTUB( 0xFF06FCC4, FreeMemory )
+//NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
+NSTUB( 0xFF06FCC4, _FreeMemory )
 
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
 NSTUB( 0xff067b68, LoadCalendarFromRTC )
@@ -123,8 +123,8 @@ NSTUB( 0xFF306208, gui_task_create )
 NSTUB( 0xFF306328, gui_task_destroy )
 NSTUB( 0xFF3060B8, ctrlman_dispatch_event )
 
-NSTUB( 0xFF1DE354, alloc_dma_memory )
-NSTUB( 0xFF1DE388, free_dma_memory )
+NSTUB( 0xFF1DE354, _alloc_dma_memory )
+NSTUB( 0xFF1DE388, _free_dma_memory )
 
 NSTUB( 0xFF4BB224, cfReadBlk )
 NSTUB( 0x350FC, cf_device )                // in cfReadBlk

@@ -870,6 +870,8 @@ static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo on
 
 static void FAST draw_zebras_raw()
 {
+    if (!DISPLAY_IS_ON) return;
+    if (!PLAY_OR_QR_MODE) return;
     if (!raw_update_params()) return;
 
     uint8_t * bvram = bmp_vram();
@@ -930,8 +932,116 @@ static void FAST draw_zebras_raw()
             }
         }
 
+        if (!DISPLAY_IS_ON) break;
         if (!PLAY_OR_QR_MODE) break;
     }
+}
+
+void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight_info)
+{
+    if (!DISPLAY_IS_ON) return;
+    if (!raw_update_params()) return;
+    
+    if (lv)
+    {
+        static int aux = -INT_MIN;
+        if (!should_run_polling_action(2000, &aux))
+            return;
+    }
+
+    uint8_t * bvram = bmp_vram();
+    if (!bvram) return;
+    
+    int gray_projection = raw_highlight_info->gray_projection;
+
+    for (int i = os.y0; i < os.y_max; i ++)
+    {
+        int y = BM2RAW_Y(i);
+        int p_prev = 0;
+
+        for (int j = os.x0; j < os.x_max; j ++)
+        {
+            int x = BM2RAW_X(j);
+            
+            int color = 0;
+            int p = raw_get_gray_pixel(x, y, gray_projection);
+            for (struct raw_highlight_info * hinf = raw_highlight_info; hinf->raw_level_lo || hinf->raw_level_hi; hinf++)
+            {
+                /* gray projection changed? re-sample the pixel */
+                if (hinf->gray_projection != gray_projection)
+                {
+                    gray_projection = hinf->gray_projection;
+                    p = raw_get_gray_pixel(x, y, gray_projection);
+                }
+
+                /* draw line around the highlighted area? */
+                if (hinf->line_type && p_prev)
+                {
+                    /* don't use exact checks in order to filter out some noise */
+                    int sign = SGN(p - hinf->raw_level_lo);
+                    int sign_prev = SGN(p_prev - hinf->raw_level_lo);
+                    int zerocross = sign != sign_prev;
+                    
+                    if (unlikely(hinf->raw_level_hi != hinf->raw_level_lo))
+                    {
+                        int sign = SGN(p - hinf->raw_level_hi);
+                        int sign_prev = SGN(p_prev - hinf->raw_level_hi);
+                        int zerocross_hi = sign != sign_prev;
+                        zerocross = zerocross || zerocross_hi;
+                    }
+                    
+                    if (zerocross)
+                    {
+                        color = hinf->color;
+                    }
+                }
+                
+                /* fill the highlighted area with something? */
+                if (!color && hinf->fill_type)
+                {
+                    int should_fill = 
+                        hinf->fill_type == ZEBRA_FILL_DIAG ? (i + j) % 4 == 0 : 
+                        hinf->fill_type == ZEBRA_FILL_50_PERCENT ? (i + j) % 2 :
+                        1;
+                    
+                    if (should_fill)
+                    {
+                        if (p >= hinf->raw_level_lo && p <= hinf->raw_level_hi)
+                        {
+                            color = hinf->color;
+                        }
+                    }
+                }
+
+                if (color)
+                {
+                    /* do not check further rules if a pixel was drawn */
+                    /* (first rules have higher priority) */
+                    break;
+                }
+            }
+            p_prev = p;
+
+            /* should we draw something? */
+            if (color || lv)
+            {
+                uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
+                uint8_t* mp = (uint8_t*) &bvram_mirror[BM(j,i)];
+
+                #define BP (*bp)
+                #define MP (*mp)
+                if (BP != 0 && BP != MP) continue;
+                if ((MP & 0x80)) continue;
+                
+                BP = MP = color;
+                    
+                #undef MP
+                #undef BP
+            }
+        }
+
+        if (!DISPLAY_IS_ON) break;
+   }
 }
 
 static void FAST draw_zebras_raw_lv()
@@ -5468,7 +5578,7 @@ livev_lopriority_task( void* unused )
 #define HIPRIORITY_TASK_PRIO 0x18
 
 TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x4000 );
-TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
+TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x8000 );
 
 // these may be out of order for config compatibility
 void update_disp_mode_bits_from_params()
@@ -5607,7 +5717,7 @@ static void livev_playback_toggle()
     if (livev_playback)
     {
         livev_for_playback_running = 1;
-        task_create("lv_playback", 0x1a, 0x4000, draw_livev_for_playback, 0);
+        task_create("lv_playback", 0x1a, 0x8000, draw_livev_for_playback, 0);
     }
     else
     {
@@ -5869,7 +5979,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
     #endif
 }
 

@@ -47,7 +47,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "../../src/raw.h"
 #include "qsort.h"  /* much faster than standard C qsort */
 
@@ -145,17 +147,15 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[1000];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
-        int exit_code = system(dcraw_cmd);
-        CHECK(exit_code == 0, "%s", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\"", filename);
+        FILE* t = popen(dcraw_cmd, "r");
+        CHECK(t, "%s", filename);
         
         unsigned int model = get_model_id(filename);
-        exit_code = get_raw_info(model, &raw_info);
+        int exit_code = get_raw_info(model, &raw_info);
 
         CHECK(exit_code == 0, "RAW INFO INJECTION FAILED");
 
-        FILE* t = fopen("tmp.txt", "rb");
-        CHECK(t, "tmp.txt");
         int raw_width = 0, raw_height = 0;
         int out_width = 0, out_height = 0;
         
@@ -173,7 +173,7 @@ int main(int argc, char** argv)
                 CHECK(r == 2, "sscanf");
             }
         }
-        fclose(t);
+        pclose(t);
 
         printf("Full size      : %d x %d\n", raw_width, raw_height);
         printf("Active area    : %d x %d\n", out_width, out_height);
@@ -181,34 +181,41 @@ int main(int argc, char** argv)
         int left_margin = raw_width - out_width;
         int top_margin = raw_height - out_height;
 
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\" > tmp.pgm", filename);
-        exit_code = system(dcraw_cmd);
-        CHECK(exit_code == 0, "%s", filename);
-        
-        FILE* f = fopen("tmp.pgm", "rb");
-        CHECK(f, "tmp.pgm");
-        
-        char magic0, magic1;
-        r = fscanf(f, "%c%c\n", &magic0, &magic1);
-        CHECK(r == 2, "fscanf");
-        CHECK(magic0 == 'P' && magic1 == '5', "pgm magic");
-        
-        int width, height;
-        r = fscanf(f, "%d %d\n", &width, &height);
-        CHECK(r == 2, "fscanf");
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\"", filename);
+        FILE* fp = popen(dcraw_cmd, "r");
+        CHECK(fp, "%s", filename);
+        #ifdef _O_BINARY
+        _setmode(_fileno(fp), _O_BINARY);
+        #endif
+
+        /* PGM read code from dcraw */
+          int dim[3]={0,0,0}, comment=0, number=0, error=0, nd=0, c;
+
+          if (fgetc(fp) != 'P' || fgetc(fp) != '5') error = 1;
+          while (!error && nd < 3 && (c = fgetc(fp)) != EOF) {
+            if (c == '#')  comment = 1;
+            if (c == '\n') comment = 0;
+            if (comment) continue;
+            if (isdigit(c)) number = 1;
+            if (number) {
+              if (isdigit(c)) dim[nd] = dim[nd]*10 + c -'0';
+              else if (isspace(c)) {
+            number = 0;  nd++;
+              } else error = 1;
+            }
+          }
+
+        CHECK(!(error || nd < 3), "dcraw output is not a valid PGM file\n");
+
+        int width = dim[0];
+        int height = dim[1];
         CHECK(width == raw_width, "pgm width");
         CHECK(height == raw_height, "pgm height");
-        
-        int max_value;
-        r = fscanf(f, "%d\n", &max_value);
-        CHECK(r == 1, "fscanf");
-        CHECK(max_value == 65535, "pgm max");
 
         void* buf = malloc(width * (height+1) * 2); /* 1 extra line for handling GBRG easier */
-        fseek(f, -width * height * 2, SEEK_END);
-        int size = fread(buf, 1, width * height * 2, f);
+        int size = fread(buf, 1, width * height * 2, fp);
         CHECK(size == width * height * 2, "fread");
-        fclose(f);
+        pclose(fp);
 
         /* PGM is big endian, need to reverse it */
         reverse_bytes_order(buf, width * height * 2);
@@ -279,9 +286,6 @@ int main(int argc, char** argv)
         {
             printf("Doesn't look like interlaced ISO\n");
         }
-        
-        unlink("tmp.pgm");
-        unlink("tmp.txt");
         
         free(buf);
     }
@@ -589,7 +593,7 @@ static int black_subtract_simple(int left_margin, int top_margin)
 
 static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, double* out_mean, double* out_stdev)
 {
-    double black = 0;
+    long long black = 0;
     int num = 0;
     /* compute average level */
     int x, y;
@@ -602,7 +606,7 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
         }
     }
 
-    double mean = black / num;
+    double mean = (double) black / num;
 
     /* compute standard deviation */
     double stdev = 0;
@@ -610,11 +614,11 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
     {
         for (x = x1; x < x2; x += dx)
         {
-            int dif = raw_get_pixel(x, y) - mean;
+            double dif = raw_get_pixel(x, y) - mean;
             stdev += dif * dif;
         }
     }
-    stdev /= num;
+    stdev /= (num-1);
     stdev = sqrt(stdev);
     
     if (num == 0)
@@ -651,7 +655,7 @@ static int hdr_check()
         {
             int p = raw_get_pixel16(x, y);
             int p2 = raw_get_pixel16(x, y+2);
-            if (p > black+32 && p2 > black+32 && p < white && p2 < white)
+            if ((p > black+32 || p2 > black+32) && p < white && p2 < white)
             {
                 avg_ev += ABS(raw2ev[p2] - raw2ev[p]);
                 num++;
@@ -1271,7 +1275,7 @@ static int hdr_interpolate()
     double noise_std[4];
     double noise_avg;
     for (y = 0; y < 4; y++)
-        compute_black_noise(8, raw_info.active_area.x1 - 8, 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
+        compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
 
     printf("Noise levels   : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
     double dark_noise = MIN(MIN(noise_std[0], noise_std[1]), MIN(noise_std[2], noise_std[3]));
@@ -2184,7 +2188,14 @@ static int hdr_interpolate()
     
     system("octave --persist mix-curve.m");
 #endif
-    
+
+    /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
+    for (y = 3; y < h-2; y ++)
+        for (x = 2; x < w-2; x ++)
+            raw_set_pixel16(x, y, halfres_smooth[x + y*w]);
+    compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+    double ideal_noise_std = noise_std[0];
+
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -2259,8 +2270,8 @@ static int hdr_interpolate()
     }
 
     /* let's see how much dynamic range we actually got */
-    compute_black_noise(8, raw_info.active_area.x1 - 8, 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
-    printf("Noise level    : %.02f (16-bit)\n", noise_std[0]);
+    compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+    printf("Noise level    : %.02f (16-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
     printf("Dynamic range  : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
     if (!rggb) /* back to GBRG */

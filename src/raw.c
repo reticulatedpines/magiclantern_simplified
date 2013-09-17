@@ -24,6 +24,7 @@
 #include "math.h"
 #include "bmp.h"
 #include "lens.h"
+#include "module.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -321,6 +322,11 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 
 static int autodetect_black_level(float* black_mean, float* black_stdev);
 static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
+static int autodetect_white_level();
+
+/* dual ISO interface */
+static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
+static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_improvement);
 
 int raw_update_params()
 {
@@ -650,12 +656,15 @@ int raw_update_params()
         if (!iso) return 0;
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
+        
         if (iso_digital <= 0)
         {
             raw_info.white_level -= raw_info.black_level;
             raw_info.white_level *= powf(2, iso_digital);
             raw_info.white_level += raw_info.black_level;
         }
+
+        raw_info.white_level = autodetect_white_level(raw_info.white_level);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
     else if (!is_movie_mode())
@@ -669,7 +678,7 @@ int raw_update_params()
         int shad_gain = shamem_read(0xc0f08030);
         
         raw_info.white_level -= raw_info.black_level;
-        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+        raw_info.white_level = raw_info.white_level * 3444 / shad_gain; /* 0.25 EV correction, so LiveView matches CR2 exposure */
         raw_info.white_level += raw_info.black_level;
 
         /* in photo LiveView, ISO is not the one selected from Canon menu,
@@ -684,7 +693,10 @@ int raw_update_params()
         last_iso = iso;
         if (!iso) return 0;
         
-        raw_info.dynamic_range = get_dxo_dynamic_range(iso);
+        int iso2 = dual_iso_get_recovery_iso();
+        if (iso2) iso = MIN(iso, iso2);
+        int dr_boost = dual_iso_get_dr_improvement();
+        raw_info.dynamic_range = get_dxo_dynamic_range(iso) + dr_boost;
         
         dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
     }
@@ -922,25 +934,46 @@ int FAST raw_set_pixel(int x, int y, int value)
 
 int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
 {
-    switch (gray_projection)
+    int (*red_pixel)(int x, int y) = raw_red_pixel;
+    int (*green_pixel)(int x, int y) = raw_green_pixel;
+    int (*blue_pixel)(int x, int y) = raw_blue_pixel;
+
+    switch (gray_projection & GRAY_PROJECTION_BRIGHT_DARK_MASK)
+    {
+        case GRAY_PROJECTION_DARK_ONLY:
+            red_pixel = raw_red_pixel_dark;
+            green_pixel = raw_green_pixel_dark;
+            blue_pixel = raw_blue_pixel_dark;
+            break;
+        
+        case GRAY_PROJECTION_BRIGHT_ONLY:
+            red_pixel = raw_red_pixel_bright;
+            green_pixel = raw_green_pixel_bright;
+            blue_pixel = raw_blue_pixel_bright;
+            break;
+
+        default:
+            break;
+    }
+    switch (gray_projection & 0xFF)
     {
         case GRAY_PROJECTION_RED:
-            return raw_red_pixel(x, y);
+            return red_pixel(x, y);
         case GRAY_PROJECTION_GREEN:
-            return raw_green_pixel(x, y);
+            return green_pixel(x, y);
         case GRAY_PROJECTION_BLUE:
-            return raw_blue_pixel(x, y);
+            return blue_pixel(x, y);
         case GRAY_PROJECTION_AVERAGE_RGB:
-            return (raw_red_pixel(x, y) + raw_green_pixel(x, y) + raw_blue_pixel(x, y)) / 3;
+            return (red_pixel(x, y) + green_pixel(x, y) + blue_pixel(x, y)) / 3;
         case GRAY_PROJECTION_MAX_RGB:
-            return MAX(MAX(raw_red_pixel(x, y), raw_green_pixel(x, y)), raw_blue_pixel(x, y));
+            return MAX(MAX(red_pixel(x, y), green_pixel(x, y)), blue_pixel(x, y));
         case GRAY_PROJECTION_MAX_RB:
-            return MAX(raw_red_pixel(x, y), raw_blue_pixel(x, y));
+            return MAX(red_pixel(x, y), blue_pixel(x, y));
         case GRAY_PROJECTION_MEDIAN_RGB:
         {
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
+            int r = red_pixel(x, y);
+            int g = green_pixel(x, y);
+            int b = blue_pixel(x, y);
             int M = MAX(MAX(r,g),b);
             int m = MIN(MIN(r,g),b);
             if (r >= m && r <= M) return r;
@@ -1076,6 +1109,8 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
     }
     
     /* does it look like dual ISO? take the DR from the cleanest half */
+    /* correct DR is high-iso DR + ABS(ISO difference) */
+    /* or low-iso DR + DR improvement */
     *black_mean = (mean1 + mean2) / 2;
     *black_stdev = MIN(stdev1, stdev2);
 
@@ -1083,24 +1118,38 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
 }
 
 
-#if RAW_DEBUG_DR
-static int autodetect_white_level()
+static int autodetect_white_level(int initial_guess)
 {
-    int white = 10000;
+    int white = initial_guess - 3000;
+    int max = white + 500;
+    int confirms = 0;
+
+    //~ bmp_printf(FONT_MED, 50, 50, "White...");
     
     struct raw_pixblock * start = raw_info.buffer + raw_info.active_area.y1 * raw_info.pitch;
     struct raw_pixblock * end = raw_info.buffer + raw_info.active_area.y2 * raw_info.pitch;
 
-    for (struct raw_pixblock * p = start; p < end; p += 4)
+    for (struct raw_pixblock * p = start; p < end; p += 5)
     {
-        white = MAX(white, p->a - 500);
-        white = MAX(white, p->h - 500);
+        if (p->a > max)
+        {
+            max = p->a;
+            confirms = 1;
+        }
+        else if (p->a == max)
+        {
+            confirms++;
+            if (confirms > 10)
+            {
+                white = max - 500;
+            }
+        }
     }
-    bmp_printf(FONT_MED, 50, 50, "White: %d", white);
-    
+
+    //~ bmp_printf(FONT_MED, 50, 50, "White: %d ", white);
+
     return white;
 }
-#endif
 
 static int compute_dynamic_range(float black_mean, float black_stdev, int white_level)
 {
@@ -1126,6 +1175,9 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
 #if RAW_DEBUG_DR
     bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
 #endif
+
+    /* dual ISO enabled? */
+    dr += module_exec(NULL, "dual_iso_get_dr_improvement", 0);
 
     return dr;
 }

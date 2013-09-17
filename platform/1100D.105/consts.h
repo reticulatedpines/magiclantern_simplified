@@ -128,7 +128,7 @@
 #define MALLOC_STRUCT 0x16fc8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-#define ARROW_MODE_TOGGLE_KEY ""
+//~ #define ARROW_MODE_TOGGLE_KEY ""
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -148,7 +148,8 @@
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
-#define AE_VALUE 0 // http://www.magiclantern.fm/forum/index.php?topic=7208.100
+#define AE_STATE (*(int8_t*)(0x7E18 + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x7E18 + 0x1D))
 
 // position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 527

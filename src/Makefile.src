@@ -101,6 +101,7 @@ ML_OBJS-y += \
 
 ML_SRC_OBJS = \
 	$(ML_BOOT_HACK_OBJ) \
+	mem.o \
 	ico.o \
 	edmac.o \
 	menu.o \

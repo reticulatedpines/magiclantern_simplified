@@ -32,8 +32,8 @@ void shoot_free_suite(struct memSuite * hSuite);
 struct memSuite * shoot_malloc_suite_contig(size_t size);
 
 /* these behave just like malloc/free, but may fail because of memory fragmentation */
-void * shoot_malloc( size_t len );
-void shoot_free( void * buf );
+void * _shoot_malloc( size_t len );
+void _shoot_free( void * buf );
 
 /* dump the contents of a memsuite */
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);

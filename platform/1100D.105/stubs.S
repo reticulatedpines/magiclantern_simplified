@@ -217,3 +217,8 @@ NSTUB(0xFF10DC1C, GetJpegSizeForLV) // Actually FA_GetJpegSizeForLV (see above)
 //NSTUB(0xff071afc, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
 //NSTUB(0xff071e8c, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
 //NSTUB(0xff071e28, GetSizeOfMemorySuite)
+
+/* ResLock */
+NSTUB(0xFF1D787C, CreateResLockEntry)
+NSTUB(0xFF1D7DBC, LockEngineResources)
+NSTUB(0xFF1D7EF8, UnLockEngineResources)

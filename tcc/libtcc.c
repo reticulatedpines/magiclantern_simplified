@@ -196,13 +196,12 @@ PUB_FUNC char *tcc_fileextension (const char *name)
 #undef malloc
 #undef realloc
 
-/*
-#define malloc(len)         memcheck_malloc(len,__FILE__,__LINE__,1)
-#define free(buf)           memcheck_free(buf,1)
+/* redirect memory allocation calls */
+#define malloc(len)         __mem_malloc(len, 0, __FILE__, __LINE__)
+#define free(buf)           __mem_free(buf)
 
-#define AllocateMemory(len) memcheck_malloc(len,__FILE__,__LINE__,0)
-#define FreeMemory(buf)     memcheck_free(buf,0)
-*/
+#define AllocateMemory      malloc
+#define FreeMemory          free
 
 #ifdef MEM_DEBUG
 ST_DATA int mem_cur_size;

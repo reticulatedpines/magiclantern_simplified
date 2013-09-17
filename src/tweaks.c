@@ -271,7 +271,7 @@ void set_expsim( int x )
 {
     if (get_expsim() != x)
     {
-        prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+        prop_request_change_wait(PROP_LIVE_VIEW_VIEWTYPE, &x, 4, 1000);
         
         #ifdef CONFIG_5D2
         // Canon bug: FPS is not updated when toggling photo->movie while LiveView is active
@@ -323,8 +323,17 @@ static MENU_UPDATE_FUNC(expsim_display)
         MENU_SET_ICON(MNI_DICE, 0);
         #endif
     }
-    else if (CONTROL_BV)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Exposure override is active.");
+    else
+    {
+        if (CONTROL_BV)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Exposure override is active.");
+        }
+        else if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])  /* Canon's LiveView underexposure bug with manual lenses */
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "LiveView exposure may be incorrect. Enable expo override to fix it.");
+        }
+    }
 }
 #endif
 
@@ -2479,9 +2488,19 @@ static void preview_contrast_n_saturation_step()
         desired_saturation = 0;
 
     #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    if (preview_peaking == 2)
+    static int peaking_hs_last_press = 0;
+    int halfshutter_pressed = get_halfshutter_pressed();
+    if (halfshutter_pressed)
+    {
+        peaking_hs_last_press = get_ms_clock_value();
+    }
+    int preview_peaking_force_normal_image =
+        halfshutter_pressed ||                                  /* show normal image on half-hutter press */
+        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
+    
+    if (preview_peaking == 2 && !preview_peaking_force_normal_image)
         desired_saturation = 0;
-    else if (preview_peaking == 3)
+    else if (preview_peaking == 3 && !preview_peaking_force_normal_image)
         desired_saturation = 0x40;
     #endif
 
@@ -2546,7 +2565,7 @@ static void preview_contrast_n_saturation_step()
     }
 
     #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    if (preview_peaking == 2 || preview_peaking == 3)
+    if ((preview_peaking == 2 || preview_peaking == 3) && !preview_peaking_force_normal_image)
         desired_contrast = contrast_values_at_brigthness_2[4];
     #endif
 
@@ -2583,7 +2602,7 @@ static void preview_contrast_n_saturation_step()
     int current_filter_value = (int) shamem_read(crazy_register);
     int desired_filter_value = 
         gui_menu_shown() && !menu_active_but_hidden() ? 0 :
-        preview_peaking == 1 ? 0x4d4 :
+        preview_peaking == 1 || (preview_peaking > 1 && preview_peaking_force_normal_image) ? 0x4d4 :
         preview_peaking == 2 || preview_peaking == 3 ? 0x4c0 :
         preview_peaking;
 
@@ -2995,25 +3014,12 @@ static void FAST anamorphic_squeeze()
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
 #endif
 
-static uint16_t* defish_lut = INVALID_PTR;
-static int defish_projection_loaded = -1;
-
-static void defish_lut_load()
+static uint16_t* defish_lut_load()
 {
     char* defish_lut_file = defish_projection ? defish_lut_file_panini : defish_lut_file_rectilin;
-    if ((int)defish_projection != defish_projection_loaded)
-    {
-        if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
-        
-        int size = 0;
-        defish_lut = (uint16_t*) read_entire_file(defish_lut_file, &size);
-        defish_projection_loaded = defish_projection;
-    }
-    if (defish_lut == NULL)
-    {
-        bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
-        return;
-    }
+    int size = 0;
+    uint16_t* defish_lut = (uint16_t*) read_entire_file(defish_lut_file, &size);
+    return defish_lut;
 }
 
 
@@ -3036,15 +3042,28 @@ static void FAST defish_draw_lv_color_loop(uint64_t* src_buf, uint64_t* dst_buf,
         dst_buf[i] = src_buf[ind[i]];
 }
 
-// debug only
-//~ int* defish_ind;
+int* defish_ind;
+
+static MENU_SELECT_FUNC(defish_toggle)
+{
+    menu_numeric_toggle(priv, delta, 0, 2);
+    
+    if (!defish_preview && defish_ind)  /* no longer needed */
+    {
+        BMP_LOCK(   /* make sure we don't free it while it's being used */
+            if (defish_ind)
+            {
+                free(defish_ind);
+                defish_ind = 0;
+            }
+        )
+    }
+}
 
 static void defish_draw_lv_color()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
-    
-    defish_lut_load();
 
     uint32_t* src_buf;
     uint32_t* dst_buf;
@@ -3055,29 +3074,27 @@ static void defish_draw_lv_color()
     src_buf = CACHEABLE(src_buf);
     dst_buf = CACHEABLE(dst_buf);
     
-    static int* ind = 0;
-    if (!ind) 
+    static int defish_just_allocated = 0;
+    
+    if (!defish_ind) 
     {
-        ind = AllocateMemory(720*120*4);
+        defish_ind = malloc(720*120*4);
+        defish_just_allocated = 1;
     }
-    if (!ind) 
-    {
-        ind = (int*) shoot_malloc(720*120*4);
-        return;
-    }
-    if (!ind) 
-    {
-        NotifyBox(2000, "Not enough RAM for defishing :(");
-        return;
-    }
+    
+    if (!defish_ind) return;
     
     static int prev_sig = 0;
     int sig = defish_projection + vram_lv.width + vram_hd.width + DEFISH_HD*314;
     
-    if (sig != prev_sig)
+    if (sig != prev_sig || defish_just_allocated)
     {
         prev_sig = sig;
-        bzero32(ind, 720*120*4);
+        defish_just_allocated = 0;
+        bzero32(defish_ind, 720*120*4);
+
+        uint16_t * defish_lut = defish_lut_load();
+        if (!defish_lut) return;
     
         info_led_on();
         for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
@@ -3123,19 +3140,19 @@ static void defish_draw_lv_color()
                         int Jd = (off_j[k] ? off_j[k] - jd : jd);
                         ids = N2LV(Jd,Id)/8;
                     }
-                    ind[is] = ids;
+                    defish_ind[is] = ids;
                 }
             }
         }
         info_led_off();
+        free(defish_lut);
     }
-    //~ defish_ind = ind;
-    defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, ind);
+    
+    defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, defish_ind);
 }
 
 void defish_draw_play()
 {
-    defish_lut_load();
     struct vram_info * vram = get_yuv422_vram();
 
     uint32_t * lvram = (uint32_t *)vram->vram;
@@ -3149,6 +3166,9 @@ void defish_draw_play()
     int buf_size = w * h * 2;
     
     if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+
+    uint16_t * defish_lut = defish_lut_load();
+    if (!defish_lut) return;
 
     memcpy(aux_buf, lvram, buf_size);
     
@@ -3200,9 +3220,10 @@ void defish_draw_play()
                 *(dst) = (new_color & mask) | (*(dst) & ~mask);
             }
         }
-        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) break;
         if ((void*)get_yuv422_vram()->vram != (void*)lvram) break; // user moved to a new image?
     }
+    free(defish_lut);
 }
 #endif
 
@@ -3499,6 +3520,7 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Defishing",
         .priv = &defish_preview, 
+        .select = defish_toggle,
         //~ .update = defish_preview_display, 
         .max    = 2,
         .depends_on = DEP_GLOBAL_DRAW,

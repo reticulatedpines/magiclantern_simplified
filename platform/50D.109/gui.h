@@ -58,5 +58,6 @@
 #define GMT_GUICMD_LOCK_OFF 38
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK_NAME "FUNC"
 
 #endif

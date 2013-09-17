@@ -71,5 +71,5 @@
 #define GMT_GUICMD_LOCK_OFF 73
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_Q_ALT // what button to use for zebras in Play mode
-
+#define BTN_ZEBRAS_FOR_PLAYBACK_NAME Q_BTN_NAME
 #endif

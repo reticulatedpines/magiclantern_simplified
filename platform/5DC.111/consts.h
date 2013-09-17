@@ -105,7 +105,7 @@
  #define SENSOR_RES_X 4752
  #define SENSOR_RES_Y 3168
 
-#define ARROW_MODE_TOGGLE_KEY ""
+//~ #define ARROW_MODE_TOGGLE_KEY ""
 
 #define WINSYS_BMP_DIRTY_BIT_NEG 0
 

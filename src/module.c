@@ -16,7 +16,7 @@
 
 /* unloads TCC after linking the modules */
 /* note: this breaks module_exec and ETTR */
-//~ #define CONFIG_TCC_UNLOAD
+#define CONFIG_TCC_UNLOAD
 
 extern int sscanf(const char *str, const char *format, ...);
 
@@ -135,8 +135,8 @@ static int module_load_symbols(TCCState *s, char *filename)
     tcc_add_symbol(s, "longjmp", &longjmp);
     tcc_add_symbol(s, "strcpy", &strcpy);
     tcc_add_symbol(s, "setjmp", &setjmp);
-    tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
-    tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
+    //~ tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
+    //~ tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
     tcc_add_symbol(s, "vsnprintf", &vsnprintf);
     tcc_add_symbol(s, "strlen", &strlen);
     tcc_add_symbol(s, "memcpy", &memcpy);
@@ -154,6 +154,31 @@ static int module_valid_filename(char* filename)
     if ((n > 3) && (streq(filename + n - 3, ".MO") || streq(filename + n - 3, ".mo")) && (filename[0] != '.') && (filename[0] != '_'))
         return 1;
     return 0;
+}
+
+/* must be called before unloading TCC */
+static void module_update_core_symbols(TCCState* state)
+{
+    console_printf("Updating symbols...\n");
+
+    extern struct module_symbol_entry _module_symbols_start[];
+    extern struct module_symbol_entry _module_symbols_end[];
+    struct module_symbol_entry * module_symbol_entry = _module_symbols_start;
+
+    for( ; module_symbol_entry < _module_symbols_end ; module_symbol_entry++ )
+    {
+        void* old_address = *(module_symbol_entry->address);
+        void* new_address = (void*) tcc_get_symbol(state, (char*) module_symbol_entry->name);
+        if (new_address)
+        {
+            *(module_symbol_entry->address) = new_address;
+            console_printf("  [i] upd %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+        }
+        else
+        {
+            console_printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
+        }
+    }
 }
 
 static void _module_load_all(uint32_t list_only)
@@ -338,7 +363,7 @@ static void _module_load_all(uint32_t list_only)
         void* buf = (void*) tcc_malloc(size);
         
         /* mark the allocated space, so we know how much it was actually used */
-        for (uint32_t* p = buf; p < buf + size; p++)
+        for (uint32_t* p = buf; p < (uint32_t*)(buf + size); p++)
             *p = 0x12345678;
 
         reloc_status = tcc_relocate(state, buf);
@@ -514,6 +539,8 @@ static void _module_load_all(uint32_t list_only)
     {
         prop_update_registration();
     }
+
+    module_update_core_symbols(state);
     
     #ifdef CONFIG_TCC_UNLOAD
     tcc_delete(state);
@@ -612,7 +639,6 @@ unsigned int module_get_symbol(void *module, char *symbol)
     
     return (int) tcc_get_symbol(state, symbol);
 }
-
 
 int module_exec(void *module, char *symbol, int count, ...)
 {
@@ -1277,7 +1303,10 @@ static int module_show_about_page(int mod_number)
             int xl = 710 - max_width * font_med.width;
             xm = xm - xl + 10;
             xl = 10;
-            int yr = 480 - (num_extra_strings + 2) * font_med.height;
+            
+            int lines_for_update_msg = strchr(module_last_update, '\n') ? 3 : 2;
+
+            int yr = 480 - (num_extra_strings + lines_for_update_msg) * font_med.height;
 
             for (strings = module_list[mod_number].strings ; strings->name != NULL; strings++)
             {
@@ -1296,7 +1325,7 @@ static int module_show_about_page(int mod_number)
             
             if (module_last_update)
             {
-                bmp_printf(fnt_special, 10, 480-font_med.height*2, "Last update: %s", module_last_update);
+                bmp_printf(fnt_special, 10, 480-font_med.height * lines_for_update_msg, "Last update: %s", module_last_update);
             }
             
             return 1;
@@ -1340,13 +1369,20 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
             y += font_med.height;
             for ( ; strings->name != NULL; strings++)
             {
-                if (strchr(strings->name, '\n'))
+                if (strchr(strings->value, '\n'))
                 {
                     continue; /* don't display multiline strings here */
                 }
                 
+                int is_short_string = strlen(strings->value) * font_med.width + x_val < 710;
+                
+                if (module_is_special_string(strings->name) && !is_short_string)
+                {
+                    continue; /* don't display long strings that are already shown on the info page */
+                }
+                
                 bmp_printf(FONT_MED, x, y, "%s", strings->name);
-                if (strlen(strings->value) * font_med.width + x_val < 710)
+                if (is_short_string)
                 {
                     /* short string */
                     bmp_printf(FONT_MED, x_val, y, "%s", strings->value);
@@ -1672,7 +1708,7 @@ int module_shutdown()
     return 0;
 }
 
-TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );
+TASK_CREATE("module_task", module_load_task, 0, 0x1e, 0x4000 );
 
 INIT_FUNC(__FILE__, module_init);
 

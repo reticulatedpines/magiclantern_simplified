@@ -1,9 +1,8 @@
 /**
- * Camera internals for 650D 1.0.1
+ * Camera internals for 650D 1.0.4
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The 650D port is very young, so we don't enable these for now. **/
 #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
@@ -28,7 +27,7 @@
 /** This camera has a 3:2 screen, 720x480 **/
 #define CONFIG_3_2_SCREEN
 
-/** We only have a single LED **/
+/** We only have a single red LED **/
 //~ #define CONFIG_BLUE_LED
 
 /** There's a display sensor **/
@@ -100,6 +99,9 @@
 // #define CONFIG_DMA_MEMCPY
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
+
+/** We know how to use engine resource locks */
+#define CONFIG_ENGINE_RESLOCK
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
