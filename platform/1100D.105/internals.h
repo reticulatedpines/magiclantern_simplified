@@ -121,11 +121,6 @@
 /** This camera has a mono microphone input, so we should display only one audio meter **/
 #define CONFIG_MONO_MIC
 
-/** 1100D has very little RAM; use the malloc/free pool for bitmaps too (and only load small bitmaps) */
-#define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
-#define CONFIG_USE_MALLOC_FOR_BMP
-
-
 /** This camera has a low-resolution display, may require some antialiasing tricks for icons/fonts */
 #define CONFIG_LOW_RESOLUTION_DISPLAY
 
