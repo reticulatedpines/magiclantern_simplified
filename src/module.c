@@ -16,7 +16,7 @@
 
 /* unloads TCC after linking the modules */
 /* note: this breaks module_exec and ETTR */
-//~ #define CONFIG_TCC_UNLOAD
+#define CONFIG_TCC_UNLOAD
 
 extern int sscanf(const char *str, const char *format, ...);
 
@@ -153,6 +153,31 @@ static int module_valid_filename(char* filename)
     if ((n > 3) && (streq(filename + n - 3, ".MO") || streq(filename + n - 3, ".mo")) && (filename[0] != '.') && (filename[0] != '_'))
         return 1;
     return 0;
+}
+
+/* must be called before unloading TCC */
+static void module_update_core_symbols(TCCState* state)
+{
+    console_printf("Updating symbols...\n");
+
+    extern struct module_symbol_entry _module_symbols_start[];
+    extern struct module_symbol_entry _module_symbols_end[];
+    struct module_symbol_entry * module_symbol_entry = _module_symbols_start;
+
+    for( ; module_symbol_entry < _module_symbols_end ; module_symbol_entry++ )
+    {
+        void* old_address = *(module_symbol_entry->address);
+        void* new_address = (void*) tcc_get_symbol(state, (char*) module_symbol_entry->name);
+        if (new_address)
+        {
+            *(module_symbol_entry->address) = new_address;
+            console_printf("  [i] upd %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+        }
+        else
+        {
+            console_printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
+        }
+    }
 }
 
 static void _module_load_all(uint32_t list_only)
@@ -337,7 +362,7 @@ static void _module_load_all(uint32_t list_only)
         void* buf = (void*) tcc_malloc(size);
         
         /* mark the allocated space, so we know how much it was actually used */
-        for (uint32_t* p = buf; p < buf + size; p++)
+        for (uint32_t* p = buf; p < (uint32_t*)(buf + size); p++)
             *p = 0x12345678;
 
         reloc_status = tcc_relocate(state, buf);
@@ -513,6 +538,8 @@ static void _module_load_all(uint32_t list_only)
     {
         prop_update_registration();
     }
+
+    module_update_core_symbols(state);
     
     #ifdef CONFIG_TCC_UNLOAD
     tcc_delete(state);
@@ -611,7 +638,6 @@ unsigned int module_get_symbol(void *module, char *symbol)
     
     return (int) tcc_get_symbol(state, symbol);
 }
-
 
 int module_exec(void *module, char *symbol, int count, ...)
 {
@@ -1683,7 +1709,7 @@ int module_shutdown()
     return 0;
 }
 
-TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );
+TASK_CREATE("module_task", module_load_task, 0, 0x1e, 0x4000 );
 
 INIT_FUNC(__FILE__, module_init);
 

@@ -19,11 +19,11 @@ static uint32_t volatile tskmon_trace_active = 0;
 static uint32_t volatile tskmon_trace_size = 100000;
 static uint32_t volatile tskmon_trace_writepos = 0;
 static uint32_t volatile tskmon_trace_readpos = 0;
-static unsigned int (*tskmon_trace_start)(char *name, char *file_name);
-static unsigned int (*tskmon_trace_stop)(unsigned int trace, int wait);
-static unsigned int (*tskmon_trace_format)(unsigned int context, unsigned int format, unsigned char separator);
-static unsigned int (*tskmon_trace_write)(unsigned int context, char *string, ...);
-static unsigned int (*tskmon_trace_write_tsc)(unsigned int context, uint64_t tsc, char *string, ...);
+static unsigned int (*tskmon_trace_start)(char *name, char *file_name) = MODULE_FUNCTION("trace_start");
+static unsigned int (*tskmon_trace_stop)(unsigned int trace, int wait) = MODULE_FUNCTION("trace_stop");
+static unsigned int (*tskmon_trace_format)(unsigned int context, unsigned int format, unsigned char separator) = MODULE_FUNCTION("trace_format")
+static unsigned int (*tskmon_trace_write)(unsigned int context, char *string, ...) = MODULE_FUNCTION("trace_write")
+static unsigned int (*tskmon_trace_write_tsc)(unsigned int context, uint64_t tsc, char *string, ...) = MODULE_FUNCTION("trace_write_tsc")
 #endif /* CONFIG_TSKMON_TRACE */
 
 static struct task *tskmon_last_task = NULL;
@@ -578,15 +578,8 @@ void tskmon_trace()
     tskmon_trace_writepos = 0;
     tskmon_trace_readpos = 0;
     
-    /* get the trace writing function pointers */
-    tskmon_trace_start = module_get_symbol(NULL, "trace_start");
-    tskmon_trace_stop = module_get_symbol(NULL, "trace_stop");
-    tskmon_trace_format = module_get_symbol(NULL, "trace_format");
-    tskmon_trace_write = module_get_symbol(NULL, "trace_write");
-    tskmon_trace_write_tsc = module_get_symbol(NULL, "trace_write_tsc");
-    
     /* check for availability */
-    if(!tskmon_trace_start)
+    if(tskmon_trace_start == &ret_0)
     {
         bmp_printf(FONT_MED, 10, 20, "tskmon_trace_start not found");
         return;

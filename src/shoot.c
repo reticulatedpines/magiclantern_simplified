@@ -470,7 +470,10 @@ static MENU_SELECT_FUNC(interval_timer_toggle)
         *ptr = mod(*ptr + delta, COUNT(timer_values));
 }
 
+/* interface with ETTR module */
+static menu_update_func auto_ettr_intervalometer_warning = MODULE_FUNCTION(auto_ettr_intervalometer_warning);
 
+static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_intervalometer_wait);
 
 static MENU_UPDATE_FUNC(intervalometer_display)
 {
@@ -487,7 +490,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
         
         #ifdef CONFIG_MODULES
-        module_exec(NULL, "auto_ettr_intervalometer_warning", 2, entry, info);
+        auto_ettr_intervalometer_warning(entry, info);
         #endif
     }
     else
@@ -6946,7 +6949,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken++;
             
             #ifdef CONFIG_MODULES
-            module_exec(NULL, "auto_ettr_intervalometer_wait", 0);
+            auto_ettr_intervalometer_wait();
             #endif
 
             #ifdef FEATURE_FOCUS_RAMPING

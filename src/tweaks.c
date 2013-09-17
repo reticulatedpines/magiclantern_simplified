@@ -3079,16 +3079,8 @@ static void defish_draw_lv_color()
     {
         ind = AllocateMemory(720*120*4);
     }
-    if (!ind) 
-    {
-        ind = (int*) shoot_malloc(720*120*4);
-        return;
-    }
-    if (!ind) 
-    {
-        NotifyBox(2000, "Not enough RAM for defishing :(");
-        return;
-    }
+    
+    if (!ind) return;
     
     static int prev_sig = 0;
     int sig = defish_projection + vram_lv.width + vram_hd.width + DEFISH_HD*314;

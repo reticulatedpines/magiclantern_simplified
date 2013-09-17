@@ -12,6 +12,7 @@
 #include "imgconv.h"
 
 #include "histogram.h"
+#include "module.h"
 
 
 #if defined(FEATURE_HISTOGRAM)
@@ -182,6 +183,8 @@ static int hist_dot_label(int over, int hist_total_px)
     return 100 * over / hist_total_px;
 }
 
+static int (*auto_ettr_export_correction)(int* out) = MODULE_FUNCTION(auto_ettr_export_correction);
+
 /** Draw the histogram image into the bitmap framebuffer.
  *
  * Draw one pixel at a time; it seems to be ok with err70.
@@ -323,7 +326,7 @@ void hist_draw_image(
                 #ifdef CONFIG_MODULES
                 int ettr_stops = INT_MIN;
 
-                if (module_exec(NULL, "auto_ettr_export_correction", 1, &ettr_stops) == 1)
+                if (auto_ettr_export_correction(&ettr_stops) == 1)
                     if (ettr_stops != INT_MIN)
                         stops_until_overexposure = (ettr_stops+5)/10;
                 #endif

@@ -272,6 +272,35 @@ int module_exec_cbr(unsigned int type);
 int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *));
 int module_unset_config_cbr();
 
+struct module_symbol_entry
+{
+    const char * name;
+    void** address;
+};
+
+/* for module routines that may be called from core
+ *
+ * usage:
+ * static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_intervalometer_wait);
+ * (if that module is not available, it simply calls ret_0)
+ * 
+ * or, a little more advanced:
+ * static void(*foobar)(int, int) = MODULE_SYMBOL(do_foobar, default_function)
+ * 
+ * All module symbols are updated after modules are loaded.
+ */
+
+#define MODULE_SYMBOL(NAME, DEFAULT_ADDRESS) \
+(void*)(DEFAULT_ADDRESS); \
+struct module_symbol_entry \
+__attribute__((section(".module_symbols"))) \
+module_symbol_##NAME = { \
+        .name           = #NAME, \
+        .address        = &NAME, \
+}     //.default_address = DEFAULT_ADDRESS, /* not used; can be useful for module unloading */
+
+#define MODULE_FUNCTION(name) MODULE_SYMBOL(name, ret_0)
+
 #ifdef MODULE
 #include "module_strings.h"
 #endif

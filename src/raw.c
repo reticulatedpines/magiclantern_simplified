@@ -24,6 +24,7 @@
 #include "math.h"
 #include "bmp.h"
 #include "lens.h"
+#include "module.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -322,6 +323,10 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 static int autodetect_black_level(float* black_mean, float* black_stdev);
 static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
 static int autodetect_white_level();
+
+/* dual ISO interface */
+static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
+static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_improvement);
 
 int raw_update_params()
 {
@@ -688,9 +693,9 @@ int raw_update_params()
         last_iso = iso;
         if (!iso) return 0;
         
-        int iso2 = module_exec(NULL, "dual_iso_get_recovery_iso", 0);
+        int iso2 = dual_iso_get_recovery_iso();
         if (iso2) iso = MIN(iso, iso2);
-        int dr_boost = module_exec(NULL, "dual_iso_get_dr_improvement", 0);
+        int dr_boost = dual_iso_get_dr_improvement();
         raw_info.dynamic_range = get_dxo_dynamic_range(iso) + dr_boost;
         
         dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));

@@ -91,6 +91,12 @@ SECTIONS
 		*(.prop_handlers)
 		_prop_handlers_end = .;
 
+		/* Module symbols that may be called from core code */
+		. = ALIGN(8);
+		_module_symbols_start = .;
+		*(.module_symbols)
+		_module_symbols_end = .;
+
 		/* Read/write data */
 		. = ALIGN(64);
 		*(.data)

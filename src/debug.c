@@ -720,7 +720,7 @@ static void bsod()
 
 static void run_test()
 {
-    malloc(1024*1024*1024);
+    malloc(2*1024*1024);
     return;
    //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
