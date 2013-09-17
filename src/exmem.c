@@ -1,3 +1,5 @@
+#define NO_MALLOC_REDIRECT
+
 #include "dryos.h"
 #include "bmp.h"
 
@@ -190,7 +192,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
     }
 }
 
-void* shoot_malloc(size_t size)
+void* _shoot_malloc(size_t size)
 {
     struct memSuite * theSuite = shoot_malloc_suite_contig(size + 4);
     if (!theSuite) return 0;
@@ -202,7 +204,7 @@ void* shoot_malloc(size_t size)
     return ptr + 4;
 }
 
-void shoot_free(void* ptr)
+void _shoot_free(void* ptr)
 {
     if (!ptr) return;
     if ((intptr_t)ptr & 3) return;

@@ -633,17 +633,7 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_PER_LENS_TELE 0x202
 
 
-#ifdef CONFIG_MEMCHECK
-#include "memcheck.h"
-#endif
-
-#ifdef CONFIG_USE_MALLOC_FOR_SMALL_THINGS
-#define SmallAlloc malloc
-#define SmallFree free
-#else
-#define SmallAlloc AllocateMemory
-#define SmallFree FreeMemory
-#endif
+#include "mem.h"
 
 #define IS_ML_PTR(val) ((uintptr_t)(val) > (uintptr_t)0x1000)
 

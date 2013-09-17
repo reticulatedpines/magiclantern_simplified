@@ -99,7 +99,6 @@ ifndef CONFIG_PICOC
 CONFIG_PICOC        = n
 endif
 CONFIG_TCC          = y
-CONFIG_MEMCHECK     = n
 CONFIG_MODULES      = y
 CONFIG_TINYPY       = n
 

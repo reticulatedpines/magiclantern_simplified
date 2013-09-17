@@ -144,12 +144,12 @@ NSTUB(0xff123600, _prop_request_change)
 NSTUB(0xff123de4, _prop_get_value) // unsafe
 
 /** Memory allocation **/
-NSTUB(0xff0c80ec, malloc)
-NSTUB(0xFF0C8144, free) // see "can't malloc"
-NSTUB(0xff9e88e8 - RAM_OFFSET, AllocateMemory)
-NSTUB(0xff9e8c84 - RAM_OFFSET, FreeMemory)
-NSTUB(0xff9f6ee4 - RAM_OFFSET, alloc_dma_memory)
-NSTUB(0xff9f6f18 - RAM_OFFSET, free_dma_memory)
+NSTUB(0xff0c80ec, _malloc)
+NSTUB(0xFF0C8144, _free) // see "can't malloc"
+NSTUB(0xff9e88e8 - RAM_OFFSET, _AllocateMemory)
+NSTUB(0xff9e8c84 - RAM_OFFSET, _FreeMemory)
+NSTUB(0xff9f6ee4 - RAM_OFFSET, _alloc_dma_memory)
+NSTUB(0xff9f6f18 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF9E8688 - RAM_OFFSET, GetMemoryInformation)
 
 /** ExMem **/

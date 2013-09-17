@@ -720,8 +720,9 @@ static void bsod()
 
 static void run_test()
 {
-
-   bfnt_test();
+    malloc(1024*1024*1024);
+    return;
+   //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
@@ -2586,12 +2587,7 @@ void request_core_dump(int from, int size)
     core_dump_requested = 1;
 }
 
-int GetFreeMemForAllocateMemory()
-{
-    int a,b;
-    GetMemoryInformation(&a,&b);
-    return b;
-}
+extern int GetFreeMemForAllocateMemory();
 
 #ifdef CONFIG_CRASH_LOG
 static void save_crash_log()
@@ -2679,6 +2675,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
     TASK_LOOP
     {
+        
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
@@ -2824,228 +2821,6 @@ static MENU_UPDATE_FUNC(image_buf_display)
         vram_lv.width, vram_lv.height,
         vram_hd.width, vram_hd.height
     );
-}
-#endif
-
-#ifdef FEATURE_SHOW_FREE_MEMORY
-
-static volatile int max_stack_ack = 0;
-
-static void max_stack_try(void* size) { max_stack_ack = (int) size; }
-
-static int stack_size_crit(int x)
-{
-    int size = x * 1024;
-    task_create("stack_try", 0x1e, size, max_stack_try, (void*) size);
-    msleep(50);
-    if (max_stack_ack == size) return 1;
-    return -1;
-}
-
-static int max_shoot_malloc_mem = 0;
-static int max_shoot_malloc_frag_mem = 0;
-static char shoot_malloc_frag_desc[70] = "";
-static char memory_map[720];
-
-#define MEMORY_MAP_ADDRESS_TO_INDEX(p) ((int)CACHEABLE(p)/1024 * 720 / 512/1024)
-#define MEMORY_MAP_INDEX_TO_ADDRESS(i) ALIGN32((i) * 512 * 1024 / 720 * 1024)
-
-/* fixme: find a way to read the free stack memory from DryOS */
-/* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
-static volatile int guess_mem_running = 0;
-static void guess_free_mem_task(void* priv, int delta)
-{
-    /* reset values */
-    max_stack_ack = 0;
-    max_shoot_malloc_mem = 0;
-    max_shoot_malloc_frag_mem = 0;
-
-    bin_search(1, 1024, stack_size_crit);
-
-    {
-        struct memSuite * hSuite = shoot_malloc_suite_contig(0);
-        if (!hSuite)
-        {
-            beep();
-            guess_mem_running = 0;
-            return;
-        }
-        ASSERT(hSuite->num_chunks == 1);
-        max_shoot_malloc_mem = hSuite->size;
-        shoot_free_suite(hSuite);
-    }
-
-    struct memSuite * hSuite = shoot_malloc_suite(0);
-    if (!hSuite)
-    {
-        beep();
-        guess_mem_running = 0;
-        return;
-    }
-    max_shoot_malloc_frag_mem = hSuite->size;
-
-    struct memChunk *currentChunk;
-    int chunkAvail;
-    void* chunkAddress;
-    int total = 0;
-
-    currentChunk = GetFirstChunkFromSuite(hSuite);
-
-    snprintf(shoot_malloc_frag_desc, sizeof(shoot_malloc_frag_desc), "");
-    memset(memory_map, 0, sizeof(memory_map));
-
-    while(currentChunk)
-    {
-        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
-        chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
-
-        int mb = 10*chunkAvail/1024/1024;
-        STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
-        total += chunkAvail;
-
-        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
-        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
-        memset(memory_map + start, COLOR_GREEN1, width);
-
-        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
-    }
-    STR_APPEND(shoot_malloc_frag_desc, " MB.");
-    ASSERT(max_shoot_malloc_frag_mem == total);
-
-    exmem_clear(hSuite, 0);
-
-    shoot_free_suite(hSuite);
-
-    /* memory analysis: how much appears unused? */
-    for (uint32_t i = 0; i < 720; i++)
-    {
-        if (memory_map[i])
-            continue;
-
-        uint32_t empty = 1;
-        uint32_t start = MEMORY_MAP_INDEX_TO_ADDRESS(i);
-        uint32_t end = MEMORY_MAP_INDEX_TO_ADDRESS(i+1);
-
-        for (uint32_t p = start; p < end; p += 4)
-        {
-            uint32_t v = MEM(p);
-            #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
-            if (v != 0x124B1DE0 /* RA(W)VIDEO*/)
-            #else
-            if (v != 0 && v != 0xFFFFFFFF)
-            #endif
-            {
-                empty = 0;
-                break;
-            }
-        }
-
-        memory_map[i] = empty ? COLOR_BLUE : COLOR_RED;
-    }
-
-    menu_redraw();
-    guess_mem_running = 0;
-}
-
-static void guess_free_mem()
-{
-    task_create("guess_mem", 0x1e, 0x4000, guess_free_mem_task, 0);
-}
-
-static MENU_UPDATE_FUNC(meminfo_display)
-{
-    int M = GetFreeMemForAllocateMemory();
-    int m = MALLOC_FREE_MEMORY;
-
-#ifdef CONFIG_VXWORKS
-    MENU_SET_VALUE(
-        "%dK",
-        M/1024
-    );
-    if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
-#else
-
-    int guess_needed = 0;
-    int info_type = (int) entry->priv;
-    switch (info_type)
-    {
-        case 0: // main entry
-            MENU_SET_VALUE(
-                "%dK + %dK",
-                m/1024, M/1024
-            );
-            if (M < 1024*1024 || m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
-            MENU_SET_ENABLED(1);
-            MENU_SET_ICON(MNI_DICE, 0);
-            break;
-
-        case 1: // malloc
-            MENU_SET_VALUE("%d K", m/1024);
-            if (m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Would be nice to have at least 128K free here.");
-            break;
-
-        case 2: // AllocateMemory
-            MENU_SET_VALUE("%d K", M/1024);
-            if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Canon code requires around 1 MB from here.");
-            break;
-
-        case 3: // task stack
-            MENU_SET_VALUE("%d K", max_stack_ack/1024);
-            guess_needed = 1;
-            break;
-
-        case 4: // shoot_malloc contig
-            MENU_SET_VALUE("%d M", max_shoot_malloc_mem/1024/1024);
-            guess_needed = 1;
-            break;
-
-        case 5: // shoot_malloc fragmented
-            MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
-            MENU_SET_WARNING(MENU_WARN_INFO, shoot_malloc_frag_desc);
-            guess_needed = 1;
-            for (int i = 0; i < 720; i++)
-                if (memory_map[i])
-                    draw_line(i, 400, i, 410, memory_map[i]);
-            break;
-
-        #if defined(CONFIG_MEMPATCH_CHECK)
-        case 6: // autoexec size
-        {
-            extern uint32_t ml_reserved_mem;
-            extern uint32_t ml_used_mem;
-
-            if (ABS(ml_used_mem - ml_reserved_mem) < 1024) MENU_SET_VALUE(
-                "%dK",
-                ml_used_mem/1024
-            );
-            else MENU_SET_VALUE(
-                "%dK of %dK",
-                ml_used_mem/1024, ml_reserved_mem/1024
-            );
-            if (ml_reserved_mem < ml_used_mem)
-                MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
-
-            break;
-        }
-        #endif
-    }
-
-    if (guess_needed && !guess_mem_running)
-    {
-        /* check this once every 20 seconds (not more often) */
-        static int aux = INT_MIN;
-        if (should_run_polling_action(20000, &aux))
-        {
-            guess_mem_running = 1;
-            guess_free_mem();
-        }
-    }
-
-    if (guess_mem_running)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
-    else
-        MENU_SET_HELP("GREEN=free shoot, BLUE=00/FF maybe free, RED=maybe used");
-#endif
 }
 #endif
 
@@ -3745,72 +3520,7 @@ static struct menu_entry debug_menus[] = {
         }
     },
 #endif
-#ifdef FEATURE_SHOW_FREE_MEMORY
-#ifdef CONFIG_VXWORKS
-    {
-        .name = "Free Memory",
-        .update = meminfo_display,
-        .icon_type = IT_ALWAYS_ON,
-        .help = "Free memory, shared between ML and Canon firmware.",
-    },
-#else // dryos
-    {
-        .name = "Free Memory",
-        .update = meminfo_display,
-        .select = menu_open_submenu,
-        .help = "Free memory, shared between ML and Canon firmware.",
-        .help2 = "Press SET for detailed info.",
-        .submenu_width = 710,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "malloc",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)1,
-                .update = meminfo_display,
-                .help = "Free memory available via malloc.",
-            },
-            {
-                .name = "AllocateMemory",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)2,
-                .update = meminfo_display,
-                .help = "Free memory available via AllocateMemory.",
-            },
-            {
-                .name = "stack space",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)3,
-                .update = meminfo_display,
-                .help = "Free memory available as stack space for user tasks.",
-            },
-            {
-                .name = "shoot_malloc contig",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)4,
-                .update = meminfo_display,
-                .help = "Largest contiguous block from shoot memory.",
-            },
-            {
-                .name = "shoot_malloc total",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)5,
-                .update = meminfo_display,
-                .help = "Largest fragmented block from shoot memory.",
-            },
-            #if defined(CONFIG_MEMPATCH_CHECK)
-            {
-                .name = "AUTOEXEC.BIN size",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)6,
-                .update = meminfo_display,
-                .help = "Memory reserved statically at startup for ML binary.",
-            },
-            #endif
-            MENU_EOL
-        },
-    },
-#endif
-#endif
+    MENU_PLACEHOLDER("Free Memory"),
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
     {
         .name = "Image buffers",
@@ -4558,7 +4268,11 @@ void config_menu_init()
     crop_factor_menu_init();
     customize_menu_init();
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-
+    
+    #ifdef FEATURE_SHOW_FREE_MEMORY
+    mem_menu_init();
+    #endif
+    
     movie_tweak_menu_init();
 }
 

@@ -134,8 +134,8 @@ static int module_load_symbols(TCCState *s, char *filename)
     tcc_add_symbol(s, "longjmp", &longjmp);
     tcc_add_symbol(s, "strcpy", &strcpy);
     tcc_add_symbol(s, "setjmp", &setjmp);
-    tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
-    tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
+    //~ tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
+    //~ tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
     tcc_add_symbol(s, "vsnprintf", &vsnprintf);
     tcc_add_symbol(s, "strlen", &strlen);
     tcc_add_symbol(s, "memcpy", &memcpy);
