@@ -266,7 +266,7 @@ static unsigned int memcheck_check(unsigned int entry)
     return failed;
 }
 
-static unsigned int memcheck_get_failed(unsigned char **file, unsigned int *line, unsigned char** task_name)
+static unsigned int memcheck_get_failed(char **file, unsigned int *line, char** task_name)
 {
     unsigned int buf_pos = 0;
     
@@ -312,7 +312,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
 
     memcheck_mallocbuf[memcheck_bufpos].ptr = ptr;
     memcheck_mallocbuf[memcheck_bufpos].failed = 0;
-    memcheck_mallocbuf[memcheck_bufpos].file = (unsigned char*) file_name_without_path(file);
+    memcheck_mallocbuf[memcheck_bufpos].file = file_name_without_path(file);
     memcheck_mallocbuf[memcheck_bufpos].line = line;
     snprintf((char*)memcheck_mallocbuf[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_task_name_from_id((int)get_current_task()));
     
@@ -884,9 +884,9 @@ static MENU_UPDATE_FUNC(mem_error_display)
         return;
     }
     
-    unsigned char *file = (void *)0;
+    char *file = (void *)0;
     unsigned int line = 0;
-    unsigned char* task_name = 0;
+    char* task_name = 0;
     
     unsigned int id = memcheck_get_failed(&file, &line, &task_name);
     if(id)
@@ -921,6 +921,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
             
             int size = ((struct memcheck_hdr *)ptr)->length;
             int flags = ((struct memcheck_hdr *)ptr)->flags;
+            int allocator = ((struct memcheck_hdr *)ptr)->allocator;
             
             if (size < 1024 || y > 300)
             {
@@ -932,7 +933,8 @@ static MENU_UPDATE_FUNC(mem_total_display)
             char* file = (char*)memcheck_mallocbuf[buf_pos].file;
             int line = memcheck_mallocbuf[buf_pos].line;
             char* task_name = (char*) memcheck_mallocbuf[buf_pos].task_name;
-            bmp_printf(FONT_MED, x, y, "%s%s from %s:%d task %s\n", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags), file, line, task_name);
+            char* allocator_name = allocators[allocator].name;
+            bmp_printf(FONT_MED, x, y, "%s%s from %s:%d task %s => %s\n", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags), file, line, task_name, allocator_name);
             y += font_med.height;
         }
         
