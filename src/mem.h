@@ -34,19 +34,19 @@ const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... *
 #define SmallAlloc          malloc
 #define SmallFree           free
 
-#define shoot_malloc        malloc
+#define shoot_malloc(len)   __mem_malloc(len, MEM_TEMPORARY | MEM_DMA, __FILE__, __LINE__)
 #define shoot_free          free
 
 #define alloc_dma_memory(len) __mem_malloc(len, MEM_DMA, __FILE__,__LINE__)
-#define free_dma_memory(buf)  __mem_free(buf)
+#define free_dma_memory     free
 
 /* allocate temporary memory that will be freed shortly after using it */
 #define tmp_malloc(len)       __mem_malloc(len, MEM_TEMPORARY, __FILE__, __LINE__)
-#define tmp_free(buf)         __mem_free(buf)
+#define tmp_free            free
 
 /* allocate temporary memory for reading files */
-#define fio_malloc(len)       __mem_malloc(len, MEM_TEMPORARY | MEM_DMA, __FILE__, __LINE__)
-#define fio_free(buf)         __mem_free(buf)
+#define fio_malloc(len)     __mem_malloc(len, MEM_TEMPORARY | MEM_DMA, __FILE__, __LINE__)
+#define fio_free            free
 
 #endif
 

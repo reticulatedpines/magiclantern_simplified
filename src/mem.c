@@ -19,6 +19,7 @@
 #define MEM_SEC_ZONE 32
 #define MEMCHECK_ENTRIES 512
 #define HISTORY_ENTRIES 512
+#define TASK_NAME_SIZE 16
 
 typedef void* (*mem_init_func)();
 typedef void* (*mem_alloc_func)(size_t size);
@@ -167,7 +168,7 @@ struct memcheck_entry
     unsigned int failed;
     unsigned char * file;
     unsigned int line;
-    unsigned int task_id;
+    unsigned char task_name[TASK_NAME_SIZE];
 };
 
 static struct memcheck_entry memcheck_mallocbuf[MEMCHECK_ENTRIES];
@@ -184,7 +185,7 @@ static char* file_name_without_path(const char* file)
     return fn;
 }
 
-
+/* warning: can't call this twice in the same printf */
 const char * format_memory_size( unsigned size)
 {
     static char str[16];
@@ -265,7 +266,7 @@ static unsigned int memcheck_check(unsigned int entry)
     return failed;
 }
 
-static unsigned int memcheck_get_failed(unsigned char **file, unsigned int *line, unsigned int* task_id)
+static unsigned int memcheck_get_failed(unsigned char **file, unsigned int *line, unsigned char** task_name)
 {
     unsigned int buf_pos = 0;
     
@@ -280,7 +281,7 @@ static unsigned int memcheck_get_failed(unsigned char **file, unsigned int *line
             {
                 *file = memcheck_mallocbuf[buf_pos].file;
                 *line = memcheck_mallocbuf[buf_pos].line;
-                *task_id = memcheck_mallocbuf[buf_pos].task_id;
+                *task_name = memcheck_mallocbuf[buf_pos].task_name;
                 /*
                 memcheck_mallocbuf[buf_pos].failed = 0;
                 memcheck_mallocbuf[buf_pos].ptr = 0;
@@ -313,7 +314,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
     memcheck_mallocbuf[memcheck_bufpos].failed = 0;
     memcheck_mallocbuf[memcheck_bufpos].file = (unsigned char*) file_name_without_path(file);
     memcheck_mallocbuf[memcheck_bufpos].line = line;
-    memcheck_mallocbuf[memcheck_bufpos].task_id = (unsigned int) get_current_task();
+    snprintf((char*)memcheck_mallocbuf[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_task_name_from_id((int)get_current_task()));
     
     ((struct memcheck_hdr *)ptr)->id = memcheck_bufpos;
     
@@ -445,9 +446,9 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
     /* keep track of allocated memory and update history */
     int len = ((struct memcheck_hdr *)ptr)->length;
     allocators[allocator_index].num_blocks--;
-    allocators[allocator_index].mem_used -= len + 2 * MEM_SEC_ZONE;
+    allocators[allocator_index].mem_used -= (len + 2 * MEM_SEC_ZONE);
     alloc_total -= len;
-    alloc_total_with_memcheck -= len + 2 * MEM_SEC_ZONE;
+    alloc_total_with_memcheck -= (len + 2 * MEM_SEC_ZONE);
     history[history_index].timestamp = get_ms_clock_value();
     history[history_index].alloc_total = alloc_total_with_memcheck;
     history_index = mod(history_index + 1, HISTORY_ENTRIES);
@@ -885,48 +886,103 @@ static MENU_UPDATE_FUNC(mem_error_display)
     
     unsigned char *file = (void *)0;
     unsigned int line = 0;
-    unsigned int task_id = 0;
+    unsigned char* task_name = 0;
     
-    unsigned int id = memcheck_get_failed(&file, &line, &task_id);
+    unsigned int id = memcheck_get_failed(&file, &line, &task_name);
     if(id)
     {
         MENU_SET_NAME("Memory Error");
         MENU_SET_VALUE("%x", id);
         MENU_SET_RINFO("%s:%d", file, line);
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Last error: %x at %s:%d, task %s.", id, file, line, get_task_name_from_id(task_id));
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Last error: %x at %s:%d, task %s.", id, file, line, task_name);
         MENU_SET_ICON(MNI_RECORD, 0); /* red dot */
     }
 }
 
+static int total_ram_detailed = 0;
+
 static MENU_UPDATE_FUNC(mem_total_display)
 {
-    MENU_SET_VALUE("%s, peak %s", format_memory_size(alloc_total_with_memcheck), format_memory_size(alloc_total_peak_with_memcheck));
-    int ovh = (alloc_total_with_memcheck + sizeof(memcheck_mallocbuf) - alloc_total) * 1000 / alloc_total;
-    MENU_SET_WARNING(MENU_WARN_INFO, "Memcheck overhead: %d.%d%%.", ovh/10, ovh%10, 0);
-}
-
-
-static void show_total_ram()
-{
-    msleep(1000);
-    console_show();
-    for(int buf_pos = 0; buf_pos < MEMCHECK_ENTRIES; buf_pos++)
+    if (total_ram_detailed && info->can_custom_draw && entry->selected)
     {
-        void* ptr = (void*) memcheck_mallocbuf[buf_pos].ptr;
-        if (!ptr) continue;
-        
-        int size = ((struct memcheck_hdr *)ptr)->length;
-        int flags = ((struct memcheck_hdr *)ptr)->flags;
-        
-        if (size < 1024)
-            continue;
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-        char* file = (char*)memcheck_mallocbuf[buf_pos].file;
-        int line = memcheck_mallocbuf[buf_pos].line;
-        int task_id = memcheck_mallocbuf[buf_pos].task_id;
-        console_printf("%s%s from %s:%d task %s\n", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id(task_id));
+        bmp_printf(FONT_LARGE, 10, 10, "Allocated memory");
+        int x = 10;
+        int y = 50;
+
+        int small_blocks = 0;
+        int small_blocks_size = 0;
+        for(int buf_pos = 0; buf_pos < MEMCHECK_ENTRIES; buf_pos++)
+        {
+            void* ptr = (void*) memcheck_mallocbuf[buf_pos].ptr;
+            if (!ptr) continue;
+            
+            int size = ((struct memcheck_hdr *)ptr)->length;
+            int flags = ((struct memcheck_hdr *)ptr)->flags;
+            
+            if (size < 1024 || y > 300)
+            {
+                small_blocks++;
+                small_blocks_size += size;
+                continue;
+            }
+
+            char* file = (char*)memcheck_mallocbuf[buf_pos].file;
+            int line = memcheck_mallocbuf[buf_pos].line;
+            char* task_name = (char*) memcheck_mallocbuf[buf_pos].task_name;
+            bmp_printf(FONT_MED, x, y, "%s%s from %s:%d task %s\n", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags), file, line, task_name);
+            y += font_med.height;
+        }
+        
+        if (small_blocks)
+        {
+            char msg[100];
+            snprintf(msg, sizeof(msg), "%d small blocks, %s, ", small_blocks, format_memory_size(small_blocks_size));
+            STR_APPEND(msg, "overhead %s\n", format_memory_size(small_blocks * 2 * MEM_SEC_ZONE));
+            bmp_printf(FONT_MED, x, y, msg);
+            y += font_med.height;
+        }
+        
+        /* show history */
+        
+        int t0 = history[0].timestamp;
+        int t_end = get_ms_clock_value();
+        int peak_x = 0;
+        int peak_y = y+10;
+        if (t_end > t0)
+        {
+            int maxh = 480 - peak_y;
+            bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, 250);
+            for (int i = 0; i < history_index; i++)
+            {
+                int t = history[i].timestamp;
+                int t2 = history[i+1].timestamp;
+                if (i == history_index-1) t2 = t_end;
+                int x = 720 * (t - t0) / (t_end - t0);
+                int x2 = 720 * (t2 - t0) / (t_end - t0);
+                int h = history[i].alloc_total * maxh / alloc_total_peak_with_memcheck;
+                y = 480 - h;
+                int w = MAX(x2-x, 2);
+                bmp_fill(h == maxh ? COLOR_RED : COLOR_BLUE, x, y, w, h);
+                if (h == maxh)
+                    peak_x = x;
+            }
+        }
+        bmp_printf(FONT_MED, peak_x+5, peak_y, "%s", format_memory_size(alloc_total_peak_with_memcheck));
+        bmp_printf(FONT_MED, 650, y-20, "%s", format_memory_size(alloc_total_with_memcheck));
+    }
+    else
+    {
+        total_ram_detailed = 0;
+        MENU_SET_VALUE("%s", format_memory_size(alloc_total_with_memcheck));
+        MENU_APPEND_VALUE(", peak %s", format_memory_size(alloc_total_peak_with_memcheck));
+        int ovh = (alloc_total_with_memcheck + sizeof(memcheck_mallocbuf) - alloc_total) * 1000 / alloc_total;
+        MENU_SET_WARNING(MENU_WARN_INFO, "Memcheck overhead: %d.%d%%.", ovh/10, ovh%10, 0);
     }
 }
+
 
 static struct menu_entry mem_menus[] = {
 #ifdef CONFIG_VXWORKS
@@ -945,6 +1001,15 @@ static struct menu_entry mem_menus[] = {
         .help2 = "Press SET for detailed info.",
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Allocated RAM",
+                .update = mem_total_display,
+                .priv = &total_ram_detailed,
+                .max = 1,
+                .help = "Show total memory allocated by ML.",
+                .help2 = "Press SET to see detailed info about each allocated block.",
+                .icon_type = IT_ALWAYS_ON,
+            },
             {
                 .name = allocators[0].name,
                 .icon_type = IT_ALWAYS_ON,
@@ -991,15 +1056,6 @@ static struct menu_entry mem_menus[] = {
                 .priv = (int*)6,
                 .update = meminfo_display,
                 .help = "Memory reserved statically at startup for ML binary.",
-            },
-            {
-                .name = "Allocated RAM",
-                .update = mem_total_display,
-                .priv = show_total_ram,
-                .select = (void (*)(void*,int))run_in_separate_task,
-                .help = "Show total memory allocated by ML.",
-                .help2 = "Press SET to see detailed info about each block.",
-                //~ .icon_type = IT_ALWAYS_ON,
             },
             #endif
             MENU_EOL
