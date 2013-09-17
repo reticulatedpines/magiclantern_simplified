@@ -947,7 +947,11 @@ static MENU_UPDATE_FUNC(mem_total_display)
         
         /* show history */
         
-        int t0 = history[0].timestamp;
+        int first_index = history_index + 1;
+        while (history[first_index].timestamp == 0)
+            first_index = mod(first_index + 1, HISTORY_ENTRIES);
+        
+        int t0 = history[first_index].timestamp;
         int t_end = get_ms_clock_value();
         int peak_x = 0;
         int peak_y = y+10;
@@ -955,7 +959,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
         {
             int maxh = 480 - peak_y;
             bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, 250);
-            for (int i = 0; i < history_index; i++)
+            for (int i = first_index; i != history_index; i = mod(i+1, HISTORY_ENTRIES))
             {
                 int t = history[i].timestamp;
                 int t2 = history[i+1].timestamp;
