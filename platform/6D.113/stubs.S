@@ -40,7 +40,7 @@ NSTUB( ROMBASEADDR, firmware_entry )
 /** indented == need to fix **/
 
 NSTUB(0xFFCFA04C - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-NSTUB(0xFFCCDAB0 - RAM_OFFSET, AllocateMemory)
+NSTUB(0xFFCCDAB0 - RAM_OFFSET, _AllocateMemory)
 NSTUB(0xFF4B4BB8, CreateDialogBox)
 NSTUB(0xFFCD04B4 - RAM_OFFSET, CreateRecursiveLock)
 NSTUB(0xFF4B3B54, DeleteDialogBox)
@@ -58,7 +58,7 @@ NSTUB(0xFF332740, FIO_ReadFile)
 NSTUB(0xFF332698, FIO_RemoveFile)
 NSTUB(0xFF3328E0, FIO_WriteFile)
 NSTUB(0xFF333024, FIO_RenameFile)
-NSTUB(0xFFCCDE4C - RAM_OFFSET, FreeMemory)
+NSTUB(0xFFCCDE4C - RAM_OFFSET, _FreeMemory)
 NSTUB(0xFF0DFB2C, GUI_ChangeMode)
 NSTUB(0xFF0DF970, GUI_Control)
 NSTUB(0xFF1A3614, GUI_GetFirmVersion)
@@ -79,7 +79,7 @@ NSTUB(0xFF11EA28, SetAudioVolumeOut) //str:SetVolumeOut_Volume 1 Parameter
 NSTUB(0xFF9D031C, audio_thresholds)
 
 
-NSTUB(0xFFCFD630 - RAM_OFFSET, alloc_dma_memory)
+NSTUB(0xFFCFD630 - RAM_OFFSET, _alloc_dma_memory)
 NSTUB(   0x9BC78, bmp_vram_info )                 // look in SetBitmapVramAddress - as in 60D
 NSTUB(0xFFD2F2F8 - RAM_OFFSET, bzero32)
 NSTUB(0xFF146844, call)
@@ -95,8 +95,8 @@ NSTUB(0xFF51DA44, dialog_set_property_str)
 NSTUB(   0x7599C, dm_names)
 NSTUB(0xFFCCA018 - RAM_OFFSET, dm_set_store_level)
 NSTUB(0xFFCC9FB0 - RAM_OFFSET, dm_set_print_level)
-NSTUB(0xFF0C8DA8, free) // see "can't malloc"
-NSTUB(0xFFCFD664 - RAM_OFFSET, free_dma_memory)
+NSTUB(0xFF0C8DA8, _free) // see "can't malloc"
+NSTUB(0xFFCFD664 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF654C44, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 NSTUB(0xFFCCC77C - RAM_OFFSET, give_semaphore)
 NSTUB(0xFF0DFFE4, gui_init_end)
@@ -104,7 +104,7 @@ NSTUB(   0x74F10, gui_main_struct)
 NSTUB(0xFF0DF59C, gui_main_task)
 NSTUB(   0x8295C, gui_task_list)
 NSTUB(0xFF0C5438, init_task)
-NSTUB(0xFF0C8D50, malloc)
+NSTUB(0xFF0C8D50, _malloc)
 NSTUB(0xFFCF9F00 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xFFCF9D14 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xFFCF9F40 - RAM_OFFSET, msg_queue_count) // 0x36A5C Above "!!!!!!! QUE Overflo"
