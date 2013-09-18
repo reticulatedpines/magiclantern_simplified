@@ -525,11 +525,11 @@ void draw_ml_bottombar(int double_buffering, int clear)
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
       if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
-      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%d  ", shutter_reciprocal);
+      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "");
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%dK", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%d", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
+      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
 
       int fgs = COLOR_CYAN; // blue (neutral)
       int shutter_degrees = -1;
@@ -556,44 +556,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
       }
 
     text_font = SHADOW_FONT(FONT(FONT_LARGE,fgs,bg));
-    /*if (is_movie_mode() && shutter_display_degrees)
-    {
-        snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2  , 
-                    y_origin, 
-                    shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
-
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
-                    y_origin, 
-                    "o");
-    }*/
- /*   else if (is_movie_mode() && is_hard_shutter_override_active())
-    {
-        int d = get_shutter_override_degrees_x10();
-        int q = d/10;
-        int r = d%10;
-        int cr = r + '0';
-        snprintf(shutter, sizeof(shutter), "%d%s%s  ", q, r ? "." : "", r ? (char*)&cr : "");
-        bmp_printf( FONT(text_font,COLOR_ORANGE,bg), 
-                    x_origin + 143 + font_med.width*2  , 
-                    y_origin, 
-                    shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),COLOR_ORANGE,bg);
-
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
-                    y_origin, 
-                    "o");
-    }
-    else*/
     {
         bmp_printf( text_font | FONT_ALIGN_CENTER,
-                x_origin + (shutter_x10 <= 3 ? 143 : 123) + 20 + 50,
+                x_origin + 123 + 20 + 50,
                 y_origin, 
                 shutter);
     }
@@ -866,10 +831,10 @@ char* lens_format_shutter(int tv)
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
       if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d  ", shutter_reciprocal);
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
+      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
       return shutter;
 }
 
