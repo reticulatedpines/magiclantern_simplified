@@ -37,7 +37,7 @@ NSTUB( ROMBASEADDR, firmware_entry )
 #define RAM_OFFSET 0xFFA68D58 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
 
 NSTUB(0xFFA87C1C - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-NSTUB(0xFFA70BB4 - RAM_OFFSET, AllocateMemory)
+NSTUB(0xFFA70BB4 - RAM_OFFSET, _AllocateMemory)
 NSTUB(0xFF4C35D8, CreateDialogBox)
 NSTUB(0xFFA735B8 - RAM_OFFSET, CreateRecursiveLock)
 NSTUB(0xFF4C25A0, DeleteDialogBox)
@@ -56,7 +56,7 @@ NSTUB(0xFF346218, FIO_ReadFile)
 NSTUB(0xFF346170, FIO_RemoveFile)
 NSTUB(0xFF3463B8, FIO_WriteFile)
 NSTUB(0xFF346AFC, FIO_RenameFile)
-NSTUB(0xFFA70F50 - RAM_OFFSET, FreeMemory)
+NSTUB(0xFFA70F50 - RAM_OFFSET, _FreeMemory)
 NSTUB(0xFF0D783C, GUI_ChangeMode)
 NSTUB(0xFF0D7680, GUI_Control)
 NSTUB(0xFF1BD13C, GUI_GetFirmVersion)
@@ -75,7 +75,7 @@ NSTUB(0xFF1A7BD0, SetGUIRequestMode)
 /*--------------*/
 
 
-NSTUB(0xFFA8B200 - RAM_OFFSET, alloc_dma_memory)
+NSTUB(0xFFA8B200 - RAM_OFFSET, _alloc_dma_memory)
 NSTUB(   0x6D6F4, bmp_vram_info )                 // look in SetBitmapVramAddress - as in 60D
 NSTUB(0xFFAA0090 - RAM_OFFSET, bzero32)
 NSTUB(0xFF137AD4, call)
@@ -90,8 +90,8 @@ NSTUB(0xFF52F148, dialog_set_property_str)
 NSTUB(   0x3F0DC, dm_names)
 NSTUB(0xFFA6D11C - RAM_OFFSET, dm_set_store_level)
 NSTUB(0xFFA6D0B4 - RAM_OFFSET, dm_set_print_level)
-NSTUB(0xFF0C83C0, free) // see "can't malloc"
-NSTUB(0xFFA8B234 - RAM_OFFSET, free_dma_memory)
+NSTUB(0xFF0C83C0, _free) // see "can't malloc"
+NSTUB(0xFFA8B234 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF4F7D60, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 NSTUB(0xFFA6F880 - RAM_OFFSET, give_semaphore)
 NSTUB(0xFF0D7D24, gui_init_end)
@@ -99,7 +99,7 @@ NSTUB(   0x3E5B4, gui_main_struct)
 NSTUB(0xFF0D72AC, gui_main_task)
 NSTUB(   0x591F0, gui_task_list)
 NSTUB(0xFF0C5488, init_task)
-NSTUB(0xFF0C8368, malloc)
+NSTUB(0xFF0C8368, _malloc)
 NSTUB(0xFFA87AD0 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xFFA878E4 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xFFA6FC70 - RAM_OFFSET, msleep)
