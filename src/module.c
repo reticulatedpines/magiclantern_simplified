@@ -1173,8 +1173,8 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             {
                 int fg = COLOR_GRAY(40);
                 int bg = COLOR_BLACK;
-                int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
-                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(300), 690, info->y+5, name);
+                int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, bg));
+                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(320), 690, info->y+2, "%s", name);
             }
         }
     }

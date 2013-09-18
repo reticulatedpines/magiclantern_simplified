@@ -560,6 +560,7 @@ int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int fontspec)
 /* for compatibility with existing code */
 struct font font_small;
 struct font font_med;
+struct font font_med_large;
 struct font font_large;
 
 static void rbf_init()

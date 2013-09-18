@@ -2121,7 +2121,7 @@ entry_print(
         /* use a smaller font */
         use_small_font = 1;
         x_font_offset = 28;
-        fnt = (fnt & ~FONT_MASK) | FONT_SANS_28;
+        fnt = (fnt & ~FONT_MASK) | FONT_MED_LARGE;
         y_font_offset = (h - (int)fontspec_font(fnt)->height) / 2;
 
         if (my_menu->selected)                   /* in My Menu, we will include the submenu name in the original entry */
@@ -2182,7 +2182,7 @@ skip_name:
         fnt = MENU_FONT_GRAY;
     
     if (use_small_font)
-        fnt = (fnt & ~FONT_MASK) | FONT_SANS_28;
+        fnt = (fnt & ~FONT_MASK) | FONT_MED_LARGE;
     
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
@@ -4348,7 +4348,7 @@ menu_init( void )
     m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES );
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 12;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );
 }
