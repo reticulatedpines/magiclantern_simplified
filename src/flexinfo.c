@@ -1506,7 +1506,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 
 uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, int32_t *height)
 {
-    uint32_t font = 0;
+    uint32_t font = -1;
     switch(font_type)
     {
         case INFO_FONT_SMALL:
@@ -1535,9 +1535,9 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
             return 1;
     }
 
-    if(font)
+    if(font >= 0)
     {
-        *width = fontspec_font(font)->width * strlen(string);
+        *width = bmp_string_width(FONT_MED, string);
         *height = fontspec_font(font)->height;
     }
 
