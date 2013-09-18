@@ -40,7 +40,7 @@ import optparse, re, sys, codecs, types
 
 from align_string_proportional import word_wrap
 from rbf_read import extent_func, rbf_init_font
-rbf_init_font("../../data/fonts/mlsans23.rbf")
+rbf_init_font("../../data/fonts/argnor23.rbf")
 wrap = lambda text, width: word_wrap(text, width, extent_func)
 
 # Use Unicode characters instead of their ascii psuedo-replacements
