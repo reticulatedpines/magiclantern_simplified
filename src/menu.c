@@ -65,7 +65,7 @@ static struct menu * mod_menu;
 static int mod_menu_dirty = 1;
 
 //for vscroll
-#define MENU_LEN 11
+#define MENU_LEN 10
 
 /*
 int sem_line = 0;
@@ -883,6 +883,37 @@ menu_find_by_name(
 
     give_semaphore( menu_sem );
     return new_menu;
+}
+
+static int get_menu_visible_count(struct menu * menu)
+{
+    struct menu_entry * entry = menu->children;
+
+    int n = 0;
+    while( entry )
+    {
+        if (is_visible(entry))
+            n ++;
+        entry = entry->next;
+    }
+    return n;
+}
+
+static int get_menu_selected_pos(struct menu * menu)
+{
+    struct menu_entry * entry = menu->children;
+    int n = 0;
+    while( entry )
+    {
+        if (is_visible(entry))
+        {
+            n ++;
+            if (entry->selected)
+                return n;
+        }
+        entry = entry->next;
+    }
+    return 0;
 }
 
 static int
@@ -2464,9 +2495,15 @@ static int my_menu_select_func(struct menu_entry * entry)
     return entry->starred ? 1 : 0;
 }
 
+static struct menu_entry * mod_menu_selected_entry = 0;
+
 static int mod_menu_select_func(struct menu_entry * entry)
 {
     if (config_var_was_changed(entry->priv))
+        return 1;
+    
+    /* don't delete currently selected entry */
+    if (entry == mod_menu_selected_entry)
         return 1;
     
     /* anything from submenu was changed? */
@@ -2488,8 +2525,12 @@ static int mod_menu_select_func(struct menu_entry * entry)
     return 0;
 }
 
+#define DYN_MENU_DO_NOT_EXPAND_SUBMENUS 0
+#define DYN_MENU_EXPAND_ALL_SUBMENUS 1
+#define DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS 2
+
 static int
-dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders)
+dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders, int expand_submenus)
 {
     dyn_menu->split_pos = -16;
 
@@ -2522,6 +2563,13 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
             // any submenu?
             if (entry->children)
             {
+                int should_expand = 
+                    expand_submenus == DYN_MENU_EXPAND_ALL_SUBMENUS ||
+                    (expand_submenus == DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS && !(IS_ML_PTR(entry->priv) && !MENU_INT(entry)));
+                
+                if (!should_expand)
+                    continue;
+                
                 struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
                 if (submenu)
                 {
@@ -2563,44 +2611,23 @@ static int
 my_menu_rebuild()
 {
     my_menu_dirty = 0;
-    return dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders));
+    return dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
 }
 
 static int mod_menu_rebuild()
 {
+    /* don't be so aggressive with updates (they are a bit CPU-intensive) */
+    static int last_update = -1;
+    if (!should_run_polling_action(200, &last_update))
+        return 1;
+    
     mod_menu_dirty = 0;
-    return dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders));
-}
-
-static int get_menu_visible_count(struct menu * menu)
-{
-    struct menu_entry * entry = menu->children;
-
-    int n = 0;
-    while( entry )
-    {
-        if (is_visible(entry))
-            n ++;
-        entry = entry->next;
-    }
-    return n;
-}
-
-static int get_menu_selected_pos(struct menu * menu)
-{
-    struct menu_entry * entry = menu->children;
-    int n = 0;
-    while( entry )
-    {
-        if (is_visible(entry))
-        {
-            n ++;
-            if (entry->selected)
-                return n;
-        }
-        entry = entry->next;
-    }
-    return 0;
+    
+    mod_menu_selected_entry = get_selected_entry(mod_menu);
+    mod_menu_selected_entry = entry_find_by_name(mod_menu_selected_entry->parent_menu->name, mod_menu_selected_entry->name);
+    
+    return dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders), DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS);
+    return 1;
 }
 
 static void
@@ -2617,32 +2644,42 @@ menu_display(
     int menu_len = MENU_LEN;
     int pos = get_menu_selected_pos(menu);
     int num_visible = get_menu_visible_count(menu);
-    
+    int target_height = 370;
+    int natural_height = num_visible * font_large.height;
+
     /* if the menu items does not exceed max count by too much (e.g. 12 instead of 11),
      * prefer to squeeze them vertically in order to avoid scrolling. */
     
-    /* if we can't avoid scrolling, don't squeeze */
-    int cram = 0;
-    if (num_visible == MENU_LEN + 1)
+    /* but if we can't avoid scrolling, don't squeeze */
+    if (num_visible > MENU_LEN + 2)
     {
-        cram = submenu_mode ? 3 : 2;
-        menu_len += 1;
+        num_visible = MENU_LEN;
+        natural_height = num_visible * font_large.height;
+        /* leave some space for the "down" indicator */
+        target_height -= 15;
     }
-    /*
-    else if (num_visible == MENU_LEN + 2 && !submenu_mode)
+    else /* we can fit everything */
     {
-        cram = 4;
-        menu_len += 2;
+        menu->scroll_pos = 0;
     }
-    */
-    else if (num_visible <= MENU_LEN - 2 && !submenu_mode)
-    {
-        /* and while we are at it, why not relax the spacing a little for non-full menus? */
-        cram = -2;
-    }
+    
+    int extra_spacing = (target_height - natural_height);
+    
+    /* don't stretch too much */
+    extra_spacing = MIN(extra_spacing, 2 * num_visible);
+
+    /* use Bresenham line-drawing algorithm to divide space evenly with integer-only math */
+    /* http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#Algorithm_with_Integer_Arithmetic */
+    /* up to 3 pixels of spacing per row */
+    /* x: from 0 to (num_visible-1)*3 */
+    /* y: space accumulated (from 0 to extra_spacing) */
+    int dx = (num_visible-1)*3;
+    int dy = ABS(extra_spacing);
+    dy = MIN(dy, dx);
+    int D = 2*dy - dx;
 
     int scroll_pos = menu->scroll_pos; // how many menu entries to skip
-    scroll_pos = MAX(scroll_pos, pos - menu_len);
+    scroll_pos = MAX(scroll_pos, pos - num_visible);
     scroll_pos = MIN(scroll_pos, pos - 1);
     menu->scroll_pos = scroll_pos;
     
@@ -2655,23 +2692,50 @@ menu_display(
     if (!menu_lv_transparent_mode)
         menu_clean_footer();
 
-    for (int i = 0; i < menu_len && entry; )
+    for (int i = 0; i < num_visible && entry; )
     {
         if (is_visible(entry))
         {
+            /* how much extra spacing for this menu entry? */
+            /* (Bresenham step) */
+            int local_spacing = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                if (D > 0)
+                {
+                    local_spacing += SGN(extra_spacing);
+                    D = D + (2*dy - 2*dx);
+                }
+                else
+                {
+                    D = D + 2*dy;
+                }
+            }
+            
             // display current entry
-            int ok = menu_entry_process(menu, entry, x, y, font_large.height - cram, only_selected);
+            int ok = menu_entry_process(menu, entry, x, y, font_large.height + local_spacing, only_selected);
             
             // entry asked for custom draw? stop here
             if (!ok) break;
             
             // move down for next item
-            y += font_large.height - cram;
+            y += font_large.height + local_spacing;
             
             i++;
         }
 
         entry = entry->next;
+    }
+
+    int more_entries = 0;
+    while (entry) {
+        if (is_visible(entry)) more_entries++;
+        entry = entry->next;
+    }
+
+    if (more_entries)
+    {
+        bmp_printf(SHADOW_FONT(FONT_LARGE) | FONT_ALIGN_CENTER, 360, y - 15, "...");
     }
 
     // all menus displayed, now some extra stuff
@@ -3089,7 +3153,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         }
         STR_APPEND(hidden_msg, customize_mode ? "." : " (Prefs->Customize).");
         
-        int maxlen = bmp_strlen_clipped(FONT_MED, hidden_msg, 700);
+        unsigned maxlen = bmp_strlen_clipped(FONT_MED, hidden_msg, 700);
         if (strlen(hidden_msg) > maxlen)
         {
             hidden_msg[maxlen-1] = hidden_msg[maxlen-2] = hidden_msg[maxlen-3] = '.';
@@ -3112,12 +3176,16 @@ show_hidden_items(struct menu * menu, int force_clear)
 
 static void
 show_vscroll(struct menu * parent){
+    
+    if (edit_mode)
+        return;
+    
     int pos = get_menu_selected_pos(parent);
     int max = get_menu_visible_count(parent);
 
     int menu_len = MENU_LEN;
     
-    if(max > menu_len + (submenu_mode ? 1 : 2)){
+    if(max > menu_len + 2){
         int y_lo = submenu_mode ? 50 : 44;
         int h = submenu_mode ? 367 : 385;
         int size = (h - y_lo) * menu_len / max;
@@ -3127,22 +3195,6 @@ show_vscroll(struct menu * parent){
         if (!submenu_mode)
             bmp_draw_rect(50, x + 1, y_lo, 2, h);
         bmp_fill(COLOR_WHITE, x, y, 3, size);
-
-#if 0 // looks a bit ugly
-        int y_hi = y_lo + h;
-        x = MIN(x, 720-6);
-        
-        for (int i = -6; i <= 6; i++)
-        {
-            /* top arrow */
-            if (pos > 1)
-                draw_line(x, y_lo - 20, x + i, y_lo - 10, COLOR_WHITE);
-            
-            /* bottom arrow */
-            if (pos < max)
-                draw_line(x, y_hi + 20, x + i, y_hi + 10, COLOR_WHITE);
-        }
-#endif
     }
 }
 
@@ -3331,7 +3383,7 @@ implicit_submenu_display()
 
 static int submenu_default_height(int count)
 {
-    return MIN(408, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
+    return MIN(422, count * (font_large.height + 2) + 40 + 50 - (count > 7 ? 30 : 0));
     /* body + titlebar + padding - smaller padding for large submenus */
 }
 static void
@@ -3360,7 +3412,7 @@ submenu_display(struct menu * submenu)
     g_submenu_width = w;
     int bx = (720 - w)/2;
     int by = (480 - h)/2 - 30;
-    by = MAX(by, 10);
+    by = MAX(by, 3);
     
     // submenu header
     if (
@@ -3553,6 +3605,7 @@ menu_entry_select(
     }
     
     config_dirty = 1;
+    mod_menu_dirty = 1;
 }
 
 /** Scroll side to side in the list of menus */
