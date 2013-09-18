@@ -13,6 +13,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "module.h"
 
 static void lcd_adjust_position_step();
 static void arrow_key_step();
@@ -3298,15 +3299,15 @@ int display_broken_for_mz()
 #endif
 
 
-void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
+int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
 #if defined(CONFIG_5D2)
     int sync = (MEM(x+0xe0) == YUV422_LV_BUFFER_1);
     int hacked = ( MEM(0x44fc+0xBC) == MEM(0x44fc+0xc4) && MEM(0x44fc+0xc4) == MEM(x+0xe0));
     display_broken = hacked;
 
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
 
     if (display_filter_enabled())
     {
@@ -3326,8 +3327,8 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     int hacked = ( MEM(0x455c+0xA4) == MEM(0x455c+0xAC) && MEM(0x455c+0xAC) == MEM(x+0xc8));
     display_broken = hacked;
 
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
 
     if (display_filter_enabled())
     {
@@ -3340,11 +3341,12 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     }
 #elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) // all new cameras should work with this method
 
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
 
     YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
+    return CBR_RET_STOP;
 }
 
 void display_filter_step(int k)

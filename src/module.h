@@ -47,6 +47,14 @@
 #define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
 #define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
 #define CBR_VSYNC_SETPARAM            9 /* called from every LiveView frame; can change FRAME_ISO, FRAME_SHUTTER_TIMER, just like for HDR video */
+#define CBR_VSYNC_DISPLAY            10 /* can redirect display buffer */
+
+#define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
+
+/* return values from CBRs */
+#define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
+#define CBR_RET_STOP                  1             /* stop calling other CBRs */
+#define CBR_RET_ERROR                 0xFFFFFFFF    /* something's wong */
 
 /* portable key codes. intentionally defines to make numbers hardcoded so changed order wont change the integer number */
 #define MODULE_KEY_PRESS_HALFSHUTTER       ( 1)

@@ -61,10 +61,6 @@ static void FAST vsync_func() // called once per frame.. in theory :)
     #ifdef FEATURE_DISPLAY_SHAKE
     display_shake_step();
     #endif
-
-    #ifdef FEATURE_SILENT_PIC_RAW_BURST
-    silent_pic_raw_vsync();
-    #endif
 }
 
 #ifdef CONFIG_550D
@@ -127,24 +123,17 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #if defined(FEATURE_SILENT_PIC_RAW_BURST) && defined(CONFIG_DISPLAY_FILTERS)
-        if (!silent_pic_preview())
-        #else
-        if(1)
+        #ifdef CONFIG_MODULES
+        if (module_exec_cbr(CBR_VSYNC_DISPLAY) == CBR_RET_CONTINUE)
         #endif
-        {
-            #ifdef FEATURE_HDR_VIDEO
-            hdr_kill_flicker();
-            #endif
-            #ifdef CONFIG_DISPLAY_FILTERS
-            display_filter_lv_vsync(old_state, x, input, z, t);
-            #endif
-            #ifdef FEATURE_MAGIC_ZOOM
-            digic_zoom_overlay_step(0);
-            #endif
-        }
+        #ifdef FEATURE_HDR_VIDEO
+        if (hdr_kill_flicker() == CBR_RET_CONTINUE)
+        #endif
+        #ifdef CONFIG_DISPLAY_FILTERS
+        if (display_filter_lv_vsync(old_state, x, input, z, t) == CBR_RET_CONTINUE)
+        #endif
         #ifdef FEATURE_MAGIC_ZOOM
-        else digic_zoom_overlay_step(1); // cleanup
+        digic_zoom_overlay_step(0);
         #endif
     }
     #endif

@@ -700,7 +700,7 @@ int can_lv_trap_focus_be_active()
     if (dofpreview) return 0;
     if (is_movie_mode()) return 0;
     if (gui_state != GUISTATE_IDLE) return 0;
-    if (get_silent_pic()) return 0;
+    //~ if (get_silent_pic()) return 0;
     if (!is_manual_focus()) return 0;
     //~ bmp_printf(FONT_MED, 100, 100, "LVTF 1");
     return 1;
@@ -1031,8 +1031,8 @@ static MENU_UPDATE_FUNC(trap_focus_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus outside LiveView requires a chipped lens");
     if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Assign AF button to half-shutter from CFn!");
-    if (lv && get_silent_pic())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus in LV not working with silent pictures.");
+    //~ if (lv && get_silent_pic())
+        //~ MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus in LV not working with silent pictures.");
 }
 
 

@@ -264,12 +264,12 @@ void hdr_step()
 #endif
 }
 
-void hdr_kill_flicker()
+int hdr_kill_flicker()
 {
 #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-    if (!lv) return;
-    if (!is_movie_mode()) return;
-    if (!hdrv_enabled) return;
+    if (!lv) return CBR_RET_CONTINUE;
+    if (!is_movie_mode()) return CBR_RET_CONTINUE;
+    if (!hdrv_enabled) return CBR_RET_CONTINUE;
 
     static int odd_frame = 0;
     static int frame;
@@ -298,6 +298,9 @@ void hdr_kill_flicker()
             }
         }
     }
+    return CBR_RET_STOP;
+#else
+    return CBR_RET_CONTINUE;
 #endif
 }
 

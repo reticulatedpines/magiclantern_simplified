@@ -733,14 +733,19 @@ int FAST module_exec_cbr(unsigned int type)
             {
                 if(cbr->type == type)
                 {
-                    cbr->handler(cbr->ctx);
+                    int ret = cbr->handler(cbr->ctx);
+                    
+                    if (ret != CBR_RET_CONTINUE)
+                    {
+                        return ret;
+                    }
                 }
                 cbr++;
             }
         }
     }
     
-    return 0;
+    return CBR_RET_CONTINUE;
 }
 
 /* translate camera specific key to portable module key */
