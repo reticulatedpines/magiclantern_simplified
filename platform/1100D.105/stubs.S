@@ -34,7 +34,7 @@ NSTUB( ROMBASEADDR, firmware_entry )       //0xff010000
 
 NSTUB(0xFF1E8B94, AcquireRecursiveLock)           // might be good (dumps=1, score=14)
 NSTUB(0xFF07096C, _AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
-NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
+//NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 NSTUB(0xFF31CAD8, CreateDialogBox)                // might be good (dumps=1, score=74)
 NSTUB(0xFF073A7C, CreateRecursiveLock)            // might be good (dumps=1, score=5.6)
 NSTUB(0xFF06C914, DryosDebugMsg)                       // might be good (dumps=1, score=1.1e+03)
@@ -54,7 +54,7 @@ NSTUB(0xFF1D9328, FIO_RemoveFile)                 // might be good (dumps=1, sco
 NSTUB(0xFF1D9570, FIO_WriteFile)                  // might be good (dumps=1, score=65)
 NSTUB(0xFF1D9C94, FIO_RenameFile)
 NSTUB(0xFF1D9550, FIO_SeekFile)
-NSTUB(0xFF070CFC, FreeMemory)                     // might be good (dumps=1, score=1.6e+02)
+NSTUB(0xFF070CFC, _FreeMemory)                     // might be good (dumps=1, score=1.6e+02)
 NSTUB(0xFF020DFC, GUI_Control)                    // might be good (dumps=1, score=26)
 NSTUB(0xFF223218, GUI_GetFirmVersion)             // might be good (dumps=1, score=11)
 NSTUB(0xFF510C1C, GetCFnData)                     // might be good (dumps=1, score=19)
@@ -82,7 +82,7 @@ NSTUB(0xFF0699F4, _audio_ic_read)                 // might be good (dumps=1, sco
 NSTUB(0xFF069B38, _audio_ic_write)                // might be good (dumps=1, score=24)
 NSTUB(0xFF05BBE4, _prop_cleanup)                  // might be good (dumps=1, score=42)
 NSTUB( 0x833C, additional_version )
-NSTUB(0xFF1EFE08, alloc_dma_memory)               // might be good (dumps=1, score=91)
+NSTUB(0xFF1EFE08, _alloc_dma_memory)               // might be good (dumps=1, score=91)
 NSTUB(0xff5a67e4, audio_thresholds)
 NSTUB(   0x1D86C, bmp_vram_info)                  // no match
 NSTUB(0xFF06C548, bootdisk_disable)               // might be good (dumps=1, score=1.3)
@@ -106,8 +106,8 @@ NSTUB(0xFF06C894, dmstart)                        // might be good (dumps=1, sco
 NSTUB(0xFF06C8D4, dmstop)                         // might be good (dumps=1, score=7.9)
 NSTUB(0xFF06D2B4, dumpf)                          // might be good (dumps=1, score=3.9)
 NSTUB(0xFF1D4C8C, _engio_write)                    // might be good (dumps=1, score=77)
-NSTUB(0xFF018D8C, free)                           // might be good (dumps=1, score=14)
-NSTUB(0xFF1EFE3C, free_dma_memory)                // might be good (dumps=1, score=80)
+NSTUB(0xFF018D8C, _free)                           // might be good (dumps=1, score=14)
+NSTUB(0xFF1EFE3C, _free_dma_memory)                // might be good (dumps=1, score=80)
 NSTUB(0xFF41686C, fsuDecodePartitionTable)        // might be good (dumps=1, score=2.1)
 NSTUB(0xFF0175F4, get_current_task)               // might be good (dumps=1, score=11)
 NSTUB(0xFF06F654, give_semaphore)                 // might be good (dumps=1, score=1e+02)
@@ -127,7 +127,7 @@ NSTUB(0xFF01B2CC, hotplug_task)                   // might be good (dumps=1, sco
 NSTUB( 0x1A8C, hotplug_usb_buf )          // after "USB Disconnect"
 NSTUB(0xFF0197D8, init_task)                      // might be good (dumps=1, score=10)
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
-NSTUB(0xFF018D34, malloc)                         // might be good (dumps=1, score=11)
+NSTUB(0xFF018D34, _malloc)                         // might be good (dumps=1, score=11)
 NSTUB(0xFF073EB0, dma_memcpy)                     // Look for [HPC ERROR] Nothing DMA ch now!
 NSTUB(0xFF1E885C, msg_queue_receive)              // might be good (dumps=1, score=24)
 NSTUB(0xff1e8a48, msg_queue_post)
