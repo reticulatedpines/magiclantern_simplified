@@ -103,12 +103,12 @@ NSTUB( 0x75DDC, vram_info )
 NSTUB( 0xFF2E1124, vram_get_number ) // after "[ImgPlyer]   Rate"
 NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
 
-NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
-NSTUB( 0xFF018DB0, free )
+NSTUB( 0xFF018D58, _malloc ) // maybe it's better to use Allocate/Free?
+NSTUB( 0xFF018DB0, _free )
 
 NSTUB( 0xff0723f0, _AllocateMemory ) // "[MEM] NG AllocateMemory"
-NSTUB( 0xFF072780, FreeMemory )
-NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
+NSTUB( 0xFF072780, _FreeMemory )
+NSTUB( 0xff072280, _AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
@@ -130,8 +130,8 @@ NSTUB( 0xff31c6b4, gui_task_destroy )
 NSTUB( 0xff31c444, ctrlman_dispatch_event )
 
 NSTUB( 0xff230e48, prop_request_icu_auto_poweroff )           // "PROP_Request PROP_ICU_AUTO_POWEROFF(%d)"
-NSTUB( 0xff1fd2e4, alloc_dma_memory )
-NSTUB( 0xff1fd318, free_dma_memory )
+NSTUB( 0xff1fd2e4, _alloc_dma_memory )
+NSTUB( 0xff1fd318, _free_dma_memory )
 
 //NSTUB( 0xFF4F2648, cfReadBlk )
 //NSTUB( 0x15728, cf_device )                // in cfReadBlk
