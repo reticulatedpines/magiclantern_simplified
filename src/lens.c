@@ -526,7 +526,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       static char shutter[32];
       if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
       else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "%dK ", shutter_reciprocal/1000);
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%dK ", shutter_reciprocal/1000);
       else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);

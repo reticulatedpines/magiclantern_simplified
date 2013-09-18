@@ -2516,7 +2516,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
             
             for(; e ; e = e->next)
             {
-                if (config_var_was_changed(e->priv))
+                if (mod_menu_select_func(e))
                     return 1;
             }
         }
@@ -2626,8 +2626,14 @@ static int mod_menu_rebuild()
     mod_menu_selected_entry = get_selected_entry(mod_menu);
     mod_menu_selected_entry = entry_find_by_name(mod_menu_selected_entry->parent_menu->name, mod_menu_selected_entry->name);
     
-    return dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders), DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS);
-    return 1;
+    int ok = dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders), DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS);
+    
+    /* make sure the selection doesn't move because of updating */
+    if (mod_menu->selected)
+    {
+        select_menu_by_name(MOD_MENU_NAME, mod_menu_selected_entry->name);
+    }
+    return ok;
 }
 
 static void
@@ -2716,7 +2722,8 @@ menu_display(
             int ok = menu_entry_process(menu, entry, x, y, font_large.height + local_spacing, only_selected);
             
             // entry asked for custom draw? stop here
-            if (!ok) break;
+            if (!ok)
+                goto end;
             
             // move down for next item
             y += font_large.height + local_spacing;
@@ -2738,6 +2745,7 @@ menu_display(
         bmp_printf(SHADOW_FONT(FONT_LARGE) | FONT_ALIGN_CENTER, 360, y - 15, "...");
     }
 
+end:
     // all menus displayed, now some extra stuff
     menu_post_display();
 }

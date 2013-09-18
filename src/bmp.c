@@ -190,7 +190,7 @@ bmp_puts(
         bg_color = COLOR_BLACK;
     }
     
-    int len = rbf_draw_string(font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
+    int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
     *x += len;
     return len;
 }
@@ -285,14 +285,14 @@ big_bmp_printf(
              )
 }
 
-int bmp_string_width(int fontspec, char* str)
+int bmp_string_width(int fontspec, const char* str)
 {
-    return rbf_str_width(font_dynamic[FONT_ID(fontspec)].bitmap, str);
+    return rbf_str_width((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str);
 }
 
-int bmp_strlen_clipped(int fontspec, char* str, int maxwidth)
+int bmp_strlen_clipped(int fontspec, const char* str, int maxwidth)
 {
-    return rbf_strlen_clipped(font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth);
+    return rbf_strlen_clipped((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth);
 }
 
 #if 0
