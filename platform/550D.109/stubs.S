@@ -97,10 +97,10 @@ NSTUB( 0x8194C, vram_info )
 NSTUB( 0xFF28A6F8, vram_get_number )
 NSTUB( 0xFF1C7EA8, vram_get_pos_and_size )
 
-NSTUB( 0xFF018270, malloc ) // maybe it's better to use Allocate/Free?
-NSTUB( 0xFF0182cc, free )
-NSTUB( 0xFF06B270, AllocateMemory ) // thanks Alex
-NSTUB( 0xFF06B600, FreeMemory ) // release_mem in Indy's IDC
+NSTUB( 0xFF018270, _malloc ) // maybe it's better to use Allocate/Free?
+NSTUB( 0xFF0182cc, _free )
+NSTUB( 0xFF06B270, _AllocateMemory ) // thanks Alex
+NSTUB( 0xFF06B600, _FreeMemory ) // release_mem in Indy's IDC
 
 NSTUB( 0x2B74, dm_names )                // in DebugMsg, before the 1st loop target
 NSTUB( 0xFF06366C, LoadCalendarFromRTC )
@@ -121,8 +121,8 @@ NSTUB( 0xFF2B4D30, gui_task_destroy )
 NSTUB( 0xFF2B4AC0, ctrlman_dispatch_event )
 
 NSTUB( 0xFF09786C, prop_request_icu_auto_poweroff )
-NSTUB( 0xFF1DA26C, alloc_dma_memory )
-NSTUB( 0xFF1DA2A0, free_dma_memory )
+NSTUB( 0xFF1DA26C, _alloc_dma_memory )
+NSTUB( 0xFF1DA2A0, _free_dma_memory )
 
 NSTUB( 0xFF3EB9B0, cfReadBlk )
 NSTUB( 0x26258, cf_device )                // in cfReadBlk
