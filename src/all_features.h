@@ -159,9 +159,6 @@
 #endif
     #define FEATURE_AUDIO_REMOTE_SHOT
     #define FEATURE_MOTION_DETECT
-    #define FEATURE_SILENT_PIC
-    //~ #define FEATURE_SILENT_PIC_HIRES
-    //~ #define FEATURE_SILENT_PIC_JPG // bleeding edge
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_MLU
