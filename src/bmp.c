@@ -169,7 +169,7 @@ inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color
 #define USE_LUT
 #endif
 
-void
+int
 bmp_puts(
         uint32_t fontspec,
         int *x,
@@ -190,7 +190,9 @@ bmp_puts(
         bg_color = COLOR_BLACK;
     }
     
-    *x += rbf_draw_string(font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
+    int len = rbf_draw_string(font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
+    *x += len;
+    return len;
 }
 
 /*
@@ -240,7 +242,7 @@ bmp_puts_w(
 */
 
 // thread safe
-void
+int
 bmp_printf(
            uint32_t fontspec,
            int x,
@@ -257,7 +259,7 @@ bmp_printf(
     vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
     va_end( ap );
 
-    bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+    return bmp_puts( fontspec, &x, &y, bmp_printf_buf );
 }
 
 // for very large strings only
