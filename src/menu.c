@@ -2121,8 +2121,8 @@ entry_print(
         /* use a smaller font */
         use_small_font = 1;
         x_font_offset = 28;
-        y_font_offset = (h - (int)font_med.height) / 2;
-        fnt = (fnt & ~FONT_MASK) | FONT_MED;
+        fnt = (fnt & ~FONT_MASK) | FONT_SANS_28;
+        y_font_offset = (h - (int)fontspec_font(fnt)->height) / 2;
 
         if (my_menu->selected)                   /* in My Menu, we will include the submenu name in the original entry */
         {
@@ -2182,7 +2182,7 @@ skip_name:
         fnt = MENU_FONT_GRAY;
     
     if (use_small_font)
-        fnt = (fnt & ~FONT_MASK) | FONT_MED;
+        fnt = (fnt & ~FONT_MASK) | FONT_SANS_28;
     
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
@@ -2628,11 +2628,13 @@ menu_display(
         cram = submenu_mode ? 3 : 2;
         menu_len += 1;
     }
+    /*
     else if (num_visible == MENU_LEN + 2 && !submenu_mode)
     {
         cram = 4;
         menu_len += 2;
     }
+    */
     else if (num_visible <= MENU_LEN - 2 && !submenu_mode)
     {
         /* and while we are at it, why not relax the spacing a little for non-full menus? */
