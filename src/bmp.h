@@ -172,11 +172,11 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_DYN(font_id,fg,bg) FONT((font_id)<<16,fg,bg)
 
 /* should match the font loading order from rbf_font.c, rbf_init */
-#define FONT_SANS_20  FONT_DYN(0, 0, 0)
-#define FONT_SANS_32  FONT_DYN(1, 0, 0)
-#define FONT_MONO_12  FONT_DYN(2, 0, 0)
-#define FONT_MONO_20  FONT_DYN(3, 0, 0)
-#define FONT_MONO_32  FONT_DYN(4, 0, 0)
+#define FONT_MONO_12  FONT_DYN(0, 0, 0)
+#define FONT_MONO_20  FONT_DYN(1, 0, 0)
+#define FONT_SANS_20  FONT_DYN(2, 0, 0)
+#define FONT_SANS_28  FONT_DYN(3, 0, 0)
+#define FONT_SANS_32  FONT_DYN(4, 0, 0)
 
 /* common fonts */
 #define FONT_SMALL FONT_MONO_12
