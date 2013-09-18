@@ -198,8 +198,6 @@
     //~ #define FEATURE_MOVIE_AF // not reliable
 #endif
 
-    //~ FEATURE_AFMA_TUNING
-
 /** Display menu **/
     #define FEATURE_DIGIC_FOCUS_PEAKING
     #define FEATURE_LV_BRIGHTNESS_CONTRAST

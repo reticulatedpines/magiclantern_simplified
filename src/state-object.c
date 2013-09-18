@@ -68,6 +68,8 @@ int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 #endif
 
+int display_is_on() { return DISPLAY_IS_ON; }
+
 #ifdef FEATURE_SHOW_STATE_FPS
 #define num_states 4
 #define num_inputs 32

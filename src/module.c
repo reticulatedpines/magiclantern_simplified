@@ -854,10 +854,8 @@ int FAST module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
-int module_translate_event(struct event* event, int dest)
+int module_translate_key(int key, int dest)
 {
-    int key = event->param;
-
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             , dest);
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           , dest);
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           , dest);
@@ -897,6 +895,12 @@ int module_translate_event(struct event* event, int dest)
 }
 #undef MODULE_TRANSLATE_KEY
 
+int module_send_keypress(int module_key)
+{
+    int key = module_translate_key(module_key, MODULE_KEY_CANON);
+    fake_simple_button(key);
+}
+
 int handle_module_keys(struct event * event)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
@@ -909,7 +913,7 @@ int handle_module_keys(struct event * event)
                 if(cbr->type == CBR_KEYPRESS)
                 {
                     /* key got handled? */
-                    if(!cbr->handler(module_translate_event(event, MODULE_KEY_PORTABLE)))
+                    if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
                     {
                         return 0;
                     }

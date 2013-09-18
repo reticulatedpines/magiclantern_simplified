@@ -601,3 +601,5 @@ int detect_double_click(int key, int pressed_code, int unpressed_code)
     }
     return 0;
 }
+
+char* get_info_button_name() { return INFO_BTN_NAME; }

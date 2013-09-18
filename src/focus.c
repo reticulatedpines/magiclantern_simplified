@@ -731,6 +731,11 @@ int get_lv_focus_confirmation()
     return ans; 
 }
 
+int get_focus_confirmation()
+{
+    return FOCUS_CONFIRMATION;
+}
+
 int is_manual_focus()
 {
     return (af_mode & 0xF) == 3;
@@ -1285,10 +1290,6 @@ focus_init( void* unused )
 
     #ifdef FEATURE_AF_PATTERNS
     afp_menu_init();
-    #endif
-    
-    #ifdef FEATURE_AFMA_TUNING
-    afma_menu_init();
     #endif
 }
 
