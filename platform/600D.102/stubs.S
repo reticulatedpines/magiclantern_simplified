@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.1 firmware for the 600d.
+ * in the Canon 1.0.2 firmware for the 600d.
  *
  */
 /*
