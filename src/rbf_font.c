@@ -570,7 +570,7 @@ void load_fonts()
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor23", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor28", COLOR_BLACK, COLOR_WHITE);
-    font_by_name("argnor33", COLOR_BLACK, COLOR_WHITE);
+    font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
     //font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
     
     font_small = *fontspec_font(FONT_SMALL);
