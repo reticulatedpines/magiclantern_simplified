@@ -15,8 +15,8 @@ static inline int rbf_font_height(font *rbf_font);
 static inline int rbf_char_width(font *rbf_font, int ch);
 
 //-------------------------------------------------------------------
-static unsigned int RBF_HDR_MAGIC1 = 0x0DF00EE0;
-static unsigned int RBF_HDR_MAGIC2 = 0x00000003;
+static int RBF_HDR_MAGIC1 = 0x0DF00EE0;
+static int RBF_HDR_MAGIC2 = 0x00000003;
 
 
 static unsigned char *ubuffer = 0;                  // uncached memory buffer for reading font data from SD card
@@ -43,7 +43,7 @@ static font *new_font() {
 uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
 {
     /* check if this font was already loaded */
-    for(int pos = 0; pos < dyn_fonts; pos++)
+    for(int pos = 0; pos < (int)dyn_fonts; pos++)
     {
         if(!strcmp(file, dyn_font_name[pos]))
         {   
@@ -89,8 +89,8 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     
     /* and measure font sizes */
     font_dynamic[dyn_fonts].bitmap = font;
-    font_dynamic[dyn_fonts].height = rbf_font_height(font_dynamic[dyn_fonts].bitmap);
-    font_dynamic[dyn_fonts].width = rbf_char_width(font_dynamic[dyn_fonts].bitmap, '0');
+    font_dynamic[dyn_fonts].height = rbf_font_height((void*)font_dynamic[dyn_fonts].bitmap);
+    font_dynamic[dyn_fonts].width = rbf_char_width((void*)font_dynamic[dyn_fonts].bitmap, '0');
     dyn_fonts++;
 
     return FONT_DYN(dyn_fonts - 1, fg_color, bg_color);
@@ -143,7 +143,7 @@ static inline char* FAST rbf_font_char(font* f, int ch)
 //-------------------------------------------------------------------
 // Read data from SD file using uncached buffer and copy to cached
 // font memory
-static int font_read(int fd, unsigned char *dest, int len)
+static int font_read(FILE* fd, unsigned char *dest, int len)
 {
     // Return actual bytes read
     int bytes_read = 0;
@@ -190,7 +190,7 @@ static int rbf_font_load(char *file, font* f, int maxchar)
     FILE *fd = FIO_Open(file, O_RDONLY | O_SYNC);
     if( fd == INVALID_PTR )
     {
-        return;
+        return 0;
     }
     
     // read header
@@ -268,7 +268,7 @@ int rbf_str_clipped_width(font *rbf_font, const char *str, int maxlen) {
 int rbf_strlen_clipped(font *rbf_font, const char *str, int maxlen) {
     int l = 0;
     // Calculate how long the string is in characters (possibly clipped to 'maxlen')
-    char* str0 = str;
+    char* str0 = (char*) str;
     while (*str && rbf_char_width(rbf_font, *str)<=maxlen)
         l+=rbf_char_width(rbf_font, *str++);
 
@@ -278,7 +278,7 @@ int rbf_strlen_clipped(font *rbf_font, const char *str, int maxlen) {
 //-------------------------------------------------------------------
 static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, int fontspec) {
     int xx, yy;
-    uint32_t * bmp = bmp_vram();
+    uint8_t * bmp = bmp_vram();
     int fg = FG_COLOR(fontspec);
     int bg = BG_COLOR(fontspec);
     
@@ -297,7 +297,7 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
 
 static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata, int width, int height, int pixel_width, int fontspec) {
     int xx, yy;
-    uint32_t * bmp = bmp_vram();
+    uint8_t * bmp = bmp_vram();
     int fg = FG_COLOR(fontspec);
     int bg = BG_COLOR(fontspec);
     
@@ -554,6 +554,8 @@ int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int fontspec)
         y += rbf_font->hdr.height;
         start = end = end+1;
     }
+    
+    return len;
 }
 
 

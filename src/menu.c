@@ -184,7 +184,6 @@ void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
-void select_menu_by_name(char* name, char* entry_name);
 static void select_menu_by_icon(int icon);
 static void menu_help_go_to_selected_entry(struct menu * menu);
 //~ static void menu_init( void );
@@ -2647,7 +2646,6 @@ menu_display(
     struct menu_entry * entry = menu->children;
     
     //hide upper menu for vscroll
-    int menu_len = MENU_LEN;
     int pos = get_menu_selected_pos(menu);
     int num_visible = get_menu_visible_count(menu);
     int target_height = 370;
@@ -4778,7 +4776,7 @@ void select_menu(char* name, int entry_index)
     //~ menu_damage = 1;
 }
 
-void select_menu_by_name(char* name, char* entry_name)
+void select_menu_by_name(char* name, const char* entry_name)
 {
     struct menu * menu_that_was_selected = 0;
     int entry_was_selected = 0;

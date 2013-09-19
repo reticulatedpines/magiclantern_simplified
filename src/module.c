@@ -118,7 +118,8 @@ static int module_load_symbols(TCCState *s, char *filename)
         {
             pos++;
         }
-        sscanf(address_buf, "%x", &address);
+        //~ sscanf(address_buf, "%x", &address);
+        address = strtoul(address_buf, NULL, 16);
 
         tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;

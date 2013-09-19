@@ -944,7 +944,7 @@ void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight
     
     if (lv)
     {
-        static int aux = -INT_MIN;
+        static int aux = INT_MIN;
         if (!should_run_polling_action(2000, &aux))
             return;
     }
@@ -2993,7 +2993,6 @@ static void spotmeter_step()
     if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
     int bg = fg == COLOR_BLACK ? COLOR_WHITE : COLOR_BLACK;
     int fnt = FONT(SHADOW_FONT(FONT_MED), fg, bg);
-    int fnts = FONT(SHADOW_FONT(FONT_SMALL), fg, bg);
 
     if (!arrow_keys_shortcuts_active())
     {
@@ -5444,12 +5443,6 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK( if (lv) update_lens_display(0,1); );
                 if (lens_display_dirty) lens_display_dirty--;
             }
-
-            static int prev_s;
-            int s = get_seconds_clock();
-            if (s != prev_s)
-                if (lv) movie_indicators_show();
-            prev_s = s;
         }
     }
 }

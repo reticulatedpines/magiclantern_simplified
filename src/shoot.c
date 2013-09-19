@@ -5953,10 +5953,10 @@ static void display_expsim_status()
 void display_shooting_info_lv()
 {
 #ifndef CONFIG_5D2
+#ifdef FEATURE_LCD_SENSOR_REMOTE
     int screen_layout = get_screen_layout();
     int audio_meters_at_top = audio_meters_are_drawn() 
         && (screen_layout == SCREENLAYOUT_3_2);
-#ifdef FEATURE_LCD_SENSOR_REMOTE
     display_lcd_remote_icon(450, audio_meters_at_top ? 25 : 3);
 #endif
 #endif

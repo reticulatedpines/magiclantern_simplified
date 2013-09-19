@@ -528,6 +528,8 @@ extern int FIO_ReadFile( FILE* stream, void* ptr, size_t count );
 extern int FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
 extern void FIO_CloseFile( FILE* stream );
 extern FILE* FIO_CreateFile( const char* name );
+extern FILE* FIO_CreateFileOrAppend( const char* name );
+
 /** Returns for 0 success */
 extern int FIO_GetFileSize( const char * filename, uint32_t * size );
 extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );

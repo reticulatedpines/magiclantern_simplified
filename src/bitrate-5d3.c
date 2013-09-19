@@ -17,7 +17,7 @@ static CONFIG_INT("h264.bitrate", bitrate, 3);
 CONFIG_INT( "rec_indicator", rec_indicator, 1);
 
 static int time_indic_warning = 120;
-static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
+static unsigned int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
 int measured_bitrate = 0; // mbps
 int movie_bytes_written_32k = 0;

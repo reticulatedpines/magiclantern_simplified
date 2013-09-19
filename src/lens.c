@@ -858,92 +858,6 @@ int FAST get_ml_topbar_pos()
     return y;
 }
 
-void draw_ml_topbar(int double_buffering, int clear)
-{
-    if (!get_global_draw()) return;
-    
-    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
-    
-    int x = MAX(os.x0 + os.x_ex/2 - 360, 0);
-    int y = get_ml_topbar_pos();
-
-    int screen_layout = get_screen_layout();
-    if (screen_layout >= 3 && !should_draw_bottom_bar())
-        return; // top bar drawn at bottom, may interfere with canon info
-
-    if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
-    
-    if (double_buffering)
-        double_buffering_start(y, 35);
-
-    if (clear)
-        ml_bar_clear(y, font_med.height+1);
-
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    bmp_printf(font, x, y, "%02d:%02d", now.tm_hour, now.tm_min);
-
-    x += 80;
-
-    bmp_printf( font, x, y,
-        "DISP%d", get_disp_mode()
-    );
-
-    x += 70;
-
-    int raw = pic_quality & 0x60000;
-    int jpg = pic_quality & 0x10000;
-    int rawsize = pic_quality & 0xF;
-    int jpegtype = pic_quality >> 24;
-    int jpegsize = (pic_quality >> 8) & 0xFF;
-    bmp_printf( font, x, y, "%s%s%s",
-        rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",
-        jpg == 0 ? "" : (raw ? "+" : "JPG-"),
-        jpg == 0 ? "" : (
-            jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") : 
-            jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") : 
-            jpegsize == 2 ? (jpegtype == 3 ? "S" : "s") :
-            jpegsize == 0x0e ? (jpegtype == 3 ? "S1" : "s1") :
-            jpegsize == 0x0f ? (jpegtype == 3 ? "S2" : "s2") :
-            jpegsize == 0x10 ? (jpegtype == 3 ? "S3" : "s3") :
-            "err"
-        )
-    );
-
-    x += 80;
-    int alo = get_alo();
-    bmp_printf( font, x, y,
-        get_htp() ? "HTP" :
-        alo == ALO_LOW ? "alo" :
-        alo == ALO_STD ? "Alo" :
-        alo == ALO_HIGH ? "ALO" : "   "
-    );
-
-    x += 45;
-    #ifdef FEATURE_PICSTYLE
-    bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
-    #endif
-
-    x += 70;
-    #ifdef CONFIG_BATTERY_INFO
-        bmp_printf( font, x, y,"T=%d"SYM_DEGREE"C BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
-    #else
-        bmp_printf( font, x, y,"T=%d"SYM_DEGREE"C", EFIC_CELSIUS);
-    #endif
-
-    x += 160;
-    bmp_printf( font, x, y,
-        is_movie_mode() ? "MVI-%04d" : "[%d]",
-        is_movie_mode() ? file_number : avail_shot
-    );
-
-    free_space_show(); 
-    fps_show();
-
-    if (double_buffering)
-        double_buffering_end(y, 35);
-}
-
 void fps_show()
 {
     if (!get_global_draw()) return;
@@ -1023,6 +937,91 @@ void free_space_show()
         fsg,
         fsgf
     );
+}
+
+void draw_ml_topbar(int double_buffering, int clear)
+{
+    if (!get_global_draw()) return;
+    
+    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
+    
+    int x = MAX(os.x0 + os.x_ex/2 - 360, 0);
+    int y = get_ml_topbar_pos();
+
+    int screen_layout = get_screen_layout();
+    if (screen_layout >= 3 && !should_draw_bottom_bar())
+        return; // top bar drawn at bottom, may interfere with canon info
+
+    if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
+    
+    if (double_buffering)
+        double_buffering_start(y, 35);
+
+    if (clear)
+        ml_bar_clear(y, font_med.height+1);
+
+    struct tm now;
+    LoadCalendarFromRTC( &now );
+    bmp_printf(font, x, y, "%02d:%02d", now.tm_hour, now.tm_min);
+
+    x += 80;
+
+    bmp_printf( font, x, y,
+        "DISP%d", get_disp_mode()
+    );
+
+    x += 70;
+
+    int raw = pic_quality & 0x60000;
+    int jpg = pic_quality & 0x10000;
+    int rawsize = pic_quality & 0xF;
+    int jpegtype = pic_quality >> 24;
+    int jpegsize = (pic_quality >> 8) & 0xFF;
+    bmp_printf( font, x, y, "%s%s%s",
+        rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",
+        jpg == 0 ? "" : (raw ? "+" : "JPG-"),
+        jpg == 0 ? "" : (
+            jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") : 
+            jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") : 
+            jpegsize == 2 ? (jpegtype == 3 ? "S" : "s") :
+            jpegsize == 0x0e ? (jpegtype == 3 ? "S1" : "s1") :
+            jpegsize == 0x0f ? (jpegtype == 3 ? "S2" : "s2") :
+            jpegsize == 0x10 ? (jpegtype == 3 ? "S3" : "s3") :
+            "err"
+        )
+    );
+
+    x += 80;
+    int alo = get_alo();
+    bmp_printf( font, x, y,
+        get_htp() ? "HTP" :
+        alo == ALO_LOW ? "alo" :
+        alo == ALO_STD ? "Alo" :
+        alo == ALO_HIGH ? "ALO" : "   "
+    );
+
+    x += 45;
+    #ifdef FEATURE_PICSTYLE
+    bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
+    #endif
+
+    x += 70;
+    #ifdef CONFIG_BATTERY_INFO
+        bmp_printf( font, x, y,"T=%d"SYM_DEGREE"C BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
+    #else
+        bmp_printf( font, x, y,"T=%d"SYM_DEGREE"C", EFIC_CELSIUS);
+    #endif
+
+    x += 160;
+    bmp_printf( font, x, y,
+        is_movie_mode() ? "MVI-%04d" : "[%d]",
+        is_movie_mode() ? file_number : avail_shot
+    );
+
+    movie_indicators_show(); 
+
+    if (double_buffering)
+        double_buffering_end(y, 35);
 }
 
 static volatile int lv_focus_done = 1;

@@ -232,21 +232,8 @@ DIET_OBJ = \
 	strncmp.o \
 	strcpy.o \
 	strcmp.o \
-	sigjmp.o \
-	sigprocmask.o \
-	rt_sigprocmask.o \
-	unified.o \
 	errno.o \
 	errno_location.o \
-	sscanf.o \
-	vsscanf.o \
-	__v_scanf.o \
-	sprintf.o \
-	vsprintf.o \
-	strtold.o \
-	strtod.o \
-	memmove.o \
-	strtof.o \
 	strtoull.o \
 	strtol.o \
 	strtoul.o \
@@ -254,9 +241,6 @@ DIET_OBJ = \
 	memcmp.o \
 	atoi.o \
 	atol.o \
-	strstr.o \
-	qsort.o \
-	atof.o \
 
 DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 

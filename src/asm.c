@@ -4,6 +4,7 @@
  */
 
 #include "compiler.h"
+#include "string.h"
 
 static uint32_t ror(uint32_t word, uint32_t count)
 {
@@ -33,7 +34,7 @@ static int seems_to_be_string(char* addr)
 
 char* asm_guess_func_name_from_string(uint32_t addr)
 {
-    for (int i = addr; i < addr + 4 * 20; i += 4 )
+    for (uint32_t i = addr; i < addr + 4 * 20; i += 4 )
     {
         uint32_t insn = *(uint32_t*)i;
         if( (insn & 0xFFFFF000) == 0xe28f2000 ) // add R2, pc, #offset - should catch strings passed to DebugMsg
