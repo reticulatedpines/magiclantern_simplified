@@ -10,3 +10,4 @@ Tip: with an actor in the scene on hard difficulty (for example whilst playing d
 :Author: pravdomil.cz
 :License: GPL
 :Summary: Arkanoid game
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=7847.0

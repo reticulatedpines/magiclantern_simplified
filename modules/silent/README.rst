@@ -18,4 +18,4 @@ Modes:
 :Author: a1ex
 :License: GPL
 :Summary: Take pictures in LiveView without shutter actuation
-:Forum thread: http://www.magiclantern.fm/forum/index.php?topic=5240.0
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=5240.0

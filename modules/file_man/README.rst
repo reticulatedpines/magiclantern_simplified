@@ -4,6 +4,7 @@ File Manager
 :Authors: ML devs
 :License: GPL
 :Summary: File manager (browse the files on the card)
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=5522.0
 
 Browse the card filesystem from ML menu.
 

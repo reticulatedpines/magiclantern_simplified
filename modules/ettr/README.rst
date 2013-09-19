@@ -4,6 +4,8 @@ Expose To The Right
 :Author: a1ex
 :License: GPL
 :Summary: Expose To The Right - auto exposure that minimizes noise
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=5693.0
+
 
 ETTR is a techinque that optimizes your exposure for raw shooting, with the goal of minimizing noise without blowing the highlights. 
 
