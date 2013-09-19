@@ -4137,6 +4137,7 @@ static void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
