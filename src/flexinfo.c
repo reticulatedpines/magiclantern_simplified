@@ -1522,14 +1522,8 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
             font = FONT_LARGE;
             break;
         case INFO_FONT_CANON:
-        {
-            font = -1;
-            *width = 0;
-            for (char* c = string; *c; c++)
-                *width += bfnt_char_get_width(*c);
-            *height = 40;
+            font = FONT_CANON;
             break;
-        }
         /* error */
         default:
             return 1;
@@ -1537,7 +1531,7 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
 
     if(font >= 0)
     {
-        *width = bmp_string_width(FONT_MED, string);
+        *width = bmp_string_width(font, string);
         *height = fontspec_font(font)->height;
     }
 
@@ -1695,35 +1689,30 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
         {
             case INFO_FONT_SMALL:
                 fnt = FONT(FONT_SMALL, fgcolor, bgcolor);
-                bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_MEDIUM:
                 fnt = FONT(FONT_MED, fgcolor, bgcolor);
-                bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_LARGE:
                 fnt = FONT(FONT_LARGE, fgcolor, bgcolor);
-                bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_SMALL_SHADOW:
                 fnt = SHADOW_FONT(FONT(FONT_SMALL, fgcolor, bgcolor));
-                bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_MEDIUM_SHADOW:
                 fnt = SHADOW_FONT(FONT(FONT_MED, fgcolor, bgcolor));
-                bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_LARGE_SHADOW:
                 fnt = SHADOW_FONT(FONT(FONT_LARGE, fgcolor, bgcolor));
-                bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_CANON:
-                bfnt_puts(str, pos_x, pos_y, fgcolor, bgcolor);
+                fnt = FONT(FONT_CANON, fgcolor, bgcolor);
                 break;
             /* error */
             default:
                 return 1;
         }
+        bmp_printf(fnt, pos_x, pos_y, str);
     }
 
     return 0;
@@ -1762,35 +1751,30 @@ uint32_t info_print_text(info_elem_t *config, info_elem_text_t *element, uint32_
         {
             case INFO_FONT_SMALL:
                 fnt = FONT(FONT_SMALL, fgcolor, bgcolor);
-                bmp_printf(fnt, pos_x, pos_y, element->text);
                 break;
             case INFO_FONT_MEDIUM:
                 fnt = FONT(FONT_MED, fgcolor, bgcolor);
-                bmp_printf(fnt, pos_x, pos_y, element->text);
                 break;
             case INFO_FONT_LARGE:
                 fnt = FONT(FONT_LARGE, fgcolor, bgcolor);
-                bmp_printf(fnt, pos_x, pos_y, element->text);
                 break;
             case INFO_FONT_SMALL_SHADOW:
                 fnt = SHADOW_FONT(FONT(FONT_SMALL, fgcolor, bgcolor));
-                bmp_printf(fnt, pos_x, pos_y, element->text);
                 break;
             case INFO_FONT_MEDIUM_SHADOW:
                 fnt = SHADOW_FONT(FONT(FONT_MED, fgcolor, bgcolor));
-                bmp_printf(fnt, pos_x, pos_y, element->text);
                 break;
             case INFO_FONT_LARGE_SHADOW:
                 fnt = SHADOW_FONT(FONT(FONT_LARGE, fgcolor, bgcolor));
-                bmp_printf(fnt, pos_x, pos_y, element->text);
                 break;
             case INFO_FONT_CANON:
-                bfnt_puts(element->text, pos_x, pos_y, fgcolor, bgcolor);
+                fnt = FONT(FONT_CANON, fgcolor, bgcolor);
                 break;
             /* error */
             default:
                 return 1;
         }
+        bmp_printf(fnt, pos_x, pos_y, element->text);
     }
 
     return 0;

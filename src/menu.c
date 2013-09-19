@@ -3292,7 +3292,7 @@ menus_display(
                     //~ bmp_printf(FONT_MED, 720 - strlen(menu->name)*font_med.width, 50, menu->name);
                 //~ else
                 if (!junkie_mode)
-                    bfnt_puts(menu->name, 5, y, fg, bg);
+                    bmp_printf(FONT(FONT_CANON, fg, bg), 5, y, "%s", menu->name);
                 int x1 = x - 1;
                 int x2 = x1 + icon_spacing + 2;
 
@@ -3431,7 +3431,7 @@ submenu_display(struct menu * submenu)
         w = 720-2*bx;
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
-        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
+        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, 40),  bx + 15,  by+2, "%s", submenu->name);
 
         for (int i = 0; i < 5; i++)
             bmp_draw_rect(45,  bx-i,  by-i, w+i*2, h+i*2);

@@ -21,8 +21,8 @@ static int RBF_HDR_MAGIC2 = 0x00000003;
 
 static unsigned char *ubuffer = 0;                  // uncached memory buffer for reading font data from SD card
 
-struct font font_dynamic[MAX_DYN_FONTS];
-static char *dyn_font_name[MAX_DYN_FONTS];
+struct font font_dynamic[MAX_DYN_FONTS+1];
+static char *dyn_font_name[MAX_DYN_FONTS+1];
 uint32_t dyn_fonts = 0;
 
 //-------------------------------------------------------------------
@@ -56,8 +56,8 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     if(dyn_fonts >= MAX_DYN_FONTS)
     {
         beep();
-        bfnt_printf(10, 30, COLOR_WHITE, COLOR_BLACK, "too many fonts");
-        return 0;
+        bmp_printf(FONT_CANON, 0, 0, "Too many fonts");
+        return FONT_CANON;
     }
     
     /* was not loaded, try to load */
@@ -69,8 +69,8 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     {
         /* failed to load, return default font */
         beep();
-        bfnt_printf(10, 30, COLOR_WHITE, COLOR_BLACK, "File '%s' not found", filename);
-        return 0;
+        bmp_printf(FONT_CANON, 0, 0, "%s not found", file);
+        return FONT_CANON;
     }
     
     void *font = new_font();
@@ -78,9 +78,9 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     /* load the font here */
     if(!rbf_font_load(filename, font, 0))
     {
-        bfnt_printf(10, 30, COLOR_WHITE, COLOR_BLACK, "File '%s' failed to load", filename);
+        bmp_printf(FONT_CANON, 0, 0, "%s not loaded", file);
         FreeMemory(font);
-        return 0;
+        return FONT_CANON;
     }
 
     /* now updated cached font name (not filename) */
@@ -336,8 +336,10 @@ static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata
 static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, int fontspec) {
     // Get char data pointer
     char* cdata = rbf_font_char(rbf_font, ch);
-
-    if (fontspec & SHADOW_MASK)
+    
+    if (!rbf_font->cTable)
+        bfnt_draw_char(ch, x, y, FG_COLOR(fontspec), BG_COLOR(fontspec));
+    else if (fontspec & SHADOW_MASK)
         font_draw_char_shadow(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], fontspec);
     else
         font_draw_char(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], fontspec);
@@ -564,20 +566,37 @@ struct font font_small;
 struct font font_med;
 struct font font_med_large;
 struct font font_large;
+struct font font_canon;
 
 void load_fonts()
 {
+    /* fake font for Canon font backend, with the same metrics */
+    font * canon_font = new_font();
+    canon_font->hdr.height = 40;
+    for (int i = 0; i < 256; i++)
+        canon_font->wTable[i] = bfnt_char_get_width(i);
+
+    /* use Canon font as fallback */
+    /* (will be overwritten when loading named fonts) */
+    for (int i = 0; i <= MAX_DYN_FONTS; i++)
+    {
+        font_dynamic[i].bitmap = (void*) canon_font;
+        font_dynamic[i].height = 40;
+        font_dynamic[i].width = rbf_char_width((void*)font_dynamic[i].bitmap, '0');
+    }
+
     /* load some fonts */
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor23", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor28", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
-    //font_by_name("term32", COLOR_BLACK, COLOR_WHITE);
-    
+
     font_small = *fontspec_font(FONT_SMALL);
     font_med = *fontspec_font(FONT_MED);
+    font_med_large = *fontspec_font(FONT_MED_LARGE);
     font_large = *fontspec_font(FONT_LARGE);
+    font_canon = *fontspec_font(FONT_CANON);
 }
 
 INIT_FUNC("rbf", load_fonts);

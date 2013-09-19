@@ -105,7 +105,7 @@ void prop_add_handler (uint32_t property, void *handler)
     }
     if (actual_num_properties >= COUNT(property_list))
     {
-        bfnt_puts("Too many prop handlers", 0, 0, COLOR_BLACK, COLOR_WHITE);
+        bmp_printf(FONT_CANON, 0, 0, "Too many prop handlers");
     }
 }
 

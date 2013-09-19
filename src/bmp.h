@@ -178,6 +178,8 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_SANS_28  FONT_DYN(3, 0, 0)
 #define FONT_SANS_32  FONT_DYN(4, 0, 0)
 
+#define FONT_CANON    FONT_DYN(7, 0, 0) /* uses a different backend */
+
 /* common fonts */
 #define FONT_SMALL      FONT_MONO_12
 #define FONT_MED        FONT_SANS_23
@@ -192,8 +194,8 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_GET_EXPAND_AMOUNT(font) (((font) >> 20) & 0x7)
 
 /* RBF stuff */
-#define MAX_DYN_FONTS 8
-extern struct font font_dynamic[MAX_DYN_FONTS];
+#define MAX_DYN_FONTS 7
+extern struct font font_dynamic[MAX_DYN_FONTS+1];   /* the extra entry is Canon font - with a different backend */
 
 /* this function is used to dynamically load a font identified by its filename without extension */
 extern uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color);
@@ -203,7 +205,7 @@ fontspec_font(
     uint32_t fontspec
 )
 {
-    return &(font_dynamic[FONT_ID(fontspec) % MAX_DYN_FONTS]);
+    return &(font_dynamic[FONT_ID(fontspec) % COUNT(font_dynamic)]);
 }
 
 static inline uint32_t
@@ -235,25 +237,6 @@ int bmp_string_width(int fontspec, const char* str);                  /* string 
 int bmp_strlen_clipped(int fontspec, const char* str, int maxlen);    /* string len (in chars), if you want to clip at maxlen pix */
 
 size_t read_file( const char * filename, void * buf, size_t size);
-
-void
-bfnt_printf(
-           int x,
-           int y,
-           int fg,
-           int bg,
-           const char *fmt,
-           ...
-           );
-
-int 
-bfnt_puts(
-        const char* s, 
-        int x, 
-        int y, 
-        int fg, 
-        int bg
-        );
 
 extern void
 con_printf(

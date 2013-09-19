@@ -402,7 +402,6 @@ static void my_big_init_task()
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
         bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
         info_led_blink(1, 500, 500);
     }
@@ -897,7 +896,7 @@ my_init_task(int a, int b, int c, int d)
             if (DISPLAY_IS_ON) break;
             msleep(100);
         }
-        bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
+        bmp_printf(FONT_CANON, 0, 0, "Magic OFF");
     #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';
