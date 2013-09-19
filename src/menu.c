@@ -2157,14 +2157,15 @@ entry_print(
         if (my_menu->selected)                   /* in My Menu, we will include the submenu name in the original entry */
         {
             /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
-            int max_len = w * font_large.width / font_med.width - 1;
-            int extra_len = max_len - strlen(info->name) - 4;
+            int max_len = w;
+            int current_len = bmp_string_width(fnt, info->name);
+            int extra_len = bmp_strlen_clipped(fnt, entry->parent_menu->name, max_len - current_len - 50);
 
             /* try to modify the name to show where it's coming from */
             char new_name[100];
             new_name[0] = 0;
             
-            if (extra_len > 0)
+            if (extra_len >= 5)
             {
                 /* we have some space to show the menu where the original entry is coming from */
                 /* (or at least some part of it) */
@@ -2531,7 +2532,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
 static int
 dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * entry), struct menu_entry * placeholders, int max_placeholders, int expand_submenus)
 {
-    dyn_menu->split_pos = -16;
+    dyn_menu->split_pos = -20;
 
     int i = 0;
     struct menu * menu = menus;
