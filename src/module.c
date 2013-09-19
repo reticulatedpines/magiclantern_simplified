@@ -888,8 +888,9 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    , dest);
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  , dest);
-    MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
-    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
+    /* these are not simple key codes, so they will not work with MODULE_TRANSLATE_KEY */
+    //~ MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
+    //~ MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
     
     return 0;
 }
@@ -899,6 +900,7 @@ int module_send_keypress(int module_key)
 {
     int key = module_translate_key(module_key, MODULE_KEY_CANON);
     fake_simple_button(key);
+    return 0;
 }
 
 int handle_module_keys(struct event * event)
@@ -1004,7 +1006,7 @@ static void* module_get_section_offline(char* filename, char* section_name)
     /* uses a little memory while loading, but can be probably optimized */
     TCCState *state = tcc_new();
     tcc_add_file(state, filename);
-    int size;
+    int size = 0;
     void* buf = 0;
     void* section = (void*) tcc_get_section_ptr(state, section_name, &size);
     if (size)
