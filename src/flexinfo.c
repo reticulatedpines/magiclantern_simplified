@@ -1523,7 +1523,7 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
             break;
         case INFO_FONT_CANON:
         {
-            font = 0;
+            font = -1;
             *width = 0;
             for (char* c = string; *c; c++)
                 *width += bfnt_char_get_width(*c);
