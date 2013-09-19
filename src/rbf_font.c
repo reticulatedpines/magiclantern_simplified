@@ -563,7 +563,7 @@ struct font font_med;
 struct font font_med_large;
 struct font font_large;
 
-static void rbf_init()
+void load_fonts()
 {
     /* load some fonts */
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
@@ -578,5 +578,5 @@ static void rbf_init()
     font_large = *fontspec_font(FONT_LARGE);
 }
 
-INIT_FUNC("rbf", rbf_init);
+INIT_FUNC("rbf", load_fonts);
 
