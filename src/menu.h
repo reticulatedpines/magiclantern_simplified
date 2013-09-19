@@ -174,8 +174,8 @@ struct menu_entry
         int16_t submenu_width; 
         int16_t submenu_height;
         
-        int16_t depends_on;     // hard requirement, won't work otherwise
-        int16_t works_best_in;  // soft requirement, it will work, but not as well
+        uint32_t depends_on;     // hard requirement, won't work otherwise
+        uint32_t works_best_in;  // soft requirement, it will work, but not as well
 };
 
 
