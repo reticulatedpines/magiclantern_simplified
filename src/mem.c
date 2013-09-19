@@ -310,6 +310,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
         if(--tries <= 0)
         {
             ((struct memcheck_hdr *)ptr)->id = 0xFFFFFFFF;
+            sei(state);
             return;
         }
     }
