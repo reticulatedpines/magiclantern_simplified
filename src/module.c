@@ -363,19 +363,7 @@ static void _module_load_all(uint32_t list_only)
         size = ALIGN32SUP(size);
         void* buf = (void*) tcc_malloc(size);
         
-        /* mark the allocated space, so we know how much it was actually used */
-        for (uint32_t* p = buf; p < (uint32_t*)(buf + size); p++)
-            *p = 0x12345678;
-
         reloc_status = tcc_relocate(state, buf);
-        
-        /* recover unused space */
-        uint32_t* end = buf + size - 4;
-        while ((void*)end > buf && *end == 0x12345678) end--;
-        end++;
-        int new_size = (void*)end - buf;
-        buf = (void*)tcc_realloc(buf, new_size);
-        console_printf("Memory: before %dK, after %dK\n", size/1024, new_size/1024);
 
         /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
         clean_d_cache();
