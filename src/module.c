@@ -1269,6 +1269,7 @@ static int module_is_special_string(const char* name)
             streq(name, "Build date") ||
             streq(name, "Last update") ||
             streq(name, "Summary") ||
+            streq(name, "Forum") ||
             startswith(name, "Help page") ||
         0)
             return 1;

@@ -58,6 +58,8 @@ def rbf_init_font(file):
     global font
     font = rbf_load(open(file,"rb"))
 
-def extent_func(char):
-    w = font.wTable[ord(char) - font.charFirst]
+def extent_func(string):
+    w = 0
+    for c in string:
+        w += font.wTable[ord(c) - font.charFirst]
     return (w,0)

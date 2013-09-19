@@ -62,7 +62,7 @@ INLINE_LINKS = True
 # Number of pixels Google indents nested lists
 GOOGLE_LIST_INDENT = 36
 
-IGNORE_ANCHORS = False
+IGNORE_ANCHORS = True
 IGNORE_IMAGES = False
 
 ### Entity Nonsense ###
