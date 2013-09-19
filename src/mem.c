@@ -92,7 +92,11 @@ static struct mem_allocator allocators[] = {
         .preferred_min_alloc_size = 0,
         .preferred_max_alloc_size = 512 * 1024,
         .preferred_free_space = 1024 * 1024 * 3/2,  /* at 1MB free, "dispcheck" may stop working */
+        #ifdef CONFIG_1100D
+        .minimum_free_space = 384 * 1024,
+        #else
         .minimum_free_space = 512 * 1024,           /* Canon code also allocates from here, so keep it free */
+        #endif
     },
 
 #if 0 /* not implemented yet */
@@ -470,7 +474,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
     {
         int has_non_dma = allocators[a].malloc ? 1 : 0;
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
-        int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : 0;
+        int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
         
         /* do we need DMA? */
         if (
@@ -498,7 +502,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                         )
                     {
                         /* do we have a large enough contiguous chunk? */
-                        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() : free_space / 2;
+                        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() : MAX(free_space / 2, free_space - 256*1024);
                         if (size < max_region)
                         {
                             /* yes, we do! */
@@ -517,28 +521,28 @@ static int choose_allocator(int size, unsigned int flags)
     /* note: free space routines may be queried more than once (this can be optimized) */
     
     int needs_dma = (flags & MEM_DMA) ? 1 : 0;
-    int prefers_tmp = (flags & MEM_TEMPORARY) ? 1 : 0;
+    int prefers_tmp = (flags & MEM_TEMPORARY) ? 1 : -1;
     
     int a;
     
     /* first try to find an allocator that meets all the conditions (preferred size, free space, temporary preference and DMA); */
     a = search_for_allocator(size, 1, 1, prefers_tmp, needs_dma);
     if (a >= 0) return a;
-    
-    /* next, try something that doesn't meet the temporary preference */
-    if (prefers_tmp)
-    {
-        a = search_for_allocator(size, 1, 1, 0, needs_dma);
-        if (a >= 0) return a;
-    }
 
     /* next, try something that doesn't meet the preferred buffer size */
-    a = search_for_allocator(size, 0, 1, 0, needs_dma);
+    a = search_for_allocator(size, 0, 1, prefers_tmp, needs_dma);
     if (a >= 0) return a;
 
     /* next, try something that doesn't meet the preferred free space */
-    a = search_for_allocator(size, 0, 0, 0, needs_dma);
+    a = search_for_allocator(size, 0, 0, prefers_tmp, needs_dma);
     if (a >= 0) return a;
+
+    /* next, try something that doesn't meet the temporary preference */
+    if (prefers_tmp)
+    {
+        a = search_for_allocator(size, 0, 0, 0, needs_dma);
+        if (a >= 0) return a;
+    }
     
     /* DMA is mandatory, don't relax it */
     
