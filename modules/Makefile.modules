@@ -17,7 +17,7 @@ MODULE_DEPS   = $(MODULE_NAME).d
 MODULE_STRINGS   = module_strings.h
 
 all:: rebuild_hgstamp $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
-nodep:: $(MODULE_OUTPUT) $(MODULE_SYM)
+nodep:: rebuild_hgstamp $(MODULE_OUTPUT) $(MODULE_SYM)
 
 -include $(MODULE_DEPS)
 
