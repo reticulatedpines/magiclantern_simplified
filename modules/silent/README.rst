@@ -17,4 +17,5 @@ Modes:
 
 :Author: a1ex
 :License: GPL
-:Summary: Image viewer that integrates with the file manager.
+:Summary: Take pictures in LiveView without shutter actuation
+:Forum thread: http://www.magiclantern.fm/forum/index.php?topic=5240.0
