@@ -35,7 +35,14 @@ int ime_rot_caption_y = 20;
 
 int ime_rot_text_fg = COLOR_WHITE;
 int ime_rot_text_bg = COLOR_BLACK;    
-unsigned int ime_rot_font = FONT_LARGE;
+int ime_rot_color_bg = COLOR_GRAY(10);
+
+unsigned int ime_rot_font_title = 0;
+unsigned int ime_rot_font_wheel = 0;
+unsigned int ime_rot_font_wheel_sel = 0;
+unsigned int ime_rot_font_txtfield = 0;
+unsigned int ime_rot_font_caret = 0;
+
 
 /* thats the charset that is used for various use cases */
 #define IME_ROT_VAR_CHARSET           3
@@ -152,9 +159,7 @@ static void ime_rot_draw_wheel(ime_rot_ctx_t *ctx)
         }
         
         /* measure string width */
-        int width = 0;        
-        for (char* c = buf; *c; c++)
-            width += bfnt_char_get_width(*c);
+        int width = bmp_string_width(ime_rot_font_wheel, buf);
             
         int x = ime_rot_wheel_x + ime_rot_wheel_w * sine / MUL - width/2;
         int y = ime_rot_wheel_y - ime_rot_wheel_h * cosine / MUL - 25;
@@ -177,28 +182,24 @@ static void ime_rot_draw_wheel(ime_rot_ctx_t *ctx)
             }
             
             /* print character */
-            bfnt_printf(x, y, COLOR_ORANGE, COLOR_BLACK, "%s", buf);
+            bmp_printf(ime_rot_font_wheel_sel, x, y, buf);
         }
         else
         {
-            draw_line(ime_rot_wheel_x, ime_rot_wheel_y, line_x, line_y, COLOR_GRAY(20));
-            bfnt_printf(x, y, COLOR_GRAY(40), COLOR_BLACK, "%s", buf);
+            draw_line(ime_rot_wheel_x, ime_rot_wheel_y, line_x, line_y, ime_rot_color_bg);
+            bmp_printf(ime_rot_font_wheel, x, y, buf);
         }
     }
 }
 
 static void ime_rot_draw(ime_rot_ctx_t *ctx)
 {
-    int color_bg = COLOR_GRAY(10);
+    int color_fg = ime_rot_text_fg;
     
     /* if text isnt valid, print red */
-    if(ctx->valid)
+    if(!ctx->valid)
     {
-        ime_rot_text_fg = COLOR_WHITE;
-    }
-    else
-    {
-        ime_rot_text_fg = COLOR_RED;
+        color_fg = COLOR_RED;
     }
     
     BMP_LOCK
@@ -206,7 +207,7 @@ static void ime_rot_draw(ime_rot_ctx_t *ctx)
         bmp_draw_to_idle(1);
             
         /* uniform background */
-        bmp_fill(color_bg, 0, 0, 720, 480);
+        bmp_fill(ime_rot_color_bg, 0, 0, 720, 480);
         
         /* some nice borders */
         for(int width = 0; width < 5; width++)
@@ -220,20 +221,24 @@ static void ime_rot_draw(ime_rot_ctx_t *ctx)
         /* print title text */
         if(ctx->caption)
         {
-            bfnt_printf(ime_rot_caption_x, ime_rot_caption_y, COLOR_WHITE, color_bg, "%s", ctx->caption);
+            bmp_printf(ime_rot_font_title, ime_rot_caption_x, ime_rot_caption_y, "%s", ctx->caption);
             draw_line(ime_rot_caption_x, ime_rot_caption_y + 40, ime_rot_str_w + ime_rot_str_x, ime_rot_caption_y + 40, COLOR_ORANGE);
             draw_line(ime_rot_caption_x + 5, ime_rot_caption_y + 40 + 3, ime_rot_str_w + ime_rot_str_x + 5, ime_rot_caption_y + 40 + 3, COLOR_ORANGE);
         }
         
         /* draw a dark background for the text line */
-        bmp_fill(COLOR_BLACK, ime_rot_str_x, ime_rot_str_y, ime_rot_str_w, font_large.height + 6);
+        bmp_fill(COLOR_BLACK, ime_rot_str_x, ime_rot_str_y, ime_rot_str_w, fontspec_height(ime_rot_font_txtfield) + 6);
 
         /* orange rectangle around that dark text box background */
-        bmp_draw_rect(COLOR_ORANGE, ime_rot_str_x, ime_rot_str_y, ime_rot_str_w, font_large.height + 6);
+        bmp_draw_rect(COLOR_ORANGE, ime_rot_str_x, ime_rot_str_y, ime_rot_str_w, fontspec_height(ime_rot_font_txtfield) + 6);
         
         /* now the text and right after the caret */
-        bmp_printf(FONT(FONT_LARGE,ime_rot_text_fg, ime_rot_text_bg), ime_rot_str_x + 3, ime_rot_str_y + 3, "%s", ctx->string);
-        bmp_printf(SHADOW_FONT(FONT(FONT_LARGE,COLOR_BLACK, COLOR_ORANGE)), ime_rot_str_x + 3 + font_large.width * ctx->caret_pos, ime_rot_str_y + 3, "_");
+        bmp_printf(ime_rot_font_txtfield, ime_rot_str_x + 3, ime_rot_str_y + 3, "%s", ctx->string);
+        char *tmp_str = malloc(strlen(ctx->string) + 1);
+        strcpy(tmp_str, ctx->string);
+        tmp_str[ctx->caret_pos] = '\000';
+        bmp_printf(ime_rot_font_caret, ime_rot_str_x + 3 + bmp_string_width(ime_rot_font_txtfield, tmp_str), ime_rot_str_y + 3, "_");
+        free(tmp_str);
 
         /* draw rotation wheel */
         ime_rot_draw_wheel(ctx);
@@ -547,6 +552,12 @@ static t_ime_handler ime_rot_descriptor =
 
 static unsigned int ime_rot_init()
 {
+    ime_rot_font_title = FONT(FONT_LARGE, COLOR_WHITE, ime_rot_color_bg);
+    ime_rot_font_wheel = FONT(FONT_LARGE, COLOR_ORANGE, ime_rot_color_bg);
+    ime_rot_font_wheel_sel = FONT(FONT_LARGE, COLOR_ORANGE, COLOR_BLACK);
+    ime_rot_font_txtfield = FONT(FONT_LARGE, ime_rot_text_fg, ime_rot_text_bg);
+    ime_rot_font_caret = SHADOW_FONT(FONT(FONT_LARGE, COLOR_BLACK, COLOR_ORANGE));
+
     ime_base_register(&ime_rot_descriptor);
     return 0;
 }
