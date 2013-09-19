@@ -30,8 +30,14 @@ int ime_std_caption_x = 27;
 int ime_std_caption_y = 20;
 
 int ime_std_text_fg = COLOR_WHITE;
-int ime_std_text_bg = COLOR_BLACK;    
-unsigned int ime_std_font = FONT_LARGE;
+int ime_std_text_bg = COLOR_BLACK;
+int ime_std_color_bg = COLOR_GRAY(10);
+
+
+unsigned int ime_std_font_title = 0;
+unsigned int ime_std_font_box = 0;
+unsigned int ime_std_font_txtfield = 0;
+unsigned int ime_std_font_caret = 0;
 
 /* thats the charset that is used for various use cases */
 #define IME_STD_VAR_CHARSET           3
@@ -198,36 +204,40 @@ static void ime_std_draw(ime_std_ctx_t *ctx)
         /* print title text */
         if(ctx->caption)
         {
-            bfnt_printf(ime_std_caption_x, ime_std_caption_y, COLOR_WHITE, color_bg, "%s", ctx->caption);
+            bmp_printf(FONT_CANON, ime_std_caption_x, ime_std_caption_y, "%s", ctx->caption);
             draw_line(ime_std_caption_x, ime_std_caption_y + 40, ime_std_str_w + ime_std_str_x, ime_std_caption_y + 40, COLOR_ORANGE);
             draw_line(ime_std_caption_x + 5, ime_std_caption_y + 40 + 3, ime_std_str_w + ime_std_str_x + 5, ime_std_caption_y + 40 + 3, COLOR_ORANGE);
         }
         
         /* draw a dark background for the text line */
-        bmp_fill(COLOR_BLACK, ime_std_str_x, ime_std_str_y, ime_std_str_w, font_large.height + 6);
+        bmp_fill(COLOR_BLACK, ime_std_str_x, ime_std_str_y, ime_std_str_w, fontspec_height(ime_std_font_txtfield) + 6);
 
         /* orange rectangle around that dark text box background */
-        bmp_draw_rect(COLOR_ORANGE, ime_std_str_x, ime_std_str_y, ime_std_str_w, font_large.height + 6);
+        bmp_draw_rect(COLOR_ORANGE, ime_std_str_x, ime_std_str_y, ime_std_str_w, fontspec_height(ime_std_font_txtfield) + 6);
         
         /* now the text and right after the caret */
-        bmp_printf(FONT(FONT_LARGE,ime_std_text_fg, ime_std_text_bg), ime_std_str_x + 3, ime_std_str_y + 3, "%s", ctx->string);
-        bmp_printf(SHADOW_FONT(FONT(FONT_LARGE,COLOR_BLACK, COLOR_ORANGE)), ime_std_str_x + 3 + font_large.width * ctx->caret_pos, ime_std_str_y + 3, "_");
+        bmp_printf(ime_std_font_txtfield, ime_std_str_x + 3, ime_std_str_y + 3, "%s", ctx->string);
+        char *tmp_str = malloc(strlen(ctx->string) + 1);
+        strcpy(tmp_str, ctx->string);
+        tmp_str[ctx->caret_pos] = '\000';
+        bmp_printf(ime_std_font_caret, ime_std_str_x + 3 + bmp_string_width(ime_std_font_txtfield, tmp_str), ime_std_str_y + 3, "_");
+        free(tmp_str);
 
         /* orange rectangle around that dark characters box background */
-        bmp_fill(COLOR_GRAY(20), ime_std_char_x - 1, ime_std_char_y - 1, ime_std_char_w + 2, fontspec_font(ime_std_font)->height * COUNT(ime_std_charcounts) + 4);
-        bmp_draw_rect(COLOR_ORANGE, ime_std_char_x - 1, ime_std_char_y - 1, ime_std_char_w + 2, fontspec_font(ime_std_font)->height * COUNT(ime_std_charcounts) + 4);
+        bmp_fill(COLOR_GRAY(20), ime_std_char_x - 1, ime_std_char_y - 1, ime_std_char_w + 2, fontspec_height(ime_std_font_txtfield) * COUNT(ime_std_charcounts) + 4);
+        bmp_draw_rect(COLOR_ORANGE, ime_std_char_x - 1, ime_std_char_y - 1, ime_std_char_w + 2, fontspec_height(ime_std_font_txtfield) * COUNT(ime_std_charcounts) + 4);
         
         /* print charsets that are selected */
         for(unsigned int set = 0; set < COUNT(ime_std_charcounts); set++)
         {
-            int offset_y = fontspec_font(ime_std_font)->height * set;
+            int offset_y = fontspec_height(ime_std_font_txtfield) * set;
             if(ime_std_charset_types[set] & ctx->charset_type)
             {
-                ime_std_draw_charset(ctx, set, ime_std_font, ctx->selection, set == ctx->charsetnum, ime_std_char_x + 2, ime_std_char_y + offset_y, ime_std_char_w - 1, ime_std_char_h - offset_y);
+                ime_std_draw_charset(ctx, set, ime_std_font_txtfield, ctx->selection, set == ctx->charsetnum, ime_std_char_x + 2, ime_std_char_y + offset_y, ime_std_char_w - 1, ime_std_char_h - offset_y);
             }
             else
             {
-                ime_std_draw_charset(ctx, set, ime_std_font, ctx->selection, 2, ime_std_char_x + 2, ime_std_char_y + offset_y, ime_std_char_w - 1, ime_std_char_h - offset_y);
+                ime_std_draw_charset(ctx, set, ime_std_font_txtfield, ctx->selection, 2, ime_std_char_x + 2, ime_std_char_y + offset_y, ime_std_char_w - 1, ime_std_char_h - offset_y);
             }
         }
         
@@ -536,6 +546,11 @@ static t_ime_handler ime_std_descriptor =
 
 static unsigned int ime_std_init()
 {
+    ime_std_font_title = FONT(FONT_LARGE, COLOR_WHITE, ime_std_color_bg);
+    ime_std_font_box = FONT(FONT_LARGE, COLOR_ORANGE, ime_std_color_bg);
+    ime_std_font_txtfield = FONT(FONT_LARGE, ime_std_text_fg, ime_std_text_bg);
+    ime_std_font_caret = SHADOW_FONT(FONT(FONT_LARGE, COLOR_BLACK, COLOR_ORANGE));
+
     ime_base_register(&ime_std_descriptor);
     return 0;
 }
