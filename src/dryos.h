@@ -576,6 +576,12 @@ extern int isgraph( int x );
 extern int isspace( int x );
 extern int iscntrl( int x );
 
+/** message queue calls **/
+extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
+extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);
+extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
+
+
 // others
 extern int abs( int number );
 
