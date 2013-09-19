@@ -44,6 +44,9 @@ unsigned int ime_std_font_caret = 0;
 #define IME_STD_VAR_CHARSET_DEF       ime_std_charset_punctuation
 #define IME_STD_VAR_CHARSET_DEF_TYPE  IME_CHARSET_PUNCTUATION
 
+/* these are the OK buttons etc */
+#define IME_STD_FUNC_CHARSET          6
+
 /* should that be located in files? */
 unsigned char ime_std_charset_alpha_upper[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
 unsigned char ime_std_charset_alpha_lower[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
@@ -173,16 +176,12 @@ static void ime_std_draw_charset(ime_std_ctx_t *ctx, unsigned int charset, unsig
 
 static void ime_std_draw(ime_std_ctx_t *ctx)
 {
-    int color_bg = COLOR_GRAY(10);
+    int color_fg = ime_std_text_fg;
     
     /* if text isnt valid, print red */
-    if(ctx->valid)
+    if(!ctx->valid)
     {
-        ime_std_text_fg = COLOR_WHITE;
-    }
-    else
-    {
-        ime_std_text_fg = COLOR_RED;
+        color_fg = COLOR_RED;
     }
     
     BMP_LOCK
@@ -190,7 +189,7 @@ static void ime_std_draw(ime_std_ctx_t *ctx)
         bmp_draw_to_idle(1);
             
         /* uniform background */
-        bmp_fill(color_bg, 0, 0, 720, 480);
+        bmp_fill(ime_std_color_bg, 0, 0, 720, 480);
         
         /* some nice borders */
         for(int width = 0; width < 5; width++)
@@ -204,7 +203,7 @@ static void ime_std_draw(ime_std_ctx_t *ctx)
         /* print title text */
         if(ctx->caption)
         {
-            bmp_printf(FONT_CANON, ime_std_caption_x, ime_std_caption_y, "%s", ctx->caption);
+            bmp_printf(ime_std_font_title, ime_std_caption_x, ime_std_caption_y, "%s", ctx->caption);
             draw_line(ime_std_caption_x, ime_std_caption_y + 40, ime_std_str_w + ime_std_str_x, ime_std_caption_y + 40, COLOR_ORANGE);
             draw_line(ime_std_caption_x + 5, ime_std_caption_y + 40 + 3, ime_std_str_w + ime_std_str_x + 5, ime_std_caption_y + 40 + 3, COLOR_ORANGE);
         }
@@ -241,6 +240,7 @@ static void ime_std_draw(ime_std_ctx_t *ctx)
             }
         }
         
+        /* show buffer */
         bmp_draw_to_idle(0);
         bmp_idle_copy(1,0);
     )
@@ -260,6 +260,7 @@ static int ime_std_select_charset(ime_std_ctx_t *ctx, int charset)
             ctx->selection = ctx->charset_charcount - 1;
         }
         
+        ctx->charsetnum = charset;
         return 1;
     }
     
@@ -282,6 +283,11 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
             /* cancel was pressed, set return code and return */
             ctx->returncode = IME_CANCEL;
             ctx->active = 0;
+            break;
+            
+        case MODULE_KEY_Q:
+            ime_std_select_charset(ctx, IME_STD_FUNC_CHARSET);
+            ctx->selection = 1;
             break;
             
         case MODULE_KEY_WHEEL_UP:
@@ -324,7 +330,6 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
                     /* check the next possible charset */
                     if(ime_std_select_charset(ctx, set))
                     {
-                        ctx->charsetnum = set;
                         break;
                     }
                     
@@ -343,7 +348,6 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
                     /* check the next possible charset */
                     if(ime_std_select_charset(ctx, set))
                     {
-                        ctx->charsetnum = set;
                         break;
                     }
                     set--;
@@ -529,7 +533,6 @@ static void *ime_std_start(unsigned char *caption, unsigned char *text, int max_
     }
     
     /* start input system - ToDo: add a lock to make sure only one thread starts the IME */
-    ime_std_current_ctx = ctx;
     task_create("ime_std_input", 0x1c, 0x1000, ime_std_input, ctx);
     
     return ctx;
