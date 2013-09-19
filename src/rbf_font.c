@@ -269,7 +269,7 @@ int rbf_strlen_clipped(font *rbf_font, const char *str, int maxlen) {
     int l = 0;
     // Calculate how long the string is in characters (possibly clipped to 'maxlen')
     char* str0 = (char*) str;
-    while (*str && rbf_char_width(rbf_font, *str)<=maxlen)
+    while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
         l+=rbf_char_width(rbf_font, *str++);
 
     return str - str0;
