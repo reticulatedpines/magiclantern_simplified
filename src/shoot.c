@@ -2219,7 +2219,7 @@ static MENU_UPDATE_FUNC(shutter_display)
         int deg = 3600 * fps_get_current_x1000() / s;
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
-            "1/%d.%d, %d ",
+            SYM_1_SLASH "%d.%d, %d"SYM_DEGREE,
             s/1000, (s%1000)/100,
             deg);
     }
@@ -2293,7 +2293,7 @@ static MENU_UPDATE_FUNC(aperture_display)
     if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
         a = av = 0;
     MENU_SET_VALUE(
-        "f/%d.%d",
+        SYM_F_SLASH"%d.%d",
         a / 10,
         a % 10, 
         av / 8, 
@@ -2797,9 +2797,6 @@ static MENU_UPDATE_FUNC(picstyle_display)
     
     if (picstyle_rec && is_movie_mode())
     {
-        MENU_SET_VALUE(
-            get_picstyle_shortname(get_prop_picstyle_from_index(i))
-        );
         MENU_SET_RINFO(
             "REC:%s",
             get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
@@ -3249,14 +3246,16 @@ static MENU_UPDATE_FUNC(hdr_display)
         {
             snprintf(hdr_steps_str, 10, "%d", hdr_steps);
         }
-        MENU_SET_VALUE("%s%sx%d%sEV,%s%s%s",
-            hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
+        MENU_SET_VALUE("%s%sx%d%sEV",
+            hdr_type == 0 ? "" : hdr_type == 1 ? "F " : "DOF ",
             hdr_steps_str, 
             hdr_stepsize / 8,
-            ((hdr_stepsize/4) % 2) ? ".5" : "",
+            ((hdr_stepsize/4) % 2) ? ".5" : ""
+        );
+        MENU_SET_RINFO("%s%s%s",
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
-            hdr_delay ? ",2s" : "",
-            hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
+            hdr_delay ? ", 2s" : "",
+            hdr_iso == 1 ? ", ISO" : hdr_iso == 2 ? ", iso" : ""
         );
     }
 
@@ -4127,7 +4126,7 @@ static void expo_preset_toggle()
     int ap = values_aperture[raw2index_aperture(pre_av)];
     if (lv)
         NotifyBox(2000, 
-            "ISO %d 1/%d f/%d.%d %dK", 
+            SYM_ISO"%d "SYM_1_SLASH"%d "SYM_F_SLASH"%d.%d %dK", 
             raw2iso(pre_iso), 
             (int)roundf(1/raw2shutterf(pre_tv)), 
             ap/10, ap%10, 
@@ -4823,7 +4822,7 @@ extern int digic_shadow_lift;
 static struct menu_entry expo_menus[] = {
     #ifdef FEATURE_WHITE_BALANCE
     {
-        .name = "WhiteBalance",
+        .name = "White Balance",
         .update    = kelvin_wbs_display,
         .select     = kelvin_toggle,
         .help  = "Adjust Kelvin white balance and GM/BA WBShift.",
@@ -5040,7 +5039,7 @@ static struct menu_entry expo_menus[] = {
     #endif
     #ifdef FEATURE_PICSTYLE
     {
-        .name = "PictureStyle",
+        .name = "Picture Style",
         .update     = picstyle_display,
         .select     = picstyle_toggle,
         .priv = &lens_info.picstyle,
@@ -5130,7 +5129,7 @@ static struct menu_entry expo_menus[] = {
     MENU_PLACEHOLDER("Auto ETTR"),
     #ifdef FEATURE_EXPO_LOCK
     {
-        .name       = "Expo.Lock",
+        .name       = "Expo. Lock",
         .priv       = &expo_lock,
         .max        = 1,
         .update     = expo_lock_display,
@@ -5168,7 +5167,7 @@ static struct menu_entry expo_menus[] = {
     #endif
     #ifdef FEATURE_EXPO_PRESET
     {
-        .name = "Expo.Presets",
+        .name = "Expo. Presets",
         .priv = &expo_preset,
         .max = 2,
         .choices = CHOICES("OFF", "Press SET", "Press " INFO_BTN_NAME),
@@ -5954,10 +5953,10 @@ static void display_expsim_status()
 void display_shooting_info_lv()
 {
 #ifndef CONFIG_5D2
+#ifdef FEATURE_LCD_SENSOR_REMOTE
     int screen_layout = get_screen_layout();
     int audio_meters_at_top = audio_meters_are_drawn() 
         && (screen_layout == SCREENLAYOUT_3_2);
-#ifdef FEATURE_LCD_SENSOR_REMOTE
     display_lcd_remote_icon(450, audio_meters_at_top ? 25 : 3);
 #endif
 #endif
@@ -5992,7 +5991,11 @@ static void display_trap_focus_msg()
     static int dirty = 0;
     if (trap_focus_msg)
     {
-        bmp_printf(FONT(FONT_MED, fg, bg), DISPLAY_TRAP_FOCUSMSG_POS_X, DISPLAY_TRAP_FOCUSMSG_POS_Y, msg);
+        bmp_printf(
+            FONT(FONT_MED, fg, bg) | FONT_ALIGN_LEFT | FONT_ALIGN_FILL,
+            DISPLAY_TRAP_FOCUSMSG_POS_X, DISPLAY_TRAP_FOCUSMSG_POS_Y,
+            msg
+        );
         dirty = 1;
     }
     else if (dirty) // clean old message, if any

@@ -3129,7 +3129,6 @@ extern void menu_benchmark();
 
 extern int show_cpu_usage_flag;
 
-
 static struct menu_entry debug_menus[] = {
     MENU_PLACEHOLDER("File Manager"),
 #ifdef CONFIG_HEXDUMP
@@ -4327,6 +4326,8 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
     #endif
+    
+    (void)zoom_in_pressed; /* silence warning */
 
     return 1;
 }

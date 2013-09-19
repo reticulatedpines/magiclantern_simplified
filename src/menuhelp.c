@@ -43,13 +43,13 @@ draw_beta_warning()
 
     bfnt_puts("Magic Lantern", 242, 53, COLOR_WHITE, COLOR_BLACK);
 
-    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 150, "This is a development snapshot for testing purposes.");
 
-    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 200, "Please report all bugs at www.magiclantern.fm.");
 
-    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 250, "Be careful using it for production work.      ");
 
-    bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 300, "Enjoy!");
 
     big_bmp_printf(FONT_MED,  10,  410,
         "Magic Lantern version : %s\n"

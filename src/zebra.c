@@ -944,7 +944,7 @@ void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight
     
     if (lv)
     {
-        static int aux = -INT_MIN;
+        static int aux = INT_MIN;
         if (!should_run_polling_action(2000, &aux))
             return;
     }
@@ -2559,26 +2559,26 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         "%s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
 #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
-        zoom_overlay_trigger_mode == 1 ? "HalfS," :
-        zoom_overlay_trigger_mode == 2 ? "Focus," :
-        zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
+        zoom_overlay_trigger_mode == 1 ? "HalfS, " :
+        zoom_overlay_trigger_mode == 2 ? "Focus, " :
+        zoom_overlay_trigger_mode == 3 ? "F+HS, " : "ALW, ",
 #else
-        zoom_overlay_trigger_mode == 1 ? "Zrec," :
-        zoom_overlay_trigger_mode == 2 ? "F+Zr," :
-        zoom_overlay_trigger_mode == 3 ? "(+)," : "ALW,",
+        zoom_overlay_trigger_mode == 1 ? "Zrec, " :
+        zoom_overlay_trigger_mode == 2 ? "F+Zr, " :
+        zoom_overlay_trigger_mode == 3 ? "(+), " : "ALW, ",
 #endif
 
         zoom_overlay_trigger_mode == 0 ? "" :
-            zoom_overlay_size == 0 ? "Small," :
-            zoom_overlay_size == 1 ? "Med," :
-            zoom_overlay_size == 2 ? "Large," : "FullScreen",
+            zoom_overlay_size == 0 ? "Small, " :
+            zoom_overlay_size == 1 ? "Med, " :
+            zoom_overlay_size == 2 ? "Large, " : "FullScreen",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
-            zoom_overlay_pos == 0 ? "AFbox," :
-            zoom_overlay_pos == 1 ? "TL," :
-            zoom_overlay_pos == 2 ? "TR," :
-            zoom_overlay_pos == 3 ? "BR," :
-            zoom_overlay_pos == 4 ? "BL," : "err",
+            zoom_overlay_pos == 0 ? "AFbox, " :
+            zoom_overlay_pos == 1 ? "TL, " :
+            zoom_overlay_pos == 2 ? "TR, " :
+            zoom_overlay_pos == 3 ? "BR, " :
+            zoom_overlay_pos == 4 ? "BL, " : "err",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_x == 0 ? "1:1" :
@@ -2588,8 +2588,8 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_split == 0 ? "" :
-            zoom_overlay_split == 1 ? ",Ss" :
-            zoom_overlay_split == 2 ? ",Sz" : "err"
+            zoom_overlay_split == 1 ? ", Ss" :
+            zoom_overlay_split == 2 ? ", Sz" : "err"
 
     );
 
@@ -2621,8 +2621,6 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-            spotmeter_formula == 2 ? "IRE -1..101" :
-            spotmeter_formula == 3 ? "IRE 0..108" :
             spotmeter_formula == 4 ? "RGB" : "RAW",
             
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
@@ -2817,7 +2815,7 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int dx = spotmeter_formula == 2 ? 52 : 26;
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -2971,7 +2969,7 @@ static void spotmeter_step()
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
 
-    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int dx = spotmeter_formula == 2 ? 52 : 26;
     int y0 = arrow_keys_shortcuts_active() ? (int)(36 - font_med.height) : (int)(-13);
     for( y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
     {
@@ -2995,7 +2993,6 @@ static void spotmeter_step()
     if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
     int bg = fg == COLOR_BLACK ? COLOR_WHITE : COLOR_BLACK;
     int fnt = FONT(SHADOW_FONT(FONT_MED), fg, bg);
-    int fnts = FONT(SHADOW_FONT(FONT_SMALL), fg, bg);
 
     if (!arrow_keys_shortcuts_active())
     {
@@ -3004,16 +3001,15 @@ static void spotmeter_step()
     }
     ycb += dxb + 20;
     ycb -= font_med.height/2;
-    xcb -= 2 * font_med.width;
 
     #ifdef FEATURE_RAW_SPOTMETER
-    if (spotmeter_formula == 5)
+    if (spotmeter_formula == 3)
     {
         if (can_use_raw_overlays())
         {
             bmp_printf(
-                fnt,
-                xcb - font_med.width - 5, ycb, 
+                fnt | FONT_ALIGN_CENTER,
+                xcb, ycb, 
                 "-%d.%d EV",
                 -raw_ev/10, 
                 -raw_ev%10
@@ -3032,41 +3028,20 @@ static void spotmeter_step()
 fallback_from_raw:
 #endif
         bmp_printf(
-            fnt,
+            fnt | FONT_ALIGN_CENTER,
             xcb, ycb, 
             "%3d%s",
             spotmeter_formula == 1 ? sy : scaled,
             spotmeter_formula == 1 ? "" : "%"
         );
     }
-    else if (spotmeter_formula <= 3)
-    {
-        int ire_aj = (((int)sy) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
-        int ire_piers = ((int)sy) * 108/255;           // formula from Piers: (0...255) -> (0...108)
-        int ire = (spotmeter_formula == 2) ? ire_aj : ire_piers;
-        
-        bmp_printf(
-            fnt,
-            xcb, ycb, 
-            "%s%3d", // why does %4d display garbage?!
-            ire < 0 ? "-" : " ",
-            ire < 0 ? -ire : ire
-        );
-        bmp_printf(
-            fnts,
-            xcb + font_med.width*4, ycb,
-            "IRE\n%s",
-            spotmeter_formula == 2 ? "-1..101" : "0..108"
-        );
-    }
-    else if (spotmeter_formula == 4)
+    else if (spotmeter_formula == 2)
     {
         int uyvy = UYVY_PACK(su,sy,sv,sy);
         int R,G,B,Y;
         COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
-        xcb -= font_med.width * 3/2;
         bmp_printf(
-            fnt,
+            fnt | FONT_ALIGN_CENTER,
             xcb, ycb, 
             "#%02x%02x%02x",
             R,G,B
@@ -3526,11 +3501,11 @@ struct menu_entry zebra_menus[] = {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 #ifdef FEATURE_RAW_SPOTMETER
-                .max = 5,
+                .max = 3,
                 #else
-                .max = 4,
+                .max = 2,
                 #endif
-                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)", "RAW (EV)"},
+                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
             },
@@ -5468,12 +5443,6 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK( if (lv) update_lens_display(0,1); );
                 if (lens_display_dirty) lens_display_dirty--;
             }
-
-            static int prev_s;
-            int s = get_seconds_clock();
-            if (s != prev_s)
-                if (lv) movie_indicators_show();
-            prev_s = s;
         }
     }
 }

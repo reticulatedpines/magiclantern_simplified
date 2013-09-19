@@ -169,182 +169,7 @@ inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color
 #define USE_LUT
 #endif
 
-static void FAST
-_draw_char(
-    unsigned    fontspec,
-    uint8_t *    bmp_vram_row,
-    char        c
-)
-{
-    uint8_t* v = bmp_vram();
-
-    unsigned i,j;
-    const struct font * const font = fontspec_font( fontspec );
-
-    if (bmp_vram_row < BMP_VRAM_START(v)) return;
-    if (bmp_vram_row >= BMP_VRAM_END(v)) return;
-
-    uint32_t    fg_color    = fontspec_fg( fontspec ) << 24;
-    uint32_t    bg_color    = fontspec_bg( fontspec ) << 24;
-
-    // Special case -- fg=bg=0 => white on black
-    if( fg_color == 0 && bg_color == 0 )
-    {
-        fg_color = COLOR_WHITE << 24;
-        bg_color = COLOR_BLACK << 24;
-    }
-
-    const uint32_t    pitch        = BMPPITCH / 4;
-    uint32_t *    front_row    = (uint32_t *) bmp_vram_row;
-
-    // boundary checking, don't write past this address
-    uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
-
-#ifndef CONFIG_VXWORKS
-    //uint32_t flags = cli();
-    if ((fontspec & SHADOW_MASK) == 0)
-    {
-        const uint32_t maxw = font->width >> 2;
-
-        for( i=0 ; i<font->height ; i++ )
-        {
-            // Start this scanline
-            uint32_t * row = front_row;
-            if (row >= end) return;
-
-            // move to the next scanline
-            front_row += pitch;
-
-            uint32_t pixels = font->bitmap[ c + (i << 7) ];
-            uint8_t pixel;
-            for( j=0 ; j<maxw ; j++ )
-            {
-                uint32_t bmp_pixels = 0;
-                for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
-                {
-                    bmp_pixels >>= 8;
-                    bmp_pixels |= (pixels & 0x80000000) ? fg_color : bg_color;
-                }
-
-                *(row++) = bmp_pixels;
-
-                // handle characters wider than 32 bits
-                //~ if( j == 28/4 )
-                    //~ pixels = font->bitmap[ c + ((i+128) << 7) ];
-            }
-        }
-    }
-    else // shadowed fonts
-    {
-        struct sfont * shadow =
-        /*#ifdef CONFIG_STATIC_FONTS
-            (stshadowruct font *) font;
-        #else*/
-            font == &font_large ? &font_large_shadow :
-            font == &font_med ? &font_med_shadow :
-            font == &font_small ? &font_small_shadow : 0;
-        //#endif
-
-        fg_color >>= 24;
-        bg_color >>= 24;
-
-        const uint32_t maxw = font->width >> 2;
-
-        for( i=0 ; i<font->height ; i++ )
-        {
-            // Start this scanline
-            uint32_t * row = front_row;
-            row = ALIGN32(row); // weird artifacts otherwise
-            if (row >= end) return;
-
-            // move to the next scanline
-            front_row += pitch;
-
-            uint32_t pixels = font->bitmap[ c + (i << 7) ];
-            uint32_t pixels_shadow = shadow->bitmap[ c + (i << 7) ];
-            uint8_t pixel;
-
-
-            for( j=0 ; j<maxw ; j++ )
-            {
-                uint32_t bmp_pixels = *(row);
-
-                for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1, pixels_shadow <<=1 )
-                {
-                    //~ bmp_pixels >>= 8;
-                    //~ bmp_pixels |= (*(row) & 0xFF000000);
-                    if (pixels & 0x80000000)
-                    {
-                        bmp_pixels &= ~(0xFF << (pixel*8));
-                        bmp_pixels |= (fg_color << (pixel*8));
-                    }
-                    if (pixels_shadow & 0x80000000)
-                    {
-                        bmp_pixels &= ~(0xFF << (pixel*8));
-                        bmp_pixels |= (bg_color << (pixel*8));
-                    }
-                }
-
-                *(row++) = bmp_pixels;
-            }
-        }
-    }
-
-#else // 5DC
-    #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
-    //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
-    #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
-
-    const int bg_color_24 = bg_color >> 24;
-    const int fg_color_24 = fg_color >> 24;
-
-    if (font == &font_large) // large fonts look better with line skipping
-    {
-        for( i = 0 ; i<font->height ; i++ )
-        {
-            for( j=0 ; j<font->width ; j++ )
-            {
-                if FPIX(i,j)
-                {
-                    BMPIX(i,j,fg_color_24);
-                }
-                else
-                {
-                    BMPIX(i,j,bg_color_24);
-                }
-            }
-        }
-    }
-    else // smaller fonts look better with all foreground pixels displayed (even if they are a bit bolder than normal)
-    {
-        for( i = 0 ; i<font->height ; i++ )
-        {
-            for( j=0 ; j<font->width ; j++ )
-            {
-                if (!FPIX(i,j))
-                {
-                    BMPIX(i,j,bg_color_24);
-                }
-            }
-        }
-
-        for( i = 0 ; i<font->height ; i++ )
-        {
-            for( j=0 ; j<font->width ; j++ )
-            {
-                if FPIX(i,j)
-                {
-                    BMPIX(i,j,fg_color_24);
-                }
-            }
-        }
-    }
-
-#endif
-}
-
-
-void
+int
 bmp_puts(
         uint32_t fontspec,
         int *x,
@@ -354,57 +179,20 @@ bmp_puts(
 {
     *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
     *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
+    
+    uint32_t    fg_color    = fontspec_fg( fontspec );
+    uint32_t    bg_color    = fontspec_bg( fontspec );
 
-    const uint32_t        pitch = BMPPITCH;
-    uint8_t * vram = bmp_vram();
-    if( !vram || ((uintptr_t)vram & 1) == 1 )
-        return;
-    const int initial_x = *x;
-#ifdef CONFIG_VXWORKS
-    uint8_t * first_row = vram + ((*y)/2) * pitch + ((*x)/2);
-#else
-    uint8_t * first_row = vram + (*y) * pitch + (*x);
-#endif
-    uint8_t * row = first_row;
-
-    char c;
-
-    const struct font * const font = fontspec_font( fontspec );
-
-    while( (c = *s++) )
+    // Special case -- fg=bg=0 => white on black
+    if( fg_color == 0 && bg_color == 0 )
     {
-        if( c == '\n' )
-        {
-            #ifdef CONFIG_VXWORKS
-            row = first_row += pitch * font->height/2;
-            #else
-            row = first_row += pitch * font->height;
-            #endif
-            (*y) += font->height;
-            (*x) = initial_x;
-            continue;
-        }
-
-        if( c == '\b' && *x >= initial_x + font->width)
-        {
-            (*x) -= font->width;
-            #ifdef CONFIG_VXWORKS
-            row -= font->width / 2;
-            #else
-            row -= font->width;
-            #endif
-            continue;
-        }
-
-        _draw_char( fontspec, row, c );
-        #ifdef CONFIG_VXWORKS
-        row += font->width / 2;
-        #else
-        row += font->width;
-        #endif
-        (*x) += font->width;
+        fg_color = COLOR_WHITE;
+        bg_color = COLOR_BLACK;
     }
-
+    
+    int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
+    *x += len;
+    return len;
 }
 
 /*
@@ -454,7 +242,7 @@ bmp_puts_w(
 */
 
 // thread safe
-void
+int
 bmp_printf(
            uint32_t fontspec,
            int x,
@@ -471,7 +259,7 @@ bmp_printf(
     vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
     va_end( ap );
 
-    bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+    return bmp_puts( fontspec, &x, &y, bmp_printf_buf );
 }
 
 // for very large strings only
@@ -495,6 +283,16 @@ big_bmp_printf(
 
              bmp_puts( fontspec, &x, &y, bmp_printf_buf );
              )
+}
+
+int bmp_string_width(int fontspec, const char* str)
+{
+    return rbf_str_width((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str);
+}
+
+int bmp_strlen_clipped(int fontspec, const char* str, int maxwidth)
+{
+    return rbf_strlen_clipped((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth);
 }
 
 #if 0
@@ -1751,6 +1549,7 @@ int load_vram(const char * filename)
 
 
 void * bmp_lock = 0;
+
 
 static void bmp_init(void* unused)
 {

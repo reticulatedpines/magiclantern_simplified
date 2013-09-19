@@ -32,10 +32,16 @@ except:
     import urllib
 import optparse, re, sys, codecs, types
 
-try: from textwrap import wrap
-except: pass
+#try: from textwrap import wrap
+#except: pass
 
-from align_string import align_paragraph
+#from align_string import align_paragraph
+#wrap = align_paragraph
+
+from align_string_proportional import word_wrap
+from rbf_read import extent_func, rbf_init_font
+rbf_init_font("../../data/fonts/argnor23.rbf")
+wrap = lambda text, width: word_wrap(text, width, extent_func)
 
 # Use Unicode characters instead of their ascii psuedo-replacements
 UNICODE_SNOB = 0
@@ -141,7 +147,7 @@ def optwrap(text):
     for para in text.split("\n"):
         if len(para) > 0:
             if para[0] != ' ' and para[0] != '-' and para[0] != '*':
-                for line in align_paragraph(str(para), BODY_WIDTH):
+                for line in wrap(str(para), BODY_WIDTH):
                     result += line + "\n"
                 result += "\n"
                 newlines = 2
@@ -152,7 +158,7 @@ def optwrap(text):
                         prefix = para[0] + prefix
                         para = para[1:]
                     
-                    for line in align_paragraph(str(para), BODY_WIDTH - len(prefix)):
+                    for line in wrap(str(para), BODY_WIDTH - len(prefix)):
                         result += prefix + line + "\n"
                         prefix = " " * len(prefix)
                     newlines = 1

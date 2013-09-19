@@ -272,6 +272,9 @@ int module_exec_cbr(unsigned int type);
 int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *));
 int module_unset_config_cbr();
 
+/* lookup a pointer in the list of config variables */
+struct config_var* module_config_var_lookup(int* ptr);
+
 struct module_symbol_entry
 {
     const char * name;
@@ -296,7 +299,7 @@ struct module_symbol_entry \
 __attribute__((section(".module_symbols"))) \
 module_symbol_##NAME = { \
         .name           = #NAME, \
-        .address        = &NAME, \
+        .address        = (void*)&NAME, \
 }     //.default_address = DEFAULT_ADDRESS, /* not used; can be useful for module unloading */
 
 #define MODULE_FUNCTION(name) MODULE_SYMBOL(name, ret_0)

@@ -57,7 +57,7 @@ typedef struct
 
 int open(const char *pathname, int flags)
 {
-    unsigned size = 0;
+    uint32_t size = 0;
     FILE* file = NULL;
     filehandle_t *handle = NULL;
     
@@ -94,7 +94,7 @@ int read(int fd, void *buf, int size)
     filehandle_t *handle = (filehandle_t *)fd;
     int count = (size + handle->pos < handle->size)? (size) : (handle->size - handle->pos);
     
-    memcpy(buf, ((uint32_t)&handle->data) + handle->pos, count);
+    memcpy(buf, ((void*)&handle->data) + handle->pos, count);
     handle->pos += count;
     
     return count;
@@ -102,7 +102,7 @@ int read(int fd, void *buf, int size)
 
 int close(int fd)
 {
-    free_dma_memory(fd);
+    free_dma_memory((void*)fd);
     return 0;
 }
 
@@ -152,18 +152,6 @@ size_t fwrite( const void * ptr, size_t size, size_t count, FILE * stream )
 {
     return FIO_WriteFile(stream, ptr, size * count);
 }
-
-#define DUMMY(x) int x() { printf( #x "\n "); return 0; }
-
-DUMMY(fputc)
-DUMMY(fdopen)
-DUMMY(unlink)
-DUMMY(getenv)
-DUMMY(time)
-DUMMY(localtime)
-DUMMY(getcwd)
-DUMMY(system)
-
 
 /*
 for debugging: compile TCC with CFLAGS+=-finstrument-functions

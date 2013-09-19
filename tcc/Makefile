@@ -195,7 +195,7 @@ libtcc.a: $(LIBTCC_OBJ)
 
 # I'm sure there's a cleanest solution, but... I just don't know how
 localsyms: libtcctmp.o
-	$(READELF) $< -Ws | $(AWK) '{print $$8}' | sort | uniq \
+	@$(READELF) $< -Ws | $(AWK) '{print $$8}' | sort | uniq \
 		| grep -v "^tcc_new$$" \
 		| grep -v "^tcc_delete$$" \
 		| grep -v "^tcc_add_file$$" \

@@ -35,7 +35,8 @@ static TCCState *module_state = NULL;
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
-CONFIG_INT("module.autoload", module_autoload_enabled, 1);
+CONFIG_INT("module.autoload", module_autoload_disabled, 0);
+#define module_autoload_enabled (!module_autoload_disabled)
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -117,7 +118,8 @@ static int module_load_symbols(TCCState *s, char *filename)
         {
             pos++;
         }
-        sscanf(address_buf, "%x", &address);
+        //~ sscanf(address_buf, "%x", &address);
+        address = strtoul(address_buf, NULL, 16);
 
         tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;
@@ -1172,8 +1174,8 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             {
                 int fg = COLOR_GRAY(40);
                 int bg = COLOR_BLACK;
-                int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
-                bmp_printf(fnt, 680 - strlen(name)*font_med.width, info->y+5, name);
+                int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, bg));
+                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(320), 690, info->y+2, "%s", name);
             }
         }
     }
@@ -1296,7 +1298,7 @@ static int module_show_about_page(int mod_number)
             int fnt_special = FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK);
 
             bmp_printf(FONT_LARGE, 10, 10, "%s", name);
-            big_bmp_printf(FONT_MED, 10, 60, "%s", desc);
+            big_bmp_printf(FONT_MED | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(690), 10, 60, "%s", desc);
 
             int xm = 710 - max_width_value * font_med.width;
             int xl = 710 - max_width * font_med.width;
@@ -1543,7 +1545,7 @@ static struct menu_entry module_menu[] = {
 
 static struct menu_entry module_debug_menu[] = {
     {
-        .name = "Module debug",
+        .name = "Modules debug",
         .select = menu_open_submenu,
         .submenu_width = 710,
         .help = "Diagnostic options for modules.",
@@ -1564,17 +1566,15 @@ static struct menu_entry module_debug_menu[] = {
             #endif
             {
                  .name = "Disable all modules",
-                 .priv = &module_autoload_enabled,
+                 .priv = &module_autoload_disabled,
                  .max = 1,
-                 .choices = CHOICES("ON", "OFF"),
                  .help = "For troubleshooting.",
             },
             {
-                .name = "Alert unclean shutdown",
+                .name = "Load modules after crash",
                 .priv = &module_ignore_crashes,
                 .max = 1,
-                .choices = CHOICES("ON", "OFF"),
-                .help = "Do not load modules after camera crashed.",
+                .help = "Load modules even after camera crashed and you took battery out.",
             },
             {
                 .name = "Show console",

@@ -78,7 +78,7 @@ if "Summary" not in tags:
 # each section will become "Help page 1", "Help page 2" and so on
 
 # render the RST as html -> txt without the metadata tags
-txt = run('cat README.rst | grep -v -E "^:([^:])+:([^:])+$" | rst2html --no-xml-declaration | python ../html2text.py -b 59')
+txt = run('cat README.rst | grep -v -E "^:([^:])+:([^:])+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700')
 
 desc = ""
 last_str = "Description"

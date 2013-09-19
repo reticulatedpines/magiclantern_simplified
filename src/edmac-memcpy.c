@@ -41,8 +41,8 @@ static void edmac_memcpy_init()
 
 #ifdef CONFIG_ENGINE_RESLOCK
     /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
-    int write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
-    int read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
+    uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
+    uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
     
     /* lookup the edmac channel indices for reslock */
     int read_edmac_index = -1;
@@ -58,7 +58,7 @@ static void edmac_memcpy_init()
 
     if (read_edmac_index >= 0 && write_edmac_index >= 0)
     {
-        int resIds[] = {
+        uint32_t resIds[] = {
             0x00000000 + write_edmac_index, /* write edmac channel */
             0x00010000 + read_edmac_index, /* read edmac channel */
             0x00020000 + dmaConnection, /* write connection */
@@ -91,7 +91,7 @@ void edmac_memcpy_res_lock()
     if (r & 1)
     {
         NotifyBox(2000, "ResLock fail %x %x", resLock, r);
-        return 0;
+        return;
     }
     //~ bmp_printf(FONT_MED, 50, 50, "Locked!");
     #endif
@@ -205,10 +205,10 @@ void* edmac_memset(void* dst, int value, size_t length)
     uint32_t copies = copyable / blocksize - 1;
     
     /* fill the first line to have a copy source */
-    memset((uint32_t)dst + leading, value, blocksize);
+    memset(dst + leading, value, blocksize);
     
     /* now copy the first line over the next lines */
-    edmac_copy_rectangle_adv_start((uint32_t)dst + leading + blocksize, (uint32_t)dst + leading, 0, 0, 0, blocksize, 0, 0, blocksize, copies);
+    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading, 0, 0, 0, blocksize, 0, 0, blocksize, copies);
     
     /* leading or trailing bytes that edmac cannot handle? */
     if(leading)
@@ -217,7 +217,7 @@ void* edmac_memset(void* dst, int value, size_t length)
     }
     if(trailing)
     {
-        memset((uint32_t)dst + length - trailing, value, trailing);
+        memset(dst + length - trailing, value, trailing);
     }
 
     edmac_copy_rectangle_adv_finish();

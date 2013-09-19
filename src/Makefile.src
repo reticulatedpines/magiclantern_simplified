@@ -65,30 +65,6 @@ else ifndef ML_ENTRY_OBJ
 ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
 endif
 
-ML_SMALL_FONT_OBJS = \
-    font-small2.o \
-    font-med2.o \
-    font-large.o \
-
-ML_STATIC_FONT_OBJS = \
-	font-small.o \
-	font-med.o \
-	font-large.o
-
-ML_DYNAMIC_FONT_OBJS = \
-	font-dyn.o
-
-ifeq ($(ML_SRC_SMALL_FONTS), y)
-ML_STATIC_FONT_OBJS = $(ML_SMALL_FONT_OBJS)
-endif
-
-ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
-
-ifeq ($(ML_SRC_STATIC_FONTS), y)
-ML_FONT_OBJS += $(ML_STATIC_FONT_OBJS)
-CFLAGS += -DCONFIG_STATIC_FONTS=1
-endif
-
 ifeq ($(ML_SRC_PROFILE),minimal)
 ML_OBJS-y = \
 	magiclantern.lds \
@@ -105,7 +81,7 @@ ML_INSTALLER_OBJS = \
 	installer.o \
 	ico.o \
 	bmp.o \
-	$(ML_FONT_OBJS) \
+	rbf_font.o \
 	stdio.o \
 	property.o \
 	propvalues.o \
@@ -135,7 +111,7 @@ ML_SRC_OBJS = \
 	$(ML_PICSTYLE_OBJ) \
 	exmem.o \
 	bmp.o \
-	$(ML_FONT_OBJS) \
+	rbf_font.o \
 	config.o \
 	stdio.o \
 	$(ML_BITRATE_OBJ) \
@@ -256,21 +232,8 @@ DIET_OBJ = \
 	strncmp.o \
 	strcpy.o \
 	strcmp.o \
-	sigjmp.o \
-	sigprocmask.o \
-	rt_sigprocmask.o \
-	unified.o \
 	errno.o \
 	errno_location.o \
-	sscanf.o \
-	vsscanf.o \
-	__v_scanf.o \
-	sprintf.o \
-	vsprintf.o \
-	strtold.o \
-	strtod.o \
-	memmove.o \
-	strtof.o \
 	strtoull.o \
 	strtol.o \
 	strtoul.o \
@@ -278,9 +241,6 @@ DIET_OBJ = \
 	memcmp.o \
 	atoi.o \
 	atol.o \
-	strstr.o \
-	qsort.o \
-	atof.o \
 
 DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 

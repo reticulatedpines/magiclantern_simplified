@@ -475,47 +475,34 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     COLOR_RED,                            // unknown
                     bg
                 );
-          bmp_printf( text_font, x_origin - 5, y_origin, focal );
+          bmp_printf( text_font, x_origin + 5, y_origin, focal );
 
           if (info->aperture)
           {
                 if (info->aperture < 100)
                 {
                       bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width + font_large.width - 7, 
+                                  x_origin + 74 + 20,
                                   y_origin, 
-                                  ".");
-                      bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width  , 
-                                  y_origin, 
-                                  "%d", info->aperture / 10);
-                      bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width + font_large.width * 2 - 14, 
-                                  y_origin, 
-                                  "%d", info->aperture % 10);
+                                  SYM_F_SLASH"%d.%d", info->aperture / 10, info->aperture % 10);
                 }
                 else
                       bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width  , 
+                                  x_origin + 74 + 20, 
                                   y_origin, 
-                                  "%d    ", info->aperture / 10) ;
+                                  SYM_F_SLASH"%d", info->aperture / 10) ;
           }
 
           bmp_printf( med_font, 
-                      x_origin + font_large.width * strlen(focal) - 3 - 5, 
-                      bottom - font_med.height, 
+                      x_origin + bmp_string_width(FONT_LARGE, focal) + 3,
+                      bottom - font_med.height + 2, 
                       crop_info ? "eq" : "mm");
 
           if (lens_info.IS)
           bmp_printf( IS_font_med, 
-                      x_origin + font_large.width * strlen(focal) - 3 - 5 + 1, 
+                      x_origin + bmp_string_width(FONT_LARGE, focal) + 3 + 1, 
                       y_origin - 3, 
                       "IS");
-
-          bmp_printf( med_font, 
-                      x_origin + 74 + 2  , 
-                      y_origin - 2, 
-                      "f") ;
       }
   
       /*******************
@@ -538,11 +525,11 @@ void draw_ml_bottombar(int double_buffering, int clear)
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
       if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
-      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
+      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "");
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%dK", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH "%d", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
+      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
 
       int fgs = COLOR_CYAN; // blue (neutral)
       int shutter_degrees = -1;
@@ -569,54 +556,11 @@ void draw_ml_bottombar(int double_buffering, int clear)
       }
 
     text_font = SHADOW_FONT(FONT(FONT_LARGE,fgs,bg));
-    /*if (is_movie_mode() && shutter_display_degrees)
     {
-        snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2  , 
-                    y_origin, 
-                    shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
-
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
-                    y_origin, 
-                    "o");
-    }*/
- /*   else if (is_movie_mode() && is_hard_shutter_override_active())
-    {
-        int d = get_shutter_override_degrees_x10();
-        int q = d/10;
-        int r = d%10;
-        int cr = r + '0';
-        snprintf(shutter, sizeof(shutter), "%d%s%s  ", q, r ? "." : "", r ? (char*)&cr : "");
-        bmp_printf( FONT(text_font,COLOR_ORANGE,bg), 
-                    x_origin + 143 + font_med.width*2  , 
-                    y_origin, 
-                    shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),COLOR_ORANGE,bg);
-
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
-                    y_origin, 
-                    "o");
-    }
-    else*/
-    {
-        bmp_printf( text_font, 
-                x_origin + (shutter_x10 <= 3 ? 143 : 123) + font_med.width*2  , 
+        bmp_printf( text_font | FONT_ALIGN_CENTER,
+                x_origin + 123 + 20 + 50,
                 y_origin, 
                 shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
-
-        if (shutter_x10 <= 3 && !is_bulb_mode())
-            bmp_printf( text_font, 
-                x_origin + 143 + 1  , 
-                y_origin - 2, 
-                "1/");
     }
 
       /*******************
@@ -687,7 +631,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
             
             int iso = raw2iso(iso_equiv_raw);
             
-            snprintf(msg, sizeof(msg), "%d   ", iso >= 10000 ? iso/100 : iso);
+            snprintf(msg, sizeof(msg), SYM_ISO"%d", iso >= 10000 ? iso/100 : iso);
             bmp_printf( text_font, 
                       x_origin + 250  , 
                       y_origin, 
@@ -699,27 +643,30 @@ void draw_ml_bottombar(int double_buffering, int clear)
             else if (iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
             if (get_htp()) { STR_APPEND(msg2, msg2[0] ? "+" : "D+"); }
             
+            /* both displayed? adjust spacing a little */
+            int off = (msg2[0] && iso >= 10000) ? 3 : 0;
+            
             bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
-                      x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                      bottom - font_med.height, 
+                      x_origin + 250 + bmp_string_width(FONT_LARGE, msg) - 2, 
+                      bottom - font_med.height + off, 
                       msg2
                       );
             if (iso >= 10000)
                 bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
-                          x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                          y_origin - 2, 
+                          x_origin + 250 + bmp_string_width(FONT_LARGE, msg) - 2, 
+                          y_origin - off, 
                           "00");
         }
         else if (info->iso_auto)
             bmp_printf( text_font, 
                       x_origin + 250  , 
                       y_origin, 
-                      "A%d   ", info->iso_auto);
+                      SYM_ISO"A%d", info->iso_auto);
         else
             bmp_printf( text_font, 
                       x_origin + 250  , 
                       y_origin, 
-                      "Auto ");
+                      SYM_ISO"Auto");
 
       if (ISO_ADJUSTMENT_ACTIVE) goto end;
       
@@ -791,26 +738,17 @@ void draw_ml_bottombar(int double_buffering, int clear)
           text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
 
           bmp_printf( text_font, 
-                      x_origin + 610 + font_large.width * 2 - 8, 
+                      x_origin + 610, 
                       y_origin, 
-                      ".");
-          bmp_printf( text_font, 
-                      x_origin + 610 - font_large.width, 
-                      y_origin, 
-                      " %s%d", 
+                      "%s%d.%d", 
                         ae < 0 ? "-" : ae > 0 ? "+" : " ",
-                        ABS(ae) / 8
-                      );
-          bmp_printf( text_font, 
-                      x_origin + 610 + font_large.width * 3 - 16, 
-                      y_origin, 
-                      "%d",
+                        ABS(ae) / 8,
                         mod(ABS(ae) * 10 / 8, 10)
                       );
       }
 
         // battery indicator
-        int xr = x_origin + 612 - font_large.width - 4;
+        int xr = x_origin + 612 - 20 - 4;
 
     #ifdef CONFIG_BATTERY_INFO
         int bat = GetBatteryLevel();
@@ -893,10 +831,10 @@ char* lens_format_shutter(int tv)
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
       if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "1/%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "1/%d  ", shutter_reciprocal);
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
+      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
       return shutter;
 }
 
@@ -920,6 +858,87 @@ int FAST get_ml_topbar_pos()
     return y;
 }
 
+void fps_show()
+{
+    if (!get_global_draw()) return;
+    if (gui_menu_shown()) return;
+    if (!is_movie_mode() || recording) return;
+    //~ if (hdmi_code == 5) return; // workaround
+    int screen_layout = get_screen_layout();
+    if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
+
+    int time_indic_x = os.x_max - 160;
+    int time_indic_y = get_ml_topbar_pos();
+    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
+
+    int f = fps_get_current_x1000();
+    int x = time_indic_x + 160 - 6 * 15;
+    int y = time_indic_y + font_med.height - 4;
+
+    // trick to erase the old text, if any (problem due to shadow fonts)
+    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height - 4);
+
+    bmp_printf(
+        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
+        "%2d.%03d", 
+        f / 1000, f % 1000
+    );
+}
+
+void free_space_show_photomode()
+{
+    extern int cluster_size;
+    extern int free_space_raw;
+    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
+
+    int time_indic_x = 720 - 160;
+    int x = time_indic_x + 2 * font_med.width;
+    int y =  452;
+    bmp_printf(
+        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
+        x, y,
+        "%d.%dGB",
+        fsg,
+        fsgf
+    );
+}
+
+void free_space_show()
+{
+    if (!get_global_draw()) return;
+    if (gui_menu_shown()) return;
+    
+    extern int cluster_size;
+    extern int free_space_raw;
+    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
+
+    int time_indic_x = os.x_max - 160;
+    int time_indic_y = get_ml_topbar_pos();
+    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
+
+    // trick to erase the old text, if any (problem due to shadow fonts)
+    int x = time_indic_x + 160 - 6 * 15;
+    int y = time_indic_y;
+
+    // trick to erase the old text, if any (problem due to shadow fonts)
+    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height);
+
+    bmp_printf(
+        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
+        "%d.%dGB",
+        fsg,
+        fsgf
+    );
+}
+
 void draw_ml_topbar(int double_buffering, int clear)
 {
     if (!get_global_draw()) return;
@@ -932,14 +951,6 @@ void draw_ml_topbar(int double_buffering, int clear)
     int screen_layout = get_screen_layout();
     if (screen_layout >= 3 && !should_draw_bottom_bar())
         return; // top bar drawn at bottom, may interfere with canon info
-
-    // fixme: draw them right from the first try
-    extern int time_indic_x, time_indic_y; // for bitrate indicators
-    if (time_indic_x != os.x_max - 160 || time_indic_y != (int)y) redraw();
-    time_indic_x = os.x_max - 160;
-    time_indic_y = y;
-    
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
 
     if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
     
@@ -996,9 +1007,9 @@ void draw_ml_topbar(int double_buffering, int clear)
 
     x += 70;
     #ifdef CONFIG_BATTERY_INFO
-        bmp_printf( font, x, y,"T=%dC BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
+        bmp_printf( font, x, y,"T=%d"SYM_DEGREE"C BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
     #else
-        bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
+        bmp_printf( font, x, y,"T=%d"SYM_DEGREE"C", EFIC_CELSIUS);
     #endif
 
     x += 160;
@@ -1007,8 +1018,7 @@ void draw_ml_topbar(int double_buffering, int clear)
         is_movie_mode() ? file_number : avail_shot
     );
 
-    free_space_show(); 
-    fps_show();
+    movie_indicators_show(); 
 
     if (double_buffering)
         double_buffering_end(y, 35);

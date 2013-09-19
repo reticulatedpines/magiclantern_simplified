@@ -377,9 +377,7 @@ meter_task( void* unused )
     TASK_LOOP
         {
             msleep(DISPLAY_IS_ON ? 50 : 500);
-                
-            if (is_menu_help_active()) continue;
-                
+            
             if (audio_meters_are_drawn())
             {
                 if (!is_mvr_buffer_almost_full())
