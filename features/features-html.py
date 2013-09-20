@@ -112,6 +112,8 @@ porting_threads = {
     '700D'        :  'http://www.magiclantern.fm/forum/index.php?topic=5951.0',
 }
 
+friendly_names = {}
+
 feature_links = {
     'FEATURE_ANALOG_GAIN'               :  'http://wiki.magiclantern.fm/userguide#analog_gain_db',
     'FEATURE_AUDIO_METERS'              :  'http://wiki.magiclantern.fm/userguide#audio_meters',
@@ -228,7 +230,9 @@ modules = [m for m in modules if m in default_modules]
 for mo in modules:
     inp = open("../modules/%s/README.rst" % mo).read().replace("\r\n", "\n")
     lines = inp.strip("\n").split("\n")
-    
+    title = lines[0]
+
+    friendly_names["MODULE__" + mo] = title
     readme_links["MODULE__" + mo] = "http://bitbucket.org/hudson/magic-lantern/src/tip/modules/%s/README.rst" % mo
 
     # extract user metadata from RST meta tags
@@ -292,7 +296,7 @@ for m in modules:
 version = run("LC_TIME=EN date +'%Y%b%d' && hg id")
 
 data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames, 'menus':menus, 'MN_COUNT': MN_COUNT, 'MN_DICT': MN_DICT,
-        'porting_threads': porting_threads, 'feature_links': feature_links, 'readme_links': readme_links, 'version': version}
+        'porting_threads': porting_threads, 'friendly_names': friendly_names, 'feature_links': feature_links, 'readme_links': readme_links, 'version': version}
 mytemplate = Template(filename='features.tmpl')
 print mytemplate.render(**data)
 

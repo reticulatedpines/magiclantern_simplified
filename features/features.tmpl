@@ -7,6 +7,7 @@
 <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
 <script src="https://raw.github.com/farinspace/jquery.tableScroll/master/jquery.tablescroll.js"></script>
+
 <title> Feature comparison matrix </title>
 </head>
 <body style="margin:10px">
@@ -21,9 +22,10 @@
 %for mn in menus:
     %if MN_COUNT.get(mn,0) != 0:
         <thead>
-            <tr><th align="left" colspan="${len(cams)+1}">&nbsp;</th></tr>
-            <tr><th align="left" colspan="${len(cams)+1}">${mn}</th></tr>
+            <tr><th align="left" colspan="${len(cams)+3}">&nbsp;</th></tr>
+            <tr><th align="left" colspan="${len(cams)+3}">${mn}</th></tr>
             <tr>
+                <th></th>
                 <th></th>
                 <th></th>
                 %for camera in cams:
@@ -40,9 +42,9 @@
                 %if MN_DICT.get(f[8:], "Other") == mn:
                 <tr>
                     %if f in readme_links:
-                    <td width=10%>
+                    <td width=10% style="white-space: nowrap;">
                     %else:
-                    <td colspan="2">
+                    <td colspan="3">
                     %endif
                     
                     %if f in feature_links:
@@ -52,9 +54,11 @@
                         ${f[8:]}
                     %endif
                     </td>
-                    
                     %if f in readme_links:
-                        <td><a href="${readme_links[f]}"><font size="-3">[README]</font></a></td>
+                        <td width=10% style="white-space: nowrap;">
+                        <font size="-3">${friendly_names.get(f, "")}</font>
+                        </td>
+                        <td>&nbsp;&nbsp;<a href="${readme_links[f]}"><font size="-3">[README]</font></a></td>
                     %endif
                     %for c in cams:
                         %if FD.get((c,f))==True:
