@@ -2957,12 +2957,12 @@ static int edmac_selection;
 static void edmac_display_page(int i0, int x0, int y0)
 {
     bmp_printf(
-        FONT_MED,
+        FONT_MONO_20,
         x0, y0,
         "EDM# Address  Size\n"
     );
 
-    y0 += font_med.height * 2;
+    y0 += fontspec_font(FONT_MONO_20)->height * 2;
 
     for (int i = 0; i < 16; i++)
     {
@@ -3004,8 +3004,8 @@ static void edmac_display_page(int i0, int x0, int y0)
         else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
 
         bmp_printf(
-            FONT(FONT_MED, color, COLOR_BLACK),
-            x0, y0 + i * font_med.height,
+            FONT(FONT_MONO_20, color, COLOR_BLACK),
+            x0, y0 + i * fontspec_font(FONT_MONO_20)->height,
             msg
         );
     }
@@ -3050,22 +3050,24 @@ static void edmac_display_detailed(int channel)
 
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
+    
+    int fh = fontspec_font(FONT_MONO_20)->height;
 
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Address    : %8x ", addr);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "State      : %8x ", state);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags      : %8x ", flags);
-    y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
-    y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a      : %8x ", off1a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b      : %8x ", off1b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a      : %8x ", off2a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b      : %8x ", off2b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off3       : %8x ", off3);
-    y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Address    : %8x ", addr);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "State      : %8x ", state);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Flags      : %8x ", flags);
+    y += fh;
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
+    y += fh;
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off1a      : %8x ", off1a);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off1b      : %8x ", off1b);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off2a      : %8x ", off2a);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off2b      : %8x ", off2b);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off3       : %8x ", off3);
+    y += fh;
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
 
     #if defined(CONFIG_5D3)
     /**
@@ -3076,8 +3078,8 @@ static void edmac_display_detailed(int channel)
      */
     uint32_t cbr1 = MEM(8 + 32*(channel) + MEM(0x12400));
     uint32_t cbr2 = MEM(12 + 32*(channel) + MEM(0x12400));
-    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
-    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
+    bmp_printf(FONT_MONO_20, 50, y += fh, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
+    bmp_printf(FONT_MONO_20, 50, y += fh, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
     #endif
 }
 
@@ -3094,23 +3096,23 @@ static MENU_UPDATE_FUNC(edmac_display)
 
         //~ int x = 20;
         bmp_printf(
-            FONT_MED,
+            FONT_MONO_20,
             20, 450, "EDMAC state: "
         );
 
         bmp_printf(
-            FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
+            FONT(FONT_MONO_20, COLOR_GRAY(50), COLOR_BLACK),
             20+200, 450, "inactive"
         );
 
         bmp_printf(
-            FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
+            FONT(FONT_MONO_20, COLOR_GREEN1, COLOR_BLACK),
             20+350, 450, "running"
         );
 
         bmp_printf(
-            FONT_MED,
-            720 - font_med.width * 13, 450, "[Scrollwheel]"
+            FONT_MONO_20,
+            720 - fontspec_font(FONT_MONO_20)->width * 13, 450, "[Scrollwheel]"
         );
     }
     else // detailed view
