@@ -120,7 +120,6 @@ static void alloc_cTable(font *f) {
     if (f->cTable == 0) {
         // Allocate memory from cached pool
         int size = f->charCount*f->hdr.charSize;
-        NotifyBox(1000, "%d %d %d ", size, f->charCount, f->hdr.charSize);
         f->cTable = AllocateMemory(size);
 
         // save size

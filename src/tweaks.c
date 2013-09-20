@@ -1641,7 +1641,8 @@ int handle_arrow_keys(struct event * event)
                 case 1: input_toggle(); break;
                 #endif
                 #ifdef FEATURE_WHITE_BALANCE
-                case 2: 
+                case 2:
+                    redraw();
                     kelvin_n_gm_auto();
                     if (arrow_keys_mode%10) arrow_keys_mode = 10 + (arrow_keys_mode%10); // temporarily disable
                     break;
@@ -1773,7 +1774,6 @@ void display_shortcut_key_hints_lv()
     #ifdef CONFIG_4_3_SCREEN
     if (lv_dispsize > 1) return; // flickers in zoom mode
     #endif
-    if (NotifyBoxActive()) return;
 
     #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
     extern int lcd_release_running;
@@ -1790,27 +1790,31 @@ void display_shortcut_key_hints_lv()
     int x0 = os.x0 + os.x_ex/2;
     int y0 = os.y0 + os.y_ex/2;
 
+    int fnt = FONT(FONT_MED, COLOR_WHITE, 0) | FONT_ALIGN_CENTER | FONT_ALIGN_FILL | FONT_TEXT_WIDTH(100);
+    
     if (mode != old_mode)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*3, y0       - font_med.height/2,"      ");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, " ");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, " ");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, " ");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, " ");
+        bmp_printf(fnt, x0, y0       - font_med.height/2," ");
         
         if (!should_draw_zoom_overlay())
             crop_set_dirty(20);
     }
     
+    fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK)) | FONT_ALIGN_CENTER;
+
     if (mode == 1)
     {
 #ifdef FEATURE_ANALOG_GAIN
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Rec");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Rec+");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-Rec");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "Rec+");
 #endif
 #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Out+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Out");
 #endif
 #ifdef FEATURE_INPUT_SOURCE
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
@@ -1819,33 +1823,33 @@ void display_shortcut_key_hints_lv()
     else if (mode == 2)
     {
 #ifdef FEATURE_EXPO_ISO
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-ISO");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "ISO+");
 #endif
 #ifdef FEATURE_WHITE_BALANCE
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Kel+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Kel");
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
 #endif
     }
     else if (mode == 3)
     {
 #ifdef FEATURE_EXPO_SHUTTER
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Tv ");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-Tv ");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, " Tv+");
 #endif
 #ifdef FEATURE_EXPO_APERTURE
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, " Av+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Av ");
 #endif
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
     {
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Bri");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-Bri");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "Bri+");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Sat+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Sat");
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
     }
     else if (mode == 10)
@@ -1854,10 +1858,10 @@ void display_shortcut_key_hints_lv()
         const int xf = x0;
         const int yf = y0;
         const int xs = 150;
-        bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
-        bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-        bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-        bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+        bmp_printf(fnt, xf - xs, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
+        bmp_printf(fnt, xf + xs, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+        bmp_printf(fnt, xf, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+        bmp_printf(fnt, xf, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
 #endif
     }
 
