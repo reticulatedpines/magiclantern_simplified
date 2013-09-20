@@ -17,7 +17,7 @@ def read_sym(file):
 
 def try_solve_deps(file, deps):
     try: syms = read_sym(file)
-    except: return []
+    except: return None
 
     return [s for s in syms if s in deps]
 
@@ -69,7 +69,7 @@ for c in cameras:
 
     solved = try_solve_deps(cam_sym, deps)
     
-    if solved or not deps:
+    if solved is not None or not deps:
         unsolved_deps = list(set(deps) - set(solved))
         if unsolved_deps:
             not_working_cameras.append((cam_name, unsolved_deps))
