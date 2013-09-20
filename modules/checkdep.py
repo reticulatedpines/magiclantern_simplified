@@ -17,7 +17,7 @@ def read_sym(file):
 
 def try_solve_deps(file, deps):
     try: syms = read_sym(file)
-    except: return None
+    except: return []
 
     return [s for s in syms if s in deps]
 
@@ -69,15 +69,18 @@ for c in cameras:
 
     solved = try_solve_deps(cam_sym, deps)
     
-    if solved is not None or not deps:
+    if solved or not deps:
         unsolved_deps = list(set(deps) - set(solved))
         if unsolved_deps:
             not_working_cameras.append((cam_name, unsolved_deps))
         else:
             working_cameras.append(cam_name)
     elif os.path.isfile(cam_sym):
-        print solved, deps
-        not_checked_cameras.append(cam_name + " (error)")
+        if len(open(cam_sym).read()) == 0:
+            not_checked_cameras.append(cam_name + " (empty sym)")
+        else:
+            print solved, deps
+            not_checked_cameras.append(cam_name + " (error)")
     else:
         not_checked_cameras.append(cam_name)
 
