@@ -1232,7 +1232,9 @@ static int hdr_interpolate()
     {
         for (x = 2; x < w-2; x ++)
         {
-            acc_bright[y % 4] += raw_get_pixel16(x, y);
+            int p = raw_get_pixel16(x, y);
+            p = MIN(p, white);
+            acc_bright[y % 4] += p * p;
         }
     }
 
