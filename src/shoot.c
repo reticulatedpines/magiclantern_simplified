@@ -6395,7 +6395,7 @@ void iso_refresh_display() // in photo mode
             char msg[30];
             snprintf(msg, sizeof(msg), "%d ", raw2iso(lens_info.raw_iso));
             int w = bfnt_draw_char(ICON_ISO, MENU_DISP_ISO_POS_X + 5, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, bg);
-            bfnt_puts(msg, MENU_DISP_ISO_POS_X + w + 10, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, bg);
+            bmp_printf(FONT(FONT_CANON, COLOR_FG_NONLV, bg), MENU_DISP_ISO_POS_X + w + 10, MENU_DISP_ISO_POS_Y + 10, msg);
         }
     }
 #endif
