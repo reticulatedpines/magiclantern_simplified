@@ -170,7 +170,16 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
     s1->runtime_plt_and_got = (char *)(mem + offset);
     /* double the size of the buffer for got and plt entries
        XXX: calculate exact size for them? */
-    offset *= 2;
+    
+    //~ offset *= 2;
+    
+    /* g3gg0 says it will never happen:
+     * "i would really be surprised if we encountered PLT/GOT with the style we use .mo now "
+     * (and he seems right, couldn't trigger that code to run)
+     * 
+     * add 128 bytes just in case, and fail if it ever needs more
+     */
+    offset += 128;
 #endif
 
     if (0 == mem)

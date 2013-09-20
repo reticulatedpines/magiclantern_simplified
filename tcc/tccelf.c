@@ -478,6 +478,8 @@ static addr_t add_jmp_table(TCCState *s1, addr_t val)
 {
     char *p = s1->runtime_plt_and_got + s1->runtime_plt_and_got_offset;
     s1->runtime_plt_and_got_offset += JMP_TABLE_ENTRY_SIZE;
+    if (s1->runtime_plt_and_got_offset >= 128) /* see g3gg0's remark in tccrun.c */
+        tcc_error("too many jump tables");
     /* jmp *0x0(%rip) */
     p[0] = 0xff;
     p[1] = 0x25;
