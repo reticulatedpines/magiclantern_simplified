@@ -4692,7 +4692,7 @@ void take_a_pic(int should_af)
     #endif
     
     #ifdef CONFIG_MODULES
-    if (module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING) != CBR_RET_CONTINUE)
+    if (module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING) == CBR_RET_CONTINUE)
     #endif
     {
         if (is_bulb_mode())
