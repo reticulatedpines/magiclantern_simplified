@@ -273,6 +273,8 @@ def module_check_cams(m):
         if l.strip().startswith("Not checked"):
             next_line = lines[i+1]
             cams = next_line.split(",")
+            for i in range(len(cams)):
+                cams[i] = re.sub("\(.*\)", "", cams[i])
             cams = [cam_longname(c.strip()) for c in cams if len(c.strip())]
             cams = [(c, "?") for c in cams]
             cameras += cams
