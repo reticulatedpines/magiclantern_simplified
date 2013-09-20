@@ -63,5 +63,5 @@ include $(TOP_DIR)/Makefile.filerules
 HGVERSION:= $(shell hg parents --template 'hgid: {node|short}')
 .PHONY: rebuild_hgstamp
 rebuild_hgstamp:
-	@[ -f $@ ] || touch $@
+	@[ -f $hgstamp ] || touch $hgstamp
 	@echo $(HGVERSION) | cmp -s hgstamp - || echo $(HGVERSION) > hgstamp
