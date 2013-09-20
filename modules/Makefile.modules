@@ -18,6 +18,17 @@ MODULE_STRINGS   = module_strings.h
 
 all:: rebuild_hgstamp $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 nodep:: rebuild_hgstamp $(MODULE_OUTPUT) $(MODULE_SYM)
+delete_if_failed:
+	@echo ""
+	@echo "Building module $(MODULE_NAME)..."
+	@make all --no-print-directory || { \
+		echo ""; \
+		echo "********************************************************"; \
+		echo "WARNING: module $(MODULE_NAME) failed to build, deleting"; \
+		echo "********************************************************"; \
+		echo ""; \
+		make clean; \
+	 }
 
 -include $(MODULE_DEPS)
 
@@ -53,4 +64,4 @@ HGVERSION:= $(shell hg parents --template 'hgid: {node|short}')
 .PHONY: rebuild_hgstamp
 rebuild_hgstamp:
 	@[ -f $@ ] || touch $@
-	$(call build,HGSTAMP,echo $(HGVERSION) | cmp -s hgstamp - || echo $(HGVERSION) > hgstamp)
+	@echo $(HGVERSION) | cmp -s hgstamp - || echo $(HGVERSION) > hgstamp
