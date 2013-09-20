@@ -742,7 +742,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         int m = median_short(aux, num);
         all_medians[ref] = m;
         
-        if (num > 100 && ref > black && ref < white - 1000 && m > black && m < white - 1000)
+        if (num > 32 && ref > black && ref < white - 1000 && m > black && m < white - 1000)
         {
             medians_x[num_medians] = ref - black;
             medians_y[num_medians] = m - black;
@@ -774,6 +774,14 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     double a = tan(ma / 1000000.0);
     double b = my - a * mx;
 
+    if (ABS(b) > 100)
+    {
+        /* sum ting wong */
+        b = 0;
+        a = (double) my / mx;
+        printf("Black delta looks bad, skipping correction\n");
+        goto after_black_correction;
+    }
 
     /* adjust ISO 100 nonlinearly so it matches the y = ax + b */
     
@@ -832,6 +840,8 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         }
     }
 
+after_black_correction:
+
 #if 0
     FILE* f = fopen("iso-curve.m", "w");
 
@@ -869,7 +879,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     if (factor < 1.2 || !isfinite(factor))
     {
         printf("Doesn't look like interlaced ISO\n");
-        return 0;
+        factor = 1;
     }
     
     *corr_ev = log2(factor);
