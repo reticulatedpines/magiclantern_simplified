@@ -939,7 +939,9 @@ static MENU_UPDATE_FUNC(mem_total_display)
             int line = memcheck_mallocbuf[buf_pos].line;
             char* task_name = (char*) memcheck_mallocbuf[buf_pos].task_name;
             char* allocator_name = allocators[allocator].name;
-            bmp_printf(FONT_MED, x, y, "%s%s from %s:%d task %s => %s\n", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags), file, line, task_name, allocator_name);
+            bmp_printf(FONT_MED, x, y, "%s%s", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags));
+            bmp_printf(FONT_MED, 180, y, "%s:%d task %s", file, line, task_name);
+            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 710, y, allocator_name);
             y += font_med.height;
         }
         
