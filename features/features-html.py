@@ -255,12 +255,8 @@ for mo in modules:
 # called only for modules that load
 def module_get_status(m, cam):
     c = cam_shortname(cam)
-
-    # this loads everywhere, but only works on 5D3 and 7D
-    if m == "dual_iso":
-        return c in ["5D3", "7D"]
         
-    # no idea, assume it's OK if it loads
+    # assume it's OK if it loads
     return True
 
 def module_check_cams(m):
