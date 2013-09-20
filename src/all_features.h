@@ -178,11 +178,6 @@
     #define FEATURE_SNAP_SIM
 
 
-#ifdef CONFIG_RAW_LIVEVIEW
-    #define FEATURE_SILENT_PIC_RAW_BURST
-    //~ #define FEATURE_SILENT_PIC_RAW // - compatibility mode; define only one of those, not both
-#endif
-
 #ifdef CONFIG_RAW_PHOTO
     #define FEATURE_POST_DEFLICKER
 #endif
