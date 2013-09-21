@@ -288,17 +288,15 @@ static int auto_ettr_get_correction()
         {
             /* scene changed? measurements from previous shot not confirmed or vary too much?
              * 
-             * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 10EV */
+             * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 13EV */
             float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
             //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
-            float corr = - log2f(2 + overexposed);
+            float corr = - log2f(1 + overexposed*overexposed);
             
             /* with dual ISO, the cost of underexposing is not that high, so prefer it to improve convergence */
-            /* careful: only apply it if the image is really overexposed (area > 5x the ignored one) */
-            /* otherwise it may just loop without converging */
-            if (dual_iso && overexposed*10 > MAX(10, auto_ettr_ignore * 5))
-                corr -= 2;
+            if (dual_iso)
+                corr *= 3;
             
             correction = MIN(correction, corr);
         }
