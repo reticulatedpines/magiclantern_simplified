@@ -823,13 +823,8 @@ void play_lv_key_step()
         // for photos, we need to go down 2 steps
         // for movies, we only need 1 step
         if (pure_play_photo_mode) {
-            NotifyBox(500,"PURE PLAY");
             fake_simple_button(BGMT_PRESS_DOWN);
-        } else {
-            NotifyBox(500,"STOP PLAY");
-
         }
-        NotifyBox(500,"%08x",  get_current_dialog_handler());
 
         #ifdef BGMT_UNPRESS_UDLR
         fake_simple_button(BGMT_UNPRESS_UDLR);
