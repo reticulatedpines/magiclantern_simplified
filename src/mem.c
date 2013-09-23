@@ -21,6 +21,9 @@
 #define HISTORY_ENTRIES 256
 #define TASK_NAME_SIZE 12
 
+#define JUST_FREED 0xF12EEEED   /* FREEED */
+#define UNTRACKED 0xFFFFFFFF
+
 typedef void* (*mem_init_func)();
 typedef void* (*mem_alloc_func)(size_t size);
 typedef void (*mem_free_func)(void* ptr);
@@ -178,6 +181,7 @@ struct memcheck_entry
 static struct memcheck_entry memcheck_mallocbuf[MEMCHECK_ENTRIES];
 static unsigned int memcheck_bufpos = 0;
 
+static volatile int last_error = 0;
 static char last_error_msg_short[20] = "";
 static char last_error_msg[100] = "";
 
@@ -240,29 +244,101 @@ static const char * format_memory_size_and_flags( unsigned size, unsigned flags)
     return str;
 }
 
-static unsigned int memcheck_check(unsigned int entry)
+/* second arg is optional, -1 if not available */
+static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
 {
-    unsigned int ptr = memcheck_mallocbuf[entry].ptr;
     unsigned int failed = 0;
+    unsigned int failed_pos = 0;
     
     for(int pos = sizeof(struct memcheck_hdr); pos < MEM_SEC_ZONE; pos++)
     {
         unsigned char value = ((unsigned char *)ptr)[pos];
-        // console_printf("check %d %x\n ", pos, value);
+        // console_printf("free check %d %x\n ", pos, value);
         if (value != 0xA5)
+        {
             failed |= 2;
+            failed_pos = pos;
+        }
     }
     for(int pos = 0; pos < MEM_SEC_ZONE; pos++)
     {
         int pos2 = MEM_SEC_ZONE + ((struct memcheck_hdr *)ptr)->length + pos;
         unsigned char value = ((unsigned char *)ptr)[pos2];
-        // console_printf("check %d %x\n ", pos2, value);
+        // console_printf("free check %d %x\n ", pos2, value);
         if (value != 0xA5)
+        {
             failed |= 4;
-    }  
-    if((((struct memcheck_hdr *)ptr)->id != 0xFFFFFFFF) && (((struct memcheck_hdr *)ptr)->id != entry))
+            failed_pos = pos2;
+        }
+    }
+
+    unsigned int id = ((struct memcheck_hdr *)ptr)->id;
+    int id_ok = 0;
+
+    if (id == UNTRACKED)
+    {
+        /* we no longer keep track of this block => nothing to check */
+    }
+    else if (id == JUST_FREED) /* already freed? */
+    {
+        failed |= 16;
+    }
+    else if (id != entry && entry != 0xFFFFFFFF) /* wrong ID? */
     {
         failed |= 8;
+    }
+    else if (id >= MEMCHECK_ENTRIES) /* out of range? */
+    {
+        failed |= 8;
+    }
+    else /* ID looks alright */
+    {
+        id_ok = 1;
+    }
+
+    if (failed && !last_error)
+    {
+        last_error = failed;
+
+        int flags = ((struct memcheck_hdr *)ptr)->flags;
+        int size = ((struct memcheck_hdr *)ptr)->length;
+        int allocator = ((struct memcheck_hdr *)ptr)->allocator;
+
+        char* file = "unk";
+        int line = 0;
+        char* task_name = "unk";
+        char* allocator_name = "unk";
+        if (id_ok)
+        {
+            file = (char*) memcheck_mallocbuf[id].file;
+            line = memcheck_mallocbuf[id].line;
+            task_name = memcheck_mallocbuf[id].task_name;
+        }
+        else
+        {
+            task_name = get_task_name_from_id((int)get_current_task());
+        }
+        
+        if (allocator >= 0 && allocator < COUNT(allocators))
+        {
+            allocator_name = allocators[allocator].name;
+        }
+
+        char err_flags[20] = "";
+        if (failed & 2) STR_APPEND(err_flags, "underflow,");
+        if (failed & 4) STR_APPEND(err_flags, "overflow,");
+        if (failed & 8) STR_APPEND(err_flags, "ID error,");
+        if (failed & 16) STR_APPEND(err_flags, "double free,");
+        if (failed & ~(2|4|8|16)) STR_APPEND(err_flags, "unknown error,");
+        err_flags[strlen(err_flags)-1] = 0;
+        int index_err = (failed & 6);
+        snprintf(last_error_msg_short, sizeof(last_error_msg_short), err_flags);
+        snprintf(last_error_msg, sizeof(last_error_msg),
+            "%s[%d/%d] %s(%s) at %s:%d, task %s.",
+            err_flags, index_err ? failed_pos - MEM_SEC_ZONE : 0, index_err ? size : 0,
+            allocator_name, format_memory_size_and_flags(size, flags),
+            file, line, task_name
+        );
     }
     
     memcheck_mallocbuf[entry].failed |= failed;
@@ -270,7 +346,7 @@ static unsigned int memcheck_check(unsigned int entry)
     return failed;
 }
 
-static unsigned int memcheck_get_failed(char **file, unsigned int *line, char** task_name)
+static unsigned int memcheck_get_failed()
 {
     unsigned int buf_pos = 0;
     
@@ -278,18 +354,11 @@ static unsigned int memcheck_get_failed(char **file, unsigned int *line, char** 
     {
         if(memcheck_mallocbuf[buf_pos].ptr)
         {
-            memcheck_check(buf_pos);
+            memcheck_check(memcheck_mallocbuf[buf_pos].ptr, buf_pos);
             
             /* marked as failed? */
             if(memcheck_mallocbuf[buf_pos].failed)
             {
-                *file = memcheck_mallocbuf[buf_pos].file;
-                *line = memcheck_mallocbuf[buf_pos].line;
-                *task_name = memcheck_mallocbuf[buf_pos].task_name;
-                /*
-                memcheck_mallocbuf[buf_pos].failed = 0;
-                memcheck_mallocbuf[buf_pos].ptr = 0;
-                */
                 return memcheck_mallocbuf[buf_pos].failed;
             }
         }
@@ -309,7 +378,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
         
         if(--tries <= 0)
         {
-            ((struct memcheck_hdr *)ptr)->id = 0xFFFFFFFF;
+            ((struct memcheck_hdr *)ptr)->id = UNTRACKED;
             sei(state);
             return;
         }
@@ -329,14 +398,15 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
 static void memcheck_remove(unsigned int ptr, unsigned int failed)
 {
     unsigned int buf_pos = ((struct memcheck_hdr *)ptr)->id;
+    ((struct memcheck_hdr *)ptr)->id = JUST_FREED;
     
-    if(buf_pos != 0xFFFFFFFF && (failed || memcheck_mallocbuf[buf_pos].ptr != ptr))
+    if(buf_pos != UNTRACKED && (failed || memcheck_mallocbuf[buf_pos].ptr != ptr))
     {
         for(buf_pos = 0;buf_pos < MEMCHECK_ENTRIES;buf_pos++)
         {
             if(memcheck_mallocbuf[buf_pos].ptr == ptr)
             {
-                memcheck_mallocbuf[buf_pos].ptr = 0xFFFFFFFF;
+                memcheck_mallocbuf[buf_pos].ptr = INVALID_PTR;
                 memcheck_mallocbuf[buf_pos].failed |= (0x00000001 | failed);
             }            
         }
@@ -401,52 +471,16 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
 static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
 {
     unsigned int ptr = ((unsigned int)buf - MEM_SEC_ZONE);
-    unsigned int failed = 0;
-    unsigned int failed_pos = 0;
-    
-    for(int pos = sizeof(struct memcheck_hdr); pos < MEM_SEC_ZONE; pos++)
-    {
-        unsigned char value = ((unsigned char *)ptr)[pos];
-        // console_printf("free check %d %x\n ", pos, value);
-        if (value != 0xA5)
-        {
-            failed |= 2;
-            failed_pos = pos;
-        }
-    }
-    for(int pos = 0; pos < MEM_SEC_ZONE; pos++)
-    {
-        int pos2 = MEM_SEC_ZONE + ((struct memcheck_hdr *)ptr)->length + pos;
-        unsigned char value = ((unsigned char *)ptr)[pos2];
-        // console_printf("free check %d %x\n ", pos2, value);
-        if (value != 0xA5)
-        {
-            failed |= 4;
-            failed_pos = pos2;
-        }
-    }
-    
-    if (failed)
-    {
-        int id = ((struct memcheck_hdr *)ptr)->id;
-        char* file = (char*) memcheck_mallocbuf[id].file;
-        int line = memcheck_mallocbuf[id].line;
-        char err_flags[20] = "";
-        if (failed & 2) STR_APPEND(err_flags, "underflow,");
-        if (failed & 4) STR_APPEND(err_flags, "overflow,");
-        if (failed & 8) STR_APPEND(err_flags, "internal error,");
-        if (failed & ~(2|4|8)) STR_APPEND(err_flags, "unknown error,");
-        err_flags[strlen(err_flags)-1] = 0;
-        snprintf(last_error_msg_short, sizeof(last_error_msg_short), err_flags);
-        snprintf(last_error_msg, sizeof(last_error_msg),
-            "%s[%d](%s) at %s:%d, task %s.",
-            err_flags, failed_pos - MEM_SEC_ZONE, 
-            format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags),
-            file, line, get_task_name_from_id((int)get_current_task())
-        );
-    }
+
+    int failed = memcheck_check(ptr, 0xFFFFFFFF);
     
     memcheck_remove(ptr, failed);
+    
+    /* if there are errors, do not free this block */
+    if (failed)
+    {
+        return;
+    }
 
     /* keep track of allocated memory and update history */
     int len = ((struct memcheck_hdr *)ptr)->length;
@@ -458,6 +492,7 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
     history[history_index].alloc_total = alloc_total_with_memcheck;
     history_index = mod(history_index + 1, HISTORY_ENTRIES);
 
+    /* tell the backend to free this block */
     int requires_dma = flags & MEM_DMA;
     if (requires_dma)
     {
@@ -880,6 +915,13 @@ static MENU_UPDATE_FUNC(mem_pool_display)
 
 static MENU_UPDATE_FUNC(mem_error_display)
 {
+    if (strlen(last_error_msg) == 0)
+    {
+        /* no error caught yet? do a quick check of all allocated stuff */
+        /* this will fill last_error strings if there's any error */
+        memcheck_get_failed();
+    }
+    
     if (strlen(last_error_msg))
     {
         MENU_SET_NAME("Memory Error");
@@ -887,20 +929,6 @@ static MENU_UPDATE_FUNC(mem_error_display)
         MENU_SET_WARNING(MENU_WARN_ADVICE, last_error_msg);
         MENU_SET_ICON(MNI_RECORD, 0); /* red dot */
         return;
-    }
-    
-    char *file = (void *)0;
-    unsigned int line = 0;
-    char* task_name = 0;
-    
-    unsigned int id = memcheck_get_failed(&file, &line, &task_name);
-    if(id)
-    {
-        MENU_SET_NAME("Memory Error");
-        MENU_SET_VALUE("%x", id);
-        MENU_SET_RINFO("%s:%d", file, line);
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Last error: %x at %s:%d, task %s.", id, file, line, task_name);
-        MENU_SET_ICON(MNI_RECORD, 0); /* red dot */
     }
 }
 

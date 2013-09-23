@@ -720,8 +720,11 @@ static void bsod()
 
 static void run_test()
 {
-    malloc(2*1024*1024);
+    void* p = malloc(2*1024*1024);
+    free(p);
+    free(p); /* the backend should catch this */
     return;
+
    //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
