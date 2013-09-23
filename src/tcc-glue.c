@@ -11,7 +11,8 @@
 
 void exit(int code) 
 {
-    console_printf("exit(%d)\n", code); 
+    console_printf("exit(%d)\n", code);
+    console_show();
     while(1) msleep(100); // fixme: stop the task and exit cleanly
 }
 

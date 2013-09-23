@@ -212,7 +212,7 @@ static void _module_load_all(uint32_t list_only)
     if(module_load_symbols(state, MAGIC_SYMBOLS) < 0)
     {
         NotifyBox(2000, "Missing symbol file: " MAGIC_SYMBOLS );
-        tcc_delete(state);
+        tcc_delete(state); console_show();
         return;
     }
 
@@ -221,7 +221,7 @@ static void _module_load_all(uint32_t list_only)
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "Module dir missing" );
-        tcc_delete(state);
+        tcc_delete(state); console_show();
         return;
     }
 
@@ -386,7 +386,7 @@ static void _module_load_all(uint32_t list_only)
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Linking failed");
             }
         }
-        tcc_delete(state);
+        tcc_delete(state); console_show();
         return;
     }
     
