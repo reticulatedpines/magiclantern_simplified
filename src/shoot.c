@@ -135,6 +135,7 @@ static CONFIG_INT( "interval.scripts", interval_scripts, 0); //1 bash, 2 ms-dos,
 
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
+static int interval_time = -1;
 
 
 #define TRAP_NONE    0
@@ -383,7 +384,7 @@ static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 static MENU_UPDATE_FUNC(timelapse_calc_display)
 {
-    int d = timer_values[interval_timer_index];
+    int d = get_interval_time();
     d = MAX(d, raw2shutter_ms(lens_info.raw_shutter)/1000);
     int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after, (int)avail_shot) : (int)avail_shot;
     int total_time_s = d * total_shots;
@@ -458,6 +459,9 @@ static MENU_SELECT_FUNC(interval_timer_toggle)
         *ptr = mod(*ptr + delta - 1, COUNT(timer_values) - 1) + 1;
     else
         *ptr = mod(*ptr + delta, COUNT(timer_values));
+    
+    if(priv == &interval_timer_index)
+        set_interval_index(interval_timer_index);
 }
 
 /* interface with ETTR module */
@@ -470,7 +474,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
     int p = CURRENT_VALUE;
     if (p)
     {
-        int d = timer_values[interval_timer_index];
+        int d = get_interval_time();
         MENU_SET_VALUE("ON, %s",
             format_time_hours_minutes_seconds(d)
         );
@@ -4605,6 +4609,29 @@ void hdr_create_script(int f0, int focus_stack)
 #endif // HDR/FST
 
 #ifdef FEATURE_INTERVALOMETER
+
+int get_interval_count()
+{
+    return intervalometer_pictures_taken;
+}
+
+int get_interval_time()
+{
+    if(interval_time == -1)
+        interval_time = timer_values[interval_timer_index];
+    return interval_time;
+}
+
+void set_interval_time(int seconds)
+{
+    interval_time = seconds;
+}
+
+void set_interval_index(int index)
+{
+    interval_time = timer_values[index];
+}
+
 // create a post script for sorting intervalometer sequences,
 // starting from file number f0 till the current file_number
 void interval_create_script(int f0)
@@ -6188,7 +6215,7 @@ shoot_task( void* unused )
             msleep(20);
             while (SECONDS_REMAINING > 0 && !ml_shutdown_requested)
             {
-                int dt = timer_values[interval_timer_index];
+                int dt = get_interval_time();
                 msleep(dt < 5 ? 20 : 300);
 
                 if (!intervalometer_running) break; // from inner loop only
@@ -6243,7 +6270,7 @@ shoot_task( void* unused )
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
-            int dt = timer_values[interval_timer_index];
+            int dt = get_interval_time();
             // compute the moment for next shot; make sure it stays somewhat in sync with the clock :)
             //~ intervalometer_next_shot_time = intervalometer_next_shot_time + dt;
             intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
@@ -6272,6 +6299,7 @@ shoot_task( void* unused )
             
             #ifdef CONFIG_MODULES
             auto_ettr_intervalometer_wait();
+            module_exec_cbr(CBR_INTERVALOMETER);
             #endif
 
             #ifdef FEATURE_FOCUS_RAMPING
