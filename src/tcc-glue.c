@@ -93,7 +93,7 @@ int open(const char *pathname, int flags)
 int read(int fd, void *buf, int size)
 {
     filehandle_t *handle = (filehandle_t *)fd;
-    int count = (size + handle->pos < handle->size)? (size) : (handle->size - handle->pos);
+    int count = (size + handle->pos < handle->size)? (size) : MAX(handle->size - handle->pos, 0);
     
     memcpy(buf, ((void*)&handle->data) + handle->pos, count);
     handle->pos += count;
