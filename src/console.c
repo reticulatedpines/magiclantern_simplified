@@ -230,9 +230,6 @@ static void console_draw(int tiny)
     if (skipped_lines < 5) skipped_lines = 0;
     if (chopped_columns < 5) chopped_columns = 0;
 
-    /* can we use large fonts? */
-    int can_use_large_font = (skipped_lines > 7 && chopped_columns > 25 && !tiny);
-
     /* top-left corner of "full" console (without lines/columns skipped) */
     unsigned x0 =  720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
     unsigned y0 =  480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
@@ -247,9 +244,8 @@ static void console_draw(int tiny)
     {
         yc = y0 + fontspec_font(CONSOLE_FONT)->height * skipped_lines;
     }
-    if (can_use_large_font) yc -= (fontspec_font(FONT_LARGE)->height - fontspec_font(CONSOLE_FONT)->height) * (CONSOLE_H - skipped_lines);
 
-    int fnt = FONT(can_use_large_font ? FONT_LARGE : CONSOLE_FONT,COLOR_WHITE, (lv || PLAY_OR_QR_MODE) ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
+    int fnt = FONT(CONSOLE_FONT,COLOR_WHITE, (lv || PLAY_OR_QR_MODE) ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
 
     int xa = (x0 & ~3) - 1;
     int ya = (yc-1);
