@@ -175,11 +175,23 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
     
     /* g3gg0 says it will never happen:
      * "i would really be surprised if we encountered PLT/GOT with the style we use .mo now "
-     * (and he seems right, couldn't trigger that code to run)
      * 
-     * add 128 bytes just in case, and fail if it ever needs more
+     * but it does happen with RscMgr boot
      */
-    offset += 128;
+
+    /* see how much extra RAM is needed in each section */
+    for(i = 1; i < s1->nb_sections; i++) {
+        s = s1->sections[i];
+        if (s->reloc)
+        {
+            int extra_ram = get_plt_got_size_for_relocate_section(s1, s);
+            if (extra_ram)
+            {
+                offset += extra_ram;
+                console_printf("%s: %d\n", s->name, extra_ram);
+            }
+        }
+    }
 #endif
 
     if (0 == mem)
