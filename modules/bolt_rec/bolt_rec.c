@@ -39,9 +39,11 @@
 
 #include "raw.h"
 
-#define LOG_ENTRIES   100
-#define MAX_SCANLINES 20
-#define MAX_WIDTH     6000
+#define LOG_ENTRIES   50
+//~ #define MAX_SCANLINES 20
+#define MAX_SCANLINES 5
+//~ #define MAX_WIDTH     6000
+#define MAX_WIDTH     2000
 
 /* interface functions required by raw_rec */
 unsigned int raw_rec_cbr_starting();
