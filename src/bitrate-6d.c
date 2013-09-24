@@ -1,6 +1,7 @@
 /** \file
  * Bitrate
  */
+
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -11,6 +12,8 @@
 #include "gui.h"
 #include "lens.h"
 #include "cache_hacks.h"
+
+#if 0 /* not minimally invasive; patches Canon firmware even if the settings are disabled */
 
 static CONFIG_INT("h264.bitrate", bitrate, 0);
 static CONFIG_INT("h264.initqp", initqp, 0);
@@ -718,3 +721,14 @@ bitrate_task( void* unused )
 }
 
 TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
+
+
+#else /* dummy stubs, just to compile */
+PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+PROP_INT(PROP_FREE_SPACE, free_space_raw);
+int hibr_should_record_wav() { return 0; }
+int is_mvr_buffer_almost_full() { return 0; }
+void movie_indicators_show() {}
+void time_indicator_show() {}
+void bitrate_mvr_log(char* mvr_logfile_buffer) {}
+#endif
