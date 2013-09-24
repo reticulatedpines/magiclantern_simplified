@@ -14,16 +14,27 @@ static struct edmac_info dst_edmac_info;
 /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x3;
+uint32_t edmac_write_chan = 0x03;
+/*
+50D
+R 2-15
+W 3-8 10-15
+*/
 #elif defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x13;
+//~ r 2 3 5 7 8 9 10 11-13
+//~ w 3 4 6 10 11-15
 #elif defined(CONFIG_60D)
 uint32_t edmac_read_chan = 0x19;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
 uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
+#elif defined(CONFIG_6D)
+uint32_t edmac_read_chan = 0x19;  /* Read: 0 5 7 11 14 15 */
+uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
 #elif defined(CONFIG_7D)
-uint32_t edmac_read_chan = 0x19;  
-uint32_t edmac_write_chan = 0x04;
+uint32_t edmac_read_chan = 0x19;  /*Read 1 2 3 4 5 7 8 9 10 11 12 13 14 15 */
+uint32_t edmac_write_chan = 0x05;	/* Write 3 4 5 6 7 8 10 11 12 13 14 15 */
+//5 zoom, 6 not
 #else
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x11;
