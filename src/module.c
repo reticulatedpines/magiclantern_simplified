@@ -353,16 +353,6 @@ static void _module_load_all(uint32_t list_only)
     
     if (size > 0)
     {
-        /* TCC allocates up to 2x the memory needed (e.g. raw_rec: uses ~17K but TCC reserves 34) */
-        /* raw_rec + file_man + pic_view + ettr: used 37.2K, allocated 74.4K */
-        /** tccrun.c:
-         * / * double the size of the buffer for got and plt entries
-         *  XXX: calculate exact size for them? * /
-         *  offset *= 2;
-         */
-        /* but we can recover it; the space will add up when loading large and/or many modules */
-
-        size = ALIGN32SUP(size);
         void* buf = (void*) tcc_malloc(size);
         
         reloc_status = tcc_relocate(state, buf);
