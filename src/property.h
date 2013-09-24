@@ -26,6 +26,7 @@
 #define _property_h_
 
 #define PROP_CAM_MODEL          0x00000002
+#define PROP_BODY_ID            0x01000006
 #define PROP_FIRMWARE_VER       0x02000001
 
 #define PROP_OPTICAL_CORRECT_PARAM 0x0B000000
@@ -297,7 +298,8 @@
 #define PROP_MLU 0x80000047
 #endif
 
-#ifdef CONFIG_6D
+#ifdef CONFIG_6D //May work for others.
+#define PROP_HI_ISO_NR 0x80000049 //Len 4, 4 is multishot
 #define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MULTIPLE_EXPOSURE_SETTING 0x8000003F
