@@ -1178,7 +1178,7 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
 #endif
 
     /* dual ISO enabled? */
-    dr += module_exec(NULL, "dual_iso_get_dr_improvement", 0);
+    dr += dual_iso_get_dr_improvement();
 
     return dr;
 }
