@@ -4497,7 +4497,9 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
+    #if !defined(CONFIG_EOSM) // EOS M won't open otherwise
     if (recording) return;
+    #endif
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
@@ -4580,7 +4582,7 @@ static void menu_close()
     
     close_canon_menu();
 	#ifdef CONFIG_EOSM
-	if (recording)
+	if (recording > 0)
 	SetGUIRequestMode(0);
 	#endif
     canon_gui_enable_front_buffer(0);
