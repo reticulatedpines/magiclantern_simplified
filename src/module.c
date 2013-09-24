@@ -44,6 +44,8 @@ char *module_lockfile = MODULE_PATH"LOADING.LCK";
 static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
 #define MSG_MODULE_UNLOAD_ALL 2
+#define MSG_MODULE_LOAD_OFFLINE_STRINGS 3 /* argument: module index in high half (FFFF0000) */
+#define MSG_MODULE_UNLOAD_OFFLINE_STRINGS 4 /* same argument */
 
 void module_load_all(void)
 { 
@@ -1015,13 +1017,14 @@ static int startswith(const char* str, const char* prefix)
     return 1;
 }
 
+/* used if we don't have any module strings */
+static module_strpair_t module_default_strings [] = {
+    {0, 0}
+};
+
 static MENU_UPDATE_FUNC(module_menu_update_entry)
 {
     int mod_number = (int) entry->priv;
-
-    static module_strpair_t default_strings [] = {
-        {0, 0}
-    };
 
     if(module_list[mod_number].valid)
     {
@@ -1072,7 +1075,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             MENU_SET_ICON(MNI_OFF, 0);
             MENU_SET_ENABLED(1);
             MENU_SET_VALUE(module_list[mod_number].status);
-            if (module_list[mod_number].strings && module_list[mod_number].strings != default_strings)
+            if (module_list[mod_number].strings && module_list[mod_number].strings != module_default_strings)
             {
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s. Press %s for more info.", module_list[mod_number].long_status, Q_BTN_NAME);
             }
@@ -1106,37 +1109,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             char* fn = module_list[mod_number].long_filename;
             if (fn)
             {
-                /* default value, if it won't work */
-                module_list[mod_number].strings = default_strings;
-                
-                module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
-
-                if (strings)
-                {
-                    int looks_ok = 1;
-                    
-                    /* relocate strings from the unprocessed elf section */
-                    /* question: is the string structure always at the very beginning of the section? */
-                    for (module_strpair_t * str = strings; str->name != NULL; str++)
-                    {
-                        if ((intptr_t)str->name < 10000) /* does it look like a non-relocated pointer? */
-                        {
-                            str->name = (void*) str->name + (intptr_t) strings;
-                            str->value = (void*) str->value + (intptr_t) strings;
-                        }
-                        else
-                        {
-                            looks_ok = 0;
-                            break;
-                        }
-                    }
-                    
-                    if (looks_ok)
-                    {
-                        /* use as module strings */
-                        module_list[mod_number].strings = strings;
-                    }
-                }
+                msg_queue_post(module_mq, MSG_MODULE_LOAD_OFFLINE_STRINGS | (mod_number << 16));
             }
         }
     }
@@ -1147,12 +1120,11 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         if (
                 !module_list[mod_number].valid &&
                 module_list[mod_number].strings && 
-                module_list[mod_number].strings != default_strings
+                module_list[mod_number].strings != module_default_strings
             )
         {
             /* module strings loaded from elf, module not loaded, clean them up */
-            FreeMemory(module_list[mod_number].strings);
-            module_list[mod_number].strings = 0;
+            msg_queue_post(module_mq, MSG_MODULE_UNLOAD_OFFLINE_STRINGS | (mod_number << 16));
         }
     }
 
@@ -1169,7 +1141,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         if (module_list[mod_number].valid == module_list[mod_number].enabled)
         {
             const char* name = module_get_string(mod_number, "Name");
-            if (name && !startswith(info->name, name))
+            if (name)
             {
                 int fg = COLOR_GRAY(40);
                 int bg = COLOR_BLACK;
@@ -1613,7 +1585,55 @@ static void module_init()
     module_menu_update();
 }
 
-void module_load_task(void* unused) 
+static void module_load_offline_strings(int mod_number)
+{
+    if (!module_list[mod_number].strings)
+    {
+        /* default value, if it won't work */
+        module_list[mod_number].strings = module_default_strings;
+        
+        char* fn = module_list[mod_number].long_filename;
+        module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
+
+        if (strings)
+        {
+            int looks_ok = 1;
+            
+            /* relocate strings from the unprocessed elf section */
+            /* question: is the string structure always at the very beginning of the section? */
+            for (module_strpair_t * str = strings; str->name != NULL; str++)
+            {
+                if ((intptr_t)str->name < 10000) /* does it look like a non-relocated pointer? */
+                {
+                    str->name = (void*) str->name + (intptr_t) strings;
+                    str->value = (void*) str->value + (intptr_t) strings;
+                }
+                else
+                {
+                    looks_ok = 0;
+                    break;
+                }
+            }
+            
+            if (looks_ok)
+            {
+                /* use as module strings */
+                module_list[mod_number].strings = strings;
+            }
+        }
+    }
+}
+
+static void module_unload_offline_strings(int mod_number)
+{
+    if (module_list[mod_number].strings)
+    {
+        FreeMemory(module_list[mod_number].strings);
+        module_list[mod_number].strings = 0;
+    }
+}
+
+static void module_load_task(void* unused) 
 {
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
 
@@ -1651,7 +1671,7 @@ void module_load_task(void* unused)
         int err = msg_queue_receive(module_mq, (struct event**)&msg, 200);
         if (err) continue;
         
-        switch(msg)
+        switch(msg & 0xFFFF)
         {
             case MSG_MODULE_LOAD_ALL:
                 _module_load_all(0);
@@ -1664,6 +1684,20 @@ void module_load_task(void* unused)
                 module_menu_update();
                 beep();
                 break;
+            
+            case MSG_MODULE_LOAD_OFFLINE_STRINGS:
+            {
+                int mod_number = msg >> 16;
+                module_load_offline_strings(mod_number);
+                break;
+            }
+            
+            case MSG_MODULE_UNLOAD_OFFLINE_STRINGS:
+            {
+                int mod_number = msg >> 16;
+                module_unload_offline_strings(mod_number);
+                break;
+            }
             
             default:
                 console_printf("invalid msg: %d\n", msg);
