@@ -5793,6 +5793,8 @@ int handle_livev_playback(struct event * event, int button)
             #else
             case BGMT_PRESS_SET:
             #endif
+                if (QR_MODE && event->param == BGMT_PRESS_SET)  /* conflicts with voice tags */
+                    return 1;
                 spotmeter_playback_offset_x = spotmeter_playback_offset_y = 0;
                 livev_playback_refresh();
                 return 0;
