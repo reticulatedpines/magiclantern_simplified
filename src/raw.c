@@ -558,15 +558,16 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-/*      
-        #if defined(CONFIG_50D) // NEED Raw dump to get correct values
-        width = 5344;
-        height = 3516;
-        skip_left = 142;
-        skip_right = 0;
-        skip_top = 50;
+      
+        #if defined(CONFIG_50D) // cr2 file
+        width = 4832;
+        height = 3228;
+        skip_left = 72;
+        skip_right = 4832-4823;
+        skip_top = 56;
+        skip_bottom = 3228-3223;
         #endif 
-*/
+
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         width = 5280;
