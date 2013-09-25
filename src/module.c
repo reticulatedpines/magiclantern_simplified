@@ -13,6 +13,7 @@
 #error Not defined file name with symbols
 #endif
 #define MAGIC_SYMBOLS                 CARD_DRIVE"ML/MODULES/"CONFIG_MODULES_MODEL_SYM
+#define MODULE_CONFIG_PATH CARD_DRIVE"ML/SETTINGS/"
 
 /* unloads TCC after linking the modules */
 /* note: this breaks module_exec and ETTR */
@@ -263,7 +264,7 @@ static void _module_load_all(uint32_t list_only)
             
             /* check for a .dis file that tells the module is disabled */
             char enable_file[MODULE_FILENAME_LENGTH];
-            snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[module_cnt].name);
+            snprintf(enable_file, sizeof(enable_file), MODULE_CONFIG_PATH"%s.en", module_list[module_cnt].name);
             
             /* if enable-file is nonexistent, dont load module */
             if(!config_flag_file_setting_load(enable_file))
@@ -449,7 +450,7 @@ static void _module_load_all(uint32_t list_only)
         if(module_list[mod].enabled && module_list[mod].valid && !module_list[mod].error)
         {
             char filename[64];
-            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_CONFIG_PATH, module_list[mod].name);
             module_config_load(filename, &module_list[mod]);
         }
     }
@@ -974,7 +975,7 @@ static MENU_SELECT_FUNC(module_menu_update_select)
     int mod_number = (int) priv;
     
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
-    snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[mod_number].name);
+    snprintf(enable_file, sizeof(enable_file), MODULE_CONFIG_PATH"%s.en", module_list[mod_number].name);
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
 
@@ -1705,7 +1706,7 @@ void module_save_configs()
         {
             /* save config */
             char filename[64];
-            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_CONFIG_PATH, module_list[mod].name);
 
             uint32_t ret = module_config_save(filename, &module_list[mod]);
             if(ret)
