@@ -56,6 +56,8 @@ volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 #endif
 
 volatile int shooting_mode;
+volatile PROP_INT(PROP_SHOOTING_MODE, shooting_mode_custom);
+
 PROP_HANDLER(PROP_SHOOTING_MODE_2)
 {
     shooting_mode = buf[0];
@@ -77,7 +79,11 @@ volatile int lv_paused = 0; // not a property, but related
 bool FAST is_native_movie_mode()
 {
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
-    return lv && lv_movie_select == LVMS_ENABLE_MOVIE
+    return 
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D) /* the switch is in the menus */
+            lv && 
+            #endif
+            lv_movie_select == LVMS_ENABLE_MOVIE /* the switch is on the camera body, so you can't be in photo mode when it's enabled */
             #ifdef CONFIG_5D2
             && get_expsim() == 2  // movie enabled, but photo display is considered photo mode
             #endif
