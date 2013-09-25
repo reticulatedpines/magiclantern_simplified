@@ -4378,7 +4378,7 @@ static void TmpMem_AddFile(char* filename)
     }
 }
 
-static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int recursive_levels)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -4386,14 +4386,23 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         return;
 
     do {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         if (file.name[0] == '.' || file.name[0] == '_') continue;
+        if (file.mode & ATTR_DIRECTORY)
+        {
+            if (recursive_levels > 0)
+            {
+                char new_dir[0x80];
+                snprintf(new_dir, sizeof(new_dir), "%s%s/", dir, file.name);
+                CopyMLDirectoryToRAM_BeforeFormat(new_dir, cropmarks_flag, recursive_levels-1);
+            }
+            continue; // is a directory
+        }
         if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
 
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
 
-        char fn[30];
+        char fn[0x80];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
         TmpMem_AddFile(fn);
 
@@ -4405,16 +4414,16 @@ static void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0, 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0, 0);
     TmpMem_UpdateSizeDisplay(0);
 }
 
