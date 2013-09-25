@@ -159,6 +159,71 @@ FILE* FIO_CreateFileOrAppend(const char* name)
     return f;
 }
 
+int FIO_CopyFile(char *src,char *dst)
+{
+    const int bufsize = MIN(GetFileSize(src), 128*1024);
+    
+    void* buf = alloc_dma_memory(bufsize);
+    if (!buf) return -1;
+
+    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return -1;
+
+    FILE* g = FIO_CreateFileEx(dst);
+    if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
+
+    int err = 0;
+    int r = 0;
+    while ((r = FIO_ReadFile(f, buf, bufsize)))
+    {
+        int w = FIO_WriteFile(g, buf, r);
+        if (w != r)
+        {
+            /* copy failed; abort and delete the incomplete file */
+            err = 1;
+            break;
+        }
+    }
+
+    FIO_CloseFile(f);
+    FIO_CloseFile(g);
+    free_dma_memory(buf);
+    
+    if (err)
+    {
+        FIO_RemoveFile(dst);
+        return -1;
+    }
+    
+    /* all OK */
+    return 0;
+}
+
+int FIO_MoveFile(char *src,char *dst)
+{
+    int err = FIO_CopyFile(src,dst);
+    if (!err)
+    {
+        /* file copied, we can remove the old one */
+        FIO_RemoveFile(src);
+        return 0;
+    }
+    else
+    {
+        /* something went wrong; keep the old file and return error code */
+        return err;
+    }
+}
+
+#if !defined(CONFIG_FIO_RENAMEFILE_WORKS) // FIO_RenameFile known to work
+int FIO_RenameFile(char* src, char* dst)
+{
+    // FIO_RenameFile not known, or doesn't work
+    // emulate it by copy + erase (poor man's rename :P )
+    return FIO_MoveFile(src, dst);
+}
+#endif
+
 int
 snprintf(
     char *          buf,

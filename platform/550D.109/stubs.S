@@ -78,7 +78,7 @@ NSTUB( 0xFF1C693C, FIO_WriteFile )
 NSTUB( 0xFF1C679C, FIO_ReadFile )
 NSTUB( 0xFF1C66F4, FIO_RemoveFile )
 NSTUB( 0xFF1C71A0, FIO_CreateDirectory)
-NSTUB( 0xFF1C7060, FIO_RenameFile ) // 600D has debug strings for this, match.py finds it
+NSTUB( 0xFF1C7060, _FIO_RenameFile ) // doesn't work; 600D has debug strings for this, match.py finds it
 NSTUB( 0xFF1C691C, FIO_SeekFile)
 
 NSTUB( 0xFF069F58, give_semaphore )

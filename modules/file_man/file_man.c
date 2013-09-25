@@ -374,63 +374,6 @@ static void BrowseUp()
     }
 }
 
-static int
-ML_FIO_CopyFile(char *src,char *dst){
-    const int bufsize = 128*1024;
-    void* buf = alloc_dma_memory(bufsize);
-    if (!buf) return 1;
-
-    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 1;
-
-    FILE* g = FIO_CreateFileEx(dst);
-    if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
-
-    int err = 0;
-    int r = 0;
-    while ((r = FIO_ReadFile(f, buf, bufsize)))
-    {
-        int w = FIO_WriteFile(g, buf, r);
-        if (w != r)
-        {
-            /* copy failed; abort and delete the incomplete file */
-            err = 1;
-            break;
-        }
-    }
-
-    FIO_CloseFile(f);
-    FIO_CloseFile(g);
-    msleep(1000); // this decreases the chances of getting corrupted files (fig    ure out why!)
-    free_dma_memory(buf);
-    
-    if (err)
-    {
-        FIO_RemoveFile(dst);
-        return 1;
-    }
-    
-    /* all OK */
-    return 0;
-}
-
-static int
-ML_FIO_MoveFile(char *src,char *dst){
-
-    int err = ML_FIO_CopyFile(src,dst);
-    if (!err)
-    {
-        /* file copied, we can remove the old one */
-        FIO_RemoveFile(src);
-        return 0;
-    }
-    else
-    {
-        /* something went wrong; keep the old file and return error code */
-        return err;
-    }
-}
-
 static void
 FileCopy(void *unused)
 {
@@ -455,7 +398,7 @@ MFILE_SEM (
         if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
         
         snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", mf->name, tmpdst);
-        int err = ML_FIO_CopyFile(mf->name,dstfile);
+        int err = FIO_CopyFile(mf->name,dstfile);
         if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Copy error (%d)", err);
         else gStatusMsg[0] = 0;
     }
@@ -492,7 +435,7 @@ MFILE_SEM (
         if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
         
         snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", mf->name, tmpdst);
-        int err = ML_FIO_MoveFile(mf->name,dstfile);
+        int err = FIO_MoveFile(mf->name,dstfile);
         if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Move error (%d)", err);
         else gStatusMsg[0] = 0;
     }

@@ -73,39 +73,6 @@ void j_tp_intercept() { tp_intercept(); }
 
 #ifdef FEATURE_SCREENSHOT
 
-int rename_file(char* src, char* dst)
-{
-#if defined(CONFIG_FIO_RENAMEFILE_WORKS) // FIO_RenameFile known to work
-
-    return FIO_RenameFile(src, dst);
-
-#else
-    // FIO_RenameFile not known, or doesn't work
-    // emulate it by copy + erase (poor man's rename :P )
-
-    const int bufsize = 128*1024;
-    void* buf = alloc_dma_memory(bufsize);
-    if (!buf) return 1;
-
-    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 1;
-
-    FILE* g = FIO_CreateFile(dst);
-    if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
-
-    int r = 0;
-    while ((r = FIO_ReadFile(f, buf, bufsize)))
-        FIO_WriteFile(g, buf, r);
-
-    FIO_CloseFile(f);
-    FIO_CloseFile(g);
-    FIO_RemoveFile(src);
-    msleep(1000); // this decreases the chances of getting corrupted files (figure out why!)
-    free_dma_memory(buf);
-    return 0;
-#endif
-}
-
 void take_screenshot( int also_lv )
 {
     beep();
@@ -126,7 +93,7 @@ void take_screenshot( int also_lv )
             snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
             if (GetFileSize(fn) == 0xFFFFFFFF) // this file does not exist
             {
-                rename_file(CARD_DRIVE"TEST.BMP", fn);
+                FIO_RenameFile(CARD_DRIVE"TEST.BMP", fn);
                 break;
             }
         }
@@ -347,7 +314,6 @@ delete_config( void * priv, int delta )
 
     config_deleted = 1;
 }
-
 #endif
 
 #if CONFIG_DEBUGMSG
