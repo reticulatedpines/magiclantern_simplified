@@ -217,6 +217,7 @@ save_config( void * priv, int delta )
     update_disp_mode_bits_from_params();
     config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
     config_menu_save_flags();
+    module_save_configs();
     config_deleted = 0;
     give_semaphore(config_save_sem);
 #endif

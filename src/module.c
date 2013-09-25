@@ -1695,7 +1695,7 @@ static void module_load_task(void* unused)
     }
 }
 
-static void module_save_configs()
+void module_save_configs()
 {
     /* save configuration */
     console_printf("Save configs...\n");
@@ -1720,10 +1720,6 @@ static void module_save_configs()
 int module_shutdown()
 {
     _module_unload_all();
-    
-    extern int config_autosave;
-    if (config_autosave)
-        module_save_configs();
     
     if(module_autoload_enabled)
     {
