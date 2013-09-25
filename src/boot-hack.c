@@ -468,7 +468,7 @@ static void my_big_init_task()
 
     #ifdef CONFIG_CONFIG_FILE
     // Read ML config
-    config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    config_load();
     #endif
     
     debug_init_stuff();

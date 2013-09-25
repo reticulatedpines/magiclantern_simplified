@@ -376,6 +376,66 @@ static void ml_bar_clear(int ytop, int height)
     }
 }
 
+char* get_shootmode_name(int shooting_mode)
+{
+    return
+        is_movie_mode() ?                       
+            (
+                shooting_mode == SHOOTMODE_C  ? "MovieC1" :
+                shooting_mode == SHOOTMODE_C2 ? "MovieC2" :
+                shooting_mode == SHOOTMODE_C3 ? "MovieC3" :
+                                                "Movie"
+            ) :
+        shooting_mode == SHOOTMODE_P ?          "P" :
+        shooting_mode == SHOOTMODE_M ?          "M" :
+        shooting_mode == SHOOTMODE_TV ?         "Tv" :
+        shooting_mode == SHOOTMODE_AV ?         "Av" :
+        shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_ADEP ?       "ADEP" :
+        shooting_mode == SHOOTMODE_AUTO ?       "Auto" :
+        shooting_mode == SHOOTMODE_LANDSCAPE ?  "Landscape" :
+        shooting_mode == SHOOTMODE_PORTRAIT ?   "Portrait" :
+        shooting_mode == SHOOTMODE_NOFLASH ?    "NoFlash" :
+        shooting_mode == SHOOTMODE_MACRO ?      "Macro" :
+        shooting_mode == SHOOTMODE_SPORTS ?     "Sports" :
+        shooting_mode == SHOOTMODE_NIGHT ?      "Night" :
+        shooting_mode == SHOOTMODE_BULB ?       "Bulb" :
+        shooting_mode == SHOOTMODE_C ?          "C1" :
+        shooting_mode == SHOOTMODE_C2 ?         "C2" :
+        shooting_mode == SHOOTMODE_C3 ?         "C3" :
+                                                "Unknown";
+}
+
+char* get_shootmode_name_short(int shooting_mode)
+{
+    return
+        is_movie_mode() ?                       
+            (
+                shooting_mode == SHOOTMODE_C  ? "Mv1" :
+                shooting_mode == SHOOTMODE_C2 ? "Mv2" :
+                shooting_mode == SHOOTMODE_C3 ? "Mv3" :
+                                                "Mv"
+            ) :
+        shooting_mode == SHOOTMODE_P ?          "P"  :
+        shooting_mode == SHOOTMODE_M ?          "M"  :
+        shooting_mode == SHOOTMODE_TV ?         "Tv" :
+        shooting_mode == SHOOTMODE_AV ?         "Av" :
+        shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_ADEP ?       "AD" :
+        shooting_mode == SHOOTMODE_AUTO ?       "[]" :
+        shooting_mode == SHOOTMODE_LANDSCAPE ?  "LD" :
+        shooting_mode == SHOOTMODE_PORTRAIT ?   ":)" :
+        shooting_mode == SHOOTMODE_NOFLASH ?    "NF" :
+        shooting_mode == SHOOTMODE_MACRO ?      "MC" :
+        shooting_mode == SHOOTMODE_SPORTS ?     "SP" :
+        shooting_mode == SHOOTMODE_NIGHT ?      "NI" :
+        shooting_mode == SHOOTMODE_BULB ?       "B"  :
+        shooting_mode == SHOOTMODE_C ?          "C1" :
+        shooting_mode == SHOOTMODE_C2 ?         "C2" :
+        shooting_mode == SHOOTMODE_C3 ?         "C3" :
+                                                "?"  ;
+}
+
 int FAST get_ml_bottombar_pos()
 {
     unsigned bottom = 480;
@@ -431,25 +491,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         // MODE
             bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
                 "%s",
-                is_movie_mode() ? "Mv" : 
-                shooting_mode == SHOOTMODE_P ? "P " :
-                shooting_mode == SHOOTMODE_M ? "M " :
-                shooting_mode == SHOOTMODE_TV ? "Tv" :
-                shooting_mode == SHOOTMODE_AV ? "Av" :
-                shooting_mode == SHOOTMODE_CA ? "CA" :
-                shooting_mode == SHOOTMODE_ADEP ? "AD" :
-                shooting_mode == SHOOTMODE_AUTO ? "[]" :
-                shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
-                shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
-                shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
-                shooting_mode == SHOOTMODE_MACRO ? "MC" :
-                shooting_mode == SHOOTMODE_SPORTS ? "SP" :
-                shooting_mode == SHOOTMODE_NIGHT ? "NI" :
-                shooting_mode == SHOOTMODE_BULB ? "B " :
-                shooting_mode == SHOOTMODE_C ? "C " :
-                shooting_mode == SHOOTMODE_C2 ? "C2" :
-                shooting_mode == SHOOTMODE_C3 ? "C3" :
-                "?"
+                get_shootmode_name_short(shooting_mode_custom)
             );
 
       /*******************

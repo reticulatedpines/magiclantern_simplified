@@ -121,4 +121,7 @@ __config_##VAR##INDEX = \
 struct config_var* get_config_vars_start ();
 struct config_var* get_config_vars_end ();
 
+/* return the current settings directory (usually ML/SETTINGS, but not if you use a custom preset) */
+extern char* get_config_dir();
+
 #endif

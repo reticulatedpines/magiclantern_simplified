@@ -174,6 +174,8 @@ int handle_common_events_startup(struct event * event)
     extern int ml_started;
     if (!ml_started)    {
         if (event->param == BGMT_PRESS_SET) { _disable_ml_startup(); return 0;} // don't load ML
+        
+        if (handle_select_config_file_by_key_at_startup(event) == 0) return 0;
 
         #ifdef CONFIG_60D
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
