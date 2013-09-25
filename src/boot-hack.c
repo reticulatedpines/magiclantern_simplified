@@ -436,6 +436,7 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
+    load_fonts();
     menu_init();
     debug_init();
     call_init_funcs( 0 );

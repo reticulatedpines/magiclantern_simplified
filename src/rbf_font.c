@@ -567,6 +567,7 @@ struct font font_med_large;
 struct font font_large;
 struct font font_canon;
 
+/* must be called before menu_init, otherwise it can't measure strings */
 void load_fonts()
 {
     /* fake font for Canon font backend, with the same metrics */
@@ -597,6 +598,3 @@ void load_fonts()
     font_large = *fontspec_font(FONT_LARGE);
     font_canon = *fontspec_font(FONT_CANON);
 }
-
-INIT_FUNC("rbf", load_fonts);
-
