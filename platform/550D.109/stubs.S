@@ -172,7 +172,7 @@ NSTUB( 0xFF1AA430, mvrSetDeblockingFilter )
 
 NSTUB( 0xFF1C7760, FIO_FindFirstEx )
 NSTUB( 0xFF1C7854, FIO_FindNextEx )
-NSTUB( 0xff1c7934, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xff1c7934, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)

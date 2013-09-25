@@ -91,7 +91,7 @@ int is_dir(char* path)
     }
     else 
     {
-        FIO_CleanupAfterFindNext_maybe(dirent);
+        FIO_FindClose(dirent);
         return 1; // dir found
     }
 }

@@ -309,7 +309,7 @@ delete_config( void * priv, int delta )
         }
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
 #endif
 
     config_deleted = 1;
@@ -4101,7 +4101,7 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         TmpMem_AddFile(fn);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
 }
 
 static void CopyMLFilesToRAM_BeforeFormat()

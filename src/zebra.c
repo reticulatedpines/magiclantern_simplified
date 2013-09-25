@@ -2325,7 +2325,7 @@ static void find_cropmarks()
             k++;
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     num_cropmarks = k;
     sort_cropmarks();
     cropmarks_initialized = 1;

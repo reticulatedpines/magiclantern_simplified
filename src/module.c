@@ -298,7 +298,7 @@ static void _module_load_all(uint32_t list_only)
             }
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     
     /* sort modules */
     for (int i = 0; i < (int) module_cnt-1; i++)

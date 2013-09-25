@@ -9,7 +9,7 @@ NSTUB(0xFFA6CBA0, DeleteDialogBox)                // might be good (dumps=1, sco
 NSTUB(0xFF9D8250, DispSensorStart)                // might be good (dumps=1, score=5.3)
 NSTUB(0xFF86AF64, DryosDebugMsg)                  // might be good (dumps=1, score=7.3)
 NSTUB(       0x0, ErrCardForLVApp_handler)        // no match
-NSTUB(0xFF9ABE20, FIO_CleanupAfterFindNext_maybe) // might be good (dumps=1, score=1.7)
+NSTUB(0xFF9ABE20, FIO_FindClose) // might be good (dumps=1, score=1.7)
 NSTUB(0xFF9AAD10, FIO_CloseFile)                  // might be good (dumps=1, score=1.4)
 NSTUB(0xFF9AB574, FIO_CreateDirectory)            // might be good (dumps=1, score=1.5)
 NSTUB(0xFF9AAC68, FIO_CreateFile)                 // might be good (dumps=1, score=1.6)

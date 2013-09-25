@@ -71,7 +71,7 @@ NSTUB( 0xFF066A18, dmstart )	/** Debugging commands are all registered by name. 
 NSTUB( 0xFF066A58, dmstop )
 NSTUB( 0xFF066A98, DryosDebugMsg )	/** Look for the normal printf strings */
 NSTUB( 0xFF06732C, dumpf )
-NSTUB( 0xFF1975A4, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xFF1975A4, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB( 0xFF196494, FIO_CloseFile )
 NSTUB( 0xFF196CF8, FIO_CreateDirectory)
 NSTUB( 0xFF1963EC, FIO_CreateFile )

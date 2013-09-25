@@ -315,7 +315,7 @@ static void ScanDir(char *path)
 
     build_file_menu();
 
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     give_semaphore(scandir_sem);
 }
 

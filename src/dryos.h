@@ -534,7 +534,7 @@ extern int FIO_GetFileSize( const char * filename, uint32_t * size );
 
 extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );
 extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
-extern void FIO_CleanupAfterFindNext_maybe( struct fio_dirent * dirent );
+extern void FIO_FindClose( struct fio_dirent * dirent );
 extern int FIO_SeekFile( FILE* stream, size_t position, int whence );
 extern int FIO_RenameFile(char *src,char *dst);
 

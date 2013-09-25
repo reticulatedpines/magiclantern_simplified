@@ -85,7 +85,7 @@ NSTUB(0x0000395C, DryosDebugMsg)
 NSTUB(0xFF342568, FIO_CreateFile) // from Indy
 NSTUB(0xFF34285C, FIO_WriteFile) // from Indy
 NSTUB(0xFF34290C, FIO_CloseFile) // from Indy
-NSTUB(0xFF343904, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
+NSTUB(0xFF343904, FIO_FindClose) // proper name: FindClose
 NSTUB(0xFF343168, FIO_CreateDirectory)
 NSTUB(0xFF343730, FIO_FindFirstEx)
 NSTUB(0xFF343824, FIO_FindNextEx)

@@ -147,7 +147,7 @@ NSTUB( 0xFFB417E0, fgetpos )
 NSTUB( 0xFFB41844, fgets )
 NSTUB( 0xFFB41978, fileno )
 NSTUB( 0xFFB1A1A4, FindName )
-NSTUB( 0xffae6070, FIO_CleanupAfterFindNext_maybe )// not sure
+NSTUB( 0xffae6070, FIO_FindClose )// not sure
 NSTUB( 0xFFAE5B78, FIO_CloseFile )
 NSTUB( 0xFFAE5D7C, FIO_CreateDirectory )
 NSTUB( 0xFFAE5B2C, FIO_CreateFile )
