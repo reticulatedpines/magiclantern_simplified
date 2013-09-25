@@ -330,7 +330,7 @@ static MENU_UPDATE_FUNC(ec_curve_upd) {
 static MENU_UPDATE_FUNC(aperture_range_upd) {
     int apmin = AV2STR(av_min);
     int apmax = AV2STR(av_max);
-    MENU_SET_VALUE("f/%d.%d - f/%d.%d", apmin / 10, apmin % 10, apmax / 10, apmax % 10);
+    MENU_SET_VALUE(SYM_F_SLASH"%d.%d - "SYM_F_SLASH"%d.%d", apmin / 10, apmin % 10, apmax / 10, apmax % 10);
     MENU_CUSTOM_DRAW(av);
 }
 
@@ -353,13 +353,13 @@ static MENU_UPDATE_FUNC(lens_av_upd) {
     }
     else if (lens_av == LENS_AV_THIS) {
         int ap = AV2STR(RAW2AV(lens_info.raw_aperture_min));
-        MENU_SET_VALUE("this lens f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_VALUE("this lens "SYM_F_SLASH"%d.%d", ap / 10, ap % 10);
         MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
     }
     else {
         int ap = AV2STR(lens_av);
-        MENU_SET_VALUE("f/%d.%d", ap / 10, ap % 10);
+        MENU_SET_VALUE(SYM_F_SLASH"%d.%d", ap / 10, ap % 10);
         MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
     }
@@ -431,7 +431,7 @@ static MENU_UPDATE_FUNC(last_bv_upd) {
         expo.av = AV2STR(expo.av);
         
         MENU_SET_VALUE("%s%d.%d BV", FMT_FIXEDPOINT1(last_bv));
-        MENU_SET_HELP("%s f/%d.%d   %d ISO   %s%d.%d EC",
+        MENU_SET_HELP("%s "SYM_F_SLASH"%d.%d   %d ISO   %s%d.%d EC",
             lens_format_shutter(TV2RAW(expo.tv)),
             expo.av / 10, expo.av % 10,
             raw2iso(SV2RAW(expo.sv)),
