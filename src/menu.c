@@ -42,10 +42,10 @@
 #define MENU_HELP_Y_POS_2 458
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 458)
 
-#define MENU_BG_COLOR_HEADER_FOOTER 40
+#define MENU_BG_COLOR_HEADER_FOOTER 42
 
 extern int bmp_color_scheme;
-#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHT_BLUE : COLOR_BLUE)
+#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHT_BLUE : 18)
 
 #ifdef CONFIG_MENU_ICONS
 #define SUBMENU_OFFSET 48
@@ -65,7 +65,7 @@ static struct menu * mod_menu;
 static int mod_menu_dirty = 1;
 
 //for vscroll
-#define MENU_LEN 10
+#define MENU_LEN 11
 
 /*
 int sem_line = 0;
@@ -1692,7 +1692,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     x -= MENU_OFFSET;
     
     int color_on = warn ? COLOR_DARK_GREEN1_MOD : COLOR_GREEN1;
-    int color_off = 40;
+    int color_off = 45;
     int color_dis = warn ? 50 : COLOR_RED;
     int color_slider_fg = warn ? COLOR_DARK_CYAN1_MOD : COLOR_CYAN;
     int color_slider_bg = warn ? COLOR_BLACK : 45;
@@ -1704,7 +1704,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
         case MNI_OFF: maru(x, y, color_off); return;
         case MNI_ON: maru(x, y, color_on); return;
         case MNI_DISABLE: batsu(x, y, color_dis); return;
-        case MNI_NEUTRAL: maru(x, y, 50); return;
+        case MNI_NEUTRAL: maru(x, y, 55); return;
         case MNI_AUTO: slider(x, y, 0, 0, color_slider_fg, color_slider_bg); return;
         case MNI_PERCENT: round_box_meter(x, y, arg, color_slider_fg, color_slider_bg); return;
         case MNI_PERCENT_ALLOW_OFF: round_box_meter(x, y, arg, color_slider_off_fg, color_slider_bg); return;
@@ -1865,16 +1865,8 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
 
 static void submenu_key_hint(int x, int y, int fg, int bg, int chr)
 {
-    bmp_fill(bg, x+12, y, 25, 31);
+    bmp_fill(bg, x+12, y+1, 25, 30);
     bfnt_draw_char(chr, x, y-5, fg, COLOR_BLACK);
-}
-
-// draw submenu dots (for non-selected items)
-static void submenu_marker(int x, int y)
-{
-    if (SUBMENU_OR_EDIT) return;
-    int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
-    bmp_printf(fnt, 685, y+14, "...");
 }
 
 static void menu_clean_footer()
@@ -1882,8 +1874,6 @@ static void menu_clean_footer()
     int h = 50;
     if (is_menu_active("Help")) h = font_med.height * 3 + 2;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
-    int fgu = 50;
-    bmp_fill(fgu, 0, 480-h-2, 720, 2);
     bmp_fill(bgu, 0, 480-h, 720, h);
 }
 
@@ -2231,13 +2221,13 @@ skip_name:
 
     // right-justified info field?
     int rlen = bmp_string_width(fnt, info->rinfo);
-    int rinfo_x = x_end - rlen - 30;
+    int rinfo_x = x_end - rlen - 35;
     if (rlen) wmax -= rlen + char_width;
     
     // no right info? then make sure there's room for the Q symbol
     else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
     {
-        wmax -= 30;
+        wmax -= 35;
     }
     
     if (end > wmax)
@@ -2264,26 +2254,26 @@ skip_name:
         );
     }
 
+    int y_icon_offset = (h - 32) / 2 - 1;
 
-    // Forward sign for submenus that open with SET
     if (entry->icon_type == IT_SUBMENU )
     {
+        // Forward sign for submenus that open with SET
         submenu_key_hint(
-            xval-12 - (info->value[0] ? font_large.width*2 : 0), y, 
+            xval-12 - (info->value[0] ? font_large.width*2 : 0), y + y_icon_offset, 
             info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : 60, 
             COLOR_BLACK, 
             ICON_ML_FORWARD
         );
     }
-
-    // Q sign for selected item, if submenu opens with Q
-    // Discrete placeholder for non-selected item
     else if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
     {
+        // Q sign for selected item, if submenu opens with Q
+        // Discrete placeholder for non-selected item
         if (entry->selected)
-            submenu_key_hint(720-40, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
+            submenu_key_hint(720-40, y + y_icon_offset, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
         else
-            submenu_key_hint(720-36, y, 40, COLOR_BLACK, ICON_ML_FORWARD);
+            submenu_key_hint(720-35, y + y_icon_offset, 40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
     // selection bar params
@@ -2381,6 +2371,7 @@ skip_name:
     
     /* from now on, we'll draw the icon only, which should be shifted */
     x += x_font_offset;
+    y += y_icon_offset - 1;
 
     // customization markers
     if (customize_mode)
@@ -2656,12 +2647,13 @@ menu_display(
      * prefer to squeeze them vertically in order to avoid scrolling. */
     
     /* but if we can't avoid scrolling, don't squeeze */
-    if (num_visible > MENU_LEN + 2)
+    if (num_visible > MENU_LEN + 1)
     {
         num_visible = MENU_LEN;
         natural_height = num_visible * font_large.height;
-        /* leave some space for the "down" indicator */
-        target_height -= 15;
+        /* leave some space for the scroll indicators */
+        target_height -= submenu_mode ? 16 : 12;
+        y += submenu_mode ? 4 : 2;
     }
     else /* we can fit everything */
     {
@@ -2692,6 +2684,13 @@ menu_display(
         while(!is_visible(entry)) entry = entry->next;
         entry = entry->next;
     }
+
+    if (scroll_pos)
+    {
+        for (int i = -13; i <= 13; i++)
+            draw_line(360 - i, y + 8 - 12, 360, y - 12, MENU_BAR_COLOR);
+    }
+
     //<== vscroll
 
     if (!menu_lv_transparent_mode)
@@ -2741,7 +2740,9 @@ menu_display(
 
     if (more_entries)
     {
-        bmp_printf(SHADOW_FONT(FONT_LARGE) | FONT_ALIGN_CENTER, 360, y - 15, "...");
+        y += 10;
+        for (int i = -13; i <= 13; i++)
+            draw_line(360 - i, y - 8, 360, y, MENU_BAR_COLOR);
     }
 
 end:
@@ -3193,15 +3194,15 @@ show_vscroll(struct menu * parent){
     int menu_len = MENU_LEN;
     
     if(max > menu_len + 2){
-        int y_lo = submenu_mode ? 50 : 44;
-        int h = submenu_mode ? 367 : 385;
+        int y_lo = 44;
+        int h = submenu_mode ? 378 : 385;
         int size = (h - y_lo) * menu_len / max;
         int y = y_lo + ((h - size) * (pos-1) / (max-1));
         int x = MIN(360 + g_submenu_width/2, 720-3);
+        if (submenu_mode) x -= 6;
         
-        if (!submenu_mode)
-            bmp_draw_rect(50, x + 1, y_lo, 2, h);
-        bmp_fill(COLOR_WHITE, x, y, 3, size);
+        bmp_fill(COLOR_BLACK, x-2, y_lo, 6, h);
+        bmp_fill(MENU_BAR_COLOR, x, y, 3, size);
     }
 }
 
@@ -3260,13 +3261,13 @@ menus_display(
     
     int bgs = COLOR_BLACK;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
-    int fgu = 50;
+    int fgu = COLOR_GRAY(35);
     int fgs = COLOR_WHITE;
 
     if (customize_mode) fgs = get_customize_color();
 
     bmp_fill(bgu, orig_x, y, 720, 42);
-    bmp_fill(fgu, orig_x, y+42, 720, 2);
+    //~ bmp_fill(fgu, orig_x, y+42, 720, 2);
     
     for( ; menu ; menu = menu->next )
     {
@@ -3296,28 +3297,28 @@ menus_display(
                 int x1 = x - 1;
                 int x2 = x1 + icon_spacing + 2;
 
-                draw_line(x1, y+42-4, x1, y+5, fgu);
-                draw_line(x2, y+42-4, x2, y+5, fgu);
-                draw_line(x1-1, y+42-4, x1-1, y+5, fgu);
-                draw_line(x2+1, y+42-4, x2+1, y+5, fgu);
+                //~ draw_line(x1, y+42-4, x1, y+5, fgu);
+                //~ draw_line(x2, y+42-4, x2, y+5, fgu);
+                //~ draw_line(x1-1, y+42-4, x1-1, y+5, fgu);
+                //~ draw_line(x2+1, y+42-4, x2+1, y+5, fgu);
 
-                draw_line(x1+4, y+1, x2-4, y+1, fgu);
-                draw_line(x1+4, y, x2-4, y, fgu);
+                //~ draw_line(x1+4, y+1, x2-4, y+1, fgu);
+                //~ draw_line(x1+4, y, x2-4, y, fgu);
 
                 draw_line(x1-1, y+40, x2+1, y+40, bgs);
                 draw_line(x1-2, y+41, x2+2, y+41, bgs);
                 draw_line(x1-3, y+42, x2+3, y+42, bgs);
                 draw_line(x1-4, y+43, x2+4, y+43, bgs);
 
-                draw_line(x1-4, y+42, x1, y+42-4, fgu);
-                draw_line(x2+4, y+42, x2, y+42-4, fgu);
-                draw_line(x1-4, y+41, x1, y+41-4, fgu);
-                draw_line(x2+4, y+41, x2, y+41-4, fgu);
+                //~ draw_line(x1-4, y+42, x1, y+42-4, fgu);
+                //~ draw_line(x2+4, y+42, x2, y+42-4, fgu);
+                //~ draw_line(x1-4, y+41, x1, y+41-4, fgu);
+                //~ draw_line(x2+4, y+41, x2, y+41-4, fgu);
 
-                draw_line(x1, y+5, x1+4, y+1, fgu);
-                draw_line(x2, y+5, x2-4, y+1, fgu);
-                draw_line(x1, y+4, x1+4, y, fgu);
-                draw_line(x2, y+4, x2-4, y, fgu);
+                //~ draw_line(x1, y+5, x1+4, y+1, fgu);
+                //~ draw_line(x2, y+5, x2-4, y+1, fgu);
+                //~ draw_line(x1, y+4, x1+4, y, fgu);
+                //~ draw_line(x2, y+4, x2-4, y, fgu);
                 
                 draw_line(x1, y+2, x1, y+3, bgu);
                 draw_line(x1+1, y+2, x1+1, y+2, bgu);
