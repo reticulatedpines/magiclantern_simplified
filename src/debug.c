@@ -325,7 +325,7 @@ delete_config( void * priv, int delta )
         return 0;
     }
 
-    char* path = CARD_DRIVE "ML/MODULES/";
+    char* path = CARD_DRIVE "ML/SETTINGS/";
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
     if( IS_ERROR(dirent) )
@@ -3592,7 +3592,7 @@ static struct menu_entry debug_menus[] = {
 #ifdef CONFIG_CONFIG_FILE
 static struct menu_entry cfg_menus[] = {
 {
-    .name = "Config file",
+    .name = "Config files",
     .select = menu_open_submenu,
     .submenu_width = 700,
     .help = "Config auto save, manual save, restore defaults...",
@@ -3608,13 +3608,13 @@ static struct menu_entry cfg_menus[] = {
             .name = "Save config now",
             .select        = save_config,
             .update        = save_config_update,
-            .help = "Save ML settings to ML/SETTINGS/MAGIC.CFG ."
+            .help = "Save ML settings to ML/SETTINGS/*.CFG (also module settings)."
         },
         {
             .name = "Restore ML defaults",
             .select        = delete_config,
             .update        = delete_config_update,
-            .help  = "This restore ML default settings, by deleting MAGIC.CFG.",
+            .help  = "This restore ML default settings, by deleting CFG files.",
         },
 
         #ifdef CONFIG_PICOC
