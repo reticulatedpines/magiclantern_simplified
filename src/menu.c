@@ -411,11 +411,6 @@ void customize_menu_init()
     menu_add(MOD_MENU_NAME, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
-void menu_prefs_init()
-{
-    //~ menu_add("Prefs", menu_prefs, COUNT(menu_prefs));
-}
-
 static struct menu * menus;
 
 struct menu * menu_get_root() {
@@ -2222,7 +2217,7 @@ skip_name:
     // right-justified info field?
     int rlen = bmp_string_width(fnt, info->rinfo);
     int rinfo_x = x_end - rlen - 35;
-    if (rlen) wmax -= rlen + char_width;
+    if (rlen) wmax -= rlen + char_width + 35;
     
     // no right info? then make sure there's room for the Q symbol
     else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
@@ -2455,7 +2450,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(x, y, ABS(menu->split_pos)*20, h, entry, &info, IS_SUBMENU(menu));
+            entry_print(x, y, info.x_val - x, h, entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
@@ -2685,7 +2680,7 @@ menu_display(
         entry = entry->next;
     }
 
-    if (scroll_pos)
+    if (scroll_pos > 0)
     {
         for (int i = -13; i <= 13; i++)
             draw_line(360 - i, y + 8 - 12, 360, y - 12, MENU_BAR_COLOR);
@@ -3550,7 +3545,12 @@ menu_entry_select(
         return;
 
     struct menu_entry * entry = get_selected_entry(menu);
-    if( !entry ) return;
+    if( !entry )
+    {
+        /* empty submenu? go back */
+        menu_lv_transparent_mode = edit_mode = submenu_mode = 0;
+        return;
+    }
     
     // don't perform actions on empty items (can happen on empty submenus)
     if (!is_visible(entry))
@@ -4802,8 +4802,20 @@ void select_menu_by_name(char* name, const char* entry_name)
         }
     }
     
-    if (!menu_that_was_selected) { menus->selected = 1; menu_that_was_selected = menus; }// name not found, just select the first one one
-    if (!entry_was_selected) menu_that_was_selected->children->selected = 1;
+    if (!menu_that_was_selected)
+    {
+        // menu not found, just select the first one one
+        menus->selected = 1;
+        menu_that_was_selected = menus;
+    }
+    if (!entry_was_selected)
+    {
+        // entry not found
+        if (menu_that_was_selected && menu_that_was_selected->children)
+        {
+            menu_that_was_selected->children->selected = 1;
+        }
+    }
     //~ menu_damage = 1;
 }
 
