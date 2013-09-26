@@ -411,28 +411,28 @@ char* get_shootmode_name_short(int shooting_mode)
     return
         is_movie_mode() ?                       
             (
-                shooting_mode_custom == SHOOTMODE_C  ? "Mv1" :
-                shooting_mode_custom == SHOOTMODE_C2 ? "Mv2" :
-                shooting_mode_custom == SHOOTMODE_C3 ? "Mv3" :
+                shooting_mode == SHOOTMODE_C  ? "Mv1" :
+                shooting_mode == SHOOTMODE_C2 ? "Mv2" :
+                shooting_mode == SHOOTMODE_C3 ? "Mv3" :
                                                 "Mv"
             ) :
-        shooting_mode_custom == SHOOTMODE_P ?          "P"  :
-        shooting_mode_custom == SHOOTMODE_M ?          "M"  :
-        shooting_mode_custom == SHOOTMODE_TV ?         "Tv" :
-        shooting_mode_custom == SHOOTMODE_AV ?         "Av" :
-        shooting_mode_custom == SHOOTMODE_CA ?         "CA" :
-        shooting_mode_custom == SHOOTMODE_ADEP ?       "AD" :
-        shooting_mode_custom == SHOOTMODE_AUTO ?       "[]" :
-        shooting_mode_custom == SHOOTMODE_LANDSCAPE ?  "LD" :
-        shooting_mode_custom == SHOOTMODE_PORTRAIT ?   ":)" :
-        shooting_mode_custom == SHOOTMODE_NOFLASH ?    "NF" :
-        shooting_mode_custom == SHOOTMODE_MACRO ?      "MC" :
-        shooting_mode_custom == SHOOTMODE_SPORTS ?     "SP" :
-        shooting_mode_custom == SHOOTMODE_NIGHT ?      "NI" :
-        shooting_mode_custom == SHOOTMODE_BULB ?       "B"  :
-        shooting_mode_custom == SHOOTMODE_C ?          "C1" :
-        shooting_mode_custom == SHOOTMODE_C2 ?         "C2" :
-        shooting_mode_custom == SHOOTMODE_C3 ?         "C3" :
+        shooting_mode == SHOOTMODE_P ?          "P"  :
+        shooting_mode == SHOOTMODE_M ?          "M"  :
+        shooting_mode == SHOOTMODE_TV ?         "Tv" :
+        shooting_mode == SHOOTMODE_AV ?         "Av" :
+        shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_ADEP ?       "AD" :
+        shooting_mode == SHOOTMODE_AUTO ?       "[]" :
+        shooting_mode == SHOOTMODE_LANDSCAPE ?  "LD" :
+        shooting_mode == SHOOTMODE_PORTRAIT ?   ":)" :
+        shooting_mode == SHOOTMODE_NOFLASH ?    "NF" :
+        shooting_mode == SHOOTMODE_MACRO ?      "MC" :
+        shooting_mode == SHOOTMODE_SPORTS ?     "SP" :
+        shooting_mode == SHOOTMODE_NIGHT ?      "NI" :
+        shooting_mode == SHOOTMODE_BULB ?       "B"  :
+        shooting_mode == SHOOTMODE_C ?          "C1" :
+        shooting_mode == SHOOTMODE_C2 ?         "C2" :
+        shooting_mode == SHOOTMODE_C3 ?         "C3" :
                                                 "?"  ;
 }
 
