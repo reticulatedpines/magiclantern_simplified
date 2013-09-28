@@ -228,5 +228,10 @@ union info_elem_t
     info_elem_dynamic_t dynamic;
 };
 
+/* register a new element that is unconfigured by default. set it to the type you need it to be and care for it yourself */
+info_elem_t *info_add_item();
+/* unregister a previously registered element */
+void info_free_item(info_elem_t *item);
+
 #endif
 #endif

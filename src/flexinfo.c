@@ -2987,8 +2987,9 @@ info_elem_t *info_add_item()
     {
         if(info_config_dynamic[pos].hdr.status == INFO_STATUS_FREE)
         {
-            /* this empty entry will be the returned one */
+            /* this empty entry will be the returned one. set it to CONFIG type so it wont get handled */
             item = &info_config_dynamic[pos];
+            item->type = INFO_TYPE_CONFIG;
             item->hdr.status = INFO_STATUS_USED;
             item->hdr.config = info_config_dynamic;
             item->hdr.config_pos = pos;
