@@ -5,6 +5,7 @@
 
 #define FLEXINFO_DEFAULT_FILENAME CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML"
 
+#define FLEXINFO_DYNAMIC_ENTRIES 64
 
 /* these are binary coded (combineable) flags to either set ABSOLUTE or like (LEFT|CENTER)
    examples:
@@ -32,6 +33,12 @@
 #define INFO_NAME_LENGTH      16
 #define INFO_TEXT_LENGTH      32
 #define INFO_FILENAME_LENGTH  32
+
+#define INFO_STATUS_USED      0
+#define INFO_STATUS_FREE      1
+
+/* pre-declare here as it will be used in some other structs */
+typedef union info_elem_t info_elem_t;
 
 typedef struct
 {
@@ -67,11 +74,15 @@ typedef struct
 #define INFO_TYPE_BATTERY_ICON   5
 #define INFO_TYPE_BATTERY_PERF   6
 #define INFO_TYPE_TEXT           7
+#define INFO_TYPE_DYNAMIC       64
 
 typedef struct
 {
     uint32_t type;
     info_elem_pos_t pos;
+    uint32_t status;
+    uint32_t config_pos;
+    info_elem_t *config;
 } info_elem_header_t;
 
 
@@ -192,7 +203,18 @@ typedef struct
     uint8_t *icon_data;
 } info_elem_icon_t;
 
-typedef union
+typedef struct
+{
+    info_elem_header_t hdr;
+    /* this function gets called by flexinfo when the owner of this element is asked to release its data. will when e.g. flexinfo is disabling */
+    uint32_t (*deinit)(info_elem_t *element);
+    /* ask handler to (pre-)render given element */
+    uint32_t (*print)(info_elem_t *element, uint32_t run_type);
+    /* this is unused by flexinfo - its a private variable for the handler/owner of this element */
+    void *priv;
+} info_elem_dynamic_t;
+
+union info_elem_t
 {
     uint32_t type;
     info_elem_header_t hdr;
@@ -203,7 +225,8 @@ typedef union
     info_elem_battery_perf_t battery_perf;
     info_elem_fill_t fill;
     info_elem_icon_t icon;
-} info_elem_t;
+    info_elem_dynamic_t dynamic;
+};
 
 #endif
 #endif

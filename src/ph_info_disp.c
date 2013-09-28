@@ -21,11 +21,6 @@ void display_shooting_info() // called from debug task
 {
     if (lv) return;
     
-    #ifdef FEATURE_FLEXINFO
-    // from flexinfo.c
-    info_print_screen();
-    #endif
-    
     // the following is stuff not yet ported to flexinfo
     #ifdef FEATURE_LCD_SENSOR_REMOTE
     display_lcd_remote_icon(555, 460);

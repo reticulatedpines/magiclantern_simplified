@@ -40,15 +40,17 @@ extern int free_space_raw;
 #endif
 
 /* updated every redraw */
-int32_t info_bg_color = 0;
-int32_t info_field_color = 0;
+static int32_t info_bg_color = 0;
+static int32_t info_field_color = 0;
+
+static struct semaphore *info_sem = NULL;
 
 #ifdef FLEXINFO_DEVELOPER_MENU
 
-uint32_t info_screen_required = 0;
+static uint32_t info_screen_required = 0;
 
-uint32_t info_movestate = 0;
-uint32_t info_edit_mode = 0;
+static uint32_t info_movestate = 0;
+static uint32_t info_edit_mode = 0;
 
 #define FLEXINFO_MOVE_UP    1
 #define FLEXINFO_MOVE_DOWN  2
@@ -85,7 +87,17 @@ extern int menu_redraw_blocked;
 
     Q: do we put raw X/Y positions here or keep them im consts.h?
  */
-info_elem_t info_config[] =
+ 
+info_elem_t info_config_dynamic[FLEXINFO_DYNAMIC_ENTRIES];
+
+info_elem_t info_config_liveview[] =
+{
+    { .config = { { INFO_TYPE_CONFIG } } },
+    { .text = { { INFO_TYPE_TEXT, { 150, 20, 2, .name = "Note" }}, "<FlexInfo unconfigured>", COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_SMALL } },
+    { .type = INFO_TYPE_END },
+};
+
+info_elem_t info_config_photo[] =
 {
     { .config = { { INFO_TYPE_CONFIG } } },
 
@@ -310,6 +322,12 @@ info_elem_t info_config[] =
 
     { .type = INFO_TYPE_END },
 };
+
+
+/* this is the current selected config */
+info_elem_t *info_config = info_config_photo;
+
+
 
 #ifdef FLEXINFO_XML_CONFIG
 
@@ -1952,6 +1970,11 @@ uint32_t info_get_next_z(info_elem_t *config, uint32_t current)
 
 uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t run_type)
 {
+    if(element->hdr.status != INFO_STATUS_USED)
+    {
+        return 0;
+    }
+    
     switch(element->type)
     {
         case INFO_TYPE_STRING:
@@ -1966,6 +1989,8 @@ uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t 
             return info_print_fill(config, (info_elem_fill_t *)element, run_type);
         case INFO_TYPE_ICON:
             return info_print_icon(config, (info_elem_icon_t *)element, run_type);
+        case INFO_TYPE_DYNAMIC:
+            return element->dynamic.print(element, run_type);
     }
 
     return 1;
@@ -2172,7 +2197,26 @@ uint32_t info_print_config(info_elem_t *config)
 
 uint32_t info_print_screen()
 {
-    return info_print_config(info_config);
+    if(gui_menu_shown())
+    {
+        return 0;
+    }
+    
+    if(lv)
+    {
+        info_config = info_config_liveview;
+    }
+    else
+    {
+        info_config = info_config_photo;
+    }
+    
+    take_semaphore(info_sem, 0);
+    info_print_config(info_config);
+    info_print_config(info_config_dynamic);
+    give_semaphore(info_sem);
+    
+    return 0;
 }
 
 #ifdef FLEXINFO_DEVELOPER_MENU
@@ -2858,14 +2902,6 @@ static struct menu_entry info_menus[] = {
     }
 };
 
-static void info_init()
-{
-    menu_add( "Prefs", info_menus, COUNT(info_menus) );
-#ifdef FLEXINFO_XML_CONFIG
-    info_load_config(FLEXINFO_DEFAULT_FILENAME);
-#endif
-}
-
 static void info_edit_task()
 {
     TASK_LOOP
@@ -2896,7 +2932,96 @@ static void info_edit_task()
 }
 
 TASK_CREATE( "info_edit_task", info_edit_task, 0, 0x16, 0x1000 );
-INIT_FUNC("info.init", info_init);
 
 #endif // FLEXINFO_DEVELOPER_MENU
+
+static void info_init()
+{
+    info_sem = create_named_semaphore("flexinfo_sem", 1);
+
+    /* init the pre-configured lists */
+    for(int pos = 0; pos < COUNT(info_config_photo); pos++)
+    {
+        info_config_photo[pos].hdr.status = INFO_STATUS_USED;
+        info_config_photo[pos].hdr.config = info_config_photo;
+        info_config_photo[pos].hdr.config_pos = pos;
+    }
+    for(int pos = 0; pos < COUNT(info_config_liveview); pos++)
+    {
+        info_config_liveview[pos].hdr.status = INFO_STATUS_USED;
+        info_config_liveview[pos].hdr.config = info_config_liveview;
+        info_config_liveview[pos].hdr.config_pos = pos;
+    }
+    
+    /* init dynamic list */
+    for(int pos = 0; pos < FLEXINFO_DYNAMIC_ENTRIES; pos++)
+    {
+        info_config_dynamic[pos].hdr.status = INFO_STATUS_FREE;
+        info_config_dynamic[pos].hdr.config = info_config_dynamic;
+        info_config_dynamic[pos].hdr.config_pos = pos;
+    }
+    
+    /* add start/stop entries */
+    info_config_dynamic[0].type = INFO_TYPE_CONFIG;
+    info_config_dynamic[0].hdr.status = INFO_STATUS_USED;
+    info_config_dynamic[2].type = INFO_TYPE_END;
+    info_config_dynamic[2].hdr.status = INFO_STATUS_USED;
+
+
+#ifdef FLEXINFO_DEVELOPER_MENU    
+    menu_add( "Prefs", info_menus, COUNT(info_menus) );
+#endif
+
+#ifdef FLEXINFO_XML_CONFIG
+    info_load_config(FLEXINFO_DEFAULT_FILENAME);
+#endif
+}
+
+
+info_elem_t *info_add_item()
+{
+    info_elem_t *item = NULL;
+    
+    take_semaphore(info_sem, 0);
+    for(int pos = 1; pos < FLEXINFO_DYNAMIC_ENTRIES - 2; pos++)
+    {
+        if(info_config_dynamic[pos].hdr.status == INFO_STATUS_FREE)
+        {
+            /* this empty entry will be the returned one */
+            item = &info_config_dynamic[pos];
+            item->hdr.status = INFO_STATUS_USED;
+            item->hdr.config = info_config_dynamic;
+            item->hdr.config_pos = pos;
+            
+            /* next entry is empty (and most likely a TYPE_END entry) */
+            info_config_dynamic[pos + 1].hdr.status = INFO_STATUS_FREE;
+            
+            /* the one after the empty is the new TYPE_END */
+            info_config_dynamic[pos + 2].type = INFO_TYPE_END;
+            info_config_dynamic[pos + 2].hdr.status = INFO_STATUS_USED;
+            
+            break;
+        }
+    }
+    give_semaphore(info_sem);
+    
+    return item;
+}
+
+void info_free_item(info_elem_t *item)
+{
+    take_semaphore(info_sem, 0);
+    
+    /* call deinit function first */
+    if(item->type == INFO_TYPE_DYNAMIC && item->dynamic.deinit)
+    {
+        item->dynamic.deinit(item);
+    }
+    
+    item->hdr.status = INFO_STATUS_FREE;
+    give_semaphore(info_sem);
+}
+
+INIT_FUNC("info_init", info_init);
+
 #endif // FEATURE_FLEXINFO
