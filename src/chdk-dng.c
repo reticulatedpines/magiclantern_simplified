@@ -58,7 +58,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #include "chdk-dng.h"
 
 /* adaptations from CHDK to ML */
-#define camera_sensor raw_info
+#define camera_sensor (*raw_info)
 #define get_raw_pixel raw_get_pixel
 #define raw_rowpix width
 #define raw_rows height
@@ -172,73 +172,11 @@ static struct t_data_for_exif exif_data;
 
 #define CAM_MAKE                    "Canon"
 
-struct dir_entry ifd0[]={
-    {0xFE,   T_LONG,       1,  1},                                 // NewSubFileType: Preview Image
-    {0x100,  T_LONG,       1,  DNG_TH_WIDTH},                      // ImageWidth
-    {0x101,  T_LONG,       1,  DNG_TH_HEIGHT},                     // ImageLength
-    {0x102,  T_SHORT,      3,  (int)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
-    {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
-    {0x106,  T_SHORT,      1,  2},                                 // PhotometricInterpretation: RGB
-    {0x10E,  T_ASCII,      1,  0},                                 // ImageDescription
-    {0x10F,  T_ASCII,      sizeof(CAM_MAKE), (int)CAM_MAKE},       // Make
-    {0x110,  T_ASCII,      32, (int)cam_name},                     // Model: Filled at header generation.
-    {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
-    {0x112,  T_SHORT,      1,  1},                                 // Orientation: 1 - 0th row is top, 0th column is left
-    {0x115,  T_SHORT,      1,  3},                                 // SamplesPerPixel: 3
-    {0x116,  T_SHORT,      1,  DNG_TH_HEIGHT},                     // RowsPerStrip
-    {0x117,  T_LONG,       1,  DNG_TH_WIDTH*DNG_TH_HEIGHT*3},      // StripByteCounts = preview size
-    {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
-    {0x131,  T_ASCII|T_PTR,32, 0},                                 // Software
-    {0x132,  T_ASCII,      20, (int)cam_datetime},                 // DateTime
-    {0x13B,  T_ASCII|T_PTR,64, (int)dng_artist_name},              // Artist: Filled at header generation.
-    {0x14A,  T_LONG,       1,  0},                                 // SubIFDs offset
-    {0x8298, T_ASCII|T_PTR,64, (int)dng_copyright},                // Copyright
-    {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
-    {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
-    {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
-    {0xC613, T_BYTE,       4,  0x00000301},                        // DNGBackwardVersion: 1.1.0.0
-    {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
-    {0xC621, T_SRATIONAL,  9,  (int)&camera_sensor.color_matrix1},
-    {0xC627, T_RATIONAL,   3,  (int)cam_AnalogBalance},
-    {0xC628, T_RATIONAL,   3,  (int)cam_AsShotNeutral},
-    {0xC62A, T_SRATIONAL,  1,  (int)&camera_sensor.exposure_bias},
-    {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
-    {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
-    {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
-    {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
-    {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
-    {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
-};
 
 // Index of specific entries in ifd1 below.
 // *** warning - if entries are added or removed these should be updated ***
 #define RAW_DATA_INDEX              6       // tag 0x111
 #define BADPIXEL_OPCODE_INDEX       21      // tag 0xC740
-
-struct dir_entry ifd1[]={
-    {0xFE,   T_LONG,       1,  0},                                 // NewSubFileType: Main Image
-    {0x100,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rowpix},    // ImageWidth
-    {0x101,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rows},      // ImageLength
-    {0x102,  T_SHORT|T_PTR,1,  (int)&camera_sensor.bits_per_pixel},// BitsPerSample
-    {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
-    {0x106,  T_SHORT,      1,  0x8023},                            // PhotometricInterpretation: CFA
-    {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
-    {0x115,  T_SHORT,      1,  1},                                 // SamplesPerPixel: 1
-    {0x116,  T_SHORT|T_PTR,1,  (int)&camera_sensor.raw_rows},      // RowsPerStrip
-    {0x117,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_size},      // StripByteCounts = CHDK RAW size
-    {0x11A,  T_RATIONAL,   1,  (int)cam_Resolution},               // XResolution
-    {0x11B,  T_RATIONAL,   1,  (int)cam_Resolution},               // YResolution
-    {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
-    {0x128,  T_SHORT,      1,  2},                                 // ResolutionUnit: inch
-    {0x828D, T_SHORT,      2,  0x00020002},                        // CFARepeatPatternDim: Rows = 2, Cols = 2
-    {0x828E, T_BYTE|T_PTR, 4,  (int)&camera_sensor.cfa_pattern},
-    {0xC61A, T_LONG|T_PTR, 1,  (int)&camera_sensor.black_level},   // BlackLevel
-    {0xC61D, T_LONG|T_PTR, 1,  (int)&camera_sensor.white_level},   // WhiteLevel
-    {0xC61F, T_LONG,       2,  (int)&camera_sensor.crop.origin},
-    {0xC620, T_LONG,       2,  (int)&camera_sensor.crop.size},
-    {0xC68D, T_LONG,       4,  (int)&camera_sensor.dng_active_area},
-    {0xC740, T_UNDEFINED|T_PTR, sizeof(badpixel_opcode),  (int)&badpixel_opcode},
-};
 
 // Index of specific entries in exif_ifd below.
 // *** warning - if entries are added or removed these should be updated ***
@@ -247,25 +185,6 @@ struct dir_entry ifd1[]={
 #define FLASH_MODE_INDEX            11      // tag 0x9209
 #define SSTIME_INDEX                13      // tag 0x9290
 #define SSTIME_ORIG_INDEX           14      // tag 0x9291
-
-struct dir_entry exif_ifd[]={
-    {0x829A, T_RATIONAL,   1,  (int)cam_shutter},          // Shutter speed
-    {0x829D, T_RATIONAL,   1,  (int)cam_aperture},         // Aperture
-    {0x8822, T_SHORT,      1,  0},                         // ExposureProgram
-    {0x8827, T_SHORT|T_PTR,1,  (int)&exif_data.iso},       // ISOSpeedRatings
-    {0x9000, T_UNDEFINED,  4,  0x31323230},                // ExifVersion: 2.21
-    {0x9003, T_ASCII,      20, (int)cam_datetime},         // DateTimeOriginal
-    {0x9201, T_SRATIONAL,  1,  (int)cam_apex_shutter},     // ShutterSpeedValue (APEX units)
-    {0x9202, T_RATIONAL,   1,  (int)cam_apex_aperture},    // ApertureValue (APEX units)
-    {0x9204, T_SRATIONAL,  1,  (int)cam_exp_bias},         // ExposureBias
-    {0x9205, T_RATIONAL,   1,  (int)cam_max_av},           // MaxApertureValue
-    {0x9207, T_SHORT,      1,  0},                         // Metering mode
-    {0x9209, T_SHORT,      1,  0},                         // Flash mode
-    {0x920A, T_RATIONAL,   1,  (int)cam_focal_length},     // FocalLength
-    {0x9290, T_ASCII|T_PTR,4,  (int)cam_subsectime},       // DateTime milliseconds
-    {0x9291, T_ASCII|T_PTR,4,  (int)cam_subsectime},       // DateTimeOriginal milliseconds
-    {0xA405, T_SHORT|T_PTR,1,  (int)&exif_data.effective_focal_length},    // FocalLengthIn35mmFilm
-};
 
 static int get_type_size(int type)
 {
@@ -289,18 +208,6 @@ static int get_type_size(int type)
 
 #define DIR_SIZE(ifd)   (sizeof(ifd)/sizeof(ifd[0]))
 
-struct
-{
-    struct dir_entry* entry;
-    int count;                  // Number of entries to be saved
-    int entry_count;            // Total number of entries
-} ifd_list[] = 
-{
-    {ifd0,      DIR_SIZE(ifd0),     DIR_SIZE(ifd0)}, 
-    {ifd1,      DIR_SIZE(ifd1),     DIR_SIZE(ifd1)}, 
-    {exif_ifd,  DIR_SIZE(exif_ifd), DIR_SIZE(exif_ifd)}, 
-};
-
 #define TIFF_HDR_SIZE (8)
 
 static char* dng_header_buf;
@@ -320,16 +227,110 @@ static void add_val_to_buf(int val, int size)
 }
 
 
-void set_framerate(int fpsx1000)
+void dng_set_framerate(int fpsx1000)
 {
     cam_FrameRate[0] = fpsx1000;
     cam_FrameRate[1] = 1000;
 }
 
-static void create_dng_header(){
+static void create_dng_header(struct raw_info * raw_info){
     int i,j;
     int extra_offset;
     int raw_offset;
+
+    struct dir_entry ifd0[]={
+        {0xFE,   T_LONG,       1,  1},                                 // NewSubFileType: Preview Image
+        {0x100,  T_LONG,       1,  DNG_TH_WIDTH},                      // ImageWidth
+        {0x101,  T_LONG,       1,  DNG_TH_HEIGHT},                     // ImageLength
+        {0x102,  T_SHORT,      3,  (int)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
+        {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
+        {0x106,  T_SHORT,      1,  2},                                 // PhotometricInterpretation: RGB
+        {0x10E,  T_ASCII,      1,  0},                                 // ImageDescription
+        {0x10F,  T_ASCII,      sizeof(CAM_MAKE), (int)CAM_MAKE},       // Make
+        {0x110,  T_ASCII,      32, (int)cam_name},                     // Model: Filled at header generation.
+        {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
+        {0x112,  T_SHORT,      1,  1},                                 // Orientation: 1 - 0th row is top, 0th column is left
+        {0x115,  T_SHORT,      1,  3},                                 // SamplesPerPixel: 3
+        {0x116,  T_SHORT,      1,  DNG_TH_HEIGHT},                     // RowsPerStrip
+        {0x117,  T_LONG,       1,  DNG_TH_WIDTH*DNG_TH_HEIGHT*3},      // StripByteCounts = preview size
+        {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
+        {0x131,  T_ASCII|T_PTR,32, 0},                                 // Software
+        {0x132,  T_ASCII,      20, (int)cam_datetime},                 // DateTime
+        {0x13B,  T_ASCII|T_PTR,64, (int)dng_artist_name},              // Artist: Filled at header generation.
+        {0x14A,  T_LONG,       1,  0},                                 // SubIFDs offset
+        {0x8298, T_ASCII|T_PTR,64, (int)dng_copyright},                // Copyright
+        {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
+        {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
+        {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
+        {0xC613, T_BYTE,       4,  0x00000301},                        // DNGBackwardVersion: 1.1.0.0
+        {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
+        {0xC621, T_SRATIONAL,  9,  (int)&camera_sensor.color_matrix1},
+        {0xC627, T_RATIONAL,   3,  (int)cam_AnalogBalance},
+        {0xC628, T_RATIONAL,   3,  (int)cam_AsShotNeutral},
+        {0xC62A, T_SRATIONAL,  1,  (int)&camera_sensor.exposure_bias},
+        {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
+        {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
+        {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
+        {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
+        {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
+        {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
+    };
+
+    struct dir_entry ifd1[]={
+        {0xFE,   T_LONG,       1,  0},                                 // NewSubFileType: Main Image
+        {0x100,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rowpix},    // ImageWidth
+        {0x101,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rows},      // ImageLength
+        {0x102,  T_SHORT|T_PTR,1,  (int)&camera_sensor.bits_per_pixel},// BitsPerSample
+        {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
+        {0x106,  T_SHORT,      1,  0x8023},                            // PhotometricInterpretation: CFA
+        {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
+        {0x115,  T_SHORT,      1,  1},                                 // SamplesPerPixel: 1
+        {0x116,  T_SHORT|T_PTR,1,  (int)&camera_sensor.raw_rows},      // RowsPerStrip
+        {0x117,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_size},      // StripByteCounts = CHDK RAW size
+        {0x11A,  T_RATIONAL,   1,  (int)cam_Resolution},               // XResolution
+        {0x11B,  T_RATIONAL,   1,  (int)cam_Resolution},               // YResolution
+        {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
+        {0x128,  T_SHORT,      1,  2},                                 // ResolutionUnit: inch
+        {0x828D, T_SHORT,      2,  0x00020002},                        // CFARepeatPatternDim: Rows = 2, Cols = 2
+        {0x828E, T_BYTE|T_PTR, 4,  (int)&camera_sensor.cfa_pattern},
+        {0xC61A, T_LONG|T_PTR, 1,  (int)&camera_sensor.black_level},   // BlackLevel
+        {0xC61D, T_LONG|T_PTR, 1,  (int)&camera_sensor.white_level},   // WhiteLevel
+        {0xC61F, T_LONG,       2,  (int)&camera_sensor.crop.origin},
+        {0xC620, T_LONG,       2,  (int)&camera_sensor.crop.size},
+        {0xC68D, T_LONG,       4,  (int)&camera_sensor.dng_active_area},
+        {0xC740, T_UNDEFINED|T_PTR, sizeof(badpixel_opcode),  (int)&badpixel_opcode},
+    };
+
+    struct dir_entry exif_ifd[]={
+        {0x829A, T_RATIONAL,   1,  (int)cam_shutter},          // Shutter speed
+        {0x829D, T_RATIONAL,   1,  (int)cam_aperture},         // Aperture
+        {0x8822, T_SHORT,      1,  0},                         // ExposureProgram
+        {0x8827, T_SHORT|T_PTR,1,  (int)&exif_data.iso},       // ISOSpeedRatings
+        {0x9000, T_UNDEFINED,  4,  0x31323230},                // ExifVersion: 2.21
+        {0x9003, T_ASCII,      20, (int)cam_datetime},         // DateTimeOriginal
+        {0x9201, T_SRATIONAL,  1,  (int)cam_apex_shutter},     // ShutterSpeedValue (APEX units)
+        {0x9202, T_RATIONAL,   1,  (int)cam_apex_aperture},    // ApertureValue (APEX units)
+        {0x9204, T_SRATIONAL,  1,  (int)cam_exp_bias},         // ExposureBias
+        {0x9205, T_RATIONAL,   1,  (int)cam_max_av},           // MaxApertureValue
+        {0x9207, T_SHORT,      1,  0},                         // Metering mode
+        {0x9209, T_SHORT,      1,  0},                         // Flash mode
+        {0x920A, T_RATIONAL,   1,  (int)cam_focal_length},     // FocalLength
+        {0x9290, T_ASCII|T_PTR,4,  (int)cam_subsectime},       // DateTime milliseconds
+        {0x9291, T_ASCII|T_PTR,4,  (int)cam_subsectime},       // DateTimeOriginal milliseconds
+        {0xA405, T_SHORT|T_PTR,1,  (int)&exif_data.effective_focal_length},    // FocalLengthIn35mmFilm
+    };
+
+    struct
+    {
+        struct dir_entry* entry;
+        int count;                  // Number of entries to be saved
+        int entry_count;            // Total number of entries
+    } ifd_list[] = 
+    {
+        {ifd0,      DIR_SIZE(ifd0),     DIR_SIZE(ifd0)}, 
+        {ifd1,      DIR_SIZE(ifd1),     DIR_SIZE(ifd1)}, 
+        {exif_ifd,  DIR_SIZE(exif_ifd), DIR_SIZE(exif_ifd)}, 
+    };
 
     ifd0[DNG_VERSION_INDEX].offset = BE(0x01030000);
     
@@ -518,7 +519,7 @@ static void fill_gamma_buf(void)
     for (i=64; i<=255; i++) gammma[i]=pow_calc_2(255, i, 255, 0.25, 1);
 }
 
-static void create_thumbnail()
+static void create_thumbnail(struct raw_info * raw_info)
 {
     register int i, j, x, y, yadj, xadj;
     register char *buf = thumbnail_buf;
@@ -549,14 +550,15 @@ static void create_thumbnail()
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static void write_dng(FILE* fd, char* rawadr) 
+static void write_dng(FILE* fd, struct raw_info * raw_info) 
 {
-    create_dng_header();
+    create_dng_header(raw_info);
+    char* rawadr = raw_info->buffer;
 
     if (dng_header_buf)
     {
         fill_gamma_buf();
-        create_thumbnail();
+        create_thumbnail(raw_info);
         write(fd, dng_header_buf, dng_header_buf_size);
         write(fd, thumbnail_buf, DNG_TH_WIDTH*DNG_TH_HEIGHT*3);
 
@@ -574,7 +576,7 @@ PROP_HANDLER(PROP_CAM_MODEL)
 }
 #endif
 
-int save_dng(char* filename)
+int save_dng(char* filename, struct raw_info * raw_info)
 {
     cam_AsShotNeutral[0] = 473635; /* Daylight */
     cam_AsShotNeutral[4] = 624000;
@@ -592,7 +594,7 @@ int save_dng(char* filename)
     
     FILE* f = FIO_CreateFileEx(filename);
     if (!f) return 0;
-    write_dng(f, raw_info.buffer);
+    write_dng(f, raw_info);
     FIO_CloseFile(f);
     return 1;
 }
