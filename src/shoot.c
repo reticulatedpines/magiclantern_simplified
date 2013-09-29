@@ -5577,11 +5577,6 @@ static void misc_shooting_info()
 
     if (get_global_draw())
     {
-        #ifdef FEATURE_FLEXINFO
-        // from flexinfo.c
-        info_print_screen();
-        #endif
-        
         #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
         if (!lv && display_idle())
         BMP_LOCK
