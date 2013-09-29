@@ -67,6 +67,77 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 
 static void FAST reverse_bytes_order(char* buf, int count)
 {
+#ifdef __ARM__
+    /* optimized swap from g3gg0 */
+    asm volatile ("\
+        /* r2 = A B C D */\r\n\
+        /* r5 = 0 B 0 D */\r\n\
+        /* r2 = 0 A 0 C */\r\n\
+        /* r2 = B 0 D 0 | 0 A 0 C */\r\n\
+        \
+        /* init swap mask */\r\n\
+        mov r4, #0xff\r\n\
+        orr r4, r4, #0xff0000\r\n\
+        \
+        _wswap128:\r\n\
+        cmp %1, #0x10\r\n\
+        blt _wswap64\r\n\
+        \
+        ldmia %0, {r2, r3, r6, r7}\r\n\
+        and r5, r4, r2\r\n\
+        and r2, r4, r2, ror #8\r\n\
+        orr r2, r2, r5, lsl #8\r\n\
+       and r5, r4, r3\r\n\
+        and r3, r4, r3, ror #8\r\n\
+        orr r3, r3, r5, lsl #8\r\n\
+        and r5, r4, r6\r\n\
+        and r6, r4, r6, ror #8\r\n\
+        orr r6, r6, r5, lsl #8\r\n\
+        and r5, r4, r7\r\n\
+        and r7, r4, r7, ror #8\r\n\
+        orr r7, r7, r5, lsl #8\r\n\
+        stmia %0!, {r2, r3, r6, r7}\r\n\
+        sub %1, #0x10\r\n\
+        b _wswap128\r\n\
+        \
+        _wswap64:\r\n\
+        cmp %1, #0x08\r\n\
+        blt _wswap32\r\n\
+        \
+        ldmia %0, {r2, r3}\r\n\
+        and r5, r4, r2\r\n\
+        and r2, r4, r2, ror #8\r\n\
+        orr r2, r2, r5, lsl #8\r\n\
+        and r5, r4, r3\r\n\
+        and r3, r4, r3, ror #8\r\n\
+        orr r3, r3, r5, lsl #8\r\n\
+        stmia %0!, {r2, r3}\r\n\
+        sub %1, #0x08\r\n\
+        b _wswap64\r\n\
+        \
+        _wswap32:\r\n\
+        cmp %1, #0x04\r\n\
+        blt _wswap16\r\n\
+        \
+        ldmia %0, {r2}\r\n\
+        and r5, r4, r2\r\n\
+        and r2, r4, r2, ror #8\r\n\
+        orr r2, r2, r5, lsl #8\r\n\
+        stmia %0!, {r2}\r\n\
+        sub %1, #0x04\r\n\
+        b _wswap32\r\n\
+        \
+        _wswap16:\r\n\
+        cmp %1, #0x00\r\n\
+        beq _wswap_end\r\n\
+        ldrh r2, [%0]\r\n\
+        mov r3, r2, lsr #8\r\n\
+        orr r2, r3, r2, lsl #8\r\n\
+        strh r2, [%0]\r\n\
+        \
+        _wswap_end:\
+        " : : "r"(buf), "r"(count) : "r2", "r3", "r4", "r5", "r6", "r7");
+#else
     short* buf16 = (short*) buf;
     int i;
     for (i = 0; i < count/2; i++)
@@ -75,6 +146,7 @@ static void FAST reverse_bytes_order(char* buf, int count)
         buf[2*i+1] = x;
         buf[2*i] = x >> 8;
     }
+#endif
 }
 
 //thumbnail
