@@ -63,6 +63,7 @@ typedef struct
     uint32_t shown;
     uint32_t checksum;
     uint32_t redraws;
+    char anchor_name[INFO_NAME_LENGTH];
 } info_elem_pos_t;
 
 
@@ -131,6 +132,20 @@ typedef struct
 #define INFO_STRING_FREE_GB_INT          41
 #define INFO_STRING_FREE_GB_FLOAT        42
 #define INFO_STRING_KELVIN_ICO           43
+#define INFO_STRING_TEMPERATURE          44
+#define INFO_STRING_WBMODE               45
+#define INFO_STRING_FOCUSMODE            46
+#define INFO_STRING_SHOOTMODE            47
+#define INFO_STRING_SHOOTMODE_SHORT      48
+#define INFO_STRING_APERTURE             49
+#define INFO_STRING_FOCAL_LEN            50
+#define INFO_STRING_FOCAL_LEN_EQ         51
+#define INFO_STRING_FOCAL_DIST           52
+#define INFO_STRING_SHUTTER              53
+#define INFO_STRING_IS_MODE              54
+#define INFO_STRING_DOF_NEAR             55
+#define INFO_STRING_DOF_FAR              56
+#define INFO_STRING_DOF_HF               57
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1
@@ -232,6 +247,13 @@ union info_elem_t
 info_elem_t *info_add_item();
 /* unregister a previously registered element */
 void info_free_item(info_elem_t *item);
+
+/* register a new element that is unconfigured by default. set it to the type you need it to be and care for it yourself */
+info_elem_t *info_add_item();
+/* unregister a previously registered element */
+void info_free_item(info_elem_t *item);
+/* look up an element by its name */
+info_elem_t *info_get_by_name(info_elem_t *config, char *name);
 
 #endif
 #endif

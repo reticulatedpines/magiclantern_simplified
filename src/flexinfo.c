@@ -39,6 +39,17 @@ extern int cluster_size;
 extern int free_space_raw;
 #endif
 
+/* copied from lens.c to get crop information */
+#ifdef CONFIG_FULLFRAME
+#define SENSORCROPFACTOR 10
+#elif defined(CONFIG_600D)
+static PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
+#define DIGITAL_ZOOM ((is_movie_mode() && video_mode_crop && video_mode_resolution == 0) ? digital_zoom_ratio : 100)
+#define SENSORCROPFACTOR (16 * DIGITAL_ZOOM / 100)
+#else
+#define SENSORCROPFACTOR 16
+#endif
+
 /* updated every redraw */
 static int32_t info_bg_color = 0;
 static int32_t info_field_color = 0;
@@ -90,10 +101,65 @@ extern int menu_redraw_blocked;
  
 info_elem_t info_config_dynamic[FLEXINFO_DYNAMIC_ENTRIES];
 
+//#define i_want_to_test_flexinfo_bars 1
+
 info_elem_t info_config_liveview[] =
 {
     { .config = { { INFO_TYPE_CONFIG } } },
-    { .text = { { INFO_TYPE_TEXT, { 150, 20, 2, .name = "Note" }}, "<FlexInfo unconfigured>", COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_SMALL } },
+    
+#if i_want_to_test_flexinfo_bars
+
+    /* entry 1, top bar */
+    { .fill = { { INFO_TYPE_FILL, { 5, 2, 1, .w=710, .h=35, .name = "Top bar" }}, .color = COLOR_BG } },
+    /* entry 2, bottom bar */
+    { .fill = { { INFO_TYPE_FILL, { 5, 441, 1, .w=710, .h=35, .name = "Bottom bar" }}, .color = COLOR_BG } },
+    
+    /* fill top bar */
+    
+    /* time (leftmost) */
+    { .string = { { INFO_TYPE_STRING, { 15, 2, 2, .name = "time hrs", .anchor_name = "Top bar", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP,  .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_TIME_HH24, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .text   = { { INFO_TYPE_TEXT,   {  0, 0, 2, .name = "time :",   .anchor_name = "time hrs", .anchor_flags = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, ":", COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, {  0, 0, 2, .name = "time min", .anchor_name = "time :", .anchor_flags = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_TIME_MM, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* free space  (rightmost)*/
+    { .text   = { { INFO_TYPE_TEXT,   { -15, 2, 2, .name = "GB",       .anchor_name = "Top bar", .anchor_flags = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP }}, "GB", COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, {  -2, 0, 2, .name = "Space GB", .anchor_name = "GB", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP,  .anchor_flags_self = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP }}, INFO_STRING_FREE_GB_FLOAT, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* pictures */
+    { .string = { { INFO_TYPE_STRING, { -15, 0, 2, .name = "Pics",     .anchor_name = "Space GB", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP }}, INFO_STRING_PICTURES_AVAIL_AUTO, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+
+    /* temperature */
+    { .text   = { { INFO_TYPE_TEXT,   { -15, 0, 2, .name = "°C",       .anchor_name = "Pics", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP }}, SYM_DEGREE"C", COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, {  -1, 0, 2, .name = "Temp",     .anchor_name = "°C", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP }}, INFO_STRING_TEMPERATURE, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .fill   = { { INFO_TYPE_FILL,   {   0, -2, 1, .name = "TempBG",  .anchor_name = "Temp", .w=75, .h=35, .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, .color = INFO_COL_PEEK } },
+
+    /* fill bottom bar */
+    
+    /* shooting mode */
+    { .string = { { INFO_TYPE_STRING, { 15, 2, 2, .name = "mode",      .anchor_name = "Bottom bar", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_SHOOTMODE_SHORT, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* focal length */
+    { .string = { { INFO_TYPE_STRING, {  50, 0, 2, .name = "focal",    .anchor_name = "mode", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_FOCAL_LEN, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .text   = { { INFO_TYPE_TEXT,   {   1, 0, 2, .name = "focal mm", .anchor_name = "focal", .anchor_flags = INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM }}, "mm", COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+
+    /* aperture */
+    { .string = { { INFO_TYPE_STRING, { 110, 0, 2, .name = "aperture", .anchor_name = "focal", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_APERTURE, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* shutter */
+    { .string = { { INFO_TYPE_STRING, {  90, 0, 2, .name = "shutter",  .anchor_name = "aperture", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_SHUTTER, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* ISO */
+    { .text   = { { INFO_TYPE_TEXT,   {  80, 0, 2, .name = "ISO icon", .anchor_name = "shutter", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, SYM_ISO, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, {   1, 0, 2, .name = "ISO val",  .anchor_name = "ISO icon", .anchor_flags = INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_ISO, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+
+    /* WB */
+    { .string = { { INFO_TYPE_STRING, { 120, 0, 2, .name = "wbmode",   .anchor_name = "ISO icon", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_WBMODE, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+
+    /* focal dist */
+    { .string = { { INFO_TYPE_STRING, { 140, 0, 2, .name = "dist",     .anchor_name = "wbmode", .anchor_flags = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .anchor_flags_self = INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP }}, INFO_STRING_FOCAL_DIST, COLOR_WHITE, INFO_COL_PEEK, INFO_FONT_LARGE } },
+
+#endif
+
     { .type = INFO_TYPE_END },
 };
 
@@ -1190,7 +1256,25 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
     {
         case INFO_STRING_ISO:
         {
-            snprintf(buffer, maxsize, "(ISO)");
+            uint32_t iso = 0;
+            
+            if(lens_info.iso == 0)
+            {
+                iso = lens_info.iso_auto;
+            }
+            else
+            {
+                iso = lens_info.iso;
+            }
+            
+            if(iso > 10000)
+            {
+                snprintf(buffer, maxsize, "%dK", iso / 1000);
+            }
+            else
+            {
+                snprintf(buffer, maxsize, "%d", iso);
+            }
             break;
         }
         case INFO_STRING_ISO_MIN:
@@ -1508,6 +1592,154 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%d.%d", fsg, fsgf);
             break;
         }
+        case INFO_STRING_TEMPERATURE:
+        {
+            snprintf(buffer, maxsize, "%d", EFIC_CELSIUS);
+            break;
+        }
+        case INFO_STRING_WBMODE:
+        {
+            if( lens_info.wb_mode == WB_KELVIN )
+            {
+                snprintf(buffer, maxsize, lens_info.kelvin >= 10000 ? "%5dK" : "%4dK ", lens_info.kelvin);
+            }
+            else
+            {
+                snprintf(buffer, maxsize, "%s ",
+                    (uniwb_is_active()      ? " UniWB" :
+                    (lens_info.wb_mode == 0 ? "AutoWB" : 
+                    (lens_info.wb_mode == 1 ? " Sunny" :
+                    (lens_info.wb_mode == 2 ? "Cloudy" : 
+                    (lens_info.wb_mode == 3 ? "Tungst" : 
+                    (lens_info.wb_mode == 4 ? "Fluor." : 
+                    (lens_info.wb_mode == 5 ? " Flash" : 
+                    (lens_info.wb_mode == 6 ? "Custom" : 
+                    (lens_info.wb_mode == 8 ? " Shade" :
+                     "unk")))))))))
+                );
+            }
+            break;
+        }
+        case INFO_STRING_SHOOTMODE:
+        {
+            snprintf(buffer, maxsize, "%s", get_shootmode_name(shooting_mode_custom));
+            break;
+        }
+        case INFO_STRING_SHOOTMODE_SHORT:
+        {
+            snprintf(buffer, maxsize, "%s", get_shootmode_name_short(shooting_mode_custom));
+            break;
+        }
+        case INFO_STRING_APERTURE:
+        {
+            if (lens_info.aperture)
+            {
+                if (lens_info.aperture < 100)
+                {
+                    snprintf(buffer, maxsize, SYM_F_SLASH"%d.%d", lens_info.aperture / 10, lens_info.aperture % 10);
+                }
+                else
+                {
+                    snprintf(buffer, maxsize, SYM_F_SLASH"%d", lens_info.aperture / 10);
+                }
+            }
+            break;
+        }
+        case INFO_STRING_FOCAL_LEN:
+        {
+            snprintf(buffer, maxsize, "%d", lens_info.focal_len);
+            break;
+        }
+        case INFO_STRING_FOCAL_LEN_EQ:
+        {
+            snprintf(buffer, maxsize, "%d", (lens_info.focal_len * SENSORCROPFACTOR + 5) / 10);
+            break;
+        }
+        case INFO_STRING_FOCAL_DIST:
+        {
+            if(lens_info.focus_dist)
+            {
+                uint32_t dist = lens_info.focus_dist;
+                
+                if(dist >= 65535)
+                {
+                    snprintf(buffer, maxsize, "inf.");
+                }
+                else if(dist >= 1000)
+                {
+                    snprintf(buffer, maxsize, "%dm", dist / 100);
+                }
+                else if(dist >= 100)
+                {
+                    snprintf(buffer, maxsize, "%d.%dm", dist / 100, (dist % 100) / 10);
+                }
+                else
+                {
+                    snprintf(buffer, maxsize, "%dcm", dist);
+                }
+            }
+            else
+            {
+                snprintf(buffer, maxsize, is_manual_focus() ? "MF" : "AF");
+            }
+            break;
+        }
+        case INFO_STRING_SHUTTER:
+        {
+            int shutter_x10 = raw2shutter_ms(lens_info.raw_shutter) / 100;
+            int shutter_reciprocal = lens_info.raw_shutter ? (int) roundf(4000.0f / powf(2.0f, (152 - lens_info.raw_shutter)/8.0f)) : 0;
+
+            // in movie mode we can get the exact value from Canon timers
+            if (is_movie_mode()) 
+            {
+                int sr_x1000 = get_current_shutter_reciprocal_x1000();
+                shutter_reciprocal = (sr_x1000+500)/1000;
+                shutter_x10 = ((100000 / sr_x1000) + 5) / 10;
+            }
+
+            if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
+            if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
+            
+            if (is_bulb_mode()) snprintf(buffer, maxsize, "BULB");
+            else if (lens_info.raw_shutter == 0) snprintf(buffer, maxsize, "");
+            else if (shutter_reciprocal >= 10000) snprintf(buffer, maxsize, SYM_1_SLASH "%dK", shutter_reciprocal/1000);
+            else if (shutter_x10 <= 3) snprintf(buffer, maxsize, SYM_1_SLASH "%d", shutter_reciprocal);
+            else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(buffer, maxsize, "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
+            else snprintf(buffer, maxsize, "%d\"", (shutter_x10+5) / 10);
+            break;
+        }
+        case INFO_STRING_IS_MODE:
+        {
+            switch(lens_info.IS)
+            {
+                case 0:
+                    snprintf(buffer, maxsize, "  ");
+                    break;
+                case 4:
+                case 8:
+                case 12:
+                case 14:
+                    snprintf(buffer, maxsize, "IS");
+                    break;
+            }
+            break;
+        }
+        case INFO_STRING_DOF_NEAR:
+        {
+            snprintf(buffer, maxsize, "%d", lens_info.dof_near);
+            break;
+        }
+        case INFO_STRING_DOF_FAR:
+        {
+            snprintf(buffer, maxsize, "%d", lens_info.dof_far);
+            break;
+        }
+        case INFO_STRING_DOF_HF:
+        {
+            snprintf(buffer, maxsize, "%d", lens_info.hyperfocal);
+            break;
+        }
+
 
         /* empty string */
         case INFO_STRING_NONE:
@@ -1593,6 +1825,20 @@ uint32_t info_get_anchor_offset(info_elem_t *element, uint32_t flags, int32_t *o
     return 0;
 }
 
+info_elem_t *info_get_by_name(info_elem_t *config, char *name)
+{
+    while(config->type != INFO_TYPE_END)
+    {
+        if(!strcmp(config->hdr.pos.name, name))
+        {
+            return config;
+        }
+        config++;
+    }
+    
+    return NULL;
+}
+
 uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
 {
     int32_t offset_x = 0;
@@ -1602,6 +1848,14 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
     element->hdr.pos.abs_x = element->hdr.pos.x;
     element->hdr.pos.abs_y = element->hdr.pos.y;
 
+    /* this will get executed only once to update the anchor id */
+    if(element->hdr.pos.anchor == 0 && strlen(element->hdr.pos.anchor_name))
+    {
+        info_elem_t *anchor_item = info_get_by_name(config, element->hdr.pos.anchor_name);
+        
+        element->hdr.pos.anchor = anchor_item->hdr.config_pos;
+    }
+    
     /* if the element is relatively positioned to some other element, we have to look it up */
     if(element->hdr.pos.anchor != 0)
     {
@@ -1809,10 +2063,13 @@ uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_
         return 1;
     }
 
-    /* look up special colors */
-    int32_t color = info_resolve_color(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
+    if(run_type == INFO_PRINT)
+    {
+        /* look up special colors */
+        int32_t color = info_resolve_color(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
 
-    bmp_fill(color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
+        bmp_fill(color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
+    }
     return 0;
 }
 
@@ -2085,7 +2342,7 @@ uint32_t info_print_config(info_elem_t *config)
         info_print_element(config, &(config[pos]), INFO_PRERUN);
         pos++;
     }
-
+    
     z = info_get_next_z(config, 0);
     while(z != INFO_Z_END)
     {
@@ -2212,8 +2469,16 @@ uint32_t info_print_screen()
     }
     
     take_semaphore(info_sem, 0);
-    info_print_config(info_config);
-    info_print_config(info_config_dynamic);
+
+    BMP_LOCK
+    (
+        bmp_idle_copy(0,1);
+        bmp_draw_to_idle(1);
+        info_print_config(info_config);
+        info_print_config(info_config_dynamic);
+        bmp_draw_to_idle(0);
+        bmp_idle_copy(1,0);
+    )
     give_semaphore(info_sem);
     
     return 0;
