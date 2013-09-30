@@ -98,7 +98,6 @@ static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
 // these are for fullframe camereas
 static CONFIG_INT("auto.expo.same_tv", same_tv, 1);
 static CONFIG_INT("auto.expo.lens_av", lens_av, LENS_AV_THIS);
-static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
 static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  // 1s
 static CONFIG_INT("auto.expo.av_min", av_min, 10); // f/1.4
 static CONFIG_INT("auto.expo.av_max", av_max, 80); // f/16
@@ -154,7 +153,7 @@ static exposure get_exposure(int bv, int simul) {
     
     //av
     expo.sv  = MIN(iso_min - (MIN(bv - (iso_off + same_tv_offset), 0) * iso_step) / 10, iso_max);
-    if(round_iso) { expo.sv /= 10; expo.sv *= 10; }
+    expo.sv /= 10; expo.sv *= 10; //round iso
     
     //ec
     expo.ec = COERCE(ec - (MIN(bv - (ec_off + same_tv_offset), 0) * ec_step) / 10, ec_min, ec_max);
@@ -392,8 +391,6 @@ static MENU_SELECT_FUNC(iso_range_set) {
     }
 }
 
-static MENU_UPDATE_FUNC(round_iso_upd) { MENU_CUSTOM_DRAW(sv); }
-
 static MENU_SELECT_FUNC(tv_min_set) {
     tv_min = COERCE(tv_min + delta * 5, -50, 130);
 }
@@ -524,13 +521,6 @@ static struct menu_entry autoexpo_menu[] =
                 .help2 = "Left & right - set EV steps per BV.",
             },
             {
-                .name = "Round ISO",
-                .priv = &round_iso,
-                .update = round_iso_upd,
-                .max = 1,
-                .help = "Stop using digital ISO - 100, 200, 400, 800, etc.",
-            },
-            {
                 .name = "EC",
                 .update = ec_upd,
                 .select = ec_sel,
@@ -594,7 +584,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_expo_enabled)
     MODULE_CONFIG(same_tv)
     MODULE_CONFIG(lens_av)
-    MODULE_CONFIG(round_iso)
     MODULE_CONFIG(tv_min)
     MODULE_CONFIG(av_min)
     MODULE_CONFIG(av_max)
