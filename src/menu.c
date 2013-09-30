@@ -2455,7 +2455,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(x, y, ABS(menu->split_pos)*20, h, entry, &info, IS_SUBMENU(menu));
+            entry_print(info.x, info.y, ABS(menu->split_pos)*20, h, entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
