@@ -1,13 +1,17 @@
 /*
-
-    BRIGHTNESS VALUE = SHUTTER + APERTURE - ISO + EXPOSURE COMPENSATION 
+    
+    AUTOMATIC EXPOSURE ALGORITHM BASED ON PREDEFINED CURVES
+    
+    BV = TV + AP - SV + EC
     in M mode exposure compensation is indicator of under/over exposure
     
+    http://pravdomil.cz/diy
     http://www.magiclantern.fm/forum/index.php?topic=7208
-    https://bitbucket.org/pravdomil/
 
-    AE_VALUE value overflows on 5D2 Canon bug
-    how to reproduce: set high iso and watch AE compension in M on bright sky
+    AE_VALUE overflows on 5D2 - Canon bug
+    How to reproduce: set high ISO and watch AE compension in M on bright sky
+    
+    TODO: find brightness sensors (digging into Toshiba)
     
 */
 #include <module.h>
