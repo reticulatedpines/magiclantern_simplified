@@ -3144,28 +3144,6 @@ static void post_deflicker_step()
     task_create("deflicker_task", 0x1a, 0x1000, post_deflicker_task, (void*) 0);
 }
 
-/* called from QR zebras */
-void post_deflicker_show_info()
-{
-    if (!post_deflicker) return;
-    
-    /* if a deflicker operation is in progress, wait until it finishes */
-    bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
-        "Deflickering..."
-    );
-    while (deflicker_waiting) msleep(50);
-    take_semaphore(deflicker_sem, 0);
-    if (deflicker_last_correction_x100)
-    {
-        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
-            "Post exposure: %s%d.%02d EV",
-            FMT_FIXEDPOINT2S(deflicker_last_correction_x100)
-        );
-        deflicker_last_correction_x100 = 0;
-    }
-    give_semaphore(deflicker_sem);
-}
-
 static MENU_UPDATE_FUNC(post_deflicker_update)
 {
     if (!can_use_raw_overlays_photo())

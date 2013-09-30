@@ -411,11 +411,6 @@ void customize_menu_init()
     menu_add(MOD_MENU_NAME, mod_menu_placeholders, COUNT(mod_menu_placeholders));
 }
 
-void menu_prefs_init()
-{
-    //~ menu_add("Prefs", menu_prefs, COUNT(menu_prefs));
-}
-
 static struct menu * menus;
 
 struct menu * menu_get_root() {
@@ -2222,7 +2217,7 @@ skip_name:
     // right-justified info field?
     int rlen = bmp_string_width(fnt, info->rinfo);
     int rinfo_x = x_end - rlen - 35;
-    if (rlen) wmax -= rlen + char_width;
+    if (rlen) wmax -= rlen + char_width + 35;
     
     // no right info? then make sure there's room for the Q symbol
     else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
@@ -2325,7 +2320,7 @@ skip_name:
         }
         
         char default_help_buf[MENU_MAX_HELP_LEN];
-        if (!entry->help2 || strlen(help2) < 2) // default help just list the choices
+        if (!help2 || strlen(help2) < 2) // default help just list the choices
         {
             int num = NUM_CHOICES(entry);
             if (num > 2 && num < 10)
@@ -2396,6 +2391,15 @@ skip_name:
 static void
 menu_post_display()
 {
+    char* cfg_preset = get_config_preset_name();
+    if (cfg_preset && !submenu_mode)
+    {
+        bmp_printf(
+            SHADOW_FONT(FONT(FONT_MED, COLOR_GRAY(40), COLOR_BLACK)) | FONT_ALIGN_RIGHT,
+            715, 480-50-font_med.height+4,
+            "%s", cfg_preset
+        );
+    }
 
     if (!CURRENT_DIALOG_MAYBE)
     {
@@ -2455,7 +2459,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(info.x, info.y, ABS(menu->split_pos)*20, h, entry, &info, IS_SUBMENU(menu));
+            entry_print(x, y, info.x_val - x, h, entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
@@ -2685,7 +2689,7 @@ menu_display(
         entry = entry->next;
     }
 
-    if (scroll_pos)
+    if (scroll_pos > 0)
     {
         for (int i = -13; i <= 13; i++)
             draw_line(360 - i, y + 8 - 12, 360, y - 12, MENU_BAR_COLOR);
@@ -3294,6 +3298,7 @@ menus_display(
                 //~ else
                 if (!junkie_mode)
                     bmp_printf(FONT(FONT_CANON, fg, bg), 5, y, "%s", menu->name);
+                
                 int x1 = x - 1;
                 int x2 = x1 + icon_spacing + 2;
 
@@ -3550,7 +3555,12 @@ menu_entry_select(
         return;
 
     struct menu_entry * entry = get_selected_entry(menu);
-    if( !entry ) return;
+    if( !entry )
+    {
+        /* empty submenu? go back */
+        menu_lv_transparent_mode = edit_mode = submenu_mode = 0;
+        return;
+    }
     
     // don't perform actions on empty items (can happen on empty submenus)
     if (!is_visible(entry))
@@ -4613,7 +4623,7 @@ menu_task( void* unused )
 {
     extern int ml_started;
     while (!ml_started) msleep(100);
-    config_menu_init();
+    debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
     
@@ -4802,8 +4812,20 @@ void select_menu_by_name(char* name, const char* entry_name)
         }
     }
     
-    if (!menu_that_was_selected) { menus->selected = 1; menu_that_was_selected = menus; }// name not found, just select the first one one
-    if (!entry_was_selected) menu_that_was_selected->children->selected = 1;
+    if (!menu_that_was_selected)
+    {
+        // menu not found, just select the first one one
+        menus->selected = 1;
+        menu_that_was_selected = menus;
+    }
+    if (!entry_was_selected)
+    {
+        // entry not found
+        if (menu_that_was_selected && menu_that_was_selected->children)
+        {
+            menu_that_was_selected->children->selected = 1;
+        }
+    }
     //~ menu_damage = 1;
 }
 
@@ -5072,14 +5094,18 @@ static void menu_load_flags(char* filename)
 
 static void config_menu_load_flags()
 {
-    menu_load_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
+    char menu_config_file[0x80];
+    snprintf(menu_config_file, sizeof(menu_config_file), "%sMENU.CFG", get_config_dir());
+    menu_load_flags(menu_config_file);
     my_menu_dirty = 1;
 }
 
 void config_menu_save_flags()
 {
     if (!menu_flags_save_dirty) return;
-    menu_save_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
+    char menu_config_file[0x80];
+    snprintf(menu_config_file, sizeof(menu_config_file), "%sMENU.CFG", get_config_dir());
+    menu_save_flags(menu_config_file);
 }
 
 

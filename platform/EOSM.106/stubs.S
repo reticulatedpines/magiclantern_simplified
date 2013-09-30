@@ -42,7 +42,7 @@ NSTUB(0xFF4C35D8, CreateDialogBox)
 NSTUB(0xFFA735B8 - RAM_OFFSET, CreateRecursiveLock)
 NSTUB(0xFF4C25A0, DeleteDialogBox)
 NSTUB(0xFFA6CDB0 - RAM_OFFSET, DryosDebugMsg)
-NSTUB(0xFF347460, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
+NSTUB(0xFF347460, FIO_FindClose) // proper name: FindClose
 NSTUB(0xFF346468, FIO_CloseFile)
 NSTUB(0xFF346398, FIO_SeekFile) //All take forever
 //NSTUB(0xFF3462C8, FIO_SeekFile) //SeekSkipFile - Seems to work too.

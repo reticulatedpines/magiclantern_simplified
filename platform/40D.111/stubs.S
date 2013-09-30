@@ -38,7 +38,7 @@ NSTUB(0xff9a34ec, CreateDialogBox)
 NSTUB(0xffd4b150, CreateRecursiveLock)
     //NSTUB(0xff2ff7c4, DeleteDialogBox)
 NSTUB(0xffd4c1ec, DryosDebugMsg)
-NSTUB(0xffd17100, FIO_CleanupAfterFindNext_maybe) // AJ__switch_0x1A50_n_calls_fstOpenDir, FIO_FindClose
+NSTUB(0xffd17100, FIO_FindClose) // AJ__switch_0x1A50_n_calls_fstOpenDir, FIO_FindClose
 NSTUB(0xffd16ca8, FIO_CloseFile)
 NSTUB(0xffd16ed0, FIO_CreateDirectory)
 NSTUB(0xffd168f8, FIO_CreateFile)

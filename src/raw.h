@@ -114,9 +114,6 @@ int raw_blue_pixel_bright(int x, int y);
 float raw_to_ev(int raw);
 int ev_to_raw(float ev);
 
-/* save a DNG file; all parameters are taken from raw_info */
-int save_dng(char* filename);
-
 /* quick preview of the raw buffer */
 void raw_preview_fast();
 
@@ -197,5 +194,8 @@ struct raw_info {
 };
 
 extern struct raw_info raw_info;
+
+/* save a DNG file; all parameters are taken from raw_info */
+int save_dng(char* filename, struct raw_info * raw_info);
 
 #endif

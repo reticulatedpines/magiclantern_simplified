@@ -64,7 +64,7 @@ NSTUB(0xFF345520, FIO_RenameFile)
 NSTUB(0xFF3456E8, FIO_CreateDirectory)
 NSTUB(0xFF345CB0, FIO_FindFirstEx)
 NSTUB(0xFF345DA4, FIO_FindNextEx)
-NSTUB(0xFF345E84, FIO_CleanupAfterFindNext_maybe) //FindClose
+NSTUB(0xFF345E84, FIO_FindClose) //FindClose
 
 /** Bitmap **/
 NSTUB(   0x522CC, bmp_vram_info)

@@ -41,7 +41,7 @@ NSTUB(0xFF06C914, DryosDebugMsg)                       // might be good (dumps=1
 NSTUB(0xFF06C914, DebugMsg)                       // might be good (dumps=1, score=1.1e+03)
 NSTUB(0xFF31C270, DeleteDialogBox)                // might be good (dumps=1, score=47)
 NSTUB(0xFF1D48C8, _EngDrvOut)                      // might be good (dumps=1, score=61)
-NSTUB(0xFF1DA5F0, FIO_CleanupAfterFindNext_maybe) // might be good (dumps=1, score=69)
+NSTUB(0xFF1DA5F0, FIO_FindClose) // might be good (dumps=1, score=69)
 NSTUB(0xFF1D9620, FIO_CloseFile)                  // might be good (dumps=1, score=1e+02)
 NSTUB(0xFF1D9E5C, FIO_CreateDirectory)            // might be good (dumps=1, score=13)
 NSTUB(0xFF1D927C, FIO_CreateFile)                 // might be good (dumps=1, score=50)

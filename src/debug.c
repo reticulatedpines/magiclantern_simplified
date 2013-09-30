@@ -56,7 +56,7 @@ INIT_FUNC("debug", debug_init_func);
 void NormalDisplay();
 void MirrorDisplay();
 static void HijackFormatDialogBox_main();
-void config_menu_init();
+void debug_menu_init();
 void display_on();
 void display_off();
 void EngDrvOut(int reg, int value);
@@ -72,39 +72,6 @@ void j_tp_intercept() { tp_intercept(); }
 #endif
 
 #ifdef FEATURE_SCREENSHOT
-
-int rename_file(char* src, char* dst)
-{
-#if defined(CONFIG_FIO_RENAMEFILE_WORKS) // FIO_RenameFile known to work
-
-    return FIO_RenameFile(src, dst);
-
-#else
-    // FIO_RenameFile not known, or doesn't work
-    // emulate it by copy + erase (poor man's rename :P )
-
-    const int bufsize = 128*1024;
-    void* buf = alloc_dma_memory(bufsize);
-    if (!buf) return 1;
-
-    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 1;
-
-    FILE* g = FIO_CreateFile(dst);
-    if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
-
-    int r = 0;
-    while ((r = FIO_ReadFile(f, buf, bufsize)))
-        FIO_WriteFile(g, buf, r);
-
-    FIO_CloseFile(f);
-    FIO_CloseFile(g);
-    FIO_RemoveFile(src);
-    msleep(1000); // this decreases the chances of getting corrupted files (figure out why!)
-    free_dma_memory(buf);
-    return 0;
-#endif
-}
 
 void take_screenshot( int also_lv )
 {
@@ -126,7 +93,7 @@ void take_screenshot( int also_lv )
             snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
             if (GetFileSize(fn) == 0xFFFFFFFF) // this file does not exist
             {
-                rename_file(CARD_DRIVE"TEST.BMP", fn);
+                FIO_RenameFile(CARD_DRIVE"TEST.BMP", fn);
                 break;
             }
         }
@@ -215,7 +182,9 @@ save_config( void * priv, int delta )
 #ifdef CONFIG_CONFIG_FILE
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
-    config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    char config_file[0x80];
+    snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
+    config_save_file(config_file);
     config_menu_save_flags();
     module_save_configs();
     config_deleted = 0;
@@ -301,6 +270,8 @@ static MENU_UPDATE_FUNC(delete_config_update)
         MENU_SET_RINFO("Restart");
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera to complete the process.");
     }
+
+    MENU_SET_WARNING(MENU_WARN_INFO, "%s", get_config_dir());
 }
 static MENU_UPDATE_FUNC(save_config_update)
 {
@@ -308,24 +279,22 @@ static MENU_UPDATE_FUNC(save_config_update)
     {
         MENU_SET_RINFO("Undo");
     }
+    
+    MENU_SET_WARNING(MENU_WARN_INFO, "%s", get_config_dir());
 }
+
+static int is_valid_config_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".CFG") || streq(filename + n - 4, ".cfg")))
+        return 1;
+    return 0;
+}
+
 static void
 delete_config( void * priv, int delta )
 {
-    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
-    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/MENU.CFG" );
-    if (config_autosave) config_autosave_toggle(0, 0);
-
-#ifdef CONFIG_MODULES
-    int is_valid_config_filename(char* filename)
-    {
-        int n = strlen(filename);
-        if ((n > 4) && (streq(filename + n - 4, ".CFG") || streq(filename + n - 4, ".cfg")))
-            return 1;
-        return 0;
-    }
-
-    char* path = CARD_DRIVE "ML/SETTINGS/";
+    char* path = get_config_dir();
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
     if( IS_ERROR(dirent) )
@@ -342,12 +311,295 @@ delete_config( void * priv, int delta )
         }
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-#endif
+    FIO_FindClose(dirent);
 
     config_deleted = 1;
 }
 
+/* config presets */
+
+static const char* config_preset_file = 
+    CARD_DRIVE"ML/SETTINGS/CURRENT.SET";    /* contains the name of current preset */
+static int config_preset_index = 0;         /* preset being used right now */
+static int config_new_preset_index = 0;     /* preset that will be used after restart */
+static int config_preset_num = 3;           /* total presets available */
+static char* config_preset_choices[16] = {  /* preset names (reusable as menu choices) */
+    "OFF",
+    "Startup mode",
+    "Startup key",
+    "Preset 1   ",
+    "Preset 2   ",
+    "Preset 3   ",
+    "Preset 4   ",
+    "Preset 5   ",
+    "Preset 6   ",
+    "Preset 7   ",
+    "Preset 8   ",
+    "Preset 9   ",
+    "Preset 10  ",
+    "Preset 11  ",
+    "Preset 12  ",
+    "Preset 13  ", /* space needed: 8.3 */
+};
+
+static char config_dir[0x80];
+static char* config_preset_name;
+
+char* get_config_dir()
+{
+    return config_dir;
+}
+
+/* null if no preset */
+char* get_config_preset_name()
+{
+    return config_preset_name;
+}
+
+static struct menu_entry cfg_menus[];
+
+static void config_preset_scan()
+{
+    char* path = CARD_DRIVE "ML/SETTINGS/";
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if(!IS_ERROR(dirent))
+    {
+        do
+        {
+            if (file.mode & ATTR_DIRECTORY)
+            {
+                if (file.name[0] == '.')
+                    continue;
+                
+                /* special names for keys pressed at startup */
+                if (streq(file.name + strlen(file.name)-4, ".KEY"))
+                    continue;
+
+                /* special names for mode-based config presets */
+                if (streq(file.name + strlen(file.name)-4, ".MOD"))
+                    continue;
+                
+                /* we have reserved statically 12 chars for each preset */
+                snprintf(
+                    config_preset_choices[config_preset_num], 12,
+                    "%s", file.name
+                );
+                config_preset_num++;
+                if (config_preset_num >= COUNT(config_preset_choices))
+                    break;
+            }
+        }
+        while( FIO_FindNextEx( dirent, &file ) == 0);
+        FIO_FindClose(dirent);
+    }
+    
+    /* update the Config Presets menu */
+    cfg_menus[0].children[0].max = config_preset_num - 1;
+}
+
+static MENU_SELECT_FUNC(config_preset_toggle)
+{
+    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num);
+    
+    if (!config_new_preset_index)
+    {
+        FIO_RemoveFile(config_preset_file);
+    }
+    else
+    {
+        FILE* f = FIO_CreateFileEx(config_preset_file);
+        if (config_new_preset_index == 1)
+            my_fprintf(f, "Startup mode");
+        else if (config_new_preset_index == 2)
+            my_fprintf(f, "Startup key");
+        else
+            my_fprintf(f, "%s", config_preset_choices[config_new_preset_index]);
+        FIO_CloseFile(f);
+    }
+}
+
+static int config_selected = 0;
+static char config_selected_by_key[9] = "";
+static char config_selected_by_mode[9] = "";
+static char config_selected_by_name[9] = "";
+
+static MENU_UPDATE_FUNC(config_preset_update)
+{
+    int preset_changed = (config_new_preset_index != config_preset_index);
+    char* current_preset_name = get_config_preset_name();
+    MENU_SET_RINFO(current_preset_name);
+
+    if (config_new_preset_index == 1) /* startup shooting mode */
+    {
+        char current_mode_name[9];
+        snprintf(current_mode_name, sizeof(current_mode_name), "%s", (char*) get_shootmode_name(shooting_mode_custom));
+        if (streq(config_selected_by_mode, current_mode_name))
+        {
+            MENU_SET_HELP("Config preset is selected by startup mode (on the mode dial).");
+        }
+        else
+        {
+            MENU_SET_RINFO("%s->%s", current_preset_name, current_mode_name);
+            if (config_selected_by_mode[0])
+            {
+                MENU_SET_HELP("Camera was started in %s; restart to load the config for %s.", config_selected_by_mode, current_mode_name);
+            }
+            else
+            {
+                MENU_SET_HELP("Restart to load the config for %s mode.", current_mode_name);
+            }
+        }
+    }
+    else if (config_new_preset_index == 2) /* startup key */
+    {
+        MENU_SET_HELP("At startup, press&hold MENU/PLAY/"INFO_BTN_NAME" to select the cfg preset.");
+    }
+    else /* named preset */
+    {
+        if (preset_changed)
+        {
+            MENU_SET_HELP("The new config preset will be used after you restart your camera.");
+            MENU_SET_RINFO("Restart");
+        }
+    }
+}
+
+int handle_select_config_file_by_key_at_startup(struct event * event)
+{
+    if (!config_selected)
+    {
+        char* key_name = 0;
+        switch (event->param)
+        {
+            case BGMT_MENU:
+                key_name = "MENU";
+                break;
+            case BGMT_INFO:
+                key_name = INFO_BTN_NAME;
+                break;
+            case BGMT_PLAY:
+                key_name = "PLAY";
+                break;
+        }
+        if (key_name)
+        {
+            /* we are not able to check the filesystem at this point */
+            snprintf(config_selected_by_key, sizeof(config_selected_by_key), "%s", key_name);
+            return 0;
+        }
+    }
+    
+    return 1;
+}
+
+static char* config_choose_startup_preset()
+{
+    int size = 0;
+
+    /* by default, work in ML/SETTINGS dir */
+    snprintf(config_dir, sizeof(config_dir), CARD_DRIVE "ML/SETTINGS/");
+
+    /* check for a preset file selected in menu */
+    char* preset_name = (char*) read_entire_file(config_preset_file, &size);
+    if (preset_name)
+    {
+        if (streq(preset_name, "Startup mode"))
+        {
+            /* will handle later */
+            config_preset_index = config_new_preset_index = 1;
+        }
+        else if (streq(preset_name, "Startup key"))
+        {
+            /* will handle later */
+            config_preset_index = config_new_preset_index = 2;
+        }
+        else
+        {
+            snprintf(config_selected_by_name, sizeof(config_selected_by_name), preset_name);
+            char preset_dir[0x80];
+            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s", preset_name);
+            if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
+            if (is_dir(preset_dir))
+            {
+                snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
+            }
+        }
+        free_dma_memory(preset_name);
+    }
+
+    /* scan the preset files and populate the menu */
+    config_preset_scan();
+
+    /* special cases: key pressed at startup, or startup mode */
+
+    /* key pressed at startup */
+    if (config_preset_index == 2)
+    {
+        if (config_selected_by_key[0])
+        {
+            char preset_dir[0x80];
+            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.KEY", config_selected_by_key);
+            if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
+            if (is_dir(preset_dir))
+            {
+                /* success */
+                snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
+                return config_selected_by_key;
+            }
+        }
+        /* didn't work */
+        return 0;
+    }
+    else config_selected_by_key[0] = 0;
+
+    /* startup shooting mode (if selected in menu) */
+    if (config_preset_index == 1)
+    {
+        snprintf(config_selected_by_mode, sizeof(config_selected_by_mode), "%s", get_shootmode_name(shooting_mode_custom));
+        char preset_dir[0x80];
+        snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.MOD", config_selected_by_mode);
+        if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
+        if (is_dir(preset_dir))
+        {
+            /* success */
+            snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
+            return config_selected_by_mode;
+        }
+        /* didn't work */
+        return 0;
+    }
+
+    /* lookup the current preset in menu */
+    for (int i = 0; i < config_preset_num; i++)
+    {
+        if (streq(config_preset_choices[i], config_selected_by_name))
+        {
+            config_preset_index = config_new_preset_index = i;
+            return config_selected_by_name;
+        }
+    }
+
+    /* using default config */
+    return 0;
+}
+
+/* called at startup, after init_func's */
+void config_load()
+{
+    config_selected = 1;
+    config_preset_name = config_choose_startup_preset();
+
+    if (config_preset_name)
+    {
+        NotifyBox(2000, "Config: %s", config_preset_name);
+        if (!DISPLAY_IS_ON) beep();
+    }
+    
+    char config_file[0x80];
+    snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
+    config_parse_file(config_file);
+}
 #endif
 
 #if CONFIG_DEBUGMSG
@@ -3594,9 +3846,20 @@ static struct menu_entry cfg_menus[] = {
 {
     .name = "Config files",
     .select = menu_open_submenu,
-    .submenu_width = 700,
+    .update = config_preset_update,
+    .submenu_width = 710,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
+        {
+            .name = "Config preset",
+            .priv = &config_new_preset_index,
+            .min = 0,
+            .max = 2,
+            .choices = (const char **) config_preset_choices,
+            .select = config_preset_toggle,
+            .update = config_preset_update,
+            .help = "Choose a configuration preset."
+        },
         {
             .name = "Config AutoSave",
             .priv = &config_autosave,
@@ -3608,13 +3871,13 @@ static struct menu_entry cfg_menus[] = {
             .name = "Save config now",
             .select        = save_config,
             .update        = save_config_update,
-            .help = "Save ML settings to ML/SETTINGS/*.CFG (also module settings)."
+            .help = "Save ML settings to current preset directory."
         },
         {
             .name = "Restore ML defaults",
             .select        = delete_config,
             .update        = delete_config_update,
-            .help  = "This restore ML default settings, by deleting CFG files.",
+            .help  = "This restores ML default settings, by deleting all CFG files.",
         },
 
         #ifdef CONFIG_PICOC
@@ -4115,7 +4378,7 @@ static void TmpMem_AddFile(char* filename)
     }
 }
 
-static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int recursive_levels)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -4123,35 +4386,44 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         return;
 
     do {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         if (file.name[0] == '.' || file.name[0] == '_') continue;
+        if (file.mode & ATTR_DIRECTORY)
+        {
+            if (recursive_levels > 0)
+            {
+                char new_dir[0x80];
+                snprintf(new_dir, sizeof(new_dir), "%s%s/", dir, file.name);
+                CopyMLDirectoryToRAM_BeforeFormat(new_dir, cropmarks_flag, recursive_levels-1);
+            }
+            continue; // is a directory
+        }
         if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
 
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
 
-        char fn[30];
+        char fn[0x80];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
         TmpMem_AddFile(fn);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
 }
 
 static void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0, 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0, 0);
     TmpMem_UpdateSizeDisplay(0);
 }
 
@@ -4258,14 +4530,16 @@ static void HijackFormatDialogBox_main()
 }
 #endif
 
-void config_menu_init()
+static void config_menu_init()
 {
-    menu_prefs_init();
-
     #ifdef CONFIG_CONFIG_FILE
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
     #endif
+}
+INIT_FUNC("config", config_menu_init);
 
+void debug_menu_init()
+{
     #ifdef FEATURE_LV_DISPLAY_PRESETS
     extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);

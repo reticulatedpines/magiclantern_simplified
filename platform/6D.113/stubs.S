@@ -45,7 +45,7 @@ NSTUB(0xFF4B4BB8, CreateDialogBox)
 NSTUB(0xFFCD04B4 - RAM_OFFSET, CreateRecursiveLock)
 NSTUB(0xFF4B3B54, DeleteDialogBox)
 NSTUB(0xFFCC9CAC - RAM_OFFSET, DryosDebugMsg)
-NSTUB(0xFF333988, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
+NSTUB(0xFF333988, FIO_FindClose) // proper name: FindClose
 NSTUB(0xFF332990, FIO_CloseFile)
 NSTUB(0xFF3328C0, FIO_SeekFile)
 NSTUB(0xFF3331EC, FIO_CreateDirectory)

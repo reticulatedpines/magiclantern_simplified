@@ -12,7 +12,8 @@ extern int lv_paused; // only valid if lv is true
 
 extern int lv_dispsize; // 1 / 5 / A
 extern int expsim;
-extern int shooting_mode;
+extern int shooting_mode;        /* C3M => M */
+extern int shooting_mode_custom; /* C3M => C3 */
 extern int shooting_type;
 extern int efic_temp;
 extern int gui_state;

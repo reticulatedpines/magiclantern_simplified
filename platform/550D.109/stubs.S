@@ -78,7 +78,7 @@ NSTUB( 0xFF1C693C, FIO_WriteFile )
 NSTUB( 0xFF1C679C, FIO_ReadFile )
 NSTUB( 0xFF1C66F4, FIO_RemoveFile )
 NSTUB( 0xFF1C71A0, FIO_CreateDirectory)
-NSTUB( 0xFF1C7060, FIO_RenameFile ) // 600D has debug strings for this, match.py finds it
+NSTUB( 0xFF1C7060, _FIO_RenameFile ) // doesn't work; 600D has debug strings for this, match.py finds it
 NSTUB( 0xFF1C691C, FIO_SeekFile)
 
 NSTUB( 0xFF069F58, give_semaphore )
@@ -172,7 +172,7 @@ NSTUB( 0xFF1AA430, mvrSetDeblockingFilter )
 
 NSTUB( 0xFF1C7760, FIO_FindFirstEx )
 NSTUB( 0xFF1C7854, FIO_FindNextEx )
-NSTUB( 0xff1c7934, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xff1c7934, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)

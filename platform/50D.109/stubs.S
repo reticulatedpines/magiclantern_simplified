@@ -39,7 +39,7 @@ NSTUB( 0xFF817264, create_init_task )																		//d
 
 NSTUB( 0xff983474, FIO_FindFirstEx )																		//d
 NSTUB( 0xff9835A0, FIO_FindNextEx )																			//d
-NSTUB( 0xff9836A0, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xff9836A0, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0xFF822CB4, GUI_ChangeMode )																			//d
 

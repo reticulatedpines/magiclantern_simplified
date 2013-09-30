@@ -2325,7 +2325,7 @@ static void find_cropmarks()
             k++;
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     num_cropmarks = k;
     sort_cropmarks();
     cropmarks_initialized = 1;
@@ -4524,10 +4524,6 @@ BMP_LOCK(
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
     }
-    
-    #ifdef FEATURE_POST_DEFLICKER
-    post_deflicker_show_info();
-    #endif
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )

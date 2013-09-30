@@ -83,7 +83,7 @@ NSTUB( 0xFF1CAC38, FIO_CreateDirectory)
 NSTUB( 0xFF1CAA70, FIO_RenameFile )
 NSTUB( 0xFF1CB1F8, FIO_FindFirstEx )
 NSTUB( 0xFF1CB2EC, FIO_FindNextEx )
-NSTUB( 0xFF1CB3CC, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xFF1CB3CC, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0xFF06E61C, give_semaphore )
 NSTUB( 0xFF06E534, take_semaphore )

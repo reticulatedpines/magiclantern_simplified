@@ -135,7 +135,7 @@ void EyeFi_RenameCR2toAVI(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }
@@ -162,7 +162,7 @@ void EyeFi_RenameAVItoCR2(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }
@@ -189,7 +189,7 @@ void EyeFi_RenameAVItoCR2(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }
@@ -216,7 +216,7 @@ void EyeFi_RenameMP4to422(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }*/
