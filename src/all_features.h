@@ -242,6 +242,7 @@
 #ifdef CONFIG_Q_MENU_PLAYBACK
     #define FEATURE_LV_BUTTON_PROTECT
     #define FEATURE_LV_BUTTON_RATE
+    #define FEATURE_LV_BUTTON_RATE_UPDOWN // disable to use up/down in play mode otherwise
 #endif
     #define FEATURE_QUICK_ERASE
 
