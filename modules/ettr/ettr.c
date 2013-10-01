@@ -299,6 +299,9 @@ static int auto_ettr_get_correction()
                 corr *= 3;
             
             correction = MIN(correction, corr);
+            
+            /* we can't really meter more than 10 EV */
+            correction = MAX(correction, -10);
         }
     }
 
@@ -470,16 +473,9 @@ static int auto_ettr_work_m(int corr)
     iso += tvr - tv;
     
     /* analog iso can be only in 1 EV increments */
+    /* prefer rounding towards lower ISOs */
     int max_auto_iso = auto_iso_range & 0xFF;
-    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, max_auto_iso);
-    
-    /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
-    /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
-    if (!dual_iso)
-    {
-        tvr += isor - iso;
-        tvr = round_shutter(tvr, shutter_lim);
-    }
+    int isor = COERCE(iso / 8 * 8, MIN_ISO, max_auto_iso);
     
     /* can we use dual ISO to recover the highlights? (HR = highlight recovery) */
     if (dual_iso)
