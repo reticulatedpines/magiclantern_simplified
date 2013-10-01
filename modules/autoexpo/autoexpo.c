@@ -126,15 +126,6 @@ typedef struct
     int sv; // S
 } exposure;
 
-extern void entry_print(
-    int x,
-    int y,
-    int w,
-    struct menu_entry * entry,
-    struct menu_display_info * info,
-    int in_submenu
-);
-
 static exposure get_exposure(int bv, int simul) {
     exposure expo;
     
