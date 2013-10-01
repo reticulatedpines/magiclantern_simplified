@@ -1,13 +1,17 @@
 /*
-
-    BRIGHTNESS VALUE = SHUTTER + APERTURE - ISO + EXPOSURE COMPENSATION 
+    
+    AUTOMATIC EXPOSURE ALGORITHM BASED ON PREDEFINED CURVES
+    
+    BV = TV + AP - SV + EC
     in M mode exposure compensation is indicator of under/over exposure
     
+    http://pravdomil.cz/diy
     http://www.magiclantern.fm/forum/index.php?topic=7208
-    https://bitbucket.org/pravdomil/
 
-    AE_VALUE value overflows on 5D2 Canon bug
-    how to reproduce: set high iso and watch AE compension in M on bright sky
+    AE_VALUE overflows on 5D2 - Canon bug
+    How to reproduce: set high ISO and watch AE compension in M on bright sky
+    
+    TODO: find brightness sensors (digging into Toshiba)
     
 */
 #include <module.h>
@@ -32,10 +36,10 @@
 #define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 #define GRAPH_XSIZE 2.4f
-#define GRAPH_YSIZE 2.3f
+#define GRAPH_YSIZE 2.25f
 #define GRAPH_STEP 5 //divisible by 10
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
-#define GRAPH_YOFF 400
+#define GRAPH_YOFF 390
 #define GRAPH_MAX 130 // APEX value 1/8000
 #define GRAPH_MAX_PX (int)(GRAPH_MAX * GRAPH_YSIZE)
 #define GRAPH_BG 45
@@ -55,13 +59,12 @@
 
 #define MENU_CUSTOM_DRAW(item) \
     if(show_graph && info->can_custom_draw) { \
-        entry->parent_menu->scroll_pos = 20;     /* force this entry to be the first one (menu backend will bring it back in range) */ \
         if (entry->selected) { \
+            info->y = 55; \
             sel_item = ITEM_##item; \
             update_graph(); \
-        } \
-        else if (entry->prev && entry->prev->selected) { \
-            info->custom_drawing = CUSTOM_DRAW_THIS_MENU; /* stop drawing after the selected entry */ \
+        } else { \
+            info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; \
         } \
     }
 #define RANGE_SET(val, min, max) \
@@ -90,25 +93,24 @@
 #define ITEM_sv 4
 #define ITEM_browse 5
 
-static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
+static CONFIG_INT("autoexpo.enabled", enabled, 0);
+static CONFIG_INT("autoexpo.same_tv", same_tv, 1);
+static CONFIG_INT("autoexpo.lens_av", lens_av, LENS_AV_THIS);
 // these are for fullframe camereas
-static CONFIG_INT("auto.expo.same_tv", same_tv, 1);
-static CONFIG_INT("auto.expo.lens_av", lens_av, LENS_AV_THIS);
-static CONFIG_INT("auto.expo.round_iso", round_iso, 0);
-static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  // 1s
-static CONFIG_INT("auto.expo.av_min", av_min, 10); // f/1.4
-static CONFIG_INT("auto.expo.av_max", av_max, 80); // f/16
-static CONFIG_INT("auto.expo.av_step", av_step, 10);
-static CONFIG_INT("auto.expo.av_off", av_off, 160);
-static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  // ISO 100
-static CONFIG_INT("auto.expo.iso_max", iso_max, 120); // ISO 12 800
-static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
-static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
-static CONFIG_INT("auto.expo.ec", ec, 0);  // exposure compensation
-static CONFIG_INT("auto.expo.ec_min", ec_min, -15);
-static CONFIG_INT("auto.expo.ec_max", ec_max, 20);
-static CONFIG_INT("auto.expo.ec_step", ec_step, -3);
-static CONFIG_INT("auto.expo.ec_off", ec_off, -15);
+static CONFIG_INT("autoexpo.tv_min", tv_min, 0);  // 1s
+static CONFIG_INT("autoexpo.av_min", av_min, 10); // f/1.4
+static CONFIG_INT("autoexpo.av_max", av_max, 80); // f/16
+static CONFIG_INT("autoexpo.av_step", av_step, 10);
+static CONFIG_INT("autoexpo.av_off", av_off, 160);
+static CONFIG_INT("autoexpo.iso_min", iso_min, 50);  // ISO 100
+static CONFIG_INT("autoexpo.iso_max", iso_max, 120); // ISO 12 800
+static CONFIG_INT("autoexpo.iso_step", iso_step, 7);
+static CONFIG_INT("autoexpo.iso_off", iso_off, 60);
+static CONFIG_INT("autoexpo.ec", ec, 0);  // exposure compensation
+static CONFIG_INT("autoexpo.ec_min", ec_min, -15);
+static CONFIG_INT("autoexpo.ec_max", ec_max, 20);
+static CONFIG_INT("autoexpo.ec_step", ec_step, -3);
+static CONFIG_INT("autoexpo.ec_off", ec_off, -15);
 
 static int autoexpo_running = 0;
 static bool show_graph = 1;
@@ -123,15 +125,6 @@ typedef struct
     int av; // A
     int sv; // S
 } exposure;
-
-extern void entry_print(
-    int x,
-    int y,
-    int w,
-    struct menu_entry * entry,
-    struct menu_display_info * info,
-    int in_submenu
-);
 
 static exposure get_exposure(int bv, int simul) {
     exposure expo;
@@ -150,7 +143,7 @@ static exposure get_exposure(int bv, int simul) {
     
     //av
     expo.sv  = MIN(iso_min - (MIN(bv - (iso_off + same_tv_offset), 0) * iso_step) / 10, iso_max);
-    if(round_iso) { expo.sv /= 10; expo.sv *= 10; }
+    expo.sv /= 10; expo.sv *= 10; //round iso
     
     //ec
     expo.ec = COERCE(ec - (MIN(bv - (ec_off + same_tv_offset), 0) * ec_step) / 10, ec_min, ec_max);
@@ -193,7 +186,7 @@ static void autoexpo_task()
 
 static unsigned int autoexpo_shoot_task(){
     if(
-        auto_expo_enabled &&
+        enabled &&
         shooting_mode == SHOOTMODE_M &&
         !lv &&
         get_ae_state() != 0 &&
@@ -209,14 +202,14 @@ static void update_graph()
     exposure last_expo;
     bool draw_label = 0;
     
-    //bg rect
+    // bg rect
     bmp_fill(GRAPH_BG, 1,
         GRAPH_YOFF - GRAPH_MAX_PX - GRAPH_PADD,
         720 - 2,
         GRAPH_MAX_PX + GRAPH_TEXT_PADD + GRAPH_PADD + font_med.height
     );
     
-    // current BV
+    // current bv
     if(last_bv != INT_MIN){
         int x = GRAPH_XOFF + (BV_MAX - last_bv) * GRAPH_XSIZE;
         draw_line(x - 1, GRAPH_YOFF - GRAPH_MAX_PX,
@@ -264,7 +257,7 @@ static void update_graph()
                 bmp_printf(GRAPH_FONT, x + 3 - center, GRAPH_YOFF + GRAPH_TEXT_PADD, "%d", bv / 10);
             }
             
-            //do not print on the right edge of graph
+            // do not print on the right edge of graph
             if(BV_MAX + bv <= 40) continue;
             
             // sv value
@@ -310,19 +303,19 @@ static void unset_rear() { last_key = 0; }
 // curves
 static MENU_SELECT_FUNC(aperture_curve_set) { CURVE_SET(av, 0, 50); }
 static MENU_UPDATE_FUNC(aperture_curve_upd) {
-    MENU_SET_VALUE("at %s%d.%d -%d.%d EVpBV", FMT_FIXEDPOINT1(av_off), av_step /10, av_step % 10);
+    MENU_SET_VALUE("at %s%d.%d BV -%d.%d EVpBV", FMT_FIXEDPOINT1(av_off), av_step /10, av_step % 10);
     MENU_CUSTOM_DRAW(av);
 }
 
 static MENU_SELECT_FUNC(iso_curve_set) { CURVE_SET(iso, 0, 50); }
 static MENU_UPDATE_FUNC(iso_curve_upd) {
-    MENU_SET_VALUE("at %s%d.%d +%d.%d EVpBV", FMT_FIXEDPOINT1(iso_off), iso_step / 10, iso_step % 10);
+    MENU_SET_VALUE("at %s%d.%d BV +%d.%d EVpBV", FMT_FIXEDPOINT1(iso_off), iso_step / 10, iso_step % 10);
     MENU_CUSTOM_DRAW(sv);
 }
 
 static MENU_SELECT_FUNC(ec_curve_set) { CURVE_SET(ec, -50, 50); }
 static MENU_UPDATE_FUNC(ec_curve_upd) {
-    MENU_SET_VALUE("at %s%d.%d %s%d.%d EVpBV", FMT_FIXEDPOINT1(ec_off), FMT_FIXEDPOINT1S(ec_step));
+    MENU_SET_VALUE("at %s%d.%d BV %s%d.%d EVpBV", FMT_FIXEDPOINT1(ec_off), FMT_FIXEDPOINT1S(ec_step));
     MENU_CUSTOM_DRAW(ec);
 }
 
@@ -388,8 +381,6 @@ static MENU_SELECT_FUNC(iso_range_set) {
     }
 }
 
-static MENU_UPDATE_FUNC(round_iso_upd) { MENU_CUSTOM_DRAW(sv); }
-
 static MENU_SELECT_FUNC(tv_min_set) {
     tv_min = COERCE(tv_min + delta * 5, -50, 130);
 }
@@ -452,19 +443,25 @@ static struct menu_entry autoexpo_menu[] =
 {
     {
         .name = "Auto exposure",
-        .priv = &auto_expo_enabled,
+        .priv = &enabled,
         .max = 1,
         .depends_on = DEP_M_MODE | DEP_NOT_LIVEVIEW,
-        .submenu_height = 410,
         .submenu_width = 720,
         .help = "Automatic exposure algorithm based on predefined curves.",
-        .help2 = "You have to press halfshutter for at least 60ms.",
+        .help2 = "You have to press halfshutter for a while.",
         .children = (struct menu_entry[]) {
             {
                 .name = "Show graph",
                 .priv = &show_graph,
                 .update = menu_custom_draw_upd,
                 .max = 1,
+            },
+            {
+                .name = "Lens aperture",
+                .update = lens_av_upd,
+                .select = lens_av_set,
+                .icon_type = IT_DICE,
+                .help = "Simulate minimum aperture value.",
             },
             {
                 .name = "TV minimum",
@@ -479,52 +476,36 @@ static struct menu_entry autoexpo_menu[] =
                 .priv = &same_tv,
                 .update = same_tv_upd,
                 .max = 1,
-                .help = "Auto compensate min ISO & min AV & EC changes.",
+                .help = "Auto compensate minimum ISO & minimum AV & EC changes.",
             },
             {
                 .name = "AV range",
                 .update = aperture_range_upd,
                 .select = aperture_range_set,
                 .icon_type = IT_DICE,
-                .help = "Use main dial for minimum and left & right for maximum.",
+                .help = "Use left & right for minimum. Main dial for maximum.",
             },
             {
                 .name = "AV curve",
                 .update = aperture_curve_upd,
                 .select = aperture_curve_set,
                 .icon_type = IT_DICE,
-                .help = "Main dial - change curve offset.",
-                .help2 = "Left & right - set EV steps per BV.",
-            },
-            {
-                .name = "Lens AV",
-                .update = lens_av_upd,
-                .select = lens_av_set,
-                .icon_type = IT_DICE,
-                .help = "Simulate graph for specific lens aperture.",
+                .help = "Main dial changes curve offset. Left & right sets EV steps per BV.",
             },
             {
                 .name = "ISO range",
                 .update = iso_range_upd,
                 .select = iso_range_set,
                 .icon_type = IT_DICE,
-                .help = "Use main dial for minimum and left & right for maximum.",
-                .help2 = "Make sure that it correspond to your extended ISO settings.",
+                .help = "Use left & right for minimum. Main dial for maximum.",
+                .help2 = "Make sure that it corresponds to your extended ISO settings.",
             },
             {
                 .name = "ISO curve",
                 .update = iso_curve_upd,
                 .select = iso_curve_set,
                 .icon_type = IT_DICE,
-                .help = "Main dial - change curve offset.",
-                .help2 = "Left & right - set EV steps per BV.",
-            },
-            {
-                .name = "Round ISO",
-                .priv = &round_iso,
-                .update = round_iso_upd,
-                .max = 1,
-                .help = "Stop using digital ISO - 100, 200, 400, 800, etc.",
+                .help = "Main dial changes curve offset. Left & right sets EV steps per BV.",
             },
             {
                 .name = "EC",
@@ -538,15 +519,14 @@ static struct menu_entry autoexpo_menu[] =
                 .update = ec_range_upd,
                 .select = ec_range_set,
                 .icon_type = IT_DICE,
-                .help = "Use main dial for minimum and left & right for maximum.",
+                .help = "Use left & right for minimum. Main dial for maximum.",
             },
             {
                 .name = "EC curve",
                 .update = ec_curve_upd,
                 .select = ec_curve_set,
                 .icon_type = IT_DICE,
-                .help = "Main dial - change curve offset.",
-                .help2 = "Left & right - set EV steps per BV.",
+                .help = "Main dial changes curve offset. Left & right sets EV steps per BV.",
             },
             {
                 .name = "Browse",
@@ -587,10 +567,9 @@ MODULE_CBRS_START()
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(auto_expo_enabled)
+    MODULE_CONFIG(enabled)
     MODULE_CONFIG(same_tv)
     MODULE_CONFIG(lens_av)
-    MODULE_CONFIG(round_iso)
     MODULE_CONFIG(tv_min)
     MODULE_CONFIG(av_min)
     MODULE_CONFIG(av_max)

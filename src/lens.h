@@ -269,7 +269,7 @@ int round_noflicker(float value);
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
 void draw_ml_topbar();
-void draw_ml_bottombar(int double_buffering, int clear);
+void draw_ml_bottombar();
 
 void SW1(int v, int wait);
 void SW2(int v, int wait);

@@ -151,6 +151,7 @@ ML_SRC_OBJS = \
 	ph_info_disp.o \
 	flexinfo.o \
 	fileprefix.o \
+	lvinfo.o \
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 

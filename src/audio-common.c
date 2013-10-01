@@ -276,7 +276,7 @@ static void draw_meters(void)
         {
             small = hs;
             x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
-            if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y0 = os.y0; // just above the 16:9 frame
+            if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y0 = os.y0+2; // just above the 16:9 frame
             else if (screen_layout == SCREENLAYOUT_16_9) { small = 1; y0 = os.y0 + os.off_169; } // meters just below 16:9 border
             else if (screen_layout == SCREENLAYOUT_16_10) {small = 1; y0 = os.y0 + os.off_1610; } // meters just below 16:10 border
             else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y0 = MIN(os.y_max, 480 - 54);
@@ -289,7 +289,7 @@ static void draw_meters(void)
         {
             bmp_fill(
                      screen_layout >= SCREENLAYOUT_UNDER_3_2 ? BOTTOMBAR_BGCOLOR : TOPBAR_BGCOLOR,
-                     x0, y0, 635, small ? 24 : 33
+                     x0, y0, 635, small ? 24 : 32
                      );
         }
     else if (hs) return; // will draw top bar instead
