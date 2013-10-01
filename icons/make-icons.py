@@ -28,6 +28,7 @@ icons = [
     'forward.png',
     'modules.png',
     'modified.png',
+    'games.png',
 ]
 
 # On low-res screens, the audio and focus icons are aliasing
@@ -49,6 +50,7 @@ icons_lowres = [
     'forward.png',
     'modules.png',
     'modified.png',
+    'games.png',
 ]
 
 

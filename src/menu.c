@@ -4419,6 +4419,7 @@ menu_init( void )
     m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
+    m = menu_find_by_name( "Games",     ICON_ML_GAMES  );
     m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 12;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );
