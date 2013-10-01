@@ -723,7 +723,7 @@ static MENU_UPDATE_FUNC(vectorscope_update)
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
-void // fixme: should be static
+static void
 hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
@@ -3581,7 +3581,8 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Use RAW histogram",
                 .priv = &raw_histogram_enable,
-                .max = 1,
+                .max = 2,
+                .choices = CHOICES("OFF", "ON", "Simplified HistoBar"),
                 .update = raw_histo_update,
                 .help = "Use RAW histogram whenever possible.",
             },

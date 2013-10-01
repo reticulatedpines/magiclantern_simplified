@@ -35,6 +35,8 @@ struct Histogram histogram;
 #define HIST_METER_DYNAMIC_RANGE 1
 #define HIST_METER_ETTR_HINT 2
 
+static void histobar_refresh();
+
 void FAST hist_build_raw()
 {
     if (!raw_update_params()) return;
@@ -51,12 +53,12 @@ void FAST hist_build_raw()
     for (int i = os.y0; i < os.y_max; i += step)
     {
         int y = BM2RAW_Y(i);
-        if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
+        if (y < raw_info.active_area.y1+8 || y > raw_info.active_area.y2-8) continue;
 
         for (int j = os.x0; j < os.x_max; j += 8)
         {
             int x = BM2RAW_X(j);
-            if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+            if (x < raw_info.active_area.x1+8 || x > raw_info.active_area.x2-8) continue;
 
             int r = raw_red_pixel_dark(x, y);
             int g = raw_green_pixel_dark(x, y);
@@ -72,7 +74,6 @@ void FAST hist_build_raw()
             histogram.total_px++;
         }
     }
-
     
     /* in dark areas, spread the histogram count to show solid histogram instead of isolated bars */
     for (int i = 0; i < 5000; i++)
@@ -105,9 +106,12 @@ void FAST hist_build_raw()
         histogram.max = MAX(histogram.max, histogram.hist_b[i]);
         histogram.hist[i] = (histogram.hist_r[i] + histogram.hist_g[i] + histogram.hist_b[i]) / 3;
     }
+
+    histobar_refresh();
 }
 
-CONFIG_INT("raw.histo", raw_histogram_enable, 1);
+CONFIG_INT("raw.histo", raw_histogram_enable, 2);
+#define HISTOBAR_ENABLED (hist_draw && raw_histogram_enable == 2)
 
 MENU_UPDATE_FUNC(raw_histo_update)
 {
@@ -197,6 +201,11 @@ void hist_draw_image(
     int highlight_level
 )
 {
+    #ifdef FEATURE_RAW_HISTOGRAM
+    if (HISTOBAR_ENABLED && lv && can_use_raw_overlays_menu())
+        return;
+    #endif
+    
     if (!PLAY_OR_QR_MODE)
     {
         if (!lv_luma_is_accurate()) return;
@@ -352,21 +361,25 @@ MENU_UPDATE_FUNC(hist_print)
 #if defined(FEATURE_HISTOGRAM)
     if (hist_draw)
     {
-        MENU_SET_VALUE(
-            "%s%s%s",
-            hist_colorspace == 0 ? "Luma" : "RGB",
-            hist_log ? ", Log" : ", Lin",
-            hist_warn ? ", dots" : ""
-        );
+        int raw = raw_histogram_enable && can_use_raw_overlays_menu();
+        if (raw && HISTOBAR_ENABLED)
+        {
+            MENU_SET_VALUE("RAW HistoBar");
+        }
+        else
+        {
+            MENU_SET_VALUE(
+                "%s%s%s",
+                #ifdef FEATURE_RAW_HISTOGRAM
+                raw ? "RAW RGB" :
+                #endif
+                hist_colorspace == 0 ? "Luma" : "RGB",
+                hist_log ? ", Log" : ", Lin",
+                hist_warn ? ", dots" : ""
+            );
+        }
     }
 #endif
-    #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_draw && can_use_raw_overlays_menu())
-    {
-        raw_histo_update(entry, info);
-        MENU_APPEND_VALUE(", RAW");
-    }
-    #endif
 }
 
 #endif /* defined(FEATURE_HISTOGRAM) */
@@ -548,5 +561,165 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
     /* percentage x100 */
     return over * 10000 / total;
 }
+
+#include "lvinfo.h"
+
+static int histobar_ev[15];
+static int histobar_stops;
+static int histobar_clipped;
+static int histobar_stops_until_overexposure;
+
+static void histobar_refresh()
+{
+    int stops = COERCE((raw_info.dynamic_range + 50) / 100, 0, 14);
+
+    int i_prev = 0;
+    for(int ev = 0 ; ev < stops ; ev++ )
+    {
+        int evh = COERCE(ev - stops + 12, 0, 12);
+        int i = evh * HIST_WIDTH / 12;
+        
+        int pixels_in_this_stop = 0;
+        for (int j = i_prev; j < i; j++)
+        {
+            int max = MAX(MAX(histogram.hist_r[i], histogram.hist_g[i]), histogram.hist_b[i]);
+            pixels_in_this_stop += max;
+        }
+        histobar_ev[ev] = pixels_in_this_stop;
+        i_prev = i;
+    }
+    histobar_stops = stops;
+    
+    int i = HIST_WIDTH-1;
+    histobar_clipped = histogram.hist_r[i] + histogram.hist_g[i] + histogram.hist_b[i];
+
+    int stops_until_overexposure = 0;
+    for( i=0 ; i < HIST_WIDTH ; i++ )
+    {
+        int thr = histogram.total_px / 10000;
+        int max = MAX(MAX(histogram.hist_r[i], histogram.hist_g[i]), histogram.hist_b[i]);
+        if (max > thr)
+            stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
+    }
+    histobar_stops_until_overexposure = stops_until_overexposure;
+
+    lens_display_set_dirty();
+}
+
+static LVINFO_UPDATE_FUNC(histobar_update)
+{
+    if (!HISTOBAR_ENABLED)
+        return;
+    
+    if (!lv_luma_is_accurate())
+        return;
+    
+    if (!can_use_raw_overlays())
+        return;
+    
+    int w = fontspec_font(item->fontspec)->width - 4;
+    int h = fontspec_font(item->fontspec)->height - 4;
+    item->width = histobar_stops * w;
+    item->height = h;
+    item->custom_drawing = 1;
+    
+    if (can_draw)
+    {
+        for(int ev = 0 ; ev < histobar_stops ; ev++ )
+        {
+            int pixels_in_this_stop = histobar_ev[ev];
+            int thr = histogram.total_px / 10000;
+            int full = (pixels_in_this_stop > thr);
+            
+            int x = item->x - item->width/2 + ev * w + 1;
+            int y = item->y-2;
+            int h = item->height;
+            int fg = item->color_fg;
+            int bg = item->color_bg;
+            if (full) bg = fg;
+            if (ev == histobar_stops-1 && histobar_clipped > thr)
+            {
+                fg = bg = COLOR_RED;
+            }
+            else if (ev == 0 && full)
+            {
+                fg = bg = COLOR_BLUE;
+            }
+            bmp_fill(bg, x, y, w-2, h);
+            bmp_draw_rect(fg, x, y, w-2, h);
+        }
+    }
+}
+
+static LVINFO_UPDATE_FUNC(histobar_indic_update)
+{
+    LVINFO_BUFFER(10);
+
+    if (!hist_meter)
+        return;
+    
+    if (!HISTOBAR_ENABLED)
+        return;
+    
+    if (!lv_luma_is_accurate())
+        return;
+    
+    if (!can_use_raw_overlays())
+        return;
+    
+    switch (hist_meter)
+    {
+        case HIST_METER_DYNAMIC_RANGE:
+        {
+            int dr = (raw_info.dynamic_range + 5) / 10;
+            snprintf(buffer, sizeof(buffer), SYM_DR"%d.%d", dr/10, dr%10);
+            break;
+        }
+
+        case HIST_METER_ETTR_HINT:
+        {
+            int stops_until_overexposure = histobar_stops_until_overexposure;
+            
+            if (!stops_until_overexposure)
+                stops_until_overexposure = INT_MIN;
+
+            #ifdef CONFIG_MODULES
+            int ettr_stops = INT_MIN;
+
+            if (auto_ettr_export_correction(&ettr_stops) == 1)
+                if (ettr_stops != INT_MIN)
+                    stops_until_overexposure = (ettr_stops+5)/10;
+            #endif
+
+            if (stops_until_overexposure != INT_MIN)
+                snprintf(buffer, sizeof(buffer), SYM_ETTR"%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));
+            else
+                snprintf(buffer, sizeof(buffer), "OVER");
+            break;
+        }
+    }
+}
+
+static struct lvinfo_item info_items[] = {
+    {
+        .name = "HistoBar",
+        .which_bar = LV_PREFER_TOP_BAR,
+        .update = histobar_update,
+        .preferred_position = -1,
+    },
+    {
+        .name = "EV indic",
+        .which_bar = LV_PREFER_TOP_BAR,
+        .update = histobar_indic_update,
+        .preferred_position = -1,
+    },
+};
+
+static void hist_init()
+{
+    lvinfo_add_items(info_items, COUNT(info_items));
+}
+
+INIT_FUNC("hist", hist_init);
 
 #endif
