@@ -446,7 +446,6 @@ static struct menu_entry autoexpo_menu[] =
         .priv = &enabled,
         .max = 1,
         .depends_on = DEP_M_MODE | DEP_NOT_LIVEVIEW,
-        .submenu_height = 410,
         .submenu_width = 720,
         .help = "Automatic exposure algorithm based on predefined curves.",
         .help2 = "You have to press halfshutter for a while.",
