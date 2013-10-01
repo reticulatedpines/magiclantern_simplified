@@ -45,7 +45,7 @@
 #define MENU_BG_COLOR_HEADER_FOOTER 42
 
 extern int bmp_color_scheme;
-#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHT_BLUE : 18)
+#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHT_BLUE : COLOR_BLUE)
 
 #ifdef CONFIG_MENU_ICONS
 #define SUBMENU_OFFSET 48
@@ -2255,7 +2255,7 @@ skip_name:
     {
         // Forward sign for submenus that open with SET
         submenu_key_hint(
-            xval-12 - (info->value[0] ? font_large.width*2 : 0), y + y_icon_offset, 
+            xval-18 - (info->value[0] ? font_large.width*2 : 0), y + y_icon_offset, 
             info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : 60, 
             COLOR_BLACK, 
             ICON_ML_FORWARD
@@ -3197,7 +3197,7 @@ show_vscroll(struct menu * parent){
 
     int menu_len = MENU_LEN;
     
-    if(max > menu_len + 2){
+    if(max > menu_len + 1){
         int y_lo = 44;
         int h = submenu_mode ? 378 : 385;
         int size = (h - y_lo) * menu_len / max;
