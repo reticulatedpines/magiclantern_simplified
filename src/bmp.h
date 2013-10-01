@@ -499,6 +499,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_ML_FORWARD -15
 #define ICON_ML_MODULES -16
 #define ICON_ML_MODIFIED -17
+#define ICON_ML_GAMES -18
 
 #define ICON_ML_SUBMENU -100
 
