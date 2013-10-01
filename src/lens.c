@@ -2338,7 +2338,7 @@ static LVINFO_UPDATE_FUNC(av_update)
 {
     LVINFO_BUFFER(8);
 
-    if (lens_info.aperture)
+    if (lens_info.aperture && lens_info.name[0])
     {
         if (lens_info.aperture < 100)
         {
