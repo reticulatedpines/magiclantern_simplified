@@ -450,6 +450,13 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
 
 static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
+    /* choose a default font */
+    /* try to borrow the color from the cropmarks; if it's fully transparent, use transparent gray */
+    int bg = (items == top_items) ? TOPBAR_BGCOLOR : BOTTOMBAR_BGCOLOR;
+    if (bg == 0) bg = COLOR_BG_DARK;
+    default_font = FONT(FONT_MED_LARGE, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
+    small_font = FONT(FONT_MED, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
+
     /* try to display everything in large font */
     lvinfo_update_items(items, count, default_font);
     
@@ -483,11 +490,6 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
 void lvinfo_display(int top, int bottom)
 {
     take_semaphore(lvinfo_sem, 0);
-    
-    /* choose a default font: white/gray in photo mode, white/black in movie mode */
-    int bg = is_movie_mode() || gui_menu_shown() ? COLOR_BLACK : COLOR_BG_DARK;
-    default_font = FONT(FONT_MED_LARGE, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
-    small_font = FONT(FONT_MED, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
 
     static int refresh_timer = INT_MIN;
     if (layout_dirty && should_run_polling_action(2000, &refresh_timer))
