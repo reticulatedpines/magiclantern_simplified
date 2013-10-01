@@ -88,14 +88,10 @@ static char* silent_pic_get_name()
     return imgname;
 }
 
-static void silent_pic_save_dng(char* filename, void* buffer)
+static void silent_pic_save_dng(char* filename, struct raw_info * raw_info)
 {
-    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-
-    if (buffer)
-        raw_info.buffer = buffer;
-
-    save_dng(filename);
+    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info->jpeg.width, raw_info->jpeg.height);
+    save_dng(filename, raw_info);
 }
 
 #ifdef FEATURE_SILENT_PIC_RAW
@@ -117,7 +113,7 @@ silent_pic_take_raw(int interactive)
     /* save it to card */
     char* fn = silent_pic_get_name();
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    silent_pic_save_dng(fn, 0);
+    silent_pic_save_dng(fn, &raw_info);
     redraw();
 }
 
@@ -459,6 +455,9 @@ silent_pic_take_raw(int interactive)
     
     silent_pic_raw_init_preview();
 
+    /* copy the raw_info structure locally (so we can still save the DNGs when video mode changes) */
+    struct raw_info local_raw_info = raw_info;
+
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
     sp_running = 1;
     while (sp_running)
@@ -527,9 +526,9 @@ silent_pic_take_raw(int interactive)
             if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
                 silent_pic_raw_show_focus(i);
 
-            raw_info.buffer = sp_frames[i % sp_buffer_count];
-            raw_preview_fast();
-            silent_pic_save_dng(fn, 0);
+            local_raw_info.buffer = sp_frames[i % sp_buffer_count];
+            raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
+            silent_pic_save_dng(fn, &local_raw_info);
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
             {
@@ -560,7 +559,8 @@ silent_pic_take_raw(int interactive)
             idle_force_powersave_now();
         
         char* fn = silent_pic_get_name();
-        silent_pic_save_dng(fn, sp_frames[0]);
+        local_raw_info.buffer = sp_frames[0];
+        silent_pic_save_dng(fn, &local_raw_info);
         redraw();
     }
     

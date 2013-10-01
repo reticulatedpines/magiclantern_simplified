@@ -58,6 +58,9 @@
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
 
+/* here we only have a global raw_info */
+#define save_dng(filename) save_dng(filename, &raw_info)
+
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 

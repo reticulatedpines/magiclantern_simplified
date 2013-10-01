@@ -123,8 +123,8 @@ int main(int argc, char** argv)
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
         fix_vertical_stripes();
-        set_framerate(lv_rec_footer.sourceFpsx1000);
-        save_dng(fn);
+        dng_set_framerate(lv_rec_footer.sourceFpsx1000);
+        save_dng(fn, &raw_info);
     }
     fclose(fi);
     printf("\nDone.\n");

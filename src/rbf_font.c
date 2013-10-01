@@ -588,7 +588,11 @@ void load_fonts()
     /* load some fonts */
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
+    #ifdef CONFIG_LOW_RESOLUTION_DISPLAY
+    font_by_name("arghlf22", COLOR_BLACK, COLOR_WHITE);
+    #else
     font_by_name("argnor23", COLOR_BLACK, COLOR_WHITE);
+    #endif
     font_by_name("argnor28", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
 
