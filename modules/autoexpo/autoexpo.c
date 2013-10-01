@@ -93,24 +93,24 @@
 #define ITEM_sv 4
 #define ITEM_browse 5
 
-static CONFIG_INT("auto.expo.enabled", auto_expo_enabled, 0);
+static CONFIG_INT("autoexpo.enabled", enabled, 0);
+static CONFIG_INT("autoexpo.same_tv", same_tv, 1);
+static CONFIG_INT("autoexpo.lens_av", lens_av, LENS_AV_THIS);
 // these are for fullframe camereas
-static CONFIG_INT("auto.expo.same_tv", same_tv, 1);
-static CONFIG_INT("auto.expo.lens_av", lens_av, LENS_AV_THIS);
-static CONFIG_INT("auto.expo.tv_min", tv_min, 0);  // 1s
-static CONFIG_INT("auto.expo.av_min", av_min, 10); // f/1.4
-static CONFIG_INT("auto.expo.av_max", av_max, 80); // f/16
-static CONFIG_INT("auto.expo.av_step", av_step, 10);
-static CONFIG_INT("auto.expo.av_off", av_off, 160);
-static CONFIG_INT("auto.expo.iso_min", iso_min, 50);  // ISO 100
-static CONFIG_INT("auto.expo.iso_max", iso_max, 120); // ISO 12 800
-static CONFIG_INT("auto.expo.iso_step", iso_step, 7);
-static CONFIG_INT("auto.expo.iso_off", iso_off, 60);
-static CONFIG_INT("auto.expo.ec", ec, 0);  // exposure compensation
-static CONFIG_INT("auto.expo.ec_min", ec_min, -15);
-static CONFIG_INT("auto.expo.ec_max", ec_max, 20);
-static CONFIG_INT("auto.expo.ec_step", ec_step, -3);
-static CONFIG_INT("auto.expo.ec_off", ec_off, -15);
+static CONFIG_INT("autoexpo.tv_min", tv_min, 0);  // 1s
+static CONFIG_INT("autoexpo.av_min", av_min, 10); // f/1.4
+static CONFIG_INT("autoexpo.av_max", av_max, 80); // f/16
+static CONFIG_INT("autoexpo.av_step", av_step, 10);
+static CONFIG_INT("autoexpo.av_off", av_off, 160);
+static CONFIG_INT("autoexpo.iso_min", iso_min, 50);  // ISO 100
+static CONFIG_INT("autoexpo.iso_max", iso_max, 120); // ISO 12 800
+static CONFIG_INT("autoexpo.iso_step", iso_step, 7);
+static CONFIG_INT("autoexpo.iso_off", iso_off, 60);
+static CONFIG_INT("autoexpo.ec", ec, 0);  // exposure compensation
+static CONFIG_INT("autoexpo.ec_min", ec_min, -15);
+static CONFIG_INT("autoexpo.ec_max", ec_max, 20);
+static CONFIG_INT("autoexpo.ec_step", ec_step, -3);
+static CONFIG_INT("autoexpo.ec_off", ec_off, -15);
 
 static int autoexpo_running = 0;
 static bool show_graph = 1;
@@ -186,7 +186,7 @@ static void autoexpo_task()
 
 static unsigned int autoexpo_shoot_task(){
     if(
-        auto_expo_enabled &&
+        enabled &&
         shooting_mode == SHOOTMODE_M &&
         !lv &&
         get_ae_state() != 0 &&
@@ -443,7 +443,7 @@ static struct menu_entry autoexpo_menu[] =
 {
     {
         .name = "Auto exposure",
-        .priv = &auto_expo_enabled,
+        .priv = &enabled,
         .max = 1,
         .depends_on = DEP_M_MODE | DEP_NOT_LIVEVIEW,
         .submenu_height = 410,
@@ -568,7 +568,7 @@ MODULE_CBRS_START()
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(auto_expo_enabled)
+    MODULE_CONFIG(enabled)
     MODULE_CONFIG(same_tv)
     MODULE_CONFIG(lens_av)
     MODULE_CONFIG(tv_min)
