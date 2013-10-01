@@ -36,10 +36,10 @@
 #define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 #define GRAPH_XSIZE 2.4f
-#define GRAPH_YSIZE 2.25f
+#define GRAPH_YSIZE 2.3f
 #define GRAPH_STEP 5 //divisible by 10
 #define GRAPH_XOFF (int)((720 - (ABS(BV_MAX) + ABS(BV_MIN)) * GRAPH_XSIZE) / 2)
-#define GRAPH_YOFF 390
+#define GRAPH_YOFF 400
 #define GRAPH_MAX 130 // APEX value 1/8000
 #define GRAPH_MAX_PX (int)(GRAPH_MAX * GRAPH_YSIZE)
 #define GRAPH_BG 45
