@@ -169,7 +169,7 @@ const char * lens_format_dist( unsigned mm)
 
    if( mm > 100000 ) // 100 m
    {
-      snprintf( dist, sizeof(dist), "Inf.");
+      snprintf( dist, sizeof(dist), SYM_INFTY);
    }
    else if( mm > 10000 ) // 10 m
    {
@@ -2290,7 +2290,7 @@ static LVINFO_UPDATE_FUNC(temp_update)
     {
         item->color_bg = COLOR_RED;
     }
-    else if (t >= 35)
+    else if (t >= 50)
     {
         item->color_bg = COLOR_ORANGE;
     }
@@ -2470,7 +2470,6 @@ static LVINFO_UPDATE_FUNC(af_mf_update)
 
 static LVINFO_UPDATE_FUNC(batt_update)
 {
-    LVINFO_BUFFER(4);
     #ifdef CONFIG_BATTERY_INFO
     item->width = 70;
     #else

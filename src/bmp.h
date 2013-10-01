@@ -529,6 +529,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define SYM_TIMES       "\x88"
 #define SYM_SMALL_C     "\x89"
 #define SYM_SMALL_M     "\x8A"
+#define SYM_INFTY       "\x8B"
 #define SYM_DR          "\x9E"
 #define SYM_ETTR        "\x9F"
 
