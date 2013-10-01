@@ -304,8 +304,9 @@ struct module_symbol_entry
 
 #define MODULE_SYMBOL(NAME, DEFAULT_ADDRESS) \
 (void*)(DEFAULT_ADDRESS); \
-struct module_symbol_entry \
+static struct module_symbol_entry \
 __attribute__((section(".module_symbols"))) \
+__attribute__((used)) \
 module_symbol_##NAME = { \
         .name           = #NAME, \
         .address        = (void*)&NAME, \
