@@ -934,7 +934,7 @@ int handle_lv_play(struct event * event)
         {
             fake_simple_button(BGMT_Q); // toggle protect current image
             #if defined(CONFIG_6D) // too fast
-            msleep(5000);
+            msleep(200);
             #endif
             fake_simple_button(BGMT_WHEEL_DOWN);
             fake_simple_button(BGMT_Q);
@@ -3789,11 +3789,12 @@ static struct menu_entry play_menus[] = {
 
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
-                .help = "You may use the LiveView button to Protect or Rate images.",
+                .help = "You may use the LiveView button to protect or rate images,",
+                .help2 = "up/down keys/joystick also work as +/- rating respectively.",
                 .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
                 .max = 1,
-                .help = "You may use the LiveView button to Protect images quickly.",
+                .help = "You may use the LiveView button to protect images quickly.",
                 .icon_type = IT_BOOL,
                 #else
                 #error Hudson, we have a problem!
@@ -3902,3 +3903,4 @@ INIT_FUNC(__FILE__, tweak_init);
 #ifndef FEATURE_ARROW_SHORTCUTS
 int arrow_keys_shortcuts_active() { return 0; }
 #endif
+
