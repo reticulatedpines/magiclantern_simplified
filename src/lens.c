@@ -190,7 +190,9 @@ const char * lens_format_dist( unsigned mm)
 void
 update_lens_display(int top, int bottom)
 {
-    lvinfo_display(top, bottom);
+    if (top) draw_ml_topbar();
+    if (bottom) draw_ml_bottombar();
+    //~ lvinfo_display(top, bottom);
     //~ info_print_screen();
 }
 
@@ -451,7 +453,7 @@ int FAST get_ml_bottombar_pos()
     return bottom - 34;
 }
 
-void draw_ml_bottombar(int double_buffering, int clear)
+void draw_ml_bottombar()
 {
     if (!should_draw_bottom_bar()) return;
 
@@ -574,7 +576,7 @@ void free_space_show()
     );
 }
 
-void draw_ml_topbar(int double_buffering, int clear)
+void draw_ml_topbar()
 {
     if (!get_global_draw()) return;
     

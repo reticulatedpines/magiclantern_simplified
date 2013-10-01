@@ -3894,8 +3894,8 @@ menu_redraw_do()
                 
                 if (menu_lv_transparent_mode) 
                 {
-                    draw_ml_topbar(0, 1);
-                    draw_ml_bottombar(0, 1);
+                    draw_ml_topbar();
+                    draw_ml_bottombar();
                     bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
                 }
 
