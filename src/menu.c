@@ -2459,7 +2459,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(x, y, info.x_val - x, h, entry, &info, IS_SUBMENU(menu));
+            entry_print(info.x, info.y, info.x_val - x, h, entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
