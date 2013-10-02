@@ -96,6 +96,7 @@ static void find_cropmarks()
     sort_cropmarks();
     cropmarks_initialized = 1;
 }
+
 static void reload_cropmark()
 {
     int i = crop_index;
@@ -132,7 +133,6 @@ crop_toggle( void* priv, int sign )
 
 
 #ifdef FEATURE_CROPMARKS
-
 static MENU_UPDATE_FUNC(crop_display)
 {
     int index = crop_index;
@@ -209,9 +209,7 @@ static struct menu_entry cropmarks_menu[] = {
         },
     },
 };
-#endif
 
-#ifdef FEATURE_CROPMARKS
 static void cropmark_draw_from_cache()
 {
     uint8_t* B = bmp_vram();
@@ -239,7 +237,6 @@ static void cropmark_draw_from_cache()
     }
 }
 #endif
-
 
 void cropmark_clear_cache()
 {
@@ -330,6 +327,7 @@ static int cropmark_cache_get_signature()
         os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
     return sig;
 }
+
 static void cropmark_cache_update_signature()
 {
     cropmark_cache_sig = cropmark_cache_get_signature();
@@ -388,7 +386,6 @@ void show_apsc_crop_factor()
     bmp_draw_rect(COLOR_BLACK, os.x0 + x_off + 1, os.y0 + y_off + 1, x_ex_crop - 2, y_ex_crop - 2);
 }
 */
-
 
 static void black_bars()
 {
@@ -454,4 +451,3 @@ static void black_bars_16x9()
     }
 #endif
 }
-
