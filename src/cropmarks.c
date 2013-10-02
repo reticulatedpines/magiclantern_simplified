@@ -432,8 +432,9 @@ static void FAST default_movie_cropmarks()
             cropmarks_x = -1;
             cropmarks_y = (os.off_169 << 16) | (os.y_max - os.off_169);
         }
+        cropmark_cache_update_signature();
     }
-
+    
     int x,y;
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
@@ -454,17 +455,15 @@ static void FAST default_movie_cropmarks()
     }
 }
 
-void set_movie_cropmark(int x, int y, int w, int h)
+void set_movie_cropmarks(int x, int y, int w, int h)
 {
     cropmarks_x = (x << 16) | (x + w);
     cropmarks_y = (y << 16) | (y + h);
-    crop_set_dirty(1);
 }
 
-void reset_movie_cropmark()
+void reset_movie_cropmarks()
 {
     cropmarks_x = cropmarks_y = -1;
-    crop_set_dirty(1);
 }
 
 static void black_bars_16x9()
