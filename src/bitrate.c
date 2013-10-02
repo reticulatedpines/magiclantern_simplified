@@ -340,12 +340,6 @@ PROP_INT(PROP_FREE_SPACE, free_space_raw);
 void time_indicator_show()
 {
     if (!get_global_draw()) return;
-
-    if (!recording) 
-    {
-        free_space_show();
-        return;
-    }
     
 #if defined(CONFIG_7D)
     bitrate_read_mvr_config();
@@ -484,13 +478,7 @@ void movie_indicators_show()
     {
         BMP_LOCK( time_indicator_show(); )
     }
-    else
     #endif
-    {
-        BMP_LOCK(
-            free_space_show(); 
-        )
-    }
 }
 
 

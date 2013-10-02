@@ -517,38 +517,6 @@ void free_space_show_photomode()
     );
 }
 
-void free_space_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    
-    extern int cluster_size;
-    extern int free_space_raw;
-    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
-
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-
-    int time_indic_x = os.x_max - 160;
-    int time_indic_y = get_ml_topbar_pos();
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    int x = time_indic_x + 160 - 6 * 15;
-    int y = time_indic_y;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height);
-
-    bmp_printf(
-        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
-}
-
 void draw_ml_topbar()
 {
     if (!get_global_draw()) return;
@@ -2285,6 +2253,25 @@ static LVINFO_UPDATE_FUNC(fps_update)
     }
 }
 
+static LVINFO_UPDATE_FUNC(free_space_update)
+{
+    LVINFO_BUFFER(8);
+
+    extern int cluster_size;
+    extern int free_space_raw;
+    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
+
+    snprintf(buffer, sizeof(buffer), 
+        "%d.%dGB",
+        fsg,
+        fsgf
+    );
+}
+
 static LVINFO_UPDATE_FUNC(mode_update)
 {
     LVINFO_BUFFER(8);
@@ -2535,6 +2522,11 @@ static struct lvinfo_item info_items[] = {
         .name = "FPS",
         .which_bar = LV_TOP_BAR_ONLY,
         .update = fps_update,
+    },
+    {
+        .name = "Free space",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = free_space_update,
     },
     /* Bottom bar */
     {

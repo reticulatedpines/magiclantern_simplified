@@ -670,12 +670,6 @@ void movie_indicators_show()
     {
         BMP_LOCK( time_indicator_show(); )
     }
-    else
-    {
-        BMP_LOCK(
-            free_space_show(); 
-        )
-    }
 }
 
 

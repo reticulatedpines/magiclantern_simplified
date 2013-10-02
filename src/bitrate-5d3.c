@@ -67,7 +67,6 @@ void indicator_show()
     switch(rec_indicator)
     {
         case 0: 
-            free_space_show();
             return;
         case 1: // elapsed
             bmp_printf(
@@ -164,11 +163,5 @@ void movie_indicators_show()
     if (recording)
     {
         BMP_LOCK( indicator_show(); )
-    }
-    else
-    {
-        BMP_LOCK(
-            free_space_show(); 
-        )
     }
 }
