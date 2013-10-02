@@ -8,6 +8,8 @@
 #define MIN_SPACING 24
 #define TOTAL_WIDTH 720
 
+//~ #define LVINFO_PERF_MON
+
 /* all registered info items go here */
 /* note: these are somewhat private; they get first sorted in top/bottom bars,
  * and most of the code works at bar level, without accessing _info_items directly */
@@ -99,7 +101,7 @@ static int lvinfo_check_if_needs_reflow(struct lvinfo_item * items[], int count,
             /* for debugging */
             //~ bmp_fill(i == 0 || i == count ? COLOR_BLUE : COLOR_RED, prev_right, 100, now_left - prev_right, 2);
             
-            if (spacing < MIN_SPACING)
+            if (spacing < MIN_SPACING * 2/3)
             {
                 too_tight = 1;
             }
@@ -182,8 +184,26 @@ static void lvinfo_justify_items(struct lvinfo_item * items[], int count, int to
     }
 }
 
+/* heuristic that tells whether we should try to enlarge the font */
+static int lvinfo_should_enlarge(struct lvinfo_item * items[], int count, int total_width)
+{
+    int used_items = 0;
+    int used_width = 0;
+    for (int i = 0; i < count; i++)
+    {
+        int active = is_active(items[i]);
+        used_items += active ? 1 : 0;
+        used_width += active ? items[i]->width : 0;
+    }
+    
+    int extra_spacing = total_width - used_width;
+    int spacing_per_item = extra_spacing / used_items;
+        
+    return spacing_per_item > MIN_SPACING * 5/4;
+}
+
 /* shrink some items or hide low-priority ones */
-/* returns: -1 if it only discarded low-prio items, 0 if some items got smaller, 1 if high-prio items got hidden, 2 should be unreachable */
+/* returns: INT_MIN if nothing was discarded, INT_MAX if error, otherwise it returns the priority of last item discarded */
 static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int total_width)
 {
     int used_items = 0;
@@ -200,7 +220,7 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
     
     /* any real need to squeeze space? */
     if (spacing_needed <= MIN_SPACING)
-        return;
+        return INT_MIN;
 
     /* sort by priority (lowest first) */
     struct lvinfo_item * prio_items[MAX_ITEMS];
@@ -217,22 +237,6 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
             }
         }
     }
-    
-    /* first step: discard items with negative priority */
-    for (int i = 0; i < count-1; i++)
-    {
-        if (prio_items[i]->priority < 0 && is_active(prio_items[i]))
-        {
-            prio_items[i]->hidden = 1;
-            spacing_needed -= (prio_items[i]->width + MIN_SPACING);
-            if (spacing_needed <= MIN_SPACING)
-            {
-                return -1;
-            }
-        }
-    }
-    
-    /* still some stuff left? shrink the font of large items */
 
     /* sort by width, largest first */
     struct lvinfo_item * big_items[MAX_ITEMS];
@@ -251,6 +255,8 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
     }
 
     /* shrink items, starting with the largest ones */
+    /* if we have to shrink 3 or more items, shrink them all */
+    int shrunk = 0;
     for (int i = 0; i < count-1; i++)
     {
         if (is_active(big_items[i]))
@@ -259,11 +265,18 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
             lvinfo_update_items(&big_items[i], 1, small_font);
             int new_width = big_items[i]->width;
             spacing_needed -= (old_width - new_width);
-            if (spacing_needed <= MIN_SPACING)
+            shrunk++;
+            if (spacing_needed <= MIN_SPACING && shrunk < 3)
             {
-                return 0;
+                /* succeeded by shrinking 1 or 2 items? */
+                return INT_MIN;
             }
         }
+    }
+
+    if (spacing_needed <= MIN_SPACING)
+    {
+        return INT_MIN;
     }
 
     /* discard all items until there's enough space; lower priority discarded first */
@@ -275,11 +288,12 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
             spacing_needed -= (prio_items[i]->width + MIN_SPACING);
             if (spacing_needed <= MIN_SPACING)
             {
-                return 1;
+                return prio_items[i]->priority;
             }
         }
     }
-    return 2;
+    /* should be unreachable */
+    return INT_MAX;
 }
 
 static void lvinfo_valign_items(struct lvinfo_item * items[], int count, int bar_y, int bar_height)
@@ -450,17 +464,49 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
 
 static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
+    #ifdef LVINFO_PERF_MON
+    int64_t t0 = get_us_clock_value();
+    #endif
+    
     /* choose a default font */
     /* try to borrow the color from the cropmarks; if it's fully transparent, use transparent gray */
     int bg = (items == top_items) ? TOPBAR_BGCOLOR : BOTTOMBAR_BGCOLOR;
     if (bg == 0) bg = COLOR_BG_DARK;
     default_font = FONT(FONT_MED_LARGE, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
     small_font = FONT(FONT_MED, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
-
-    /* try to display everything in large font */
-    lvinfo_update_items(items, count, default_font);
     
-    int needs_reflow = lvinfo_check_if_needs_reflow(items, count, bar_x, bar_width);
+    int font_changed = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        /* colors changed? reset the font to large and refresh the layout */
+        /* this will also update the text and dimensions for all items */
+        int prev_fnt = items[i]->fontspec;
+        int colors_changed = (prev_fnt & 0xFFFF) != (default_font & 0xFFFF);
+        if (colors_changed) font_changed++;
+        lvinfo_update_items(&items[i], 1, colors_changed ? default_font : 0);
+    }
+
+    /* should we try to display everything in large font? */
+    /* if it doesn't look bad, keep the previous layout */
+    int should_enlarge = lvinfo_should_enlarge(items, count, bar_width);
+
+    if (should_enlarge)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            /* check each item; if it was small and now it should be enlarged, update the font */
+            int prev_fnt = items[i]->fontspec;
+            int font_should_change = (prev_fnt & FONT_MASK) != (default_font & FONT_MASK);
+            if (font_should_change)
+            {
+                font_changed++;
+                lvinfo_update_items(&items[i], 1, default_font);
+            }
+        }
+    }
+    
+    int needs_reflow = font_changed || lvinfo_check_if_needs_reflow(items, count, bar_x, bar_width);
     if (needs_reflow)
     {
         /* some items got too tight? try to re-distribute the spacing between them */
@@ -472,8 +518,9 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
         {
             int severity = lvinfo_squeeze_space(items, count, bar_width);
             lvinfo_justify_items(items, count, bar_width);
-            if (severity > 0)
+            if (severity >= 0)
             {
+                /* important items were disabled */
                 /* it may be better if we try to rebuild the layout from scratch */
                 layout_dirty = 1;
             }
@@ -483,8 +530,17 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
     /* center items vertically */
     lvinfo_valign_items(items, count, bar_y, bar_height);
 
+    #ifdef LVINFO_PERF_MON
+    int64_t t1 = get_us_clock_value();
+    #endif
+
     /* and... finally, display them! */
     lvinfo_display_bar(items, count, bar_x, bar_y, bar_width, bar_height);
+
+    #ifdef LVINFO_PERF_MON
+    int64_t t2 = get_us_clock_value();
+    bmp_printf(FONT_MED, 10, items == top_items ? 100 : 200, "Layout : %d "SYM_MICRO"s \nDrawing: %d "SYM_MICRO"s", (int)(t1-t0), (int)(t2-t1));
+    #endif
 }
 
 void lvinfo_display(int top, int bottom)
@@ -494,21 +550,14 @@ void lvinfo_display(int top, int bottom)
     static int refresh_timer = INT_MIN;
     if (layout_dirty && should_run_polling_action(2000, &refresh_timer))
     {
-        beep();
+        console_printf("LVINFO: refresh layout\n");
         lvinfo_refresh_layout();
         layout_dirty = 0;
     }
     
     if (top)
     {
-        if (!audio_meters_are_drawn() || get_halfshutter_pressed())
-        {
-            lvinfo_align_and_display(top_items, top_count, 0, get_ml_topbar_pos(), TOTAL_WIDTH, 32);
-        }
-        else
-        {
-            lvinfo_align_and_display(top_items, top_count, 600, get_ml_topbar_pos(), TOTAL_WIDTH-600, 32);
-        }
+        lvinfo_align_and_display(top_items, top_count, 0, get_ml_topbar_pos(), TOTAL_WIDTH, 32);
     }
     
     if (bottom)

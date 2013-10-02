@@ -187,6 +187,7 @@ save_config( void * priv, int delta )
     config_save_file(config_file);
     config_menu_save_flags();
     module_save_configs();
+    if (config_deleted) config_autosave = 1; /* this can be improved, because it's not doing a proper "undo" */
     config_deleted = 0;
     give_semaphore(config_save_sem);
 #endif
@@ -271,7 +272,7 @@ static MENU_UPDATE_FUNC(delete_config_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera to complete the process.");
     }
 
-    MENU_SET_WARNING(MENU_WARN_INFO, "%s", get_config_dir());
+    MENU_SET_HELP("Only the current preset: %s", get_config_dir());
 }
 static MENU_UPDATE_FUNC(save_config_update)
 {
@@ -280,15 +281,7 @@ static MENU_UPDATE_FUNC(save_config_update)
         MENU_SET_RINFO("Undo");
     }
     
-    MENU_SET_WARNING(MENU_WARN_INFO, "%s", get_config_dir());
-}
-
-static int is_valid_config_filename(char* filename)
-{
-    int n = strlen(filename);
-    if ((n > 4) && (streq(filename + n - 4, ".CFG") || streq(filename + n - 4, ".cfg")))
-        return 1;
-    return 0;
+    MENU_SET_HELP("%s", get_config_dir());
 }
 
 static void
@@ -302,18 +295,26 @@ delete_config( void * priv, int delta )
 
     do
     {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
-        if (is_valid_config_filename(file.name))
+        if (file.mode & ATTR_DIRECTORY)
         {
-            char fn[0x80];
-            snprintf(fn, sizeof(fn), "%s%s", path, file.name);
-            FIO_RemoveFile(fn);
+            continue; // is a directory
         }
+        
+        char fn[0x80];
+        snprintf(fn, sizeof(fn), "%s%s", path, file.name);
+        FIO_RemoveFile(fn);
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
     FIO_FindClose(dirent);
 
     config_deleted = 1;
+    
+    if (config_autosave)
+    {
+        /* at shutdown, config autosave may re-create the config files we just deleted */
+        /* => disable this feature in RAM only, until next reboot, without commiting it to card */
+        config_autosave = 0;
+    }
 }
 
 /* config presets */

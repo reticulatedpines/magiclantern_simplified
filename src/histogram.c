@@ -568,6 +568,8 @@ static int histobar_ev[15];
 static int histobar_stops;
 static int histobar_clipped;
 static int histobar_stops_until_overexposure;
+static int histobar_midtone_level;  /* median */
+static int histobar_shadow_level;   /* at 5th percentile, as in ETTR */
 
 static void histobar_refresh()
 {
@@ -593,14 +595,43 @@ static void histobar_refresh()
     int i = HIST_WIDTH-1;
     histobar_clipped = histogram.hist_r[i] + histogram.hist_g[i] + histogram.hist_b[i];
 
-    int stops_until_overexposure = 0;
+    int stops_until_overexposure = INT_MIN;
+    int acc = 0;
+    int shadow_px = histogram.total_px / 20;
+    int midtone_px = histogram.total_px / 2;
     for( i=0 ; i < HIST_WIDTH ; i++ )
     {
         int thr = histogram.total_px / 10000;
         int max = MAX(MAX(histogram.hist_r[i], histogram.hist_g[i]), histogram.hist_b[i]);
+        int ev_till_right_x10 = 120 - (i * 120 / (HIST_WIDTH-1));
+        int ev_till_right = ev_till_right_x10 / 10;
+        int ev_from_left = 12 - ev_till_right;
         if (max > thr)
-            stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
+        {
+            stops_until_overexposure = ev_till_right_x10;
+        }
+        
+        if (acc < midtone_px && acc + max >= midtone_px)
+        {
+            histobar_midtone_level = ev_from_left;
+        }
+
+        if (acc < shadow_px && acc + max >= shadow_px)
+        {
+            histobar_shadow_level = ev_from_left;
+        }
+
+        acc += max;
     }
+
+    #ifdef CONFIG_MODULES
+    int ettr_stops = INT_MIN;
+
+    if (auto_ettr_export_correction(&ettr_stops) == 1)
+        if (ettr_stops != INT_MIN)
+            stops_until_overexposure = (ettr_stops+5)/10;
+    #endif
+
     histobar_stops_until_overexposure = stops_until_overexposure;
 
     lens_display_set_dirty();
@@ -634,8 +665,10 @@ static LVINFO_UPDATE_FUNC(histobar_update)
             int x = item->x - item->width/2 + ev * w + 1;
             int y = item->y-2;
             int h = item->height;
-            int fg = item->color_fg;
-            int bg = item->color_bg;
+            int fh = h;                 /* fill height */
+            int fg = item->color_fg;    /* outline color */
+            int bg0 = item->color_bg;   /* background color */
+            int bg = bg0;               /* fill color */
             if (full) bg = fg;
             if (ev == histobar_stops-1 && histobar_clipped > thr)
             {
@@ -643,9 +676,21 @@ static LVINFO_UPDATE_FUNC(histobar_update)
             }
             else if (ev == 0 && full)
             {
-                fg = bg = COLOR_BLUE;
+                fg = bg = COLOR_LIGHT_BLUE;
             }
-            bmp_fill(bg, x, y, w-2, h);
+            
+            if (ev < histobar_shadow_level && full)
+            {
+                fh = h/3;
+            }
+            
+            if (ev == histobar_midtone_level && full)
+            {
+                fg = bg = COLOR_YELLOW;
+            }
+            
+            bmp_fill(bg0, x, y, w-2, h-fh);
+            bmp_fill(bg, x, y+h-fh, w-2, fh);
             bmp_draw_rect(fg, x, y, w-2, h);
         }
     }
@@ -679,17 +724,6 @@ static LVINFO_UPDATE_FUNC(histobar_indic_update)
         case HIST_METER_ETTR_HINT:
         {
             int stops_until_overexposure = histobar_stops_until_overexposure;
-            
-            if (!stops_until_overexposure)
-                stops_until_overexposure = INT_MIN;
-
-            #ifdef CONFIG_MODULES
-            int ettr_stops = INT_MIN;
-
-            if (auto_ettr_export_correction(&ettr_stops) == 1)
-                if (ettr_stops != INT_MIN)
-                    stops_until_overexposure = (ettr_stops+5)/10;
-            #endif
 
             if (stops_until_overexposure != INT_MIN)
                 snprintf(buffer, sizeof(buffer), SYM_ETTR"%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));

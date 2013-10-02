@@ -1,3 +1,4 @@
+#include "lvinfo.h"
 
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
@@ -163,10 +164,10 @@ draw_meter(
            int          y_origin,
            int          meter_height,
            struct       audio_level *   level,
-           char *       label
+           char *       label,
+           int width
            )
 {
-    const uint32_t width = 520; // bmp_width();
     const uint32_t pitch = BMPPITCH;
     uint32_t * row = (uint32_t*) bmp_vram();
     if( !row )
@@ -180,9 +181,9 @@ draw_meter(
     const int db_peak_fast = audio_level_to_db( level->peak_fast );
     const int db_peak = audio_level_to_db( level->peak );
     
-    // levels go from -40 to 0, so -40 * 12 == 520 (=width)
-    const uint32_t x_db_peak_fast = (width + db_peak_fast * 13) / 4;
-    const uint32_t x_db_peak = (width + db_peak * 13) / 4;
+    // levels go from -40 to 0
+    const uint32_t x_db_peak_fast = (width + db_peak_fast * width / 40) / 4;
+    const uint32_t x_db_peak = (width + db_peak * width / 40) / 4;
     
     const uint8_t bar_color = db_to_color( db_peak_fast );
     const uint8_t peak_color = db_peak_to_color( db_peak );
@@ -220,10 +221,10 @@ static void
 draw_ticks(
            int          x,
            int          y,
-           int          tick_height
+           int          tick_height,
+           int width
            )
 {
-    const uint32_t width = 520; // bmp_width();
     const uint32_t pitch = BMPPITCH;
     uint32_t * row = (uint32_t*) bmp_vram();
     if( !row )
@@ -241,7 +242,7 @@ draw_ticks(
             int db;
             for( db=-40; db<= 0 ; db+=5 )
                 {
-                    const uint32_t x_db = width + db * 13;
+                    const uint32_t x_db = width + db * width / 40;
                     row[x_db/4] = white_word;
                 }
         }
@@ -249,67 +250,66 @@ draw_ticks(
 
 static int audio_cmd_to_gain_x1000(int cmd);
 
+/* these will be set by the LV info bar manager */
+static int audio_meter_x = INT_MIN;
+static int audio_meter_y = INT_MIN;
+static int audio_meter_width = INT_MIN;
+
+static int audio_meters_are_drawn_common()
+{
+#ifdef FEATURE_AUDIO_METERS
+    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
+        return 0;
+        
+#if defined(CONFIG_7D)
+    if(!recording)
+    {
+        return 0;
+    }
+#endif
+
+    if (gui_menu_shown())
+    {
+        return is_menu_active("Audio");
+    }
+    else
+    {
+        return is_movie_mode() && do_draw_meters && zebra_should_run() && !get_halfshutter_pressed();
+    }
+#else
+    return 0;
+#endif
+}
+
 /* Normal VU meter */
 static void draw_meters(void)
 {
-    int screen_layout = get_screen_layout();
     // The db values are multiplied by 8 to make them
     // smoother.
-    int erase = 0;
-    int hs = get_halfshutter_pressed();
-    static int prev_hs = 0;
-    if (hs != prev_hs) erase = 1;
-    prev_hs = hs;
-    int x0 = 0;
-    int y0 = 0;
-    int small = 0;
-    get_yuv422_vram(); // just to refresh vram params
-        
-    if (gui_menu_shown())
-        {
-            x0 = 10;
-            y0 = 457;
-            if (menu_active_but_hidden()) y0 = 10;
-            small = 0;
-        }
-    else
-        {
-            small = hs;
-            x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
-            if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y0 = os.y0+2; // just above the 16:9 frame
-            else if (screen_layout == SCREENLAYOUT_16_9) { small = 1; y0 = os.y0 + os.off_169; } // meters just below 16:9 border
-            else if (screen_layout == SCREENLAYOUT_16_10) {small = 1; y0 = os.y0 + os.off_1610; } // meters just below 16:10 border
-            else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y0 = MIN(os.y_max, 480 - 54);
-            else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y0 = MIN(os.y_max - os.off_169, 480 - 54);
-            if (hdmi_code) small = 1;
-            if (screen_layout >= SCREENLAYOUT_UNDER_3_2) small = 1;
-        }
+    int x0 = audio_meter_x;
+    int y0 = audio_meter_y;
+    int width = audio_meter_width;
     
-    if (erase)
-        {
-            bmp_fill(
-                     screen_layout >= SCREENLAYOUT_UNDER_3_2 ? BOTTOMBAR_BGCOLOR : TOPBAR_BGCOLOR,
-                     x0, y0, 635, small ? 24 : 32
-                     );
-        }
-    else if (hs) return; // will draw top bar instead
-    else if (!small)
-        {
-            draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
-            draw_ticks( x0, y0 + 10, 3 );
+    if (menu_active_and_not_hidden()) /* not managed by LV info bars; show the meters in the help bar */
+    {
+        x0 = 0;
+        y0 = 457;
+        width = 640;    /* can be full-screen */
+    }
+    
+    if (x0 == INT_MIN || y0 == INT_MIN || width == INT_MIN)
+    {
+        /* don't know yet where to draw */
+        return;
+    }
+    
+    draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label, width);
+    draw_ticks( x0, y0 + 10, 3, width);
 #if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d
-            draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
+    draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label, width);
 #endif
-        }
-    else
-        {
-            draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
-            draw_ticks( x0, y0 + 7, 2 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))
-            draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
-#endif
-        }
-    if (gui_menu_shown() && alc_enable)
+
+        if (gui_menu_shown() && alc_enable)
         {
 #ifdef CONFIG_600D
             int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(ML_ALC_TARGET_LEV-0x100));
@@ -319,6 +319,47 @@ static void draw_meters(void)
             bmp_printf(FONT_MED, 10, 410, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
         }
 }
+
+static LVINFO_UPDATE_FUNC(audio_meter_update)
+{
+    /* this is more like a placeholder; it's used to integrate the meters in the top bar, without conflicting with other elements,
+     * but for quick refreshes we have a different task that redraws just the meters, not the entire bar */
+    if (audio_meters_are_drawn())
+    {
+        /* if it's alone, draw it big; if not, draw it smaller */
+        int is_big = fontspec_width(item->fontspec) >= fontspec_width(FONT_MED_LARGE);
+        int label_width = AUDIO_METER_OFFSET*4;
+        item->width = MIN((is_big ? 720 : 360) / 40 * 40, 720-item->x);
+        
+        audio_meter_x = item->x - item->width/2;
+        audio_meter_y = item->y;
+        audio_meter_width = item->width - label_width;
+        item->custom_drawing = 1;
+        
+        if (can_draw)
+        {
+            /* could be a little cleaner, but should do the job as long as draw_meters is thread-safe */
+            draw_meters();
+        }
+    }
+}
+
+static struct lvinfo_item info_items[] = {
+    {
+        .name = "Audio meters",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = audio_meter_update,
+        .preferred_position = -128,
+        .priority = 2,
+    },
+};
+
+static void audio_meter_init()
+{
+    lvinfo_add_item(info_items);
+}
+
+INIT_FUNC("audio.meter.init", audio_meter_init);
 
 #endif
 

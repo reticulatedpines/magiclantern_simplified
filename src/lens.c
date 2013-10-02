@@ -181,7 +181,7 @@ const char * lens_format_dist( unsigned mm)
    }
    else
    {
-      snprintf( dist, sizeof(dist),"%2dcm"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+      snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
    }
 
    return (dist);
@@ -495,33 +495,6 @@ int FAST get_ml_topbar_pos()
     return y;
 }
 
-void fps_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    if (!is_movie_mode() || recording) return;
-    //~ if (hdmi_code == 5) return; // workaround
-    int screen_layout = get_screen_layout();
-    if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
-
-    int time_indic_x = os.x_max - 160;
-    int time_indic_y = get_ml_topbar_pos();
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
-
-    int f = fps_get_current_x1000();
-    int x = time_indic_x + 160 - 6 * 15;
-    int y = time_indic_y + font_med.height - 4;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height - 4);
-
-    bmp_printf(
-        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
-        "%2d.%03d", 
-        f / 1000, f % 1000
-    );
-}
-
 void free_space_show_photomode()
 {
     extern int cluster_size;
@@ -538,38 +511,6 @@ void free_space_show_photomode()
     bmp_printf(
         FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
         x, y,
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
-}
-
-void free_space_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    
-    extern int cluster_size;
-    extern int free_space_raw;
-    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
-
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-
-    int time_indic_x = os.x_max - 160;
-    int time_indic_y = get_ml_topbar_pos();
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    int x = time_indic_x + 160 - 6 * 15;
-    int y = time_indic_y;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height);
-
-    bmp_printf(
-        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
         "%d.%dGB",
         fsg,
         fsgf
@@ -2298,6 +2239,49 @@ static LVINFO_UPDATE_FUNC(temp_update)
     }
 }
 
+static LVINFO_UPDATE_FUNC(mvi_number_update)
+{
+    LVINFO_BUFFER(12);
+    
+    if (is_native_movie_mode())
+    {
+        snprintf(buffer, sizeof(buffer), "MVI_%04d", file_number);
+    }
+}
+
+static LVINFO_UPDATE_FUNC(fps_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (is_movie_mode())
+    {
+        int f = fps_get_current_x1000();
+        snprintf(buffer, sizeof(buffer), 
+            "%2d.%03d", 
+            f / 1000, f % 1000
+        );
+    }
+}
+
+static LVINFO_UPDATE_FUNC(free_space_update)
+{
+    LVINFO_BUFFER(8);
+
+    extern int cluster_size;
+    extern int free_space_raw;
+    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
+
+    snprintf(buffer, sizeof(buffer), 
+        "%d.%dGB",
+        fsg,
+        fsgf
+    );
+}
+
 static LVINFO_UPDATE_FUNC(mode_update)
 {
     LVINFO_BUFFER(8);
@@ -2419,7 +2403,7 @@ static LVINFO_UPDATE_FUNC(iso_update)
 
     if (ISO_ADJUSTMENT_ACTIVE)
     {
-        item->color_bg = COLOR_GREEN1;
+        item->color_bg = COLOR_LIGHT_BLUE;
     }
     else if (CONTROL_BV)
     {
@@ -2514,7 +2498,8 @@ static struct lvinfo_item info_items[] = {
         .name = "Clock",
         .which_bar = LV_TOP_BAR_ONLY,
         .update = clock_update,
-        .preferred_position = -128,
+        .preferred_position = -50,
+        .priority = -1,
     },
     {
         .name = "Disp preset",
@@ -2543,6 +2528,21 @@ static struct lvinfo_item info_items[] = {
         .which_bar = LV_TOP_BAR_ONLY,
         .update = temp_update,
         .priority = 1,
+    },
+    {
+        .name = "MVI number",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = mvi_number_update,
+    },
+    {
+        .name = "FPS",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = fps_update,
+    },
+    {
+        .name = "Free space",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = free_space_update,
     },
     /* Bottom bar */
     {
@@ -2591,7 +2591,6 @@ static struct lvinfo_item info_items[] = {
         .name = "Focus dist",
         .which_bar = LV_BOTTOM_BAR_ONLY,
         .update = focus_dist_update,
-        .priority = -1,
     },
     {
         .name = "AF/MF",

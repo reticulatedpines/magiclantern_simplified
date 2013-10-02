@@ -38,28 +38,7 @@ static CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 
 int audio_meters_are_drawn()
 {
-#ifdef FEATURE_AUDIO_METERS
-    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
-        return 0;
-        
-#if defined(CONFIG_7D)
-    if(!recording)
-    {
-        return 0;
-    }
-#endif
-
-    return 
-        (
-         is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
-         )
-        ||
-        (
-         gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
-         );
-#else
-    return 0;
-#endif
+    return audio_meters_are_drawn_common();
 }
 
 #ifdef FEATURE_ANALOG_GAIN
