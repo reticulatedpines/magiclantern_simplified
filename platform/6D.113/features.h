@@ -3,6 +3,7 @@
 
 /*Not Working Or Unnecessary*/
 #undef FEATURE_QUICK_ZOOM    //Canon Has it
+#undef FEATURE_AF_PATTERNS   // Not working will disable auto af points
 #undef FEATURE_IMAGE_EFFECTS // Missing Zero Sharpness :( Regs have changed
 #undef FEATURE_IMAGE_REVIEW_PLAY // not needed, one can press Zoom right away
 #undef CONFIG_STRESS_TEST // We don't need this so much.

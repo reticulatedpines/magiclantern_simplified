@@ -21,7 +21,6 @@
 #define AF_POINT_BR 0x40 // Bottom-right
 #define AF_POINT_L  0x80 // Left
 #define AF_POINT_R  0x100 // Right
-
 #elif defined(CONFIG_7D)        // 7D focus points
 /*
           TT
@@ -49,15 +48,9 @@ LLL LL L  C  R  RR  RRR
 #define AF_POINT_R    0x44c00 // Right
 #define AF_POINT_RR   0x44e00 // Right-right
 #define AF_POINT_RRR  0x45000 // Right-right-right
-
+// ----------------------------------------------------
 #elif defined(CONFIG_6D)
-/*
-          T
-    TL         TR
-L   CL    C    CR    R
-    BL         BR
-          B
-*/
+
 #define AF_POINT_C  0x4A00 // Center
 #define AF_POINT_T  0x0A00 // Top
 #define AF_POINT_B  0x8A00 // Bottom
@@ -67,8 +60,27 @@ L   CL    C    CR    R
 #define AF_POINT_BR 0x6C00 // Bottom-right
 #define AF_POINT_L  0x4600 // Left
 #define AF_POINT_R  0x4E00 // Right
-#define AF_POINT_CL 0x4800 // Center-left
-#define AF_POINT_CR 0x4C00 // Center-right
+#define AF_POINT_LL 0x4800 
+#define AF_POINT_RR 0x4C00
+//Center 0x4A00, 4a004a
+//TC 0xa00, 4a004a
+//BC 0x8a00, 4a004a
+//TL 0x2800, 4a004a
+//TR 0x2c00, 4a004a
+//L  0x4600, 4a004a
+//R  0x4e00, 4a004a
+//BL 0x6800, 4a004a
+//BR 0x6C00, 4a004a
+//LL 0x4800, 
+//RR 0x4C00,
+/*
+        *TC 
+    *TL        *TR
+L * *LL    *C    *RR    * R
+    *BL        *BR
+        *BC
+*/
+
 
 #else
 #define AF_POINT_C  0x0100 // Center
@@ -84,35 +96,18 @@ L   CL    C    CR    R
 
 #define AF_PATTERN_NONE            0
 
-#if defined(CONFIG_6D)
-#define AF_PATTERN_CENTERLEFT      AF_POINT_CL
-#define AF_PATTERN_CENTERRIGHT      AF_POINT_CR
-#endif
-
 #define AF_PATTERN_CENTER          AF_POINT_C
-#if defined(CONFIG_6D)
-#define AF_PATTERN_SQUARE          AF_POINT_C | AF_POINT_TL | AF_POINT_TR | AF_POINT_BL | AF_POINT_BR | AF_POINT_CL | AF_POINT_CR
-#else
 #define AF_PATTERN_SQUARE          AF_POINT_C | AF_POINT_TL | AF_POINT_TR | AF_POINT_BL | AF_POINT_BR
-#endif
 
 #define AF_PATTERN_TOP             AF_POINT_T
 #define AF_PATTERN_TOPTRIANGLE     AF_POINT_T | AF_POINT_TL | AF_POINT_TR
 #define AF_PATTERN_TOPDIAMOND      AF_POINT_T | AF_POINT_TL | AF_POINT_TR | AF_POINT_C
-#if defined(CONFIG_6D)
-#define AF_PATTERN_TOPHALF         AF_POINT_T | AF_POINT_TL | AF_POINT_TR | AF_POINT_C | AF_POINT_L | AF_POINT_R | AF_POINT_CL | AF_POINT_CR
-#else
 #define AF_PATTERN_TOPHALF         AF_POINT_T | AF_POINT_TL | AF_POINT_TR | AF_POINT_C | AF_POINT_L | AF_POINT_R
-#endif
 
 #define AF_PATTERN_BOTTOM          AF_POINT_B
 #define AF_PATTERN_BOTTOMTRIANGLE  AF_POINT_B | AF_POINT_BL | AF_POINT_BR
 #define AF_PATTERN_BOTTOMDIAMOND   AF_POINT_B | AF_POINT_BL | AF_POINT_BR | AF_POINT_C
-#if defined(CONFIG_6D)
-#define AF_PATTERN_BOTTOMHALF      AF_POINT_B | AF_POINT_BL | AF_POINT_BR | AF_POINT_C | AF_POINT_L | AF_POINT_R | AF_POINT_CL | AF_POINT_CR
-#else
-#define AF_PATTERN_BOTTOMHALF      AF_POINT_B | AF_POINT_BL | AF_POINT_BR | AF_POINT_C | AF_POINT_L | AF_POINT_R 
-#endif
+#define AF_PATTERN_BOTTOMHALF      AF_POINT_B | AF_POINT_BL | AF_POINT_BR | AF_POINT_C | AF_POINT_L | AF_POINT_R
 
 #define AF_PATTERN_TOPLEFT         AF_POINT_TL
 #define AF_PATTERN_TOPRIGHT        AF_POINT_TR
@@ -120,39 +115,19 @@ L   CL    C    CR    R
 #define AF_PATTERN_BOTTOMRIGHT     AF_POINT_BR
 
 #define AF_PATTERN_LEFT            AF_POINT_L
-#if defined(CONFIG_6D)
-#define AF_PATTERN_LEFTTRIANGLE    AF_POINT_L | AF_POINT_TL | AF_POINT_BL | AF_POINT_CL | AF_POINT_CR
-#define AF_PATTERN_LEFTDIAMOND     AF_POINT_L | AF_POINT_TL | AF_POINT_BL | AF_POINT_C | AF_POINT_CL | AF_POINT_CR
-#define AF_PATTERN_LEFTHALF        AF_POINT_L | AF_POINT_TL | AF_POINT_BL | AF_POINT_C | AF_POINT_T | AF_POINT_B | AF_POINT_CL | AF_POINT_CR
-#else
 #define AF_PATTERN_LEFTTRIANGLE    AF_POINT_L | AF_POINT_TL | AF_POINT_BL
 #define AF_PATTERN_LEFTDIAMOND     AF_POINT_L | AF_POINT_TL | AF_POINT_BL | AF_POINT_C
 #define AF_PATTERN_LEFTHALF        AF_POINT_L | AF_POINT_TL | AF_POINT_BL | AF_POINT_C | AF_POINT_T | AF_POINT_B
-#endif
 
 #define AF_PATTERN_RIGHT           AF_POINT_R
-#if defined(CONFIG_6D)
-#define AF_PATTERN_RIGHTTRIANGLE   AF_POINT_R | AF_POINT_TR | AF_POINT_BR | AF_POINT_CL | AF_POINT_CR
-#define AF_PATTERN_RIGHTDIAMOND    AF_POINT_R | AF_POINT_TR | AF_POINT_BR | AF_POINT_C | AF_POINT_CL | AF_POINT_CR
-#define AF_PATTERN_RIGHTHALF       AF_POINT_R | AF_POINT_TR | AF_POINT_BR | AF_POINT_C | AF_POINT_T | AF_POINT_B | AF_POINT_CL | AF_POINT_CR
-#else
 #define AF_PATTERN_RIGHTTRIANGLE   AF_POINT_R | AF_POINT_TR | AF_POINT_BR
 #define AF_PATTERN_RIGHTDIAMOND    AF_POINT_R | AF_POINT_TR | AF_POINT_BR | AF_POINT_C
 #define AF_PATTERN_RIGHTHALF       AF_POINT_R | AF_POINT_TR | AF_POINT_BR | AF_POINT_C | AF_POINT_T | AF_POINT_B
-#endif
 
-#if defined(CONFIG_6D)
-#define AF_PATTERN_HLINE           AF_POINT_C | AF_POINT_L | AF_POINT_R | AF_POINT_CL | AF_POINT_CR
-#else
 #define AF_PATTERN_HLINE           AF_POINT_C | AF_POINT_L | AF_POINT_R
-#endif
 #define AF_PATTERN_VLINE           AF_POINT_C | AF_POINT_T | AF_POINT_B
 
-#if defined(CONFIG_6D)
-#define AF_PATTERN_ALL             AF_POINT_C | AF_POINT_T | AF_POINT_B | AF_POINT_TL | AF_POINT_TR | AF_POINT_BL | AF_POINT_BR | AF_POINT_L | AF_POINT_R | AF_POINT_CL | AF_POINT_CR
-#else
 #define AF_PATTERN_ALL             AF_POINT_C | AF_POINT_T | AF_POINT_B | AF_POINT_TL | AF_POINT_TR | AF_POINT_BL | AF_POINT_BR | AF_POINT_L | AF_POINT_R
-#endif
 
 #define AF_PATTERN_END_OF_LIST      -1
 

@@ -10,20 +10,6 @@
 static CONFIG_INT("focus.patterns", af_patterns, 0);
 
 static type_PATTERN_MAP_ITEM pattern_map[] = {
-#if defined(CONFIG_6D)
-        {AF_PATTERN_ALL,            AF_PATTERN_CENTER, AF_PATTERN_TOP,            AF_PATTERN_BOTTOM,         AF_PATTERN_LEFT,          AF_PATTERN_RIGHT},
-        {AF_PATTERN_CENTER,         AF_PATTERN_ALL,    AF_PATTERN_TOP,            AF_PATTERN_BOTTOM,         AF_PATTERN_CENTERLEFT,    AF_PATTERN_CENTERRIGHT},
-        {AF_PATTERN_CENTERLEFT,     AF_PATTERN_CENTER, AF_PATTERN_TOPLEFT,        AF_PATTERN_BOTTOMLEFT,     AF_PATTERN_LEFT,          AF_PATTERN_CENTER},
-        {AF_PATTERN_CENTERRIGHT,    AF_PATTERN_CENTER, AF_PATTERN_TOPRIGHT,       AF_PATTERN_BOTTOMRIGHT,    AF_PATTERN_CENTER,        AF_PATTERN_RIGHT},
-        {AF_PATTERN_TOP,            AF_PATTERN_CENTER, AF_PATTERN_TOP,            AF_PATTERN_CENTER,         AF_PATTERN_TOPLEFT,       AF_PATTERN_TOPRIGHT},
-        {AF_PATTERN_BOTTOM,         AF_PATTERN_CENTER, AF_PATTERN_CENTER,         AF_PATTERN_BOTTOM,         AF_PATTERN_BOTTOMLEFT,    AF_PATTERN_BOTTOMRIGHT},
-        {AF_PATTERN_TOPLEFT,        AF_PATTERN_CENTER, AF_PATTERN_TOP,            AF_PATTERN_CENTERLEFT,     AF_PATTERN_LEFT,          AF_PATTERN_TOP},
-        {AF_PATTERN_TOPRIGHT,       AF_PATTERN_CENTER, AF_PATTERN_TOP,            AF_PATTERN_CENTERRIGHT,    AF_PATTERN_TOP,           AF_PATTERN_RIGHT},
-        {AF_PATTERN_BOTTOMLEFT,     AF_PATTERN_CENTER, AF_PATTERN_CENTERLEFT,     AF_PATTERN_BOTTOM,         AF_PATTERN_LEFT,          AF_PATTERN_BOTTOM},
-        {AF_PATTERN_BOTTOMRIGHT,    AF_PATTERN_CENTER, AF_PATTERN_CENTERRIGHT,    AF_PATTERN_BOTTOM,         AF_PATTERN_BOTTOM,        AF_PATTERN_RIGHT},
-        {AF_PATTERN_LEFT,           AF_PATTERN_CENTER, AF_PATTERN_TOPLEFT,        AF_PATTERN_BOTTOMLEFT,     AF_PATTERN_LEFT,          AF_PATTERN_CENTERLEFT},
-        {AF_PATTERN_RIGHT,          AF_PATTERN_CENTER, AF_PATTERN_TOPRIGHT,       AF_PATTERN_BOTTOMRIGHT,    AF_PATTERN_CENTERRIGHT,   AF_PATTERN_RIGHT},
-#else
         {AF_PATTERN_CENTER,         AF_PATTERN_SQUARE, AF_PATTERN_TOPHALF,        AF_PATTERN_BOTTOMHALF,     AF_PATTERN_LEFTHALF,      AF_PATTERN_RIGHTHALF},
         {AF_PATTERN_SQUARE,         AF_PATTERN_HLINE,  AF_PATTERN_TOPHALF,        AF_PATTERN_BOTTOMHALF,     AF_PATTERN_LEFTHALF,      AF_PATTERN_RIGHTHALF},
 
@@ -56,7 +42,7 @@ static type_PATTERN_MAP_ITEM pattern_map[] = {
         {AF_PATTERN_VLINE,          AF_PATTERN_ALL,    AF_PATTERN_TOPHALF,        AF_PATTERN_BOTTOMHALF,     AF_PATTERN_LEFTHALF,      AF_PATTERN_RIGHTHALF},
 
         {AF_PATTERN_ALL,            AF_PATTERN_CENTER, AF_PATTERN_TOPHALF,        AF_PATTERN_BOTTOMHALF,     AF_PATTERN_LEFTHALF,      AF_PATTERN_RIGHTHALF},
-#endif
+
         END_OF_LIST
 };
 
@@ -87,7 +73,7 @@ BMP_LOCK( // reuse this for locking
 static void set_af_point(int afpoint)
 {
     if (!afp_len) return;
-    // if (!gui_menu_shown() && beep_enabled) beep(); // disabled due to being annoying
+    if (!gui_menu_shown() && beep_enabled) beep();
     afp[0] = afpoint;
     prop_request_change(PROP_AFPOINT, afp, afp_len);
     if (!gui_menu_shown())
@@ -359,15 +345,12 @@ static MENU_UPDATE_FUNC(pattern_display)
     bmp_fill(COLOR_BLACK, cx-w/2, cy-h/2, w, h);
     bmp_draw_rect(COLOR_WHITE, cx-w/2, cy-h/2, w, h);
 
-    draw_af_point(cx,      cy     ,  7, af_point & AF_POINT_C ? COLOR_RED : 50);
+    draw_af_point(cx,      cy     , 7, af_point & AF_POINT_C ? COLOR_RED : 50);
     draw_af_point(cx - dx, cy     ,  5, af_point & AF_POINT_L ? COLOR_RED : 50);
     draw_af_point(cx + dx, cy     ,  5, af_point & AF_POINT_R ? COLOR_RED : 50);
     draw_af_point(cx     , cy + dy,  5, af_point & AF_POINT_B ? COLOR_RED : 50);
     draw_af_point(cx     , cy - dy,  5, af_point & AF_POINT_T ? COLOR_RED : 50);
-#if defined(CONFIG_6D)
-    draw_af_point(cx + dx/2, cy   ,  5, af_point & AF_POINT_CR ? COLOR_RED : 50);
-    draw_af_point(cx - dx/2, cy   ,  5, af_point & AF_POINT_CL ? COLOR_RED : 50);
-#endif
+
     draw_af_point(cx + dx/2, cy + dy/2,  5, af_point & AF_POINT_BR ? COLOR_RED : 50);
     draw_af_point(cx - dx/2, cy - dy/2,  5, af_point & AF_POINT_TL ? COLOR_RED : 50);
     draw_af_point(cx + dx/2, cy - dy/2,  5, af_point & AF_POINT_TR ? COLOR_RED : 50);
@@ -377,18 +360,11 @@ static MENU_UPDATE_FUNC(pattern_display)
 static struct menu_entry afp_focus_menu[] = {
 #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
     {
-        .depends_on = DEP_PHOTO_MODE | DEP_CHIPPED_LENS | DEP_NOT_LIVEVIEW,
-#if defined(CONFIG_6D)
-        .name = "Focus Shortcuts",
-        .priv = &af_patterns,
-        .max = 1,
-        .help = "Choose af points directly, display OFF, arrows+SET.",
-        .help2 = "Btw: Real focus patterns aren't working on 6D (yet?).",
-#else
         .name = "Focus Patterns",
         .select = menu_open_submenu,
         .help = "Custom AF patterns (photo mode only). Ported from 400plus.",
         .submenu_height = 280,
+        .depends_on = DEP_PHOTO_MODE | DEP_CHIPPED_LENS | DEP_NOT_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Center selection",
@@ -414,7 +390,6 @@ static struct menu_entry afp_focus_menu[] = {
             },
             MENU_EOL
         },
-#endif
     },
 #endif
 };
