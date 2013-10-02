@@ -2239,6 +2239,16 @@ static LVINFO_UPDATE_FUNC(temp_update)
     }
 }
 
+static LVINFO_UPDATE_FUNC(mvi_number_update)
+{
+    LVINFO_BUFFER(12);
+    
+    if (is_native_movie_mode())
+    {
+        snprintf(buffer, sizeof(buffer), "MVI_%04d", file_number);
+    }
+}
+
 static LVINFO_UPDATE_FUNC(fps_update)
 {
     LVINFO_BUFFER(8);
@@ -2489,6 +2499,7 @@ static struct lvinfo_item info_items[] = {
         .which_bar = LV_TOP_BAR_ONLY,
         .update = clock_update,
         .preferred_position = -50,
+        .priority = -1,
     },
     {
         .name = "Disp preset",
@@ -2517,6 +2528,11 @@ static struct lvinfo_item info_items[] = {
         .which_bar = LV_TOP_BAR_ONLY,
         .update = temp_update,
         .priority = 1,
+    },
+    {
+        .name = "MVI number",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = mvi_number_update,
     },
     {
         .name = "FPS",
@@ -2575,7 +2591,6 @@ static struct lvinfo_item info_items[] = {
         .name = "Focus dist",
         .which_bar = LV_BOTTOM_BAR_ONLY,
         .update = focus_dist_update,
-        .priority = -1,
     },
     {
         .name = "AF/MF",
