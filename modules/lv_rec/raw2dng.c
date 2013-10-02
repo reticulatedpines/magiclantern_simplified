@@ -26,6 +26,7 @@
 #include <raw.h>
 #include <chdk-dng.h>
 #include "qsort.h"  /* much faster than standard C qsort */
+#include "../dual_iso/optmed.h"
 
 lv_rec_file_footer_t lv_rec_footer;
 struct raw_info raw_info;
@@ -34,6 +35,9 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 static void fix_vertical_stripes();
+static void chroma_smooth();
+
+#define EV_RESOLUTION 32768
 
 int main(int argc, char** argv)
 {
@@ -123,6 +127,7 @@ int main(int argc, char** argv)
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
         fix_vertical_stripes();
+        chroma_smooth();
         dng_set_framerate(lv_rec_footer.sourceFpsx1000);
         save_dng(fn, &raw_info);
     }
@@ -500,4 +505,127 @@ static void fix_vertical_stripes()
     {
         apply_vertical_stripes_correction();
     }
+}
+
+static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int x,y;
+
+    for (y = 4; y < h-5; y += 2)
+    {
+        for (x = 4; x < w-4; x += 2)
+        {
+            int i,j;
+            int k = 0;
+            int med_r[9];
+            int med_b[9];
+            for (i = -2; i <= 2; i += 2)
+            {
+                for (j = -2; j <= 2; j += 2)
+                {
+                    int r  = inp[x+i   +   (y+j) * w];
+                    int g1 = inp[x+i+1 +   (y+j) * w];
+                    int g2 = inp[x+i   + (y+j+1) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+                    
+                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+                    med_r[k] = raw2ev[r] - ge;
+                    med_b[k] = raw2ev[b] - ge;
+                    k++;
+                }
+            }
+            int dr = opt_med9(med_r);
+            int db = opt_med9(med_b);
+
+            int g1 = inp[x+1 +     y * w];
+            int g2 = inp[x   + (y+1) * w];
+            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+        }
+    }
+}
+
+static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int x,y;
+
+    for (y = 4; y < h-5; y += 2)
+    {
+        for (x = 4; x < w-4; x += 2)
+        {
+            int i,j;
+            int k = 0;
+            int med_r[25];
+            int med_b[25];
+            for (i = -4; i <= 4; i += 2)
+            {
+                for (j = -4; j <= 4; j += 2)
+                {
+                    int r  = inp[x+i   +   (y+j) * w];
+                    int g1 = inp[x+i+1 +   (y+j) * w];
+                    int g2 = inp[x+i   + (y+j+1) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+                    
+                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+                    med_r[k] = raw2ev[r] - ge;
+                    med_b[k] = raw2ev[b] - ge;
+                    k++;
+                }
+            }
+            int dr = opt_med25(med_r);
+            int db = opt_med25(med_b);
+
+            int g1 = inp[x+1 +     y * w];
+            int g2 = inp[x   + (y+1) * w];
+            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+        }
+    }
+}
+
+static void chroma_smooth()
+{
+    int black = raw_info.black_level;
+    static int raw2ev[16384];
+    static int _ev2raw[24*EV_RESOLUTION];
+    int* ev2raw = _ev2raw + 10*EV_RESOLUTION;
+    
+    int i;
+    for (i = 0; i < 16384; i++)
+    {
+        raw2ev[i] = log2(MAX(1, i - black)) * EV_RESOLUTION;
+    }
+
+    for (i = -10*EV_RESOLUTION; i < 14*EV_RESOLUTION; i++)
+    {
+        ev2raw[i] = black + pow(2, (float)i / EV_RESOLUTION);
+    }
+
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    unsigned short * aux = malloc(w * h * sizeof(short));
+    unsigned short * aux2 = malloc(w * h * sizeof(short));
+
+    int x,y;
+    for (y = 0; y < h; y++)
+        for (x = 0; x < w; x++)
+            aux[x + y*w] = aux2[x + y*w] = raw_get_pixel(x, y);
+    
+    chroma_smooth_5x5(aux, aux2, raw2ev, ev2raw);
+    
+    for (y = 0; y < h; y++)
+        for (x = 0; x < w; x++)
+            raw_set_pixel(x, y, aux2[x + y*w]);
+
+    free(aux);
+    free(aux2);
 }
