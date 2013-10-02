@@ -495,33 +495,6 @@ int FAST get_ml_topbar_pos()
     return y;
 }
 
-void fps_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    if (!is_movie_mode() || recording) return;
-    //~ if (hdmi_code == 5) return; // workaround
-    int screen_layout = get_screen_layout();
-    if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
-
-    int time_indic_x = os.x_max - 160;
-    int time_indic_y = get_ml_topbar_pos();
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
-
-    int f = fps_get_current_x1000();
-    int x = time_indic_x + 160 - 6 * 15;
-    int y = time_indic_y + font_med.height - 4;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_fill(TOPBAR_BGCOLOR, x, y, 720-110, font_med.height - 4);
-
-    bmp_printf(
-        SHADOW_FONT(FONT_MED) | FONT_ALIGN_RIGHT, 710, y,
-        "%2d.%03d", 
-        f / 1000, f % 1000
-    );
-}
-
 void free_space_show_photomode()
 {
     extern int cluster_size;
@@ -2298,6 +2271,20 @@ static LVINFO_UPDATE_FUNC(temp_update)
     }
 }
 
+static LVINFO_UPDATE_FUNC(fps_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (is_movie_mode())
+    {
+        int f = fps_get_current_x1000();
+        snprintf(buffer, sizeof(buffer), 
+            "%2d.%03d", 
+            f / 1000, f % 1000
+        );
+    }
+}
+
 static LVINFO_UPDATE_FUNC(mode_update)
 {
     LVINFO_BUFFER(8);
@@ -2543,6 +2530,11 @@ static struct lvinfo_item info_items[] = {
         .which_bar = LV_TOP_BAR_ONLY,
         .update = temp_update,
         .priority = 1,
+    },
+    {
+        .name = "FPS",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = fps_update,
     },
     /* Bottom bar */
     {

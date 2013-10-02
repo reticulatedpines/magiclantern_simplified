@@ -674,7 +674,6 @@ void movie_indicators_show()
     {
         BMP_LOCK(
             free_space_show(); 
-            fps_show();
         )
     }
 }
