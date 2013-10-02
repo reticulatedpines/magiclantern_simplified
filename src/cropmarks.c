@@ -22,6 +22,9 @@ static CONFIG_INT("crop.playback", cropmarks_play, 0);
 static int cropmark_cache_dirty = 1;
 static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
 
+static int cropmarks_x = -1;
+static int cropmarks_y = -1;
+
 void crop_set_dirty(int value)
 {
     crop_dirty = MAX(crop_dirty, value);
@@ -323,6 +326,7 @@ static int cropmark_cache_get_signature()
 {
     get_yuv422_vram(); // update VRAM params if needed
     int sig = 
+        cropmarks_x * 160 + cropmarks_y * 48 +
         crop_index * 13579 + crop_enabled * 14567 +
         os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
     return sig;
@@ -410,27 +414,57 @@ static void black_bars()
     }
 }
 
-static void default_movie_cropmarks()
+static void FAST default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
     if (!is_movie_mode()) return;
-    if (video_mode_resolution > 1) return; // these are only for 16:9
-    int i,j;
+    
+    if(cropmarks_x == -1 || cropmarks_y == -1)
+    {
+        if(video_mode_resolution > 1) // 4:3
+        {
+            cropmarks_x = (os.off_43 << 16) | (os.x_max - os.off_43);
+            cropmarks_y = -1;
+        }
+        else
+        {
+            cropmarks_x = -1;
+            cropmarks_y = (os.off_169 << 16) | (os.y_max - os.off_169);
+        }
+    }
+
+    int x,y;
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
     ASSERT(bvram_mirror);
-    for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
+    
+    /*
+        doesn't work with HDMI, please fix that, I don't have it
+    */
+    for (y = os.y0; y < MIN(os.y_max+1, BMP_H_PLUS); y++)
     {
-        if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
+        bool draw = cropmarks_y != -1 && (y < (cropmarks_y >> 16) || y > (cropmarks_y & 0xFFFF));
+        for (x = os.x0; x < os.x_max; x++)
         {
-            int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
-            for (j = os.x0; j < os.x_max; j++)
-            {
-                bvram_mirror[BM(j,i)] = newcolor | 0x80;
+            if(draw || (cropmarks_x != -1 && (x < (cropmarks_x >> 16) || x > (cropmarks_x & 0xFFFF)))) {
+                bvram_mirror[BM(x,y)] = COLOR_BLACK | 0x80;
             }
         }
     }
+}
+
+void set_movie_cropmark(int x, int y, int w, int h)
+{
+    cropmarks_x = (x << 16) | (x + w);
+    cropmarks_y = (y << 16) | (y + h);
+    crop_set_dirty(1);
+}
+
+void reset_movie_cropmark()
+{
+    cropmarks_x = cropmarks_y = -1;
+    crop_set_dirty(1);
 }
 
 static void black_bars_16x9()
