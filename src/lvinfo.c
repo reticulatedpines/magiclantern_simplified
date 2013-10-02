@@ -99,7 +99,7 @@ static int lvinfo_check_if_needs_reflow(struct lvinfo_item * items[], int count,
             /* for debugging */
             //~ bmp_fill(i == 0 || i == count ? COLOR_BLUE : COLOR_RED, prev_right, 100, now_left - prev_right, 2);
             
-            if (spacing < MIN_SPACING)
+            if (spacing < MIN_SPACING * 2/3)
             {
                 too_tight = 1;
             }
@@ -180,6 +180,24 @@ static void lvinfo_justify_items(struct lvinfo_item * items[], int count, int to
             x += items[i]->width + spacing_per_item;
         }
     }
+}
+
+/* heuristic that tells whether we should try to enlarge the font */
+static int lvinfo_should_enlarge(struct lvinfo_item * items[], int count, int total_width)
+{
+    int used_items = 0;
+    int used_width = 0;
+    for (int i = 0; i < count; i++)
+    {
+        int active = is_active(items[i]);
+        used_items += active ? 1 : 0;
+        used_width += active ? items[i]->width : 0;
+    }
+    
+    int extra_spacing = total_width - used_width;
+    int spacing_per_item = extra_spacing / used_items;
+        
+    return spacing_per_item > MIN_SPACING * 5/4;
 }
 
 /* shrink some items or hide low-priority ones */
@@ -450,11 +468,39 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
     if (bg == 0) bg = COLOR_BG_DARK;
     default_font = FONT(FONT_MED_LARGE, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
     small_font = FONT(FONT_MED, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
-
-    /* try to display everything in large font */
-    lvinfo_update_items(items, count, default_font);
     
-    int needs_reflow = lvinfo_check_if_needs_reflow(items, count, bar_x, bar_width);
+    int font_changed = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        /* colors changed? reset the font to large and refresh the layout */
+        /* this will also update the text and dimensions for all items */
+        int prev_fnt = items[i]->fontspec;
+        int colors_changed = (prev_fnt & 0xFFFF) != (default_font & 0xFFFF);
+        if (colors_changed) font_changed++;
+        lvinfo_update_items(&items[i], 1, colors_changed ? default_font : 0);
+    }
+
+    /* should we try to display everything in large font? */
+    /* if it doesn't look bad, keep the previous layout */
+    int should_enlarge = lvinfo_should_enlarge(items, count, bar_width);
+
+    if (should_enlarge)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            /* check each item; if it was small and now it should be enlarged, update the font */
+            int prev_fnt = items[i]->fontspec;
+            int font_should_change = (prev_fnt & FONT_MASK) != (default_font & FONT_MASK);
+            if (font_should_change)
+            {
+                font_changed++;
+                lvinfo_update_items(&items[i], 1, default_font);
+            }
+        }
+    }
+    
+    int needs_reflow = font_changed || lvinfo_check_if_needs_reflow(items, count, bar_x, bar_width);
     if (needs_reflow)
     {
         /* some items got too tight? try to re-distribute the spacing between them */
