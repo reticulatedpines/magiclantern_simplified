@@ -331,10 +331,13 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 int histogram_or_small_waveform_enabled()
 {
     return (
-#ifdef FEATURE_HISTOGRAM
-hist_draw ||
-#endif
- (waveform_draw && !waveform_size)) && get_expsim(); }
+        #ifdef FEATURE_HISTOGRAM
+        (hist_draw && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())) ||
+        #endif
+        (waveform_draw && !waveform_size)
+    )
+    && get_expsim(); 
+}
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 static CONFIG_INT( "vectorscope.gain", vectorscope_gain, 0);
