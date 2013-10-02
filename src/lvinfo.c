@@ -494,7 +494,7 @@ void lvinfo_display(int top, int bottom)
     static int refresh_timer = INT_MIN;
     if (layout_dirty && should_run_polling_action(2000, &refresh_timer))
     {
-        beep();
+        console_printf("LVINFO: refresh layout\n");
         lvinfo_refresh_layout();
         layout_dirty = 0;
     }
