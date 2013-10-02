@@ -908,7 +908,8 @@ int handle_lv_play(struct event * event)
 #else
     if (!rating_in_progress && PLAY_MODE && (event->param == BGMT_LV
         #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
-        || event->param == BGMT_PRESS_UP || event->param == BGMT_PRESS_DOWN
+        || ((event->param == BGMT_PRESS_UP || event->param == BGMT_PRESS_DOWN)
+        && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > -1) // don't screw up zoom navigation
         #endif
        ))
     {
@@ -932,12 +933,17 @@ int handle_lv_play(struct event * event)
         #ifdef FEATURE_LV_BUTTON_PROTECT
         if (play_lv_action == 1)
         {
-            fake_simple_button(BGMT_Q); // toggle protect current image
-            #if defined(CONFIG_6D) // too fast
-            msleep(200);
-            #endif
-            fake_simple_button(BGMT_WHEEL_DOWN);
-            fake_simple_button(BGMT_Q);
+           fake_simple_button(BGMT_Q); // toggle protect current image
+           #ifdef CONFIG_6D
+           fake_simple_button(BGMT_PRESS_DOWN);
+           msleep(100);
+           fake_simple_button(BGMT_PRESS_UP);
+           msleep(100);
+           fake_simple_button(BGMT_WHEEL_DOWN);
+           #else
+           fake_simple_button(BGMT_WHEEL_DOWN);
+           #endif
+           fake_simple_button(BGMT_Q);
         }
         #endif
         
@@ -3791,7 +3797,7 @@ static struct menu_entry play_menus[] = {
                 .max = 2,
                 .help = "You may use the LiveView button to protect or rate images.",
                 #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
-                .help2 = "Also up/down keys/joystick work as +/- rating respectively.",
+                .help2 = "Also up/down keys/joystick work as +/- rating if zoomed out.",
                 #endif
                 .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
