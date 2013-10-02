@@ -8,8 +8,9 @@
     #define EXT_WEAK_FUNC(f) WEAK_FUNC(f)
 #endif
 
-#define TRACE_MAX_STRING   64
-#define TRACE_MAX_CONTEXT    16
+#define TRACE_MAX_STRING       64
+#define TRACE_MAX_LINE_LENGTH 256
+#define TRACE_MAX_CONTEXT      16
 
 #define TRACE_FMT_TIME_CTR        0x0001 /* write the absolute TSC value as integer */
 #define TRACE_FMT_TIME_CTR_REL    0x0002 /* write the relative TSC since last write value as integer */
@@ -30,7 +31,7 @@
 #define TRACE_TASK_STATE_RUNNING  1
 #define TRACE_TASK_STATE_SHUTDOWN 2
 
-#define TRACE_SLEEP_TIME  20
+#define TRACE_SLEEP_TIME   250
 #define TRACE_BUFFER_SIZE (512*1024)
 
 #define TRACE_ERROR 0xFFFFFFFF
@@ -43,11 +44,12 @@ typedef struct
     int used;
     char name[TRACE_MAX_STRING];
     char file_name[TRACE_MAX_STRING];
+    struct msg_queue *queue;
     
     /* format options */
     unsigned int format;
     unsigned char separator;
-    unsigned char sleep_time;
+    unsigned int sleep_time;
     unsigned int max_entries;
     unsigned int cur_entries;
     
@@ -57,6 +59,7 @@ typedef struct
     unsigned int buffer_read_pos;
     unsigned int buffer_write_pos;
     unsigned int buffer_size;
+    unsigned int buffer_written;
     tsc_t start_tsc;
     tsc_t last_tsc;
     
@@ -73,6 +76,7 @@ unsigned int EXT_WEAK_FUNC(ret_0) trace_start(char *name, char *file_name);
 unsigned int EXT_WEAK_FUNC(ret_0) trace_stop(unsigned int trace, int wait);
 /* setup some custom format options. when separator is a null byte, it will be omitted */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_format(unsigned int context, unsigned int format, unsigned char separator);
+unsigned int EXT_WEAK_FUNC(ret_0) trace_set_flushrate(unsigned int context, unsigned int timeout);
 /* write some string into specified trace */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write(unsigned int context, char *string, ...);
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write_tsc(unsigned int context, tsc_t tsc, char *string, ...);
