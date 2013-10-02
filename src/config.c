@@ -332,12 +332,6 @@ config_parse_file(
     config_autosave = !config_flag_file_setting_load(autosave_flag_file);
 
     config_file_buf = (void*)read_entire_file(filename, &config_file_size);
-    if (!config_file_buf)
-    {
-        // if config file is not present, force Config Autosave: On
-        if (!config_autosave) config_autosave_toggle(0);
-        return 0;
-    }
     config_file_pos = 0;
     config_parse();
     free_dma_memory(config_file_buf);
