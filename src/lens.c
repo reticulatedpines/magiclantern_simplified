@@ -181,7 +181,7 @@ const char * lens_format_dist( unsigned mm)
    }
    else
    {
-      snprintf( dist, sizeof(dist),"%2dcm"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+      snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
    }
 
    return (dist);
