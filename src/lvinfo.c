@@ -8,6 +8,8 @@
 #define MIN_SPACING 24
 #define TOTAL_WIDTH 720
 
+//~ #define LVINFO_PERF_MON
+
 /* all registered info items go here */
 /* note: these are somewhat private; they get first sorted in top/bottom bars,
  * and most of the code works at bar level, without accessing _info_items directly */
@@ -462,6 +464,10 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
 
 static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
+    #ifdef LVINFO_PERF_MON
+    int64_t t0 = get_us_clock_value();
+    #endif
+    
     /* choose a default font */
     /* try to borrow the color from the cropmarks; if it's fully transparent, use transparent gray */
     int bg = (items == top_items) ? TOPBAR_BGCOLOR : BOTTOMBAR_BGCOLOR;
@@ -524,8 +530,17 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
     /* center items vertically */
     lvinfo_valign_items(items, count, bar_y, bar_height);
 
+    #ifdef LVINFO_PERF_MON
+    int64_t t1 = get_us_clock_value();
+    #endif
+
     /* and... finally, display them! */
     lvinfo_display_bar(items, count, bar_x, bar_y, bar_width, bar_height);
+
+    #ifdef LVINFO_PERF_MON
+    int64_t t2 = get_us_clock_value();
+    bmp_printf(FONT_MED, 10, items == top_items ? 100 : 200, "Layout : %d "SYM_MICRO"s \nDrawing: %d "SYM_MICRO"s", (int)(t1-t0), (int)(t2-t1));
+    #endif
 }
 
 void lvinfo_display(int top, int bottom)
