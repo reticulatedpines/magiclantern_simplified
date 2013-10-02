@@ -314,6 +314,13 @@ delete_config( void * priv, int delta )
     FIO_FindClose(dirent);
 
     config_deleted = 1;
+    
+    if (config_autosave)
+    {
+        /* at shutdown, config autosave may re-create the config files we just deleted */
+        /* => disable this feature in RAM only, until next reboot, without commiting it to card */
+        config_autosave_toggle(0, 0);
+    }
 }
 
 /* config presets */
