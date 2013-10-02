@@ -444,9 +444,8 @@ static void black_bars_16x9()
     get_yuv422_vram();
     if (video_mode_resolution > 1)
     {
-        int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
-        bmp_fill(COLOR_BLACK, os.x0, os.y0, off_43, os.y_ex);
-        bmp_fill(COLOR_BLACK, os.x_max - off_43, os.y0, off_43, os.y_ex);
+        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.off_43, os.y_ex);
+        bmp_fill(COLOR_BLACK, os.x_max - os.off_43, os.y0, os.off_43, os.y_ex);
     }
     else
     {
