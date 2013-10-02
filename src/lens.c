@@ -2403,7 +2403,7 @@ static LVINFO_UPDATE_FUNC(iso_update)
 
     if (ISO_ADJUSTMENT_ACTIVE)
     {
-        item->color_bg = COLOR_GREEN1;
+        item->color_bg = COLOR_LIGHT_BLUE;
     }
     else if (CONTROL_BV)
     {
