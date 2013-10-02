@@ -593,7 +593,7 @@ static void histobar_refresh()
     int i = HIST_WIDTH-1;
     histobar_clipped = histogram.hist_r[i] + histogram.hist_g[i] + histogram.hist_b[i];
 
-    int stops_until_overexposure = 0;
+    int stops_until_overexposure = INT_MIN;
     for( i=0 ; i < HIST_WIDTH ; i++ )
     {
         int thr = histogram.total_px / 10000;
@@ -601,6 +601,15 @@ static void histobar_refresh()
         if (max > thr)
             stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
     }
+
+    #ifdef CONFIG_MODULES
+    int ettr_stops = INT_MIN;
+
+    if (auto_ettr_export_correction(&ettr_stops) == 1)
+        if (ettr_stops != INT_MIN)
+            stops_until_overexposure = (ettr_stops+5)/10;
+    #endif
+
     histobar_stops_until_overexposure = stops_until_overexposure;
 
     lens_display_set_dirty();
@@ -679,17 +688,6 @@ static LVINFO_UPDATE_FUNC(histobar_indic_update)
         case HIST_METER_ETTR_HINT:
         {
             int stops_until_overexposure = histobar_stops_until_overexposure;
-            
-            if (!stops_until_overexposure)
-                stops_until_overexposure = INT_MIN;
-
-            #ifdef CONFIG_MODULES
-            int ettr_stops = INT_MIN;
-
-            if (auto_ettr_export_correction(&ettr_stops) == 1)
-                if (ettr_stops != INT_MIN)
-                    stops_until_overexposure = (ettr_stops+5)/10;
-            #endif
 
             if (stops_until_overexposure != INT_MIN)
                 snprintf(buffer, sizeof(buffer), SYM_ETTR"%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));
