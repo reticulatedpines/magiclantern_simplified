@@ -183,7 +183,7 @@ static void lvinfo_justify_items(struct lvinfo_item * items[], int count, int to
 }
 
 /* shrink some items or hide low-priority ones */
-/* returns: -1 if it only discarded low-prio items, 0 if some items got smaller, 1 if high-prio items got hidden, 2 should be unreachable */
+/* returns: INT_MIN if nothing was discarded, INT_MAX if error, otherwise it returns the priority of last item discarded */
 static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int total_width)
 {
     int used_items = 0;
@@ -200,7 +200,7 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
     
     /* any real need to squeeze space? */
     if (spacing_needed <= MIN_SPACING)
-        return;
+        return INT_MIN;
 
     /* sort by priority (lowest first) */
     struct lvinfo_item * prio_items[MAX_ITEMS];
@@ -217,22 +217,6 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
             }
         }
     }
-    
-    /* first step: discard items with negative priority */
-    for (int i = 0; i < count-1; i++)
-    {
-        if (prio_items[i]->priority < 0 && is_active(prio_items[i]))
-        {
-            prio_items[i]->hidden = 1;
-            spacing_needed -= (prio_items[i]->width + MIN_SPACING);
-            if (spacing_needed <= MIN_SPACING)
-            {
-                return -1;
-            }
-        }
-    }
-    
-    /* still some stuff left? shrink the font of large items */
 
     /* sort by width, largest first */
     struct lvinfo_item * big_items[MAX_ITEMS];
@@ -251,6 +235,8 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
     }
 
     /* shrink items, starting with the largest ones */
+    /* if we have to shrink 3 or more items, shrink them all */
+    int shrunk = 0;
     for (int i = 0; i < count-1; i++)
     {
         if (is_active(big_items[i]))
@@ -259,11 +245,18 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
             lvinfo_update_items(&big_items[i], 1, small_font);
             int new_width = big_items[i]->width;
             spacing_needed -= (old_width - new_width);
-            if (spacing_needed <= MIN_SPACING)
+            shrunk++;
+            if (spacing_needed <= MIN_SPACING && shrunk < 3)
             {
-                return 0;
+                /* succeeded by shrinking 1 or 2 items? */
+                return INT_MIN;
             }
         }
+    }
+
+    if (spacing_needed <= MIN_SPACING)
+    {
+        return INT_MIN;
     }
 
     /* discard all items until there's enough space; lower priority discarded first */
@@ -275,11 +268,12 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
             spacing_needed -= (prio_items[i]->width + MIN_SPACING);
             if (spacing_needed <= MIN_SPACING)
             {
-                return 1;
+                return prio_items[i]->priority;
             }
         }
     }
-    return 2;
+    /* should be unreachable */
+    return INT_MAX;
 }
 
 static void lvinfo_valign_items(struct lvinfo_item * items[], int count, int bar_y, int bar_height)
@@ -472,8 +466,9 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
         {
             int severity = lvinfo_squeeze_space(items, count, bar_width);
             lvinfo_justify_items(items, count, bar_width);
-            if (severity > 0)
+            if (severity >= 0)
             {
+                /* important items were disabled */
                 /* it may be better if we try to rebuild the layout from scratch */
                 layout_dirty = 1;
             }
