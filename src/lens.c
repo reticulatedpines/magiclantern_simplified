@@ -2488,7 +2488,7 @@ static struct lvinfo_item info_items[] = {
         .name = "Clock",
         .which_bar = LV_TOP_BAR_ONLY,
         .update = clock_update,
-        .preferred_position = -128,
+        .preferred_position = -50,
     },
     {
         .name = "Disp preset",

@@ -501,14 +501,7 @@ void lvinfo_display(int top, int bottom)
     
     if (top)
     {
-        if (!audio_meters_are_drawn() || get_halfshutter_pressed())
-        {
-            lvinfo_align_and_display(top_items, top_count, 0, get_ml_topbar_pos(), TOTAL_WIDTH, 32);
-        }
-        else
-        {
-            lvinfo_align_and_display(top_items, top_count, 600, get_ml_topbar_pos(), TOTAL_WIDTH-600, 32);
-        }
+        lvinfo_align_and_display(top_items, top_count, 0, get_ml_topbar_pos(), TOTAL_WIDTH, 32);
     }
     
     if (bottom)
