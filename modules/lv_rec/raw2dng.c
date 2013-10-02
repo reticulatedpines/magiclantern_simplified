@@ -526,13 +526,21 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                 for (j = -2; j <= 2; j += 2)
                 {
                     int r  = inp[x+i   +   (y+j) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+
                     int g1 = inp[x+i+1 +   (y+j) * w];
                     int g2 = inp[x+i   + (y+j+1) * w];
-                    int b  = inp[x+i+1 + (y+j+1) * w];
+                    int g3 = inp[x+i-1 +   (y+j) * w];
+                    int g4 = inp[x+i   + (y+j-1) * w];
+                    int g5 = inp[x+i+2 + (y+j+1) * w];
+                    int g6 = inp[x+i+1 + (y+j+2) * w];
+                    //~ int g7 = inp[x+i   + (y+j+1) * w];
+                    //~ int g8 = inp[x+i+1 +   (y+j) * w];
                     
-                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-                    med_r[k] = raw2ev[r] - ge;
-                    med_b[k] = raw2ev[b] - ge;
+                    int gr = (raw2ev[g1] + raw2ev[g2] + raw2ev[g3] + raw2ev[g4]) / 4;
+                    int gb = (raw2ev[g1] + raw2ev[g2] + raw2ev[g5] + raw2ev[g6]) / 4;
+                    med_r[k] = raw2ev[r] - gr;
+                    med_b[k] = raw2ev[b] - gb;
                     k++;
                 }
             }
@@ -541,10 +549,15 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
 
             int g1 = inp[x+1 +     y * w];
             int g2 = inp[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+            int g3 = inp[x-1 +   (y) * w];
+            int g4 = inp[x   + (y-1) * w];
+            int g5 = inp[x+2 + (y+1) * w];
+            int g6 = inp[x+1 + (y+2) * w];
+            int gr = (raw2ev[g1] + raw2ev[g2] + raw2ev[g3] + raw2ev[g4]) / 4;
+            int gb = (raw2ev[g1] + raw2ev[g2] + raw2ev[g5] + raw2ev[g6]) / 4;
 
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
         }
     }
 }
@@ -555,7 +568,7 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
     int h = raw_info.height;
     int x,y;
 
-    for (y = 4; y < h-5; y += 2)
+    for (y = 6; y < h-7; y += 2)
     {
         for (x = 4; x < w-4; x += 2)
         {
@@ -568,13 +581,21 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
                 for (j = -4; j <= 4; j += 2)
                 {
                     int r  = inp[x+i   +   (y+j) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+
                     int g1 = inp[x+i+1 +   (y+j) * w];
                     int g2 = inp[x+i   + (y+j+1) * w];
-                    int b  = inp[x+i+1 + (y+j+1) * w];
+                    int g3 = inp[x+i-1 +   (y+j) * w];
+                    int g4 = inp[x+i   + (y+j-1) * w];
+                    int g5 = inp[x+i+2 + (y+j+1) * w];
+                    int g6 = inp[x+i+1 + (y+j+2) * w];
+                    //~ int g7 = inp[x+i   + (y+j+1) * w];
+                    //~ int g8 = inp[x+i+1 +   (y+j) * w];
                     
-                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-                    med_r[k] = raw2ev[r] - ge;
-                    med_b[k] = raw2ev[b] - ge;
+                    int gr = (raw2ev[g1] + raw2ev[g2] + raw2ev[g3] + raw2ev[g4]) / 4;
+                    int gb = (raw2ev[g1] + raw2ev[g2] + raw2ev[g5] + raw2ev[g6]) / 4;
+                    med_r[k] = raw2ev[r] - gr;
+                    med_b[k] = raw2ev[b] - gb;
                     k++;
                 }
             }
@@ -583,10 +604,15 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
 
             int g1 = inp[x+1 +     y * w];
             int g2 = inp[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+            int g3 = inp[x-1 +   (y) * w];
+            int g4 = inp[x   + (y-1) * w];
+            int g5 = inp[x+2 + (y+1) * w];
+            int g6 = inp[x+1 + (y+2) * w];
+            int gr = (raw2ev[g1] + raw2ev[g2] + raw2ev[g3] + raw2ev[g4]) / 4;
+            int gb = (raw2ev[g1] + raw2ev[g2] + raw2ev[g5] + raw2ev[g6]) / 4;
 
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
         }
     }
 }
