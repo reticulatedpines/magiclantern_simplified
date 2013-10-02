@@ -3789,8 +3789,10 @@ static struct menu_entry play_menus[] = {
 
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
-                .help = "You may use the LiveView button to protect or rate images,",
-                .help2 = "up/down keys/joystick also work as +/- rating respectively.",
+                .help = "You may use the LiveView button to protect or rate images.",
+                #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+                .help2 = "Also up/down keys/joystick work as +/- rating respectively.",
+                #endif
                 .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
                 .max = 1,
