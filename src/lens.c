@@ -2206,8 +2206,11 @@ static LVINFO_UPDATE_FUNC(picstyle_update)
 
     if (is_movie_mode())
     {
+#ifdef CONFIG_RAW_LIVEVIEW
         /* picture style has no effect on raw video => don't display */
-        //TODO:Come up with a better way to determine if RAW video is enabled that wont break builds
+        if (raw_lv_is_enabled())
+            return;
+#endif
     }
     else
     {

@@ -331,8 +331,12 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 int histogram_or_small_waveform_enabled()
 {
     return (
-        #if defined(FEATURE_HISTOGRAM) && defined(FEATURE_RAW_OVERLAYS)
-        (hist_draw && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())) ||
+        #ifdef FEATURE_HISTOGRAM
+        (hist_draw)
+        #ifdef FEATURE_RAW_OVERLAYS
+        && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())
+        #endif
+        ||
         #endif
         (waveform_draw && !waveform_size)
     )
