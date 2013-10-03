@@ -507,31 +507,6 @@ static void fix_vertical_stripes()
     }
 }
 
-/* median of 4 numbers */
-static int median4(int a, int b, int c, int d)
-{
-    int x[4] = {a,b,c,d};
-
-    /* compute median */
-    int aux;
-    int i,j;
-    for (i = 0; i < 3; i++)
-        for (j = i+1; j < 4; j++)
-            if (x[i] > x[j])
-                aux = x[i], x[i] = x[j], x[j] = aux;
-    int median = (x[1] + x[2]) / 2;
-    return median;
-}
-
-/* AHD-like selection (if I understood the paper well)
- * choose the interpolation direction (L-R or T-B) based on some criteria (what looks best or something like this) */
-static int ahd_like(int a, int b, int c, int d)
-{
-    int d1 = ABS(a-b);
-    int d2 = ABS(c-d);
-    return d1 < d2 ? (a+b)/2 : (c+d)/2;
-}
-
 static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
@@ -542,10 +517,39 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
     {
         for (x = 4; x < w-4; x += 2)
         {
+            /**
+             * for each red pixel, compute the median value of red minus interpolated green at the same location
+             * the median value is then considered the "true" difference between red and green
+             * same for blue vs green
+             * 
+             *
+             * each red pixel has 4 green neighbours, so we may interpolate as follows:
+             * - mean or median(t,b,l,r)
+             * - choose between mean(t,b) and mean(l,r) (idea from AHD)
+             * 
+             * same for blue; note that a RG/GB cell has 6 green pixels that we need to analyze
+             * 2 only for red, 2 only for blue, and 2 shared
+             *    g
+             *   gRg
+             *    gBg
+             *     g
+             *
+             * choosing the interpolation direction seems to give cleaner results
+             * the direction is choosen over the entire filtered area (so we do two passes, one for each direction, 
+             * and at the end choose the one for which total interpolation error is smaller)
+             * 
+             * error = sum(abs(t-b)) or sum(abs(l-r))
+             * 
+             * interpolation in EV space (rather than linear) seems to have less color artifacts in high-contrast areas
+             * 
+             * we can use this filter for 3x3 RG/GB cells or 5x5
+             */
             int i,j;
             int k = 0;
             int med_r[9];
             int med_b[9];
+            
+            /* first try to interpolate in horizontal direction */
             int eh = 0;
             for (i = -2; i <= 2; i += 2)
             {
@@ -557,11 +561,16 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                     int g1 = inp[x+i+1 +   (y+j) * w];  /*  Right      Top        */
                     int g2 = inp[x+i   + (y+j+1) * w];  /*  Bottom     Left       */
                     int g3 = inp[x+i-1 +   (y+j) * w];  /*  Left                  */ 
-                    int g4 = inp[x+i   + (y+j-1) * w];  /*  Top                   */
+                  //int g4 = inp[x+i   + (y+j-1) * w];  /*  Top                   */
                     int g5 = inp[x+i+2 + (y+j+1) * w];  /*             Right      */
-                    int g6 = inp[x+i+1 + (y+j+2) * w];  /*             Bottom     */
+                  //int g6 = inp[x+i+1 + (y+j+2) * w];  /*             Bottom     */
                     
-                    g1 = raw2ev[g1]; g2 = raw2ev[g2]; g3 = raw2ev[g3]; g4 = raw2ev[g4]; g5 = raw2ev[g5]; g6 = raw2ev[g6];
+                    g1 = raw2ev[g1];
+                    g2 = raw2ev[g2];
+                    g3 = raw2ev[g3];
+                  //g4 = raw2ev[g4];
+                    g5 = raw2ev[g5];
+                  //g6 = raw2ev[g6];
                     
                     int gr = (g1+g3)/2;
                     int gb = (g2+g5)/2;
@@ -572,10 +581,11 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                 }
             }
 
+            /* difference from green, with horizontal interpolation */
             int drh = opt_med9(med_r);
             int dbh = opt_med9(med_b);
             
-
+            /* next, try to interpolate in vertical direction */
             int ev = 0;
             k = 0;
             for (i = -2; i <= 2; i += 2)
@@ -587,12 +597,17 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                                                         /*  for R      for B      */
                     int g1 = inp[x+i+1 +   (y+j) * w];  /*  Right      Top        */
                     int g2 = inp[x+i   + (y+j+1) * w];  /*  Bottom     Left       */
-                    int g3 = inp[x+i-1 +   (y+j) * w];  /*  Left                  */ 
+                  //int g3 = inp[x+i-1 +   (y+j) * w];  /*  Left                  */ 
                     int g4 = inp[x+i   + (y+j-1) * w];  /*  Top                   */
-                    int g5 = inp[x+i+2 + (y+j+1) * w];  /*             Right      */
+                  //int g5 = inp[x+i+2 + (y+j+1) * w];  /*             Right      */
                     int g6 = inp[x+i+1 + (y+j+2) * w];  /*             Bottom     */
                     
-                    g1 = raw2ev[g1]; g2 = raw2ev[g2]; g3 = raw2ev[g3]; g4 = raw2ev[g4]; g5 = raw2ev[g5]; g6 = raw2ev[g6];
+                    g1 = raw2ev[g1];
+                    g2 = raw2ev[g2];
+                  //g3 = raw2ev[g3];
+                    g4 = raw2ev[g4];
+                  //g5 = raw2ev[g5];
+                    g6 = raw2ev[g6];
                     
                     int gr = (g2+g4)/2;
                     int gb = (g1+g6)/2;
@@ -603,9 +618,11 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                 }
             }
 
+            /* difference from green, with vertical interpolation */
             int drv = opt_med9(med_r);
             int dbv = opt_med9(med_b);
 
+            /* back to our filtered pixels (RG/GB cell) */
             int g1 = inp[x+1 +     y * w];
             int g2 = inp[x   + (y+1) * w];
             int g3 = inp[x-1 +   (y) * w];
@@ -613,16 +630,20 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             int g5 = inp[x+2 + (y+1) * w];
             int g6 = inp[x+1 + (y+2) * w];
             
-            g1 = raw2ev[g1]; g2 = raw2ev[g2]; g3 = raw2ev[g3]; g4 = raw2ev[g4]; g5 = raw2ev[g5]; g6 = raw2ev[g6];
-            
-            int ev0 = ABS(g2-g4) + ABS(g1-g6);
-            int eh0 = ABS(g1-g3) + ABS(g2-g5);
+            g1 = raw2ev[g1];
+            g2 = raw2ev[g2];
+            g3 = raw2ev[g3];
+            g4 = raw2ev[g4];
+            g5 = raw2ev[g5];
+            g6 = raw2ev[g6];
 
-            int gr = ev0 < eh0 ? (g2+g4)/2 : (g1+g3)/2;
-            int gb = ev0 < eh0 ? (g1+g6)/2 : (g2+g5)/2;
-            int dr = ev0 < eh0 ? drv : drh;
-            int db = ev0 < eh0 ? dbv : dbh;
+            /* which of the two interpolations will we choose? */
+            int gr = ev < eh ? (g2+g4)/2 : (g1+g3)/2;
+            int gb = ev < eh ? (g1+g6)/2 : (g2+g5)/2;
+            int dr = ev < eh ? drv : drh;
+            int db = ev < eh ? dbv : dbh;
 
+            /* replace red and blue pixels with filtered values, keep green pixels unchanged */
             out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
             out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
         }
