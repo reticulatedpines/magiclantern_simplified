@@ -28,6 +28,9 @@
 #include "qsort.h"  /* much faster than standard C qsort */
 #include "../dual_iso/optmed.h"
 
+/* useful to clean pink dots, may also help with color aliasing, but it's best turned off if you don't have these problems */
+//~ #define CHROMA_SMOOTH
+
 lv_rec_file_footer_t lv_rec_footer;
 struct raw_info raw_info;
 
@@ -127,7 +130,9 @@ int main(int argc, char** argv)
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
         fix_vertical_stripes();
+        #ifdef CHROMA_SMOOTH
         chroma_smooth();
+        #endif
         dng_set_framerate(lv_rec_footer.sourceFpsx1000);
         save_dng(fn, &raw_info);
     }
@@ -507,6 +512,7 @@ static void fix_vertical_stripes()
     }
 }
 
+#ifdef CHROMA_SMOOTH
 static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
@@ -867,3 +873,4 @@ static void chroma_smooth()
     free(aux);
     free(aux2);
 }
+#endif
