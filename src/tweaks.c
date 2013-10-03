@@ -909,11 +909,7 @@ int handle_lv_play(struct event * event)
     if (!rating_in_progress && PLAY_MODE && (event->param == BGMT_LV
         #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
         || ((event->param == BGMT_PRESS_UP || event->param == BGMT_PRESS_DOWN)
-        #if defined(CONFIG_6D) || defined(CONFIG_5D3)
         && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
-        #else
-        && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > -1)
-        #endif
         #endif
        ))
     {
