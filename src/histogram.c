@@ -361,12 +361,14 @@ MENU_UPDATE_FUNC(hist_print)
 #if defined(FEATURE_HISTOGRAM)
     if (hist_draw)
     {
+#ifdef FEATURE_RAW_HISTOGRAM
         int raw = raw_histogram_enable && can_use_raw_overlays_menu();
         if (raw && HISTOBAR_ENABLED)
         {
             MENU_SET_VALUE("RAW HistoBar");
         }
         else
+#endif
         {
             MENU_SET_VALUE(
                 "%s%s%s",
