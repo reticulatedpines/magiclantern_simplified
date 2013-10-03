@@ -638,10 +638,28 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             g6 = raw2ev[g6];
 
             /* which of the two interpolations will we choose? */
-            int gr = ev < eh ? (g2+g4)/2 : (g1+g3)/2;
-            int gb = ev < eh ? (g1+g6)/2 : (g2+g5)/2;
+            int grv = (g2+g4)/2;
+            int grh = (g1+g3)/2;
+            int gbv = (g1+g6)/2;
+            int gbh = (g2+g5)/2;
+            int gr = ev < eh ? grv : grh;
+            int gb = ev < eh ? gbv : gbh;
             int dr = ev < eh ? drv : drh;
             int db = ev < eh ? dbv : dbh;
+            
+            int r0 = inp[x   +     y * w];
+            int b0 = inp[x+1 + (y+1) * w];
+
+            /* if we are close to the noise floor, use both directions, beacuse otherwise it will affect the noise structure and introduce false detail */
+            /* todo: smooth transition between the two methods? better thresholding condition? */
+            int thr = 64;
+            if (r0 < raw_info.black_level+thr || b0 < raw_info.black_level+thr || ABS(drv - drh) < thr || ABS(grv-grh) < thr || ABS(gbv-gbh) < thr)
+            {
+                dr = (drv+drh)/2;
+                db = (dbv+dbh)/2;
+                gr = (g1+g2+g3+g4)/4;
+                gb = (g1+g2+g5+g6)/4;
+            }
 
             /* replace red and blue pixels with filtered values, keep green pixels unchanged */
             out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
@@ -781,11 +799,29 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
             g6 = raw2ev[g6];
 
             /* which of the two interpolations will we choose? */
-            int gr = ev < eh ? (g2+g4)/2 : (g1+g3)/2;
-            int gb = ev < eh ? (g1+g6)/2 : (g2+g5)/2;
+            int grv = (g2+g4)/2;
+            int grh = (g1+g3)/2;
+            int gbv = (g1+g6)/2;
+            int gbh = (g2+g5)/2;
+            int gr = ev < eh ? grv : grh;
+            int gb = ev < eh ? gbv : gbh;
             int dr = ev < eh ? drv : drh;
             int db = ev < eh ? dbv : dbh;
+            
+            int r0 = inp[x   +     y * w];
+            int b0 = inp[x+1 + (y+1) * w];
 
+            /* if we are close to the noise floor, use both directions, beacuse otherwise it will affect the noise structure and introduce false detail */
+            /* todo: smooth transition between the two methods? better thresholding condition? */
+            int thr = 64;
+            if (r0 < raw_info.black_level+thr || b0 < raw_info.black_level+thr || ABS(drv - drh) < thr || ABS(grv-grh) < thr || ABS(gbv-gbh) < thr)
+            {
+                dr = (drv+drh)/2;
+                db = (dbv+dbh)/2;
+                gr = (g1+g2+g3+g4)/4;
+                gb = (g1+g2+g5+g6)/4;
+            }
+            
             /* replace red and blue pixels with filtered values, keep green pixels unchanged */
             out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
             out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
