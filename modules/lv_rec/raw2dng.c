@@ -546,6 +546,7 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             int k = 0;
             int med_r[9];
             int med_b[9];
+            int eh = 0;
             for (i = -2; i <= 2; i += 2)
             {
                 for (j = -2; j <= 2; j += 2)
@@ -560,15 +561,50 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                     int g5 = inp[x+i+2 + (y+j+1) * w];  /*             Right      */
                     int g6 = inp[x+i+1 + (y+j+2) * w];  /*             Bottom     */
                     
-                    int gr = ahd_like(raw2ev[g1], raw2ev[g3], raw2ev[g2], raw2ev[g4]);
-                    int gb = ahd_like(raw2ev[g1], raw2ev[g6], raw2ev[g2], raw2ev[g5]);
+                    g1 = raw2ev[g1]; g2 = raw2ev[g2]; g3 = raw2ev[g3]; g4 = raw2ev[g4]; g5 = raw2ev[g5]; g6 = raw2ev[g6];
+                    
+                    int gr = (g1+g3)/2;
+                    int gb = (g2+g5)/2;
+                    eh += ABS(g1-g3) + ABS(g2-g5);
                     med_r[k] = raw2ev[r] - gr;
                     med_b[k] = raw2ev[b] - gb;
                     k++;
                 }
             }
-            int dr = opt_med9(med_r);
-            int db = opt_med9(med_b);
+
+            int drh = opt_med9(med_r);
+            int dbh = opt_med9(med_b);
+            
+
+            int ev = 0;
+            k = 0;
+            for (i = -2; i <= 2; i += 2)
+            {
+                for (j = -2; j <= 2; j += 2)
+                {
+                    int r  = inp[x+i   +   (y+j) * w];
+                    int b  = inp[x+i+1 + (y+j+1) * w];
+                                                        /*  for R      for B      */
+                    int g1 = inp[x+i+1 +   (y+j) * w];  /*  Right      Top        */
+                    int g2 = inp[x+i   + (y+j+1) * w];  /*  Bottom     Left       */
+                    int g3 = inp[x+i-1 +   (y+j) * w];  /*  Left                  */ 
+                    int g4 = inp[x+i   + (y+j-1) * w];  /*  Top                   */
+                    int g5 = inp[x+i+2 + (y+j+1) * w];  /*             Right      */
+                    int g6 = inp[x+i+1 + (y+j+2) * w];  /*             Bottom     */
+                    
+                    g1 = raw2ev[g1]; g2 = raw2ev[g2]; g3 = raw2ev[g3]; g4 = raw2ev[g4]; g5 = raw2ev[g5]; g6 = raw2ev[g6];
+                    
+                    int gr = (g2+g4)/2;
+                    int gb = (g1+g6)/2;
+                    ev += ABS(g2-g4) + ABS(g1-g6);
+                    med_r[k] = raw2ev[r] - gr;
+                    med_b[k] = raw2ev[b] - gb;
+                    k++;
+                }
+            }
+
+            int drv = opt_med9(med_r);
+            int dbv = opt_med9(med_b);
 
             int g1 = inp[x+1 +     y * w];
             int g2 = inp[x   + (y+1) * w];
@@ -576,8 +612,16 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             int g4 = inp[x   + (y-1) * w];
             int g5 = inp[x+2 + (y+1) * w];
             int g6 = inp[x+1 + (y+2) * w];
-            int gr = ahd_like(raw2ev[g1], raw2ev[g3], raw2ev[g2], raw2ev[g4]);
-            int gb = ahd_like(raw2ev[g1], raw2ev[g6], raw2ev[g2], raw2ev[g5]);
+            
+            g1 = raw2ev[g1]; g2 = raw2ev[g2]; g3 = raw2ev[g3]; g4 = raw2ev[g4]; g5 = raw2ev[g5]; g6 = raw2ev[g6];
+            
+            int ev0 = ABS(g2-g4) + ABS(g1-g6);
+            int eh0 = ABS(g1-g3) + ABS(g2-g5);
+
+            int gr = ev0 < eh0 ? (g2+g4)/2 : (g1+g3)/2;
+            int gb = ev0 < eh0 ? (g1+g6)/2 : (g2+g5)/2;
+            int dr = ev0 < eh0 ? drv : drh;
+            int db = ev0 < eh0 ? dbv : dbh;
 
             out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
             out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
