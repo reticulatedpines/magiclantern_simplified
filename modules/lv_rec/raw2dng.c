@@ -507,6 +507,31 @@ static void fix_vertical_stripes()
     }
 }
 
+/* median of 4 numbers */
+static int median4(int a, int b, int c, int d)
+{
+    int x[4] = {a,b,c,d};
+
+    /* compute median */
+    int aux;
+    int i,j;
+    for (i = 0; i < 3; i++)
+        for (j = i+1; j < 4; j++)
+            if (x[i] > x[j])
+                aux = x[i], x[i] = x[j], x[j] = aux;
+    int median = (x[1] + x[2]) / 2;
+    return median;
+}
+
+/* AHD-like selection (if I understood the paper well)
+ * choose the interpolation direction (L-R or T-B) based on some criteria (what looks best or something like this) */
+static int ahd_like(int a, int b, int c, int d)
+{
+    int d1 = ABS(a-b);
+    int d2 = ABS(c-d);
+    return d1 < d2 ? (a+b)/2 : (c+d)/2;
+}
+
 static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
@@ -527,18 +552,16 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
                 {
                     int r  = inp[x+i   +   (y+j) * w];
                     int b  = inp[x+i+1 + (y+j+1) * w];
-
-                    int g1 = inp[x+i+1 +   (y+j) * w];
-                    int g2 = inp[x+i   + (y+j+1) * w];
-                    int g3 = inp[x+i-1 +   (y+j) * w];
-                    int g4 = inp[x+i   + (y+j-1) * w];
-                    int g5 = inp[x+i+2 + (y+j+1) * w];
-                    int g6 = inp[x+i+1 + (y+j+2) * w];
-                    //~ int g7 = inp[x+i   + (y+j+1) * w];
-                    //~ int g8 = inp[x+i+1 +   (y+j) * w];
+                                                        /*  for R      for B      */
+                    int g1 = inp[x+i+1 +   (y+j) * w];  /*  Right      Top        */
+                    int g2 = inp[x+i   + (y+j+1) * w];  /*  Bottom     Left       */
+                    int g3 = inp[x+i-1 +   (y+j) * w];  /*  Left                  */ 
+                    int g4 = inp[x+i   + (y+j-1) * w];  /*  Top                   */
+                    int g5 = inp[x+i+2 + (y+j+1) * w];  /*             Right      */
+                    int g6 = inp[x+i+1 + (y+j+2) * w];  /*             Bottom     */
                     
-                    int gr = (raw2ev[g1] + raw2ev[g2] + raw2ev[g3] + raw2ev[g4]) / 4;
-                    int gb = (raw2ev[g1] + raw2ev[g2] + raw2ev[g5] + raw2ev[g6]) / 4;
+                    int gr = ahd_like(raw2ev[g1], raw2ev[g3], raw2ev[g2], raw2ev[g4]);
+                    int gb = ahd_like(raw2ev[g1], raw2ev[g6], raw2ev[g2], raw2ev[g5]);
                     med_r[k] = raw2ev[r] - gr;
                     med_b[k] = raw2ev[b] - gb;
                     k++;
@@ -553,8 +576,8 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             int g4 = inp[x   + (y-1) * w];
             int g5 = inp[x+2 + (y+1) * w];
             int g6 = inp[x+1 + (y+2) * w];
-            int gr = (raw2ev[g1] + raw2ev[g2] + raw2ev[g3] + raw2ev[g4]) / 4;
-            int gb = (raw2ev[g1] + raw2ev[g2] + raw2ev[g5] + raw2ev[g6]) / 4;
+            int gr = ahd_like(raw2ev[g1], raw2ev[g3], raw2ev[g2], raw2ev[g4]);
+            int gb = ahd_like(raw2ev[g1], raw2ev[g6], raw2ev[g2], raw2ev[g5]);
 
             out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
             out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
@@ -646,7 +669,7 @@ static void chroma_smooth()
         for (x = 0; x < w; x++)
             aux[x + y*w] = aux2[x + y*w] = raw_get_pixel(x, y);
     
-    chroma_smooth_5x5(aux, aux2, raw2ev, ev2raw);
+    chroma_smooth_3x3(aux, aux2, raw2ev, ev2raw);
     
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++)
