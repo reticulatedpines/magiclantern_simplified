@@ -24,11 +24,13 @@ unsigned int get_model_id(const char* filename)
     FILE* exif_file = popen(exif_cmd, "r");
     if(exif_file) 
     {
-        fscanf(exif_file, "%u", &tag);
+        if (!fscanf(exif_file, "%u", &tag))
+            goto err;
         pclose(exif_file);
     }
     else
     {
+        err:
         printf("**WARNING** could not identify the camera (exiftool problem). Assuming it's a 5D Mark III\n");
     }
     return tag & 0xFFF;
