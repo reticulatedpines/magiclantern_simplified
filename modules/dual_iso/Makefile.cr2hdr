@@ -12,7 +12,7 @@ ifdef CROSS
 	CR2HDR_BIN=cr2hdr.exe
 endif
 
-$(CR2HDR_BIN):
+$(CR2HDR_BIN): cr2hdr.c $(CR2HDR_DEPS)
 	$(call build,$(notdir $(HOSTCC)),$(HOSTCC) $(CR2HDR_CFLAGS) cr2hdr.c $(CR2HDR_DEPS) -o $@ $(CR2HDR_LDFLAGS))
 
 $(CR2HDR_BIN).exe:
