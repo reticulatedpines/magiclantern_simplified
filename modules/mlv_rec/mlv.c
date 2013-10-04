@@ -164,22 +164,39 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     hdr->cameraModel = 0;
     
     /* get camera properties */
-    err |= PROPAD_GetPropertyData(PROP_CAM_MODEL, (void **) &model_data, &model_len);
+    err = PROPAD_GetPropertyData(PROP_CAM_MODEL, (void **) &model_data, &model_len);
     trace_write(raw_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
-    
-    err |= PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
-    trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
-    
-    if(err || model_len < 36 || body_len != 8 || !model_data || !body_data)
+    if(err || model_len < 36 || !model_data)
     {
-        strcpy((char*)hdr->cameraName, "Failed to get properties.");
+        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d md:0x%8X ml:%d", err, model_data, model_len);
         return;
+    }
+    
+    err = PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
+    trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
+    if(err || !body_data)
+    {
+        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
+        return;
+    }
+    
+    /* different camera serial lengths */
+    if(body_len == 8)
+    {
+        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
+    }
+    else if(body_len == 4)
+    {
+        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%08X", *((uint32_t*)body_data));
+    }
+    else
+    {
+        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "(unknown)");
     }
     
     /* properties are ok, so read data */
     memcpy((char *)hdr->cameraName, &model_data[0], 32);
     memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
-    snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
     
     trace_write(raw_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
 }
