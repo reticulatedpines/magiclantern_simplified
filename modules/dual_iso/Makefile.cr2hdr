@@ -4,32 +4,22 @@ CR2HDR_BIN=cr2hdr
 HOSTCC=gcc
 CR2HDR_CFLAGS=-m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64
 CR2HDR_LDFLAGS=-lm -m32 
-CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c cr2hdr.c dcraw-bridge.c exiftool-bridge.c
+CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c dcraw-bridge.c exiftool-bridge.c
 HOST=host
 
 ifdef CROSS
 	HOSTCC=~/mingw-w32/bin/i686-w64-mingw32-gcc
 	CR2HDR_BIN=cr2hdr.exe
-else
-	CR2HDR_CFLAGS  += -ggdb
-	CR2HDR_LDFLAGS += -ggdb
 endif
 
-HOST_CR2HDR_OBJS=$(patsubst %.c, %-$(HOST).o, $(CR2HDR_DEPS))
+$(CR2HDR_BIN):
+	$(call build,$(notdir $(HOSTCC)),$(HOSTCC) $(CR2HDR_CFLAGS) cr2hdr.c $(CR2HDR_DEPS) -o $@ $(CR2HDR_LDFLAGS))
 
-$(CR2HDR_BIN): $(CR2HDR_BIN)-clean $(HOST_CR2HDR_OBJS)
-	$(call build,HOSTLD,$(HOSTCC) -o $@ $(HOST_CR2HDR_OBJS) $(CR2HDR_LDFLAGS)) 
+$(CR2HDR_BIN).exe:
+	CROSS=1 $(MAKE) $@
 
-$(CR2HDR_BIN).exe: $(CR2HDR_BIN)-clean
-	CROSS=1 $(MAKE) $@ 
-
-%-$(HOST).o: %.c
-	$(call build,HOSTCC,$(HOSTCC) $(CR2HDR_CFLAGS) -c -o $@ $<)
-
-$(CR2HDR_BIN)-clean:
-	$(call rm_files, $(CR2HDR_BIN) $(CR2HDR_BIN).exe $(HOST_CR2HDR_OBJS))
-
-clean:: $(CR2HDR_BIN)-clean
+clean::
+	$(call rm_files, cr2hdr cr2hdr.exe)
 
 all:: $(CR2HDR_BIN)
 
