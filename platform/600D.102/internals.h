@@ -114,8 +114,10 @@
 //#define CONFIG_ALLOCATE_MEMORY_POOL
 
 /** We have access to raw data in both photo mode and in LiveView */
-#define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/* not working; took more than 3 months for this to be noticed... */
+//~ #define CONFIG_RAW_PHOTO
 
 /** for 600D */
 #define CONFIG_EDMAC_MEMCPY
