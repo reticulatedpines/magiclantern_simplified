@@ -174,7 +174,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     
     err = PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
     trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
-    if(err || !body_data)
+    if(err || !body_data || body_len == 0)
     {
         snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
         return;
@@ -191,7 +191,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     }
     else
     {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "(unknown)");
+        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "(unknown len %d)", body_len);
     }
     
     /* properties are ok, so read data */
