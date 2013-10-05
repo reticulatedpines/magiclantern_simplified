@@ -5,5 +5,6 @@
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x51CC)
 #define MOVREC_STATE (*(struct state_object **)0x5EF8)
+#define SDS_FRONT3_STATE (*(struct state_object **)0x3B9C)
 
 #endif // __platform_state_object_h
