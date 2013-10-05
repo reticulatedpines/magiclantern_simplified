@@ -312,13 +312,14 @@ static unsigned int isoless_refresh(unsigned int ctx)
     static uint16_t backup_ph[20];
     int mv = is_movie_mode() ? 1 : 0;
     int lvi = lv ? 1 : 0;
-    int raw = (mv ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))) ? 1 : 0;
+    int raw_mv = mv && lv && raw_lv_is_enabled();
+    int raw_ph = (pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF);
     
     if (FRAME_CMOS_ISO_COUNT > COUNT(backup_ph)) goto end;
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) goto end;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + file_number * isoless_alternate + lens_info.raw_iso * 1234;
+    int sig = isoless_recovery_iso + (lvi << 16) + (raw_mv << 17) + (raw_ph << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + file_number * isoless_alternate + lens_info.raw_iso * 1234;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -334,21 +335,18 @@ static unsigned int isoless_refresh(unsigned int ctx)
         enabled_ph = 0;
     }
 
-    if (isoless_hdr && raw)
+    if (isoless_hdr && raw_ph && !enabled_ph && PHOTO_CMOS_ISO_START && ((file_number % 2) || !isoless_alternate))
     {
-        if (!enabled_ph && PHOTO_CMOS_ISO_START && ((file_number % 2) || !isoless_alternate))
-        {
-            enabled_ph = 1;
-            int err = isoless_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
-            if (err) { NotifyBox(10000, "ISOless PH err(%d)", err); enabled_ph = 0; }
-        }
-        
-        if (!enabled_lv && lv && mv && FRAME_CMOS_ISO_START)
-        {
-            enabled_lv = 1;
-            int err = isoless_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
-            if (err) { NotifyBox(10000, "ISOless LV err(%d)", err); enabled_lv = 0; }
-        }
+        enabled_ph = 1;
+        int err = isoless_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
+        if (err) { NotifyBox(10000, "ISOless PH err(%d)", err); enabled_ph = 0; }
+    }
+    
+    if (isoless_hdr && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START)
+    {
+        enabled_lv = 1;
+        int err = isoless_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
+        if (err) { NotifyBox(10000, "ISOless LV err(%d)", err); enabled_lv = 0; }
     }
 
     if (setting_changed)
