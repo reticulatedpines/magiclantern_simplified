@@ -534,12 +534,12 @@ static MENU_UPDATE_FUNC(isoless_check)
     if (!get_dxo_dynamic_range(72))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
 
-    int mvi = is_movie_mode() && FRAME_CMOS_ISO_START;
+    int mvi = is_movie_mode();
 
-    int raw = mvi ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
+    int raw = mvi ? FRAME_CMOS_ISO_START && raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
 
     if (!raw)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", mvi ? "MOVIE" : "PHOTO");
+        menu_set_warning_raw(entry, info);
 }
 
 static MENU_UPDATE_FUNC(isoless_dr_update)

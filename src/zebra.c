@@ -830,46 +830,6 @@ hist_build()
 }
 #endif
 
-#ifdef FEATURE_RAW_OVERLAYS
-
-int can_use_raw_overlays_photo()
-{
-    // MRAW/SRAW are causing trouble, figure out why
-    // RAW and RAW+JPEG are OK
-    if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
-        return 1;
-
-    return 0;
-}
-
-int can_use_raw_overlays()
-{
-    if (QR_MODE && can_use_raw_overlays_photo())
-        return 1;
-    
-    if (lv && raw_lv_is_enabled())
-        return 1;
-    
-    return 0;
-}
-
-int can_use_raw_overlays_menu()
-{
-    if (can_use_raw_overlays_photo())
-        return 1;
-
-    if (lv && raw_lv_is_enabled())
-        return 1;
-
-    int raw = pic_quality & 0x60000;
-    if (lv && !is_movie_mode() && raw)
-        return 1;
-
-    return 0;
-}
-
-#endif
-
 #ifdef FEATURE_RAW_ZEBRAS
 
 static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo only */
@@ -1110,9 +1070,9 @@ static void FAST draw_zebras_raw_lv()
 
 static MENU_UPDATE_FUNC(raw_zebra_update)
 {
-    if (!can_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
-    else if (raw_zebra_enable)
+    menu_checkdep_raw(entry, info);
+
+    if (raw_zebra_enable)
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras %safter taking a pic.", raw_zebra_enable == 1 ? "in LiveView and " : "");
 }
 #endif
@@ -2623,6 +2583,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
     if (spotmeter_draw)
+    {
         MENU_SET_VALUE(
             "%s%s",
             
@@ -2632,6 +2593,12 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
+        
+        if (spotmeter_formula == 3)
+        {
+            menu_checkdep_raw(entry, info);
+        }
+    }
 }
 #endif
 

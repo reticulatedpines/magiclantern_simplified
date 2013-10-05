@@ -25,6 +25,7 @@
 #include "bmp.h"
 #include "lens.h"
 #include "module.h"
+#include "menu.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -1423,4 +1424,68 @@ int get_dxo_dynamic_range(int raw_iso)
     }
     
     return dr;
+}
+
+
+/* helpers for menu and other code that wants to use raw */
+
+int can_use_raw_overlays_photo()
+{
+    // MRAW/SRAW are causing trouble, figure out why
+    // RAW and RAW+JPEG are OK
+    if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
+        return 1;
+
+    return 0;
+}
+
+int can_use_raw_overlays()
+{
+    if (QR_MODE && can_use_raw_overlays_photo())
+        return 1;
+    
+    if (lv && raw_lv_is_enabled())
+        return 1;
+    
+    return 0;
+}
+
+int can_use_raw_overlays_menu()
+{
+    if (is_movie_mode())
+    {
+        /* in movie mode, raw overlays don't make much sense for H.264 video, so only show them for raw video */
+        if (lv && raw_lv_is_enabled())
+            return 1;
+    }
+    else
+    {
+        /* outside LiveView: only pure RAW is known to work */
+        if (can_use_raw_overlays_photo())
+            return 1;
+
+        /* in LiveView: we can display the raw overlays no matter what */
+        /* so use them also for sRAW and mRAW, even if this may not work in QR mode */
+        int raw = pic_quality & 0x60000;
+        if (lv && raw)
+            return 1;
+    }
+
+    return 0;
+}
+
+MENU_UPDATE_FUNC(menu_set_warning_raw)
+{
+    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, 
+        is_movie_mode() ? "[MOVIE] This feature requires you shooting RAW." :
+                          "[PHOTO] Set picture quality to RAW in Canon menu."
+    );
+}
+
+MENU_UPDATE_FUNC(menu_checkdep_raw)
+{
+    if (!can_use_raw_overlays_menu())
+    {
+        menu_set_warning_raw(entry, info);
+    }
 }
