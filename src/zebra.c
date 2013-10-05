@@ -331,11 +331,13 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 int histogram_or_small_waveform_enabled()
 {
     return (
+        (
         #ifdef FEATURE_HISTOGRAM
         (hist_draw)
         #ifdef FEATURE_RAW_OVERLAYS
         && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())
         #endif
+        )
         ||
         #endif
         (waveform_draw && !waveform_size)
@@ -2589,7 +2591,7 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-            spotmeter_formula == 4 ? "RGB" : "RAW",
+            spotmeter_formula == 2 ? "RGB" : "RAW",
             
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
