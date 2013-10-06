@@ -156,7 +156,7 @@ int dual_iso_get_dr_improvement()
         return 0;
     
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
-    int iso2 = lens_info.raw_iso/8*8;
+    int iso2 = lens_info.iso_analog_raw/8*8;
     return dual_iso_calc_dr_improvement(iso1, iso2);
 }
 
@@ -357,7 +357,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
         int file_prefix_needs_delay = (ctx == CTX_SHOOT_TASK && lens_info.job_state);
 
         int iso1 = 72 + isoless_recovery_iso_index() * 8;
-        int iso2 = lens_info.raw_iso/8*8;
+        int iso2 = lens_info.iso_analog_raw/8*8;
 
         static int prefix_key = 0;
         if (isoless_file_prefix && enabled_ph && iso1 != iso2)
@@ -515,7 +515,7 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
 static MENU_UPDATE_FUNC(isoless_check)
 {
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
-    int iso2 = lens_info.raw_iso/8*8;
+    int iso2 = lens_info.iso_analog_raw/8*8;
     
     if (!iso2)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Auto ISO => cannot estimate dynamic range.");
@@ -557,7 +557,7 @@ static MENU_UPDATE_FUNC(isoless_dr_update)
 static MENU_UPDATE_FUNC(isoless_overlap_update)
 {
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
-    int iso2 = (lens_info.raw_iso+3)/8*8;
+    int iso2 = (lens_info.iso_analog_raw)/8*8;
 
     int iso_hi = MAX(iso1, iso2);
     int iso_lo = MIN(iso1, iso2);
@@ -582,7 +582,7 @@ static MENU_UPDATE_FUNC(isoless_update)
         return;
 
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
-    int iso2 = (lens_info.raw_iso+3)/8*8;
+    int iso2 = (lens_info.iso_analog_raw)/8*8;
 
     MENU_SET_VALUE("%d/%d", raw2iso(iso2), raw2iso(iso1));
 
