@@ -60,9 +60,9 @@ CONFIG_INT("crop.info", crop_info, 0);
 CONFIG_INT("crop.info", crop_info, 0);
 #endif
 
-#define LENS_UNITS_METRIC 0
-#define LENS_UNITS_IMPERIAL 1
-CONFIG_INT("lens.units", lens_units, LENS_UNITS_METRIC);
+#define FOCUS_UNITS_METRIC 0
+#define FOCUS_UNITS_IMPERIAL 1
+CONFIG_INT("focus.units", focus_units, FOCUS_UNITS_METRIC);
 
 //~ static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
@@ -175,7 +175,7 @@ const char * lens_format_dist( unsigned mm)
     {
         snprintf( dist, sizeof(dist), SYM_INFTY);
     }
-    else if(lens_units == LENS_UNITS_IMPERIAL)
+    else if(lens_units == FOCUS_UNITS_IMPERIAL)
     {
         int inches = (mm * 10 / 254);
         if( inches > 24 ) // 2 ft
@@ -1576,7 +1576,7 @@ static struct menu_entry lens_menus[] = {
 
 static struct menu_entry tweak_menus[] = {
    {
-        .name = "Lens/Crop",
+        .name = "Lens Info Prefs",
         .select_Q     = menu_open_submenu,
         .children =  (struct menu_entry[]) {
 
@@ -1589,11 +1589,11 @@ static struct menu_entry tweak_menus[] = {
         	.depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
     },
     {
-        	.name = "Lens Units",
-        	.priv = &lens_units,
+        	.name = "Focus Distance Units",
+        	.priv = &focus_units,
         	.choices = CHOICES("mm/cm", "ft/in"),
         	.max = 1,
-        	.help  = "Lens Units mm/cm or ft/in",
+        	.help  = "Can select between Metric and Imperial focus distance units",
     },
              MENU_EOL
   },
