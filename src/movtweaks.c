@@ -550,16 +550,17 @@ void rec_notify_continuous(int called_from_menu)
         {
             int xc = os.x0 + os.x_ex/2;
             int yc = os.y0 + os.y_ex/2;
-            int rx = os.y_ex * 7/15;
-            int ry = rx * 62/100; 
+            int rx = os.y_ex * 6/10;
+            int ry = rx * 9/16; 
             bmp_printf(
-                FONT(FONT_MED, COLOR_RED, 0), 
-                xc - font_med.width * 7, yc - ry - font_med.height, 
-                "Not recording");
+                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, COLOR_RED)) | FONT_ALIGN_CENTER | FONT_EXPAND(4), 
+                xc, yc - ry - font_med.height,
+                "NOT RECORDING"
+            );
             bmp_draw_rect(COLOR_RED, xc - rx, yc - ry, rx * 2, ry * 2);
-            bmp_draw_rect(COLOR_RED, xc - rx + 1, yc - ry + 1, rx * 2 - 2, ry * 2 - 2);
+            bmp_draw_rect(COLOR_WHITE, xc - rx + 1, yc - ry + 1, rx * 2 - 2, ry * 2 - 2);
             draw_line(xc + rx, yc - ry, xc - rx, yc + ry, COLOR_RED);
-            draw_line(xc + rx, yc - ry + 1, xc - rx, yc + ry + 1, COLOR_RED);
+            draw_line(xc + rx, yc - ry + 1, xc - rx, yc + ry + 1, COLOR_WHITE);
         }
     }
     else if (rec_notify == 2)
