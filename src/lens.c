@@ -60,7 +60,9 @@ CONFIG_INT("crop.info", crop_info, 0);
 CONFIG_INT("crop.info", crop_info, 0);
 #endif
 
-CONFIG_INT("lens.units", lens_units, 0); // 0 == metric, 1 = imperial
+#define LENS_UNITS_METRIC 0
+#define LENS_UNITS_IMPERIAL 1
+CONFIG_INT("lens.units", lens_units, LENS_UNITS_METRIC);
 
 //~ static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
@@ -173,7 +175,7 @@ const char * lens_format_dist( unsigned mm)
     {
         snprintf( dist, sizeof(dist), SYM_INFTY);
     }
-    else if(lens_units == 1)
+    else if(lens_units == LENS_UNITS_IMPERIAL)
     {
         int inches = (mm * 10 / 254);
         if( inches > 24 ) // 2 ft
