@@ -90,6 +90,10 @@ NSTUB( 0xFF056E38, _prop_request_change )
 NSTUB( 0xFF057418, prop_deliver )
 NSTUB( 0xFF057654, prop_get_value )
 
+/** corectly named canon property reading functions **/
+NSTUB( 0xFF057654, PROP_GetMulticastProperty )
+NSTUB( 0xFF058284, PROPAD_GetPropertyData )
+
 NSTUB( 0xFF1C924C, dispcheck )
 NSTUB( 0xFF05DAF8, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x2E5B0, bmp_vram_info )
@@ -150,7 +154,12 @@ NSTUB( 0xFF01FF94, gui_main_task )       //  uses a 8 functions table compared t
 NSTUB( 0xFF020ACC, gui_init_end )     // EndGuiInit
 NSTUB( 0x3AC8, gui_timer_struct )     // in GUI_Control_Post
 NSTUB( 0x1C04, gui_main_struct )      //  in gui_main_task
-NSTUB( 0xFF1D2B70, msg_queue_receive )
+
+NSTUB( 0xff1d2a60, msg_queue_create) // CreateMessageQueue
+NSTUB( 0xFF1D2B70, msg_queue_receive)
+NSTUB( 0xFF1D2D5C, msg_queue_post)
+NSTUB( 0xFF1D2D9C, msg_queue_count)
+
 NSTUB( 0xFF0952F0, gui_local_post )
 NSTUB( 0xFF094CF4, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF095728, gui_other_post )
@@ -207,7 +216,6 @@ NSTUB( 0xFF0364A0, LVCAF_LensDriveStart )
 //NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 //NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 
-NSTUB(0xFF1D2D5C, msg_queue_post)
 
 // NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 
@@ -274,8 +282,6 @@ NSTUB(0xFF243820, SetImagePass_x5)
 NSTUB(0xff016b8c, get_current_task) // called from AJ_armlib_setup_related3
 
 NSTUB(0x2CDB0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
-
-NSTUB(0xff1d2a60, msg_queue_create) // CreateMessageQueue
 
 NSTUB(0xff03b3d8, PD_RemoteRelease)
 
