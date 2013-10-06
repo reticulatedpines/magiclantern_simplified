@@ -777,7 +777,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     double a = tan(ma / 1000000.0);
     double b = my - a * mx;
 
-    if (ABS(b) > 100)
+    if (ABS(b) > 200)
     {
         /* sum ting wong */
         b = 0;

@@ -198,4 +198,23 @@ extern struct raw_info raw_info;
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename, struct raw_info * raw_info);
 
+
+/** Menu helpers **/
+#include "menu.h"
+
+/* use this if you want to print a warning if you need to shoot raw in order to use your feature (photo or video) */
+extern MENU_UPDATE_FUNC(menu_checkdep_raw);
+
+/* this prints the raw warning without checking */
+extern MENU_UPDATE_FUNC(menu_print_warning_raw);
+
+/* photo mode, non-LV: to know whether you will have access to raw data */
+extern int can_use_raw_overlays_photo();
+
+/* to be used in code using overlays directly (e.g. right before drawing zebras, to decide if they are raw or yuv) */
+extern int can_use_raw_overlays();
+
+/* to be used in menu, if you want to check if raw data will available in current mode (not necessarily at the time of displaying the menu) */
+extern int can_use_raw_overlays_menu();
+
 #endif

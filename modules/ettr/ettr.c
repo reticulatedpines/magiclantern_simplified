@@ -1191,13 +1191,10 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (lens_info.raw_iso == 0 && is_m)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR requires manual ISO.");
 
-    int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
-
-    if (!raw)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", is_movie_mode() ? "MOVIE" : "PHOTO");
-
     if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available, try in LiveView.");
+
+    menu_checkdep_raw(entry, info);
 
     if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");

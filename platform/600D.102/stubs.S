@@ -96,6 +96,10 @@ NSTUB( 0xFF05B6E4, _prop_request_change )
 NSTUB( 0xFF05BCC4, prop_deliver )
 NSTUB( 0xFF05BF04, prop_get_value )
 
+/** corectly named canon property reading functions **/
+NSTUB( 0xFF05BF04, PROP_GetMulticastProperty )
+NSTUB( 0xFF05CB28, PROPAD_GetPropertyData )
+
 NSTUB( 0xff1e8fe0, dispcheck )
 NSTUB( 0xFF062CEC, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x1db6c, bmp_vram_info )
@@ -160,6 +164,9 @@ NSTUB( 0xff021f78, gui_init_end )     // EndGuiInit
 NSTUB( 0x4588, gui_timer_struct )     // in GUI_Control_Post
 NSTUB( 0x1C38, gui_main_struct )      //  in gui_main_task
 NSTUB( 0xff1f5a54, msg_queue_receive )
+NSTUB( 0xFF1F5944, msg_queue_create) // CreateMessageQueue
+NSTUB( 0xff1f5c40, msg_queue_post)
+NSTUB( 0xFF1F5C80, msg_queue_count)
 NSTUB( 0xFF0AA5A4, gui_local_post )
 NSTUB( 0xFF0A9E34, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF0AAB3C, gui_other_post )
@@ -208,7 +215,6 @@ NSTUB( 0xFF33BFAC, ReverseDisplay )
 
 NSTUB( 0x6290, mvr_config )
 
-NSTUB( 0xff1f5c40, msg_queue_post)
 //NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 NSTUB( 0xff29e25c, AfCtrl_SetLensParameterRemote )
@@ -263,7 +269,6 @@ NSTUB(0xff017618, get_current_task) // called from AJ_armlib_setup_related3
 
 NSTUB(0x1C36C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
-NSTUB(0xFF1F5944, msg_queue_create) // CreateMessageQueue
 
 NSTUB(0xFF0396E4, PD_RemoteRelease)
 

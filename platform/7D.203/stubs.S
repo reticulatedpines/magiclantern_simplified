@@ -181,6 +181,11 @@ NSTUB(0xff078e6c, oneshot_timer)
 NSTUB(0xff068734, _prop_cleanup)
 NSTUB(0xff06858c, prop_deliver)
 NSTUB(0xff0687c8, prop_get_value)
+
+/** corectly named canon property reading functions **/
+NSTUB(0xFF0687C8, PROP_GetMulticastProperty)
+NSTUB(0xFF06934C, PROPAD_GetPropertyData)
+
 NSTUB(0xff068614, prop_register_slave)
 NSTUB(0xff0686a4, prop_unregister_slave)
 NSTUB(0xff067fac, _prop_request_change)

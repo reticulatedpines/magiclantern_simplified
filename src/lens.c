@@ -2206,9 +2206,11 @@ static LVINFO_UPDATE_FUNC(picstyle_update)
 
     if (is_movie_mode())
     {
+#ifdef CONFIG_RAW_LIVEVIEW
         /* picture style has no effect on raw video => don't display */
         if (raw_lv_is_enabled())
             return;
+#endif
     }
     else
     {
