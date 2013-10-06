@@ -101,6 +101,7 @@ NSTUB(   0x591F0, gui_task_list)
 NSTUB(0xFF0C5488, init_task)
 NSTUB(0xFF0C8368, _malloc)
 NSTUB(0xFFA87AD0 - RAM_OFFSET, msg_queue_post)
+NSTUB(0xFFA87B10 - RAM_OFFSET, msg_queue_count)
 NSTUB(0xFFA878E4 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xFFA6FC70 - RAM_OFFSET, msleep)
 NSTUB(0xFF12015C, _prop_cleanup)
@@ -212,6 +213,10 @@ NSTUB(0xFF2BFFB4, mvrSetDefQScale)
 NSTUB(0xFF1202B8, prop_get_value)
 NSTUB(0xFF2A3378, ptpPropSetUILock)
 NSTUB(0xFF334610, touch_cbr_canon)
+
+/** corectly named canon property reading functions **/
+NSTUB(0xFF1202B8, PROP_GetMulticastProperty )
+NSTUB(0xFF121744, PROPAD_GetPropertyData )
 
 NSTUB(0xFF5B6688, lvae_setdispgain)
 
