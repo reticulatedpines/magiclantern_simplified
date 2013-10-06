@@ -175,7 +175,7 @@ const char * lens_format_dist( unsigned mm)
     {
         snprintf( dist, sizeof(dist), SYM_INFTY);
     }
-    else if(lens_units == FOCUS_UNITS_IMPERIAL)
+    else if(focus_units == FOCUS_UNITS_IMPERIAL)
     {
         int inches = (mm * 10 / 254);
         if( inches > 24 ) // 2 ft
