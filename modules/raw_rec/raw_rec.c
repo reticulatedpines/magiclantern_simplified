@@ -455,6 +455,7 @@ static void refresh_raw_settings(int force)
 
 static MENU_UPDATE_FUNC(raw_main_update)
 {
+    // reset_movie_cropmarks if raw_rec is disabled
     refresh_cropmarks();
     
     if (!raw_video_enabled) return;
