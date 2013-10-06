@@ -707,14 +707,17 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         return;
     }
     
+    uint32_t max_slot_size = raw_rec_edmac_align + 2 * raw_rec_write_align + sizeof(mlv_vidf_hdr_t) + sizeof(mlv_hdr_t);
+    
     /* fit as many frames as we can */
-    while (size >= (frame_size + raw_rec_edmac_align + raw_rec_write_align) && (slot_count < COUNT(slots)))
+    while (size >= (frame_size + max_slot_size) && (slot_count < COUNT(slots)))
     {
-        /* write alignment */
+        /* align slots so that they start at a write align boundary */
         uint32_t pre_align = calc_padding(ptr, raw_rec_write_align);
         ptr += pre_align;
         size -= pre_align;
     
+        /* set up a new VIDF header there */
         mlv_vidf_hdr_t *vidf_hdr = (mlv_vidf_hdr_t *)ptr;
         memset(vidf_hdr, 0x00, sizeof(mlv_vidf_hdr_t));
         mlv_set_type((mlv_hdr_t *)vidf_hdr, "VIDF");
@@ -725,9 +728,8 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         vidf_hdr->frameSpace = edmac_size_align;
         vidf_hdr->blockSize = sizeof(mlv_vidf_hdr_t) + vidf_hdr->frameSpace + frame_size;
         
-        /* now add a NULL block for aligning the whole slot size to optimal write size if required */
+        /* now add a NULL block (if required) for aligning the whole slot size to optimal write size */
         int32_t write_size_align = calc_padding(ptr + vidf_hdr->blockSize, raw_rec_write_align);
-        
         if(write_size_align > 0)
         {
             if(write_size_align < (int32_t)sizeof(mlv_hdr_t))
