@@ -96,6 +96,10 @@ NSTUB( 0xFF05B6E4, _prop_request_change )
 NSTUB( 0xFF05BCC4, prop_deliver )
 NSTUB( 0xFF05BF04, prop_get_value )
 
+/** corectly named canon property reading functions **/
+NSTUB( 0xFF05BF04, PROP_GetMulticastProperty )
+NSTUB( 0xFF05CB28, PROPAD_GetPropertyData )
+
 NSTUB( 0xff1e8fe0, dispcheck )
 NSTUB( 0xFF062CEC, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x1db6c, bmp_vram_info )
