@@ -37,6 +37,7 @@ extern void* _AllocateMemory(size_t size);
 extern void _FreeMemory(void* ptr);
 extern void* _alloc_dma_memory(size_t size);
 extern void _free_dma_memory(void* ptr);
+extern int _shoot_get_free_space();
 
 struct mem_allocator
 {
@@ -132,6 +133,7 @@ static struct mem_allocator allocators[] = {
         .free = _shoot_free,
         .malloc_dma = _shoot_malloc,       /* can be used for both cacheable and uncacheable memory */
         .free_dma = _shoot_free,
+        .get_free_space = _shoot_get_free_space,
         
         .is_preferred_for_temporary_space = 1,  /* if we know we'll free this memory quickly, prefer this one */
         
