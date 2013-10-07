@@ -616,6 +616,12 @@ static volatile int afframe_ack = 0;
 static int afframe[128];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len <= sizeof(afframe));
+    
+    if (!lv)
+    {
+        /* I'm not interested in the values of this property outside LiveView */
+        return;
+    }
 
     #ifdef FEATURE_SPOTMETER
     spotmeter_erase();
@@ -626,7 +632,6 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     
     memcpy(afframe, buf, len);
     afframe_ack = 1;
-    
 }
 #else
 static int afframe[100]; // dummy
@@ -634,6 +639,14 @@ static int afframe[100]; // dummy
 
 void get_afframe_pos(int W, int H, int* x, int* y)
 {
+    if (!afframe[0])
+    {
+        /* property did not fire? return center position */
+        *x = W/2;
+        *y = H/2;
+        return;
+    }
+    
     *x = (afframe[2] + afframe[4]/2) * W / afframe[0];
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
