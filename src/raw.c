@@ -711,7 +711,7 @@ int raw_update_params()
     dbg_printf("saving raw buffer...\n");
     dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), CARD_DRIVE"raw.buf");
     dbg_printf("saving DNG...\n");
-    save_dng(CARD_DRIVE"raw.dng");
+    save_dng(CARD_DRIVE"raw.dng", &raw_info);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     dbg_printf("done\n");
     #endif
@@ -1062,8 +1062,18 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
             #endif
         }
     }
-    stdev /= num;
-    stdev = sqrtf(stdev);
+    
+    if (num)
+    {
+        stdev /= num;
+        stdev = sqrtf(stdev);
+    }
+    else
+    {
+        /* use some "sane" values instead of inf/nan */
+        stdev = 8;
+        mean = 2048;
+    }
     
     *out_mean = mean;
     *out_stdev = stdev;
@@ -1080,13 +1090,13 @@ static int autodetect_black_level(int* black_mean, int* black_stdev)
     if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
     {
         autodetect_black_level_calc(
-            4, raw_info.active_area.x1 - 4,
+            16, raw_info.active_area.x1 - 16,
             raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
             3, 16,
             &mean1, &stdev1
         );
         autodetect_black_level_calc(
-            4, raw_info.active_area.x1 - 4,
+            16, raw_info.active_area.x1 - 16,
             raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20, 
             3, 16,
             &mean2, &stdev2
@@ -1170,16 +1180,16 @@ static int compute_dynamic_range(int black_mean, int black_stdev, int white_leve
      * except at very high ISOs where there seems to be noise reduction applied to raw data
      */
 
-#if RAW_DEBUG_DR
+#ifdef RAW_DEBUG_DR
     int mean = black_mean * 100;
     int stdev = black_stdev * 100;
     bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
-    white_level = autodetect_white_level();
+    white_level = autodetect_white_level(15000);
 #endif
 
     int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev)) * 100);
 
-#if RAW_DEBUG_DR
+#ifdef RAW_DEBUG_DR
     bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
 #endif
 
