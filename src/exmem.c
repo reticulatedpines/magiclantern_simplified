@@ -9,6 +9,8 @@ static int alloc_sem_timed_out = 0;
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
+static volatile void* entire_memory_allocated = 0;
+
 int GetNumberOfChunks(struct memSuite * suite)
 {
     CHECK_SUITE_SIGNATURE(suite);
@@ -36,6 +38,7 @@ void shoot_free_suite(struct memSuite * hSuite)
 {
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
+    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
 static void allocCBR(unsigned int a, struct memSuite *hSuite)
@@ -101,8 +104,6 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
     return written;
 }
 
-static volatile void* entire_memory_allocated = 0;
-
 /* when size is set to zero, it will try to allocate the maximum possible block */
 struct memSuite *shoot_malloc_suite(size_t size)
 {
@@ -131,7 +132,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     }
     else
     {
-        entire_memory_allocated = (void*)-1;        /* temporary, just mark as "busy" */
+        //~ entire_memory_allocated = (void*)-1;        /* temporary, just mark as "busy" */
         
         /* allocate some backup that will service the queued allocation request that fails during the loop */
         int backup_size = 8 * 1024 * 1024;
@@ -190,7 +191,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
     }
     else
     {
-        entire_memory_allocated = (void*) -1;   /* temporary, just mark as busy */
+        //~ entire_memory_allocated = (void*) -1;   /* temporary, just mark as busy */
 
         /* find the largest chunk and try to allocate it */
         struct memSuite * hSuite = shoot_malloc_suite(0);
@@ -231,8 +232,8 @@ void _shoot_free(void* ptr)
     if ((intptr_t)ptr & 3) return;
     struct memSuite * hSuite = *(struct memSuite **)(ptr - 4);
     FreeMemoryResource(hSuite, freeCBR, 0);
-    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
     take_semaphore(free_sem, 0);
+    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
 /* just a dummy heuristic for now */
