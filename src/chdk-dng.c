@@ -654,14 +654,14 @@ int save_dng(char* filename, struct raw_info * raw_info)
     cam_AsShotNeutral[4] = 624000;
     
     #ifdef RAW_DEBUG_BLACK
-    raw_info.active_area.x1 = 0;
-    raw_info.active_area.x2 = raw_info.width;
-    raw_info.active_area.y1 = 0;
-    raw_info.active_area.y2 = raw_info.height;
-    raw_info.jpeg.x = 0;
-    raw_info.jpeg.y = 0;
-    raw_info.jpeg.width = raw_info.width;
-    raw_info.jpeg.height = raw_info.height;
+    raw_info->active_area.x1 = 0;
+    raw_info->active_area.x2 = raw_info->width;
+    raw_info->active_area.y1 = 0;
+    raw_info->active_area.y2 = raw_info->height;
+    raw_info->jpeg.x = 0;
+    raw_info->jpeg.y = 0;
+    raw_info->jpeg.width = raw_info->width;
+    raw_info->jpeg.height = raw_info->height;
     #endif
     
     FILE* f = FIO_CreateFileEx(filename);
