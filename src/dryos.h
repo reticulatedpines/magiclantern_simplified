@@ -608,6 +608,7 @@ const char* get_dcim_dir();
 
 #define FAST __attribute__((optimize("-O3")))
 #define SMALL __attribute__((optimize("-Os")))
+#define DUMP_ASM __attribute__ ((section(".dump_asm")))
 
 // for modules and other optional code
 #define WEAK_FUNC(name)  __attribute__((weak,alias(#name))) 
