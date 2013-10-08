@@ -2798,12 +2798,12 @@ bulb_take_pic(int duration)
         
         // check the following at every second:
         
-        if(bulb_display_mode == 0)
+        if(bulb_display_mode == 1)
         {
             // for 550D and other cameras that may keep the display on during bulb exposures -> turn it off
             if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
         }
-        else if(bulb_display_mode == 1)
+        else if(bulb_display_mode == 2)
         {
             if (s==1) display_on();
             
@@ -3767,6 +3767,7 @@ static struct menu_entry shoot_menus[] = {
         .help  = "For very long exposures (several minutes).",
         .help2 = "To trigger, hold shutter pressed halfway for 1 second.",
         .depends_on = DEP_PHOTO_MODE,
+        .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Exposure duration",
@@ -3780,7 +3781,8 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Display during exposure",
                 .priv = &bulb_display_mode,
                 .max = 2,
-                .choices = CHOICES("Force Off", "Force On", "Don't Change"),
+                .icon_type = IT_DICE_OFF,
+                .choices = CHOICES("Don't Change", "Force Off", "Force On"),
                 .help = "Turn the screen on/off while taking bulb exposure",
                 .help2 = "Force on to see status & previous pic during bulb",
                 
