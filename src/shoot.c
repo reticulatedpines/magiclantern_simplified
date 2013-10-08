@@ -163,7 +163,7 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
-static CONFIG_INT( "bulb.powersave", bulb_powersave_enabled, 1);
+static CONFIG_INT( "bulb.display.mode", bulb_display_mode, 0);
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 
@@ -2798,12 +2798,12 @@ bulb_take_pic(int duration)
         
         // check the following at every second:
         
-        if(bulb_powersave_enabled)
+        if(bulb_display_mode == 0)
         {
             // for 550D and other cameras that may keep the display on during bulb exposures -> turn it off
             if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
         }
-        else
+        else if(bulb_display_mode == 1)
         {
             if (s==1) display_on();
             
@@ -3777,11 +3777,12 @@ static struct menu_entry shoot_menus[] = {
                 .update = bulb_display_submenu,
             },
             {
-                .name = "Power Save",
-                .priv       = &bulb_powersave_enabled,
-                .max = 1,
-                .help = "Turn the screen off while taking bulb exposure",
-                .help2 = "Disable to see status & previous pic during bulb",
+                .name = "Display during exposure",
+                .priv = &bulb_display_mode,
+                .max = 2,
+                .choices = CHOICES("Force Off", "Force On", "Don't Change"),
+                .help = "Turn the screen on/off while taking bulb exposure",
+                .help2 = "Force on to see status & previous pic during bulb",
                 
             },
             MENU_EOL
