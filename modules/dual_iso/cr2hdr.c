@@ -776,8 +776,10 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     /* convert to y = ax + b */
     double a = tan(ma / 1000000.0);
     double b = my - a * mx;
+    
+    #define BLACK_DELTA_THR 200
 
-    if (ABS(b) > 200)
+    if (ABS(b) > BLACK_DELTA_THR)
     {
         /* sum ting wong */
         b = 0;
@@ -796,7 +798,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
             continue;
         int ideal = (i - black) * a + black;
         int corr = ideal - med;
-        if (ABS(corr - (-b)) > 100)
+        if (ABS(corr - (-b)) > BLACK_DELTA_THR)
             corr = -b;           /* outlier? */
         all_medians[i] = corr;
     }
