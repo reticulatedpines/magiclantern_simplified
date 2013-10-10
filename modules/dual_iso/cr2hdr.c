@@ -1107,6 +1107,13 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
     {
         for (x = 4; x < w-4; x += 2)
         {
+            int g1 = inp[x+1 +     y * w];
+            int g2 = inp[x   + (y+1) * w];
+            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+            
+            /* looks ugly in darkness */
+            if (ge < 2*EV_RESOLUTION) continue;
+
             int i,j;
             int k = 0;
             int med_r[25];
@@ -1129,9 +1136,8 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
             int dr = opt_med25(med_r);
             int db = opt_med25(med_b);
 
-            int g1 = inp[x+1 +     y * w];
-            int g2 = inp[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+            if (ge + dr < 2*EV_RESOLUTION) continue;
+            if (ge + db < 2*EV_RESOLUTION) continue;
 
             out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
             out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
