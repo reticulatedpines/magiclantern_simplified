@@ -2248,7 +2248,7 @@ static int hdr_interpolate()
             int output = frev;
 #else
             /* blending factor */
-            int f = fullres_curve[b & 65535];
+            double f = fullres_curve[b & 65535];
             
             #ifdef ALIAS_BLEND
             int co = alias_map[x + y*w];
