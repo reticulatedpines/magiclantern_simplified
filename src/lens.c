@@ -1579,25 +1579,24 @@ static struct menu_entry tweak_menus[] = {
         .name = "Lens Info Prefs",
         .select_Q     = menu_open_submenu,
         .children =  (struct menu_entry[]) {
-
-    {
-        	.name = "Crop Factor Display",
-        	.priv = &crop_info,
-        	.max  = 1,
-        	.choices = CHOICES("OFF", "ON,35mm eq."),
-        	.help = "Display the 35mm equiv. focal length including crop factor.",
-        	.depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
-    },
-    {
-        	.name = "Focus Distance Units",
-        	.priv = &focus_units,
-        	.choices = CHOICES("mm/cm", "ft/in"),
-        	.max = 1,
-        	.help  = "Can select between Metric and Imperial focus distance units",
-    },
-             MENU_EOL
-  },
- }
+            {
+                .name = "Crop Factor Display",
+                .priv = &crop_info,
+                .max  = 1,
+                .choices = CHOICES("OFF", "ON,35mm eq."),
+                .help = "Display the 35mm equiv. focal length including crop factor.",
+                .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
+            },
+            {
+                .name = "Focus Distance Units",
+                .priv = &focus_units,
+                .choices = CHOICES("mm/cm", "ft/in"),
+                .max = 1,
+                .help  = "Can select between Metric and Imperial focus distance units",
+            },
+            MENU_EOL
+        },
+    }
 };
 #endif
 
