@@ -251,6 +251,7 @@ void update_vram_params()
     
     os.x_max = os.x0 + os.x_ex;
     os.y_max = os.y0 + os.y_ex;
+    os.off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
     os.off_169 = (os.y_ex - os.y_ex * 3/2 * 9/16) / 2;
     os.off_1610 = (os.y_ex - os.y_ex * 3/2 * 10/16) / 2;
 
@@ -266,6 +267,7 @@ void update_vram_params()
     os.y_ex = 480-52;
     os.x_max = os.x0 + os.x_ex;
     os.y_max = os.y0 + os.y_ex;
+    os.off_43 = 0;
     os.off_169 = 0;
     os.off_1610 = 0;
 #elif defined(CONFIG_40D)
@@ -283,6 +285,7 @@ void update_vram_params()
     os.y_ex = 480 - os.y0;    
     os.x_max = os.x0 + os.x_ex;
     os.y_max = os.y0 + os.y_ex;
+    os.off_43 = 0;
     os.off_169 = 0;
     os.off_1610 = 0;     
     //~ os.off_169 = (os.y_ex - os.y_ex * 4/3 * 9/16) / 2;
@@ -350,22 +353,18 @@ void update_vram_params()
         ;
 #endif
 
-    int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
-
     // gray bars for 16:9 or 4:3
     #if defined(CONFIG_600D)
-    int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
+    int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? os.off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
     #elif defined(CONFIG_1100D) || defined(CONFIG_DIGIC_V)
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
-    off_43+=0; // bypass warning
     #elif defined(CONFIG_500D) || defined(CONFIG_7D) //TODO: 650D/6D/EOSM used to have this one enabled too...which one is correct?
     int bar_x = 0;
     int bar_y = 0;
-    off_43+=0; // bypass warning
     #else
-    int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
+    int bar_x = recording && video_mode_resolution >= 2 ? os.off_43 : 0;
     int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
     #endif
 
