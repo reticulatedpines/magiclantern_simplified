@@ -2132,6 +2132,13 @@ int get_max_analog_iso() { return MAX_ANALOG_ISO; }
 int get_max_ae_ev() { return MAX_AE_EV; }
 #ifdef AE_VALUE
 int get_ae_value() { return AE_VALUE; }
+int get_bv() {
+    return
+        RAW2TV(lens_info.raw_shutter)
+        + RAW2AV(lens_info.raw_aperture)
+        - RAW2SV(lens_info.iso_equiv_raw)
+        + RAW2EC(get_ae_value());
+}
 #endif
 #ifdef AE_STATE
 int get_ae_state() { return AE_STATE; }

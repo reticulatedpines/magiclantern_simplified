@@ -35,6 +35,7 @@
 #define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
 
 int get_htp();
+int get_bv(); //APEX units
 int get_ae_value();
 
 struct lens_info
@@ -253,9 +254,21 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 //~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
 //~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
 
+// UNIT_1_8_EV
 #define APEX_TV(raw) ((int)(raw) - 56)
 #define APEX_AV(raw) ((raw) ? (int)(raw) - 8 : 0)
 #define APEX_SV(raw) ((int)(raw) - 32)
+
+// UNIT APEX * 10
+#define RAW2TV(raw) APEX_TV(raw) * 10 / 8
+#define RAW2AV(raw) APEX_AV(raw) * 10 / 8
+#define RAW2SV(raw) APEX_SV(raw) * 10 / 8
+#define RAW2EC(raw) raw * 10 / 8
+
+#define TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
+#define AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
+#define SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
+#define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 // Conversions
 int raw2shutter_ms(int raw_shutter);

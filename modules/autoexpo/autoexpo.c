@@ -25,16 +25,6 @@
 #define BV_MAX 160
 #define BV_MIN -120
 
-#define RAW2TV(raw) APEX_TV(raw) * 10 / 8
-#define RAW2AV(raw) APEX_AV(raw) * 10 / 8
-#define RAW2SV(raw) APEX_SV(raw) * 10 / 8
-#define RAW2EC(raw) raw * 10 / 8
-
-#define TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
-#define AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
-#define SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
-#define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
-
 #define GRAPH_XSIZE 2.4f
 #define GRAPH_YSIZE 2.3f
 #define GRAPH_STEP 5 //divisible by 10
@@ -93,7 +83,8 @@
 #define ITEM_sv 4
 #define ITEM_browse 5
 
-static CONFIG_INT("autoexpo.enabled", enabled, 0);
+static CONFIG_INT("autoexpo.enabled", autoexpo_enabled, 0);
+static CONFIG_INT("autoexpo.lv", autoexpo_lv, 1);
 static CONFIG_INT("autoexpo.same_tv", same_tv, 1);
 static CONFIG_INT("autoexpo.lens_av", lens_av, LENS_AV_THIS);
 // these are for fullframe camereas
@@ -162,8 +153,33 @@ static void autoexpo_task()
     autoexpo_running = 1;
 
     if(!lens_info.raw_shutter) goto cleanup; //open menus
-
-    int bv = RAW2TV(lens_info.raw_shutter) + RAW2AV(lens_info.raw_aperture) - RAW2SV(lens_info.iso_equiv_raw) + RAW2EC(get_ae_value());
+    
+    static int halfpressed = 0;
+    static int last_tv;
+    static int last_ap;
+    static int last_sv;
+    if(autoexpo_lv && lv) {
+        if(!get_halfshutter_pressed() && halfpressed)
+        {
+            halfpressed = 0;
+            
+            lens_set_rawshutter(last_tv);
+            lens_set_rawaperture(last_ap);
+            lens_set_rawiso(last_sv);
+        }
+        
+        if(get_halfshutter_pressed() && !halfpressed)
+        {
+            halfpressed = 1;
+            last_tv = lens_info.raw_shutter;
+            last_ap = lens_info.raw_aperture;
+            last_sv = lens_info.iso_equiv_raw;
+        }
+        
+        if(!get_halfshutter_pressed()) goto cleanup;
+    }
+    
+    int bv = get_bv();
     
     if(bv < -200){ //AE_VALUE overflows, set some low values
         lens_set_rawshutter(60 + 56);
@@ -186,10 +202,10 @@ static void autoexpo_task()
 
 static unsigned int autoexpo_shoot_task(){
     if(
-        enabled &&
+        autoexpo_enabled &&
         shooting_mode == SHOOTMODE_M &&
-        !lv &&
         get_ae_state() != 0 &&
+        (lv && autoexpo_lv) &&
         !autoexpo_running
     )
         task_create("autoexpo_task", 0x1c, 0x1000, autoexpo_task, (void*)0);
@@ -443,9 +459,9 @@ static struct menu_entry autoexpo_menu[] =
 {
     {
         .name = "Auto exposure",
-        .priv = &enabled,
+        .priv = &autoexpo_enabled,
         .max = 1,
-        .depends_on = DEP_M_MODE | DEP_NOT_LIVEVIEW,
+        .depends_on = DEP_M_MODE,
         .submenu_width = 720,
         .help = "Automatic exposure algorithm based on predefined curves.",
         .help2 = "You have to press halfshutter for a while.",
@@ -455,6 +471,14 @@ static struct menu_entry autoexpo_menu[] =
                 .priv = &show_graph,
                 .update = menu_custom_draw_upd,
                 .max = 1,
+            },
+            {
+                .name = "Use in LV",
+                .priv = &autoexpo_lv,
+                .update = menu_custom_draw_upd,
+                .max = 1,
+                .help = "When you press halfshutter exposure will be set.",
+                .help2 = "After release you previos exposure will be restored.",
             },
             {
                 .name = "Lens aperture",
@@ -567,7 +591,8 @@ MODULE_CBRS_START()
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(enabled)
+    MODULE_CONFIG(autoexpo_enabled)
+    MODULE_CONFIG(autoexpo_lv)
     MODULE_CONFIG(same_tv)
     MODULE_CONFIG(lens_av)
     MODULE_CONFIG(tv_min)
