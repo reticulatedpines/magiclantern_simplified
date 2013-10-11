@@ -602,7 +602,7 @@ static void cropmark_step()
     /* cropmark frame changed and nobody asked for update? force an update now (once per second) */
     /* food for thought: could this replace the entire crop_set_dirty thingie? */
     static int aux = 0;
-    if (!crop_dirty && should_run_polling_action(1000, &aux) && cropmarks_frame_changed())
+    if (!crop_dirty && should_run_polling_action(recording ? 500 : 100, &aux) && cropmarks_frame_changed())
     {
         crop_dirty = 1;
     }
