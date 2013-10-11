@@ -486,6 +486,7 @@ static void FAST default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
+    if (hdmi_code == 5) return; // wrongly positioned
     if (!is_movie_mode())
     {
         /* no default cropmarks in photo mode */
