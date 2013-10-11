@@ -158,7 +158,11 @@
     #define FEATURE_LCD_SENSOR_REMOTE
     #define FEATURE_LCD_SENSOR_SHORTCUTS
 #endif
-    #define FEATURE_AUDIO_REMOTE_SHOT
+
+#ifdef CONFIG_AUDIO_CONTROLS
+    #define FEATURE_AUDIO_REMOTE_SHOT   /* requires audio controls, otherwise there's no sound in photo mode */
+#endif
+
     #define FEATURE_MOTION_DETECT
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
