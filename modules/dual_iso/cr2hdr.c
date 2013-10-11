@@ -803,6 +803,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         all_medians[i] = corr;
     }
 
+#if 1
     /* averaging filter */
     for (i = 0; i <= white; i++)
     {
@@ -831,6 +832,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     {
         all_medians[i] = medians_ang[i];
     }
+#endif
 
     /* apply the correction */
     int x, y;
@@ -848,6 +850,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
 after_black_correction:
 
 #if 0
+    (void)0;
     FILE* f = fopen("iso-curve.m", "w");
 
     fprintf(f, "x = [");
@@ -891,6 +894,14 @@ after_black_correction:
 
     printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
     printf("Black delta    : %.2f\n", b);
+    
+    /* adjust black level according to black delta */
+    /* theory: EXIF info shows (black_lo + black_hi) / 2 */
+    /* high ISO has a lower black level because of the feedback loop */
+    /* we correct the low-ISO image to look like the high-ISO one */
+    /* => we'll get the black level of the high ISO */
+    /* => we have to set raw_info.black_level to that value */
+    raw_info.black_level -= b / factor;
 
     return 1;
 }
