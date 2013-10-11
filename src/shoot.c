@@ -163,6 +163,7 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
+static CONFIG_INT( "bulb.display.mode", bulb_display_mode, 0);
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 
@@ -616,6 +617,12 @@ static volatile int afframe_ack = 0;
 static int afframe[128];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len <= sizeof(afframe));
+    
+    if (!lv)
+    {
+        /* I'm not interested in the values of this property outside LiveView */
+        return;
+    }
 
     #ifdef FEATURE_SPOTMETER
     spotmeter_erase();
@@ -626,7 +633,6 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     
     memcpy(afframe, buf, len);
     afframe_ack = 1;
-    
 }
 #else
 static int afframe[100]; // dummy
@@ -634,6 +640,14 @@ static int afframe[100]; // dummy
 
 void get_afframe_pos(int W, int H, int* x, int* y)
 {
+    if (!afframe[0])
+    {
+        /* property did not fire? return center position */
+        *x = W/2;
+        *y = H/2;
+        return;
+    }
+    
     *x = (afframe[2] + afframe[4]/2) * W / afframe[0];
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
@@ -2770,6 +2784,8 @@ bulb_take_pic(int duration)
     int t_end = t_start + duration;
     SW2(1,300);
     
+    int display_forced_on = 0;
+    
     //~ msleep(duration);
     //int d = duration/1000;
     while (get_ms_clock_value() <= t_end - 1500)
@@ -2784,8 +2800,52 @@ bulb_take_pic(int duration)
         
         // check the following at every second:
         
-        // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
-        if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
+        if (bulb_display_mode == 1)
+        {
+            /* for 550D and other cameras that may keep the display on during bulb exposures -> turn it off */
+            if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
+        }
+        #ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
+        else if (bulb_display_mode == 2)
+        {
+            /* remaining time */
+            int r = duration/1000 - s;
+            
+            if (s == 2 && r > 3)
+            {
+                /* turn off the display at the beginning of the exposure */
+                /* not too early, since it may get stuck */
+                /* also, no point in turning it on for very short exposures */
+                display_on();
+                display_forced_on = 1;
+            }
+            else if (r == 2 && display_forced_on)
+            {
+                /* don't forget to turn it off at the end, because Canon firmware expects it this way */
+                /* note: this loop ends at 1.5s, so you can't use r==1 */
+                display_off();
+            }
+            
+            if (DISPLAY_IS_ON)
+            {
+                clrscr();
+                bmp_printf(FONT_LARGE,  50,  50, "Remaining: %d", r);
+                #ifdef FEATURE_INTERVALOMETER
+                if(intervalometer_running)
+                {
+                    static char msg[60];
+                    snprintf(msg, sizeof(msg),
+                             " Intervalometer: %s  \n"
+                             " Pictures taken: %d  ",
+                             format_time_hours_minutes_seconds(intervalometer_next_shot_time - seconds_clock),
+                             intervalometer_pictures_taken);
+                    if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
+                    bmp_printf(FONT_LARGE, 50, 310, msg);
+                }
+                #endif
+            }
+        }
+        #endif
 
         // tell how many minutes the exposure will take
         if (s == 2)
@@ -3730,6 +3790,7 @@ static struct menu_entry shoot_menus[] = {
         .help  = "For very long exposures (several minutes).",
         .help2 = "To trigger, hold shutter pressed halfway for 1 second.",
         .depends_on = DEP_PHOTO_MODE,
+        .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Exposure duration",
@@ -3738,6 +3799,19 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_PERCENT,
                 .select = bulb_toggle,
                 .update = bulb_display_submenu,
+            },
+            {
+                .name = "Display during exposure",
+                .priv = &bulb_display_mode,
+                #ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
+                .max = 2,
+                #else
+                .max = 1,   /* just option to turn it off */
+                #endif
+                .icon_type = IT_DICE_OFF,
+                .choices = CHOICES("Don't change", "Turn off", "Show previous pic"),
+                .help = "Turn the screen on/off while taking bulb exposure.",
+                
             },
             MENU_EOL
         },

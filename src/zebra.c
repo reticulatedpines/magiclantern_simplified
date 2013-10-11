@@ -848,8 +848,10 @@ static void FAST draw_zebras_raw()
 
     int white = raw_info.white_level;
     int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
+    
+    int zoom0 = MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
-    for (int i = os.y0; i < os.y_max; i ++)
+    for (int i = os.y0+20; i < os.y_max; i ++)
     {
         int y = BM2RAW_Y(i);
 
@@ -903,6 +905,8 @@ static void FAST draw_zebras_raw()
 
         if (!DISPLAY_IS_ON) break;
         if (!PLAY_OR_QR_MODE) break;
+        if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) != zoom0) break; /* stop when zooming */
+
     }
 }
 
@@ -2596,10 +2600,12 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
         
+        #ifdef FEATURE_RAW_SPOTMETER
         if (spotmeter_formula == 3)
         {
             menu_checkdep_raw(entry, info);
         }
+        #endif
     }
 }
 #endif
