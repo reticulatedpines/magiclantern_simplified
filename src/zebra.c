@@ -2600,10 +2600,12 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
         
+        #ifdef FEATURE_RAW_SPOTMETER
         if (spotmeter_formula == 3)
         {
             menu_checkdep_raw(entry, info);
         }
+        #endif
     }
 }
 #endif
