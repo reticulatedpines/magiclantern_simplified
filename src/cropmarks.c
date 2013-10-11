@@ -1,5 +1,5 @@
 // included in zebra.c
-// always use cropmarks in plural
+// always use cropmarkS in plural
 
 static void bvram_mirror_clear();
 static void clrscr_mirror();
@@ -14,13 +14,13 @@ void cropmark_clear_cache();
 
 static struct bmp_file_t * cropmarks = 0;
 
-static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
-static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
+static CONFIG_INT( "crop.enable", crop_enabled, 0);  // index of crop file
+static CONFIG_INT( "crop.index", crop_index, 0); // index of crop file
 static CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
 static CONFIG_INT("crop.playback", cropmarks_play, 0);
 
 static int cropmark_cache_dirty = 1;
-static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
+static int crop_dirty = 0; // redraw cropmarks after some time (unit: 0.1s)
 
 static int cropmarks_x = -1;
 static int cropmarks_y = -1;
@@ -30,7 +30,14 @@ void crop_set_dirty(int value)
     crop_dirty = MAX(crop_dirty, value);
 }
 
-#ifdef FEATURE_CROPMARKS
+//also used in debug.c CopyMLDirectoryToRAM_BeforeFormat
+int is_valid_cropmark_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".BMP") || streq(filename + n - 4, ".bmp")) && (filename[0] != '.') && (filename[0] != '_'))
+        return 1;
+    return 0;
+}
 
 #define MAX_CROP_NAME_LEN 15
 #define MAX_CROPMARKS 9
@@ -59,17 +66,7 @@ static void sort_cropmarks()
         }
     }
 }
-#endif
 
-int is_valid_cropmark_filename(char* filename)
-{
-    int n = strlen(filename);
-    if ((n > 4) && (streq(filename + n - 4, ".BMP") || streq(filename + n - 4, ".bmp")) && (filename[0] != '.') && (filename[0] != '_'))
-        return 1;
-    return 0;
-}
-
-#ifdef FEATURE_CROPMARKS
 static void find_cropmarks()
 {
     struct fio_file file;
@@ -132,10 +129,7 @@ crop_toggle( void* priv, int sign )
     //~ reload_cropmark(crop_index);
     crop_set_dirty(10);
 }
-#endif
 
-
-#ifdef FEATURE_CROPMARKS
 static MENU_UPDATE_FUNC(crop_display)
 {
     int index = crop_index;
@@ -239,7 +233,6 @@ static void cropmark_draw_from_cache()
         }
     }
 }
-#endif
 
 void cropmark_clear_cache()
 {
@@ -321,7 +314,6 @@ static int should_use_default_cropmarks()
 }
 
 
-#ifdef FEATURE_CROPMARKS
 static void 
 cropmark_draw()
 {
@@ -442,7 +434,6 @@ cropmark_redraw()
         cropmark_draw(); 
     )
 }
-#endif
 
 #if 0
 void draw_cropmark_area()
@@ -456,9 +447,7 @@ void draw_cropmark_area()
     draw_line(HD2BM_X(0), HD2BM_Y(0), HD2BM_X(vram_hd.width), HD2BM_Y(vram_hd.height), COLOR_RED);
     draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
 }
-#endif
 
-/*
 void show_apsc_crop_factor()
 {
     int x_ex_crop = os.x_ex * 10/16;
@@ -468,7 +457,7 @@ void show_apsc_crop_factor()
     bmp_draw_rect(COLOR_WHITE, os.x0 + x_off, os.y0 + y_off, x_ex_crop, y_ex_crop);
     bmp_draw_rect(COLOR_BLACK, os.x0 + x_off + 1, os.y0 + y_off + 1, x_ex_crop - 2, y_ex_crop - 2);
 }
-*/
+#endif
 
 static void black_bars()
 {
