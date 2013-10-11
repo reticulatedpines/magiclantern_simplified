@@ -1572,21 +1572,21 @@ static struct menu_entry lens_menus[] = {
     #endif
 };
 
-#ifndef CONFIG_FULLFRAME
-
 static struct menu_entry tweak_menus[] = {
    {
         .name = "Lens Info Prefs",
-        .select_Q     = menu_open_submenu,
+        .select   = menu_open_submenu,
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_FULLFRAME
             {
                 .name = "Crop Factor Display",
                 .priv = &crop_info,
                 .max  = 1,
-                .choices = CHOICES("OFF", "ON,35mm eq."),
+                .choices = CHOICES("OFF", "ON, 35mm eq."),
                 .help = "Display the 35mm equiv. focal length including crop factor.",
                 .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
             },
+            #endif
             {
                 .name = "Focus Distance Units",
                 .priv = &focus_units,
@@ -1598,15 +1598,12 @@ static struct menu_entry tweak_menus[] = {
         },
     }
 };
-#endif
 
 // hack to show this at the end of prefs menu
 void
 crop_factor_menu_init()
 {
-#ifndef CONFIG_FULLFRAME
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
-#endif
 }
 
 static void
