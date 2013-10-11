@@ -261,6 +261,66 @@ void cropmark_clear_cache()
 #endif
 }
 
+static int cropmarks_last_drawn_x = -1;
+static int cropmarks_last_drawn_y = -1;
+
+static void cropmarks_clear_last_frame()
+{
+    if (cropmarks_last_drawn_x != -1 && cropmarks_last_drawn_y != -1)
+    {
+        int x1 = (cropmarks_last_drawn_x >> 16);
+        int x2 = (cropmarks_last_drawn_x & 0xFFFF);
+        int y1 = (cropmarks_last_drawn_y >> 16);
+        int y2 = (cropmarks_last_drawn_y & 0xFFFF);
+        bmp_draw_rect(0, x1, y1, x2-x1, y2-y1);
+        bmp_draw_rect(0, x1-1, y1-1, x2-x1+2, y2-y1+2);
+        //~ draw_line(x1,y1,x2,y2,0);
+        //~ draw_line(x1,y2,x2,y1,0);
+        cropmarks_last_drawn_x = -1;
+        cropmarks_last_drawn_y = -1;
+    }
+}
+
+/* only for bitmap cropmarks: if there are any overriden cropmarks, show where they are */
+static void cropmarks_draw_frame()
+{
+    if (cropmarks_x != -1 && cropmarks_y != -1)
+    {
+        int x1 = (cropmarks_x >> 16);
+        int x2 = (cropmarks_x & 0xFFFF);
+        int y1 = (cropmarks_y >> 16);
+        int y2 = (cropmarks_y & 0xFFFF);
+        bmp_draw_rect(COLOR_GRAY(70), x1, y1, x2-x1, y2-y1);
+        bmp_draw_rect(COLOR_BLACK, x1-1, y1-1, x2-x1+2, y2-y1+2);
+        //~ draw_line(x1,y1,x2,y2,COLOR_RED);
+        //~ draw_line(x1,y2,x2,y1,COLOR_RED);
+        cropmarks_last_drawn_x = cropmarks_x;
+        cropmarks_last_drawn_y = cropmarks_y;
+    }
+}
+
+static int cropmarks_last_x = -1;
+static int cropmarks_last_y = -1;
+
+static int cropmarks_frame_changed()    /* changed since last call to cropmarks_frame_save */
+{
+    return (cropmarks_last_x != cropmarks_x) || (cropmarks_last_y != cropmarks_y);
+}
+
+static void cropmarks_frame_save()
+{
+    cropmarks_last_x = cropmarks_x;
+    cropmarks_last_y = cropmarks_y;
+}
+
+static int should_use_default_cropmarks()
+{
+    return 
+        (!crop_enabled) ||
+        (cropmark_movieonly && !is_movie_mode() && lv);
+}
+
+
 #ifdef FEATURE_CROPMARKS
 static void 
 cropmark_draw()
@@ -282,6 +342,11 @@ cropmark_draw()
 
     reload_cropmark(); // reloads only when changed
 
+    if (cropmarks_frame_changed())
+    {
+        cropmarks_clear_last_frame();
+    }
+
     // this is very fast
     if (cropmark_cache_is_valid())
     {
@@ -292,10 +357,7 @@ cropmark_draw()
         goto end;
     }
 
-    if (
-            (!crop_enabled) ||
-            (cropmark_movieonly && !is_movie_mode() && !PLAY_OR_QR_MODE)
-       )
+    if (should_use_default_cropmarks())
     {
         // Cropmarks disabled (or not shown in this mode)
         // Generate and draw default cropmarks
@@ -313,7 +375,7 @@ cropmark_draw()
         clrscr_mirror(); // clean any remaining zebras / peaking
         cropmark_cache_update_signature();
         bvram_mirror_clear();
-        
+
         if (hdmi_code == 5 && is_pure_play_movie_mode())
         {   // exception: cropmarks will have some parts of them outside the screen
             bmp_draw_scaled_ex(cropmarks, BMP_W_MINUS+1, BMP_H_MINUS - 50, 960, 640, bvram_mirror);
@@ -326,18 +388,29 @@ cropmark_draw()
     }
 
 end:
+
+    if (!should_use_default_cropmarks())
+    {
+        /* bitmap cropmarks and overriden default cropmarks? show a simple rectangle */
+        cropmarks_draw_frame();
+    }
+    cropmarks_frame_save();
     cropmark_cache_dirty = 0;
     zoom_overlay_dirty = 1;
     crop_dirty = 0;
 }
 
 static int cropmark_cache_sig = 0;
+
 static int cropmark_cache_get_signature()
 {
     get_yuv422_vram(); // update VRAM params if needed
     int sig = 
-        cropmarks_x * 1601 + cropmarks_y * 481 +
-        crop_index * 13579 + crop_enabled * 14567 +
+        (
+            should_use_default_cropmarks() 
+                ? (cropmarks_x * 1601 + cropmarks_y * 481)          /* default cropmarks: they get burned in the bvram mirror */
+                : (crop_index * 13579 + crop_enabled * 14567)       /* bitmap cropmarks: only the bitmap gets burned in the bvram mirror */
+        ) +
         os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
     return sig;
 }
@@ -424,21 +497,11 @@ static void FAST default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
-    if (!is_movie_mode()) return;
-    
-    if(cropmarks_x == -1 || cropmarks_y == -1)
+    if (!is_movie_mode())
     {
-        if(video_mode_resolution > 1) // 4:3
-        {
-            cropmarks_x = (os.off_43 << 16) | (os.x_max - os.off_43);
-            cropmarks_y = -1;
-        }
-        else
-        {
-            cropmarks_x = -1;
-            cropmarks_y = (os.off_169 << 16) | (os.y_max - os.off_169);
-        }
-        cropmark_cache_update_signature();
+        /* no default cropmarks in photo mode */
+        bvram_mirror_clear();
+        return;
     }
     
     int x,y;
@@ -447,32 +510,56 @@ static void FAST default_movie_cropmarks()
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
     if (!bvram_mirror) return;
+
+    int crop_x = cropmarks_x;
+    int crop_y = cropmarks_y;
+    
+    if(crop_x == -1 || crop_y == -1)
+    {
+        if(video_mode_resolution > 1) // 4:3
+        {
+            crop_x = (os.off_43 << 16) | (os.x_max - os.off_43);
+            crop_y = (os.y0 << 16) | (os.y_max - os.y0);
+        }
+        else
+        {
+            crop_x = (os.x0 << 16) | (os.x_max - os.x0);
+            crop_y = (os.off_169 << 16) | (os.y_max - os.off_169);
+        }
+    }
     
     /*
         doesn't work with HDMI, please fix that, I don't have it
     */
     for (y = os.y0; y < MIN(os.y_max+1, BMP_H_PLUS); y++)
     {
-        int x1 = (cropmarks_x >> 16);
-        int x2 = (cropmarks_x & 0xFFFF);
-        int y1 = (cropmarks_y >> 16);
-        int y2 = (cropmarks_y & 0xFFFF);
+        int x1 = (crop_x >> 16);
+        int x2 = (crop_x & 0xFFFF);
+        int y1 = (crop_y >> 16);
+        int y2 = (crop_y & 0xFFFF);
         
-        bool draw = cropmarks_y != -1 && (y < y1 || y > y2);
+        bool draw = (y < y1 || y > y2);
         
         for (x = os.x0; x < os.x_max; x++)
         {
             int newcolor = 0;
-            if(draw || (cropmarks_x != -1 && (x < x1 || x > x2)))
+            int newcolor_with_flag = 0;
+            if(draw || (x < x1 || x > x2))
             {
                 /* default cropmarks are black */
                 /* border pixels should be brighter, to be visible in dark */
                 int border = (x > x1-2 && x < x2+2 && y > y1-2 && y < y2+2);
                 newcolor = border ? COLOR_GRAY(70) : COLOR_BLACK;
             }
+            
+            if (newcolor)
+            {
+                /* prevent zebras from drawing here */
+                newcolor_with_flag = newcolor | 0x80;
+            }
 
             int idx = BM(x,y);
-            if ((newcolor | 0x80) != bvram_mirror[idx])
+            if (newcolor_with_flag != bvram_mirror[idx])
             {
                 /* anything changed? */
                 
@@ -484,7 +571,7 @@ static void FAST default_movie_cropmarks()
                     bvram[idx] = 0;
                 }
                 
-                bvram_mirror[idx] = newcolor | 0x80;
+                bvram_mirror[idx] = newcolor_with_flag;
             }
         }
     }
@@ -522,10 +609,10 @@ static void black_bars_16x9()
 
 static void cropmark_step()
 {
-    /* cropmark parameters changed and nobody asked for update? force an update now (once per second) */
+    /* cropmark frame changed and nobody asked for update? force an update now (once per second) */
     /* food for thought: could this replace the entire crop_set_dirty thingie? */
     static int aux = 0;
-    if (!crop_dirty && should_run_polling_action(500, &aux) && !cropmark_cache_is_valid())
+    if (!crop_dirty && should_run_polling_action(1000, &aux) && cropmarks_frame_changed())
     {
         crop_dirty = 1;
     }
