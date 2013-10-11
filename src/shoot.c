@@ -3804,7 +3804,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Display during exposure",
                 .priv = &bulb_display_mode,
                 #ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
-                .max = 2;
+                .max = 2,
                 #else
                 .max = 1,   /* just option to turn it off */
                 #endif
