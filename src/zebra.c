@@ -4902,7 +4902,7 @@ livev_hipriority_task( void* unused )
                 }
                 vram_params_set_dirty();
                 zoom_overlay_triggered_by_focus_ring_countdown = 0;
-                crop_set_dirty(cropmark_cache_is_valid() ? 1 : 10);
+                crop_set_dirty(10);
                 msleep(500);
             }
         }

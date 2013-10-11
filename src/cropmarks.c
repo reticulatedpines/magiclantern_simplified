@@ -614,12 +614,12 @@ static void cropmark_step()
         //~ bmp_printf(FONT_MED, 50, 100, "crop: cache=%d dirty=%d ", cropmark_cache_is_valid(), crop_dirty);
 
         // if cropmarks are disabled, we will still draw default cropmarks (fast)
-        if (!(crop_enabled && cropmark_movieonly && !is_movie_mode())) 
-            crop_dirty = MIN(crop_dirty, 4);
+        if (should_use_default_cropmarks()) 
+            crop_dirty = MIN(crop_dirty, 2);
         
         // if cropmarks are cached, we can redraw them fast
         if (cropmark_cache_is_valid() && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
-            crop_dirty = MIN(crop_dirty, 4);
+            crop_dirty = MIN(crop_dirty, 2);
             
         if (crop_dirty == 0)
             cropmark_redraw();
