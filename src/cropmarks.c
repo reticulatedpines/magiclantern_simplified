@@ -245,8 +245,17 @@ void cropmark_clear_cache()
 {
 #ifdef FEATURE_CROPMARKS
     BMP_LOCK(
+        /* clear focus peaking, zebras, but leave the old cropmark */
         clrscr_mirror();
-        bvram_mirror_clear();
+        
+        /* default_movie_cropmarks needs the old cropmark info, for incremental redrawing */
+        /* e.g. if the cropmark shifts a little, it won't redraw the entire thing */
+        /* so don't delete it */
+        //~ bvram_mirror_clear();
+        
+        /* fill bvram_mirror with new cropmarks */
+        /* note: cropmark pixels are identified in mirror by 0x80 */
+        /* this flag does not get transferred to real screen; it's only for mirror */
         default_movie_cropmarks();
     )
 #endif
@@ -303,6 +312,7 @@ cropmark_draw()
         if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
         clrscr_mirror(); // clean any remaining zebras / peaking
         cropmark_cache_update_signature();
+        bvram_mirror_clear();
         
         if (hdmi_code == 5 && is_pure_play_movie_mode())
         {   // exception: cropmarks will have some parts of them outside the screen
@@ -326,7 +336,7 @@ static int cropmark_cache_get_signature()
 {
     get_yuv422_vram(); // update VRAM params if needed
     int sig = 
-        cropmarks_x * 160 + cropmarks_y * 48 +
+        cropmarks_x * 1601 + cropmarks_y * 481 +
         crop_index * 13579 + crop_enabled * 14567 +
         os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
     return sig;
@@ -356,10 +366,6 @@ cropmark_redraw()
     if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
     if (digic_zoom_overlay_enabled()) return;
     BMP_LOCK(
-        if (!cropmark_cache_is_valid())
-        {
-            cropmark_clear_cache();
-        }
         cropmark_draw(); 
     )
 }
@@ -436,20 +442,49 @@ static void FAST default_movie_cropmarks()
     }
     
     int x,y;
+    uint8_t * const bvram = bmp_vram();
+    if (!bvram) return;
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();
-    ASSERT(bvram_mirror);
+    if (!bvram_mirror) return;
     
     /*
         doesn't work with HDMI, please fix that, I don't have it
     */
     for (y = os.y0; y < MIN(os.y_max+1, BMP_H_PLUS); y++)
     {
-        bool draw = cropmarks_y != -1 && (y < (cropmarks_y >> 16) || y > (cropmarks_y & 0xFFFF));
+        int x1 = (cropmarks_x >> 16);
+        int x2 = (cropmarks_x & 0xFFFF);
+        int y1 = (cropmarks_y >> 16);
+        int y2 = (cropmarks_y & 0xFFFF);
+        
+        bool draw = cropmarks_y != -1 && (y < y1 || y > y2);
+        
         for (x = os.x0; x < os.x_max; x++)
         {
-            if(draw || (cropmarks_x != -1 && (x < (cropmarks_x >> 16) || x > (cropmarks_x & 0xFFFF)))) {
-                bvram_mirror[BM(x,y)] = COLOR_BLACK | 0x80;
+            int newcolor = 0;
+            if(draw || (cropmarks_x != -1 && (x < x1 || x > x2)))
+            {
+                /* default cropmarks are black */
+                /* border pixels should be brighter, to be visible in dark */
+                int border = (x > x1-2 && x < x2+2 && y > y1-2 && y < y2+2);
+                newcolor = border ? COLOR_GRAY(70) : COLOR_BLACK;
+            }
+
+            int idx = BM(x,y);
+            if ((newcolor | 0x80) != bvram_mirror[idx])
+            {
+                /* anything changed? */
+                
+                if (newcolor != bvram[idx] && (bvram_mirror[idx] & 0x80) && ((bvram_mirror[idx] & ~0x80) == bvram[idx]))
+                {
+                    /* pixel from the old cropmark? clear from the main screen too */
+                    /* otherwise, cropmark_draw_from_cache will ignore those */
+                    /* note: we could clear the entire screen, but redrawing everything looks ugly; incremental redraws look better */
+                    bvram[idx] = 0;
+                }
+                
+                bvram_mirror[idx] = newcolor | 0x80;
             }
         }
     }
@@ -483,4 +518,33 @@ static void black_bars_16x9()
         bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
     }
 #endif
+}
+
+static void cropmark_step()
+{
+    /* cropmark parameters changed and nobody asked for update? force an update now (once per second) */
+    /* food for thought: could this replace the entire crop_set_dirty thingie? */
+    static int aux = 0;
+    if (!crop_dirty && should_run_polling_action(500, &aux) && !cropmark_cache_is_valid())
+    {
+        crop_dirty = 1;
+    }
+
+    if (crop_dirty && lv && zebra_should_run())
+    {
+        crop_dirty--;
+        
+        //~ bmp_printf(FONT_MED, 50, 100, "crop: cache=%d dirty=%d ", cropmark_cache_is_valid(), crop_dirty);
+
+        // if cropmarks are disabled, we will still draw default cropmarks (fast)
+        if (!(crop_enabled && cropmark_movieonly && !is_movie_mode())) 
+            crop_dirty = MIN(crop_dirty, 4);
+        
+        // if cropmarks are cached, we can redraw them fast
+        if (cropmark_cache_is_valid() && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
+            crop_dirty = MIN(crop_dirty, 4);
+            
+        if (crop_dirty == 0)
+            cropmark_redraw();
+    }
 }

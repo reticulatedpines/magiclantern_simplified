@@ -4720,24 +4720,7 @@ clearscreen_loop:
 
         #ifdef FEATURE_CROPMARKS
         // since this task runs at 10Hz, I prefer cropmark redrawing here
-
-        if (crop_dirty && lv && zebra_should_run())
-        {
-            crop_dirty--;
-            
-            //~ bmp_printf(FONT_MED, 50, 100, "crop: cache=%d dirty=%d ", cropmark_cache_is_valid(), crop_dirty);
-
-            // if cropmarks are disabled, we will still draw default cropmarks (fast)
-            if (!(crop_enabled && cropmark_movieonly && !is_movie_mode())) 
-                crop_dirty = MIN(crop_dirty, 4);
-            
-            // if cropmarks are cached, we can redraw them fast
-            if (cropmark_cache_is_valid() && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
-                crop_dirty = MIN(crop_dirty, 4);
-                
-            if (crop_dirty == 0)
-                cropmark_redraw();
-        }
+        cropmark_step();
         #endif
     }
 }
