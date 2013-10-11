@@ -231,7 +231,7 @@ void update_vram_params()
 #if defined(CONFIG_4_3_SCREEN)
     if (!EXT_MONITOR_CONNECTED)
     {
-        if (PLAY_MODE || QR_MODE)
+        if (!lv)  /* Playback, QR, in the middle of taking a picture... */
         {
             os.y0   = 52; // black bar is at the top in play mode, 48 with additional info
             os.y_ex = 428; // 480 - os.y0; // screen height is 480px in total
@@ -279,7 +279,7 @@ void update_vram_params()
     vram_lv.pitch = vram_lv.width * 2;    
     os.x0 = 0;
     //~ os.y0 = 0;
-    os.y0 = (PLAY_MODE || QR_MODE)? 48 : 0; 
+    os.y0 = lv ? 0 : 48; 
     os.x_ex = 720;
     //~ os.y_ex = 480;
     os.y_ex = 480 - os.y0;    

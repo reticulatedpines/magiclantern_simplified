@@ -40,6 +40,10 @@
 
 static int dirty = 0;
 
+/* dual ISO interface */
+static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
+static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_improvement);
+
 /*********************** Camera-specific constants ****************************/
 
 /**
@@ -97,8 +101,6 @@ void raw_buffer_intercept_from_stateobj()
      * look it up on the EDMAC registers and use that one instead.
      */
     raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
-
-
 }
 
 /** 
@@ -321,13 +323,9 @@ static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
 static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 #endif
 
-static int autodetect_black_level(float* black_mean, float* black_stdev);
-static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
+static int autodetect_black_level(int* black_mean, int* black_stdev);
+static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level();
-
-/* dual ISO interface */
-static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
-static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_improvement);
 
 int raw_update_params()
 {
@@ -638,7 +636,7 @@ int raw_update_params()
 
     raw_info.white_level = WHITE_LEVEL;
 
-    static float black_mean, black_stdev;
+    static int black_mean, black_stdev;
 
     int black_aux = INT_MIN;
     if (!lv || dirty || should_run_polling_action(1000, &black_aux))
@@ -713,7 +711,7 @@ int raw_update_params()
     dbg_printf("saving raw buffer...\n");
     dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), CARD_DRIVE"raw.buf");
     dbg_printf("saving DNG...\n");
-    save_dng(CARD_DRIVE"raw.dng");
+    save_dng(CARD_DRIVE"raw.dng", &raw_info);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     dbg_printf("done\n");
     #endif
@@ -1033,7 +1031,7 @@ int FAST ev_to_raw(float ev)
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
-static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, float* out_mean, float* out_stdev)
+static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev)
 {
     int black = 0;
     int num = 0;
@@ -1047,10 +1045,10 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
         }
     }
 
-    float mean = black / num;
+    int mean = black / num;
 
     /* compute standard deviation */
-    float stdev = 0;
+    int stdev = 0;
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -1064,31 +1062,41 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
             #endif
         }
     }
-    stdev /= num;
-    stdev = sqrtf(stdev);
+    
+    if (num)
+    {
+        stdev /= num;
+        stdev = sqrtf(stdev);
+    }
+    else
+    {
+        /* use some "sane" values instead of inf/nan */
+        stdev = 8;
+        mean = 2048;
+    }
     
     *out_mean = mean;
     *out_stdev = stdev;
 }
 
-static int autodetect_black_level(float* black_mean, float* black_stdev)
+static int autodetect_black_level(int* black_mean, int* black_stdev)
 {
     /* also handle black level for dual ISO */
-    float mean1 = 0;
-    float stdev1 = 0;
-    float mean2 = 0;
-    float stdev2 = 0;
+    int mean1 = 0;
+    int stdev1 = 0;
+    int mean2 = 0;
+    int stdev2 = 0;
     
     if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
     {
         autodetect_black_level_calc(
-            4, raw_info.active_area.x1 - 4,
+            16, raw_info.active_area.x1 - 16,
             raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
             3, 16,
             &mean1, &stdev1
         );
         autodetect_black_level_calc(
-            4, raw_info.active_area.x1 - 4,
+            16, raw_info.active_area.x1 - 16,
             raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20, 
             3, 16,
             &mean2, &stdev2
@@ -1127,23 +1135,30 @@ static int autodetect_white_level(int initial_guess)
     int confirms = 0;
 
     //~ bmp_printf(FONT_MED, 50, 50, "White...");
-    
-    struct raw_pixblock * start = raw_info.buffer + raw_info.active_area.y1 * raw_info.pitch;
-    struct raw_pixblock * end = raw_info.buffer + raw_info.active_area.y2 * raw_info.pitch;
 
-    for (struct raw_pixblock * p = start; p < end; p += 5)
+    int raw_height = raw_info.active_area.y2 - raw_info.active_area.y1;
+    for (int y = raw_info.active_area.y1 + raw_height/10; y < raw_info.active_area.y2 - raw_height/10; y += 5)
     {
-        if (p->a > max)
+        int pitch = raw_info.width/8*14;
+        int row = (intptr_t) raw_info.buffer + y * pitch;
+        int skip_5p = ((raw_info.active_area.x2 - raw_info.active_area.x1) * 6/128)/8*14; /* skip 5% */
+        int row_crop_start = row + raw_info.active_area.x1/8*14 + skip_5p;
+        int row_crop_end = row + raw_info.active_area.x2/8*14 - skip_5p;
+        
+        for (struct raw_pixblock * p = (void*)row_crop_start; (void*)p < (void*)row_crop_end; p += 5)
         {
-            max = p->a;
-            confirms = 1;
-        }
-        else if (p->a == max)
-        {
-            confirms++;
-            if (confirms > 10)
+            if (p->a > max)
             {
-                white = max - 500;
+                max = p->a;
+                confirms = 1;
+            }
+            else if (p->a == max)
+            {
+                confirms++;
+                if (confirms > 5)
+                {
+                    white = max - 500;
+                }
             }
         }
     }
@@ -1153,7 +1168,7 @@ static int autodetect_white_level(int initial_guess)
     return white;
 }
 
-static int compute_dynamic_range(float black_mean, float black_stdev, int white_level)
+static int compute_dynamic_range(int black_mean, int black_stdev, int white_level)
 {
     /**
      * A = full well capacity / read-out noise 
@@ -1165,16 +1180,16 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
      * except at very high ISOs where there seems to be noise reduction applied to raw data
      */
 
-#if RAW_DEBUG_DR
+#ifdef RAW_DEBUG_DR
     int mean = black_mean * 100;
     int stdev = black_stdev * 100;
     bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
-    white_level = autodetect_white_level();
+    white_level = autodetect_white_level(15000);
 #endif
 
     int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev)) * 100);
 
-#if RAW_DEBUG_DR
+#ifdef RAW_DEBUG_DR
     bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
 #endif
 

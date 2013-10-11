@@ -60,6 +60,10 @@ CONFIG_INT("crop.info", crop_info, 0);
 CONFIG_INT("crop.info", crop_info, 0);
 #endif
 
+#define FOCUS_UNITS_METRIC 0
+#define FOCUS_UNITS_IMPERIAL 1
+CONFIG_INT("focus.units", focus_units, FOCUS_UNITS_METRIC);
+
 //~ static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
 //~ static struct semaphore * job_sem;
@@ -166,23 +170,38 @@ lens_format_dist(
 const char * lens_format_dist( unsigned mm)
 {
    static char dist[ 32 ];
-
-   if( mm > 100000 ) // 100 m
-   {
-      snprintf( dist, sizeof(dist), SYM_INFTY);
-   }
-   else if( mm > 10000 ) // 10 m
-   {
-      snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
-   }
-   else    if( mm >  1000 ) // 1 m 
-   {
-      snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
-   }
-   else
-   {
-      snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
-   }
+    
+    if( mm > 100000 ) //100 m
+    {
+        snprintf( dist, sizeof(dist), SYM_INFTY);
+    }
+    else if(focus_units == FOCUS_UNITS_IMPERIAL)
+    {
+        int inches = (mm * 10 / 254);
+        if( inches > 24 ) // 2 ft
+        {
+            snprintf( dist, sizeof(dist), "%dft", (inches + 6) / 12); //+6 to round properly
+        }
+        else
+        {
+            snprintf( dist, sizeof(dist),"%din", inches);
+        }
+    }
+    else
+    {
+        if( mm > 10000 ) // 10 m
+        {
+            snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
+        }
+        else    if( mm >  1000 ) // 1 m
+        {
+            snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+        }
+        else
+        {
+            snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+        }
+    }
 
    return (dist);
 } /* end of aj_lens_format_dist() */
@@ -1553,27 +1572,38 @@ static struct menu_entry lens_menus[] = {
     #endif
 };
 
-#ifndef CONFIG_FULLFRAME
-
 static struct menu_entry tweak_menus[] = {
-    {
-        .name = "Crop Factor Display",
-        .priv = &crop_info,
-        .max  = 1,
-        .choices = CHOICES("OFF", "ON,35mm eq."),
-        .help = "Display the 35mm equiv. focal length including crop factor.",
-        .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
+   {
+        .name = "Lens Info Prefs",
+        .select   = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_FULLFRAME
+            {
+                .name = "Crop Factor Display",
+                .priv = &crop_info,
+                .max  = 1,
+                .choices = CHOICES("OFF", "ON, 35mm eq."),
+                .help = "Display the 35mm equiv. focal length including crop factor.",
+                .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
+            },
+            #endif
+            {
+                .name = "Focus Distance Units",
+                .priv = &focus_units,
+                .choices = CHOICES("mm/cm", "ft/in"),
+                .max = 1,
+                .help  = "Can select between Metric and Imperial focus distance units",
+            },
+            MENU_EOL
+        },
     }
 };
-#endif
 
 // hack to show this at the end of prefs menu
 void
 crop_factor_menu_init()
 {
-#ifndef CONFIG_FULLFRAME
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
-#endif
 }
 
 static void

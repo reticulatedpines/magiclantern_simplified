@@ -45,6 +45,10 @@ $(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
 
+# tag any function with DUMP_ASM, then run "make dump_asm" from module directory
+dump_asm: all
+	$(OBJDUMP) -d -M reg-names-raw --section=.dump_asm $(MODULE_OBJS)
+
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) '{print $$2 " " $$8;}' | sort > $@ && cat $@)
 %.dep: %.mo

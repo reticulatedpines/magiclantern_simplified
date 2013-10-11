@@ -2883,12 +2883,17 @@ static void save_crash_log()
     msleep(1000);
 
     if (crash_log_requested == 1)
+    {
         NotifyBox(5000, "Crash detected - log file saved.\n"
                         "Pls send CRASH%02d.LOG to ML devs.\n"
                         "\n"
                         "%s", log_number, get_assert_msg());
+    }
     else
-        info_led_blink(10,20,20);
+    {
+        console_printf("%s\n", get_assert_msg());
+        console_show();
+    }
 
 }
 

@@ -776,8 +776,10 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
     /* convert to y = ax + b */
     double a = tan(ma / 1000000.0);
     double b = my - a * mx;
+    
+    #define BLACK_DELTA_THR 200
 
-    if (ABS(b) > 200)
+    if (ABS(b) > BLACK_DELTA_THR)
     {
         /* sum ting wong */
         b = 0;
@@ -796,7 +798,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
             continue;
         int ideal = (i - black) * a + black;
         int corr = ideal - med;
-        if (ABS(corr - (-b)) > 100)
+        if (ABS(corr - (-b)) > BLACK_DELTA_THR)
             corr = -b;           /* outlier? */
         all_medians[i] = corr;
     }
@@ -1105,6 +1107,13 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
     {
         for (x = 4; x < w-4; x += 2)
         {
+            int g1 = inp[x+1 +     y * w];
+            int g2 = inp[x   + (y+1) * w];
+            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+            
+            /* looks ugly in darkness */
+            if (ge < 2*EV_RESOLUTION) continue;
+
             int i,j;
             int k = 0;
             int med_r[25];
@@ -1127,12 +1136,11 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
             int dr = opt_med25(med_r);
             int db = opt_med25(med_b);
 
-            int g1 = inp[x+1 +     y * w];
-            int g2 = inp[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
+            if (ge + dr <= EV_RESOLUTION) continue;
+            if (ge + db <= EV_RESOLUTION) continue;
 
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, 0, 14*EV_RESOLUTION)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, 0, 14*EV_RESOLUTION)];
         }
     }
 }
@@ -1973,9 +1981,9 @@ static int hdr_interpolate()
             int fe = raw2ev[f];
             int he = raw2ev[h];
             int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
-            e_lin = MAX(e_lin - dark_noise, 0);
+            e_lin = MAX(e_lin - dark_noise*3/2, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
-            alias_map[x + y*w] = MIN(e_lin*16, e_log/8);
+            alias_map[x + y*w] = MIN(e_lin*8, e_log/8);
         }
     }
 
@@ -2016,7 +2024,7 @@ static int hdr_interpolate()
     {
         for (x = 6; x < w-6; x ++)
         {
-            /* use 5th max (out of 49) to filter isolated pixels */
+            /* use 8th max (out of 49) to filter isolated pixels */
             int neighbours[50];
             int k = 0;
             int i,j;
@@ -2029,7 +2037,7 @@ static int hdr_interpolate()
             }
             /* quite slow, but trivial to write and tweak */
             QSORT(int, neighbours, k, int_lt);
-            alias_aux[x + y * w] = neighbours[k-5];
+            alias_aux[x + y * w] = neighbours[k-8];
         }
     }
 
@@ -2168,8 +2176,8 @@ static int hdr_interpolate()
     /* fullres mixing curve */
     static double fullres_curve[65536];
     
-    static double fullres_start = 5;
-    static double fullres_transition = 2;
+    static double fullres_start = 5.5;
+    static double fullres_transition = 3;
     
     for (i = 0; i < 65536; i++)
     {
@@ -2240,7 +2248,7 @@ static int hdr_interpolate()
             int output = frev;
 #else
             /* blending factor */
-            int f = fullres_curve[b & 65535];
+            double f = fullres_curve[b & 65535];
             
             #ifdef ALIAS_BLEND
             int co = alias_map[x + y*w];
@@ -2263,6 +2271,10 @@ static int hdr_interpolate()
             /* don't use fullres on hot pixels */
             if (hotpixel[x + y*w])
                 f = 0;
+            
+            /* limit the use of fullres in dark areas (fixes some black spots, but may increase aliasing) */
+            int sig = (dark[x + y*w] + bright[x + y*w]) / 2;
+            f = MAX(0, MIN(f, (double)(sig - black) / (4*dark_noise)));
             
             /* blend "half-res" and "full-res" images smoothly to avoid banding*/
             int output = hrev * (1-f) + fev * f;
