@@ -800,7 +800,7 @@ void play_lv_key_step()
     {
         for (int i = 0; i < 5; i++)
         {
-            NotifyBox(1000, "Rate: +%d...", play_rate_flag % 6);
+            NotifyBox(1000, "Rate: %s%d...", (play_rate_flag > 0) ? "+" : "", play_rate_flag % 6);
             msleep(100);
         }
         if (play_rate_flag == prev) break;
@@ -815,11 +815,10 @@ void play_lv_key_step()
         NotifyBoxHide();
         fake_simple_button(BGMT_Q); // rate image
         fake_simple_button(BGMT_PRESS_DOWN);
-    
-#ifdef CONFIG_6D    //~ it moves too fast to register the second click down otherwise.
+        #if defined(CONFIG_6D) // too fast
         msleep(200);
-    #endif
-
+        #endif
+    
         // for photos, we need to go down 2 steps
         // for movies, we only need 1 step
         if (pure_play_photo_mode) {
@@ -829,14 +828,28 @@ void play_lv_key_step()
         #ifdef BGMT_UNPRESS_UDLR
         fake_simple_button(BGMT_UNPRESS_UDLR);
         #else
+        #ifndef CONFIG_6D // unpress produces another unwanted curser move
         fake_simple_button(BGMT_UNPRESS_DOWN);
         #endif
-        
+        #endif
+
         // alter rating N times
         int n = play_rate_flag;
-        for (int i = 0; i < n; i++)
-            fake_simple_button(BGMT_WHEEL_DOWN);
-        
+        #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+        if (play_rate_flag > 0)
+        {
+        #endif
+            for (int i = 0; i < n; i++)
+                fake_simple_button(BGMT_WHEEL_DOWN);
+        #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+        }
+        else
+        {
+            for (int i = 0; i > n; i--)
+                fake_simple_button(BGMT_WHEEL_UP);
+        }
+        #endif
+	     
         fake_simple_button(BGMT_Q); // close dialog
         play_rate_flag = 0;
 
@@ -893,7 +906,12 @@ int handle_lv_play(struct event * event)
         }
     }
 #else
-    if (event->param == BGMT_LV && PLAY_MODE)
+    if (!rating_in_progress && PLAY_MODE && (event->param == BGMT_LV
+        #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+        || ((event->param == BGMT_PRESS_UP || event->param == BGMT_PRESS_DOWN)
+        && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
+        #endif
+       ))
     {
         #ifdef FEATURE_LV_BUTTON_RATE
         if (!is_pure_play_photo_or_movie_mode())
@@ -903,16 +921,29 @@ int handle_lv_play(struct event * event)
         }
         if (play_lv_action == 2)
         {
-            play_rate_flag++;
+            #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+            if (event->param == BGMT_PRESS_DOWN)
+                play_rate_flag--;
+            else
+            #endif
+                play_rate_flag++;
         }
         #endif
 
         #ifdef FEATURE_LV_BUTTON_PROTECT
         if (play_lv_action == 1)
         {
-            fake_simple_button(BGMT_Q); // toggle protect current image
-            fake_simple_button(BGMT_WHEEL_DOWN);
-            fake_simple_button(BGMT_Q);
+           fake_simple_button(BGMT_Q); // toggle protect current image
+           #ifdef CONFIG_6D
+           fake_simple_button(BGMT_PRESS_DOWN);
+           msleep(100);
+           fake_simple_button(BGMT_PRESS_UP);
+           msleep(100);
+           fake_simple_button(BGMT_WHEEL_DOWN);
+           #else
+           fake_simple_button(BGMT_WHEEL_DOWN);
+           #endif
+           fake_simple_button(BGMT_Q);
         }
         #endif
         
@@ -3764,11 +3795,14 @@ static struct menu_entry play_menus[] = {
 
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
-                .help = "You may use the LiveView button to Protect or Rate images.",
+                .help = "You may use the LiveView button to protect or rate images.",
+                #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+                .help2 = "Also up/down keys/joystick work as +/- rating if zoomed out.",
+                #endif
                 .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
                 .max = 1,
-                .help = "You may use the LiveView button to Protect images quickly.",
+                .help = "You may use the LiveView button to protect images quickly.",
                 .icon_type = IT_BOOL,
                 #else
                 #error Hudson, we have a problem!
@@ -3877,3 +3911,4 @@ INIT_FUNC(__FILE__, tweak_init);
 #ifndef FEATURE_ARROW_SHORTCUTS
 int arrow_keys_shortcuts_active() { return 0; }
 #endif
+
