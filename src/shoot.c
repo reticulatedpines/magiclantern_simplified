@@ -163,6 +163,7 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
+static CONFIG_INT( "bulb.display.mode", bulb_display_mode, 0);
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 
@@ -2797,8 +2798,31 @@ bulb_take_pic(int duration)
         
         // check the following at every second:
         
-        // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
-        if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
+        if(bulb_display_mode == 1)
+        {
+            // for 550D and other cameras that may keep the display on during bulb exposures -> turn it off
+            if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
+        }
+        else if(bulb_display_mode == 2)
+        {
+            if (s==1) display_on();
+            
+            clrscr();
+            bmp_printf(FONT_LARGE,  50,  50, "Remaining: %d", duration/1000 - s);
+#ifdef FEATURE_INTERVALOMETER
+            if(intervalometer_running)
+            {
+                static char msg[60];
+                snprintf(msg, sizeof(msg),
+                         " Intervalometer: %s  \n"
+                         " Pictures taken: %d  ",
+                         format_time_hours_minutes_seconds(intervalometer_next_shot_time - seconds_clock),
+                         intervalometer_pictures_taken);
+                if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
+                bmp_printf(FONT_LARGE, 50, 310, msg);
+            }
+#endif
+        }
 
         // tell how many minutes the exposure will take
         if (s == 2)
@@ -3743,6 +3767,7 @@ static struct menu_entry shoot_menus[] = {
         .help  = "For very long exposures (several minutes).",
         .help2 = "To trigger, hold shutter pressed halfway for 1 second.",
         .depends_on = DEP_PHOTO_MODE,
+        .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Exposure duration",
@@ -3751,6 +3776,16 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_PERCENT,
                 .select = bulb_toggle,
                 .update = bulb_display_submenu,
+            },
+            {
+                .name = "Display during exposure",
+                .priv = &bulb_display_mode,
+                .max = 2,
+                .icon_type = IT_DICE_OFF,
+                .choices = CHOICES("Don't Change", "Force Off", "Force On"),
+                .help = "Turn the screen on/off while taking bulb exposure",
+                .help2 = "Force on to see status & previous pic during bulb",
+                
             },
             MENU_EOL
         },
