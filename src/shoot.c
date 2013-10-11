@@ -2784,6 +2784,8 @@ bulb_take_pic(int duration)
     int t_end = t_start + duration;
     SW2(1,300);
     
+    int display_forced_on = 0;
+    
     //~ msleep(duration);
     //int d = duration/1000;
     while (get_ms_clock_value() <= t_end - 1500)
@@ -2798,31 +2800,52 @@ bulb_take_pic(int duration)
         
         // check the following at every second:
         
-        if(bulb_display_mode == 1)
+        if (bulb_display_mode == 1)
         {
-            // for 550D and other cameras that may keep the display on during bulb exposures -> turn it off
+            /* for 550D and other cameras that may keep the display on during bulb exposures -> turn it off */
             if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
         }
-        else if(bulb_display_mode == 2)
+        #ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
+        else if (bulb_display_mode == 2)
         {
-            if (s==1) display_on();
+            /* remaining time */
+            int r = duration/1000 - s;
             
-            clrscr();
-            bmp_printf(FONT_LARGE,  50,  50, "Remaining: %d", duration/1000 - s);
-#ifdef FEATURE_INTERVALOMETER
-            if(intervalometer_running)
+            if (s == 2 && r > 3)
             {
-                static char msg[60];
-                snprintf(msg, sizeof(msg),
-                         " Intervalometer: %s  \n"
-                         " Pictures taken: %d  ",
-                         format_time_hours_minutes_seconds(intervalometer_next_shot_time - seconds_clock),
-                         intervalometer_pictures_taken);
-                if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
-                bmp_printf(FONT_LARGE, 50, 310, msg);
+                /* turn off the display at the beginning of the exposure */
+                /* not too early, since it may get stuck */
+                /* also, no point in turning it on for very short exposures */
+                display_on();
+                display_forced_on = 1;
             }
-#endif
+            else if (r == 2 && display_forced_on)
+            {
+                /* don't forget to turn it off at the end, because Canon firmware expects it this way */
+                /* note: this loop ends at 1.5s, so you can't use r==1 */
+                display_off();
+            }
+            
+            if (DISPLAY_IS_ON)
+            {
+                clrscr();
+                bmp_printf(FONT_LARGE,  50,  50, "Remaining: %d", r);
+                #ifdef FEATURE_INTERVALOMETER
+                if(intervalometer_running)
+                {
+                    static char msg[60];
+                    snprintf(msg, sizeof(msg),
+                             " Intervalometer: %s  \n"
+                             " Pictures taken: %d  ",
+                             format_time_hours_minutes_seconds(intervalometer_next_shot_time - seconds_clock),
+                             intervalometer_pictures_taken);
+                    if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
+                    bmp_printf(FONT_LARGE, 50, 310, msg);
+                }
+                #endif
+            }
         }
+        #endif
 
         // tell how many minutes the exposure will take
         if (s == 2)
@@ -3780,11 +3803,14 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Display during exposure",
                 .priv = &bulb_display_mode,
-                .max = 2,
+                #ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
+                .max = 2;
+                #else
+                .max = 1,   /* just option to turn it off */
+                #endif
                 .icon_type = IT_DICE_OFF,
-                .choices = CHOICES("Don't Change", "Force Off", "Force On"),
-                .help = "Turn the screen on/off while taking bulb exposure",
-                .help2 = "Force on to see status & previous pic during bulb",
+                .choices = CHOICES("Don't change", "Turn off", "Show previous pic"),
+                .help = "Turn the screen on/off while taking bulb exposure.",
                 
             },
             MENU_EOL

@@ -11,3 +11,5 @@
 #define FEATURE_RAW_HISTOGRAM
 
 #undef FEATURE_LV_BUTTON_RATE_UPDOWN // Canon uses up/down in play mode
+
+#undef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC // screen remains black
