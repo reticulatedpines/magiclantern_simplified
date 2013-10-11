@@ -641,8 +641,9 @@ static struct menu_entry isoless_menu[] =
                 .name = "Custom file prefix",
                 .priv = &isoless_file_prefix,
                 .max = 1,
-                .choices = CHOICES("OFF", "DUAL"),
+                .choices = CHOICES("OFF", "DUAL (unreliable!)"),
                 .help  = "Change file prefix for dual ISO photos (e.g. DUAL0001.CR2).",
+                .help2 = "Will not sync properly in burst mode or when taking pics quickly."
             },
             MENU_EOL,
         },
