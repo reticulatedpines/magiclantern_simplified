@@ -259,6 +259,8 @@ static int32_t frame_count = 0;                       /* how many frames we have
 static int32_t frame_skips = 0;                       /* how many frames were dropped/skipped */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
+static uint32_t threads_running;
+
 /* per-thread data */
 static char chunk_filename[MAX_WRITER_THREADS][MAX_PATH];                  /* file name for current movie chunk */
 static uint32_t written[MAX_WRITER_THREADS];                          /* how many KB we have written in this movie */
@@ -313,7 +315,6 @@ extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_frame(unsigned char *frame_data);
 extern WEAK_FUNC(ret_1) uint32_t raw_rec_cbr_save_buffer(uint32_t used, uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_buffer(uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
-
 
 /* helper functions for atomic in-/decrasing variables */
 static void atomic_inc(uint32_t *value)
@@ -1298,10 +1299,14 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     raw_lv_request_update();
     
     if (!raw_video_enabled)
+    {
         return 0;
+    }
     
     if (!lv || !is_movie_mode())
+    {
         return 0;
+    }
 
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
@@ -1319,12 +1324,14 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
         /* enqueue lens, rtc, expo etc status */
         if(should_run_polling_action(MLV_RTCI_BLOCK_INTERVAL, &rtci_queueing))
         {
+            trace_write(raw_rec_trace_ctx, "[polling_cbr] queueing RTCI");
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
             mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
             msg_queue_post(mlv_block_queue, rtci_hdr);
         }
         if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing))
         {
+            trace_write(raw_rec_trace_ctx, "[polling_cbr] queueing INFO blocks");
             mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
             mlv_lens_hdr_t *lens_hdr = malloc(sizeof(mlv_lens_hdr_t));
             mlv_wbal_hdr_t *wbal_hdr = malloc(sizeof(mlv_wbal_hdr_t));
@@ -1403,28 +1410,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
-
-/* todo: reference counting, like with raw_lv_request */
-static void cache_require(int32_t lock)
-{
-    static int32_t cache_was_unlocked = 0;
-    if (lock)
-    {
-        if (!cache_locked())
-        {
-            cache_was_unlocked = 1;
-            icache_lock();
-        }
-    }
-    else
-    {
-        if (cache_was_unlocked)
-        {
-            icache_unlock();
-            cache_was_unlocked = 0;
-        }
-    }
-}
 
 static void unhack_liveview_vsync(int32_t unused);
 
@@ -2267,7 +2252,9 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
 
 static void raw_writer_task(uint32_t writer)
 {
-    //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: starting", writer);
+    trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: starting", writer);
+    
+    atomic_inc(&threads_running);
     struct msg_queue *queue = mlv_writer_queues[writer];
 
     /* keep it local to make sure it is getting optimized */
@@ -2468,9 +2455,7 @@ static void raw_writer_task(uint32_t writer)
         {
 abort:
             raw_recording_state = RAW_FINISHING;
-            bmp_printf( FONT_MED, 30, 90, 
-                "Movie recording stopped automagically     "
-            );
+            bmp_printf( FONT_MED, 30, 90, "Movie recording stopped automagically     ");
             /* this is error beep, not audio sync beep */
             beep_times(2);
             break;
@@ -2490,6 +2475,8 @@ abort:
     {
         FIO_RemoveFile(chunk_filename[writer]);
     }
+    
+    atomic_dec(&threads_running);
 }
 
 static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
@@ -2509,7 +2496,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         /* do not decrease write size if skipping is allowed */
         if (!allow_frame_skip && frame_limit >= 0 && frame_limit < (int32_t)write_job->block_len)
         {
-            trace_write(raw_rec_trace_ctx, "<-- careful, will overflow in %d.%d seconds, better write only %d frames", overflow_time/10, overflow_time%10, frame_limit);
+            //trace_write(raw_rec_trace_ctx, "<-- careful, will overflow in %d.%d seconds, better write only %d frames", overflow_time/10, overflow_time%10, frame_limit);
             write_job->block_len = MAX(1, frame_limit - 2);
             write_job->block_size = 0;
             
@@ -2675,7 +2662,27 @@ static void raw_video_rec_task()
         /* create writer threads with decreasing priority */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            task_create("writer_thread", 0x1C + writer, 0x1000, raw_writer_task, (void*)writer);
+            uint32_t base_prio = 0x05;
+            
+            if(cam_5d2)
+            {
+                base_prio = 0x1C;
+            }
+            task_create("writer_thread", base_prio + writer, 0x1000, raw_writer_task, (void*)writer);
+        }
+        
+        /* wait a bit to make sure threads are running */
+        uint32_t thread_wait = 10;
+        while(!threads_running)
+        {
+            thread_wait--;
+            if(!thread_wait)
+            {
+                trace_write(raw_rec_trace_ctx, "Threads failed to start");
+                beep_times(2);
+                return;
+            }
+            msleep(100);
         }
         
         uint32_t used_slots = 0;
@@ -2684,11 +2691,13 @@ static void raw_video_rec_task()
         
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
-            /* on shutdown exit immediately */
-            if(ml_shutdown_requested)
+            /* on shutdown or writers that aborted, abort */
+            if(ml_shutdown_requested || !threads_running)
             {
-                trace_flush(raw_rec_trace_ctx);
-                return;
+                /* exclusive edmac access no longer needed */
+                edmac_memcpy_res_unlock();
+                recording = 0;
+                goto cleanup;
             }
             
             /* here we receive a previously sent job back. process it after refilling the queue */
@@ -2887,14 +2896,18 @@ static void raw_video_rec_task()
         do
         {
             /* on shutdown exit immediately */
-            if(ml_shutdown_requested)
+            if(ml_shutdown_requested || !threads_running)
             {
-                return;
+                /* exclusive edmac access no longer needed */
+                edmac_memcpy_res_unlock();
+                recording = 0;
+                goto cleanup;
             }
             
             show_buffer_status();
-            has_data = 0;
             
+            /* wait until all writers wrote their data */
+            has_data = 0;
             for(int32_t slot = 0; slot < slot_count; slot++)
             {
                 if(slots[slot].status == SLOT_WRITING)
@@ -2908,7 +2921,7 @@ static void raw_video_rec_task()
                 trace_write(raw_rec_trace_ctx, "<-- still have data to write...");
             }
             msleep(200);
-        } while(has_data);
+        } while(has_data && threads_running);
         
         /* done, this will stop the vsync CBR and the copying task */
         raw_recording_state = RAW_FINISHING;
@@ -2979,17 +2992,21 @@ static void raw_video_rec_task()
         trace_flush(raw_rec_trace_ctx);
     } while(test_mode && !abort_test);
     
+cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopping();
     
-
     bmp_printf( FONT_MED, 30, 70, 
         "Frames captured: %d               ", 
         frame_count - 1
     );
     
-    
-cleanup:
+    if(show_graph)
+    {
+        take_screenshot(0);
+    }
+    trace_flush(raw_rec_trace_ctx);
+
     free_buffers();
     
     /* count up take number */
@@ -2998,15 +3015,9 @@ cleanup:
         raw_tag_take++;
     }
     
-    if(show_graph)
-    {
-        take_screenshot(0);
-    }
     hack_liveview(1);
     redraw();
     raw_recording_state = RAW_IDLE;
-    
-    trace_flush(raw_rec_trace_ctx);
 }
 
 static MENU_SELECT_FUNC(raw_start_stop)
