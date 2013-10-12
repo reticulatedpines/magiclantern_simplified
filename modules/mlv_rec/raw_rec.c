@@ -65,8 +65,8 @@
 #include <bmp.h>
 #include <menu.h>
 #include <config.h>
-#include <math.h
-#include <cropmarks.h>>
+#include <math.h>
+#include <cropmarks.h>
 #include "edmac.h"
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -339,7 +339,7 @@ static uint32_t calc_padding(uint32_t address, uint32_t alignment)
     return padding;
 }
 
-static unsigned int raw_rec_should_preview(unsigned int ctx);
+static uint32_t raw_rec_should_preview(uint32_t ctx);
 
 static void refresh_cropmarks()
 {
