@@ -5,7 +5,14 @@
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
-static int alloc_sem_timed_out = 0;
+typedef struct
+{
+    struct memSuite *ret;
+    uint32_t size;
+    uint32_t timed_out;
+    struct semaphore * sem;
+} alloc_msg_t;
+
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
@@ -34,6 +41,10 @@ static void freeCBR(unsigned int a)
     give_semaphore(free_sem);
 }
 
+static void freeCBR_nowait(unsigned int a)
+{
+}
+
 void shoot_free_suite(struct memSuite * hSuite)
 {
     FreeMemoryResource(hSuite, freeCBR, 0);
@@ -41,17 +52,20 @@ void shoot_free_suite(struct memSuite * hSuite)
     if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
-static void allocCBR(unsigned int a, struct memSuite *hSuite)
+static void allocCBR(unsigned int priv, struct memSuite * hSuite)
 {
+    alloc_msg_t *suite_info = (alloc_msg_t *)priv;
+    
     /* in case we timed out last time, immediately free the newly allocated suite (its the one that timed out) */
-    if(alloc_sem_timed_out)
+    if(suite_info->timed_out)
     {
-        alloc_sem_timed_out = 0;
-        shoot_free_suite(hSuite);
+        FreeMemoryResource(hSuite, freeCBR_nowait, 0);
+        _free(suite_info);
         return;
     }
-    MEM(a) = (unsigned int)hSuite;
-    give_semaphore(alloc_sem);
+    
+    suite_info->ret = hSuite;
+    give_semaphore(suite_info->sem);
 }
 
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
@@ -104,44 +118,60 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
     return written;
 }
 
+
 /* when size is set to zero, it will try to allocate the maximum possible block */
+static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
+{
+    alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
+    
+    suite_info->ret = NULL;
+    suite_info->timed_out = 0;
+    suite_info->size = size;
+    suite_info->sem = alloc_sem;
+    
+    AllocateMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
+    
+    int r = take_semaphore(suite_info->sem, 100);
+    if (r)
+    {
+        suite_info->timed_out = 1;
+        return NULL;
+    }
+    
+    struct memSuite * hSuite = suite_info->ret;
+    _free(suite_info);
+    
+    if(!relaxed)
+    {
+        ASSERT((int)size <= hSuite->size);
+    }
+    
+    return hSuite;
+}
+
 struct memSuite *shoot_malloc_suite(size_t size)
 {
-    struct memSuite * hSuite = NULL;
-    
-    if (entire_memory_allocated)
+    if(entire_memory_allocated)
     {
         /* you may need to solder some more RAM chips */
         return 0;
     }
-    
-    if(size > 0)
-    {
-        ASSERT(!alloc_sem_timed_out);
-        alloc_sem_timed_out = 0;
-        AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
-        
-        int r = take_semaphore(alloc_sem, 100);
-        if (r)
-        {
-            alloc_sem_timed_out = 1;
-            return NULL;
-        }
 
-        ASSERT((int)size == hSuite->size);
+    if(size)
+    {
+        /* allocate exact memory size */
+        return shoot_malloc_suite_int(size, 0);
     }
     else
     {
-        //~ entire_memory_allocated = (void*)-1;        /* temporary, just mark as "busy" */
-        
         /* allocate some backup that will service the queued allocation request that fails during the loop */
         int backup_size = 8 * 1024 * 1024;
         int max_size = 0;
-        struct memSuite *backup = shoot_malloc_suite(backup_size);
+        struct memSuite *backup = shoot_malloc_suite_int(backup_size, 0);
 
         for(int size = 4; size < 1024; size += 4)
         {
-            struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
+            struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024, 1);
             if(testSuite)
             {
                 shoot_free_suite(testSuite);
@@ -156,11 +186,11 @@ struct memSuite *shoot_malloc_suite(size_t size)
         shoot_free_suite(backup);
         
         /* allocating max_size + backup_size was reported to fail sometimes */
-        hSuite = shoot_malloc_suite(max_size + backup_size - 1024 * 1024);
+        struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
         entire_memory_allocated = hSuite;   /* we need to know which memory suite ate all the RAM; when this is freed, we can shoot_malloc again */
+        
+        return hSuite;
     }
-    
-    return hSuite;
 }
 
 struct memSuite * shoot_malloc_suite_contig(size_t size)
@@ -173,20 +203,26 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
 
     if(size > 0)
     {
-        ASSERT(!alloc_sem_timed_out);
-        alloc_sem_timed_out = 0;
+        alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
+        
+        suite_info->ret = NULL;
+        suite_info->timed_out = 0;
+        suite_info->size = size;
+        suite_info->sem = alloc_sem;
+        
+        AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
 
-        struct memSuite * hSuite = NULL;
-        AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
-
-        int r = take_semaphore(alloc_sem, 100);
+        int r = take_semaphore(suite_info->sem, 100);
         if (r)
         {
-            alloc_sem_timed_out = 1;
+            suite_info->timed_out = 1;
             return NULL;
         }
         
-        ASSERT((int)size == hSuite->size);
+        struct memSuite * hSuite = suite_info->ret;
+        _free(suite_info);
+        
+        ASSERT((int)size <= hSuite->size);
         return hSuite;
     }
     else
