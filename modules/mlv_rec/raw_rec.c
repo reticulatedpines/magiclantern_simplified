@@ -2051,25 +2051,11 @@ static int32_t get_next_chunk_file_name(char* base_name, char* filename, int32_t
     /* patch drive letter */
     if(writer == 1)
     {
-        filename[0] = 'A';
+        filename[0] = 'B';
     }
     return 0;
 }
 
-static char* get_wav_file_name(char* movie_filename)
-{
-    /* same name as movie, but with wav extension */
-    static char wavfile[100];
-    snprintf(wavfile, sizeof(wavfile), movie_filename);
-    int32_t len = strlen(wavfile);
-    wavfile[len-4] = '.';
-    wavfile[len-3] = 'W';
-    wavfile[len-2] = 'A';
-    wavfile[len-1] = 'V';
-    /* prefer SD card for saving WAVs (should be faster on 5D3) */
-    if (is_dir("B:/")) wavfile[0] = 'B';
-    return wavfile;
-}
 
 static int32_t mlv_write_info(FILE* f)
 {
@@ -2593,16 +2579,6 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 50, "Memory error");
         goto cleanup;
     }
-
-    /*
-    if (sound_rec == 1)
-    {
-        char* wavfile = get_wav_file_name(movie_filename);
-        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && movie_filename[0] == 'A' ? " on SD card" : "");
-        bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
-        WAV_StartRecord(wavfile);
-    }
-    */
     
     msleep(start_delay * 1000); 
     
@@ -3006,10 +2982,6 @@ static void raw_video_rec_task()
     /* signal that we are stopping */
     raw_rec_cbr_stopping();
     
-    if (sound_rec == 1)
-    {
-        WAV_StopRecord();
-    }
 
     bmp_printf( FONT_MED, 30, 70, 
         "Frames captured: %d               ", 
