@@ -51,7 +51,7 @@
 
 
 //#define CONFIG_CONSOLE
-#define TRACE_DISABLED
+//#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL    500   /* normally 1000; low values like 50 will reduce write speed a lot! */
 #define MLV_RTCI_BLOCK_INTERVAL 1000
@@ -74,6 +74,7 @@
 #include "../trace/trace.h"
 #include "cache_hacks.h"
 #include "mlv.h"
+
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -725,25 +726,26 @@ static MENU_UPDATE_FUNC(start_delay_update)
      }
 }
 
+
 static void setup_chunk(uint32_t ptr, uint32_t size)
 {
+    trace_write(raw_rec_trace_ctx, "chunk start 0x%X, size 0x%X, (end 0x%08X)", ptr, size, ptr + size);
+    
     if((int32_t)size < frame_size)
     {
         return;
     }
     
-    uint32_t max_slot_size = raw_rec_edmac_align + 2 * raw_rec_write_align + sizeof(mlv_vidf_hdr_t) + sizeof(mlv_hdr_t);
+    uint32_t max_slot_size = raw_rec_write_align + sizeof(mlv_vidf_hdr_t) + raw_rec_edmac_align + frame_size + raw_rec_write_align;
     
     /* fit as many frames as we can */
-    while (size >= (frame_size + max_slot_size) && (slot_count < COUNT(slots)))
+    while (size >= max_slot_size && (slot_count < COUNT(slots)))
     {
         /* align slots so that they start at a write align boundary */
         uint32_t pre_align = calc_padding(ptr, raw_rec_write_align);
-        ptr += pre_align;
-        size -= pre_align;
     
         /* set up a new VIDF header there */
-        mlv_vidf_hdr_t *vidf_hdr = (mlv_vidf_hdr_t *)ptr;
+        mlv_vidf_hdr_t *vidf_hdr = (mlv_vidf_hdr_t *)(ptr + pre_align);
         memset(vidf_hdr, 0x00, sizeof(mlv_vidf_hdr_t));
         mlv_set_type((mlv_hdr_t *)vidf_hdr, "VIDF");
         
@@ -754,7 +756,7 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         vidf_hdr->blockSize = sizeof(mlv_vidf_hdr_t) + vidf_hdr->frameSpace + frame_size;
         
         /* now add a NULL block (if required) for aligning the whole slot size to optimal write size */
-        int32_t write_size_align = calc_padding(ptr + vidf_hdr->blockSize, raw_rec_write_align);
+        int32_t write_size_align = calc_padding(ptr + pre_align + vidf_hdr->blockSize, raw_rec_write_align);
         if(write_size_align > 0)
         {
             if(write_size_align < (int32_t)sizeof(mlv_hdr_t))
@@ -769,17 +771,93 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         }
         
         /* store this slot */
-        slots[slot_count].ptr = (void*)ptr;
+        slots[slot_count].ptr = (void*)(ptr + pre_align);
         slots[slot_count].status = SLOT_FREE;
         slots[slot_count].size = vidf_hdr->blockSize + write_size_align;
         
-        trace_write(raw_rec_trace_ctx, "slot %3d: pre_align = 0x%08X, edmac_size_align = %5d, write_size_align = %5d, data_start = 0x%X, size = 0x%X", 
-            slot_count, pre_align, edmac_size_align, write_size_align, dataStart + vidf_hdr->frameSpace, slots[slot_count].size);
+        trace_write(raw_rec_trace_ctx, "  slot %3d: base 0x%08X, end 0x%08X, aligned 0x%08X, data 0x%08X, size 0x%X (pre 0x%08X, edmac 0x%04X, write 0x%04X)", 
+            slot_count, ptr, (slots[slot_count].ptr + slots[slot_count].size), slots[slot_count].ptr, dataStart + vidf_hdr->frameSpace, slots[slot_count].size, pre_align, edmac_size_align, write_size_align);
         
+        if(slots[slot_count].size > (int32_t)max_slot_size)
+        {
+            trace_write(raw_rec_trace_ctx, "  slot %3d: ERROR - size too large", slot_count);
+            beep(4);
+        }
+        
+        /* update counters and pointers */
         ptr += slots[slot_count].size;
+        ptr += pre_align;
         size -= slots[slot_count].size;
+        size -= pre_align;
         slot_count++;
     }
+    
+    trace_flush(raw_rec_trace_ctx);
+}
+
+static void setup_prot(uint32_t *ptr, uint32_t *size)
+{
+    uint32_t prot_size = 1024;
+    uint8_t *data = (uint8_t*)*ptr;
+    
+    for(uint32_t pos = 0; pos < prot_size; pos++)
+    {
+        data[pos] = 0xA5;
+        data[*size - prot_size + pos] = 0xA5;
+    }
+    
+    *ptr += prot_size;
+    *size -= 2 * prot_size;
+} 
+
+static void check_prot(uint32_t ptr, uint32_t size, uint32_t original)
+{
+    uint32_t prot_size = 1024;
+    
+    if(!original)
+    {
+        ptr -= prot_size;
+        size += 2 * prot_size;
+    }
+    
+    uint8_t *data = (uint8_t*)ptr;
+    
+    for(uint32_t pos = 0; pos < prot_size; pos++)
+    {
+        if(data[pos] != 0xA5)
+        {
+            trace_write(raw_rec_trace_ctx, "check_prot(0x%08X, 0x%08X) ERROR - leading protection modified at offset 0x%08X: 0x%02X", ptr, size, pos, data[pos]);
+            beep(4);
+            break;
+        }
+        if(data[size - prot_size + pos] != 0xA5)
+        {
+            trace_write(raw_rec_trace_ctx, "check_prot(0x%08X, 0x%08X) ERROR - trailing protection modified at offset 0x%08X: 0x%02X", ptr, size, pos, data[size - prot_size + pos]);
+            beep(4);
+            break;
+        }
+    }
+} 
+
+
+static void free_buffers()
+{
+    if (mem_suite)
+    {
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        
+        while(chunk)
+        {
+            uint32_t size = GetSizeOfMemoryChunk(chunk);
+            uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+            
+            check_prot(ptr, size, 1);
+            
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+        shoot_free_suite(mem_suite);
+    }
+    mem_suite = 0;
 }
 
 static int32_t setup_buffers()
@@ -817,20 +895,27 @@ static int32_t setup_buffers()
     }
     
     /* allocate memory for double buffering */
-    int32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
 
     /* find the smallest chunk that we can use for buf_size */
+    uint32_t waste = UINT_MAX;
     struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-    int32_t waste = INT_MAX;
+    
     while(chunk)
     {
-        int32_t size = GetSizeOfMemoryChunk(chunk);
+        uint32_t size = GetSizeOfMemoryChunk(chunk);
+        uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+        
+        /* add some protection to detect overwrites */
+        setup_prot(&ptr, &size);
+        check_prot(ptr, size, 0);
+        
         if (size >= buf_size)
         {
             if (size - buf_size < waste)
             {
                 waste = size - buf_size;
-                fullsize_buffers[0] = GetMemoryAddressOfMemoryChunk(chunk);
+                fullsize_buffers[0] = (void *)ptr;
             }
         }
         chunk = GetNextMemoryChunk(mem_suite, chunk);
@@ -841,6 +926,7 @@ static int32_t setup_buffers()
     
     if (fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
     {
+        free_buffers();
         return 0;
     }
     
@@ -853,24 +939,24 @@ static int32_t setup_buffers()
     {
         uint32_t size = GetSizeOfMemoryChunk(chunk);
         uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+
+        trace_write(raw_rec_trace_ctx, "Chunk: 0x%08X, size: 0x%08X", ptr, size);
         
-        if (ptr != (uint32_t)fullsize_buffers[0]) /* already used */
+        /* add some protection to detect overwrites */
+        setup_prot(&ptr, &size);
+        check_prot(ptr, size, 0);
+        
+        if (ptr == (uint32_t)fullsize_buffers[0]) /* already used */
         {
-            setup_chunk(ptr, size);
+            trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
+            ptr += buf_size;
+            size -= buf_size;
         }
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
-    
-#if 0
-    /* try to recycle the waste - BUG: seems to cause memory corruption */
-    if (waste >= frame_size)
-    {
-        uint32_t size = waste;
-        uint32_t ptr = (uint32_t)fullsize_buffers[0] + buf_size;
         
         setup_chunk(ptr, size);
+        
+        chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
-#endif
     
     char msg[100];
     snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
@@ -962,15 +1048,6 @@ static int32_t setup_buffers()
         trace_write(raw_rec_trace_ctx, "group: %d length: %d slot: %d", group, slot_groups[group].len, slot_groups[group].slot);
     }
     return 1;
-}
-
-static void free_buffers()
-{
-    if (mem_suite)
-    {
-        shoot_free_suite(mem_suite);
-    }
-    mem_suite = 0;
 }
 
 static int32_t get_free_slots()
@@ -2634,6 +2711,7 @@ static void raw_video_rec_task()
             /* on shutdown exit immediately */
             if(ml_shutdown_requested)
             {
+                trace_flush(raw_rec_trace_ctx);
                 return;
             }
             
@@ -2921,6 +2999,8 @@ static void raw_video_rec_task()
             }
             */
         }
+        
+        trace_flush(raw_rec_trace_ctx);
     } while(test_mode && !abort_test);
     
     /* signal that we are stopping */
@@ -2953,6 +3033,8 @@ cleanup:
     hack_liveview(1);
     redraw();
     raw_recording_state = RAW_IDLE;
+    
+    trace_flush(raw_rec_trace_ctx);
 }
 
 static MENU_SELECT_FUNC(raw_start_stop)
