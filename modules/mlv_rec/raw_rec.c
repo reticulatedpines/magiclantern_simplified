@@ -2675,7 +2675,7 @@ static void raw_video_rec_task()
         /* create writer threads with decreasing priority */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            task_create("writer_thread", 0x08 + writer, 0x1000, raw_writer_task, (void*)writer);
+            task_create("writer_thread", 0x1C + writer, 0x1000, raw_writer_task, (void*)writer);
         }
         
         uint32_t used_slots = 0;
