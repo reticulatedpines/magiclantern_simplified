@@ -334,11 +334,11 @@ info_elem_t info_config_photo[] =
 
 #if defined(CONFIG_550D)
     /* entry 1 and 2, WB strings */
-    { .string = { { INFO_TYPE_STRING, { 490, 245, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
-    { .string = { { INFO_TYPE_STRING, { 490, 270, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { 485, 245, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { 485, 270, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 3, MLU string */
-    { .string = { { INFO_TYPE_STRING, { 78, 260, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 69, 260, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
     
     /* entry 4, Kelvin */
     { .string = { { INFO_TYPE_STRING, { 307+(94/2), 237+(62/2), 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
@@ -353,7 +353,7 @@ info_elem_t info_config_photo[] =
     /* entry 8-11, free space & photos left*/
     { .fill =   { { INFO_TYPE_FILL,   { 519, 396, 1, INFO_ANCHOR_ABSOLUTE, 0, INFO_ANCHOR_ABSOLUTE, 138, 55, .name = "Space (clear)" }}, .color = INFO_COL_PEEK } },
     { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
-    { .string = { { INFO_TYPE_STRING, { 573, 442, 3, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, { 568, 442, 3, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     { .text =   { { INFO_TYPE_TEXT,   { 2, 0, 3, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_RIGHT), 10, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_LEFT), .name = "GB" }}, "GB", COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     
 #endif
