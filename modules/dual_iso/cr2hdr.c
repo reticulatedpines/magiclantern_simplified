@@ -164,6 +164,14 @@ int main(int argc, char** argv)
     printf("cr2hdr: a post processing tool for Dual ISO images\n\n");
     printf("Last update: %s\n", module_get_string("Last update"));
     
+    if (argc == 1)
+    {
+        printf("No input files.\n\n");
+        printf("Command-line usage: %s *.CR2\n", argv[0]);
+        printf("GUI usage: drag some CR2 or DNG files over cr2hdr.exe.\n\n");
+        if(system("sleep 2"));
+    }
+    
     int k;
     int r;
     for (k = 1; k < argc; k++)
