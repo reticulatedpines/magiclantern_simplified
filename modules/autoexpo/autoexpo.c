@@ -159,24 +159,24 @@ static void autoexpo_task()
     static int last_ap;
     static int last_sv;
     if(autoexpo_lv && lv) {
-        if(!get_halfshutter_pressed() && halfpressed)
-        {
-            halfpressed = 0;
+        if(!get_halfshutter_pressed()) {
+            if(halfpressed) {
+                halfpressed = 0;
+                
+                lens_set_rawshutter(last_tv);
+                lens_set_rawaperture(last_ap);
+                lens_set_rawiso(last_sv);
+            }
             
-            lens_set_rawshutter(last_tv);
-            lens_set_rawaperture(last_ap);
-            lens_set_rawiso(last_sv);
+            goto cleanup;
+        } else {
+            if(!halfpressed) {
+                halfpressed = 1;
+                last_tv = lens_info.raw_shutter;
+                last_ap = lens_info.raw_aperture;
+                last_sv = lens_info.iso_equiv_raw;
+            } else goto cleanup;
         }
-        
-        if(get_halfshutter_pressed() && !halfpressed)
-        {
-            halfpressed = 1;
-            last_tv = lens_info.raw_shutter;
-            last_ap = lens_info.raw_aperture;
-            last_sv = lens_info.iso_equiv_raw;
-        }
-        
-        if(!get_halfshutter_pressed()) goto cleanup;
     }
     
     int bv = get_bv();
@@ -205,7 +205,7 @@ static unsigned int autoexpo_shoot_task(){
         autoexpo_enabled &&
         shooting_mode == SHOOTMODE_M &&
         get_ae_state() != 0 &&
-        (lv && autoexpo_lv) &&
+        (!lv || lv && autoexpo_lv) &&
         !autoexpo_running
     )
         task_create("autoexpo_task", 0x1c, 0x1000, autoexpo_task, (void*)0);
