@@ -58,6 +58,9 @@
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
 
+#include "../../src/module.h"
+#include "module_strings.h"
+
 /* here we only have a global raw_info */
 #define save_dng(filename) save_dng(filename, &raw_info)
 
@@ -139,8 +142,28 @@ static void reverse_bytes_order(char* buf, int count)
     }
 }
 
+static const char* module_get_string(const char* name)
+{
+    module_strpair_t *strings = &__module_strings_MODULE_NAME[0];
+    
+    if (strings)
+    {
+        for ( ; strings->name != NULL; strings++)
+        {
+            if (!strcmp(strings->name, name))
+            {
+                return strings->value;
+            }
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
+    printf("cr2hdr: a post processing tool for Dual ISO images\n\n");
+    printf("Last update: %s\n", module_get_string("Last update"));
+    
     int k;
     int r;
     for (k = 1; k < argc; k++)
