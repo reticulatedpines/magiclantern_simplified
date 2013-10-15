@@ -705,14 +705,26 @@ static int hdr_check()
     return 0;
 }
 
-static int median_short(unsigned short* x, int n)
+static int median_ushort(unsigned short* x, int n)
 {
     unsigned short* aux = malloc(n * sizeof(x[0]));
     CHECK(aux, "malloc");
     memcpy(aux, x, n * sizeof(aux[0]));
     //~ qsort(aux, n, sizeof(aux[0]), compare_short);
+    #define ushort_lt(a,b) ((*a)<(*b))
+    QSORT(unsigned short, aux, n, ushort_lt);
+    int ans = aux[n/2];
+    free(aux);
+    return ans;
+}
+
+static int median_short(short* x, int n)
+{
+    short* aux = malloc(n * sizeof(x[0]));
+    CHECK(aux, "malloc");
+    memcpy(aux, x, n * sizeof(aux[0]));
     #define short_lt(a,b) ((*a)<(*b))
-    QSORT(unsigned short, aux, n, short_lt);
+    QSORT(short, aux, n, short_lt);
     int ans = aux[n/2];
     free(aux);
     return ans;
@@ -773,7 +785,7 @@ static int estimate_iso(unsigned short* dark, unsigned short* bright, double* co
         for (k = 0; k < num; k++)
             aux[k] = dark[order[k+i]];
         
-        int m = median_short(aux, num);
+        int m = median_ushort(aux, num);
         all_medians[ref] = m;
         
         if (num > 32 && ref > black && ref < white - 1000 && m > black && m < white - 1000)
@@ -1649,7 +1661,97 @@ static int hdr_interpolate()
     /* update bright noise measurements, so they can be compared after scaling */
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
-    
+
+#if 1
+    printf("Horizontal stripe fix...\n");
+    short * delta[14];
+    int delta_num[14];
+    for (i = 0; i < 14; i++)
+    {
+        delta[i] = malloc(w * sizeof(delta[0]));
+    }
+    for (y = 0; y < h; y ++)
+    {
+        /* adjust dark lines to match the bright ones */
+        if (BRIGHT_ROW)
+            continue;
+
+        for (i = 0; i < 14; i++)
+        {
+            delta_num[i] = 0;
+        }
+
+        /* apply a constant offset to each stop (except overexposed areas) */
+        for (x = 0; x < w; x ++)
+        {
+            int b = bright[x + y*w];
+            int d = dark[x + y*w];
+            if (b < white_darkened && d < white)
+            {
+                int stop = COERCE(raw2ev[b] / EV_RESOLUTION, 0, 13);
+                delta[stop][delta_num[stop]++] = b - d;
+            }
+        }
+
+        /* compute median difference for each stop */
+        int med_delta[14];
+        for (i = 0; i < 14; i++)
+        {
+            if (delta_num[i] > 0)
+            {
+                /* enough data points? */
+                med_delta[i] = median_short(delta[i], delta_num[i]);
+            }
+            else
+            {
+                /* not enough data points; will extrapolate from neighbours */
+                med_delta[i] = delta_num[i] = 0;
+            }
+        }
+
+        /* extrapolate the measurements to neighbour stops */
+        for (i = 0; i < 14; i++)
+        {
+            if (delta_num[i] == 0)
+            {
+                int acc = 0;
+                int num = 0;
+                if (i < 13 && delta_num[i+1]) { acc += med_delta[i+1]; num++; }
+                if (i > 0 && delta_num[i-1]) { acc += med_delta[i-1]; num++; }
+                if (num) med_delta[i] = acc / num;
+            }
+            
+            //~ printf("%d ", med_delta[i]);
+        }
+        //~ printf("\n");
+        
+        for (x = 0; x < w; x ++)
+        {
+            int b = bright[x + y*w];
+            int d = dark[x + y*w];
+
+            if (b < white_darkened && d < white)
+            {
+                /* linear interpolation */
+                int b = bright[x + y*w];
+                double stop = COERCE((double)(raw2ev[b] - EV_RESOLUTION/2) / EV_RESOLUTION, 0.01, 13-0.01);
+                int stop1 = floor(stop);
+                int stop2 = ceil(stop);
+                double k = stop - stop1;
+                //~ int stop = COERCE(raw2ev[b] / EV_RESOLUTION, 0, 13);
+                dark[x + y*w] += med_delta[stop1] * (1-k) + med_delta[stop2] * k;
+                
+                //~ if (y == raw_info.active_area.y1 + 2745)
+                    //~ printf("%d %d %d %f\n", b, stop1, stop2, k);
+            }
+        }
+    }
+    for (i = 0; i < 14; i++)
+    {
+        free(delta[i]);
+    }
+#endif
+
 #if 1
     {
         printf("Looking for hot/cold pixels...\n");
