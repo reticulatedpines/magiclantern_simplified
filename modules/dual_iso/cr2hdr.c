@@ -171,7 +171,7 @@ int main(int argc, char** argv)
         printf("No input files.\n\n");
         printf("Command-line usage: %s *.CR2\n", argv[0]);
         printf("GUI usage: drag some CR2 or DNG files over cr2hdr.exe.\n\n");
-        system("sleep 2");
+        return system("sleep 2");
     }
     
     int k;
