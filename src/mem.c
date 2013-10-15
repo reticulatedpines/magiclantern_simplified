@@ -134,6 +134,7 @@ static struct mem_allocator allocators[] = {
         .malloc_dma = _shoot_malloc,       /* can be used for both cacheable and uncacheable memory */
         .free_dma = _shoot_free,
         .get_free_space = _shoot_get_free_space,
+        .get_max_region = _shoot_get_free_space,    /* we usually have a bunch of large contiguous chunks */
         
         .is_preferred_for_temporary_space = 1,  /* if we know we'll free this memory quickly, prefer this one */
         
