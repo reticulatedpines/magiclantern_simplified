@@ -1701,6 +1701,9 @@ static int hdr_interpolate()
             {
                 /* enough data points? */
                 med_delta[i] = median_short(delta[i], delta_num[i]);
+                
+                /* avoid large corrections (they are probably outliers) */
+                if (ABS(med_delta[i]) > 50) med_delta[i] = 0;
             }
             else
             {
@@ -1721,7 +1724,7 @@ static int hdr_interpolate()
                 if (num) med_delta[i] = acc / num;
             }
             
-            //~ printf("%d ", med_delta[i]);
+            //~ printf("%d(%d) ", med_delta[i], delta_num[i]);
         }
         //~ printf("\n");
         
@@ -1741,7 +1744,7 @@ static int hdr_interpolate()
                 //~ int stop = COERCE(raw2ev[b] / EV_RESOLUTION, 0, 13);
                 dark[x + y*w] += med_delta[stop1] * (1-k) + med_delta[stop2] * k;
                 
-                //~ if (y == raw_info.active_area.y1 + 2745)
+                //~ if (y == raw_info.active_area.y1 + 2986)
                     //~ printf("%d %d %d %f\n", b, stop1, stop2, k);
             }
         }
