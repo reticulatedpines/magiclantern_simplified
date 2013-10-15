@@ -1144,8 +1144,8 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             int g2 = inp[x   + (y+1) * w];
             int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
 
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION)];
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
         }
     }
 }
@@ -1193,8 +1193,8 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
             if (ge + dr <= EV_RESOLUTION) continue;
             if (ge + db <= EV_RESOLUTION) continue;
 
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, 0, 14*EV_RESOLUTION)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, 0, 14*EV_RESOLUTION)];
+            out[x   +     y * w] = ev2raw[COERCE(ge + dr, 0, 14*EV_RESOLUTION-1)];
+            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, 0, 14*EV_RESOLUTION-1)];
         }
     }
 }
