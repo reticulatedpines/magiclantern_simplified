@@ -106,7 +106,7 @@ add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
-last_change_info = run("LC_TIME=EN hg log . -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
+last_change_info = run("LC_TIME=EN hg log . -r $(basename $(hg id -n) +):0 -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
 if len(last_change_info):
     last_change_date, last_changeset, author, commit_msg = last_change_info.split("\n")
     split = last_change_date.split(" ")
