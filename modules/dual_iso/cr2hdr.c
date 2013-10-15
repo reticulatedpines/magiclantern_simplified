@@ -59,6 +59,8 @@
 #include "exiftool-bridge.h"
 
 #include "../../src/module.h"
+#undef MODULE_STRINGS_SECTION
+#define MODULE_STRINGS_SECTION
 #include "module_strings.h"
 
 /* here we only have a global raw_info */
@@ -169,7 +171,7 @@ int main(int argc, char** argv)
         printf("No input files.\n\n");
         printf("Command-line usage: %s *.CR2\n", argv[0]);
         printf("GUI usage: drag some CR2 or DNG files over cr2hdr.exe.\n\n");
-        if(system("sleep 2"));
+        system("sleep 2");
     }
     
     int k;
