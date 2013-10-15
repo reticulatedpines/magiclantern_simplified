@@ -2125,7 +2125,7 @@ static int hdr_interpolate()
             int fe = raw2ev[f];
             int he = raw2ev[h];
             int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
-            e_lin = MAX(e_lin - dark_noise*3/2, 0);
+            e_lin = MAX(e_lin - dark_noise, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
             alias_map[x + y*w] = MIN(e_lin*8, e_log/8);
         }
