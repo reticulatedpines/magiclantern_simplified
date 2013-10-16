@@ -26,7 +26,7 @@
 #include "mlv.h"
 #include "../trace/trace.h"
 
-extern uint32_t raw_rec_trace_ctx;
+extern uint32_t mlv_rec_trace_ctx;
 
 extern uint64_t get_us_clock_value();
 extern char *strcpy(char *dest, const char *src);
@@ -39,7 +39,7 @@ extern int WEAK_FUNC(own_PROPAD_GetPropertyData) PROPAD_GetPropertyData(uint32_t
 
 static int own_PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len)
 {
-    trace_write(raw_rec_trace_ctx, "WARNING: This model doesn't have 'PROPAD_GetPropertyData' defined. Reading properties not possible.");
+    trace_write(mlv_rec_trace_ctx, "WARNING: This model doesn't have 'PROPAD_GetPropertyData' defined. Reading properties not possible.");
     return 1;
 }
 
@@ -167,7 +167,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     err = PROPAD_GetPropertyData(PROP_CAM_MODEL, (void **) &model_data, &model_len);
     if(err || model_len < 36 || !model_data)
     {
-        trace_write(raw_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
+        trace_write(mlv_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
         snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d md:0x%8X ml:%d", err, model_data, model_len);
         return;
     }
@@ -175,7 +175,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     err = PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
     if(err || !body_data || body_len == 0)
     {
-        trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
+        trace_write(mlv_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
         snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
         return;
     }
@@ -198,7 +198,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     memcpy((char *)hdr->cameraName, &model_data[0], 32);
     memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
     
-    trace_write(raw_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
+    trace_write(mlv_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)

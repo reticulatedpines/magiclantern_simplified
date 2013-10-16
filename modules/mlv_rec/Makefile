@@ -1,7 +1,7 @@
 
 # define the module name - make sure name is max 8 characters
-MODULE_NAME=raw_rec
-MODULE_OBJS=raw_rec.o mlv.o
+MODULE_NAME=mlv_rec
+MODULE_OBJS=mlv_rec.o mlv.o
 
 # include modules environment
 include ../Makefile.modules
