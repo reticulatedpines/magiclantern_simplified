@@ -23,6 +23,7 @@ extern int pic_quality;
 extern int avail_shot;
 extern int recording;
 extern int af_mode;
+extern int metering_mode;
 extern int dofpreview;
 extern int display_sensor;
 extern int shutter_count;

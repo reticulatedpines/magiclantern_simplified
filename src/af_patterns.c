@@ -58,6 +58,11 @@ PROP_HANDLER(PROP_AFPOINT)
 }
 #define af_point afp[0]
 
+int get_af_point()
+{
+    return af_point;
+}
+
 static void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
 BMP_LOCK( // reuse this for locking
@@ -70,7 +75,7 @@ BMP_LOCK( // reuse this for locking
 )
 }
 
-static void set_af_point(int afpoint)
+void set_af_point(int afpoint)
 {
     if (!afp_len) return;
     if (!gui_menu_shown() && beep_enabled) beep();
