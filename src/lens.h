@@ -387,10 +387,10 @@ void aperture_toggle( void* priv, int sign);
 #define SHUTTER_1_8000 160
 
 #define APERTURE_1_4 16
-#define APERTURE_2_0 24
+#define APERTURE_2 24
 #define APERTURE_2_8 32
 #define APERTURE_3_5 36
-#define APERTURE_4_0 40
+#define APERTURE_4 40
 #define APERTURE_4_5 44
 #define APERTURE_5_6 48
 #define APERTURE_6_7 52
