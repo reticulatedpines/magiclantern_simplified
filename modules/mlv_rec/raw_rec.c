@@ -62,7 +62,6 @@
 #include <menu.h>
 #include <config.h>
 #include <math.h>
-#include <cropmarks.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
@@ -74,11 +73,7 @@ static int cam_eos_m = 0;
 static int cam_5d2 = 0;
 static int cam_50d = 0;
 static int cam_5d3 = 0;
-static int cam_550d = 0;
 static int cam_6d = 0;
-static int cam_600d = 0;
-static int cam_7d = 0;
-static int cam_700d = 0;
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -124,10 +119,10 @@ static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
 static float squeeze_factor = 0;
-static int frame_size = 0;
-static int frame_size_real = 0;
-static int skip_x = 0;
-static int skip_y = 0;
+int frame_size = 0;
+int frame_size_real = 0;
+int skip_x = 0;
+int skip_y = 0;
 
 static int frame_offset_x = 0;
 static int frame_offset_y = 0;
@@ -204,25 +199,6 @@ extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame
 extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
-static unsigned int raw_rec_should_preview(unsigned int ctx);
-
-static void refresh_cropmarks()
-{
-    if (lv_dispsize > 1 || raw_rec_should_preview(0) || !raw_video_enabled)
-    {
-        reset_movie_cropmarks();
-    }
-    else
-    {
-        int x = RAW2BM_X(skip_x);
-        int y = RAW2BM_Y(skip_y);
-        int w = RAW2BM_DX(res_x);
-        int h = RAW2BM_DY(res_y);
-        
-        set_movie_cropmarks(x, y, w, h);
-    }
-}
-
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
     if (squeeze != 1.0f)
@@ -261,8 +237,6 @@ static void update_cropping_offsets()
 
     skip_x = sx;
     skip_y = sy;
-    
-    refresh_cropmarks();
 }
 
 static void update_resolution_params()
@@ -283,7 +257,6 @@ static void update_resolution_params()
     {
         /* assume the raw image should be 16:9 when de-squeezed */
         int correct_height = max_res_x * 9 / 16;
-        //int correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
         squeeze_factor = (float)correct_height / max_res_y;
     }
     else squeeze_factor = 1.0f;
@@ -439,8 +412,6 @@ static MENU_UPDATE_FUNC(write_speed_update)
 
 static void refresh_raw_settings(int force)
 {
-    if (!lv) return;
-    
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
@@ -457,9 +428,6 @@ static void refresh_raw_settings(int force)
 
 static MENU_UPDATE_FUNC(raw_main_update)
 {
-    // reset_movie_cropmarks if raw_rec is disabled
-    refresh_cropmarks();
-    
     if (!raw_video_enabled) return;
     
     refresh_raw_settings(0);
@@ -796,6 +764,43 @@ static void show_buffer_status()
 #endif
 }
 
+static unsigned int raw_rec_should_preview(unsigned int ctx);
+
+static void cropmark_draw()
+{
+    if (lv_dispsize > 1) return;
+    
+    int x = RAW2BM_X(skip_x);
+    int y = RAW2BM_Y(skip_y);
+    int w = RAW2BM_DX(res_x);
+    int h = RAW2BM_DY(res_y);
+    int p = raw_rec_should_preview(0);
+    static int prev_x = 0;
+    static int prev_y = 0;
+    static int prev_w = 0;
+    static int prev_h = 0;
+    static int prev_p = 0;
+
+    /* window changed? erase the old cropmark */
+    if ((prev_p != p) ^ (prev_x != x || prev_y != y || prev_w != w || prev_h != h))
+    {
+        bmp_draw_rect(0, prev_x, prev_y, prev_w, prev_h);
+        bmp_draw_rect(0, prev_x-1, prev_y-1, prev_w+2, prev_h+2);
+    }
+    
+    prev_x = x;
+    prev_y = y;
+    prev_w = w;
+    prev_h = h;
+
+    if (!p)
+    {
+        /* display a simple cropmark */
+        bmp_draw_rect(COLOR_WHITE, x, y, w, h);
+        bmp_draw_rect(COLOR_BLACK, x-1, y-1, w+2, h+2);
+    }
+}
+
 static void panning_update()
 {
     if (!FRAMING_PANNING) return;
@@ -839,7 +844,7 @@ static void raw_lv_request_update()
 {
     static int raw_lv_requested = 0;
 
-    if (raw_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (raw_video_enabled && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
@@ -865,8 +870,18 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (!raw_video_enabled)
         return 0;
     
-    if (!lv || !is_movie_mode())
+    if (!is_movie_mode())
         return 0;
+
+    /* refresh cropmark (faster when panning, slower when idle) */
+    static int aux = INT_MIN;
+    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
+    {
+        if (liveview_display_idle())
+        {
+            BMP_LOCK( cropmark_draw(); )
+        }
+    }
 
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
@@ -951,7 +966,7 @@ static void unhack_liveview_vsync(int unused);
 
 static void hack_liveview_vsync()
 {
-    if (cam_5d2 || cam_50d || cam_7d )
+    if (cam_5d2 || cam_50d)
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
         if (lv_dispsize > 1 && !get_halfshutter_pressed())
@@ -1056,19 +1071,15 @@ static void hack_liveview(int unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
         
-        /* change dialog refresh timer from 50ms to 8192ms */
+        /* change dialog refresh timer from 50ms to 1024ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
-            cam_550d ? 0xFF2FE5E4 :            
-            cam_600d ? 0xFF37AA18 :
-            cam_7d  ? 0xFF345788 :
-            cam_700d ? 0xFF52B53C :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
-        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00a02; /* change to mov r0, #8192 */
+        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00b02; /* change to mov r0, #2048 */
 
         if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
         {
@@ -1347,7 +1358,6 @@ static void raw_video_rec_task()
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-    int last_block_size = 0; /* for detecting early stops */
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1407,9 +1417,6 @@ static void raw_video_rec_task()
     }
     
     hack_liveview(0);
-    
-    /* get exclusive access to our edmac channels */
-    edmac_memcpy_res_lock();
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -1438,7 +1445,7 @@ static void raw_video_rec_task()
     while (RAW_IS_RECORDING && lv)
     {
         if (!allow_frame_skip && frame_skips)
-            goto abort_and_check_early_stop;
+            goto abort;
         
         int w_tail = writing_queue_tail; /* this one can be modified outside the loop, so grab it here, just in case */
         int w_head = writing_queue_head; /* this one is modified only here, but use it just for the shorter name */
@@ -1494,7 +1501,7 @@ static void raw_video_rec_task()
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
                 //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
-                num_frames = MAX(1, frame_limit - 1);
+                num_frames = MAX(1, frame_limit - 2);
             }
         }
         
@@ -1591,9 +1598,6 @@ static void raw_video_rec_task()
             writing_task_busy = 0;
         }
 
-        /* for detecting early stops */
-        last_block_size = mod(after_last_grouped - w_head, COUNT(writing_queue));
-
         /* mark these frames as "free" so they can be reused */
         for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
@@ -1634,25 +1638,11 @@ static void raw_video_rec_task()
         if (0)
         {
 abort:
-            last_block_size = 0; /* ignore early stop check */
-
-abort_and_check_early_stop:
-
-            if (last_block_size > 2)
-            {
-                bmp_printf( FONT_MED, 30, 90, 
-                    "Early stop (%d). This is a bug, please report it.", last_block_size
-                );
-                beep_times(last_block_size);
-            }
-            else
-            {
-                bmp_printf( FONT_MED, 30, 90, 
-                    "Movie recording stopped automagically         "
-                );
-                /* this is error beep, not audio sync beep */
-                beep_times(2);
-            }
+            bmp_printf( FONT_MED, 30, 90, 
+                "Movie recording stopped automagically     "
+            );
+            /* this is error beep, not audio sync beep */
+            beep_times(2);
             break;
         }
     }
@@ -1665,9 +1655,6 @@ abort_and_check_early_stop:
 
     /* wait until the other tasks calm down */
     msleep(500);
-
-    /* exclusive edmac access no longer needed */
-    edmac_memcpy_res_unlock();
 
     recording = 0;
 
@@ -2140,11 +2127,7 @@ static unsigned int raw_rec_init()
     cam_5d2 = streq(camera_model_short, "5D2");
     cam_50d = streq(camera_model_short, "50D");
     cam_5d3 = streq(camera_model_short, "5D3");
-    cam_550d = streq(camera_model_short, "550D");
     cam_6d = streq(camera_model_short, "6D");
-    cam_600d = streq(camera_model_short, "600D");
-    cam_7d = streq(camera_model_short, "7D");
-    cam_700d = streq(camera_model_short, "700D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
@@ -2152,23 +2135,15 @@ static unsigned int raw_rec_init()
         
         /* 50D doesn't have sound and can't even beep */
         if (cam_50d && streq(e->name, "Sound"))
-        {
             e->shidden = 1;
-            //sound_rec = 0;
-        }
 
         /* Memory hack confirmed to work only on 5D3 and 6D */
         if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
-        {
             e->shidden = 1;
-            memory_hack = 0;
-        }
     }
 
     if (cam_5d2 || cam_50d)
-    {
        raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
-    }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
@@ -2198,6 +2173,13 @@ MODULE_INFO_START()
     MODULE_INIT(raw_rec_init)
     MODULE_DEINIT(raw_rec_deinit)
 MODULE_INFO_END()
+
+MODULE_STRINGS_START()
+    MODULE_STRING("Description", "14-bit RAW video")
+    MODULE_STRING("License", "GPL")
+    MODULE_STRING("Author", "a1ex")
+    MODULE_STRING("Credits", "g3gg0 (lv_rec)")
+MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
