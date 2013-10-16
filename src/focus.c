@@ -32,7 +32,7 @@ static CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
 static CONFIG_INT( "focus.delay.ms10", lens_focus_delay, 1 );
 static CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
 static CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
-
+static CONFIG_INT( "focus.flash.delay", focus_flash_delay, 0);
 
 // all focus commands from this module are done with the configured step size and delay
 int LensFocus(int num_steps)
@@ -257,6 +257,7 @@ focus_stack(
     if (drive_mode == DRIVE_SELFTIMER_2SEC) delay = 2;
     else if (drive_mode == DRIVE_SELFTIMER_REMOTE) delay = 10;
     
+    if (focus_rack_delay && focus_rack_enable_delay) delay += focus_rack_delay;
     if (delay) wait_notify(delay, "Focus stack");
     
     if (focus_stack_check_stop()) return;
@@ -318,6 +319,8 @@ focus_stack(
         if (LensFocus(real_steps) == 0)
             break;
         focus_moved_total += real_steps;
+
+        if (focus_flash_delay) wait_notify(focus_flash_delay, "Delaying...");
     }
 
     msleep(1000);
@@ -333,10 +336,12 @@ focus_stack(
     
     if (i >= count-1)
     {
+        if (beep_enabled) beep_custom(300,1000,false);
         NotifyBox(2000, "Focus stack done!" );
         msleep(1000);
         hdr_create_script(f0, 1); 
     } else {
+        if (beep_enabled) beep_custom(300,250,false);
         NotifyBox(2000, "Focus stack not completed");
     }
     
@@ -738,7 +743,8 @@ int get_focus_confirmation()
 
 int is_manual_focus()
 {
-    return (af_mode & 0xF) == 3;
+    return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
+;
 }
 
 #ifdef FEATURE_MOVIE_AF
@@ -1172,7 +1178,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Num. pics in front",
                 .priv = &focus_bracket_front,
                 .min = 0,
-                .max = 50,
+                .max = 100,
                 .help  = "Number of shots in front of current focus point.",
                 .help2 = "On some lenses, this may be reversed.",
             },
@@ -1180,7 +1186,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Num. pics behind",
                 .priv = &focus_bracket_behind,
                 .min = 0,
-                .max = 50,
+                .max = 100,
                 .help  = "Number of shots behind current focus point.",
                 .help2 = "On some lenses, this may be reversed.",
             },
@@ -1191,7 +1197,12 @@ static struct menu_entry focus_menu[] = {
                 .max = 10,
                 .help = "Number of focus steps between two pictures.",
             },
-
+            {
+                .name = "Flash Delay",
+                .priv    = &focus_flash_delay,
+                .max = 10,
+                .help = "Seconds between stack segments to let flashes recycle.",
+            },
             {
                 .name = "Copy rack focus range",
                 .select = focus_stack_copy_rack_focus_settings,
@@ -1263,11 +1274,11 @@ static struct menu_entry focus_menu[] = {
                 .help = "Focus direction for Up and Down keys.",
             },
             {
-                .name = "Rack Delay",
+                .name = "Start Delay",
                 .priv    = &focus_rack_delay,
-                .max = 20,
+                .max = 60,
                 .icon_type = IT_PERCENT_OFF,
-                .help = "Number of seconds before starting rack focus.",
+                .help = "Number of seconds before starting focus operation.",
             },
             MENU_EOL
         },
