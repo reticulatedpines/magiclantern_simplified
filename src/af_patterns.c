@@ -48,7 +48,7 @@ static type_PATTERN_MAP_ITEM pattern_map[] = {
 
 static int afp_transformer (int pattern, type_DIRECTION direction);
 
-int afp[2];
+static int afp[2];
 static int afp_len = 0;
 PROP_HANDLER(PROP_AFPOINT)
 {
@@ -57,6 +57,11 @@ PROP_HANDLER(PROP_AFPOINT)
     afp_len = len;
 }
 #define af_point afp[0]
+
+int get_af_point()
+{
+    return af_point;
+}
 
 static void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
