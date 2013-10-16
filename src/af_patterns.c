@@ -48,7 +48,7 @@ static type_PATTERN_MAP_ITEM pattern_map[] = {
 
 static int afp_transformer (int pattern, type_DIRECTION direction);
 
-static int afp[2];
+int afp[2];
 static int afp_len = 0;
 PROP_HANDLER(PROP_AFPOINT)
 {
@@ -70,7 +70,7 @@ BMP_LOCK( // reuse this for locking
 )
 }
 
-static void set_af_point(int afpoint)
+void set_af_point(int afpoint)
 {
     if (!afp_len) return;
     if (!gui_menu_shown() && beep_enabled) beep();
