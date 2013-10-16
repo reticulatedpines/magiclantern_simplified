@@ -65,7 +65,11 @@
 #define PROP_USBDEVICE_CONNECT  0x8004000a
 #define PROP_MVR_MOVW_START0    0x80000020 // not sure?
 #define PROP_MVR_MOVW_START1    0x80000021
-#define PROP_AF_MODE            0x80000004 // 0 = one shot, 3 == manual focus, 202 = ai (dumb) focus, 101 = ai servo (slightly better)
+#define PROP_AF_MODE            0x80000004
+#define AF_MODE_ONE_SHOT        0
+#define AF_MODE_MANUAL_FOCUS    3
+#define AF_MODE_AI_FOCUS        202        // TODO: seems to be model-specific or bit operation
+#define AF_MODE_AI_SERVO        101        // TODO: seems to be model-specific or bit operation
 #define PROP_MVR_REC            0x80030002
 #define PROP_LV_LENS            0x80050000
 #define PROP_LV_0004            0x80050004
@@ -250,11 +254,6 @@
 #define EVAL_METER 3
 #define PARTIAL_METER 4
 #define CENTERW_METER 5
-
-#define AF_MODE      0x80000004
-#define ONE_SHOT 0
-#define AI_FOCUS 202
-#define AI_SERVO 101
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
 
