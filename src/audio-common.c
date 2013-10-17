@@ -198,10 +198,10 @@ draw_meter(
     
     // Write the meter an entire scan line at a time
     int32_t y;
-    for(y = 0; y < meter_height; y++)
+    for(y = 0; y < (int32_t)meter_height; y++)
     {
         int32_t x;
-        for(x = 0; x < width / 4; x++)
+        for(x = 0; x < (int32_t)(width / 4); x++)
         {
             if( x < x_db_peak_fast )
             {
