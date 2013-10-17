@@ -1460,7 +1460,9 @@ static CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
         static CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         static CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
-        static int arrow_keys_audio = 0;
+        #ifdef FEATURE_ARROW_SHORTCUTS
+            static int arrow_keys_audio = 0;
+        #endif
     #endif
     static CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 #endif

@@ -2391,7 +2391,7 @@ skip_name:
 static void
 menu_post_display()
 {
-    char* cfg_preset = (char*)get_config_preset_name();
+    char* cfg_preset = get_config_preset_name();
     if (cfg_preset && !submenu_mode)
     {
         bmp_printf(

@@ -577,7 +577,7 @@ void vram_clear_lv()
 int vram_redirect_lv_buffer(void* new_address)
 {
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-    YUV422_LV_BUFFER_DISPLAY_ADDR = (int)new_address;
+    YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t)new_address;
     return 1;
     #else
     return 0;
