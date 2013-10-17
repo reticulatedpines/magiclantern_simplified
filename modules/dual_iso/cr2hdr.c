@@ -33,13 +33,17 @@
 #undef INTERP_MEAN23_EDGE
 
 /* post interpolation enhancements */
-#define CHROMA_SMOOTH
+#define CHROMA_SMOOTH_5X5
+//~ #define CHROMA_SMOOTH_3X3
 #define ALIAS_BLEND
 
 /* minimizes aliasing while ignoring the other factors (e.g. shadow noise, banding) */
 /* useful for debugging */
 //~ #define FULLRES_ONLY
 
+#if defined(CHROMA_SMOOTH_3X3) || defined(CHROMA_SMOOTH_5X5)
+#define CHROMA_SMOOTH
+#endif
 
 #define EV_RESOLUTION 32768
 
@@ -1109,9 +1113,8 @@ static int mean3(int a, int b, int c, int white, int* err)
 }
 #endif
 
-#ifdef CHROMA_SMOOTH
-#if 0
-static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+#ifdef CHROMA_SMOOTH_3X3
+static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1154,7 +1157,8 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
 }
 #endif
 
-static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+#ifdef CHROMA_SMOOTH_5X5
+static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1431,8 +1435,11 @@ static int hdr_interpolate()
     }
 
     printf("Interpolation  : %s\n", INTERP_METHOD_NAME
-        #ifdef CHROMA_SMOOTH
+        #ifdef CHROMA_SMOOTH_5X5
         "-chroma5x5"
+        #endif
+        #ifdef CHROMA_SMOOTH_3X3
+        "-chroma3x3"
         #endif
         #ifdef ALIAS_BLEND
         "-alias"
@@ -2046,8 +2053,8 @@ static int hdr_interpolate()
 #endif
 
 #ifdef CHROMA_SMOOTH
-    chroma_smooth_5x5(fullres, fullres_smooth, raw2ev, ev2raw);
-    chroma_smooth_5x5(halfres, halfres_smooth, raw2ev, ev2raw);
+    chroma_smooth(fullres, fullres_smooth, raw2ev, ev2raw);
+    chroma_smooth(halfres, halfres_smooth, raw2ev, ev2raw);
 #endif
 
 #if 0 /* for debugging only */
