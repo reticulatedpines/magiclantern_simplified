@@ -2161,7 +2161,20 @@ static int hdr_interpolate()
     {
         for (x = 6; x < w-6; x ++)
         {
-            /* use 8th max (out of 49) to filter isolated pixels */
+            /* use 5th max (out of 37) to filter isolated pixels */
+            
+            int neighbours[] = {
+                                                                          -alias_map[x-2 + (y-6) * w], -alias_map[x+0 + (y-6) * w], -alias_map[x+2 + (y-6) * w],
+                                             -alias_map[x-4 + (y-4) * w], -alias_map[x-2 + (y-4) * w], -alias_map[x+0 + (y-4) * w], -alias_map[x+2 + (y-4) * w], -alias_map[x+4 + (y-4) * w],
+                -alias_map[x-6 + (y-2) * w], -alias_map[x-4 + (y-2) * w], -alias_map[x-2 + (y-2) * w], -alias_map[x+0 + (y-2) * w], -alias_map[x+2 + (y-2) * w], -alias_map[x+4 + (y-2) * w], -alias_map[x+6 + (y-2) * w], 
+                -alias_map[x-6 + (y+0) * w], -alias_map[x-4 + (y+0) * w], -alias_map[x-2 + (y+0) * w], -alias_map[x+0 + (y+0) * w], -alias_map[x+2 + (y+0) * w], -alias_map[x+4 + (y+0) * w], -alias_map[x+6 + (y+0) * w], 
+                -alias_map[x-6 + (y+2) * w], -alias_map[x-4 + (y+2) * w], -alias_map[x-2 + (y+2) * w], -alias_map[x+0 + (y+2) * w], -alias_map[x+2 + (y+2) * w], -alias_map[x+4 + (y+2) * w], -alias_map[x+6 + (y+2) * w], 
+                                             -alias_map[x-4 + (y+4) * w], -alias_map[x-2 + (y+4) * w], -alias_map[x+0 + (y+4) * w], -alias_map[x+2 + (y+4) * w], -alias_map[x+4 + (y+4) * w],
+                                                                          -alias_map[x-2 + (y+6) * w], -alias_map[x+0 + (y+6) * w], -alias_map[x+2 + (y+6) * w],
+            };
+            
+            /* code generation & unoptimized version */
+            /*
             int neighbours[50];
             int k = 0;
             int i,j;
@@ -2169,10 +2182,15 @@ static int hdr_interpolate()
             {
                 for (j = -3; j <= 3; j++)
                 {
-                    neighbours[k++] = -alias_map[x+j*2 + (y+i*2)*w];
+                    //~ neighbours[k++] = -alias_map[x+j*2 + (y+i*2)*w];
+                    printf("-alias_map[x%+d + (y%+d) * w], ", j*2, i*2);
                 }
+                printf("\n");
             }
-            alias_aux[x + y * w] = -kth_smallest_int(neighbours, k, 8);
+            exit(1);
+            */
+            
+            alias_aux[x + y * w] = -kth_smallest_int(neighbours, COUNT(neighbours), 5);
         }
     }
 
