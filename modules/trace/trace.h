@@ -77,6 +77,7 @@ unsigned int EXT_WEAK_FUNC(ret_0) trace_stop(unsigned int trace, int wait);
 /* setup some custom format options. when separator is a null byte, it will be omitted */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_format(unsigned int context, unsigned int format, unsigned char separator);
 unsigned int EXT_WEAK_FUNC(ret_0) trace_set_flushrate(unsigned int context, unsigned int timeout);
+unsigned int EXT_WEAK_FUNC(ret_0) trace_flush(unsigned int context);
 /* write some string into specified trace */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write(unsigned int context, char *string, ...);
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write_tsc(unsigned int context, tsc_t tsc, char *string, ...);

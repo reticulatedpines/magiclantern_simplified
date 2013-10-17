@@ -18,6 +18,9 @@ void lens_focus_enqueue_step(int dir);
 
 static int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
+static int focus_rack_auto_record = 0;
+static int focus_rack_enable_delay = 1;
+
 int should_override_zoom_buttons()
 {
     return (override_zoom_buttons && !is_manual_focus() && lv);// && get_menu_advanced_mode());
@@ -420,8 +423,6 @@ focus_reset_a( void * priv, int delta )
     else menu_enable_lv_transparent_mode();
 }
 
-static int focus_rack_auto_record = 0;
-static int focus_rack_enable_delay = 1;
 
 static void
 focus_toggle( void * priv )

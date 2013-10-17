@@ -14,12 +14,12 @@ extern tsc_t get_us_clock_value();
 /* general selection of allocation method */
 void *trace_alloc(int size)
 {
-    return alloc_dma_memory(size);
+    return malloc(size);
 }
 
 void trace_free(void *data)
 {
-    free_dma_memory(data);
+    free(data);
 }
 
 static void trace_task(volatile trace_entry_t *ctx)
@@ -240,6 +240,20 @@ unsigned int trace_set_flushrate(unsigned int context, unsigned int timeout)
 
     ctx->sleep_time = timeout;
 
+    return TRACE_OK;
+}
+
+unsigned int trace_flush(unsigned int context)
+{
+    trace_entry_t *ctx = &trace_contexts[context];
+
+    if(context >= TRACE_MAX_CONTEXT || !ctx->used)
+    {
+        return TRACE_ERROR;
+    }
+
+    msg_queue_post(ctx->queue, ctx);
+    
     return TRACE_OK;
 }
 

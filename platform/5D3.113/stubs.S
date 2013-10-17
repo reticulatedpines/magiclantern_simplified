@@ -90,6 +90,7 @@ NSTUB(0xff9f3a14 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_
 NSTUB(0xff9eb104 - RAM_OFFSET, msg_queue_create)
 NSTUB(0xff9f37b4 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xff9f35c8 - RAM_OFFSET, msg_queue_receive)
+NSTUB(0xff9f37f4 - RAM_OFFSET, msg_queue_count)
 
 /** Tasks **/
 NSTUB(0xff9e7a58 - RAM_OFFSET, task_create)
