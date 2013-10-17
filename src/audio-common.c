@@ -1,4 +1,7 @@
+
+#include "dryos.h"
 #include "lvinfo.h"
+
 
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
@@ -101,6 +104,7 @@ void draw_meters(void)
     static int16_t levels[ MAX_SAMPLES ];
     static uint32_t index;
     levels[ index++ ] = audio_read_level();
+    
     if( index >= MAX_SAMPLES )
         index = 0;
     
@@ -193,24 +197,31 @@ draw_meter(
     const uint32_t bg_color_word = color_word(COLOR_BLACK);
     
     // Write the meter an entire scan line at a time
-    int y;
-    for( y=0 ; y<meter_height ; y++, row += pitch/4 )
+    int32_t y;
+    for(y = 0; y < meter_height; y++)
+    {
+        int32_t x;
+        for(x = 0; x < width / 4; x++)
         {
-            uint32_t x;
-            for( x=0 ; x<width/4 ; x++ )
-                {
-                    if( x < x_db_peak_fast )
-                        row[x] = bar_color_word;
-                    else
-                        if( x < x_db_peak )
-                            row[x] = bg_color_word;
-                        else
-                            if( x < x_db_peak + 4 )
-                                row[x] = peak_color_word;
-                            else
-                                row[x] = bg_color_word;
-                }
+            if( x < x_db_peak_fast )
+            {
+                row[x] = bar_color_word;
+            }
+            else if( x < x_db_peak )
+            {
+                row[x] = bg_color_word;
+            }
+            else if( x < x_db_peak + 4 )
+            {
+                row[x] = peak_color_word;
+            }
+            else
+            {
+                row[x] = bg_color_word;
+            }
         }
+        row += pitch / 4;
+    }
     
     // Write the current level
     bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), x_origin, y_origin, "%s %02d", label, MIN(db_peak, -1) );
