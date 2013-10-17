@@ -33,15 +33,16 @@
 #undef INTERP_MEAN23_EDGE
 
 /* post interpolation enhancements */
-#define CHROMA_SMOOTH_5X5
+//~ #define CHROMA_SMOOTH_5X5
 //~ #define CHROMA_SMOOTH_3X3
+#define CHROMA_SMOOTH_2X2
 #define ALIAS_BLEND
 
 /* minimizes aliasing while ignoring the other factors (e.g. shadow noise, banding) */
 /* useful for debugging */
 //~ #define FULLRES_ONLY
 
-#if defined(CHROMA_SMOOTH_3X3) || defined(CHROMA_SMOOTH_5X5)
+#if defined(CHROMA_SMOOTH_2X2) || defined(CHROMA_SMOOTH_3X3) || defined(CHROMA_SMOOTH_5X5)
 #define CHROMA_SMOOTH
 #endif
 
@@ -1093,51 +1094,21 @@ static int mean3(int a, int b, int c, int white, int* err)
 }
 #endif
 
-#ifdef CHROMA_SMOOTH_3X3
-static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
-{
-    int w = raw_info.width;
-    int h = raw_info.height;
-    int x, y;
-
-    for (y = 2; y < h-2; y += 2)
-    {
-        for (x = 2; x < w-2; x += 2)
-        {
-            int i,j;
-            int k = 0;
-            int med_r[9];
-            int med_b[9];
-            for (i = -2; i <= 2; i += 2)
-            {
-                for (j = -2; j <= 2; j += 2)
-                {
-                    int r  = inp[x+i   +   (y+j) * w];
-                    int g1 = inp[x+i+1 +   (y+j) * w];
-                    int g2 = inp[x+i   + (y+j+1) * w];
-                    int b  = inp[x+i+1 + (y+j+1) * w];
-                    
-                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-                    med_r[k] = raw2ev[r] - ge;
-                    med_b[k] = raw2ev[b] - ge;
-                    k++;
-                }
-            }
-            int dr = opt_med9(med_r);
-            int db = opt_med9(med_b);
-
-            int g1 = inp[x+1 +     y * w];
-            int g2 = inp[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-        }
-    }
-}
+#ifdef CHROMA_SMOOTH_2X2
+#define CHROMA_SMOOTH_MAX_IJ 2
+#define CHROMA_SMOOTH_FILTER_SIZE 5
+#define chroma_smooth_median opt_med5
+#elif defined(CHROMA_SMOOTH_3X3)
+#define CHROMA_SMOOTH_MAX_IJ 2
+#define CHROMA_SMOOTH_FILTER_SIZE 9
+#define chroma_smooth_median opt_med9
+#else
+#define CHROMA_SMOOTH_MAX_IJ 4
+#define CHROMA_SMOOTH_FILTER_SIZE 25
+#define chroma_smooth_median opt_med25
 #endif
 
-#ifdef CHROMA_SMOOTH_5X5
+#ifdef CHROMA_SMOOTH
 static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
@@ -1157,12 +1128,17 @@ static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2e
 
             int i,j;
             int k = 0;
-            int med_r[25];
-            int med_b[25];
-            for (i = -4; i <= 4; i += 2)
+            int med_r[CHROMA_SMOOTH_FILTER_SIZE];
+            int med_b[CHROMA_SMOOTH_FILTER_SIZE];
+            for (i = -CHROMA_SMOOTH_MAX_IJ; i <= CHROMA_SMOOTH_MAX_IJ; i += 2)
             {
-                for (j = -4; j <= 4; j += 2)
+                for (j = -CHROMA_SMOOTH_MAX_IJ; j <= CHROMA_SMOOTH_MAX_IJ; j += 2)
                 {
+                    #ifdef CHROMA_SMOOTH_2X2
+                    if (ABS(i) + ABS(j) == 4)
+                        continue;
+                    #endif
+                    
                     int r  = inp[x+i   +   (y+j) * w];
                     int g1 = inp[x+i+1 +   (y+j) * w];
                     int g2 = inp[x+i   + (y+j+1) * w];
@@ -1174,8 +1150,8 @@ static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2e
                     k++;
                 }
             }
-            int dr = opt_med25(med_r);
-            int db = opt_med25(med_b);
+            int dr = chroma_smooth_median(med_r);
+            int db = chroma_smooth_median(med_b);
 
             if (ge + dr <= EV_RESOLUTION) continue;
             if (ge + db <= EV_RESOLUTION) continue;
@@ -1420,6 +1396,9 @@ static int hdr_interpolate()
         #endif
         #ifdef CHROMA_SMOOTH_3X3
         "-chroma3x3"
+        #endif
+        #ifdef CHROMA_SMOOTH_2X2
+        "-chroma2x2"
         #endif
         #ifdef ALIAS_BLEND
         "-alias"
