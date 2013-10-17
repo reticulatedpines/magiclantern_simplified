@@ -77,6 +77,7 @@ static int cam_5d3 = 0;
 static int cam_550d = 0;
 static int cam_6d = 0;
 static int cam_600d = 0;
+static int cam_650d = 0;
 static int cam_7d = 0;
 static int cam_700d = 0;
 
@@ -1063,6 +1064,7 @@ static void hack_liveview(int unhack)
             cam_5d3 ? 0xff4acda4 :
             cam_550d ? 0xFF2FE5E4 :            
             cam_600d ? 0xFF37AA18 :
+            cam_650d ? 0xFF527E38 :            
             cam_7d  ? 0xFF345788 :
             cam_700d ? 0xFF52B53C :
             /* ... */
@@ -2143,6 +2145,7 @@ static unsigned int raw_rec_init()
     cam_550d = streq(camera_model_short, "550D");
     cam_6d = streq(camera_model_short, "6D");
     cam_600d = streq(camera_model_short, "600D");
+    cam_650d = streq(camera_model_short, "650D");
     cam_7d = streq(camera_model_short, "7D");
     cam_700d = streq(camera_model_short, "700D");
     
