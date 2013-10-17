@@ -2315,7 +2315,7 @@ static int hdr_interpolate()
     static double fullres_curve[65536];
     
     static double fullres_start = 4;
-    static double fullres_transition = 2;
+    static double fullres_transition = 3;
     
     for (i = 0; i < 65536; i++)
     {
