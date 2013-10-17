@@ -58,7 +58,8 @@
 #include "../../src/raw.h"
 #include "qsort.h"  /* much faster than standard C qsort */
 
-#include "optmed.h"
+#include "wirth.h"  /* fast median, generic implementation (also kth_smallest) */
+#include "optmed.h" /* fast median for small common array sizes (3, 7, 9...) */
 
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
@@ -717,24 +718,7 @@ static int median_ushort(unsigned short* x, int n)
     unsigned short* aux = malloc(n * sizeof(x[0]));
     CHECK(aux, "malloc");
     memcpy(aux, x, n * sizeof(aux[0]));
-    //~ qsort(aux, n, sizeof(aux[0]), compare_short);
-    #define ushort_lt(a,b) ((*a)<(*b))
-    QSORT(unsigned short, aux, n, ushort_lt);
-    int ans = aux[n/2];
-    free(aux);
-    return ans;
-}
-
-static int median_short(short* x, int n)
-{
-    short* aux = malloc(n * sizeof(x[0]));
-    CHECK(aux, "malloc");
-    memcpy(aux, x, n * sizeof(aux[0]));
-    #define short_lt(a,b) ((*a)<(*b))
-    QSORT(short, aux, n, short_lt);
-    int ans = aux[n/2];
-    free(aux);
-    return ans;
+    return median_ushort_wirth(x, n);
 }
 
 static int median_int(int* x, int n)
@@ -742,11 +726,7 @@ static int median_int(int* x, int n)
     int* aux = malloc(n * sizeof(x[0]));
     CHECK(aux, "malloc");
     memcpy(aux, x, n * sizeof(aux[0]));
-    #define int_lt(a,b) ((*a)<(*b))
-    QSORT(int, aux, n, int_lt);
-    int ans = aux[n/2];
-    free(aux);
-    return ans;
+    return median_int_wirth(x, n);
 }
 
 static int estimate_iso(unsigned short* dark, unsigned short* bright, double* corr_ev)
@@ -1674,7 +1654,7 @@ static int hdr_interpolate()
 
 #if 1
     printf("Horizontal stripe fix...\n");
-    short * delta[14];
+    int * delta[14];
     int delta_num[14];
     for (i = 0; i < 14; i++)
     {
@@ -1710,7 +1690,7 @@ static int hdr_interpolate()
             if (delta_num[i] > 0)
             {
                 /* enough data points? */
-                med_delta[i] = median_short(delta[i], delta_num[i]);
+                med_delta[i] = median_int_wirth(delta[i], delta_num[i]);
                 
                 /* avoid large corrections (they are probably outliers) */
                 if (ABS(med_delta[i]) > 50) med_delta[i] = 0;
@@ -2189,12 +2169,10 @@ static int hdr_interpolate()
             {
                 for (j = -3; j <= 3; j++)
                 {
-                    neighbours[k++] = alias_map[x+j*2 + (y+i*2)*w];
+                    neighbours[k++] = -alias_map[x+j*2 + (y+i*2)*w];
                 }
             }
-            /* quite slow, but trivial to write and tweak */
-            QSORT(int, neighbours, k, int_lt);
-            alias_aux[x + y * w] = neighbours[k-8];
+            alias_aux[x + y * w] = -kth_smallest_int(neighbours, k, 8);
         }
     }
 
