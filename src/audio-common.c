@@ -165,7 +165,7 @@ draw_meter(
            int          meter_height,
            struct       audio_level *   level,
            char *       label,
-           int width
+           unsigned int width
            )
 {
     const uint32_t pitch = BMPPITCH;

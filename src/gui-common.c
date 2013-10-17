@@ -26,7 +26,10 @@ int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
 // disable Canon bottom bar
+
+#if defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK)
 static int bottom_bar_hack = 0;
+#endif
 
 #if defined(CONFIG_LVAPP_HACK_DEBUGMSG)
 

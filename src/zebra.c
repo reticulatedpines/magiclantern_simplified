@@ -1311,7 +1311,7 @@ void bvram_mirror_init()
         //~ #else
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
-        bvram_mirror_start = RESTARTSTART + ml_reserved_mem;
+        bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
         #elif defined(CONFIG_EOSM)
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
@@ -3884,7 +3884,7 @@ static void draw_zoom_overlay(int dirty)
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;
             if (dt > timeout_us)
-                return 0;
+                return;
             for (int i = 0; i < 100; i++) asm("nop"); // don't stress the digic too much
         }
     }
@@ -4878,7 +4878,9 @@ livev_hipriority_task( void* unused )
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
+#ifdef CONFIG_RAW_LIVEVIEW
         static int raw_flag = 0;
+#endif
         
         if (!zebra_should_run())
         {
