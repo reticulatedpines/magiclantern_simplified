@@ -29,7 +29,7 @@ int hibr_should_record_wav() { return 0; }
 #endif
 
 static int time_indic_warning = 120;
-static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
+static unsigned int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
 static int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;

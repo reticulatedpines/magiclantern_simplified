@@ -3670,7 +3670,7 @@ static struct menu_entry display_menus[] = {
             #ifdef FEATURE_IMAGE_ORIENTATION
                 {
                     .name = "Orientation",
-                    .priv = &DISPLAY_ORIENTATION,
+                    .priv = (int*)&DISPLAY_ORIENTATION,
                     .select = display_orientation_toggle,
                     .max = 2,
                     .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},

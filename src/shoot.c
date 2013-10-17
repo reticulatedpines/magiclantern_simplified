@@ -203,6 +203,30 @@ static int audio_release_running = 0;
 
 static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 25, 26, 27, 28, 29, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180, 195, 210, 225, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
 
+#ifdef FEATURE_INTERVALOMETER
+int get_interval_count()
+{
+    return intervalometer_pictures_taken;
+}
+
+int get_interval_time()
+{
+    if(interval_time == -1)
+        interval_time = timer_values[interval_timer_index];
+    return interval_time;
+}
+
+void set_interval_time(int seconds)
+{
+    interval_time = seconds;
+}
+
+void set_interval_index(int index)
+{
+    interval_time = timer_values[index];
+}
+#endif
+
 static const char* format_time_hours_minutes_seconds(int seconds)
 {
     static char msg[50];
@@ -2784,7 +2808,9 @@ bulb_take_pic(int duration)
     int t_end = t_start + duration;
     SW2(1,300);
     
+#ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
     int display_forced_on = 0;
+#endif
     
     //~ msleep(duration);
     //int d = duration/1000;
@@ -4661,28 +4687,6 @@ void hdr_create_script(int f0, int focus_stack)
 #endif // HDR/FST
 
 #ifdef FEATURE_INTERVALOMETER
-
-int get_interval_count()
-{
-    return intervalometer_pictures_taken;
-}
-
-int get_interval_time()
-{
-    if(interval_time == -1)
-        interval_time = timer_values[interval_timer_index];
-    return interval_time;
-}
-
-void set_interval_time(int seconds)
-{
-    interval_time = seconds;
-}
-
-void set_interval_index(int index)
-{
-    interval_time = timer_values[index];
-}
 
 // create a post script for sorting intervalometer sequences,
 // starting from file number f0 till the current file_number
