@@ -2,7 +2,7 @@
 
 CR2HDR_BIN=cr2hdr
 HOSTCC=gcc
-CR2HDR_CFLAGS=-m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64
+CR2HDR_CFLAGS=-m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing
 CR2HDR_LDFLAGS=-lm -m32 
 CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c dcraw-bridge.c exiftool-bridge.c amaze_demosaic_RT.c
 HOST=host
