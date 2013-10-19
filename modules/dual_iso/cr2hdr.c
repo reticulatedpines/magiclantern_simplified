@@ -26,7 +26,8 @@
 
 /* choose interpolation method (define only one of these) */
 //~ #define INTERP_AMAZE_MEAN2
-#define INTERP_AMAZE_MEAN2W
+//~ #define INTERP_AMAZE_MEAN2W
+#define INTERP_AMAZE_MEAN2E
 //~ #define INTERP_AMAZE_NEAREST
 //~ #define INTERP_MEAN23
 //~ #define INTERP_MEAN_6
@@ -1065,16 +1066,24 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 #define INTERP_METHOD_NAME "amaze-nearest"
 #endif
 
-#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE) || defined(INTERP_AMAZE_MEAN2) || defined(INTERP_AMAZE_MEAN2W)
+#ifdef INTERP_AMAZE_MEAN2E
+#define INTERP_METHOD_NAME "amaze-mean2e"
+#define INTERP_AMAZE
+#endif
+
+#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE) || defined(INTERP_AMAZE)
 static int mean2(int a, int b, int white, int* err)
 {
     if (a >= white || b >= white)
+    {
+        if (err) *err = 10000000;
         return white;
+    }
     
     int m = (a + b) / 2;
 
     if (err)
-        *err = MAX(ABS(a - m), ABS(b - m));
+        *err = ABS(a - b);
 
     return m;
 }
@@ -1601,6 +1610,68 @@ static int hdr_interpolate()
                     int bb = COERCE(blue[yh_far][x+1], black, white);
                     int eb=0; int bi = mean3(raw2ev[ba], raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
                     interp[x+1 + y * w] = ev2raw[bi];
+                }
+
+                #elif defined(INTERP_AMAZE_MEAN2E)
+                if (is_rg)
+                {
+                    {
+                    int ra1 = COERCE(red[yh_near][x], black, white);
+                    int rb1 = COERCE(red[yh_far][x], black, white);
+                    int ra2 = COERCE(red[yh_near][x-1], black, white);
+                    int rb2 = COERCE(red[yh_far][x+1], black, white);
+                    int ra3 = COERCE(red[yh_near][x+1], black, white);
+                    int rb3 = COERCE(red[yh_far][x-1], black, white);
+                    int er1=0; int ri1 = mean2(raw2ev[ra1], raw2ev[rb1], raw2ev[white], &er1);
+                    int er2=0; int ri2 = mean2(raw2ev[ra2], raw2ev[rb2], raw2ev[white], &er2);
+                    int er3=0; int ri3 = mean2(raw2ev[ra3], raw2ev[rb3], raw2ev[white], &er3);
+                    int ri = (er1 < er2 && er1 < er3) ? ri1 : (er2 < er3) ? ri2 : ri3;
+                    interp[x   + y * w] = ev2raw[ri];
+                    }
+
+                    {
+                    int ga1 = COERCE(green[yh_near][x+1], black, white);
+                    int gb1 = COERCE(green[yh_far][x+1], black, white);
+                    int ga2 = COERCE(green[yh_near][x+1-1], black, white);
+                    int gb2 = COERCE(green[yh_far][x+1+1], black, white);
+                    int ga3 = COERCE(green[yh_near][x+1+1], black, white);
+                    int gb3 = COERCE(green[yh_far][x+1-1], black, white);
+                    int eg1=0; int gi1 = mean2(raw2ev[ga1], raw2ev[gb1], raw2ev[white], &eg1);
+                    int eg2=0; int gi2 = mean2(raw2ev[ga2], raw2ev[gb2], raw2ev[white], &eg2);
+                    int eg3=0; int gi3 = mean2(raw2ev[ga3], raw2ev[gb3], raw2ev[white], &eg3);
+                    int gi = (eg1 < eg2 && eg1 < eg3) ? gi1 : (eg2 < eg3) ? gi2 : gi3;
+                    interp[x+1 + y * w] = ev2raw[gi];
+                    }
+                }
+                else
+                {
+                    {
+                    int ga1 = COERCE(green[yh_near][x], black, white);
+                    int gb1 = COERCE(green[yh_far][x], black, white);
+                    int ga2 = COERCE(green[yh_near][x-1], black, white);
+                    int gb2 = COERCE(green[yh_far][x+1], black, white);
+                    int ga3 = COERCE(green[yh_near][x+1], black, white);
+                    int gb3 = COERCE(green[yh_far][x-1], black, white);
+                    int eg1=0; int gi1 = mean2(raw2ev[ga1], raw2ev[gb1], raw2ev[white], &eg1);
+                    int eg2=0; int gi2 = mean2(raw2ev[ga2], raw2ev[gb2], raw2ev[white], &eg2);
+                    int eg3=0; int gi3 = mean2(raw2ev[ga3], raw2ev[gb3], raw2ev[white], &eg3);
+                    int gi = (eg1 < eg2 && eg1 < eg3) ? gi1 : (eg2 < eg3) ? gi2 : gi3;
+                    interp[x   + y * w] = ev2raw[gi];
+                    }
+
+                    {
+                    int ba1 = COERCE(blue[yh_near][x+1], black, white);
+                    int bb1 = COERCE(blue[yh_far][x+1], black, white);
+                    int ba2 = COERCE(blue[yh_near][x+1-1], black, white);
+                    int bb2 = COERCE(blue[yh_far][x+1+1], black, white);
+                    int ba3 = COERCE(blue[yh_near][x+1+1], black, white);
+                    int bb3 = COERCE(blue[yh_far][x+1-1], black, white);
+                    int eb1=0; int bi1 = mean2(raw2ev[ba1], raw2ev[bb1], raw2ev[white], &eb1);
+                    int eb2=0; int bi2 = mean2(raw2ev[ba2], raw2ev[bb2], raw2ev[white], &eb2);
+                    int eb3=0; int bi3 = mean2(raw2ev[ba3], raw2ev[bb3], raw2ev[white], &eb3);
+                    int bi = (eb1 < eb2 && eb1 < eb3) ? bi1 : (eb2 < eb3) ? bi2 : bi3;
+                    interp[x+1 + y * w] = ev2raw[bi];
+                    }
                 }
                 #endif
 
