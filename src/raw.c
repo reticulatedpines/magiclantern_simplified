@@ -355,7 +355,7 @@ int raw_update_params()
     if (lv)
     {
         /* grab the image buffer from EDMAC; first pixel should be red */
-        raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
+        raw_info.buffer = (uint32_t) shamem_read(RAW_LV_EDMAC);
         if (!raw_info.buffer)
         {
             dbg_printf("LV raw buffer null\n");
@@ -460,10 +460,10 @@ int raw_update_params()
     }
     else if (QR_MODE) // image review after taking pics
     {
-        raw_info.buffer = (void*) raw_buffer_photo;
+        raw_info.buffer = (uint32_t) raw_buffer_photo;
         
         #ifdef CONFIG_60D
-        raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
+        raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
         #endif
         
         if (!raw_info.buffer)
@@ -815,7 +815,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
 int FAST raw_red_pixel(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].a;
@@ -823,7 +823,7 @@ int FAST raw_red_pixel(int x, int y)
 
 int FAST raw_green_pixel(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].h;
@@ -831,7 +831,7 @@ int FAST raw_green_pixel(int x, int y)
 
 int FAST raw_blue_pixel(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].h;
@@ -839,7 +839,7 @@ int FAST raw_blue_pixel(int x, int y)
 
 int FAST raw_red_pixel_dark(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MIN(buf[i].a, buf[i - raw_info.width*2/8].a);
@@ -847,7 +847,7 @@ int FAST raw_red_pixel_dark(int x, int y)
 
 int FAST raw_green_pixel_dark(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MIN(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -855,7 +855,7 @@ int FAST raw_green_pixel_dark(int x, int y)
 
 int FAST raw_blue_pixel_dark(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return MIN(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -863,7 +863,7 @@ int FAST raw_blue_pixel_dark(int x, int y)
 
 int FAST raw_red_pixel_bright(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MAX(buf[i].a, buf[i - raw_info.width*2/8].a);
@@ -871,7 +871,7 @@ int FAST raw_red_pixel_bright(int x, int y)
 
 int FAST raw_green_pixel_bright(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MAX(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -879,7 +879,7 @@ int FAST raw_green_pixel_bright(int x, int y)
 
 int FAST raw_blue_pixel_bright(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return MAX(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -1289,7 +1289,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
 {
     if (raw_buffer == (void*)-1)
-        raw_buffer = raw_info.buffer;
+        raw_buffer = (void*)raw_info.buffer;
     
     if (lv_buffer == (void*)-1)
         lv_buffer = (void*)YUV422_LV_BUFFER_DISPLAY_ADDR;

@@ -38,6 +38,7 @@
 static int get_tick_count() { return get_ms_clock_value_fast(); }
 
 #else // if we compile it for desktop
+#include "stdint.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
@@ -625,7 +626,7 @@ static void create_thumbnail(struct raw_info * raw_info)
 static void write_dng(FILE* fd, struct raw_info * raw_info) 
 {
     create_dng_header(raw_info);
-    char* rawadr = raw_info->buffer;
+    char* rawadr = (void*)raw_info->buffer;
 
     if (dng_header_buf)
     {

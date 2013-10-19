@@ -154,43 +154,42 @@ int get_dxo_dynamic_range(int raw_iso);
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
-    int api_version;            // increase this when changing the structure
-    void* buffer;               // points to image data
+    uint32_t api_version;          // increase this when changing the structure
+    uint32_t buffer;               // points to image data
     
-    int height, width, pitch;
-    int frame_size;
-    int bits_per_pixel;         // 14
+    int32_t height, width, pitch;
+    int32_t frame_size;
+    int32_t bits_per_pixel;         // 14
 
-    int black_level;            // autodetected
-    int white_level;            // somewhere around 13000 - 16000, varies with camera, settings etc
-                                // would be best to autodetect it, but we can't do this reliably yet
-    union                       // DNG JPEG info
+    int32_t black_level;            // autodetected
+    int32_t white_level;            // somewhere around 13000 - 16000, varies with camera, settings etc
+                                    // would be best to autodetect it, but we can't do this reliably yet
+    union                           // DNG JPEG info
     {
         struct
         {
-            int x, y;           // DNG JPEG top left corner
-            int width, height;  // DNG JPEG size
+            int32_t x, y;           // DNG JPEG top left corner
+            int32_t width, height;  // DNG JPEG size
         } jpeg;
         struct
         {
-            int origin[2];
-            int size[2];
+            int32_t origin[2];
+            int32_t size[2];
         } crop;
     };
     union                       // DNG active sensor area (Y1, X1, Y2, X2)
     {
         struct
         {
-            int y1, x1, y2, x2;
+            int32_t y1, x1, y2, x2;
         } active_area;
-        int dng_active_area[4];
+        int32_t dng_active_area[4];
     };
-    int exposure_bias[2];       // DNG Exposure Bias (idk what's that)
-    int cfa_pattern;            // stick to 0x02010100 (RGBG) if you can
-    int calibration_illuminant1;
-    int color_matrix1[18];      // DNG Color Matrix
-    
-    int dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
+    int32_t exposure_bias[2];       // DNG Exposure Bias (idk what's that)
+    int32_t cfa_pattern;            // stick to 0x02010100 (RGBG) if you can
+    int32_t calibration_illuminant1;
+    int32_t color_matrix1[18];      // DNG Color Matrix
+    int32_t dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
 };
 
 extern struct raw_info raw_info;
