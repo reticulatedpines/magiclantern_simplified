@@ -25,12 +25,15 @@
  */
 
 /* choose interpolation method (define only one of these) */
-#define INTERP_MEAN23
-#undef INTERP_MEAN_6
-#undef INTERP_MEAN_4_OUT_OF_6
-#undef INTERP_MEAN_5_OUT_OF_6
-#undef INTERP_MEDIAN_6
-#undef INTERP_MEAN23_EDGE
+//~ #define INTERP_AMAZE_MEAN2
+#define INTERP_AMAZE_MEAN2W
+//~ #define INTERP_AMAZE_NEAREST
+//~ #define INTERP_MEAN23
+//~ #define INTERP_MEAN_6
+//~ #define INTERP_MEAN_4_OUT_OF_6
+//~ #define INTERP_MEAN_5_OUT_OF_6
+//~ #define INTERP_MEDIAN_6
+//~ #define INTERP_MEAN23_EDGE
 
 /* post interpolation enhancements */
 //~ #define CHROMA_SMOOTH_5X5
@@ -1045,28 +1048,24 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 
 #ifdef INTERP_MEAN23_EDGE
 #define INTERP_METHOD_NAME "mean23-edge"
-
-#define interp6 median6
-/* median of 6 numbers */
-static int median6(int a, int b, int c, int d, int e, int f, int white)
-{
-    int x[6] = {a,b,c,d,e,f};
-
-    /* compute median */
-    int aux;
-    int i,j;
-    for (i = 0; i < 5; i++)
-        for (j = i+1; j < 6; j++)
-            if (x[i] > x[j])
-                aux = x[i], x[i] = x[j], x[j] = aux;
-    if ((x[2] >= white) || (x[3] >= white))
-        return white;
-    int median = (x[2] + x[3]) / 2;
-    return median;
-}
 #endif
 
-#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
+#ifdef INTERP_AMAZE_MEAN2
+#define INTERP_METHOD_NAME "amaze-mean2"
+#define INTERP_AMAZE
+#endif
+
+#ifdef INTERP_AMAZE_MEAN2W
+#define INTERP_METHOD_NAME "amaze-mean2w"
+#define INTERP_AMAZE
+#endif
+
+#ifdef INTERP_AMAZE_NEAREST
+#define INTERP_AMAZE
+#define INTERP_METHOD_NAME "amaze-nearest"
+#endif
+
+#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE) || defined(INTERP_AMAZE_MEAN2) || defined(INTERP_AMAZE_MEAN2W)
 static int mean2(int a, int b, int white, int* err)
 {
     if (a >= white || b >= white)
@@ -1405,7 +1404,227 @@ static int hdr_interpolate()
         #endif
     );
 
-#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
+#ifdef INTERP_AMAZE
+    {
+        int* squeezed = malloc(h * sizeof(squeezed));
+        memset(squeezed, 0, h * sizeof(squeezed));
+ 
+        float** rawData = malloc(h * sizeof(rawData[0]));
+        float** red     = malloc(h * sizeof(red[0]));
+        float** green   = malloc(h * sizeof(green[0]));
+        float** blue    = malloc(h * sizeof(blue[0]));
+        
+        for (i = 0; i < h; i++)
+        {
+            rawData[i] = malloc(w * sizeof(rawData[0][0]));
+            red[i]     = malloc(w * sizeof(red[0][0]));
+            green[i]   = malloc(w * sizeof(green[0][0]));
+            blue[i]    = malloc(w * sizeof(blue[0][0]));
+        }
+        
+        /* squeeze the dark image by deleting fields from the bright exposure */
+        int yh = -1;
+        for (y = 0; y < h; y ++)
+        {
+            if (BRIGHT_ROW)
+                continue;
+            
+            if (yh < 0) /* make sure we start at the same parity (RGGB cell) */
+                yh = y;
+            
+            for (x = 0; x < w; x++)
+            {
+                int p = raw_get_pixel_14to16(x, y);
+                
+                if (x%2 != y%2) /* divide green channel by 2 to approximate the final WB better */
+                    p = (p - black) / 2 + black;
+                
+                rawData[yh][x] = p;
+            }
+            
+            squeezed[y] = yh;
+            
+            yh++;
+        }
+
+        /* now the same for the bright exposure */
+        yh = -1;
+        for (y = 0; y < h; y ++)
+        {
+            if (!BRIGHT_ROW)
+                continue;
+
+            if (yh < 0) /* make sure we start with the same parity (RGGB cell) */
+                yh = h/4*2 + y;
+            
+            for (x = 0; x < w; x++)
+            {
+                int p = raw_get_pixel_14to16(x, y);
+                
+                if (x%2 != y%2) /* divide green channel by 2 to approximate the final WB better */
+                    p = (p - black) / 2 + black;
+                
+                rawData[yh][x] = p;
+            }
+            
+            squeezed[y] = yh;
+            
+            yh++;
+            if (yh > h) break; /* just in case */
+        }
+
+//~ #define AMAZE_DEBUG
+
+#ifdef AMAZE_DEBUG
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, rawData[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-input.dng");
+#endif
+
+        void amaze_demosaic_RT(
+            float** rawData,    /* holds preprocessed pixel values, rawData[i][j] corresponds to the ith row and jth column */
+            float** red,        /* the interpolated red plane */
+            float** green,      /* the interpolated green plane */
+            float** blue,       /* the interpolated blue plane */
+            int winx, int winy, /* crop window for demosaicing */
+            int winw, int winh
+        );
+
+        amaze_demosaic_RT(rawData, red, green, blue, 10, 10, w-10, h-10);
+
+        /* undo green channel scaling */
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                green[y][x] = COERCE((green[y][x] - black) * 2 + black, black, white);
+
+#ifdef AMAZE_DEBUG
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, red[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-red.dng");
+
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, green[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-green.dng");
+
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, blue[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-blue.dng");
+        
+        /* the above operations were destructive, so we stop here */
+        exit(1);
+#endif
+
+        for (y = 2; y < h-2; y ++)
+        {
+            unsigned short* native = BRIGHT_ROW ? bright : dark;
+            unsigned short* interp = BRIGHT_ROW ? dark : bright;
+            int is_rg = (y % 2 == 0); /* RG or GB? */
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+            int yh_near = squeezed[y+s];
+            int yh_far =  squeezed[y-2*s];
+            
+            //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
+            
+            for (x = 2; x < w-2; x += 2)
+            {
+                #if defined(INTERP_AMAZE_NEAREST)
+                if (is_rg)
+                {
+                    int ra = COERCE(red[yh_near][x], black, white);
+                    interp[x   + y * w] = ra;
+
+                    int ga = COERCE(green[yh_near][x+1], black, white);
+                    interp[x+1 + y * w] = ga;
+                }
+                else
+                {
+                    int ga = COERCE(green[yh_near][x], black, white);
+                    interp[x   + y * w] = ga;
+
+                    int ba = COERCE(blue[yh_near][x+1], black, white);
+                    interp[x+1 + y * w] = ba;
+                }
+                #elif defined(INTERP_AMAZE_MEAN2)
+                if (is_rg)
+                {
+                    int ra = COERCE(red[yh_near][x], black, white);
+                    int rb = COERCE(red[yh_far][x], black, white);
+                    int er=0; int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
+                    interp[x   + y * w] = ev2raw[ri];
+
+                    int ga = COERCE(green[yh_near][x+1], black, white);
+                    int gb = COERCE(green[yh_far][x+1], black, white);
+                    int eg=0; int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    interp[x+1 + y * w] = ev2raw[gi];
+                }
+                else
+                {
+                    int ga = COERCE(green[yh_near][x], black, white);
+                    int gb = COERCE(green[yh_far][x], black, white);
+                    int eg=0; int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    interp[x   + y * w] = ev2raw[gi];
+
+                    int ba = COERCE(blue[yh_near][x+1], black, white);
+                    int bb = COERCE(blue[yh_far][x+1], black, white);
+                    int eb=0; int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
+                    interp[x+1 + y * w] = ev2raw[bi];
+                }
+                #elif defined(INTERP_AMAZE_MEAN2W)
+                if (is_rg)
+                {
+                    int ra = COERCE(red[yh_near][x], black, white);
+                    int rb = COERCE(red[yh_far][x], black, white);
+                    int er=0; int ri = mean3(raw2ev[ra], raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
+                    interp[x   + y * w] = ev2raw[ri];
+
+                    int ga = COERCE(green[yh_near][x+1], black, white);
+                    int gb = COERCE(green[yh_far][x+1], black, white);
+                    int eg=0; int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    interp[x+1 + y * w] = ev2raw[gi];
+                }
+                else
+                {
+                    int ga = COERCE(green[yh_near][x], black, white);
+                    int gb = COERCE(green[yh_far][x], black, white);
+                    int eg=0; int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    interp[x   + y * w] = ev2raw[gi];
+
+                    int ba = COERCE(blue[yh_near][x+1], black, white);
+                    int bb = COERCE(blue[yh_far][x+1], black, white);
+                    int eb=0; int bi = mean3(raw2ev[ba], raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
+                    interp[x+1 + y * w] = ev2raw[bi];
+                }
+                #endif
+
+                native[x   + y * w] = raw_get_pixel_14to16(x, y);
+                native[x+1 + y * w] = raw_get_pixel_14to16(x+1, y);
+            }
+        }
+
+        for (i = 0; i < h; i++)
+        {
+            free(rawData[i]);
+            free(red[i]);
+            free(green[i]);
+            free(blue[i]);
+        }
+        
+        free(squeezed); squeezed = 0;
+        free(rawData); rawData = 0;
+        free(red); red = 0;
+        free(green); green = 0;
+        free(blue); blue = 0;
+    }
+
+#elif defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
     for (y = 2; y < h-2; y ++)
     {
         unsigned short* native = BRIGHT_ROW ? bright : dark;
