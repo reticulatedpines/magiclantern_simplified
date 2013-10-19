@@ -182,12 +182,12 @@ draw_meter(
     // .. and the space for showing the channel and source.
     row += (pitch/4) * y_origin + AUDIO_METER_OFFSET + x_origin/4;
     
-    const int db_peak_fast = audio_level_to_db( level->peak_fast );
-    const int db_peak = audio_level_to_db( level->peak );
+    const int32_t db_peak_fast = audio_level_to_db( level->peak_fast );
+    const int32_t db_peak = audio_level_to_db( level->peak );
     
     // levels go from -40 to 0
-    const uint32_t x_db_peak_fast = (width + db_peak_fast * width / 40) / 4;
-    const uint32_t x_db_peak = (width + db_peak * width / 40) / 4;
+    const int32_t x_db_peak_fast = ((int32_t)width + db_peak_fast * (int32_t)width / 40) / 4;
+    const int32_t x_db_peak = ((int32_t)width + db_peak * (int32_t)width / 40) / 4;
     
     const uint8_t bar_color = db_to_color( db_peak_fast );
     const uint8_t peak_color = db_peak_to_color( db_peak );
