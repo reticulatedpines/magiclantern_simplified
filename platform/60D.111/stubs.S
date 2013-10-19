@@ -150,6 +150,7 @@ NSTUB( 0x1CF8, gui_main_struct )      //  in gui_main_task. LDR     R0, [R4,#0x3
 NSTUB( 0xFF1D6AEC, msg_queue_receive )
 NSTUB( 0xFF1D6CD8, msg_queue_post ) // TryPostMessageQueue
 NSTUB( 0xFF072830, msg_queue_create ) // CreateMessageQueue
+NSTUB( 0xF81D6D18, msg_queue_count )
 
 NSTUB( 0xFF024500, GUI_Control )
 
