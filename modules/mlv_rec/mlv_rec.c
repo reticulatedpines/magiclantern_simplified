@@ -1151,7 +1151,7 @@ static void show_buffer_status()
     if(enable_tracing)
     {
         buffer_str[buffer_str_pos++] = '\000';
-        //trace_write(raw_rec_trace_ctx, buffer_str);
+        trace_write(raw_rec_trace_ctx, buffer_str);
     }   
 
     if (frame_skips > 0)
