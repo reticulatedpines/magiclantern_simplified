@@ -44,6 +44,7 @@
 #define EV_RESOLUTION 32768
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -102,14 +103,14 @@ static int black_subtract_simple(int left_margin, int top_margin);
 static int white_detect();
 
 static inline int raw_get_pixel16(int x, int y) {
-    unsigned short * buf = raw_info.buffer;
+    unsigned short * buf = (void*)raw_info.buffer;
     int value = buf[x + y * raw_info.width];
     return value;
 }
 
 static inline int raw_set_pixel16(int x, int y, int value)
 {
-    unsigned short * buf = raw_info.buffer;
+    unsigned short * buf = (void*)raw_info.buffer;
     buf[x + y * raw_info.width] = value;
     return value;
 }
@@ -256,7 +257,7 @@ int main(int argc, char** argv)
         /* PGM is big endian, need to reverse it */
         reverse_bytes_order(buf, width * height * 2);
 
-        raw_info.buffer = buf;
+        raw_info.buffer = (uint32_t)buf;
         
         /* did we read the PGM correctly? (right byte order etc) */
         //~ int i;
@@ -303,7 +304,7 @@ int main(int argc, char** argv)
                 /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
                 black_subtract_simple(left_margin, top_margin);
 
-                reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+                reverse_bytes_order((void*)raw_info.buffer, raw_info.frame_size);
 
                 printf("Output file    : %s\n", out_filename);
                 save_dng(out_filename);
