@@ -831,7 +831,7 @@ static void FAST draw_zebras_raw()
     int white = raw_info.white_level;
     int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
     
-    int zoom0 = MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
+    int zoom0 = (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
     for (int i = os.y0+20; i < os.y_max; i ++)
     {
@@ -887,7 +887,7 @@ static void FAST draw_zebras_raw()
 
         if (!DISPLAY_IS_ON) break;
         if (!PLAY_OR_QR_MODE) break;
-        if ((int)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) != zoom0) break; /* stop when zooming */
+        if ((int)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) != zoom0) break; /* stop when zooming */
 
     }
 }
@@ -5061,13 +5061,13 @@ livev_lopriority_task( void* unused )
         #endif
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
+        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
         {
             msleep(500);
-            if (PLAY_MODE && DISPLAY_IS_ON && ((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)) // double-check
+            if (PLAY_MODE && DISPLAY_IS_ON && ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)) // double-check
             {
                 cropmark_redraw();
-                if ((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
+                if ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
             }
         }
         #endif
