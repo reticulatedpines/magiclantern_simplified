@@ -27,7 +27,7 @@
 /* choose interpolation method (define only one of these) */
 //~ #define INTERP_AMAZE_MEAN2
 //~ #define INTERP_AMAZE_MEAN2W
-#define INTERP_AMAZE_MEAN2E
+#define INTERP_AMAZE_EDGE
 //~ #define INTERP_AMAZE_NEAREST
 //~ #define INTERP_MEAN23
 //~ #define INTERP_MEAN_6
@@ -1067,8 +1067,8 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 #define INTERP_METHOD_NAME "amaze-nearest"
 #endif
 
-#ifdef INTERP_AMAZE_MEAN2E
-#define INTERP_METHOD_NAME "amaze-mean2e"
+#ifdef INTERP_AMAZE_EDGE
+#define INTERP_METHOD_NAME "amaze-edge"
 #define INTERP_AMAZE
 #endif
 
@@ -1532,8 +1532,110 @@ static int hdr_interpolate()
         exit(1);
 #endif
 
-        #ifdef INTERP_AMAZE_MEAN2E
+        #ifdef INTERP_AMAZE_EDGE
         printf("Edge-directed interpolation...\n");
+        
+        //~ printf("Grayscale...\n");
+        /* convert to grayscale and de-squeeze for easier processing */
+        unsigned short * gray = malloc(w * h * sizeof(gray[0]));
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
+
+        /* define edge directions for interpolation */
+        struct xy { int x; int y; };
+        struct
+        {
+            struct xy ack;      /* verification pixel near a */
+            struct xy a;        /* interpolation pixel from the nearby line: normally (0,s) but also (1,s) or (-1,s) */
+            struct xy b;        /* interpolation pixel from the other line: normally (0,-2s) but also (1,-2s), (-1,-2s), (2,-2s) or (-2,-2s) */
+            struct xy bck;      /* verification pixel near b */
+            
+            int* err;           /* error signal for current direction */
+        }
+        
+        edge_directions[] = {       /* note: all y coords should be multiplied by s */
+            //~ { {-4,2}, { 2,1}, { 4,-2}, { 6,-3} },     /* almost horizontal (little or no improvement) */
+            { {-3,2}, {-1,1}, { 3,-2}, { 4,-3} },
+            { {-2,2}, {-1,1}, { 2,-2}, { 3,-3} },     /* 45-degree diagonal */
+            { {-1,2}, {-1,1}, { 1,-2}, { 2,-3} },
+            { {-1,2}, { 0,1}, { 1,-2}, { 1,-3} },
+            { { 0,1}, { 0,1}, { 0,-2}, { 0,-3} },     /* vertical, preferred; no extra confirmations needed */
+            { { 1,2}, { 0,1}, {-1,-2}, {-1,-3} },
+            { { 1,2}, { 1,1}, {-1,-2}, {-2,-3} },
+            { { 2,2}, { 1,1}, {-2,-2}, {-3,-3} },     /* 45-degree diagonal */
+            { { 3,2}, { 1,1}, {-3,-2}, {-4,-3} },
+            //~ { { 4,2}, { 2,1}, {-4,-2}, {-6,-3} },     /* almost horizontal */
+        };
+        
+        /* how good is to interpolate along each direction? compute an error signal */
+        //~ printf("Evaluating edge directions...\n");
+        for (i = 0; i < COUNT(edge_directions); i++)
+        {
+            int err_size = w * h * sizeof(edge_directions[i].err[0]);
+            edge_directions[i].err = malloc(err_size);
+            memset(edge_directions[i].err, 0, err_size);
+            
+            for (y = 4; y < h-4; y ++)
+            {
+                int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+                for (x = 4; x < w-4; x ++)
+                {
+                    int dx1 = edge_directions[i].ack.x;
+                    int dy1 = edge_directions[i].ack.y * s;
+                    int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
+                    int dx2 = edge_directions[i].a.x;
+                    int dy2 = edge_directions[i].a.y * s;
+                    int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
+                    int dx3 = edge_directions[i].b.x;
+                    int dy3 = edge_directions[i].b.y * s;
+                    int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
+                    int dx4 = edge_directions[i].bck.x;
+                    int dy4 = edge_directions[i].bck.y * s;
+                    int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
+                    int e = ABS(p1-p2)/2 + ABS(p2-p3) + ABS(p3-p4)/2;
+                    edge_directions[i].err[x + y*w] = e;
+                }
+            }
+        }
+        
+        /* choose the direction with minimal error */
+        //~ printf("Choosing interpolation direction...\n");
+        uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
+        for (y = 0; y < h; y ++)
+        {
+            for (x = 0; x < w; x ++)
+            {
+                int e_best = INT_MAX;
+                edge_direction[x + y*w] = COUNT(edge_directions)/2;
+                for (i = 0; i < COUNT(edge_directions); i++)
+                {
+                    /* choose a direction good for this pixel, but also for its neighbours from the same line */
+                    /* (this is to make sure we won't choose a interpolation direction perpendicular on some thin line) */
+                    int e = edge_directions[i].err[x + y*w] +
+                            edge_directions[i].err[x-1 + y*w] +
+                            edge_directions[i].err[x+1 + y*w] +
+                            edge_directions[i].err[x-2 + y*w] +
+                            edge_directions[i].err[x+2 + y*w];
+                    if (e < e_best)
+                    {
+                        e_best = e;
+                        edge_direction[x + y*w] = i;
+                    }
+                }
+            }
+        }
+
+        #if 0
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, ev2raw[edge_direction[x + y*w] * EV_RESOLUTION]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("edge.dng");
+        exit(1);
+        #endif
+
+        //~ printf("Effective interpolation...\n");
         #endif
 
         for (y = 2; y < h-2; y ++)
@@ -1617,55 +1719,23 @@ static int hdr_interpolate()
                     interp[x+1 + y * w] = ev2raw[bi];
                 }
 
-                #elif defined(INTERP_AMAZE_MEAN2E)
+                #elif defined(INTERP_AMAZE_EDGE)
                 int k;
                 for (k = 0; k < 2; k++, x++)
                 {
                     float** plane = is_rg ? (x%2 == 0 ? red   : green)
                                           : (x%2 == 0 ? green : blue );
+
+                    int dir = edge_direction[x + y*w];
                     
-                    struct {int a; int b; int penalty; } directions[] = {
-                        { 0, 0, 0},    /* vertical, preferred */
-                        { 0,-1, 1},    /* slightly diagonal */
-                        { 0, 1, 1},
-                        { 1,-1, 2},    /* a little more diagonal */
-                        {-1, 1, 2},
-                        { 1,-2, 3},    /* 45-degree diagonal */
-                        {-1, 2, 3},
-                        { 1,-3, 4},
-                        {-1, 3, 4},
-                    };
+                    int dxa = edge_directions[dir].a.x;
+                    int dya = edge_directions[dir].a.y * s;
+                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], black, white);
+                    int dxb = edge_directions[dir].b.x;
+                    int dyb = edge_directions[dir].b.y * s;
+                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], black, white);
+                    int pi = mean3(raw2ev[pa], raw2ev[pa], raw2ev[pb], raw2ev[white], 0);
                     
-                    int e_best = INT_MAX;
-                    int pi = 0;
-                    for (i = 0; i < COUNT(directions); i++)
-                    {
-                        int da = directions[i].a;
-                        int db = directions[i].b;
-                        int pa0  = COERCE(plane[yh_near][x + da], black, white);
-                        int pb0  = COERCE(plane[yh_far ][x + db], black, white);
-                        int pal = COERCE(plane[yh_near][x + da - 1], black, white);
-                        int pbl = COERCE(plane[yh_far ][x + db - 1], black, white);
-                        int par = COERCE(plane[yh_near][x + da + 1], black, white);
-                        int pbr = COERCE(plane[yh_far ][x + db + 1], black, white);
-                        int pall = COERCE(plane[yh_near][x + da - 2], black, white);
-                        int pbll = COERCE(plane[yh_far ][x + db - 2], black, white);
-                        int parr = COERCE(plane[yh_near][x + da + 2], black, white);
-                        int pbrr = COERCE(plane[yh_far ][x + db + 2], black, white);
-                        int e0 = ABS(raw2ev[pa0] - raw2ev[pb0]);
-                        int el = ABS(raw2ev[pal] - raw2ev[pbl]);
-                        int er = ABS(raw2ev[par] - raw2ev[pbr]);
-                        int ell = ABS(raw2ev[pall] - raw2ev[pbll]);
-                        int err = ABS(raw2ev[parr] - raw2ev[pbrr]);
-                        int e = e0 + el + er + ell/2 + err/2;
-                        if (pa0 > white) e += EV_RESOLUTION;
-                        if (pb0 > white) e += EV_RESOLUTION;
-                        if (e < e_best)
-                        {
-                            e_best = e;
-                            pi = mean3(raw2ev[pa0], raw2ev[pa0], raw2ev[pb0], raw2ev[white], 0);
-                        }
-                    }
                     interp[x   + y * w] = ev2raw[pi];
                     native[x   + y * w] = raw_get_pixel_14to16(x, y);
                 }
@@ -1687,6 +1757,14 @@ static int hdr_interpolate()
         free(red); red = 0;
         free(green); green = 0;
         free(blue); blue = 0;
+        
+        #ifdef INTERP_AMAZE_EDGE
+        for (i = 0; i < COUNT(edge_directions); i++)
+        {
+            free(edge_directions[i].err);
+        }
+        free(edge_direction);
+        #endif
     }
 
 #elif defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
