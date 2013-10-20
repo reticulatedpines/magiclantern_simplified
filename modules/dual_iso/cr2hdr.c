@@ -60,6 +60,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 #include "../../src/raw.h"
 #include "qsort.h"  /* much faster than standard C qsort */
 
@@ -1635,7 +1636,7 @@ static int hdr_interpolate()
                         {-1, 3, 4},
                     };
                     
-                    int e_best = 10000000;
+                    int e_best = INT_MAX;
                     int pi = 0;
                     for (i = 0; i < COUNT(directions); i++)
                     {
@@ -1647,14 +1648,22 @@ static int hdr_interpolate()
                         int pbl = COERCE(plane[yh_far ][x + db - 1], black, white);
                         int par = COERCE(plane[yh_near][x + da + 1], black, white);
                         int pbr = COERCE(plane[yh_far ][x + db + 1], black, white);
+                        int pall = COERCE(plane[yh_near][x + da - 2], black, white);
+                        int pbll = COERCE(plane[yh_far ][x + db - 2], black, white);
+                        int parr = COERCE(plane[yh_near][x + da + 2], black, white);
+                        int pbrr = COERCE(plane[yh_far ][x + db + 2], black, white);
                         int e0 = ABS(raw2ev[pa0] - raw2ev[pb0]);
                         int el = ABS(raw2ev[pal] - raw2ev[pbl]);
                         int er = ABS(raw2ev[par] - raw2ev[pbr]);
-                        int e = e0 + el + er;
+                        int ell = ABS(raw2ev[pall] - raw2ev[pbll]);
+                        int err = ABS(raw2ev[parr] - raw2ev[pbrr]);
+                        int e = e0 + el + er + ell/2 + err/2;
+                        if (pa0 > white) e += EV_RESOLUTION;
+                        if (pb0 > white) e += EV_RESOLUTION;
                         if (e < e_best)
                         {
                             e_best = e;
-                            pi = mean2(raw2ev[pa0], raw2ev[pb0], raw2ev[white], 0);
+                            pi = mean3(raw2ev[pa0], raw2ev[pa0], raw2ev[pb0], raw2ev[white], 0);
                         }
                     }
                     interp[x   + y * w] = ev2raw[pi];
