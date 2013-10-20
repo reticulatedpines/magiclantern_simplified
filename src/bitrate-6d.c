@@ -248,7 +248,7 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (recording && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (recording && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 int8_t* ivaparamstatus = (int8_t*)(l_EncoMode);
 uint8_t oldh2config;

@@ -119,6 +119,9 @@ static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
+/* Set up as a config int - easy to add a menu entry to allow toggling if debugging is required */
+static CONFIG_INT("raw.display.memory.allocs", display_memory_allocs, 0);
+
 /* state variables */
 static int res_x = 0;
 static int res_y = 0;
@@ -718,10 +721,13 @@ static int setup_buffers()
             //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
         }
     }
-    
-    char msg[100];
-    snprintf(msg, sizeof(msg), "Alloc: %d frames", slot_count);
-    bmp_printf(FONT_MED, 30, 90, msg);
+  
+    if (display_memory_allocs)
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "Alloc: %d frames", slot_count);
+        bmp_printf(FONT_MED, 30, 90, msg);
+    }
     
     /* we need at least 3 slots */
     if (slot_count < 3)
@@ -858,6 +864,105 @@ static void raw_lv_request_update()
     }
 }
 
+/* Display the 'Recording...' icon and status */
+static void show_recording_status()
+{
+    /* update status messages */
+    static int auxrec = INT_MIN;
+    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
+    {
+        int fps = fps_get_current_x1000();
+        int t = (frame_count * 1000 + fps/2) / fps;
+        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+        if (display_memory_allocs)
+        {
+            if (predicted < 10000)
+                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400, 
+                    "%02d:%02d, %d frames / %d expected  ",
+                    t/60, t%60,
+                    frame_count,
+                    predicted
+                );
+            else
+                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400, 
+                    "%02d:%02d, %d frames, continuous OK  ",
+                    t/60, t%60,
+                    frame_count
+                );
+        }
+
+        /* Position the Recording Icon */
+        int rl_x = 500;
+        int rl_y = 40;
+
+        /* If continuous OK, make the movie icon green, else set based on expected time left */
+        int rl_color;
+        if (predicted >= 10000) 
+        {
+            rl_color = COLOR_GREEN1;
+        } 
+        else 
+        {
+            int time_left = (predicted-frame_count) * 1000 / fps;
+            if (time_left < 10) {
+                rl_color = COLOR_DARK_RED;
+            } else {
+                rl_color = COLOR_YELLOW;
+            }
+        }
+
+        /* Draw the movie camera icon */
+        int rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG);
+
+	/* Display the Status */
+        if (!frame_skips) 
+        {
+            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
+        } 
+        else 
+        {
+            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
+        }
+
+	if (display_memory_allocs) show_buffer_status();
+
+        /* how fast are we writing? does this speed match our benchmarks? */
+        if (writing_time)
+        {
+            int speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
+            int idle_percent = idle_time * 100 / (writing_time + idle_time);
+            measured_write_speed = speed;
+            speed /= 10;
+
+            char msg[50];
+            if (display_memory_allocs)
+            {
+                snprintf(msg, sizeof(msg),
+                    "%s: %d MB, %d.%d MB/s",
+                    chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
+                    written / 1024,
+                    speed/10, speed%10
+                );
+                if (idle_time)
+                {
+                    if (idle_percent) { STR_APPEND(msg, ", %d%% idle", idle_percent); }
+                    else { STR_APPEND(msg, ", %dms idle", idle_time); }
+                }
+                bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420, "%s", msg);
+            }
+
+            snprintf(msg, sizeof(msg), "%02d.%01dMB/s", speed/10, speed%10);
+            if (idle_time)
+            {
+                if (idle_percent) { STR_APPEND(msg, ", %2d%%  idle", idle_percent); }
+                else { STR_APPEND(msg,",%3dms idle", idle_time); }
+            }
+            bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
+        }
+    }
+
+    return;
+}
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
@@ -876,51 +981,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
     
     /* update status messages */
-    static int auxrec = INT_MIN;
-    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
-    {
-        int fps = fps_get_current_x1000();
-        int t = (frame_count * 1000 + fps/2) / fps;
-        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-        if (predicted < 10000)
-            bmp_printf( FONT_MED, 30, 70, 
-                "%02d:%02d, %d frames / %d expected  ",
-                t/60, t%60,
-                frame_count,
-                predicted
-            );
-        else
-            bmp_printf( FONT_MED, 30, 70, 
-                "%02d:%02d, %d frames, continuous OK  ",
-                t/60, t%60,
-                frame_count
-            );
-
-        show_buffer_status();
-
-        /* how fast are we writing? does this speed match our benchmarks? */
-        if (writing_time)
-        {
-            int speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
-            int idle_percent = idle_time * 100 / (writing_time + idle_time);
-            measured_write_speed = speed;
-            speed /= 10;
-
-            char msg[50];
-            snprintf(msg, sizeof(msg),
-                "%s: %d MB, %d.%d MB/s",
-                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                written / 1024,
-                speed/10, speed%10
-            );
-            if (idle_time)
-            {
-                if (idle_percent) { STR_APPEND(msg, ", %d%% idle ", idle_percent); }
-                else { STR_APPEND(msg, ", %dms idle ", idle_time); }
-            }
-            bmp_printf( FONT_MED, 30, 90, "%s", msg);
-        }
-    }
+    show_recording_status();
 
     return 0;
 }
@@ -1220,9 +1281,12 @@ static int FAST process_frame()
         frame_skips++;
         if (allow_frame_skip)
         {
-            bmp_printf( FONT_MED, 30, 70, 
-                "Skipping frames...   "
-            );
+            if (display_memory_allocs)
+            {
+                bmp_printf( FONT_MED, 30, 70, 
+                    "Skipping frames...   "
+                );
+            }
         }
         return 0;
     }
@@ -1678,10 +1742,13 @@ abort_and_check_early_stop:
         WAV_StopRecord();
     }
 
-    bmp_printf( FONT_MED, 30, 70, 
-        "Frames captured: %d               ", 
-        frame_count - 1
-    );
+    if (display_memory_allocs)
+    {
+        bmp_printf( FONT_MED, 30, 70, 
+            "Frames captured: %d               ", 
+            frame_count - 1
+        );
+    }
 
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
@@ -1706,7 +1773,7 @@ abort_and_check_early_stop:
         last_processed_frame++;
 
         slots[slot_index].status = SLOT_WRITING;
-        show_buffer_status();
+        if (display_memory_allocs) show_buffer_status();
         written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
         slots[slot_index].status = SLOT_FREE;
     }
@@ -1989,6 +2056,14 @@ static struct menu_entry raw_video_menu[] =
                 .icon_type = IT_ACTION,
                 .help = "Play back the last raw video clip.",
             },
+#ifdef DISPLAY_MEMORY_ALLOCS
+            {
+                .name = "Display Allocs",
+                .priv = &display_memory_allocs,
+                .max = 1,
+                .help = "Display diagnostics on memory allocations.",
+            },
+#endif
             MENU_EOL,
         },
     }
@@ -2221,4 +2296,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
+    MODULE_CONFIG(display_memory_allocs)
 MODULE_CONFIGS_END()
