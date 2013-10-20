@@ -10,10 +10,12 @@
 
 char camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
+uint32_t camera_model_id = 0;
 char firmware_version[32];
 
 PROP_HANDLER(PROP_CAM_MODEL)
 {
+    memcpy((char *)&camera_model_id, (uint32_t)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
 }
 
