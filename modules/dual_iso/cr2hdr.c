@@ -1531,6 +1531,10 @@ static int hdr_interpolate()
         exit(1);
 #endif
 
+        #ifdef INTERP_AMAZE_MEAN2E
+        printf("Edge-directed interpolation...\n");
+        #endif
+
         for (y = 2; y < h-2; y ++)
         {
             unsigned short* native = BRIGHT_ROW ? bright : dark;
@@ -1613,70 +1617,51 @@ static int hdr_interpolate()
                 }
 
                 #elif defined(INTERP_AMAZE_MEAN2E)
-                if (is_rg)
+                int k;
+                for (k = 0; k < 2; k++, x++)
                 {
+                    float** plane = is_rg ? (x%2 == 0 ? red   : green)
+                                          : (x%2 == 0 ? green : blue );
+                    
+                    struct {int a; int b; int penalty; } directions[] = {
+                        { 0, 0, 0},    /* vertical, preferred */
+                        { 0,-1, 1},    /* slightly diagonal */
+                        { 0, 1, 1},
+                        { 1,-1, 2},    /* a little more diagonal */
+                        {-1, 1, 2},
+                        { 1,-2, 3},    /* 45-degree diagonal */
+                        {-1, 2, 3},
+                        { 1,-3, 4},
+                        {-1, 3, 4},
+                    };
+                    
+                    int e_best = 10000000;
+                    int pi = 0;
+                    for (i = 0; i < COUNT(directions); i++)
                     {
-                    int ra1 = COERCE(red[yh_near][x], black, white);
-                    int rb1 = COERCE(red[yh_far][x], black, white);
-                    int ra2 = COERCE(red[yh_near][x-1], black, white);
-                    int rb2 = COERCE(red[yh_far][x+1], black, white);
-                    int ra3 = COERCE(red[yh_near][x+1], black, white);
-                    int rb3 = COERCE(red[yh_far][x-1], black, white);
-                    int er1=0; int ri1 = mean2(raw2ev[ra1], raw2ev[rb1], raw2ev[white], &er1);
-                    int er2=0; int ri2 = mean2(raw2ev[ra2], raw2ev[rb2], raw2ev[white], &er2);
-                    int er3=0; int ri3 = mean2(raw2ev[ra3], raw2ev[rb3], raw2ev[white], &er3);
-                    int ri = (er1 < er2 && er1 < er3) ? ri1 : (er2 < er3) ? ri2 : ri3;
-                    interp[x   + y * w] = ev2raw[ri];
+                        int da = directions[i].a;
+                        int db = directions[i].b;
+                        int pa0  = COERCE(plane[yh_near][x + da], black, white);
+                        int pb0  = COERCE(plane[yh_far ][x + db], black, white);
+                        int pal = COERCE(plane[yh_near][x + da - 1], black, white);
+                        int pbl = COERCE(plane[yh_far ][x + db - 1], black, white);
+                        int par = COERCE(plane[yh_near][x + da + 1], black, white);
+                        int pbr = COERCE(plane[yh_far ][x + db + 1], black, white);
+                        int e0 = ABS(raw2ev[pa0] - raw2ev[pb0]);
+                        int el = ABS(raw2ev[pal] - raw2ev[pbl]);
+                        int er = ABS(raw2ev[par] - raw2ev[pbr]);
+                        int e = e0 + el + er;
+                        if (e < e_best)
+                        {
+                            e_best = e;
+                            pi = mean2(raw2ev[pa0], raw2ev[pb0], raw2ev[white], 0);
+                        }
                     }
-
-                    {
-                    int ga1 = COERCE(green[yh_near][x+1], black, white);
-                    int gb1 = COERCE(green[yh_far][x+1], black, white);
-                    int ga2 = COERCE(green[yh_near][x+1-1], black, white);
-                    int gb2 = COERCE(green[yh_far][x+1+1], black, white);
-                    int ga3 = COERCE(green[yh_near][x+1+1], black, white);
-                    int gb3 = COERCE(green[yh_far][x+1-1], black, white);
-                    int eg1=0; int gi1 = mean2(raw2ev[ga1], raw2ev[gb1], raw2ev[white], &eg1);
-                    int eg2=0; int gi2 = mean2(raw2ev[ga2], raw2ev[gb2], raw2ev[white], &eg2);
-                    int eg3=0; int gi3 = mean2(raw2ev[ga3], raw2ev[gb3], raw2ev[white], &eg3);
-                    int gi = (eg1 < eg2 && eg1 < eg3) ? gi1 : (eg2 < eg3) ? gi2 : gi3;
-                    interp[x+1 + y * w] = ev2raw[gi];
-                    }
+                    interp[x   + y * w] = ev2raw[pi];
+                    native[x   + y * w] = raw_get_pixel_14to16(x, y);
                 }
-                else
-                {
-                    {
-                    int ga1 = COERCE(green[yh_near][x], black, white);
-                    int gb1 = COERCE(green[yh_far][x], black, white);
-                    int ga2 = COERCE(green[yh_near][x-1], black, white);
-                    int gb2 = COERCE(green[yh_far][x+1], black, white);
-                    int ga3 = COERCE(green[yh_near][x+1], black, white);
-                    int gb3 = COERCE(green[yh_far][x-1], black, white);
-                    int eg1=0; int gi1 = mean2(raw2ev[ga1], raw2ev[gb1], raw2ev[white], &eg1);
-                    int eg2=0; int gi2 = mean2(raw2ev[ga2], raw2ev[gb2], raw2ev[white], &eg2);
-                    int eg3=0; int gi3 = mean2(raw2ev[ga3], raw2ev[gb3], raw2ev[white], &eg3);
-                    int gi = (eg1 < eg2 && eg1 < eg3) ? gi1 : (eg2 < eg3) ? gi2 : gi3;
-                    interp[x   + y * w] = ev2raw[gi];
-                    }
-
-                    {
-                    int ba1 = COERCE(blue[yh_near][x+1], black, white);
-                    int bb1 = COERCE(blue[yh_far][x+1], black, white);
-                    int ba2 = COERCE(blue[yh_near][x+1-1], black, white);
-                    int bb2 = COERCE(blue[yh_far][x+1+1], black, white);
-                    int ba3 = COERCE(blue[yh_near][x+1+1], black, white);
-                    int bb3 = COERCE(blue[yh_far][x+1-1], black, white);
-                    int eb1=0; int bi1 = mean2(raw2ev[ba1], raw2ev[bb1], raw2ev[white], &eb1);
-                    int eb2=0; int bi2 = mean2(raw2ev[ba2], raw2ev[bb2], raw2ev[white], &eb2);
-                    int eb3=0; int bi3 = mean2(raw2ev[ba3], raw2ev[bb3], raw2ev[white], &eb3);
-                    int bi = (eb1 < eb2 && eb1 < eb3) ? bi1 : (eb2 < eb3) ? bi2 : bi3;
-                    interp[x+1 + y * w] = ev2raw[bi];
-                    }
-                }
+                x -= 2;
                 #endif
-
-                native[x   + y * w] = raw_get_pixel_14to16(x, y);
-                native[x+1 + y * w] = raw_get_pixel_14to16(x+1, y);
             }
         }
 
