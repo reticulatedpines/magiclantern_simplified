@@ -1566,24 +1566,24 @@ static int hdr_interpolate()
                 {
                     int ra = COERCE(red[yh_near][x], black, white);
                     int rb = COERCE(red[yh_far][x], black, white);
-                    int er=0; int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
+                    int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
                     interp[x   + y * w] = ev2raw[ri];
 
                     int ga = COERCE(green[yh_near][x+1], black, white);
                     int gb = COERCE(green[yh_far][x+1], black, white);
-                    int eg=0; int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
                     interp[x+1 + y * w] = ev2raw[gi];
                 }
                 else
                 {
                     int ga = COERCE(green[yh_near][x], black, white);
                     int gb = COERCE(green[yh_far][x], black, white);
-                    int eg=0; int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
                     interp[x   + y * w] = ev2raw[gi];
 
                     int ba = COERCE(blue[yh_near][x+1], black, white);
                     int bb = COERCE(blue[yh_far][x+1], black, white);
-                    int eb=0; int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
+                    int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
                     interp[x+1 + y * w] = ev2raw[bi];
                 }
                 #elif defined(INTERP_AMAZE_MEAN2W)
@@ -1591,24 +1591,24 @@ static int hdr_interpolate()
                 {
                     int ra = COERCE(red[yh_near][x], black, white);
                     int rb = COERCE(red[yh_far][x], black, white);
-                    int er=0; int ri = mean3(raw2ev[ra], raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
+                    int ri = mean3(raw2ev[ra], raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
                     interp[x   + y * w] = ev2raw[ri];
 
                     int ga = COERCE(green[yh_near][x+1], black, white);
                     int gb = COERCE(green[yh_far][x+1], black, white);
-                    int eg=0; int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
                     interp[x+1 + y * w] = ev2raw[gi];
                 }
                 else
                 {
                     int ga = COERCE(green[yh_near][x], black, white);
                     int gb = COERCE(green[yh_far][x], black, white);
-                    int eg=0; int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], &eg);
+                    int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
                     interp[x   + y * w] = ev2raw[gi];
 
                     int ba = COERCE(blue[yh_near][x+1], black, white);
                     int bb = COERCE(blue[yh_far][x+1], black, white);
-                    int eb=0; int bi = mean3(raw2ev[ba], raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
+                    int bi = mean3(raw2ev[ba], raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
                     interp[x+1 + y * w] = ev2raw[bi];
                 }
 
@@ -1714,12 +1714,12 @@ static int hdr_interpolate()
             {
                 int ra = raw_get_pixel_14to16(x, y-2);
                 int rb = raw_get_pixel_14to16(x, y+2);
-                int er=0; int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
+                int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
                 
                 int ga = raw_get_pixel_14to16(x+1+1, y+s);
                 int gb = raw_get_pixel_14to16(x+1-1, y+s);
                 int gc = raw_get_pixel_14to16(x+1, y-2*s);
-                int eg=0; int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], &eg);
+                int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
 
                 interp[x   + y * w] = ev2raw[ri];
                 interp[x+1 + y * w] = ev2raw[gi];
@@ -1728,12 +1728,12 @@ static int hdr_interpolate()
             {
                 int ba = raw_get_pixel_14to16(x+1  , y-2);
                 int bb = raw_get_pixel_14to16(x+1  , y+2);
-                int eb=0; int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
+                int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
 
                 int ga = raw_get_pixel_14to16(x+1, y+s);
                 int gb = raw_get_pixel_14to16(x-1, y+s);
                 int gc = raw_get_pixel_14to16(x, y-2*s);
-                int eg=0; int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], &eg);
+                int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
 
                 interp[x   + y * w] = ev2raw[gi];
                 interp[x+1 + y * w] = ev2raw[bi];
