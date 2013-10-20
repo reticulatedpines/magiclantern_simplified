@@ -887,7 +887,7 @@ static void FAST draw_zebras_raw()
 
         if (!DISPLAY_IS_ON) break;
         if (!PLAY_OR_QR_MODE) break;
-        if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) != zoom0) break; /* stop when zooming */
+        if ((int)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) != zoom0) break; /* stop when zooming */
 
     }
 }
@@ -5064,10 +5064,10 @@ livev_lopriority_task( void* unused )
         if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
         {
             msleep(500);
-            if (PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0) // double-check
+            if (PLAY_MODE && DISPLAY_IS_ON && ((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)) // double-check
             {
                 cropmark_redraw();
-                if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
+                if ((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
             }
         }
         #endif
