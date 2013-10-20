@@ -1107,7 +1107,7 @@ int handle_fast_zoom_in_play_mode(struct event * event)
             {
                 IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;
                 IMGPLAY_ZOOM_POS_Y = IMGPLAY_ZOOM_POS_Y_CENTER;
-                (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
+                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
                 #ifdef CONFIG_5D3
                 fake_simple_button(BGMT_WHEEL_RIGHT);
                 #else
@@ -1236,8 +1236,8 @@ tweak_task( void* unused)
                     info_led_on();
                     quickzoom_pressed = 0;
                     #ifdef CONFIG_5DC
-                        (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
                         fake_simple_button(BGMT_PRESS_UP);
                         fake_simple_button(BGMT_UNPRESS_UDLR);
@@ -1245,8 +1245,8 @@ tweak_task( void* unused)
                     #else
                     for (int i = 0; i < 30; i++)
                     {
-                        (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
