@@ -1217,7 +1217,7 @@ tweak_task( void* unused)
                 msleep(200);
                 if ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) continue;
                 play_zoom_center_on_last_af_point();
-                (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 1, IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 1, IMGPLAY_ZOOM_LEVEL_MAX - 1);
                 fake_simple_button(BGMT_WHEEL_RIGHT);
             }
             quickzoom_pressed = 0;
@@ -1260,8 +1260,8 @@ tweak_task( void* unused)
                 else if (quickzoom >= 2 && PLAY_MODE && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
                 {
                     msleep(100);
-                    (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
-                    (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
                     fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); 
                     fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
                     quickzoom_pressed = 0;
@@ -1288,8 +1288,8 @@ tweak_task( void* unused)
                 while (get_zoom_out_pressed() && PLAY_MODE) 
                 { 
                     #ifdef CONFIG_5DC
-                    (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
-                    (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
                     #endif
                     fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE);
                     msleep(50); 
