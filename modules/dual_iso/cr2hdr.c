@@ -1555,12 +1555,12 @@ static int hdr_interpolate()
         }
         
         edge_directions[] = {       /* note: all y coords should be multiplied by s */
-            //~ { {-4,2}, { 2,1}, { 4,-2}, { 6,-3} },     /* almost horizontal (little or no improvement) */
+            //~ { {-4,2}, {-2,1}, { 4,-2}, { 6,-3} },     /* almost horizontal (little or no improvement) */
             { {-3,2}, {-1,1}, { 3,-2}, { 4,-3} },
             { {-2,2}, {-1,1}, { 2,-2}, { 3,-3} },     /* 45-degree diagonal */
             { {-1,2}, {-1,1}, { 1,-2}, { 2,-3} },
             { {-1,2}, { 0,1}, { 1,-2}, { 1,-3} },
-            { { 0,1}, { 0,1}, { 0,-2}, { 0,-3} },     /* vertical, preferred; no extra confirmations needed */
+            { { 0,1}, { 0,1}, { 0,-2}, { 0,-2} },     /* vertical, preferred; no extra confirmations needed */
             { { 1,2}, { 0,1}, {-1,-2}, {-1,-3} },
             { { 1,2}, { 1,1}, {-1,-2}, {-2,-3} },
             { { 2,2}, { 1,1}, {-2,-2}, {-3,-3} },     /* 45-degree diagonal */
