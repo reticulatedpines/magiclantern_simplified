@@ -1626,10 +1626,40 @@ static int hdr_interpolate()
             }
         }
 
+#if 0
+        printf("Filtering interpolation direction...\n");
+        uint8_t* edge_aux = malloc(w * h * sizeof(edge_aux[0]));
+        memcpy(edge_aux, edge_direction, w * h * sizeof(edge_aux[0]));
+
+        for (y = 2; y < h-2; y ++)
+        {
+            for (x = 2; x < w-2; x ++)
+            {
+                /* note: edge direction sign is opposite on odd vs even rows (because it's relative to "s") */
+                /* direction origin (vertical) is when edge_direction = 4 */
+                edge_direction[x + y*w] = (
+                                                  edge_aux[x-1 + (y-2)*w] +   edge_aux[x   + (y-2)*w] +   edge_aux[x+1 + (y-2)*w] +
+                    8-edge_aux[x-2 + (y-1)*w] + 8-edge_aux[x-1 + (y-1)*w] + 8-edge_aux[x   + (y-1)*w] + 8-edge_aux[x+1 + (y-1)*w] + 8-edge_aux[x+2 + (y-1)*w] +
+                      edge_aux[x-2 + (y  )*w] +   edge_aux[x-1 + (y  )*w] +   edge_aux[x   + (y  )*w] +   edge_aux[x+1 + (y  )*w] +   edge_aux[x+2 + (y  )*w] +
+                    8-edge_aux[x-2 + (y+1)*w] + 8-edge_aux[x-1 + (y+1)*w] + 8-edge_aux[x   + (y+1)*w] + 8-edge_aux[x+1 + (y+1)*w] + 8-edge_aux[x+2 + (y+1)*w] +
+                                                  edge_aux[x-1 + (y+2)*w] +   edge_aux[x   + (y+2)*w] +   edge_aux[x+1 + (y+2)*w] +
+                0) / 21;
+            }
+        }
+        
+        free(edge_aux); edge_aux = 0;
+#endif
+
         #if 0
         for (y = 0; y < h; y ++)
+        {
             for (x = 2; x < w-2; x ++)
-                raw_set_pixel16(x, y, ev2raw[edge_direction[x + y*w] * EV_RESOLUTION]);
+            {
+                int dir = edge_direction[x + y*w];
+                if (y%2) dir = 8-dir;
+                raw_set_pixel16(x, y, ev2raw[dir * EV_RESOLUTION]);
+            }
+        }
         reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
         save_dng("edge.dng");
         exit(1);
