@@ -1535,12 +1535,21 @@ static int hdr_interpolate()
         #ifdef INTERP_AMAZE_EDGE
         printf("Edge-directed interpolation...\n");
         
-        //~ printf("Grayscale...\n");
+        printf("Grayscale...\n");
         /* convert to grayscale and de-squeeze for easier processing */
         unsigned short * gray = malloc(w * h * sizeof(gray[0]));
         for (y = 0; y < h; y ++)
             for (x = 0; x < w; x ++)
                 gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
+
+        #if 0
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, gray[x + y*w]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("edge-gray.dng");
+        exit(1);
+        #endif
 
         /* define edge directions for interpolation */
         struct xy { int x; int y; };
@@ -1551,25 +1560,27 @@ static int hdr_interpolate()
             struct xy b;        /* interpolation pixel from the other line: normally (0,-2s) but also (1,-2s), (-1,-2s), (2,-2s) or (-2,-2s) */
             struct xy bck;      /* verification pixel near b */
             
-            int* err;           /* error signal for current direction */
+            uint16_t* err;      /* error signal for current direction */
         }
         
         edge_directions[] = {       /* note: all y coords should be multiplied by s */
-            //~ { {-4,2}, {-2,1}, { 4,-2}, { 6,-3} },     /* almost horizontal (little or no improvement) */
+            //~ { {-6,2}, {-3,1}, { 6,-2}, { 9,-3} },     /* almost horizontal (little or no improvement) */
+            { {-4,2}, {-2,1}, { 4,-2}, { 6,-3} },
             { {-3,2}, {-1,1}, { 3,-2}, { 4,-3} },
             { {-2,2}, {-1,1}, { 2,-2}, { 3,-3} },     /* 45-degree diagonal */
             { {-1,2}, {-1,1}, { 1,-2}, { 2,-3} },
             { {-1,2}, { 0,1}, { 1,-2}, { 1,-3} },
-            { { 0,1}, { 0,1}, { 0,-2}, { 0,-2} },     /* vertical, preferred; no extra confirmations needed */
+            { { 0,2}, { 0,1}, { 0,-2}, { 0,-3} },     /* vertical, preferred; no extra confirmations needed */
             { { 1,2}, { 0,1}, {-1,-2}, {-1,-3} },
             { { 1,2}, { 1,1}, {-1,-2}, {-2,-3} },
             { { 2,2}, { 1,1}, {-2,-2}, {-3,-3} },     /* 45-degree diagonal */
             { { 3,2}, { 1,1}, {-3,-2}, {-4,-3} },
-            //~ { { 4,2}, { 2,1}, {-4,-2}, {-6,-3} },     /* almost horizontal */
+            { { 4,2}, { 2,1}, {-4,-2}, {-6,-3} },
+            //~ { { 6,2}, { 3,1}, {-6,-2}, {-9,-3} },     /* almost horizontal */
         };
         
         /* how good is to interpolate along each direction? compute an error signal */
-        //~ printf("Evaluating edge directions...\n");
+        printf("Evaluating edge directions...\n");
         for (i = 0; i < COUNT(edge_directions); i++)
         {
             int err_size = w * h * sizeof(edge_directions[i].err[0]);
@@ -1583,28 +1594,28 @@ static int hdr_interpolate()
                 {
                     int dx1 = edge_directions[i].ack.x;
                     int dy1 = edge_directions[i].ack.y * s;
-                    int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
+                    int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]] * 128 / EV_RESOLUTION;
                     int dx2 = edge_directions[i].a.x;
                     int dy2 = edge_directions[i].a.y * s;
-                    int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
+                    int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]] * 128 / EV_RESOLUTION;
                     int dx3 = edge_directions[i].b.x;
                     int dy3 = edge_directions[i].b.y * s;
-                    int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
+                    int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]] * 128 / EV_RESOLUTION;
                     int dx4 = edge_directions[i].bck.x;
                     int dy4 = edge_directions[i].bck.y * s;
-                    int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
-                    int e = ABS(p1-p2)/2 + ABS(p2-p3) + ABS(p3-p4)/2;
-                    edge_directions[i].err[x + y*w] = e;
+                    int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]] * 128 / EV_RESOLUTION;
+                    int e = ABS(p1-p2) + ABS(p2-p3) + ABS(p3-p4);
+                    edge_directions[i].err[x + y*w] = COERCE(e, 0, 65535);
                 }
             }
         }
         
         /* choose the direction with minimal error */
-        //~ printf("Choosing interpolation direction...\n");
+        printf("Choosing interpolation direction...\n");
         uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
         for (y = 0; y < h; y ++)
         {
-            for (x = 0; x < w; x ++)
+            for (x = 10; x < w-10; x ++)
             {
                 int e_best = INT_MAX;
                 edge_direction[x + y*w] = COUNT(edge_directions)/2;
@@ -1612,11 +1623,28 @@ static int hdr_interpolate()
                 {
                     /* choose a direction good for this pixel, but also for its neighbours from the same line */
                     /* (this is to make sure we won't choose a interpolation direction perpendicular on some thin line) */
-                    int e = edge_directions[i].err[x + y*w] +
+                    int e = edge_directions[i].err[x   + y*w] +
                             edge_directions[i].err[x-1 + y*w] +
                             edge_directions[i].err[x+1 + y*w] +
                             edge_directions[i].err[x-2 + y*w] +
-                            edge_directions[i].err[x+2 + y*w];
+                            edge_directions[i].err[x+2 + y*w] +
+                            //~ edge_directions[i].err[x-3 + y*w] + /* for speed reasons */
+                            //~ edge_directions[i].err[x+3 + y*w] +
+                            edge_directions[i].err[x-4 + y*w] + 
+                            edge_directions[i].err[x+4 + y*w] +
+                            //~ edge_directions[i].err[x-5 + y*w] +
+                            //~ edge_directions[i].err[x+5 + y*w] +
+                            //~ edge_directions[i].err[x-6 + y*w] +
+                            //~ edge_directions[i].err[x+6 + y*w] +
+                            edge_directions[i].err[x-7 + y*w] +
+                            edge_directions[i].err[x+7 + y*w] +
+                            0;
+                    
+                    //~ if (x == raw_info.active_area.x1 + 907 && y == raw_info.active_area.y1 + 2107)
+                    //~ {
+                        //~ printf("%d: %d\n", i, e);
+                    //~ }
+                    
                     if (e < e_best)
                     {
                         e_best = e;
@@ -1626,7 +1654,49 @@ static int hdr_interpolate()
             }
         }
 
-#if 0
+        /* burn the interpolation directions into a test image */
+        #if 0
+        for (y = 4; y < h-4; y += 10)
+        {
+            /* only show bright rows (interpolated from dark ones) */
+            while (!BRIGHT_ROW) y++;
+            
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+            for (x = 4; x < w-4; x += 10)
+            {
+                gray[x + y*w] = black;
+
+                int dir = edge_direction[x + y*w];
+
+                int dx = edge_directions[dir].a.x;
+                int dy = edge_directions[dir].a.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+
+                dx = edge_directions[dir].b.x;
+                dy = edge_directions[dir].b.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+
+                dx = edge_directions[dir].ack.x;
+                dy = edge_directions[dir].ack.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+
+                dx = edge_directions[dir].bck.x;
+                dy = edge_directions[dir].bck.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+            }
+        }
+
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, gray[x + y*w]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("edges.dng");
+        system("dcraw -d -r 1 1 1 1 edges.dng");
+        /* best viewed at 400% with nearest neighbour interpolation (no filtering) */
+        exit(1);
+        #endif
+
+        #if 0
         printf("Filtering interpolation direction...\n");
         uint8_t* edge_aux = malloc(w * h * sizeof(edge_aux[0]));
         memcpy(edge_aux, edge_direction, w * h * sizeof(edge_aux[0]));
@@ -1636,19 +1706,19 @@ static int hdr_interpolate()
             for (x = 2; x < w-2; x ++)
             {
                 /* note: edge direction sign is opposite on odd vs even rows (because it's relative to "s") */
-                /* direction origin (vertical) is when edge_direction = 4 */
+                int O = COUNT(edge_directions)-1;
                 edge_direction[x + y*w] = (
                                                   edge_aux[x-1 + (y-2)*w] +   edge_aux[x   + (y-2)*w] +   edge_aux[x+1 + (y-2)*w] +
-                    8-edge_aux[x-2 + (y-1)*w] + 8-edge_aux[x-1 + (y-1)*w] + 8-edge_aux[x   + (y-1)*w] + 8-edge_aux[x+1 + (y-1)*w] + 8-edge_aux[x+2 + (y-1)*w] +
+                    O-edge_aux[x-2 + (y-1)*w] + O-edge_aux[x-1 + (y-1)*w] + O-edge_aux[x   + (y-1)*w] + O-edge_aux[x+1 + (y-1)*w] + O-edge_aux[x+2 + (y-1)*w] +
                       edge_aux[x-2 + (y  )*w] +   edge_aux[x-1 + (y  )*w] +   edge_aux[x   + (y  )*w] +   edge_aux[x+1 + (y  )*w] +   edge_aux[x+2 + (y  )*w] +
-                    8-edge_aux[x-2 + (y+1)*w] + 8-edge_aux[x-1 + (y+1)*w] + 8-edge_aux[x   + (y+1)*w] + 8-edge_aux[x+1 + (y+1)*w] + 8-edge_aux[x+2 + (y+1)*w] +
+                    O-edge_aux[x-2 + (y+1)*w] + O-edge_aux[x-1 + (y+1)*w] + O-edge_aux[x   + (y+1)*w] + O-edge_aux[x+1 + (y+1)*w] + O-edge_aux[x+2 + (y+1)*w] +
                                                   edge_aux[x-1 + (y+2)*w] +   edge_aux[x   + (y+2)*w] +   edge_aux[x+1 + (y+2)*w] +
                 0) / 21;
             }
         }
         
         free(edge_aux); edge_aux = 0;
-#endif
+        #endif
 
         #if 0
         for (y = 0; y < h; y ++)
@@ -1665,7 +1735,7 @@ static int hdr_interpolate()
         exit(1);
         #endif
 
-        //~ printf("Effective interpolation...\n");
+        printf("Actual interpolation...\n");
         #endif
 
         for (y = 2; y < h-2; y ++)
