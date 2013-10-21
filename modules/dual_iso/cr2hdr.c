@@ -1480,7 +1480,7 @@ static int hdr_interpolate()
             squeezed[y] = yh;
             
             yh++;
-            if (yh > h) break; /* just in case */
+            if (yh >= h) break; /* just in case */
         }
 
 //~ #define AMAZE_DEBUG
