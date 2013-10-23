@@ -1531,7 +1531,7 @@ static int hdr_interpolate()
         /* undo green channel scaling */
         for (y = 0; y < h; y ++)
             for (x = 0; x < w; x ++)
-                green[y][x] = COERCE((green[y][x] - black) * 2 + black, black, white);
+                green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, white);
 
 #ifdef AMAZE_DEBUG
         for (y = 0; y < h; y ++)
@@ -1779,10 +1779,10 @@ static int hdr_interpolate()
                     
                     int dxa = edge_directions[dir].a.x;
                     int dya = edge_directions[dir].a.y * s;
-                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], black, white);
+                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, white);
                     int dxb = edge_directions[dir].b.x;
                     int dyb = edge_directions[dir].b.y * s;
-                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], black, white);
+                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, white);
                     int pi = mean3(raw2ev[pa], raw2ev[pa], raw2ev[pb], raw2ev[white], 0);
                     
                     interp[x   + y * w] = ev2raw[pi];
