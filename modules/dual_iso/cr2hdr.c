@@ -2437,6 +2437,46 @@ static int hdr_interpolate()
     save_dng("split.dng");
 #endif
 
+    /* fullres mixing curve */
+    static double fullres_curve[65536];
+    
+    static double fullres_start = 4;
+    static double fullres_transition = 3;
+    
+    for (i = 0; i < 65536; i++)
+    {
+        double ev2 = log2(MAX(i/4.0 - black/4.0, 1));
+        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
+        double f = (c2+1) / 2;
+        fullres_curve[i] = f;
+    }
+
+#if 0
+    FILE* f = fopen("mix-curve.m", "w");
+    fprintf(f, "x = 0:65535; \n");
+
+    fprintf(f, "ev = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
+    fprintf(f, "];\n");
+    
+    fprintf(f, "k = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", mix_curve[i]);
+    fprintf(f, "];\n");
+
+    fprintf(f, "f = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", fullres_curve[i]);
+    fprintf(f, "];\n");
+    
+    fprintf(f, "plot(ev, k, ev, f, 'r');\n");
+    fclose(f);
+    
+    system("octave --persist mix-curve.m");
+#endif
+
+
 #ifdef ALIAS_BLEND
     printf("Building alias map...\n");
 
@@ -2446,10 +2486,21 @@ static int hdr_interpolate()
     /* build the aliasing maps (where it's likely to get aliasing) */
     /* do this by comparing fullres and halfres images */
     /* if the difference is small, we'll prefer halfres for less noise, otherwise fullres for less aliasing */
+    int deep_shadow = 0;
+    int not_shadow = 0;
+    #define FULLRES_THR 0.8
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
         {
+            /* do not compute alias map where we'll use fullres detail anyway */
+            if (fullres_curve[bright[x + y*w]] > FULLRES_THR)
+            {
+                not_shadow++;
+                continue;
+            }
+
+            deep_shadow++;
             int f = fullres_smooth[x + y*w];
             int h = halfres_smooth[x + y*w];
             int fe = raw2ev[f];
@@ -2457,9 +2508,11 @@ static int hdr_interpolate()
             int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
             e_lin = MAX(e_lin - dark_noise, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
-            alias_map[x + y*w] = MIN(e_lin*8, e_log/8);
+            alias_map[x + y*w] = MIN(MIN(e_lin*8, e_log/8), 65530);
         }
     }
+
+    printf("Deep shadows   : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
 
     /* do not apply antialias correction on hot pixels or right near them */
     for (y = 0; y < h; y ++)
@@ -2498,6 +2551,10 @@ static int hdr_interpolate()
     {
         for (x = 6; x < w-6; x ++)
         {
+            /* do not compute alias map where we'll use fullres detail anyway */
+            if (fullres_curve[bright[x + y*w]] > FULLRES_THR)
+                continue;
+            
             /* use 5th max (out of 37) to filter isolated pixels */
             
             int neighbours[] = {
@@ -2545,6 +2602,9 @@ static int hdr_interpolate()
     {
         for (x = 6; x < w-6; x ++)
         {
+            /* do not compute alias map where we'll use fullres detail anyway */
+            if (fullres_curve[bright[x + y*w]] > FULLRES_THR)
+                continue;
 
 /* code generation
             const int blur[4][4] = {
@@ -2668,45 +2728,6 @@ static int hdr_interpolate()
     }
     
     free(over_aux); over_aux = 0;
-
-    /* fullres mixing curve */
-    static double fullres_curve[65536];
-    
-    static double fullres_start = 4;
-    static double fullres_transition = 3;
-    
-    for (i = 0; i < 65536; i++)
-    {
-        double ev2 = log2(MAX(i/4.0 - black/4.0, 1));
-        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
-        double f = (c2+1) / 2;
-        fullres_curve[i] = f;
-    }
-
-#if 0
-    FILE* f = fopen("mix-curve.m", "w");
-    fprintf(f, "x = 0:65535; \n");
-
-    fprintf(f, "ev = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
-    fprintf(f, "];\n");
-    
-    fprintf(f, "k = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", mix_curve[i]);
-    fprintf(f, "];\n");
-
-    fprintf(f, "f = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", fullres_curve[i]);
-    fprintf(f, "];\n");
-    
-    fprintf(f, "plot(ev, k, ev, f, 'r');\n");
-    fclose(f);
-    
-    system("octave --persist mix-curve.m");
-#endif
 
     /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
     for (y = 3; y < h-2; y ++)
