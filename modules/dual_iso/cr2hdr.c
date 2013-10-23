@@ -25,10 +25,7 @@
  */
 
 /* choose interpolation method (define only one of these) */
-//~ #define INTERP_AMAZE_MEAN2
-//~ #define INTERP_AMAZE_MEAN2W
 #define INTERP_AMAZE_EDGE
-//~ #define INTERP_AMAZE_NEAREST
 //~ #define INTERP_MEAN23
 //~ #define INTERP_MEAN_6
 //~ #define INTERP_MEAN_4_OUT_OF_6
@@ -1055,27 +1052,11 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 #define INTERP_METHOD_NAME "mean23-edge"
 #endif
 
-#ifdef INTERP_AMAZE_MEAN2
-#define INTERP_METHOD_NAME "amaze-mean2"
-#define INTERP_AMAZE
-#endif
-
-#ifdef INTERP_AMAZE_MEAN2W
-#define INTERP_METHOD_NAME "amaze-mean2w"
-#define INTERP_AMAZE
-#endif
-
-#ifdef INTERP_AMAZE_NEAREST
-#define INTERP_AMAZE
-#define INTERP_METHOD_NAME "amaze-nearest"
-#endif
-
 #ifdef INTERP_AMAZE_EDGE
 #define INTERP_METHOD_NAME "amaze-edge"
-#define INTERP_AMAZE
 #endif
 
-#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE) || defined(INTERP_AMAZE)
+#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE) || defined(INTERP_AMAZE_EDGE)
 static int mean2(int a, int b, int white, int* err)
 {
     if (a >= white || b >= white)
@@ -1417,7 +1398,7 @@ static int hdr_interpolate()
         #endif
     );
 
-#ifdef INTERP_AMAZE
+#ifdef INTERP_AMAZE_EDGE
     {
         int* squeezed = malloc(h * sizeof(squeezed));
         memset(squeezed, 0, h * sizeof(squeezed));
@@ -1535,10 +1516,9 @@ static int hdr_interpolate()
         exit(1);
 #endif
 
-        #ifdef INTERP_AMAZE_EDGE
         printf("Edge-directed interpolation...\n");
         
-        printf("Grayscale...\n");
+        //~ printf("Grayscale...\n");
         /* convert to grayscale and de-squeeze for easier processing */
         unsigned short * gray = malloc(w * h * sizeof(gray[0]));
         for (y = 0; y < h; y ++)
@@ -1686,8 +1666,7 @@ static int hdr_interpolate()
         #endif
         
         
-        printf("Actual interpolation...\n");
-        #endif
+        //~ printf("Actual interpolation...\n");
 
         for (y = 2; y < h-2; y ++)
         {
@@ -1702,75 +1681,6 @@ static int hdr_interpolate()
             
             for (x = 2; x < w-2; x += 2)
             {
-                #if defined(INTERP_AMAZE_NEAREST)
-                if (is_rg)
-                {
-                    int ra = COERCE(red[yh_near][x], black, white);
-                    interp[x   + y * w] = ra;
-
-                    int ga = COERCE(green[yh_near][x+1], black, white);
-                    interp[x+1 + y * w] = ga;
-                }
-                else
-                {
-                    int ga = COERCE(green[yh_near][x], black, white);
-                    interp[x   + y * w] = ga;
-
-                    int ba = COERCE(blue[yh_near][x+1], black, white);
-                    interp[x+1 + y * w] = ba;
-                }
-                #elif defined(INTERP_AMAZE_MEAN2)
-                if (is_rg)
-                {
-                    int ra = COERCE(red[yh_near][x], black, white);
-                    int rb = COERCE(red[yh_far][x], black, white);
-                    int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
-                    interp[x   + y * w] = ev2raw[ri];
-
-                    int ga = COERCE(green[yh_near][x+1], black, white);
-                    int gb = COERCE(green[yh_far][x+1], black, white);
-                    int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
-                    interp[x+1 + y * w] = ev2raw[gi];
-                }
-                else
-                {
-                    int ga = COERCE(green[yh_near][x], black, white);
-                    int gb = COERCE(green[yh_far][x], black, white);
-                    int gi = mean2(raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
-                    interp[x   + y * w] = ev2raw[gi];
-
-                    int ba = COERCE(blue[yh_near][x+1], black, white);
-                    int bb = COERCE(blue[yh_far][x+1], black, white);
-                    int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
-                    interp[x+1 + y * w] = ev2raw[bi];
-                }
-                #elif defined(INTERP_AMAZE_MEAN2W)
-                if (is_rg)
-                {
-                    int ra = COERCE(red[yh_near][x], black, white);
-                    int rb = COERCE(red[yh_far][x], black, white);
-                    int ri = mean3(raw2ev[ra], raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
-                    interp[x   + y * w] = ev2raw[ri];
-
-                    int ga = COERCE(green[yh_near][x+1], black, white);
-                    int gb = COERCE(green[yh_far][x+1], black, white);
-                    int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
-                    interp[x+1 + y * w] = ev2raw[gi];
-                }
-                else
-                {
-                    int ga = COERCE(green[yh_near][x], black, white);
-                    int gb = COERCE(green[yh_far][x], black, white);
-                    int gi = mean3(raw2ev[ga], raw2ev[ga], raw2ev[gb], raw2ev[white], 0);
-                    interp[x   + y * w] = ev2raw[gi];
-
-                    int ba = COERCE(blue[yh_near][x+1], black, white);
-                    int bb = COERCE(blue[yh_far][x+1], black, white);
-                    int bi = mean3(raw2ev[ba], raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
-                    interp[x+1 + y * w] = ev2raw[bi];
-                }
-
-                #elif defined(INTERP_AMAZE_EDGE)
                 int k;
                 for (k = 0; k < 2; k++, x++)
                 {
@@ -1791,7 +1701,6 @@ static int hdr_interpolate()
                     native[x   + y * w] = raw_get_pixel_14to16(x, y);
                 }
                 x -= 2;
-                #endif
             }
         }
 
@@ -1808,10 +1717,7 @@ static int hdr_interpolate()
         free(red); red = 0;
         free(green); green = 0;
         free(blue); blue = 0;
-        
-        #ifdef INTERP_AMAZE_EDGE
         free(edge_direction);
-        #endif
     }
 
 #elif defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
