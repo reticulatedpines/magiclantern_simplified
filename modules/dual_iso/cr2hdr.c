@@ -1635,7 +1635,7 @@ static int hdr_interpolate()
                         
                         /* add a small penalty for diagonal directions */
                         /* (the improvement should be significant in order to choose one of these) */
-                        e += (d - d0) * EV_RESOLUTION/8;
+                        e += ABS(d - d0) * EV_RESOLUTION/8;
                         
                         if (e < e_best)
                         {
