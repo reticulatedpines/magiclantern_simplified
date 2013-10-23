@@ -1350,6 +1350,46 @@ static int hdr_interpolate()
     memset(alias_map, 0, w * h * sizeof(unsigned short));
     #endif
 
+    /* fullres mixing curve */
+    static double fullres_curve[65536];
+    
+    const double fullres_start = 4;
+    const double fullres_transition = 3;
+    const double fullres_thr = 0.8;
+    
+    for (i = 0; i < 65536; i++)
+    {
+        double ev2 = log2(MAX(i/4.0 - black/4.0, 1));
+        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
+        double f = (c2+1) / 2;
+        fullres_curve[i] = f;
+    }
+
+#if 0
+    FILE* f = fopen("mix-curve.m", "w");
+    fprintf(f, "x = 0:65535; \n");
+
+    fprintf(f, "ev = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
+    fprintf(f, "];\n");
+    
+    fprintf(f, "k = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", mix_curve[i]);
+    fprintf(f, "];\n");
+
+    fprintf(f, "f = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", fullres_curve[i]);
+    fprintf(f, "];\n");
+    
+    fprintf(f, "plot(ev, k, ev, f, 'r');\n");
+    fclose(f);
+    
+    system("octave --persist mix-curve.m");
+#endif
+
     printf("Estimating ISO difference...\n");
     /* use a simple interpolation in 14-bit space (the 16-bit one will trick the algorithm) */
     for (y = 2; y < h-2; y ++)
@@ -1565,6 +1605,8 @@ static int hdr_interpolate()
         //~ printf("Cross-correlation...\n");
         int semi_overexposed = 0;
         int not_overexposed = 0;
+        int deep_shadow = 0;
+        int not_shadow = 0;
         
         for (y = 5; y < h-5; y ++)
         {
@@ -1582,15 +1624,17 @@ static int hdr_interpolate()
                 if (!BRIGHT_ROW)
                 {
                     /* interpolating bright exposure */
-                    if (raw_get_pixel_14to16(x, y) > black + bright_noise*3)
+                    if (fullres_curve[raw_get_pixel_14to16(x, y)] > fullres_thr)
                     {
                         /* no high accuracy needed, just interpolate vertically */
+                        not_shadow++;
                         dmin = d0;
                         dmax = d0;
                     }
                     else
                     {
                         /* deep shadows, unlikely to use fullres, so we need a good interpolation */
+                        deep_shadow++;
                     }
                 }
                 else if (raw_get_pixel_14to16(x, y) < white)
@@ -1650,6 +1694,7 @@ static int hdr_interpolate()
         }
 
         printf("Semi-overexpo'd: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
+        printf("Deep shadows   : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
 
         /* burn the interpolation directions into a test image */
         #if 0
@@ -2437,45 +2482,6 @@ static int hdr_interpolate()
     save_dng("split.dng");
 #endif
 
-    /* fullres mixing curve */
-    static double fullres_curve[65536];
-    
-    static double fullres_start = 4;
-    static double fullres_transition = 3;
-    
-    for (i = 0; i < 65536; i++)
-    {
-        double ev2 = log2(MAX(i/4.0 - black/4.0, 1));
-        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
-        double f = (c2+1) / 2;
-        fullres_curve[i] = f;
-    }
-
-#if 0
-    FILE* f = fopen("mix-curve.m", "w");
-    fprintf(f, "x = 0:65535; \n");
-
-    fprintf(f, "ev = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
-    fprintf(f, "];\n");
-    
-    fprintf(f, "k = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", mix_curve[i]);
-    fprintf(f, "];\n");
-
-    fprintf(f, "f = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", fullres_curve[i]);
-    fprintf(f, "];\n");
-    
-    fprintf(f, "plot(ev, k, ev, f, 'r');\n");
-    fclose(f);
-    
-    system("octave --persist mix-curve.m");
-#endif
-
 
 #ifdef ALIAS_BLEND
     printf("Building alias map...\n");
@@ -2486,21 +2492,14 @@ static int hdr_interpolate()
     /* build the aliasing maps (where it's likely to get aliasing) */
     /* do this by comparing fullres and halfres images */
     /* if the difference is small, we'll prefer halfres for less noise, otherwise fullres for less aliasing */
-    int deep_shadow = 0;
-    int not_shadow = 0;
-    #define FULLRES_THR 0.8
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
         {
             /* do not compute alias map where we'll use fullres detail anyway */
-            if (fullres_curve[bright[x + y*w]] > FULLRES_THR)
-            {
-                not_shadow++;
+            if (fullres_curve[bright[x + y*w]] > fullres_thr)
                 continue;
-            }
 
-            deep_shadow++;
             int f = fullres_smooth[x + y*w];
             int h = halfres_smooth[x + y*w];
             int fe = raw2ev[f];
@@ -2511,8 +2510,6 @@ static int hdr_interpolate()
             alias_map[x + y*w] = MIN(MIN(e_lin*8, e_log/8), 65530);
         }
     }
-
-    printf("Deep shadows   : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
 
     /* do not apply antialias correction on hot pixels or right near them */
     for (y = 0; y < h; y ++)
@@ -2552,7 +2549,7 @@ static int hdr_interpolate()
         for (x = 6; x < w-6; x ++)
         {
             /* do not compute alias map where we'll use fullres detail anyway */
-            if (fullres_curve[bright[x + y*w]] > FULLRES_THR)
+            if (fullres_curve[bright[x + y*w]] > fullres_thr)
                 continue;
             
             /* use 5th max (out of 37) to filter isolated pixels */
@@ -2603,7 +2600,7 @@ static int hdr_interpolate()
         for (x = 6; x < w-6; x ++)
         {
             /* do not compute alias map where we'll use fullres detail anyway */
-            if (fullres_curve[bright[x + y*w]] > FULLRES_THR)
+            if (fullres_curve[bright[x + y*w]] > fullres_thr)
                 continue;
 
 /* code generation
