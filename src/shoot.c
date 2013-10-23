@@ -127,6 +127,8 @@ static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
 static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 only list images
 
+static CONFIG_INT( "interval.enabled", interval_enabled, 0 );
+static CONFIG_INT( "interval.trigger", interval_trigger, 0 );
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
@@ -489,6 +491,15 @@ static MENU_SELECT_FUNC(interval_timer_toggle)
         set_interval_index(interval_timer_index);
 }
 
+static MENU_SELECT_FUNC(interval_trigger_toggle)
+{
+    int * ptr = priv;
+    *ptr = !(*ptr);
+    
+    if(interval_enabled)
+        intervalometer_running = !interval_trigger;
+}
+
 /* interface with ETTR module */
 static menu_update_func auto_ettr_intervalometer_warning = MODULE_FUNCTION(auto_ettr_intervalometer_warning);
 
@@ -497,6 +508,8 @@ static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_in
 static MENU_UPDATE_FUNC(intervalometer_display)
 {
     int p = CURRENT_VALUE;
+    if(!interval_trigger)
+        intervalometer_running = p;
     if (p)
     {
         int d = get_interval_time();
@@ -3718,7 +3731,7 @@ static struct menu_entry shoot_menus[] = {
     #ifdef FEATURE_INTERVALOMETER
     {
         .name = "Intervalometer",
-        .priv       = &intervalometer_running,
+        .priv       = &interval_enabled,
         .max        = 1,
         .update     = intervalometer_display,
         .help = "Take pictures at fixed intervals (for timelapse).",
@@ -3748,6 +3761,13 @@ static struct menu_entry shoot_menus[] = {
                 .update     = interval_stop_after_display,
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
+            },
+            {
+                .name = "Start Trigger",
+                .priv = &interval_trigger,
+                .select = interval_trigger_toggle,
+                .max = 1,
+                .help = "Trigger intervalometer start with half shutter press."
             },
             #ifdef FEATURE_FOCUS_RAMPING
             {
@@ -6263,6 +6283,11 @@ shoot_task( void* unused )
         #ifdef FEATURE_INTERVALOMETER        
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
+        //trigger intervalometer start on half shutter
+        if(interval_enabled && interval_trigger == 1 && !gui_menu_shown() && get_halfshutter_pressed())
+        {
+            intervalometer_running = 1;
+        }
         if (intervalometer_running)
         {
             int seconds_clock_0 = seconds_clock;
