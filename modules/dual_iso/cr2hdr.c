@@ -1450,7 +1450,8 @@ static int hdr_interpolate()
         
         for (i = 0; i < h; i++)
         {
-            rawData[i] = malloc(w * sizeof(rawData[0][0]));
+            rawData[i] =   malloc(w * sizeof(rawData[0][0]));
+            memset(rawData[i], 0, w * sizeof(rawData[0][0]));
             red[i]     = malloc(w * sizeof(red[0][0]));
             green[i]   = malloc(w * sizeof(green[0][0]));
             blue[i]    = malloc(w * sizeof(blue[0][0]));
@@ -1511,7 +1512,7 @@ static int hdr_interpolate()
 
 #ifdef AMAZE_DEBUG
         for (y = 0; y < h; y ++)
-            for (x = 2; x < w-2; x ++)
+            for (x = 0; x < w; x ++)
                 raw_set_pixel16(x, y, rawData[y][x]);
         reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
         save_dng("amaze-input.dng");
@@ -1526,7 +1527,7 @@ static int hdr_interpolate()
             int winw, int winh
         );
 
-        amaze_demosaic_RT(rawData, red, green, blue, 10, 10, w-10, h-10);
+        amaze_demosaic_RT(rawData, red, green, blue, 0, 0, w, h);
 
         /* undo green channel scaling */
         for (y = 0; y < h; y ++)
@@ -1601,6 +1602,7 @@ static int hdr_interpolate()
 
         uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
         int d0 = COUNT(edge_directions)/2;
+        memset(edge_direction, d0, w * h * sizeof(edge_direction[0]));
 
         //~ printf("Cross-correlation...\n");
         int semi_overexposed = 0;
