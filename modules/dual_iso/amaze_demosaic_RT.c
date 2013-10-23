@@ -225,7 +225,9 @@ struct s_hv {
 
 #define CLF 1
 	// assign working space
-	buffer = (char *) malloc(29*sizeof(float)*TS*TS - sizeof(float)*TS*TSH + sizeof(char)*TS*TSH+23*CLF*64);
+	int worksize = 29*sizeof(float)*TS*TS - sizeof(float)*TS*TSH + sizeof(char)*TS*TSH+23*CLF*64;
+	buffer = (char *) malloc(worksize);
+	memset(buffer, 0, worksize);
 	char 	*data;
 	data = (char*)( ( (uintptr_t)(buffer) + (uintptr_t)(63)) / 64 * 64);
 
