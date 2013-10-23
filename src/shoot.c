@@ -462,6 +462,10 @@ static MENU_UPDATE_FUNC(interval_start_after_display)
     
     if (auto_power_off_time && auto_power_off_time <= d)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
+    
+    MENU_SET_ENABLED(interval_trigger != 3);
+    if(interval_trigger == 3)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Has no effect when trigger is set to take a pic");
 }
 
 static MENU_UPDATE_FUNC(interval_stop_after_display)
@@ -493,11 +497,22 @@ static MENU_SELECT_FUNC(interval_timer_toggle)
 
 static MENU_SELECT_FUNC(interval_trigger_toggle)
 {
-    int * ptr = priv;
-    *ptr = !(*ptr);
-    
+    menu_numeric_toggle(priv, delta, 0, 3);
     if(interval_enabled)
         intervalometer_running = !interval_trigger;
+}
+
+static MENU_UPDATE_FUNC(interval_trigger_update)
+{
+    MENU_SET_ENABLED(interval_trigger);
+    if(!interval_trigger)
+        MENU_SET_HELP("Starts intervalometer when you exit ML menu");
+    if(interval_trigger == 1)
+        MENU_SET_HELP("Starts intervalometer on half shutter press");
+    if(interval_trigger == 2)
+        MENU_SET_HELP("Starts intervalometer on half shutter hold");
+    if(interval_trigger == 3)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Also useful to trigger off of motion or trap focus");
 }
 
 /* interface with ETTR module */
@@ -3766,8 +3781,10 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Start Trigger",
                 .priv = &interval_trigger,
                 .select = interval_trigger_toggle,
-                .max = 1,
-                .help = "Trigger intervalometer start with half shutter press."
+                .update = interval_trigger_update,
+                .max = 3,
+                .choices = CHOICES("Leave Menu", "Half Shutter", "Hold Half Shutter", "Take a Pic"),
+                .help = "How to trigger the intervalometer start."
             },
             #ifdef FEATURE_FOCUS_RAMPING
             {
@@ -5886,9 +5903,17 @@ shoot_task( void* unused )
             msleep(100);
         }
         #endif
-    
+        
+        int check_for_halfshutter_hold = 0;
         #ifdef FEATURE_BULB_TIMER
-        if (bulb_timer && is_bulb_mode() && !gui_menu_shown())
+        check_for_halfshutter_hold = bulb_timer && is_bulb_mode();
+        #endif
+        #ifdef FEATURE_INTERVALOMETER
+        check_for_halfshutter_hold |= interval_trigger == 2 && interval_enabled;
+        #endif
+        
+        int halfshutter_held = 0;
+        if(check_for_halfshutter_hold && !gui_menu_shown())
         {
             // look for a transition of half-shutter during idle state
             static int was_idle_not_pressed = 0;
@@ -5896,7 +5921,6 @@ shoot_task( void* unused )
             int is_idle_and_pressed = get_halfshutter_pressed() && display_idle();
             int trigger_condition = was_idle_not_pressed && is_idle_and_pressed;
             was_idle_not_pressed = is_idle_not_pressed;
-
             if (trigger_condition)
             {
                 info_led_on();
@@ -5909,7 +5933,21 @@ shoot_task( void* unused )
                 if (!get_halfshutter_pressed() || !job_state_ready_to_take_pic()) { info_led_off(); continue; }
                 
                 beep();
-                info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
+                info_led_blink(1,50,50); // short blink so you know hold half shutter was triggered
+                
+                halfshutter_held = 1;
+            }
+        }
+    
+        #ifdef FEATURE_BULB_TIMER
+        if (bulb_timer && is_bulb_mode() && !gui_menu_shown()
+        #ifdef FEATURE_INTERVALOMETER
+            && !(interval_trigger == 2 && interval_enabled)
+        #endif
+            )
+        {
+            if (halfshutter_held)
+            {
                 info_led_on();
                 
                 int d = timer_values[bulb_duration_index];
@@ -5954,6 +5992,23 @@ shoot_task( void* unused )
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
                     lens_wait_readytotakepic(64); 
+                }
+                #endif
+                #ifdef FEATURE_INTERVALOMETER
+                if(interval_enabled && interval_trigger == 3)
+                {
+                    intervalometer_running = 1;
+                    intervalometer_pictures_taken = 1;
+                    int dt = get_interval_time();
+                    intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
+                    #ifdef FEATURE_MOTION_DETECT
+                    //turn motion detect off now if it's on so it doesn't screw the intervalometer sequence
+                    motion_detect = 0;
+                    #endif
+                    #ifdef FEATURE_TRAP_FOCUS
+                    //turn trap focus off now if it's on so it doesn't screw the intervalometer sequence
+                    trap_focus = 0;
+                    #endif
                 }
                 #endif
             }
@@ -6283,8 +6338,11 @@ shoot_task( void* unused )
         #ifdef FEATURE_INTERVALOMETER        
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
-        //trigger intervalometer start on half shutter
-        if(interval_enabled && interval_trigger == 1 && !gui_menu_shown() && get_halfshutter_pressed())
+        //trigger intervalometer start on half shutter or half shutter hold
+        if(interval_enabled &&
+           (interval_trigger == 1 || (interval_trigger == 2 && halfshutter_held)) &&
+           !gui_menu_shown() &&
+           get_halfshutter_pressed())
         {
             intervalometer_running = 1;
         }
