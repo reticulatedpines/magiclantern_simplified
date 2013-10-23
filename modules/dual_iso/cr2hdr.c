@@ -25,21 +25,27 @@
  */
 
 /* choose interpolation method (define only one of these) */
-#define INTERP_MEAN23
-#undef INTERP_MEAN_6
-#undef INTERP_MEAN_4_OUT_OF_6
-#undef INTERP_MEAN_5_OUT_OF_6
-#undef INTERP_MEDIAN_6
-#undef INTERP_MEAN23_EDGE
+#define INTERP_AMAZE_EDGE
+//~ #define INTERP_MEAN23
+//~ #define INTERP_MEAN_6
+//~ #define INTERP_MEAN_4_OUT_OF_6
+//~ #define INTERP_MEAN_5_OUT_OF_6
+//~ #define INTERP_MEDIAN_6
+//~ #define INTERP_MEAN23_EDGE
 
 /* post interpolation enhancements */
-#define CHROMA_SMOOTH
+//~ #define CHROMA_SMOOTH_5X5
+//~ #define CHROMA_SMOOTH_3X3
+#define CHROMA_SMOOTH_2X2
 #define ALIAS_BLEND
 
 /* minimizes aliasing while ignoring the other factors (e.g. shadow noise, banding) */
 /* useful for debugging */
 //~ #define FULLRES_ONLY
 
+#if defined(CHROMA_SMOOTH_2X2) || defined(CHROMA_SMOOTH_3X3) || defined(CHROMA_SMOOTH_5X5)
+#define CHROMA_SMOOTH
+#endif
 
 #define EV_RESOLUTION 32768
 
@@ -51,10 +57,12 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 #include "../../src/raw.h"
 #include "qsort.h"  /* much faster than standard C qsort */
 
-#include "optmed.h"
+#include "wirth.h"  /* fast median, generic implementation (also kth_smallest) */
+#include "optmed.h" /* fast median for small common array sizes (3, 7, 9...) */
 
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
@@ -86,6 +94,9 @@
 #define ABS(a) \
    ({ __typeof__ (a) _a = (a); \
      _a > 0 ? _a : -_a; })
+
+#define SGN(a) \
+   ((a) > 0 ? 1 : -1 )
 
 struct raw_info raw_info = {
     .api_version = 1,
@@ -713,24 +724,7 @@ static int median_ushort(unsigned short* x, int n)
     unsigned short* aux = malloc(n * sizeof(x[0]));
     CHECK(aux, "malloc");
     memcpy(aux, x, n * sizeof(aux[0]));
-    //~ qsort(aux, n, sizeof(aux[0]), compare_short);
-    #define ushort_lt(a,b) ((*a)<(*b))
-    QSORT(unsigned short, aux, n, ushort_lt);
-    int ans = aux[n/2];
-    free(aux);
-    return ans;
-}
-
-static int median_short(short* x, int n)
-{
-    short* aux = malloc(n * sizeof(x[0]));
-    CHECK(aux, "malloc");
-    memcpy(aux, x, n * sizeof(aux[0]));
-    #define short_lt(a,b) ((*a)<(*b))
-    QSORT(short, aux, n, short_lt);
-    int ans = aux[n/2];
-    free(aux);
-    return ans;
+    return median_ushort_wirth(x, n);
 }
 
 static int median_int(int* x, int n)
@@ -738,11 +732,7 @@ static int median_int(int* x, int n)
     int* aux = malloc(n * sizeof(x[0]));
     CHECK(aux, "malloc");
     memcpy(aux, x, n * sizeof(aux[0]));
-    #define int_lt(a,b) ((*a)<(*b))
-    QSORT(int, aux, n, int_lt);
-    int ans = aux[n/2];
-    free(aux);
-    return ans;
+    return median_int_wirth(x, n);
 }
 
 static int estimate_iso(unsigned short* dark, unsigned short* bright, double* corr_ev)
@@ -1060,37 +1050,25 @@ static int median6(int a, int b, int c, int d, int e, int f, int white)
 
 #ifdef INTERP_MEAN23_EDGE
 #define INTERP_METHOD_NAME "mean23-edge"
-
-#define interp6 median6
-/* median of 6 numbers */
-static int median6(int a, int b, int c, int d, int e, int f, int white)
-{
-    int x[6] = {a,b,c,d,e,f};
-
-    /* compute median */
-    int aux;
-    int i,j;
-    for (i = 0; i < 5; i++)
-        for (j = i+1; j < 6; j++)
-            if (x[i] > x[j])
-                aux = x[i], x[i] = x[j], x[j] = aux;
-    if ((x[2] >= white) || (x[3] >= white))
-        return white;
-    int median = (x[2] + x[3]) / 2;
-    return median;
-}
 #endif
 
-#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
+#ifdef INTERP_AMAZE_EDGE
+#define INTERP_METHOD_NAME "amaze-edge"
+#endif
+
+#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE) || defined(INTERP_AMAZE_EDGE)
 static int mean2(int a, int b, int white, int* err)
 {
     if (a >= white || b >= white)
+    {
+        if (err) *err = 10000000;
         return white;
+    }
     
     int m = (a + b) / 2;
 
     if (err)
-        *err = MAX(ABS(a - m), ABS(b - m));
+        *err = ABS(a - b);
 
     return m;
 }
@@ -1109,52 +1087,22 @@ static int mean3(int a, int b, int c, int white, int* err)
 }
 #endif
 
-#ifdef CHROMA_SMOOTH
-#if 0
-static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
-{
-    int w = raw_info.width;
-    int h = raw_info.height;
-    int x, y;
-
-    for (y = 2; y < h-2; y += 2)
-    {
-        for (x = 2; x < w-2; x += 2)
-        {
-            int i,j;
-            int k = 0;
-            int med_r[9];
-            int med_b[9];
-            for (i = -2; i <= 2; i += 2)
-            {
-                for (j = -2; j <= 2; j += 2)
-                {
-                    int r  = inp[x+i   +   (y+j) * w];
-                    int g1 = inp[x+i+1 +   (y+j) * w];
-                    int g2 = inp[x+i   + (y+j+1) * w];
-                    int b  = inp[x+i+1 + (y+j+1) * w];
-                    
-                    int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-                    med_r[k] = raw2ev[r] - ge;
-                    med_b[k] = raw2ev[b] - ge;
-                    k++;
-                }
-            }
-            int dr = opt_med9(med_r);
-            int db = opt_med9(med_b);
-
-            int g1 = inp[x+1 +     y * w];
-            int g2 = inp[x   + (y+1) * w];
-            int ge = (raw2ev[g1] + raw2ev[g2]) / 2;
-
-            out[x   +     y * w] = ev2raw[COERCE(ge + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(ge + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-        }
-    }
-}
+#ifdef CHROMA_SMOOTH_2X2
+#define CHROMA_SMOOTH_MAX_IJ 2
+#define CHROMA_SMOOTH_FILTER_SIZE 5
+#define chroma_smooth_median opt_med5
+#elif defined(CHROMA_SMOOTH_3X3)
+#define CHROMA_SMOOTH_MAX_IJ 2
+#define CHROMA_SMOOTH_FILTER_SIZE 9
+#define chroma_smooth_median opt_med9
+#else
+#define CHROMA_SMOOTH_MAX_IJ 4
+#define CHROMA_SMOOTH_FILTER_SIZE 25
+#define chroma_smooth_median opt_med25
 #endif
 
-static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+#ifdef CHROMA_SMOOTH
+static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1173,12 +1121,17 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
 
             int i,j;
             int k = 0;
-            int med_r[25];
-            int med_b[25];
-            for (i = -4; i <= 4; i += 2)
+            int med_r[CHROMA_SMOOTH_FILTER_SIZE];
+            int med_b[CHROMA_SMOOTH_FILTER_SIZE];
+            for (i = -CHROMA_SMOOTH_MAX_IJ; i <= CHROMA_SMOOTH_MAX_IJ; i += 2)
             {
-                for (j = -4; j <= 4; j += 2)
+                for (j = -CHROMA_SMOOTH_MAX_IJ; j <= CHROMA_SMOOTH_MAX_IJ; j += 2)
                 {
+                    #ifdef CHROMA_SMOOTH_2X2
+                    if (ABS(i) + ABS(j) == 4)
+                        continue;
+                    #endif
+                    
                     int r  = inp[x+i   +   (y+j) * w];
                     int g1 = inp[x+i+1 +   (y+j) * w];
                     int g2 = inp[x+i   + (y+j+1) * w];
@@ -1190,8 +1143,8 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
                     k++;
                 }
             }
-            int dr = opt_med25(med_r);
-            int db = opt_med25(med_b);
+            int dr = chroma_smooth_median(med_r);
+            int db = chroma_smooth_median(med_b);
 
             if (ge + dr <= EV_RESOLUTION) continue;
             if (ge + db <= EV_RESOLUTION) continue;
@@ -1375,27 +1328,67 @@ static int hdr_interpolate()
     unsigned short* fullres = malloc(w * h * sizeof(unsigned short));
     CHECK(fullres, "malloc");
     memset(fullres, 0, w * h * sizeof(unsigned short));
-    unsigned short* fullres_smooth = 0;
+    unsigned short* fullres_smooth = fullres;
 
     /* halfres image (minimizes noise and banding) */
     unsigned short* halfres = malloc(w * h * sizeof(unsigned short));
     CHECK(halfres, "malloc");
     memset(halfres, 0, w * h * sizeof(unsigned short));
-    unsigned short* halfres_smooth = 0;
+    unsigned short* halfres_smooth = halfres;
 
     /* hot pixel map */
     unsigned short* hotpixel = malloc(w * h * sizeof(unsigned short));
     CHECK(hotpixel, "malloc");
     memset(hotpixel, 0, w * h * sizeof(unsigned short));
+    
+    /* overexposure map */
+    unsigned short* overexposed = 0;
 
     #ifdef ALIAS_BLEND
     unsigned short* alias_map = malloc(w * h * sizeof(unsigned short));
     CHECK(alias_map, "malloc");
-    unsigned short* overexposed = malloc(w * h * sizeof(unsigned short));
-    CHECK(overexposed, "malloc");
     memset(alias_map, 0, w * h * sizeof(unsigned short));
-    memset(overexposed, 0, w * h * sizeof(unsigned short));
     #endif
+
+    /* fullres mixing curve */
+    static double fullres_curve[65536];
+    
+    const double fullres_start = 4;
+    const double fullres_transition = 3;
+    const double fullres_thr = 0.8;
+    
+    for (i = 0; i < 65536; i++)
+    {
+        double ev2 = log2(MAX(i/4.0 - black/4.0, 1));
+        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
+        double f = (c2+1) / 2;
+        fullres_curve[i] = f;
+    }
+
+#if 0
+    FILE* f = fopen("mix-curve.m", "w");
+    fprintf(f, "x = 0:65535; \n");
+
+    fprintf(f, "ev = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
+    fprintf(f, "];\n");
+    
+    fprintf(f, "k = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", mix_curve[i]);
+    fprintf(f, "];\n");
+
+    fprintf(f, "f = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%f ", fullres_curve[i]);
+    fprintf(f, "];\n");
+    
+    fprintf(f, "plot(ev, k, ev, f, 'r');\n");
+    fclose(f);
+    
+    system("octave --persist mix-curve.m");
+#endif
 
     printf("Estimating ISO difference...\n");
     /* use a simple interpolation in 14-bit space (the 16-bit one will trick the algorithm) */
@@ -1431,15 +1424,393 @@ static int hdr_interpolate()
     }
 
     printf("Interpolation  : %s\n", INTERP_METHOD_NAME
-        #ifdef CHROMA_SMOOTH
+        #ifdef CHROMA_SMOOTH_5X5
         "-chroma5x5"
+        #endif
+        #ifdef CHROMA_SMOOTH_3X3
+        "-chroma3x3"
+        #endif
+        #ifdef CHROMA_SMOOTH_2X2
+        "-chroma2x2"
         #endif
         #ifdef ALIAS_BLEND
         "-alias"
         #endif
     );
 
-#if defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
+#ifdef INTERP_AMAZE_EDGE
+    {
+        int* squeezed = malloc(h * sizeof(squeezed));
+        memset(squeezed, 0, h * sizeof(squeezed));
+ 
+        float** rawData = malloc(h * sizeof(rawData[0]));
+        float** red     = malloc(h * sizeof(red[0]));
+        float** green   = malloc(h * sizeof(green[0]));
+        float** blue    = malloc(h * sizeof(blue[0]));
+        
+        for (i = 0; i < h; i++)
+        {
+            rawData[i] =   malloc(w * sizeof(rawData[0][0]));
+            memset(rawData[i], 0, w * sizeof(rawData[0][0]));
+            red[i]     = malloc(w * sizeof(red[0][0]));
+            green[i]   = malloc(w * sizeof(green[0][0]));
+            blue[i]    = malloc(w * sizeof(blue[0][0]));
+        }
+        
+        /* squeeze the dark image by deleting fields from the bright exposure */
+        int yh = -1;
+        for (y = 0; y < h; y ++)
+        {
+            if (BRIGHT_ROW)
+                continue;
+            
+            if (yh < 0) /* make sure we start at the same parity (RGGB cell) */
+                yh = y;
+            
+            for (x = 0; x < w; x++)
+            {
+                int p = raw_get_pixel_14to16(x, y);
+                
+                if (x%2 != y%2) /* divide green channel by 2 to approximate the final WB better */
+                    p = (p - black) / 2 + black;
+                
+                rawData[yh][x] = p;
+            }
+            
+            squeezed[y] = yh;
+            
+            yh++;
+        }
+
+        /* now the same for the bright exposure */
+        yh = -1;
+        for (y = 0; y < h; y ++)
+        {
+            if (!BRIGHT_ROW)
+                continue;
+
+            if (yh < 0) /* make sure we start with the same parity (RGGB cell) */
+                yh = h/4*2 + y;
+            
+            for (x = 0; x < w; x++)
+            {
+                int p = raw_get_pixel_14to16(x, y);
+                
+                if (x%2 != y%2) /* divide green channel by 2 to approximate the final WB better */
+                    p = (p - black) / 2 + black;
+                
+                rawData[yh][x] = p;
+            }
+            
+            squeezed[y] = yh;
+            
+            yh++;
+            if (yh >= h) break; /* just in case */
+        }
+
+//~ #define AMAZE_DEBUG
+
+#ifdef AMAZE_DEBUG
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                raw_set_pixel16(x, y, rawData[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-input.dng");
+#endif
+
+        void amaze_demosaic_RT(
+            float** rawData,    /* holds preprocessed pixel values, rawData[i][j] corresponds to the ith row and jth column */
+            float** red,        /* the interpolated red plane */
+            float** green,      /* the interpolated green plane */
+            float** blue,       /* the interpolated blue plane */
+            int winx, int winy, /* crop window for demosaicing */
+            int winw, int winh
+        );
+
+        amaze_demosaic_RT(rawData, red, green, blue, 0, 0, w, h);
+
+        /* undo green channel scaling */
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, white);
+
+#ifdef AMAZE_DEBUG
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, red[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-red.dng");
+
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, green[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-green.dng");
+
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, blue[y][x]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("amaze-blue.dng");
+        
+        /* the above operations were destructive, so we stop here */
+        exit(1);
+#endif
+
+        printf("Edge-directed interpolation...\n");
+        
+        //~ printf("Grayscale...\n");
+        /* convert to grayscale and de-squeeze for easier processing */
+        unsigned short * gray = malloc(w * h * sizeof(gray[0]));
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
+
+        #if 0
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, gray[x + y*w]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("edge-gray.dng");
+        exit(1);
+        #endif
+
+        /* define edge directions for interpolation */
+        struct xy { int x; int y; };
+        const struct
+        {
+            struct xy ack;      /* verification pixel near a */
+            struct xy a;        /* interpolation pixel from the nearby line: normally (0,s) but also (1,s) or (-1,s) */
+            struct xy b;        /* interpolation pixel from the other line: normally (0,-2s) but also (1,-2s), (-1,-2s), (2,-2s) or (-2,-2s) */
+            struct xy bck;      /* verification pixel near b */
+        }
+        edge_directions[] = {       /* note: all y coords should be multiplied by s */
+            //~ { {-6,2}, {-3,1}, { 6,-2}, { 9,-3} },     /* almost horizontal (little or no improvement) */
+            { {-4,2}, {-2,1}, { 4,-2}, { 6,-3} },
+            { {-3,2}, {-1,1}, { 3,-2}, { 4,-3} },
+            { {-2,2}, {-1,1}, { 2,-2}, { 3,-3} },     /* 45-degree diagonal */
+            { {-1,2}, {-1,1}, { 1,-2}, { 2,-3} },
+            { {-1,2}, { 0,1}, { 1,-2}, { 1,-3} },
+            { { 0,2}, { 0,1}, { 0,-2}, { 0,-3} },     /* vertical, preferred; no extra confirmations needed */
+            { { 1,2}, { 0,1}, {-1,-2}, {-1,-3} },
+            { { 1,2}, { 1,1}, {-1,-2}, {-2,-3} },
+            { { 2,2}, { 1,1}, {-2,-2}, {-3,-3} },     /* 45-degree diagonal */
+            { { 3,2}, { 1,1}, {-3,-2}, {-4,-3} },
+            { { 4,2}, { 2,1}, {-4,-2}, {-6,-3} },
+            //~ { { 6,2}, { 3,1}, {-6,-2}, {-9,-3} },     /* almost horizontal */
+        };
+
+        uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
+        int d0 = COUNT(edge_directions)/2;
+        memset(edge_direction, d0, w * h * sizeof(edge_direction[0]));
+
+        //~ printf("Cross-correlation...\n");
+        int semi_overexposed = 0;
+        int not_overexposed = 0;
+        int deep_shadow = 0;
+        int not_shadow = 0;
+        
+        for (y = 5; y < h-5; y ++)
+        {
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+            for (x = 5; x < w-5; x ++)
+            {
+                int d;
+                int e_best = INT_MAX;
+                int d_best = d0;
+                int dmin = 0;
+                int dmax = COUNT(edge_directions)-1;
+                int search_area = 5;
+
+                /* only use high accuracy on the dark exposure where the bright ISO is overexposed */
+                if (!BRIGHT_ROW)
+                {
+                    /* interpolating bright exposure */
+                    if (fullres_curve[raw_get_pixel_14to16(x, y)] > fullres_thr)
+                    {
+                        /* no high accuracy needed, just interpolate vertically */
+                        not_shadow++;
+                        dmin = d0;
+                        dmax = d0;
+                    }
+                    else
+                    {
+                        /* deep shadows, unlikely to use fullres, so we need a good interpolation */
+                        deep_shadow++;
+                    }
+                }
+                else if (raw_get_pixel_14to16(x, y) < white)
+                {
+                    /* interpolating dark exposure, but we also have good data from the bright one */
+                    not_overexposed++;
+                    dmin = d0;
+                    dmax = d0;
+                }
+                else
+                {
+                    /* interpolating dark exposure, but the bright one is clipped */
+                    semi_overexposed++;
+                }
+
+                if (dmin == dmax)
+                {
+                    d_best = dmin;
+                }
+                else
+                {
+                    for (d = dmin; d <= dmax; d++)
+                    {
+                        int e = 0;
+                        int j;
+                        for (j = -search_area; j <= search_area; j++)
+                        {
+                            int dx1 = edge_directions[d].ack.x + j;
+                            int dy1 = edge_directions[d].ack.y * s;
+                            int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
+                            int dx2 = edge_directions[d].a.x + j;
+                            int dy2 = edge_directions[d].a.y * s;
+                            int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
+                            int dx3 = edge_directions[d].b.x + j;
+                            int dy3 = edge_directions[d].b.y * s;
+                            int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
+                            int dx4 = edge_directions[d].bck.x + j;
+                            int dy4 = edge_directions[d].bck.y * s;
+                            int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
+                            e += ABS(p1-p2) + ABS(p2-p3) + ABS(p3-p4);
+                        }
+                        
+                        /* add a small penalty for diagonal directions */
+                        /* (the improvement should be significant in order to choose one of these) */
+                        e += ABS(d - d0) * EV_RESOLUTION/8;
+                        
+                        if (e < e_best)
+                        {
+                            e_best = e;
+                            d_best = d;
+                        }
+                    }
+                }
+                
+                edge_direction[x + y*w] = d_best;
+            }
+        }
+
+        printf("Semi-overexpo'd: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
+        printf("Deep shadows   : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
+
+        /* burn the interpolation directions into a test image */
+        #if 0
+        for (y = 4; y < h-4; y += 10)
+        {
+            /* only show bright rows (interpolated from dark ones) */
+            while (!BRIGHT_ROW) y++;
+            
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+            for (x = 4; x < w-4; x += 10)
+            {
+                gray[x + y*w] = black;
+
+                int dir = edge_direction[x + y*w];
+
+                int dx = edge_directions[dir].a.x;
+                int dy = edge_directions[dir].a.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+
+                dx = edge_directions[dir].b.x;
+                dy = edge_directions[dir].b.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+
+                dx = edge_directions[dir].ack.x;
+                dy = edge_directions[dir].ack.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+
+                dx = edge_directions[dir].bck.x;
+                dy = edge_directions[dir].bck.y * s;
+                gray[x+dx + (y+dy)*w] = black;
+            }
+        }
+
+        for (y = 0; y < h; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel16(x, y, gray[x + y*w]);
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("edges.dng");
+        system("dcraw -d -r 1 1 1 1 edges.dng");
+        /* best viewed at 400% with nearest neighbour interpolation (no filtering) */
+        exit(1);
+        #endif
+
+        #if 0
+        for (y = 0; y < h; y ++)
+        {
+            for (x = 2; x < w-2; x ++)
+            {
+                int dir = edge_direction[x + y*w];
+                if (y%2) dir = COUNT(edge_directions)-1-dir;
+                raw_set_pixel16(x, y, ev2raw[dir * EV_RESOLUTION]);
+            }
+        }
+        reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        save_dng("edge.dng");
+        exit(1);
+        #endif
+        
+        
+        //~ printf("Actual interpolation...\n");
+
+        for (y = 2; y < h-2; y ++)
+        {
+            unsigned short* native = BRIGHT_ROW ? bright : dark;
+            unsigned short* interp = BRIGHT_ROW ? dark : bright;
+            int is_rg = (y % 2 == 0); /* RG or GB? */
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+            int yh_near = squeezed[y+s];
+            int yh_far =  squeezed[y-2*s];
+            
+            //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
+            
+            for (x = 2; x < w-2; x += 2)
+            {
+                int k;
+                for (k = 0; k < 2; k++, x++)
+                {
+                    float** plane = is_rg ? (x%2 == 0 ? red   : green)
+                                          : (x%2 == 0 ? green : blue );
+
+                    int dir = edge_direction[x + y*w];
+                    
+                    int dxa = edge_directions[dir].a.x;
+                    int dya = edge_directions[dir].a.y * s;
+                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, white);
+                    int dxb = edge_directions[dir].b.x;
+                    int dyb = edge_directions[dir].b.y * s;
+                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, white);
+                    int pi = mean3(raw2ev[pa], raw2ev[pa], raw2ev[pb], raw2ev[white], 0);
+                    
+                    interp[x   + y * w] = ev2raw[pi];
+                    native[x   + y * w] = raw_get_pixel_14to16(x, y);
+                }
+                x -= 2;
+            }
+        }
+
+        for (i = 0; i < h; i++)
+        {
+            free(rawData[i]);
+            free(red[i]);
+            free(green[i]);
+            free(blue[i]);
+        }
+        
+        free(squeezed); squeezed = 0;
+        free(rawData); rawData = 0;
+        free(red); red = 0;
+        free(green); green = 0;
+        free(blue); blue = 0;
+        free(edge_direction);
+    }
+
+#elif defined(INTERP_MEAN23) || defined(INTERP_MEAN23_EDGE)
     for (y = 2; y < h-2; y ++)
     {
         unsigned short* native = BRIGHT_ROW ? bright : dark;
@@ -1458,12 +1829,12 @@ static int hdr_interpolate()
             {
                 int ra = raw_get_pixel_14to16(x, y-2);
                 int rb = raw_get_pixel_14to16(x, y+2);
-                int er=0; int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], &er);
+                int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
                 
                 int ga = raw_get_pixel_14to16(x+1+1, y+s);
                 int gb = raw_get_pixel_14to16(x+1-1, y+s);
                 int gc = raw_get_pixel_14to16(x+1, y-2*s);
-                int eg=0; int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], &eg);
+                int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
 
                 interp[x   + y * w] = ev2raw[ri];
                 interp[x+1 + y * w] = ev2raw[gi];
@@ -1472,12 +1843,12 @@ static int hdr_interpolate()
             {
                 int ba = raw_get_pixel_14to16(x+1  , y-2);
                 int bb = raw_get_pixel_14to16(x+1  , y+2);
-                int eb=0; int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], &eb);
+                int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
 
                 int ga = raw_get_pixel_14to16(x+1, y+s);
                 int gb = raw_get_pixel_14to16(x-1, y+s);
                 int gc = raw_get_pixel_14to16(x, y-2*s);
-                int eg=0; int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], &eg);
+                int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
 
                 interp[x   + y * w] = ev2raw[gi];
                 interp[x+1 + y * w] = ev2raw[bi];
@@ -1667,7 +2038,7 @@ static int hdr_interpolate()
 
 #if 1
     printf("Horizontal stripe fix...\n");
-    short * delta[14];
+    int * delta[14];
     int delta_num[14];
     for (i = 0; i < 14; i++)
     {
@@ -1703,7 +2074,7 @@ static int hdr_interpolate()
             if (delta_num[i] > 0)
             {
                 /* enough data points? */
-                med_delta[i] = median_short(delta[i], delta_num[i]);
+                med_delta[i] = median_int_wirth(delta[i], delta_num[i]);
                 
                 /* avoid large corrections (they are probably outliers) */
                 if (ABS(med_delta[i]) > 50) med_delta[i] = 0;
@@ -2046,8 +2417,8 @@ static int hdr_interpolate()
 #endif
 
 #ifdef CHROMA_SMOOTH
-    chroma_smooth_5x5(fullres, fullres_smooth, raw2ev, ev2raw);
-    chroma_smooth_5x5(halfres, halfres_smooth, raw2ev, ev2raw);
+    chroma_smooth(fullres, fullres_smooth, raw2ev, ev2raw);
+    chroma_smooth(halfres, halfres_smooth, raw2ev, ev2raw);
 #endif
 
 #if 0 /* for debugging only */
@@ -2113,6 +2484,7 @@ static int hdr_interpolate()
     save_dng("split.dng");
 #endif
 
+
 #ifdef ALIAS_BLEND
     printf("Building alias map...\n");
 
@@ -2126,6 +2498,10 @@ static int hdr_interpolate()
     {
         for (x = 0; x < w; x ++)
         {
+            /* do not compute alias map where we'll use fullres detail anyway */
+            if (fullres_curve[bright[x + y*w]] > fullres_thr)
+                continue;
+
             int f = fullres_smooth[x + y*w];
             int h = halfres_smooth[x + y*w];
             int fe = raw2ev[f];
@@ -2133,7 +2509,7 @@ static int hdr_interpolate()
             int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
             e_lin = MAX(e_lin - dark_noise, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
-            alias_map[x + y*w] = MIN(e_lin*8, e_log/8);
+            alias_map[x + y*w] = MIN(MIN(e_lin*8, e_log/8), 65530);
         }
     }
 
@@ -2174,7 +2550,24 @@ static int hdr_interpolate()
     {
         for (x = 6; x < w-6; x ++)
         {
-            /* use 8th max (out of 49) to filter isolated pixels */
+            /* do not compute alias map where we'll use fullres detail anyway */
+            if (fullres_curve[bright[x + y*w]] > fullres_thr)
+                continue;
+            
+            /* use 5th max (out of 37) to filter isolated pixels */
+            
+            int neighbours[] = {
+                                                                          -alias_map[x-2 + (y-6) * w], -alias_map[x+0 + (y-6) * w], -alias_map[x+2 + (y-6) * w],
+                                             -alias_map[x-4 + (y-4) * w], -alias_map[x-2 + (y-4) * w], -alias_map[x+0 + (y-4) * w], -alias_map[x+2 + (y-4) * w], -alias_map[x+4 + (y-4) * w],
+                -alias_map[x-6 + (y-2) * w], -alias_map[x-4 + (y-2) * w], -alias_map[x-2 + (y-2) * w], -alias_map[x+0 + (y-2) * w], -alias_map[x+2 + (y-2) * w], -alias_map[x+4 + (y-2) * w], -alias_map[x+6 + (y-2) * w], 
+                -alias_map[x-6 + (y+0) * w], -alias_map[x-4 + (y+0) * w], -alias_map[x-2 + (y+0) * w], -alias_map[x+0 + (y+0) * w], -alias_map[x+2 + (y+0) * w], -alias_map[x+4 + (y+0) * w], -alias_map[x+6 + (y+0) * w], 
+                -alias_map[x-6 + (y+2) * w], -alias_map[x-4 + (y+2) * w], -alias_map[x-2 + (y+2) * w], -alias_map[x+0 + (y+2) * w], -alias_map[x+2 + (y+2) * w], -alias_map[x+4 + (y+2) * w], -alias_map[x+6 + (y+2) * w], 
+                                             -alias_map[x-4 + (y+4) * w], -alias_map[x-2 + (y+4) * w], -alias_map[x+0 + (y+4) * w], -alias_map[x+2 + (y+4) * w], -alias_map[x+4 + (y+4) * w],
+                                                                          -alias_map[x-2 + (y+6) * w], -alias_map[x+0 + (y+6) * w], -alias_map[x+2 + (y+6) * w],
+            };
+            
+            /* code generation & unoptimized version */
+            /*
             int neighbours[50];
             int k = 0;
             int i,j;
@@ -2182,12 +2575,15 @@ static int hdr_interpolate()
             {
                 for (j = -3; j <= 3; j++)
                 {
-                    neighbours[k++] = alias_map[x+j*2 + (y+i*2)*w];
+                    //~ neighbours[k++] = -alias_map[x+j*2 + (y+i*2)*w];
+                    printf("-alias_map[x%+d + (y%+d) * w], ", j*2, i*2);
                 }
+                printf("\n");
             }
-            /* quite slow, but trivial to write and tweak */
-            QSORT(int, neighbours, k, int_lt);
-            alias_aux[x + y * w] = neighbours[k-8];
+            exit(1);
+            */
+            
+            alias_aux[x + y * w] = -kth_smallest_int(neighbours, COUNT(neighbours), 5);
         }
     }
 
@@ -2205,6 +2601,9 @@ static int hdr_interpolate()
     {
         for (x = 6; x < w-6; x ++)
         {
+            /* do not compute alias map where we'll use fullres detail anyway */
+            if (fullres_curve[bright[x + y*w]] > fullres_thr)
+                continue;
 
 /* code generation
             const int blur[4][4] = {
@@ -2289,7 +2688,14 @@ static int hdr_interpolate()
     save_dng("alias-filtered.dng");
 #endif
 
+    free(alias_aux);
+#endif
+
     /* where the image is overexposed? */
+    overexposed = malloc(w * h * sizeof(unsigned short));
+    CHECK(overexposed, "malloc");
+    memset(overexposed, 0, w * h * sizeof(unsigned short));
+
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -2299,76 +2705,37 @@ static int hdr_interpolate()
     }
     
     /* "blur" the overexposed map */
-    memcpy(alias_aux, overexposed, w * h * sizeof(unsigned short));
+    unsigned short* over_aux = malloc(w * h * sizeof(unsigned short));
+    memcpy(over_aux, overexposed, w * h * sizeof(unsigned short));
 
     for (y = 3; y < h-3; y ++)
     {
         for (x = 3; x < w-3; x ++)
         {
             overexposed[x + y * w] = 
-                (alias_aux[x+0 + (y+0) * w])+ 
-                (alias_aux[x+0 + (y-1) * w] + alias_aux[x-1 + (y+0) * w] + alias_aux[x+1 + (y+0) * w] + alias_aux[x+0 + (y+1) * w]) * 820 / 1024 + 
-                (alias_aux[x-1 + (y-1) * w] + alias_aux[x+1 + (y-1) * w] + alias_aux[x-1 + (y+1) * w] + alias_aux[x+1 + (y+1) * w]) * 657 / 1024 + 
-                //~ (alias_aux[x+0 + (y-2) * w] + alias_aux[x-2 + (y+0) * w] + alias_aux[x+2 + (y+0) * w] + alias_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
-                //~ (alias_aux[x-1 + (y-2) * w] + alias_aux[x+1 + (y-2) * w] + alias_aux[x-2 + (y-1) * w] + alias_aux[x+2 + (y-1) * w] + alias_aux[x-2 + (y+1) * w] + alias_aux[x+2 + (y+1) * w] + alias_aux[x-1 + (y+2) * w] + alias_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
-                //~ (alias_aux[x-2 + (y-2) * w] + alias_aux[x+2 + (y-2) * w] + alias_aux[x-2 + (y+2) * w] + alias_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
-                //~ (alias_aux[x+0 + (y-3) * w] + alias_aux[x-3 + (y+0) * w] + alias_aux[x+3 + (y+0) * w] + alias_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
-                //~ (alias_aux[x-1 + (y-3) * w] + alias_aux[x+1 + (y-3) * w] + alias_aux[x-3 + (y-1) * w] + alias_aux[x+3 + (y-1) * w] + alias_aux[x-3 + (y+1) * w] + alias_aux[x+3 + (y+1) * w] + alias_aux[x-1 + (y+3) * w] + alias_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
-                //~ (alias_aux[x-2 + (y-3) * w] + alias_aux[x+2 + (y-3) * w] + alias_aux[x-3 + (y-2) * w] + alias_aux[x+3 + (y-2) * w] + alias_aux[x-3 + (y+2) * w] + alias_aux[x+3 + (y+2) * w] + alias_aux[x-2 + (y+3) * w] + alias_aux[x+2 + (y+3) * w]) * 57 / 1024;
+                (over_aux[x+0 + (y+0) * w])+ 
+                (over_aux[x+0 + (y-1) * w] + over_aux[x-1 + (y+0) * w] + over_aux[x+1 + (y+0) * w] + over_aux[x+0 + (y+1) * w]) * 820 / 1024 + 
+                (over_aux[x-1 + (y-1) * w] + over_aux[x+1 + (y-1) * w] + over_aux[x-1 + (y+1) * w] + over_aux[x+1 + (y+1) * w]) * 657 / 1024 + 
+                //~ (over_aux[x+0 + (y-2) * w] + over_aux[x-2 + (y+0) * w] + over_aux[x+2 + (y+0) * w] + over_aux[x+0 + (y+2) * w]) * 421 / 1024 + 
+                //~ (over_aux[x-1 + (y-2) * w] + over_aux[x+1 + (y-2) * w] + over_aux[x-2 + (y-1) * w] + over_aux[x+2 + (y-1) * w] + over_aux[x-2 + (y+1) * w] + over_aux[x+2 + (y+1) * w] + over_aux[x-1 + (y+2) * w] + over_aux[x+1 + (y+2) * w]) * 337 / 1024 + 
+                //~ (over_aux[x-2 + (y-2) * w] + over_aux[x+2 + (y-2) * w] + over_aux[x-2 + (y+2) * w] + over_aux[x+2 + (y+2) * w]) * 173 / 1024 + 
+                //~ (over_aux[x+0 + (y-3) * w] + over_aux[x-3 + (y+0) * w] + over_aux[x+3 + (y+0) * w] + over_aux[x+0 + (y+3) * w]) * 139 / 1024 + 
+                //~ (over_aux[x-1 + (y-3) * w] + over_aux[x+1 + (y-3) * w] + over_aux[x-3 + (y-1) * w] + over_aux[x+3 + (y-1) * w] + over_aux[x-3 + (y+1) * w] + over_aux[x+3 + (y+1) * w] + over_aux[x-1 + (y+3) * w] + over_aux[x+1 + (y+3) * w]) * 111 / 1024 + 
+                //~ (over_aux[x-2 + (y-3) * w] + over_aux[x+2 + (y-3) * w] + over_aux[x-3 + (y-2) * w] + over_aux[x+3 + (y-2) * w] + over_aux[x-3 + (y+2) * w] + over_aux[x+3 + (y+2) * w] + over_aux[x-2 + (y+3) * w] + over_aux[x+2 + (y+3) * w]) * 57 / 1024;
                 0;
         }
     }
-
-    free(alias_aux);
-#endif
-
-
-    /* fullres mixing curve */
-    static double fullres_curve[65536];
     
-    static double fullres_start = 4;
-    static double fullres_transition = 2;
-    
-    for (i = 0; i < 65536; i++)
-    {
-        double ev2 = log2(MAX(i/4.0 - black/4.0, 1));
-        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
-        double f = (c2+1) / 2;
-        fullres_curve[i] = f;
-    }
-
-#if 0
-    FILE* f = fopen("mix-curve.m", "w");
-    fprintf(f, "x = 0:65535; \n");
-
-    fprintf(f, "ev = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
-    fprintf(f, "];\n");
-    
-    fprintf(f, "k = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", mix_curve[i]);
-    fprintf(f, "];\n");
-
-    fprintf(f, "f = [");
-    for (i = 0; i < 65536; i++)
-        fprintf(f, "%f ", fullres_curve[i]);
-    fprintf(f, "];\n");
-    
-    fprintf(f, "plot(ev, k, ev, f, 'r');\n");
-    fclose(f);
-    
-    system("octave --persist mix-curve.m");
-#endif
+    free(over_aux); over_aux = 0;
 
     /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
-            raw_set_pixel16(x, y, halfres_smooth[x + y*w]);
+            raw_set_pixel16(x, y, bright[x + y*w]);
     compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
     double ideal_noise_std = noise_std[0];
 
+    printf("Final blending...\n");
     for (y = 0; y < h; y ++)
     {
         for (x = 0; x < w; x ++)
@@ -2382,12 +2749,8 @@ static int hdr_interpolate()
             /* full-res image (non-interpolated, except where one ISO is blown out) */
             int fr = fullres[x + y*w];
 
-            #ifdef CHROMA_SMOOTH
             /* full res with some smoothing applied to hide aliasing artifacts */
             int frs = fullres_smooth[x + y*w];
-            #else
-            int frs = fr;
-            #endif
 
             /* go from linear to EV space */
             int hrev = raw2ev[hr];
@@ -2403,12 +2766,13 @@ static int hdr_interpolate()
             #ifdef ALIAS_BLEND
             int co = alias_map[x + y*w];
             double c = COERCE(co / (double) ALIAS_MAP_MAX, 0, 1);
-            double ovf = COERCE(overexposed[x + y*w] / 200.0, 0, 1);
-            c = MAX(c, ovf);
             //~ k = MIN(MAX(k, ovf*5), 1);
             #else
-            double c = 1;
+            double c = 0;
             #endif
+
+            double ovf = COERCE(overexposed[x + y*w] / 200.0, 0, 1);
+            c = MAX(c, ovf);
 
             double noisy_or_overexposed = MAX(ovf, 1-f);
 
@@ -2473,9 +2837,9 @@ cleanup:
     free(fullres);
     free(halfres);
     free(hotpixel);
+    free(overexposed);
     #ifdef ALIAS_BLEND
     free(alias_map);
-    free(overexposed);
     #endif
     #ifdef CHROMA_SMOOTH
     if (fullres_smooth) free(fullres_smooth);
