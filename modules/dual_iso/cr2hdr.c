@@ -1560,46 +1560,88 @@ static int hdr_interpolate()
         };
 
         uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
+        int d0 = COUNT(edge_directions)/2;
 
-        printf("Cross-correlation...\n");
-        for (y = 10; y < h-10; y ++)
+        //~ printf("Cross-correlation...\n");
+        int semi_overexposed = 0;
+        int not_overexposed = 0;
+        
+        for (y = 5; y < h-5; y ++)
         {
             int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
-            for (x = 10; x < w-10; x ++)
+            for (x = 5; x < w-5; x ++)
             {
                 int d;
                 int e_best = INT_MAX;
-                int d_best = 0;
-                for (d = 0; d < COUNT(edge_directions); d++)
+                int d_best = d0;
+                int dmin = 0;
+                int dmax = COUNT(edge_directions)-1;
+                int search_area = 5;
+
+                /* only use high accuracy on the dark exposure where the bright ISO is overexposed */
+                if (!BRIGHT_ROW)
                 {
-                    int e = 0;
-                    int j;
-                    for (j = -5; j <= 5; j++)
+                    /* interpolating bright exposure */
+                    if (raw_get_pixel_14to16(x, y) > black + bright_noise*3)
                     {
-                        int dx1 = edge_directions[d].ack.x + j;
-                        int dy1 = edge_directions[d].ack.y * s;
-                        int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
-                        int dx2 = edge_directions[d].a.x + j;
-                        int dy2 = edge_directions[d].a.y * s;
-                        int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
-                        int dx3 = edge_directions[d].b.x + j;
-                        int dy3 = edge_directions[d].b.y * s;
-                        int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
-                        int dx4 = edge_directions[d].bck.x + j;
-                        int dy4 = edge_directions[d].bck.y * s;
-                        int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
-                        e += ABS(p1-p2) + ABS(p2-p3) + ABS(p3-p4);
+                        /* no high accuracy needed, just interpolate vertically */
+                        dmin = d0;
+                        dmax = d0;
                     }
-                    
-                    /* add a small penalty for diagonal directions */
-                    /* (the improvement should be significant in order to choose one of these) */
-                    int ds = d - COUNT(edge_directions)/2;
-                    e += ds * EV_RESOLUTION/8;
-                    
-                    if (e < e_best)
+                    else
                     {
-                        e_best = e;
-                        d_best = d;
+                        /* deep shadows, unlikely to use fullres, so we need a good interpolation */
+                    }
+                }
+                else if (raw_get_pixel_14to16(x, y) < white)
+                {
+                    /* interpolating dark exposure, but we also have good data from the bright one */
+                    not_overexposed++;
+                    dmin = d0;
+                    dmax = d0;
+                }
+                else
+                {
+                    /* interpolating dark exposure, but the bright one is clipped */
+                    semi_overexposed++;
+                }
+
+                if (dmin == dmax)
+                {
+                    d_best = dmin;
+                }
+                else
+                {
+                    for (d = dmin; d <= dmax; d++)
+                    {
+                        int e = 0;
+                        int j;
+                        for (j = -search_area; j <= search_area; j++)
+                        {
+                            int dx1 = edge_directions[d].ack.x + j;
+                            int dy1 = edge_directions[d].ack.y * s;
+                            int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
+                            int dx2 = edge_directions[d].a.x + j;
+                            int dy2 = edge_directions[d].a.y * s;
+                            int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
+                            int dx3 = edge_directions[d].b.x + j;
+                            int dy3 = edge_directions[d].b.y * s;
+                            int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
+                            int dx4 = edge_directions[d].bck.x + j;
+                            int dy4 = edge_directions[d].bck.y * s;
+                            int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
+                            e += ABS(p1-p2) + ABS(p2-p3) + ABS(p3-p4);
+                        }
+                        
+                        /* add a small penalty for diagonal directions */
+                        /* (the improvement should be significant in order to choose one of these) */
+                        e += (d - d0) * EV_RESOLUTION/8;
+                        
+                        if (e < e_best)
+                        {
+                            e_best = e;
+                            d_best = d;
+                        }
                     }
                 }
                 
@@ -1607,6 +1649,7 @@ static int hdr_interpolate()
             }
         }
 
+        printf("Semi-overexpo'd: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
 
         /* burn the interpolation directions into a test image */
         #if 0
