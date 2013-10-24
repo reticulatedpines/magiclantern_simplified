@@ -438,7 +438,7 @@ static int black_subtract(int left_margin, int top_margin)
     CHECK(blackframe, "malloc");
 
     /* data above this may be gibberish */
-    int ymin = (top_margin*3/4) & ~3;
+    int ymin = (top_margin*4/5 + 3) & ~3;
 
     /* estimate vertical correction for each line */
     int x,y;
