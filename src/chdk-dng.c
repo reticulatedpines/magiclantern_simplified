@@ -31,6 +31,7 @@
 #ifdef CONFIG_MAGICLANTERN
 #include "dryos.h"
 #include "property.h"
+#include "math.h"
 #define umalloc alloc_dma_memory
 #define ufree free_dma_memory
 #define pow powf
@@ -52,6 +53,10 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define FIO_CreateFileEx(name) fopen(name, "wb")
 #define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
 #define FIO_CloseFile(f) fclose(f)
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 
 #endif
 
@@ -151,9 +156,16 @@ static void FAST reverse_bytes_order(char* buf, int count)
 }
 
 //thumbnail
-#define DNG_TH_WIDTH 128
-#define DNG_TH_HEIGHT 96
-// higly recommended that DNG_TH_WIDTH*DNG_TH_HEIGHT would be divisible by 512
+static int dng_th_width = 128;
+static int dng_th_height = 84;
+// higly recommended that dng_th_width*dng_th_height would be divisible by 512
+
+/* warning: not thread safe */
+void dng_set_thumbnail_size(int width, int height)
+{
+    dng_th_width = width;
+    dng_th_height = height;
+}
 
 struct dir_entry{unsigned short tag; unsigned short type; unsigned int count; unsigned int offset;};
 
@@ -313,8 +325,8 @@ static void create_dng_header(struct raw_info * raw_info){
 
     struct dir_entry ifd0[]={
         {0xFE,   T_LONG,       1,  1},                                 // NewSubFileType: Preview Image
-        {0x100,  T_LONG,       1,  DNG_TH_WIDTH},                      // ImageWidth
-        {0x101,  T_LONG,       1,  DNG_TH_HEIGHT},                     // ImageLength
+        {0x100,  T_LONG,       1,  dng_th_width},                      // ImageWidth
+        {0x101,  T_LONG,       1,  dng_th_height},                     // ImageLength
         {0x102,  T_SHORT,      3,  (int)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
         {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
         {0x106,  T_SHORT,      1,  2},                                 // PhotometricInterpretation: RGB
@@ -324,8 +336,8 @@ static void create_dng_header(struct raw_info * raw_info){
         {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
         {0x112,  T_SHORT,      1,  1},                                 // Orientation: 1 - 0th row is top, 0th column is left
         {0x115,  T_SHORT,      1,  3},                                 // SamplesPerPixel: 3
-        {0x116,  T_SHORT,      1,  DNG_TH_HEIGHT},                     // RowsPerStrip
-        {0x117,  T_LONG,       1,  DNG_TH_WIDTH*DNG_TH_HEIGHT*3},      // StripByteCounts = preview size
+        {0x116,  T_SHORT,      1,  dng_th_height},                     // RowsPerStrip
+        {0x117,  T_LONG,       1,  dng_th_width*dng_th_height*3},      // StripByteCounts = preview size
         {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
         {0x131,  T_ASCII|T_PTR,32, 0},                                 // Software
         {0x132,  T_ASCII,      20, (int)cam_datetime},                 // DateTime
@@ -466,7 +478,7 @@ static void create_dng_header(struct raw_info * raw_info){
     if (!dng_header_buf) return;
 
     // create buffer for thumbnail
-    thumbnail_buf = malloc(DNG_TH_WIDTH*DNG_TH_HEIGHT*3);
+    thumbnail_buf = malloc(dng_th_width*dng_th_height*3);
     if (!thumbnail_buf)
     {
         ufree(dng_header_buf);
@@ -481,7 +493,7 @@ static void create_dng_header(struct raw_info * raw_info){
     ifd0[SUBIFDS_INDEX].offset = TIFF_HDR_SIZE + ifd_list[0].count * 12 + 6;                            // SubIFDs offset
     ifd0[EXIF_IFD_INDEX].offset = TIFF_HDR_SIZE + (ifd_list[0].count + ifd_list[1].count) * 12 + 6 + 6; // EXIF IFD offset
     ifd0[THUMB_DATA_INDEX].offset = raw_offset;                                     //StripOffsets for thumbnail
-    ifd1[RAW_DATA_INDEX].offset = raw_offset + DNG_TH_WIDTH * DNG_TH_HEIGHT * 3;    //StripOffsets for main image
+    ifd1[RAW_DATA_INDEX].offset = raw_offset + dng_th_width * dng_th_height * 3;    //StripOffsets for main image
 
     for (j=0;j<ifd_count;j++)
     {
@@ -566,37 +578,27 @@ static void free_dng_header(void)
     }
 }
 
-static int pow_calc_2( int mult, int x, int x_div, double y, int y_div)
-{
-	double x1 = x;
-	if ( x_div != 1 ) { x1=x1/x_div;}
-	if ( y_div != 1 ) { y=y/y_div;}
-
-	if ( mult==1 )
-		return pow( x1, y );
-                else
-		return mult	* pow( x1, y );
-}
-
 //-------------------------------------------------------------------
 // Functions for creating DNG thumbnail image
 
-static unsigned char gammma[256];
-
-static void fill_gamma_buf(void)
+static inline int raw_to_8bit(int raw, int wb, struct raw_info * raw_info)
 {
-    int i;
-    if (gammma[255]) return;
-    for (i=0; i<12; i++) gammma[i]=pow_calc_2(255, i, 255, 0.5, 1);
-    for (i=12; i<64; i++) gammma[i]=pow_calc_2(255, i, 255, 0.4, 1);
-    for (i=64; i<=255; i++) gammma[i]=pow_calc_2(255, i, 255, 0.25, 1);
+    if (raw_info->bits_per_pixel == 16) /* big endian */
+    {
+        raw = ((raw & 0xFF00) >> 8) | ((raw & 0xFF) << 8);
+    }
+    int black = raw_info->black_level;
+    int white = raw_info->white_level;
+    float ev = log2f(MAX(1, raw - black)) + wb - 5;
+    float max = log2f(white - black) - 5;
+    int out = ev * 255 / max;
+    return COERCE(out, 0, 255);
 }
 
 static void create_thumbnail(struct raw_info * raw_info)
 {
     register int i, j, x, y, yadj, xadj;
     register char *buf = thumbnail_buf;
-    register int shift = camera_sensor.bits_per_pixel - 8;
 
     // The sensor bayer patterns are:
     //  0x02010100  0x01000201  0x01020001
@@ -607,16 +609,16 @@ static void create_thumbnail(struct raw_info * raw_info)
     // these make the patterns the same
     yadj = (camera_sensor.cfa_pattern == 0x01000201) ? 1 : 0;
     xadj = (camera_sensor.cfa_pattern == 0x01020001) ? 1 : 0;
-
-    for (i=0; i<DNG_TH_HEIGHT; i++)
-        for (j=0; j<DNG_TH_WIDTH; j++)
+    
+    for (i=0; i<dng_th_height; i++)
+        for (j=0; j<dng_th_width; j++)
         {
-            x = ((camera_sensor.active_area.x1 + camera_sensor.jpeg.x + (camera_sensor.jpeg.width  * j) / DNG_TH_WIDTH)  & 0xFFFFFFFE) + xadj;
-            y = ((camera_sensor.active_area.y1 + camera_sensor.jpeg.y + (camera_sensor.jpeg.height * i) / DNG_TH_HEIGHT) & 0xFFFFFFFE) + yadj;
+            x = camera_sensor.active_area.x1 + ((camera_sensor.jpeg.x + (camera_sensor.jpeg.width  * j) / dng_th_width)  & 0xFFFFFFFE) + xadj;
+            y = camera_sensor.active_area.y1 + ((camera_sensor.jpeg.y + (camera_sensor.jpeg.height * i) / dng_th_height) & 0xFFFFFFFE) + yadj;
 
-            *buf++ = gammma[get_raw_pixel(x,y)>>shift];           // red pixel
-            *buf++ = gammma[6*(get_raw_pixel(x+1,y)>>shift)/10];  // green pixel
-            *buf++ = gammma[get_raw_pixel(x+1,y+1)>>shift];       // blue pixel
+            *buf++ = raw_to_8bit(get_raw_pixel(x,y), 0, raw_info);        // red pixel
+            *buf++ = raw_to_8bit(get_raw_pixel(x+1,y), -1, raw_info);      // green pixel
+            *buf++ = raw_to_8bit(get_raw_pixel(x+1,y+1), 0, raw_info);    // blue pixel
         }
 }
 
@@ -630,10 +632,9 @@ static void write_dng(FILE* fd, struct raw_info * raw_info)
 
     if (dng_header_buf)
     {
-        fill_gamma_buf();
         create_thumbnail(raw_info);
         write(fd, dng_header_buf, dng_header_buf_size);
-        write(fd, thumbnail_buf, DNG_TH_WIDTH*DNG_TH_HEIGHT*3);
+        write(fd, thumbnail_buf, dng_th_width*dng_th_height*3);
 
         reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
         write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size);
