@@ -1367,8 +1367,28 @@ static void raw_lv_update()
     }
     else if (!new_state && lv_raw_enabled)
     {
+        /* in zoom mode, these cameras have pink preview in zoom mode (even after disabling raw flag, the pink preview remains) */
+        /* lookup 0xc0f08114 in raw_rec.c for more info */
+
+        //~ #define PINK_FIX_TEST
+        #ifdef PINK_FIX_TEST
+        /* with zoom on halfshutter, the image should get pink for 2 seconds, then it should be back to normal */
+        msleep(1000);
+        beep();         /* first beep: disabling raw mode, image remains pink */
+        #endif
+        
+        /* disable the raw flag */
         raw_lv_disable();
         msleep(50);
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_500D)
+        #ifdef PINK_FIX_TEST
+        msleep(1000);
+        beep();         /* second beep: changing raw type to something that isn't pink (this will be reset as soon as you enable raw back) */
+        #endif
+        /* fix pink preview in zoom */
+        *(volatile uint32_t*)0xc0f08114 = 0;
+        #endif
     }
 }
 
