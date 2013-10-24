@@ -438,7 +438,8 @@ static int black_subtract(int left_margin, int top_margin)
     CHECK(blackframe, "malloc");
 
     /* data above this may be gibberish */
-    int ymin = (top_margin*4/5 + 3) & ~3;
+    int ymin = (top_margin-8-2) & ~3;
+    int ymax = ymin + 8;
 
     /* estimate vertical correction for each line */
     int x,y;
@@ -493,7 +494,7 @@ static int black_subtract(int left_margin, int top_margin)
         int offset = 0;
         {
             int num = 0;
-            for (y = y0; y < top_margin-4; y += 4)
+            for (y = y0; y < ymax; y += 4)
             {
                 offset += blackframe[y*w];
                 num++;
@@ -509,7 +510,7 @@ static int black_subtract(int left_margin, int top_margin)
             {
                 int num = 0;
                 int avg = 0;
-                for (y = y0; y < top_margin-4; y += 4)
+                for (y = y0; y < ymax; y += 4)
                 {
                     avg += raw_get_pixel16(x, y) - offset;
                     num++;
