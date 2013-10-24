@@ -292,6 +292,8 @@ int main(int argc, char** argv)
         raw_info.jpeg.y = 0;
         raw_info.jpeg.width = raw_info.width - left_margin;
         raw_info.jpeg.height = raw_info.height - top_margin;
+        
+        dng_set_thumbnail_size(384, 252);
 
         if (hdr_check())
         {
