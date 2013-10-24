@@ -912,16 +912,16 @@ static void show_recording_status()
         }
 
         /* Draw the movie camera icon */
-        int rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG);
+        int rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
 
 	/* Display the Status */
         if (!frame_skips) 
         {
-            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
+            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
         } 
         else 
         {
-            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
+            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
         }
 
 	if (display_memory_allocs) show_buffer_status();
@@ -957,7 +957,7 @@ static void show_recording_status()
                 if (idle_percent) { STR_APPEND(msg, ", %2d%%  idle", idle_percent); }
                 else { STR_APPEND(msg,",%3dms idle", idle_time); }
             }
-            bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
+            bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
         }
     }
 
