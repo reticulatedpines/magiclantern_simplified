@@ -1075,13 +1075,13 @@ static int mean2(int a, int b, int white, int* err)
 
 static int mean3(int a, int b, int c, int white, int* err)
 {
-    if (a >= white || b >= white || c >= white)
-        return white;
-
     int m = (a + b + c) / 3;
 
     if (err)
         *err = MAX(MAX(ABS(a - m), ABS(b - m)), ABS(c - m));
+
+    if (a >= white || b >= white || c >= white)
+        return MAX(m, white);
 
     return m;
 }
@@ -1224,11 +1224,11 @@ static int hdr_interpolate()
 
     for (i = 0; i < 14*EV_RESOLUTION; i++)
     {
-        ev2raw[i] = COERCE(black-4 + round(4*pow(2, ((double)i/EV_RESOLUTION))), black, white);
+        ev2raw[i] = COERCE(black-4 + round(4*pow(2, ((double)i/EV_RESOLUTION))), black, 65535);
         
         if (i >= raw2ev[white])
         {
-            ev2raw[i] = white;
+            ev2raw[i] = MAX(ev2raw[i], white);
         }
     }
     
@@ -1532,7 +1532,7 @@ static int hdr_interpolate()
         /* undo green channel scaling */
         for (y = 0; y < h; y ++)
             for (x = 0; x < w; x ++)
-                green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, white);
+                green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, 65535);
 
 #ifdef AMAZE_DEBUG
         for (y = 0; y < h; y ++)
@@ -1781,10 +1781,10 @@ static int hdr_interpolate()
                     
                     int dxa = edge_directions[dir].a.x;
                     int dya = edge_directions[dir].a.y * s;
-                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, white);
+                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, 65535);
                     int dxb = edge_directions[dir].b.x;
                     int dyb = edge_directions[dir].b.y * s;
-                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, white);
+                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, 65535);
                     int pi = mean3(raw2ev[pa], raw2ev[pa], raw2ev[pb], raw2ev[white], 0);
                     
                     interp[x   + y * w] = ev2raw[pi];
