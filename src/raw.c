@@ -1381,7 +1381,7 @@ static void raw_lv_update()
         raw_lv_disable();
         msleep(50);
 
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_500D)
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
         #ifdef PINK_FIX_TEST
         msleep(1000);
         beep();         /* second beep: changing raw type to something that isn't pink (this will be reset as soon as you enable raw back) */

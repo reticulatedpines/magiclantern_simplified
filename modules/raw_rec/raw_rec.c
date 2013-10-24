@@ -1013,7 +1013,7 @@ static void unhack_liveview_vsync(int unused);
 
 static void hack_liveview_vsync()
 {
-    if (cam_5d2 || cam_50d || cam_7d )
+    if (cam_5d2 || cam_50d)
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
         if (lv_dispsize > 1 && !get_halfshutter_pressed())
