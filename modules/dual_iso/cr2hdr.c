@@ -1769,7 +1769,7 @@ static int hdr_interpolate()
                     int dxb = edge_directions[dir].b.x;
                     int dyb = edge_directions[dir].b.y * s;
                     int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, 65535);
-                    int pi = mean3(raw2ev[pa], raw2ev[pa], raw2ev[pb], raw2ev[white], 0);
+                    int pi = (raw2ev[pa] + raw2ev[pa] + raw2ev[pb]) / 3;
                     
                     interp[x   + y * w] = ev2raw[pi];
                     native[x   + y * w] = raw_get_pixel16(x, y);
