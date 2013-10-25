@@ -554,7 +554,7 @@ void beep_times(int times)
     int audio_recording = 0;
     #endif
 
-    if (!beep_enabled || RECORDING > 0 || audio_recording)
+    if (!beep_enabled || RECORDING_H264 || audio_recording)
     {
         info_led_blink(times,50,50); // silent warning
         return;
@@ -586,7 +586,7 @@ void beep_custom(int duration, int frequency, int wait)
     int audio_recording = 0;
     #endif
 
-    if (!beep_enabled || RECORDING > 0 || audio_recording)
+    if (!beep_enabled || RECORDING_H264 || audio_recording)
     {
         info_led_blink(1, duration, 10); // silent warning
         return;
@@ -880,7 +880,7 @@ static void record_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
 
-    if (RECORDING > 0 && sound_recording_mode != 1)
+    if (RECORDING_H264 && sound_recording_mode != 1)
     {
         NotifyBox(2000, 
             "Cannot record WAV sound \n"
