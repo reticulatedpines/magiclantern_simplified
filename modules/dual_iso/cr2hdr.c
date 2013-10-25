@@ -903,7 +903,7 @@ after_black_correction:
     *corr_ev = log2(factor);
 
     printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
-    printf("Black delta    : %.2f\n", b);
+    printf("Black delta    : %.2f\n", b/4); /* we want to display black delta for the 14-bit original data, but we have computed it from 16-bit data */
     return 1;
 }
 
