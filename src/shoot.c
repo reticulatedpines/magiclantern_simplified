@@ -6001,14 +6001,6 @@ shoot_task( void* unused )
                     intervalometer_pictures_taken = 1;
                     int dt = get_interval_time();
                     intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
-                    #ifdef FEATURE_MOTION_DETECT
-                    //turn motion detect off now if it's on so it doesn't screw the intervalometer sequence
-                    motion_detect = 0;
-                    #endif
-                    #ifdef FEATURE_TRAP_FOCUS
-                    //turn trap focus off now if it's on so it doesn't screw the intervalometer sequence
-                    trap_focus = 0;
-                    #endif
                 }
                 #endif
             }
@@ -6158,7 +6150,7 @@ shoot_task( void* unused )
         }
 
         // same for motion detect
-        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown() && !intervalometer_running;
         #else
         int mdx = 0;
         #endif
