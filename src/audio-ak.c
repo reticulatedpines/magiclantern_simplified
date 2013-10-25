@@ -646,7 +646,7 @@ my_sounddev_task()
     while(1)
         {
             // will be unlocked by the property handler
-            int rc = take_semaphore( gain.sem, recording && MVR_FRAME_NUMBER < 30 ? 100 : 1000 );
+            int rc = take_semaphore( gain.sem, RECORDING && MVR_FRAME_NUMBER < 30 ? 100 : 1000 );
             if(gui_state != GUISTATE_PLAYMENU || (audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED)) {
                 audio_configure( rc == 0 ); // force it if we got the semaphore
             }

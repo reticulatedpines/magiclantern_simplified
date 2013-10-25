@@ -1494,7 +1494,7 @@ static void raw_video_rec_task()
     int last_write_timestamp = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
-    recording = -1;
+    recording_custom = 1;
     
     int fps = fps_get_current_x1000();
     
@@ -1735,7 +1735,7 @@ abort_and_check_early_stop:
     /* exclusive edmac access no longer needed */
     edmac_memcpy_res_unlock();
 
-    recording = 0;
+    recording_custom = 0;
 
     if (sound_rec == 1)
     {

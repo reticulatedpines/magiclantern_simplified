@@ -265,7 +265,7 @@ int should_draw_zoom_overlay()
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
     int zm = get_zoom_overlay_trigger_mode();
-    if (zt && (zm==1 || zm==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
+    if (zt && (zm==1 || zm==2) && NOT_RECORDING) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
     if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #endif
 #endif
@@ -431,7 +431,7 @@ int get_global_draw() // menu setting, or off if
             !idle_globaldraw_disable && 
             bmp_is_on() &&
             DISPLAY_IS_ON && 
-            recording != 1 && 
+            !PREPARING_H264 &&
             #ifdef CONFIG_KILL_FLICKER
             !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
             #endif
@@ -1435,7 +1435,7 @@ static int zebra_digic_dirty = 0;
 static void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
-    int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
+    int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
@@ -3720,7 +3720,7 @@ int handle_zoom_overlay(struct event * event)
 #else
 
     // zoom in when recording => enable Magic Zoom 
-    if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 10 && event->param == 
+    if (get_zoom_overlay_trigger_mode() && RECORDING_H264_STARTED && MVR_FRAME_NUMBER > 10 && event->param ==
         #if defined(CONFIG_5D3) || defined(CONFIG_6D)
         BGMT_PRESS_ZOOMIN_MAYBE
         #else
@@ -3762,7 +3762,7 @@ int handle_zoom_overlay(struct event * event)
 #endif
 
     // move AF frame when recording
-    if (recording && liveview_display_idle() && is_manual_focus())
+    if (RECORDING && liveview_display_idle() && is_manual_focus())
     {
         if (event->param == BGMT_PRESS_LEFT)
             { move_lv_afframe(-300, 0); return 0; }
@@ -3853,7 +3853,7 @@ static void draw_zoom_overlay(int dirty)
     if (!bmp_is_on()) return;
     if (lv_dispsize != 1) return;
     //~ if (get_halfshutter_pressed() && clearscreen != 2) return;
-    if (recording == 1) return;
+    if (PREPARING_H264) return;
     
     #ifndef CONFIG_LV_FOCUS_INFO
     zoom_overlay_split = 0; // 50D doesn't report focus
@@ -4474,7 +4474,7 @@ int ResumeLiveView()
 static void idle_display_off_show_warning()
 {
     extern int motion_detect;
-    if (motion_detect || recording)
+    if (motion_detect || RECORDING)
     {
         NotifyBox(3000, "DISPLAY OFF...");
     }
@@ -4486,11 +4486,11 @@ static void idle_display_off_show_warning()
 static void idle_display_off()
 {
     extern int motion_detect;
-    if (!(motion_detect || recording)) PauseLiveView();
+    if (!(motion_detect || RECORDING)) PauseLiveView();
     display_off();
     msleep(300);
     idle_countdown_display_off = 0;
-    ASSERT(!(recording && LV_PAUSED));
+    ASSERT(!(RECORDING && LV_PAUSED));
     ASSERT(!DISPLAY_IS_ON);
 }
 static void idle_display_on()
@@ -4559,7 +4559,7 @@ static void idle_kill_flicker()
         if (is_movie_mode())
         {
             black_bars_16x9();
-            if (recording)
+            if (RECORDING)
                 dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
         }
     }
@@ -4594,7 +4594,7 @@ clearscreen_loop:
         // then they already _know_ that their camera is still on, so
         // let's only do it if the camera's buttons have been idle for at
         // least 30 seconds.
-        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording && !get_halfshutter_pressed() && !is_intervalometer_running() && idle_blink)
+        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && NOT_RECORDING && !get_halfshutter_pressed() && !is_intervalometer_running() && idle_blink)
             if ((get_seconds_clock() - get_last_time_active()) > 30)
                 info_led_blink(1, 10, 10);
 
@@ -4639,7 +4639,7 @@ clearscreen_loop:
         
         if (clearscreen == 4)
         {
-            if (recording)
+            if (RECORDING)
             {
                 bmp_off();
             }
@@ -4672,10 +4672,10 @@ clearscreen_loop:
         }
         #endif
 
-        if (recording && idle_rec == 0) // don't go to powersave when recording
+        if (RECORDING && idle_rec == 0) // don't go to powersave when recording
             idle_wakeup_reset_counters(-2345);
 
-        if (!recording && idle_rec == 1) // don't go to powersave when not recording
+        if (NOT_RECORDING && idle_rec == 1) // don't go to powersave when not recording
             idle_wakeup_reset_counters(-2345);
         
         if (logical_connect)
@@ -4872,7 +4872,7 @@ livev_hipriority_task( void* unused )
             msleep(100);
         }
         
-        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
+        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
 
         #ifdef FEATURE_ZEBRA_FAST
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
@@ -4885,7 +4885,7 @@ livev_hipriority_task( void* unused )
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
-            while (recording == 1) msleep(100);
+            while (PREPARING_H264) msleep(100);
             if (!zebra_should_run())
             {
 #ifdef FEATURE_ZEBRA_FAST
@@ -4980,7 +4980,7 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK(
                     if (lv)
                         draw_zebra_and_focus(
-                            k % ((focus_peaking ? 5 : 3) * (recording ? 5 : 1)) == 0, /* should redraw zebras? */
+                            k % ((focus_peaking ? 5 : 3) * (RECORDING ? 5 : 1)) == 0, /* should redraw zebras? */
                             k % 2 == 1  /* should redraw focus peaking? */
                         ); 
                 )

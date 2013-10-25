@@ -98,8 +98,8 @@ void sensor_status_trigger(int on)
         if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
         if (lcd_release_running == 3 && wave_count < 5) goto end;
 
-        if (lcd_release_running == 3 && recording) schedule_movie_end(); // wave mode is allowed to stop movies
-        else if (recording && is_rack_focus_enabled())
+        if (lcd_release_running == 3 && RECORDING) schedule_movie_end(); // wave mode is allowed to stop movies
+        else if (RECORDING && is_rack_focus_enabled())
         {
             rack_focus_start_now(0);
         }

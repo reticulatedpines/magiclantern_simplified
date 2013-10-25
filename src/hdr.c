@@ -225,7 +225,7 @@ void hdr_step()
     static int frame;
     frame++;
         
-    if (recording)
+    if (RECORDING)
     {
         odd_frame = frame % 2;
     }
@@ -277,7 +277,7 @@ int hdr_kill_flicker()
 
     odd_frame = (get_seconds_clock() / 4) % 2;
 
-    if (recording) // kill flicker by displaying odd (or even) frames only
+    if (RECORDING) // kill flicker by displaying odd (or even) frames only
     {
         #ifdef FEATURE_HDR_EXTENDED
         if(hdrv_extended_mode)

@@ -27,7 +27,7 @@ void bitrate_set()
     if (!lv) return;
     if (!is_movie_mode()) return; 
     if (gui_menu_shown()) return;
-    if (recording) return; 
+    if (RECORDING) return;
 
     //~ MEM(0x27880) = bitrate * 10000000;
 }
@@ -160,7 +160,7 @@ INIT_FUNC(__FILE__, bitrate_init);
 
 void movie_indicators_show()
 {
-    if (recording)
+    if (RECORDING)
     {
         BMP_LOCK( indicator_show(); )
     }

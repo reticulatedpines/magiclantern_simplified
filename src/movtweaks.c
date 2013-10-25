@@ -195,7 +195,7 @@ static void movie_rec_halfshutter_step()
         }
         
         while (HALFSHUTTER_PRESSED) msleep(50);
-        if (!recording && ALLOW_MOVIE_START) schedule_movie_start();
+        if (NOT_RECORDING && ALLOW_MOVIE_START) schedule_movie_start();
         else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }
 }
@@ -362,9 +362,9 @@ void movtweak_step()
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
-        if (recording == 0 && recording_prev > 0 && !movie_was_stopped_by_set) // see also gui.c
+        if (NOT_RECORDING && recording_prev > 0 && !movie_was_stopped_by_set) // see also gui.c
         #else
-        if (recording == 0 && recording_prev > 0 && wait_for_lv_err_msg(0))
+        if (NOT_RECORDING && recording_prev > 0 && wait_for_lv_err_msg(0))
         #endif
         {
             if (movie_restart)
@@ -373,13 +373,13 @@ void movtweak_step()
                 movie_start();
             }
         }
-        recording_prev = recording;
+        recording_prev = RECORDING;
 
-        if (!recording) movie_was_stopped_by_set = 0;
+        if (NOT_RECORDING) movie_was_stopped_by_set = 0;
     #endif
 
         #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-        if (!recording) movie_autostop_running = 0;
+        if (NOT_RECORDING) movie_autostop_running = 0;
         #endif
         
         if (is_movie_mode())
@@ -393,7 +393,7 @@ void movtweak_step()
             #endif
             
             #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-            if (recording && movie_cliplen) {
+            if (RECORDING && movie_cliplen) {
                 if (!movie_autostop_running) {
                     movie_autostop_running = get_seconds_clock();
                 } else {
@@ -533,7 +533,7 @@ void rec_notify_continuous(int called_from_menu)
         k++;
         if (k % 10 == 0) // edled may take a while to process, don't try it often
         {
-            if (recording) info_led_on();
+            if (RECORDING) info_led_on();
         }
     }
 
@@ -546,7 +546,7 @@ void rec_notify_continuous(int called_from_menu)
     
     if (rec_notify == 1)
     {
-        if (!recording)
+        if (NOT_RECORDING)
         {
             int xc = os.x0 + os.x_ex/2;
             int yc = os.y0 + os.y_ex/2;
@@ -565,14 +565,14 @@ void rec_notify_continuous(int called_from_menu)
     }
     else if (rec_notify == 2)
     {
-        if (recording)
+        if (RECORDING)
             bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "REC");
         else
             bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
     }
     
-    if (prev != recording) redraw();
-    prev = recording;
+    if (prev != RECORDING_STATE) redraw();
+    prev = RECORDING_STATE;
 }
 
 void rec_notify_trigger(int rec)

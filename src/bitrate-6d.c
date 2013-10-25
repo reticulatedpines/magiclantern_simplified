@@ -236,8 +236,8 @@ static void buffer_warning_level_toggle(void* priv, int step)
 int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
-    if (recording == 0) return 0;
-    if (recording == 1) return 1;
+    if (NOT_RECORDING) return 0;
+    if (PREPARING_H264) return 1;
 
     int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
     if (ans) warning = 1;
@@ -248,7 +248,7 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (recording && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (RECORDING && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 int8_t* ivaparamstatus = (int8_t*)(l_EncoMode);
 uint8_t oldh2config;
@@ -283,7 +283,7 @@ void bitrate_set()
     if (!is_movie_mode()) return;
     if (raw_lv_is_enabled())return; 
     //~ if (gui_menu_shown()) return;
-    if (recording) return; 
+    if (RECORDING) return;
 	if (!config_disabled) ivaparam= *ivaparamstatus;	
 	if (patched_errors == 0) patch_errors();
 	//~ if (flush_errors == 0) patch_flush_errors(); // Otherwise Err70 on Play
@@ -405,7 +405,7 @@ void time_indicator_show()
 {
     if (!get_global_draw()) return;
 
-    if (!recording || raw_lv_is_enabled()) 
+    if (NOT_RECORDING || raw_lv_is_enabled())
     {
         //~ free_space_show();
         return;
@@ -454,7 +454,7 @@ void time_indicator_show()
 #ifdef FEATURE_NITRATE_WAV_RECORD
 static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
     menu_numeric_toggle(priv, 1, 0, 1);
-    if (recording) return;
+    if (RECORDING) return;
     int *onoff = (int *)priv;
     if(*onoff == 1){
         if (sound_recording_mode != 1){
@@ -666,7 +666,7 @@ INIT_FUNC(__FILE__, bitrate_init);
 
 void movie_indicators_show()
 {
-    if (recording && !raw_lv_is_enabled())
+    if (RECORDING && !raw_lv_is_enabled())
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -679,7 +679,7 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 
-        if (recording && !raw_lv_is_enabled())
+        if (RECORDING && !raw_lv_is_enabled())
         {
             /* uses a bit of CPU, but it's precise */
             wait_till_next_second();

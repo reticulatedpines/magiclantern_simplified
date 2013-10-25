@@ -101,7 +101,7 @@ static int old_sound_recording_mode = -1;
 
 static void restore_sound_recording()
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (old_sound_recording_mode != -1)
     {
         prop_request_change(PROP_MOVIE_SOUND_RECORD, &old_sound_recording_mode, 4);
@@ -111,7 +111,7 @@ static void restore_sound_recording()
 }
 static void disable_sound_recording()
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (sound_recording_mode != 1)
     {
         old_sound_recording_mode = sound_recording_mode;
@@ -123,7 +123,7 @@ static void disable_sound_recording()
 
 static void update_sound_recording()
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (fps_override && lv) disable_sound_recording();
     else restore_sound_recording();
 }
@@ -508,7 +508,7 @@ static void fps_change_all_modes(int fps)
 
 static void fps_change_value(void* priv, int delta)
 {
-    if (recording) return;
+    if (RECORDING) return;
 
     fps_override_value = COERCE(fps_override_value + delta, 3, 70);
     if (fps_override) fps_change_all_modes(fps_override_value);
@@ -516,7 +516,7 @@ static void fps_change_value(void* priv, int delta)
 
 static void fps_enable_disable(void* priv, int delta)
 {
-    if (recording) return;
+    if (RECORDING) return;
 
     fps_override = !fps_override;
     if (fps_override) fps_change_all_modes(fps_override_value);

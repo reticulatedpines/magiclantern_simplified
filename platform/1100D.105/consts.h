@@ -132,7 +132,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 68 : 2)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 

@@ -1285,7 +1285,7 @@ void auto_ettr_intervalometer_wait()
 
 static unsigned int auto_ettr_polling_cbr()
 {
-    if (lv && !recording)
+    if (lv && NOT_RECORDING)
         auto_ettr_step_lv();
     return 0;
 }

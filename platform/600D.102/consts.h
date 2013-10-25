@@ -197,7 +197,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 68 : 2)
 
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
@@ -260,7 +260,7 @@
 #define MIN_MSLEEP 20
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME (recording ? "INFO" : "[Q]")
+#define Q_BTN_NAME (RECORDING ? "INFO" : "[Q]")
 #define ARROW_MODE_TOGGLE_KEY "DISP"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x2480)
