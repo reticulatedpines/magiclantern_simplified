@@ -1749,7 +1749,7 @@ static int hdr_interpolate()
             int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
             int yh_near = squeezed[y+s];
             int yh_far =  squeezed[y-2*s];
-            int white = BRIGHT_ROW ? white_darkened : raw_info.white_level;
+            int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
             
             //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
             
@@ -1800,7 +1800,7 @@ static int hdr_interpolate()
         unsigned short* native = BRIGHT_ROW ? bright : dark;
         unsigned short* interp = BRIGHT_ROW ? dark : bright;
         int is_rg = (y % 2 == 0); /* RG or GB? */
-        int white = BRIGHT_ROW ? white_darkened : raw_info.white_level;
+        int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
         
         for (x = 2; x < w-3; x += 2)
         {
@@ -1848,7 +1848,7 @@ static int hdr_interpolate()
     {
         unsigned short* native = BRIGHT_ROW ? bright : dark;
         unsigned short* interp = BRIGHT_ROW ? dark : bright;
-        int white = BRIGHT_ROW ? white_darkened : raw_info.white_level;
+        int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
         
         for (x = 2; x < w-2; x ++)
         {
@@ -1881,7 +1881,7 @@ static int hdr_interpolate()
     for (y = 2; y < h-2; y ++)
     {
         unsigned short* interp = BRIGHT_ROW ? dark : bright;
-        int white = BRIGHT_ROW ? white_darkened : raw_info.white_level;
+        int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
 
         for (x = 2; x < w-2; x ++)
         {
