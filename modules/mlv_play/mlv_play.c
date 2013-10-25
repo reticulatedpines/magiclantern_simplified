@@ -541,8 +541,17 @@ static void mlv_play_render_task(uint32_t priv)
         /* signal to stop rendering */
         if(mlv_play_render_abort)
         {
-            mlv_play_rendering = 0;
-            return;
+            break;
+        }
+        
+        if(get_halfshutter_pressed())
+        {
+            break;
+        }
+        
+        if(gui_state != GUISTATE_PLAYMENU)
+        {
+            break;
         }
         
         /* is there something to render? */
@@ -574,6 +583,8 @@ static void mlv_play_render_task(uint32_t priv)
         /* finished displaying, requeue frame buffer for refilling */
         msg_queue_post(mlv_play_queue_empty, buffer);
     }
+    
+    mlv_play_rendering = 0;
 }
 
 static void mlv_play_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
