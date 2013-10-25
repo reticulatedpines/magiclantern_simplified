@@ -2463,7 +2463,7 @@ static int hdr_interpolate()
             int fe = raw2ev[f];
             int he = raw2ev[h];
             int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
-            e_lin = MAX(e_lin - dark_noise, 0);
+            e_lin = MAX(e_lin - dark_noise*3/2, 0);
             int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
             alias_map[x + y*w] = MIN(MIN(e_lin*8, e_log/8), 65530);
         }
@@ -2499,7 +2499,7 @@ static int hdr_interpolate()
     memcpy(alias_aux, alias_map, w * h * sizeof(unsigned short));
     
     /* trial and error - too high = aliasing, too low = noisy */
-    int ALIAS_MAP_MAX = 10000;
+    int ALIAS_MAP_MAX = 15000;
 
     printf("Filtering alias map...\n");
     for (y = 6; y < h-6; y ++)
