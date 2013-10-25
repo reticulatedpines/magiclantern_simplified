@@ -790,6 +790,10 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     int raw_hi = 0;
     int prev_acc_hi = 0;
     
+    int hist_total = 0;
+    for (i = 0; i < 65536; i++)
+        hist_total += hist_hi[i];
+    
     for (raw_hi = 0; raw_hi < white; raw_hi++)
     {
         acc_hi += hist_hi[raw_hi];
@@ -800,12 +804,17 @@ static int match_histograms(double* corr_ev, int* white_darkened)
             raw_lo++;
         }
         
+        if (raw_lo >= white)
+            break;
+        
         if (acc_hi - prev_acc_hi > min_pix)
         {
-            
-            data_x[data_num] = raw_hi - black;
-            data_y[data_num] = raw_lo - black;
-            data_num++;
+            if (acc_hi > hist_total * 1 / 100 && acc_hi < hist_total * 99 / 100)    /* throw away outliers */
+            {
+                data_x[data_num] = raw_hi - black;
+                data_y[data_num] = raw_lo - black;
+                data_num++;
+            }
             prev_acc_hi = acc_hi;
         }
     }
@@ -863,7 +872,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
 
 after_black_correction:
     
-#if 1
+#if 0
     printf("Least squares  : y = %f*x + %f\n", a, b);
     FILE* f = fopen("iso-curve.m", "w");
 
@@ -875,6 +884,16 @@ after_black_correction:
     fprintf(f, "y = [");
     for (i = 0; i < data_num; i++)
         fprintf(f, "%d ",data_y[i]);
+    fprintf(f, "];\n");
+
+    fprintf(f, "hl = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%d ", hist_lo[i]);
+    fprintf(f, "];\n");
+    
+    fprintf(f, "hh = [");
+    for (i = 0; i < 65536; i++)
+        fprintf(f, "%d ",hist_hi[i]);
     fprintf(f, "];\n");
 
     fprintf(f, "a = %f;\n", a);
