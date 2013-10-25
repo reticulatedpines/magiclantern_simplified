@@ -782,14 +782,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     int data_size = (w * h / min_pix + 1) * sizeof(int);    /* max number of data points */
     int* data_x = malloc(data_size);
     int* data_y = malloc(data_size);
-    int* data_ang = malloc(data_size);
     int data_num = 0;
-
-    int* data_corr = malloc(65536 * sizeof(data_corr[0]));
-    int* data_corr_aux = malloc(65536 * sizeof(data_corr[0]));
-    int* data_lo2hi = malloc(65536 * sizeof(data_lo2hi[0]));
-    memset(data_corr, 0, 65536 * sizeof(data_corr[0]));
-    memset(data_lo2hi, 0, 65536 * sizeof(data_corr[0]));
     
     int acc_lo = 0;
     int acc_hi = 0;
@@ -804,11 +797,8 @@ static int match_histograms(double* corr_ev, int* white_darkened)
         while (acc_lo < acc_hi)
         {
             acc_lo += hist_lo[raw_lo];
-            data_lo2hi[raw_lo] = raw_hi;
             raw_lo++;
         }
-
-        data_corr[raw_hi] = raw_lo;
         
         if (acc_hi - prev_acc_hi > min_pix)
         {
@@ -818,11 +808,6 @@ static int match_histograms(double* corr_ev, int* white_darkened)
             data_num++;
             prev_acc_hi = acc_hi;
         }
-    }
-
-    while (raw_lo < 65536)
-    {
-        data_lo2hi[raw_lo++] = raw_hi;
     }
 
     /**
@@ -858,51 +843,6 @@ static int match_histograms(double* corr_ev, int* white_darkened)
         goto after_black_correction;
     }
 
-    /* adjust ISO 100 nonlinearly so it matches the y = ax + b */
-    
-    /* first filter the correction data a little */
-    for (i = 0; i <= white; i++)
-    {
-        int med = data_corr[i];
-        if (med == 0)
-            continue;
-        int ideal = (i - black) * a + black;
-        int corr = ideal - med;
-        if (ABS(corr - (-b)) > BLACK_DELTA_THR)
-            corr = -b;           /* outlier? */
-        data_corr[i] = corr;
-    }
-
-#if 1
-    /* averaging filter */
-    for (i = 0; i <= white; i++)
-    {
-        int j;
-        int avg = 0;
-        int num = 0;
-        for (j = i - 10; j <= i + 10; j++)
-        {
-            if (j < 0) continue;
-            if (j > white) continue;
-            avg += data_corr[j];
-            num++;
-        }
-        if (num > 0)
-        {
-            data_corr_aux[i] = avg / num;
-        }
-        else
-        {
-            data_corr_aux[i] = -b;
-        }
-    }
-
-    for (i = 0; i <= white; i++)
-    {
-        data_corr[i] = data_corr_aux[i];
-    }
-#endif
-
     /* apply the correction */
     for (y = 0; y < h-1; y ++)
     {
@@ -911,18 +851,11 @@ static int match_histograms(double* corr_ev, int* white_darkened)
             if (BRIGHT_ROW)
             {
                 /* bright exposure: darken and apply the black offset (fixme: why not half?) */
-                raw_set_pixel16(x, y, (raw_get_pixel16(x, y) - black + b) * a + black);
+                raw_set_pixel16(x, y, (raw_get_pixel16(x, y) - black) * a + black + b*a);
             }
             else
             {
-                /* dark exposure: use histogram match data to apply a nonlinear correction */
-                int p = raw_get_pixel16(x, y);
-                int ref = data_lo2hi[p];
-                if (ref)
-                {
-                    int corr = data_corr[ref] + b*a;
-                    raw_set_pixel16(x, y, p + corr);
-                }
+                raw_set_pixel16(x, y, raw_get_pixel16(x, y) - b + b*a);
             }
         }
     }
@@ -930,7 +863,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
 
 after_black_correction:
     
-#if 0
+#if 1
     printf("Least squares  : y = %f*x + %f\n", a, b);
     FILE* f = fopen("iso-curve.m", "w");
 
@@ -944,14 +877,11 @@ after_black_correction:
         fprintf(f, "%d ",data_y[i]);
     fprintf(f, "];\n");
 
-    fprintf(f, "corr = [");
-    for (i = 0; i < data_num; i++)
-        fprintf(f, "%d ", data_corr[data_x[i] + black]);
-    fprintf(f, "];\n");
+    fprintf(f, "a = %f;\n", a);
+    fprintf(f, "b = %f;\n", b);
 
     fprintf(f, "plot(x, y); hold on;\n");
-    fprintf(f, "plot(x, y + corr, 'g');\n");
-    fprintf(f, "a = %f;\n", a);
+    fprintf(f, "plot(x, y - b, 'g');\n");
     fprintf(f, "plot(x, a * x, 'r');\n");
     fclose(f);
     
@@ -962,10 +892,6 @@ after_black_correction:
     free(hist_hi);
     free(data_x);
     free(data_y);
-    free(data_ang);
-    free(data_corr);
-    free(data_corr_aux);
-    free(data_lo2hi);
 
     double factor = 1/a;
     if (factor < 1.2 || !isfinite(factor))
