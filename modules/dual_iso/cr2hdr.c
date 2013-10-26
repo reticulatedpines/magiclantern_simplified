@@ -908,7 +908,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
         
         if (acc_hi - prev_acc_hi > min_pix)
         {
-            if (acc_hi > hist_total * 20 / 100 && acc_hi < hist_total * 99.99 / 100)    /* throw away outliers */
+            if (acc_hi > hist_total * 1 / 100 && acc_hi < hist_total * 99.99 / 100)    /* throw away outliers */
             {
                 data_x[data_num] = raw_hi - black;
                 data_y[data_num] = raw_lo - black;
