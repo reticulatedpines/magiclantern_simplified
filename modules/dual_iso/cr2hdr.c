@@ -741,6 +741,104 @@ static int median_int(int* x, int n)
     return median_int_wirth(x, n);
 }
 
+static int identify_bright_and_dark_fields(int rggb)
+{
+    int white = raw_info.white_level/4; /* fixme: we work on 14 bits, but white level is the one for 16 bits here */
+    if (white > 16383) return 0;        /* should be unreachable */
+    
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    int x,y;
+    int i,j;
+    
+    /* build 4 little histograms */
+    int hist_size = 16384 * sizeof(int);
+    int* hist[4];
+    for (i = 0; i < 4; i++)
+    {
+        hist[i] = malloc(hist_size);
+        memset(hist[i], 0, hist_size);
+    }
+    
+    int y0 = (raw_info.active_area.y1 + 3) & ~3;
+    
+    /* to simplify things, analyze an identical number of bright and dark lines */
+    for (y = y0; y < h/4*4; y++)
+    {
+        for (x = 0; x < w; x++)
+            hist[y%4][raw_get_pixel16(x,y) & 16383]++;
+    }
+    
+    int hist_total = 0;
+    for (i = 0; i < 16384; i++)
+        hist_total += hist[0][i];
+
+    /* choose the highest percentile that is not overexposed */
+    int acc[4] = {0};
+    int raw[4] = {0};
+    int ref;
+    for (ref = 0; ref < hist_total - 10; ref++)
+    {
+        for (i = 0; i < 4; i++)
+        {
+            while (acc[i] < ref)
+            {
+                acc[i] += hist[i][raw[i]];
+                raw[i]++;
+            }
+        }
+
+        if (raw[0] >= white) break;
+        if (raw[1] >= white) break;
+        if (raw[2] >= white) break;
+        if (raw[3] >= white) break;
+    }
+
+    for (i = 0; i < 4; i++)
+    {
+        free(hist[i]); hist[i] = 0;
+    }
+
+    /* very crude way to compute median */
+    int sorted_bright[4];
+    memcpy(sorted_bright, raw, sizeof(sorted_bright));
+    {
+        int i,j;
+        for (i = 0; i < 4; i++)
+        {
+            for (j = i+1; j < 4; j++)
+            {
+                if (sorted_bright[i] > sorted_bright[j])
+                {
+                    double aux = sorted_bright[i];
+                    sorted_bright[i] = sorted_bright[j];
+                    sorted_bright[j] = aux;
+                }
+            }
+        }
+    }
+    double median_bright = (sorted_bright[1] + sorted_bright[2]) / 2;
+
+    for (i = 0; i < 4; i++)
+        is_bright[i] = raw[i] > median_bright;
+
+    printf("ISO pattern    : %c%c%c%c %s\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd', rggb ? "RGGB" : "GBRG");
+    
+    if (is_bright[0] + is_bright[1] + is_bright[2] + is_bright[3] != 2)
+    {
+        printf("Bright/dark detection error\n");
+        return 0;
+    }
+
+    if (is_bright[0] == is_bright[2] || is_bright[1] == is_bright[3])
+    {
+        printf("Interlacing method not supported\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int match_histograms(double* corr_ev, int* white_darkened)
 {
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
@@ -1247,53 +1345,8 @@ static int hdr_interpolate()
             8  RG RG RG RG  RG RG RG RG            8  rg rg rg rg  rg rg rg rg
     */
 
-    double acc_bright[4] = {0, 0, 0, 0};
-    for (y = 2; y < h-2; y ++)
-    {
-        for (x = 2; x < w-2; x ++)
-        {
-            int p = raw_get_pixel16(x, y);
-            p = MIN(p, white);
-            acc_bright[y % 4] += p * p;
-        }
-    }
-
-    /* very crude way to compute median */
-    double sorted_bright[4];
-    memcpy(sorted_bright, acc_bright, sizeof(sorted_bright));
-    {
-        int i,j;
-        for (i = 0; i < 4; i++)
-        {
-            for (j = i+1; j < 4; j++)
-            {
-                if (sorted_bright[i] > sorted_bright[j])
-                {
-                    double aux = sorted_bright[i];
-                    sorted_bright[i] = sorted_bright[j];
-                    sorted_bright[j] = aux;
-                }
-            }
-        }
-    }
-    double median_bright = (sorted_bright[1] + sorted_bright[2]) / 2;
-
-    for (i = 0; i < 4; i++)
-        is_bright[i] = acc_bright[i] > median_bright;
-
-    printf("ISO pattern    : %c%c%c%c %s\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd', rggb ? "RGGB" : "GBRG");
-    
-    if (is_bright[0] + is_bright[1] + is_bright[2] + is_bright[3] != 2)
-    {
-        printf("Bright/dark detection error\n");
+    if (!identify_bright_and_dark_fields(rggb))
         return 0;
-    }
-
-    if (is_bright[0] == is_bright[2] || is_bright[1] == is_bright[3])
-    {
-        printf("Interlacing method not supported\n");
-        return 0;
-    }
     
     double noise_std[4];
     double noise_avg;
