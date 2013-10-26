@@ -2060,12 +2060,10 @@ static int hdr_interpolate()
     {
         delta[i] = malloc(w * sizeof(delta[0]));
     }
+
+    /* adjust dark lines to match the bright ones */
     for (y = 0; y < h; y ++)
     {
-        /* adjust dark lines to match the bright ones */
-        if (BRIGHT_ROW)
-            continue;
-
         for (i = 0; i < 14; i++)
         {
             delta_num[i] = 0;
@@ -2093,7 +2091,7 @@ static int hdr_interpolate()
                 med_delta[i] = median_int_wirth(delta[i], delta_num[i]);
                 
                 /* avoid large corrections (they are probably outliers) */
-                if (ABS(med_delta[i]) > 50) med_delta[i] = 0;
+                if (ABS(med_delta[i]) > 200) med_delta[i] = 0;
             }
             else
             {
