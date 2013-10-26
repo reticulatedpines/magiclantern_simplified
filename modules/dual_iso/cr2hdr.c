@@ -1004,6 +1004,7 @@ after_black_correction:
     fprintf(f, "plot(x, y); hold on;\n");
     fprintf(f, "plot(x, y - b, 'g');\n");
     fprintf(f, "plot(x, a * x, 'r');\n");
+    fprintf(f, "print -dpng iso-curve.png\n");
     fclose(f);
     
     system("octave --persist iso-curve.m");
@@ -1420,7 +1421,7 @@ static int hdr_interpolate()
     }
 
 #if 0
-    FILE* f = fopen("mix-curve.m", "w");
+    FILE* f = fopen("fullres-curve.m", "w");
     fprintf(f, "x = 0:65535; \n");
 
     fprintf(f, "ev = [");
@@ -1439,9 +1440,10 @@ static int hdr_interpolate()
     fprintf(f, "];\n");
     
     fprintf(f, "plot(ev, k, ev, f, 'r');\n");
+    fprintf(f, "print -dpng fullres-curve.png\n");
     fclose(f);
     
-    system("octave --persist mix-curve.m");
+    system("octave --persist fullres-curve.m");
 #endif
 
     //~ printf("Histogram matching...\n");
@@ -2388,6 +2390,7 @@ static int hdr_interpolate()
     fprintf(f, "];\n");
     
     fprintf(f, "plot(ev, k);\n");
+    fprintf(f, "print -dpng mix-curve.png\n");
     fclose(f);
     
     system("octave --persist mix-curve.m");
