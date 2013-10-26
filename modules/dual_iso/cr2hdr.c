@@ -779,9 +779,10 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     
     /* compare the two histograms and plot the curve between the two exposures (dark as a function of bright) */
     const int min_pix = 1000;                               /* extract a data point every N image pixels */
-    int data_size = (w * h / min_pix + 1) * sizeof(int);    /* max number of data points */
-    int* data_x = malloc(data_size);
-    int* data_y = malloc(data_size);
+    int data_size = (w * h / min_pix + 1);                  /* max number of data points */
+    int* data_x = malloc(data_size * sizeof(data_x[0]));
+    int* data_y = malloc(data_size * sizeof(data_y[0]));
+    double* data_w = malloc(data_size * sizeof(data_w[0]));
     int data_num = 0;
     
     int acc_lo = 0;
@@ -813,6 +814,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
             {
                 data_x[data_num] = raw_hi - black;
                 data_y[data_num] = raw_lo - black;
+                data_w[data_num] = (MAX(0, raw_hi - black + 1000));    /* points from higher brightness are cleaner */
                 data_num++;
             }
             prev_acc_hi = acc_hi;
@@ -827,17 +829,19 @@ static int match_histograms(double* corr_ev, int* white_darkened)
      */
     
     double mx = 0, my = 0, mxy = 0, mx2 = 0;
+    double weight = 0;
     for (i = 0; i < data_num; i++)
     {
-        mx += data_x[i];
-        my += data_y[i];
-        mxy += (double)data_x[i] * data_y[i];
-        mx2 += (double)data_x[i] * data_x[i];
+        mx += data_x[i] * data_w[i];
+        my += data_y[i] * data_w[i];
+        mxy += (double)data_x[i] * data_y[i] * data_w[i];
+        mx2 += (double)data_x[i] * data_x[i] * data_w[i];
+        weight += data_w[i];
     }
-    mx /= data_num;
-    my /= data_num;
-    mxy /= data_num;
-    mx2 /= data_num;
+    mx /= weight;
+    my /= weight;
+    mxy /= weight;
+    mx2 /= weight;
     double a = (mxy - mx*my) / (mx2 - mx*mx);
     double b = my - a * mx;
 
@@ -911,6 +915,7 @@ after_black_correction:
     free(hist_hi);
     free(data_x);
     free(data_y);
+    free(data_w);
 
     double factor = 1/a;
     if (factor < 1.2 || !isfinite(factor))
