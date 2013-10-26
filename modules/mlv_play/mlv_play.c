@@ -332,6 +332,8 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 mlv_file_hdr_t file_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
 
+                FIO_SeekFileWrapper(chunk_files[chunk], position, SEEK_SET);
+                
                 /* read the whole header block, but limit size to either our local type size or the written block size */
                 if(FIO_ReadFile(chunk_files[chunk], &file_hdr, hdr_size) != hdr_size)
                 {
@@ -340,7 +342,6 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                     msleep(1000);
                     break;
                 }
-                FIO_SeekFileWrapper(chunk_files[chunk], position + file_hdr.blockSize, SEEK_SET);
 
                 /* is this the first file? */
                 if(file_hdr.fileNum == 0)
@@ -546,6 +547,8 @@ static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
 
 static void mlv_play_render_task(uint32_t priv)
 {
+    uint32_t first_frame = 1;
+    
     TASK_LOOP
     {
         frame_buf_t *buffer;
@@ -556,13 +559,14 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
-        if(get_halfshutter_pressed())
-        {
-            break;
-        }
-        
         if(gui_state != GUISTATE_PLAYMENU)
         {
+            beep();
+            for(int count = 0; count < 20; count++)
+            {
+                bmp_printf(FONT_MED, 30, 400, "GUISTATE_PLAYMENU");
+                msleep(100);
+            }
             break;
         }
         
@@ -570,6 +574,15 @@ static void mlv_play_render_task(uint32_t priv)
         if(msg_queue_receive(mlv_play_queue_render, &buffer, 50))
         {
             continue;
+        }
+        
+        if(first_frame)
+        {
+            /* clear anything on screen */
+            vram_clear_lv();
+            clrscr();
+            
+            first_frame = 0;
         }
         
         raw_info.buffer = buffer->frameBuffer;
@@ -786,7 +799,18 @@ static void mlv_play_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk
                 
             if(lens_block.timestamp)
             {
-                snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "%s, %dmm, %s, %s", lens_block.lensName, lens_block.focalLength, lens_block.stabilizerMode?"IS":"no IS", lens_block.autofocusMode?"AF":"MF");
+                char *focusMode;
+                
+                if((lens_block.autofocusMode & 0x0F) != AF_MODE_MANUAL_FOCUS)
+                {
+                    focusMode = "AF";
+                }
+                else
+                {
+                    focusMode = "MF";
+                }
+                
+                snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "%s, %dmm, %s, %s", lens_block.lensName, lens_block.focalLength, lens_block.stabilizerMode?"IS":"no IS", focusMode);
             }
                 
             if(rtci_block.timestamp)
@@ -975,14 +999,14 @@ static void raw_play_task(void *priv)
     /* prepare display */
     mlv_play_set_mode(1);
     
-    /* clear anything on screen */
-    vram_clear_lv();
-    clrscr();
-    
     /* render task is slave and controlled via these variables */
     mlv_play_render_abort = 0;
     mlv_play_rendering = 1;
     task_create("mlv_play_render", 0x1d, 0x1000, mlv_play_render_task, NULL);
+    
+    /* clear anything on screen */
+    vram_clear_lv();
+    clrscr();
     
     bmp_printf(FONT_MED, 30, 160, "Opened %d chunks...", chunk_count);
     
@@ -1092,7 +1116,7 @@ FILETYPE_HANDLER(mlv_play_filehandler)
 
 static unsigned int mlv_play_keypress_cbr(unsigned int key)
 {
-    if(mlv_play_rendering)
+    if(mlv_play_rendering && key > 0 && key != MODULE_KEY_UNPRESS_SET)
     {
         mlv_play_render_abort = 1;
         return 0;
