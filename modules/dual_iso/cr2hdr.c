@@ -760,7 +760,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     memset(hist_lo, 0, hist_size);
     memset(hist_hi, 0, hist_size);
     
-    int y0 = MAX(0, raw_info.active_area.y1 - 8); /* gibberish above */
+    int y0 = MAX(0, raw_info.active_area.y1 - 8) & ~3; /* gibberish above */
     
     /* to simplify things, analyze an identical number of bright and dark lines */
     for (y = y0; y < h/4*4; y++)
@@ -778,7 +778,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     }
     
     /* compare the two histograms and plot the curve between the two exposures (dark as a function of bright) */
-    const int min_pix = 1000;                               /* extract a data point every N image pixels */
+    const int min_pix = 100;                                /* extract a data point every N image pixels */
     int data_size = (w * h / min_pix + 1);                  /* max number of data points */
     int* data_x = malloc(data_size * sizeof(data_x[0]));
     int* data_y = malloc(data_size * sizeof(data_y[0]));
@@ -810,14 +810,14 @@ static int match_histograms(double* corr_ev, int* white_darkened)
         
         if (acc_hi - prev_acc_hi > min_pix)
         {
-            if (acc_hi > hist_total * 1 / 100 && acc_hi < hist_total * 99 / 100)    /* throw away outliers */
+            if (acc_hi > hist_total * 20 / 100 && acc_hi < hist_total * 99.99 / 100)    /* throw away outliers */
             {
                 data_x[data_num] = raw_hi - black;
                 data_y[data_num] = raw_lo - black;
-                data_w[data_num] = (MAX(0, raw_hi - black + 1000));    /* points from higher brightness are cleaner */
+                data_w[data_num] = (MAX(0, raw_hi - black + 100));    /* points from higher brightness are cleaner */
                 data_num++;
+                prev_acc_hi = acc_hi;
             }
-            prev_acc_hi = acc_hi;
         }
     }
 
