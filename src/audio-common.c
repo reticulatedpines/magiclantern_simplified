@@ -273,7 +273,7 @@ static int audio_meters_are_drawn_common()
         return 0;
         
 #if defined(CONFIG_7D)
-    if(NOT_RECORDING)
+    if(!RECORDING_H264)
     {
         return 0;
     }

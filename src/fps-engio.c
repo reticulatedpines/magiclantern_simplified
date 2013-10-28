@@ -1432,7 +1432,7 @@ static void fps_read_default_timer_values()
 {
     if (!lv) { fps_reg_a_orig = fps_reg_b_orig = 0; return; }
     
-    if (PREPARING_H264) return;
+    if (RECORDING_H264_STARTING) return;
     //~ info_led_blink(1,10,10);
     fps_reg_a_orig = FPS_REGISTER_A_DEFAULT_VALUE;
     #ifdef NEW_FPS_METHOD

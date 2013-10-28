@@ -237,7 +237,7 @@ int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
     if (NOT_RECORDING) return 0;
-    if (PREPARING_H264) return 1;
+    if (RECORDING_H264_STARTING) return 1;
 
     int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
     if (ans) warning = 1;
@@ -248,7 +248,7 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (RECORDING && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (RECORDING_H264 && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 int8_t* ivaparamstatus = (int8_t*)(l_EncoMode);
 uint8_t oldh2config;
@@ -405,7 +405,7 @@ void time_indicator_show()
 {
     if (!get_global_draw()) return;
 
-    if (NOT_RECORDING || raw_lv_is_enabled())
+    if (!RECORDING_H264)
     {
         //~ free_space_show();
         return;
@@ -666,7 +666,7 @@ INIT_FUNC(__FILE__, bitrate_init);
 
 void movie_indicators_show()
 {
-    if (RECORDING && !raw_lv_is_enabled())
+    if (RECORDING_H264)
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -679,7 +679,7 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 
-        if (RECORDING && !raw_lv_is_enabled())
+        if (RECORDING_H264)
         {
             /* uses a bit of CPU, but it's precise */
             wait_till_next_second();

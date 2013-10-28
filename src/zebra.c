@@ -431,7 +431,7 @@ int get_global_draw() // menu setting, or off if
             !idle_globaldraw_disable && 
             bmp_is_on() &&
             DISPLAY_IS_ON && 
-            !PREPARING_H264 &&
+            !RECORDING_H264_STARTING &&
             #ifdef CONFIG_KILL_FLICKER
             !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
             #endif
@@ -3853,7 +3853,7 @@ static void draw_zoom_overlay(int dirty)
     if (!bmp_is_on()) return;
     if (lv_dispsize != 1) return;
     //~ if (get_halfshutter_pressed() && clearscreen != 2) return;
-    if (PREPARING_H264) return;
+    if (RECORDING_H264_STARTING) return;
     
     #ifndef CONFIG_LV_FOCUS_INFO
     zoom_overlay_split = 0; // 50D doesn't report focus
@@ -4886,7 +4886,7 @@ livev_hipriority_task( void* unused )
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
-            while (PREPARING_H264) msleep(100);
+            while (RECORDING_H264_STARTING) msleep(100);
             if (!zebra_should_run())
             {
 #ifdef FEATURE_ZEBRA_FAST

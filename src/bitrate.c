@@ -194,7 +194,7 @@ static void bitrate_set()
     if (!lv) return;
     if (!is_movie_mode()) return; 
     if (gui_menu_shown()) return;
-    if (RECORDING) return;
+    if (RECORDING_H264) return;
     
     if (bitrate_mode == 0)
     {
@@ -300,7 +300,7 @@ static MENU_UPDATE_FUNC(qscale_display)
 static void 
 bitrate_factor_toggle(void* priv, int delta)
 {
-    if (RECORDING) return;
+    if (RECORDING_H264) return;
  
 #if defined(FEATURE_VIDEO_HACKS)
     bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
@@ -312,14 +312,14 @@ bitrate_factor_toggle(void* priv, int delta)
 static void 
 bitrate_qscale_toggle(void* priv, int delta)
 {
-    if (RECORDING) return;
+    if (RECORDING_H264) return;
     menu_numeric_toggle(&qscale_neg, delta, -16, 16);
 }
 
 static void 
 bitrate_toggle_mode(void* priv, int delta)
 {
-    if (RECORDING) return;
+    if (RECORDING_H264) return;
     menu_numeric_toggle(priv, delta, 0, 2);
 }
 
@@ -433,7 +433,7 @@ static int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
     if (NOT_RECORDING) return 0;
-    if (PREPARING_H264) return 1;
+    if (RECORDING_H264_STARTING) return 1;
     // 2
     
     int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
@@ -461,7 +461,7 @@ static void load_h264_ini()
 #ifdef FEATURE_NITRATE_WAV_RECORD
 static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
     menu_numeric_toggle(priv, 1, 0, 1);
-    if (RECORDING) return;
+    if (RECORDING_H264) return;
     int *onoff = (int *)priv;
     if(*onoff == 1){
         if (sound_recording_mode != 1){
@@ -477,7 +477,7 @@ static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
 void movie_indicators_show()
 {
     #ifdef FEATURE_REC_INDICATOR
-    if (RECORDING)
+    if (RECORDING_H264)
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -584,7 +584,7 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 
-        if (RECORDING)
+        if (RECORDING_H264)
         {
             /* uses a bit of CPU, but it's precise */
             wait_till_next_second();

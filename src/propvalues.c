@@ -157,12 +157,12 @@ volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
 
 #ifdef CONFIG_50D
-int _recording = 0;
+int __recording = 0;
 int shooting_type = 0;
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
     shooting_type = buf[0];
-    _recording = (shooting_type == 4 ? 2 : 0);
+    __recording = (shooting_type == 4 ? 2 : 0);
 }
 
 PROP_HANDLER(PROP_MOVIE_SIZE_50D)
@@ -171,10 +171,10 @@ PROP_HANDLER(PROP_MOVIE_SIZE_50D)
     video_mode_fps = 30;
 }
 #else
-volatile PROP_INT(PROP_MVR_REC_START, _recording);
+volatile PROP_INT(PROP_MVR_REC_START, __recording);
 volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 #endif
-int recording_custom = 0;
+int __recording_custom = 0;
 
 int lv_disp_mode;
 

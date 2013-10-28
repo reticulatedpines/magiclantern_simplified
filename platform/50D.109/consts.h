@@ -154,7 +154,7 @@
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
-#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 36 : 2)
+#define GUIMODE_ML_MENU (RECORDING_H264 ? 0 : lv ? 36 : 2)
 
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 200
