@@ -2076,14 +2076,25 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n",
+                .advanced = 1,
+            },
+            {
+                .name = "Indicator display",
+                .priv = &indicator_display,
+                .max = 3,
+                .update = indicator_update,
+                .choices = CHOICES("OFF", "Info Bar", "On Screen", "Raw Buffers"),
+                .help = "Select recording time and buffer status indicator.",
+                .advanced = 1,
             },
             {
                 .name = "Digital dolly",
                 .priv = &dolly_mode,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
-                .help2 = "Use arrow keys (joystick) to move the window."
+                .help2 = "Use arrow keys (joystick) to move the window.",
+                .advanced = 1,
             },
             {
                 .name = "Frame skipping",
@@ -2091,6 +2102,7 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+                .advanced = 1,
             },
             {
                 .name = "Card warm-up",
@@ -2099,18 +2111,21 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
                 .help  = "Write a large file on the card at camera startup.",
                 .help2 = "Some cards seem to get a bit faster after this.",
+                .advanced = 1,
             },
             {
                 .name = "Memory hack",
                 .priv = &memory_hack,
                 .max = 1,
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+                .advanced = 1,
             },
             {
                 .name = "Small hacks",
                 .priv = &small_hacks,
                 .max = 1,
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
+                .advanced = 1,
             },
             {
                 .name = "Playback",
@@ -2119,14 +2134,7 @@ static struct menu_entry raw_video_menu[] =
                 .icon_type = IT_ACTION,
                 .help = "Play back the last raw video clip.",
             },
-            {
-                .name = "Indicator Display",
-                .priv = &indicator_display,
-                .max = 3,
-                .update = indicator_update,
-                .choices = CHOICES("OFF", "Info Bar", "On Screen", "Raw Buffers"),
-                .help = "Select recording time and buffer status indicator."
-            },
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         },
     }
