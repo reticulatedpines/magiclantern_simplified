@@ -1212,6 +1212,124 @@ int raw_lv_settings_still_valid()
     return 1;
 }
 
+/* For accessing the pixels in a struct raw_pixblock, faster than via raw_get_pixel */
+/* todo: move in raw.h? */
+#define PA ((int)(p->a))
+#define PB ((int)(p->b_lo | (p->b_hi << 12)))
+#define PC ((int)(p->c_lo | (p->c_hi << 10)))
+#define PD ((int)(p->d_lo | (p->d_hi << 8)))
+#define PE ((int)(p->e_lo | (p->e_hi << 6)))
+#define PF ((int)(p->f_lo | (p->f_hi << 4)))
+#define PG ((int)(p->g_lo | (p->g_hi << 2)))
+#define PH ((int)(p->h))
+
+/* a second set of pixels */
+#define QA ((int)(q->a))
+#define QB ((int)(q->b_lo | (q->b_hi << 12)))
+#define QC ((int)(q->c_lo | (q->c_hi << 10)))
+#define QD ((int)(q->d_lo | (q->d_hi << 8)))
+#define QE ((int)(q->e_lo | (q->e_hi << 6)))
+#define QF ((int)(q->f_lo | (q->f_hi << 4)))
+#define QG ((int)(q->g_lo | (q->g_hi << 2)))
+#define QH ((int)(q->h))
+
+static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
+{
+    uint16_t* lv16 = CACHEABLE(lv_buffer);
+    uint32_t* lv32 = (uint32_t*) lv16;
+    if (!lv16) return;
+    
+    struct raw_pixblock * raw = CACHEABLE(raw_buffer);
+    if (!raw) return;
+    
+    /* white balance 2,1,2 => use two gamma curves to simplify code */
+    uint8_t gamma_rb[1024];
+    uint8_t gamma_g[1024];
+    
+    for (int i = 0; i < 1024; i++)
+    {
+        /* only show 10 bits */
+        int black = (raw_info.black_level>>4);
+        int g_rb = (i > black) ? (log2f(i - black) + 1) * 255 / 10 : 0;
+        int g_g  = (i > black) ? (log2f(i - black)) * 255 / 10 : 0;
+        gamma_rb[i] = COERCE(g_rb * g_rb / 255, 0, 255); /* idk, looks better this way */
+        gamma_g[i]  = COERCE(g_g  * g_g  / 255, 0, 255); /* (it's like a nonlinear curve applied on top of log) */
+    }
+    
+    int x1 = BM2LV_X(os.x0);
+    int x2 = BM2LV_X(os.x_max);
+    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
+    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    if (x2 < x1) return;
+
+    /* cache the LV to RAW transformation for the inner loop to make it faster */
+    /* we will always choose a green pixel */
+    
+    int* lv2rx = SmallAlloc(x2 * 4);
+    if (!lv2rx) return;
+    for (int x = x1; x < x2; x++)
+        lv2rx[x] = LV2RAW_X(x) & ~1;
+
+    /* full-res vertically */
+    for (int y = y1; y < y2; y++)
+    {
+        int yr = LV2RAW_Y(y) & ~1;
+
+        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
+        {
+            /* out of range, just fill with black */
+            memset(&lv32[LV(0,y)/4], 0, BM2LV_DX(x2-x1)*2);
+            continue;
+        }
+
+        struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
+        
+        /* half-res horizontally, to simplify YUV422 math */
+        for (int x = x1; x < x2; x += 2)
+        {
+            int xr = lv2rx[x];
+            struct raw_pixblock * p = row + (xr/8);                 /* RG (xr and yr are multiples of 2) */
+            struct raw_pixblock * q = (void*) p + raw_info.pitch;   /* GB, next line */
+            int r,g,b;
+            
+            /* RGGB cell */
+            /* note: at 1920 horizontal resolution in raw, downsampling by 8 would result in 240px horizontally => looks ugly */
+            switch (xr%8)
+            {
+                case 0:
+                    r = PA >> 4;
+                    g = (PB + QA) >> 5;
+                    b = QB >> 4;
+                    break;
+                case 2:
+                    r = PC >> 4;
+                    g = (PD + QC) >> 5;
+                    b = QD >> 4;
+                    break;
+                case 4:
+                    r = PE >> 4;
+                    g = (PF + QE) >> 5;
+                    b = QF >> 4;
+                    break;
+                case 6:
+                    r = PG >> 4;
+                    g = (PH + QG) >> 5;
+                    b = QH >> 4;
+                    break;
+                default:
+                    r = g = b = 0;
+            }
+            r = gamma_rb[r];
+            g = gamma_g [g];
+            b = gamma_rb[b];
+            
+            uint32_t yuv = rgb2yuv422(r,g,b);
+            lv32[LV(x,y)/4] = yuv;
+        }
+    }
+    SmallFree(lv2rx);
+}
+
 static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
 {
     uint16_t* lv16 = CACHEABLE(lv_buffer);
@@ -1286,7 +1404,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     SmallFree(lv2rx);
 }
 
-void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
 {
     if (raw_buffer == (void*)-1)
         raw_buffer = (void*)raw_info.buffer;
@@ -1300,10 +1418,23 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     if (y2 == -1)
         y2 = BM2LV_Y(os.y_max);
     
-    if (ultra_fast == -1)
-        ultra_fast = 0;
+    if (quality == -1)
+        quality = 0;
     
-    raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, ultra_fast);
+    switch (quality)
+    {
+        case RAW_PREVIEW_GRAY_ULTRA_FAST:
+            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, 1);
+            break;
+        
+        case RAW_PREVIEW_GRAY_FULLRES:
+            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, 0);
+            break;
+        
+        case RAW_PREVIEW_COLOR_HALFRES:
+            raw_preview_color_work(raw_buffer, lv_buffer, y1, y2);
+            break;
+    }
 }
 
 void FAST raw_preview_fast()
