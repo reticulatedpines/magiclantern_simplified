@@ -129,7 +129,7 @@ static int dng_show(char* filename)
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
     vram_clear_lv();
-    raw_preview_fast();
+    raw_preview_fast_ex(-1, -1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
     shoot_free(buf);
     raw_set_dirty();
     

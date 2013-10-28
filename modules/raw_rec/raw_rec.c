@@ -2260,7 +2260,13 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_previewing = 1;
     raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
     raw_force_aspect_ratio_1to1();
-    raw_preview_fast_ex((void*)-1, PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf, -1, -1, !get_halfshutter_pressed());
+    raw_preview_fast_ex(
+        (void*)-1,
+        PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
+        -1,
+        -1,
+        get_halfshutter_pressed() ? RAW_PREVIEW_COLOR_HALFRES : RAW_PREVIEW_GRAY_ULTRA_FAST
+    );
     raw_previewing = 0;
 
     if (!RAW_IS_IDLE)
