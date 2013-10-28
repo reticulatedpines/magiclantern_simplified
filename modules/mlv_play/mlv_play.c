@@ -856,11 +856,6 @@ static void mlv_play_play_raw(char *filename, FILE **chunk_files, uint32_t chunk
     }
     lv_rec_read_footer(chunk_files[chunk_count-1]);
     
-    /* don't use raw_info.frame_size, use the one from the footer instead
-     * (which should be greater or equal, because of rounding) */
-    ASSERT(raw_info.frame_size <= frame_size);
-    
-    
     for (int i = 0; i < frame_count-1; i++)
     {
         frame_buf_t *buffer = NULL;
