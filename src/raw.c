@@ -1330,7 +1330,7 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     SmallFree(lv2rx);
 }
 
-static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
 {
     uint16_t* lv16 = CACHEABLE(lv_buffer);
     uint64_t* lv64 = (uint64_t*) lv16;
@@ -1374,31 +1374,18 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
-        if (ultra_fast) /* prefer real-time low-res display */
+        if (y%2) continue;
+        
+        for (int x = x1; x < x2; x += 4)
         {
-            if (y%2) continue;
-            
-            for (int x = x1; x < x2; x += 4)
-            {
-                int xr = lv2rx[x];
-                struct raw_pixblock * p = row + (xr/8);
-                int c = p->a;
-                uint64_t Y = gamma[c >> 4];
-                Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
-                int idx = LV(x,y)/8;
-                lv64[idx] = Y;
-                lv64[idx + vram_lv.pitch/8] = Y;
-            }
-        }
-        else /* prefer full-res, don't care if it's a little slower */
-        {
-            for (int x = x1; x < x2; x++)
-            {
-                int xr = lv2rx[x];
-                int c = raw_get_pixel_ex(raw, xr, yr);
-                uint16_t Y = gamma[c >> 4];
-                lv16[LV(x,y)/2] = Y << 8;
-            }
+            int xr = lv2rx[x];
+            struct raw_pixblock * p = row + (xr/8);
+            int c = p->a;
+            uint64_t Y = gamma[c >> 4];
+            Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
+            int idx = LV(x,y)/8;
+            lv64[idx] = Y;
+            lv64[idx + vram_lv.pitch/8] = Y;
         }
     }
     SmallFree(lv2rx);
@@ -1424,14 +1411,11 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     switch (quality)
     {
         case RAW_PREVIEW_GRAY_ULTRA_FAST:
-            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, 1);
-            break;
-        
-        case RAW_PREVIEW_GRAY_FULLRES:
-            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, 0);
+            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2);
             break;
         
         case RAW_PREVIEW_COLOR_HALFRES:
+        default:
             raw_preview_color_work(raw_buffer, lv_buffer, y1, y2);
             break;
     }

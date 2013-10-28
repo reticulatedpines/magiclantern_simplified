@@ -119,9 +119,8 @@ void raw_preview_fast();
 
 /* pass -1 if default value for some parameter is fine */
 void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int quality);
-#define RAW_PREVIEW_GRAY_FULLRES    0   /* 720x480 on most built-in displays */
+#define RAW_PREVIEW_COLOR_HALFRES   0   /* 360x480 color, pretty slow */
 #define RAW_PREVIEW_GRAY_ULTRA_FAST 1   /* 180x240, aims to be real-time */
-#define RAW_PREVIEW_COLOR_HALFRES   2   /* 360x480 color, pretty slow */
 
 /* request/release/check LiveView RAW flag (lv_save_raw) */
 /* you have to call request/release in pairs (be careful not to request once and release twice) */
