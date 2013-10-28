@@ -49,6 +49,8 @@ static int frame_size = 0;
 static volatile uint32_t mlv_play_render_abort = 0;
 static volatile uint32_t mlv_play_rendering = 0;
 
+static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVIEW_* in raw.h  */
+
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
 {
@@ -588,22 +590,12 @@ static void mlv_play_render_task(uint32_t priv)
         raw_info.buffer = buffer->frameBuffer;
         raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
         raw_force_aspect_ratio_1to1();
-        raw_preview_fast();
+        raw_preview_fast_ex(-1,-1,-1,-1,mlv_play_quality);
         
-        BMP_LOCK
-        (
-            bmp_idle_copy(0,1);
-            bmp_draw_to_idle(1);
-            
-            clrscr();
-            bmp_printf(FONT_MED, 0, 0, buffer->messages.topLeft);
-            bmp_printf(FONT_MED, 0, os.y_max - font_med.height, buffer->messages.botLeft);
-            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, 0, buffer->messages.topRight);
-            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, os.y_max - font_med.height, buffer->messages.botRight);
-
-            bmp_draw_to_idle(0);
-            bmp_idle_copy(1,0);
-        )
+        bmp_printf(FONT_MED, 0, 0, buffer->messages.topLeft);
+        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, buffer->messages.botLeft);
+        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, 0, buffer->messages.topRight);
+        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, os.y_max - font_med.height, buffer->messages.botRight);
         
         /* finished displaying, requeue frame buffer for refilling */
         msg_queue_post(mlv_play_queue_empty, buffer);
@@ -967,6 +959,8 @@ static void mlv_play_set_mode(uint32_t mode)
             break;
         }
     }
+    
+    msleep(500);
 }
 
 static void raw_play_task(void *priv)
@@ -1111,7 +1105,18 @@ FILETYPE_HANDLER(mlv_play_filehandler)
 
 static unsigned int mlv_play_keypress_cbr(unsigned int key)
 {
-    if(mlv_play_rendering && key > 0 && key != MODULE_KEY_UNPRESS_SET)
+    if (mlv_play_rendering && key == MODULE_KEY_PRESS_SET)
+    {
+        mlv_play_quality = mod(mlv_play_quality + 1, 2);
+        return 0;
+    }
+
+    if (mlv_play_rendering && key == MODULE_KEY_UNPRESS_SET)
+    {
+        return 0;
+    }
+    
+    if(mlv_play_rendering && key > 0)
     {
         mlv_play_render_abort = 1;
         return 0;
@@ -1150,4 +1155,5 @@ MODULE_PROPHANDLERS_START()
 MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
+    MODULE_CONFIG(mlv_play_quality)
 MODULE_CONFIGS_END()
