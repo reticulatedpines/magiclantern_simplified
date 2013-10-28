@@ -69,6 +69,9 @@
 #include "cache_hacks.h"
 #include "lvinfo.h"
 
+/* from mlv_play module */
+extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
+
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
 static int cam_eos_m = 0;
@@ -149,7 +152,6 @@ static int frame_offset_delta_y = 0;
 #define RAW_FINISHING 3
 
 static int raw_recording_state = RAW_IDLE;
-static int raw_playing = 0;
 static int raw_previewing = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
@@ -450,7 +452,7 @@ static void refresh_raw_settings(int force)
 {
     if (!lv) return;
     
-    if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
+    if (RAW_IS_IDLE && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
@@ -1889,110 +1891,28 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
-static void raw_video_playback_task()
-{
-    void* buf = NULL;
-    FILE* f = INVALID_PTR;
-
-    /* prepare display */
-    SetGUIRequestMode(1);
-    msleep(1000);
-    ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
-    clrscr();
-
-    if (!movie_filename)
-        goto cleanup;
-    
-    f = FIO_Open( movie_filename, O_RDONLY | O_SYNC );
-    if( f == INVALID_PTR )
-    {
-        beep();
-        bmp_printf(FONT_MED, 0, 0, "Failed to open file '%s' ", movie_filename);
-        msleep(2000);
-        goto cleanup;
-    }
-    
-    /* read footer information and update global variables, will seek automatically */
-    lv_rec_read_footer(f);
-
-    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-    
-    /* don't use raw_info.frame_size, use the one from the footer instead
-     * (which should be greater or equal, because of rounding) */
-    ASSERT(raw_info.frame_size <= frame_size);
-    
-    buf = shoot_malloc(frame_size);
-    if (!buf)
-        goto cleanup;
-
-    vram_clear_lv();
-    
-    for (int i = 0; i < frame_count-1; i++)
-    {
-        bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
-        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, "%s: %dx%d", movie_filename, res_x, res_y);
-        int r = FIO_ReadFile(f, buf, frame_size);
-        if (r != frame_size)
-            break;
-        
-        if (get_halfshutter_pressed())
-            break;
-
-        if (gui_state != GUISTATE_PLAYMENU)
-            break;
-
-        raw_info.buffer = buf;
-        raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-        raw_force_aspect_ratio_1to1();
-        raw_preview_fast();
-    }
-
-cleanup:
-    vram_clear_lv();
-    if (f != INVALID_PTR) FIO_CloseFile(f);
-    if (buf) shoot_free(buf);
-    raw_playing = 0;
-    SetGUIRequestMode(0);
-    ui_lock(UILOCK_NONE);
-}
-
-static void raw_video_playback(char *filename)
-{
-    movie_filename = filename;
-    raw_playing = 1;
-    gui_stop_menu();
-    
-    task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
-}
-
-FILETYPE_HANDLER(raw_rec_filehandler)
-{
-    /* there is no header and clean interface yet */
-    switch(cmd)
-    {
-        case FILEMAN_CMD_INFO:
-            strcpy(data, "A 14-bit RAW Video");
-            return 1;
-        case FILEMAN_CMD_VIEW_OUTSIDE_MENU:
-            raw_video_playback(filename);
-            return 1;
-    }
-    return 0; /* command not handled */
-}
-
 static MENU_SELECT_FUNC(raw_playback_start)
 {
-    if (!raw_playing && RAW_IS_IDLE)
+    if (RAW_IS_IDLE)
     {
         if (!movie_filename)
         {
             bmp_printf(FONT_MED, 20, 50, "Please record a movie first.");
             return;
         }
-        raw_playing = 1;
-        gui_stop_menu();
-        task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
+        mlv_play_file(movie_filename);
     }
+}
+
+static MENU_UPDATE_FUNC(raw_playback_update)
+{
+    if ((thunk)mlv_play_file == (thunk)ret_0)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to load the mlv_play module.");
+    
+    if (movie_filename)
+        MENU_SET_VALUE(movie_filename + 17);
+    else
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
 }
 
 static MENU_UPDATE_FUNC(indicator_update)
@@ -2014,14 +1934,6 @@ static MENU_UPDATE_FUNC(indicator_update)
         default:
             break;
     }
-}
-
-static MENU_UPDATE_FUNC(raw_playback_update)
-{
-    if (movie_filename)
-        MENU_SET_VALUE(movie_filename + 17);
-    else
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
 }
 
 static struct menu_entry raw_video_menu[] =
@@ -2337,7 +2249,6 @@ static unsigned int raw_rec_init()
     }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
-    fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
 
     lvinfo_add_items (info_items, COUNT(info_items));
 
