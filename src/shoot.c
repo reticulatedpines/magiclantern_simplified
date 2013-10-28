@@ -732,7 +732,7 @@ void set_lv_zoom(int zoom)
     if (is_movie_mode() && video_mode_crop) return;
     zoom = COERCE(zoom, 1, 10);
     if (zoom > 1 && zoom < 10) zoom = 5;
-
+    idle_globaldraw_dis();
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
     int hs = get_halfshutter_pressed();
     if (hs) SW1(0,0);
@@ -744,6 +744,7 @@ void set_lv_zoom(int zoom)
     if (hs) SW1(1,0);
     #endif
     msleep(150);
+    idle_globaldraw_en();
 }
 
 int get_mlu_delay(int raw)
