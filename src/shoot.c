@@ -3762,6 +3762,15 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Duration between two shots.",
             },
             {
+                .name = "Start trigger",
+                .priv = &interval_trigger,
+                .select = interval_trigger_toggle,
+                .update = interval_trigger_update,
+                .max = 3,
+                .choices = CHOICES("Leave Menu", "Half Shutter", "Hold Half Shutter", "Take a Pic"),
+                .help = "How to trigger the intervalometer start."
+            },
+            {
                 .name = "Start after",
                 .priv       = &interval_start_timer_index,
                 .update     = interval_start_after_display,
@@ -3776,15 +3785,6 @@ static struct menu_entry shoot_menus[] = {
                 .update     = interval_stop_after_display,
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
-            },
-            {
-                .name = "Start Trigger",
-                .priv = &interval_trigger,
-                .select = interval_trigger_toggle,
-                .update = interval_trigger_update,
-                .max = 3,
-                .choices = CHOICES("Leave Menu", "Half Shutter", "Hold Half Shutter", "Take a Pic"),
-                .help = "How to trigger the intervalometer start."
             },
             #ifdef FEATURE_FOCUS_RAMPING
             {
