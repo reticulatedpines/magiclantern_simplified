@@ -24,24 +24,39 @@
  * Boston, MA  02110-1301, USA.
  */
 
-/* choose interpolation method (define only one of these) */
-#define INTERP_AMAZE_EDGE
-//~ #define INTERP_MEAN23
-//~ #define INTERP_MEAN_6
-//~ #define INTERP_MEAN_4_OUT_OF_6
-//~ #define INTERP_MEAN_5_OUT_OF_6
-//~ #define INTERP_MEDIAN_6
-//~ #define INTERP_MEAN23_EDGE
+//~ #define FAST_CONVERSION_HALFRES
+//~ #define FAST_CONVERSION_FULLRES
 
-/* post interpolation enhancements */
-//~ #define CHROMA_SMOOTH_5X5
-//~ #define CHROMA_SMOOTH_3X3
-#define CHROMA_SMOOTH_2X2
-#define ALIAS_BLEND
+#if defined(FAST_CONVERSION_HALFRES)    /* skip all expensive computations (just get a half-res quick preview) */
+    #define INTERP_MEAN23
+#elif defined(FAST_CONVERSION_FULLRES)  /* this one also gets a quick full-res preview (but noisy!) */
+    #define INTERP_MEAN23
+    #define FULLRES
+    #define FULLRES_ONLY
+    #define HORIZONTAL_STRIPE_FIX
+#else /* high quality conversion */
+    /* choose interpolation method (define only one of these) */
+    #define INTERP_AMAZE_EDGE
+    //~ #define INTERP_MEAN23
+    //~ #define INTERP_MEAN_6
+    //~ #define INTERP_MEAN_4_OUT_OF_6
+    //~ #define INTERP_MEAN_5_OUT_OF_6
+    //~ #define INTERP_MEDIAN_6
+    //~ #define INTERP_MEAN23_EDGE
 
-/* minimizes aliasing while ignoring the other factors (e.g. shadow noise, banding) */
-/* useful for debugging */
-//~ #define FULLRES_ONLY
+    /* post interpolation enhancements */
+    //~ #define CHROMA_SMOOTH_5X5
+    //~ #define CHROMA_SMOOTH_3X3
+    #define FULLRES
+    #define CHROMA_SMOOTH_2X2
+    #define ALIAS_BLEND
+    #define HORIZONTAL_STRIPE_FIX
+    #define HOT_PIXEL_FIX
+
+    /* minimizes aliasing while ignoring the other factors (e.g. shadow noise, banding) */
+    /* useful for debugging */
+    //~ #define FULLRES_ONLY
+#endif
 
 #if defined(CHROMA_SMOOTH_2X2) || defined(CHROMA_SMOOTH_3X3) || defined(CHROMA_SMOOTH_5X5)
 #define CHROMA_SMOOTH
@@ -1379,11 +1394,13 @@ static int hdr_interpolate()
     memset(dark, 0, w * h * sizeof(unsigned short));
     memset(bright, 0, w * h * sizeof(unsigned short));
     
+    #ifdef FULLRES
     /* fullres image (minimizes aliasing) */
     unsigned short* fullres = malloc(w * h * sizeof(unsigned short));
     CHECK(fullres, "malloc");
     memset(fullres, 0, w * h * sizeof(unsigned short));
     unsigned short* fullres_smooth = fullres;
+    #endif
 
     /* halfres image (minimizes noise and banding) */
     unsigned short* halfres = malloc(w * h * sizeof(unsigned short));
@@ -1405,6 +1422,7 @@ static int hdr_interpolate()
     memset(alias_map, 0, w * h * sizeof(unsigned short));
     #endif
 
+#ifdef FULLRES
     /* fullres mixing curve */
     static double fullres_curve[65536];
     
@@ -1419,6 +1437,7 @@ static int hdr_interpolate()
         double f = (c2+1) / 2;
         fullres_curve[i] = f;
     }
+#endif
 
 #if 0
     FILE* f = fopen("fullres-curve.m", "w");
@@ -2052,7 +2071,7 @@ static int hdr_interpolate()
         }
     }
     
-#if 1
+#ifdef HORIZONTAL_STRIPE_FIX
     printf("Horizontal stripe fix...\n");
     int * delta[14];
     int delta_num[14];
@@ -2143,7 +2162,7 @@ static int hdr_interpolate()
     }
 #endif
 
-#if 1
+#ifdef HOT_PIXEL_FIX
     {
         printf("Looking for hot/cold pixels...\n");
         int hot_pixels = 0;
@@ -2308,6 +2327,7 @@ static int hdr_interpolate()
     }
 #endif
 
+#ifdef FULLRES
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
 
@@ -2328,6 +2348,7 @@ static int hdr_interpolate()
             }
         }
     }
+#endif
  
     /* mix the two images */
     /* highlights:  keep data from dark image only */
@@ -2422,12 +2443,15 @@ static int hdr_interpolate()
 
 #ifdef CHROMA_SMOOTH
     printf("Chroma filtering...\n");
+
+    #ifdef FULLRES
     fullres_smooth = malloc(w * h * sizeof(unsigned short));
     CHECK(fullres_smooth, "malloc");
+    memcpy(fullres_smooth, fullres, w * h * sizeof(unsigned short));
+    #endif
+
     halfres_smooth = malloc(w * h * sizeof(unsigned short));
     CHECK(halfres_smooth, "malloc");
-
-    memcpy(fullres_smooth, fullres, w * h * sizeof(unsigned short));
     memcpy(halfres_smooth, halfres, w * h * sizeof(unsigned short));
 #endif
 
@@ -2452,11 +2476,13 @@ static int hdr_interpolate()
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("dark.dng");
 
+#ifdef FULLRES
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
             raw_set_pixel16(x, y, fullres[x + y*w]);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("fullres.dng");
+#endif
 
     for (y = 3; y < h-2; y ++)
         for (x = 2; x < w-2; x ++)
@@ -2761,20 +2787,28 @@ static int hdr_interpolate()
             /* half-res image (interpolated and chroma filtered, best for low-contrast shadows) */
             int hr = halfres_smooth[x + y*w];
             
+#ifdef FULLRES
             /* full-res image (non-interpolated, except where one ISO is blown out) */
             int fr = fullres[x + y*w];
 
             /* full res with some smoothing applied to hide aliasing artifacts */
             int frs = fullres_smooth[x + y*w];
+#endif
 
             /* go from linear to EV space */
             int hrev = raw2ev[hr];
+
+#ifdef FULLRES
             int frev = raw2ev[fr];
             int frsev = raw2ev[frs];
+#endif
 
 #ifdef FULLRES_ONLY 
             int output = frev;
+#elif !defined(FULLRES)
+            int output = hrev;
 #else
+
             /* blending factor */
             double f = fullres_curve[b & 65535];
             
@@ -2849,7 +2883,9 @@ err:
 cleanup:
     free(dark);
     free(bright);
+    #ifdef FULLRES
     free(fullres);
+    #endif
     free(halfres);
     free(hotpixel);
     free(overexposed);
@@ -2857,7 +2893,9 @@ cleanup:
     free(alias_map);
     #endif
     #ifdef CHROMA_SMOOTH
+    #ifdef FULLRES
     if (fullres_smooth) free(fullres_smooth);
+    #endif
     if (halfres_smooth) free(halfres_smooth);
     #endif
     return ret;
