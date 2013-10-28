@@ -37,8 +37,8 @@
 
     #define FEATURE_AUDIO_METERS
     #define FEATURE_BEEP
-    #define FEATURE_WAV_RECORDING
-    #define FEATURE_VOICE_TAGS
+    //~ #define FEATURE_WAV_RECORDING
+    //~ #define FEATURE_VOICE_TAGS
 
 /** Expo menu **/
 
@@ -119,7 +119,7 @@
 
     #define FEATURE_FPS_OVERRIDE
     #define FEATURE_FPS_RAMPING
-    #define FEATURE_FPS_WAV_RECORD
+    //~ #define FEATURE_FPS_WAV_RECORD
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     #define FEATURE_HDR_VIDEO

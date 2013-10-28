@@ -6083,7 +6083,7 @@ shoot_task( void* unused )
         }
 
         // same for motion detect
-        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && NOT_RECORDING && !gui_menu_shown();
+        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && NOT_RECORDING && !gui_menu_shown() && !intervalometer_running;
         #else
         int mdx = 0;
         #endif

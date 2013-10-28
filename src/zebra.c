@@ -401,7 +401,7 @@ PROP_HANDLER(PROP_LCD_POSITION)
 }
 #endif
 
-static int idle_globaldraw_disable = 0;
+static volatile int idle_globaldraw_disable = 0;
 
 int get_global_draw() // menu setting, or off if 
 {
@@ -4541,11 +4541,12 @@ static void idle_display_undim()
 
 void idle_globaldraw_dis()
 {
-    idle_globaldraw_disable = 1;
+    idle_globaldraw_disable++;
 }
 void idle_globaldraw_en()
 {
-    idle_globaldraw_disable = 0;
+    if (idle_globaldraw_disable > 0)
+        idle_globaldraw_disable--;
 }
 
 #ifdef CONFIG_KILL_FLICKER

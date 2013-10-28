@@ -55,7 +55,7 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
     hdr->aperture = lens_info.aperture * 10;
     hdr->stabilizerMode = lens_info.IS;
     hdr->lensID = lens_info.lens_id;
-    hdr->autofocusMode = 0;
+    hdr->autofocusMode = af_mode;
     hdr->flags = 0;
     
     strncpy((char *)hdr->lensName, lens_info.name, 32);

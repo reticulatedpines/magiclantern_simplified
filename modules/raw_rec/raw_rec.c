@@ -67,6 +67,10 @@
 #include "edmac.h"
 #include "../file_man/file_man.h"
 #include "cache_hacks.h"
+#include "lvinfo.h"
+
+/* from mlv_play module */
+extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -119,8 +123,12 @@ static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
-/* Set up as a config int - easy to add a menu entry to allow toggling if debugging is required */
-static CONFIG_INT("raw.display.memory.allocs", display_memory_allocs, 0);
+/* Recording Status Indicator Options */
+#define INDICATOR_OFF        0
+#define INDICATOR_IN_LVINFO  1
+#define INDICATOR_ON_SCREEN  2
+#define INDICATOR_RAW_BUFFER 3
+static CONFIG_INT("raw.indicator.display", indicator_display, INDICATOR_ON_SCREEN);
 
 /* state variables */
 static int res_x = 0;
@@ -144,7 +152,6 @@ static int frame_offset_delta_y = 0;
 #define RAW_FINISHING 3
 
 static int raw_recording_state = RAW_IDLE;
-static int raw_playing = 0;
 static int raw_previewing = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
@@ -445,7 +452,7 @@ static void refresh_raw_settings(int force)
 {
     if (!lv) return;
     
-    if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
+    if (RAW_IS_IDLE && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
@@ -722,13 +729,6 @@ static int setup_buffers()
         }
     }
   
-    if (display_memory_allocs)
-    {
-        char msg[100];
-        snprintf(msg, sizeof(msg), "Alloc: %d frames", slot_count);
-        bmp_printf(FONT_MED, 30, 90, msg);
-    }
-    
     /* we need at least 3 slots */
     if (slot_count < 3)
         return 0;
@@ -751,13 +751,16 @@ static int get_free_slots()
     return free_slots;
 }
 
+#define BUFFER_DISPLAY_X 30
+#define BUFFER_DISPLAY_Y 50
+
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
     int scale = MAX(1, (300 / slot_count + 1) & ~1);
-    int x = 30;
-    int y = 50;
+    int x = BUFFER_DISPLAY_X;
+    int y = BUFFER_DISPLAY_Y;
     for (int i = 0; i < slot_count; i++)
     {
         if (i > 0 && slots[i].ptr != slots[i-1].ptr + frame_size)
@@ -864,79 +867,96 @@ static void raw_lv_request_update()
     }
 }
 
+/* Display recording status in top info bar */
+static LVINFO_UPDATE_FUNC(recording_status)
+{
+    LVINFO_BUFFER(16);
+    
+    if ((indicator_display != INDICATOR_IN_LVINFO) || RAW_IS_IDLE) return;
+
+    /* Calculate the stats */
+    int fps = fps_get_current_x1000();
+    int t = (frame_count * 1000 + fps/2) / fps;
+    int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+
+    if (!frame_skips) 
+    {
+        snprintf(buffer, sizeof(buffer), "%02d:%02d", t/60, t%60);
+        if (predicted >= 10000)
+        {
+            item->color_bg = COLOR_GREEN1;
+        }
+        else
+        {
+            int time_left = (predicted-frame_count) * 1000 / fps;
+            if (time_left < 10) {
+                 item->color_bg = COLOR_DARK_RED;
+            } else {
+                item->color_bg = COLOR_YELLOW;
+            }
+        }
+    } 
+    else 
+    {
+        snprintf(buffer, sizeof(buffer), "%d skipped", frame_skips);
+        item->color_bg = COLOR_DARK_RED;
+    }
+}
+
 /* Display the 'Recording...' icon and status */
 static void show_recording_status()
 {
-    /* update status messages */
+    /* Determine if we should redraw */
     static int auxrec = INT_MIN;
     if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
     {
+
+        /* If displaying in the info bar, force a refresh */
+        if (indicator_display == INDICATOR_IN_LVINFO)
+        {
+            lens_display_set_dirty();
+            return;
+        }
+
+        /* No reason to do any work if not displayed */
+        if ((indicator_display != INDICATOR_ON_SCREEN) && (indicator_display != INDICATOR_RAW_BUFFER)) return;
+
+        /* Calculate the stats */
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
         int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-        if (display_memory_allocs)
+
+        int speed=0;
+        int idle_percent=0;
+        if (writing_time)
         {
+            speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
+            idle_percent = idle_time * 100 / (writing_time + idle_time);
+            measured_write_speed = speed;
+            speed /= 10;
+        }
+
+        if (indicator_display == INDICATOR_RAW_BUFFER)
+        {
+            show_buffer_status();
+
             if (predicted < 10000)
-                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400, 
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22,
                     "%02d:%02d, %d frames / %d expected  ",
                     t/60, t%60,
                     frame_count,
                     predicted
                 );
             else
-                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400, 
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22,
                     "%02d:%02d, %d frames, continuous OK  ",
                     t/60, t%60,
                     frame_count
                 );
-        }
 
-        /* Position the Recording Icon */
-        int rl_x = 500;
-        int rl_y = 40;
-
-        /* If continuous OK, make the movie icon green, else set based on expected time left */
-        int rl_color;
-        if (predicted >= 10000) 
-        {
-            rl_color = COLOR_GREEN1;
-        } 
-        else 
-        {
-            int time_left = (predicted-frame_count) * 1000 / fps;
-            if (time_left < 10) {
-                rl_color = COLOR_DARK_RED;
-            } else {
-                rl_color = COLOR_YELLOW;
-            }
-        }
-
-        /* Draw the movie camera icon */
-        int rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG);
-
-	/* Display the Status */
-        if (!frame_skips) 
-        {
-            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
-        } 
-        else 
-        {
-            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
-        }
-
-	if (display_memory_allocs) show_buffer_status();
-
-        /* how fast are we writing? does this speed match our benchmarks? */
-        if (writing_time)
-        {
-            int speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
-            int idle_percent = idle_time * 100 / (writing_time + idle_time);
-            measured_write_speed = speed;
-            speed /= 10;
-
-            char msg[50];
-            if (display_memory_allocs)
+            if (writing_time)
             {
+                char msg[50];
                 snprintf(msg, sizeof(msg),
                     "%s: %d MB, %d.%d MB/s",
                     chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
@@ -948,19 +968,60 @@ static void show_recording_status()
                     if (idle_percent) { STR_APPEND(msg, ", %d%% idle", idle_percent); }
                     else { STR_APPEND(msg, ", %dms idle", idle_time); }
                 }
-                bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420, "%s", msg);
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22+font_med.height, "%s", msg);
+            }
+        }
+        else if (indicator_display == INDICATOR_ON_SCREEN)
+        {
+
+            /* Position the Recording Icon */
+            int rl_x = 500;
+            int rl_y = 40;
+
+            /* If continuous OK, make the movie icon green, else set based on expected time left */
+            int rl_color;
+            if (predicted >= 10000) 
+            {
+                rl_color = COLOR_GREEN1;
+            } 
+            else 
+            {
+                int time_left = (predicted-frame_count) * 1000 / fps;
+                if (time_left < 10) {
+                    rl_color = COLOR_DARK_RED;
+                } else {
+                    rl_color = COLOR_YELLOW;
+                }
             }
 
-            snprintf(msg, sizeof(msg), "%02d.%01dMB/s", speed/10, speed%10);
-            if (idle_time)
+            int rl_icon_width=0;
+
+            /* Draw the movie camera icon */
+            rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
+
+            /* Display the Status */
+            if (!frame_skips) 
             {
-                if (idle_percent) { STR_APPEND(msg, ", %2d%%  idle", idle_percent); }
-                else { STR_APPEND(msg,",%3dms idle", idle_time); }
+                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
+            } 
+            else 
+            {
+                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
             }
-            bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
+
+            if (writing_time)
+            {
+                char msg[50];
+                snprintf(msg, sizeof(msg), "%02d.%01dMB/s", speed/10, speed%10);
+                if (idle_time)
+                {
+                    if (idle_percent) { STR_APPEND(msg, ", %2d%%  idle", idle_percent); }
+                    else { STR_APPEND(msg,",%3dms idle", idle_time); }
+                }
+                bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
+            }
         }
     }
-
     return;
 }
 
@@ -1013,7 +1074,7 @@ static void unhack_liveview_vsync(int unused);
 
 static void hack_liveview_vsync()
 {
-    if (cam_5d2 || cam_50d || cam_7d )
+    if (cam_5d2 || cam_50d)
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
         if (lv_dispsize > 1 && !get_halfshutter_pressed())
@@ -1279,15 +1340,6 @@ static int FAST process_frame()
     {
         /* card too slow */
         frame_skips++;
-        if (allow_frame_skip)
-        {
-            if (display_memory_allocs)
-            {
-                bmp_printf( FONT_MED, 30, 70, 
-                    "Skipping frames...   "
-                );
-            }
-        }
         return 0;
     }
 
@@ -1742,14 +1794,6 @@ abort_and_check_early_stop:
         WAV_StopRecord();
     }
 
-    if (display_memory_allocs)
-    {
-        bmp_printf( FONT_MED, 30, 70, 
-            "Frames captured: %d               ", 
-            frame_count - 1
-        );
-    }
-
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
     {
@@ -1773,7 +1817,7 @@ abort_and_check_early_stop:
         last_processed_frame++;
 
         slots[slot_index].status = SLOT_WRITING;
-        if (display_memory_allocs) show_buffer_status();
+        if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
         written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
         slots[slot_index].status = SLOT_FREE;
     }
@@ -1847,118 +1891,49 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
-static void raw_video_playback_task()
-{
-    void* buf = NULL;
-    FILE* f = INVALID_PTR;
-
-    /* prepare display */
-    SetGUIRequestMode(1);
-    msleep(1000);
-    ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
-    clrscr();
-
-    if (!movie_filename)
-        goto cleanup;
-    
-    f = FIO_Open( movie_filename, O_RDONLY | O_SYNC );
-    if( f == INVALID_PTR )
-    {
-        beep();
-        bmp_printf(FONT_MED, 0, 0, "Failed to open file '%s' ", movie_filename);
-        msleep(2000);
-        goto cleanup;
-    }
-    
-    /* read footer information and update global variables, will seek automatically */
-    lv_rec_read_footer(f);
-
-    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-    
-    /* don't use raw_info.frame_size, use the one from the footer instead
-     * (which should be greater or equal, because of rounding) */
-    ASSERT(raw_info.frame_size <= frame_size);
-    
-    buf = shoot_malloc(frame_size);
-    if (!buf)
-        goto cleanup;
-
-    vram_clear_lv();
-    
-    for (int i = 0; i < frame_count-1; i++)
-    {
-        bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
-        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, "%s: %dx%d", movie_filename, res_x, res_y);
-        int r = FIO_ReadFile(f, buf, frame_size);
-        if (r != frame_size)
-            break;
-        
-        if (get_halfshutter_pressed())
-            break;
-
-        if (gui_state != GUISTATE_PLAYMENU)
-            break;
-
-        raw_info.buffer = buf;
-        raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-        raw_force_aspect_ratio_1to1();
-        raw_preview_fast();
-    }
-
-cleanup:
-    vram_clear_lv();
-    if (f != INVALID_PTR) FIO_CloseFile(f);
-    if (buf) shoot_free(buf);
-    raw_playing = 0;
-    SetGUIRequestMode(0);
-    ui_lock(UILOCK_NONE);
-}
-
-static void raw_video_playback(char *filename)
-{
-    movie_filename = filename;
-    raw_playing = 1;
-    gui_stop_menu();
-    
-    task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
-}
-
-FILETYPE_HANDLER(raw_rec_filehandler)
-{
-    /* there is no header and clean interface yet */
-    switch(cmd)
-    {
-        case FILEMAN_CMD_INFO:
-            strcpy(data, "A 14-bit RAW Video");
-            return 1;
-        case FILEMAN_CMD_VIEW_OUTSIDE_MENU:
-            raw_video_playback(filename);
-            return 1;
-    }
-    return 0; /* command not handled */
-}
-
 static MENU_SELECT_FUNC(raw_playback_start)
 {
-    if (!raw_playing && RAW_IS_IDLE)
+    if (RAW_IS_IDLE)
     {
         if (!movie_filename)
         {
             bmp_printf(FONT_MED, 20, 50, "Please record a movie first.");
             return;
         }
-        raw_playing = 1;
-        gui_stop_menu();
-        task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
+        mlv_play_file(movie_filename);
     }
 }
 
 static MENU_UPDATE_FUNC(raw_playback_update)
 {
+    if ((thunk)mlv_play_file == (thunk)ret_0)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to load the mlv_play module.");
+    
     if (movie_filename)
         MENU_SET_VALUE(movie_filename + 17);
     else
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
+}
+
+static MENU_UPDATE_FUNC(indicator_update)
+{
+    switch (indicator_display)
+    {
+        case INDICATOR_OFF:
+            MENU_SET_HELP("Disabled.");
+            break;
+        case INDICATOR_IN_LVINFO:
+            MENU_SET_HELP("Time in info bar: green, yellow, red (est. < 10 sec) status.");
+            break;
+        case INDICATOR_ON_SCREEN:
+            MENU_SET_HELP("Time+MB/s on screen: green, yellow, red (est. < 10 sec) status.");
+            break;
+        case INDICATOR_RAW_BUFFER:
+            MENU_SET_HELP("Time, stats and buffer allocation graph displayed on screen.");
+            break;
+        default:
+            break;
+    }
 }
 
 static struct menu_entry raw_video_menu[] =
@@ -2013,14 +1988,25 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n",
+                .advanced = 1,
+            },
+            {
+                .name = "Indicator display",
+                .priv = &indicator_display,
+                .max = 3,
+                .update = indicator_update,
+                .choices = CHOICES("OFF", "Info Bar", "On Screen", "Raw Buffers"),
+                .help = "Select recording time and buffer status indicator.",
+                .advanced = 1,
             },
             {
                 .name = "Digital dolly",
                 .priv = &dolly_mode,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
-                .help2 = "Use arrow keys (joystick) to move the window."
+                .help2 = "Use arrow keys (joystick) to move the window.",
+                .advanced = 1,
             },
             {
                 .name = "Frame skipping",
@@ -2028,6 +2014,7 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+                .advanced = 1,
             },
             {
                 .name = "Card warm-up",
@@ -2036,18 +2023,21 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
                 .help  = "Write a large file on the card at camera startup.",
                 .help2 = "Some cards seem to get a bit faster after this.",
+                .advanced = 1,
             },
             {
                 .name = "Memory hack",
                 .priv = &memory_hack,
                 .max = 1,
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+                .advanced = 1,
             },
             {
                 .name = "Small hacks",
                 .priv = &small_hacks,
                 .max = 1,
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
+                .advanced = 1,
             },
             {
                 .name = "Playback",
@@ -2056,14 +2046,7 @@ static struct menu_entry raw_video_menu[] =
                 .icon_type = IT_ACTION,
                 .help = "Play back the last raw video clip.",
             },
-#ifdef DISPLAY_MEMORY_ALLOCS
-            {
-                .name = "Display Allocs",
-                .priv = &display_memory_allocs,
-                .max = 1,
-                .help = "Display diagnostics on memory allocations.",
-            },
-#endif
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         },
     }
@@ -2197,7 +2180,13 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_previewing = 1;
     raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
     raw_force_aspect_ratio_1to1();
-    raw_preview_fast_ex((void*)-1, PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf, -1, -1, !get_halfshutter_pressed());
+    raw_preview_fast_ex(
+        (void*)-1,
+        PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
+        -1,
+        -1,
+        get_halfshutter_pressed() ? RAW_PREVIEW_COLOR_HALFRES : RAW_PREVIEW_GRAY_ULTRA_FAST
+    );
     raw_previewing = 0;
 
     if (!RAW_IS_IDLE)
@@ -2210,6 +2199,17 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     preview_dirty = 1;
     return 1;
 }
+
+static struct lvinfo_item info_items[] = {
+    /* Top bar */
+    {
+        .name = "Rec. Status",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = recording_status,
+        .preferred_position = 50,
+        .priority = 10,
+    }
+};
 
 static unsigned int raw_rec_init()
 {
@@ -2249,7 +2249,8 @@ static unsigned int raw_rec_init()
     }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
-    fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
+
+    lvinfo_add_items (info_items, COUNT(info_items));
 
     /* some cards may like this */
     if (warm_up)
@@ -2296,5 +2297,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
-    MODULE_CONFIG(display_memory_allocs)
+    MODULE_CONFIG(indicator_display)
 MODULE_CONFIGS_END()

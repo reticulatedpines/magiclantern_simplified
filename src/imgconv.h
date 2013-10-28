@@ -40,6 +40,8 @@ void precompute_yuv2rgb();
 
 void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B);
 
+uint32_t rgb2yuv422(int R, int G, int B);
+
 void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V);
 
 void little_cleanup(void* BP, void* MP);
