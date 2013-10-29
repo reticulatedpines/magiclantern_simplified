@@ -115,7 +115,7 @@ struct cmd_group options[] = {
     {
         "Interpolation methods", (struct cmd_option[]) {
             { &interp_method, 0, "--amaze-edge",  "use a temporary demosaic step (AMaZE) followed by edge-directed interpolation (default)" },
-            { &interp_method, 1, "--mean23",      "average the nearest 2 or 3 pixels of the same color from the Bayer grid" },
+            { &interp_method, 1, "--mean23",      "average the nearest 2 or 3 pixels of the same color from the Bayer grid (faster)" },
             OPTION_EOL
         },
     },
@@ -133,7 +133,7 @@ struct cmd_group options[] = {
           //{ &fix_pink_dots,  1, "--pink-dots",        "fix pink dots with a early chroma smoothing step" },
             { &fix_bad_pixels, 1, "--bad-pix",          NULL },
             { &fix_bad_pixels, 2, "--really-bad-pix",   "aggressive bad pixel fix, at the expense of detail and aliasing" },
-            { &fix_bad_pixels, 0, "--no-bad-pix",       "disable bad pixel fixing" },
+            { &fix_bad_pixels, 0, "--no-bad-pix",       "disable bad pixel fixing (try it if you shoot stars)" },
             { &debug_bad_pixels,1,"--black-bad-pix",    "mark all bad pixels as black (for troubleshooting)" },
             OPTION_EOL
         },
@@ -344,7 +344,7 @@ int main(int argc, char** argv)
         printf("No input files.\n\n");
         printf("GUI usage: drag some CR2 or DNG files over cr2hdr.exe.\n\n");
         show_commandline_help(argv[0]);
-        return system("sleep 2");
+        return 0;
     }
     
     int k;
