@@ -68,6 +68,7 @@ static uint32_t mlv_play_render_timestep = 10;
 static uint32_t mlv_play_idle_timestep = 1000;
 static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
+static uint32_t mlv_play_info = 1;
 
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
@@ -153,7 +154,7 @@ static void mlv_play_osd_prev(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        
+        bmp_printf(FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG) | FONT_ALIGN_CENTER, mlv_play_osd_x, mlv_play_osd_y - fontspec_height(FONT_LARGE), "(not implemented)");
     }
     
     if(msg)
@@ -166,7 +167,7 @@ static void mlv_play_osd_next(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        
+        bmp_printf(FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG) | FONT_ALIGN_CENTER, mlv_play_osd_x, mlv_play_osd_y - fontspec_height(FONT_LARGE), "(not implemented)");
     }
     
     if(msg)
@@ -364,6 +365,11 @@ static void mlv_play_osd_task(void *priv)
                     if(key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
                     {
                         mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
+                    }
+                    if(key == MODULE_KEY_INFO)
+                    {
+                        mlv_play_info = mod(mlv_play_info + 1, 2);
+                        clrscr();
                     }
                     break;
                 }
@@ -875,10 +881,13 @@ static void mlv_play_render_task(uint32_t priv)
         raw_force_aspect_ratio_1to1();
         raw_preview_fast_ex((void*)-1,(void*)-1,-1,-1,mlv_play_quality);
         
-        bmp_printf(FONT_MED, 0, 0, buffer->messages.topLeft);
-        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, buffer->messages.botLeft);
-        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, 0, buffer->messages.topRight);
-        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, os.y_max - font_med.height, buffer->messages.botRight);
+        if(mlv_play_info)
+        {
+            bmp_printf(FONT_MED, 0, 0, buffer->messages.topLeft);
+            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, 0, buffer->messages.topRight);
+            bmp_printf(FONT_MED, 0, font_med.height, buffer->messages.botLeft);
+            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, os.x_max, font_med.height, buffer->messages.botRight);
+        }
         
         /* finished displaying, requeue frame buffer for refilling */
         msg_queue_post(mlv_play_queue_empty, buffer);
