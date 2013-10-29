@@ -61,12 +61,12 @@ static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVI
 #define MLV_PLAY_MENU_HIDDEN  4
 
 
-static uint32_t mlv_play_menu_state = MLV_PLAY_MENU_IDLE;
-static int32_t mlv_play_menu_x = 360;
-static int32_t mlv_play_menu_y = 0;
+static uint32_t mlv_play_osd_state = MLV_PLAY_MENU_IDLE;
+static int32_t mlv_play_osd_x = 360;
+static int32_t mlv_play_osd_y = 0;
 static uint32_t mlv_play_render_timestep = 10;
 static uint32_t mlv_play_idle_timestep = 1000;
-static uint32_t mlv_play_menu_item = 0;
+static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
 
 /* this structure is used to build the mlv_xref_t table */
@@ -100,7 +100,7 @@ typedef struct
 /* set up two queues - one with empty buffers and one with buffers to render */
 static struct msg_queue *mlv_play_queue_empty;
 static struct msg_queue *mlv_play_queue_render;
-static struct msg_queue *mlv_play_queue_menu;
+static struct msg_queue *mlv_play_queue_osd;
 
 
 static uint32_t FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
@@ -117,7 +117,12 @@ static uint32_t FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
     return FIO_SeekFile(stream, position, whence);
 }
     
-    
+
+static char *strcat(char *dest, const char *src)
+{
+    return strcpy(&dest[strlen(dest)], src);
+}
+
 static void *realloc(void *ptr, uint32_t size)
 {
     void *new_ptr = malloc(size);
@@ -131,7 +136,7 @@ static void *realloc(void *ptr, uint32_t size)
 }
 
 
-static void mlv_play_menu_quality(char *msg, uint32_t msg_len, uint32_t selected)
+static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
@@ -140,11 +145,37 @@ static void mlv_play_menu_quality(char *msg, uint32_t msg_len, uint32_t selected
     
     if(msg)
     {
-        snprintf(msg, msg_len, "Rendering Mode: [%s]", mlv_play_quality?"Fast":"HI-Q Color");
+        snprintf(msg, msg_len, mlv_play_quality?"LO":"HI");
     }
 }
 
-static void mlv_play_menu_pause(char *msg, uint32_t msg_len, uint32_t selected)
+static void mlv_play_osd_prev(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        
+    }
+    
+    if(msg)
+    {
+        snprintf(msg, msg_len, "<<");
+    }
+}
+
+static void mlv_play_osd_next(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        
+    }
+    
+    if(msg)
+    {
+        snprintf(msg, msg_len, ">>");
+    }
+}
+
+static void mlv_play_osd_pause(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
@@ -153,11 +184,11 @@ static void mlv_play_menu_pause(char *msg, uint32_t msg_len, uint32_t selected)
     
     if(msg)
     {
-        snprintf(msg, msg_len, mlv_play_paused?"Unpause":"Pause");
+        snprintf(msg, msg_len, mlv_play_paused?"|>":"||");
     }
 }
 
-static void mlv_play_menu_quit(char *msg, uint32_t msg_len, uint32_t selected)
+static void mlv_play_osd_quit(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
@@ -166,13 +197,13 @@ static void mlv_play_menu_quit(char *msg, uint32_t msg_len, uint32_t selected)
     
     if(msg)
     {
-        snprintf(msg, msg_len, "Quit playback");
+        snprintf(msg, msg_len, "[]");
     }
 }
 
-static void(*mlv_play_menu_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_menu_pause, &mlv_play_menu_quality, &mlv_play_menu_quit };
+static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_quit };
 
-static uint32_t mlv_play_menu_handle(uint32_t msg)
+static uint32_t mlv_play_osd_handle(uint32_t msg)
 {
     switch(msg)
     {
@@ -180,7 +211,7 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
         case MODULE_KEY_JOY_CENTER:
         {
             /* execute menu item */
-            mlv_play_menu_items[mlv_play_menu_item](NULL, 0, 1);
+            mlv_play_osd_items[mlv_play_osd_item](NULL, 0, 1);
             break;
         }
         
@@ -188,9 +219,9 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
         case MODULE_KEY_WHEEL_LEFT:
         case MODULE_KEY_PRESS_LEFT:
         {
-            if(mlv_play_menu_item > 0)
+            if(mlv_play_osd_item > 0)
             {
-                mlv_play_menu_item--;
+                mlv_play_osd_item--;
             }
             break;
         }
@@ -199,9 +230,9 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
         case MODULE_KEY_WHEEL_RIGHT:
         case MODULE_KEY_PRESS_RIGHT:
         {
-            if(mlv_play_menu_item < COUNT(mlv_play_menu_items) - 1)
+            if(mlv_play_osd_item < COUNT(mlv_play_osd_items) - 1)
             {
-                mlv_play_menu_item++;
+                mlv_play_osd_item++;
             }
             break;
         }
@@ -210,20 +241,19 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
     return 0;
 }
 
-static uint32_t mlv_play_menu_draw()
+static uint32_t mlv_play_osd_draw()
 {
     uint32_t redraw = 0;
 
-    /* undraw lat drawn menu item */
-    static char menu_line[64] = "";
-    char msg[64] = "";
+    /* undraw lat drawn OSD item */
+    static char osd_line[64] = "";
     
-    uint32_t w = bmp_string_width(FONT_LARGE, menu_line);
+    uint32_t w = bmp_string_width(FONT_LARGE, osd_line);
     uint32_t h = fontspec_height(FONT_LARGE);
-    bmp_fill(COLOR_EMPTY, mlv_play_menu_x - w/2, mlv_play_menu_y, w, h);
+    bmp_fill(COLOR_EMPTY, mlv_play_osd_x - w/2 - 5, mlv_play_osd_y - 5, w + 10, h + 10);
     
     /* handle animation */
-    switch(mlv_play_menu_state)
+    switch(mlv_play_osd_state)
     {
         case MLV_PLAY_MENU_SHOWN:
         {
@@ -234,17 +264,17 @@ static uint32_t mlv_play_menu_draw()
         case MLV_PLAY_MENU_HIDDEN:
         case MLV_PLAY_MENU_IDLE:
         {
-            mlv_play_menu_y = os.y_max + 1;
+            mlv_play_osd_y = os.y_max + 1;
             redraw = 0;
             break;
         }
         
         case MLV_PLAY_MENU_FADEIN:
         {
-            mlv_play_menu_y -= 4;
-            if(mlv_play_menu_y <= (int32_t)(os.y_max - font_large.height - 30))
+            mlv_play_osd_y -= 4;
+            if(mlv_play_osd_y <= (int32_t)(os.y_max - font_large.height - 30))
             {
-                mlv_play_menu_state = MLV_PLAY_MENU_SHOWN;
+                mlv_play_osd_state = MLV_PLAY_MENU_SHOWN;
             }
             redraw = 1;
             break;
@@ -252,38 +282,54 @@ static uint32_t mlv_play_menu_draw()
         
         case MLV_PLAY_MENU_FADEOUT:
         {
-            mlv_play_menu_y += 4;
-            if(mlv_play_menu_y > (int32_t)os.y_max)
+            mlv_play_osd_y += 4;
+            if(mlv_play_osd_y > (int32_t)os.y_max)
             {
-                mlv_play_menu_state = MLV_PLAY_MENU_HIDDEN;
+                mlv_play_osd_state = MLV_PLAY_MENU_HIDDEN;
             }
             redraw = 1;
             break;
         }
     }
     
-    /* draw current menu item */
-    mlv_play_menu_items[mlv_play_menu_item](msg, sizeof(msg), 0);
-    snprintf(menu_line, sizeof(menu_line), "   %s   ", msg);
-    if(mlv_play_menu_item > 0)
+    /* draw a line with all OSD buttons */
+    char selected_item[64];
+    uint32_t selected_x = 0;
+    
+    strcpy(osd_line, "");
+    for(int pos = 0; pos < COUNT(mlv_play_osd_items); pos++)
     {
-        menu_line[0] = '<';
-    }
-    if(mlv_play_menu_item < COUNT(mlv_play_menu_items) - 1)
-    {
-        menu_line[strlen(menu_line)-1] = '>';
+        char msg[64];
+        mlv_play_osd_items[pos](msg, sizeof(msg), 0);
+        
+        /* if this is the selected one, keep the position for redrawing highlighted */
+        if(pos == mlv_play_osd_item)
+        {
+            strcpy(selected_item, msg);
+            selected_x = bmp_string_width(FONT_LARGE, osd_line);
+        }
+        
+        strcat(osd_line, "  ");
+        strcat(osd_line, msg);
+        strcat(osd_line, "  ");
     }
     
-    bmp_printf(FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG) | FONT_ALIGN_CENTER, mlv_play_menu_x, mlv_play_menu_y, menu_line);
+    w = bmp_string_width(FONT_LARGE, osd_line);
+    bmp_fill(COLOR_BG, mlv_play_osd_x - w/2 - 5, mlv_play_osd_y - 5, w + 10, h + 10);
+    bmp_printf(FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG), mlv_play_osd_x - w/2, mlv_play_osd_y, osd_line);
+    
+    /* draw selected item over with blue background */
+    bmp_printf(FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLUE), mlv_play_osd_x - w/2 + selected_x, mlv_play_osd_y, "  %s  ", selected_item);
+    
     return redraw;
 }
 
-static void mlv_play_menu_task(void *priv)
+static void mlv_play_osd_task(void *priv)
 {
     uint32_t next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
  
-    mlv_play_menu_state = MLV_PLAY_MENU_IDLE;
-    mlv_play_menu_item = 0;
+    mlv_play_osd_state = MLV_PLAY_MENU_IDLE;
+    mlv_play_osd_item = 0;
     mlv_play_paused = 0;   
     
     TASK_LOOP
@@ -293,20 +339,20 @@ static void mlv_play_menu_task(void *priv)
         
         timeout = MIN(timeout, mlv_play_idle_timestep);
         
-        if(!msg_queue_receive(mlv_play_queue_menu, &key, timeout))
+        if(!msg_queue_receive(mlv_play_queue_osd, &key, timeout))
         {
-            switch(mlv_play_menu_state)
+            switch(mlv_play_osd_state)
             {
                 case MLV_PLAY_MENU_SHOWN:
                 case MLV_PLAY_MENU_FADEIN:
                 {
                     if(key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
                     {
-                        mlv_play_menu_state = MLV_PLAY_MENU_FADEOUT;
+                        mlv_play_osd_state = MLV_PLAY_MENU_FADEOUT;
                     }
                     else
                     {
-                        mlv_play_menu_handle(key);
+                        mlv_play_osd_handle(key);
                     }
                     break;
                 }
@@ -317,7 +363,7 @@ static void mlv_play_menu_task(void *priv)
                 {
                     if(key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
                     {
-                        mlv_play_menu_state = MLV_PLAY_MENU_FADEIN;
+                        mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
                     }
                     break;
                 }
@@ -329,7 +375,7 @@ static void mlv_play_menu_task(void *priv)
             break;
         }
         
-        if(mlv_play_menu_draw())
+        if(mlv_play_osd_draw())
         {
             next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
         }
@@ -1244,7 +1290,7 @@ static void raw_play_task(void *priv)
     mlv_play_render_abort = 0;
     mlv_play_rendering = 1;
     task_create("mlv_play_render", 0x1d, 0x1000, mlv_play_render_task, NULL);
-    task_create("mlv_play_menu_task", 0x15, 0x1000, mlv_play_menu_task, 0);
+    task_create("mlv_play_osd_task", 0x15, 0x1000, mlv_play_osd_task, 0);
     
     /* clear anything on screen */
     vram_clear_lv();
@@ -1393,7 +1439,7 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
             case MODULE_KEY_MENU:
             case MODULE_KEY_PRESS_ZOOMIN:
             {
-                msg_queue_post(mlv_play_queue_menu, key);
+                msg_queue_post(mlv_play_queue_osd, key);
                 return 0;
             }
 
@@ -1428,7 +1474,7 @@ static unsigned int mlv_play_init()
     /* setup queues for frame buffers */
     mlv_play_queue_empty = (struct msg_queue *) msg_queue_create("mlv_play_queue_empty", 10);
     mlv_play_queue_render = (struct msg_queue *) msg_queue_create("mlv_play_queue_render", 10);
-    mlv_play_queue_menu = (struct msg_queue *) msg_queue_create("mlv_play_queue_menu", 10);
+    mlv_play_queue_osd = (struct msg_queue *) msg_queue_create("mlv_play_queue_osd", 10);
     
     fileman_register_type("RAW", "RAW Video", mlv_play_filehandler);
     fileman_register_type("MLV", "MLV Video", mlv_play_filehandler);
