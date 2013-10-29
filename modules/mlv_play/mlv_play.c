@@ -40,6 +40,7 @@
 #include "../file_man/file_man.h"
 #include "../lv_rec/lv_rec.h"
 
+char *strncpy(char *dest, const char *src, size_t n);
 
 static int res_x = 0;
 static int res_y = 0;
@@ -102,7 +103,7 @@ static struct msg_queue *mlv_play_queue_render;
 static struct msg_queue *mlv_play_queue_menu;
 
 
-static int FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
+static uint32_t FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
 {
     uint32_t maxOffset = 0x7FFFFFFF;
     
@@ -176,6 +177,7 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
     switch(msg)
     {
         case MODULE_KEY_PRESS_SET:
+        case MODULE_KEY_JOY_CENTER:
         {
             /* execute menu item */
             mlv_play_menu_items[mlv_play_menu_item](NULL, 0, 1);
@@ -184,6 +186,7 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
         
         case MODULE_KEY_WHEEL_UP:
         case MODULE_KEY_WHEEL_LEFT:
+        case MODULE_KEY_PRESS_LEFT:
         {
             if(mlv_play_menu_item > 0)
             {
@@ -194,6 +197,7 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
         
         case MODULE_KEY_WHEEL_DOWN:
         case MODULE_KEY_WHEEL_RIGHT:
+        case MODULE_KEY_PRESS_RIGHT:
         {
             if(mlv_play_menu_item < COUNT(mlv_play_menu_items) - 1)
             {
@@ -202,6 +206,8 @@ static uint32_t mlv_play_menu_handle(uint32_t msg)
             break;
         }
     }
+    
+    return 0;
 }
 
 static uint32_t mlv_play_menu_draw()
@@ -236,7 +242,7 @@ static uint32_t mlv_play_menu_draw()
         case MLV_PLAY_MENU_FADEIN:
         {
             mlv_play_menu_y -= 4;
-            if(mlv_play_menu_y <= os.y_max - font_large.height - 30)
+            if(mlv_play_menu_y <= (int32_t)(os.y_max - font_large.height - 30))
             {
                 mlv_play_menu_state = MLV_PLAY_MENU_SHOWN;
             }
@@ -247,7 +253,7 @@ static uint32_t mlv_play_menu_draw()
         case MLV_PLAY_MENU_FADEOUT:
         {
             mlv_play_menu_y += 4;
-            if(mlv_play_menu_y > os.y_max)
+            if(mlv_play_menu_y > (int32_t)os.y_max)
             {
                 mlv_play_menu_state = MLV_PLAY_MENU_HIDDEN;
             }
@@ -282,25 +288,25 @@ static void mlv_play_menu_task(void *priv)
     
     TASK_LOOP
     {
-        uint32_t msg;
+        uint32_t key;
         uint32_t timeout = next_render_time - get_ms_clock_value();
         
         timeout = MIN(timeout, mlv_play_idle_timestep);
         
-        if(!msg_queue_receive(mlv_play_queue_menu, &msg, timeout))
+        if(!msg_queue_receive(mlv_play_queue_menu, &key, timeout))
         {
             switch(mlv_play_menu_state)
             {
                 case MLV_PLAY_MENU_SHOWN:
                 case MLV_PLAY_MENU_FADEIN:
                 {
-                    if(msg == MODULE_KEY_Q)
+                    if(key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
                     {
                         mlv_play_menu_state = MLV_PLAY_MENU_FADEOUT;
                     }
                     else
                     {
-                        mlv_play_menu_handle(msg);
+                        mlv_play_menu_handle(key);
                     }
                     break;
                 }
@@ -309,7 +315,7 @@ static void mlv_play_menu_task(void *priv)
                 case MLV_PLAY_MENU_HIDDEN:
                 case MLV_PLAY_MENU_FADEOUT:
                 {
-                    if(msg == MODULE_KEY_Q)
+                    if(key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
                     {
                         mlv_play_menu_state = MLV_PLAY_MENU_FADEIN;
                     }
@@ -412,7 +418,7 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
         {
             block_hdr = malloc(buf.blockSize);
 
-            if(FIO_ReadFile(in_file, block_hdr, buf.blockSize) != buf.blockSize)
+            if(FIO_ReadFile(in_file, block_hdr, buf.blockSize) != (int32_t)buf.blockSize)
             {
                 free(block_hdr);
                 block_hdr = NULL;
@@ -511,7 +517,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
     uint32_t frame_xref_allocated = 0;
     mlv_file_hdr_t main_header;
     
-    for(int chunk = 0; chunk < chunk_count; chunk++)
+    for(uint32_t chunk = 0; chunk < chunk_count; chunk++)
     {
         uint32_t last_pct = 0;
         uint32_t size = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_END);
@@ -562,7 +568,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 FIO_SeekFileWrapper(chunk_files[chunk], position, SEEK_SET);
                 
                 /* read the whole header block, but limit size to either our local type size or the written block size */
-                if(FIO_ReadFile(chunk_files[chunk], &file_hdr, hdr_size) != hdr_size)
+                if(FIO_ReadFile(chunk_files[chunk], &file_hdr, hdr_size) != (int32_t)hdr_size)
                 {
                     bmp_printf(FONT_MED, 30, 190, "File ends prematurely during MLVI");
                     beep();
@@ -821,7 +827,7 @@ static void mlv_play_render_task(uint32_t priv)
         raw_info.buffer = buffer->frameBuffer;
         raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
         raw_force_aspect_ratio_1to1();
-        raw_preview_fast_ex(-1,-1,-1,-1,mlv_play_quality);
+        raw_preview_fast_ex((void*)-1,(void*)-1,-1,-1,mlv_play_quality);
         
         bmp_printf(FONT_MED, 0, 0, buffer->messages.topLeft);
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, buffer->messages.botLeft);
@@ -895,7 +901,7 @@ static void mlv_play_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk
             uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
 
             /* read the whole header block, but limit size to either our local type size or the written block size */
-            if(FIO_ReadFile(in_file, &file_hdr, hdr_size) != hdr_size)
+            if(FIO_ReadFile(in_file, &file_hdr, hdr_size) != (int32_t)hdr_size)
             {
                 bmp_printf(FONT_MED, 30, 190, "File ends prematurely during MLVI");
                 beep();
@@ -1013,7 +1019,7 @@ static void mlv_play_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk
             FIO_SeekFileWrapper(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
 
             /* finally read the raw data */
-            if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != buffer->frameSize)
+            if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != (int32_t)buffer->frameSize)
             {
                 bmp_printf(FONT_MED, 30, 190, "File ends prematurely during VIDF raw data");
                 beep();
@@ -1108,7 +1114,7 @@ static void mlv_play_play_raw(char *filename, FILE **chunk_files, uint32_t chunk
         }
         
         /* check if the queued buffer has the correct size */
-        if(buffer->frameSize != frame_size)
+        if((int32_t)buffer->frameSize != frame_size)
         {
             /* the first few queued dont have anything allocated, so dont free */
             if(buffer->frameBuffer)
@@ -1128,7 +1134,7 @@ static void mlv_play_play_raw(char *filename, FILE **chunk_files, uint32_t chunk
             }        
         }
             
-        int r = FIO_ReadFile(chunk_files[chunk_num], buffer->frameBuffer, frame_size);
+        int32_t r = FIO_ReadFile(chunk_files[chunk_num], buffer->frameBuffer, frame_size);
         
         /* reading failed */
         if(r < 0)
@@ -1191,7 +1197,7 @@ static void mlv_play_play_raw(char *filename, FILE **chunk_files, uint32_t chunk
     }
 }
 
-static void mlv_play_set_mode(uint32_t mode)
+static void mlv_play_set_mode(int32_t mode)
 {
     uint32_t loops = 0;
     
@@ -1271,7 +1277,7 @@ static void raw_play_task(void *priv)
 cleanup:
     mlv_play_render_abort = 1;
     
-    for(int pos = 0; pos < chunk_count; pos++)
+    for(uint32_t pos = 0; pos < chunk_count; pos++)
     {
         FIO_CloseFile(chunk_files[pos]);
     }
@@ -1378,6 +1384,14 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
             case MODULE_KEY_UNPRESS_UDLR:
             case MODULE_KEY_INFO:
             case MODULE_KEY_Q:
+            case MODULE_KEY_PICSTYLE:
+            case MODULE_KEY_PRESS_DP:
+            case MODULE_KEY_UNPRESS_DP:
+            case MODULE_KEY_RATE:
+            case MODULE_KEY_TRASH:
+            case MODULE_KEY_PLAY:
+            case MODULE_KEY_MENU:
+            case MODULE_KEY_PRESS_ZOOMIN:
             {
                 msg_queue_post(mlv_play_queue_menu, key);
                 return 0;
@@ -1392,6 +1406,14 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
             /* any other key aborts playback */
             default:
             {
+                /*
+                int loops = 0;
+                while(loops < 50)
+                {
+                    bmp_printf(FONT_MED, 30, 400, "key 0x%02X not handled, exiting", key);
+                    loops++;
+                }
+                */
                 mlv_play_render_abort = 1;
                 return 0;
             }
