@@ -51,6 +51,23 @@ static volatile uint32_t mlv_play_rendering = 0;
 
 static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVIEW_* in raw.h  */
 
+
+/* OSD menu items */
+#define MLV_PLAY_MENU_IDLE    0
+#define MLV_PLAY_MENU_FADEIN  1
+#define MLV_PLAY_MENU_FADEOUT 2
+#define MLV_PLAY_MENU_SHOWN   3
+#define MLV_PLAY_MENU_HIDDEN  4
+
+
+static uint32_t mlv_play_menu_state = MLV_PLAY_MENU_IDLE;
+static int32_t mlv_play_menu_x = 360;
+static int32_t mlv_play_menu_y = 0;
+static uint32_t mlv_play_render_timestep = 10;
+static uint32_t mlv_play_idle_timestep = 1000;
+static uint32_t mlv_play_menu_item = 0;
+static uint32_t mlv_play_paused = 0;
+
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
 {
@@ -82,6 +99,7 @@ typedef struct
 /* set up two queues - one with empty buffers and one with buffers to render */
 static struct msg_queue *mlv_play_queue_empty;
 static struct msg_queue *mlv_play_queue_render;
+static struct msg_queue *mlv_play_queue_menu;
 
 
 static int FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
@@ -110,6 +128,213 @@ static void *realloc(void *ptr, uint32_t size)
     
     return new_ptr;
 }
+
+
+static void mlv_play_menu_quality(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        mlv_play_quality = mod(mlv_play_quality + 1, 2);
+    }
+    
+    if(msg)
+    {
+        snprintf(msg, msg_len, "Rendering Mode: [%s]", mlv_play_quality?"Fast":"HI-Q Color");
+    }
+}
+
+static void mlv_play_menu_pause(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        mlv_play_paused = mod(mlv_play_paused + 1, 2);
+    }
+    
+    if(msg)
+    {
+        snprintf(msg, msg_len, mlv_play_paused?"Unpause":"Pause");
+    }
+}
+
+static void mlv_play_menu_quit(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        mlv_play_render_abort = 1;
+    }
+    
+    if(msg)
+    {
+        snprintf(msg, msg_len, "Quit playback");
+    }
+}
+
+static void(*mlv_play_menu_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_menu_pause, &mlv_play_menu_quality, &mlv_play_menu_quit };
+
+static uint32_t mlv_play_menu_handle(uint32_t msg)
+{
+    switch(msg)
+    {
+        case MODULE_KEY_PRESS_SET:
+        {
+            /* execute menu item */
+            mlv_play_menu_items[mlv_play_menu_item](NULL, 0, 1);
+            break;
+        }
+        
+        case MODULE_KEY_WHEEL_UP:
+        case MODULE_KEY_WHEEL_LEFT:
+        {
+            if(mlv_play_menu_item > 0)
+            {
+                mlv_play_menu_item--;
+            }
+            break;
+        }
+        
+        case MODULE_KEY_WHEEL_DOWN:
+        case MODULE_KEY_WHEEL_RIGHT:
+        {
+            if(mlv_play_menu_item < COUNT(mlv_play_menu_items) - 1)
+            {
+                mlv_play_menu_item++;
+            }
+            break;
+        }
+    }
+}
+
+static uint32_t mlv_play_menu_draw()
+{
+    uint32_t redraw = 0;
+
+    /* undraw lat drawn menu item */
+    static char menu_line[64] = "";
+    char msg[64] = "";
+    
+    uint32_t w = bmp_string_width(FONT_LARGE, menu_line);
+    uint32_t h = fontspec_height(FONT_LARGE);
+    bmp_fill(COLOR_EMPTY, mlv_play_menu_x - w/2, mlv_play_menu_y, w, h);
+    
+    /* handle animation */
+    switch(mlv_play_menu_state)
+    {
+        case MLV_PLAY_MENU_SHOWN:
+        {
+            redraw = 0;
+            break;
+        }
+        
+        case MLV_PLAY_MENU_HIDDEN:
+        case MLV_PLAY_MENU_IDLE:
+        {
+            mlv_play_menu_y = os.y_max + 1;
+            redraw = 0;
+            break;
+        }
+        
+        case MLV_PLAY_MENU_FADEIN:
+        {
+            mlv_play_menu_y -= 4;
+            if(mlv_play_menu_y <= os.y_max - font_large.height - 30)
+            {
+                mlv_play_menu_state = MLV_PLAY_MENU_SHOWN;
+            }
+            redraw = 1;
+            break;
+        }
+        
+        case MLV_PLAY_MENU_FADEOUT:
+        {
+            mlv_play_menu_y += 4;
+            if(mlv_play_menu_y > os.y_max)
+            {
+                mlv_play_menu_state = MLV_PLAY_MENU_HIDDEN;
+            }
+            redraw = 1;
+            break;
+        }
+    }
+    
+    /* draw current menu item */
+    mlv_play_menu_items[mlv_play_menu_item](msg, sizeof(msg), 0);
+    snprintf(menu_line, sizeof(menu_line), "   %s   ", msg);
+    if(mlv_play_menu_item > 0)
+    {
+        menu_line[0] = '<';
+    }
+    if(mlv_play_menu_item < COUNT(mlv_play_menu_items) - 1)
+    {
+        menu_line[strlen(menu_line)-1] = '>';
+    }
+    
+    bmp_printf(FONT(FONT_LARGE,COLOR_WHITE,COLOR_BG) | FONT_ALIGN_CENTER, mlv_play_menu_x, mlv_play_menu_y, menu_line);
+    return redraw;
+}
+
+static void mlv_play_menu_task(void *priv)
+{
+    uint32_t next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
+ 
+    mlv_play_menu_state = MLV_PLAY_MENU_IDLE;
+    mlv_play_menu_item = 0;
+    mlv_play_paused = 0;   
+    
+    TASK_LOOP
+    {
+        uint32_t msg;
+        uint32_t timeout = next_render_time - get_ms_clock_value();
+        
+        timeout = MIN(timeout, mlv_play_idle_timestep);
+        
+        if(!msg_queue_receive(mlv_play_queue_menu, &msg, timeout))
+        {
+            switch(mlv_play_menu_state)
+            {
+                case MLV_PLAY_MENU_SHOWN:
+                case MLV_PLAY_MENU_FADEIN:
+                {
+                    if(msg == MODULE_KEY_Q)
+                    {
+                        mlv_play_menu_state = MLV_PLAY_MENU_FADEOUT;
+                    }
+                    else
+                    {
+                        mlv_play_menu_handle(msg);
+                    }
+                    break;
+                }
+                
+                case MLV_PLAY_MENU_IDLE:
+                case MLV_PLAY_MENU_HIDDEN:
+                case MLV_PLAY_MENU_FADEOUT:
+                {
+                    if(msg == MODULE_KEY_Q)
+                    {
+                        mlv_play_menu_state = MLV_PLAY_MENU_FADEIN;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        if(mlv_play_render_abort)
+        {
+            break;
+        }
+        
+        if(mlv_play_menu_draw())
+        {
+            next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
+        }
+        else
+        {
+            next_render_time = get_ms_clock_value() + mlv_play_idle_timestep;
+        }
+        continue;
+    }
+}
+
 
 static void xref_resize(frame_xref_t **table, uint32_t entries, uint32_t *allocated)
 {
@@ -572,6 +797,12 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
+        if(mlv_play_paused)
+        {
+            msleep(100);
+            continue;
+        }
+        
         /* is there something to render? */
         if(msg_queue_receive(mlv_play_queue_render, &buffer, 50))
         {
@@ -727,8 +958,13 @@ static void mlv_play_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk
             mlv_vidf_hdr_t vidf_block;
             
             /* now get a buffer from the queue */
+            retry_dequeue:
             if(msg_queue_receive(mlv_play_queue_empty, &buffer, 5000))
             {
+                if(mlv_play_paused)
+                {
+                    goto retry_dequeue;
+                }
                 bmp_printf(FONT_MED, 0, 400, "Failed to get a free buffer, exiting");
                 beep();
                 msleep(1000);
@@ -852,9 +1088,19 @@ static void mlv_play_play_raw(char *filename, FILE **chunk_files, uint32_t chunk
     {
         frame_buf_t *buffer = NULL;
         
+        while(mlv_play_paused)
+        {
+            msleep(100);
+        }
+        
         /* now get a buffer from the queue */
+        retry_dequeue:
         if(msg_queue_receive(mlv_play_queue_empty, &buffer, 5000))
         {
+            if(mlv_play_paused)
+            {
+                goto retry_dequeue;
+            }
             bmp_printf(FONT_MED, 0, 400, "Failed to get a free buffer, exiting");
             beep();
             msleep(1000);
@@ -992,6 +1238,7 @@ static void raw_play_task(void *priv)
     mlv_play_render_abort = 0;
     mlv_play_rendering = 1;
     task_create("mlv_play_render", 0x1d, 0x1000, mlv_play_render_task, NULL);
+    task_create("mlv_play_menu_task", 0x15, 0x1000, mlv_play_menu_task, 0);
     
     /* clear anything on screen */
     vram_clear_lv();
@@ -1105,21 +1352,50 @@ FILETYPE_HANDLER(mlv_play_filehandler)
 
 static unsigned int mlv_play_keypress_cbr(unsigned int key)
 {
-    if (mlv_play_rendering && key == MODULE_KEY_PRESS_SET)
+    if (mlv_play_rendering)
     {
-        mlv_play_quality = mod(mlv_play_quality + 1, 2);
-        return 0;
-    }
+        switch(key)
+        {
+            case MODULE_KEY_UNPRESS_SET:
+            {
+                return 0;
+            }
 
-    if (mlv_play_rendering && key == MODULE_KEY_UNPRESS_SET)
-    {
-        return 0;
-    }
-    
-    if(mlv_play_rendering && key > 0)
-    {
-        mlv_play_render_abort = 1;
-        return 0;
+            case MODULE_KEY_PRESS_SET:
+            case MODULE_KEY_WHEEL_UP:
+            case MODULE_KEY_WHEEL_DOWN:
+            case MODULE_KEY_WHEEL_LEFT:
+            case MODULE_KEY_WHEEL_RIGHT:
+            case MODULE_KEY_JOY_CENTER:
+            case MODULE_KEY_PRESS_UP:
+            case MODULE_KEY_PRESS_UP_RIGHT:
+            case MODULE_KEY_PRESS_UP_LEFT:
+            case MODULE_KEY_PRESS_RIGHT:
+            case MODULE_KEY_PRESS_LEFT:
+            case MODULE_KEY_PRESS_DOWN_RIGHT:
+            case MODULE_KEY_PRESS_DOWN_LEFT:
+            case MODULE_KEY_PRESS_DOWN:
+            case MODULE_KEY_UNPRESS_UDLR:
+            case MODULE_KEY_INFO:
+            case MODULE_KEY_Q:
+            {
+                msg_queue_post(mlv_play_queue_menu, key);
+                return 0;
+            }
+
+            /* ignore zero keycodes. pass through or not? */
+            case 0:
+            {
+                return 0;
+            }
+            
+            /* any other key aborts playback */
+            default:
+            {
+                mlv_play_render_abort = 1;
+                return 0;
+            }
+        }
     }
     
     return 1;
@@ -1130,6 +1406,7 @@ static unsigned int mlv_play_init()
     /* setup queues for frame buffers */
     mlv_play_queue_empty = (struct msg_queue *) msg_queue_create("mlv_play_queue_empty", 10);
     mlv_play_queue_render = (struct msg_queue *) msg_queue_create("mlv_play_queue_render", 10);
+    mlv_play_queue_menu = (struct msg_queue *) msg_queue_create("mlv_play_queue_menu", 10);
     
     fileman_register_type("RAW", "RAW Video", mlv_play_filehandler);
     fileman_register_type("MLV", "MLV Video", mlv_play_filehandler);
