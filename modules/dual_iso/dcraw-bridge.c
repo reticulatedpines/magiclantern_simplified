@@ -145,7 +145,7 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
     }
     else
     {
-        printf("Canon %s detected\n", model);
+        printf("Camera          : Canon %s\n", model);
     }
 
     for(i=0; i<COUNT(table); ++i)
