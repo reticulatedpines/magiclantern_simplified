@@ -69,6 +69,7 @@ int debug_blend = 0;
 int debug_amaze = 0;
 int debug_edge = 0;
 int debug_alias = 0;
+int debug_bad_pixels = 0;
 int plot_iso_curve = 0;
 int plot_mix_curve = 0;
 int plot_fullres_curve = 0;
@@ -130,9 +131,10 @@ struct cmd_group options[] = {
     {
         "Bad pixel handling", (struct cmd_option[]) {
           //{ &fix_pink_dots,  1, "--pink-dots",        "fix pink dots with a early chroma smoothing step" },
-            { &fix_bad_pixels, 0, "--no-bad-pixels",    "disable bad pixel fixing (for troubleshooting)" },
-            { &fix_bad_pixels, 1, "--bad-pixels",       NULL },
-          //{ &fix_bad_pixels, 2, "--really-bad-pix",   "aggressive bad pixel fix, at the expense of detail and aliasing" },
+            { &fix_bad_pixels, 1, "--bad-pix",          NULL },
+            { &fix_bad_pixels, 2, "--really-bad-pix",   "aggressive bad pixel fix, at the expense of detail and aliasing" },
+            { &fix_bad_pixels, 0, "--no-bad-pix",       "disable bad pixel fixing" },
+            { &debug_bad_pixels,1,"--black-bad-pix",    "mark all bad pixels as black (for troubleshooting)" },
             OPTION_EOL
         },
     },
@@ -2043,7 +2045,7 @@ static int hdr_interpolate()
 
                     /* for speedup */
                     int maybe_hot = (raw2ev[d] - raw2ev[b] > EV_RESOLUTION) && (d - b > dark_noise);
-                    if (!maybe_hot)
+                    if (!maybe_hot && fix_bad_pixels == 1)
                         continue;
 
                     /* don't check if the signal level is very low (will be handled by aliasing map) */
@@ -2100,20 +2102,35 @@ static int hdr_interpolate()
                         }
                     }
 
-
                     int is_hot_small = (raw2ev[d] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
                     int is_hot_large = (raw2ev[d] - raw2ev[max2] > EV_RESOLUTION*3) && (max2 > black + 8*dark_noise);
+                    
+                    if (fix_bad_pixels == 2)    /* aggressive thresholds */
+                    {
+                        is_hot_small = 
+                            (b < white_darkened) ? (raw2ev[d] - raw2ev[b] > EV_RESOLUTION/2) && (raw2ev[d] - raw2ev[max] > EV_RESOLUTION/4)
+                                                 : (raw2ev[d] - raw2ev[max] > EV_RESOLUTION/4);
 
-                    if (is_hot_small)
+                        is_hot_large = (raw2ev[d] - raw2ev[max2] > EV_RESOLUTION/2) && (max2 > black + 8*dark_noise);
+                    }
+
+                    if (is_hot_large)
+                    {
+                        hot_pixels++;
+                        hotpixel[x   + (y  )*w] = 2;
+                        hotpixel[x+1 + (y  )*w] = 2;
+                        hotpixel[x-1 + (y  )*w] = 2;
+                        hotpixel[x   + (y+1)*w] = 2;
+                        hotpixel[x   + (y-1)*w] = 2;
+                        hotpixel[x+1 + (y+1)*w] = 2;
+                        hotpixel[x-1 + (y-1)*w] = 2;
+                        hotpixel[x-1 + (y+1)*w] = 2;
+                        hotpixel[x+1 + (y-1)*w] = 2;
+                    }
+                    else if (is_hot_small)
                     {
                         hot_pixels++;
                         hotpixel[x + y*w] = 1;
-                    }
-
-                    else if (is_hot_large)
-                    {
-                        hot_pixels++;
-                        hotpixel[x + y*w] = 2;
                     }
                 }
             }
@@ -2148,23 +2165,30 @@ static int hdr_interpolate()
                     int med[9];
                     int k = 0;
                     int i,j;
+                    int bad = 0;
                     for (i = -1; i <= 1; i ++)
                     {
                         for (j = -1; j <= 1; j ++)
                         {
-                            int d = dark[x+j*2 + (y+i*2)*w];
-                            int b = bright[x+j*2 + (y+i*2)*w];
-                            int p = BRIGHT_ROW && b < white_darkened ? b : d;
+                            int idx = x+j*2 + (y+i*2)*w;
+                            if (hotpixel[idx]) { bad++; continue; }
+                            int d = dark[idx];
+                            int b = bright[idx];
+                            int p = is_bright[(y+i*2)%4] && b < white_darkened ? b : d;
 
                             med[k] = p;
                             k++;
                         }
                     }
-                    dark[x + y*w] = opt_med9(med);
+                    if (bad < 4)
+                    {
+                        dark[x + y*w] = bright[x + y*w] = opt_med9(med);
+                        if (debug_bad_pixels) dark[x + y*w] = bright[x + y*w] = 0;
+                    }
                 }
                 else if (hotpixel[x + y*w] == 2)
                 {
-                    /* use a 5x5 median filter to correct large hot pixels */
+                    /* use a modified 5x5 median filter to correct large hot pixels */
                     int med[25];
                     int k = 0;
                     int i,j;
@@ -2172,15 +2196,20 @@ static int hdr_interpolate()
                     {
                         for (j = -2; j <= 2; j ++)
                         {
-                            int d = dark[x+j*2 + (y+i*2)*w];
-                            int b = bright[x+j*2 + (y+i*2)*w];
-                            int p = BRIGHT_ROW && b < white_darkened ? b : d;
-
+                            int idx = x+j*2 + (y+i*2)*w;
+                            if (hotpixel[idx]) continue;
+                            int d = dark[idx];
+                            int b = bright[idx];
+                            int p = is_bright[(y+i*2)%4] && b < white_darkened ? b : d;
                             med[k] = p;
                             k++;
                         }
                     }
-                    dark[x + y*w] = opt_med25(med);
+                    if (k > 0)
+                    {
+                        dark[x + y*w] = bright[x + y*w] = median_int_wirth(med, k);
+                        if (debug_bad_pixels) dark[x + y*w] = bright[x + y*w] = 0;
+                    }
                 }
             }
         }
