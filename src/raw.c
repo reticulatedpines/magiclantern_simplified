@@ -1502,7 +1502,11 @@ static void raw_lv_update()
         beep();         /* second beep: changing raw type to something that isn't pink (this will be reset as soon as you enable raw back) */
         #endif
         /* fix pink preview in zoom */
-        *(volatile uint32_t*)0xc0f08114 = 0;
+        if (lv && lv_dispsize > 1 && DISPLAY_IS_ON)
+        {
+            /* todo: enqueue it in a vsync hook? */
+            EngDrvOutLV(0xc0f08114, 0);
+        }
         #endif
     }
 }
