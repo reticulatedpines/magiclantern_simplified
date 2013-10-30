@@ -442,6 +442,7 @@ void show_usage(char *executable)
     fprintf(stderr, "Parameters:\n");
     fprintf(stderr, " -o output_file      set the filename to write into\n");
     fprintf(stderr, " -v                  verbose output\n");
+    fprintf(stderr, " -t                  output frames into separate .dng files. set prfix with -o\n");
     fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
@@ -481,6 +482,7 @@ int main (int argc, char *argv[])
     int vidf_max_number = 0;
     
     int delta_encode_mode = 0;
+    int dng_output = 0;
     int xref_mode = 0;
     int average_mode = 0;
     int subtract_mode = 0;
@@ -522,10 +524,14 @@ int main (int argc, char *argv[])
         return 0;
     }
     
-    while ((opt = getopt(argc, argv, "xz:emnas:uvrcdo:l:b:f:")) != -1) 
+    while ((opt = getopt(argc, argv, "txz:emnas:uvrcdo:l:b:f:")) != -1) 
     {
         switch (opt)
         {
+            case 't':
+                dng_output = 1;
+                break;
+                
             case 'x':
                 xref_mode = 1;
                 break;
@@ -654,13 +660,24 @@ int main (int argc, char *argv[])
     /* display and set/unset variables according to parameters to have a consistent state */
     if(output_filename)
     {
-        if(raw_output)
+        if(dng_output)
+        {
+            printf("   - Convert to DNG frames\n"); 
+            
+            delta_encode_mode = 0;
+            compress_output = 0;
+            mlv_output = 0;
+            raw_output = 0;
+        }
+        else if(raw_output)
         {
             printf("   - Convert to legacy RAW\n"); 
             
             delta_encode_mode = 0;
             compress_output = 0;
             mlv_output = 0;
+            dng_output = 0;
+            
             if(average_mode)
             {
                 printf("   - disabled average mode, not possible\n");
@@ -670,6 +687,8 @@ int main (int argc, char *argv[])
         else
         {
             mlv_output = 1;
+            dng_output = 0;
+            
             printf("   - Rewrite MLV\n"); 
             if(bit_zap)
             {
@@ -1036,7 +1055,7 @@ read_headers:
                     printf("   Space: %d\n", block_hdr.frameSpace);
                 }
                 
-                if(raw_output || mlv_output)
+                if(raw_output || mlv_output || dng_output)
                 {
                     /* if already compressed, we have to decompress it first */
                     int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
@@ -1053,7 +1072,7 @@ read_headers:
                         goto abort;
                     }
                     
-                    if(recompress || decompress || (raw_output && compressed))
+                    if(recompress || decompress || ((raw_output || dng_output) && compressed))
                     {
 #ifdef MLV_USE_LZMA
                         size_t lzma_out_size = *(uint32_t *)frame_buffer;
@@ -1306,6 +1325,48 @@ read_headers:
 
                         fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
                         fwrite(frame_buffer, frame_size, 1, out_file);
+                    }
+                    
+                    if(dng_output)
+                    {
+                        void fix_vertical_stripes();
+                        void chroma_smooth();
+                        extern struct raw_info raw_info;
+
+                        char fn[100];
+                        snprintf(fn, sizeof(fn), "%s%06d.dng", output_filename, block_hdr.frameNumber);
+                        
+                        raw_info = lv_rec_footer.raw_info;
+                        raw_info.frame_size = frame_size;
+                        raw_info.buffer = frame_buffer;
+                        
+                        /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
+                        if (lv_rec_footer.xRes != raw_info.width)
+                        {
+                            raw_info.width = lv_rec_footer.xRes;
+                            raw_info.pitch = raw_info.width * 14/8;
+                            raw_info.active_area.x1 = 0;
+                            raw_info.active_area.x2 = raw_info.width;
+                            raw_info.jpeg.x = 0;
+                            raw_info.jpeg.width = raw_info.width;
+                        }
+
+                        if (lv_rec_footer.yRes != raw_info.height)
+                        {
+                            raw_info.height = lv_rec_footer.yRes;
+                            raw_info.active_area.y1 = 0;
+                            raw_info.active_area.y2 = raw_info.height;
+                            raw_info.jpeg.y = 0;
+                            raw_info.jpeg.height = raw_info.height;
+                        }
+    
+                        /* call raw2dng code */
+                        fix_vertical_stripes();
+                        #ifdef CHROMA_SMOOTH
+                        chroma_smooth();
+                        #endif
+                        dng_set_framerate(main_header.sourceFpsNom  * 1000 / main_header.sourceFpsDenom);
+                        save_dng(fn, &raw_info);
                     }
                     
                     if(mlv_output && !only_metadata_mode && !average_mode)
@@ -1753,7 +1814,7 @@ read_headers:
                 }
             
                 /* always output RAWI blocks, its not just metadata, but important frame format data */
-                if(mlv_output /*&& !no_metadata_mode*/)
+                if(mlv_output)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
