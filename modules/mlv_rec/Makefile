@@ -69,8 +69,10 @@ $(LZMA_LIB_MINGW): $(LZMA_OBJS_MINGW)
 #
 # mlv_dump rules
 #
-mlv_dump: $(LZMA_LIB) mlv_dump.c
-	$(call build,GCC,gcc -o $@ mlv_dump.c $(LZMA_LIB) $(LZMA_INC) $(MLV_CFLAGS))
+mlv_dump: $(LZMA_LIB) mlv_dump.c $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
+	$(call build,GCC,gcc -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR)  -ggdb)
+	$(call build,GCC,gcc -c ../lv_rec/raw2dng.c -DMLV2DNG -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64  -ggdb)
+	$(call build,GCC,gcc raw2dng.o chdk-dng.o -o $@ mlv_dump.c -lm $(LZMA_LIB) $(LZMA_INC) $(MLV_CFLAGS)  -ggdb)
 
 mlv_dump.exe: $(LZMA_LIB_MINGW) mlv_dump.c
 	$(call build,MINGW-GCC,$(MINGW_GCC) -o $@ mlv_dump.c $(LZMA_LIB_MINGW) $(LZMA_INC) $(MLV_CFLAGS))
