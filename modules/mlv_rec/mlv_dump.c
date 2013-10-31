@@ -1491,6 +1491,17 @@ read_headers:
                         dng_set_focal(lens_info.focalLength, 1);
                         dng_set_iso(expo_info.isoValue);
                         
+                        uint64_t serial = 0;
+                        char *end;
+                        serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
+                        if (serial && !*end)
+                        {
+                            char serial_str[64];
+                            
+                            sprintf(serial_str, "%"PRIu64, serial);
+                            dng_set_camserial((char*)serial_str);
+                        }
+                        
                         /* finally save the DNG */
                         save_dng(fn, &raw_info);
                     }
