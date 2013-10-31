@@ -191,6 +191,7 @@ static const int cam_AnalogBalance[]           = {1,1,1,1,1,1};
 static char dng_lens_model[64]              = "";
 static char dng_image_desc[64]              = "";
 static char cam_name[32]                    = "Canikon";
+static char cam_serial[64]                  = "";
 static char dng_artist_name[64]             = "";
 static char dng_copyright[64]               = "";
 static const short cam_PreviewBitsPerSample[]  = {8,8,8};
@@ -319,6 +320,11 @@ void dng_set_camname(char *str)
     strncpy(cam_name, str, sizeof(cam_name));
 }
 
+void dng_set_camserial(char *str)
+{
+    strncpy(cam_serial, str, sizeof(cam_serial));
+}
+
 void dng_set_description(char *str)
 {
     strncpy(dng_image_desc, str, sizeof(dng_image_desc));
@@ -405,6 +411,7 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
         {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
+        {0xA431, T_ASCII,      sizeof(cam_serial), (int)cam_serial},               // Exif.Photo.BodySerialNumber
         {0xA434, T_ASCII,      sizeof(dng_lens_model), (int)dng_lens_model},               // Exif.Photo.LensModel - added to end so we don't have to update static array offsets
     };
 
