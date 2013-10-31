@@ -312,10 +312,44 @@ static void add_val_to_buf(int val, int size)
 }
 
 
+void dng_set_camname(char *name)
+{
+    strncpy(cam_name, name, sizeof(cam_name));
+}
+
+void dng_set_focal(int nom, int denom)
+{
+    cam_focal_length[0] = nom;
+    cam_focal_length[1] = denom;
+}
+
+void dng_set_aperture(int nom, int denom)
+{
+    cam_aperture[0] = nom;
+    cam_aperture[1] = denom;
+}
+
+void dng_set_shutter(int nom, int denom)
+{
+    cam_shutter[0] = nom;
+    cam_shutter[1] = denom;
+}
+
 void dng_set_framerate(int fpsx1000)
 {
     cam_FrameRate[0] = fpsx1000;
     cam_FrameRate[1] = 1000;
+}
+
+void dng_set_framerate_rational(int nom, int denom)
+{
+    cam_FrameRate[0] = nom;
+    cam_FrameRate[1] = denom;
+}
+
+void dng_set_iso(int value)
+{
+    exif_data.iso = value;
 }
 
 static void create_dng_header(struct raw_info * raw_info){
