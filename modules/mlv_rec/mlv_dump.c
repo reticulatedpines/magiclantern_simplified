@@ -19,12 +19,18 @@
  */
 
 /* system includes */
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
 #include <inttypes.h>
+
+/* dng related headers */
+#include <chdk-dng.h>
+#include "../dual_iso/wirth.h"  /* fast median, generic implementation (also kth_smallest) */
+#include "../dual_iso/optmed.h" /* fast median for small common array sizes (3, 7, 9...) */
 
 /* some compile warning, why? */
 char *strdup(const char *s);
@@ -51,8 +57,17 @@ char *strdup(const char *s);
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+     
+#define ABS(a) \
+   ({ __typeof__ (a) _a = (a); \
+     _a > 0 ? _a : -_a; })
 
-#define COERCE(val,min,max) MIN(MAX((value),(min)),(max))
+#define SGN(a) \
+   ((a) > 0 ? 1 : -1 )
+
+#define COERCE(val,min,max) MIN(MAX((val),(min)),(max))
+#define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
+
 
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
@@ -61,10 +76,6 @@ typedef struct
     uint64_t    frameOffset;
     uint32_t    fileNumber;
 } frame_xref_t;
-
-
-
-
 
 void xref_resize(frame_xref_t **table, int entries, int *allocated)
 {
@@ -436,20 +447,107 @@ FILE **load_all_chunks(char *base_filename, int *entries)
     return files;
 }
 
+
+#define EV_RESOLUTION 32768
+
+#define CHROMA_SMOOTH_2X2
+#include "../dual_iso/chroma_smooth.c"
+#undef CHROMA_SMOOTH_2X2
+
+#define CHROMA_SMOOTH_3X3
+#include "../dual_iso/chroma_smooth.c"
+#undef CHROMA_SMOOTH_3X3
+
+#define CHROMA_SMOOTH_5X5
+#include "../dual_iso/chroma_smooth.c"
+#undef CHROMA_SMOOTH_5X5
+
+
+void chroma_smooth(int method, struct raw_info *info)
+{
+    int black = info->black_level;
+    static int raw2ev[16384];
+    static int _ev2raw[24*EV_RESOLUTION];
+    int* ev2raw = _ev2raw + 10*EV_RESOLUTION;
+    
+    int i;
+    for (i = 0; i < 16384; i++)
+    {
+        raw2ev[i] = log2(MAX(1, i - black)) * EV_RESOLUTION;
+    }
+
+    for (i = -10*EV_RESOLUTION; i < 14*EV_RESOLUTION; i++)
+    {
+        ev2raw[i] = black + pow(2, (float)i / EV_RESOLUTION);
+    }
+
+    int w = info->width;
+    int h = info->height;
+
+    unsigned short * aux = malloc(w * h * sizeof(short));
+    unsigned short * aux2 = malloc(w * h * sizeof(short));
+
+    int x,y;
+    for (y = 0; y < h; y++)
+    {
+        for (x = 0; x < w; x++)
+        {
+            aux[x + y*w] = aux2[x + y*w] = raw_get_pixel(x, y);
+        }
+    }
+    
+    switch(method)
+    {
+        case 0:
+            break;
+        case 2:
+            chroma_smooth_2x2(aux, aux2, raw2ev, ev2raw);
+            break;
+        case 3:
+            chroma_smooth_3x3(aux, aux2, raw2ev, ev2raw);
+            break;
+        case 5:
+            chroma_smooth_5x5(aux, aux2, raw2ev, ev2raw);
+            break;
+    }
+    
+    for (y = 0; y < h; y++)
+    {
+        for (x = 0; x < w; x++)
+        {
+            raw_set_pixel(x, y, aux2[x + y*w]);
+        }
+    }
+
+    free(aux);
+    free(aux2);
+}
+
 void show_usage(char *executable)
 {
     fprintf(stderr, "Usage: %s [-o output_file] [-rscd] [-l compression_level(0-9)] <inputfile>\n", executable);
     fprintf(stderr, "Parameters:\n");
     fprintf(stderr, " -o output_file      set the filename to write into\n");
     fprintf(stderr, " -v                  verbose output\n");
-    fprintf(stderr, " -t                  output frames into separate .dng files. set prfix with -o\n");
+    
+    fprintf(stderr, "\n");
+    fprintf(stderr, "-- DNG output --\n");
+    fprintf(stderr, " --dng               output frames into separate .dng files. set prefix with -o\n");
+    fprintf(stderr, " --no-cs             no chroma subsampling\n");
+    fprintf(stderr, " --cs2x2             2x2 chroma subsampling\n");
+    fprintf(stderr, " --cs3x3             3x3 chroma subsampling\n");
+    fprintf(stderr, " --cs5x5             5x5 chroma subsampling\n");
+    
+    fprintf(stderr, "\n");
+    fprintf(stderr, "-- RAW output --\n");
     fprintf(stderr, " -r                  output into a legacy raw file for e.g. raw2dng\n");
+    
+    fprintf(stderr, "\n");
+    fprintf(stderr, "-- MLV output --\n");
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
     fprintf(stderr, " -f frames           stop after that number of frames\n");
-    
     fprintf(stderr, " -x                  build xref file (indexing)\n");
-    
     fprintf(stderr, " -m                  write only metadata, no audio or video frames\n");
     fprintf(stderr, " -n                  write no metadata, only audio and video frames\n");
     
@@ -467,6 +565,7 @@ void show_usage(char *executable)
 #else
     fprintf(stderr, " -c, -d, -l          NOT AVAILABLE: compression support was not compiled into this release\n");
 #endif
+    fprintf(stderr, "\n");
 }
 
 int main (int argc, char *argv[])
@@ -482,7 +581,6 @@ int main (int argc, char *argv[])
     int vidf_max_number = 0;
     
     int delta_encode_mode = 0;
-    int dng_output = 0;
     int xref_mode = 0;
     int average_mode = 0;
     int subtract_mode = 0;
@@ -518,20 +616,31 @@ int main (int argc, char *argv[])
     printf("-----------------\n"); 
     printf("\n"); 
     
+
+    /* long options */
+    int chroma_smooth_method = 0;
+    int dng_output = 0;
+
+    struct option long_options[] = {
+        {"dng",    no_argument, &dng_output,  1 },
+        {"no-cs",  no_argument, &chroma_smooth_method,  0 },
+        {"cs2x2",  no_argument, &chroma_smooth_method,  2 },
+        {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
+        {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
+        {0,         0,                 0,  0 }
+    };    
+    
     if(sizeof(mlv_file_hdr_t) != 52)
     {
         printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is %d on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
         return 0;
     }
     
-    while ((opt = getopt(argc, argv, "txz:emnas:uvrcdo:l:b:f:")) != -1) 
+    int index = 0;
+    while ((opt = getopt_long(argc, argv, "txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1) 
     {
         switch (opt)
         {
-            case 't':
-                dng_output = 1;
-                break;
-                
             case 'x':
                 xref_mode = 1;
                 break;
@@ -630,6 +739,9 @@ int main (int argc, char *argv[])
                 {
                     bit_zap = MIN(16, MAX(1, atoi(optarg)));
                 }
+                break;
+            
+            case 0:
                 break;
                 
             default:
@@ -740,6 +852,9 @@ int main (int argc, char *argv[])
     /* start processing */
     lv_rec_file_footer_t lv_rec_footer;
     mlv_file_hdr_t main_header;
+    mlv_lens_hdr_t lens_info;
+    mlv_expo_hdr_t expo_info;
+    mlv_idnt_hdr_t idnt_info;
     
     /* this table contains the XREF chunk read from idx file, if existing */
     mlv_xref_hdr_t *block_xref = NULL;
@@ -1330,7 +1445,6 @@ read_headers:
                     if(dng_output)
                     {
                         void fix_vertical_stripes();
-                        void chroma_smooth();
                         extern struct raw_info raw_info;
 
                         char fn[100];
@@ -1362,10 +1476,19 @@ read_headers:
     
                         /* call raw2dng code */
                         fix_vertical_stripes();
-                        #ifdef CHROMA_SMOOTH
-                        chroma_smooth();
-                        #endif
-                        dng_set_framerate(main_header.sourceFpsNom  * 1000 / main_header.sourceFpsDenom);
+                        
+                        /* this is internal again */
+                        chroma_smooth(chroma_smooth_method, &raw_info);
+                        
+                        /* set MLV metadata into DNG tags */
+                        dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                        dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
+                        dng_set_aperture(lens_info.aperture, 100);
+                        dng_set_camname((char*)idnt_info.cameraName);
+                        dng_set_focal(lens_info.focalLength, 1);
+                        dng_set_iso(expo_info.isoValue);
+                        
+                        /* finally save the DNG */
                         save_dng(fn, &raw_info);
                     }
                     
@@ -1449,36 +1572,35 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "LENS", 4))
             {
-                mlv_lens_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_lens_hdr_t), buf.blockSize);
 
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                if(fread(&lens_info, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                fseeko(in_file, position + lens_info.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
-                    printf("     Name:        '%s'\n", block_hdr.lensName);
-                    printf("     Serial:      '%s'\n", block_hdr.lensSerial);
-                    printf("     Focal Len:   %d mm\n", block_hdr.focalLength);
-                    printf("     Focus Dist:  %d mm\n", block_hdr.focalDist);
-                    printf("     Aperture:    f/%.2f\n", (double)block_hdr.aperture / 100.0f);
-                    printf("     IS Mode:     %d\n", block_hdr.stabilizerMode);
-                    printf("     AF Mode:     %d\n", block_hdr.autofocusMode);
-                    printf("     Lens ID:     0x%08X\n", block_hdr.lensID);
-                    printf("     Flags:       0x%08X\n", block_hdr.flags);
+                    printf("     Name:        '%s'\n", lens_info.lensName);
+                    printf("     Serial:      '%s'\n", lens_info.lensSerial);
+                    printf("     Focal Len:   %d mm\n", lens_info.focalLength);
+                    printf("     Focus Dist:  %d mm\n", lens_info.focalDist);
+                    printf("     Aperture:    f/%.2f\n", (double)lens_info.aperture / 100.0f);
+                    printf("     IS Mode:     %d\n", lens_info.stabilizerMode);
+                    printf("     AF Mode:     %d\n", lens_info.autofocusMode);
+                    printf("     Lens ID:     0x%08X\n", lens_info.lensID);
+                    printf("     Flags:       0x%08X\n", lens_info.flags);
                 }
             
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_lens_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    lens_info.blockSize = sizeof(mlv_lens_hdr_t);
+                    if(fwrite(&lens_info, lens_info.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         goto abort;
@@ -1638,30 +1760,29 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "IDNT", 4))
             {
-                mlv_idnt_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_idnt_hdr_t), buf.blockSize);
 
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                if(fread(&idnt_info, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                fseeko(in_file, position + idnt_info.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
-                    printf("     Camera Name:   '%s'\n", block_hdr.cameraName);
-                    printf("     Camera Serial: '%s'\n", block_hdr.cameraSerial);
-                    printf("     Camera Model:  0x%08X\n", block_hdr.cameraModel);
+                    printf("     Camera Name:   '%s'\n", idnt_info.cameraName);
+                    printf("     Camera Serial: '%s'\n", idnt_info.cameraSerial);
+                    printf("     Camera Model:  0x%08X\n", idnt_info.cameraModel);
                 }
             
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_idnt_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    idnt_info.blockSize = sizeof(mlv_idnt_hdr_t);
+                    if(fwrite(&idnt_info, idnt_info.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         goto abort;
@@ -1735,32 +1856,31 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "EXPO", 4))
             {
-                mlv_expo_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_expo_hdr_t), buf.blockSize);
 
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                if(fread(&expo_info, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                fseeko(in_file, position + expo_info.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
-                    printf("     ISO Mode:   %d\n", block_hdr.isoMode);
-                    printf("     ISO:        %d\n", block_hdr.isoValue);
-                    printf("     ISO Analog: %d\n", block_hdr.isoAnalog);
-                    printf("     ISO DGain:  %d/1024 EV\n", block_hdr.digitalGain);
-                    printf("     Shutter:    %" PRIu64 " µs (1/%.2f)\n", block_hdr.shutterValue, 1000000.0f/(float)block_hdr.shutterValue);
+                    printf("     ISO Mode:   %d\n", expo_info.isoMode);
+                    printf("     ISO:        %d\n", expo_info.isoValue);
+                    printf("     ISO Analog: %d\n", expo_info.isoAnalog);
+                    printf("     ISO DGain:  %d/1024 EV\n", expo_info.digitalGain);
+                    printf("     Shutter:    %" PRIu64 " µs (1/%.2f)\n", expo_info.shutterValue, 1000000.0f/(float)expo_info.shutterValue);
                 }
             
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_expo_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    expo_info.blockSize = sizeof(mlv_expo_hdr_t);
+                    if(fwrite(&expo_info, expo_info.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         goto abort;
