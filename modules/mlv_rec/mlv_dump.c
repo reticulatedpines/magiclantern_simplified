@@ -533,10 +533,10 @@ void show_usage(char *executable)
     fprintf(stderr, "\n");
     fprintf(stderr, "-- DNG output --\n");
     fprintf(stderr, " --dng               output frames into separate .dng files. set prefix with -o\n");
-    fprintf(stderr, " --no-cs             no chroma subsampling\n");
-    fprintf(stderr, " --cs2x2             2x2 chroma subsampling\n");
-    fprintf(stderr, " --cs3x3             3x3 chroma subsampling\n");
-    fprintf(stderr, " --cs5x5             5x5 chroma subsampling\n");
+    fprintf(stderr, " --no-cs             no chroma smoothing\n");
+    fprintf(stderr, " --cs2x2             2x2 chroma smoothing\n");
+    fprintf(stderr, " --cs3x3             3x3 chroma smoothing\n");
+    fprintf(stderr, " --cs5x5             5x5 chroma smoothing\n");
     
     fprintf(stderr, "\n");
     fprintf(stderr, "-- RAW output --\n");
