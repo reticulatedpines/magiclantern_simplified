@@ -203,7 +203,8 @@ extern struct raw_info raw_info;
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename, struct raw_info * raw_info);
 
-
+/* do not include ML headers if used in postprocessing */
+#ifdef CONFIG_MAGICLANTERN
 /** Menu helpers **/
 #include "menu.h"
 
@@ -221,5 +222,7 @@ extern int can_use_raw_overlays();
 
 /* to be used in menu, if you want to check if raw data will available in current mode (not necessarily at the time of displaying the menu) */
 extern int can_use_raw_overlays_menu();
+
+#endif
 
 #endif
