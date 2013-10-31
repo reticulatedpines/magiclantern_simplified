@@ -188,6 +188,8 @@ static const int cam_BaselineNoise[]           = {1,1};
 static const int cam_BaselineSharpness[]       = {4,3};
 static const int cam_LinearResponseLimit[]     = {1,1};
 static const int cam_AnalogBalance[]           = {1,1,1,1,1,1};
+static char dng_lens_model[64]              = "";
+static char dng_image_desc[64]              = "";
 static char cam_name[32]                    = "Canikon";
 static char dng_artist_name[64]             = "";
 static char dng_copyright[64]               = "";
@@ -312,9 +314,19 @@ static void add_val_to_buf(int val, int size)
 }
 
 
-void dng_set_camname(char *name)
+void dng_set_camname(char *str)
 {
-    strncpy(cam_name, name, sizeof(cam_name));
+    strncpy(cam_name, str, sizeof(cam_name));
+}
+
+void dng_set_description(char *str)
+{
+    strncpy(dng_image_desc, str, sizeof(dng_image_desc));
+}
+
+void dng_set_lensmodel(char *str)
+{
+    strncpy(dng_lens_model, str, sizeof(dng_lens_model));
 }
 
 void dng_set_focal(int nom, int denom)
@@ -364,7 +376,7 @@ static void create_dng_header(struct raw_info * raw_info){
         {0x102,  T_SHORT,      3,  (int)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
         {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
         {0x106,  T_SHORT,      1,  2},                                 // PhotometricInterpretation: RGB
-        {0x10E,  T_ASCII,      1,  0},                                 // ImageDescription
+        {0x10E,  T_ASCII,      sizeof(dng_image_desc), (int)dng_image_desc},               // ImageDescription
         {0x10F,  T_ASCII,      sizeof(CAM_MAKE), (int)CAM_MAKE},       // Make
         {0x110,  T_ASCII,      32, (int)cam_name},                     // Model: Filled at header generation.
         {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
@@ -393,6 +405,7 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
         {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
+        {0xA434, T_ASCII,      sizeof(dng_lens_model), (int)dng_lens_model},               // Exif.Photo.LensModel - added to end so we don't have to update static array offsets
     };
 
     struct dir_entry ifd1[]={
