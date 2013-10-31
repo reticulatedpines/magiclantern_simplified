@@ -855,6 +855,7 @@ int main (int argc, char *argv[])
     mlv_lens_hdr_t lens_info;
     mlv_expo_hdr_t expo_info;
     mlv_idnt_hdr_t idnt_info;
+    char info_string[256] = "(MLV Video without INFO blocks)";
     
     /* this table contains the XREF chunk read from idx file, if existing */
     mlv_xref_hdr_t *block_xref = NULL;
@@ -1485,6 +1486,8 @@ read_headers:
                         dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
                         dng_set_aperture(lens_info.aperture, 100);
                         dng_set_camname((char*)idnt_info.cameraName);
+                        dng_set_description((char*)info_string);
+                        dng_set_lensmodel((char*)lens_info.lensName);
                         dng_set_focal(lens_info.focalLength, 1);
                         dng_set_iso(expo_info.isoValue);
                         
@@ -1630,6 +1633,8 @@ read_headers:
                         fprintf(stderr, "[E] File ends in the middle of a block\n");
                         goto abort;
                     }
+                    
+                    strncpy(info_string, buf, sizeof(info_string));
 
                     if(verbose)
                     {
