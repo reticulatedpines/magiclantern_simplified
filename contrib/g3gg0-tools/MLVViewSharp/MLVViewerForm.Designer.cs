@@ -28,12 +28,16 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.pictureBox = new System.Windows.Forms.PictureBox();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
+            this.splitContainer3 = new System.Windows.Forms.SplitContainer();
             this.trackBar = new System.Windows.Forms.TrackBar();
+            this.trackBarExposure = new System.Windows.Forms.TrackBar();
             this.txtInfo = new System.Windows.Forms.TextBox();
             this.btnPlayPause = new System.Windows.Forms.Button();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -41,7 +45,11 @@
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
             this.splitContainer2.SuspendLayout();
+            this.splitContainer3.Panel1.SuspendLayout();
+            this.splitContainer3.Panel2.SuspendLayout();
+            this.splitContainer3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBarExposure)).BeginInit();
             this.SuspendLayout();
             // 
             // pictureBox
@@ -86,7 +94,7 @@
             // 
             // splitContainer2.Panel1
             // 
-            this.splitContainer2.Panel1.Controls.Add(this.trackBar);
+            this.splitContainer2.Panel1.Controls.Add(this.splitContainer3);
             // 
             // splitContainer2.Panel2
             // 
@@ -96,13 +104,41 @@
             this.splitContainer2.SplitterDistance = 25;
             this.splitContainer2.TabIndex = 0;
             // 
+            // splitContainer3
+            // 
+            this.splitContainer3.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer3.Location = new System.Drawing.Point(0, 0);
+            this.splitContainer3.Name = "splitContainer3";
+            // 
+            // splitContainer3.Panel1
+            // 
+            this.splitContainer3.Panel1.Controls.Add(this.trackBar);
+            // 
+            // splitContainer3.Panel2
+            // 
+            this.splitContainer3.Panel2.Controls.Add(this.trackBarExposure);
+            this.splitContainer3.Size = new System.Drawing.Size(1138, 25);
+            this.splitContainer3.SplitterDistance = 889;
+            this.splitContainer3.TabIndex = 1;
+            // 
             // trackBar
             // 
             this.trackBar.Dock = System.Windows.Forms.DockStyle.Fill;
             this.trackBar.Location = new System.Drawing.Point(0, 0);
             this.trackBar.Name = "trackBar";
-            this.trackBar.Size = new System.Drawing.Size(1138, 25);
+            this.trackBar.Size = new System.Drawing.Size(889, 25);
             this.trackBar.TabIndex = 0;
+            // 
+            // trackBarExposure
+            // 
+            this.trackBarExposure.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.trackBarExposure.Location = new System.Drawing.Point(0, 0);
+            this.trackBarExposure.Maximum = 14;
+            this.trackBarExposure.Minimum = -14;
+            this.trackBarExposure.Name = "trackBarExposure";
+            this.trackBarExposure.Size = new System.Drawing.Size(245, 25);
+            this.trackBarExposure.TabIndex = 2;
+            this.trackBarExposure.ValueChanged += new System.EventHandler(this.trackBarExposure_ValueChanged);
             // 
             // txtInfo
             // 
@@ -138,11 +174,16 @@
             this.splitContainer1.Panel2.ResumeLayout(false);
             this.splitContainer1.ResumeLayout(false);
             this.splitContainer2.Panel1.ResumeLayout(false);
-            this.splitContainer2.Panel1.PerformLayout();
             this.splitContainer2.Panel2.ResumeLayout(false);
             this.splitContainer2.Panel2.PerformLayout();
             this.splitContainer2.ResumeLayout(false);
+            this.splitContainer3.Panel1.ResumeLayout(false);
+            this.splitContainer3.Panel1.PerformLayout();
+            this.splitContainer3.Panel2.ResumeLayout(false);
+            this.splitContainer3.Panel2.PerformLayout();
+            this.splitContainer3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBarExposure)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -155,6 +196,9 @@
         private System.Windows.Forms.TrackBar trackBar;
         private System.Windows.Forms.Button btnPlayPause;
         private System.Windows.Forms.TextBox txtInfo;
+        private System.Windows.Forms.SplitContainer splitContainer3;
+        private System.Windows.Forms.TrackBar trackBarExposure;
+        private System.Windows.Forms.ToolTip toolTip1;
     }
 }
 

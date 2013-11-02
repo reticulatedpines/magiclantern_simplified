@@ -11,11 +11,17 @@ namespace mlv_view_sharp
         /// Der Haupteinstiegspunkt für die Anwendung.
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MLVViewerForm());
+            MLVViewerForm form = new MLVViewerForm();
+
+            if (args.Length != 0)
+            {
+                form.AutoplayFile = args[0];
+            }
+            Application.Run(form);
         }
     }
 }

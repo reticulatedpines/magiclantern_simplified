@@ -17,7 +17,9 @@ namespace mlv_view_sharp
     {
         public Bitmap CurrentFrame;
         private LockBitmap LockBitmap = null;
-        public bool FrameUpdated = false;
+        public bool FrameUpdated = false; 
+        internal float _ExposureCorrection = 0.0f;
+
 
         public MLVTypes.mlv_rawi_hdr_t RawiHeader;
         public MLVTypes.mlv_file_hdr_t FileHeader;
@@ -100,7 +102,7 @@ namespace mlv_view_sharp
             Bitunpack.BitsPerPixel = header.raw_info.bits_per_pixel;
 
             Debayer.Saturation = 0.12f;
-            Debayer.Brightness = 4000;
+            Debayer.Brightness = 1;
             Debayer.BlackLevel = header.raw_info.black_level;
             Debayer.WhiteLevel = header.raw_info.white_level;
             Debayer.CamMatrix = camMatrix;
@@ -174,17 +176,23 @@ namespace mlv_view_sharp
                 LockBitmap.UnlockBits();
 
                 int pixels = RawiHeader.yRes * RawiHeader.xRes;
-                double averageBrightness = (average[0] + average[1] + average[2]) / (3 * pixels);
-
 
                 /* make sure the average brightness is somewhere in the mid range */
-                if (averageBrightness < 100)
+                if (Math.Abs(_ExposureCorrection) == 0.0f)
                 {
-                    Debayer.Brightness *= 1.0f + (float)(100.0f - averageBrightness) / 100.0f;
+                    double averageBrightness = (average[0] + average[1] + average[2]) / (3 * pixels);
+                    if (averageBrightness < 100)
+                    {
+                        Debayer.Brightness *= 1.0f + (float)(100.0f - averageBrightness) / 100.0f;
+                    }
+                    if (averageBrightness > 200)
+                    {
+                        Debayer.Brightness /= 1.0f + (float)(averageBrightness - 200.0f) / 55.0f;
+                    }
                 }
-                if (averageBrightness > 200)
+                else
                 {
-                    Debayer.Brightness /= 1.0f + (float)(averageBrightness - 200.0f) / 55.0f;
+                    Debayer.Brightness = (float)Math.Pow(2,_ExposureCorrection);
                 }
 
                 FrameUpdated = true;
@@ -271,6 +279,18 @@ namespace mlv_view_sharp
                 newDebayer.CamMatrix = Debayer.CamMatrix;
 
                 Debayer = newDebayer;
+            }
+        }
+
+        internal float ExposureCorrection
+        {
+            get
+            {
+                return _ExposureCorrection;
+            }
+            set
+            {
+                _ExposureCorrection = value;
             }
         }
     }

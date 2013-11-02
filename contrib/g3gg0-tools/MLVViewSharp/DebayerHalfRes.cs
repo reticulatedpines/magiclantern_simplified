@@ -37,11 +37,12 @@ namespace mlv_view_sharp
             {
                 /* subtract black level and scale to 0.0 to 1.0 */
                 int range = white - black;
-                float scal = (float)(pos - black) / range;
+                float scal = (float)Math.Max(0, pos - black) / range;
 
                 scal *= _Brightness;
 
-                PixelLookupTable[pos] = Math.Max(0, scal);
+                /* now scale to 0-255 */
+                PixelLookupTable[pos] = Math.Max(0, scal) * 255;
             }
         }
 
@@ -101,11 +102,11 @@ namespace mlv_view_sharp
         {
             get
             {
-                PixelLookupTableDirty = true;
                 return _BlackLevel;
             }
             set
             {
+                PixelLookupTableDirty = true;
                 _BlackLevel = value;
             }
         }
@@ -114,11 +115,11 @@ namespace mlv_view_sharp
         {
             get
             {
-                PixelLookupTableDirty = true;
                 return _WhiteLevel;
             }
             set
             {
+                PixelLookupTableDirty = true;
                 _WhiteLevel = value;
             }
         }
@@ -127,11 +128,11 @@ namespace mlv_view_sharp
         {
             get
             {
-                PixelLookupTableDirty = true;
                 return _Brightness;
             }
             set
             {
+                PixelLookupTableDirty = true;
                 _Brightness = value;
             }
         }

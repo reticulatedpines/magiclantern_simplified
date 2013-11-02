@@ -16,6 +16,7 @@ namespace mlv_view_sharp
         private Thread PlayThread = null;
         private bool Paused = false;
         MLVHandler Handler = new MLVHandler();
+        public string AutoplayFile = null;
 
         public MLVViewerForm()
         {
@@ -29,6 +30,16 @@ namespace mlv_view_sharp
                 new MenuItem("   1/8 Resolution (guess what..)", new EventHandler(menu_Debayer_8)),
                 new MenuItem("-"), 
             });
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            if (AutoplayFile != null)
+            {
+                PlaybackFile(AutoplayFile);
+                AutoplayFile = null;
+            } 
+            base.OnLoad(e);
         }
 
         protected void menu_DebayerBilin(Object sender, EventArgs e)
@@ -69,21 +80,26 @@ namespace mlv_view_sharp
 
             if (files.Length > 0)
             {
-                if (PlayThread != null)
-                {
-                    PlayThread.Abort();
-                }
-                pictureBox.Image = null;
-
-                pictureBox.Image = new Bitmap(pictureBox.Size.Width, pictureBox.Size.Height);
-                Graphics g = Graphics.FromImage(pictureBox.Image);
-                g.DrawString("Loading File...", new Font("Courier New", 48), Brushes.Black, new Point(10, 10));
-                g.Dispose();
-
-                FileName = files[0];
-                PlayThread = new Thread(PlayFile);
-                PlayThread.Start();
+                PlaybackFile(files[0]);
             }
+        }
+
+        private void PlaybackFile(string file)
+        {
+            if (PlayThread != null)
+            {
+                PlayThread.Abort();
+            }
+            pictureBox.Image = null;
+
+            pictureBox.Image = new Bitmap(pictureBox.Size.Width, pictureBox.Size.Height);
+            Graphics g = Graphics.FromImage(pictureBox.Image);
+            g.DrawString("Loading File...", new Font("Courier New", 48), Brushes.Black, new Point(10, 10));
+            g.Dispose();
+
+            FileName = file;
+            PlayThread = new Thread(PlayFile);
+            PlayThread.Start();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -300,6 +316,21 @@ namespace mlv_view_sharp
                 Size = pictureBox.Image.Size;
                 pictureBox.Size = pictureBox.Image.Size;
             }
+        }
+
+        private void trackBarExposure_ValueChanged(object sender, EventArgs e)
+        {
+            float ev = (float)(trackBarExposure.Value) / 2.0f;
+
+            if (trackBarExposure.Value == 0)
+            {
+                toolTip1.SetToolTip(trackBarExposure, "Auto brightness");
+            }
+            else
+            {
+                toolTip1.SetToolTip(trackBarExposure, ev.ToString() + " EV");
+            }
+            Handler.ExposureCorrection = ev;
         }
     }
 }
