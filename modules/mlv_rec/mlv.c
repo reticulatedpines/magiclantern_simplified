@@ -73,7 +73,7 @@ void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp)
     hdr->kelvin = lens_info.kelvin;    
     hdr->wbgain_r = lens_info.WBGain_R;  
     hdr->wbgain_g = lens_info.WBGain_G;  
-    hdr->wbgain_b = lens_info.WBGain_G;  
+    hdr->wbgain_b = lens_info.WBGain_B;  
     hdr->wbs_gm = lens_info.wbs_gm;  
     hdr->wbs_ba = lens_info.wbs_ba;  
 }
