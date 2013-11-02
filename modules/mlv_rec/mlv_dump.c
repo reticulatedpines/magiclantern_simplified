@@ -769,6 +769,23 @@ int main (int argc, char *argv[])
         printf("   - Verbose messages\n"); 
     }
     
+    /* special case - splitting into frames doesnt require a specific output file */
+    if(dng_output && !output_filename)
+    {
+        int len = strlen(input_filename) + 16;
+        output_filename = malloc(len);
+        
+        strcpy(output_filename, input_filename);
+        
+        char *ext_dot = strrchr(output_filename, '.');
+        if(ext_dot)
+        {
+            *ext_dot = '\000';
+        }
+        
+        strcat(output_filename, "_frame_");
+    }
+    
     /* display and set/unset variables according to parameters to have a consistent state */
     if(output_filename)
     {
@@ -855,6 +872,7 @@ int main (int argc, char *argv[])
     mlv_lens_hdr_t lens_info;
     mlv_expo_hdr_t expo_info;
     mlv_idnt_hdr_t idnt_info;
+    mlv_wbal_hdr_t wbal_info;
     char info_string[256] = "(MLV Video without INFO blocks)";
     
     /* this table contains the XREF chunk read from idx file, if existing */
@@ -1491,6 +1509,9 @@ read_headers:
                         dng_set_focal(lens_info.focalLength, 1);
                         dng_set_iso(expo_info.isoValue);
                         
+                        dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
+                        
+                        
                         uint64_t serial = 0;
                         char *end;
                         serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
@@ -1740,34 +1761,33 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "WBAL", 4))
             {
-                mlv_wbal_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_wbal_hdr_t), buf.blockSize);
 
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                if(fread(&wbal_info, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                fseeko(in_file, position + wbal_info.blockSize, SEEK_SET);
 
                 if(verbose)
                 {
-                    printf("     Mode:   %d\n", block_hdr.wb_mode);
-                    printf("     Kelvin:   %d\n", block_hdr.kelvin);
-                    printf("     Gain R:   %d\n", block_hdr.wbgain_r);
-                    printf("     Gain G:   %d\n", block_hdr.wbgain_g);
-                    printf("     Gain B:   %d\n", block_hdr.wbgain_b);
-                    printf("     Shift GM:   %d\n", block_hdr.wbs_gm);
-                    printf("     Shift BA:   %d\n", block_hdr.wbs_ba);
+                    printf("     Mode:   %d\n", wbal_info.wb_mode);
+                    printf("     Kelvin:   %d\n", wbal_info.kelvin);
+                    printf("     Gain R:   %d\n", wbal_info.wbgain_r);
+                    printf("     Gain G:   %d\n", wbal_info.wbgain_g);
+                    printf("     Gain B:   %d\n", wbal_info.wbgain_b);
+                    printf("     Shift GM:   %d\n", wbal_info.wbs_gm);
+                    printf("     Shift BA:   %d\n", wbal_info.wbs_ba);
                 }
             
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_wbal_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    wbal_info.blockSize = sizeof(mlv_wbal_hdr_t);
+                    if(fwrite(&wbal_info, wbal_info.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         goto abort;
@@ -1966,6 +1986,10 @@ read_headers:
                         goto abort;
                     }
                 }
+            }
+            else if(!memcmp(buf.blockType, "NULL", 4))
+            {
+                fseeko(in_file, position + buf.blockSize, SEEK_SET);
             }
             else
             {
