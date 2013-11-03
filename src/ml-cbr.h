@@ -38,7 +38,7 @@ int ml_unregister_cbr(const char * event, cbr_func cbr);
  * Notify all the CBRs associated to an event passing additional data to them.
  * <br>
  * CBRs are walked in priority order, from highest to lower. Higher priority
- * CBRs can block the flow by returning 1
+ * CBRs can block the flow by returning ML_CBR_STOP
  * @param event Triggering event (must not be NULL)
  * @param data  Data to be shared with the CBRs (can be NULL)
  */
