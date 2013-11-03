@@ -89,8 +89,10 @@
     <Compile Include="BitUnpack.cs" />
     <Compile Include="BitUnpackCanon.cs" />
     <Compile Include="Debayer.cs" />
+    <Compile Include="DebayerBase.cs" />
     <Compile Include="DebayerHalfRes.cs" />
     <Compile Include="DebayerBilinear.cs" />
+    <Compile Include="Matrix.cs" />
     <Compile Include="MLVViewerForm.cs">
       <SubType>Form</SubType>
     </Compile>
