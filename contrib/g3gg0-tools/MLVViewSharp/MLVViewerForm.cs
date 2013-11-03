@@ -38,7 +38,7 @@ namespace mlv_view_sharp
             {
                 PlaybackFile(AutoplayFile);
                 AutoplayFile = null;
-            } 
+            }
             base.OnLoad(e);
         }
 
@@ -331,6 +331,44 @@ namespace mlv_view_sharp
                 toolTip1.SetToolTip(trackBarExposure, ev.ToString() + " EV");
             }
             Handler.ExposureCorrection = ev;
+        }
+
+        private void pictureBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            pictureBox.SizeMode = PictureBoxSizeMode.Normal;
+            toolTip1.SetToolTip(pictureBox, "Press SHIFT and release mouse button to set the current position as neutral gray.");
+        }
+
+        private void pictureBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (Form.ModifierKeys == Keys.Shift && pictureBox.Image != null)
+            {
+                Point pos = pictureBox.PointToClient(Cursor.Position);
+                Bitmap bmp = new Bitmap(pictureBox.Image);
+                int width = 8;
+
+                int posX = Math.Min(Math.Max(width, pos.X - width), bmp.Width);
+                int posY = Math.Min(Math.Max(width, pos.Y - width), bmp.Height);
+
+                float rValue = 0;
+                float gValue = 0;
+                float bValue = 0;
+
+                for (int x = posX - width / 2; x < posX + width / 2; x++)
+                {
+                    for (int y = posY - width / 2; y < posY + width / 2; y++)
+                    {
+                        Color pixelColor = bmp.GetPixel(x, y);
+
+                        rValue += pixelColor.R;
+                        gValue += pixelColor.G;
+                        bValue += pixelColor.B;
+                    }
+                }
+
+                Handler.SetWhite(rValue, gValue, bValue);
+            }
+            pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
         }
     }
 }

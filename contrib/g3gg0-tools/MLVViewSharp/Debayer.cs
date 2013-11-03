@@ -16,6 +16,7 @@ namespace mlv_view_sharp
         float Saturation { get; set; }
 
         float[] CamMatrix { get; set; }
+        float[] WhiteBalance { get; set; }
 
         void Process(ushort[,] pixelData, pixelType[, ,] rgbData);
     }

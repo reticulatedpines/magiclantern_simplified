@@ -293,5 +293,10 @@ namespace mlv_view_sharp
                 _ExposureCorrection = value;
             }
         }
+
+        internal void SetWhite(float r, float g, float b)
+        {
+            Debayer.WhiteBalance = new float[] { r, g, b };
+        }
     }
 }

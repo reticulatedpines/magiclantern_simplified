@@ -159,7 +159,7 @@ namespace mlv_view_sharp
             public uint8_t stabilizerMode;    /* 0=off, 1=on, (is the new L mode relevant) */
             public uint8_t autofocusMode;    /* 0=off, 1=on */
             public uint32_t flags;    /* 1=CA avail, 2=Vign avail, ... */
-            public uint32_t lensID;    /* hexadecimal lens ID (delivered by properties?) */
+            public uint32_t lensID;    /* hexafloat lens ID (delivered by properties?) */
             [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 32)]
             public string lensName;    /* full lens string */
             [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 32)]

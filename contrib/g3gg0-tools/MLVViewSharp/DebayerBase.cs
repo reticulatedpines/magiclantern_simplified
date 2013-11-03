@@ -17,11 +17,13 @@ namespace MLVViewSharp
 
         protected float[] _CamMatrix = new float[] { 1f, 0f, 0f, 0f, 0.5f, 0f, 0f, 0f, 1f };
         protected Matrix CamToRgbMatrix = new Matrix(3, 3);
-        protected Matrix WhiteBalance = new Matrix(3, 1);
-        
+        protected Matrix WhiteBalanceMatrix = new Matrix(3, 1);
+
 
         protected float[] PixelLookupTable = new float[16384];
         protected bool LookupTablesDirty = true;
+
+        public bool UseCorrectionMatrices = true;
 
 
         protected void CreateConversionMatrix()
@@ -29,27 +31,23 @@ namespace MLVViewSharp
             Matrix rgbToXYZ = new Matrix(3, 3);
             Matrix xyzToCam = new Matrix(3, 3);
 
-            WhiteBalance[0, 0] = 2;
-            WhiteBalance[1, 0] = 1;
-            WhiteBalance[2, 0] = 2;
-
             /* this is the RGB --> XYZ conversion matrix */
-            rgbToXYZ[0, 0] = 0.4124564m;
-            rgbToXYZ[0, 1] = 0.3575761m;
-            rgbToXYZ[0, 2] = 0.1804375m;
-            rgbToXYZ[1, 0] = 0.2126729m;
-            rgbToXYZ[1, 1] = 0.7151522m;
-            rgbToXYZ[1, 2] = 0.0721750m;
-            rgbToXYZ[2, 0] = 0.0193339m;
-            rgbToXYZ[2, 1] = 0.1191920m;
-            rgbToXYZ[2, 2] = 0.9503041m;
+            rgbToXYZ[0, 0] = 0.4124564f;
+            rgbToXYZ[0, 1] = 0.3575761f;
+            rgbToXYZ[0, 2] = 0.1804375f;
+            rgbToXYZ[1, 0] = 0.2126729f;
+            rgbToXYZ[1, 1] = 0.7151522f;
+            rgbToXYZ[1, 2] = 0.0721750f;
+            rgbToXYZ[2, 0] = 0.0193339f;
+            rgbToXYZ[2, 1] = 0.1191920f;
+            rgbToXYZ[2, 2] = 0.9503041f;
 
             /* fill supplied camera matrix, which is XYZ --> camera */
             for (int row = 0; row < xyzToCam.RowCount; row++)
             {
                 for (int col = 0; col < xyzToCam.ColumnCount; col++)
                 {
-                    xyzToCam[row, col] = (decimal)_CamMatrix[col * 3 + row];
+                    xyzToCam[row, col] = (float)_CamMatrix[col * 3 + row];
                 }
             }
 
@@ -60,7 +58,7 @@ namespace MLVViewSharp
              */
             for (int row = 0; row < rgbToCam.RowCount; row++)
             {
-                decimal sum = 0;
+                float sum = 0;
                 for (int col = 0; col < rgbToCam.ColumnCount; col++)
                 {
                     sum += rgbToCam[row, col];
@@ -161,6 +159,29 @@ namespace MLVViewSharp
                 _Saturation = value;
                 _CamMatrix = new float[] { 1f, -_Saturation, -_Saturation, -_Saturation, 0.5f, -_Saturation, -_Saturation, -_Saturation, 1f };
                 LookupTablesDirty = true;
+            }
+        }
+
+        public float[] WhiteBalance
+        {
+            get
+            {
+                return new float[3] { WhiteBalanceMatrix[0, 0], WhiteBalanceMatrix[1, 0], WhiteBalanceMatrix[2, 0] };
+            }
+            set
+            {
+                if (Math.Abs(value[0]) == 0 || Math.Abs(value[1]) == 0 || Math.Abs(value[2]) == 0)
+                {
+                    return;
+                }
+                float rCorr = value[0] / value[1];
+                float gCorr = value[1] / value[1];
+                float bCorr = value[2] / value[1];
+
+
+                WhiteBalanceMatrix[0, 0] /= rCorr;
+                WhiteBalanceMatrix[1, 0] /= gCorr;
+                WhiteBalanceMatrix[2, 0] /= bCorr;
             }
         }
 

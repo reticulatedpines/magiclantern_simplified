@@ -60,6 +60,10 @@ namespace mlv_view_sharp
                 /* B */
                 {{MatrixCross, MatrixTop}, {MatrixSide, MatrixCenter}},
             };
+
+            WhiteBalanceMatrix[0, 0] = 2;
+            WhiteBalanceMatrix[1, 0] = 1;
+            WhiteBalanceMatrix[2, 0] = 2;
         }
 
         private float GetPixel(ushort[,] pixelData, int x, int y, int color)
@@ -99,17 +103,28 @@ namespace mlv_view_sharp
                 for (int x = 2; x < pixelData.GetLength(1) - 2; x++)
                 {
                     /* assume RGRGRG and GBGBGB lines */
-                    rgbInMatrix[0, 0] = (decimal)PixelLookupTable[(int)GetPixel(pixelData, x, y, 0)];
-                    rgbInMatrix[1, 0] = (decimal)PixelLookupTable[(int)GetPixel(pixelData, x, y, 1)];
-                    rgbInMatrix[2, 0] = (decimal)PixelLookupTable[(int)GetPixel(pixelData, x, y, 2)];
+                    rgbInMatrix[0, 0] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 0)];
+                    rgbInMatrix[1, 0] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 1)];
+                    rgbInMatrix[2, 0] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 2)];
 
-                    /* apply transformation matrix */
-                    Matrix rgbOutMatrix = CamToRgbMatrix * rgbInMatrix;
-
-                    for (int channel = 0; channel < 3; channel++)
+                    if (UseCorrectionMatrices)
                     {
-                        decimal value = rgbOutMatrix[channel, 0] * WhiteBalance[channel, 0];
-                        rgbData[y, x, channel] = (pixelType)Math.Max(0, Math.Min(255, value));
+                        /* apply transformation matrix */
+                        Matrix rgbOutMatrix = CamToRgbMatrix * rgbInMatrix;
+
+                        for (int channel = 0; channel < 3; channel++)
+                        {
+                            float value = rgbInMatrix[channel, 0] * WhiteBalanceMatrix[channel, 0];
+                            rgbData[y, x, channel] = (pixelType)Math.Max(0, Math.Min(255, value));
+                        }
+                    }
+                    else
+                    {
+                        for (int channel = 0; channel < 3; channel++)
+                        {
+                            float value = rgbInMatrix[channel, 0];
+                            rgbData[y, x, channel] = (pixelType)Math.Max(0, Math.Min(255, value));
+                        }
                     }
                 }
             }

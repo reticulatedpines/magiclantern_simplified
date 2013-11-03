@@ -7,7 +7,7 @@ namespace MLVViewSharp
 {
     public class Matrix
     {
-		private decimal[,] mInnerMatrix;
+		private float[,] mInnerMatrix;
 		private int mRowCount = 0;
 		public int RowCount
 		{
@@ -28,7 +28,7 @@ namespace MLVViewSharp
         {
             mRowCount = source.RowCount;
             mColumnCount = source.ColumnCount;
-            mInnerMatrix = new decimal[mRowCount, mColumnCount];
+            mInnerMatrix = new float[mRowCount, mColumnCount];
 
             for (int row = 0; row < mRowCount; row++)
             {
@@ -43,10 +43,10 @@ namespace MLVViewSharp
         {
             mRowCount = rowCount;
             mColumnCount = columnCount;
-            mInnerMatrix = new decimal[rowCount, columnCount];
+            mInnerMatrix = new float[rowCount, columnCount];
         }
 
-		public decimal this[int rowNumber,int columnNumber]
+		public float this[int rowNumber,int columnNumber]
 		{
 			get
 			{
@@ -58,16 +58,16 @@ namespace MLVViewSharp
 			}
 		}
 
-		public decimal[] GetRow(int rowIndex)
+		public float[] GetRow(int rowIndex)
 		{
-			decimal[] rowValues = new decimal[mColumnCount];
+			float[] rowValues = new float[mColumnCount];
 			for (int i = 0; i < mColumnCount; i++)
 			{
 				rowValues[i] = mInnerMatrix[rowIndex, i];
 			}
 			return rowValues;
 		}
-		public void SetRow(int rowIndex,decimal[] value)
+		public void SetRow(int rowIndex,float[] value)
 		{
 			if (value.Length != mColumnCount)
 			{
@@ -78,16 +78,16 @@ namespace MLVViewSharp
 				mInnerMatrix[rowIndex, i] = value[i];
 			}
 		}
-		public decimal[] GetColumn(int columnIndex)
+		public float[] GetColumn(int columnIndex)
 		{ 
-			decimal[] columnValues = new decimal[mRowCount];
+			float[] columnValues = new float[mRowCount];
 			for (int i = 0; i < mRowCount; i++)
 			{
 				columnValues[i] = mInnerMatrix[i, columnIndex];
 			}
 			return columnValues;
 		}
-		public void SetColumn(int columnIndex,decimal[] value)
+		public void SetColumn(int columnIndex,float[] value)
 		{ 
 			if (value.Length != mRowCount)
 			{
@@ -116,7 +116,7 @@ namespace MLVViewSharp
 			}
 			return returnMartix;
 		}
-		public static Matrix operator *(decimal scalarValue, Matrix pMatrix)
+		public static Matrix operator *(float scalarValue, Matrix pMatrix)
 		{
 			Matrix returnMartix = new Matrix(pMatrix.RowCount, pMatrix.RowCount);
 			for (int i = 0; i < pMatrix.RowCount; i++)
@@ -195,11 +195,11 @@ namespace MLVViewSharp
 			Matrix returnMatrix = new Matrix(pMatrix1.RowCount, pMatrix2.ColumnCount);
 			for (int i = 0; i<pMatrix1.RowCount; i++)
 			{
-				decimal[] rowValues = pMatrix1.GetRow(i);
+				float[] rowValues = pMatrix1.GetRow(i);
 				for (int j = 0; j<pMatrix2.ColumnCount; j++)
 				{
-					decimal[] columnValues = pMatrix2.GetColumn(j);
-					decimal value=0;
+					float[] columnValues = pMatrix2.GetColumn(j);
+					float value=0;
 					for (int a = 0; a < rowValues.Length; a++)
 					{
 						value+=rowValues[a] * columnValues[a];
@@ -242,19 +242,19 @@ namespace MLVViewSharp
             for (int col = 0; col < RowCount; col++)
             {
                 /* normalize frontmost element */
-                if (source[col, col] == 0)
+                if (Math.Abs(source[col, col]) == 0)
                 {
                     throw new InvalidOperationException();
                 }
 
-                decimal fact = 1 / source[col, col];
+                float fact = 1 / source[col, col];
                 MultiplyRow(source, col, fact);
                 MultiplyRow(unity, col, fact);
 
                 /* set all others to zero */
                 for (int zerow = col + 1; zerow < RowCount; zerow++)
                 {
-                    decimal scale = source[zerow, col];
+                    float scale = source[zerow, col];
                     for (int pos = 0; pos < ColumnCount; pos++)
                     {
                         source[zerow, pos] -= source[col, pos] * scale;
@@ -268,7 +268,7 @@ namespace MLVViewSharp
             {
                 for (int col = row + 1; col < ColumnCount; col++)
                 {
-                    decimal scale = source[row, col];
+                    float scale = source[row, col];
                     for (int pos = 0; pos < ColumnCount; pos++)
                     {
                         source[row, pos] -= source[col, pos] * scale;
@@ -280,7 +280,7 @@ namespace MLVViewSharp
             return unity;
         }
 
-        private static void MultiplyRow(Matrix matrix, int row, decimal fact)
+        private static void MultiplyRow(Matrix matrix, int row, float fact)
         {
             for (int col = 0; col < matrix.ColumnCount; col++)
             {
@@ -303,7 +303,7 @@ namespace MLVViewSharp
 			{
 				for (int j = 0; j < this.ColumnCount; j++)
 				{
-					if (mInnerMatrix[i, j] != 0)
+					if (Math.Abs(mInnerMatrix[i, j]) != 0)
 					{
 						return false;
 					}
@@ -325,7 +325,7 @@ namespace MLVViewSharp
 			{
 				for (int j = i+1; j<this.ColumnCount; j++)
 				{
-					if (mInnerMatrix[i, j] != 0)
+					if (Math.Abs(mInnerMatrix[i, j]) != 0)
 					{
 						return false;
 					}
@@ -343,7 +343,7 @@ namespace MLVViewSharp
 			{
 				for (int j = 0; j < i; j++)
 				{
-					if (mInnerMatrix[i, j] != 0)
+					if (Math.Abs(mInnerMatrix[i, j]) != 0)
 					{
 						return false;
 					}
@@ -361,7 +361,7 @@ namespace MLVViewSharp
 			{
 				for (int j = 0; j < this.ColumnCount; j++)
 				{
-					if (i!=j && mInnerMatrix[i, j] != 0)
+					if (i!=j && Math.Abs(mInnerMatrix[i, j]) != 0)
 					{
 						return false;
 					}
@@ -379,7 +379,7 @@ namespace MLVViewSharp
 			{
 				for (int j = 0; j < this.ColumnCount; j++)
 				{
-					decimal checkValue=0;
+					float checkValue=0;
 					if (i == j)
 					{
 						checkValue=1;
