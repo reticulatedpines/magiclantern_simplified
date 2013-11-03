@@ -246,33 +246,42 @@ static struct t_data_for_exif exif_data;
 // warning: according to TIFF format specification, elements must be sorted by tag value in ascending order!
 
 // Index of specific entries in ifd0 below.
-// *** warning - if entries are added or removed these should be updated ***
-#define CAMERA_NAME_INDEX           8       // tag 0x110
-#define THUMB_DATA_INDEX            9       // tag 0x111
-#define ORIENTATION_INDEX           10      // tag 0x112
-#define CHDK_VER_INDEX              15      // tag 0x131
-#define ARTIST_NAME_INDEX           17      // tag 0x13B
-#define SUBIFDS_INDEX               18      // tag 0x14A
-#define COPYRIGHT_INDEX             19      // tag 0x8298
-#define EXIF_IFD_INDEX              20      // tag 0x8769
-#define DNG_VERSION_INDEX           22      // tag 0xC612
-#define UNIQUE_CAMERA_MODEL_INDEX   24      // tag 0xC614
+static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
+{
+    int i;
+    for (i = 0; i < num; i++)
+        if (ifd[i].tag == tag)
+            return i;
+    
+    /* should be unreachable */
+    exit(1);
+}
+
+// Index of specific entries in ifd0 below.
+#define CAMERA_NAME_INDEX           find_tag_index(ifd0, DIR_SIZE(ifd0), 0x110)
+#define THUMB_DATA_INDEX            find_tag_index(ifd0, DIR_SIZE(ifd0), 0x111)
+#define ORIENTATION_INDEX           find_tag_index(ifd0, DIR_SIZE(ifd0), 0x112)
+#define CHDK_VER_INDEX              find_tag_index(ifd0, DIR_SIZE(ifd0), 0x131)
+#define ARTIST_NAME_INDEX           find_tag_index(ifd0, DIR_SIZE(ifd0), 0x13B)
+#define SUBIFDS_INDEX               find_tag_index(ifd0, DIR_SIZE(ifd0), 0x14A)
+#define COPYRIGHT_INDEX             find_tag_index(ifd0, DIR_SIZE(ifd0), 0x8298)
+#define EXIF_IFD_INDEX              find_tag_index(ifd0, DIR_SIZE(ifd0), 0x8769)
+#define DNG_VERSION_INDEX           find_tag_index(ifd0, DIR_SIZE(ifd0), 0xC612)
+#define UNIQUE_CAMERA_MODEL_INDEX   find_tag_index(ifd0, DIR_SIZE(ifd0), 0xC614)
 
 #define CAM_MAKE                    "Canon"
 
 
 // Index of specific entries in ifd1 below.
-// *** warning - if entries are added or removed these should be updated ***
-#define RAW_DATA_INDEX              6       // tag 0x111
-#define BADPIXEL_OPCODE_INDEX       21      // tag 0xC740
+#define RAW_DATA_INDEX              find_tag_index(ifd1, DIR_SIZE(ifd1), 0x111)
+#define BADPIXEL_OPCODE_INDEX       find_tag_index(ifd1, DIR_SIZE(ifd1), 0xC740)
 
 // Index of specific entries in exif_ifd below.
-// *** warning - if entries are added or removed these should be updated ***
-#define EXPOSURE_PROGRAM_INDEX      2       // tag 0x8822
-#define METERING_MODE_INDEX         10      // tag 0x9207
-#define FLASH_MODE_INDEX            11      // tag 0x9209
-#define SSTIME_INDEX                13      // tag 0x9290
-#define SSTIME_ORIG_INDEX           14      // tag 0x9291
+#define EXPOSURE_PROGRAM_INDEX      find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x8822)
+#define METERING_MODE_INDEX         find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x9207)
+#define FLASH_MODE_INDEX            find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x9209)
+#define SSTIME_INDEX                find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x9290)
+#define SSTIME_ORIG_INDEX           find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x9291)
 
 static int get_type_size(int type)
 {
@@ -409,6 +418,8 @@ static void create_dng_header(struct raw_info * raw_info){
         {0x8298, T_ASCII|T_PTR,64, (int)dng_copyright},                // Copyright
         {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
         {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
+        {0xA431, T_ASCII,      sizeof(cam_serial), (int)cam_serial},         // Exif.Photo.BodySerialNumber
+        {0xA434, T_ASCII,      sizeof(dng_lens_model), (int)dng_lens_model}, // Exif.Photo.LensModel
         {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
         {0xC613, T_BYTE,       4,  0x00000301},                        // DNGBackwardVersion: 1.1.0.0
         {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
@@ -422,8 +433,6 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
         {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
-        {0xA431, T_ASCII,      sizeof(cam_serial), (int)cam_serial},               // Exif.Photo.BodySerialNumber
-        {0xA434, T_ASCII,      sizeof(dng_lens_model), (int)dng_lens_model},               // Exif.Photo.LensModel - added to end so we don't have to update static array offsets
     };
 
     struct dir_entry ifd1[]={
