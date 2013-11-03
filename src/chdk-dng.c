@@ -196,7 +196,7 @@ static char dng_artist_name[64]             = "";
 static char dng_copyright[64]               = "";
 static const short cam_PreviewBitsPerSample[]  = {8,8,8};
 static const int cam_Resolution[]              = {180,1};
-static int cam_AsShotNeutral[]          = {1000000,1000000,1000000,1000000,1000000,1000000};
+static int cam_AsShotNeutral[6]         = {473635,1000000,1000000,1000000,624000,1000000}; // wbgain default: daylight
 static char cam_datetime[20]            = "";                   // DateTimeOriginal
 static char cam_subsectime[4]           = "";                   // DateTimeOriginal (milliseconds component)
 static int cam_shutter[2]               = { 0, 1000000 };       // Shutter speed
@@ -369,6 +369,17 @@ void dng_set_iso(int value)
 {
     exif_data.iso = value;
 }
+
+void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g_d, float gain_b_n, float gain_b_d)
+{
+    cam_AsShotNeutral[0] = gain_r_n;
+    cam_AsShotNeutral[1] = gain_r_d;
+    cam_AsShotNeutral[2] = gain_g_n;
+    cam_AsShotNeutral[3] = gain_g_d;
+    cam_AsShotNeutral[4] = gain_b_n;
+    cam_AsShotNeutral[5] = gain_b_d;
+}
+
 
 static void create_dng_header(struct raw_info * raw_info){
     int i,j;
@@ -706,9 +717,6 @@ PROP_HANDLER(PROP_CAM_MODEL)
 
 int save_dng(char* filename, struct raw_info * raw_info)
 {
-    cam_AsShotNeutral[0] = 473635; /* Daylight */
-    cam_AsShotNeutral[4] = 624000;
-    
     #ifdef RAW_DEBUG_BLACK
     raw_info->active_area.x1 = 0;
     raw_info->active_area.x2 = raw_info->width;
