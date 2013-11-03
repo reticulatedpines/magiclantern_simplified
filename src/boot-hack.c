@@ -40,6 +40,8 @@
 #include "boot-hack.h"
 #include "reloc.h"
 
+#include "ml-cbr.h"
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);
@@ -439,6 +441,7 @@ static void my_big_init_task()
     
     call("DisablePowerSave");
     load_fonts();
+    _ml_cbr_init();
     menu_init();
     debug_init();
     call_init_funcs( 0 );
