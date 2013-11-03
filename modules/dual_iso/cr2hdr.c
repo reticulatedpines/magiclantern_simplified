@@ -83,6 +83,7 @@ void check_shortcuts()
         interp_method = 1;
         chroma_smooth_method = 0;
         use_alias_map = 0;
+        use_fullres = 0;
         use_stripe_fix = 0;
         shortcut_fast = 0;
     }
