@@ -341,6 +341,7 @@ namespace mlv_view_sharp
 
         private void pictureBox_MouseUp(object sender, MouseEventArgs e)
         {
+            toolTip1.Hide(pictureBox);
             if (Form.ModifierKeys == Keys.Shift && pictureBox.Image != null)
             {
                 Point pos = pictureBox.PointToClient(Cursor.Position);
