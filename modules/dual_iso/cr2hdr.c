@@ -2719,7 +2719,7 @@ static int hdr_interpolate()
                 f = MAX(0, MIN(f, (double)(sig - black) / (4*dark_noise)));
                 
                 /* blend "half-res" and "full-res" images smoothly to avoid banding*/
-                int output = hrev * (1-f) + fev * f;
+                output = hrev * (1-f) + fev * f;
 
                 /* show full-res map (for debugging) */
                 //~ output = f * 14*EV_RESOLUTION;
