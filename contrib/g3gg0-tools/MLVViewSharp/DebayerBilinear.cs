@@ -120,11 +120,9 @@ namespace mlv_view_sharp
                     }
                     else
                     {
-                        for (int channel = 0; channel < 3; channel++)
-                        {
-                            float value = rgbInMatrix[channel, 0];
-                            rgbData[y, x, channel] = (pixelType)Math.Max(0, Math.Min(255, value));
-                        }
+                        rgbData[y, x, 0] = (pixelType)Math.Max(0, Math.Min(255, rgbInMatrix[0, 0]));
+                        rgbData[y, x, 1] = (pixelType)Math.Max(0, Math.Min(255, rgbInMatrix[1, 0] / 2));
+                        rgbData[y, x, 2] = (pixelType)Math.Max(0, Math.Min(255, rgbInMatrix[2, 0]));
                     }
                 }
             }

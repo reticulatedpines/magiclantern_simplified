@@ -11,19 +11,16 @@ namespace MLVViewSharp
         protected int _BlackLevel = 0;
         protected int _WhiteLevel = 0;
         protected float _Brightness = 0;
-        protected int _Overexposed = 0;
-        protected int _Underexposed = 0;
         protected float _Saturation = 0.0f;
 
         protected float[] _CamMatrix = new float[] { 1f, 0f, 0f, 0f, 0.5f, 0f, 0f, 0f, 1f };
         protected Matrix CamToRgbMatrix = new Matrix(3, 3);
         protected Matrix WhiteBalanceMatrix = new Matrix(3, 1);
 
-
         protected float[] PixelLookupTable = new float[16384];
         protected bool LookupTablesDirty = true;
 
-        public bool UseCorrectionMatrices = true;
+        public bool _UseCorrectionMatrices = true;
 
 
         protected void CreateConversionMatrix()
@@ -182,6 +179,18 @@ namespace MLVViewSharp
                 WhiteBalanceMatrix[0, 0] /= rCorr;
                 WhiteBalanceMatrix[1, 0] /= gCorr;
                 WhiteBalanceMatrix[2, 0] /= bCorr;
+            }
+        }
+
+        public bool UseCorrectionMatrices
+        {
+            get
+            {
+                return _UseCorrectionMatrices;
+            }
+            set
+            {
+                _UseCorrectionMatrices = value;
             }
         }
 

@@ -18,6 +18,8 @@ namespace mlv_view_sharp
         float[] CamMatrix { get; set; }
         float[] WhiteBalance { get; set; }
 
+        bool UseCorrectionMatrices { get; set; }
+
         void Process(ushort[,] pixelData, pixelType[, ,] rgbData);
     }
 }

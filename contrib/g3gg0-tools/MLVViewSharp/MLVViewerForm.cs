@@ -29,6 +29,9 @@ namespace mlv_view_sharp
                 new MenuItem("   1/4 Resolution (faster)", new EventHandler(menu_Debayer_4)), 
                 new MenuItem("   1/8 Resolution (guess what..)", new EventHandler(menu_Debayer_8)),
                 new MenuItem("-"), 
+                new MenuItem("Color correction matrices (white balance, colorspace...):"),
+                new MenuItem("   Enable (slow but better colors)", new EventHandler(menu_Correction)),
+                new MenuItem("   Disable (fast)", new EventHandler(menu_CorrectionOff)),
             });
         }
 
@@ -40,6 +43,16 @@ namespace mlv_view_sharp
                 AutoplayFile = null;
             }
             base.OnLoad(e);
+        }
+
+        protected void menu_Correction(Object sender, EventArgs e)
+        {
+            Handler.SelectCorrection(true);
+        }
+
+        protected void menu_CorrectionOff(Object sender, EventArgs e)
+        {
+            Handler.SelectCorrection(false);
         }
 
         protected void menu_DebayerBilin(Object sender, EventArgs e)
@@ -335,41 +348,49 @@ namespace mlv_view_sharp
 
         private void pictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            pictureBox.SizeMode = PictureBoxSizeMode.Normal;
-            toolTip1.SetToolTip(pictureBox, "Press SHIFT and release mouse button to set the current position as neutral gray.");
+            if (e.Button == MouseButtons.Left)
+            {
+                pictureBox.SizeMode = PictureBoxSizeMode.Normal;
+                toolTip1.SetToolTip(pictureBox, "Press SHIFT and release mouse button to set the current position as neutral gray.");
+            }
         }
 
         private void pictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            toolTip1.Hide(pictureBox);
-            if (Form.ModifierKeys == Keys.Shift && pictureBox.Image != null)
+            if (e.Button == MouseButtons.Left)
             {
-                Point pos = pictureBox.PointToClient(Cursor.Position);
-                Bitmap bmp = new Bitmap(pictureBox.Image);
-                int width = 8;
+                toolTip1.Hide(pictureBox);
 
-                int posX = Math.Min(Math.Max(width, pos.X - width), bmp.Width);
-                int posY = Math.Min(Math.Max(width, pos.Y - width), bmp.Height);
-
-                float rValue = 0;
-                float gValue = 0;
-                float bValue = 0;
-
-                for (int x = posX - width / 2; x < posX + width / 2; x++)
+                if (Form.ModifierKeys == Keys.Shift && pictureBox.Image != null)
                 {
-                    for (int y = posY - width / 2; y < posY + width / 2; y++)
+                    Point pos = pictureBox.PointToClient(Cursor.Position);
+                    Bitmap bmp = new Bitmap(pictureBox.Image);
+                    int width = 8;
+
+                    int posX = Math.Min(Math.Max(width, pos.X - width), bmp.Width);
+                    int posY = Math.Min(Math.Max(width, pos.Y - width), bmp.Height);
+
+                    float rValue = 0;
+                    float gValue = 0;
+                    float bValue = 0;
+
+                    for (int x = posX - width / 2; x < posX + width / 2; x++)
                     {
-                        Color pixelColor = bmp.GetPixel(x, y);
+                        for (int y = posY - width / 2; y < posY + width / 2; y++)
+                        {
+                            Color pixelColor = bmp.GetPixel(x, y);
 
-                        rValue += pixelColor.R;
-                        gValue += pixelColor.G;
-                        bValue += pixelColor.B;
+                            rValue += pixelColor.R;
+                            gValue += pixelColor.G;
+                            bValue += pixelColor.B;
+                        }
                     }
-                }
 
-                Handler.SetWhite(rValue, gValue, bValue);
+                    Handler.SelectCorrection(true);
+                    Handler.SetWhite(rValue, gValue, bValue);
+                }
+                pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             }
-            pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
         }
     }
 }

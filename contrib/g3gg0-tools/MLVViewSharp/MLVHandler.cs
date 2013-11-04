@@ -277,6 +277,8 @@ namespace mlv_view_sharp
                 newDebayer.Brightness = Debayer.Brightness;
                 newDebayer.Saturation = Debayer.Saturation;
                 newDebayer.CamMatrix = Debayer.CamMatrix;
+                newDebayer.WhiteBalance = Debayer.WhiteBalance;
+                newDebayer.UseCorrectionMatrices = Debayer.UseCorrectionMatrices;
 
                 Debayer = newDebayer;
             }
@@ -297,6 +299,11 @@ namespace mlv_view_sharp
         internal void SetWhite(float r, float g, float b)
         {
             Debayer.WhiteBalance = new float[] { r, g, b };
+        }
+
+        internal void SelectCorrection(bool enabled)
+        {
+            Debayer.UseCorrectionMatrices = enabled;
         }
     }
 }

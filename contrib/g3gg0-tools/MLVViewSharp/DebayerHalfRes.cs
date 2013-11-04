@@ -60,13 +60,20 @@ namespace mlv_view_sharp
                                 {
                                     value *= WhiteBalanceMatrix[channel, 0];
                                 }
+                                else if(channel == 1)
+                                {
+                                    value /= 2;
+                                }
 
                                 pixelType data = (pixelType)Math.Max(0, Math.Min(255, value));
 
-                                rgbData[y + pixelY * 2 + 0, x + pixelX * 2 + 0, channel] = data;
-                                rgbData[y + pixelY * 2 + 0, x + pixelX * 2 + 1, channel] = data;
-                                rgbData[y + pixelY * 2 + 1, x + pixelX * 2 + 0, channel] = data;
-                                rgbData[y + pixelY * 2 + 1, x + pixelX * 2 + 1, channel] = data;
+                                int posX = x + pixelX * 2;
+                                int posY = y + pixelY * 2;
+
+                                rgbData[posY + 0, posX + 0, channel] = data;
+                                rgbData[posY + 0, posX + 1, channel] = data;
+                                rgbData[posY + 1, posX + 0, channel] = data;
+                                rgbData[posY + 1, posX + 1, channel] = data;
                             }
                         }
                     }
