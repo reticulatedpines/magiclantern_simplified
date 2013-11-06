@@ -30,8 +30,14 @@ namespace mlv_view_sharp
                 new MenuItem("   1/8 Resolution (guess what..)", new EventHandler(menu_Debayer_8)),
                 new MenuItem("-"), 
                 new MenuItem("Color correction matrices (white balance, colorspace...):"),
-                new MenuItem("   Enable (slow but better colors)", new EventHandler(menu_Correction)),
+                new MenuItem("   Enable (slow but better colors)", new EventHandler(menu_CorrectionOn)),
                 new MenuItem("   Disable (fast)", new EventHandler(menu_CorrectionOff)),
+                new MenuItem("-"), 
+                new MenuItem("Highlight recovery:"),
+                new MenuItem("   Enable (slow)", new EventHandler(menu_HighlightRecoveryOn)),
+                new MenuItem("   Disable (fast)", new EventHandler(menu_HighlightRecoveryOff)),
+                new MenuItem("-"), 
+                new MenuItem("Reset RGB White Balance", new EventHandler(menu_ResetWb)),
             });
         }
 
@@ -45,14 +51,27 @@ namespace mlv_view_sharp
             base.OnLoad(e);
         }
 
-        protected void menu_Correction(Object sender, EventArgs e)
+        protected void menu_ResetWb(Object sender, EventArgs e)
         {
-            Handler.SelectCorrection(true);
+            Handler.ResetWhite();
         }
 
+        protected void menu_HighlightRecoveryOn(Object sender, EventArgs e)
+        {
+            Handler.HighlightRecovery = true;
+        }
+        protected void menu_HighlightRecoveryOff(Object sender, EventArgs e)
+        {
+            Handler.HighlightRecovery = false;
+        }
+
+        protected void menu_CorrectionOn(Object sender, EventArgs e)
+        {
+            Handler.UseCorrectionMatrices = true;
+        }
         protected void menu_CorrectionOff(Object sender, EventArgs e)
         {
-            Handler.SelectCorrection(false);
+            Handler.UseCorrectionMatrices = false;
         }
 
         protected void menu_DebayerBilin(Object sender, EventArgs e)
@@ -153,8 +172,8 @@ namespace mlv_view_sharp
 
             Invoke(new Action(() =>
             {
-                trackBar.Maximum = 0;
-                trackBar.Value = 0;
+                trackBarPosition.Maximum = 0;
+                trackBarPosition.Value = 0;
             }));
             try
             {
@@ -179,14 +198,14 @@ namespace mlv_view_sharp
                             try
                             {
                                 txtInfo.Text = metaData.ToString();
-                                trackBar.Maximum = reader.MaxBlockNumber;
-                                if ((trackBar.Value == reader.CurrentBlockNumber) || (trackBar.Value == reader.CurrentBlockNumber - 1))
+                                trackBarPosition.Maximum = reader.MaxBlockNumber;
+                                if ((trackBarPosition.Value == reader.CurrentBlockNumber) || (trackBarPosition.Value == reader.CurrentBlockNumber - 1))
                                 {
-                                    trackBar.Value = reader.CurrentBlockNumber;
+                                    trackBarPosition.Value = reader.CurrentBlockNumber;
                                 }
                                 else
                                 {
-                                    reader.CurrentBlockNumber = trackBar.Value;
+                                    reader.CurrentBlockNumber = trackBarPosition.Value;
                                 }
                             }
                             catch (Exception e)
@@ -239,9 +258,9 @@ namespace mlv_view_sharp
                                 {
                                     try
                                     {
-                                        if (trackBar.Value != reader.CurrentBlockNumber)
+                                        if (trackBarPosition.Value != reader.CurrentBlockNumber)
                                         {
-                                            reader.CurrentBlockNumber = trackBar.Value;
+                                            reader.CurrentBlockNumber = trackBarPosition.Value;
                                             reread = true;
                                         }
                                     }
@@ -268,7 +287,7 @@ namespace mlv_view_sharp
                                 reader.CurrentBlockNumber = 0;
                                 Invoke(new Action(() =>
                                 {
-                                    trackBar.Value = reader.CurrentBlockNumber;
+                                    trackBarPosition.Value = reader.CurrentBlockNumber;
                                 }));
                             }
                         }
@@ -337,11 +356,11 @@ namespace mlv_view_sharp
 
             if (trackBarExposure.Value == 0)
             {
-                toolTip1.SetToolTip(trackBarExposure, "Auto brightness");
+                lblExposure.Text = "Exposure: Auto";
             }
             else
             {
-                toolTip1.SetToolTip(trackBarExposure, ev.ToString() + " EV");
+                lblExposure.Text = "Exposure: " + ev.ToString() + " EV";
             }
             Handler.ExposureCorrection = ev;
         }
@@ -386,11 +405,17 @@ namespace mlv_view_sharp
                         }
                     }
 
-                    Handler.SelectCorrection(true);
+                    Handler.UseCorrectionMatrices = true;
                     Handler.SetWhite(rValue, gValue, bValue);
                 }
                 pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             }
+        }
+
+        private void trackBarTemperature_ValueChanged(object sender, EventArgs e)
+        {
+            Handler.ColorTemperature = trackBarTemperature.Value;
+            lblTemperature.Text = "Temperature: " + Handler.ColorTemperature.ToString() + " K";
         }
     }
 }

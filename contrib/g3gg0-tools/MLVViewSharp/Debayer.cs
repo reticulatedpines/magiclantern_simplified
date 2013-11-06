@@ -14,11 +14,13 @@ namespace mlv_view_sharp
 
         float Brightness { get; set; }
         float Saturation { get; set; }
-
+        
         float[] CamMatrix { get; set; }
         float[] WhiteBalance { get; set; }
+        float ColorTemperature { get; set; }
 
         bool UseCorrectionMatrices { get; set; }
+        bool HighlightRecovery { get; set; }
 
         void Process(ushort[,] pixelData, pixelType[, ,] rgbData);
     }

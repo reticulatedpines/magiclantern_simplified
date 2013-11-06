@@ -298,12 +298,56 @@ namespace mlv_view_sharp
 
         internal void SetWhite(float r, float g, float b)
         {
-            Debayer.WhiteBalance = new float[] { r, g, b };
+            if (Math.Abs(r) == 0 || Math.Abs(g) == 0 || Math.Abs(b) == 0)
+            {
+                return;
+            }
+
+            float[] wb = Debayer.WhiteBalance;
+            wb[0] /= (r / g);
+            wb[2] /= (b / g);
+            Debayer.WhiteBalance = wb;
         }
 
-        internal void SelectCorrection(bool enabled)
+        internal void ResetWhite()
         {
-            Debayer.UseCorrectionMatrices = enabled;
+            Debayer.WhiteBalance = new float[] { 1, 1, 1 };
+        }
+
+        internal float ColorTemperature
+        {
+            get
+            {
+                return Debayer.ColorTemperature;
+            }
+            set
+            {
+                Debayer.ColorTemperature = value;
+            }
+        }
+
+        internal bool UseCorrectionMatrices
+        {
+            get
+            {
+                return Debayer.UseCorrectionMatrices;
+            }
+            set
+            {
+                Debayer.UseCorrectionMatrices = value;
+            }
+        }
+
+        internal bool HighlightRecovery
+        {
+            get
+            {
+                return Debayer.HighlightRecovery;
+            }
+            set
+            {
+                Debayer.HighlightRecovery = value;
+            }
         }
     }
 }

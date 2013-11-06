@@ -24,6 +24,21 @@ namespace MLVViewSharp
 
         }
 
+        public Matrix(float[][] source)
+        {
+            mRowCount = source.Length;
+            mColumnCount = source[0].Length;
+            mInnerMatrix = new float[mRowCount, mColumnCount];
+
+            for (int row = 0; row < mRowCount; row++)
+            {
+                for (int col = 0; col < mColumnCount; col++)
+                {
+                    mInnerMatrix[row, col] = source[row][col];
+                }
+            }
+        }
+
         public Matrix(Matrix source)
         {
             mRowCount = source.RowCount;
@@ -46,19 +61,61 @@ namespace MLVViewSharp
             mInnerMatrix = new float[rowCount, columnCount];
         }
 
-		public float this[int rowNumber,int columnNumber]
-		{
-			get
-			{
-				return mInnerMatrix[rowNumber, columnNumber];
-			}
-			set
-			{
-				mInnerMatrix[rowNumber, columnNumber] = value;
-			}
-		}
+        public Matrix(int rowCount)
+        {
+            mRowCount = rowCount;
+            mColumnCount = 1;
+            mInnerMatrix = new float[rowCount, 1];
+        }
 
-		public float[] GetRow(int rowIndex)
+        public float this[int rowNumber, int columnNumber]
+        {
+            get
+            {
+                return mInnerMatrix[rowNumber, columnNumber];
+            }
+            set
+            {
+                mInnerMatrix[rowNumber, columnNumber] = value;
+            }
+        }
+
+
+        public float this[int rowNumber]
+        {
+            get
+            {
+                return mInnerMatrix[rowNumber, 0];
+            }
+            set
+            {
+                mInnerMatrix[rowNumber, 0] = value;
+            }
+        }
+
+        public Matrix Identity()
+        {
+            Matrix identity = new Matrix(RowCount, ColumnCount);
+
+            for (int row = 0; row < RowCount; row++)
+            {
+                for (int col = 0; col < ColumnCount; col++)
+                {
+                    if (row == col)
+                    {
+                        identity[row, col] = 1;
+                    }
+                    else
+                    {
+                        identity[row, col] = 0;
+                    }
+                }
+            }
+
+            return identity;
+        }
+
+        public float[] GetRow(int rowIndex)
 		{
 			float[] rowValues = new float[mColumnCount];
 			for (int i = 0; i < mColumnCount; i++)
@@ -209,6 +266,23 @@ namespace MLVViewSharp
 			}
 			return returnMatrix;
         }
+        public static Matrix operator /(Matrix pMatrix1, Matrix pMatrix2)
+        {
+            if (pMatrix1.ColumnCount != pMatrix2.ColumnCount || pMatrix1.RowCount != pMatrix2.RowCount)
+            {
+                throw new Exception("Matrices must be the same size");
+            }
+            Matrix returnMatrix = new Matrix(pMatrix1.RowCount, pMatrix1.ColumnCount);
+            for (int i = 0; i < pMatrix1.RowCount; i++)
+            {
+                for (int j = 0; j < pMatrix1.ColumnCount; j++)
+                {
+                    returnMatrix[i, j] = pMatrix1[i, j] / pMatrix2[i, j];
+                }
+            }
+            return returnMatrix;
+        }
+
 		public Matrix Transpose()
 		{
 			Matrix mReturnMartix = new Matrix(ColumnCount, RowCount);

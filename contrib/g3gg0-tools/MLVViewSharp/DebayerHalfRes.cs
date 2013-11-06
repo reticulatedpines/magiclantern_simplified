@@ -16,9 +16,7 @@ namespace mlv_view_sharp
         {
             Downscale = Math.Max(1, downscale);
 
-            WhiteBalanceMatrix[0, 0] = 2;
-            WhiteBalanceMatrix[1, 0] = 1;
-            WhiteBalanceMatrix[2, 0] = 2;
+            InitMatrices();
         }
 
         public void Process(ushort[,] pixelData, pixelType[, ,] rgbData)
@@ -26,7 +24,7 @@ namespace mlv_view_sharp
             if (LookupTablesDirty)
             {
                 CreateLookupTable();
-                CreateConversionMatrix();
+                UpdateMatrix();
             }
 
             Matrix rgbInMatrix = new Matrix(3, 1);
@@ -36,39 +34,30 @@ namespace mlv_view_sharp
                 for (int x = 0; x < pixelData.GetLength(1) - Downscale; x += Downscale * 2)
                 {
                     /* assume RGRGRG and GBGBGB lines */
-                    rgbInMatrix[0, 0] = (float)PixelLookupTable[pixelData[y, x]];
-                    rgbInMatrix[1, 0] = (float)PixelLookupTable[pixelData[y, x + 1]];
-                    rgbInMatrix[2, 0] = (float)PixelLookupTable[pixelData[y + 1, x + 1]];
-
-                    Matrix rgbOutMatrix = rgbInMatrix;
+                    rgbInMatrix[0] = (float)PixelLookupTable[pixelData[y, x]];
+                    rgbInMatrix[1] = (float)PixelLookupTable[pixelData[y, x + 1]];
+                    rgbInMatrix[2] = (float)PixelLookupTable[pixelData[y + 1, x + 1]];
 
                     /* apply transformation matrix */
-                    if (UseCorrectionMatrices)
-                    {
-                        rgbOutMatrix = CamToRgbMatrix * rgbInMatrix;
-                    }
+                    Matrix rgbOutMatrix = CorrectionMatrices(rgbInMatrix);
 
                     for (int pixelY = 0; pixelY < Downscale; pixelY++)
                     {
                         for (int pixelX = 0; pixelX < Downscale; pixelX++)
                         {
+                            int posX = x + pixelX * 2;
+                            int posY = y + pixelY * 2;
+
                             for (int channel = 0; channel < 3; channel++)
                             {
-                                float value = rgbOutMatrix[channel, 0];
+                                float value = rgbOutMatrix[channel];
 
-                                if (UseCorrectionMatrices)
-                                {
-                                    value *= WhiteBalanceMatrix[channel, 0];
-                                }
-                                else if(channel == 1)
+                                if (!UseCorrectionMatrices && (channel == 1))
                                 {
                                     value /= 2;
                                 }
 
-                                pixelType data = (pixelType)Math.Max(0, Math.Min(255, value));
-
-                                int posX = x + pixelX * 2;
-                                int posY = y + pixelY * 2;
+                                pixelType data = ToPixelValue(value);
 
                                 rgbData[posY + 0, posX + 0, channel] = data;
                                 rgbData[posY + 0, posX + 1, channel] = data;
