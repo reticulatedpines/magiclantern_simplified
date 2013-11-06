@@ -86,6 +86,7 @@ static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
 static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
+static uint32_t cam_60d = 0;
 
 #define MAX_WRITER_THREADS 2
 
@@ -1552,6 +1553,7 @@ static void hack_liveview(int32_t unhack)
 			cam_eos_m ? 0xFF539C1C :
 			cam_700d ? 0xFF52B53C :
 			cam_7d  ? 0xFF345788 :
+            cam_60d ? 0xff36fa3c :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -3559,6 +3561,7 @@ static unsigned int raw_rec_init()
     cam_600d = streq(camera_model_short, "600D");
     cam_7d = streq(camera_model_short, "7D");
     cam_700d = streq(camera_model_short, "700D");
+    cam_60d = streq(camera_model_short, "60D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
