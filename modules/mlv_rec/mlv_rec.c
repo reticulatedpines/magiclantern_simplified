@@ -51,11 +51,11 @@
 
 
 //#define CONFIG_CONSOLE
-//#define TRACE_DISABLED
+#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL    500   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#define MLV_RTCI_BLOCK_INTERVAL 1000
-#define MLV_INFO_BLOCK_INTERVAL 2000
+#define MLV_RTCI_BLOCK_INTERVAL 2000
+#define MLV_INFO_BLOCK_INTERVAL 5000
 #define MAX_PATH                 100
 
 
@@ -1152,7 +1152,7 @@ static void show_buffer_status()
     if(enable_tracing)
     {
         buffer_str[buffer_str_pos++] = '\000';
-        trace_write(raw_rec_trace_ctx, buffer_str);
+        //trace_write(raw_rec_trace_ctx, buffer_str);
     }   
 
     if (frame_skips > 0)
@@ -1331,6 +1331,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
             msg_queue_post(mlv_block_queue, rtci_hdr);
         }
+
         if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing))
         {
             trace_write(raw_rec_trace_ctx, "[polling_cbr] queueing INFO blocks");
@@ -1807,7 +1808,6 @@ static int32_t FAST process_frame()
         return 0;
     }
     
-
     /* restore from NULL block used when prepending data */
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
     if(!memcmp(hdr->blockType, "NULL", 4))
@@ -1845,46 +1845,6 @@ static int32_t FAST process_frame()
 
     int32_t ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
     
-    /* write blocks if some were queued */
-    static int32_t queued = 0;
-    static int32_t failed = 0;
-    uint32_t msg_count = 0;
-    
-    /* check if there is a block that should get embedded */
-    msg_queue_count(mlv_block_queue, &msg_count);
-    
-    /* embed what is possible */
-    for(uint32_t msg = 0; msg < msg_count; msg++)
-    {
-        mlv_hdr_t *block = NULL;
-    
-        /* there is a block in the queue, try to get that block */
-        if(msg_queue_receive(mlv_block_queue, &block, 0))
-        {
-            bmp_printf(FONT_MED, 0, 400, "MESSAGE RECEIVE ERROR!!");
-        }
-        else
-        {
-            //trace_write(raw_rec_trace_ctx, "--> call cbr for '%4s' block", block->blockType);
-            raw_rec_cbr_mlv_block(block);
-            //trace_write(raw_rec_trace_ctx, "--> prepend '%4s' block", block->blockType);
-            
-            /* prepend the given block if possible or requeue it in case of error */
-            int32_t ret = mlv_prepend_block(hdr, block);
-            if(!ret)
-            {
-                queued++;
-                free(block);
-            }
-            else
-            {
-                failed++;
-                msg_queue_post(mlv_block_queue, block);
-                bmp_printf(FONT_MED, 0, 430, "FAILED. queued: %d failed: %d (requeued)", queued, failed);
-            }
-        }
-    }
-    
     /* copy current frame to our buffer and crop it to its final size */
     slots[capture_slot].frame_number = frame_count;
     slots[capture_slot].status = SLOT_FULL;
@@ -1900,6 +1860,7 @@ static int32_t FAST process_frame()
 static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
     static int32_t dma_transfer_in_progress = 0;
+    
     /* there may be DMA transfers started in process_frame, finish them */
     /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
     if (dma_transfer_in_progress)
@@ -1922,82 +1883,11 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
     if (!allow_frame_skip && frame_skips) return 0;
-
+    
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
     dma_transfer_in_progress = process_frame();
-    
-    if(mlv_update_lens)
-    {
-        mlv_update_lens = 0;
-        
-        mlv_expo_hdr_t old_expo = last_expo_hdr;
-        mlv_lens_hdr_t old_lens = last_lens_hdr;
-        
-        mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
-        mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
-        
-        /* update timestamp for comparing content changes */
-        old_expo.timestamp = last_expo_hdr.timestamp;
-        old_lens.timestamp = last_lens_hdr.timestamp;
-        
-        /* write new state if something changed */
-        if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
-        {
-            mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
-            memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
-        }
-        
-        /* write new state if something changed */
-        if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
-        {
-            mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
-            memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
-        }
-    }
-    
-    if(mlv_update_styl)
-    {
-        mlv_update_styl = 0;
-        
-        mlv_styl_hdr_t old_hdr = last_styl_hdr;
-        mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
-        
-        /* update timestamp for comparing content changes */
-        old_hdr.timestamp = last_styl_hdr.timestamp;
-        
-        /* write new state if something changed */
-        if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
-        {
-            mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
-            memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
-        }
-    }
-    
-    if(mlv_update_wbal)
-    {
-        mlv_update_wbal = 0;
-        
-        /* capture last state and get new one */
-        mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
-        mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
-        
-        /* update timestamp for comparing content changes */
-        old_hdr.timestamp = last_wbal_hdr.timestamp;
-        
-        /* write new state if something changed */
-        if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
-        {
-            mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
-            memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
-        }
-    }
-
     return 0;
 }
 
@@ -2139,8 +2029,8 @@ static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job
 retry_find:
 
     /* initialize write job */
-    memset(write_job, 0x00, sizeof(write_job_t));
     memset(&job, 0x00, sizeof(write_job_t));
+    *write_job = job;
     
     for (int32_t group = start_group; group < slot_group_count; group++)
     {
@@ -2524,8 +2414,48 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
     {
+        /* write blocks if some were queued */
+        static int32_t queued = 0;
+        static int32_t failed = 0;
+        uint32_t msg_count = 0;
+        
         slots[slot].status = SLOT_WRITING;
         slots[slot].writer = writer;
+        mlv_vidf_hdr_t *hdr = slots[slot].ptr;
+        
+        /* check if there is a block that should get embedded */
+        msg_queue_count(mlv_block_queue, &msg_count);
+        
+        /* embed what is possible */
+        for(uint32_t msg = 0; msg < msg_count; msg++)
+        {
+            mlv_hdr_t *block = NULL;
+        
+            /* there is a block in the queue, try to get that block */
+            if(msg_queue_receive(mlv_block_queue, &block, 0))
+            {
+                bmp_printf(FONT_MED, 0, 400, "MESSAGE RECEIVE ERROR!!");
+            }
+            else
+            {
+                raw_rec_cbr_mlv_block(block);
+                
+                /* prepend the given block if possible or requeue it in case of error */
+                int32_t ret = mlv_prepend_block(hdr, block);
+                if(!ret)
+                {
+                    queued++;
+                    free(block);
+                }
+                else
+                {
+                    failed++;
+                    msg_queue_post(mlv_block_queue, block);
+                    bmp_printf(FONT_MED, 0, 430, "FAILED. queued: %d failed: %d (requeued)", queued, failed);
+                    break;
+                }
+            }
+        }    
     }
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
@@ -2889,7 +2819,78 @@ static void raw_video_rec_task()
             }
             //trace_write(raw_rec_trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
             
-            //if(raw_recording_state != RAW_RECORDING)
+            if(mlv_update_lens)
+            {
+                mlv_update_lens = 0;
+                
+                mlv_expo_hdr_t old_expo = last_expo_hdr;
+                mlv_lens_hdr_t old_lens = last_lens_hdr;
+                
+                mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
+                mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
+                
+                /* update timestamp for comparing content changes */
+                old_expo.timestamp = last_expo_hdr.timestamp;
+                old_lens.timestamp = last_lens_hdr.timestamp;
+                
+                /* write new state if something changed */
+                if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
+                {
+                    mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
+                    memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
+                    msg_queue_post(mlv_block_queue, hdr);
+                }
+                
+                /* write new state if something changed */
+                if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
+                {
+                    mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
+                    memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
+                    msg_queue_post(mlv_block_queue, hdr);
+                }
+            }
+            
+            if(mlv_update_styl)
+            {
+                mlv_update_styl = 0;
+                
+                mlv_styl_hdr_t old_hdr = last_styl_hdr;
+                mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
+                
+                /* update timestamp for comparing content changes */
+                old_hdr.timestamp = last_styl_hdr.timestamp;
+                
+                /* write new state if something changed */
+                if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
+                {
+                    mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
+                    memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
+                    msg_queue_post(mlv_block_queue, hdr);
+                }
+            }
+            
+            if(mlv_update_wbal)
+            {
+                mlv_update_wbal = 0;
+                
+                /* capture last state and get new one */
+                mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
+                mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
+                
+                /* update timestamp for comparing content changes */
+                old_hdr.timestamp = last_wbal_hdr.timestamp;
+                
+                /* write new state if something changed */
+                if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
+                {
+                    mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
+                    memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
+                    msg_queue_post(mlv_block_queue, hdr);
+                }
+            }
+            
+            
+            if(raw_recording_state != RAW_RECORDING)
             {
                 show_buffer_status();
             }
