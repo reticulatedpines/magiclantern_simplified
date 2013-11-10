@@ -3205,7 +3205,7 @@ static MENU_UPDATE_FUNC(raw_tag_take_update)
 static struct menu_entry raw_video_menu[] =
 {
     {
-        .name = "RAW video",
+        .name = "RAW video (MLV)",
         .priv = &raw_video_enabled,
         .max = 1,
         .update = raw_main_update,
