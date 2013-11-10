@@ -115,7 +115,7 @@ static CONFIG_INT("raw.delay", start_delay_idx, 0);
 static CONFIG_INT("raw.killgd", kill_gd, 0);
 static CONFIG_INT("raw.reckey", rec_key, 0);
 
-static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
+CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.video.buffer_fill_method", buffer_fill_method, 4);
 static CONFIG_INT("raw.video.fast_card_buffers", fast_card_buffers, 3);
