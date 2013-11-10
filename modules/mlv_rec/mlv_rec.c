@@ -2598,7 +2598,7 @@ static void raw_video_rec_task()
         {
             uint32_t base_prio = 0x05;
             
-            if(cam_5d2)
+            if (cam_5d2 || cam_50d)
             {
                 base_prio = 0x1C;
             }
