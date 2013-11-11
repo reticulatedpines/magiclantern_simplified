@@ -2596,12 +2596,7 @@ static void raw_video_rec_task()
         /* create writer threads with decreasing priority */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            uint32_t base_prio = 0x05;
-            
-            if (cam_5d2 || cam_50d)
-            {
-                base_prio = 0x1C;
-            }
+            uint32_t base_prio = 0x1C;
             task_create("writer_thread", base_prio + writer, 0x1000, raw_writer_task, (void*)writer);
         }
         
