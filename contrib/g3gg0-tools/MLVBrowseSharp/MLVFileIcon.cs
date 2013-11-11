@@ -51,7 +51,7 @@ namespace MLVBrowseSharp
         {
             Graphics picGraph = null;
 
-            Thread.Sleep(300);
+            //Thread.Sleep(300);
 
             Handler.UseCorrectionMatrices = false;
             Handler.SelectDebayer(2);
@@ -71,7 +71,7 @@ namespace MLVBrowseSharp
             }
             catch (ArgumentException)
             {
-                MessageBox.Show("Failed to load file");
+                SetText("Load failed");
                 DisplayThread = null;
                 return;
             }
@@ -84,6 +84,7 @@ namespace MLVBrowseSharp
                     {
                         if (Handler.FileHeader.videoClass != 0x01)
                         {
+                            SetText("Not supported");
                             Reader.Close();
                             DisplayThread = null;
                             return;
@@ -91,37 +92,38 @@ namespace MLVBrowseSharp
 
                         if (Handler.FrameUpdated)
                         {
-                            try{
-                            Invoke(new Action(() =>
+                            try
                             {
-                                try
+                                Invoke(new Action(() =>
                                 {
-                                    Bitmap frame = Handler.CurrentFrame;
-
-                                    /* update picturebox - this is very slow and inefficient */
-                                    if (frame != null)
+                                    try
                                     {
-                                        if (pictureBox.Image == null || pictureBox.Image.Size != frame.Size)
+                                        Bitmap frame = Handler.CurrentFrame;
+
+                                        /* update picturebox - this is very slow and inefficient */
+                                        if (frame != null)
                                         {
-                                            if (picGraph != null)
+                                            if (pictureBox.Image == null || pictureBox.Image.Size != frame.Size)
                                             {
-                                                picGraph.Dispose();
+                                                if (picGraph != null)
+                                                {
+                                                    picGraph.Dispose();
+                                                }
+                                                Bitmap bmp = new Bitmap(frame);
+                                                picGraph = Graphics.FromImage(bmp);
+                                                pictureBox.Image = bmp;
                                             }
-                                            Bitmap bmp = new Bitmap(frame);
-                                            picGraph = Graphics.FromImage(bmp);
-                                            pictureBox.Image = bmp;
+                                            picGraph.DrawImage(frame, 0, 0, frame.Size.Width, Handler.CurrentFrame.Size.Height);
+                                            pictureBox.Refresh();
                                         }
-                                        picGraph.DrawImage(frame, 0, 0, frame.Size.Width, Handler.CurrentFrame.Size.Height);
-                                        pictureBox.Refresh();
                                     }
-                                }
-                                catch (Exception e)
-                                {
-                                    MessageBox.Show("Exception: " + e);
-                                }
-                            }));
+                                    catch (Exception e)
+                                    {
+                                        SetText(e.GetType().ToString());
+                                    }
+                                }));
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
                             }
 
@@ -152,6 +154,34 @@ namespace MLVBrowseSharp
                 Reader.Close();
                 throw ex;
             }
+            catch (Exception ex)
+            {
+                SetText(ex.GetType().ToString());
+                return;
+            }
+        }
+
+        private void SetText(string text)
+        {
+            try
+            {
+                Invoke(new Action(() =>
+                {
+                    try
+                    {
+                        Bitmap bmp = new Bitmap(pictureBox.Width, pictureBox.Height);
+                        Graphics graph = Graphics.FromImage(bmp);
+                        pictureBox.Image = bmp;
+                        graph.DrawString(text, new Font("Courier New", 10), new SolidBrush(Color.Black), new PointF(0, pictureBox.Height/2));
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }));
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private void mouseClick(object sender, EventArgs e)
@@ -166,7 +196,7 @@ namespace MLVBrowseSharp
                     {
                         ParentList.UnselectAll();
                     }
-                    Selected = true;
+                    Selected ^= true;
                 }
                 if (arg.Button == MouseButtons.Right)
                 {
@@ -217,6 +247,11 @@ namespace MLVBrowseSharp
         internal void StartAnimation()
         {
             Paused = false;
+        }
+
+        private void pictureBox_DoubleClick(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(FileInfo.FullName);
         }
     }
 }
