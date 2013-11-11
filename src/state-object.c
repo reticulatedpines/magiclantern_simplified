@@ -246,7 +246,7 @@ static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int 
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
 	
-    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_7D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_7D)
     // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
     // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
     if (old_state == 0 && input == 3 && new_state == 1)
