@@ -131,7 +131,7 @@ namespace mlv_view_sharp
 
         public void HandleBlock(string type, MLVTypes.mlv_vidf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
         {
-            if (FileHeader.videoClass != 0x01)
+            if (FileHeader.videoClass != 0x01 || LockBitmap == null)
             {
                 return;
             }
@@ -250,25 +250,19 @@ namespace mlv_view_sharp
             }
         }
 
-        internal void SelectDebayer(int p)
+        public void SelectDebayer(int downscale)
         {
             lock (this)
             {
                 Debayer newDebayer = null;
 
-                switch (p)
+                switch (downscale)
                 {
                     case 0:
                         newDebayer = new DebayerBilinear();
                         break;
-                    case 1:
-                        newDebayer = new DebayerHalfRes(1);
-                        break;
-                    case 2:
-                        newDebayer = new DebayerHalfRes(2);
-                        break;
-                    case 3:
-                        newDebayer = new DebayerHalfRes(4);
+                    default:
+                        newDebayer = new DebayerHalfRes(1 << (downscale - 1));
                         break;
                 }
 
@@ -284,7 +278,7 @@ namespace mlv_view_sharp
             }
         }
 
-        internal float ExposureCorrection
+        public float ExposureCorrection
         {
             get
             {
@@ -296,7 +290,7 @@ namespace mlv_view_sharp
             }
         }
 
-        internal void SetWhite(float r, float g, float b)
+        public void SetWhite(float r, float g, float b)
         {
             if (Math.Abs(r) == 0 || Math.Abs(g) == 0 || Math.Abs(b) == 0)
             {
@@ -309,12 +303,12 @@ namespace mlv_view_sharp
             Debayer.WhiteBalance = wb;
         }
 
-        internal void ResetWhite()
+        public void ResetWhite()
         {
             Debayer.WhiteBalance = new float[] { 1, 1, 1 };
         }
 
-        internal float ColorTemperature
+        public float ColorTemperature
         {
             get
             {
@@ -326,7 +320,7 @@ namespace mlv_view_sharp
             }
         }
 
-        internal bool UseCorrectionMatrices
+        public bool UseCorrectionMatrices
         {
             get
             {
@@ -338,7 +332,7 @@ namespace mlv_view_sharp
             }
         }
 
-        internal bool HighlightRecovery
+        public bool HighlightRecovery
         {
             get
             {

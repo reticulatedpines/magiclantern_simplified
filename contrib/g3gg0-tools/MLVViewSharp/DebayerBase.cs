@@ -16,7 +16,7 @@ namespace MLVViewSharp
         protected float _Saturation = 0.0f;
         protected float _ColorTemperature = 6500.0f;
 
-        protected Matrix CamToXYZMatrix = new Matrix(3, 3);
+        protected Matrix XYZToCamMatrix = new Matrix(3, 3);
         protected Matrix CamToRgbMatrix = new Matrix(3, 3);
         protected Matrix WhiteBalanceMatrix = new Matrix(3, 3);
         protected Matrix WhiteBalanceMatrixRaw = new Matrix(3, 3);
@@ -31,7 +31,9 @@ namespace MLVViewSharp
         protected Matrix XYZD50toD65 = null;
         protected Matrix XYZBradford = null;
         protected Matrix RGBToXYZMatrix = null;
-        
+
+        protected byte[] RawLookupTable = null;
+        protected LUTParam RawLookupParms;
 
         protected void InitMatrices()
         {
@@ -50,6 +52,13 @@ namespace MLVViewSharp
                 new[] { 0.8951000f,  0.2664000f, -0.1614000f}, 
                 new[] {-0.7502000f,  1.7135000f,  0.0367000f}, 
                 new[] { 0.0389000f, -0.0685000f,  1.0296000f} });
+
+            /*
+            RGBToYCbCrMatrix = new Matrix(new float[][]{ 
+                new[] { 0.2215f,  0.7154f,  0.0721f}, 
+                new[] {-0.1145f, -0.3855f,  0.5000f}, 
+                new[] { 0.5016f, -0.4556f, -0.0459f} });
+            */
 
             RGBToYCbCrMatrix = new Matrix(new float[][]{ 
                 new[] { 0.2990000f,  0.5870000f,  0.1140000f}, 
@@ -78,7 +87,7 @@ namespace MLVViewSharp
                 throw new NotSupportedException();
             }
 
-            x = -4.6070 * 1000000000.0 / Math.Pow(temp, 3) + 2.9678 * 1000000.0 / Math.Pow(temp, 2) + 0.09911 * 1000.0 / temp + 0.244063;
+            x = -4.607e9 / Math.Pow(temp, 3) + 2.9678e6 / Math.Pow(temp, 2) + 0.09911e3 / temp + 0.244063;
             y = -3 * Math.Pow(x, 2) + 2.870 * x - 0.275;
 
             xyz[0] = (float)(x / y);
@@ -126,10 +135,18 @@ namespace MLVViewSharp
         protected void UpdateMatrix()
         {
             /* convert XYZ into a cone response domain, scale and back again (see http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html) */
+            Matrix coneDomain = XYZBradford;
+            //Matrix coneDomain = new Matrix(3, 3).Identity();
+
+            if (XYZToCamMatrix.IsZeroMatrix())
+            {
+                CamToRgbMatrix = new Matrix(3, 3).Identity();
+                return;
+            }
 
             /* get the XYZ --> cone reference whites for requested temperatures */
-            Matrix dst = XYZBradford * KelvinToXYZ(ColorTemperature);
-            Matrix src = XYZBradford * KelvinToXYZ(5000);
+            Matrix dst = coneDomain * KelvinToXYZ(ColorTemperature);
+            Matrix src = coneDomain * KelvinToXYZ(5000);
 
             /* scale coordinates in cone color space */
             Matrix xyzScale = new Matrix(3, 3);
@@ -138,10 +155,22 @@ namespace MLVViewSharp
             xyzScale[2, 2] = dst[2] / src[2];
 
             /* finally scale colors */
-            Matrix xyzKelvinWb = XYZBradford.Inverse() * xyzScale * XYZBradford;
+            Matrix xyzKelvinWb = coneDomain.Inverse() * xyzScale * coneDomain;
 
             /* now combine the whole thing to get RAW --> RAW-WB --> XYZ --> Kelvin-WB --> XYZ --> (s)RGB --> RGB-WB */
-            CamToRgbMatrix = WhiteBalanceMatrix * RGBToXYZMatrix.Inverse() * xyzKelvinWb * CamToXYZMatrix.Inverse() * WhiteBalanceMatrixRaw;
+            CamToRgbMatrix = WhiteBalanceMatrix * RGBToXYZMatrix.Inverse() * xyzKelvinWb * XYZToCamMatrix.Inverse() * WhiteBalanceMatrixRaw;
+#if false
+            /* input is 0..1, output 0..1 */
+            Matrix ml_matrix = RGBToYCbCrMatrix * (RGBToXYZMatrix.Inverse() * xyzKelvinWb * XYZToCamMatrix.Inverse());
+
+            ml_matrix = 1024.0f * ml_matrix;
+
+            Console.WriteLine("    int Y = COERCE(((" + (int)ml_matrix[0, 0] + ") * R + (" + (int)ml_matrix[0, 1] + ") * G + (" + (int)ml_matrix[0, 2] + ") * B) / 1024, 0, 255);");
+            Console.WriteLine("    int U = COERCE(((" + (int)ml_matrix[1, 0] + ") * R + (" + (int)ml_matrix[1, 1] + ") * G + (" + (int)ml_matrix[1, 2] + ") * B) / 1024, -128, 127);");
+            Console.WriteLine("    int V = COERCE(((" + (int)ml_matrix[2, 0] + ") * R + (" + (int)ml_matrix[2, 1] + ") * G + (" + (int)ml_matrix[2, 2] + ") * B) / 1024, -128, 127);");
+
+            Matrix ml_matrix2 = ml_matrix;
+#endif
         }
 
         internal Matrix CorrectionMatrices(Matrix inMatrix)
@@ -157,11 +186,11 @@ namespace MLVViewSharp
                     Matrix yuv = RGBToYCbCrMatrix * outMatrix;
 
                     /* stitch error function on top to compress highlights */
-                    float startBrightness = 200;
+                    float startBrightness = 0.8f;
                     if (yuv[0] > startBrightness)
                     {
                         float offset = yuv[0] - startBrightness;
-                        float room = 255 - startBrightness;
+                        float room = 1.0f - startBrightness;
                         float newLuma = startBrightness + (Erf(offset / (room * 2)) * room);
                         float scal = newLuma / yuv[0];
 
@@ -189,8 +218,7 @@ namespace MLVViewSharp
 
                 scal *= _Brightness;
 
-                /* now pre-scale to 0-255 to save operations later */
-                PixelLookupTable[pos] = scal * 255;
+                PixelLookupTable[pos] = scal;
             }
         }
 
@@ -258,7 +286,7 @@ namespace MLVViewSharp
                 {
                     for (int col = 0; col < 3; col++)
                     {
-                        value[col + row * 3] = CamToXYZMatrix[row, col];
+                        value[col + row * 3] = XYZToCamMatrix[row, col];
                     }
                 }
                 return value;
@@ -269,7 +297,7 @@ namespace MLVViewSharp
                 {
                     for (int col = 0; col < 3; col++)
                     {
-                        CamToXYZMatrix[row, col] = value[col + row * 3];
+                        XYZToCamMatrix[row, col] = value[col + row * 3];
                     }
                 }
                 LookupTablesDirty = true;
