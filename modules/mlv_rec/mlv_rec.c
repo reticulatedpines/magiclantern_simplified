@@ -2133,7 +2133,15 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
         mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
         mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);    
         mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);    
-        mlv_fill_styl(&styl_hdr, mlv_start_timestamp);    
+        mlv_fill_styl(&styl_hdr, mlv_start_timestamp); 
+
+        /* ensure that these come right after header. quite hackish but necessary */
+        rtci_hdr.timestamp = 1;
+        expo_hdr.timestamp = 2;
+        lens_hdr.timestamp = 3;
+        idnt_hdr.timestamp = 4;
+        wbal_hdr.timestamp = 5;
+        styl_hdr.timestamp = 6;
         
         mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
