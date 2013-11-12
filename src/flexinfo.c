@@ -1576,7 +1576,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             {
                 snprintf(buffer, maxsize,
                     "HDR %dx%d%sEV",
-                    hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+                    hdr_steps,
                     hdr_stepsize / 8,
                     ((hdr_stepsize/4) % 2) ? ".5" : "");
             }
