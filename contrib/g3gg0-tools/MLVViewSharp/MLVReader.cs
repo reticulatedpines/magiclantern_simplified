@@ -219,7 +219,7 @@ namespace mlv_view_sharp
         }
 
 
-        internal virtual bool ReadBlock()
+        public virtual bool ReadBlock()
         {
             if (Reader == null)
             {
@@ -268,7 +268,7 @@ namespace mlv_view_sharp
             return true;
         }
 
-        internal virtual void Close()
+        public virtual void Close()
         {
             if (Reader == null)
             {

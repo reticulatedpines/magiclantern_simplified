@@ -108,9 +108,9 @@ namespace mlv_view_sharp
                     /* apply transformation matrix */
                     Matrix rgbOutMatrix = CorrectionMatrices(rgbInMatrix);
 
-                    rgbData[y, x, 0] = (pixelType)ToPixelValue(rgbOutMatrix[0]);
-                    rgbData[y, x, 1] = (pixelType)ToPixelValue(rgbOutMatrix[1]);
-                    rgbData[y, x, 2] = (pixelType)ToPixelValue(rgbOutMatrix[2]);
+                    rgbData[y, x, 0] = (pixelType)ToPixelValue(255 * rgbOutMatrix[0]);
+                    rgbData[y, x, 1] = (pixelType)ToPixelValue(255 * rgbOutMatrix[1]);
+                    rgbData[y, x, 2] = (pixelType)ToPixelValue(255 * rgbOutMatrix[2]);
                 }
             }
         }

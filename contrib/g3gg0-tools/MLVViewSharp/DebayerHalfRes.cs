@@ -28,10 +28,11 @@ namespace mlv_view_sharp
             }
 
             Matrix rgbInMatrix = new Matrix(3, 1);
+            Matrix rgbOutMatrix = new Matrix(3, 1);
 
-            for (int y = 0; y < pixelData.GetLength(0) - Downscale; y += Downscale * 2)
+            for (int y = 0; y < pixelData.GetLength(0) - Downscale * 2; y += Downscale * 2)
             {
-                for (int x = 0; x < pixelData.GetLength(1) - Downscale; x += Downscale * 2)
+                for (int x = 0; x < pixelData.GetLength(1) - Downscale * 2; x += Downscale * 2)
                 {
                     /* assume RGRGRG and GBGBGB lines */
                     rgbInMatrix[0] = (float)PixelLookupTable[pixelData[y, x]];
@@ -39,7 +40,7 @@ namespace mlv_view_sharp
                     rgbInMatrix[2] = (float)PixelLookupTable[pixelData[y + 1, x + 1]];
 
                     /* apply transformation matrix */
-                    Matrix rgbOutMatrix = CorrectionMatrices(rgbInMatrix);
+                    rgbOutMatrix = CorrectionMatrices(rgbInMatrix);
 
                     for (int pixelY = 0; pixelY < Downscale; pixelY++)
                     {
@@ -57,7 +58,7 @@ namespace mlv_view_sharp
                                     value /= 2;
                                 }
 
-                                pixelType data = ToPixelValue(value);
+                                pixelType data = ToPixelValue(255 * value);
 
                                 rgbData[posY + 0, posX + 0, channel] = data;
                                 rgbData[posY + 0, posX + 1, channel] = data;

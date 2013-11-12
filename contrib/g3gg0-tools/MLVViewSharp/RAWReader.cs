@@ -143,7 +143,7 @@ namespace mlv_view_sharp
         }
 
 
-        internal override bool ReadBlock()
+        public override bool ReadBlock()
         {
             if (Reader == null)
             {
