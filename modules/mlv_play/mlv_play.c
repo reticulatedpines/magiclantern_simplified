@@ -44,7 +44,7 @@
 
 char *strncpy(char *dest, const char *src, size_t n);
 
-/* only works if the raw_rev/mlv_rec module has its config variable non-static */
+/* only works if the raw_rec/mlv_rec module has its config variable non-static */
 static int raw_video_enabled_dummy = 0;
 extern int WEAK_FUNC(raw_video_enabled_dummy) raw_video_enabled;
 
