@@ -2761,12 +2761,7 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
             char hdr_sequence_calc_char[32];
             char hdr_sequence_calc_char1[32];
 
-            if (hdr_sequence == 1 && hdr_steps == 2)
-            {
-                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(lens_info.raw_shutter));
-                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
-            }
-            else if (hdr_sequence == 1)
+            if (hdr_sequence == 1 && hdr_steps != 2)
             {
                 snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(hdr_sequence_calc1));
                 snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
