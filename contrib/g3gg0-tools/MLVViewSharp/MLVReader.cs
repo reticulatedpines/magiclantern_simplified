@@ -150,7 +150,7 @@ namespace mlv_view_sharp
             /* open files now */
             for(int file = 0; file < fileNum; file++)
             {
-                Reader[file] = new BinaryReader(File.Open(FileNames[file], FileMode.Open, FileAccess.Read, FileShare.Read));
+                Reader[file] = new BinaryReader(File.Open(FileNames[file], FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             }
         }
 
