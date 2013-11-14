@@ -626,7 +626,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     /* now write XREF block */
     mlv_xref_hdr_t hdr;
     
-    memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+    memset(&hdr, 0x00, sizeof(mlv_xref_hdr_t));
     memcpy(hdr.blockType, "XREF", 4);
     hdr.blockSize = sizeof(mlv_xref_hdr_t) + entries * sizeof(mlv_xref_t);
     hdr.entryCount = entries;
@@ -736,15 +736,6 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 if(file_hdr.fileNum == 0)
                 {
                     memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
-                    
-                    xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
-                    
-                    /* add xref data */
-                    frame_xref_table[frame_xref_entries].frameTime = 0;
-                    frame_xref_table[frame_xref_entries].frameOffset = position;
-                    frame_xref_table[frame_xref_entries].fileNumber = chunk;
-                    
-                    frame_xref_entries++;
                 }
                 else
                 {
@@ -757,18 +748,19 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                         break;
                     }
                 }
-            }
-            else
-            {
-                xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
                 
-                /* add xref data */
-                frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
-                frame_xref_table[frame_xref_entries].frameOffset = position;
-                frame_xref_table[frame_xref_entries].fileNumber = chunk;
-                
-                frame_xref_entries++;
+                /* emulate timestamp zero (will overwrite version string) */
+                buf.timestamp = 0;
             }
+            
+            xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+            
+            /* add xref data */
+            frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
+            frame_xref_table[frame_xref_entries].frameOffset = position;
+            frame_xref_table[frame_xref_entries].fileNumber = chunk;
+            
+            frame_xref_entries++;
             
             FIO_SeekFileWrapper(chunk_files[chunk], position + buf.blockSize, SEEK_SET);
             blocks++;
@@ -1086,6 +1078,7 @@ static void mlv_play_clear_screen()
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t frame_size = 0;
+    uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
     mlv_lens_hdr_t lens_block;
     mlv_rawi_hdr_t rawi_block;
@@ -1109,6 +1102,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     
     /* load or create index file */
     block_xref = mlv_play_get_index(filename, chunk_files, chunk_count);
+    mlv_xref_t *xrefs = (mlv_xref_t *)&(((uint8_t*)block_xref)[sizeof(mlv_xref_hdr_t)]);
     
     /* index building would print on screen */
     mlv_play_clear_screen();
@@ -1122,8 +1116,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         }
         
         /* get the file and position of the next block */
-        uint32_t in_file_num = ((mlv_xref_t*)&block_xref->xrefEntries)[block_xref_pos].fileNumber;
-        uint32_t position = ((mlv_xref_t*)&block_xref->xrefEntries)[block_xref_pos].frameOffset;
+        uint32_t in_file_num = xrefs[block_xref_pos].fileNumber;
+        uint32_t position = xrefs[block_xref_pos].frameOffset;
         
         /* select file and seek to the right position */
         FILE *in_file = chunk_files[in_file_num];
@@ -1141,6 +1135,12 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         }
         FIO_SeekFileWrapper(in_file, position, SEEK_SET);
         
+        /* special case: if first block read, reset frame count as all MLVI blocks frame count will get accumulated */
+        if(block_xref_pos == 0)
+        {
+            frame_count = 0;
+        }
+        
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
         {
@@ -1156,6 +1156,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
 
+            frame_count += file_hdr.videoFrameCount;
+            
             /* is this the first file? */
             if(file_hdr.fileNum == 0)
             {
@@ -1163,6 +1165,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             else
             {
+                
                 /* no, its another chunk */
                 if(main_header.fileGuid != file_hdr.fileGuid)
                 {
@@ -1300,7 +1303,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             snprintf(buffer->messages.botLeft, SCREEN_MSG_LEN, "%s: %dx%d", filename, rawi_block.xRes, rawi_block.yRes);
-            snprintf(buffer->messages.botRight, SCREEN_MSG_LEN, "%d/%d", vidf_block.frameNumber + 1, main_header.videoFrameCount);
+            snprintf(buffer->messages.botRight, SCREEN_MSG_LEN, "%d/%d", vidf_block.frameNumber + 1, frame_count);
             
             /* update dimensions */
             buffer->xRes = rawi_block.xRes;
@@ -1476,8 +1479,6 @@ static void mlv_build_playlist_path(char *directory)
     dirent = FIO_FindFirstEx(directory, &file);
     if(IS_ERROR(dirent))
     {
-        bmp_printf(FONT_MED, 30, 350, "IS_ERROR(dirent) '%s'          ", directory);
-        msleep(1000);
         return;
     }
     

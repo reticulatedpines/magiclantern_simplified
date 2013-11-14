@@ -369,7 +369,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     /* now write XREF block */
     mlv_xref_hdr_t hdr;
     
-    memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+    memset(&hdr, 0x00, sizeof(mlv_xref_hdr_t));
     memcpy(hdr.blockType, "XREF", 4);
     hdr.blockSize = sizeof(mlv_xref_hdr_t) + entries * sizeof(mlv_xref_t);
     hdr.entryCount = entries;
@@ -877,6 +877,7 @@ int main (int argc, char *argv[])
     
     /* this table contains the XREF chunk read from idx file, if existing */
     mlv_xref_hdr_t *block_xref = NULL;
+    mlv_xref_t *xrefs = NULL;
     int block_xref_pos = 0;
 
     uint32_t frame_buffer_size = 32*1024*1024;
@@ -921,6 +922,7 @@ int main (int argc, char *argv[])
         if(block_xref)
         {   
             printf("[i] XREF table contains %d entries\n", block_xref->entryCount);
+            xrefs = (mlv_xref_t *)((uint32_t)block_xref + sizeof(mlv_xref_hdr_t));
         }
         else
         {
@@ -1000,8 +1002,10 @@ read_headers:
             }
             
             /* get the file and position of the next block */
-            in_file_num = ((mlv_xref_t*)&block_xref->xrefEntries)[block_xref_pos].fileNumber;
-            position = ((mlv_xref_t*)&block_xref->xrefEntries)[block_xref_pos].frameOffset;
+            in_file_num = xrefs[block_xref_pos].fileNumber;
+            position = xrefs[block_xref_pos].frameOffset;
+            
+            printf(" %d, %d\n", in_file_num, position);
             
             /* select file and seek to the right position */
             in_file = in_files[in_file_num];
@@ -1065,22 +1069,22 @@ read_headers:
                 printf("    Frames Audio: %d\n", file_hdr.audioFrameCount);
             }
 
+            /* in xref mode, use every block and get its timestamp etc */
+            if(xref_mode)
+            {
+                xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+                
+                /* add xref data */
+                frame_xref_table[frame_xref_entries].frameTime = 0;
+                frame_xref_table[frame_xref_entries].frameOffset = position;
+                frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                
+                frame_xref_entries++;
+            }
+                
             /* is this the first file? */
             if(file_hdr.fileNum == 0)
             {
-                /* in xref mode, use every block and get its timestamp etc */
-                if(xref_mode)
-                {
-                    xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
-                    
-                    /* add xref data */
-                    frame_xref_table[frame_xref_entries].frameTime = 0;
-                    frame_xref_table[frame_xref_entries].frameOffset = position;
-                    frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
-                    
-                    frame_xref_entries++;
-                }
-                
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
                 
                 if(mlv_output)
