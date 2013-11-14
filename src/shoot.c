@@ -2731,7 +2731,7 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
     {
         MENU_SET_VALUE("%d", hdr_steps);
 
-        if (shooting_mode == SHOOTMODE_M)
+        if (shooting_mode == SHOOTMODE_M && hdr_type == 0 && hdr_iso == 0)
         {
             int hdr_sequence_calc = 0;
             int hdr_sequence_calc1 = 0;
@@ -2742,7 +2742,7 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
             }
             else if (hdr_sequence == 1)
             {
-                if (hdr_steps  % 2 != 0)
+                if (hdr_steps % 2 != 0)
                 {
                     hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps-1)/2);
                     hdr_sequence_calc1 = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-1)/2);
