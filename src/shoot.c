@@ -2734,6 +2734,7 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
         if (shooting_mode == SHOOTMODE_M && hdr_type == 0 && hdr_iso == 0)
         {
             int hdr_sequence_calc = 0;
+            int hdr_sequence_calc_old = 0;
             int hdr_sequence_calc1 = 0;
 
             if (hdr_sequence == 0)
@@ -2757,7 +2758,14 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
             {
                 hdr_sequence_calc = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-1));
             }
-            
+
+            hdr_sequence_calc_old = hdr_sequence_calc;
+
+            if (hdr_sequence_calc > FASTEST_SHUTTER_SPEED_RAW)
+            {
+                hdr_sequence_calc = FASTEST_SHUTTER_SPEED_RAW;
+            }
+
             char hdr_sequence_calc_char[32];
             char hdr_sequence_calc_char1[32];
 
@@ -2771,7 +2779,15 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
                 snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(lens_info.raw_shutter));
                 snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
             }
-            MENU_SET_RINFO("%s ... %s", hdr_sequence_calc_char, hdr_sequence_calc_char1);
+
+            if (hdr_sequence_calc_old > FASTEST_SHUTTER_SPEED_RAW)
+            {
+                MENU_SET_RINFO("%s ... %sE", hdr_sequence_calc_char, hdr_sequence_calc_char1);
+            }
+            else
+            {
+                MENU_SET_RINFO("%s ... %s", hdr_sequence_calc_char, hdr_sequence_calc_char1);
+            }
         }
     }
 
