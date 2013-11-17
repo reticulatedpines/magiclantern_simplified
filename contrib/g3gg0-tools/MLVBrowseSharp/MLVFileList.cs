@@ -13,6 +13,10 @@ namespace MLVBrowseSharp
 {
     public partial class MLVFileList : UserControl
     {
+        private ArrayList FileIcons = new ArrayList();
+        public string[] Groups = new string[0];
+
+
         public MLVFileList()
         {
             InitializeComponent();
@@ -20,7 +24,7 @@ namespace MLVBrowseSharp
 
         public void Stop()
         {
-            foreach (MLVFileIcon icon in fileList.Controls)
+            foreach (MLVFileIcon icon in FileIcons)
             {
                 icon.Stop();
             }
@@ -28,17 +32,22 @@ namespace MLVBrowseSharp
 
         internal void ShowDirectory(string dir)
         {
-            foreach (MLVFileIcon icon in fileList.Controls)
+            /* first hide all shown icons */
+            fileList.Controls.Clear();
+
+            /* now destroy all allocated ones */
+            foreach (MLVFileIcon icon in FileIcons)
             {
                 icon.Stop();
             }
-            fileList.Controls.Clear();
+            FileIcons.Clear();
 
             if (dir == null)
             {
                 return;
             }
 
+            /* build a new list of icons */
             try
             {
                 DirectoryInfo dirs = new DirectoryInfo(dir);
@@ -47,7 +56,8 @@ namespace MLVBrowseSharp
                     if (file.Extension.ToLower() == ".mlv" || file.Extension.ToLower() == ".raw")
                     {
                         MLVFileIcon icon = new MLVFileIcon(this, file);
-                        fileList.Controls.Add(icon);
+                        FileIcons.Add(icon);
+                        UpdateFileIcons();
                     }
                 }
             }
@@ -56,32 +66,65 @@ namespace MLVBrowseSharp
             }
         }
 
+        private void UpdateFileIcons()
+        {
+            UpdateGroups();
+            fileList.Controls.Clear();
+            fileList.Controls.AddRange((MLVFileIcon[])FileIcons.ToArray(typeof(MLVFileIcon)));
+        }
+
+        public void UpdateGroups()
+        {
+            ArrayList fields = new ArrayList();
+
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                foreach (var elem in icon.Metadata)
+                {
+                    if (!fields.Contains(elem.Key))
+                    {
+                        fields.Add(elem.Key);
+                    }
+                }
+            }
+
+            Groups = (string[])fields.ToArray(typeof(string));
+        }
+
         internal void UnselectAll()
         {
-            foreach (MLVFileIcon icon in fileList.Controls)
+            foreach (MLVFileIcon icon in FileIcons)
             {
-                icon.Unselect();
+                icon.Selected = false;
             }
         }
 
         internal void RightClick(Point pos)
         {
             ArrayList selected = new ArrayList();
-            foreach (MLVFileIcon icon in fileList.Controls)
+            foreach (MLVFileIcon icon in FileIcons)
             {
                 if (icon.Selected)
                 {
                     selected.Add(icon.FileInfo);
                 }
             }
-            ShellContextMenu ctxMnu = new ShellContextMenu();
-            FileInfo[] arrFI = (FileInfo[])selected.ToArray(typeof(FileInfo));
-            ctxMnu.ShowContextMenu(arrFI, this.PointToScreen(pos));
+
+            if (Form.ModifierKeys == Keys.Shift)
+            {
+
+            }
+            else
+            {
+                ShellContextMenu ctxMnu = new ShellContextMenu();
+                FileInfo[] arrFI = (FileInfo[])selected.ToArray(typeof(FileInfo));
+                ctxMnu.ShowContextMenu(arrFI, this.PointToScreen(pos));
+            }
         }
 
         internal void StartAnimation()
         {
-            foreach (MLVFileIcon icon in fileList.Controls)
+            foreach (MLVFileIcon icon in FileIcons)
             {
                 icon.StartAnimation();
             }
@@ -89,9 +132,74 @@ namespace MLVBrowseSharp
 
         internal void StopAnimation()
         {
-            foreach (MLVFileIcon icon in fileList.Controls)
+            foreach (MLVFileIcon icon in FileIcons)
             {
                 icon.StopAnimation();
+            }
+        }
+
+        internal void UpdateSelections()
+        {
+            int animating = 0;
+
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                if (icon.Selected)
+                {
+                    animating++;
+                }
+            }
+
+            if (animating > 1)
+            {
+                StopAnimation();
+            }
+        }
+
+        internal void GroupBy(string name)
+        {
+            TableLayoutPanel table = new TableLayoutPanel();
+
+            table.Dock = DockStyle.Fill;
+            table.ColumnStyles.Clear();
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            table.ColumnCount = 1;
+            table.AutoScroll = true;
+
+            table.RowStyles.Clear();
+            table.RowCount = 0;
+
+            Controls.Clear();
+            Controls.Add(table);
+
+            MLVFileIcon[] list = (MLVFileIcon[])FileIcons.ToArray(typeof(MLVFileIcon));
+            var result = list.GroupBy(a => a.TryGetMetadata(name), a => a).OrderBy(b => b.Key).ToList();
+
+            foreach (var grp in result)
+            {
+                GroupBox box = new GroupBox();
+                FlowLayoutPanel panel = new FlowLayoutPanel();
+
+                box.Text = "Group: " + grp.Key;
+                box.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+                box.Dock = DockStyle.Fill;
+                box.AutoSize = true;
+                box.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+                panel.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+                panel.AutoSize = true;
+                panel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+                box.Controls.Add(panel);
+
+                foreach (var icon in grp)
+                {
+                    panel.Controls.Add(icon);
+                }
+
+                table.RowStyles.Add(new RowStyle(SizeType.AutoSize, 0));
+                table.Controls.Add(box, 0, table.RowCount);
+                table.RowCount = table.RowStyles.Count;
             }
         }
     }

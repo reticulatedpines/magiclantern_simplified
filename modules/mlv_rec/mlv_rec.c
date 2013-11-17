@@ -2604,12 +2604,7 @@ static void raw_video_rec_task()
         /* create writer threads with decreasing priority */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            uint32_t base_prio = 0x05;
-            
-            if(cam_5d2)
-            {
-                base_prio = 0x1C;
-            }
+            uint32_t base_prio = 0x1C;
             task_create("writer_thread", base_prio + writer, 0x1000, raw_writer_task, (void*)writer);
         }
         
@@ -3213,7 +3208,7 @@ static MENU_UPDATE_FUNC(raw_tag_take_update)
 static struct menu_entry raw_video_menu[] =
 {
     {
-        .name = "RAW video",
+        .name = "RAW video (MLV)",
         .priv = &raw_video_enabled,
         .max = 1,
         .update = raw_main_update,

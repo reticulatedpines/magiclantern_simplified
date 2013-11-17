@@ -172,8 +172,7 @@ typedef struct {
     uint64_t    timestamp;
     uint32_t    frameType;    /* bitmask: 1=video, 2=audio */
     uint32_t    entryCount;    /* number of xrefs that follow here */
-    mlv_xref_t  xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
- /* uint8_t     xrefData[variable] */;
+    //mlv_xref_t  xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
 } PACKED mlv_xref_hdr_t;
 
 typedef struct {
