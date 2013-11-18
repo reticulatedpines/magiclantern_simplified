@@ -271,6 +271,11 @@ namespace MLVBrowseSharp
 
         private void mouseClick(object sender, EventArgs e)
         {
+            if (!ParentList.Focused)
+            {
+                //ParentList.Focus();
+            }
+
             if (e is MouseEventArgs)
             {
                 MouseEventArgs arg = (MouseEventArgs)e;
@@ -383,6 +388,12 @@ namespace MLVBrowseSharp
             }
 
             return "";
+        }
+
+        internal void SetSize(int p)
+        {
+            Width = p;
+            Height = p;
         }
     }
 }

@@ -169,8 +169,6 @@ namespace MLVBrowseSharp
             table.RowStyles.Clear();
             table.RowCount = 0;
 
-            Controls.Clear();
-            Controls.Add(table);
 
             MLVFileIcon[] list = (MLVFileIcon[])FileIcons.ToArray(typeof(MLVFileIcon));
             var result = list.GroupBy(a => a.TryGetMetadata(name), a => a).OrderBy(b => b.Key).ToList();
@@ -180,19 +178,20 @@ namespace MLVBrowseSharp
                 GroupBox box = new GroupBox();
                 FlowLayoutPanel panel = new FlowLayoutPanel();
 
-                box.Text = "Group: " + grp.Key;
+                box.Text = name + "  |  " + grp.Key;
                 box.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
                 box.Dock = DockStyle.Fill;
                 box.AutoSize = true;
                 box.AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
+                panel.Location = new System.Drawing.Point(6, 16);
                 panel.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
                 panel.AutoSize = true;
                 panel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
                 box.Controls.Add(panel);
 
-                foreach (var icon in grp)
+                foreach (var icon in grp.OrderBy(b => b.TryGetMetadata("Time: Date/Time")))
                 {
                     panel.Controls.Add(icon);
                 }
@@ -201,6 +200,35 @@ namespace MLVBrowseSharp
                 table.Controls.Add(box, 0, table.RowCount);
                 table.RowCount = table.RowStyles.Count;
             }
+
+            Dock = DockStyle.Fill;
+            AutoSize = true;
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            Controls.Clear();
+            Controls.Add(table);
+        }
+
+        internal void SetIconSize(int p)
+        {
+            SuspendLayout();
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                icon.SuspendLayout();
+            }
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                icon.SetSize(p);
+            }
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                icon.ResumeLayout();
+            }
+            ResumeLayout();
+        }
+
+        private void fileList_MouseEnter(object sender, EventArgs e)
+        {
+            Focus();
         }
     }
 }

@@ -119,5 +119,10 @@ namespace MLVBrowseSharp
         {
             mlvFileList.GroupBy(cmbGrouping.Text);
         }
+
+        private void trackSize_ValueChanged(object sender, EventArgs e)
+        {
+            mlvFileList.SetIconSize(trackSize.Value);
+        }
     }
 }
