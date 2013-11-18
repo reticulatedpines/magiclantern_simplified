@@ -73,6 +73,7 @@ static int32_t mlv_play_osd_x = 360;
 static int32_t mlv_play_osd_y = 0;
 static uint32_t mlv_play_render_timestep = 10;
 static uint32_t mlv_play_idle_timestep = 1000;
+static uint32_t mlv_play_osd_force_redraw = 0;
 static uint32_t mlv_play_osd_idle = 1000;
 static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
@@ -129,6 +130,7 @@ static char mlv_play_next_filename[MAX_PATH];
 static char mlv_play_current_filename[MAX_PATH];
 static playlist_entry_t mlv_playlist_next(playlist_entry_t current);
 static playlist_entry_t mlv_playlist_prev(playlist_entry_t current);
+static void mlv_playlist_delete(playlist_entry_t current);
 static void mlv_build_playlist(uint32_t priv);
 
 static uint32_t FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
@@ -204,6 +206,136 @@ static void mlv_play_prev()
     }
 }
 
+static void mlv_del_task(char *parm)
+{
+    uint32_t size = 0;
+    uint32_t loops = 0;
+    uint32_t seq_number = 0;
+    char seq_name[3];
+    char filename[128];
+    char current_file[128];
+    
+    /* keep filename locally */
+    strncpy(filename, parm, sizeof(filename));
+    free(parm);
+    
+    /* file does not exist */
+    if(FIO_GetFileSize(filename, &size))
+    {
+        return;
+    }
+    
+    TASK_LOOP
+    {
+        msleep(250);
+        
+        loops++;
+        if(loops > 100)
+        {
+            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed, retrying...", filename);
+        }
+
+        /* try to delete main file */
+        strncpy(current_file, filename, sizeof(current_file));
+        
+        if(!FIO_GetFileSize(current_file, &size))
+        {
+            if(FIO_RemoveFile(current_file))
+            {
+                continue;
+            }
+        }
+        
+        /* try to delete index file */
+        strncpy(current_file, filename, sizeof(current_file));
+        strcpy(&current_file[strlen(current_file) - 3], "IDX");
+        
+        if(!FIO_GetFileSize(current_file, &size))
+        {
+            if(FIO_RemoveFile(current_file))
+            {
+                continue;
+            }
+        }
+        
+        /* this is the ultimate abort condition */
+        if(seq_number >= 99)
+        {
+            break;
+        }
+        
+        /* check for the next file M00, M01 etc */
+        snprintf(seq_name, 3, "%02d", seq_number);
+        strncpy(current_file, filename, sizeof(current_file));
+        strcpy(&current_file[strlen(current_file) - 2], seq_name);
+        
+        /* try to delete files on all cards */
+        current_file[0] = 'A';
+        
+        if(FIO_GetFileSize(current_file, &size))
+        {
+            current_file[0] = 'B';
+            if(FIO_GetFileSize(current_file, &size))
+            {
+                /* no more files */
+                break;
+            }
+            else
+            {
+                if(FIO_RemoveFile(current_file))
+                {
+                    continue;
+                }
+                seq_number++;
+            }
+        }
+        else
+        {
+            if(FIO_RemoveFile(current_file))
+            {
+                continue;
+            }
+            seq_number++;
+        }
+    }
+    
+    return;
+}
+
+static void mlv_play_delete()
+{
+    playlist_entry_t current;
+    playlist_entry_t next;
+    playlist_entry_t prev;
+    
+    strncpy(current.fullPath, mlv_play_current_filename, sizeof(current.fullPath));
+    next = mlv_playlist_next(current);
+    prev = mlv_playlist_prev(current);
+    
+    mlv_playlist_delete(current);
+    
+    if(strlen(next.fullPath))
+    {
+        strncpy(mlv_play_next_filename, next.fullPath, sizeof(mlv_play_next_filename));
+        mlv_play_stopfile = 1;
+        mlv_play_paused = 0;
+    }
+    else if(strlen(prev.fullPath))
+    {
+        strncpy(mlv_play_next_filename, prev.fullPath, sizeof(mlv_play_next_filename));
+        mlv_play_stopfile = 1;
+        mlv_play_paused = 0;
+    }
+    else
+    {
+        mlv_play_render_abort = 1;
+    }
+    
+    char *msg = strdup(current.fullPath);
+    
+    task_create("mlv_del_task", 0x1e, 0x800, mlv_del_task, (void*)msg);
+}
+
 static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
@@ -213,7 +345,7 @@ static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
     
     if(msg)
     {
-        snprintf(msg, msg_len, mlv_play_quality?"LO":"HI");
+        snprintf(msg, msg_len, mlv_play_quality?"fast":"color");
     }
 }
 
@@ -266,11 +398,49 @@ static void mlv_play_osd_quit(char *msg, uint32_t msg_len, uint32_t selected)
     
     if(msg)
     {
-        snprintf(msg, msg_len, "[]");
+        snprintf(msg, msg_len, "Exit");
     }
 }
 
-static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_quit };
+static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    static uint32_t delete_selected = 0;
+    uint32_t max_time = 5000;
+
+    if(selected)
+    {
+        if(!delete_selected || selected == 2)
+        {
+            mlv_play_osd_force_redraw = 1;
+            delete_selected = get_ms_clock_value();
+        }
+        else
+        {
+            mlv_play_osd_force_redraw = 0;
+            delete_selected = 0;
+            mlv_play_delete();
+        }
+    }
+    
+    if(msg)
+    {
+        uint32_t time_passed = get_ms_clock_value() - delete_selected;
+        uint32_t seconds = (max_time - time_passed) / 1000;
+        
+        if(delete_selected && seconds > 0)
+        {
+            snprintf(msg, msg_len, "[delete? %ds]", seconds);
+        }
+        else
+        {
+            delete_selected = 0;
+            mlv_play_osd_force_redraw = 0;
+            snprintf(msg, msg_len, "Del");
+        }
+    }
+}
+
+static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_delete, &mlv_play_osd_quit };
 
 static uint32_t mlv_play_osd_handle(uint32_t msg)
 {
@@ -395,6 +565,21 @@ static uint32_t mlv_play_osd_draw()
     return redraw;
 }
 
+static void mlv_play_osd_act(void *handler)
+{
+    int entry = 0;
+    
+    for(entry = 0; entry < COUNT(mlv_play_osd_items); entry++)
+    {
+        if(mlv_play_osd_items[entry] == handler)
+        {
+            mlv_play_osd_item = entry;
+            mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
+            return;
+        }
+    }
+}
+
 static void mlv_play_osd_task(void *priv)
 {
     uint32_t next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
@@ -426,12 +611,18 @@ static void mlv_play_osd_task(void *priv)
                         mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
                     }
                     break;
+                    
                 case MODULE_KEY_WHEEL_RIGHT:
                     mlv_play_next();
                     if(mlv_play_osd_state != MLV_PLAY_MENU_SHOWN)
                     {
                         mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
                     }
+                    break;
+                    
+                case MODULE_KEY_TRASH:
+                    mlv_play_osd_act(&mlv_play_osd_delete);
+                    mlv_play_osd_delete(NULL, 0, 2);
                     break;
             }
             
@@ -490,7 +681,12 @@ static void mlv_play_osd_task(void *priv)
         {
             next_render_time = get_ms_clock_value() + mlv_play_idle_timestep;
             
-            if(idle_time > mlv_play_osd_idle && mlv_play_osd_state == MLV_PLAY_MENU_SHOWN)
+            /* when redrawing is forced, keep OSD shown */
+            if(mlv_play_osd_force_redraw)
+            {
+                mlv_play_osd_state = MLV_PLAY_MENU_SHOWN;
+            }
+            else if(idle_time > mlv_play_osd_idle && mlv_play_osd_state == MLV_PLAY_MENU_SHOWN)
             {
                 mlv_play_osd_state = MLV_PLAY_MENU_FADEOUT;
             }
@@ -1566,14 +1762,16 @@ static void mlv_build_playlist(uint32_t priv)
     /* pre-allocate the number of enqueued playlist items */
     uint32_t msg_count = 0;
     msg_queue_count(mlv_playlist_queue, &msg_count);
-    mlv_playlist = malloc(msg_count * sizeof(playlist_entry_t));
+    playlist_entry_t *playlist = malloc(msg_count * sizeof(playlist_entry_t));
     
     /* add all items */
     while(!msg_queue_receive(mlv_playlist_queue, &entry, 50))
     {
-        mlv_playlist[mlv_playlist_entries++] = *entry;
+        playlist[mlv_playlist_entries++] = *entry;
         free(entry);
     }
+    
+    mlv_playlist = playlist;
 }
 
 static int32_t mlv_playlist_find(playlist_entry_t current)
@@ -1585,16 +1783,20 @@ static int32_t mlv_playlist_find(playlist_entry_t current)
             return pos;
         }
     }
-
-    beep();
-    
-    for(uint32_t pos = 0; pos < mlv_playlist_entries; pos++)
-    {
-        bmp_printf(FONT_MED, 30, 190, "file %s not found in playlist. %d:%s", current.fullPath, pos, mlv_playlist[pos].fullPath); 
-        msleep(2000);
-    }
     
     return -1;
+}
+
+static void mlv_playlist_delete(playlist_entry_t current)
+{
+    int32_t pos = mlv_playlist_find(current);
+    
+    if(pos >= 0)
+    {
+        uint32_t remaining = mlv_playlist_entries - pos - 1;
+        memcpy(&mlv_playlist[pos], &mlv_playlist[pos+1], remaining * sizeof(playlist_entry_t));
+        mlv_playlist_entries--;
+    }
 }
 
 static playlist_entry_t mlv_playlist_next(playlist_entry_t current)
