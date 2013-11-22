@@ -546,7 +546,7 @@ void show_usage(char *executable)
     fprintf(stderr, "-- MLV output --\n");
     fprintf(stderr, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     fprintf(stderr, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
-    fprintf(stderr, " -f frames           stop after that number of frames\n");
+    fprintf(stderr, " -f frames           frames to save. e.g. '12' saves the first 12 frames, '12-40' saves frames 12 to 40.\n");
     fprintf(stderr, " -x                  build xref file (indexing)\n");
     fprintf(stderr, " -m                  write only metadata, no audio or video frames\n");
     fprintf(stderr, " -n                  write no metadata, only audio and video frames\n");
@@ -576,7 +576,8 @@ int main (int argc, char *argv[])
     char *lut_filename = NULL;
     int blocks_processed = 0;
     
-    int frame_limit = 0;
+    int frame_start = 0;
+    int frame_end = 0;
     int vidf_frames_processed = 0;
     int vidf_max_number = 0;
     
@@ -724,7 +725,28 @@ int main (int argc, char *argv[])
                 break;
                 
             case 'f':
-                frame_limit = MAX(0, atoi(optarg));
+                {
+                    char *dash = strchr(optarg, '-');
+                    
+                    /* try to parse "1-10" */
+                    if(dash)
+                    {
+                        *dash = '\000';
+                        frame_start = atoi(optarg);
+                        frame_end = atoi(&dash[1]);
+                        
+                        /* to makse sure it is a valid range */
+                        if(frame_start > frame_end)
+                        {
+                            frame_end = frame_start;
+                        }
+                    }
+                    else
+                    {
+                        /* only the frame end is specified */
+                        frame_end = MAX(0, atoi(optarg));
+                    }
+                }
                 break;
                 
             case 'b':
@@ -1005,7 +1027,7 @@ read_headers:
             in_file_num = xrefs[block_xref_pos].fileNumber;
             position = xrefs[block_xref_pos].frameOffset;
             
-            printf(" %d, %d\n", in_file_num, position);
+            printf(" %d, %llu\n", in_file_num, position);
             
             /* select file and seek to the right position */
             in_file = in_files[in_file_num];
@@ -1454,144 +1476,151 @@ read_headers:
                         }
                     }
                     
-                    if(raw_output)
-                    {
-                        if(!lv_rec_footer.frameSize)
-                        {
-                            lv_rec_footer.frameSize = frame_size;
-                        }
-
-                        fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
-                        fwrite(frame_buffer, frame_size, 1, out_file);
-                    }
+                    /* when no end was specified, save all frames */
+                    uint32_t frame_selected = (!frame_end) || ((block_hdr.frameNumber >= frame_start) && (block_hdr.frameNumber <= frame_end));
                     
-                    if(dng_output)
+                    if(frame_selected)
                     {
-                        void fix_vertical_stripes();
-                        extern struct raw_info raw_info;
-
-                        char fn[100];
-                        snprintf(fn, sizeof(fn), "%s%06d.dng", output_filename, block_hdr.frameNumber);
-                        
-                        raw_info = lv_rec_footer.raw_info;
-                        raw_info.frame_size = frame_size;
-                        raw_info.buffer = frame_buffer;
-                        
-                        /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
-                        if (lv_rec_footer.xRes != raw_info.width)
+                        if(raw_output)
                         {
-                            raw_info.width = lv_rec_footer.xRes;
-                            raw_info.pitch = raw_info.width * 14/8;
-                            raw_info.active_area.x1 = 0;
-                            raw_info.active_area.x2 = raw_info.width;
-                            raw_info.jpeg.x = 0;
-                            raw_info.jpeg.width = raw_info.width;
-                        }
-
-                        if (lv_rec_footer.yRes != raw_info.height)
-                        {
-                            raw_info.height = lv_rec_footer.yRes;
-                            raw_info.active_area.y1 = 0;
-                            raw_info.active_area.y2 = raw_info.height;
-                            raw_info.jpeg.y = 0;
-                            raw_info.jpeg.height = raw_info.height;
-                        }
-    
-                        /* call raw2dng code */
-                        fix_vertical_stripes();
-                        
-                        /* this is internal again */
-                        chroma_smooth(chroma_smooth_method, &raw_info);
-                        
-                        /* set MLV metadata into DNG tags */
-                        dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                        dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
-                        dng_set_aperture(lens_info.aperture, 100);
-                        dng_set_camname((char*)idnt_info.cameraName);
-                        dng_set_description((char*)info_string);
-                        dng_set_lensmodel((char*)lens_info.lensName);
-                        dng_set_focal(lens_info.focalLength, 1);
-                        dng_set_iso(expo_info.isoValue);
-                        
-                        dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
-                        
-                        
-                        uint64_t serial = 0;
-                        char *end;
-                        serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
-                        if (serial && !*end)
-                        {
-                            char serial_str[64];
-                            
-                            sprintf(serial_str, "%"PRIu64, serial);
-                            dng_set_camserial((char*)serial_str);
-                        }
-                        
-                        /* finally save the DNG */
-                        save_dng(fn, &raw_info);
-                    }
-                    
-                    if(mlv_output && !only_metadata_mode && !average_mode)
-                    {
-                        if(compress_output)
-                        {
-#ifdef MLV_USE_LZMA
-                            size_t lzma_out_size = 2 * frame_size;
-                            size_t lzma_in_size = frame_size;
-                            size_t lzma_props_size = LZMA_PROPS_SIZE;
-                            unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
-
-                            int ret = LzmaCompress(
-                                &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
-                                (unsigned char *)frame_buffer, lzma_in_size, 
-                                &lzma_out[0], &lzma_props_size, 
-                                lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
-                                );
-
-                            if(ret == SZ_OK)
+                            if(!lv_rec_footer.frameSize)
                             {
-                                /* store original frame size */
-                                *(uint32_t *)frame_buffer = frame_size;
-                                
-                                /* set new compressed size and copy buffers */
-                                frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
-                                memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
-                                
-                                if(verbose)
-                                {
-                                    printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
-                                }
+                                lv_rec_footer.frameSize = frame_size;
                             }
-                            else
+
+                            fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
+                            fwrite(frame_buffer, frame_size, 1, out_file);
+                        }
+                        
+                        if(dng_output)
+                        {
+                            void fix_vertical_stripes();
+                            extern struct raw_info raw_info;
+
+                            char fn[100];
+                            snprintf(fn, sizeof(fn), "%s%06d.dng", output_filename, block_hdr.frameNumber);
+                            
+                            raw_info = lv_rec_footer.raw_info;
+                            raw_info.frame_size = frame_size;
+                            raw_info.buffer = frame_buffer;
+                            
+                            /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
+                            if (lv_rec_footer.xRes != raw_info.width)
                             {
-                                printf("    LZMA: Failed (%d)\n", ret);
+                                raw_info.width = lv_rec_footer.xRes;
+                                raw_info.pitch = raw_info.width * 14/8;
+                                raw_info.active_area.x1 = 0;
+                                raw_info.active_area.x2 = raw_info.width;
+                                raw_info.jpeg.x = 0;
+                                raw_info.jpeg.width = raw_info.width;
+                            }
+
+                            if (lv_rec_footer.yRes != raw_info.height)
+                            {
+                                raw_info.height = lv_rec_footer.yRes;
+                                raw_info.active_area.y1 = 0;
+                                raw_info.active_area.y2 = raw_info.height;
+                                raw_info.jpeg.y = 0;
+                                raw_info.jpeg.height = raw_info.height;
+                            }
+        
+                            /* call raw2dng code */
+                            fix_vertical_stripes();
+                            
+                            /* this is internal again */
+                            chroma_smooth(chroma_smooth_method, &raw_info);
+                            
+                            /* set MLV metadata into DNG tags */
+                            dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                            dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
+                            dng_set_aperture(lens_info.aperture, 100);
+                            dng_set_camname((char*)idnt_info.cameraName);
+                            dng_set_description((char*)info_string);
+                            dng_set_lensmodel((char*)lens_info.lensName);
+                            dng_set_focal(lens_info.focalLength, 1);
+                            dng_set_iso(expo_info.isoValue);
+                            
+                            dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
+                            
+                            
+                            uint64_t serial = 0;
+                            char *end;
+                            serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
+                            if (serial && !*end)
+                            {
+                                char serial_str[64];
+                                
+                                sprintf(serial_str, "%"PRIu64, serial);
+                                dng_set_camserial((char*)serial_str);
+                            }
+                            
+                            /* finally save the DNG */
+                            save_dng(fn, &raw_info);
+                        }
+                        
+                        if(mlv_output && !only_metadata_mode && !average_mode)
+                        {
+                            if(compress_output)
+                            {
+#ifdef MLV_USE_LZMA
+                                size_t lzma_out_size = 2 * frame_size;
+                                size_t lzma_in_size = frame_size;
+                                size_t lzma_props_size = LZMA_PROPS_SIZE;
+                                unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
+
+                                int ret = LzmaCompress(
+                                    &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
+                                    (unsigned char *)frame_buffer, lzma_in_size, 
+                                    &lzma_out[0], &lzma_props_size, 
+                                    lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
+                                    );
+
+                                if(ret == SZ_OK)
+                                {
+                                    /* store original frame size */
+                                    *(uint32_t *)frame_buffer = frame_size;
+                                    
+                                    /* set new compressed size and copy buffers */
+                                    frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
+                                    memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
+                                    
+                                    if(verbose)
+                                    {
+                                        printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                                    }
+                                }
+                                else
+                                {
+                                    printf("    LZMA: Failed (%d)\n", ret);
+                                    goto abort;
+                                }
+                                free(lzma_out);
+#else
+                                printf("    LZMA: not compiled into this release, aborting.\n");
+                                goto abort;
+#endif
+                            }
+                            
+                            if(frame_size != prev_frame_size)
+                            {
+                                printf("  saving: %d -> %d  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
+                            }
+                            
+                            /* delete free space and correct header size if needed */
+                            block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+                            block_hdr.frameSpace = 0;
+                            block_hdr.frameNumber -= frame_start;
+                            
+                            if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
+                            {
+                                fprintf(stderr, "[E] Failed writing into output file\n");
                                 goto abort;
                             }
-                            free(lzma_out);
-#else
-                            printf("    LZMA: not compiled into this release, aborting.\n");
-                            goto abort;
-#endif
-                        }
-                        
-                        if(frame_size != prev_frame_size)
-                        {
-                            printf("  saving: %d -> %d  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
-                        }
-                        
-                        /* delete free space and correct header size if needed */
-                        block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
-                        block_hdr.frameSpace = 0;
-                        
-                        if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
-                        {
-                            fprintf(stderr, "[E] Failed writing into output file\n");
-                            goto abort;
-                        }
-                        if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
-                        {
-                            fprintf(stderr, "[E] Failed writing into output file\n");
-                            goto abort;
+                            if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+                            {
+                                fprintf(stderr, "[E] Failed writing into output file\n");
+                                goto abort;
+                            }
                         }
                     }
                 }
@@ -1603,11 +1632,6 @@ read_headers:
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
                 
                 vidf_frames_processed++;
-                if(frame_limit && vidf_frames_processed > frame_limit)
-                {
-                    printf("[i] Reached limit of %i frames\n", frame_limit);
-                    break;
-                }
             }
             else if(!memcmp(buf.blockType, "LENS", 4))
             {
