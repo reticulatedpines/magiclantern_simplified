@@ -1275,7 +1275,8 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     {
         int yr = LV2RAW_Y(y) & ~1;
 
-        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
+        /* on HDMI screens, BM2LV_DX() may get negative */
+        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
         {
             /* out of range, just fill with black */
             memset(&lv32[LV(0,y)/4], 0, BM2LV_DX(x2-x1)*2);
@@ -1365,7 +1366,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     {
         int yr = LV2RAW_Y(y) | 1;
 
-        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
+        /* on HDMI screens, BM2LV_DX() may get negative */
+        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
         {
             /* out of range, just fill with black */
             memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);

@@ -40,6 +40,11 @@ namespace mlv_view_sharp
                 new MenuItem("Reset RGB White Balance", new EventHandler(menu_ResetWb)),
             });
         }
+        public MLVViewerForm(string file)
+            : this()
+        {
+            AutoplayFile = file;
+        }
 
         protected override void OnLoad(EventArgs e)
         {

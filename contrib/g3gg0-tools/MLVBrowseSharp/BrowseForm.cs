@@ -15,7 +15,6 @@ namespace MLVBrowseSharp
         public BrowseForm()
         {
             InitializeComponent();
-
             UpdateFolders();
         }
 
@@ -60,7 +59,7 @@ namespace MLVBrowseSharp
             FillChildNodes(rootnode);
         }
 
-        void FillChildNodes(TreeNode node)
+        private void FillChildNodes(TreeNode node)
         {
             node.Nodes.Clear();
             try
@@ -110,6 +109,20 @@ namespace MLVBrowseSharp
             }
 
             mlvFileList.ShowDirectory(dir);
+            mlvFileList.UpdateGroups();
+
+            cmbGrouping.Items.Clear();
+            cmbGrouping.Items.AddRange(mlvFileList.Groups);
+        }
+
+        private void cmbGrouping_TextChanged(object sender, EventArgs e)
+        {
+            mlvFileList.GroupBy(cmbGrouping.Text);
+        }
+
+        private void trackSize_ValueChanged(object sender, EventArgs e)
+        {
+            mlvFileList.SetIconSize(trackSize.Value);
         }
     }
 }

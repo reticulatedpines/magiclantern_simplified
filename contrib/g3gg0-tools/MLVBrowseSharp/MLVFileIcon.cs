@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading;
 using mlv_view_sharp;
+using System.Diagnostics;
 
 namespace MLVBrowseSharp
 {
@@ -17,11 +18,16 @@ namespace MLVBrowseSharp
         public FileInfo FileInfo = null;
         private MLVFileList ParentList = null;
         private bool _Selected = false;
-        private bool Paused = false;        
+        private bool Paused = false;
+        private bool SingleStep = true;
+        private bool SeekMode = false;
         private Thread DisplayThread = null;
+        private int NextBlockNumber = -1;
 
         private MLVReader Reader = null;
         private MLVHandler Handler = new MLVHandler();
+
+        public Dictionary<string, string> Metadata = new Dictionary<string, string>();
 
         public MLVFileIcon(MLVFileList parent, FileInfo file)
         {
@@ -36,9 +42,10 @@ namespace MLVBrowseSharp
             DisplayThread = new Thread(DisplayFunc);
             DisplayThread.Priority = ThreadPriority.Lowest;
             DisplayThread.Start();
+            
         }
 
-        public new void Stop()
+        public void Stop()
         {
             if (DisplayThread != null)
             {
@@ -50,8 +57,6 @@ namespace MLVBrowseSharp
         private void DisplayFunc()
         {
             Graphics picGraph = null;
-
-            //Thread.Sleep(300);
 
             Handler.UseCorrectionMatrices = false;
             Handler.SelectDebayer(2);
@@ -90,6 +95,8 @@ namespace MLVBrowseSharp
                             return;
                         }
 
+                        UpdateMetadata();
+
                         if (Handler.FrameUpdated)
                         {
                             try
@@ -116,6 +123,8 @@ namespace MLVBrowseSharp
                                             picGraph.DrawImage(frame, 0, 0, frame.Size.Width, Handler.CurrentFrame.Size.Height);
                                             pictureBox.Refresh();
                                         }
+
+                                        label1.Text = FileInfo.Name + Environment.NewLine + "(Frame " + Reader.CurrentBlockNumber + "/" + Reader.MaxBlockNumber + ")";
                                     }
                                     catch (Exception e)
                                     {
@@ -127,14 +136,28 @@ namespace MLVBrowseSharp
                             {
                             }
 
+                            /* videos that are not selected, run very slowly */
                             if (!Selected)
                             {
-                                Thread.Sleep(1000);
+                                if (Reader.CurrentBlockNumber < Math.Min(Reader.MaxBlockNumber - 1, 10))
+                                {
+                                    Thread.Sleep(1000);
+                                }
+                                else
+                                {
+                                    SingleStep = true;
+                                }
+                            }
+                            
+                            if (SingleStep)
+                            {
+                                SingleStep = false;
+                                Paused = true;
                             }
 
                             while (Paused)
                             {
-                                Thread.Sleep(500);
+                                Thread.Sleep(50);
                             }
                         }
 
@@ -146,6 +169,12 @@ namespace MLVBrowseSharp
                         {
                             Reader.CurrentBlockNumber = 0;
                         }
+
+                        if (NextBlockNumber >= 0)
+                        {
+                            Reader.CurrentBlockNumber = NextBlockNumber;
+                            NextBlockNumber = -1;
+                        }
                     }
                 }
             }
@@ -154,10 +183,66 @@ namespace MLVBrowseSharp
                 Reader.Close();
                 throw ex;
             }
+            catch (IOException ex)
+            {
+                SetText(ex.GetType().ToString());
+                return;
+            }
             catch (Exception ex)
             {
                 SetText(ex.GetType().ToString());
                 return;
+            }
+        }
+
+        private string GetMetadata()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var elem in Metadata)
+            {
+                sb.AppendLine(elem.Key + " : " + elem.Value);
+            }
+
+            return sb.ToString();
+        }
+
+        private void UpdateMetadata()
+        {
+            SetMetadata("Camera: Model name", Handler.IdntHeader.cameraName);
+            SetMetadata("Camera: Model number", Handler.IdntHeader.cameraModel.ToString());
+            SetMetadata("Camera: Body serial", Handler.IdntHeader.cameraSerial);
+
+            SetMetadata("Lens: Lens ID", Handler.LensHeader.lensID.ToString());
+            SetMetadata("Lens: Lens name", Handler.LensHeader.lensName);
+            SetMetadata("Lens: Aperture", "f/" + ((float)Handler.LensHeader.aperture / 100).ToString("0.00"));
+            SetMetadata("Lens: Focal length", Handler.LensHeader.focalLength + " mm");
+            SetMetadata("Lens: Focal distance", Handler.LensHeader.focalDist + " mm");
+
+            SetMetadata("Info: Info string", Handler.InfoString);
+
+            SetMetadata("RAW: Resolution", Handler.RawiHeader.xRes + "x" + Handler.RawiHeader.yRes);
+
+            SetMetadata("Style: Picture style name", Handler.StylHeader.picStyleName);
+            SetMetadata("Style: Picture style id", Handler.StylHeader.picStyleId.ToString());
+            SetMetadata("Style: Colortone", Handler.StylHeader.colortone.ToString());
+            SetMetadata("Style: Contrast", Handler.StylHeader.contrast.ToString());
+            SetMetadata("Style: Saturation", Handler.StylHeader.saturation.ToString());
+            SetMetadata("Style: Sharpness", Handler.StylHeader.sharpness.ToString());
+
+            SetMetadata("Time: Year", (1900 + Handler.RtciHeader.tm_year).ToString());
+            SetMetadata("Time: Year/Month", (1900 + Handler.RtciHeader.tm_year) + "/" + Handler.RtciHeader.tm_mon);
+            SetMetadata("Time: Year/Month/Day", (1900 + Handler.RtciHeader.tm_year).ToString() + "/" + Handler.RtciHeader.tm_mon + "/" + Handler.RtciHeader.tm_mday);
+            SetMetadata("Time: Date/Time", (1900 + Handler.RtciHeader.tm_year).ToString() + "/" + Handler.RtciHeader.tm_mon + "/" + Handler.RtciHeader.tm_mday + " " + Handler.RtciHeader.tm_hour + ":" + Handler.RtciHeader.tm_min + ":" + Handler.RtciHeader.tm_sec);
+
+            SetMetadata("White: White balance mode", Handler.WbalHeader.wb_mode.ToString());
+            SetMetadata("White: Color temperature", Handler.WbalHeader.kelvin.ToString());
+        }
+
+        private void SetMetadata(string desc, string value)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                Metadata[desc] = value;
             }
         }
 
@@ -186,6 +271,11 @@ namespace MLVBrowseSharp
 
         private void mouseClick(object sender, EventArgs e)
         {
+            if (!ParentList.Focused)
+            {
+                //ParentList.Focus();
+            }
+
             if (e is MouseEventArgs)
             {
                 MouseEventArgs arg = (MouseEventArgs)e;
@@ -207,13 +297,10 @@ namespace MLVBrowseSharp
                     }
                     ParentList.RightClick(new Point(arg.X, arg.Y));
                 }
+                ParentList.UpdateSelections();
             }
         }
 
-        internal void Unselect()
-        {
-            Selected = false;
-        }
 
         public bool Selected
         {
@@ -229,13 +316,19 @@ namespace MLVBrowseSharp
                 {
                     BackColor = Color.LightSkyBlue;
                     label1.BackColor = Color.LightSkyBlue;
-                    Reader.CurrentBlockNumber = 0;
+                    splitContainer1.BackColor = Color.LightSkyBlue;
+                    NextBlockNumber = 0;
                 }
                 else
                 {
                     BackColor = ParentList.BackColor;
                     label1.BackColor = ParentList.BackColor;
+                    splitContainer1.BackColor = ParentList.BackColor;
                 }
+
+                SingleStep = false;
+                Paused = false;
+                SeekMode = false;
             }
         }
 
@@ -251,7 +344,56 @@ namespace MLVBrowseSharp
 
         private void pictureBox_DoubleClick(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(FileInfo.FullName);
+            MLVViewerForm form = new MLVViewerForm(FileInfo.FullName);
+            form.Show();
+        }
+
+        private void pictureBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (Selected && SeekMode)
+            {
+                float pct = (float)e.X / (float)Width;
+
+                NextBlockNumber = (int)Math.Min(Reader.MaxBlockNumber, Math.Max(0, ((float)Reader.MaxBlockNumber * pct)));
+                SingleStep = true;
+                Paused = false;
+            }
+        }
+
+        private void pictureBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            SeekMode = true;
+        }
+
+        private void pictureBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            SeekMode = false;
+        }
+
+        private void pictureBox_MouseEnter(object sender, EventArgs e)
+        {
+            toolTip.SetToolTip(pictureBox, GetMetadata());
+        }
+
+        private void pictureBox_MouseLeave(object sender, EventArgs e)
+        {
+            toolTip.RemoveAll();
+        }
+
+        internal object TryGetMetadata(string p)
+        {
+            if (Metadata.ContainsKey(p))
+            {
+                return Metadata[p];
+            }
+
+            return "";
+        }
+
+        internal void SetSize(int p)
+        {
+            Width = p;
+            Height = p;
         }
     }
 }
