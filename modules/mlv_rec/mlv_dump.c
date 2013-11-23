@@ -998,11 +998,14 @@ int main (int argc, char *argv[])
             return 0;
         }
         
-        out_file = fopen(output_filename, "wb+");
-        if(!out_file)
+        if(!dng_output)
         {
-            fprintf(stderr, "[E] Failed to open file '%s'\n", output_filename);
-            return 0;
+            out_file = fopen(output_filename, "wb+");
+            if(!out_file)
+            {
+                fprintf(stderr, "[E] Failed to open file '%s'\n", output_filename);
+                return 0;
+            }
         }
     }
 
