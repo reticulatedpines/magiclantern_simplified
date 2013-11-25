@@ -794,9 +794,11 @@ static int auto_ettr_wait_lv_frames(int num_frames)
         count++;
         if (count > num_frames * frame_duration * 2 / 20)
         {
-            beep();
-            NotifyBox(2000, "Vsync err");
             auto_ettr_vsync_delta = 0;
+            return 0;
+        }
+        if (!lv)
+        {
             return 0;
         }
     }
@@ -823,7 +825,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
         {
             old_zoom = lv_dispsize;
             set_lv_zoom(1);
-            auto_ettr_wait_lv_frames(10);
+            if (!auto_ettr_wait_lv_frames(10)) return 0;
         }
 
         /* temporarily enable expsim while metering */
@@ -838,7 +840,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                 {
                     should_clear_bv = 1;
                     bv_toggle(0, 1);
-                    auto_ettr_wait_lv_frames(10);
+                    if (!auto_ettr_wait_lv_frames(10)) return 0;
                 }
             }
             else if (!expsim)
@@ -846,7 +848,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                 /* ExpSim should work well */
                 old_expsim = expsim;
                 set_expsim(1);
-                auto_ettr_wait_lv_frames(10);
+                if (!auto_ettr_wait_lv_frames(10)) return 0;
             }
         }
     }
@@ -890,14 +892,16 @@ static void auto_ettr_on_request_task_fast()
     beep();
     int raw_requested = 0;
     
+    char* err_msg = "ETTR failed";
+    
     /* requires LiveView and ExpSim */
-    if (!auto_ettr_prepare_lv(0, 1)) goto end;
-    if (!auto_ettr_check_lv()) goto end;
+    if (!auto_ettr_prepare_lv(0, 1)) goto err;
+    if (!auto_ettr_check_lv()) goto err;
     
     if (get_halfshutter_pressed())
     {
         msleep(500);
-        if (get_halfshutter_pressed()) goto end;
+        if (get_halfshutter_pressed()) goto err;
     }
 
 #undef AUTO_ETTR_DEBUG
@@ -950,7 +954,7 @@ static void auto_ettr_on_request_task_fast()
                     break;
                 
                 /* wait for 2 frames before trying again */
-                if (!auto_ettr_wait_lv_frames(2)) goto end;
+                if (!auto_ettr_wait_lv_frames(2)) goto err;
             }
             auto_ettr_vsync_active = 0;
         }
@@ -975,22 +979,29 @@ static void auto_ettr_on_request_task_fast()
             if (i < 4 && status != ETTR_EXPO_LIMITS_REACHED)
             {
                 /* here we go again... */
-                auto_ettr_wait_lv_frames(15);
+                if (!auto_ettr_wait_lv_frames(15)) goto err;
             }
             else
             {
                 /* or... not? */
-                beep();
-                NotifyBox(2000, status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops");
-                goto end;
+                err_msg = status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops";
+                goto err;
             }
         }
     }
 
-    NotifyBoxHide();
-
-end:
+/* ok: */
     beep();
+    NotifyBoxHide();
+    goto cleanup;
+
+err:
+    beep();
+    beep();
+    NotifyBox(2000, err_msg);
+    goto cleanup;
+
+cleanup:
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
     if (raw_requested) raw_lv_release();
@@ -1064,15 +1075,16 @@ end:
 static void auto_ettr_on_request_task_slow()
 {
     beep();
+    char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
-    if (!auto_ettr_prepare_lv(0, 1)) goto end;
-    if (!auto_ettr_check_lv()) goto end;
+    if (!auto_ettr_prepare_lv(0, 1)) goto err;
+    if (!auto_ettr_check_lv()) goto err;
 
     if (get_halfshutter_pressed())
     {
         msleep(500);
-        if (get_halfshutter_pressed()) goto end;
+        if (get_halfshutter_pressed()) goto err;
     }
 
     NotifyBox(100000, "ETTR...");
@@ -1093,20 +1105,25 @@ static void auto_ettr_on_request_task_slow()
         if (status == ETTR_SETTLED)
             break;
         
-        if (get_halfshutter_pressed())
-            break;
-        
         if (k == 4 || status == ETTR_EXPO_LIMITS_REACHED)
         {
-            beep();
-            NotifyBox(2000, status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops");
-            goto end;
+            err_msg = status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops";
+            goto err;
         }
     }
-    NotifyBoxHide();
 
-end:
+/* ok: */
     beep();
+    NotifyBoxHide();
+    goto cleanup;
+
+err:
+    beep();
+    beep();
+    NotifyBox(2000, err_msg);
+    goto cleanup;
+
+cleanup:
     auto_ettr_prepare_lv(1, 1);
     auto_ettr_running = 0;
 }
