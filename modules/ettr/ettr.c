@@ -1194,8 +1194,8 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
         {
             auto_ettr_running = 1;
             task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-            if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
         }
+        if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
     }
     return 1;
 }
