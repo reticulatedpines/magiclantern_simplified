@@ -492,6 +492,19 @@ static int auto_ettr_work_m(int corr)
             int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
             snr_delta += dr_gained;
         }
+        
+        if (snr_delta + extra_snr_needed < 100) /* snr_delta + extra_snr_needed = SUM(dr_gained) */
+        {
+            /* too little gain? just shoot at base ISO */
+            recovery_iso = base_iso;
+            snr_delta = -extra_snr_needed;
+        }
+        else if (base_iso > MIN_ISO)
+        {
+            /* shooting at high ISO? go back one stop to protect some more highlights, because the cost is next to none */
+            base_iso -= 8;
+            expected_expo += 8;
+        }
 
         /* apply dual ISO settings */
         isor = base_iso;
@@ -528,7 +541,7 @@ static int auto_ettr_work_m(int corr)
     if (dual_iso)
     {
         int iso2_after = dual_iso_get_recovery_iso();
-        int dr2_before = dual_iso_calc_dr_improvement(iso_after, iso2_before);
+        int dr2_before = dual_iso_calc_dr_improvement(iso_before, iso2_before);
         int dr2_after = dual_iso_calc_dr_improvement(iso_after, iso2_after);
 
         if (debug_info)
