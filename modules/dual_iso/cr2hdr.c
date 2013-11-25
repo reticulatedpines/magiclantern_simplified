@@ -1284,15 +1284,20 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     int x,y;
     for (y = 6; y < h-6; y ++)
     {
-        /* we don't have no hot pixels on the bright exposure */
-        if (BRIGHT_ROW)
-            continue;
-
         for (x = 6; x < w-6; x ++)
         {
-            {
-                int d = raw_get_pixel(x, y);
+            int p = raw_get_pixel(x, y);
+            
+            int is_hot = 0;
+            int is_cold = 0;
 
+            /* really dark pixels (way below the black level) are probably noise */
+            is_cold = (p < black - dark_noise*8);
+
+            /* we don't have no hot pixels on the bright exposure */
+            /* but we may have cold pixels */
+            if (!BRIGHT_ROW || is_cold)
+            {
                 /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
                 int neighbours[100];
                 int k = 0;
@@ -1323,17 +1328,14 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                     continue;
                 
                 int max = -kth_smallest_int(neighbours, k, 1);
-                int is_hot = (raw2ev[d] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
+                is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
                 
                 if (fix_bad_pixels == 2)    /* aggressive */
                 {
                     int second_max = -kth_smallest_int(neighbours, k, 2);
-                    is_hot = ((raw2ev[d] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
-                          || (raw2ev[d] - raw2ev[second_max] > EV_RESOLUTION/2);
+                    is_hot = ((raw2ev[p] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
+                          || (raw2ev[p] - raw2ev[second_max] > EV_RESOLUTION/2);
                 }
-
-                /* really dark pixels (way below the black level) are probably noise */
-                int is_cold = (d < black - dark_noise*8);
 
                 if (is_hot)
                 {
