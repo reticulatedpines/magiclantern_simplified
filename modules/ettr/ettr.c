@@ -888,6 +888,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
 static void auto_ettr_on_request_task_fast()
 {
     beep();
+    int raw_requested = 0;
     
     /* requires LiveView and ExpSim */
     if (!auto_ettr_prepare_lv(0, 1)) goto end;
@@ -926,7 +927,7 @@ static void auto_ettr_on_request_task_fast()
 
 
     NotifyBox(100000, "ETTR...");
-    raw_lv_request();
+    raw_lv_request(); raw_requested = 1;
     
     for (int i = 0; i < 5; i++)
     {
@@ -992,7 +993,7 @@ end:
     beep();
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
-    raw_lv_release();
+    if (raw_requested) raw_lv_release();
     auto_ettr_prepare_lv(1, 1);
 }
 
