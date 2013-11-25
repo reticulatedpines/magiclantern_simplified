@@ -20,8 +20,8 @@
 
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 2);
-static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 2);
-static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
+static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 1);
+static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, -1);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
@@ -1362,8 +1362,8 @@ static struct menu_entry ettr_menu[] =
                 .name = "Shadow SNR limit",
                 .priv = &auto_ettr_shadow_snr_limit,
                 .min = 0,
-                .max = 4,
-                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV"),
+                .max = 6,
+                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV"),
                 .help  = "Stop underexposing when at least 5% of the image gets",
                 .help2 = "noisier than selected SNR => will clip more highlights.",
                 .depends_on = DEP_MANUAL_ISO,
@@ -1381,7 +1381,6 @@ static struct menu_entry ettr_menu[] =
                 .max = 1,
                 .help  = "Let ETTR change DualISO settings so you get the SNR values",
                 .help2 = "in mids & shadows. It will disable dual ISO if not needed.",
-                .advanced = 1,
             },
             {
                 .name = "Show metered areas",
