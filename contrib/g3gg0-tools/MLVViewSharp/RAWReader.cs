@@ -86,6 +86,7 @@ namespace mlv_view_sharp
         private void BuildIndex()
         {
             ArrayList list = new ArrayList();
+            Dictionary<uint, xrefEntry> frameXrefList = new Dictionary<uint, xrefEntry>();
             long currentFileOffset = 0;
             int fileNum = 0;
             int block = 0;
@@ -100,6 +101,8 @@ namespace mlv_view_sharp
                 xref.timestamp = (ulong)(block * (1000000000.0d / Footer.sourceFpsx1000));
 
                 list.Add(xref);
+
+                frameXrefList.Add((uint)block, xref);
 
                 /* increment position */
                 block++;
@@ -118,7 +121,11 @@ namespace mlv_view_sharp
                     break;
                 }
             }
+
+            TotalFrameCount = (uint)block;
+
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
+            FrameXrefList = frameXrefList;
         }
 
         private MLVTypes.mlv_rawi_hdr_t ReadFooter()
@@ -187,6 +194,7 @@ namespace mlv_view_sharp
             }
 
             VidfHeader.frameSpace = 0;
+            VidfHeader.frameNumber = (uint)CurrentBlockNumber;
 
             Handler("VIDF", VidfHeader, FrameBuffer, 0, Footer.frameSize);
 

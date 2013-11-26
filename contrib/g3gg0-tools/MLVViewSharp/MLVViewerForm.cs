@@ -15,8 +15,10 @@ namespace mlv_view_sharp
         private string FileName = "";
         private Thread PlayThread = null;
         private bool Paused = false;
-        MLVHandler Handler = new MLVHandler();
+        private MLVHandler Handler = new MLVHandler();
         public string AutoplayFile = null;
+        private string FramePositionWarning = "";
+
 
         public MLVViewerForm()
         {
@@ -154,6 +156,7 @@ namespace mlv_view_sharp
         {
             MLVReader reader = null;
             Graphics picGraph = null;
+            int lastFrameNumber = 1;
 
             string suffix = FileName.ToLower().Substring(FileName.Length - 4, 2);
 
@@ -177,8 +180,9 @@ namespace mlv_view_sharp
 
             Invoke(new Action(() =>
             {
-                trackBarPosition.Maximum = 0;
-                trackBarPosition.Value = 0;
+                trackBarPosition.Minimum = 1;
+                trackBarPosition.Maximum = 1;
+                trackBarPosition.Value = 1;
             }));
             try
             {
@@ -193,32 +197,8 @@ namespace mlv_view_sharp
                             return;
                         }
 
-
                         /* create info string */
                         string metaData = CreateMetaData();
-
-                        /* update controls everytime */
-                        Invoke(new Action(() =>
-                        {
-                            try
-                            {
-                                txtInfo.Text = metaData.ToString();
-                                trackBarPosition.Maximum = reader.MaxBlockNumber;
-                                if ((trackBarPosition.Value == reader.CurrentBlockNumber) || (trackBarPosition.Value == reader.CurrentBlockNumber - 1))
-                                {
-                                    trackBarPosition.Value = reader.CurrentBlockNumber;
-                                }
-                                else
-                                {
-                                    reader.CurrentBlockNumber = trackBarPosition.Value;
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox.Show("Exception: " + e);
-                            }
-                        }
-                        ));
 
                         if (Handler.FrameUpdated)
                         {
@@ -226,7 +206,34 @@ namespace mlv_view_sharp
                             {
                                 try
                                 {
+                                    txtInfo.Text = metaData.ToString();
+                                    trackBarPosition.Maximum = (int)reader.TotalFrameCount;
+
+                                    FramePositionWarning = "";
+
+                                    if (trackBarPosition.Value == lastFrameNumber)
+                                    {
+                                        trackBarPosition.Value = (int)Handler.VidfHeader.frameNumber + 1;
+                                    }
+                                    else
+                                    {
+                                        int block = reader.GetFrameBlockNumber((uint)trackBarPosition.Value - 1);
+
+                                        if (block >= 0)
+                                        {
+                                            reader.CurrentBlockNumber = (int)block;
+                                        }
+                                        else
+                                        {
+                                            FramePositionWarning = "  |  This particular frame is not part of the footage. Maybe some chunks missing?";
+                                        }
+                                    }
+
+                                    lastFrameNumber = (int)Handler.VidfHeader.frameNumber + 1;
+
                                     Bitmap frame = Handler.CurrentFrame;
+
+                                    lblPosition.Text = "Current position: " + (Handler.VidfHeader.frameNumber + 1) + "/" + (reader.TotalFrameCount) + FramePositionWarning;
 
                                     /* update picturebox - this is very slow and inefficient */
                                     if (frame != null)
@@ -263,9 +270,14 @@ namespace mlv_view_sharp
                                 {
                                     try
                                     {
-                                        if (trackBarPosition.Value != reader.CurrentBlockNumber)
+                                        if (trackBarPosition.Value != lastFrameNumber)
                                         {
-                                            reader.CurrentBlockNumber = trackBarPosition.Value;
+                                            int block = reader.GetFrameBlockNumber((uint)trackBarPosition.Value - 1);
+
+                                            if (block >= 0)
+                                            {
+                                                reader.CurrentBlockNumber = (int)block;
+                                            }
                                             reread = true;
                                         }
                                     }
@@ -292,7 +304,7 @@ namespace mlv_view_sharp
                                 reader.CurrentBlockNumber = 0;
                                 Invoke(new Action(() =>
                                 {
-                                    trackBarPosition.Value = reader.CurrentBlockNumber;
+                                    trackBarPosition.Value = (int)Handler.VidfHeader.frameNumber + 1;
                                 }));
                             }
                         }
@@ -304,6 +316,12 @@ namespace mlv_view_sharp
                 reader.Close();
                 throw ex;
             }
+        }
+
+        private void WriteString(string text)
+        {
+            Graphics graph = Graphics.FromImage(pictureBox.Image);
+            graph.DrawString(text, new Font("Courier New", 50), new SolidBrush(Color.Black), new PointF(0, pictureBox.Height / 2));
         }
 
         private string CreateMetaData()

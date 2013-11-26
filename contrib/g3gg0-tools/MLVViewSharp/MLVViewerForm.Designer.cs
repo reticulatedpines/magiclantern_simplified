@@ -60,7 +60,7 @@
             this.pictureBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox.Location = new System.Drawing.Point(0, 0);
             this.pictureBox.Name = "pictureBox";
-            this.pictureBox.Size = new System.Drawing.Size(1138, 638);
+            this.pictureBox.Size = new System.Drawing.Size(1138, 641);
             this.pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox.TabIndex = 0;
             this.pictureBox.TabStop = false;
@@ -86,7 +86,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
             this.splitContainer1.Size = new System.Drawing.Size(1138, 736);
-            this.splitContainer1.SplitterDistance = 638;
+            this.splitContainer1.SplitterDistance = 641;
             this.splitContainer1.SplitterWidth = 1;
             this.splitContainer1.TabIndex = 1;
             // 
@@ -107,8 +107,8 @@
             // 
             this.splitContainer2.Panel2.Controls.Add(this.txtInfo);
             this.splitContainer2.Panel2.Controls.Add(this.btnPlayPause);
-            this.splitContainer2.Size = new System.Drawing.Size(1138, 97);
-            this.splitContainer2.SplitterDistance = 63;
+            this.splitContainer2.Size = new System.Drawing.Size(1138, 94);
+            this.splitContainer2.SplitterDistance = 60;
             this.splitContainer2.TabIndex = 0;
             // 
             // tableLayoutPanel1
@@ -116,7 +116,7 @@
             this.tableLayoutPanel1.ColumnCount = 3;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 87.16944F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 12.83056F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 117F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 118F));
             this.tableLayoutPanel1.Controls.Add(this.trackBarPosition, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.trackBarExposure, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.lblExposure, 1, 0);
@@ -129,25 +129,25 @@
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25.75758F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 74.24242F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(1138, 63);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(1138, 60);
             this.tableLayoutPanel1.TabIndex = 1;
             // 
             // trackBarPosition
             // 
             this.trackBarPosition.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.trackBarPosition.Location = new System.Drawing.Point(3, 19);
+            this.trackBarPosition.Location = new System.Drawing.Point(3, 18);
             this.trackBarPosition.Name = "trackBarPosition";
-            this.trackBarPosition.Size = new System.Drawing.Size(883, 41);
+            this.trackBarPosition.Size = new System.Drawing.Size(883, 39);
             this.trackBarPosition.TabIndex = 0;
             // 
             // trackBarExposure
             // 
             this.trackBarExposure.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.trackBarExposure.Location = new System.Drawing.Point(892, 19);
+            this.trackBarExposure.Location = new System.Drawing.Point(892, 18);
             this.trackBarExposure.Maximum = 14;
             this.trackBarExposure.Minimum = -14;
             this.trackBarExposure.Name = "trackBarExposure";
-            this.trackBarExposure.Size = new System.Drawing.Size(125, 41);
+            this.trackBarExposure.Size = new System.Drawing.Size(124, 39);
             this.trackBarExposure.TabIndex = 2;
             this.trackBarExposure.ValueChanged += new System.EventHandler(this.trackBarExposure_ValueChanged);
             // 
@@ -155,20 +155,20 @@
             // 
             this.lblExposure.AutoSize = true;
             this.lblExposure.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.lblExposure.Location = new System.Drawing.Point(892, 3);
+            this.lblExposure.Location = new System.Drawing.Point(892, 2);
             this.lblExposure.Name = "lblExposure";
-            this.lblExposure.Size = new System.Drawing.Size(125, 13);
+            this.lblExposure.Size = new System.Drawing.Size(124, 13);
             this.lblExposure.TabIndex = 4;
             this.lblExposure.Text = "Exposure: Auto";
             // 
             // trackBarTemperature
             // 
             this.trackBarTemperature.LargeChange = 100;
-            this.trackBarTemperature.Location = new System.Drawing.Point(1023, 19);
+            this.trackBarTemperature.Location = new System.Drawing.Point(1022, 18);
             this.trackBarTemperature.Maximum = 7000;
             this.trackBarTemperature.Minimum = 4000;
             this.trackBarTemperature.Name = "trackBarTemperature";
-            this.trackBarTemperature.Size = new System.Drawing.Size(104, 41);
+            this.trackBarTemperature.Size = new System.Drawing.Size(104, 39);
             this.trackBarTemperature.TabIndex = 5;
             this.trackBarTemperature.Value = 6500;
             this.trackBarTemperature.ValueChanged += new System.EventHandler(this.trackBarTemperature_ValueChanged);
@@ -177,9 +177,9 @@
             // 
             this.lblTemperature.AutoSize = true;
             this.lblTemperature.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.lblTemperature.Location = new System.Drawing.Point(1023, 3);
+            this.lblTemperature.Location = new System.Drawing.Point(1022, 2);
             this.lblTemperature.Name = "lblTemperature";
-            this.lblTemperature.Size = new System.Drawing.Size(112, 13);
+            this.lblTemperature.Size = new System.Drawing.Size(113, 13);
             this.lblTemperature.TabIndex = 6;
             this.lblTemperature.Text = "Temperature: 6500 K";
             // 
@@ -187,11 +187,11 @@
             // 
             this.lblPosition.AutoSize = true;
             this.lblPosition.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.lblPosition.Location = new System.Drawing.Point(3, 3);
+            this.lblPosition.Location = new System.Drawing.Point(3, 2);
             this.lblPosition.Name = "lblPosition";
             this.lblPosition.Size = new System.Drawing.Size(883, 13);
             this.lblPosition.TabIndex = 3;
-            this.lblPosition.Text = "File position";
+            this.lblPosition.Text = "File position: ";
             // 
             // txtInfo
             // 

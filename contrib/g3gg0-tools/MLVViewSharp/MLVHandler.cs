@@ -29,6 +29,7 @@ namespace mlv_view_sharp
         public MLVTypes.mlv_rtci_hdr_t RtciHeader;
         public MLVTypes.mlv_styl_hdr_t StylHeader;
         public MLVTypes.mlv_wbal_hdr_t WbalHeader;
+        public MLVTypes.mlv_vidf_hdr_t VidfHeader;
 
         public string InfoString = "";
 
@@ -131,6 +132,8 @@ namespace mlv_view_sharp
 
         public void HandleBlock(string type, MLVTypes.mlv_vidf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
         {
+            VidfHeader = header;
+
             if (FileHeader.videoClass != 0x01 || LockBitmap == null)
             {
                 return;

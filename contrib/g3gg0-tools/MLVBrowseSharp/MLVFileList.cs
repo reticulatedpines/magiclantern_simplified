@@ -15,11 +15,24 @@ namespace MLVBrowseSharp
     {
         private ArrayList FileIcons = new ArrayList();
         public string[] Groups = new string[0];
-
+        private bool _AnimateAll = false;
 
         public MLVFileList()
         {
             InitializeComponent();
+        }
+
+        internal bool AnimateAll
+        {
+            get
+            {
+                return _AnimateAll;
+            }
+            set
+            {
+                _AnimateAll = value;
+                UpdateAnimationStatus();
+            }
         }
 
         public void Stop()
@@ -33,6 +46,8 @@ namespace MLVBrowseSharp
         internal void ShowDirectory(string dir)
         {
             /* first hide all shown icons */
+            Controls.Clear();
+            Controls.Add(fileList);
             fileList.Controls.Clear();
 
             /* now destroy all allocated ones */
@@ -48,6 +63,8 @@ namespace MLVBrowseSharp
             }
 
             /* build a new list of icons */
+            ArrayList files = new ArrayList();
+
             try
             {
                 DirectoryInfo dirs = new DirectoryInfo(dir);
@@ -55,15 +72,31 @@ namespace MLVBrowseSharp
                 {
                     if (file.Extension.ToLower() == ".mlv" || file.Extension.ToLower() == ".raw")
                     {
-                        MLVFileIcon icon = new MLVFileIcon(this, file);
-                        FileIcons.Add(icon);
-                        UpdateFileIcons();
+                        files.Add(file);
                     }
                 }
             }
             catch (Exception)
             {
             }
+
+            /* now instanciate all icons */
+            foreach(FileInfo file in files)
+            {
+                MLVFileIcon icon = new MLVFileIcon(this, file);
+                FileIcons.Add(icon);
+            }
+
+            UpdateFileIcons();
+
+            /* first time animate until first video frame appears */
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                icon.SingleStep = true;
+                icon.Paused = false;
+            }
+
+            UpdateAnimationStatus();
         }
 
         private void UpdateFileIcons()
@@ -124,6 +157,11 @@ namespace MLVBrowseSharp
 
         internal void StartAnimation()
         {
+            if (!AnimateAll)
+            {
+                return;
+            }
+
             foreach (MLVFileIcon icon in FileIcons)
             {
                 icon.StartAnimation();
@@ -138,22 +176,42 @@ namespace MLVBrowseSharp
             }
         }
 
-        internal void UpdateSelections()
+        internal void UpdateAnimationStatus()
         {
-            int animating = 0;
+            int selected = 0;
 
             foreach (MLVFileIcon icon in FileIcons)
             {
                 if (icon.Selected)
                 {
-                    animating++;
+                    selected++;
                 }
             }
 
-            if (animating > 1)
+            if (selected > 1 || !AnimateAll)
             {
                 StopAnimation();
             }
+            else if (selected == 1)
+            {
+                StopAnimation();
+                foreach (MLVFileIcon icon in FileIcons)
+                {
+                    if (icon.Selected)
+                    {
+                        icon.StartAnimation();
+                    }
+                }
+            }
+            else
+            {
+                StartAnimation();
+            }
+        }
+
+        internal void IconSelected(MLVFileIcon icon)
+        {
+            UpdateAnimationStatus();
         }
 
         internal void GroupBy(string name)

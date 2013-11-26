@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
 
 namespace MLVBrowseSharp
 {
@@ -103,13 +104,15 @@ namespace MLVBrowseSharp
                 this.Text = "MLV Browser   |   Browsing  " + dir;
             }
 
-            if (e.Node.Parent == null)
+            TreeNode parm = e.Node;
+            if (parm.Parent == null)
             {
                 FillChildNodes(e.Node);
             }
 
             mlvFileList.ShowDirectory(dir);
             mlvFileList.UpdateGroups();
+            mlvFileList.SetIconSize(trackSize.Value);
 
             cmbGrouping.Items.Clear();
             cmbGrouping.Items.AddRange(mlvFileList.Groups);
@@ -123,6 +126,11 @@ namespace MLVBrowseSharp
         private void trackSize_ValueChanged(object sender, EventArgs e)
         {
             mlvFileList.SetIconSize(trackSize.Value);
+        }
+
+        private void chkAnimation_CheckedChanged(object sender, EventArgs e)
+        {
+            mlvFileList.AnimateAll = chkAnimation.Checked;
         }
     }
 }

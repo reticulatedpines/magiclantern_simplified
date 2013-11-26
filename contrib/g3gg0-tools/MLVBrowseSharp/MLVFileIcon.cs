@@ -18,8 +18,8 @@ namespace MLVBrowseSharp
         public FileInfo FileInfo = null;
         private MLVFileList ParentList = null;
         private bool _Selected = false;
-        private bool Paused = false;
-        private bool SingleStep = true;
+        internal bool Paused = false;
+        internal bool SingleStep = true;
         private bool SeekMode = false;
         private Thread DisplayThread = null;
         private int NextBlockNumber = -1;
@@ -37,12 +37,22 @@ namespace MLVBrowseSharp
             ParentList = parent;
             Selected = false;
 
+            SingleStep = false;
+            Paused = true;
+
             label1.Text = FileInfo.Name;
 
             DisplayThread = new Thread(DisplayFunc);
             DisplayThread.Priority = ThreadPriority.Lowest;
             DisplayThread.Start();
-            
+        }
+
+        public bool Exited
+        {
+            get
+            {
+                return DisplayThread == null;
+            }
         }
 
         public void Stop()
@@ -124,7 +134,12 @@ namespace MLVBrowseSharp
                                             pictureBox.Refresh();
                                         }
 
-                                        label1.Text = FileInfo.Name + Environment.NewLine + "(Frame " + Reader.CurrentBlockNumber + "/" + Reader.MaxBlockNumber + ")";
+                                        label1.Text = FileInfo.Name + Environment.NewLine + "(Frame " + (Handler.VidfHeader.frameNumber + 1) + "/" + Reader.TotalFrameCount + ")";
+
+                                        if (Reader.FrameErrors > 0)
+                                        {
+                                            label1.Text += " Err: " + Reader.FrameErrors;
+                                        }
                                     }
                                     catch (Exception e)
                                     {
@@ -139,14 +154,7 @@ namespace MLVBrowseSharp
                             /* videos that are not selected, run very slowly */
                             if (!Selected)
                             {
-                                if (Reader.CurrentBlockNumber < Math.Min(Reader.MaxBlockNumber - 1, 10))
-                                {
-                                    Thread.Sleep(1000);
-                                }
-                                else
-                                {
-                                    SingleStep = true;
-                                }
+                                Thread.Sleep(1000);
                             }
                             
                             if (SingleStep)
@@ -155,7 +163,8 @@ namespace MLVBrowseSharp
                                 Paused = true;
                             }
 
-                            while (Paused)
+                            /* dont break when there was no preview frame processed yet */
+                            while (Paused && pictureBox.Image != null)
                             {
                                 Thread.Sleep(50);
                             }
@@ -167,6 +176,12 @@ namespace MLVBrowseSharp
                         }
                         else
                         {
+                            if (pictureBox.Image == null)
+                            {
+                                SetText("Contains no video");
+                                DisplayThread = null;
+                                return;
+                            }
                             Reader.CurrentBlockNumber = 0;
                         }
 
@@ -250,7 +265,7 @@ namespace MLVBrowseSharp
         {
             try
             {
-                Invoke(new Action(() =>
+                BeginInvoke(new Action(() =>
                 {
                     try
                     {
@@ -292,15 +307,18 @@ namespace MLVBrowseSharp
                 {
                     if (!Selected)
                     {
+                        /* parent takes care about which icon is being animated */
                         ParentList.UnselectAll();
+                        ParentList.IconSelected(this);
+
                         Selected = true;
+                        SeekMode = false;
                     }
                     ParentList.RightClick(new Point(arg.X, arg.Y));
                 }
-                ParentList.UpdateSelections();
+                ParentList.UpdateAnimationStatus();
             }
         }
-
 
         public bool Selected
         {
@@ -325,20 +343,18 @@ namespace MLVBrowseSharp
                     label1.BackColor = ParentList.BackColor;
                     splitContainer1.BackColor = ParentList.BackColor;
                 }
-
-                SingleStep = false;
-                Paused = false;
-                SeekMode = false;
             }
         }
 
         internal void StopAnimation()
         {
+            SingleStep = false;
             Paused = true;
         }
 
         internal void StartAnimation()
         {
+            SingleStep = false;
             Paused = false;
         }
 
@@ -350,6 +366,11 @@ namespace MLVBrowseSharp
 
         private void pictureBox_MouseMove(object sender, MouseEventArgs e)
         {
+            if (Reader == null)
+            {
+                return;
+            }
+
             if (Selected && SeekMode)
             {
                 float pct = (float)e.X / (float)Width;
