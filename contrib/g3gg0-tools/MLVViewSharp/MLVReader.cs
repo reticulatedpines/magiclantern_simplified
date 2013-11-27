@@ -23,8 +23,18 @@ namespace mlv_view_sharp
         protected Dictionary<uint, xrefEntry> FrameXrefList = null;
 
         public string LastType = "";
+
         public uint TotalFrameCount = 0;
-        public uint FrameErrors = 0;
+        public uint FrameRedundantErrors = 0;
+        public uint FrameMissingErrors = 0;
+        public uint FrameErrors
+        {
+            get
+            {
+                return FrameRedundantErrors + FrameMissingErrors;
+            }
+        }
+
         public int CurrentBlockNumber = 0;
         public int MaxBlockNumber
         {
@@ -249,7 +259,7 @@ namespace mlv_view_sharp
                             }
                             else
                             {
-                                FrameErrors++;
+                                FrameRedundantErrors++;
                                 //MessageBox.Show("File " + FileNames[0] + " contains frame #" + header.frameNumber + " more than once!");
                             }
                         }
@@ -268,6 +278,17 @@ namespace mlv_view_sharp
             /* update global indices */
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
             FrameXrefList = frameXrefList;
+
+            uint curFrame = 0;
+            foreach (var elem in frameXrefList.OrderBy(elem => elem.Key))
+            {
+                if (elem.Key != curFrame)
+                {
+                    curFrame = elem.Key;
+                    FrameMissingErrors++;
+                }
+                curFrame++;
+            }
         }
 
         public virtual int GetFrameBlockNumber(uint frameNumber)

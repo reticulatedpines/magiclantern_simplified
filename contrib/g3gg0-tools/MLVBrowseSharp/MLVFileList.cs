@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 using System.Collections;
+using System.Threading;
 
 namespace MLVBrowseSharp
 {
@@ -89,14 +90,23 @@ namespace MLVBrowseSharp
 
             UpdateFileIcons();
 
-            /* first time animate until first video frame appears */
-            foreach (MLVFileIcon icon in FileIcons)
+            /* delay a bit so the GUI has enough time to render until the cpu load raises */
+            Thread renderStart = new Thread(() =>
             {
-                icon.SingleStep = true;
-                icon.Paused = false;
-            }
+                Thread.Sleep(100);
 
-            UpdateAnimationStatus();
+                /* first time animate until first video frame appears */
+                foreach (MLVFileIcon icon in FileIcons)
+                {
+                    icon.SingleStep = true;
+                    icon.Paused = false;
+
+                    icon.Start();
+                }
+
+                UpdateAnimationStatus();
+            });
+            renderStart.Start();
         }
 
         private void UpdateFileIcons()
@@ -112,11 +122,14 @@ namespace MLVBrowseSharp
 
             foreach (MLVFileIcon icon in FileIcons)
             {
-                foreach (var elem in icon.Metadata)
+                lock (icon.Metadata)
                 {
-                    if (!fields.Contains(elem.Key))
+                    foreach (var elem in icon.Metadata)
                     {
-                        fields.Add(elem.Key);
+                        if (!fields.Contains(elem.Key))
+                        {
+                            fields.Add(elem.Key);
+                        }
                     }
                 }
             }
