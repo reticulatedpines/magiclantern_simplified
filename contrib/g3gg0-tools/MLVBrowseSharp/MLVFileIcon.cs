@@ -10,6 +10,7 @@ using System.IO;
 using System.Threading;
 using mlv_view_sharp;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace MLVBrowseSharp
 {
@@ -18,8 +19,8 @@ namespace MLVBrowseSharp
         public FileInfo FileInfo = null;
         private MLVFileList ParentList = null;
         private bool _Selected = false;
-        private bool Paused = false;
-        private bool SingleStep = true;
+        internal bool Paused = false;
+        internal bool SingleStep = true;
         private bool SeekMode = false;
         private Thread DisplayThread = null;
         private int NextBlockNumber = -1;
@@ -28,6 +29,7 @@ namespace MLVBrowseSharp
         private MLVHandler Handler = new MLVHandler();
 
         public Dictionary<string, string> Metadata = new Dictionary<string, string>();
+        
 
         public MLVFileIcon(MLVFileList parent, FileInfo file)
         {
@@ -37,12 +39,28 @@ namespace MLVBrowseSharp
             ParentList = parent;
             Selected = false;
 
-            label1.Text = FileInfo.Name;
+            SingleStep = false;
+            Paused = true;
 
-            DisplayThread = new Thread(DisplayFunc);
-            DisplayThread.Priority = ThreadPriority.Lowest;
-            DisplayThread.Start();
-            
+            textLabel.Text = FileInfo.Name;
+        }
+
+        public bool Exited
+        {
+            get
+            {
+                return DisplayThread == null;
+            }
+        }
+
+        public void Start()
+        {
+            if (DisplayThread == null)
+            {
+                DisplayThread = new Thread(DisplayFunc);
+                DisplayThread.Priority = ThreadPriority.Lowest;
+                DisplayThread.Start();
+            }
         }
 
         public void Stop()
@@ -124,7 +142,22 @@ namespace MLVBrowseSharp
                                             pictureBox.Refresh();
                                         }
 
-                                        label1.Text = FileInfo.Name + Environment.NewLine + "(Frame " + Reader.CurrentBlockNumber + "/" + Reader.MaxBlockNumber + ")";
+                                        textLabel.Text = FileInfo.Name + Environment.NewLine + "(Frame " + (Handler.VidfHeader.frameNumber + 1) + "/" + Reader.TotalFrameCount + ")";
+
+                                        if (Reader.FrameErrors > 0)
+                                        {
+                                            textLabel.BackColor = Color.Red;
+                                            textLabel.Text += " (Errors)";
+
+                                            if (Reader.FrameMissingErrors > 0)
+                                            {
+                                                SetMetadata("Error: Missing frames", Reader.FrameMissingErrors + " frame IDs are missing in the MLV. If this is a multi-chunk video, make sure you have all chunks in the same place.");
+                                            }
+                                            if(Reader.FrameRedundantErrors > 0)
+                                            {
+                                                SetMetadata("Error: Redundant frames", Reader.FrameRedundantErrors + " frames with same ID appeared more than once in the MLV. Report please.");
+                                            }
+                                        }
                                     }
                                     catch (Exception e)
                                     {
@@ -139,14 +172,7 @@ namespace MLVBrowseSharp
                             /* videos that are not selected, run very slowly */
                             if (!Selected)
                             {
-                                if (Reader.CurrentBlockNumber < Math.Min(Reader.MaxBlockNumber - 1, 10))
-                                {
-                                    Thread.Sleep(1000);
-                                }
-                                else
-                                {
-                                    SingleStep = true;
-                                }
+                                Thread.Sleep(1000);
                             }
                             
                             if (SingleStep)
@@ -155,7 +181,8 @@ namespace MLVBrowseSharp
                                 Paused = true;
                             }
 
-                            while (Paused)
+                            /* dont break when there was no preview frame processed yet */
+                            while (Paused && pictureBox.Image != null)
                             {
                                 Thread.Sleep(50);
                             }
@@ -167,6 +194,12 @@ namespace MLVBrowseSharp
                         }
                         else
                         {
+                            if (pictureBox.Image == null)
+                            {
+                                SetText("Contains no video");
+                                DisplayThread = null;
+                                return;
+                            }
                             Reader.CurrentBlockNumber = 0;
                         }
 
@@ -198,9 +231,13 @@ namespace MLVBrowseSharp
         private string GetMetadata()
         {
             StringBuilder sb = new StringBuilder();
-            foreach (var elem in Metadata)
+
+            lock (Metadata)
             {
-                sb.AppendLine(elem.Key + " : " + elem.Value);
+                foreach (var elem in Metadata)
+                {
+                    sb.AppendLine(elem.Key + " : " + elem.Value);
+                }
             }
 
             return sb.ToString();
@@ -208,34 +245,58 @@ namespace MLVBrowseSharp
 
         private void UpdateMetadata()
         {
-            SetMetadata("Camera: Model name", Handler.IdntHeader.cameraName);
-            SetMetadata("Camera: Model number", Handler.IdntHeader.cameraModel.ToString());
-            SetMetadata("Camera: Body serial", Handler.IdntHeader.cameraSerial);
+            lock (Metadata)
+            {
+                ulong serial = 0;
+                ulong.TryParse(Handler.IdntHeader.cameraSerial, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out serial);
+                SetMetadata("Camera: Body serial", serial.ToString());
+                SetMetadata("Camera: Model name", Handler.IdntHeader.cameraName);
+                SetMetadata("Camera: Model ID", "0x" + Handler.IdntHeader.cameraModel.ToString("X8"));
 
-            SetMetadata("Lens: Lens ID", Handler.LensHeader.lensID.ToString());
-            SetMetadata("Lens: Lens name", Handler.LensHeader.lensName);
-            SetMetadata("Lens: Aperture", "f/" + ((float)Handler.LensHeader.aperture / 100).ToString("0.00"));
-            SetMetadata("Lens: Focal length", Handler.LensHeader.focalLength + " mm");
-            SetMetadata("Lens: Focal distance", Handler.LensHeader.focalDist + " mm");
+                SetMetadata("Lens: Lens ID", Handler.LensHeader.lensID.ToString());
+                SetMetadata("Lens: Lens name", Handler.LensHeader.lensName);
+                SetMetadata("Lens: Aperture", "f/" + ((float)Handler.LensHeader.aperture / 100).ToString("0.00"));
+                SetMetadata("Lens: Focal length", Handler.LensHeader.focalLength + " mm");
+                SetMetadata("Lens: Focal distance", Handler.LensHeader.focalDist + " mm");
 
-            SetMetadata("Info: Info string", Handler.InfoString);
+                SetMetadata("Info: Info string", Handler.InfoString);
 
-            SetMetadata("RAW: Resolution", Handler.RawiHeader.xRes + "x" + Handler.RawiHeader.yRes);
+                SetMetadata("Raw: Resolution", Handler.RawiHeader.xRes + "x" + Handler.RawiHeader.yRes);
+                SetMetadata("Raw: Bits per pixel", Handler.RawiHeader.raw_info.bits_per_pixel.ToString());
+                SetMetadata("Raw: Frame size", (Handler.RawiHeader.raw_info.frame_size / 1024 / 1024) + " MiB");
 
-            SetMetadata("Style: Picture style name", Handler.StylHeader.picStyleName);
-            SetMetadata("Style: Picture style id", Handler.StylHeader.picStyleId.ToString());
-            SetMetadata("Style: Colortone", Handler.StylHeader.colortone.ToString());
-            SetMetadata("Style: Contrast", Handler.StylHeader.contrast.ToString());
-            SetMetadata("Style: Saturation", Handler.StylHeader.saturation.ToString());
-            SetMetadata("Style: Sharpness", Handler.StylHeader.sharpness.ToString());
+                if (Handler.RawiHeader.raw_info.dynamic_range < Int32.MaxValue)
+                {
+                    SetMetadata("Raw: Dynamic range", (Handler.RawiHeader.raw_info.dynamic_range / 100).ToString("0.00") + " EV");
+                }
 
-            SetMetadata("Time: Year", (1900 + Handler.RtciHeader.tm_year).ToString());
-            SetMetadata("Time: Year/Month", (1900 + Handler.RtciHeader.tm_year) + "/" + Handler.RtciHeader.tm_mon);
-            SetMetadata("Time: Year/Month/Day", (1900 + Handler.RtciHeader.tm_year).ToString() + "/" + Handler.RtciHeader.tm_mon + "/" + Handler.RtciHeader.tm_mday);
-            SetMetadata("Time: Date/Time", (1900 + Handler.RtciHeader.tm_year).ToString() + "/" + Handler.RtciHeader.tm_mon + "/" + Handler.RtciHeader.tm_mday + " " + Handler.RtciHeader.tm_hour + ":" + Handler.RtciHeader.tm_min + ":" + Handler.RtciHeader.tm_sec);
+                SetMetadata("Style: Picture style name", Handler.StylHeader.picStyleName);
+                SetMetadata("Style: Picture style id", Handler.StylHeader.picStyleId.ToString());
+                SetMetadata("Style: Colortone", Handler.StylHeader.colortone.ToString());
+                SetMetadata("Style: Contrast", Handler.StylHeader.contrast.ToString());
+                SetMetadata("Style: Saturation", Handler.StylHeader.saturation.ToString());
+                SetMetadata("Style: Sharpness", Handler.StylHeader.sharpness.ToString());
 
-            SetMetadata("White: White balance mode", Handler.WbalHeader.wb_mode.ToString());
-            SetMetadata("White: Color temperature", Handler.WbalHeader.kelvin.ToString());
+                ushort tm_year = (ushort)(Handler.RtciHeader.tm_year + 1900);
+                ushort tm_mon = Handler.RtciHeader.tm_mon;
+                ushort tm_mday = Handler.RtciHeader.tm_mday;
+                ushort tm_hour = Handler.RtciHeader.tm_hour;
+                ushort tm_min = Handler.RtciHeader.tm_min;
+                ushort tm_sec = Handler.RtciHeader.tm_sec;
+
+                if (tm_year > 1900 && tm_mon > 0 && tm_mday > 0)
+                {
+                    DateTime date = new DateTime(tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
+                    SetMetadata("Time: Date/Time", date.ToLongDateString() + " " + date.ToLongTimeString());
+                }
+                else
+                {
+                    SetMetadata("Time: Date/Time", tm_year.ToString() + "/" + tm_mon + "/" + tm_mday + " " + tm_hour + ":" + tm_min + ":" + tm_sec);
+                }
+
+                SetMetadata("White: White balance mode", Handler.WbalHeader.wb_mode.ToString());
+                SetMetadata("White: Color temperature", Handler.WbalHeader.kelvin.ToString());
+            }
         }
 
         private void SetMetadata(string desc, string value)
@@ -250,7 +311,7 @@ namespace MLVBrowseSharp
         {
             try
             {
-                Invoke(new Action(() =>
+                BeginInvoke(new Action(() =>
                 {
                     try
                     {
@@ -292,15 +353,18 @@ namespace MLVBrowseSharp
                 {
                     if (!Selected)
                     {
+                        /* parent takes care about which icon is being animated */
                         ParentList.UnselectAll();
+                        ParentList.IconSelected(this);
+
                         Selected = true;
+                        SeekMode = false;
                     }
                     ParentList.RightClick(new Point(arg.X, arg.Y));
                 }
-                ParentList.UpdateSelections();
+                ParentList.UpdateAnimationStatus();
             }
         }
-
 
         public bool Selected
         {
@@ -315,30 +379,35 @@ namespace MLVBrowseSharp
                 if (_Selected)
                 {
                     BackColor = Color.LightSkyBlue;
-                    label1.BackColor = Color.LightSkyBlue;
+                    textLabel.BackColor = Color.LightSkyBlue;
                     splitContainer1.BackColor = Color.LightSkyBlue;
                     NextBlockNumber = 0;
                 }
                 else
                 {
                     BackColor = ParentList.BackColor;
-                    label1.BackColor = ParentList.BackColor;
+                    textLabel.BackColor = ParentList.BackColor;
                     splitContainer1.BackColor = ParentList.BackColor;
-                }
 
-                SingleStep = false;
-                Paused = false;
-                SeekMode = false;
+                    if (Reader != null && Reader.FrameErrors > 0)
+                    {
+                        BackColor = Color.Red;
+                        textLabel.BackColor = Color.Red;
+                        splitContainer1.BackColor = Color.Red;
+                    }
+                }
             }
         }
 
         internal void StopAnimation()
         {
+            SingleStep = false;
             Paused = true;
         }
 
         internal void StartAnimation()
         {
+            SingleStep = false;
             Paused = false;
         }
 
@@ -350,6 +419,11 @@ namespace MLVBrowseSharp
 
         private void pictureBox_MouseMove(object sender, MouseEventArgs e)
         {
+            if (Reader == null)
+            {
+                return;
+            }
+
             if (Selected && SeekMode)
             {
                 float pct = (float)e.X / (float)Width;
@@ -382,9 +456,12 @@ namespace MLVBrowseSharp
 
         internal object TryGetMetadata(string p)
         {
-            if (Metadata.ContainsKey(p))
+            lock (Metadata)
             {
-                return Metadata[p];
+                if (Metadata.ContainsKey(p))
+                {
+                    return Metadata[p];
+                }
             }
 
             return "";
