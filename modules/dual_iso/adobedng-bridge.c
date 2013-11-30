@@ -6,9 +6,10 @@
 
 static const char* search_path[] = {
     "./",                                                       /* working dir */
+    ".\\",                                                      /* working dir (Windows) */
+    "/Applications/Adobe DNG Converter.app/Contents/MacOS/",    /* Mac */
     "C:\\Program Files\\Adobe\\",                               /* Windows */
     "C:\\Program Files (x86)\\Adobe\\",                         /* Some 64-bit Windows */
-    "/Applications/Adobe DNG Converter.app/Contents/MacOS/",    /* Mac */
 };
 
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -34,12 +35,12 @@ static const char* find_adobe_dng_converter()
         int is_win_path = (search_path[i][strlen(search_path[i])-1] == '\\');
         if (is_win_path)
         {
+#if defined(WIN32) || defined(_WIN32)
             snprintf(adobe_dng_path, sizeof(adobe_dng_path), "%s%s", search_path[i], "Adobe DNG Converter.exe");
             if (can_exec(adobe_dng_path))
                 return adobe_dng_path;
-
+#else
             /* let's try Wine */
-            #if !defined(WIN32) && !defined(_WIN32)
             snprintf(adobe_dng_path, sizeof(adobe_dng_path), "winepath \"%s%s\"", search_path[i], "Adobe DNG Converter.exe");
             FILE* f = popen(adobe_dng_path, "r");
             if (f)
@@ -54,16 +55,19 @@ static const char* find_adobe_dng_converter()
                         return adobe_dng_path;
                 }
             }
-            #endif
+#endif
         }
         else
         {
+#if !defined(WIN32) && !defined(_WIN32)
             snprintf(adobe_dng_path, sizeof(adobe_dng_path), "%s%s", search_path[i], "Adobe DNG Converter");
             if (can_exec(adobe_dng_path))
                 return adobe_dng_path;
+#endif
         }
     }
     
+    /* nothing found */
     adobe_dng_path[0] = 0;
     return 0;
 }
