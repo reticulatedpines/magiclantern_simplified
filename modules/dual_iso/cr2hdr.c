@@ -89,6 +89,7 @@ void check_shortcuts()
         use_fullres = 0;
         use_stripe_fix = 0;
         shortcut_fast = 0;
+        fix_bad_pixels = 0;
     }
 }
 
@@ -112,7 +113,7 @@ struct cmd_group options[] = {
     {
         "Shortcuts", (struct cmd_option []) {
             { &shortcut_fast, 1, "--fast",  "disable most postprocessing steps (fast, but low quality)\n"
-                            "                  (--mean23, --no-cs, --no-fullres, --no-alias-map, --no-stripe-fix)" },
+                            "                  (--mean23, --no-cs, --no-fullres, --no-alias-map, --no-stripe-fix, --no-bad-pix)" },
             OPTION_EOL,
         },
     },
