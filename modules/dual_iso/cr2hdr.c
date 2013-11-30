@@ -250,6 +250,16 @@ static void show_active_options()
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!(ok)) FAIL(fmt, ## __VA_ARGS__); }
 
+static void* malloc_or_die(size_t size)
+{
+    void* p = malloc(size);
+    CHECK(p, "malloc");
+    return p;
+}
+
+/* replace all malloc calls with malloc_or_die (if any call fails, abort right away) */
+#define malloc(size) malloc_or_die(size)
+
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
@@ -612,10 +622,6 @@ static int black_subtract(int left_margin, int top_margin)
     int* hblack = malloc(w * sizeof(int));
     int* aux = malloc(MAX(w,h) * sizeof(int));
     unsigned short * blackframe = malloc(w * h * sizeof(unsigned short));
-    
-    CHECK(vblack, "malloc");
-    CHECK(hblack, "malloc");
-    CHECK(blackframe, "malloc");
 
     /* data above this may be gibberish */
     int ymin = (top_margin-8-2) & ~3;
@@ -1292,7 +1298,6 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
 
     /* hot pixel map */
     unsigned short* hotpixel = malloc(w * h * sizeof(unsigned short));
-    CHECK(hotpixel, "malloc");
     memset(hotpixel, 0, w * h * sizeof(unsigned short));
 
     int hot_pixels = 0;
@@ -1512,21 +1517,17 @@ static int hdr_interpolate()
 
     /* dark and bright exposures, interpolated */
     unsigned short* dark   = malloc(w * h * sizeof(unsigned short));
-    CHECK(dark, "malloc");
     unsigned short* bright = malloc(w * h * sizeof(unsigned short));
-    CHECK(bright, "malloc");
     memset(dark, 0, w * h * sizeof(unsigned short));
     memset(bright, 0, w * h * sizeof(unsigned short));
     
     /* fullres image (minimizes aliasing) */
     unsigned short* fullres = malloc(w * h * sizeof(unsigned short));
-    CHECK(fullres, "malloc");
     memset(fullres, 0, w * h * sizeof(unsigned short));
     unsigned short* fullres_smooth = fullres;
 
     /* halfres image (minimizes noise and banding) */
     unsigned short* halfres = malloc(w * h * sizeof(unsigned short));
-    CHECK(halfres, "malloc");
     memset(halfres, 0, w * h * sizeof(unsigned short));
     unsigned short* halfres_smooth = halfres;
     
@@ -1534,7 +1535,6 @@ static int hdr_interpolate()
     unsigned short* overexposed = 0;
 
     unsigned short* alias_map = malloc(w * h * sizeof(unsigned short));
-    CHECK(alias_map, "malloc");
     memset(alias_map, 0, w * h * sizeof(unsigned short));
 
     /* fullres mixing curve */
@@ -2281,12 +2281,10 @@ static int hdr_interpolate()
         if (use_fullres)
         {
             fullres_smooth = malloc(w * h * sizeof(unsigned short));
-            CHECK(fullres_smooth, "malloc");
             memcpy(fullres_smooth, fullres, w * h * sizeof(unsigned short));
         }
 
         halfres_smooth = malloc(w * h * sizeof(unsigned short));
-        CHECK(halfres_smooth, "malloc");
         memcpy(halfres_smooth, halfres, w * h * sizeof(unsigned short));
 
         chroma_smooth(fullres, fullres_smooth, raw2ev, ev2raw);
@@ -2353,7 +2351,6 @@ static int hdr_interpolate()
         printf("Building alias map...\n");
 
         unsigned short* alias_aux = malloc(w * h * sizeof(unsigned short));
-        CHECK(alias_aux, "malloc");
         
         /* build the aliasing maps (where it's likely to get aliasing) */
         /* do this by comparing fullres and halfres images */
@@ -2535,7 +2532,6 @@ static int hdr_interpolate()
 
     /* where the image is overexposed? */
     overexposed = malloc(w * h * sizeof(unsigned short));
-    CHECK(overexposed, "malloc");
     memset(overexposed, 0, w * h * sizeof(unsigned short));
 
     for (y = 0; y < h; y ++)
