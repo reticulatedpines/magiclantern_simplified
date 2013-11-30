@@ -47,6 +47,7 @@ static int is_bright[4];
 
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
+#include "adobedng-bridge.h"
 
 #include "../../src/module.h"
 #undef MODULE_STRINGS_SECTION
@@ -73,6 +74,8 @@ int debug_bad_pixels = 0;
 int plot_iso_curve = 0;
 int plot_mix_curve = 0;
 int plot_fullres_curve = 0;
+
+int compress = 0;
 
 int shortcut_fast = 0;
 
@@ -147,6 +150,13 @@ struct cmd_group options[] = {
             { &use_alias_map,   1, "--alias-map",        NULL},
             { &use_stripe_fix,  0, "--no-stripe-fix",    "disable horizontal stripe fix" },
             { &use_stripe_fix,  1, "--stripe-fix",       NULL},
+            OPTION_EOL
+        },
+    },
+    {
+        "DNG compression (requires Adobe DNG Converter)", (struct cmd_option[]) {
+            { &compress,     1, "--compress",       "Lossless DNG compression" },
+            { &compress,     2, "--compress-lossy", "Lossy DNG compression (be careful, may destroy shadow detail)" },
             OPTION_EOL
         },
     },
@@ -498,6 +508,11 @@ int main(int argc, char** argv)
                 save_dng(out_filename);
 
                 copy_tags_from_source(filename, out_filename);
+                
+                if (compress)
+                {
+                    dng_compress(out_filename, compress-1);
+                }
             }
             else
             {
