@@ -743,12 +743,11 @@ hist_build()
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
-    int yoffset = 0;
-    for( y = os.y0 + off, yoffset = y * vram_lv.pitch; y < os.y_max - off; y += 2, yoffset += vram_lv.pitch )
+    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[(yoffset + (BM2LV_X(x) << 1)) >> 2];
+            uint32_t pixel = buf[BM2LV(x,y) >> 2];
 
             // ignore magic zoom borders
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))

@@ -94,6 +94,7 @@ NSTUB(   0x139BC, ReleaseRecursiveLock)
 NSTUB(   0x13460, msg_queue_create)
 NSTUB(   0x1375C, msg_queue_post)
 NSTUB(   0x13570, msg_queue_receive)
+NSTUB(   0x1379C, msg_queue_count)
 
 /** Tasks **/
 NSTUB(    0x6868, task_create)
