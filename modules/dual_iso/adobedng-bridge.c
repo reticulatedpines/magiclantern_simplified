@@ -93,7 +93,13 @@ void dng_compress(const char* source, int lossy)
     rename(source, tmp);
     
     char compress_cmd[1000];
-    snprintf(compress_cmd, sizeof(compress_cmd), "\"%s\" -dng1.4 %s -o \"%s\" \"%s\"", adobe_dng, lossy ? "-lossy" : "", source, tmp);
+    char* start =
+#if defined(WIN32) || defined(_WIN32)
+    "start /b /wait "; /* force Windows to wait for the command to complete */
+#else
+    "";
+#endif
+    snprintf(compress_cmd, sizeof(compress_cmd), "%s\"%s\" -dng1.4 %s -o \"%s\" \"%s\"", start, adobe_dng, lossy ? "-lossy" : "", source, tmp);
     printf("%s\n", compress_cmd);
     int r = system(compress_cmd);
     if(r!=0)
