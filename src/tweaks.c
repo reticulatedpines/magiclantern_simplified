@@ -342,11 +342,7 @@ static MENU_UPDATE_FUNC(expsim_display)
 void set_expsim(){};
 #endif
 
-// auto burst pic quality
-//**********************************************************************/
-
-static CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
-
+/*
 void set_pic_quality(int q)
 {
     if (q == -1) return;
@@ -354,65 +350,7 @@ void set_pic_quality(int q)
     prop_request_change(PROP_PIC_QUALITY2, &q, 4);
     prop_request_change(PROP_PIC_QUALITY3, &q, 4);
 }
-
-#ifdef FEATURE_AUTO_BURST_PICQ
-static int picq_saved = -1;
-static void decrease_pic_quality()
-{
-    if (picq_saved == -1) picq_saved = pic_quality; // save only first change
-    
-    int newpicq = 0;
-    switch(pic_quality)
-    {
-        case PICQ_RAW_JPG_LARGE_FINE:
-            newpicq = PICQ_LARGE_FINE;
-            break;
-        case PICQ_RAW:
-            newpicq = PICQ_LARGE_FINE;
-            break;
-        case PICQ_LARGE_FINE:
-            newpicq = PICQ_MED_FINE;
-            break;
-        //~ case PICQ_MED_FINE:
-            //~ newpicq = PICQ_SMALL_FINE;
-            //~ break;
-        //~ case PICQ_SMALL_FINE:
-            //~ newpicq = PICQ_SMALL_COARSE;
-            //~ break;
-        case PICQ_LARGE_COARSE:
-            newpicq = PICQ_MED_COARSE;
-            break;
-        //~ case PICQ_MED_COARSE:
-            //~ newpicq = PICQ_SMALL_COARSE;
-            //~ break;
-    }
-    if (newpicq) set_pic_quality(newpicq);
-}
- 
-static void restore_pic_quality()
-{
-    if (picq_saved != -1) set_pic_quality(picq_saved);
-    picq_saved = -1;
-}
-
-static void adjust_burst_pic_quality(int burst_count)
-{
-    if (lens_info.job_state == 0) { restore_pic_quality(); return; }
-    if (burst_count < 4) decrease_pic_quality();
-    else if (burst_count >= 5) restore_pic_quality();
-}
-
-PROP_HANDLER(PROP_BURST_COUNT)
-{
-    int burst_count = buf[0];
-
-    if (auto_burst_pic_quality && avail_shot > burst_count)
-    {
-        adjust_burst_pic_quality(burst_count);
-    }
-}
-
-#endif
+*/
 
 void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
 extern unsigned lcd_sensor_shortcuts;
@@ -2263,14 +2201,6 @@ static struct menu_entry tweak_menus[] = {
             },
             MENU_EOL,
         },
-    },
-    #endif
-    #ifdef FEATURE_AUTO_BURST_PICQ
-    {
-        .name = "Auto BurstPicQuality",
-        .priv = &auto_burst_pic_quality, 
-        .max  = 1,
-        .help = "Temporarily reduce picture quality in burst mode.",
     },
     #endif
     #if 0
