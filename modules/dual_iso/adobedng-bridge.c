@@ -95,7 +95,7 @@ void dng_compress(const char* source, int lossy)
     char compress_cmd[1000];
     char* start =
 #if defined(WIN32) || defined(_WIN32)
-    "start /b /wait "; /* force Windows to wait for the command to complete */
+    "start \"\" /wait "; /* force Windows to wait for the command to complete */
 #else
     "";
 #endif
