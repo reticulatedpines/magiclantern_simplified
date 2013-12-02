@@ -1972,6 +1972,7 @@ static int hdr_interpolate()
         free(red); red = 0;
         free(green); green = 0;
         free(blue); blue = 0;
+        free(gray); gray = 0;
         free(edge_direction);
     }
     else /* mean23 */
