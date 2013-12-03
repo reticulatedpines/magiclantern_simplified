@@ -931,7 +931,7 @@ static void show_recording_status()
         int idle_percent=0;
         if (writing_time)
         {
-            speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
+            speed = (int)((float)written / (float)writing_time * (1000.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
             idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
             speed /= 10;

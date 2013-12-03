@@ -2673,8 +2673,9 @@ static void raw_video_rec_task()
             {
                 if (writing_time[writer] || idle_time[writer])
                 {
-                    int32_t speed = written[writer] * 100 / writing_time[writer] * 1000 / 1024; // MB/s x100
-                    temp_speed += speed;
+                    /* punctual use of floating point as there is a narrow band of accuracy vs. overflows in integer arithmetics */
+                    float speed = (float)written[writer] / (float)writing_time[writer] * (1000.0f / 1024.0f * 100.0f); // KiB and msec -> MiB/s x100
+                    temp_speed += (uint32_t) speed;
                 }
             }
             measured_write_speed = temp_speed;
