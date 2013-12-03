@@ -268,7 +268,6 @@
 
     #define FEATURE_STICKY_DOF
     #define FEATURE_STICKY_HALFSHUTTER
-    //~ #define FEATURE_AUTO_BURST_PICQ // rebels only
 
 #endif
     //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
