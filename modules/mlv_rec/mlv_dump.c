@@ -1823,6 +1823,9 @@ read_headers:
                             
                             /* finally save the DNG */
                             save_dng(fn, &raw_info);
+                            
+                            /* callout for a saved dng file */
+                            lua_call_va(lua_state, "dng_saved", "si", fn, block_hdr.frameNumber);
                         }
                         
                         if(mlv_output && !only_metadata_mode && !average_mode)
