@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -38,7 +39,9 @@
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-
+#else
+typedef void lua_State;
+#endif
 
 /* based on http://www.lua.org/pil/25.3.html */
 int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
@@ -48,6 +51,8 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
     int verbose = 0;
 
     va_start(vl, sig);
+    
+#if defined(USE_LUA)
     lua_getglobal(L, func);  /* get function */
 
     /* push arguments */
@@ -185,11 +190,37 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
         }
         nres++;
     }
+#else
+
+    /* consume all vararg arguments */
+    while (*sig)
+    {
+        switch (*sig++)
+        {
+            case 'd':
+                va_arg(vl, double);
+                break;
+            case 'i':
+                va_arg(vl, int);
+                break;
+            case 's':
+                va_arg(vl, char *);
+                break;
+            case 'l':
+                va_arg(vl, char *);
+                va_arg(vl, int);
+                break;
+            case '>':
+                break;
+        }
+    }
+#endif
+
     va_end(vl);
     
     return 0;
 }
-#endif
+
 
 int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix, void *hdr, int hdr_len, void *data, int data_len)
 {
@@ -828,9 +859,7 @@ int main (int argc, char *argv[])
     int lzma_threads = 8;
 #endif
 
-#ifdef USE_LUA
     lua_State *lua_state = NULL;
-#endif
     
     printf("\n"); 
     printf(" MLV Dumper v1.0\n"); 
