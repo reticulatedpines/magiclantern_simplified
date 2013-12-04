@@ -206,6 +206,26 @@ static void mlv_play_prev()
     }
 }
 
+static void mlv_play_progressbar(int pct, char *msg)
+{
+    int border = 4;
+    int height = 40;
+    int width = 720 - 100;
+
+    int x = (720 - width) / 2;
+    int y = (480 - height) / 2;
+
+    if(pct == 0)
+    {
+        bmp_fill(COLOR_BLACK, x, y - font_med.height - border, width, font_med.height);
+        bmp_fill(COLOR_WHITE, x, y, width, height);
+        bmp_fill(COLOR_BLACK, x + border - 1, y + border - 1, width - 2 * (border - 1), height - 2 * (border - 1));
+    }
+    bmp_fill(COLOR_BLUE, x + border, y + border, ((width - 2 * border) * pct) / 100, height - 2 * border);
+    
+    bmp_printf(FONT_MED, x, y - font_med.height - border, msg);
+}
+
 static void mlv_del_task(char *parm)
 {
     uint32_t size = 0;
@@ -834,6 +854,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     }
     
     uint32_t last_pct = 0;
+    mlv_play_progressbar(0, "");
     
     /* and then the single entries */
     for(int entry = 0; entry < entries; entry++)
@@ -843,7 +864,10 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
         
         if(last_pct != pct)
         {
-            bmp_printf(FONT_MED, 30, 220, "Saving index... %d %%", pct);
+            char msg[100];
+            
+            snprintf(msg, sizeof(msg), "Saving index...");
+            mlv_play_progressbar(pct, msg);
             last_pct = pct;
         }
         memset(&field, 0x00, sizeof(mlv_xref_t));
@@ -875,6 +899,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
         uint32_t size = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_END);
         
         FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_SET);
+        mlv_play_progressbar(0, "");
         
         while(1)
         {
@@ -890,7 +915,10 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
             
             if(last_pct != pct)
             {
-                bmp_printf(FONT_MED, 30, 190, "Building index... (%d/%d), %d%s", chunk + 1, chunk_count, pct, "%");
+                char msg[100];
+                
+                snprintf(msg, sizeof(msg), "Building index... (%d/%d)", chunk + 1, chunk_count);
+                mlv_play_progressbar(pct, msg);
                 last_pct = pct;
             }
             
