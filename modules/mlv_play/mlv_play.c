@@ -48,6 +48,12 @@ char *strncpy(char *dest, const char *src, size_t n);
 static int raw_video_enabled_dummy = 0;
 extern int WEAK_FUNC(raw_video_enabled_dummy) raw_video_enabled;
 
+static char *movie_filename_dummy = "";
+extern char *WEAK_FUNC(movie_filename_dummy) raw_movie_filename;
+
+static int raw_exposure_adjust_dummy = 0;
+extern int WEAK_FUNC(raw_exposure_adjust_dummy) raw_exposure_adjust;
+
 static int res_x = 0;
 static int res_y = 0;
 static int frame_count = 0;
@@ -1921,9 +1927,19 @@ static void mlv_play_task(void *priv)
 {
     FILE **chunk_files = NULL;
     uint32_t chunk_count = 0;
+    char *filename = (char *)priv;
+    
+    /* playback at last recorded file */
+    if(!filename)
+    {
+        if(raw_movie_filename && strlen(raw_movie_filename))
+        {
+            filename = raw_movie_filename;
+        }
+    }
     
     /* if called with NULL, play first file found when building playlist */
-    if(!priv)
+    if(!filename)
     {
         mlv_build_playlist(0);
         
@@ -1937,7 +1953,7 @@ static void mlv_play_task(void *priv)
     }
     else
     {
-        strcpy(mlv_play_current_filename, (char *)priv);
+        strcpy(mlv_play_current_filename, filename);
     }
     
     /* create playlist in background to minimize delays */
