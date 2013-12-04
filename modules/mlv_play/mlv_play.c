@@ -2069,6 +2069,12 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
     }
     else if(raw_video_enabled)
     {
+        if (!is_movie_mode())
+            return 1;
+
+        if (!liveview_display_idle())
+            return 1;
+        
         switch(key)
         {
             case MODULE_KEY_PLAY:
