@@ -11,7 +11,6 @@
 #undef FEATURE_AUDIO_REMOTE_SHOT
 #undef FEATURE_AUDIO_METERS
 
-#undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
 
 //~ #undef FEATURE_ARROW_SHORTCUTS
 

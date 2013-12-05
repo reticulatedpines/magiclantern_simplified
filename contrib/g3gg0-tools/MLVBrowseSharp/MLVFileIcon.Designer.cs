@@ -31,7 +31,7 @@
             this.components = new System.ComponentModel.Container();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.pictureBox = new System.Windows.Forms.PictureBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.textLabel = new System.Windows.Forms.Label();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -55,17 +55,18 @@
             // 
             // splitContainer1.Panel2
             // 
-            this.splitContainer1.Panel2.Controls.Add(this.label1);
-            this.splitContainer1.Size = new System.Drawing.Size(150, 150);
-            this.splitContainer1.SplitterDistance = 111;
+            this.splitContainer1.Panel2.Controls.Add(this.textLabel);
+            this.splitContainer1.Size = new System.Drawing.Size(148, 148);
+            this.splitContainer1.SplitterDistance = 109;
             this.splitContainer1.TabIndex = 0;
             // 
             // pictureBox
             // 
+            this.pictureBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pictureBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox.Location = new System.Drawing.Point(3, 3);
             this.pictureBox.Name = "pictureBox";
-            this.pictureBox.Size = new System.Drawing.Size(144, 105);
+            this.pictureBox.Size = new System.Drawing.Size(142, 103);
             this.pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pictureBox.TabIndex = 0;
             this.pictureBox.TabStop = false;
@@ -79,14 +80,14 @@
             // 
             // label1
             // 
-            this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.label1.Location = new System.Drawing.Point(0, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(150, 35);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "<Filename>";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.label1.Click += new System.EventHandler(this.mouseClick);
+            this.textLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textLabel.Location = new System.Drawing.Point(0, 0);
+            this.textLabel.Name = "label1";
+            this.textLabel.Size = new System.Drawing.Size(148, 35);
+            this.textLabel.TabIndex = 0;
+            this.textLabel.Text = "<Filename>";
+            this.textLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.textLabel.Click += new System.EventHandler(this.mouseClick);
             // 
             // toolTip
             // 
@@ -96,8 +97,10 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.Controls.Add(this.splitContainer1);
             this.Name = "MLVFileIcon";
+            this.Size = new System.Drawing.Size(148, 148);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             this.splitContainer1.ResumeLayout(false);
@@ -109,7 +112,7 @@
         #endregion
 
         private System.Windows.Forms.SplitContainer splitContainer1;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label textLabel;
         private System.Windows.Forms.PictureBox pictureBox;
         private System.Windows.Forms.ToolTip toolTip;
     }

@@ -82,6 +82,7 @@ static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
 static uint32_t cam_5d3 = 0;
+static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
 static uint32_t cam_7d = 0;
@@ -259,7 +260,7 @@ static volatile int32_t force_new_buffer = 0;         /* if some other task deci
 
 static int32_t frame_count = 0;                       /* how many frames we have processed */
 static int32_t frame_skips = 0;                       /* how many frames were dropped/skipped */
-static char* movie_filename = 0;                  /* file name for current (or last) movie */
+char* raw_movie_filename = 0;                  /* file name for current (or last) movie */
 
 static uint32_t threads_running;
 
@@ -1549,6 +1550,7 @@ static void hack_liveview(int32_t unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
+            cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
 			cam_6d  ? 0xFF52BE94 :
 			cam_eos_m ? 0xFF539C1C :
@@ -2273,7 +2275,7 @@ static void raw_writer_task(uint32_t writer)
                     file_header.audioFrameCount = 0;
                     
                     /* update filename */
-                    get_next_chunk_file_name(movie_filename, chunk_filename[writer], file_header.fileNum, writer);
+                    get_next_chunk_file_name(raw_movie_filename, chunk_filename[writer], file_header.fileNum, writer);
                     
                     handle_requested = 0;
                 }
@@ -2544,16 +2546,16 @@ static void raw_video_rec_task()
         recording = -1;
     
         /* create output file name */
-        movie_filename = get_next_raw_movie_file_name();
+        raw_movie_filename = get_next_raw_movie_file_name();
         
         /* fill in file names for threads */
-        get_next_chunk_file_name(movie_filename, chunk_filename[0], 0, 0);
+        get_next_chunk_file_name(raw_movie_filename, chunk_filename[0], 0, 0);
         
         if(card_spanning && cam_5d3)
         {
             /* with card spanning, the first file is always written to CF card */
             /* also demand a second chunk, which will get written to SD */
-            get_next_chunk_file_name(movie_filename, chunk_filename[1], 1, 1);
+            get_next_chunk_file_name(raw_movie_filename, chunk_filename[1], 1, 1);
             
             /* accordingly we have to start two threads */
             mlv_writer_threads = 2;
@@ -2671,8 +2673,9 @@ static void raw_video_rec_task()
             {
                 if (writing_time[writer] || idle_time[writer])
                 {
-                    int32_t speed = written[writer] * 100 / writing_time[writer] * 1000 / 1024; // MB/s x100
-                    temp_speed += speed;
+                    /* punctual use of floating point as there is a narrow band of accuracy vs. overflows in integer arithmetics */
+                    float speed = (float)written[writer] / (float)writing_time[writer] * (1000.0f / 1024.0f * 100.0f); // KiB and msec -> MiB/s x100
+                    temp_speed += (uint32_t) speed;
                 }
             }
             measured_write_speed = temp_speed;
@@ -2764,7 +2767,7 @@ static void raw_video_rec_task()
                     handle->file_header.videoFrameCount = 0;
                     handle->file_header.audioFrameCount = 0;
                     
-                    get_next_chunk_file_name(movie_filename, filename, handle->file_header.fileNum, handle->writer);
+                    get_next_chunk_file_name(raw_movie_filename, filename, handle->file_header.fileNum, handle->writer);
                     
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, filename);
                     
@@ -3561,6 +3564,7 @@ static unsigned int raw_rec_init()
     cam_5d2 = streq(camera_model_short, "5D2");
     cam_50d = streq(camera_model_short, "50D");
     cam_5d3 = streq(camera_model_short, "5D3");
+    cam_550d = streq(camera_model_short, "550D");
     cam_6d = streq(camera_model_short, "6D");
     cam_600d = streq(camera_model_short, "600D");
     cam_7d = streq(camera_model_short, "7D");

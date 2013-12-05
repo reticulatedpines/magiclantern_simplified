@@ -31,6 +31,9 @@
             this.treeView = new System.Windows.Forms.TreeView();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.chkAnimation = new System.Windows.Forms.CheckBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.trackSize = new System.Windows.Forms.TrackBar();
             this.label1 = new System.Windows.Forms.Label();
             this.cmbGrouping = new System.Windows.Forms.ComboBox();
             this.mlvFileList = new MLVBrowseSharp.MLVFileList();
@@ -40,6 +43,7 @@
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.trackSize)).BeginInit();
             this.SuspendLayout();
             // 
             // treeView
@@ -84,6 +88,9 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.chkAnimation);
+            this.splitContainer1.Panel1.Controls.Add(this.label2);
+            this.splitContainer1.Panel1.Controls.Add(this.trackSize);
             this.splitContainer1.Panel1.Controls.Add(this.label1);
             this.splitContainer1.Panel1.Controls.Add(this.cmbGrouping);
             // 
@@ -91,8 +98,42 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mlvFileList);
             this.splitContainer1.Size = new System.Drawing.Size(519, 610);
-            this.splitContainer1.SplitterDistance = 29;
+            this.splitContainer1.SplitterDistance = 34;
             this.splitContainer1.TabIndex = 1;
+            // 
+            // chkAnimation
+            // 
+            this.chkAnimation.AutoSize = true;
+            this.chkAnimation.Location = new System.Drawing.Point(427, 8);
+            this.chkAnimation.Name = "chkAnimation";
+            this.chkAnimation.Size = new System.Drawing.Size(64, 17);
+            this.chkAnimation.TabIndex = 4;
+            this.chkAnimation.Text = "Animate";
+            this.chkAnimation.UseVisualStyleBackColor = true;
+            this.chkAnimation.CheckedChanged += new System.EventHandler(this.chkAnimation_CheckedChanged);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(220, 8);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(69, 13);
+            this.label2.TabIndex = 3;
+            this.label2.Text = "Preview size:";
+            // 
+            // trackSize
+            // 
+            this.trackSize.LargeChange = 50;
+            this.trackSize.Location = new System.Drawing.Point(295, 3);
+            this.trackSize.Maximum = 400;
+            this.trackSize.Minimum = 20;
+            this.trackSize.Name = "trackSize";
+            this.trackSize.Size = new System.Drawing.Size(125, 45);
+            this.trackSize.SmallChange = 10;
+            this.trackSize.TabIndex = 3;
+            this.trackSize.TickFrequency = 20;
+            this.trackSize.Value = 150;
+            this.trackSize.ValueChanged += new System.EventHandler(this.trackSize_ValueChanged);
             // 
             // label1
             // 
@@ -109,7 +150,7 @@
             this.cmbGrouping.Location = new System.Drawing.Point(59, 5);
             this.cmbGrouping.Name = "cmbGrouping";
             this.cmbGrouping.Size = new System.Drawing.Size(154, 21);
-            this.cmbGrouping.TabIndex = 1;
+            this.cmbGrouping.TabIndex = 2;
             this.cmbGrouping.TextChanged += new System.EventHandler(this.cmbGrouping_TextChanged);
             // 
             // mlvFileList
@@ -117,8 +158,8 @@
             this.mlvFileList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mlvFileList.Location = new System.Drawing.Point(0, 0);
             this.mlvFileList.Name = "mlvFileList";
-            this.mlvFileList.Size = new System.Drawing.Size(519, 577);
-            this.mlvFileList.TabIndex = 0;
+            this.mlvFileList.Size = new System.Drawing.Size(519, 572);
+            this.mlvFileList.TabIndex = 1;
             // 
             // BrowseForm
             // 
@@ -136,6 +177,7 @@
             this.splitContainer1.Panel1.PerformLayout();
             this.splitContainer1.Panel2.ResumeLayout(false);
             this.splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.trackSize)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -148,6 +190,9 @@
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox cmbGrouping;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TrackBar trackSize;
+        private System.Windows.Forms.CheckBox chkAnimation;
     }
 }
 

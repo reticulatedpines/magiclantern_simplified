@@ -47,6 +47,7 @@ static int is_bright[4];
 
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
+#include "adobedng-bridge.h"
 
 #include "../../src/module.h"
 #undef MODULE_STRINGS_SECTION
@@ -74,6 +75,8 @@ int plot_iso_curve = 0;
 int plot_mix_curve = 0;
 int plot_fullres_curve = 0;
 
+int compress = 0;
+
 int shortcut_fast = 0;
 
 void check_shortcuts()
@@ -86,6 +89,7 @@ void check_shortcuts()
         use_fullres = 0;
         use_stripe_fix = 0;
         shortcut_fast = 0;
+        fix_bad_pixels = 0;
     }
 }
 
@@ -109,7 +113,7 @@ struct cmd_group options[] = {
     {
         "Shortcuts", (struct cmd_option []) {
             { &shortcut_fast, 1, "--fast",  "disable most postprocessing steps (fast, but low quality)\n"
-                            "                  (--mean23, --no-cs, --no-fullres, --no-alias-map, --no-stripe-fix)" },
+                            "                  (--mean23, --no-cs, --no-fullres, --no-alias-map, --no-stripe-fix, --no-bad-pix)" },
             OPTION_EOL,
         },
     },
@@ -147,6 +151,13 @@ struct cmd_group options[] = {
             { &use_alias_map,   1, "--alias-map",        NULL},
             { &use_stripe_fix,  0, "--no-stripe-fix",    "disable horizontal stripe fix" },
             { &use_stripe_fix,  1, "--stripe-fix",       NULL},
+            OPTION_EOL
+        },
+    },
+    {
+        "DNG compression (requires Adobe DNG Converter)", (struct cmd_option[]) {
+            { &compress,     1, "--compress",       "Lossless DNG compression" },
+            { &compress,     2, "--compress-lossy", "Lossy DNG compression (be careful, may destroy shadow detail)" },
             OPTION_EOL
         },
     },
@@ -238,6 +249,16 @@ static void show_active_options()
 
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!(ok)) FAIL(fmt, ## __VA_ARGS__); }
+
+static void* malloc_or_die(size_t size)
+{
+    void* p = malloc(size);
+    CHECK(p, "malloc");
+    return p;
+}
+
+/* replace all malloc calls with malloc_or_die (if any call fails, abort right away) */
+#define malloc(size) malloc_or_die(size)
 
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -498,6 +519,11 @@ int main(int argc, char** argv)
                 save_dng(out_filename);
 
                 copy_tags_from_source(filename, out_filename);
+                
+                if (compress)
+                {
+                    dng_compress(out_filename, compress-1);
+                }
             }
             else
             {
@@ -596,10 +622,6 @@ static int black_subtract(int left_margin, int top_margin)
     int* hblack = malloc(w * sizeof(int));
     int* aux = malloc(MAX(w,h) * sizeof(int));
     unsigned short * blackframe = malloc(w * h * sizeof(unsigned short));
-    
-    CHECK(vblack, "malloc");
-    CHECK(hblack, "malloc");
-    CHECK(blackframe, "malloc");
 
     /* data above this may be gibberish */
     int ymin = (top_margin-8-2) & ~3;
@@ -1276,7 +1298,6 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
 
     /* hot pixel map */
     unsigned short* hotpixel = malloc(w * h * sizeof(unsigned short));
-    CHECK(hotpixel, "malloc");
     memset(hotpixel, 0, w * h * sizeof(unsigned short));
 
     int hot_pixels = 0;
@@ -1284,15 +1305,20 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     int x,y;
     for (y = 6; y < h-6; y ++)
     {
-        /* we don't have no hot pixels on the bright exposure */
-        if (BRIGHT_ROW)
-            continue;
-
         for (x = 6; x < w-6; x ++)
         {
-            {
-                int d = raw_get_pixel(x, y);
+            int p = raw_get_pixel(x, y);
+            
+            int is_hot = 0;
+            int is_cold = 0;
 
+            /* really dark pixels (way below the black level) are probably noise */
+            is_cold = (p < black - dark_noise*8);
+
+            /* we don't have no hot pixels on the bright exposure */
+            /* but we may have cold pixels */
+            if (!BRIGHT_ROW || is_cold)
+            {
                 /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
                 int neighbours[100];
                 int k = 0;
@@ -1323,17 +1349,14 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                     continue;
                 
                 int max = -kth_smallest_int(neighbours, k, 1);
-                int is_hot = (raw2ev[d] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
+                is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
                 
                 if (fix_bad_pixels == 2)    /* aggressive */
                 {
                     int second_max = -kth_smallest_int(neighbours, k, 2);
-                    is_hot = ((raw2ev[d] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
-                          || (raw2ev[d] - raw2ev[second_max] > EV_RESOLUTION/2);
+                    is_hot = ((raw2ev[p] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
+                          || (raw2ev[p] - raw2ev[second_max] > EV_RESOLUTION/2);
                 }
-
-                /* really dark pixels (way below the black level) are probably noise */
-                int is_cold = (d < black - dark_noise*8);
 
                 if (is_hot)
                 {
@@ -1494,21 +1517,17 @@ static int hdr_interpolate()
 
     /* dark and bright exposures, interpolated */
     unsigned short* dark   = malloc(w * h * sizeof(unsigned short));
-    CHECK(dark, "malloc");
     unsigned short* bright = malloc(w * h * sizeof(unsigned short));
-    CHECK(bright, "malloc");
     memset(dark, 0, w * h * sizeof(unsigned short));
     memset(bright, 0, w * h * sizeof(unsigned short));
     
     /* fullres image (minimizes aliasing) */
     unsigned short* fullres = malloc(w * h * sizeof(unsigned short));
-    CHECK(fullres, "malloc");
     memset(fullres, 0, w * h * sizeof(unsigned short));
     unsigned short* fullres_smooth = fullres;
 
     /* halfres image (minimizes noise and banding) */
     unsigned short* halfres = malloc(w * h * sizeof(unsigned short));
-    CHECK(halfres, "malloc");
     memset(halfres, 0, w * h * sizeof(unsigned short));
     unsigned short* halfres_smooth = halfres;
     
@@ -1516,7 +1535,6 @@ static int hdr_interpolate()
     unsigned short* overexposed = 0;
 
     unsigned short* alias_map = malloc(w * h * sizeof(unsigned short));
-    CHECK(alias_map, "malloc");
     memset(alias_map, 0, w * h * sizeof(unsigned short));
 
     /* fullres mixing curve */
@@ -1954,6 +1972,7 @@ static int hdr_interpolate()
         free(red); red = 0;
         free(green); green = 0;
         free(blue); blue = 0;
+        free(gray); gray = 0;
         free(edge_direction);
     }
     else /* mean23 */
@@ -2263,12 +2282,10 @@ static int hdr_interpolate()
         if (use_fullres)
         {
             fullres_smooth = malloc(w * h * sizeof(unsigned short));
-            CHECK(fullres_smooth, "malloc");
             memcpy(fullres_smooth, fullres, w * h * sizeof(unsigned short));
         }
 
         halfres_smooth = malloc(w * h * sizeof(unsigned short));
-        CHECK(halfres_smooth, "malloc");
         memcpy(halfres_smooth, halfres, w * h * sizeof(unsigned short));
 
         chroma_smooth(fullres, fullres_smooth, raw2ev, ev2raw);
@@ -2335,7 +2352,6 @@ static int hdr_interpolate()
         printf("Building alias map...\n");
 
         unsigned short* alias_aux = malloc(w * h * sizeof(unsigned short));
-        CHECK(alias_aux, "malloc");
         
         /* build the aliasing maps (where it's likely to get aliasing) */
         /* do this by comparing fullres and halfres images */
@@ -2517,7 +2533,6 @@ static int hdr_interpolate()
 
     /* where the image is overexposed? */
     overexposed = malloc(w * h * sizeof(unsigned short));
-    CHECK(overexposed, "malloc");
     memset(overexposed, 0, w * h * sizeof(unsigned short));
 
     for (y = 0; y < h; y ++)

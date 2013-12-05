@@ -6055,7 +6055,7 @@ shoot_task( void* unused )
                 }
                 #endif
                 #ifdef FEATURE_INTERVALOMETER
-                if(interval_enabled && interval_trigger == 3)
+                if(interval_enabled && interval_trigger == 3 && !intervalometer_running)
                 {
                     intervalometer_running = 1;
                     intervalometer_pictures_taken = 1;

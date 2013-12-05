@@ -39,6 +39,7 @@
             this.fileList.Name = "fileList";
             this.fileList.Size = new System.Drawing.Size(150, 150);
             this.fileList.TabIndex = 1;
+            this.fileList.MouseEnter += new System.EventHandler(this.fileList_MouseEnter);
             // 
             // MLVFileList
             // 
