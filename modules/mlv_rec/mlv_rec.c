@@ -85,6 +85,7 @@ static uint32_t cam_5d3 = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
+static uint32_t cam_650d = 0;
 static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
@@ -103,49 +104,49 @@ static uint32_t abort_test = 0;
  * use roughly 10% increments
  **/
 
-static int32_t resolution_presets_x[] = {  640, 704, 768,   832,  896,	 960,  1024,  1088,	  1152,	1216,  1280,  1344,  1408  ,1472, 1536,	1600,	1664,	1728, 1792,  1856,   1920,  1984,  2048,  2560,  2880,  3456, 3520 };
-#define  RESOLUTION_CHOICES_X CHOICES( "640","704","768","832","896","960","1024","1088","1152","1216","1280","1344","1408","1472","1536","1600","1664","1728","1792","1856","1920","1984","2048","2560","2880", "3456", "3520")
 
+static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728","1856","1920","2048","2240","2560","2880","3584")
 
-static int32_t aspect_ratio_presets_num[]      = {		5,		4 ,   3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1,	1,	9};
-static int32_t aspect_ratio_presets_den[]      = {		1,		1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1,	2,	16};
-static const char * aspect_ratio_choices[] = { "5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1","1:2","9:16"};
+static uint32_t aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
+static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
+static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1.2:1","1.175:1","1:1","1:2"};
 
 /* config variables */
-static CONFIG_INT("raw.delay", start_delay_idx, 0);
-static CONFIG_INT("raw.killgd", kill_gd, 0);
-static CONFIG_INT("raw.reckey", rec_key, 0);
+static CONFIG_INT("mlv.delay", start_delay_idx, 0);
+static CONFIG_INT("mlv.killgd", kill_gd, 0);
+static CONFIG_INT("mlv.reckey", rec_key, 0);
 
-CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
+CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
-static CONFIG_INT("raw.video.buffer_fill_method", buffer_fill_method, 4);
-static CONFIG_INT("raw.video.fast_card_buffers", fast_card_buffers, 3);
-static CONFIG_INT("raw.video.test_mode", test_mode, 0);
-static CONFIG_INT("raw.video.tracing", enable_tracing, 0);
-static CONFIG_INT("raw.video.show_graph", show_graph, 0);
+static CONFIG_INT("mlv.video.buffer_fill_method", buffer_fill_method, 4);
+static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 3);
+static CONFIG_INT("mlv.video.test_mode", test_mode, 0);
+static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
+static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
 
-static CONFIG_INT("raw.res.x", resolution_index_x, 12);
-static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
-static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
-static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
-static CONFIG_INT("raw.skip.card_spanning", card_spanning, 0);
-//~ static CONFIG_INT("raw.sound", sound_rec, 2);
+static CONFIG_INT("mlv.res.x", resolution_index_x, 12);
+static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
+static CONFIG_INT("mlv.write.speed", measured_write_speed, 0);
+static CONFIG_INT("mlv.skip.frames", allow_frame_skip, 0);
+static CONFIG_INT("mlv.skip.card_spanning", card_spanning, 0);
+//~ static CONFIG_INT("mlv.sound", sound_rec, 2);
 #define sound_rec 2
 
-static CONFIG_INT("raw.dolly", dolly_mode, 0);
+static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
 #define FRAMING_PANNING (dolly_mode == 1)
 
-static CONFIG_INT("raw.preview", preview_mode, 1);
+static CONFIG_INT("mlv.preview", preview_mode, 1);
 #define PREVIEW_AUTO (preview_mode == 0)
 #define PREVIEW_CANON (preview_mode == 1)
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 #define PREVIEW_NOT (preview_mode == 4)
 
-static CONFIG_INT("raw.warm.up", warm_up, 0);
-static CONFIG_INT("raw.memory.hack", memory_hack, 0);
-static CONFIG_INT("raw.small.hacks", small_hacks, 0);
+static CONFIG_INT("mlv.warm.up", warm_up, 0);
+static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
+static CONFIG_INT("mlv.small.hacks", small_hacks, 0);
 
 static int start_delay = 0;
 /* state variables */
@@ -260,7 +261,7 @@ static volatile int32_t force_new_buffer = 0;         /* if some other task deci
 
 static int32_t frame_count = 0;                       /* how many frames we have processed */
 static int32_t frame_skips = 0;                       /* how many frames were dropped/skipped */
-char* raw_movie_filename = 0;                  /* file name for current (or last) movie */
+char* mlv_movie_filename = 0;                  /* file name for current (or last) movie */
 
 static uint32_t threads_running;
 
@@ -347,7 +348,7 @@ static uint32_t raw_rec_should_preview(uint32_t ctx);
 
 static void refresh_cropmarks()
 {
-    if (lv_dispsize > 1 || raw_rec_should_preview(0) || !raw_video_enabled)
+    if (lv_dispsize > 1 || raw_rec_should_preview(0) || !mlv_video_enabled)
     {
         reset_movie_cropmarks();
     }
@@ -617,7 +618,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
     // reset_movie_cropmarks if raw_rec is disabled
     refresh_cropmarks();
     
-    if (!raw_video_enabled) return;
+    if (!mlv_video_enabled) return;
     
     refresh_raw_settings(0);
 
@@ -661,7 +662,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
 
 static MENU_UPDATE_FUNC(resolution_update)
 {
-    if (!raw_video_enabled || !lv)
+    if (!mlv_video_enabled || !lv)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable RAW video first.");
         MENU_SET_VALUE("N/A");
@@ -688,7 +689,7 @@ static MENU_UPDATE_FUNC(resolution_update)
 
 static MENU_UPDATE_FUNC(aspect_ratio_update)
 {
-    if (!raw_video_enabled || !lv)
+    if (!mlv_video_enabled || !lv)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable RAW video first.");
         MENU_SET_VALUE("N/A");
@@ -1278,7 +1279,7 @@ static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (raw_video_enabled && lv)  /* exception: EOS-M needs to record in photo mode */
+    if (mlv_video_enabled && lv)  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
@@ -1301,7 +1302,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
     raw_lv_request_update();
     
-    if (!raw_video_enabled)
+    if (!mlv_video_enabled)
     {
         return 0;
     }
@@ -1552,6 +1553,7 @@ static void hack_liveview(int32_t unhack)
             cam_5d3 ? 0xff4acda4 :
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
+            cam_650d ? 0xFF527E38 :  
 			cam_6d  ? 0xFF52BE94 :
 			cam_eos_m ? 0xFF539C1C :
 			cam_700d ? 0xFF52B53C :
@@ -1871,7 +1873,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
         dma_transfer_in_progress = 0;
     }
 
-    if (!raw_video_enabled) return 0;
+    if (!mlv_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
     
     if (frame_countdown)
@@ -2275,7 +2277,7 @@ static void raw_writer_task(uint32_t writer)
                     file_header.audioFrameCount = 0;
                     
                     /* update filename */
-                    get_next_chunk_file_name(raw_movie_filename, chunk_filename[writer], file_header.fileNum, writer);
+                    get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], file_header.fileNum, writer);
                     
                     handle_requested = 0;
                 }
@@ -2546,16 +2548,16 @@ static void raw_video_rec_task()
         recording = -1;
     
         /* create output file name */
-        raw_movie_filename = get_next_raw_movie_file_name();
+        mlv_movie_filename = get_next_raw_movie_file_name();
         
         /* fill in file names for threads */
-        get_next_chunk_file_name(raw_movie_filename, chunk_filename[0], 0, 0);
+        get_next_chunk_file_name(mlv_movie_filename, chunk_filename[0], 0, 0);
         
         if(card_spanning && cam_5d3)
         {
             /* with card spanning, the first file is always written to CF card */
             /* also demand a second chunk, which will get written to SD */
-            get_next_chunk_file_name(raw_movie_filename, chunk_filename[1], 1, 1);
+            get_next_chunk_file_name(mlv_movie_filename, chunk_filename[1], 1, 1);
             
             /* accordingly we have to start two threads */
             mlv_writer_threads = 2;
@@ -2767,7 +2769,7 @@ static void raw_video_rec_task()
                     handle->file_header.videoFrameCount = 0;
                     handle->file_header.audioFrameCount = 0;
                     
-                    get_next_chunk_file_name(raw_movie_filename, filename, handle->file_header.fileNum, handle->writer);
+                    get_next_chunk_file_name(mlv_movie_filename, filename, handle->file_header.fileNum, handle->writer);
                     
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, filename);
                     
@@ -3212,7 +3214,7 @@ static struct menu_entry raw_video_menu[] =
 {
     {
         .name = "RAW video (MLV)",
-        .priv = &raw_video_enabled,
+        .priv = &mlv_video_enabled,
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
@@ -3381,7 +3383,7 @@ static struct menu_entry raw_video_menu[] =
 
 static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
-    if (!raw_video_enabled)
+    if (!mlv_video_enabled)
         return 1;
 
     if (!is_movie_mode())
@@ -3484,7 +3486,7 @@ static int32_t preview_dirty = 0;
 
 static uint32_t raw_rec_should_preview(uint32_t ctx)
 {
-    if (!raw_video_enabled) return 0;
+    if (!mlv_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
 
     /* keep x10 mode unaltered, for focusing */
@@ -3567,6 +3569,7 @@ static unsigned int raw_rec_init()
     cam_550d = streq(camera_model_short, "550D");
     cam_6d = streq(camera_model_short, "6D");
     cam_600d = streq(camera_model_short, "600D");
+    cam_650d = streq(camera_model_short, "650D");
     cam_7d = streq(camera_model_short, "7D");
     cam_700d = streq(camera_model_short, "700D");
     cam_60d = streq(camera_model_short, "60D");
@@ -3657,7 +3660,7 @@ MODULE_PROPHANDLERS_START()
 MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(raw_video_enabled)
+    MODULE_CONFIG(mlv_video_enabled)
     MODULE_CONFIG(resolution_index_x)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)

@@ -101,7 +101,7 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 /* config variables */
 
-static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
+CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);

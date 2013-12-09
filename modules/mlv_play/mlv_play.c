@@ -45,11 +45,13 @@
 char *strncpy(char *dest, const char *src, size_t n);
 
 /* only works if the raw_rec/mlv_rec module has its config variable non-static */
-static int raw_video_enabled_dummy = 0;
-extern int WEAK_FUNC(raw_video_enabled_dummy) raw_video_enabled;
+static int video_enabled_dummy = 0;
+extern int WEAK_FUNC(video_enabled_dummy) raw_video_enabled;
+extern int WEAK_FUNC(video_enabled_dummy) mlv_video_enabled;
 
 static char *movie_filename_dummy = "";
 extern char *WEAK_FUNC(movie_filename_dummy) raw_movie_filename;
+extern char *WEAK_FUNC(movie_filename_dummy) mlv_movie_filename;
 
 static int raw_exposure_adjust_dummy = 0;
 extern int WEAK_FUNC(raw_exposure_adjust_dummy) raw_exposure_adjust;
@@ -1932,7 +1934,11 @@ static void mlv_play_task(void *priv)
     /* playback at last recorded file */
     if(!filename)
     {
-        if(raw_movie_filename && strlen(raw_movie_filename))
+        if(mlv_movie_filename && strlen(mlv_movie_filename))
+        {
+            filename = mlv_movie_filename;
+        }
+        else if(raw_movie_filename && strlen(raw_movie_filename))
         {
             filename = raw_movie_filename;
         }
@@ -2111,7 +2117,7 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
             }
         }
     }
-    else if(raw_video_enabled)
+    else if(raw_video_enabled || mlv_video_enabled)
     {
         if (!is_movie_mode())
             return 1;
