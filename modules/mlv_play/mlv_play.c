@@ -48,6 +48,12 @@ char *strncpy(char *dest, const char *src, size_t n);
 static int raw_video_enabled_dummy = 0;
 extern int WEAK_FUNC(raw_video_enabled_dummy) raw_video_enabled;
 
+static char *movie_filename_dummy = "";
+extern char *WEAK_FUNC(movie_filename_dummy) raw_movie_filename;
+
+static int raw_exposure_adjust_dummy = 0;
+extern int WEAK_FUNC(raw_exposure_adjust_dummy) raw_exposure_adjust;
+
 static int res_x = 0;
 static int res_y = 0;
 static int frame_count = 0;
@@ -204,6 +210,26 @@ static void mlv_play_prev()
         mlv_play_stopfile = 1;
         mlv_play_paused = 0;
     }
+}
+
+static void mlv_play_progressbar(int pct, char *msg)
+{
+    int border = 4;
+    int height = 40;
+    int width = 720 - 100;
+
+    int x = (720 - width) / 2;
+    int y = (480 - height) / 2;
+
+    if(pct == 0)
+    {
+        bmp_fill(COLOR_BLACK, x, y - font_med.height - border, width, font_med.height);
+        bmp_fill(COLOR_WHITE, x, y, width, height);
+        bmp_fill(COLOR_BLACK, x + border - 1, y + border - 1, width - 2 * (border - 1), height - 2 * (border - 1));
+    }
+    bmp_fill(COLOR_BLUE, x + border, y + border, ((width - 2 * border) * pct) / 100, height - 2 * border);
+    
+    bmp_printf(FONT_MED, x, y - font_med.height - border, msg);
 }
 
 static void mlv_del_task(char *parm)
@@ -834,6 +860,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     }
     
     uint32_t last_pct = 0;
+    mlv_play_progressbar(0, "");
     
     /* and then the single entries */
     for(int entry = 0; entry < entries; entry++)
@@ -843,7 +870,10 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
         
         if(last_pct != pct)
         {
-            bmp_printf(FONT_MED, 30, 220, "Saving index... %d %%", pct);
+            char msg[100];
+            
+            snprintf(msg, sizeof(msg), "Saving index...");
+            mlv_play_progressbar(pct, msg);
             last_pct = pct;
         }
         memset(&field, 0x00, sizeof(mlv_xref_t));
@@ -875,6 +905,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
         uint32_t size = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_END);
         
         FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_SET);
+        mlv_play_progressbar(0, "");
         
         while(1)
         {
@@ -890,7 +921,10 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
             
             if(last_pct != pct)
             {
-                bmp_printf(FONT_MED, 30, 190, "Building index... (%d/%d), %d%s", chunk + 1, chunk_count, pct, "%");
+                char msg[100];
+                
+                snprintf(msg, sizeof(msg), "Building index... (%d/%d)", chunk + 1, chunk_count);
+                mlv_play_progressbar(pct, msg);
                 last_pct = pct;
             }
             
@@ -1893,9 +1927,19 @@ static void mlv_play_task(void *priv)
 {
     FILE **chunk_files = NULL;
     uint32_t chunk_count = 0;
+    char *filename = (char *)priv;
+    
+    /* playback at last recorded file */
+    if(!filename)
+    {
+        if(raw_movie_filename && strlen(raw_movie_filename))
+        {
+            filename = raw_movie_filename;
+        }
+    }
     
     /* if called with NULL, play first file found when building playlist */
-    if(!priv)
+    if(!filename)
     {
         mlv_build_playlist(0);
         
@@ -1909,7 +1953,7 @@ static void mlv_play_task(void *priv)
     }
     else
     {
-        strcpy(mlv_play_current_filename, (char *)priv);
+        strcpy(mlv_play_current_filename, filename);
     }
     
     /* create playlist in background to minimize delays */
@@ -2069,6 +2113,12 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
     }
     else if(raw_video_enabled)
     {
+        if (!is_movie_mode())
+            return 1;
+
+        if (!liveview_display_idle())
+            return 1;
+        
         switch(key)
         {
             case MODULE_KEY_PLAY:

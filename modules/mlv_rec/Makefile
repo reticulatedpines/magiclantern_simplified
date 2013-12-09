@@ -6,6 +6,14 @@ MODULE_OBJS=mlv_rec.o mlv.o
 # include modules environment
 include ../Makefile.modules
 
+# just comment out to disable LUA
+#LUA_VER=5.2
+
+ifdef LUA_VER
+    LUA_CFLAGS=`pkg-config --cflags --libs lua$(LUA_VER)` -D USE_LUA
+else
+    LUA_CFLAGS=
+endif
 
 MINGW=i686-w64-mingw32
 MINGW_GCC=$(MINGW)-gcc
@@ -14,7 +22,7 @@ MINGW_AR=$(MINGW)-ar
 # large file support
 # get them with $(shell getconf LFS_CFLAGS)
 LFS_FLAGS=-DLARGEFILES -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
-MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR)
+MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS)
 
 # LZMA library flags
 LZMA_DIR=lzma/

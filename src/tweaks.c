@@ -258,6 +258,7 @@ int get_expsim()
         return 2;
     }
 #endif
+    if (expsim == 3) return 0; /* on 5D3, this means "off" and 0 means "when pressing DOF" */
     return expsim;
 }
 #ifdef CONFIG_EXPSIM
@@ -323,6 +324,11 @@ static MENU_UPDATE_FUNC(expsim_display)
         MENU_SET_VALUE("Movie");
         MENU_SET_ICON(MNI_DICE, 0);
         #endif
+    }
+    else if (expsim == 3)
+    {
+        MENU_SET_VALUE("OFF");
+        MENU_SET_ICON(MNI_OFF, 0);
     }
     else
     {

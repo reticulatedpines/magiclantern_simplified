@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -31,6 +32,252 @@
 #include <chdk-dng.h>
 #include "../dual_iso/wirth.h"  /* fast median, generic implementation (also kth_smallest) */
 #include "../dual_iso/optmed.h" /* fast median for small common array sizes (3, 7, 9...) */
+
+
+#if defined(USE_LUA)
+#define LUA_LIB
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+#else
+typedef void lua_State;
+#endif
+
+/* based on http://www.lua.org/pil/25.3.html */
+int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
+{
+    va_list vl;
+    int narg, nres;  /* number of arguments and results */
+    int verbose = 0;
+
+    va_start(vl, sig);
+    
+#if defined(USE_LUA)
+    lua_getglobal(L, func);  /* get function */
+
+    /* push arguments */
+    narg = 0;
+    while (*sig)
+    {  
+        /* push arguments */
+        switch (*sig++)
+        {
+            case 'v':
+                verbose = 1;
+                break;
+
+            case 'd':  /* double argument */
+                lua_pushnumber(L, va_arg(vl, double));
+                break;
+
+            case 'i':  /* int argument */
+                lua_pushnumber(L, va_arg(vl, int));
+                break;
+
+            case 's':  /* string argument */
+                lua_pushstring(L, va_arg(vl, char *));
+                break;
+
+            case 'l':  /* lstring argument */
+            {
+                char *ptr = va_arg(vl, char *);
+                int len = va_arg(vl, int);
+                lua_pushlstring(L, ptr, len);
+                break;
+            }
+
+            case '>':
+                goto endwhile;
+
+            default:
+                return -5;
+        }
+        narg++;
+        luaL_checkstack(L, 1, "too many arguments");
+    }
+    endwhile:
+
+    /* do the call */
+    nres = strlen(sig);  /* number of expected results */
+    int ret = lua_pcall(L, narg, nres, 0);
+    
+    if (ret != 0)  /* do the call */
+    {
+        if (lua_isstring(L, -1))
+        {
+            //if(1 ||verbose)
+            {
+                printf("LUA: Error while calling '%s': '%s'\n", func, lua_tostring(L, -1));
+            }
+        }
+        lua_pop(L, -1);
+        return -4;
+    }
+    
+
+    /* retrieve results */
+    nres = -nres;  /* stack index of first result */
+    while (lua_gettop(L) && *sig)
+    {  
+        /* get results */
+        switch (*sig++)
+        {
+            case 'd':  /* double result */
+                if (!lua_isnumber(L, nres))
+                {
+                    if(verbose)
+                    {
+                        printf("LUA: Error while calling '%s': Expected double, got %d\n", func, lua_type(L, nres));
+                    }
+                    lua_pop(L, -1);
+                    break;
+                }
+                *va_arg(vl, double *) = lua_tonumber(L, nres);
+                lua_pop(L, -1);
+                break;
+
+            case 'i':  /* int result */
+                if (!lua_isnumber(L, nres))
+                {
+                    if(verbose)
+                    {
+                        printf("LUA: Error while calling '%s': Expected number, got %d\n", func, lua_type(L, nres));
+                    }
+                    lua_pop(L, -1);
+                    break;
+                }
+                *va_arg(vl, int *) = (int)lua_tonumber(L, nres);
+                lua_pop(L, -1);
+                break;
+
+            case 's':  /* string result */
+                if (!lua_isstring(L, nres))
+                {
+                    if(verbose)
+                    {
+                        printf("LUA: Error while calling '%s': Expected string, got %d\n", func, lua_type(L, nres));
+                    }
+                    lua_pop(L, -1);
+                    break;
+                }
+                *va_arg(vl, const char **) = lua_tostring(L, nres);
+                lua_pop(L, -1);
+                break;
+
+            case 'l':  /* lstring result */
+            {
+                if (!lua_isstring(L, nres))
+                {
+                    if(verbose)
+                    {
+                        printf("LUA: Error while calling '%s': Expected string, got %d\n", func, lua_type(L, nres));
+                    }
+                    lua_pop(L, -1);
+                    break;
+                }
+                const char **ret_data = va_arg(vl, const char **);
+                size_t *ret_length = va_arg(vl, size_t *);
+                
+                *ret_data = lua_tolstring(L, nres, ret_length);
+                lua_pop(L, -1);
+                break;
+            }
+            
+            default:
+                printf("LUA: Error while calling '%s': Expected unknown, got %d\n", func, lua_type(L, nres));
+                lua_pop(L, -1);
+                break;
+        }
+        nres++;
+    }
+#else
+
+    /* consume all vararg arguments */
+    while (*sig)
+    {
+        switch (*sig++)
+        {
+            case 'd':
+                va_arg(vl, double);
+                break;
+            case 'i':
+                va_arg(vl, int);
+                break;
+            case 's':
+                va_arg(vl, char *);
+                break;
+            case 'l':
+                va_arg(vl, char *);
+                va_arg(vl, int);
+                break;
+            case '>':
+                break;
+        }
+    }
+#endif
+
+    va_end(vl);
+    
+    return 0;
+}
+
+
+int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix, void *hdr, int hdr_len, void *data, int data_len)
+{
+#if defined(USE_LUA)
+    uint8_t *ret_hdr = NULL;
+    uint8_t *ret_data = NULL;
+    int ret_hdr_len = 0;
+    int ret_data_len = 0;
+    char func[128];
+    
+    snprintf(func, sizeof(func), "handle_%.4s%s", type, suffix);
+    
+    if(data)
+    {
+        lua_call_va(lua_state, func, "ll>ll", hdr, hdr_len, data, data_len, &ret_hdr, &ret_hdr_len, &ret_data, &ret_data_len);
+    }
+    else
+    {
+        lua_call_va(lua_state, func, "l>l", hdr, hdr_len, &ret_hdr, &ret_hdr_len);
+    }
+    
+    /* callee updated block header */
+    if(ret_hdr_len > 0 && ret_hdr_len == hdr_len)
+    {
+        printf("LUA: Function '%s' updated hdr data\n", func);
+        memcpy(hdr, ret_hdr, hdr_len);
+    }
+    else if(ret_hdr_len)
+    {
+        printf("LUA: Error while calling '%s': Returned header size mismatch - %d instead of %d\n", func, ret_hdr_len, hdr_len);
+    }
+    
+    /* callee updated block data */
+    if(ret_data_len > 0 && ret_data_len == data_len)
+    {
+        printf("LUA: Function '%s' updated hdr data\n", func);
+        memcpy(data, ret_data, data_len);
+    }
+    else if(ret_data_len)
+    {
+        printf("LUA: Error while calling '%s': Returned data size mismatch - %d instead of %d\n", func, ret_data_len, data_len);
+    }
+    
+    
+#endif
+    return 0;
+}
+
+int32_t lua_handle_hdr(lua_State *lua_state, uint8_t *type, void *hdr, int hdr_len)
+{
+    return lua_handle_hdr_suffix(lua_state, type, "", hdr, hdr_len, NULL, 0);
+}
+
+int32_t lua_handle_hdr_data(lua_State *lua_state, uint8_t *type, char *suffix, void *hdr, int hdr_len, void *data, int data_len)
+{
+    return lua_handle_hdr_suffix(lua_state, type, suffix, hdr, hdr_len, data, data_len);
+}
 
 /* some compile warning, why? */
 char *strdup(const char *s);
@@ -611,6 +858,8 @@ int main (int argc, char *argv[])
     int lzma_fb = 16;
     int lzma_threads = 8;
 #endif
+
+    lua_State *lua_state = NULL;
     
     printf("\n"); 
     printf(" MLV Dumper v1.0\n"); 
@@ -623,6 +872,7 @@ int main (int argc, char *argv[])
     int dng_output = 0;
 
     struct option long_options[] = {
+        {"lua",    required_argument, NULL,  'L' },
         {"dng",    no_argument, &dng_output,  1 },
         {"no-cs",  no_argument, &chroma_smooth_method,  0 },
         {"cs2x2",  no_argument, &chroma_smooth_method,  2 },
@@ -638,10 +888,41 @@ int main (int argc, char *argv[])
     }
     
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1) 
+    while ((opt = getopt_long(argc, argv, "L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1) 
     {
         switch (opt)
         {
+            case 'L':
+#ifdef USE_LUA
+                if(!optarg)
+                {
+                    fprintf(stderr, "Error: Missing LUA script filename\n");
+                    return 0;
+                }
+                lua_state = luaL_newstate();
+                if(!lua_state)
+                {
+                    fprintf(stderr, "LUA: Failed to init LUA library\n");
+                    return 0;
+                }
+                
+                luaL_openlibs(lua_state);
+
+                if(luaL_loadfile(lua_state, optarg) != 0 || lua_pcall(lua_state, 0, 0, 0) != 0)
+                {
+                    fprintf(stderr, "LUA: Failed to load script\n");
+                }
+                
+                if(lua_call_va(lua_state, "init", "", 0) != 0)
+                {
+                    fprintf(stderr, "LUA: Failed to call 'init' in script\n");
+                }
+                break;
+#else
+                fprintf(stderr, "LUA support not compiled into this binary\n");
+                return 0;
+#endif
+                
             case 'x':
                 xref_mode = 1;
                 break;
@@ -989,7 +1270,7 @@ int main (int argc, char *argv[])
         memset(prev_frame_buffer, 0x00, frame_buffer_size);
     }
     
-    if(output_filename)
+    if(output_filename || lua_state)
     {
         frame_buffer = malloc(frame_buffer_size);
         if(!frame_buffer)
@@ -998,7 +1279,7 @@ int main (int argc, char *argv[])
             return 0;
         }
         
-        if(!dng_output)
+        if(!dng_output && output_filename)
         {
             out_file = fopen(output_filename, "wb+");
             if(!out_file)
@@ -1081,6 +1362,8 @@ read_headers:
                 goto abort;
             }
             fseeko(in_file, position + file_hdr.blockSize, SEEK_SET);
+            
+            lua_handle_hdr(lua_state, buf.blockType, &file_hdr, sizeof(file_hdr));
 
             if(verbose)
             {
@@ -1209,7 +1492,9 @@ read_headers:
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
-
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                
                 if(verbose)
                 {
                     printf("   Frame: #%d\n", block_hdr.frameNumber);
@@ -1218,7 +1503,7 @@ read_headers:
                     printf("   Space: %d\n", block_hdr.frameSpace);
                 }
                 
-                if(raw_output || mlv_output || dng_output)
+                if(raw_output || mlv_output || dng_output || lua_state)
                 {
                     /* if already compressed, we have to decompress it first */
                     int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
@@ -1234,6 +1519,8 @@ read_headers:
                         fprintf(stderr, "[E] File ends in the middle of a block\n");
                         goto abort;
                     }
+                    
+                    lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
                     
                     if(recompress || decompress || ((raw_output || dng_output) && compressed))
                     {
@@ -1484,6 +1771,8 @@ read_headers:
                     
                     if(frame_selected)
                     {
+                        lua_handle_hdr_data(lua_state, buf.blockType, "_data_write", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                        
                         if(raw_output)
                         {
                             if(!lv_rec_footer.frameSize)
@@ -1491,6 +1780,8 @@ read_headers:
                                 lv_rec_footer.frameSize = frame_size;
                             }
 
+                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_raw", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                        
                             fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
                             fwrite(frame_buffer, frame_size, 1, out_file);
                         }
@@ -1503,6 +1794,8 @@ read_headers:
                             char fn[100];
                             snprintf(fn, sizeof(fn), "%s%06d.dng", output_filename, block_hdr.frameNumber);
                             
+                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+
                             raw_info = lv_rec_footer.raw_info;
                             raw_info.frame_size = frame_size;
                             raw_info.buffer = frame_buffer;
@@ -1559,6 +1852,9 @@ read_headers:
                             
                             /* finally save the DNG */
                             save_dng(fn, &raw_info);
+                            
+                            /* callout for a saved dng file */
+                            lua_call_va(lua_state, "dng_saved", "si", fn, block_hdr.frameNumber);
                         }
                         
                         if(mlv_output && !only_metadata_mode && !average_mode)
@@ -1609,6 +1905,8 @@ read_headers:
                                 printf("  saving: %d -> %d  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
                             }
                             
+                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                            
                             /* delete free space and correct header size if needed */
                             block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
                             block_hdr.frameSpace = 0;
@@ -1648,6 +1946,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + lens_info.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &lens_info, sizeof(lens_info));
 
                 if(verbose)
                 {
@@ -1683,6 +1983,8 @@ read_headers:
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 /* get the string length and malloc a buffer for that string */
                 int str_length = block_hdr.blockSize - hdr_size;
@@ -1738,6 +2040,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
                 {
@@ -1769,6 +2073,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
                 {
@@ -1802,6 +2108,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + wbal_info.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &wbal_info, sizeof(wbal_info));
 
                 if(verbose)
                 {
@@ -1837,6 +2145,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + idnt_info.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &idnt_info, sizeof(idnt_info));
 
                 if(verbose)
                 {
@@ -1869,6 +2179,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
                 {
@@ -1904,6 +2216,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
                 {
@@ -1933,6 +2247,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + expo_info.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &expo_info, sizeof(expo_info));
 
                 if(verbose)
                 {
@@ -1967,6 +2283,8 @@ read_headers:
                 
                 /* skip remaining data, if there is any */
                 fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 video_xRes = block_hdr.xRes;
                 video_yRes = block_hdr.yRes;
@@ -2026,6 +2344,8 @@ read_headers:
             {
                 printf("[i] Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
                 fseeko(in_file, position + buf.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, "", 0);
             }
         }
         

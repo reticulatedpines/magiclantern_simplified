@@ -185,7 +185,7 @@ static int writing_queue_head = 0;                /* extract frames to be writte
 
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
-static char* movie_filename = 0;                  /* file name for current (or last) movie */
+char* raw_movie_filename = 0;                         /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
 static uint32_t written = 0;                      /* how many KB we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
@@ -931,7 +931,7 @@ static void show_recording_status()
         int idle_percent=0;
         if (writing_time)
         {
-            speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
+            speed = (int)((float)written / (float)writing_time * (1000.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
             idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
             speed /= 10;
@@ -1438,11 +1438,11 @@ static char* get_next_chunk_file_name(char* base_name, int chunk)
     return filename;
 }
 
-static char* get_wav_file_name(char* movie_filename)
+static char* get_wav_file_name(char* raw_movie_filename)
 {
     /* same name as movie, but with wav extension */
     static char wavfile[100];
-    snprintf(wavfile, sizeof(wavfile), movie_filename);
+    snprintf(wavfile, sizeof(wavfile), raw_movie_filename);
     int len = strlen(wavfile);
     wavfile[len-4] = '.';
     wavfile[len-3] = 'W';
@@ -1484,9 +1484,9 @@ static void raw_video_rec_task()
     
     /* create output file */
     int chunk = 0;
-    movie_filename = get_next_raw_movie_file_name();
-    chunk_filename = movie_filename;
-    f = FIO_CreateFileEx(movie_filename);
+    raw_movie_filename = get_next_raw_movie_file_name();
+    chunk_filename = raw_movie_filename;
+    f = FIO_CreateFileEx(raw_movie_filename);
     if (f == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -1520,8 +1520,8 @@ static void raw_video_rec_task()
 
     if (sound_rec == 1)
     {
-        char* wavfile = get_wav_file_name(movie_filename);
-        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && movie_filename[0] == 'A' ? " on SD card" : "");
+        char* wavfile = get_wav_file_name(raw_movie_filename);
+        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && raw_movie_filename[0] == 'A' ? " on SD card" : "");
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
@@ -1678,7 +1678,7 @@ static void raw_video_rec_task()
                 }
                 
                 /* try to create a new chunk */
-                chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
+                chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
                 FILE* g = FIO_CreateFileEx(chunk_filename);
                 if (g == INVALID_PTR) goto abort;
                 
@@ -1836,7 +1836,7 @@ abort_and_check_early_stop:
         {
             /* try to save footer in a new chunk */
             FIO_CloseFile(f); f = 0;
-            chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
+            chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
             FILE* g = FIO_CreateFileEx(chunk_filename);
             if (g != INVALID_PTR)
             {
@@ -1866,7 +1866,7 @@ abort_and_check_early_stop:
 
 cleanup:
     if (f) FIO_CloseFile(f);
-    if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
+    if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
     free_buffers();
     
@@ -1897,12 +1897,12 @@ static MENU_SELECT_FUNC(raw_playback_start)
 {
     if (RAW_IS_IDLE)
     {
-        if (!movie_filename)
+        if (!raw_movie_filename)
         {
             bmp_printf(FONT_MED, 20, 50, "Please record a movie first.");
             return;
         }
-        mlv_play_file(movie_filename);
+        mlv_play_file(raw_movie_filename);
     }
 }
 
@@ -1911,8 +1911,8 @@ static MENU_UPDATE_FUNC(raw_playback_update)
     if ((thunk)mlv_play_file == (thunk)ret_0)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to load the mlv_play module.");
     
-    if (movie_filename)
-        MENU_SET_VALUE(movie_filename + 17);
+    if (raw_movie_filename)
+        MENU_SET_VALUE(raw_movie_filename + 17);
     else
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
 }
