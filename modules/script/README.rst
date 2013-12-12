@@ -1,5 +1,5 @@
-script
-========
+Scripting GUI
+=============
 
 Scripting GUI (work in progress)
 

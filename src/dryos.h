@@ -494,7 +494,7 @@ int rand (void);
 
 #define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
 
-#define MEM(x) *(volatile int*)(x)
+#define MEM(x) *(volatile uint32_t*)(x)
 #define MEMX(x) ( \
         ((((uint32_t)(x)) & 0xF0000000UL) == 0xC0000000UL) ? (uint32_t)shamem_read(x) : \
         ((((uint32_t)(x)) & 0xF0000000UL) == 0xE0000000UL) ? (uint32_t)0xDEADBEAF : \
@@ -528,13 +528,21 @@ extern int FIO_ReadFile( FILE* stream, void* ptr, size_t count );
 extern int FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
 extern void FIO_CloseFile( FILE* stream );
 extern FILE* FIO_CreateFile( const char* name );
-/** Returns for 0 success */
+
+/* Returns 0 for success */
 extern int FIO_GetFileSize( const char * filename, uint32_t * size );
+
 extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );
 extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
-extern void FIO_CleanupAfterFindNext_maybe( struct fio_dirent * dirent );
-extern FILE* FIO_CreateFileEx( const char* name );
+extern void FIO_FindClose( struct fio_dirent * dirent );
 extern int FIO_SeekFile( FILE* stream, size_t position, int whence );
+extern int FIO_RenameFile(char *src,char *dst);
+
+/* ML wrappers */
+extern FILE* FIO_CreateFileEx( const char* name );
+extern FILE* FIO_CreateFileOrAppend( const char* name );
+extern int FIO_CopyFile(char *src,char *dst);
+extern int FIO_MoveFile(char *src,char *dst);   /* copy and erase */
 
 unsigned GetFileSize( char* filename );
 
@@ -574,6 +582,12 @@ extern int isgraph( int x );
 extern int isspace( int x );
 extern int iscntrl( int x );
 
+/** message queue calls **/
+extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
+extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);
+extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
+
+
 // others
 extern int abs( int number );
 
@@ -594,6 +608,7 @@ const char* get_dcim_dir();
 
 #define FAST __attribute__((optimize("-O3")))
 #define SMALL __attribute__((optimize("-Os")))
+#define DUMP_ASM __attribute__ ((section(".dump_asm")))
 
 // for modules and other optional code
 #define WEAK_FUNC(name)  __attribute__((weak,alias(#name))) 
@@ -633,17 +648,7 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_PER_LENS_TELE 0x202
 
 
-#ifdef CONFIG_MEMCHECK
-#include "memcheck.h"
-#endif
-
-#ifdef CONFIG_USE_MALLOC_FOR_SMALL_THINGS
-#define SmallAlloc malloc
-#define SmallFree free
-#else
-#define SmallAlloc AllocateMemory
-#define SmallFree FreeMemory
-#endif
+#include "mem.h"
 
 #define IS_ML_PTR(val) ((uintptr_t)(val) > (uintptr_t)0x1000)
 

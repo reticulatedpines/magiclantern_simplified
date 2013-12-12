@@ -64,7 +64,7 @@ NSTUB(0xFF345520, FIO_RenameFile)
 NSTUB(0xFF3456E8, FIO_CreateDirectory)
 NSTUB(0xFF345CB0, FIO_FindFirstEx)
 NSTUB(0xFF345DA4, FIO_FindNextEx)
-NSTUB(0xFF345E84, FIO_CleanupAfterFindNext_maybe) //FindClose
+NSTUB(0xFF345E84, FIO_FindClose) //FindClose
 
 /** Bitmap **/
 NSTUB(   0x522CC, bmp_vram_info)
@@ -94,6 +94,7 @@ NSTUB(   0x139BC, ReleaseRecursiveLock)
 NSTUB(   0x13460, msg_queue_create)
 NSTUB(   0x1375C, msg_queue_post)
 NSTUB(   0x13570, msg_queue_receive)
+NSTUB(   0x1379C, msg_queue_count)
 
 /** Tasks **/
 NSTUB(    0x6868, task_create)
@@ -154,12 +155,12 @@ NSTUB(0xFF11F3BC, _prop_request_change)
 NSTUB(0xFF11FBA0, prop_get_value)
 
 /** Memory allocation **/
-NSTUB(0xFF0C82E8, malloc)
-NSTUB(0xFF0C8340, free) // see "can't malloc"
-NSTUB(    0x76F8, AllocateMemory)
-NSTUB(    0x7A94, FreeMemory)
-NSTUB(   0x16E8C, alloc_dma_memory)
-NSTUB(   0x16EC0, free_dma_memory)
+NSTUB(0xFF0C82E8, _malloc)
+NSTUB(0xFF0C8340, _free) // see "can't malloc"
+NSTUB(    0x76F8, _AllocateMemory)
+NSTUB(    0x7A94, _FreeMemory)
+NSTUB(   0x16E8C, _alloc_dma_memory)
+NSTUB(   0x16EC0, _free_dma_memory)
 NSTUB(    0x7498, GetMemoryInformation)
 
 /** ExMem **/

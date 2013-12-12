@@ -76,5 +76,6 @@
 #define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK_NAME "PicStyle"
 
 #endif

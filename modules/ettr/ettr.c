@@ -13,21 +13,24 @@
 #include <raw.h>
 #include <lens.h>
 #include <math.h>
+#include <zebra.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
 
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 2);
-static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 2);
-static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
+static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 1);
+static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, -1);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6);
 static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2);
+static CONFIG_INT("auto.ettr.dual.iso", auto_ettr_dual_iso_link, 1);
 
 static int debug_info = 0;
+static int show_metered_areas = 0;
 
 #define AUTO_ETTR_TRIGGER_ALWAYS_ON (auto_ettr_trigger == 0 || is_intervalometer_running())
 #define AUTO_ETTR_TRIGGER_AUTO_SNAP (auto_ettr_trigger == 1)
@@ -35,10 +38,48 @@ static int debug_info = 0;
 #define AUTO_ETTR_TRIGGER_BY_SET (auto_ettr_trigger == 2)
 #define AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK (auto_ettr_trigger == 3)
 
+/* status codes */
+#define ETTR_EXPO_LIMITS_REACHED -1
+#define ETTR_NEED_MORE_SHOTS 0
+#define ETTR_SETTLED 1
+
 extern int hdr_enabled;
 #define HDR_ENABLED hdr_enabled
 
-static int highlight_headroom_needed = 0;
+static char* get_current_exposure_settings()
+{
+    static char msg[50];
+    int iso1 = lens_info.iso_analog_raw;
+    snprintf(msg, sizeof(msg), "ISO %d", raw2iso(iso1));
+    int iso2 = dual_iso_get_recovery_iso();
+    if (iso2 && iso2 != iso1)
+    {
+        STR_APPEND(msg, "/%d", raw2iso(iso2));
+    }
+    STR_APPEND(msg, " %s", lens_format_shutter(lens_info.raw_shutter));
+    return msg;
+}
+
+static int extra_snr_needed = 0;
+
+/* metering on dual ISO images can be affected by black level delta */
+/* ideally, ev_hi = ev_lo + ev_delta, so we'll try to find a black level delta that matches this */
+/* => solve this: raw_to_ev(raw_value_hi - black_delta) = raw_to_ev(raw_value_lo + black_delta) + ev_delta */
+static int guess_black_delta(int raw_value_lo, int raw_value_hi, float ev_delta)
+{
+    float best_err = 100000;
+    int best_black_delta = 0;
+    for (int black_delta = -40; black_delta <= 40; black_delta++)
+    {
+        float err = ABS(raw_to_ev(raw_value_hi - black_delta) - raw_to_ev(raw_value_lo + black_delta) - ev_delta);
+        if (err < best_err)
+        {
+            best_err = err;
+            best_black_delta = black_delta;
+        }
+    }
+    return best_black_delta;
+}
 
 /* also used for display on histogram */
 static int auto_ettr_get_correction()
@@ -62,7 +103,15 @@ static int auto_ettr_get_correction()
     int raw_values[COUNT(percentiles)];
     static float diff_from_lower_percentiles[COUNT(percentiles)-1] = {0};
 
-    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_DARK_ONLY, 2);
+    int speed = 1; /* 1 = examine each LiveView pixel (720x480); 2 = downsample by 2 and so on */
+    if (lv)
+    {
+        /* if highlight ignore is off, we have to look carefully */
+        /* otherwise, the meter is not that sensitive and can be a little faster */
+        speed = auto_ettr_ignore ? 4 : 2;
+    }
+
+    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_DARK_ONLY, speed);
     
     if (ok != 1)
     {
@@ -71,10 +120,13 @@ static int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw_values[0]);
-    float ev_median_lo = raw_to_ev(raw_values[7]); /* 50th percentile (median) */
-    float ev_shadow_lo = raw_to_ev(raw_values[12]); /* 5th percentile */
+    int raw_median_lo = raw_values[7];  /* 50th percentile (median) */
+    int raw_shadow_lo = raw_values[12]; /* 5th percentile */
+    int raw_highlight_lo = raw_values[0]; /* "highlight ignore" percentile */
+    float ev_median_lo = raw_to_ev(raw_median_lo);
+    float ev_shadow_lo = raw_to_ev(raw_shadow_lo);
     
-    int dual_iso = dual_iso_is_enabled();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
     float ev_median_hi = ev_median_lo;
     float ev_shadow_hi = ev_shadow_lo; /* for dual ISO: for the bright exposure */
     
@@ -82,21 +134,24 @@ static int auto_ettr_get_correction()
     {
         /* for dual ISO only:*/
         /* we have metered the dark exposure (since ETTR is pushing that to the right), now meter the bright one too */
+
+        /* EV difference between the two ISOs (from settings) */
+        float dual_iso_spacing = ABS(dual_iso_get_recovery_iso() - lens_info.iso_analog_raw) / 8.0;
+
         if (lv && !is_movie_mode())
         {
             /* photo LV (only one exposure) */
             /* estimate it from settings */
-            float d = dual_iso_get_dr_improvement() / 100.0;
             int rec_iso = dual_iso_get_recovery_iso();
-            if (rec_iso > lens_info.raw_iso) /* we are looking at the dark exposure */
+            if (rec_iso > (int)lens_info.iso_analog_raw) /* we are looking at the dark exposure */
             {
-                ev_median_hi = ev_median_lo + d;
-                ev_shadow_hi = ev_shadow_lo + d;
+                ev_median_hi = MIN(ev_median_lo + dual_iso_spacing, 0); /* you can't get whiter than white */
+                ev_shadow_hi = MIN(ev_shadow_lo + dual_iso_spacing, 0);
             }
             else /* we are looking at the bright exposure */
             {
-                ev_median_hi = ev_median_lo - d;
-                ev_shadow_hi = ev_shadow_lo - d;
+                ev_median_hi = ev_median_lo - dual_iso_spacing;
+                ev_shadow_hi = ev_shadow_lo - dual_iso_spacing;
                 float aux = ev_median_hi; ev_median_hi = ev_median_lo; ev_median_lo = aux;
                 aux = ev_shadow_hi; ev_shadow_hi = ev_shadow_lo; ev_shadow_lo = aux;
             }
@@ -104,12 +159,72 @@ static int auto_ettr_get_correction()
         else
         {
             /* photo non-LV and movie */
-            int percentiles[2] = {500, 50};
-            int raw_values[2];
-            raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
-            ev_median_hi = raw_to_ev(raw_values[0]);
-            ev_shadow_hi = raw_to_ev(raw_values[1]);
+            int percentiles_hi[2] = {500, 50};
+            int raw_values_hi[2];
+            raw_hist_get_percentile_levels(percentiles_hi, raw_values_hi, COUNT(percentiles_hi), gray_proj | GRAY_PROJECTION_BRIGHT_ONLY, 4);
+            int raw_median_hi = raw_values_hi[0];  /* 50th percentile (median) */
+            int raw_shadow_hi = raw_values_hi[1]; /* 5th percentile */
+
+            /* signal level for the higher exposure must be equal to signal level for the lower exposure plus dual ISO spacing (EV) */
+            /* if it's not, it's very likely to be a large black level difference messing with our formulas */
+            /* let's try to fight it! */
+
+            /* compute it from shadow levels, because this is where black delta has the largest effect */
+            /* if you compute it from median, shadow may be still wrong by 1-2 EV */
+            /* if you compute it from shadow, median may be wrong by only 0.1 - 0.2 EV - much better! */
+            int black_delta = guess_black_delta(raw_shadow_lo, raw_shadow_hi, dual_iso_spacing);
+
+            ev_median_lo = raw_to_ev(raw_median_lo + black_delta);
+            ev_shadow_lo = raw_to_ev(raw_shadow_lo + black_delta);
+
+            ev_median_hi = raw_to_ev(raw_median_hi - black_delta);
+            ev_shadow_hi = raw_to_ev(raw_shadow_hi - black_delta);
+
+            if (debug_info)
+            {
+                int gap_med = (ev_median_hi - ev_median_lo) * 100;
+                int gap_shad = (ev_shadow_hi - ev_shadow_lo) * 100;
+                bmp_printf(FONT_MED, 50,  60, "Black delta  : %d (EV gap mid:%s%d.%02d shad:%s%d.%02d)", black_delta, FMT_FIXEDPOINT2(gap_med), FMT_FIXEDPOINT2(gap_shad));
+            }
         }
+    }
+
+    if (show_metered_areas)
+    {
+        /* show where exactly are those percentiles */
+        bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLUE),   0, 20, "Shadows    5%%   ");
+        bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, COLOR_ORANGE), 0, 32, "Midtones   50%%  ");
+        int hp = (1000 - auto_ettr_ignore);
+        bmp_printf(FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED),    0, 44, "Highlights%3d.%d%%", hp/10, hp%10);
+        zebra_highlight_raw_advanced(
+            (struct raw_highlight_info [])
+            {
+                {
+                    .raw_level_lo = 0,
+                    .raw_level_hi = raw_shadow_lo,
+                    .color = COLOR_BLUE,
+                    .line_type = ZEBRA_LINE_SIMPLE,
+                    .fill_type = ZEBRA_FILL_DIAG,
+                    .gray_projection = gray_proj | GRAY_PROJECTION_DARK_ONLY,
+                },
+                {
+                    .raw_level_lo = raw_median_lo,
+                    .raw_level_hi = raw_median_lo,
+                    .color = COLOR_ORANGE,
+                    .line_type = ZEBRA_LINE_SIMPLE,
+                    .gray_projection = gray_proj | GRAY_PROJECTION_DARK_ONLY,
+                },
+                {
+                    .raw_level_lo = raw_highlight_lo,
+                    .raw_level_hi = 16384,
+                    .color = COLOR_RED,
+                    .line_type = ZEBRA_LINE_SIMPLE,
+                    .fill_type = ZEBRA_FILL_DIAG,
+                    .gray_projection = gray_proj | GRAY_PROJECTION_DARK_ONLY,
+                },
+                RAW_HIGHLIGHT_END
+            }
+        );
     }
 
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
@@ -165,27 +280,32 @@ static int auto_ettr_get_correction()
                 }
             }
         }
-        
-        float mean = sum/num;
-        if (num < 3 || max - mean > 1 || mean - min > 1)
-        {
-            /* scene changed? measurements from previous shot not confirmed or vary too much?
-             * 
-             * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 10EV */
-            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
-            //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
-            //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
-            float corr = correction - log2f(1 + overexposed);
-            int weight = MAX(num, 2);
-            sum += corr * weight;
-            num += weight;
-        }
 
         /* use the average value for correction */
         correction = sum / num;
+        
+        if (num < 3 || max - correction > 1 || correction - min > 1 || correction > -1)
+        {
+            /* scene changed? measurements from previous shot not confirmed or vary too much?
+             * 
+             * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 13EV */
+            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
+            //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
+            //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
+            float corr = - log2f(1 + overexposed*overexposed);
+            
+            /* with dual ISO, the cost of underexposing is not that high, so prefer it to improve convergence */
+            if (dual_iso)
+                corr *= 3;
+            
+            correction = MIN(correction, corr);
+            
+            /* we can't really meter more than 10 EV */
+            correction = MAX(correction, -10);
+        }
     }
 
-    int iso1 = lens_info.raw_iso;
+    int iso1 = lens_info.iso_analog_raw;
     int iso2 = iso1;
     if (dual_iso) iso2 = dual_iso_get_recovery_iso();
     int iso_hi = MAX(iso1, iso2);
@@ -251,15 +371,31 @@ static int auto_ettr_get_correction()
         }
     }
     
-    /* how many highlights we have clipped? */
-    highlight_headroom_needed = (correction - correction0) * 100.0;
+    /* exposure difference with and without SNR limits */
+    int expo_delta_snr = (correction - correction0) * 100.0;
     
     if (debug_info)
     {
-        bmp_printf(FONT_MED, 50, 140, "DR needed    : %s%d.%02d EV ", FMT_FIXEDPOINT2S(highlight_headroom_needed));
+        bmp_printf(FONT_MED, 50, 140, "Expo diff SNR: %s%d.%02d EV ", FMT_FIXEDPOINT2S(expo_delta_snr));
     }
-    
-    last_value = (int)(correction * 100) - (dual_iso ? highlight_headroom_needed : 0);
+
+    /* exposure correction so it doesn't clip anything more than allowed by highlight ignore */
+    int corr_without_clipping = (int)(correction * 100) - expo_delta_snr;
+
+    if (dual_iso)
+    {
+        /* with dual ISO: expose without clipping */
+        /* auto_ettr_work will have to do something and recover the SNR */
+        last_value = corr_without_clipping;
+        extra_snr_needed = expo_delta_snr;
+    }
+    else
+    {
+        /* without dual ISO: expose with clipping in order to meet the SNR */
+        /* no more SNR correction needed */
+        last_value = corr_without_clipping + expo_delta_snr;
+        extra_snr_needed = 0;
+    }
     return last_value;
 }
 
@@ -277,13 +413,19 @@ static int auto_ettr_work_m(int corr)
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     
+    /* to detect whether it settled or not */
+    int tv_before = tv;
+    int iso_before = iso;
+    int iso2_before = dual_iso_get_recovery_iso();
+    
     if (!tv || !iso) return 0;
-    int old_expo = tv - iso;
+    //~ int old_expo = tv - iso;
 
-    int dual_iso = dual_iso_is_enabled();
-    if (dual_iso) corr += highlight_headroom_needed;
-
+    /* note: expo compensation will not clip with dual ISO, but will clip highlights without it */
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
     int delta = -corr * 8 / 100;
+    
+    int expected_expo = tv - iso + delta;               /* will clip without dual ISO */
 
     static int prev_tv = 0;
     if (auto_ettr_adjust_mode == 1)
@@ -293,14 +435,14 @@ static int auto_ettr_work_m(int corr)
             auto_ettr_max_shutter = tv;
             if (lv)
             {
-                NotifyBox(2000, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+                NotifyBox(2000, "ETTR: Tv <= %s ", lens_format_shutter(tv));
                 prev_tv = tv;
                 return 0; /* wait for next iteration */
             }
             else
             {
                 msleep(1000);
-                bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+                bmp_printf(FONT_MED, 0, os.y0, "ETTR: Tv <= %s ", lens_format_shutter(tv));
             }
         }
     }
@@ -331,75 +473,43 @@ static int auto_ettr_work_m(int corr)
     iso += tvr - tv;
     
     /* analog iso can be only in 1 EV increments */
+    /* prefer rounding towards lower ISOs */
     int max_auto_iso = auto_iso_range & 0xFF;
-    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, max_auto_iso);
+    int isor = COERCE(iso / 8 * 8, MIN_ISO, max_auto_iso);
     
-    /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
-    /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
-    tvr += isor - iso;
-    int tv0 = tvr;
-    tvr = round_shutter(tvr, shutter_lim);
-    
-    /* can we use dual ISO to get a little more DR? */
+    /* can we use dual ISO to recover the highlights? (HR = highlight recovery) */
     if (dual_iso)
     {
         int base_iso = isor;
         int recovery_iso = base_iso;
-        int highlight_headroom_recovered = 0;
-        int snr_delta = 0;
-        /* note: without dual ISO, ETTR exposes for shadows (SNR); if these are too noisy, it will clip some highlights */
-        /* how many highlights? "highlight_headroom_needed" (units EV x100) */
-        /* so, we have to bring the exposure down by "highlight_headroom_needed/100.0" EV */
-        /* and make sure the SNR doesn't get lower */
 
-        if (debug_info)
+        /* bring back the SNR */
+        int snr_delta = -extra_snr_needed;
+        while (snr_delta < 0 && recovery_iso < max_auto_iso)
         {
-            msleep(1000);
-            bmp_printf(FONT_MED, 50, 160, "Base setting : ISO %d %s (DR needed: %s%d.%02d)", raw2iso(base_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
+            int old_rec_iso = recovery_iso;
+            recovery_iso += 8;
+            int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
+            snr_delta += dr_gained;
         }
         
-        while (highlight_headroom_recovered < highlight_headroom_needed - 50 && base_iso > MIN_ISO) /* single-ISO exposure greater than 100? */
+        if (snr_delta + extra_snr_needed < 100) /* snr_delta + extra_snr_needed = SUM(dr_gained) */
         {
-            /* lower the base ISO */
-            /* this will bring back the highlights and will keep the SNR constant */
+            /* too little gain? just shoot at base ISO */
+            recovery_iso = base_iso;
+            snr_delta = -extra_snr_needed;
+        }
+        else if (base_iso > MIN_ISO)
+        {
+            /* shooting at high ISO? go back one stop to protect some more highlights, because the cost is next to none */
             base_iso -= 8;
-            highlight_headroom_recovered += 100;
-            /* okay, I know, this loop can be a closed-form formula; feel free to do the math */
-        }
-
-        if (debug_info)
-        {
-            bmp_printf(FONT_MED, 50, 180, "At lowest ISO: ISO %d/%d %s (DR left: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
-        }
-
-        while (highlight_headroom_recovered < highlight_headroom_needed - 50 && recovery_iso < max_auto_iso) /* need more? use a faster shutter speed and increase recovery ISO */
-        {
-            /* recover 0.5 EV of highlights by using a faster shutter speed */
-            tvr += 4;
-            tv0 += 4;
-            highlight_headroom_recovered += 50;
-            
-            /* we will lose 0.5 EV of SNR */
-            snr_delta -= 50;
-            
-            /* bring back the SNR */
-            while (snr_delta < 0 && recovery_iso < max_auto_iso)
-            {
-                int old_rec_iso = recovery_iso;
-                recovery_iso += 8;
-                int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
-                snr_delta += dr_gained;
-            }
-        }
-
-        if (debug_info)
-        {
-            bmp_printf(FONT_MED, 50, 200, "Final setting: ISO %d/%d %s (DR left: %s%d.%02d)", raw2iso(base_iso), raw2iso(recovery_iso), lens_format_shutter(tvr), FMT_FIXEDPOINT2(highlight_headroom_needed - highlight_headroom_recovered));
+            expected_expo += 8;
         }
 
         /* apply dual ISO settings */
         isor = base_iso;
         dual_iso_set_recovery_iso(recovery_iso);
+        extra_snr_needed = -snr_delta;
     }
 
     /* apply the new settings */
@@ -414,17 +524,64 @@ static int auto_ettr_work_m(int corr)
     /* don't let expo lock undo our changes */
     expo_lock_update_value();
 
+    if (debug_info)
+    {
+        msleep(1000);
+        bmp_printf(FONT_MED, 50, 160, "Adjusted expo: %s (SNR lost: %s%d.%02d)", get_current_exposure_settings(), FMT_FIXEDPOINT2(extra_snr_needed));
+    }
+
+    /* to know when the user changed shutter speed */
     prev_tv = lens_info.raw_shutter;
-
+    
+    /* did it converge or not? */
+    int tv_after = lens_info.raw_shutter;
+    int iso_after = lens_info.raw_iso;
     int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
-    
-    if (ABS(new_expo - old_expo) >= 3) /* something changed? consider it OK, better than nothing */
-        return 1;
-    
-    //~ if (tvr > tv0 + 4) /* still underexposed? */
-        //~ return -1;
 
-    return oks && oki ? 1 : -1;
+    if (dual_iso)
+    {
+        int iso2_after = dual_iso_get_recovery_iso();
+        int dr2_before = dual_iso_calc_dr_improvement(iso_before, iso2_before);
+        int dr2_after = dual_iso_calc_dr_improvement(iso_after, iso2_after);
+
+        if (debug_info)
+        {
+            bmp_printf(FONT_MED, 50, 220, 
+                "iso2 %d->%d dr %d->%d ",
+                raw2iso(iso2_before), raw2iso(iso2_after), dr2_before, dr2_after
+            );
+        }
+
+        if (ABS(dr2_after - dr2_before) >= 40)
+            return ETTR_NEED_MORE_SHOTS;
+        
+        //~ if (highlight_headroom_needed > 50)
+            //~ return ETTR_EXPO_LIMITS_REACHED;
+    }
+
+    if (debug_info)
+    {
+        bmp_printf(FONT_MED, 50, 240, 
+            "iso %d->%d %s\ntv %s->%s %s\nexpo expected %d got %d ",
+            raw2iso(iso_before), raw2iso(iso_after), oki ? "OK" : "err",
+            lens_format_shutter(tv_before), lens_format_shutter(tv_after), oks ? "OK" : "err",
+            expected_expo, new_expo
+        );
+        msleep(1000);
+    }
+    
+    /* anything changed? consider it OK, better than nothing */
+    if (ABS(tv_before - tv_after) >= 4)
+        return ETTR_NEED_MORE_SHOTS;
+
+    if (ABS(iso_before - iso_after) >= 4)
+        return ETTR_NEED_MORE_SHOTS;
+
+    /* did we fully correct the exposure? */
+    if (ABS(new_expo - expected_expo) > 8)
+        return ETTR_EXPO_LIMITS_REACHED;
+
+    return oks && oki ? ETTR_SETTLED : ETTR_EXPO_LIMITS_REACHED;
 }
 
 static int auto_ettr_work_auto(int corr)
@@ -439,15 +596,31 @@ static int auto_ettr_work_auto(int corr)
 
     /* apply the new settings */
     int ok = hdr_set_ae(ae);
+    
+    if (ok)
+    {
+        if (corr >= -20 && corr <= 100)
+            return ETTR_SETTLED;
 
-    if (ABS(lens_info.ae - ae0) >= 3) /* something changed? consider it OK, better than nothing */
-        return 1;
-
-    return ok ? 1 : -1;
+        return ETTR_NEED_MORE_SHOTS;
+    }
+    else
+    {
+        if (ABS(lens_info.ae - ae0) >= 3) /* something changed? consider it OK, better than nothing */
+            return ETTR_NEED_MORE_SHOTS;
+        
+        return ETTR_EXPO_LIMITS_REACHED;
+    }
 }
+
+static char prev_exposure_settings[50];
 
 static int auto_ettr_work(int corr)
 {
+    /* save initial exposure settings so we can print them */
+    char* expo_settings = get_current_exposure_settings();
+    snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
+    
     if (expo_override_active())
         return auto_ettr_work_m(corr);
     else if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
@@ -464,11 +637,21 @@ static void auto_ettr_step_task(int corr)
     lens_wait_readytotakepic(64);
     int status = auto_ettr_work(corr);
     
-    if (corr >= -45 && corr <= 70)
+    if (status == ETTR_SETTLED)
     {
         /* cool, we got the ideal exposure */
         beep();
         ettr_pics_took = 0;
+        
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: settled at %s", get_current_exposure_settings());
+
+        //~ int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered) / 10;
+        //~ if (blown_highlights > 2)
+        //~ {
+            //~ msleep(1000);
+            //~ bmp_printf(FONT_MED, 0, os.y0, "ETTR: clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
+        //~ }
     }
     else if (ettr_pics_took >= 3)
     {
@@ -476,14 +659,14 @@ static void auto_ettr_step_task(int corr)
         beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
-        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: giving up");
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: giving up\n%s", get_current_exposure_settings());
     }
-    else if (status == -1)
+    else if (status == ETTR_EXPO_LIMITS_REACHED)
     {
         beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
-        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
     else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
     {
@@ -495,6 +678,14 @@ static void auto_ettr_step_task(int corr)
     else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
     {
         beep_times(2);
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: next %s (was %s)", get_current_exposure_settings(), prev_exposure_settings);
+
+        //~ int blown_highlights = (highlight_headroom_needed - highlight_headroom_recovered) / 10;
+        //~ if (blown_highlights > 2)
+        //~ {
+            //~ bmp_printf(FONT_MED, 0, os.y0+20, "Clipped %s%d.%d EV of highlights", FMT_FIXEDPOINT1(blown_highlights));
+        //~ }
     }
     auto_ettr_running = 0;
 }
@@ -616,9 +807,11 @@ static int auto_ettr_wait_lv_frames(int num_frames)
         count++;
         if (count > num_frames * frame_duration * 2 / 20)
         {
-            beep();
-            NotifyBox(2000, "Vsync err");
             auto_ettr_vsync_delta = 0;
+            return 0;
+        }
+        if (!lv)
+        {
             return 0;
         }
     }
@@ -645,7 +838,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
         {
             old_zoom = lv_dispsize;
             set_lv_zoom(1);
-            auto_ettr_wait_lv_frames(10);
+            if (!auto_ettr_wait_lv_frames(10)) return 0;
         }
 
         /* temporarily enable expsim while metering */
@@ -660,7 +853,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                 {
                     should_clear_bv = 1;
                     bv_toggle(0, 1);
-                    auto_ettr_wait_lv_frames(10);
+                    if (!auto_ettr_wait_lv_frames(10)) return 0;
                 }
             }
             else if (!expsim)
@@ -668,7 +861,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                 /* ExpSim should work well */
                 old_expsim = expsim;
                 set_expsim(1);
-                auto_ettr_wait_lv_frames(10);
+                if (!auto_ettr_wait_lv_frames(10)) return 0;
             }
         }
     }
@@ -710,15 +903,18 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
 static void auto_ettr_on_request_task_fast()
 {
     beep();
+    int raw_requested = 0;
+    
+    char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
-    if (!auto_ettr_prepare_lv(0, 1)) goto end;
-    if (!auto_ettr_check_lv()) goto end;
+    if (!auto_ettr_prepare_lv(0, 1)) goto err;
+    if (!auto_ettr_check_lv()) goto err;
     
     if (get_halfshutter_pressed())
     {
         msleep(500);
-        if (get_halfshutter_pressed()) goto end;
+        if (get_halfshutter_pressed()) goto err;
     }
 
 #undef AUTO_ETTR_DEBUG
@@ -747,11 +943,12 @@ static void auto_ettr_on_request_task_fast()
 #endif
 
 
-    NotifyBox(100000, "Auto ETTR...");
-    raw_lv_request();
+    NotifyBox(100000, "ETTR...");
+    raw_lv_request(); raw_requested = 1;
     
     for (int i = 0; i < 5; i++)
     {
+        NotifyBox(100000, "ETTR (%d)...", i+1);
         if (fps_get_shutter_speed_shift(160) == 0)
         {
             auto_ettr_vsync_active = 1;
@@ -770,7 +967,7 @@ static void auto_ettr_on_request_task_fast()
                     break;
                 
                 /* wait for 2 frames before trying again */
-                if (!auto_ettr_wait_lv_frames(2)) goto end;
+                if (!auto_ettr_wait_lv_frames(2)) goto err;
             }
             auto_ettr_vsync_active = 0;
         }
@@ -782,41 +979,45 @@ static void auto_ettr_on_request_task_fast()
         }
 
         /* apply the correction via properties */
-        if (auto_ettr_vsync_delta)
+        int corr = auto_ettr_vsync_delta * 100 / 8;
+        int status = auto_ettr_work(corr);
+    
+        if (status == ETTR_SETTLED)
         {
-            int corr = auto_ettr_vsync_delta * 100 / 8;
-            auto_ettr_work(corr);
-        
-            if (corr >= -20 && corr <= 200)
+            /* looks like it settled */
+            break;
+        }
+        else
+        {
+            if (i < 4 && status != ETTR_EXPO_LIMITS_REACHED)
             {
-                /* looks like it settled */
-                break;
+                /* here we go again... */
+                if (!auto_ettr_wait_lv_frames(15)) goto err;
             }
             else
             {
-                if (i < 4)
-                {
-                    /* here we go again... */
-                    auto_ettr_wait_lv_frames(15);
-                }
-                else
-                {
-                    /* or... not? */
-                    beep();
-                    NotifyBox(2000, "Whoops");
-                    goto end;
-                }
+                /* or... not? */
+                err_msg = status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops";
+                goto err;
             }
         }
     }
 
-    NotifyBoxHide();
-
-end:
+/* ok: */
     beep();
+    NotifyBoxHide();
+    goto cleanup;
+
+err:
+    beep();
+    beep();
+    NotifyBox(2000, err_msg);
+    goto cleanup;
+
+cleanup:
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
-    raw_lv_release();
+    if (raw_requested) raw_lv_release();
     auto_ettr_prepare_lv(1, 1);
 }
 
@@ -887,18 +1088,19 @@ end:
 static void auto_ettr_on_request_task_slow()
 {
     beep();
+    char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
-    if (!auto_ettr_prepare_lv(0, 1)) goto end;
-    if (!auto_ettr_check_lv()) goto end;
+    if (!auto_ettr_prepare_lv(0, 1)) goto err;
+    if (!auto_ettr_check_lv()) goto err;
 
     if (get_halfshutter_pressed())
     {
         msleep(500);
-        if (get_halfshutter_pressed()) goto end;
+        if (get_halfshutter_pressed()) goto err;
     }
 
-    NotifyBox(100000, "Auto ETTR...");
+    NotifyBox(100000, "ETTR...");
     for (int k = 0; k < 5; k++)
     {
         msleep(500);
@@ -907,31 +1109,34 @@ static void auto_ettr_on_request_task_slow()
         int corr = auto_ettr_get_correction();
         raw_lv_release();
 
-        if (corr != INT_MIN)
+        if (corr == INT_MIN)
+            break;
+        
+        int status = auto_ettr_work(corr);
+        msleep(1000);
+        
+        if (status == ETTR_SETTLED)
+            break;
+        
+        if (k == 4 || status == ETTR_EXPO_LIMITS_REACHED)
         {
-            auto_ettr_work(corr);
-            msleep(1000);
-        }
-        else
-            break;
-        
-        if (corr >= -20 && corr <= 200) /* I'm confident the last iteration was accurate */
-            break;
-        
-        if (get_halfshutter_pressed())
-            break;
-        
-        if (k == 4)
-        {
-            beep();
-            NotifyBox(2000, "Whoops");
-            goto end;
+            err_msg = status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops";
+            goto err;
         }
     }
-    NotifyBoxHide();
 
-end:
+/* ok: */
     beep();
+    NotifyBoxHide();
+    goto cleanup;
+
+err:
+    beep();
+    beep();
+    NotifyBox(2000, err_msg);
+    goto cleanup;
+
+cleanup:
     auto_ettr_prepare_lv(1, 1);
     auto_ettr_running = 0;
 }
@@ -956,18 +1161,17 @@ static void auto_ettr_step_lv_slow()
     int corr = auto_ettr_get_correction();
     raw_lv_release();
     
+    if (corr == INT_MIN)
+        return;
+    
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
-    static int settled = 0;
-    if (corr != INT_MIN && (corr < -20 || corr > 100))
-    {
-        auto_ettr_work(corr);
-        settled = 0;
-    }
-    else
-    {
-        settled++;
-        if (settled == 2) beep();
-    }
+    if (corr >= -20 && corr < 100)
+        return;
+
+    int status = auto_ettr_work(corr);
+
+    if (status == ETTR_SETTLED)
+        beep();
 }
 
 static void auto_ettr_step_lv()
@@ -1003,8 +1207,8 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
         {
             auto_ettr_running = 1;
             task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-            if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
         }
+        if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
     }
     return 1;
 }
@@ -1018,13 +1222,10 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (lens_info.raw_iso == 0 && is_m)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR requires manual ISO.");
 
-    int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
-
-    if (!raw)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", is_movie_mode() ? "MOVIE" : "PHOTO");
-
     if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available, try in LiveView.");
+
+    menu_checkdep_raw(entry, info);
 
     if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
@@ -1142,12 +1343,23 @@ static struct menu_entry ettr_menu[] =
                          "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
             },
             {
+                .name = "Slowest shutter",
+                .priv = &auto_ettr_max_shutter,
+                .select = auto_ettr_max_shutter_toggle,
+                .update = auto_ettr_max_shutter_update,
+                .min = 16,
+                .max = 152,
+                .icon_type = IT_PERCENT,
+                .help = "Slowest shutter speed for ETTR."
+            },
+            {
                 .name = "Exposure target",
                 .priv = &auto_ettr_target_level,
                 .min = -4,
                 .max = 0,
                 .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "-1 EV", "-0.5 EV"),
                 .help = "Exposure target for ETTR. Recommended: -0.5 or -1 EV.",
+                .advanced = 1,
             },
             {
                 .name = "Highlight ignore",
@@ -1160,11 +1372,12 @@ static struct menu_entry ettr_menu[] =
                 .help2 = "Use this to allow spec(ta)cular highlights to be clipped.",
             },
             {
-                .name = "Clipping mode",
+                .name = "Allow clipping",
                 .priv = &auto_ettr_clip,
                 .max = 2,
-                .choices = CHOICES("No clipping", "Clip GREEN", "Clip ANY"),
+                .choices = CHOICES("OFF", "Green channel", "Any channel"),
                 .help = "Choose what color channels are allowed to be clipped.",
+                .advanced = 1,
             },
             {
                 .name = "Midtone SNR limit",
@@ -1180,34 +1393,42 @@ static struct menu_entry ettr_menu[] =
                 .name = "Shadow SNR limit",
                 .priv = &auto_ettr_shadow_snr_limit,
                 .min = 0,
-                .max = 4,
-                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV"),
+                .max = 6,
+                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV"),
                 .help  = "Stop underexposing when at least 5% of the image gets",
                 .help2 = "noisier than selected SNR => will clip more highlights.",
                 .depends_on = DEP_MANUAL_ISO,
-            },
-            {
-                .name = "Slowest shutter",
-                .priv = &auto_ettr_max_shutter,
-                .select = auto_ettr_max_shutter_toggle,
-                .update = auto_ettr_max_shutter_update,
-                .min = 16,
-                .max = 152,
-                .icon_type = IT_PERCENT,
-                .help = "Slowest shutter speed for ETTR."
             },
             {
                 .name = "Link to Canon shutter",
                 .priv = &auto_ettr_adjust_mode,
                 .max = 1,
                 .help = "Hack to adjust slowest shutter from main dial.",
+                .advanced = 1,
+            },
+            {
+                .name = "Link to Dual ISO",
+                .priv = &auto_ettr_dual_iso_link,
+                .max = 1,
+                .help  = "Let ETTR change DualISO settings so you get the SNR values",
+                .help2 = "in mids & shadows. It will disable dual ISO if not needed.",
+            },
+            {
+                .name = "Show metered areas",
+                .priv = &show_metered_areas,
+                .max = 1,
+                .help =  "Show where the white point and the SNR levels are metered",
+                .help2 = "(what exactly is considered highlight, midtone and shadow).",
+                .advanced = 1,
             },
             {
                 .name = "Show debug info",
                 .priv = &debug_info,
                 .max = 1,
                 .help = "For camera nerds.",
+                .advanced = 1,
             },
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         },
     },
@@ -1249,4 +1470,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_ettr_adjust_mode)
     MODULE_CONFIG(auto_ettr_midtone_snr_limit)
     MODULE_CONFIG(auto_ettr_shadow_snr_limit)
+    MODULE_CONFIG(auto_ettr_dual_iso_link)
 MODULE_CONFIGS_END()

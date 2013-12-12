@@ -1,7 +1,6 @@
 #include "all_features.h"
 
 #define CONFIG_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
-#define FEATURE_AUTO_BURST_PICQ
 #define FEATURE_LV_3RD_PARTY_FLASH
 #define FEATURE_REC_NOTIFY_BEEP
 
@@ -9,3 +8,7 @@
 #undef FEATURE_WIND_FILTER // crashes
 
 #define FEATURE_RAW_HISTOGRAM
+
+#undef FEATURE_LV_BUTTON_RATE_UPDOWN // Canon uses up/down in play mode
+
+#undef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC // screen remains black

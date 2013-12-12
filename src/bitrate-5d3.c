@@ -16,12 +16,8 @@ int hibr_should_record_wav() { return 0; }
 static CONFIG_INT("h264.bitrate", bitrate, 3);
 CONFIG_INT( "rec_indicator", rec_indicator, 1);
 
-int time_indic_x =  720 - 160;
-int time_indic_y = 0;
-int time_indic_width = 160;
-int time_indic_height = 20;
-int time_indic_warning = 120;
-static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
+static int time_indic_warning = 120;
+static unsigned int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
 int measured_bitrate = 0; // mbps
 int movie_bytes_written_32k = 0;
@@ -57,43 +53,20 @@ extern int free_space_raw;
 #endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
-void free_space_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_printf(
-        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y,
-        "      "
-    );
-
-    bmp_printf(
-        FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y,
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
-}
-
 void indicator_show()
 {
     int elapsed_time = get_seconds_clock() - movie_start_timestamp;
     int bytes_written_32k = MVR_BYTES_WRITTEN / 32768;
     int remaining_time = free_space_32k * elapsed_time / bytes_written_32k;
     int avg_bitrate = MVR_BYTES_WRITTEN / 1024 * 8 / 1024 / elapsed_time;
-    
+
+    int time_indic_x = os.x_max - 160;
+    int time_indic_y = get_ml_topbar_pos();
+    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
+
     switch(rec_indicator)
     {
         case 0: 
-            free_space_show();
             return;
         case 1: // elapsed
             bmp_printf(
@@ -134,61 +107,6 @@ void indicator_show()
             );
             return;
     }
-}
-
-void fps_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    if (!is_movie_mode() || recording) return;
-    //~ if (hdmi_code == 5) return; // workaround
-    int screen_layout = get_screen_layout();
-    if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
-    
-/*    bmp_printf(
-        SHADOW_FONT(FONT_MED),
-        time_indic_x + 160 - (video_mode_resolution == 0 ? 7 : 6) * font_med.width,
-        time_indic_y + font_med.height - 3,
-        "%d%s%s", 
-        video_mode_fps, 
-        video_mode_crop ? "+" : "p",
-        video_mode_resolution == 0 ? "1080" :
-        video_mode_resolution == 1 ? "720" : "VGA"
-    );*/
-
-    int f = fps_get_current_x1000();
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_printf(
-        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y + font_med.height - 3,
-        "      "
-    );
-
-    bmp_printf(
-        SHADOW_FONT(FONT_MED),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y + font_med.height - 3,
-        "%2d.%03d", 
-        f / 1000, f % 1000
-    );
-}
-
-void free_space_show_photomode()
-{
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-    int x = time_indic_x + 2 * font_med.width;
-    int y =  452;
-    bmp_printf(
-        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
-        x, y,
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
 }
 
 int is_mvr_buffer_almost_full() 
@@ -245,12 +163,5 @@ void movie_indicators_show()
     if (recording)
     {
         BMP_LOCK( indicator_show(); )
-    }
-    else
-    {
-        BMP_LOCK(
-            free_space_show(); 
-            fps_show();
-        )
     }
 }

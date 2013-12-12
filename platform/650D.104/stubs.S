@@ -75,7 +75,7 @@ NSTUB(0xFF0C1C10, cstart )
 //NSTUB(0xFF137CD0, bootdisk_disable)
 
 NSTUB(0x000138A8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-NSTUB(0x000076F8, AllocateMemory)
+NSTUB(0x000076F8, _AllocateMemory)
 NSTUB(0xFF4B341C, CreateDialogBox)
 NSTUB(0x0000A0FC, CreateRecursiveLock)
 NSTUB(0xFF4B23E4, DeleteDialogBox)
@@ -85,7 +85,7 @@ NSTUB(0x0000395C, DryosDebugMsg)
 NSTUB(0xFF342568, FIO_CreateFile) // from Indy
 NSTUB(0xFF34285C, FIO_WriteFile) // from Indy
 NSTUB(0xFF34290C, FIO_CloseFile) // from Indy
-NSTUB(0xFF343904, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
+NSTUB(0xFF343904, FIO_FindClose) // proper name: FindClose
 NSTUB(0xFF343168, FIO_CreateDirectory)
 NSTUB(0xFF343730, FIO_FindFirstEx)
 NSTUB(0xFF343824, FIO_FindNextEx)
@@ -96,7 +96,7 @@ NSTUB(0xFF342614, FIO_RemoveFile)
 NSTUB(0xFF342FA0, FIO_RenameFile)
 NSTUB(0xFF34283C, FIO_SeekFile)
 
-NSTUB(0x00007A94, FreeMemory)
+NSTUB(0x00007A94, _FreeMemory)
 NSTUB(0xFF0D6E5C, GUI_ChangeMode) // xref: GUI_ChangeMode:%d
 NSTUB(0xFF0D6CA0, GUI_Control) // xref: GUI_Control:%d 0x%x
 NSTUB(0xFF1BE180, GUI_GetFirmVersion)
@@ -106,7 +106,7 @@ NSTUB(0x000139BC, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF128870, SetBitmapVramAddress)
 NSTUB(0xFF1A98E0, SetGUIRequestMode) // xref: SetGUIRequestMode(%d)
 
-NSTUB(0x00016E8C, alloc_dma_memory)
+NSTUB(0x00016E8C, _alloc_dma_memory)
 NSTUB(   0x51DEC, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D
 NSTUB(0x0001C45C, bzero32)
 NSTUB(0xFF138030, call)
@@ -123,8 +123,8 @@ NSTUB(0x00003CC8, dm_set_store_level) // Not so sure
 NSTUB(0x00003C60, dm_set_print_level) // Not so sure
 NSTUB(0xFF328844, dispcheck) // xref: BitmapVram=NULL!!
 
-NSTUB(0xFF0C8368, free) // see "can't malloc", it calls both malloc and free
-NSTUB(0x00016EC0, free_dma_memory)
+NSTUB(0xFF0C8368, _free) // see "can't malloc", it calls both malloc and free
+NSTUB(0x00016EC0, _free_dma_memory)
 NSTUB(0xFF62B124, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 NSTUB(0x000063C4, give_semaphore)
 NSTUB(0xFF0D7314, gui_init_end)
@@ -134,9 +134,10 @@ NSTUB(0xFF0D68CC, gui_main_task)
 //NSTUB(0xFF4B141C, gui_task_destroy)
 NSTUB(   0x3D7A0, gui_task_list)
 NSTUB(0xFF0C5430, init_task)
-NSTUB(0xFF0C8310, malloc)
+NSTUB(0xFF0C8310, _malloc)
 NSTUB(0x0001375C, msg_queue_post)
 NSTUB(0x00013570, msg_queue_receive)
+NSTUB(0x0001379C, msg_queue_count)
 NSTUB(0x000067B4, msleep)
 NSTUB(0xFF11EFF4, _prop_cleanup)
 NSTUB(0xFF11EF28, prop_deliver)

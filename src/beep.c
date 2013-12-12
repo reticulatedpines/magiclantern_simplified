@@ -744,7 +744,7 @@ static int find_wav(int * index, char* fn)
         if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
             N++;
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
 
     static int old_N = 0;
     if (N != old_N) // number of files was changed, select the last one
@@ -777,7 +777,7 @@ static int find_wav(int * index, char* fn)
             k++;
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     return found;
 }
 

@@ -62,10 +62,15 @@
 #include <menu.h>
 #include <config.h>
 #include <math.h>
+#include <cropmarks.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
 #include "cache_hacks.h"
+#include "lvinfo.h"
+
+/* from mlv_play module */
+extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -73,9 +78,13 @@ static int cam_eos_m = 0;
 static int cam_5d2 = 0;
 static int cam_50d = 0;
 static int cam_5d3 = 0;
+static int cam_550d = 0;
 static int cam_6d = 0;
+static int cam_600d = 0;
+static int cam_650d = 0;
 static int cam_7d = 0;
 static int cam_700d = 0;
+static int cam_60d = 0;
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -83,16 +92,16 @@ static int cam_700d = 0;
  * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1600","1728","1856","1920","2048","2240","2560","2880","3584")
+static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728","1856","1920","2048","2240","2560","2880","3584")
 
-static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1,    1 };
-static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1,    2 };
-static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1","1:2"};
+static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
+static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
+static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1.2:1","1.175:1","1:1","1:2"};
 
 /* config variables */
 
-static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
+CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
@@ -114,6 +123,13 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.small.hacks", small_hacks, 0);
+
+/* Recording Status Indicator Options */
+#define INDICATOR_OFF        0
+#define INDICATOR_IN_LVINFO  1
+#define INDICATOR_ON_SCREEN  2
+#define INDICATOR_RAW_BUFFER 3
+static CONFIG_INT("raw.indicator.display", indicator_display, INDICATOR_ON_SCREEN);
 
 /* state variables */
 static int res_x = 0;
@@ -137,7 +153,6 @@ static int frame_offset_delta_y = 0;
 #define RAW_FINISHING 3
 
 static int raw_recording_state = RAW_IDLE;
-static int raw_playing = 0;
 static int raw_previewing = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
@@ -170,7 +185,7 @@ static int writing_queue_head = 0;                /* extract frames to be writte
 
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
-static char* movie_filename = 0;                  /* file name for current (or last) movie */
+char* raw_movie_filename = 0;                         /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
 static uint32_t written = 0;                      /* how many KB we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
@@ -200,6 +215,25 @@ extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
 extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+
+static unsigned int raw_rec_should_preview(unsigned int ctx);
+
+static void refresh_cropmarks()
+{
+    if (lv_dispsize > 1 || raw_rec_should_preview(0) || !raw_video_enabled)
+    {
+        reset_movie_cropmarks();
+    }
+    else
+    {
+        int x = RAW2BM_X(skip_x);
+        int y = RAW2BM_Y(skip_y);
+        int w = RAW2BM_DX(res_x);
+        int h = RAW2BM_DY(res_y);
+        
+        set_movie_cropmarks(x, y, w, h);
+    }
+}
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -239,6 +273,8 @@ static void update_cropping_offsets()
 
     skip_x = sx;
     skip_y = sy;
+    
+    refresh_cropmarks();
 }
 
 static void update_resolution_params()
@@ -417,7 +453,7 @@ static void refresh_raw_settings(int force)
 {
     if (!lv) return;
     
-    if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
+    if (RAW_IS_IDLE && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
@@ -433,6 +469,9 @@ static void refresh_raw_settings(int force)
 
 static MENU_UPDATE_FUNC(raw_main_update)
 {
+    // reset_movie_cropmarks if raw_rec is disabled
+    refresh_cropmarks();
+    
     if (!raw_video_enabled) return;
     
     refresh_raw_settings(0);
@@ -690,11 +729,7 @@ static int setup_buffers()
             //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
         }
     }
-    
-    char msg[100];
-    snprintf(msg, sizeof(msg), "Alloc: %d frames", slot_count);
-    bmp_printf(FONT_MED, 30, 90, msg);
-    
+  
     /* we need at least 3 slots */
     if (slot_count < 3)
         return 0;
@@ -717,13 +752,16 @@ static int get_free_slots()
     return free_slots;
 }
 
+#define BUFFER_DISPLAY_X 30
+#define BUFFER_DISPLAY_Y 50
+
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
     int scale = MAX(1, (300 / slot_count + 1) & ~1);
-    int x = 30;
-    int y = 50;
+    int x = BUFFER_DISPLAY_X;
+    int y = BUFFER_DISPLAY_Y;
     for (int i = 0; i < slot_count; i++)
     {
         if (i > 0 && slots[i].ptr != slots[i-1].ptr + frame_size)
@@ -767,43 +805,6 @@ static void show_buffer_status()
         draw_line(xp, ymax, xp, ymin, COLOR_RED);
     }
 #endif
-}
-
-static unsigned int raw_rec_should_preview(unsigned int ctx);
-
-static void cropmark_draw()
-{
-    if (lv_dispsize > 1) return;
-    
-    int x = RAW2BM_X(skip_x);
-    int y = RAW2BM_Y(skip_y);
-    int w = RAW2BM_DX(res_x);
-    int h = RAW2BM_DY(res_y);
-    int p = raw_rec_should_preview(0);
-    static int prev_x = 0;
-    static int prev_y = 0;
-    static int prev_w = 0;
-    static int prev_h = 0;
-    static int prev_p = 0;
-
-    /* window changed? erase the old cropmark */
-    if ((prev_p != p) ^ (prev_x != x || prev_y != y || prev_w != w || prev_h != h))
-    {
-        bmp_draw_rect(0, prev_x, prev_y, prev_w, prev_h);
-        bmp_draw_rect(0, prev_x-1, prev_y-1, prev_w+2, prev_h+2);
-    }
-    
-    prev_x = x;
-    prev_y = y;
-    prev_w = w;
-    prev_h = h;
-
-    if (!p)
-    {
-        /* display a simple cropmark */
-        bmp_draw_rect(COLOR_WHITE, x, y, w, h);
-        bmp_draw_rect(COLOR_BLACK, x-1, y-1, w+2, h+2);
-    }
 }
 
 static void panning_update()
@@ -867,6 +868,163 @@ static void raw_lv_request_update()
     }
 }
 
+/* Display recording status in top info bar */
+static LVINFO_UPDATE_FUNC(recording_status)
+{
+    LVINFO_BUFFER(16);
+    
+    if ((indicator_display != INDICATOR_IN_LVINFO) || RAW_IS_IDLE) return;
+
+    /* Calculate the stats */
+    int fps = fps_get_current_x1000();
+    int t = (frame_count * 1000 + fps/2) / fps;
+    int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+
+    if (!frame_skips) 
+    {
+        snprintf(buffer, sizeof(buffer), "%02d:%02d", t/60, t%60);
+        if (predicted >= 10000)
+        {
+            item->color_bg = COLOR_GREEN1;
+        }
+        else
+        {
+            int time_left = (predicted-frame_count) * 1000 / fps;
+            if (time_left < 10) {
+                 item->color_bg = COLOR_DARK_RED;
+            } else {
+                item->color_bg = COLOR_YELLOW;
+            }
+        }
+    } 
+    else 
+    {
+        snprintf(buffer, sizeof(buffer), "%d skipped", frame_skips);
+        item->color_bg = COLOR_DARK_RED;
+    }
+}
+
+/* Display the 'Recording...' icon and status */
+static void show_recording_status()
+{
+    /* Determine if we should redraw */
+    static int auxrec = INT_MIN;
+    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
+    {
+
+        /* If displaying in the info bar, force a refresh */
+        if (indicator_display == INDICATOR_IN_LVINFO)
+        {
+            lens_display_set_dirty();
+            return;
+        }
+
+        /* No reason to do any work if not displayed */
+        if ((indicator_display != INDICATOR_ON_SCREEN) && (indicator_display != INDICATOR_RAW_BUFFER)) return;
+
+        /* Calculate the stats */
+        int fps = fps_get_current_x1000();
+        int t = (frame_count * 1000 + fps/2) / fps;
+        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+
+        int speed=0;
+        int idle_percent=0;
+        if (writing_time)
+        {
+            speed = (int)((float)written / (float)writing_time * (1000.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
+            idle_percent = idle_time * 100 / (writing_time + idle_time);
+            measured_write_speed = speed;
+            speed /= 10;
+        }
+
+        if (indicator_display == INDICATOR_RAW_BUFFER)
+        {
+            show_buffer_status();
+
+            if (predicted < 10000)
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22,
+                    "%02d:%02d, %d frames / %d expected  ",
+                    t/60, t%60,
+                    frame_count,
+                    predicted
+                );
+            else
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22,
+                    "%02d:%02d, %d frames, continuous OK  ",
+                    t/60, t%60,
+                    frame_count
+                );
+
+            if (writing_time)
+            {
+                char msg[50];
+                snprintf(msg, sizeof(msg),
+                    "%s: %d MB, %d.%d MB/s",
+                    chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
+                    written / 1024,
+                    speed/10, speed%10
+                );
+                if (idle_time)
+                {
+                    if (idle_percent) { STR_APPEND(msg, ", %d%% idle", idle_percent); }
+                    else { STR_APPEND(msg, ", %dms idle", idle_time); }
+                }
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22+font_med.height, "%s", msg);
+            }
+        }
+        else if (indicator_display == INDICATOR_ON_SCREEN)
+        {
+
+            /* Position the Recording Icon */
+            int rl_x = 500;
+            int rl_y = 40;
+
+            /* If continuous OK, make the movie icon green, else set based on expected time left */
+            int rl_color;
+            if (predicted >= 10000) 
+            {
+                rl_color = COLOR_GREEN1;
+            } 
+            else 
+            {
+                int time_left = (predicted-frame_count) * 1000 / fps;
+                if (time_left < 10) {
+                    rl_color = COLOR_DARK_RED;
+                } else {
+                    rl_color = COLOR_YELLOW;
+                }
+            }
+
+            int rl_icon_width=0;
+
+            /* Draw the movie camera icon */
+            rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
+
+            /* Display the Status */
+            if (!frame_skips) 
+            {
+                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
+            } 
+            else 
+            {
+                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
+            }
+
+            if (writing_time)
+            {
+                char msg[50];
+                snprintf(msg, sizeof(msg), "%02d.%01dMB/s", speed/10, speed%10);
+                if (idle_time)
+                {
+                    if (idle_percent) { STR_APPEND(msg, ", %2d%%  idle", idle_percent); }
+                    else { STR_APPEND(msg,",%3dms idle", idle_time); }
+                }
+                bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
+            }
+        }
+    }
+    return;
+}
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
@@ -878,17 +1036,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (!lv || !is_movie_mode())
         return 0;
 
-    /* refresh cropmark (faster when panning, slower when idle) */
-    static int aux = INT_MIN;
-    int cropmark_delay = RAW_IS_IDLE ? 500 : 10000;
-    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(cropmark_delay, &aux))
-    {
-        if (liveview_display_idle())
-        {
-            BMP_LOCK( cropmark_draw(); )
-        }
-    }
-
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
     {
@@ -896,51 +1043,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
     
     /* update status messages */
-    static int auxrec = INT_MIN;
-    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
-    {
-        int fps = fps_get_current_x1000();
-        int t = (frame_count * 1000 + fps/2) / fps;
-        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-        if (predicted < 10000)
-            bmp_printf( FONT_MED, 30, 70, 
-                "%02d:%02d, %d frames / %d expected  ",
-                t/60, t%60,
-                frame_count,
-                predicted
-            );
-        else
-            bmp_printf( FONT_MED, 30, 70, 
-                "%02d:%02d, %d frames, continuous OK  ",
-                t/60, t%60,
-                frame_count
-            );
-
-        show_buffer_status();
-
-        /* how fast are we writing? does this speed match our benchmarks? */
-        if (writing_time)
-        {
-            int speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
-            int idle_percent = idle_time * 100 / (writing_time + idle_time);
-            measured_write_speed = speed;
-            speed /= 10;
-
-            char msg[50];
-            snprintf(msg, sizeof(msg),
-                "%s: %d MB, %d.%d MB/s",
-                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                written / 1024,
-                speed/10, speed%10
-            );
-            if (idle_time)
-            {
-                if (idle_percent) { STR_APPEND(msg, ", %d%% idle ", idle_percent); }
-                else { STR_APPEND(msg, ", %dms idle ", idle_time); }
-            }
-            bmp_printf( FONT_MED, 30, 90, "%s", msg);
-        }
-    }
+    show_recording_status();
 
     return 0;
 }
@@ -972,7 +1075,7 @@ static void unhack_liveview_vsync(int unused);
 
 static void hack_liveview_vsync()
 {
-    if (cam_5d2 || cam_50d || cam_7d )
+    if (cam_5d2 || cam_50d)
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
         if (lv_dispsize > 1 && !get_halfshutter_pressed())
@@ -1082,8 +1185,12 @@ static void hack_liveview(int unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
+            cam_550d ? 0xFF2FE5E4 :            
+            cam_600d ? 0xFF37AA18 :
+            cam_650d ? 0xFF527E38 :            
             cam_7d  ? 0xFF345788 :
             cam_700d ? 0xFF52B53C :
+            cam_60d ? 0xff36fa3c :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -1235,12 +1342,6 @@ static int FAST process_frame()
     {
         /* card too slow */
         frame_skips++;
-        if (allow_frame_skip)
-        {
-            bmp_printf( FONT_MED, 30, 70, 
-                "Skipping frames...   "
-            );
-        }
         return 0;
     }
 
@@ -1337,11 +1438,11 @@ static char* get_next_chunk_file_name(char* base_name, int chunk)
     return filename;
 }
 
-static char* get_wav_file_name(char* movie_filename)
+static char* get_wav_file_name(char* raw_movie_filename)
 {
     /* same name as movie, but with wav extension */
     static char wavfile[100];
-    snprintf(wavfile, sizeof(wavfile), movie_filename);
+    snprintf(wavfile, sizeof(wavfile), raw_movie_filename);
     int len = strlen(wavfile);
     wavfile[len-4] = '.';
     wavfile[len-3] = 'W';
@@ -1383,9 +1484,9 @@ static void raw_video_rec_task()
     
     /* create output file */
     int chunk = 0;
-    movie_filename = get_next_raw_movie_file_name();
-    chunk_filename = movie_filename;
-    f = FIO_CreateFileEx(movie_filename);
+    raw_movie_filename = get_next_raw_movie_file_name();
+    chunk_filename = raw_movie_filename;
+    f = FIO_CreateFileEx(raw_movie_filename);
     if (f == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -1419,8 +1520,8 @@ static void raw_video_rec_task()
 
     if (sound_rec == 1)
     {
-        char* wavfile = get_wav_file_name(movie_filename);
-        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && movie_filename[0] == 'A' ? " on SD card" : "");
+        char* wavfile = get_wav_file_name(raw_movie_filename);
+        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && raw_movie_filename[0] == 'A' ? " on SD card" : "");
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
@@ -1577,7 +1678,7 @@ static void raw_video_rec_task()
                 }
                 
                 /* try to create a new chunk */
-                chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
+                chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
                 FILE* g = FIO_CreateFileEx(chunk_filename);
                 if (g == INVALID_PTR) goto abort;
                 
@@ -1695,11 +1796,6 @@ abort_and_check_early_stop:
         WAV_StopRecord();
     }
 
-    bmp_printf( FONT_MED, 30, 70, 
-        "Frames captured: %d               ", 
-        frame_count - 1
-    );
-
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
     {
@@ -1723,7 +1819,7 @@ abort_and_check_early_stop:
         last_processed_frame++;
 
         slots[slot_index].status = SLOT_WRITING;
-        show_buffer_status();
+        if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
         written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
         slots[slot_index].status = SLOT_FREE;
     }
@@ -1740,7 +1836,7 @@ abort_and_check_early_stop:
         {
             /* try to save footer in a new chunk */
             FIO_CloseFile(f); f = 0;
-            chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
+            chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
             FILE* g = FIO_CreateFileEx(chunk_filename);
             if (g != INVALID_PTR)
             {
@@ -1770,7 +1866,7 @@ abort_and_check_early_stop:
 
 cleanup:
     if (f) FIO_CloseFile(f);
-    if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
+    if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
     free_buffers();
     
@@ -1797,118 +1893,49 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
-static void raw_video_playback_task()
-{
-    void* buf = NULL;
-    FILE* f = INVALID_PTR;
-
-    /* prepare display */
-    SetGUIRequestMode(1);
-    msleep(1000);
-    ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
-    clrscr();
-
-    if (!movie_filename)
-        goto cleanup;
-    
-    f = FIO_Open( movie_filename, O_RDONLY | O_SYNC );
-    if( f == INVALID_PTR )
-    {
-        beep();
-        bmp_printf(FONT_MED, 0, 0, "Failed to open file '%s' ", movie_filename);
-        msleep(2000);
-        goto cleanup;
-    }
-    
-    /* read footer information and update global variables, will seek automatically */
-    lv_rec_read_footer(f);
-
-    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-    
-    /* don't use raw_info.frame_size, use the one from the footer instead
-     * (which should be greater or equal, because of rounding) */
-    ASSERT(raw_info.frame_size <= frame_size);
-    
-    buf = shoot_malloc(frame_size);
-    if (!buf)
-        goto cleanup;
-
-    vram_clear_lv();
-    
-    for (int i = 0; i < frame_count-1; i++)
-    {
-        bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
-        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, "%s: %dx%d", movie_filename, res_x, res_y);
-        int r = FIO_ReadFile(f, buf, frame_size);
-        if (r != frame_size)
-            break;
-        
-        if (get_halfshutter_pressed())
-            break;
-
-        if (gui_state != GUISTATE_PLAYMENU)
-            break;
-
-        raw_info.buffer = buf;
-        raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-        raw_force_aspect_ratio_1to1();
-        raw_preview_fast();
-    }
-
-cleanup:
-    vram_clear_lv();
-    if (f != INVALID_PTR) FIO_CloseFile(f);
-    if (buf) shoot_free(buf);
-    raw_playing = 0;
-    SetGUIRequestMode(0);
-    ui_lock(UILOCK_NONE);
-}
-
-static void raw_video_playback(char *filename)
-{
-    movie_filename = filename;
-    raw_playing = 1;
-    gui_stop_menu();
-    
-    task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
-}
-
-FILETYPE_HANDLER(raw_rec_filehandler)
-{
-    /* there is no header and clean interface yet */
-    switch(cmd)
-    {
-        case FILEMAN_CMD_INFO:
-            strcpy(data, "A 14-bit RAW Video");
-            return 1;
-        case FILEMAN_CMD_VIEW_OUTSIDE_MENU:
-            raw_video_playback(filename);
-            return 1;
-    }
-    return 0; /* command not handled */
-}
-
 static MENU_SELECT_FUNC(raw_playback_start)
 {
-    if (!raw_playing && RAW_IS_IDLE)
+    if (RAW_IS_IDLE)
     {
-        if (!movie_filename)
+        if (!raw_movie_filename)
         {
             bmp_printf(FONT_MED, 20, 50, "Please record a movie first.");
             return;
         }
-        raw_playing = 1;
-        gui_stop_menu();
-        task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
+        mlv_play_file(raw_movie_filename);
     }
 }
 
 static MENU_UPDATE_FUNC(raw_playback_update)
 {
-    if (movie_filename)
-        MENU_SET_VALUE(movie_filename + 17);
+    if ((thunk)mlv_play_file == (thunk)ret_0)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to load the mlv_play module.");
+    
+    if (raw_movie_filename)
+        MENU_SET_VALUE(raw_movie_filename + 17);
     else
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
+}
+
+static MENU_UPDATE_FUNC(indicator_update)
+{
+    switch (indicator_display)
+    {
+        case INDICATOR_OFF:
+            MENU_SET_HELP("Disabled.");
+            break;
+        case INDICATOR_IN_LVINFO:
+            MENU_SET_HELP("Time in info bar: green, yellow, red (est. < 10 sec) status.");
+            break;
+        case INDICATOR_ON_SCREEN:
+            MENU_SET_HELP("Time+MB/s on screen: green, yellow, red (est. < 10 sec) status.");
+            break;
+        case INDICATOR_RAW_BUFFER:
+            MENU_SET_HELP("Time, stats and buffer allocation graph displayed on screen.");
+            break;
+        default:
+            break;
+    }
 }
 
 static struct menu_entry raw_video_menu[] =
@@ -1963,14 +1990,25 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n",
+                .advanced = 1,
+            },
+            {
+                .name = "Indicator display",
+                .priv = &indicator_display,
+                .max = 3,
+                .update = indicator_update,
+                .choices = CHOICES("OFF", "Info Bar", "On Screen", "Raw Buffers"),
+                .help = "Select recording time and buffer status indicator.",
+                .advanced = 1,
             },
             {
                 .name = "Digital dolly",
                 .priv = &dolly_mode,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
-                .help2 = "Use arrow keys (joystick) to move the window."
+                .help2 = "Use arrow keys (joystick) to move the window.",
+                .advanced = 1,
             },
             {
                 .name = "Frame skipping",
@@ -1978,6 +2016,7 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+                .advanced = 1,
             },
             {
                 .name = "Card warm-up",
@@ -1986,18 +2025,21 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
                 .help  = "Write a large file on the card at camera startup.",
                 .help2 = "Some cards seem to get a bit faster after this.",
+                .advanced = 1,
             },
             {
                 .name = "Memory hack",
                 .priv = &memory_hack,
                 .max = 1,
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+                .advanced = 1,
             },
             {
                 .name = "Small hacks",
                 .priv = &small_hacks,
                 .max = 1,
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
+                .advanced = 1,
             },
             {
                 .name = "Playback",
@@ -2006,6 +2048,7 @@ static struct menu_entry raw_video_menu[] =
                 .icon_type = IT_ACTION,
                 .help = "Play back the last raw video clip.",
             },
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         },
     }
@@ -2139,7 +2182,13 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_previewing = 1;
     raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
     raw_force_aspect_ratio_1to1();
-    raw_preview_fast_ex((void*)-1, PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf, -1, -1, !get_halfshutter_pressed());
+    raw_preview_fast_ex(
+        (void*)-1,
+        PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
+        -1,
+        -1,
+        get_halfshutter_pressed() ? RAW_PREVIEW_COLOR_HALFRES : RAW_PREVIEW_GRAY_ULTRA_FAST
+    );
     raw_previewing = 0;
 
     if (!RAW_IS_IDLE)
@@ -2153,15 +2202,30 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     return 1;
 }
 
+static struct lvinfo_item info_items[] = {
+    /* Top bar */
+    {
+        .name = "Rec. Status",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = recording_status,
+        .preferred_position = 50,
+        .priority = 10,
+    }
+};
+
 static unsigned int raw_rec_init()
 {
     cam_eos_m = streq(camera_model_short, "EOSM");
     cam_5d2 = streq(camera_model_short, "5D2");
     cam_50d = streq(camera_model_short, "50D");
     cam_5d3 = streq(camera_model_short, "5D3");
+    cam_550d = streq(camera_model_short, "550D");
     cam_6d = streq(camera_model_short, "6D");
+    cam_600d = streq(camera_model_short, "600D");
+    cam_650d = streq(camera_model_short, "650D");
     cam_7d = streq(camera_model_short, "7D");
     cam_700d = streq(camera_model_short, "700D");
+    cam_60d = streq(camera_model_short, "60D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
@@ -2188,7 +2252,8 @@ static unsigned int raw_rec_init()
     }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
-    fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
+
+    lvinfo_add_items (info_items, COUNT(info_items));
 
     /* some cards may like this */
     if (warm_up)
@@ -2235,4 +2300,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
+    MODULE_CONFIG(indicator_display)
 MODULE_CONFIGS_END()

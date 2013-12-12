@@ -61,15 +61,15 @@ static void FAST vsync_func() // called once per frame.. in theory :)
     #ifdef FEATURE_DISPLAY_SHAKE
     display_shake_step();
     #endif
-
-    #ifdef FEATURE_SILENT_PIC_RAW_BURST
-    silent_pic_raw_vsync();
-    #endif
 }
 
 #ifdef CONFIG_550D
 int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
+#endif
+
+#ifndef CONFIG_7D_MASTER
+int display_is_on() { return DISPLAY_IS_ON; }
 #endif
 
 #ifdef FEATURE_SHOW_STATE_FPS
@@ -127,24 +127,17 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #if defined(FEATURE_SILENT_PIC_RAW_BURST) && defined(CONFIG_DISPLAY_FILTERS)
-        if (!silent_pic_preview())
-        #else
-        if(1)
+        #ifdef CONFIG_MODULES
+        if (module_exec_cbr(CBR_VSYNC_DISPLAY) == CBR_RET_CONTINUE)
         #endif
-        {
-            #ifdef FEATURE_HDR_VIDEO
-            hdr_kill_flicker();
-            #endif
-            #ifdef CONFIG_DISPLAY_FILTERS
-            display_filter_lv_vsync(old_state, x, input, z, t);
-            #endif
-            #ifdef FEATURE_MAGIC_ZOOM
-            digic_zoom_overlay_step(0);
-            #endif
-        }
+        #ifdef FEATURE_HDR_VIDEO
+        if (hdr_kill_flicker() == CBR_RET_CONTINUE)
+        #endif
+        #ifdef CONFIG_DISPLAY_FILTERS
+        if (display_filter_lv_vsync(old_state, x, input, z, t) == CBR_RET_CONTINUE)
+        #endif
         #ifdef FEATURE_MAGIC_ZOOM
-        else digic_zoom_overlay_step(1); // cleanup
+        digic_zoom_overlay_step(0);
         #endif
     }
     #endif
@@ -252,13 +245,21 @@ static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int 
     int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
-
-    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_7D)
+	
+    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_7D)
     // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
     // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
     if (old_state == 0 && input == 3 && new_state == 1)
         raw_buffer_intercept_from_stateobj();
-    #endif
+        
+    #elif defined(CONFIG_50D)
+    //~ FrontState - There are only 2
+    //~ * FF882F00 - Mem1toJpeg
+    //~ * FF882C5C - Mem1 to raw
+    //~ * 9 -> Raw (3) -> 10 -> Jpeg(3) -> 8
+    if (old_state == 9 && input == 3 && new_state == 10)
+        raw_buffer_intercept_from_stateobj();
+	#endif
 
     return ans;
 }

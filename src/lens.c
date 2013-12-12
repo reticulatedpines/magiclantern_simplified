@@ -30,6 +30,7 @@
 #include "menu.h"
 #include "math.h"
 #include "version.h"
+#include "module.h"
 
 // for movie logging
 static char* mvr_logfile_buffer = 0;
@@ -58,6 +59,10 @@ CONFIG_INT("crop.info", crop_info, 0);
 #define SENSORCROPFACTOR 16
 CONFIG_INT("crop.info", crop_info, 0);
 #endif
+
+#define FOCUS_UNITS_METRIC 0
+#define FOCUS_UNITS_IMPERIAL 1
+CONFIG_INT("focus.units", focus_units, FOCUS_UNITS_METRIC);
 
 //~ static struct semaphore * lens_sem;
 static struct semaphore * focus_done_sem;
@@ -165,23 +170,38 @@ lens_format_dist(
 const char * lens_format_dist( unsigned mm)
 {
    static char dist[ 32 ];
-
-   if( mm > 100000 ) // 100 m
-   {
-      snprintf( dist, sizeof(dist), "Inf.");
-   }
-   else if( mm > 10000 ) // 10 m
-   {
-      snprintf( dist, sizeof(dist), "%2dm", mm / 1000);
-   }
-   else    if( mm >  1000 ) // 1 m 
-   {
-      snprintf( dist, sizeof(dist), "%1d.%1dm", mm / 1000, (mm % 1000)/100 );
-   }
-   else
-   {
-      snprintf( dist, sizeof(dist),"%2dcm", mm / 10 );
-   }
+    
+    if( mm > 100000 ) //100 m
+    {
+        snprintf( dist, sizeof(dist), SYM_INFTY);
+    }
+    else if(focus_units == FOCUS_UNITS_IMPERIAL)
+    {
+        int inches = (mm * 10 / 254);
+        if( inches > 24 ) // 2 ft
+        {
+            snprintf( dist, sizeof(dist), "%dft", (inches + 6) / 12); //+6 to round properly
+        }
+        else
+        {
+            snprintf( dist, sizeof(dist),"%din", inches);
+        }
+    }
+    else
+    {
+        if( mm > 10000 ) // 10 m
+        {
+            snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
+        }
+        else    if( mm >  1000 ) // 1 m
+        {
+            snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+        }
+        else
+        {
+            snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+        }
+    }
 
    return (dist);
 } /* end of aj_lens_format_dist() */
@@ -189,11 +209,10 @@ const char * lens_format_dist( unsigned mm)
 void
 update_lens_display(int top, int bottom)
 {
-    extern int menu_upside_down; // don't use double buffer in this mode
-    int double_buffering = !menu_upside_down && !is_canon_bottom_bar_dirty();
-
-    if (top) draw_ml_topbar(double_buffering, 1);
-    if (bottom) draw_ml_bottombar(double_buffering, 1);
+    if (top) draw_ml_topbar();
+    if (bottom) draw_ml_bottombar();
+    //~ lvinfo_display(top, bottom);
+    //~ info_print_screen();
 }
 
 int should_draw_bottom_bar()
@@ -376,6 +395,66 @@ static void ml_bar_clear(int ytop, int height)
     }
 }
 
+char* get_shootmode_name(int shooting_mode)
+{
+    return
+        is_movie_mode() ?                       
+            (
+                shooting_mode == SHOOTMODE_C  ? "MovieC1" :
+                shooting_mode == SHOOTMODE_C2 ? "MovieC2" :
+                shooting_mode == SHOOTMODE_C3 ? "MovieC3" :
+                                                "Movie"
+            ) :
+        shooting_mode == SHOOTMODE_P ?          "P" :
+        shooting_mode == SHOOTMODE_M ?          "M" :
+        shooting_mode == SHOOTMODE_TV ?         "Tv" :
+        shooting_mode == SHOOTMODE_AV ?         "Av" :
+        shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_ADEP ?       "ADEP" :
+        shooting_mode == SHOOTMODE_AUTO ?       "Auto" :
+        shooting_mode == SHOOTMODE_LANDSCAPE ?  "Landscape" :
+        shooting_mode == SHOOTMODE_PORTRAIT ?   "Portrait" :
+        shooting_mode == SHOOTMODE_NOFLASH ?    "NoFlash" :
+        shooting_mode == SHOOTMODE_MACRO ?      "Macro" :
+        shooting_mode == SHOOTMODE_SPORTS ?     "Sports" :
+        shooting_mode == SHOOTMODE_NIGHT ?      "Night" :
+        shooting_mode == SHOOTMODE_BULB ?       "Bulb" :
+        shooting_mode == SHOOTMODE_C ?          "C1" :
+        shooting_mode == SHOOTMODE_C2 ?         "C2" :
+        shooting_mode == SHOOTMODE_C3 ?         "C3" :
+                                                "Unknown";
+}
+
+char* get_shootmode_name_short(int shooting_mode)
+{
+    return
+        is_movie_mode() ?                       
+            (
+                shooting_mode == SHOOTMODE_C  ? "Mv1" :
+                shooting_mode == SHOOTMODE_C2 ? "Mv2" :
+                shooting_mode == SHOOTMODE_C3 ? "Mv3" :
+                                                "Mv"
+            ) :
+        shooting_mode == SHOOTMODE_P ?          "P"  :
+        shooting_mode == SHOOTMODE_M ?          "M"  :
+        shooting_mode == SHOOTMODE_TV ?         "Tv" :
+        shooting_mode == SHOOTMODE_AV ?         "Av" :
+        shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_ADEP ?       "AD" :
+        shooting_mode == SHOOTMODE_AUTO ?       "[]" :
+        shooting_mode == SHOOTMODE_LANDSCAPE ?  "LD" :
+        shooting_mode == SHOOTMODE_PORTRAIT ?   ":)" :
+        shooting_mode == SHOOTMODE_NOFLASH ?    "NF" :
+        shooting_mode == SHOOTMODE_MACRO ?      "MC" :
+        shooting_mode == SHOOTMODE_SPORTS ?     "SP" :
+        shooting_mode == SHOOTMODE_NIGHT ?      "NI" :
+        shooting_mode == SHOOTMODE_BULB ?       "B"  :
+        shooting_mode == SHOOTMODE_C ?          "C1" :
+        shooting_mode == SHOOTMODE_C2 ?         "C2" :
+        shooting_mode == SHOOTMODE_C3 ?         "C3" :
+                                                "?"  ;
+}
+
 int FAST get_ml_bottombar_pos()
 {
     unsigned bottom = 480;
@@ -390,500 +469,15 @@ int FAST get_ml_bottombar_pos()
     if (gui_menu_shown())
         bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
 
-    return bottom - 35;
+    return bottom - 34;
 }
-void draw_ml_bottombar(int double_buffering, int clear)
+
+void draw_ml_bottombar()
 {
-    //~ beep();
     if (!should_draw_bottom_bar()) return;
-    
-    struct lens_info *    info = &lens_info;
 
-    int bg = COLOR_BLACK;
-    if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
-    
-    int bar_height = 35;
-    int ytop = get_ml_bottombar_pos();
-    int bottom = ytop + bar_height;
-
-
-    unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
-    unsigned int y_origin = bottom - 30;
-    unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
-
-    // start drawing to mirror buffer to avoid flicker
-    if (double_buffering)
-        double_buffering_start(ytop, bar_height);
-
-    if (clear)
-    {
-        ml_bar_clear(ytop, bar_height);
-    }
-
-    // mark the BV mode somehow
-    if(CONTROL_BV)
-    {
-        bmp_fill(18, x_origin + 70, y_origin-1, 284, 32);
-        //~ bmp_draw_rect(COLOR_RED, x_origin + 70, y_origin - 4, 284, 35);
-        //~ bmp_draw_rect(COLOR_RED, x_origin + 71, y_origin - 3, 284-2, 35-2);
-    }
-
-        // MODE
-            bmp_printf( FONT(text_font, canon_gui_front_buffer_disabled() ? COLOR_YELLOW : COLOR_WHITE, FONT_BG(text_font)), x_origin - 50, y_origin,
-                "%s",
-                is_movie_mode() ? "Mv" : 
-                shooting_mode == SHOOTMODE_P ? "P " :
-                shooting_mode == SHOOTMODE_M ? "M " :
-                shooting_mode == SHOOTMODE_TV ? "Tv" :
-                shooting_mode == SHOOTMODE_AV ? "Av" :
-                shooting_mode == SHOOTMODE_CA ? "CA" :
-                shooting_mode == SHOOTMODE_ADEP ? "AD" :
-                shooting_mode == SHOOTMODE_AUTO ? "[]" :
-                shooting_mode == SHOOTMODE_LANDSCAPE ? "LD" :
-                shooting_mode == SHOOTMODE_PORTRAIT ? ":)" :
-                shooting_mode == SHOOTMODE_NOFLASH ? "NF" :
-                shooting_mode == SHOOTMODE_MACRO ? "MC" :
-                shooting_mode == SHOOTMODE_SPORTS ? "SP" :
-                shooting_mode == SHOOTMODE_NIGHT ? "NI" :
-                shooting_mode == SHOOTMODE_BULB ? "B " :
-                shooting_mode == SHOOTMODE_C ? "C " :
-                shooting_mode == SHOOTMODE_C2 ? "C2" :
-                shooting_mode == SHOOTMODE_C3 ? "C3" :
-                "?"
-            );
-
-      /*******************
-      * FOCAL & APERTURE *
-      *******************/
-      
-      if (info->name[0]) // for chipped lenses only
-      {
-          text_font = FONT(SHADOW_FONT(FONT_LARGE),COLOR_WHITE,bg);
-          unsigned med_font = FONT(SHADOW_FONT(FONT_MED),COLOR_WHITE,bg);
-
-          static char focal[32];
-          snprintf(focal, sizeof(focal), "%d",
-                   crop_info ? (info->focal_len * SENSORCROPFACTOR + 5) / 10 : info->focal_len);
-
-          //~ int IS_font = FONT(text_font, lens_info.IS ? COLOR_YELLOW : COLOR_WHITE, bg );
-          int IS_font_med = FONT(med_font,
-                    lens_info.IS == 0 ? COLOR_WHITE    :  // IS off
-                    lens_info.IS == 4 ? COLOR_CYAN     :  // IS active, but not engaged
-                    lens_info.IS == 8 ? COLOR_BLACK    :  // IS disabled on sigma lenses?
-                    lens_info.IS == 0xC ? COLOR_YELLOW :  // IS starting?
-                    lens_info.IS == 0xE ? COLOR_ORANGE :  // IS active and kicking
-                    COLOR_RED,                            // unknown
-                    bg
-                );
-          bmp_printf( text_font, x_origin - 5, y_origin, focal );
-
-          if (info->aperture)
-          {
-                if (info->aperture < 100)
-                {
-                      bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width + font_large.width - 7, 
-                                  y_origin, 
-                                  ".");
-                      bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width  , 
-                                  y_origin, 
-                                  "%d", info->aperture / 10);
-                      bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width + font_large.width * 2 - 14, 
-                                  y_origin, 
-                                  "%d", info->aperture % 10);
-                }
-                else
-                      bmp_printf( text_font, 
-                                  x_origin + 74 + font_med.width  , 
-                                  y_origin, 
-                                  "%d    ", info->aperture / 10) ;
-          }
-
-          bmp_printf( med_font, 
-                      x_origin + font_large.width * strlen(focal) - 3 - 5, 
-                      bottom - font_med.height, 
-                      crop_info ? "eq" : "mm");
-
-          if (lens_info.IS)
-          bmp_printf( IS_font_med, 
-                      x_origin + font_large.width * strlen(focal) - 3 - 5 + 1, 
-                      y_origin - 3, 
-                      "IS");
-
-          bmp_printf( med_font, 
-                      x_origin + 74 + 2  , 
-                      y_origin - 2, 
-                      "f") ;
-      }
-  
-      /*******************
-      *  SHUTTER         *
-      *******************/
-
-
-      int shutter_x10 = raw2shutter_ms(info->raw_shutter) / 100;
-      int shutter_reciprocal = info->raw_shutter ? (int) roundf(4000.0f / powf(2.0f, (152 - info->raw_shutter)/8.0f)) : 0;
-
-      // in movie mode we can get the exact value from Canon timers
-      if (is_movie_mode()) 
-      {
-           int sr_x1000 = get_current_shutter_reciprocal_x1000();
-           shutter_reciprocal = (sr_x1000+500)/1000;
-           shutter_x10 = ((100000 / sr_x1000) + 5) / 10;
-      }
-      
-      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
-      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
-      static char shutter[32];
-      if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
-      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
-      else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
-
-      int fgs = COLOR_CYAN; // blue (neutral)
-      int shutter_degrees = -1;
-      if (is_movie_mode()) // check 180 degree rule
-      {
-           shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
-           if (ABS(shutter_degrees - 180) < 20)
-              fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg);
-           else if (shutter_degrees > 250)
-              fgs = FONT(FONT_LARGE,COLOR_RED,bg);
-           else if (shutter_degrees < 45)
-              fgs = FONT(FONT_LARGE,COLOR_RED,bg);
-      }
-      else if (info->aperture && !is_bulb_mode()) // rule of thumb: shutter speed should be roughly equal to focal length
-      {
-           int focal_35mm = (info->focal_len * SENSORCROPFACTOR + 5) / 10;
-           if (lens_info.IS) focal_35mm /= 4; // assume 2-stop effectiveness for IS
-           if (shutter_reciprocal > focal_35mm * 15/10) 
-              fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg); // very good
-           else if (shutter_reciprocal < focal_35mm / 2) 
-              fgs = FONT(FONT_LARGE,COLOR_RED,bg); // you should have really steady hands
-           else if (shutter_reciprocal < focal_35mm) 
-              fgs = FONT(FONT_LARGE,COLOR_YELLOW,bg); // OK, but be careful
-      }
-
-    text_font = SHADOW_FONT(FONT(FONT_LARGE,fgs,bg));
-    /*if (is_movie_mode() && shutter_display_degrees)
-    {
-        snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2  , 
-                    y_origin, 
-                    shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
-
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
-                    y_origin, 
-                    "o");
-    }*/
- /*   else if (is_movie_mode() && is_hard_shutter_override_active())
-    {
-        int d = get_shutter_override_degrees_x10();
-        int q = d/10;
-        int r = d%10;
-        int cr = r + '0';
-        snprintf(shutter, sizeof(shutter), "%d%s%s  ", q, r ? "." : "", r ? (char*)&cr : "");
-        bmp_printf( FONT(text_font,COLOR_ORANGE,bg), 
-                    x_origin + 143 + font_med.width*2  , 
-                    y_origin, 
-                    shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),COLOR_ORANGE,bg);
-
-        bmp_printf( text_font, 
-                    x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
-                    y_origin, 
-                    "o");
-    }
-    else*/
-    {
-        bmp_printf( text_font, 
-                x_origin + (shutter_x10 <= 3 ? 143 : 123) + font_med.width*2  , 
-                y_origin, 
-                shutter);
-
-        text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
-
-        if (shutter_x10 <= 3 && !is_bulb_mode())
-            bmp_printf( text_font, 
-                x_origin + 143 + 1  , 
-                y_origin - 2, 
-                "1/");
-    }
-
-      /*******************
-      *  ISO             *
-      *******************/
-
-      // good iso = 160 320 640 1250  - according to bloom video  
-      //  http://www.youtube.com/watch?v=TNNqUm_nSXk&NR=1
-
-      text_font = FONT(
-      SHADOW_FONT(FONT_LARGE), 
-      is_native_iso(lens_info.iso) ? COLOR_YELLOW :
-      is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
-      bg);
-      
-        if (hdr_video_enabled())
-        {
-            int iso_low, iso_high;
-            hdr_get_iso_range(&iso_low, &iso_high);
-            iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
-            iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
-            bmp_printf( FONT(FONT_MED, COLOR_WHITE, bg),
-                      x_origin + 245  , 
-                      y_origin + 5, 
-                      "%4d/%d", iso_low, iso_high) ;
-        }
-        else if (info->iso)
-        {
-
-            text_font = FONT(
-                SHADOW_FONT(FONT_LARGE),
-                info->raw_iso > MAX_ANALOG_ISO ? COLOR_RED :
-                info->iso_equiv_raw < info->raw_iso ? COLOR_GREEN1 :
-                info->iso_equiv_raw > info->raw_iso ? COLOR_RED :
-                info->iso_digital_ev < 0 ? COLOR_GREEN1 : info->iso_digital_ev > 0 ? COLOR_RED : COLOR_YELLOW,
-                bg
-            );
-            
-            char msg[10];
-            int iso_equiv_raw = info->iso_equiv_raw;
-
-            #ifdef FEATURE_FPS_OVERRIDE
-            iso_equiv_raw += fps_get_iso_correction_evx8();
-            #endif
-
-            #ifdef CONFIG_FRAME_ISO_OVERRIDE
-            int lv_iso = (FRAME_ISO & 0xFF) + (get_htp() ? 8 : 0);
-            if (is_movie_mode() && ABS(lv_iso - info->raw_iso) > 5)
-            {
-                /* for some reason, the ISO being used is different from the one reported in properties */
-                iso_equiv_raw += lv_iso - info->raw_iso;
-            }
-
-            #ifdef CONFIG_RAW_LIVEVIEW
-            if (is_movie_mode() && raw_lv_is_enabled())
-            {
-                /* the only ISOs used are the full-stop ones;
-                 * digital gain is only applied to display, not recorded */
-                text_font = FONT(
-                    SHADOW_FONT(FONT_LARGE),
-                    info->raw_iso > MAX_ANALOG_ISO ? COLOR_RED : COLOR_GREEN1,
-                    bg
-                );
-                iso_equiv_raw = (lv_iso+4)/8*8;
-            }
-            #endif
-            #endif
-            
-            int iso = raw2iso(iso_equiv_raw);
-            
-            snprintf(msg, sizeof(msg), "%d   ", iso >= 10000 ? iso/100 : iso);
-            bmp_printf( text_font, 
-                      x_origin + 250  , 
-                      y_origin, 
-                      msg);
-            
-            static char msg2[5];
-            msg2[0] = '\0';
-            if (CONTROL_BV && iso_equiv_raw == lens_info.raw_iso) { STR_APPEND(msg2, "ov"); }
-            else if (iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
-            if (get_htp()) { STR_APPEND(msg2, msg2[0] ? "+" : "D+"); }
-            
-            bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
-                      x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                      bottom - font_med.height, 
-                      msg2
-                      );
-            if (iso >= 10000)
-                bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
-                          x_origin + 250 + font_large.width * (strlen(msg)-3) - 2, 
-                          y_origin - 2, 
-                          "00");
-        }
-        else if (info->iso_auto)
-            bmp_printf( text_font, 
-                      x_origin + 250  , 
-                      y_origin, 
-                      "A%d   ", info->iso_auto);
-        else
-            bmp_printf( text_font, 
-                      x_origin + 250  , 
-                      y_origin, 
-                      "Auto ");
-
-      if (ISO_ADJUSTMENT_ACTIVE) goto end;
-      
-        // kelvins
-      text_font = FONT(
-      SHADOW_FONT(FONT_LARGE), 
-      0x13, // orange
-      bg);
-
-        if( info->wb_mode == WB_KELVIN )
-            bmp_printf( text_font, x_origin + 360 + (info->kelvin >= 10000 ? 0 : font_large.width), y_origin,
-                info->kelvin >= 10000 ? "%5dK " : "%4dK ",
-                info->kelvin
-            );
-        else
-            bmp_printf( text_font, x_origin + 360, y_origin,
-                "%s ",
-                (uniwb_is_active()      ? " UniWB" :
-                (lens_info.wb_mode == 0 ? "AutoWB" : 
-                (lens_info.wb_mode == 1 ? " Sunny" :
-                (lens_info.wb_mode == 2 ? "Cloudy" : 
-                (lens_info.wb_mode == 3 ? "Tungst" : 
-                (lens_info.wb_mode == 4 ? "Fluor." : 
-                (lens_info.wb_mode == 5 ? " Flash" : 
-                (lens_info.wb_mode == 6 ? "Custom" : 
-                (lens_info.wb_mode == 8 ? " Shade" :
-                 "unk")))))))))
-            );
-        
-        int gm = lens_info.wbs_gm;
-        int ba = lens_info.wbs_ba;
-        if (gm) 
-            bmp_printf(
-                FONT(ba ? FONT_MED : FONT_LARGE, COLOR_WHITE, gm > 0 ? COLOR_GREEN2 : 14 /* magenta */),
-                x_origin + 360 + font_large.width * 6, y_origin + (ba ? -3 : 0), 
-                "%d", ABS(gm)
-            );
-
-        if (ba) 
-            bmp_printf(
-                FONT(gm ? FONT_MED : FONT_LARGE, COLOR_WHITE, ba > 0 ? 12 : COLOR_BLUE), 
-                x_origin + 360 + font_large.width * 6, y_origin + (gm ? 14 : 0), 
-                "%d", ABS(ba));
-
-
-      /*******************
-      *  Focus distance  *
-      *******************/
-
-      text_font = FONT(SHADOW_FONT(FONT_LARGE), is_manual_focus() ? COLOR_CYAN : COLOR_WHITE, bg );   // WHITE
-
-      if(lens_info.focus_dist)
-          bmp_printf( text_font, 
-                  x_origin + 505  , 
-                  y_origin, 
-                  lens_format_dist( lens_info.focus_dist * 10 )
-                );
-        else
-          bmp_printf( text_font, 
-                  x_origin + 515  , 
-                  y_origin, 
-                  is_manual_focus() ? "MF" : "AF"
-                );
-
-      int ae = AE_VALUE;
-      if (!ae) ae = lens_info.ae;
-      if (ae)
-      {
-          text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
-
-          bmp_printf( text_font, 
-                      x_origin + 610 + font_large.width * 2 - 8, 
-                      y_origin, 
-                      ".");
-          bmp_printf( text_font, 
-                      x_origin + 610 - font_large.width, 
-                      y_origin, 
-                      " %s%d", 
-                        ae < 0 ? "-" : ae > 0 ? "+" : " ",
-                        ABS(ae) / 8
-                      );
-          bmp_printf( text_font, 
-                      x_origin + 610 + font_large.width * 3 - 16, 
-                      y_origin, 
-                      "%d",
-                        mod(ABS(ae) * 10 / 8, 10)
-                      );
-      }
-
-        // battery indicator
-        int xr = x_origin + 612 - font_large.width - 4;
-
-    #ifdef CONFIG_BATTERY_INFO
-        int bat = GetBatteryLevel();
-    #else
-        int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
-    #endif
-
-        int col = battery_level_bars == 0 ? COLOR_RED :
-                  battery_level_bars == 1 ? COLOR_YELLOW : 
-                #ifdef CONFIG_BATTERY_INFO
-                  bat <= 70 ? COLOR_WHITE : 
-                #endif
-                  COLOR_GREEN1;
-        
-        bat = bat * 22 / 100;
-        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin-4, 10, 4);
-        bmp_draw_rect(COLOR_BLACK, xr-3, y_origin-1, 18, 31);
-        //~ bmp_draw_rect(COLOR_BLACK, xr, y_origin+2, 11, 29);
-        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 24 - bat, 10, bat+2);
-        bmp_fill(col, xr+2, y_origin-3, 8, 3);
-        bmp_draw_rect(col, xr-2, y_origin, 16, 29);
-        bmp_draw_rect(col, xr-1, y_origin + 1, 14, 27);
-        bmp_fill(col, xr+2, y_origin + 25 - bat, 8, bat);
-
-    //~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
-    //~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
-    
-    // these have a black bar at the bottom => no problems
-    //~ #if !defined(CONFIG_500D) && !defined(CONFIG_50D)
-    //~ int y169 = os.y_max - os.off_169;
-
-    //~ if (!gui_menu_shown() && (screen_layout == SCREENLAYOUT_16_9 || screen_layout == SCREENLAYOUT_16_10 || hdmi_code == 2 || ext_monitor_rca))
-        //~ shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
-    //~ #endif
-
-
-
-end:
-
-    if (double_buffering)
-    {
-        double_buffering_end(ytop, bar_height);
-    }
-
-    // this is not really part of the bottom bar, but it's close to it :)
-    /*
-    if (LVAE_DISP_GAIN)
-    {
-        text_font = FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK ); 
-        int gain_ev = gain_to_ev(LVAE_DISP_GAIN) - 10;
-        bmp_printf( text_font, 
-                  x_origin + 590, 
-                  y_origin - font_large.height, 
-                  "%s%dEV", 
-                  gain_ev > 0 ? "+" : "-",
-                  ABS(gain_ev));
-    }*/
+    lvinfo_display(0,1);
 }
-/*
-void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
-{
-    // shave the bottom bar a bit :)
-    int i,j;
-    int new_color = bmp_getpixel_real(os.x0 + 123, y0-5);
-    for (i = y0; i < y0 + h; i++)
-    {
-        //~ int new_color = 0;
-        for (j = x0; j < x0+w; j++)
-            if (bmp_getpixel(j,i) == shaved_color)
-                bmp_putpixel(j,i,new_color);
-        //~ bmp_putpixel(x0+5,i,COLOR_RED);
-    }
-}*/
 
 char* lens_format_shutter(int tv)
 {
@@ -893,10 +487,10 @@ char* lens_format_shutter(int tv)
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
       if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "1/%dK ", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "1/%d  ", shutter_reciprocal);
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
+      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
       return shutter;
 }
 
@@ -907,111 +501,46 @@ int FAST get_ml_topbar_pos()
     int y = 0;
     if (gui_menu_shown())
     {
-        y = (hdmi_code == 5 ? 40 : 0); // force it at the top of menu
+        y = (hdmi_code == 5 ? 40 : 2); // force it at the top of menu
     }
     else
     {
-        if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y = os.y0; // just above the 16:9 frame
+        if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y = os.y0 + 2; // just above the 16:9 frame
         else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
-        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, 480 - 54);
-        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, 480 - 54);
+        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, 480 - 68);
+        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, 480 - 68);
     }
     return y;
 }
 
-void draw_ml_topbar(int double_buffering, int clear)
+void free_space_show_photomode()
+{
+    extern int cluster_size;
+    extern int free_space_raw;
+    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
+
+    int time_indic_x = 720 - 160;
+    int x = time_indic_x + 2 * font_med.width;
+    int y =  452;
+    bmp_printf(
+        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
+        x, y,
+        "%d.%dGB",
+        fsg,
+        fsgf
+    );
+}
+
+void draw_ml_topbar()
 {
     if (!get_global_draw()) return;
     
-    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
-    
-    int x = MAX(os.x0 + os.x_ex/2 - 360, 0);
-    int y = get_ml_topbar_pos();
-
-    int screen_layout = get_screen_layout();
-    if (screen_layout >= 3 && !should_draw_bottom_bar())
-        return; // top bar drawn at bottom, may interfere with canon info
-
-    // fixme: draw them right from the first try
-    extern int time_indic_x, time_indic_y; // for bitrate indicators
-    if (time_indic_x != os.x_max - 160 || time_indic_y != (int)y) redraw();
-    time_indic_x = os.x_max - 160;
-    time_indic_y = y;
-    
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
-
-    if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
-    
-    if (double_buffering)
-        double_buffering_start(y, 35);
-
-    if (clear)
-        ml_bar_clear(y, font_med.height+1);
-
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    bmp_printf(font, x, y, "%02d:%02d", now.tm_hour, now.tm_min);
-
-    x += 80;
-
-    bmp_printf( font, x, y,
-        "DISP%d", get_disp_mode()
-    );
-
-    x += 70;
-
-    int raw = pic_quality & 0x60000;
-    int jpg = pic_quality & 0x10000;
-    int rawsize = pic_quality & 0xF;
-    int jpegtype = pic_quality >> 24;
-    int jpegsize = (pic_quality >> 8) & 0xFF;
-    bmp_printf( font, x, y, "%s%s%s",
-        rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",
-        jpg == 0 ? "" : (raw ? "+" : "JPG-"),
-        jpg == 0 ? "" : (
-            jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") : 
-            jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") : 
-            jpegsize == 2 ? (jpegtype == 3 ? "S" : "s") :
-            jpegsize == 0x0e ? (jpegtype == 3 ? "S1" : "s1") :
-            jpegsize == 0x0f ? (jpegtype == 3 ? "S2" : "s2") :
-            jpegsize == 0x10 ? (jpegtype == 3 ? "S3" : "s3") :
-            "err"
-        )
-    );
-
-    x += 80;
-    int alo = get_alo();
-    bmp_printf( font, x, y,
-        get_htp() ? "HTP" :
-        alo == ALO_LOW ? "alo" :
-        alo == ALO_STD ? "Alo" :
-        alo == ALO_HIGH ? "ALO" : "   "
-    );
-
-    x += 45;
-    #ifdef FEATURE_PICSTYLE
-    bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
-    #endif
-
-    x += 70;
-    #ifdef CONFIG_BATTERY_INFO
-        bmp_printf( font, x, y,"T=%dC BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
-    #else
-        bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
-    #endif
-
-    x += 160;
-    bmp_printf( font, x, y,
-        is_movie_mode() ? "MVI-%04d" : "[%d]",
-        is_movie_mode() ? file_number : avail_shot
-    );
-
-    free_space_show(); 
-    fps_show();
-
-    if (double_buffering)
-        double_buffering_end(y, 35);
+    lvinfo_display(1,0);
 }
 
 static volatile int lv_focus_done = 1;
@@ -1533,9 +1062,11 @@ PROP_HANDLER(PROP_LENS)
     #ifdef CONFIG_5DC
     lens_info.raw_aperture_min = info[2];
     lens_info.raw_aperture_max = info[3];
+    lens_info.lens_id = 0;
     #else
     lens_info.raw_aperture_min = info[1];
     lens_info.raw_aperture_max = info[2];
+    lens_info.lens_id = info[4] | (info[5] << 8);
     #endif
     
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
@@ -1667,7 +1198,6 @@ PROP_HANDLER( PROP_BV ) // camera-specific
 }
 #endif
 
-static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) 
@@ -1694,7 +1224,6 @@ PROP_HANDLER( PROP_SHUTTER )
     bv_auto_update();
     #endif
     lens_display_set_dirty();
-    shutter_ack = buf[0];
 }
 
 static int aperture_ack = -1;
@@ -2043,27 +1572,38 @@ static struct menu_entry lens_menus[] = {
     #endif
 };
 
-#ifndef CONFIG_FULLFRAME
-
 static struct menu_entry tweak_menus[] = {
-    {
-        .name = "Crop Factor Display",
-        .priv = &crop_info,
-        .max  = 1,
-        .choices = CHOICES("OFF", "ON,35mm eq."),
-        .help = "Display the 35mm equiv. focal length including crop factor.",
-        .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
+   {
+        .name = "Lens Info Prefs",
+        .select   = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_FULLFRAME
+            {
+                .name = "Crop Factor Display",
+                .priv = &crop_info,
+                .max  = 1,
+                .choices = CHOICES("OFF", "ON, 35mm eq."),
+                .help = "Display the 35mm equiv. focal length including crop factor.",
+                .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
+            },
+            #endif
+            {
+                .name = "Focus Distance Units",
+                .priv = &focus_units,
+                .choices = CHOICES("mm/cm", "ft/in"),
+                .max = 1,
+                .help  = "Can select between Metric and Imperial focus distance units",
+            },
+            MENU_EOL
+        },
     }
 };
-#endif
 
 // hack to show this at the end of prefs menu
 void
 crop_factor_menu_init()
 {
-#ifndef CONFIG_FULLFRAME
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
-#endif
 }
 
 static void
@@ -2212,26 +1752,28 @@ static int prop_set_rawshutter(unsigned shutter)
     if (shutter < 16) return 0;
     if (shutter > FASTEST_SHUTTER_SPEED_RAW) return 0;
     
-    //~ bmp_printf(FONT_MED, 100, 100, "%d...", shutter);
     lens_wait_readytotakepic(64);
-    //~ shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
-    shutter_ack = -1;
+
     int s0 = shutter;
-    prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
-    //~ for (int i = 0; i < 5; i++) { if (shutter_also_ack == s0) return 1; msleep(20); }
-    //~ bmp_printf(FONT_MED, 100, 100, "%d %s ", shutter, shutter_ack == s0 ? ":)" : ":(");
-    return shutter_ack == s0;
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    
+    if (lens_info.raw_shutter != s0 && !(CONTROL_BV && lv))
+    {
+        /* no confirmation? try set shutter 2 stops away from final value, and back */
+        int sx = shutter > 128 ? shutter - 16 : shutter + 16;
+        prop_request_change_wait( PROP_SHUTTER, &sx, 4, 100);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    }
+    
+    return lens_info.raw_shutter == s0;
 }
 
 static int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
-    shutter_ack = -1;
-    prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    for (int i = 0; i < 5; i++) { if (shutter_ack != -1) break; msleep(20); }
-    return ABS(shutter_ack - shutter) <= 3;
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
+    return ABS((int)lens_info.raw_shutter - (int)shutter) <= 3;
 }
 
 static int prop_set_rawiso(unsigned iso)
@@ -2254,7 +1796,7 @@ extern int bv_av;
 
 int expo_override_active()
 {
-    return CONTROL_BV;
+    return CONTROL_BV && lv;
 }
 
 void bv_update_lensinfo()
@@ -2620,7 +2162,492 @@ int get_max_analog_iso() { return MAX_ANALOG_ISO; }
 int get_max_ae_ev() { return MAX_AE_EV; }
 #ifdef AE_VALUE
 int get_ae_value() { return AE_VALUE; }
+int get_bv() {
+    return
+        RAW2TV(lens_info.raw_shutter)
+        + RAW2AV(lens_info.raw_aperture)
+        - RAW2SV(lens_info.iso_equiv_raw)
+        + RAW2EC(get_ae_value());
+}
 #endif
 #ifdef AE_STATE
 int get_ae_state() { return AE_STATE; }
 #endif
+
+#include "lvinfo.h"
+
+static LVINFO_UPDATE_FUNC(clock_update)
+{
+    LVINFO_BUFFER(8);
+    struct tm now;
+    LoadCalendarFromRTC( &now );
+    snprintf(buffer, sizeof(buffer), "%02d:%02d", now.tm_hour, now.tm_min);
+}
+
+static LVINFO_UPDATE_FUNC(disp_preset_update)
+{
+    LVINFO_BUFFER(8);
+
+    /* only display this if the feature is enabled */
+    extern int disp_profiles_0;
+    if (disp_profiles_0)
+    {
+        snprintf(buffer, sizeof(buffer), 
+            "DISP %d", get_disp_mode()
+        );
+    }
+}
+
+static LVINFO_UPDATE_FUNC(picq_update)
+{
+    LVINFO_BUFFER(16);
+
+    if (!is_movie_mode())
+    {
+        int raw = pic_quality & 0x60000;
+        int jpg = pic_quality & 0x10000;
+        int rawsize = pic_quality & 0xF;
+        int jpegtype = pic_quality >> 24;
+        int jpegsize = (pic_quality >> 8) & 0xFF;
+        snprintf(buffer, sizeof(buffer), "%s%s%s",
+            rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",
+            jpg == 0 ? "" : (raw ? "+" : "JPG-"),
+            jpg == 0 ? "" : (
+                jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") : 
+                jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") : 
+                jpegsize == 2 ? (jpegtype == 3 ? "S" : "s") :
+                jpegsize == 0x0e ? (jpegtype == 3 ? "S1" : "s1") :
+                jpegsize == 0x0f ? (jpegtype == 3 ? "S2" : "s2") :
+                jpegsize == 0x10 ? (jpegtype == 3 ? "S3" : "s3") :
+                "err"
+            )
+        );
+    }
+}
+
+static LVINFO_UPDATE_FUNC(alo_htp_update)
+{
+    LVINFO_BUFFER(8);
+    int alo = get_alo();
+    snprintf(buffer, sizeof(buffer),
+        get_htp() ? "HTP" :
+        alo == ALO_LOW ? "alo" :
+        alo == ALO_STD ? "Alo" :
+        alo == ALO_HIGH ? "ALO" : ""
+    );
+}
+
+static LVINFO_UPDATE_FUNC(picstyle_update)
+{
+    LVINFO_BUFFER(12);
+
+    if (is_movie_mode())
+    {
+#ifdef CONFIG_RAW_LIVEVIEW
+        /* picture style has no effect on raw video => don't display */
+        if (raw_lv_is_enabled())
+            return;
+#endif
+    }
+    else
+    {
+        /* when shooting RAW photos, picture style only affects the preview => don't display */
+        int jpg = pic_quality & 0x10000;
+        if (!jpg)
+            return;
+    }
+
+    snprintf(buffer, sizeof(buffer), "%s",
+        (char*)get_picstyle_name(lens_info.raw_picstyle)
+    );
+}
+
+static LVINFO_UPDATE_FUNC(temp_update)
+{
+    LVINFO_BUFFER(8);
+    
+    int t = EFIC_CELSIUS;
+    snprintf(buffer, sizeof(buffer), "%d"SYM_DEGREE"C", t);
+    if (t >= 60)
+    {
+        item->color_bg = COLOR_RED;
+    }
+    else if (t >= 50)
+    {
+        item->color_bg = COLOR_ORANGE;
+    }
+}
+
+static LVINFO_UPDATE_FUNC(mvi_number_update)
+{
+    LVINFO_BUFFER(12);
+    
+    if (is_native_movie_mode())
+    {
+        snprintf(buffer, sizeof(buffer), "MVI_%04d", file_number);
+    }
+}
+
+static LVINFO_UPDATE_FUNC(fps_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (is_movie_mode())
+    {
+        int f = fps_get_current_x1000();
+        snprintf(buffer, sizeof(buffer), 
+            "%2d.%03d", 
+            f / 1000, f % 1000
+        );
+    }
+}
+
+static LVINFO_UPDATE_FUNC(free_space_update)
+{
+    LVINFO_BUFFER(8);
+
+    extern int cluster_size;
+    extern int free_space_raw;
+    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
+
+    snprintf(buffer, sizeof(buffer), 
+        "%d.%dGB",
+        fsg,
+        fsgf
+    );
+}
+
+static LVINFO_UPDATE_FUNC(mode_update)
+{
+    LVINFO_BUFFER(8);
+    snprintf(buffer, sizeof(buffer), get_shootmode_name_short(shooting_mode_custom));
+}
+
+static LVINFO_UPDATE_FUNC(focal_len_update)
+{
+    LVINFO_BUFFER(16);
+    if (lens_info.name[0])
+    {
+        snprintf(buffer, sizeof(buffer), "%d%s",
+               crop_info ? (lens_info.focal_len * SENSORCROPFACTOR + 5) / 10 : lens_info.focal_len,
+               crop_info ? "eq" : SYM_SMALL_M SYM_SMALL_M
+        );
+    }
+}
+
+static LVINFO_UPDATE_FUNC(is_update)
+{
+    LVINFO_BUFFER(4);
+
+    if (lens_info.IS)
+    {
+        int is_color =
+            lens_info.IS == 0 ? COLOR_WHITE    :  // IS off
+            lens_info.IS == 4 ? COLOR_GRAY(50) :  // IS active, but not engaged
+            lens_info.IS == 8 ? COLOR_BLACK    :  // IS disabled on sigma lenses?
+            lens_info.IS == 0xC ? COLOR_CYAN   :  // IS starting?
+            lens_info.IS == 0xE ? COLOR_WHITE  :  // IS active and kicking
+            COLOR_RED;                            // unknown
+        snprintf(buffer, sizeof(buffer), "IS");
+        item->color_fg = is_color;
+    }
+}
+
+static LVINFO_UPDATE_FUNC(av_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (lens_info.aperture && lens_info.name[0])
+    {
+        if (lens_info.aperture < 100)
+        {
+            snprintf(buffer, sizeof(buffer), SYM_F_SLASH"%d.%d", lens_info.aperture / 10, lens_info.aperture % 10);
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), SYM_F_SLASH"%d", lens_info.aperture / 10);
+        }
+    }
+    
+    if (CONTROL_BV)
+    {
+        /* mark the "exposure override" mode */
+        item->color_bg = 18;
+    }
+}
+
+static LVINFO_UPDATE_FUNC(tv_update)
+{
+    LVINFO_BUFFER(16);
+
+    if (is_bulb_mode())
+    {
+        snprintf(buffer, sizeof(buffer), "BULB");
+    }
+    else if (lens_info.raw_shutter)
+    {
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter(lens_info.raw_shutter));
+    }
+
+    if (CONTROL_BV)
+    {
+        /* mark the "exposure override" mode */
+        item->color_bg = 18;
+    }
+}
+
+static int (*dual_iso_is_enabled)() = MODULE_FUNCTION(dual_iso_is_enabled);
+static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
+
+static LVINFO_UPDATE_FUNC(iso_update)
+{
+    LVINFO_BUFFER(16);
+
+    if (hdr_video_enabled())
+    {
+        int iso_low, iso_high;
+        hdr_get_iso_range(&iso_low, &iso_high);
+        iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
+        iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
+        snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", iso_low, iso_high);
+    }
+    else if (dual_iso_is_enabled())
+    {
+        snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", 
+            raw2iso(lens_info.iso_analog_raw),
+            raw2iso(dual_iso_get_recovery_iso())
+        );
+    }
+    else if (lens_info.raw_iso)
+    {
+        snprintf(buffer, sizeof(buffer), SYM_ISO"%d", raw2iso(lens_info.raw_iso));
+    }
+    else if (lens_info.iso_auto)
+    {
+        snprintf(buffer, sizeof(buffer), SYM_ISO"A%d", raw2iso(lens_info.raw_iso_auto));
+    }
+    else
+    {
+        snprintf(buffer, sizeof(buffer), SYM_ISO"Auto");
+    }
+
+    if (get_htp())
+    {
+        STR_APPEND(buffer, "D+");
+    }
+
+    if (ISO_ADJUSTMENT_ACTIVE)
+    {
+        item->color_bg = COLOR_LIGHT_BLUE;
+    }
+    else if (CONTROL_BV)
+    {
+        /* mark the "exposure override" mode */
+        item->color_bg = 18;
+    }
+}
+
+static LVINFO_UPDATE_FUNC(wb_update)
+{
+    LVINFO_BUFFER(8);
+    
+    if( lens_info.wb_mode == WB_KELVIN )
+    {
+        snprintf(buffer, sizeof(buffer), lens_info.kelvin >= 10000 ? "%5dK" : "%4dK ", lens_info.kelvin);
+    }
+    else
+    {
+        snprintf(buffer, sizeof(buffer), "%s ",
+            (uniwb_is_active()      ? " UniWB" :
+            (lens_info.wb_mode == 0 ? "AutoWB" : 
+            (lens_info.wb_mode == 1 ? " Sunny" :
+            (lens_info.wb_mode == 2 ? "Cloudy" : 
+            (lens_info.wb_mode == 3 ? "Tungst" : 
+            (lens_info.wb_mode == 4 ? "Fluor." : 
+            (lens_info.wb_mode == 5 ? " Flash" : 
+            (lens_info.wb_mode == 6 ? "Custom" : 
+            (lens_info.wb_mode == 8 ? " Shade" :
+             "unk")))))))))
+        );
+    }
+}
+
+
+static LVINFO_UPDATE_FUNC(focus_dist_update)
+{
+    LVINFO_BUFFER(16);
+    
+    if(lens_info.focus_dist)
+    {
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+    }
+}
+
+static LVINFO_UPDATE_FUNC(af_mf_update)
+{
+    LVINFO_BUFFER(4);
+    snprintf(buffer, sizeof(buffer), is_manual_focus() ? "MF" : "AF");
+}
+
+static LVINFO_UPDATE_FUNC(batt_update)
+{
+    #ifdef CONFIG_BATTERY_INFO
+    item->width = 70;
+    #else
+    item->width = 20;
+    #endif
+    item->custom_drawing = 1;
+    
+    if (can_draw)
+    {
+        int xr = item->x - item->width/2;
+        int y_origin = item->y;
+        xr += 4;
+
+        #ifdef CONFIG_BATTERY_INFO
+        int bat = GetBatteryLevel();
+        #else
+        int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
+        #endif
+
+        int col = 
+            battery_level_bars == 0 ? COLOR_RED :
+            battery_level_bars == 1 ? COLOR_YELLOW : 
+            COLOR_WHITE;
+
+        #ifdef CONFIG_BATTERY_INFO
+        bmp_printf(SHADOW_FONT(FONT(FONT_MED, col, item->color_bg)), xr+16, y_origin + 30 - font_med.height, "%d%%", bat);
+        #endif
+        
+        bat = bat * 20 / 100;
+        bmp_fill(col, xr+2, y_origin-3, 8, 3);
+        bmp_draw_rect(col, xr-2, y_origin, 16, 27);
+        bmp_draw_rect(col, xr-1, y_origin + 1, 14, 25);
+        bmp_fill(col, xr+2, y_origin + 23 - bat, 8, bat);
+    }
+}
+
+static struct lvinfo_item info_items[] = {
+    /* Top bar */
+    {
+        .name = "Clock",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = clock_update,
+        .preferred_position = -50,
+        .priority = -1,
+    },
+    {
+        .name = "Disp preset",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = disp_preset_update,
+    },
+    {
+        .name = "Pic Quality",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = picq_update,
+    },
+    {
+        .name = "ALO/HTP",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = alo_htp_update,
+        .priority = -1,
+    },
+    {
+        .name = "Pic.Style",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = picstyle_update,
+        .priority = -1,
+    },
+    {
+        .name = "Temperature",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = temp_update,
+        .priority = 1,
+    },
+    {
+        .name = "MVI number",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = mvi_number_update,
+    },
+    {
+        .name = "FPS",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = fps_update,
+    },
+    {
+        .name = "Free space",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = free_space_update,
+    },
+    /* Bottom bar */
+    {
+        .name = "Mode",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = mode_update,
+        .priority = 1,
+        .preferred_position = -128,
+    },
+    {
+        .name = "Focal len",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = focal_len_update,
+    },
+    {
+        .name = "IS",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = is_update,
+        .priority = -1,
+    },
+    {
+        .name = "Aperture",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = av_update,
+        .priority = 1,
+    },
+    {
+        .name = "Shutter",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = tv_update,
+        .priority = 1,
+    },
+    {
+        .name = "ISO",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = iso_update,
+        .priority = 1,
+    },
+    {
+        .name = "White Balance",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = wb_update,
+        .priority = 1,
+    },
+    {
+        .name = "Focus dist",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = focus_dist_update,
+    },
+    {
+        .name = "AF/MF",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = af_mf_update,
+        .priority = -1,
+    },
+    {
+        .name = "Battery",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = batt_update,
+        .preferred_position = 127,
+    }
+};
+
+static void lens_info_init()
+{
+    lvinfo_add_items(info_items, COUNT(info_items));
+}
+
+INIT_FUNC("lens_info", lens_info_init);

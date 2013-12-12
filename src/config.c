@@ -295,7 +295,6 @@ error:
 }
 
 int config_autosave = 1;
-#define CONFIG_AUTOSAVE_FLAG_FILE CARD_DRIVE "ML/SETTINGS/AUTOSAVE.NEG"
 
 int config_flag_file_setting_load(char* file)
 {
@@ -316,9 +315,11 @@ void config_flag_file_setting_save(char* file, int setting)
 void
 config_autosave_toggle(void* priv)
 {
-    config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
+    char autosave_flag_file[0x80];
+    snprintf(autosave_flag_file, sizeof(autosave_flag_file), "%sAUTOSAVE.NEG", get_config_dir());
+    config_flag_file_setting_save(autosave_flag_file, !!config_autosave);
     msleep(50);
-    config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+    config_autosave = !config_flag_file_setting_load(autosave_flag_file);
 }
 
 int
@@ -326,15 +327,11 @@ config_parse_file(
     const char *        filename
 )
 {
-    config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
+    char autosave_flag_file[0x80];
+    snprintf(autosave_flag_file, sizeof(autosave_flag_file), "%sAUTOSAVE.NEG", get_config_dir());
+    config_autosave = !config_flag_file_setting_load(autosave_flag_file);
 
     config_file_buf = (void*)read_entire_file(filename, &config_file_size);
-    if (!config_file_buf)
-    {
-        // if config file is not present, force Config Autosave: On
-        if (!config_autosave) config_autosave_toggle(0);
-        return 0;
-    }
     config_file_pos = 0;
     config_parse();
     free_dma_memory(config_file_buf);

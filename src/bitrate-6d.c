@@ -1,6 +1,7 @@
 /** \file
  * Bitrate
  */
+
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -12,6 +13,8 @@
 #include "lens.h"
 #include "cache_hacks.h"
 
+#if 0 /* not minimally invasive; patches Canon firmware even if the settings are disabled */
+
 static CONFIG_INT("h264.bitrate", bitrate, 0);
 static CONFIG_INT("h264.initqp", initqp, 0);
 static CONFIG_INT("h264.h2config", h2config, 0);
@@ -19,10 +22,8 @@ static CONFIG_INT("h264.autoload", autoload, 0);
 static CONFIG_INT("h264.flush", bitrate_flushing_rate, 3);
 static CONFIG_INT("h264.gop", bitrate_gop_size, 0);
 static CONFIG_INT( "time.indicator", time_indicator, 1); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-static CONFIG_INT( "bitrate.indicator", bitrate_indicator, 1);
 static CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
-
-PROP_INT(PROP_REBOOT_MAYBE, rebootnow);
+//~ PROP_INT(PROP_REBOOT_MAYBE, rebootnow);
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound);
 #ifndef CONFIG_5D3
 int video_mode[6];
@@ -46,17 +47,6 @@ int set =0;
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
 int hibr_should_record_wav() { return cfg_hibr_wav_record; }
-static CONFIG_INT("snd.inputvol", input_vol, 36);
-static int powered_input = 0;
-void SoundDevActiveIn();
-void SoundDevShutDownIn();
-void SetAudioVolumeIn();
-extern int mic_inserted;
-//~ uint8_t sound_level[3];
-//~ PROP_HANDLER(PROP_MOVIE_REC_VOLUME)
-//~ {
-	//~ memcpy(sound_level, buf, 4);
-//~ }
 #else
 int hibr_should_record_wav() { return 0; }
 #endif
@@ -78,6 +68,9 @@ int hibr_should_record_wav() { return 0; }
 
 #endif
 
+#define override (autoload == 2) 
+#define config_loaded (ivaparam == 1)
+#define config_disabled (ivaparam == 2)
 
 /*
 static void patch_flush_errors()
@@ -112,7 +105,7 @@ static void patch_flush_errors()
 	//FF1F4C7C - FF1F4C10
 	//~ cache_fake(0xFF1F4C7C , 0xE1A00000, TYPE_ICACHE);
 	//~ cache_fake(0xFF1F4C7C , 0xE1A00000, TYPE_ICACHE);
-
+*/
 	// Calls to Check pheader... Assert 0 Returns
 /*	cache_fake(0xFF1E1650 , 0xE1A00000, TYPE_ICACHE);
 	cache_fake(0xFF1E1804 , 0xE1A00000, TYPE_ICACHE);
@@ -149,6 +142,10 @@ static void patch_errors()
 	#ifdef CONFIG_6D
 	//FF1F1230 ./MovieRecorder/EncDrvWrapper.c:1926, task MovieRecorder
 	cache_fake(0xFF1F1244 , 0xE1A00000, TYPE_ICACHE);
+	
+	// Rscmgr.c Assert - False
+	//~ cache_fake(0xFF0F5D80 , 0xE1A00000, TYPE_ICACHE);
+	//~ cache_fake(0xFF0F5D28 , 0xE1A00000, TYPE_ICACHE);
 
    //FF3BEFE4 RECORDING: ./Fcreate/FcsMaker.c:2314, task MovieRecorder
    cache_fake(0xFF3BEFF8 , 0xE1A00000, TYPE_ICACHE);
@@ -187,6 +184,7 @@ static void patch_errors()
 static void load_h264_ini()
 {
     gui_stop_menu();
+	ui_lock(UILOCK_EVERYTHING);
 	if (h2config == 1)
 		{   call("IVAParamMode", "B:/ML/cbr.ini");
 		    //~ call("IVAParamMode", CARD_DRIVE "ML/cbr.ini");
@@ -208,6 +206,8 @@ static void load_h264_ini()
     	call("IVAParamMode", "B:/ML/H264.ini");
 		NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 	}
+	msleep(1000);
+	ui_lock(UILOCK_NONE);
 }	
 
 
@@ -248,17 +248,15 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (recording && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (recording && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 int8_t* ivaparamstatus = (int8_t*)(l_EncoMode);
 uint8_t oldh2config;
 void bitrate_set()
 {
-    if (!lv) return;
-    if (!is_movie_mode()) return;
-	#ifdef FEATURE_NITRATE_WAV_RECORD
-	if (hibr_should_record_wav() && input_vol != 0)
-		{   static int mic;
+	//~ #ifdef FEATURE_NITRATE_WAV_RECORD
+	//~ if (hibr_should_record_wav() && input_vol != 0)
+		//~ {   static int mic;
 		
 			//~ sound_level[0] = 00 | input_vol;
 			//~ sound_level[2] = input_vol;
@@ -271,31 +269,35 @@ void bitrate_set()
 			//~ *(ivol + 65) = input_vol; //L
 			//~ *(ivol + 66) = input_vol; //R
 			//~ SoundDevActiveIn(0); // Apply Maybe + meters on.
-			if (!powered_input || mic != mic_inserted) 
-			{   SetAudioVolumeIn(0, input_vol , input_vol);
-				SoundDevActiveIn(mic_inserted ? 1 : 0); 
-				powered_input = 1; 
-			}
-			mic = mic_inserted;
-		}
-	#endif
+			//~ if (!powered_input || mic != mic_inserted) 
+			//~ {   
+				
+				//~ SetAudioVolumeIn(0, input_vol , input_vol);
+				//~ SoundDevActiveIn(mic_inserted ? 1 : 0); 
+				//~ powered_input = 1; 
+			//~ }
+			//~ mic = mic_inserted;
+		//~ }
+	//~ #endif
+    if (!lv) return;
+    if (!is_movie_mode()) return;
     if (raw_lv_is_enabled())return; 
     //~ if (gui_menu_shown()) return;
     if (recording) return; 
-	if (!(ivaparam == 2)) ivaparam= *ivaparamstatus;	
+	if (!config_disabled) ivaparam= *ivaparamstatus;	
 	if (patched_errors == 0) patch_errors();
 	//~ if (flush_errors == 0) patch_flush_errors(); // Otherwise Err70 on Play
-	if (ivaparam == 2 ) MEM(l_EncoMode) = 0;
+	if (config_disabled) MEM(l_EncoMode) = 0;
 	else {
-		if (!gui_menu_shown()) // Don't load config during menu
-			{
-				if (!ivaparam && h2config !=0 && autoload!=0) load_h264_ini();
+		//~ if (!gui_menu_shown()) // Don't load config during menu
+			//~ {
+				if (!config_loaded && h2config !=0 && autoload!=0) load_h264_ini();
 				if (autoload!=0 && (oldh2config!=h2config) && h2config !=0)	load_h264_ini();	
-			}
+			//~ }
 		  }
 
  	   
-       if (!ivaparam || (autoload == 2 || ivaparam == 2)) 
+       if (!config_loaded || override || config_disabled) 
 			{   /* TODO
 				if( !(autoload==2) && bitrate!=0 && MEM(0X78830)==0 )
 					{	NotifyBox(2000,"Eko Mode: Must set both parameters!");
@@ -378,6 +380,14 @@ void measure_bitrate() // called once / second
     measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
 }
 
+#ifdef CONFIG_6D
+PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+PROP_INT(PROP_FREE_SPACE, free_space_raw);
+#else //5D3
+PROP_INT(PROP_CLUSTER_SIZE_A, cluster_size);
+PROP_INT(PROP_FREE_SPACE_A, free_space_raw);
+#endif
+#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 void bitrate_mvr_log(char* mvr_logfile_buffer)
 {
@@ -391,42 +401,11 @@ PROP_HANDLER(PROP_MVR_REC_START)
         movie_start_timestamp = get_seconds_clock();
 }
 
-static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-static PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-
-void free_space_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    if (recording && time_indicator) return;
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-
-    // trick to erase the old text, if any (problem due to shadow fonts)
-    bmp_printf(
-        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y,
-        "      "
-    );
-
-    bmp_printf(
-        FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y,
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
-}
-
 void time_indicator_show()
 {
     if (!get_global_draw()) return;
 
-    if (!recording) 
+    if (!recording || raw_lv_is_enabled()) 
     {
         //~ free_space_show();
         return;
@@ -457,9 +436,7 @@ void time_indicator_show()
             dispvalue / 60,
             dispvalue % 60
         );
-    }
-    if (bitrate_indicator)
-    {
+
         bmp_printf( FONT_SMALL,
             680 - font_small.width * 5,
             55,
@@ -473,57 +450,7 @@ void time_indicator_show()
             measured_bitrate
         );
     }
-    
 }
-
-void fps_show()
-{
-    if (!get_global_draw()) return;
-    if (gui_menu_shown()) return;
-    if (!is_movie_mode() || recording) return;
-    //~ if (hdmi_code == 5) return; // workaround
-    int screen_layout = get_screen_layout();
-    if (screen_layout > SCREENLAYOUT_3_2_or_4_3) return;
-    
-    bmp_printf(
-        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y + font_med.height - 3,
-        "      "
-    );
-
-    int f = fps_get_current_x1000();
-    bmp_printf(
-        SHADOW_FONT(FONT_MED),
-        time_indic_x + 160 - 6 * font_med.width,
-        time_indic_y + font_med.height - 3,
-        "%2d.%03d", 
-        f / 1000, f % 1000
-    );
-}
-
-void free_space_show_photomode()
-{
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-    
-#if defined DISPLAY_CLOCK_POS_X
-    int x = DISPLAY_CLOCK_POS_X - 135;
-    int y = DISPLAY_CLOCK_POS_Y;
-#else
-    int x = time_indic_x + 2 * font_med.width;
-    int y =  452;
-#endif
-    bmp_printf(
-               FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
-               x, y,
-               "%d.%dGB",
-               fsg,
-               fsgf
-               );
-}
-
 #ifdef FEATURE_NITRATE_WAV_RECORD
 static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
     menu_numeric_toggle(priv, 1, 0, 1);
@@ -534,10 +461,11 @@ static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
             int mode  = 1; //disabled
             prop_request_change(PROP_MOVIE_SOUND_RECORD, &mode, 4);
             NotifyBox(2000,"Canon sound disabled");
-            audio_configure(1);
+            //~ audio_configure(1);
         }
     }
 }
+/*
 static void in_vol_toggle(void * priv, int delta)
 {   if (!hibr_should_record_wav()) return; //Yes it will work but cannon may overwrite.
 	int *input_volume = (int *)priv;
@@ -558,12 +486,12 @@ MENU_UPDATE_FUNC(input_vol_up)
 			MENU_SET_VALUE("%d dB", input_vol);
 		}
 }
-
+*/
 #endif
 
 MENU_UPDATE_FUNC(bit_rated)
 {
-if ( (!ivaparam || (autoload == 2 || ivaparam == 2)) && CURRENT_VALUE != 0)
+if ( (!config_loaded || config_disabled || override) && CURRENT_VALUE != 0)
 MENU_SET_ENABLED(1);
 else
 { MENU_SET_ENABLED(0);
@@ -574,7 +502,7 @@ else
 
 MENU_UPDATE_FUNC(init_qp_d)
 {
-if ( (!ivaparam || (autoload == 2 || ivaparam == 2)) && CURRENT_VALUE != 0)
+if ( (!config_loaded || (override || config_disabled)) && CURRENT_VALUE != 0)
 MENU_SET_ENABLED(1);
 else
 { MENU_SET_ENABLED(0);
@@ -612,12 +540,11 @@ static MENU_UPDATE_FUNC(bitrate_gop_size_update)
 
 
 static struct menu_entry mov_menus[] = {
-    /*
+    
    {     .name = "Encoder",
 		.select = menu_open_submenu,     
 		.help = "Change H.264 bitrate. Pick configs. Be careful, recording may stop!",
 		.submenu_width = 715,        
-//		.edit_mode = EM_MANY_VALUES,
         .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
     {
@@ -678,9 +605,6 @@ static struct menu_entry mov_menus[] = {
     },
     {
         .name = "Load Config",
-        //~ .priv = &bitrate,
-        //~ .min = 1,
-        //~ .max = 20,
         .select = load_h264_ini,
         .help = "Manual Load Config from selection"
     },
@@ -692,10 +616,10 @@ static struct menu_entry mov_menus[] = {
          .max = 3,
 		.update = ivaparam_d,        
 		.icon_type = IT_BOOL,		
-//		.choices = (const char *[]) {"No", "Yes", "Disable"},    
+		.choices = (const char *[]) {"Disable", "Check"},    
 		.help = "Config Loaded. Disabling may keep some of the parameters"
     },
-     */
+     
 
     {
         .name = "REC indicator",
@@ -717,7 +641,7 @@ static struct menu_entry wav_menus[] = {
                 .choices = (const char *[]) {"Normal", "Separate WAV"},
                 .help = "Record audio with WAV separately. Source will auto select.",
             },
-			{
+/*			{
                 .name = "Input Volume",
                 .priv = &input_vol,
 				.update = input_vol_up,
@@ -725,7 +649,7 @@ static struct menu_entry wav_menus[] = {
                 .min = 0,
                 .max = 63,
                 .help = "Record audio with WAV separately.",
-            },
+            },*/
 };
 #endif
 
@@ -746,13 +670,6 @@ void movie_indicators_show()
     {
         BMP_LOCK( time_indicator_show(); )
     }
-    else
-    {
-        BMP_LOCK(
-            free_space_show(); 
-            fps_show();
-        )
-    }
 }
 
 
@@ -770,15 +687,17 @@ bitrate_task( void* unused )
             measure_bitrate();
             
             BMP_LOCK( show_mvr_buffer_status(); )
+            movie_indicators_show();
+            
 			if ( (movie_elapsed_time_01s<200) && (movie_elapsed_time_01s>100) && 		
 					(measured_bitrate == 0) && (movie_bytes_written_32k == 0) )
 					//~ && (!fps_override) && (bitrate_flushing_rate == 3) )
 						{// ASSERT (0);
 							//call ("SHUTDOWN");
-							//call ("dumpf");
-					NotifyBox(2000,"Not writing! Check settings, rebooting!");
+							//~ call ("dumpf");
+					NotifyBox(2000,"Not writing! Check settings, reboot!");
 					msleep(1000);					
-					prop_request_change(PROP_REBOOT_MAYBE, 0, 4);
+					//~ prop_request_change(PROP_REBOOT_MAYBE, 0, 4);
 					//msleep(100000);
 					}
 
@@ -794,5 +713,15 @@ bitrate_task( void* unused )
     }
 }
 
-//~ TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
+TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
+
+#else /* dummy stubs, just to compile */
+PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+PROP_INT(PROP_FREE_SPACE, free_space_raw);
+int hibr_should_record_wav() { return 0; }
+int is_mvr_buffer_almost_full() { return 0; }
+void movie_indicators_show() {}
+void time_indicator_show() {}
+void bitrate_mvr_log(char* mvr_logfile_buffer) {}
+#endif

@@ -49,6 +49,15 @@
 #define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
 #define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
 #define CBR_VSYNC_SETPARAM            9 /* called from every LiveView frame; can change FRAME_ISO, FRAME_SHUTTER_TIMER, just like for HDR video */
+#define CBR_VSYNC_DISPLAY            10 /* can redirect display buffer */
+
+#define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
+#define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
+
+/* return values from CBRs */
+#define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
+#define CBR_RET_STOP                  1             /* stop calling other CBRs */
+#define CBR_RET_ERROR                 0xFFFFFFFF    /* something's wong */
 
 /* portable key codes. intentionally defines to make numbers hardcoded so changed order wont change the integer number */
 #define MODULE_KEY_PRESS_HALFSHUTTER       ( 1)
@@ -92,7 +101,7 @@
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 3
+#define MODULE_MAJOR 4
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
 #define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
@@ -273,6 +282,39 @@ int module_exec_cbr(unsigned int type);
 
 int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *));
 int module_unset_config_cbr();
+
+/* lookup a pointer in the list of config variables */
+struct config_var* module_config_var_lookup(int* ptr);
+
+struct module_symbol_entry
+{
+    const char * name;
+    void** address;
+};
+
+/* for module routines that may be called from core
+ *
+ * usage:
+ * static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_intervalometer_wait);
+ * (if that module is not available, it simply calls ret_0)
+ * 
+ * or, a little more advanced:
+ * static void(*foobar)(int, int) = MODULE_SYMBOL(do_foobar, default_function)
+ * 
+ * All module symbols are updated after modules are loaded.
+ */
+
+#define MODULE_SYMBOL(NAME, DEFAULT_ADDRESS) \
+(void*)(DEFAULT_ADDRESS); \
+static struct module_symbol_entry \
+__attribute__((section(".module_symbols"))) \
+__attribute__((used)) \
+module_symbol_##NAME = { \
+        .name           = #NAME, \
+        .address        = (void*)&NAME, \
+}     //.default_address = DEFAULT_ADDRESS, /* not used; can be useful for module unloading */
+
+#define MODULE_FUNCTION(name) MODULE_SYMBOL(name, ret_0)
 
 #ifdef MODULE
 #include "module_strings.h"

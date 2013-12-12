@@ -83,7 +83,7 @@ NSTUB( 0xFF1CAC38, FIO_CreateDirectory)
 NSTUB( 0xFF1CAA70, FIO_RenameFile )
 NSTUB( 0xFF1CB1F8, FIO_FindFirstEx )
 NSTUB( 0xFF1CB2EC, FIO_FindNextEx )
-NSTUB( 0xFF1CB3CC, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xFF1CB3CC, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0xFF06E61C, give_semaphore )
 NSTUB( 0xFF06E534, take_semaphore )
@@ -95,15 +95,20 @@ NSTUB( 0xff05afd0, prop_deliver )
 NSTUB( 0xff05b210, prop_get_value )
 NSTUB( 0xff05b178, _prop_cleanup )
 
+
+/** corectly named canon property reading functions **/
+NSTUB( 0xff05b210, PROP_GetMulticastProperty)
+NSTUB( 0xff05be34, PROPAD_GetPropertyData)
+
 NSTUB( 0xff061a68, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x3D7B0, bmp_vram_info )   // same as 60d 108
 NSTUB( 0x55500, vram_info )
 
-NSTUB( 0xff01891c, malloc )
-NSTUB( 0xff018974, free )
+NSTUB( 0xff01891c, _malloc )
+NSTUB( 0xff018974, _free )
 NSTUB( 0xff06f934, _AllocateMemory )
-NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
-NSTUB( 0xFF06FCC4, FreeMemory )
+//NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
+NSTUB( 0xFF06FCC4, _FreeMemory )
 
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
 NSTUB( 0xff067b68, LoadCalendarFromRTC )
@@ -123,8 +128,8 @@ NSTUB( 0xFF306208, gui_task_create )
 NSTUB( 0xFF306328, gui_task_destroy )
 NSTUB( 0xFF3060B8, ctrlman_dispatch_event )
 
-NSTUB( 0xFF1DE354, alloc_dma_memory )
-NSTUB( 0xFF1DE388, free_dma_memory )
+NSTUB( 0xFF1DE354, _alloc_dma_memory )
+NSTUB( 0xFF1DE388, _free_dma_memory )
 
 NSTUB( 0xFF4BB224, cfReadBlk )
 NSTUB( 0x350FC, cf_device )                // in cfReadBlk
@@ -150,6 +155,7 @@ NSTUB( 0x1CF8, gui_main_struct )      //  in gui_main_task. LDR     R0, [R4,#0x3
 NSTUB( 0xFF1D6AEC, msg_queue_receive )
 NSTUB( 0xFF1D6CD8, msg_queue_post ) // TryPostMessageQueue
 NSTUB( 0xFF072830, msg_queue_create ) // CreateMessageQueue
+NSTUB( 0xF81D6D18, msg_queue_count )
 
 NSTUB( 0xFF024500, GUI_Control )
 

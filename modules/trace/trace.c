@@ -3,6 +3,7 @@
 
 #include <module.h>
 #include <dryos.h>
+#include <bmp.h>
 
 #include "trace.h"
 
@@ -13,31 +14,44 @@ extern tsc_t get_us_clock_value();
 /* general selection of allocation method */
 void *trace_alloc(int size)
 {
-    return alloc_dma_memory(size);
+    return malloc(size);
 }
 
 void trace_free(void *data)
 {
-    free_dma_memory(data);
+    free(data);
 }
 
-static void trace_task(trace_entry_t *ctx)
+static void trace_task(volatile trace_entry_t *ctx)
 {
     char *write_buf = trace_alloc(ctx->buffer_size);
     ctx->task_state = TRACE_TASK_STATE_RUNNING;
 
-    while((ctx->task_state == TRACE_TASK_STATE_RUNNING) || (ctx->buffer_read_pos < ctx->buffer_write_pos))
+    while((ctx->task_state == TRACE_TASK_STATE_RUNNING) || (ctx->buffer_read_pos != ctx->buffer_write_pos))
     {
-        if(ctx->buffer_read_pos < ctx->buffer_write_pos)
+        /* when shutdown requested, try to save buffer */
+        if(ml_shutdown_requested)
         {
-            /* changed: get all data into write buffer */
-            int old_stat = cli();
-            unsigned int used = ctx->buffer_write_pos - ctx->buffer_read_pos;
+            ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
+        }
+        
+        if(ctx->buffer_read_pos != ctx->buffer_write_pos)
+        {
+            unsigned int used = 0;
+            unsigned int wr_pos = ctx->buffer_write_pos;
+            
+            if(wr_pos > ctx->buffer_read_pos)
+            {
+                used = wr_pos - ctx->buffer_read_pos;
+            }
+            else
+            {
+                used = ctx->buffer_size - ctx->buffer_read_pos;
+            }
             memcpy(write_buf, &ctx->buffer[ctx->buffer_read_pos], used);
           
-            ctx->buffer_read_pos = 0;
-            ctx->buffer_write_pos = 0;
-            sei(old_stat);
+            ctx->buffer_read_pos += used;
+            ctx->buffer_read_pos %= ctx->buffer_size;
 
             unsigned int total = 0;
             while(total < used)
@@ -62,7 +76,8 @@ static void trace_task(trace_entry_t *ctx)
         }
         else
         {
-            msleep(ctx->sleep_time);
+            uint32_t dummy = 0;
+            msg_queue_receive(ctx->queue, &dummy, ctx->sleep_time);
         }
     }
 
@@ -106,6 +121,7 @@ unsigned int trace_start(char *name, char *file_name)
     ctx->buffer_size = TRACE_BUFFER_SIZE;
     ctx->buffer_read_pos = 0;
     ctx->buffer_write_pos = 0;
+    ctx->buffer_written = 0;
     ctx->max_entries = 1000000;
     ctx->cur_entries = 0;
 
@@ -114,9 +130,10 @@ unsigned int trace_start(char *name, char *file_name)
     strncpy(ctx->file_name, file_name, sizeof(ctx->file_name));
 
     /* start worker task */
+    ctx->queue = msg_queue_create("trace_wake", 1);
     ctx->task_state = TRACE_TASK_STATE_DEAD;
     ctx->task = (unsigned int)task_create("trace_task", 0x18, 0x1000, &trace_task, (void *)ctx);
-
+    
     /* create trace file */
     FIO_RemoveFile(ctx->file_name);
     ctx->file_handle = FIO_CreateFileEx(ctx->file_name);
@@ -212,6 +229,35 @@ unsigned int trace_format(unsigned int context, unsigned int format, unsigned ch
     return TRACE_OK;
 }
 
+unsigned int trace_set_flushrate(unsigned int context, unsigned int timeout)
+{
+    trace_entry_t *ctx = &trace_contexts[context];
+
+    if(context >= TRACE_MAX_CONTEXT || !ctx->used)
+    {
+        return TRACE_ERROR;
+    }
+
+    ctx->sleep_time = timeout;
+
+    return TRACE_OK;
+}
+
+unsigned int trace_flush(unsigned int context)
+{
+    trace_entry_t *ctx = &trace_contexts[context];
+
+    if(context >= TRACE_MAX_CONTEXT || !ctx->used)
+    {
+        return TRACE_ERROR;
+    }
+
+    msg_queue_post(ctx->queue, ctx);
+    
+    return TRACE_OK;
+}
+
+
 static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t tsc, char *timestamp, int *timestamp_pos)
 {
     int pos = *timestamp_pos;
@@ -262,8 +308,7 @@ static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t ts
 
 unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list ap)
 {
-    char timestamp[64];
-    int timestamp_pos = 0;
+    int linebuffer_pos = 0;
     trace_entry_t *ctx = &trace_contexts[context];
 
     /* make sure ctx is valid, this ctx is used and the writer thread is running */
@@ -273,101 +318,138 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     }
     
     /* build timestamp string */
-    timestamp_pos = 0;
-    timestamp[timestamp_pos] = 0;
+    int max_len = TRACE_MAX_LINE_LENGTH;
+    char *linebuffer = malloc(max_len);
+    linebuffer[linebuffer_pos] = 0;
     
     if(ctx->format & TRACE_FMT_COMMENT)
     {
-        timestamp[timestamp_pos++] = '/';
-        timestamp[timestamp_pos++] = '*';
-        timestamp[timestamp_pos++] = ' ';
-        timestamp[timestamp_pos] = '\000';
+        linebuffer[linebuffer_pos++] = '/';
+        linebuffer[linebuffer_pos++] = '*';
+        linebuffer[linebuffer_pos++] = ' ';
+        linebuffer[linebuffer_pos] = '\000';
     }  
     if(ctx->format & TRACE_FMT_TIME_CTR)
     {
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, tsc, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, tsc, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_CTR_REL)
     {
         tsc_t delta = tsc - ctx->start_tsc;
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_CTR_DELTA)
     {
         tsc_t delta = tsc - ctx->last_tsc;
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_ABS)
     {
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, tsc, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, tsc, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_REL)
     {
         tsc_t delta = tsc - ctx->start_tsc;
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_DELTA)
     {
         tsc_t delta = tsc - ctx->last_tsc;
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_DATE)
     {
-        trace_write_timestamp(ctx, TRACE_FMT_TIME_DATE, tsc, timestamp, &timestamp_pos);
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_DATE, tsc, linebuffer, &linebuffer_pos);
     }
     if(ctx->format & TRACE_FMT_COMMENT)
     {
-        timestamp[timestamp_pos++] = ' ';
-        timestamp[timestamp_pos++] = '*';
-        timestamp[timestamp_pos++] = '/';
-        timestamp[timestamp_pos++] = ' ';
-        timestamp[timestamp_pos] = '\000';
+        linebuffer[linebuffer_pos++] = ' ';
+        linebuffer[linebuffer_pos++] = '*';
+        linebuffer[linebuffer_pos++] = '/';
+        linebuffer[linebuffer_pos++] = ' ';
+        linebuffer[linebuffer_pos] = '\000';
     }  
 
     /* update last tsc */
     ctx->last_tsc = tsc;
     
-    /* get the minimum length that is needed. string may get longer, but we cannot predict that */
-    int min_len = (string?strlen(string):0) + timestamp_pos + 1;
-
-    /* yes, we are disabling interrupts here. this is quite bad - should we use a per-context vsprintf-buffer? */
-    int old_stat = cli();
-
-    /* check if the buffer has enough space */
-    if((ctx->buffer_write_pos + min_len) >= ctx->buffer_size)
-    {
-        /* abort trace as data will be lost */
-        ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
-        sei(old_stat);
-        return TRACE_ERROR;
-    }
-
-    int max_len = ctx->buffer_size - ctx->buffer_write_pos;
-
-    memcpy(&ctx->buffer[ctx->buffer_write_pos], timestamp, timestamp_pos);
+    /* now fill that into the line buffer */
     int len = 0;
     
     if(string)
     {
-        len = vsnprintf(&ctx->buffer[ctx->buffer_write_pos + timestamp_pos], max_len - timestamp_pos, string, ap);
+        len = vsnprintf(&linebuffer[linebuffer_pos], max_len - linebuffer_pos, string, ap);
     }
+    
+    if(len > 0)
+    {
+        linebuffer_pos += len;
+    }
+    
+    /* attach a newline */
+    linebuffer[linebuffer_pos++] = '\n';
+    
+    /* check and reserve memory in ringbuffer - use interrupt disabling as mutex */
+    uint32_t old_int = cli();
+    uint32_t read_pos = ctx->buffer_read_pos;
+    uint32_t write_pos = ctx->buffer_write_pos;
+    uint32_t available = 0;
 
-    /* buffer filled until the end. seems the string was too long */
-    if(len >= max_len - timestamp_pos)
+    /*  */
+    if(write_pos > read_pos)
+    {
+        available = ctx->buffer_size - (write_pos - read_pos) - 1;
+    }
+    else
+    {
+        available = read_pos - write_pos - 1;
+    }
+    
+    if(linebuffer_pos < available)
+    {
+        ctx->buffer_write_pos += linebuffer_pos;
+        ctx->buffer_write_pos %= ctx->buffer_size;
+        ctx->buffer_written += linebuffer_pos;
+    }
+    
+    sei(old_int);
+
+    /* seems the string was too long */
+    if(linebuffer_pos > available)
     {
         /* abort trace as data will be lost */
         ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
-        sei(old_stat);
+        free(linebuffer);
         return TRACE_ERROR;
     }
 
-    /* attach a newline */
-    ctx->buffer[ctx->buffer_write_pos + timestamp_pos + len] = '\n';
 
     /* successful, commit the buffer content */
-    ctx->buffer_write_pos += (len + timestamp_pos + 1);
-
-    sei(old_stat);
+    uint32_t commit_size = 0;
+    
+    if(write_pos > read_pos)
+    {
+        commit_size = ctx->buffer_size - write_pos;
+    }
+    else
+    {
+        commit_size = read_pos - write_pos - 1;
+    }
+    commit_size = MIN(linebuffer_pos,commit_size);
+    
+    memcpy(&ctx->buffer[write_pos], linebuffer, commit_size);
+    
+    if(commit_size < linebuffer_pos)
+    {
+        memcpy(ctx->buffer, &linebuffer[commit_size], linebuffer_pos - commit_size);
+    }
+    
+    /* wake up writer if buffer is getting full */
+    if(ctx->buffer_written > ctx->buffer_size / 2)
+    {
+        ctx->buffer_written = 0;
+        msg_queue_post(ctx->queue, ctx);
+    }
     
     /* reached the maximum allowed number of entries? */
     ctx->cur_entries++;
@@ -375,8 +457,10 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     {
         /* finish trace */
         ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
+        msg_queue_post(ctx->queue, ctx);
     }
 
+    free(linebuffer);
     return TRACE_OK;
 }
 
@@ -527,10 +611,4 @@ MODULE_INFO_START()
     MODULE_INIT(trace_init)
     MODULE_DEINIT(trace_deinit)
 MODULE_INFO_END()
-
-MODULE_STRINGS_START()
-    MODULE_STRING("Description", "Trace library")
-    MODULE_STRING("License", "GPLv2")
-    MODULE_STRING("Author", "g3gg0")
-MODULE_STRINGS_END()
 

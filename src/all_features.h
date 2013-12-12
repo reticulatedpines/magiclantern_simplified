@@ -37,8 +37,8 @@
 
     #define FEATURE_AUDIO_METERS
     #define FEATURE_BEEP
-    #define FEATURE_WAV_RECORDING
-    #define FEATURE_VOICE_TAGS
+    //~ #define FEATURE_WAV_RECORDING
+    //~ #define FEATURE_VOICE_TAGS
 
 /** Expo menu **/
 
@@ -119,7 +119,7 @@
 
     #define FEATURE_FPS_OVERRIDE
     #define FEATURE_FPS_RAMPING
-    #define FEATURE_FPS_WAV_RECORD
+    //~ #define FEATURE_FPS_WAV_RECORD
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     #define FEATURE_HDR_VIDEO
@@ -151,17 +151,19 @@
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_FOCUS_RAMPING
     #define FEATURE_BULB_TIMER
+    #define FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC   /* previous picture during exposure */
 #endif
 
 #ifdef CONFIG_LCD_SENSOR
     #define FEATURE_LCD_SENSOR_REMOTE
     #define FEATURE_LCD_SENSOR_SHORTCUTS
 #endif
-    #define FEATURE_AUDIO_REMOTE_SHOT
+
+#ifdef CONFIG_AUDIO_CONTROLS
+    #define FEATURE_AUDIO_REMOTE_SHOT   /* requires audio controls, otherwise there's no sound in photo mode */
+#endif
+
     #define FEATURE_MOTION_DETECT
-    #define FEATURE_SILENT_PIC
-    //~ #define FEATURE_SILENT_PIC_HIRES
-    //~ #define FEATURE_SILENT_PIC_JPG // bleeding edge
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_MLU
@@ -181,11 +183,6 @@
     #define FEATURE_SNAP_SIM
 
 
-#ifdef CONFIG_RAW_LIVEVIEW
-    #define FEATURE_SILENT_PIC_RAW_BURST
-    //~ #define FEATURE_SILENT_PIC_RAW // - compatibility mode; define only one of those, not both
-#endif
-
 #ifdef CONFIG_RAW_PHOTO
     #define FEATURE_POST_DEFLICKER
 #endif
@@ -200,8 +197,6 @@
     #define FEATURE_AF_PATTERNS
     //~ #define FEATURE_MOVIE_AF // not reliable
 #endif
-
-    //~ FEATURE_AFMA_TUNING
 
 /** Display menu **/
     #define FEATURE_DIGIC_FOCUS_PEAKING
@@ -252,6 +247,7 @@
 #ifdef CONFIG_Q_MENU_PLAYBACK
     #define FEATURE_LV_BUTTON_PROTECT
     #define FEATURE_LV_BUTTON_RATE
+    #define FEATURE_LV_BUTTON_RATE_UPDOWN // disable to use up/down in play mode otherwise
 #endif
     #define FEATURE_QUICK_ERASE
 
@@ -272,7 +268,6 @@
 
     #define FEATURE_STICKY_DOF
     #define FEATURE_STICKY_HALFSHUTTER
-    //~ #define FEATURE_AUTO_BURST_PICQ // rebels only
 
 #endif
     //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only

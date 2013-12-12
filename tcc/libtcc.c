@@ -196,13 +196,9 @@ PUB_FUNC char *tcc_fileextension (const char *name)
 #undef malloc
 #undef realloc
 
-/*
-#define malloc(len)         memcheck_malloc(len,__FILE__,__LINE__,1)
-#define free(buf)           memcheck_free(buf,1)
-
-#define AllocateMemory(len) memcheck_malloc(len,__FILE__,__LINE__,0)
-#define FreeMemory(buf)     memcheck_free(buf,0)
-*/
+/* redirect memory allocation calls */
+#define AllocateMemory(len)         (void*)__mem_malloc(len, 0, __FILE__, __LINE__)
+#define FreeMemory(buf)           __mem_free(buf)
 
 #ifdef MEM_DEBUG
 ST_DATA int mem_cur_size;
@@ -698,8 +694,10 @@ LIBTCCAPI TCCState *tcc_new(void)
     //~ define_push(TOK___TIME__, MACRO_OBJ, NULL, NULL);
 
     /* define __TINYC__ 92X  */
-    sscanf(TCC_VERSION, "%d.%d.%d", &a, &b, &c);
-    sprintf(buffer, "%d", a*10000 + b*100 + c);
+    //~ sscanf(TCC_VERSION, "%d.%d.%d", &a, &b, &c);
+    /* #define TCC_VERSION "0.9.26" */
+    a=0; b=9; c=26;
+    snprintf(buffer, sizeof(buffer), "%d", a*10000 + b*100 + c);
     tcc_define_symbol(s, "__TINYC__", buffer);
 
     /* standard defines */

@@ -61,7 +61,7 @@ NSTUB(0xff309a40, _FIO_RemoveFile)
 NSTUB(0xff30a594, _FIO_CreateDirectory)
 NSTUB(0xff30ab5c, _FIO_FindFirstEx)
 NSTUB(0xff30ac50,  FIO_FindNextEx)
-NSTUB(0xff30ad30,  FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
+NSTUB(0xff30ad30,  FIO_FindClose) // proper name: FindClose
 
 /** Bitmap **/
 NSTUB(   0x42d7c, bmp_vram_info )                 // look in SetBitmapVramAddress - as in 60D
@@ -90,6 +90,7 @@ NSTUB(0xff9f3a14 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_
 NSTUB(0xff9eb104 - RAM_OFFSET, msg_queue_create)
 NSTUB(0xff9f37b4 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xff9f35c8 - RAM_OFFSET, msg_queue_receive)
+NSTUB(0xff9f37f4 - RAM_OFFSET, msg_queue_count)
 
 /** Tasks **/
 NSTUB(0xff9e7a58 - RAM_OFFSET, task_create)
@@ -143,13 +144,17 @@ NSTUB(0xff123bbc, prop_deliver)
 NSTUB(0xff123600, _prop_request_change)
 NSTUB(0xff123de4, _prop_get_value) // unsafe
 
+/** corectly named canon property reading functions **/
+NSTUB(0xFF123DE4, PROP_GetMulticastProperty)
+NSTUB(0xFF12523C, PROPAD_GetPropertyData)
+
 /** Memory allocation **/
-NSTUB(0xff0c80ec, malloc)
-NSTUB(0xFF0C8144, free) // see "can't malloc"
-NSTUB(0xff9e88e8 - RAM_OFFSET, AllocateMemory)
-NSTUB(0xff9e8c84 - RAM_OFFSET, FreeMemory)
-NSTUB(0xff9f6ee4 - RAM_OFFSET, alloc_dma_memory)
-NSTUB(0xff9f6f18 - RAM_OFFSET, free_dma_memory)
+NSTUB(0xff0c80ec, _malloc)
+NSTUB(0xFF0C8144, _free) // see "can't malloc"
+NSTUB(0xff9e88e8 - RAM_OFFSET, _AllocateMemory)
+NSTUB(0xff9e8c84 - RAM_OFFSET, _FreeMemory)
+NSTUB(0xff9f6ee4 - RAM_OFFSET, _alloc_dma_memory)
+NSTUB(0xff9f6f18 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF9E8688 - RAM_OFFSET, GetMemoryInformation)
 
 /** ExMem **/

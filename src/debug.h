@@ -110,7 +110,9 @@ debug_init( void );
 
 void debug_init_stuff( void );
 
-void request_crash_log(int type); 
+void request_crash_log(int type);
+
+char* get_config_preset_name(void);
 
 #define DEBUG_LOG_THIS(x) {     \
 dm_set_print_level(255,0); dm_set_store_level(255,0); \

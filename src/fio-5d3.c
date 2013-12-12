@@ -56,7 +56,7 @@ static void card_test(int type)
             bmp_fill(COLOR_BLACK, 0, 0, 400, 38);
             char msg[50];
             snprintf(msg, sizeof(msg), "%s card test (%d%%)...", type ? "SD" : "CF", i+1);
-            bfnt_puts(msg, 0, 0, COLOR_WHITE, COLOR_BLACK);
+            bmp_printf(FONT_CANON, 0, 0, msg);
             int r = FIO_WriteFile(f, (void*)YUV422_LV_BUFFER_1, 1025);
             if (r != 1025) { fail = 1; break; }
         }
@@ -72,14 +72,14 @@ static void card_test(int type)
                 bmp_fill(COLOR_BLACK, 0, 0, 550, 80);
                 if (warning_enabling_workaround)
                 {
-                    bfnt_puts("CF test fail, enabling workaround.", 0, 0, COLOR_WHITE, COLOR_BLACK);
-                    bfnt_puts("Restart the camera and try again.", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                    bmp_printf(FONT_CANON, 0,  0, "CF test fail, enabling workaround.");
+                    bmp_printf(FONT_CANON, 0, 40, "Restart the camera and try again.");
                     cf_card_workaround = 1;
                 }
                 else
                 {
-                    bfnt_puts(type ? "SD card test failed!" : "CF card test failed!", 0, 0, COLOR_WHITE, COLOR_BLACK);
-                    bfnt_puts("Do not use this card on 5D3!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                    bmp_printf(FONT_CANON, 0, 0, type ? "SD card test failed!" : "CF card test failed!");
+                    bmp_printf(FONT_CANON, 0, 40, "Do not use this card on 5D3!");
                 }
                 beep();
                 info_led_blink(1, 1000, 1000);
@@ -141,7 +141,7 @@ void find_ml_card()
         clrscr();
         for (int i = 0; i < 5; i++)
         {
-            bfnt_puts("ML is on both cards, format one of them!", 0, 0, COLOR_WHITE, COLOR_BLACK);
+            bmp_printf(FONT_CANON, 0, 0, "ML is on both cards, format one of them!");
             msleep(1000);
             beep();
         }
@@ -152,7 +152,7 @@ void find_ml_card()
         clrscr();
         for (int i = 0; i < 5; i++)
         {
-            bfnt_puts("Could not find ML files.", 0, 0, COLOR_WHITE, COLOR_BLACK);
+            bmp_printf(FONT_CANON, 0, 0, "Could not find ML files.");
             msleep(1000);
             beep();
         }

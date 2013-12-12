@@ -16,7 +16,7 @@
 
 /* unloads TCC after linking the modules */
 /* note: this breaks module_exec and ETTR */
-//~ #define CONFIG_TCC_UNLOAD
+#define CONFIG_TCC_UNLOAD
 
 extern int sscanf(const char *str, const char *format, ...);
 
@@ -35,7 +35,8 @@ static TCCState *module_state = NULL;
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
-CONFIG_INT("module.autoload", module_autoload_enabled, 1);
+CONFIG_INT("module.autoload", module_autoload_disabled, 0);
+#define module_autoload_enabled (!module_autoload_disabled)
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -43,6 +44,8 @@ char *module_lockfile = MODULE_PATH"LOADING.LCK";
 static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
 #define MSG_MODULE_UNLOAD_ALL 2
+#define MSG_MODULE_LOAD_OFFLINE_STRINGS 3 /* argument: module index in high half (FFFF0000) */
+#define MSG_MODULE_UNLOAD_OFFLINE_STRINGS 4 /* same argument */
 
 void module_load_all(void)
 { 
@@ -117,7 +120,8 @@ static int module_load_symbols(TCCState *s, char *filename)
         {
             pos++;
         }
-        sscanf(address_buf, "%x", &address);
+        //~ sscanf(address_buf, "%x", &address);
+        address = strtoul(address_buf, NULL, 16);
 
         tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;
@@ -134,8 +138,8 @@ static int module_load_symbols(TCCState *s, char *filename)
     tcc_add_symbol(s, "longjmp", &longjmp);
     tcc_add_symbol(s, "strcpy", &strcpy);
     tcc_add_symbol(s, "setjmp", &setjmp);
-    tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
-    tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
+    //~ tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
+    //~ tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
     tcc_add_symbol(s, "vsnprintf", &vsnprintf);
     tcc_add_symbol(s, "strlen", &strlen);
     tcc_add_symbol(s, "memcpy", &memcpy);
@@ -153,6 +157,31 @@ static int module_valid_filename(char* filename)
     if ((n > 3) && (streq(filename + n - 3, ".MO") || streq(filename + n - 3, ".mo")) && (filename[0] != '.') && (filename[0] != '_'))
         return 1;
     return 0;
+}
+
+/* must be called before unloading TCC */
+static void module_update_core_symbols(TCCState* state)
+{
+    console_printf("Updating symbols...\n");
+
+    extern struct module_symbol_entry _module_symbols_start[];
+    extern struct module_symbol_entry _module_symbols_end[];
+    struct module_symbol_entry * module_symbol_entry = _module_symbols_start;
+
+    for( ; module_symbol_entry < _module_symbols_end ; module_symbol_entry++ )
+    {
+        void* old_address = *(module_symbol_entry->address);
+        void* new_address = (void*) tcc_get_symbol(state, (char*) module_symbol_entry->name);
+        if (new_address)
+        {
+            *(module_symbol_entry->address) = new_address;
+            console_printf("  [i] upd %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+        }
+        else
+        {
+            console_printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
+        }
+    }
 }
 
 static void _module_load_all(uint32_t list_only)
@@ -185,7 +214,7 @@ static void _module_load_all(uint32_t list_only)
     if(module_load_symbols(state, MAGIC_SYMBOLS) < 0)
     {
         NotifyBox(2000, "Missing symbol file: " MAGIC_SYMBOLS );
-        tcc_delete(state);
+        tcc_delete(state); console_show();
         return;
     }
 
@@ -194,7 +223,7 @@ static void _module_load_all(uint32_t list_only)
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "Module dir missing" );
-        tcc_delete(state);
+        tcc_delete(state); console_show();
         return;
     }
 
@@ -232,9 +261,9 @@ static void _module_load_all(uint32_t list_only)
             }
             strncpy(module_list[module_cnt].name, module_name, sizeof(module_list[module_cnt].name));
             
-            /* check for a .dis file that tells the module is disabled */
+            /* check for a .en file that tells the module is enabled */
             char enable_file[MODULE_FILENAME_LENGTH];
-            snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[module_cnt].name);
+            snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[module_cnt].name);
             
             /* if enable-file is nonexistent, dont load module */
             if(!config_flag_file_setting_load(enable_file))
@@ -268,7 +297,7 @@ static void _module_load_all(uint32_t list_only)
             }
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     
     /* sort modules */
     for (int i = 0; i < (int) module_cnt-1; i++)
@@ -324,31 +353,9 @@ static void _module_load_all(uint32_t list_only)
     
     if (size > 0)
     {
-        /* TCC allocates up to 2x the memory needed (e.g. raw_rec: uses ~17K but TCC reserves 34) */
-        /* raw_rec + file_man + pic_view + ettr: used 37.2K, allocated 74.4K */
-        /** tccrun.c:
-         * / * double the size of the buffer for got and plt entries
-         *  XXX: calculate exact size for them? * /
-         *  offset *= 2;
-         */
-        /* but we can recover it; the space will add up when loading large and/or many modules */
-
-        size = ALIGN32SUP(size);
         void* buf = (void*) tcc_malloc(size);
         
-        /* mark the allocated space, so we know how much it was actually used */
-        for (uint32_t* p = buf; p < buf + size; p++)
-            *p = 0x12345678;
-
         reloc_status = tcc_relocate(state, buf);
-        
-        /* recover unused space */
-        uint32_t* end = buf + size - 4;
-        while ((void*)end > buf && *end == 0x12345678) end--;
-        end++;
-        int new_size = (void*)end - buf;
-        buf = (void*)tcc_realloc(buf, new_size);
-        console_printf("Memory: before %dK, after %dK\n", size/1024, new_size/1024);
 
         /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
         clean_d_cache();
@@ -371,7 +378,7 @@ static void _module_load_all(uint32_t list_only)
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Linking failed");
             }
         }
-        tcc_delete(state);
+        tcc_delete(state); console_show();
         return;
     }
     
@@ -442,7 +449,7 @@ static void _module_load_all(uint32_t list_only)
         if(module_list[mod].enabled && module_list[mod].valid && !module_list[mod].error)
         {
             char filename[64];
-            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+            snprintf(filename, sizeof(filename), "%s%s.cfg", get_config_dir(), module_list[mod].name);
             module_config_load(filename, &module_list[mod]);
         }
     }
@@ -513,6 +520,8 @@ static void _module_load_all(uint32_t list_only)
     {
         prop_update_registration();
     }
+
+    module_update_core_symbols(state);
     
     #ifdef CONFIG_TCC_UNLOAD
     tcc_delete(state);
@@ -612,7 +621,6 @@ unsigned int module_get_symbol(void *module, char *symbol)
     return (int) tcc_get_symbol(state, symbol);
 }
 
-
 int module_exec(void *module, char *symbol, int count, ...)
 {
     int ret = -1;
@@ -705,14 +713,19 @@ int FAST module_exec_cbr(unsigned int type)
             {
                 if(cbr->type == type)
                 {
-                    cbr->handler(cbr->ctx);
+                    int ret = cbr->handler(cbr->ctx);
+                    
+                    if (ret != CBR_RET_CONTINUE)
+                    {
+                        return ret;
+                    }
                 }
                 cbr++;
             }
         }
     }
     
-    return 0;
+    return CBR_RET_CONTINUE;
 }
 
 /* translate camera specific key to portable module key */
@@ -821,10 +834,8 @@ int FAST module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
-int module_translate_event(struct event* event, int dest)
+int module_translate_key(int key, int dest)
 {
-    int key = event->param;
-
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             , dest);
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           , dest);
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           , dest);
@@ -857,12 +868,20 @@ int module_translate_event(struct event* event, int dest)
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    , dest);
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  , dest);
-    MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
-    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
+    /* these are not simple key codes, so they will not work with MODULE_TRANSLATE_KEY */
+    //~ MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
+    //~ MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
     
     return 0;
 }
 #undef MODULE_TRANSLATE_KEY
+
+int module_send_keypress(int module_key)
+{
+    int key = module_translate_key(module_key, MODULE_KEY_CANON);
+    fake_simple_button(key);
+    return 0;
+}
 
 int handle_module_keys(struct event * event)
 {
@@ -876,7 +895,7 @@ int handle_module_keys(struct event * event)
                 if(cbr->type == CBR_KEYPRESS)
                 {
                     /* key got handled? */
-                    if(!cbr->handler(module_translate_event(event, MODULE_KEY_PORTABLE)))
+                    if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
                     {
                         return 0;
                     }
@@ -955,7 +974,7 @@ static MENU_SELECT_FUNC(module_menu_update_select)
     int mod_number = (int) priv;
     
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
-    snprintf(enable_file, sizeof(enable_file), MODULE_PATH"%s.en", module_list[mod_number].name);
+    snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[mod_number].name);
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
 
@@ -967,7 +986,7 @@ static void* module_get_section_offline(char* filename, char* section_name)
     /* uses a little memory while loading, but can be probably optimized */
     TCCState *state = tcc_new();
     tcc_add_file(state, filename);
-    int size;
+    int size = 0;
     void* buf = 0;
     void* section = (void*) tcc_get_section_ptr(state, section_name, &size);
     if (size)
@@ -988,13 +1007,14 @@ static int startswith(const char* str, const char* prefix)
     return 1;
 }
 
+/* used if we don't have any module strings */
+static module_strpair_t module_default_strings [] = {
+    {0, 0}
+};
+
 static MENU_UPDATE_FUNC(module_menu_update_entry)
 {
     int mod_number = (int) entry->priv;
-
-    static module_strpair_t default_strings [] = {
-        {0, 0}
-    };
 
     if(module_list[mod_number].valid)
     {
@@ -1045,7 +1065,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             MENU_SET_ICON(MNI_OFF, 0);
             MENU_SET_ENABLED(1);
             MENU_SET_VALUE(module_list[mod_number].status);
-            if (module_list[mod_number].strings && module_list[mod_number].strings != default_strings)
+            if (module_list[mod_number].strings && module_list[mod_number].strings != module_default_strings)
             {
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s. Press %s for more info.", module_list[mod_number].long_status, Q_BTN_NAME);
             }
@@ -1079,37 +1099,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
             char* fn = module_list[mod_number].long_filename;
             if (fn)
             {
-                /* default value, if it won't work */
-                module_list[mod_number].strings = default_strings;
-                
-                module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
-
-                if (strings)
-                {
-                    int looks_ok = 1;
-                    
-                    /* relocate strings from the unprocessed elf section */
-                    /* question: is the string structure always at the very beginning of the section? */
-                    for (module_strpair_t * str = strings; str->name != NULL; str++)
-                    {
-                        if ((intptr_t)str->name < 10000) /* does it look like a non-relocated pointer? */
-                        {
-                            str->name = (void*) str->name + (intptr_t) strings;
-                            str->value = (void*) str->value + (intptr_t) strings;
-                        }
-                        else
-                        {
-                            looks_ok = 0;
-                            break;
-                        }
-                    }
-                    
-                    if (looks_ok)
-                    {
-                        /* use as module strings */
-                        module_list[mod_number].strings = strings;
-                    }
-                }
+                msg_queue_post(module_mq, MSG_MODULE_LOAD_OFFLINE_STRINGS | (mod_number << 16));
             }
         }
     }
@@ -1120,12 +1110,11 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         if (
                 !module_list[mod_number].valid &&
                 module_list[mod_number].strings && 
-                module_list[mod_number].strings != default_strings
+                module_list[mod_number].strings != module_default_strings
             )
         {
             /* module strings loaded from elf, module not loaded, clean them up */
-            FreeMemory(module_list[mod_number].strings);
-            module_list[mod_number].strings = 0;
+            msg_queue_post(module_mq, MSG_MODULE_UNLOAD_OFFLINE_STRINGS | (mod_number << 16));
         }
     }
 
@@ -1142,12 +1131,12 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
         if (module_list[mod_number].valid == module_list[mod_number].enabled)
         {
             const char* name = module_get_string(mod_number, "Name");
-            if (name && !startswith(info->name, name))
+            if (name)
             {
                 int fg = COLOR_GRAY(40);
                 int bg = COLOR_BLACK;
-                int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
-                bmp_printf(fnt, 680 - strlen(name)*font_med.width, info->y+5, name);
+                int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, bg));
+                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(320), 680, info->y+2, "%s", name);
             }
         }
     }
@@ -1232,6 +1221,7 @@ static int module_is_special_string(const char* name)
             streq(name, "Build date") ||
             streq(name, "Last update") ||
             streq(name, "Summary") ||
+            streq(name, "Forum") ||
             startswith(name, "Help page") ||
         0)
             return 1;
@@ -1270,13 +1260,16 @@ static int module_show_about_page(int mod_number)
             int fnt_special = FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK);
 
             bmp_printf(FONT_LARGE, 10, 10, "%s", name);
-            big_bmp_printf(FONT_MED, 10, 60, "%s", desc);
+            big_bmp_printf(FONT_MED | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(690), 10, 60, "%s", desc);
 
             int xm = 710 - max_width_value * font_med.width;
             int xl = 710 - max_width * font_med.width;
             xm = xm - xl + 10;
             xl = 10;
-            int yr = 480 - (num_extra_strings + 2) * font_med.height;
+            
+            int lines_for_update_msg = strchr(module_last_update, '\n') ? 3 : 2;
+
+            int yr = 480 - (num_extra_strings + lines_for_update_msg) * font_med.height;
 
             for (strings = module_list[mod_number].strings ; strings->name != NULL; strings++)
             {
@@ -1295,7 +1288,7 @@ static int module_show_about_page(int mod_number)
             
             if (module_last_update)
             {
-                bmp_printf(fnt_special, 10, 480-font_med.height*2, "Last update: %s", module_last_update);
+                bmp_printf(fnt_special, 10, 480-font_med.height * lines_for_update_msg, "Last update: %s", module_last_update);
             }
             
             return 1;
@@ -1339,13 +1332,20 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
             y += font_med.height;
             for ( ; strings->name != NULL; strings++)
             {
-                if (strchr(strings->name, '\n'))
+                if (strchr(strings->value, '\n'))
                 {
                     continue; /* don't display multiline strings here */
                 }
                 
+                int is_short_string = strlen(strings->value) * font_med.width + x_val < 710;
+                
+                if (module_is_special_string(strings->name) && !is_short_string)
+                {
+                    continue; /* don't display long strings that are already shown on the info page */
+                }
+                
                 bmp_printf(FONT_MED, x, y, "%s", strings->name);
-                if (strlen(strings->value) * font_med.width + x_val < 710)
+                if (is_short_string)
                 {
                     /* short string */
                     bmp_printf(FONT_MED, x_val, y, "%s", strings->value);
@@ -1507,7 +1507,7 @@ static struct menu_entry module_menu[] = {
 
 static struct menu_entry module_debug_menu[] = {
     {
-        .name = "Module debug",
+        .name = "Modules debug",
         .select = menu_open_submenu,
         .submenu_width = 710,
         .help = "Diagnostic options for modules.",
@@ -1528,17 +1528,15 @@ static struct menu_entry module_debug_menu[] = {
             #endif
             {
                  .name = "Disable all modules",
-                 .priv = &module_autoload_enabled,
+                 .priv = &module_autoload_disabled,
                  .max = 1,
-                 .choices = CHOICES("ON", "OFF"),
                  .help = "For troubleshooting.",
             },
             {
-                .name = "Alert unclean shutdown",
+                .name = "Load modules after crash",
                 .priv = &module_ignore_crashes,
                 .max = 1,
-                .choices = CHOICES("ON", "OFF"),
-                .help = "Do not load modules after camera crashed.",
+                .help = "Load modules even after camera crashed and you took battery out.",
             },
             {
                 .name = "Show console",
@@ -1577,7 +1575,55 @@ static void module_init()
     module_menu_update();
 }
 
-void module_load_task(void* unused) 
+static void module_load_offline_strings(int mod_number)
+{
+    if (!module_list[mod_number].strings)
+    {
+        /* default value, if it won't work */
+        module_list[mod_number].strings = module_default_strings;
+        
+        char* fn = module_list[mod_number].long_filename;
+        module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
+
+        if (strings)
+        {
+            int looks_ok = 1;
+            
+            /* relocate strings from the unprocessed elf section */
+            /* question: is the string structure always at the very beginning of the section? */
+            for (module_strpair_t * str = strings; str->name != NULL; str++)
+            {
+                if ((intptr_t)str->name < 10000) /* does it look like a non-relocated pointer? */
+                {
+                    str->name = (void*) str->name + (intptr_t) strings;
+                    str->value = (void*) str->value + (intptr_t) strings;
+                }
+                else
+                {
+                    looks_ok = 0;
+                    break;
+                }
+            }
+            
+            if (looks_ok)
+            {
+                /* use as module strings */
+                module_list[mod_number].strings = strings;
+            }
+        }
+    }
+}
+
+static void module_unload_offline_strings(int mod_number)
+{
+    if (module_list[mod_number].strings)
+    {
+        FreeMemory(module_list[mod_number].strings);
+        module_list[mod_number].strings = 0;
+    }
+}
+
+static void module_load_task(void* unused) 
 {
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
 
@@ -1615,7 +1661,7 @@ void module_load_task(void* unused)
         int err = msg_queue_receive(module_mq, (struct event**)&msg, 200);
         if (err) continue;
         
-        switch(msg)
+        switch(msg & 0xFFFF)
         {
             case MSG_MODULE_LOAD_ALL:
                 _module_load_all(0);
@@ -1629,13 +1675,27 @@ void module_load_task(void* unused)
                 beep();
                 break;
             
+            case MSG_MODULE_LOAD_OFFLINE_STRINGS:
+            {
+                int mod_number = msg >> 16;
+                module_load_offline_strings(mod_number);
+                break;
+            }
+            
+            case MSG_MODULE_UNLOAD_OFFLINE_STRINGS:
+            {
+                int mod_number = msg >> 16;
+                module_unload_offline_strings(mod_number);
+                break;
+            }
+            
             default:
                 console_printf("invalid msg: %d\n", msg);
         }
     }
 }
 
-static void module_save_configs()
+void module_save_configs()
 {
     /* save configuration */
     console_printf("Save configs...\n");
@@ -1645,7 +1705,7 @@ static void module_save_configs()
         {
             /* save config */
             char filename[64];
-            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+            snprintf(filename, sizeof(filename), "%s%s.cfg", get_config_dir(), module_list[mod].name);
 
             uint32_t ret = module_config_save(filename, &module_list[mod]);
             if(ret)
@@ -1661,10 +1721,6 @@ int module_shutdown()
 {
     _module_unload_all();
     
-    extern int config_autosave;
-    if (config_autosave)
-        module_save_configs();
-    
     if(module_autoload_enabled)
     {
         /* remove lockfile */
@@ -1673,7 +1729,7 @@ int module_shutdown()
     return 0;
 }
 
-TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );
+TASK_CREATE("module_task", module_load_task, 0, 0x1e, 0x4000 );
 
 INIT_FUNC(__FILE__, module_init);
 

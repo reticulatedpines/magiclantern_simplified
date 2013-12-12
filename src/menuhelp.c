@@ -41,15 +41,15 @@ draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bfnt_puts("Magic Lantern", 242, 53, COLOR_WHITE, COLOR_BLACK);
+    bmp_printf(FONT_CANON, 242, 53, "Magic Lantern");
 
-    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 150, "This is a development snapshot for testing purposes.");
 
-    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 200, "Please report all bugs at www.magiclantern.fm.");
 
-    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 250, "Be careful using it for production work.      ");
 
-    bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 300, "Enjoy!");
 
     big_bmp_printf(FONT_MED,  10,  410,
         "Magic Lantern version : %s\n"
@@ -66,7 +66,7 @@ draw_404_page()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bfnt_puts("404 Undocumented Feature", 10, 20, COLOR_WHITE, COLOR_BLACK);
+    bmp_printf(FONT_CANON, 10, 20, "404 Undocumented Feature");
     
     bmp_printf(FONT_MED, 10, 100, "This feature is probably not yet documented.");
     bmp_printf(FONT_MED, 10, 120, "After all, we are programmers, not tech writers.");
@@ -85,7 +85,7 @@ draw_help_not_installed_page()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bfnt_puts("Help files not found", 10, 20, COLOR_WHITE, COLOR_BLACK);
+    bmp_printf(FONT_CANON, 10, 20, "Help files not found");
     
     bmp_printf(FONT_MED, 10, 150, "Magic Lantern help files could not be found.              ");
 

@@ -69,5 +69,6 @@
 #define BGMT_GUICMD_CLOSE_SLOT_COVER 79
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_UNLOCK // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK_NAME "UNLOCK"
 
 #endif

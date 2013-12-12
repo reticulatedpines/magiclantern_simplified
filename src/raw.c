@@ -24,6 +24,8 @@
 #include "math.h"
 #include "bmp.h"
 #include "lens.h"
+#include "module.h"
+#include "menu.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -37,6 +39,10 @@
 #endif
 
 static int dirty = 0;
+
+/* dual ISO interface */
+static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
+static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_improvement);
 
 /*********************** Camera-specific constants ****************************/
 
@@ -95,8 +101,6 @@ void raw_buffer_intercept_from_stateobj()
      * look it up on the EDMAC registers and use that one instead.
      */
     raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
-
-
 }
 
 /** 
@@ -319,8 +323,9 @@ static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
 static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 #endif
 
-static int autodetect_black_level(float* black_mean, float* black_stdev);
-static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
+static int autodetect_black_level(int* black_mean, int* black_stdev);
+static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
+static int autodetect_white_level();
 
 int raw_update_params()
 {
@@ -350,7 +355,7 @@ int raw_update_params()
     if (lv)
     {
         /* grab the image buffer from EDMAC; first pixel should be red */
-        raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
+        raw_info.buffer = (uint32_t) shamem_read(RAW_LV_EDMAC);
         if (!raw_info.buffer)
         {
             dbg_printf("LV raw buffer null\n");
@@ -394,7 +399,7 @@ int raw_update_params()
         #endif
         
         #ifdef CONFIG_5D3
-        skip_top        = zoom ?   60 : mv720 ?  20 :   30;
+        skip_top        = zoom ?   60 : mv720 ?  20 :   28;
         skip_left       = 146;
         skip_right      = 2;
         #endif
@@ -455,10 +460,10 @@ int raw_update_params()
     }
     else if (QR_MODE) // image review after taking pics
     {
-        raw_info.buffer = (void*) raw_buffer_photo;
+        raw_info.buffer = (uint32_t) raw_buffer_photo;
         
         #ifdef CONFIG_60D
-        raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
+        raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
         #endif
         
         if (!raw_info.buffer)
@@ -552,15 +557,16 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-/*      
-        #if defined(CONFIG_50D) // NEED Raw dump to get correct values
-        width = 5344;
-        height = 3516;
-        skip_left = 142;
-        skip_right = 0;
-        skip_top = 50;
+      
+        #if defined(CONFIG_50D) // cr2 file
+        width = 4832;
+        height = 3228;
+        skip_left = 72;
+        skip_right = 4832-4823;
+        skip_top = 56;
+        skip_bottom = 3228-3223;
         #endif 
-*/
+
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         width = 5280;
@@ -630,7 +636,7 @@ int raw_update_params()
 
     raw_info.white_level = WHITE_LEVEL;
 
-    static float black_mean, black_stdev;
+    static int black_mean, black_stdev;
 
     int black_aux = INT_MIN;
     if (!lv || dirty || should_run_polling_action(1000, &black_aux))
@@ -650,12 +656,15 @@ int raw_update_params()
         if (!iso) return 0;
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
+        
         if (iso_digital <= 0)
         {
             raw_info.white_level -= raw_info.black_level;
             raw_info.white_level *= powf(2, iso_digital);
             raw_info.white_level += raw_info.black_level;
         }
+
+        raw_info.white_level = autodetect_white_level(raw_info.white_level);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
     else if (!is_movie_mode())
@@ -684,9 +693,9 @@ int raw_update_params()
         last_iso = iso;
         if (!iso) return 0;
         
-        int iso2 = module_exec(NULL, "dual_iso_get_recovery_iso", 0);
+        int iso2 = dual_iso_get_recovery_iso();
         if (iso2) iso = MIN(iso, iso2);
-        int dr_boost = module_exec(NULL, "dual_iso_get_dr_improvement", 0);
+        int dr_boost = dual_iso_get_dr_improvement();
         raw_info.dynamic_range = get_dxo_dynamic_range(iso) + dr_boost;
         
         dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
@@ -702,7 +711,7 @@ int raw_update_params()
     dbg_printf("saving raw buffer...\n");
     dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), CARD_DRIVE"raw.buf");
     dbg_printf("saving DNG...\n");
-    save_dng(CARD_DRIVE"raw.dng");
+    save_dng(CARD_DRIVE"raw.dng", &raw_info);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     dbg_printf("done\n");
     #endif
@@ -806,7 +815,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
 int FAST raw_red_pixel(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].a;
@@ -814,7 +823,7 @@ int FAST raw_red_pixel(int x, int y)
 
 int FAST raw_green_pixel(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].h;
@@ -822,7 +831,7 @@ int FAST raw_green_pixel(int x, int y)
 
 int FAST raw_blue_pixel(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].h;
@@ -830,7 +839,7 @@ int FAST raw_blue_pixel(int x, int y)
 
 int FAST raw_red_pixel_dark(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MIN(buf[i].a, buf[i - raw_info.width*2/8].a);
@@ -838,7 +847,7 @@ int FAST raw_red_pixel_dark(int x, int y)
 
 int FAST raw_green_pixel_dark(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MIN(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -846,7 +855,7 @@ int FAST raw_green_pixel_dark(int x, int y)
 
 int FAST raw_blue_pixel_dark(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return MIN(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -854,7 +863,7 @@ int FAST raw_blue_pixel_dark(int x, int y)
 
 int FAST raw_red_pixel_bright(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MAX(buf[i].a, buf[i - raw_info.width*2/8].a);
@@ -862,7 +871,7 @@ int FAST raw_red_pixel_bright(int x, int y)
 
 int FAST raw_green_pixel_bright(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2;
     int i = ((y * raw_info.width + x) / 8);
     return MAX(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -870,7 +879,7 @@ int FAST raw_green_pixel_bright(int x, int y)
 
 int FAST raw_blue_pixel_bright(int x, int y)
 {
-    struct raw_pixblock * buf = raw_info.buffer;
+    struct raw_pixblock * buf = (void*)raw_info.buffer;
     y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return MAX(buf[i].h, buf[i - raw_info.width*2/8].h);
@@ -1022,7 +1031,7 @@ int FAST ev_to_raw(float ev)
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
-static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, float* out_mean, float* out_stdev)
+static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev)
 {
     int black = 0;
     int num = 0;
@@ -1036,10 +1045,10 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
         }
     }
 
-    float mean = black / num;
+    int mean = black / num;
 
     /* compute standard deviation */
-    float stdev = 0;
+    int stdev = 0;
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -1053,31 +1062,41 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
             #endif
         }
     }
-    stdev /= num;
-    stdev = sqrtf(stdev);
+    
+    if (num)
+    {
+        stdev /= num;
+        stdev = sqrtf(stdev);
+    }
+    else
+    {
+        /* use some "sane" values instead of inf/nan */
+        stdev = 8;
+        mean = 2048;
+    }
     
     *out_mean = mean;
     *out_stdev = stdev;
 }
 
-static int autodetect_black_level(float* black_mean, float* black_stdev)
+static int autodetect_black_level(int* black_mean, int* black_stdev)
 {
     /* also handle black level for dual ISO */
-    float mean1 = 0;
-    float stdev1 = 0;
-    float mean2 = 0;
-    float stdev2 = 0;
+    int mean1 = 0;
+    int stdev1 = 0;
+    int mean2 = 0;
+    int stdev2 = 0;
     
     if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
     {
         autodetect_black_level_calc(
-            4, raw_info.active_area.x1 - 4,
+            16, raw_info.active_area.x1 - 16,
             raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
             3, 16,
             &mean1, &stdev1
         );
         autodetect_black_level_calc(
-            4, raw_info.active_area.x1 - 4,
+            16, raw_info.active_area.x1 - 16,
             raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20, 
             3, 16,
             &mean2, &stdev2
@@ -1109,26 +1128,47 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
 }
 
 
-#if RAW_DEBUG_DR
-static int autodetect_white_level()
+static int autodetect_white_level(int initial_guess)
 {
-    int white = 10000;
-    
-    struct raw_pixblock * start = raw_info.buffer + raw_info.active_area.y1 * raw_info.pitch;
-    struct raw_pixblock * end = raw_info.buffer + raw_info.active_area.y2 * raw_info.pitch;
+    int white = initial_guess - 3000;
+    int max = white + 500;
+    int confirms = 0;
 
-    for (struct raw_pixblock * p = start; p < end; p += 4)
+    //~ bmp_printf(FONT_MED, 50, 50, "White...");
+
+    int raw_height = raw_info.active_area.y2 - raw_info.active_area.y1;
+    for (int y = raw_info.active_area.y1 + raw_height/10; y < raw_info.active_area.y2 - raw_height/10; y += 5)
     {
-        white = MAX(white, p->a - 500);
-        white = MAX(white, p->h - 500);
+        int pitch = raw_info.width/8*14;
+        int row = (intptr_t) raw_info.buffer + y * pitch;
+        int skip_5p = ((raw_info.active_area.x2 - raw_info.active_area.x1) * 6/128)/8*14; /* skip 5% */
+        int row_crop_start = row + raw_info.active_area.x1/8*14 + skip_5p;
+        int row_crop_end = row + raw_info.active_area.x2/8*14 - skip_5p;
+        
+        for (struct raw_pixblock * p = (void*)row_crop_start; (void*)p < (void*)row_crop_end; p += 5)
+        {
+            if (p->a > max)
+            {
+                max = p->a;
+                confirms = 1;
+            }
+            else if (p->a == max)
+            {
+                confirms++;
+                if (confirms > 5)
+                {
+                    white = max - 500;
+                }
+            }
+        }
     }
-    bmp_printf(FONT_MED, 50, 50, "White: %d", white);
-    
+
+    //~ bmp_printf(FONT_MED, 50, 50, "White: %d ", white);
+
     return white;
 }
-#endif
 
-static int compute_dynamic_range(float black_mean, float black_stdev, int white_level)
+static int compute_dynamic_range(int black_mean, int black_stdev, int white_level)
 {
     /**
      * A = full well capacity / read-out noise 
@@ -1140,21 +1180,21 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
      * except at very high ISOs where there seems to be noise reduction applied to raw data
      */
 
-#if RAW_DEBUG_DR
+#ifdef RAW_DEBUG_DR
     int mean = black_mean * 100;
     int stdev = black_stdev * 100;
     bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
-    white_level = autodetect_white_level();
+    white_level = autodetect_white_level(15000);
 #endif
 
     int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev)) * 100);
 
-#if RAW_DEBUG_DR
+#ifdef RAW_DEBUG_DR
     bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
 #endif
 
     /* dual ISO enabled? */
-    dr += module_exec(NULL, "dual_iso_get_dr_improvement", 0);
+    dr += dual_iso_get_dr_improvement();
 
     return dr;
 }
@@ -1172,7 +1212,126 @@ int raw_lv_settings_still_valid()
     return 1;
 }
 
-static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+/* For accessing the pixels in a struct raw_pixblock, faster than via raw_get_pixel */
+/* todo: move in raw.h? */
+#define PA ((int)(p->a))
+#define PB ((int)(p->b_lo | (p->b_hi << 12)))
+#define PC ((int)(p->c_lo | (p->c_hi << 10)))
+#define PD ((int)(p->d_lo | (p->d_hi << 8)))
+#define PE ((int)(p->e_lo | (p->e_hi << 6)))
+#define PF ((int)(p->f_lo | (p->f_hi << 4)))
+#define PG ((int)(p->g_lo | (p->g_hi << 2)))
+#define PH ((int)(p->h))
+
+/* a second set of pixels */
+#define QA ((int)(q->a))
+#define QB ((int)(q->b_lo | (q->b_hi << 12)))
+#define QC ((int)(q->c_lo | (q->c_hi << 10)))
+#define QD ((int)(q->d_lo | (q->d_hi << 8)))
+#define QE ((int)(q->e_lo | (q->e_hi << 6)))
+#define QF ((int)(q->f_lo | (q->f_hi << 4)))
+#define QG ((int)(q->g_lo | (q->g_hi << 2)))
+#define QH ((int)(q->h))
+
+static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
+{
+    uint16_t* lv16 = CACHEABLE(lv_buffer);
+    uint32_t* lv32 = (uint32_t*) lv16;
+    if (!lv16) return;
+    
+    struct raw_pixblock * raw = CACHEABLE(raw_buffer);
+    if (!raw) return;
+    
+    /* white balance 2,1,2 => use two gamma curves to simplify code */
+    uint8_t gamma_rb[1024];
+    uint8_t gamma_g[1024];
+    
+    for (int i = 0; i < 1024; i++)
+    {
+        /* only show 10 bits */
+        int black = (raw_info.black_level>>4);
+        int g_rb = (i > black) ? (log2f(i - black) + 1) * 255 / 10 : 0;
+        int g_g  = (i > black) ? (log2f(i - black)) * 255 / 10 : 0;
+        gamma_rb[i] = COERCE(g_rb * g_rb / 255, 0, 255); /* idk, looks better this way */
+        gamma_g[i]  = COERCE(g_g  * g_g  / 255, 0, 255); /* (it's like a nonlinear curve applied on top of log) */
+    }
+    
+    int x1 = BM2LV_X(os.x0);
+    int x2 = BM2LV_X(os.x_max);
+    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
+    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    if (x2 < x1) return;
+
+    /* cache the LV to RAW transformation for the inner loop to make it faster */
+    /* we will always choose a green pixel */
+    
+    int* lv2rx = SmallAlloc(x2 * 4);
+    if (!lv2rx) return;
+    for (int x = x1; x < x2; x++)
+        lv2rx[x] = LV2RAW_X(x) & ~1;
+
+    /* full-res vertically */
+    for (int y = y1; y < y2; y++)
+    {
+        int yr = LV2RAW_Y(y) & ~1;
+
+        /* on HDMI screens, BM2LV_DX() may get negative */
+        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
+        {
+            /* out of range, just fill with black */
+            memset(&lv32[LV(0,y)/4], 0, BM2LV_DX(x2-x1)*2);
+            continue;
+        }
+
+        struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
+        
+        /* half-res horizontally, to simplify YUV422 math */
+        for (int x = x1; x < x2; x += 2)
+        {
+            int xr = lv2rx[x];
+            struct raw_pixblock * p = row + (xr/8);                 /* RG (xr and yr are multiples of 2) */
+            struct raw_pixblock * q = (void*) p + raw_info.pitch;   /* GB, next line */
+            int r,g,b;
+            
+            /* RGGB cell */
+            /* note: at 1920 horizontal resolution in raw, downsampling by 8 would result in 240px horizontally => looks ugly */
+            switch (xr%8)
+            {
+                case 0:
+                    r = PA >> 4;
+                    g = (PB + QA) >> 5;
+                    b = QB >> 4;
+                    break;
+                case 2:
+                    r = PC >> 4;
+                    g = (PD + QC) >> 5;
+                    b = QD >> 4;
+                    break;
+                case 4:
+                    r = PE >> 4;
+                    g = (PF + QE) >> 5;
+                    b = QF >> 4;
+                    break;
+                case 6:
+                    r = PG >> 4;
+                    g = (PH + QG) >> 5;
+                    b = QH >> 4;
+                    break;
+                default:
+                    r = g = b = 0;
+            }
+            r = gamma_rb[r];
+            g = gamma_g [g];
+            b = gamma_rb[b];
+            
+            uint32_t yuv = rgb2yuv422(r,g,b);
+            lv32[LV(x,y)/4] = yuv;
+        }
+    }
+    SmallFree(lv2rx);
+}
+
+static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
 {
     uint16_t* lv16 = CACHEABLE(lv_buffer);
     uint64_t* lv64 = (uint64_t*) lv16;
@@ -1207,7 +1366,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     {
         int yr = LV2RAW_Y(y) | 1;
 
-        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
+        /* on HDMI screens, BM2LV_DX() may get negative */
+        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
         {
             /* out of range, just fill with black */
             memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
@@ -1216,40 +1376,27 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
-        if (ultra_fast) /* prefer real-time low-res display */
+        if (y%2) continue;
+        
+        for (int x = x1; x < x2; x += 4)
         {
-            if (y%2) continue;
-            
-            for (int x = x1; x < x2; x += 4)
-            {
-                int xr = lv2rx[x];
-                struct raw_pixblock * p = row + (xr/8);
-                int c = p->a;
-                uint64_t Y = gamma[c >> 4];
-                Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
-                int idx = LV(x,y)/8;
-                lv64[idx] = Y;
-                lv64[idx + vram_lv.pitch/8] = Y;
-            }
-        }
-        else /* prefer full-res, don't care if it's a little slower */
-        {
-            for (int x = x1; x < x2; x++)
-            {
-                int xr = lv2rx[x];
-                int c = raw_get_pixel_ex(raw, xr, yr);
-                uint16_t Y = gamma[c >> 4];
-                lv16[LV(x,y)/2] = Y << 8;
-            }
+            int xr = lv2rx[x];
+            struct raw_pixblock * p = row + (xr/8);
+            int c = p->a;
+            uint64_t Y = gamma[c >> 4];
+            Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
+            int idx = LV(x,y)/8;
+            lv64[idx] = Y;
+            lv64[idx + vram_lv.pitch/8] = Y;
         }
     }
     SmallFree(lv2rx);
 }
 
-void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
 {
     if (raw_buffer == (void*)-1)
-        raw_buffer = raw_info.buffer;
+        raw_buffer = (void*)raw_info.buffer;
     
     if (lv_buffer == (void*)-1)
         lv_buffer = (void*)YUV422_LV_BUFFER_DISPLAY_ADDR;
@@ -1260,10 +1407,20 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     if (y2 == -1)
         y2 = BM2LV_Y(os.y_max);
     
-    if (ultra_fast == -1)
-        ultra_fast = 0;
+    if (quality == -1)
+        quality = 0;
     
-    raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, ultra_fast);
+    switch (quality)
+    {
+        case RAW_PREVIEW_GRAY_ULTRA_FAST:
+            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2);
+            break;
+        
+        case RAW_PREVIEW_COLOR_HALFRES:
+        default:
+            raw_preview_color_work(raw_buffer, lv_buffer, y1, y2);
+            break;
+    }
 }
 
 void FAST raw_preview_fast()
@@ -1327,8 +1484,32 @@ static void raw_lv_update()
     }
     else if (!new_state && lv_raw_enabled)
     {
+        /* in zoom mode, these cameras have pink preview in zoom mode (even after disabling raw flag, the pink preview remains) */
+        /* lookup 0xc0f08114 in raw_rec.c for more info */
+
+        //~ #define PINK_FIX_TEST
+        #ifdef PINK_FIX_TEST
+        /* with zoom on halfshutter, the image should get pink for 2 seconds, then it should be back to normal */
+        msleep(1000);
+        beep();         /* first beep: disabling raw mode, image remains pink */
+        #endif
+        
+        /* disable the raw flag */
         raw_lv_disable();
         msleep(50);
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+        #ifdef PINK_FIX_TEST
+        msleep(1000);
+        beep();         /* second beep: changing raw type to something that isn't pink (this will be reset as soon as you enable raw back) */
+        #endif
+        /* fix pink preview in zoom */
+        if (lv && lv_dispsize > 1 && DISPLAY_IS_ON)
+        {
+            /* todo: enqueue it in a vsync hook? */
+            EngDrvOutLV(0xc0f08114, 0);
+        }
+        #endif
     }
 }
 
@@ -1399,4 +1580,68 @@ int get_dxo_dynamic_range(int raw_iso)
     }
     
     return dr;
+}
+
+
+/* helpers for menu and other code that wants to use raw */
+
+int can_use_raw_overlays_photo()
+{
+    // MRAW/SRAW are causing trouble, figure out why
+    // RAW and RAW+JPEG are OK
+    if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
+        return 1;
+
+    return 0;
+}
+
+int can_use_raw_overlays()
+{
+    if (QR_MODE && can_use_raw_overlays_photo())
+        return 1;
+    
+    if (lv && raw_lv_is_enabled())
+        return 1;
+    
+    return 0;
+}
+
+int can_use_raw_overlays_menu()
+{
+    if (is_movie_mode())
+    {
+        /* in movie mode, raw overlays don't make much sense for H.264 video, so only show them for raw video */
+        if (lv && raw_lv_is_enabled())
+            return 1;
+    }
+    else
+    {
+        /* outside LiveView: only pure RAW is known to work */
+        if (can_use_raw_overlays_photo())
+            return 1;
+
+        /* in LiveView: we can display the raw overlays no matter what */
+        /* so use them also for sRAW and mRAW, even if this may not work in QR mode */
+        int raw = pic_quality & 0x60000;
+        if (lv && raw)
+            return 1;
+    }
+
+    return 0;
+}
+
+MENU_UPDATE_FUNC(menu_set_warning_raw)
+{
+    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, 
+        is_movie_mode() ? "[MOVIE] This feature requires you shooting RAW." :
+                          "[PHOTO] Set picture quality to RAW in Canon menu."
+    );
+}
+
+MENU_UPDATE_FUNC(menu_checkdep_raw)
+{
+    if (!can_use_raw_overlays_menu())
+    {
+        menu_set_warning_raw(entry, info);
+    }
 }

@@ -114,7 +114,6 @@ struct event
 
 
 extern void gui_init_end( void );
-extern int msg_queue_receive( void *, struct event **, uint32_t );
 extern void gui_massive_event_loop( uint32_t, void *, uint32_t );
 extern void gui_local_post( uint32_t, void *, uint32_t );
 extern void gui_other_post( uint32_t, void *, uint32_t );

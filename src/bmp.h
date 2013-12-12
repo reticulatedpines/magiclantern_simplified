@@ -30,6 +30,7 @@
 
 #include "dryos.h"
 #include "font.h"
+#include "rbf_font.h"
 
 uint8_t* read_entire_file(const char * filename, int* buf_size);
 
@@ -134,40 +135,78 @@ uint8_t* bmp_vram_idle();
 void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 
-/** Font specifiers include the font, the fg color and bg color */
-#define FONT_MASK               0x000F0000
-//~ #define FONT_HUGE           0x00080000
-#define FONT_LARGE              0x00030000
-#define FONT_MED                0x00020000
-#define FONT_SMALL              0x00010000
+/** Font specifiers include the font, the fg color and bg color, shadow flag, text alignment, expanded/condensed */
+#define FONT_MASK              0x00070000
 
-#define SHADOW_MASK             0x00100000
+/* shadow flag */
+#define SHADOW_MASK            0x00080000
 #define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)
 
+/* font alignment macros */
+#define FONT_ALIGN_MASK        0x03000000
+#define FONT_ALIGN_LEFT        0x00000000   /* anchor: left   */
+#define FONT_ALIGN_CENTER      0x01000000   /* anchor: center */
+#define FONT_ALIGN_RIGHT       0x02000000   /* anchor: right  */
+#define FONT_ALIGN_JUSTIFIED   0x03000000   /* anchor: left   */
+
+/* optional text width (for clipping, filling and justified) */
+/* default: longest line from the string */
+#define FONT_TEXT_WIDTH_MASK   0xFC000000
+#define FONT_TEXT_WIDTH(width)  ((((width+8) >> 4) << 26) & FONT_TEXT_WIDTH_MASK) /* range: 0-1015; round to 6 bits */
+
+/* when aligning text, fill the blank space with background color (so you get a nice solid box) */
+#define FONT_ALIGN_FILL        0x00800000
+
+/* expanded/condensed */
+/* not yet implemented */
+#define FONT_EXPAND_MASK       0x00700000
+#define FONT_EXPAND(pix)       (((pix) << 20) & FONT_EXPAND_MASK) /* range: -4 ... +3 pixels per character */
+
 #define FONT(font,fg,bg)        ( 0 \
-        | ((font) & (FONT_MASK | SHADOW_MASK)) \
+        | ((font) & (0xFFFF0000)) \
         | ((bg) & 0xFF) << 8 \
         | ((fg) & 0xFF) << 0 \
 )
 
+/* font by ID */
+#define FONT_DYN(font_id,fg,bg) FONT((font_id)<<16,fg,bg)
+
+/* should match the font loading order from rbf_font.c, rbf_init */
+#define FONT_MONO_12  FONT_DYN(0, 0, 0)
+#define FONT_MONO_20  FONT_DYN(1, 0, 0)
+#define FONT_SANS_23  FONT_DYN(2, 0, 0)
+#define FONT_SANS_28  FONT_DYN(3, 0, 0)
+#define FONT_SANS_32  FONT_DYN(4, 0, 0)
+
+#define FONT_CANON    FONT_DYN(7, 0, 0) /* uses a different backend */
+
+/* common fonts */
+#define FONT_SMALL      FONT_MONO_12
+#define FONT_MED        FONT_SANS_23
+#define FONT_MED_LARGE  FONT_SANS_28
+#define FONT_LARGE      FONT_SANS_32
+
+/* retrieve fontspec fields */
+#define FONT_ID(font) (((font) >> 16) & 0x7)
 #define FONT_BG(font) (((font) & 0xFF00) >> 8)
 #define FONT_FG(font) (((font) & 0x00FF) >> 0)
+#define FONT_GET_TEXT_WIDTH(font)    (((font) >> 22) & 0x3F0)
+#define FONT_GET_EXPAND_AMOUNT(font) (((font) >> 20) & 0x7)
+
+/* RBF stuff */
+#define MAX_DYN_FONTS 7
+extern struct font font_dynamic[MAX_DYN_FONTS+1];   /* the extra entry is Canon font - with a different backend */
+
+/* this function is used to dynamically load a font identified by its filename without extension */
+extern uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color);
 
 static inline struct font *
 fontspec_font(
     uint32_t fontspec
 )
 {
-    switch( fontspec & FONT_MASK )
-    {
-        default:
-        case FONT_SMALL:        return &font_small;
-        case FONT_MED:          return &font_med;
-        case FONT_LARGE:        return &font_large;
-    //~ case FONT_HUGE:             return &font_huge;
-    }
+    return &(font_dynamic[FONT_ID(fontspec) % COUNT(font_dynamic)]);
 }
-
 
 static inline uint32_t
 fontspec_fg(uint32_t fontspec)
@@ -193,27 +232,11 @@ fontspec_width(uint32_t fontspec)
     return fontspec_font(fontspec)->width;
 }
 
-void bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... );
+int bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... );    /* returns width in pixels */
+int bmp_string_width(int fontspec, const char* str);                  /* string width in pixels, with a given font */
+int bmp_strlen_clipped(int fontspec, const char* str, int maxlen);    /* string len (in chars), if you want to clip at maxlen pix */
+
 size_t read_file( const char * filename, void * buf, size_t size);
-
-void
-bfnt_printf(
-           int x,
-           int y,
-           int fg,
-           int bg,
-           const char *fmt,
-           ...
-           );
-
-int 
-bfnt_puts(
-        const char* s, 
-        int x, 
-        int y, 
-        int fg, 
-        int bg
-        );
 
 extern void
 con_printf(
@@ -232,7 +255,7 @@ bmp_hexdump(
 );
 
 
-extern void
+extern int
 bmp_puts(
         uint32_t fontspec,
         int *x,
@@ -348,8 +371,9 @@ struct bmp_ov_loc_size
         int y_ex; //live view y extend
         int x_max; // x0 + x_ex
         int y_max; // y0 + y_ex
-        int off_169; // width of one 16:9 bar
-        int off_1610; // width of one 16:10 bar
+        int off_43; // width of one 4:3 bar
+        int off_169; // height of one 16:9 bar
+        int off_1610; // height of one 16:10 bar
 };
 
 void clrscr();
@@ -476,6 +500,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_ML_FORWARD -15
 #define ICON_ML_MODULES -16
 #define ICON_ML_MODIFIED -17
+#define ICON_ML_GAMES -18
 
 #define ICON_ML_SUBMENU -100
 
@@ -493,6 +518,22 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_SMILE 0x949aee
 #define ICON_LV 0x989aee
 #endif
+
+#define SYM_DOTS        "\x7F"
+#define SYM_ISO         "\x80"
+#define SYM_F_SLASH     "\x81"
+#define SYM_1_SLASH     "\x82"
+#define SYM_DEGREE      "\x83"
+#define SYM_MICRO       "\x84"
+#define SYM_PLUSMINUS   "\x85"
+#define SYM_LV          "\x86"
+#define SYM_BULLET      "\x87"
+#define SYM_TIMES       "\x88"
+#define SYM_SMALL_C     "\x89"
+#define SYM_SMALL_M     "\x8A"
+#define SYM_INFTY       "\x8B"
+#define SYM_DR          "\x9E"
+#define SYM_ETTR        "\x9F"
 
 void bfnt_test();
 

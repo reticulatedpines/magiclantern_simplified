@@ -102,8 +102,8 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 3
 
-#define AE_STATE (*(int8_t*)(0x14E03 + 0x1C))
-#define AE_VALUE (*(int8_t*)(0x14E03 + 0x1D))
+#define AE_STATE (*(int8_t*)(0x14CC8 + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x14CC8 + 0x1D))
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x3a9c)
 #define DLG_WB 0x24
@@ -190,8 +190,6 @@
 #define FASTEST_SHUTTER_SPEED_RAW 152
 #define MAX_AE_EV 2
 
-//~ #define MENU_NAV_HELP_STRING "Keys: Arrows / SET / PLAY / Q (LiveView) / DISP" 
-#define MENU_NAV_HELP_STRING (PLAY_MODE ? "LiveV outside menu: show LV tools          SET/PLAY/LV/DISP" : "SET/PLAY/LV=change values    MENU=Easy/Advanced   DISP=Help")
 
 #define DIALOG_MnCardFormatBegin (0x242AC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x24398+4) // similar

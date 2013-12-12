@@ -87,6 +87,24 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
     *B = COERCE(v, 0, 255);
 }
 
+/**
+ * http://www.martinreddy.net/gfx/faqs/colorconv.faq
+ * 
+ * BT.709:
+ * Y'= 0.2215*R' + 0.7154*G' + 0.0721*B'
+ * Cb=-0.1145*R' - 0.3855*G' + 0.5000*B'
+ * Cr= 0.5016*R' - 0.4556*G' - 0.0459*B'
+ * 
+ * todo: BT.601 and code optimization
+ */
+uint32_t rgb2yuv422(int R, int G, int B)
+{
+    int Y = ( 227*R + 733*G +  74*B) / 1024;
+    int U = (-117*R - 395*G + 512*B) / 1024;
+    int V = ( 514*R - 467*G -  47*B) / 1024;
+    return UYVY_PACK(U,Y,V,Y);
+}
+
 void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
 {
     *Y = UYVY_GET_AVG_Y(uyvy);

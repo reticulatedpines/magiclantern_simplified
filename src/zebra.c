@@ -1,5 +1,5 @@
 /** \file
- * Zebra stripes, contrast edge detection and crop marks.
+ * Big file that needs to be splitted by features
  *
  */
 /*
@@ -73,11 +73,6 @@ static void spotmeter_step();
 static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, int y);
 static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int clipB);
 
-static void cropmark_cache_update_signature();
-static int cropmark_cache_is_valid();
-static void default_movie_cropmarks();
-static void black_bars_16x9();
-static void black_bars();
 //~ static void defish_draw_play();
 
 extern unsigned int log_length(int x);
@@ -85,7 +80,6 @@ extern void zoom_sharpen_step();
 extern void bv_auto_update();
 
 void lens_display_set_dirty();
-void cropmark_clear_cache();
 void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 //~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
@@ -146,7 +140,6 @@ int lv_luma_is_accurate()
 static int show_lv_fps = 0; // for debugging
 #endif
 
-static struct bmp_file_t * cropmarks = 0;
 static int _bmp_muted = false;
 static int _bmp_unmuted = false;
 int bmp_is_on() { return !_bmp_muted; }
@@ -186,10 +179,6 @@ static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lu
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
 static CONFIG_INT( "zebra.rec", zebra_rec,  1 );
-static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
-static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
-static CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
-static CONFIG_INT("crop.playback", cropmarks_play, 0);
 
 #define MZ_ZOOM_WHILE_RECORDING 1
 #define MZ_ZOOMREC_N_FOCUS_RING 2
@@ -331,10 +320,19 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 int histogram_or_small_waveform_enabled()
 {
     return (
-#ifdef FEATURE_HISTOGRAM
-hist_draw ||
-#endif
- (waveform_draw && !waveform_size)) && get_expsim(); }
+        (
+        #ifdef FEATURE_HISTOGRAM
+        (hist_draw)
+        #ifdef FEATURE_RAW_OVERLAYS
+        && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())
+        #endif
+        )
+        ||
+        #endif
+        (waveform_draw && !waveform_size)
+    )
+    && get_expsim(); 
+}
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 static CONFIG_INT( "vectorscope.gain", vectorscope_gain, 0);
@@ -384,14 +382,7 @@ static uint8_t* bvram_mirror = 0;
 uint8_t* get_bvram_mirror() { return bvram_mirror; }
 //~ #define bvram_mirror bmp_vram_idle()
 
-
-static int cropmark_cache_dirty = 1;
-static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
-
-void crop_set_dirty(int value)
-{
-    crop_dirty = MAX(crop_dirty, value);
-}
+#include "cropmarks.c"
 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
@@ -410,7 +401,7 @@ PROP_HANDLER(PROP_LCD_POSITION)
 }
 #endif
 
-static int idle_globaldraw_disable = 0;
+static volatile int idle_globaldraw_disable = 0;
 
 int get_global_draw() // menu setting, or off if 
 {
@@ -723,7 +714,7 @@ static MENU_UPDATE_FUNC(vectorscope_update)
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
-void // fixme: should be static
+static void
 hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
@@ -752,12 +743,11 @@ hist_build()
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
-    int yoffset = 0;
-    for( y = os.y0 + off, yoffset = y * vram_lv.pitch; y < os.y_max - off; y += 2, yoffset += vram_lv.pitch )
+    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[(yoffset + (BM2LV_X(x) << 1)) >> 2];
+            uint32_t pixel = buf[BM2LV(x,y) >> 2];
 
             // ignore magic zoom borders
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
@@ -823,46 +813,6 @@ hist_build()
 }
 #endif
 
-#ifdef FEATURE_RAW_OVERLAYS
-
-int can_use_raw_overlays_photo()
-{
-    // MRAW/SRAW are causing trouble, figure out why
-    // RAW and RAW+JPEG are OK
-    if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
-        return 1;
-
-    return 0;
-}
-
-int can_use_raw_overlays()
-{
-    if (QR_MODE && can_use_raw_overlays_photo())
-        return 1;
-    
-    if (lv && raw_lv_is_enabled())
-        return 1;
-    
-    return 0;
-}
-
-int can_use_raw_overlays_menu()
-{
-    if (can_use_raw_overlays_photo())
-        return 1;
-
-    if (lv && raw_lv_is_enabled())
-        return 1;
-
-    int raw = pic_quality & 0x60000;
-    if (lv && !is_movie_mode() && raw)
-        return 1;
-
-    return 0;
-}
-
-#endif
-
 #ifdef FEATURE_RAW_ZEBRAS
 
 static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo only */
@@ -870,6 +820,8 @@ static CONFIG_INT("raw.zebra", raw_zebra_enable, 2); /* 1 = always, 2 = photo on
 
 static void FAST draw_zebras_raw()
 {
+    if (!DISPLAY_IS_ON) return;
+    if (!PLAY_OR_QR_MODE) return;
     if (!raw_update_params()) return;
 
     uint8_t * bvram = bmp_vram();
@@ -877,8 +829,10 @@ static void FAST draw_zebras_raw()
 
     int white = raw_info.white_level;
     int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
+    
+    int zoom0 = (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
-    for (int i = os.y0; i < os.y_max; i ++)
+    for (int i = os.y0+20; i < os.y_max; i ++)
     {
         int y = BM2RAW_Y(i);
 
@@ -930,8 +884,118 @@ static void FAST draw_zebras_raw()
             }
         }
 
+        if (!DISPLAY_IS_ON) break;
         if (!PLAY_OR_QR_MODE) break;
+        if ((int)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) != zoom0) break; /* stop when zooming */
+
     }
+}
+
+void FAST zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight_info)
+{
+    if (!DISPLAY_IS_ON) return;
+    if (!raw_update_params()) return;
+    
+    if (lv)
+    {
+        static int aux = INT_MIN;
+        if (!should_run_polling_action(2000, &aux))
+            return;
+    }
+
+    uint8_t * bvram = bmp_vram();
+    if (!bvram) return;
+    
+    int gray_projection = raw_highlight_info->gray_projection;
+
+    for (int i = os.y0; i < os.y_max; i ++)
+    {
+        int y = BM2RAW_Y(i);
+        int p_prev = 0;
+
+        for (int j = os.x0; j < os.x_max; j ++)
+        {
+            int x = BM2RAW_X(j);
+            
+            int color = 0;
+            int p = raw_get_gray_pixel(x, y, gray_projection);
+            for (struct raw_highlight_info * hinf = raw_highlight_info; hinf->raw_level_lo || hinf->raw_level_hi; hinf++)
+            {
+                /* gray projection changed? re-sample the pixel */
+                if (hinf->gray_projection != gray_projection)
+                {
+                    gray_projection = hinf->gray_projection;
+                    p = raw_get_gray_pixel(x, y, gray_projection);
+                }
+
+                /* draw line around the highlighted area? */
+                if (hinf->line_type && p_prev)
+                {
+                    /* don't use exact checks in order to filter out some noise */
+                    int sign = SGN(p - hinf->raw_level_lo);
+                    int sign_prev = SGN(p_prev - hinf->raw_level_lo);
+                    int zerocross = sign != sign_prev;
+                    
+                    if (unlikely(hinf->raw_level_hi != hinf->raw_level_lo))
+                    {
+                        int sign = SGN(p - hinf->raw_level_hi);
+                        int sign_prev = SGN(p_prev - hinf->raw_level_hi);
+                        int zerocross_hi = sign != sign_prev;
+                        zerocross = zerocross || zerocross_hi;
+                    }
+                    
+                    if (zerocross)
+                    {
+                        color = hinf->color;
+                    }
+                }
+                
+                /* fill the highlighted area with something? */
+                if (!color && hinf->fill_type)
+                {
+                    int should_fill = 
+                        hinf->fill_type == ZEBRA_FILL_DIAG ? (i + j) % 4 == 0 : 
+                        hinf->fill_type == ZEBRA_FILL_50_PERCENT ? (i + j) % 2 :
+                        1;
+                    
+                    if (should_fill)
+                    {
+                        if (p >= hinf->raw_level_lo && p <= hinf->raw_level_hi)
+                        {
+                            color = hinf->color;
+                        }
+                    }
+                }
+
+                if (color)
+                {
+                    /* do not check further rules if a pixel was drawn */
+                    /* (first rules have higher priority) */
+                    break;
+                }
+            }
+            p_prev = p;
+
+            /* should we draw something? */
+            if (color || lv)
+            {
+                uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
+                uint8_t* mp = (uint8_t*) &bvram_mirror[BM(j,i)];
+
+                #define BP (*bp)
+                #define MP (*mp)
+                if (BP != 0 && BP != MP) continue;
+                if ((MP & 0x80)) continue;
+                
+                BP = MP = color;
+                    
+                #undef MP
+                #undef BP
+            }
+        }
+
+        if (!DISPLAY_IS_ON) break;
+   }
 }
 
 static void FAST draw_zebras_raw_lv()
@@ -993,9 +1057,9 @@ static void FAST draw_zebras_raw_lv()
 
 static MENU_UPDATE_FUNC(raw_zebra_update)
 {
-    if (!can_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
-    else if (raw_zebra_enable)
+    menu_checkdep_raw(entry, info);
+
+    if (raw_zebra_enable)
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras %safter taking a pic.", raw_zebra_enable == 1 ? "in LiveView and " : "");
 }
 #endif
@@ -1246,7 +1310,7 @@ void bvram_mirror_init()
         //~ #else
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
-        bvram_mirror_start = RESTARTSTART + ml_reserved_mem;
+        bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
         #elif defined(CONFIG_EOSM)
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
@@ -2151,109 +2215,6 @@ clrscr_mirror( void )
     }
 }
 
-#ifdef FEATURE_CROPMARKS
-
-#define MAX_CROP_NAME_LEN 15
-#define MAX_CROPMARKS 9
-static int num_cropmarks = 0;
-static int cropmarks_initialized = 0;
-static char cropmark_names[MAX_CROPMARKS][MAX_CROP_NAME_LEN];
-
-// Cropmark sorting code contributed by Nathan Rosenquist
-static void sort_cropmarks()
-{
-    int i = 0;
-    int j = 0;
-    
-    char aux[MAX_CROP_NAME_LEN];
-    
-    for (i=0; i<num_cropmarks; i++)
-    {
-        for (j=i+1; j<num_cropmarks; j++)
-        {
-            if (strcmp(cropmark_names[i], cropmark_names[j]) > 0)
-            {
-                strcpy(aux, cropmark_names[i]);
-                strcpy(cropmark_names[i], cropmark_names[j]);
-                strcpy(cropmark_names[j], aux);
-            }
-        }
-    }
-}
-#endif
-
-int is_valid_cropmark_filename(char* filename)
-{
-    int n = strlen(filename);
-    if ((n > 4) && (streq(filename + n - 4, ".BMP") || streq(filename + n - 4, ".bmp")) && (filename[0] != '.') && (filename[0] != '_'))
-        return 1;
-    return 0;
-}
-
-#ifdef FEATURE_CROPMARKS
-static void find_cropmarks()
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/CROPMKS/", &file );
-    if( IS_ERROR(dirent) )
-    {
-        NotifyBox(2000, "ML/CROPMKS dir missing\n"
-                        "Please copy all ML files!" );
-        return;
-    }
-    int k = 0;
-    do {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
-        if (is_valid_cropmark_filename(file.name))
-        {
-            if (k >= MAX_CROPMARKS)
-            {
-                NotifyBox(2000, "TOO MANY CROPMARKS (max=%d)", MAX_CROPMARKS);
-                break;
-            }
-            snprintf(cropmark_names[k], MAX_CROP_NAME_LEN, "%s", file.name);
-            k++;
-        }
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-    num_cropmarks = k;
-    sort_cropmarks();
-    cropmarks_initialized = 1;
-}
-static void reload_cropmark()
-{
-    int i = crop_index;
-    static int old_i = -1;
-    if (i == old_i) return; 
-    old_i = i;
-    //~ bmp_printf(FONT_LARGE, 0, 100, "reload crop: %d", i);
-
-    if (cropmarks)
-    {
-        void* old_crop = cropmarks;
-        cropmarks = 0;
-        bmp_free(old_crop);
-    }
-
-    cropmark_clear_cache();
-    
-    if (!num_cropmarks) return;
-    i = COERCE(i, 0, num_cropmarks-1);
-    char bmpname[100];
-    snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "ML/CROPMKS/%s", cropmark_names[i]);
-    cropmarks = bmp_load(bmpname,1);
-    if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
-}
-
-static void
-crop_toggle( void* priv, int sign )
-{
-    crop_index = mod(crop_index + sign, num_cropmarks);
-    //~ reload_cropmark(crop_index);
-    crop_set_dirty(10);
-}
-#endif
-
 #ifdef FEATURE_ZEBRA
 static MENU_UPDATE_FUNC(zebra_draw_display)
 {
@@ -2361,49 +2322,6 @@ static void focus_peaking_adjust_thr(void* priv, int delta)
 }
 #endif
 
-#ifdef FEATURE_CROPMARKS
-
-static MENU_UPDATE_FUNC(crop_display)
-{
-    int index = crop_index;
-    index = COERCE(index, 0, num_cropmarks-1);
-    if (crop_enabled) MENU_SET_VALUE(
-         num_cropmarks ? cropmark_names[index] : "N/A"
-    );
-    if (cropmark_movieonly && !is_movie_mode())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Cropmarks are configured only for movie mode");
-}
-
-static MENU_UPDATE_FUNC(crop_display_submenu)
-{
-    int index = crop_index;
-    index = COERCE(index, 0, num_cropmarks-1);
-    MENU_SET_NAME(
-        "Bitmap (%d/%d)",
-         index+1, num_cropmarks
-    );
-    MENU_SET_VALUE(
-        "%s",
-         num_cropmarks ? cropmark_names[index] : "N/A"
-    );
-
-    if (info->can_custom_draw)
-    {
-        int h = 170;
-        int w = h * 720 / 480;
-        //~ int xc = 360 - w/2;
-        int xc = 400;
-        int yc = info->y + font_large.height * 3 + 10;
-        BMP_LOCK( reload_cropmark(); )
-        bmp_fill(0, xc, yc, w, h);
-        BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
-        bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
-    }
-    
-    MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
-}
-#endif
-
 #ifdef FEATURE_WAVEFORM
 static MENU_UPDATE_FUNC(waveform_print)
 {
@@ -2449,26 +2367,26 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         "%s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
 #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
-        zoom_overlay_trigger_mode == 1 ? "HalfS," :
-        zoom_overlay_trigger_mode == 2 ? "Focus," :
-        zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
+        zoom_overlay_trigger_mode == 1 ? "HalfS, " :
+        zoom_overlay_trigger_mode == 2 ? "Focus, " :
+        zoom_overlay_trigger_mode == 3 ? "F+HS, " : "ALW, ",
 #else
-        zoom_overlay_trigger_mode == 1 ? "Zrec," :
-        zoom_overlay_trigger_mode == 2 ? "F+Zr," :
-        zoom_overlay_trigger_mode == 3 ? "(+)," : "ALW,",
+        zoom_overlay_trigger_mode == 1 ? "Zrec, " :
+        zoom_overlay_trigger_mode == 2 ? "F+Zr, " :
+        zoom_overlay_trigger_mode == 3 ? "(+), " : "ALW, ",
 #endif
 
         zoom_overlay_trigger_mode == 0 ? "" :
-            zoom_overlay_size == 0 ? "Small," :
-            zoom_overlay_size == 1 ? "Med," :
-            zoom_overlay_size == 2 ? "Large," : "FullScreen",
+            zoom_overlay_size == 0 ? "Small, " :
+            zoom_overlay_size == 1 ? "Med, " :
+            zoom_overlay_size == 2 ? "Large, " : "FullScreen",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
-            zoom_overlay_pos == 0 ? "AFbox," :
-            zoom_overlay_pos == 1 ? "TL," :
-            zoom_overlay_pos == 2 ? "TR," :
-            zoom_overlay_pos == 3 ? "BR," :
-            zoom_overlay_pos == 4 ? "BL," : "err",
+            zoom_overlay_pos == 0 ? "AFbox, " :
+            zoom_overlay_pos == 1 ? "TL, " :
+            zoom_overlay_pos == 2 ? "TR, " :
+            zoom_overlay_pos == 3 ? "BR, " :
+            zoom_overlay_pos == 4 ? "BL, " : "err",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_x == 0 ? "1:1" :
@@ -2478,8 +2396,8 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_split == 0 ? "" :
-            zoom_overlay_split == 1 ? ",Ss" :
-            zoom_overlay_split == 2 ? ",Sz" : "err"
+            zoom_overlay_split == 1 ? ", Ss" :
+            zoom_overlay_split == 2 ? ", Sz" : "err"
 
     );
 
@@ -2506,17 +2424,24 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
     if (spotmeter_draw)
+    {
         MENU_SET_VALUE(
             "%s%s",
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-            spotmeter_formula == 2 ? "IRE -1..101" :
-            spotmeter_formula == 3 ? "IRE 0..108" :
-            spotmeter_formula == 4 ? "RGB" : "RAW",
+            spotmeter_formula == 2 ? "RGB" : "RAW",
             
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
+        
+        #ifdef FEATURE_RAW_SPOTMETER
+        if (spotmeter_formula == 3)
+        {
+            menu_checkdep_raw(entry, info);
+        }
+        #endif
+    }
 }
 #endif
 
@@ -2707,7 +2632,7 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int dx = spotmeter_formula == 2 ? 52 : 26;
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -2861,7 +2786,7 @@ static void spotmeter_step()
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
 
-    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int dx = spotmeter_formula == 2 ? 52 : 26;
     int y0 = arrow_keys_shortcuts_active() ? (int)(36 - font_med.height) : (int)(-13);
     for( y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
     {
@@ -2885,7 +2810,6 @@ static void spotmeter_step()
     if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
     int bg = fg == COLOR_BLACK ? COLOR_WHITE : COLOR_BLACK;
     int fnt = FONT(SHADOW_FONT(FONT_MED), fg, bg);
-    int fnts = FONT(SHADOW_FONT(FONT_SMALL), fg, bg);
 
     if (!arrow_keys_shortcuts_active())
     {
@@ -2894,16 +2818,15 @@ static void spotmeter_step()
     }
     ycb += dxb + 20;
     ycb -= font_med.height/2;
-    xcb -= 2 * font_med.width;
 
     #ifdef FEATURE_RAW_SPOTMETER
-    if (spotmeter_formula == 5)
+    if (spotmeter_formula == 3)
     {
         if (can_use_raw_overlays())
         {
             bmp_printf(
-                fnt,
-                xcb - font_med.width - 5, ycb, 
+                fnt | FONT_ALIGN_CENTER,
+                xcb, ycb, 
                 "-%d.%d EV",
                 -raw_ev/10, 
                 -raw_ev%10
@@ -2922,41 +2845,20 @@ static void spotmeter_step()
 fallback_from_raw:
 #endif
         bmp_printf(
-            fnt,
+            fnt | FONT_ALIGN_CENTER,
             xcb, ycb, 
             "%3d%s",
             spotmeter_formula == 1 ? sy : scaled,
             spotmeter_formula == 1 ? "" : "%"
         );
     }
-    else if (spotmeter_formula <= 3)
-    {
-        int ire_aj = (((int)sy) - 2) * 102 / 253 - 1; // formula from AJ: (2...255) -> (-1...101)
-        int ire_piers = ((int)sy) * 108/255;           // formula from Piers: (0...255) -> (0...108)
-        int ire = (spotmeter_formula == 2) ? ire_aj : ire_piers;
-        
-        bmp_printf(
-            fnt,
-            xcb, ycb, 
-            "%s%3d", // why does %4d display garbage?!
-            ire < 0 ? "-" : " ",
-            ire < 0 ? -ire : ire
-        );
-        bmp_printf(
-            fnts,
-            xcb + font_med.width*4, ycb,
-            "IRE\n%s",
-            spotmeter_formula == 2 ? "-1..101" : "0..108"
-        );
-    }
-    else if (spotmeter_formula == 4)
+    else if (spotmeter_formula == 2)
     {
         int uyvy = UYVY_PACK(su,sy,sv,sy);
         int R,G,B,Y;
         COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
-        xcb -= font_med.width * 3/2;
         bmp_printf(
-            fnt,
+            fnt | FONT_ALIGN_CENTER,
             xcb, ycb, 
             "#%02x%02x%02x",
             R,G,B
@@ -3345,40 +3247,7 @@ struct menu_entry zebra_menus[] = {
     },
     #endif
     #ifdef FEATURE_CROPMARKS
-    {
-        .name = "Cropmarks",
-        .priv = &crop_enabled,
-        .update    = crop_display,
-        .max = 1,
-        .help = "Cropmarks or custom grids for framing.",
-        .depends_on = DEP_GLOBAL_DRAW,
-        .submenu_width = 710,
-        .submenu_height = 250,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Bitmap",
-                .priv = &crop_index, 
-                .select = crop_toggle,
-                .update    = crop_display_submenu,
-                .icon_type = IT_DICE,
-                .help = "You can draw your own cropmarks in Paint.",
-            },
-            {
-                .name = "Show in photo mode",
-                .priv = &cropmark_movieonly, 
-                .max = 1,
-                .choices = (const char *[]) {"ON", "OFF"},
-                .help = "Cropmarks are mostly used in movie mode.",
-            },
-            {
-                .name = "Show in PLAY mode",
-                .priv = &cropmarks_play, 
-                .max = 1,
-                .help = "You may also have cropmarks in Playback mode.",
-            },
-            MENU_EOL
-        },
-    },
+    MENU_PLACEHOLDER("Cropmarks"),
     #endif
     #ifdef FEATURE_GHOST_IMAGE
         #ifndef FEATURE_CROPMARKS
@@ -3416,11 +3285,11 @@ struct menu_entry zebra_menus[] = {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 #ifdef FEATURE_RAW_SPOTMETER
-                .max = 5,
+                .max = 3,
                 #else
-                .max = 4,
+                .max = 2,
                 #endif
-                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)", "RAW (EV)"},
+                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
             },
@@ -3496,7 +3365,8 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Use RAW histogram",
                 .priv = &raw_histogram_enable,
-                .max = 1,
+                .max = 2,
+                .choices = CHOICES("OFF", "ON", "Simplified HistoBar"),
                 .update = raw_histo_update,
                 .help = "Use RAW histogram whenever possible.",
             },
@@ -3694,35 +3564,6 @@ struct menu_entry livev_cfg_menus[] = {
 };
 #endif
 
-#ifdef FEATURE_CROPMARKS
-static void cropmark_draw_from_cache()
-{
-    uint8_t* B = bmp_vram();
-    uint8_t* M = get_bvram_mirror();
-    get_yuv422_vram();
-    ASSERT(B);
-    ASSERT(M);
-    
-    for (int i = os.y0; i < os.y_max; i++)
-    {
-        for (int j = os.x0; j < os.x_max; j++)
-        {
-            uint8_t p = B[BM(j,i)];
-            uint8_t m = M[BM(j,i)];
-            if (!(m & 0x80)) continue;
-            if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-            B[BM(j,i)] = m & ~0x80;
-            #ifdef CONFIG_500D
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            #endif
-        }
-    }
-}
-#endif
-
 /*
 void copy_zebras_from_mirror()
 {
@@ -3770,128 +3611,6 @@ void clear_zebras_from_mirror()
     }
 }
 */
-
-void cropmark_clear_cache()
-{
-#ifdef FEATURE_CROPMARKS
-    BMP_LOCK(
-        clrscr_mirror();
-        bvram_mirror_clear();
-        default_movie_cropmarks();
-    )
-#endif
-}
-
-#ifdef FEATURE_CROPMARKS
-static void 
-cropmark_draw()
-{
-    if (!get_global_draw()) return;
-
-    get_yuv422_vram(); // just to refresh VRAM params
-    clear_lv_afframe_if_dirty();
-
-    #ifdef FEATURE_GHOST_IMAGE
-    if (transparent_overlay && !transparent_overlay_hidden && !PLAY_MODE)
-    {
-        show_overlay();
-        zoom_overlay_dirty = 1;
-        cropmark_cache_dirty = 1;
-    }
-    #endif
-    crop_dirty = 0;
-
-    reload_cropmark(); // reloads only when changed
-
-    // this is very fast
-    if (cropmark_cache_is_valid())
-    {
-        clrscr_mirror();
-        cropmark_draw_from_cache();
-        //~ bmp_printf(FONT_MED, 50, 50, "crop cached");
-        //~ info_led_blink(5, 10, 10);
-        goto end;
-    }
-
-    if (
-            (!crop_enabled) ||
-            (cropmark_movieonly && !is_movie_mode() && !PLAY_OR_QR_MODE)
-       )
-    {
-        // Cropmarks disabled (or not shown in this mode)
-        // Generate and draw default cropmarks
-        cropmark_cache_update_signature();
-        cropmark_clear_cache();
-        cropmark_draw_from_cache();
-        //~ info_led_blink(5,50,50);
-        goto end;
-    }
-    
-    if (cropmarks) 
-    {
-        // Cropmarks enabled, but cache is not valid
-        if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
-        clrscr_mirror(); // clean any remaining zebras / peaking
-        cropmark_cache_update_signature();
-        
-        if (hdmi_code == 5 && is_pure_play_movie_mode())
-        {   // exception: cropmarks will have some parts of them outside the screen
-            bmp_draw_scaled_ex(cropmarks, BMP_W_MINUS+1, BMP_H_MINUS - 50, 960, 640, bvram_mirror);
-        }
-        else
-            bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
-        //~ info_led_blink(5,50,50);
-        //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
-        goto end;
-    }
-
-end:
-    cropmark_cache_dirty = 0;
-    zoom_overlay_dirty = 1;
-    crop_dirty = 0;
-}
-
-static int cropmark_cache_sig = 0;
-static int cropmark_cache_get_signature()
-{
-    get_yuv422_vram(); // update VRAM params if needed
-    int sig = 
-        crop_index * 13579 + crop_enabled * 14567 +
-        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
-    return sig;
-}
-static void cropmark_cache_update_signature()
-{
-    cropmark_cache_sig = cropmark_cache_get_signature();
-}
-
-static int cropmark_cache_is_valid()
-{
-    if (cropmark_cache_dirty) return 0; // some other ML task asked for redraw
-    if (hdmi_code == 5 && PLAY_MODE) return 0; // unusual geometry - better force full redraw every time
-    
-    int sig = cropmark_cache_get_signature(); // video mode changed => needs redraw
-    if (cropmark_cache_sig != sig) return 0;
-    
-    return 1; // everything looks alright
-}
-
-static void
-cropmark_redraw()
-{
-    if (!cropmarks_initialized) return;
-    if (gui_menu_shown()) return; 
-    if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
-    if (digic_zoom_overlay_enabled()) return;
-    BMP_LOCK(
-        if (!cropmark_cache_is_valid())
-        {
-            cropmark_clear_cache();
-        }
-        cropmark_draw(); 
-    )
-}
-#endif
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 static void trigger_zebras_for_qr()
@@ -4164,7 +3883,7 @@ static void draw_zoom_overlay(int dirty)
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;
             if (dt > timeout_us)
-                return 0;
+                return;
             for (int i = 0; i < 100; i++) asm("nop"); // don't stress the digic too much
         }
     }
@@ -4439,10 +4158,6 @@ BMP_LOCK(
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
     }
-    
-    #ifdef FEATURE_POST_DEFLICKER
-    post_deflicker_show_info();
-    #endif
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
@@ -4825,11 +4540,12 @@ static void idle_display_undim()
 
 void idle_globaldraw_dis()
 {
-    idle_globaldraw_disable = 1;
+    idle_globaldraw_disable++;
 }
 void idle_globaldraw_en()
 {
-    idle_globaldraw_disable = 0;
+    if (idle_globaldraw_disable > 0)
+        idle_globaldraw_disable--;
 }
 
 #ifdef CONFIG_KILL_FLICKER
@@ -5004,24 +4720,7 @@ clearscreen_loop:
 
         #ifdef FEATURE_CROPMARKS
         // since this task runs at 10Hz, I prefer cropmark redrawing here
-
-        if (crop_dirty && lv && zebra_should_run())
-        {
-            crop_dirty--;
-            
-            //~ bmp_printf(FONT_MED, 50, 100, "crop: cache=%d dirty=%d ", cropmark_cache_is_valid(), crop_dirty);
-
-            // if cropmarks are disabled, we will still draw default cropmarks (fast)
-            if (!(crop_enabled && cropmark_movieonly && !is_movie_mode())) 
-                crop_dirty = MIN(crop_dirty, 4);
-            
-            // if cropmarks are cached, we can redraw them fast
-            if (cropmark_cache_is_valid() && !should_draw_zoom_overlay() && !get_halfshutter_pressed())
-                crop_dirty = MIN(crop_dirty, 4);
-                
-            if (crop_dirty == 0)
-                cropmark_redraw();
-        }
+        cropmark_step();
         #endif
     }
 }
@@ -5114,32 +4813,6 @@ void lens_display_set_dirty()
         menu_set_dirty(); 
 }
 
-#if 0
-void draw_cropmark_area()
-{
-    get_yuv422_vram();
-    bmp_draw_rect(COLOR_BLUE, os.x0, os.y0, os.x_ex, os.y_ex);
-    draw_line(os.x0, os.y0, os.x_max, os.y_max, COLOR_BLUE);
-    draw_line(os.x0, os.y_max, os.x_max, os.y0, COLOR_BLUE);
-    
-    bmp_draw_rect(COLOR_RED, HD2BM_X(0), HD2BM_Y(0), HD2BM_DX(vram_hd.width), HD2BM_DY(vram_hd.height));
-    draw_line(HD2BM_X(0), HD2BM_Y(0), HD2BM_X(vram_hd.width), HD2BM_Y(vram_hd.height), COLOR_RED);
-    draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
-}
-#endif
-
-/*
-void show_apsc_crop_factor()
-{
-    int x_ex_crop = os.x_ex * 10/16;
-    int y_ex_crop = os.y_ex * 10/16;
-    int x_off = (os.x_ex - x_ex_crop)/2;
-    int y_off = (os.y_ex - y_ex_crop)/2;
-    bmp_draw_rect(COLOR_WHITE, os.x0 + x_off, os.y0 + y_off, x_ex_crop, y_ex_crop);
-    bmp_draw_rect(COLOR_BLACK, os.x0 + x_off + 1, os.y0 + y_off + 1, x_ex_crop - 2, y_ex_crop - 2);
-}
-*/
-
 int is_focus_peaking_enabled()
 {
 #ifdef FEATURE_FOCUS_PEAK
@@ -5205,7 +4878,9 @@ livev_hipriority_task( void* unused )
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
+#ifdef CONFIG_RAW_LIVEVIEW
         static int raw_flag = 0;
+#endif
         
         if (!zebra_should_run())
         {
@@ -5358,12 +5033,6 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK( if (lv) update_lens_display(0,1); );
                 if (lens_display_dirty) lens_display_dirty--;
             }
-
-            static int prev_s;
-            int s = get_seconds_clock();
-            if (s != prev_s)
-                if (lv) movie_indicators_show();
-            prev_s = s;
         }
     }
 }
@@ -5372,72 +5041,6 @@ static void loprio_sleep()
 {
     msleep(200);
     while (is_mvr_buffer_almost_full()) msleep(100);
-}
-
-static void black_bars()
-{
-    if (!get_global_draw()) return;
-    if (!is_movie_mode()) return;
-    if (video_mode_resolution > 1) return; // these are only for 16:9
-    int i,j;
-    uint8_t * const bvram = bmp_vram();
-    get_yuv422_vram();
-    ASSERT(bvram);
-    for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
-    {
-        if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
-        {
-            int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
-            for (j = os.x0; j < os.x_max; j++)
-            {
-                if (bvram[BM(j,i)] == COLOR_BG)
-                    bvram[BM(j,i)] = newcolor;
-            }
-        }
-    }
-}
-
-static void default_movie_cropmarks()
-{
-    if (!get_global_draw()) return;
-    if (!lv) return;
-    if (!is_movie_mode()) return;
-    if (video_mode_resolution > 1) return; // these are only for 16:9
-    int i,j;
-    uint8_t * const bvram_mirror = get_bvram_mirror();
-    get_yuv422_vram();
-    ASSERT(bvram_mirror);
-    for (i = os.y0; i < MIN(os.y_max+1, BMP_H_PLUS); i++)
-    {
-        if (i < os.y0 + os.off_169 || i > os.y_max - os.off_169)
-        {
-            int newcolor = (i < os.y0 + os.off_169 - 2 || i > os.y_max - os.off_169 + 2) ? COLOR_BLACK : COLOR_BG;
-            for (j = os.x0; j < os.x_max; j++)
-            {
-                bvram_mirror[BM(j,i)] = newcolor | 0x80;
-            }
-        }
-    }
-}
-
-static void black_bars_16x9()
-{
-#ifdef CONFIG_KILL_FLICKER
-    if (!get_global_draw()) return;
-    if (!is_movie_mode()) return;
-    get_yuv422_vram();
-    if (video_mode_resolution > 1)
-    {
-        int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
-        bmp_fill(COLOR_BLACK, os.x0, os.y0, off_43, os.y_ex);
-        bmp_fill(COLOR_BLACK, os.x_max - off_43, os.y0, off_43, os.y_ex);
-    }
-    else
-    {
-        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
-        bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
-    }
-#endif
 }
 
 // Items which do not need a high FPS, but are CPU intensive
@@ -5458,13 +5061,13 @@ livev_lopriority_task( void* unused )
         #endif
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
+        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
         {
             msleep(500);
-            if (PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0) // double-check
+            if (PLAY_MODE && DISPLAY_IS_ON && ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)) // double-check
             {
                 cropmark_redraw();
-                if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
+                if ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
             }
         }
         #endif
@@ -5714,6 +5317,8 @@ int handle_livev_playback(struct event * event, int button)
             #else
             case BGMT_PRESS_SET:
             #endif
+                if (QR_MODE && event->param == BGMT_PRESS_SET)  /* conflicts with voice tags */
+                    return 1;
                 spotmeter_playback_offset_x = spotmeter_playback_offset_y = 0;
                 livev_playback_refresh();
                 return 0;
@@ -5766,6 +5371,9 @@ static void zebra_init()
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
+    #ifdef FEATURE_CROPMARKS
+    menu_add( "Overlay", cropmarks_menu, COUNT(cropmarks_menu) );
+    #endif
 }
 
 INIT_FUNC(__FILE__, zebra_init);
@@ -5893,7 +5501,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     zoom_sharpen_step();
-    zoom_auto_exposure_step();
     #endif
 }
 

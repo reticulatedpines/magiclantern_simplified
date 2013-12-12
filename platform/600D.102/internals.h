@@ -113,12 +113,9 @@
 /** This camera loads ML into the AllocateMemory pool **/
 //#define CONFIG_ALLOCATE_MEMORY_POOL
 
-/** 600D has little RAM for AllocateMemory; prefer the malloc/free pool for small things */
-#define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
-
 /** We have access to raw data in both photo mode and in LiveView */
-#define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+#define CONFIG_RAW_PHOTO
 
 /** for 600D */
 #define CONFIG_EDMAC_MEMCPY

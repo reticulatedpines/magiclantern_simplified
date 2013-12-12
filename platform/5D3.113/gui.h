@@ -71,6 +71,7 @@
 #define GMT_GUICMD_LOCK_OFF 89
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_LIGHT // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK_NAME "LIGHT"
 
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000BC in 5d3
 

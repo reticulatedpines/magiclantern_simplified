@@ -10,10 +10,12 @@
 
 char camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
+uint32_t camera_model_id = 0;
 char firmware_version[32];
 
 PROP_HANDLER(PROP_CAM_MODEL)
 {
+    memcpy((char *)&camera_model_id, (uint32_t)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
 }
 
@@ -29,6 +31,7 @@ volatile PROP_INT(PROP_GUI_STATE, gui_state);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
+volatile PROP_INT(PROP_METERING_MODE, metering_mode);
 #ifndef CONFIG_5D3
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
@@ -56,6 +59,8 @@ volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 #endif
 
 volatile int shooting_mode;
+volatile PROP_INT(PROP_SHOOTING_MODE, shooting_mode_custom);
+
 PROP_HANDLER(PROP_SHOOTING_MODE_2)
 {
     shooting_mode = buf[0];
@@ -77,7 +82,11 @@ volatile int lv_paused = 0; // not a property, but related
 bool FAST is_native_movie_mode()
 {
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
-    return lv && lv_movie_select == LVMS_ENABLE_MOVIE
+    return 
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D) /* the switch is in the menus */
+            lv && 
+            #endif
+            lv_movie_select == LVMS_ENABLE_MOVIE /* the switch is on the camera body, so you can't be in photo mode when it's enabled */
             #ifdef CONFIG_5D2
             && get_expsim() == 2  // movie enabled, but photo display is considered photo mode
             #endif

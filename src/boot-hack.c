@@ -40,16 +40,20 @@
 #include "boot-hack.h"
 #include "reloc.h"
 
+#include "ml-cbr.h"
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);
 static void my_bzero( uint8_t * base, uint32_t size );
 
+#ifndef HIJACK_CACHE_HACK
 /** This just goes into the bss */
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
 
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
+#endif
 
 #ifdef __ARM__
 /** Translate a firmware address into a relocated address */
@@ -402,7 +406,6 @@ static void my_big_init_task()
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
         bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
         info_led_blink(1, 500, 500);
     }
@@ -437,6 +440,8 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
+    load_fonts();
+    _ml_cbr_init();
     menu_init();
     debug_init();
     call_init_funcs( 0 );
@@ -468,7 +473,7 @@ static void my_big_init_task()
 
     #ifdef CONFIG_CONFIG_FILE
     // Read ML config
-    config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    config_load();
     #endif
     
     debug_init_stuff();
@@ -897,7 +902,7 @@ my_init_task(int a, int b, int c, int d)
             if (DISPLAY_IS_ON) break;
             msleep(100);
         }
-        bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
+        bmp_printf(FONT_CANON, 0, 0, "Magic OFF");
     #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';

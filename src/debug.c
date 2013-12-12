@@ -56,7 +56,7 @@ INIT_FUNC("debug", debug_init_func);
 void NormalDisplay();
 void MirrorDisplay();
 static void HijackFormatDialogBox_main();
-void config_menu_init();
+void debug_menu_init();
 void display_on();
 void display_off();
 void EngDrvOut(int reg, int value);
@@ -72,39 +72,6 @@ void j_tp_intercept() { tp_intercept(); }
 #endif
 
 #ifdef FEATURE_SCREENSHOT
-
-int rename_file(char* src, char* dst)
-{
-#if defined(CONFIG_FIO_RENAMEFILE_WORKS) // FIO_RenameFile known to work
-
-    return FIO_RenameFile(src, dst);
-
-#else
-    // FIO_RenameFile not known, or doesn't work
-    // emulate it by copy + erase (poor man's rename :P )
-
-    const int bufsize = 128*1024;
-    void* buf = alloc_dma_memory(bufsize);
-    if (!buf) return 1;
-
-    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 1;
-
-    FILE* g = FIO_CreateFile(dst);
-    if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
-
-    int r = 0;
-    while ((r = FIO_ReadFile(f, buf, bufsize)))
-        FIO_WriteFile(g, buf, r);
-
-    FIO_CloseFile(f);
-    FIO_CloseFile(g);
-    FIO_RemoveFile(src);
-    msleep(1000); // this decreases the chances of getting corrupted files (figure out why!)
-    free_dma_memory(buf);
-    return 0;
-#endif
-}
 
 void take_screenshot( int also_lv )
 {
@@ -126,7 +93,7 @@ void take_screenshot( int also_lv )
             snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
             if (GetFileSize(fn) == 0xFFFFFFFF) // this file does not exist
             {
-                rename_file(CARD_DRIVE"TEST.BMP", fn);
+                FIO_RenameFile(CARD_DRIVE"TEST.BMP", fn);
                 break;
             }
         }
@@ -215,8 +182,12 @@ save_config( void * priv, int delta )
 #ifdef CONFIG_CONFIG_FILE
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
-    config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    char config_file[0x80];
+    snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
+    config_save_file(config_file);
     config_menu_save_flags();
+    module_save_configs();
+    if (config_deleted) config_autosave = 1; /* this can be improved, because it's not doing a proper "undo" */
     config_deleted = 0;
     give_semaphore(config_save_sem);
 #endif
@@ -300,6 +271,8 @@ static MENU_UPDATE_FUNC(delete_config_update)
         MENU_SET_RINFO("Restart");
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera to complete the process.");
     }
+
+    MENU_SET_HELP("Only the current preset: %s", get_config_dir());
 }
 static MENU_UPDATE_FUNC(save_config_update)
 {
@@ -307,24 +280,14 @@ static MENU_UPDATE_FUNC(save_config_update)
     {
         MENU_SET_RINFO("Undo");
     }
+    
+    MENU_SET_HELP("%s", get_config_dir());
 }
+
 static void
 delete_config( void * priv, int delta )
 {
-    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
-    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/MENU.CFG" );
-    if (config_autosave) config_autosave_toggle(0, 0);
-
-#ifdef CONFIG_MODULES
-    int is_valid_config_filename(char* filename)
-    {
-        int n = strlen(filename);
-        if ((n > 4) && (streq(filename + n - 4, ".CFG") || streq(filename + n - 4, ".cfg")))
-            return 1;
-        return 0;
-    }
-
-    char* path = CARD_DRIVE "ML/MODULES/";
+    char* path = get_config_dir();
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
     if( IS_ERROR(dirent) )
@@ -332,21 +295,312 @@ delete_config( void * priv, int delta )
 
     do
     {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
-        if (is_valid_config_filename(file.name))
+        if (file.mode & ATTR_DIRECTORY)
         {
-            char fn[0x80];
-            snprintf(fn, sizeof(fn), "%s%s", path, file.name);
-            FIO_RemoveFile(fn);
+            continue; // is a directory
         }
+        
+        char fn[0x80];
+        snprintf(fn, sizeof(fn), "%s%s", path, file.name);
+        FIO_RemoveFile(fn);
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-#endif
+    FIO_FindClose(dirent);
 
     config_deleted = 1;
+    
+    if (config_autosave)
+    {
+        /* at shutdown, config autosave may re-create the config files we just deleted */
+        /* => disable this feature in RAM only, until next reboot, without commiting it to card */
+        config_autosave = 0;
+    }
 }
 
+/* config presets */
+
+static const char* config_preset_file = 
+    CARD_DRIVE"ML/SETTINGS/CURRENT.SET";    /* contains the name of current preset */
+static int config_preset_index = 0;         /* preset being used right now */
+static int config_new_preset_index = 0;     /* preset that will be used after restart */
+static int config_preset_num = 3;           /* total presets available */
+static char* config_preset_choices[16] = {  /* preset names (reusable as menu choices) */
+    "OFF",
+    "Startup mode",
+    "Startup key",
+    "Preset 1   ",
+    "Preset 2   ",
+    "Preset 3   ",
+    "Preset 4   ",
+    "Preset 5   ",
+    "Preset 6   ",
+    "Preset 7   ",
+    "Preset 8   ",
+    "Preset 9   ",
+    "Preset 10  ",
+    "Preset 11  ",
+    "Preset 12  ",
+    "Preset 13  ", /* space needed: 8.3 */
+};
+
+static char config_dir[0x80];
+static char* config_preset_name;
+
+char* get_config_dir()
+{
+    return config_dir;
+}
+
+/* null if no preset */
+char* get_config_preset_name()
+{
+    return config_preset_name;
+}
+
+static struct menu_entry cfg_menus[];
+
+static void config_preset_scan()
+{
+    char* path = CARD_DRIVE "ML/SETTINGS/";
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if(!IS_ERROR(dirent))
+    {
+        do
+        {
+            if (file.mode & ATTR_DIRECTORY)
+            {
+                if (file.name[0] == '.')
+                    continue;
+                
+                /* special names for keys pressed at startup */
+                if (streq(file.name + strlen(file.name)-4, ".KEY"))
+                    continue;
+
+                /* special names for mode-based config presets */
+                if (streq(file.name + strlen(file.name)-4, ".MOD"))
+                    continue;
+                
+                /* we have reserved statically 12 chars for each preset */
+                snprintf(
+                    config_preset_choices[config_preset_num], 12,
+                    "%s", file.name
+                );
+                config_preset_num++;
+                if (config_preset_num >= COUNT(config_preset_choices))
+                    break;
+            }
+        }
+        while( FIO_FindNextEx( dirent, &file ) == 0);
+        FIO_FindClose(dirent);
+    }
+    
+    /* update the Config Presets menu */
+    cfg_menus[0].children[0].max = config_preset_num - 1;
+}
+
+static MENU_SELECT_FUNC(config_preset_toggle)
+{
+    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num);
+    
+    if (!config_new_preset_index)
+    {
+        FIO_RemoveFile(config_preset_file);
+    }
+    else
+    {
+        FILE* f = FIO_CreateFileEx(config_preset_file);
+        if (config_new_preset_index == 1)
+            my_fprintf(f, "Startup mode");
+        else if (config_new_preset_index == 2)
+            my_fprintf(f, "Startup key");
+        else
+            my_fprintf(f, "%s", config_preset_choices[config_new_preset_index]);
+        FIO_CloseFile(f);
+    }
+}
+
+static int config_selected = 0;
+static char config_selected_by_key[9] = "";
+static char config_selected_by_mode[9] = "";
+static char config_selected_by_name[9] = "";
+
+static MENU_UPDATE_FUNC(config_preset_update)
+{
+    int preset_changed = (config_new_preset_index != config_preset_index);
+    char* current_preset_name = get_config_preset_name();
+    MENU_SET_RINFO(current_preset_name);
+
+    if (config_new_preset_index == 1) /* startup shooting mode */
+    {
+        char current_mode_name[9];
+        snprintf(current_mode_name, sizeof(current_mode_name), "%s", (char*) get_shootmode_name(shooting_mode_custom));
+        if (streq(config_selected_by_mode, current_mode_name))
+        {
+            MENU_SET_HELP("Config preset is selected by startup mode (on the mode dial).");
+        }
+        else
+        {
+            MENU_SET_RINFO("%s->%s", current_preset_name, current_mode_name);
+            if (config_selected_by_mode[0])
+            {
+                MENU_SET_HELP("Camera was started in %s; restart to load the config for %s.", config_selected_by_mode, current_mode_name);
+            }
+            else
+            {
+                MENU_SET_HELP("Restart to load the config for %s mode.", current_mode_name);
+            }
+        }
+    }
+    else if (config_new_preset_index == 2) /* startup key */
+    {
+        MENU_SET_HELP("At startup, press&hold MENU/PLAY/"INFO_BTN_NAME" to select the cfg preset.");
+    }
+    else /* named preset */
+    {
+        if (preset_changed)
+        {
+            MENU_SET_HELP("The new config preset will be used after you restart your camera.");
+            MENU_SET_RINFO("Restart");
+        }
+    }
+}
+
+int handle_select_config_file_by_key_at_startup(struct event * event)
+{
+    if (!config_selected)
+    {
+        char* key_name = 0;
+        switch (event->param)
+        {
+            case BGMT_MENU:
+                key_name = "MENU";
+                break;
+            case BGMT_INFO:
+                key_name = INFO_BTN_NAME;
+                break;
+            case BGMT_PLAY:
+                key_name = "PLAY";
+                break;
+        }
+        if (key_name)
+        {
+            /* we are not able to check the filesystem at this point */
+            snprintf(config_selected_by_key, sizeof(config_selected_by_key), "%s", key_name);
+            return 0;
+        }
+    }
+    
+    return 1;
+}
+
+static char* config_choose_startup_preset()
+{
+    int size = 0;
+
+    /* by default, work in ML/SETTINGS dir */
+    snprintf(config_dir, sizeof(config_dir), CARD_DRIVE "ML/SETTINGS/");
+
+    /* check for a preset file selected in menu */
+    char* preset_name = (char*) read_entire_file(config_preset_file, &size);
+    if (preset_name)
+    {
+        if (streq(preset_name, "Startup mode"))
+        {
+            /* will handle later */
+            config_preset_index = config_new_preset_index = 1;
+        }
+        else if (streq(preset_name, "Startup key"))
+        {
+            /* will handle later */
+            config_preset_index = config_new_preset_index = 2;
+        }
+        else
+        {
+            snprintf(config_selected_by_name, sizeof(config_selected_by_name), preset_name);
+            char preset_dir[0x80];
+            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s", preset_name);
+            if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
+            if (is_dir(preset_dir))
+            {
+                snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
+            }
+        }
+        free_dma_memory(preset_name);
+    }
+
+    /* scan the preset files and populate the menu */
+    config_preset_scan();
+
+    /* special cases: key pressed at startup, or startup mode */
+
+    /* key pressed at startup */
+    if (config_preset_index == 2)
+    {
+        if (config_selected_by_key[0])
+        {
+            char preset_dir[0x80];
+            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.KEY", config_selected_by_key);
+            if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
+            if (is_dir(preset_dir))
+            {
+                /* success */
+                snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
+                return config_selected_by_key;
+            }
+        }
+        /* didn't work */
+        return 0;
+    }
+    else config_selected_by_key[0] = 0;
+
+    /* startup shooting mode (if selected in menu) */
+    if (config_preset_index == 1)
+    {
+        snprintf(config_selected_by_mode, sizeof(config_selected_by_mode), "%s", get_shootmode_name(shooting_mode_custom));
+        char preset_dir[0x80];
+        snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.MOD", config_selected_by_mode);
+        if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
+        if (is_dir(preset_dir))
+        {
+            /* success */
+            snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
+            return config_selected_by_mode;
+        }
+        /* didn't work */
+        return 0;
+    }
+
+    /* lookup the current preset in menu */
+    for (int i = 0; i < config_preset_num; i++)
+    {
+        if (streq(config_preset_choices[i], config_selected_by_name))
+        {
+            config_preset_index = config_new_preset_index = i;
+            return config_selected_by_name;
+        }
+    }
+
+    /* using default config */
+    return 0;
+}
+
+/* called at startup, after init_func's */
+void config_load()
+{
+    config_selected = 1;
+    config_preset_name = config_choose_startup_preset();
+
+    if (config_preset_name)
+    {
+        NotifyBox(2000, "Config: %s", config_preset_name);
+        if (!DISPLAY_IS_ON) beep();
+    }
+    
+    char config_file[0x80];
+    snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
+    config_parse_file(config_file);
+}
 #endif
 
 #if CONFIG_DEBUGMSG
@@ -720,8 +974,12 @@ static void bsod()
 
 static void run_test()
 {
+    void* p = malloc(2*1024*1024);
+    free(p);
+    free(p); /* the backend should catch this */
+    return;
 
-   bfnt_test();
+   //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
@@ -2586,12 +2844,7 @@ void request_core_dump(int from, int size)
     core_dump_requested = 1;
 }
 
-int GetFreeMemForAllocateMemory()
-{
-    int a,b;
-    GetMemoryInformation(&a,&b);
-    return b;
-}
+extern int GetFreeMemForAllocateMemory();
 
 #ifdef CONFIG_CRASH_LOG
 static void save_crash_log()
@@ -2630,12 +2883,17 @@ static void save_crash_log()
     msleep(1000);
 
     if (crash_log_requested == 1)
+    {
         NotifyBox(5000, "Crash detected - log file saved.\n"
                         "Pls send CRASH%02d.LOG to ML devs.\n"
                         "\n"
                         "%s", log_number, get_assert_msg());
+    }
     else
-        info_led_blink(10,20,20);
+    {
+        console_printf("%s\n", get_assert_msg());
+        console_show();
+    }
 
 }
 
@@ -2679,6 +2937,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
     TASK_LOOP
     {
+        
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
@@ -2827,228 +3086,6 @@ static MENU_UPDATE_FUNC(image_buf_display)
 }
 #endif
 
-#ifdef FEATURE_SHOW_FREE_MEMORY
-
-static volatile int max_stack_ack = 0;
-
-static void max_stack_try(void* size) { max_stack_ack = (int) size; }
-
-static int stack_size_crit(int x)
-{
-    int size = x * 1024;
-    task_create("stack_try", 0x1e, size, max_stack_try, (void*) size);
-    msleep(50);
-    if (max_stack_ack == size) return 1;
-    return -1;
-}
-
-static int max_shoot_malloc_mem = 0;
-static int max_shoot_malloc_frag_mem = 0;
-static char shoot_malloc_frag_desc[70] = "";
-static char memory_map[720];
-
-#define MEMORY_MAP_ADDRESS_TO_INDEX(p) ((int)CACHEABLE(p)/1024 * 720 / 512/1024)
-#define MEMORY_MAP_INDEX_TO_ADDRESS(i) ALIGN32((i) * 512 * 1024 / 720 * 1024)
-
-/* fixme: find a way to read the free stack memory from DryOS */
-/* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
-static volatile int guess_mem_running = 0;
-static void guess_free_mem_task(void* priv, int delta)
-{
-    /* reset values */
-    max_stack_ack = 0;
-    max_shoot_malloc_mem = 0;
-    max_shoot_malloc_frag_mem = 0;
-
-    bin_search(1, 1024, stack_size_crit);
-
-    {
-        struct memSuite * hSuite = shoot_malloc_suite_contig(0);
-        if (!hSuite)
-        {
-            beep();
-            guess_mem_running = 0;
-            return;
-        }
-        ASSERT(hSuite->num_chunks == 1);
-        max_shoot_malloc_mem = hSuite->size;
-        shoot_free_suite(hSuite);
-    }
-
-    struct memSuite * hSuite = shoot_malloc_suite(0);
-    if (!hSuite)
-    {
-        beep();
-        guess_mem_running = 0;
-        return;
-    }
-    max_shoot_malloc_frag_mem = hSuite->size;
-
-    struct memChunk *currentChunk;
-    int chunkAvail;
-    void* chunkAddress;
-    int total = 0;
-
-    currentChunk = GetFirstChunkFromSuite(hSuite);
-
-    snprintf(shoot_malloc_frag_desc, sizeof(shoot_malloc_frag_desc), "");
-    memset(memory_map, 0, sizeof(memory_map));
-
-    while(currentChunk)
-    {
-        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
-        chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
-
-        int mb = 10*chunkAvail/1024/1024;
-        STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
-        total += chunkAvail;
-
-        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
-        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
-        memset(memory_map + start, COLOR_GREEN1, width);
-
-        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
-    }
-    STR_APPEND(shoot_malloc_frag_desc, " MB.");
-    ASSERT(max_shoot_malloc_frag_mem == total);
-
-    exmem_clear(hSuite, 0);
-
-    shoot_free_suite(hSuite);
-
-    /* memory analysis: how much appears unused? */
-    for (uint32_t i = 0; i < 720; i++)
-    {
-        if (memory_map[i])
-            continue;
-
-        uint32_t empty = 1;
-        uint32_t start = MEMORY_MAP_INDEX_TO_ADDRESS(i);
-        uint32_t end = MEMORY_MAP_INDEX_TO_ADDRESS(i+1);
-
-        for (uint32_t p = start; p < end; p += 4)
-        {
-            uint32_t v = MEM(p);
-            #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
-            if (v != 0x124B1DE0 /* RA(W)VIDEO*/)
-            #else
-            if (v != 0 && v != 0xFFFFFFFF)
-            #endif
-            {
-                empty = 0;
-                break;
-            }
-        }
-
-        memory_map[i] = empty ? COLOR_BLUE : COLOR_RED;
-    }
-
-    menu_redraw();
-    guess_mem_running = 0;
-}
-
-static void guess_free_mem()
-{
-    task_create("guess_mem", 0x1e, 0x4000, guess_free_mem_task, 0);
-}
-
-static MENU_UPDATE_FUNC(meminfo_display)
-{
-    int M = GetFreeMemForAllocateMemory();
-    int m = MALLOC_FREE_MEMORY;
-
-#ifdef CONFIG_VXWORKS
-    MENU_SET_VALUE(
-        "%dK",
-        M/1024
-    );
-    if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
-#else
-
-    int guess_needed = 0;
-    int info_type = (int) entry->priv;
-    switch (info_type)
-    {
-        case 0: // main entry
-            MENU_SET_VALUE(
-                "%dK + %dK",
-                m/1024, M/1024
-            );
-            if (M < 1024*1024 || m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
-            MENU_SET_ENABLED(1);
-            MENU_SET_ICON(MNI_DICE, 0);
-            break;
-
-        case 1: // malloc
-            MENU_SET_VALUE("%d K", m/1024);
-            if (m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Would be nice to have at least 128K free here.");
-            break;
-
-        case 2: // AllocateMemory
-            MENU_SET_VALUE("%d K", M/1024);
-            if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Canon code requires around 1 MB from here.");
-            break;
-
-        case 3: // task stack
-            MENU_SET_VALUE("%d K", max_stack_ack/1024);
-            guess_needed = 1;
-            break;
-
-        case 4: // shoot_malloc contig
-            MENU_SET_VALUE("%d M", max_shoot_malloc_mem/1024/1024);
-            guess_needed = 1;
-            break;
-
-        case 5: // shoot_malloc fragmented
-            MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
-            MENU_SET_WARNING(MENU_WARN_INFO, shoot_malloc_frag_desc);
-            guess_needed = 1;
-            for (int i = 0; i < 720; i++)
-                if (memory_map[i])
-                    draw_line(i, 400, i, 410, memory_map[i]);
-            break;
-
-        #if defined(CONFIG_MEMPATCH_CHECK)
-        case 6: // autoexec size
-        {
-            extern uint32_t ml_reserved_mem;
-            extern uint32_t ml_used_mem;
-
-            if (ABS(ml_used_mem - ml_reserved_mem) < 1024) MENU_SET_VALUE(
-                "%dK",
-                ml_used_mem/1024
-            );
-            else MENU_SET_VALUE(
-                "%dK of %dK",
-                ml_used_mem/1024, ml_reserved_mem/1024
-            );
-            if (ml_reserved_mem < ml_used_mem)
-                MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
-
-            break;
-        }
-        #endif
-    }
-
-    if (guess_needed && !guess_mem_running)
-    {
-        /* check this once every 20 seconds (not more often) */
-        static int aux = INT_MIN;
-        if (should_run_polling_action(20000, &aux))
-        {
-            guess_mem_running = 1;
-            guess_free_mem();
-        }
-    }
-
-    if (guess_mem_running)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
-    else
-        MENU_SET_HELP("GREEN=free shoot, BLUE=00/FF maybe free, RED=maybe used");
-#endif
-}
-#endif
-
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
 static MENU_UPDATE_FUNC(shuttercount_display)
 {
@@ -3182,12 +3219,12 @@ static int edmac_selection;
 static void edmac_display_page(int i0, int x0, int y0)
 {
     bmp_printf(
-        FONT_MED,
+        FONT_MONO_20,
         x0, y0,
         "EDM# Address  Size\n"
     );
 
-    y0 += font_med.height * 2;
+    y0 += fontspec_font(FONT_MONO_20)->height * 2;
 
     for (int i = 0; i < 16; i++)
     {
@@ -3229,8 +3266,8 @@ static void edmac_display_page(int i0, int x0, int y0)
         else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
 
         bmp_printf(
-            FONT(FONT_MED, color, COLOR_BLACK),
-            x0, y0 + i * font_med.height,
+            FONT(FONT_MONO_20, color, COLOR_BLACK),
+            x0, y0 + i * fontspec_font(FONT_MONO_20)->height,
             msg
         );
     }
@@ -3275,22 +3312,24 @@ static void edmac_display_detailed(int channel)
 
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
+    
+    int fh = fontspec_font(FONT_MONO_20)->height;
 
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Address    : %8x ", addr);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "State      : %8x ", state);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags      : %8x ", flags);
-    y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
-    y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a      : %8x ", off1a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b      : %8x ", off1b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a      : %8x ", off2a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b      : %8x ", off2b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off3       : %8x ", off3);
-    y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Address    : %8x ", addr);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "State      : %8x ", state);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Flags      : %8x ", flags);
+    y += fh;
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
+    y += fh;
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off1a      : %8x ", off1a);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off1b      : %8x ", off1b);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off2a      : %8x ", off2a);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off2b      : %8x ", off2b);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off3       : %8x ", off3);
+    y += fh;
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
 
     #if defined(CONFIG_5D3)
     /**
@@ -3301,8 +3340,8 @@ static void edmac_display_detailed(int channel)
      */
     uint32_t cbr1 = MEM(8 + 32*(channel) + MEM(0x12400));
     uint32_t cbr2 = MEM(12 + 32*(channel) + MEM(0x12400));
-    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
-    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
+    bmp_printf(FONT_MONO_20, 50, y += fh, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
+    bmp_printf(FONT_MONO_20, 50, y += fh, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
     #endif
 }
 
@@ -3319,23 +3358,23 @@ static MENU_UPDATE_FUNC(edmac_display)
 
         //~ int x = 20;
         bmp_printf(
-            FONT_MED,
+            FONT_MONO_20,
             20, 450, "EDMAC state: "
         );
 
         bmp_printf(
-            FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
+            FONT(FONT_MONO_20, COLOR_GRAY(50), COLOR_BLACK),
             20+200, 450, "inactive"
         );
 
         bmp_printf(
-            FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
+            FONT(FONT_MONO_20, COLOR_GREEN1, COLOR_BLACK),
             20+350, 450, "running"
         );
 
         bmp_printf(
-            FONT_MED,
-            720 - font_med.width * 13, 450, "[Scrollwheel]"
+            FONT_MONO_20,
+            720 - fontspec_font(FONT_MONO_20)->width * 13, 450, "[Scrollwheel]"
         );
     }
     else // detailed view
@@ -3353,7 +3392,6 @@ extern void peaking_benchmark();
 extern void menu_benchmark();
 
 extern int show_cpu_usage_flag;
-
 
 static struct menu_entry debug_menus[] = {
     MENU_PLACEHOLDER("File Manager"),
@@ -3745,72 +3783,7 @@ static struct menu_entry debug_menus[] = {
         }
     },
 #endif
-#ifdef FEATURE_SHOW_FREE_MEMORY
-#ifdef CONFIG_VXWORKS
-    {
-        .name = "Free Memory",
-        .update = meminfo_display,
-        .icon_type = IT_ALWAYS_ON,
-        .help = "Free memory, shared between ML and Canon firmware.",
-    },
-#else // dryos
-    {
-        .name = "Free Memory",
-        .update = meminfo_display,
-        .select = menu_open_submenu,
-        .help = "Free memory, shared between ML and Canon firmware.",
-        .help2 = "Press SET for detailed info.",
-        .submenu_width = 710,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "malloc",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)1,
-                .update = meminfo_display,
-                .help = "Free memory available via malloc.",
-            },
-            {
-                .name = "AllocateMemory",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)2,
-                .update = meminfo_display,
-                .help = "Free memory available via AllocateMemory.",
-            },
-            {
-                .name = "stack space",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)3,
-                .update = meminfo_display,
-                .help = "Free memory available as stack space for user tasks.",
-            },
-            {
-                .name = "shoot_malloc contig",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)4,
-                .update = meminfo_display,
-                .help = "Largest contiguous block from shoot memory.",
-            },
-            {
-                .name = "shoot_malloc total",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)5,
-                .update = meminfo_display,
-                .help = "Largest fragmented block from shoot memory.",
-            },
-            #if defined(CONFIG_MEMPATCH_CHECK)
-            {
-                .name = "AUTOEXEC.BIN size",
-                .icon_type = IT_ALWAYS_ON,
-                .priv = (int*)6,
-                .update = meminfo_display,
-                .help = "Memory reserved statically at startup for ML binary.",
-            },
-            #endif
-            MENU_EOL
-        },
-    },
-#endif
-#endif
+    MENU_PLACEHOLDER("Free Memory"),
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
     {
         .name = "Image buffers",
@@ -3877,11 +3850,22 @@ static struct menu_entry debug_menus[] = {
 #ifdef CONFIG_CONFIG_FILE
 static struct menu_entry cfg_menus[] = {
 {
-    .name = "Config file",
+    .name = "Config files",
     .select = menu_open_submenu,
-    .submenu_width = 700,
+    .update = config_preset_update,
+    .submenu_width = 710,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
+        {
+            .name = "Config preset",
+            .priv = &config_new_preset_index,
+            .min = 0,
+            .max = 2,
+            .choices = (const char **) config_preset_choices,
+            .select = config_preset_toggle,
+            .update = config_preset_update,
+            .help = "Choose a configuration preset."
+        },
         {
             .name = "Config AutoSave",
             .priv = &config_autosave,
@@ -3893,13 +3877,13 @@ static struct menu_entry cfg_menus[] = {
             .name = "Save config now",
             .select        = save_config,
             .update        = save_config_update,
-            .help = "Save ML settings to ML/SETTINGS/MAGIC.CFG ."
+            .help = "Save ML settings to current preset directory."
         },
         {
             .name = "Restore ML defaults",
             .select        = delete_config,
             .update        = delete_config_update,
-            .help  = "This restore ML default settings, by deleting MAGIC.CFG.",
+            .help  = "This restores ML default settings, by deleting all CFG files.",
         },
 
         #ifdef CONFIG_PICOC
@@ -4400,7 +4384,7 @@ static void TmpMem_AddFile(char* filename)
     }
 }
 
-static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int recursive_levels)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -4408,34 +4392,44 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         return;
 
     do {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         if (file.name[0] == '.' || file.name[0] == '_') continue;
+        if (file.mode & ATTR_DIRECTORY)
+        {
+            if (recursive_levels > 0)
+            {
+                char new_dir[0x80];
+                snprintf(new_dir, sizeof(new_dir), "%s%s/", dir, file.name);
+                CopyMLDirectoryToRAM_BeforeFormat(new_dir, cropmarks_flag, recursive_levels-1);
+            }
+            continue; // is a directory
+        }
         if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
 
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
 
-        char fn[30];
+        char fn[0x80];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
         TmpMem_AddFile(fn);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
 }
 
 static void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0, 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0, 0);
     TmpMem_UpdateSizeDisplay(0);
 }
 
@@ -4542,14 +4536,16 @@ static void HijackFormatDialogBox_main()
 }
 #endif
 
-void config_menu_init()
+static void config_menu_init()
 {
-    menu_prefs_init();
-
     #ifdef CONFIG_CONFIG_FILE
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
     #endif
+}
+INIT_FUNC("config", config_menu_init);
 
+void debug_menu_init()
+{
     #ifdef FEATURE_LV_DISPLAY_PRESETS
     extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);
@@ -4558,7 +4554,11 @@ void config_menu_init()
     crop_factor_menu_init();
     customize_menu_init();
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-
+    
+    #ifdef FEATURE_SHOW_FREE_MEMORY
+    mem_menu_init();
+    #endif
+    
     movie_tweak_menu_init();
 }
 
@@ -4613,6 +4613,8 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
     #endif
+    
+    (void)zoom_in_pressed; /* silence warning */
 
     return 1;
 }

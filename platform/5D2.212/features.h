@@ -5,6 +5,5 @@
 #undef FEATURE_FLASH_TWEAKS // no built-in flash
 #undef FEATURE_FLASH_NOFLASH
 
-#define FEATURE_AFMA_TUNING
 
 #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW

@@ -13,6 +13,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "module.h"
 
 static void lcd_adjust_position_step();
 static void arrow_key_step();
@@ -134,7 +135,7 @@ void EyeFi_RenameCR2toAVI(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }
@@ -161,7 +162,7 @@ void EyeFi_RenameAVItoCR2(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }
@@ -188,7 +189,7 @@ void EyeFi_RenameAVItoCR2(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }
@@ -215,7 +216,7 @@ void EyeFi_RenameMP4to422(char* dir)
         FIO_RenameFile(oldname, newname);
 
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     beep();
     redraw();
 }*/
@@ -257,6 +258,7 @@ int get_expsim()
         return 2;
     }
 #endif
+    if (expsim == 3) return 0; /* on 5D3, this means "off" and 0 means "when pressing DOF" */
     return expsim;
 }
 #ifdef CONFIG_EXPSIM
@@ -323,6 +325,11 @@ static MENU_UPDATE_FUNC(expsim_display)
         MENU_SET_ICON(MNI_DICE, 0);
         #endif
     }
+    else if (expsim == 3)
+    {
+        MENU_SET_VALUE("OFF");
+        MENU_SET_ICON(MNI_OFF, 0);
+    }
     else
     {
         if (CONTROL_BV)
@@ -341,11 +348,7 @@ static MENU_UPDATE_FUNC(expsim_display)
 void set_expsim(){};
 #endif
 
-// auto burst pic quality
-//**********************************************************************/
-
-static CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
-
+/*
 void set_pic_quality(int q)
 {
     if (q == -1) return;
@@ -353,65 +356,7 @@ void set_pic_quality(int q)
     prop_request_change(PROP_PIC_QUALITY2, &q, 4);
     prop_request_change(PROP_PIC_QUALITY3, &q, 4);
 }
-
-#ifdef FEATURE_AUTO_BURST_PICQ
-static int picq_saved = -1;
-static void decrease_pic_quality()
-{
-    if (picq_saved == -1) picq_saved = pic_quality; // save only first change
-    
-    int newpicq = 0;
-    switch(pic_quality)
-    {
-        case PICQ_RAW_JPG_LARGE_FINE:
-            newpicq = PICQ_LARGE_FINE;
-            break;
-        case PICQ_RAW:
-            newpicq = PICQ_LARGE_FINE;
-            break;
-        case PICQ_LARGE_FINE:
-            newpicq = PICQ_MED_FINE;
-            break;
-        //~ case PICQ_MED_FINE:
-            //~ newpicq = PICQ_SMALL_FINE;
-            //~ break;
-        //~ case PICQ_SMALL_FINE:
-            //~ newpicq = PICQ_SMALL_COARSE;
-            //~ break;
-        case PICQ_LARGE_COARSE:
-            newpicq = PICQ_MED_COARSE;
-            break;
-        //~ case PICQ_MED_COARSE:
-            //~ newpicq = PICQ_SMALL_COARSE;
-            //~ break;
-    }
-    if (newpicq) set_pic_quality(newpicq);
-}
- 
-static void restore_pic_quality()
-{
-    if (picq_saved != -1) set_pic_quality(picq_saved);
-    picq_saved = -1;
-}
-
-static void adjust_burst_pic_quality(int burst_count)
-{
-    if (lens_info.job_state == 0) { restore_pic_quality(); return; }
-    if (burst_count < 4) decrease_pic_quality();
-    else if (burst_count >= 5) restore_pic_quality();
-}
-
-PROP_HANDLER(PROP_BURST_COUNT)
-{
-    int burst_count = buf[0];
-
-    if (auto_burst_pic_quality && avail_shot > burst_count)
-    {
-        adjust_burst_pic_quality(burst_count);
-    }
-}
-
-#endif
+*/
 
 void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
 extern unsigned lcd_sensor_shortcuts;
@@ -799,7 +744,7 @@ void play_lv_key_step()
     {
         for (int i = 0; i < 5; i++)
         {
-            NotifyBox(1000, "Rate: +%d...", play_rate_flag % 6);
+            NotifyBox(1000, "Rate: %s%d...", (play_rate_flag > 0) ? "+" : "", play_rate_flag % 6);
             msleep(100);
         }
         if (play_rate_flag == prev) break;
@@ -814,33 +759,41 @@ void play_lv_key_step()
         NotifyBoxHide();
         fake_simple_button(BGMT_Q); // rate image
         fake_simple_button(BGMT_PRESS_DOWN);
-    
-#ifdef CONFIG_6D    //~ it moves too fast to register the second click down otherwise.
+        #if defined(CONFIG_6D) // too fast
         msleep(200);
-    #endif
-
+        #endif
+    
         // for photos, we need to go down 2 steps
         // for movies, we only need 1 step
         if (pure_play_photo_mode) {
-            NotifyBox(500,"PURE PLAY");
             fake_simple_button(BGMT_PRESS_DOWN);
-        } else {
-            NotifyBox(500,"STOP PLAY");
-
         }
-        NotifyBox(500,"%08x",  get_current_dialog_handler());
 
         #ifdef BGMT_UNPRESS_UDLR
         fake_simple_button(BGMT_UNPRESS_UDLR);
         #else
+        #ifndef CONFIG_6D // unpress produces another unwanted curser move
         fake_simple_button(BGMT_UNPRESS_DOWN);
         #endif
-        
+        #endif
+
         // alter rating N times
         int n = play_rate_flag;
-        for (int i = 0; i < n; i++)
-            fake_simple_button(BGMT_WHEEL_DOWN);
-        
+        #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+        if (play_rate_flag > 0)
+        {
+        #endif
+            for (int i = 0; i < n; i++)
+                fake_simple_button(BGMT_WHEEL_DOWN);
+        #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+        }
+        else
+        {
+            for (int i = 0; i > n; i--)
+                fake_simple_button(BGMT_WHEEL_UP);
+        }
+        #endif
+	     
         fake_simple_button(BGMT_Q); // close dialog
         play_rate_flag = 0;
 
@@ -897,7 +850,12 @@ int handle_lv_play(struct event * event)
         }
     }
 #else
-    if (event->param == BGMT_LV && PLAY_MODE)
+    if (!rating_in_progress && PLAY_MODE && (event->param == BGMT_LV
+        #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+        || ((event->param == BGMT_PRESS_UP || event->param == BGMT_PRESS_DOWN)
+        && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
+        #endif
+       ))
     {
         #ifdef FEATURE_LV_BUTTON_RATE
         if (!is_pure_play_photo_or_movie_mode())
@@ -907,16 +865,29 @@ int handle_lv_play(struct event * event)
         }
         if (play_lv_action == 2)
         {
-            play_rate_flag++;
+            #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+            if (event->param == BGMT_PRESS_DOWN)
+                play_rate_flag--;
+            else
+            #endif
+                play_rate_flag++;
         }
         #endif
 
         #ifdef FEATURE_LV_BUTTON_PROTECT
         if (play_lv_action == 1)
         {
-            fake_simple_button(BGMT_Q); // toggle protect current image
-            fake_simple_button(BGMT_WHEEL_DOWN);
-            fake_simple_button(BGMT_Q);
+           fake_simple_button(BGMT_Q); // toggle protect current image
+           #ifdef CONFIG_6D
+           fake_simple_button(BGMT_PRESS_DOWN);
+           msleep(100);
+           fake_simple_button(BGMT_PRESS_UP);
+           msleep(100);
+           fake_simple_button(BGMT_WHEEL_DOWN);
+           #else
+           fake_simple_button(BGMT_WHEEL_DOWN);
+           #endif
+           fake_simple_button(BGMT_Q);
         }
         #endif
         
@@ -1070,9 +1041,9 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         }
         #ifdef IMGPLAY_ZOOM_POS_X
         #ifdef BGMT_JOY_CENTER
-        else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode()) 
+        else if (event->param == BGMT_JOY_CENTER && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode()) 
         #else
-        else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode())
+        else if (event->param == BGMT_PRESS_SET && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode())
         #endif
         {
             if (IMGPLAY_ZOOM_POS_X != IMGPLAY_ZOOM_POS_X_CENTER || 
@@ -1120,7 +1091,7 @@ static void play_zoom_center_on_last_af_point()
 static void play_zoom_center_pos_update()
 {
     #ifdef IMGPLAY_ZOOM_POS_X
-    if (PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 5 && IMGPLAY_ZOOM_POS_X && IMGPLAY_ZOOM_POS_Y)
+    if (PLAY_MODE && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 5 && IMGPLAY_ZOOM_POS_X && IMGPLAY_ZOOM_POS_Y)
     {
         play_zoom_last_x = IMGPLAY_ZOOM_POS_X;
         play_zoom_last_y = IMGPLAY_ZOOM_POS_Y;
@@ -1186,11 +1157,11 @@ tweak_task( void* unused)
         {
             if (play_zoom_last_x != IMGPLAY_ZOOM_POS_X_CENTER || play_zoom_last_y != IMGPLAY_ZOOM_POS_Y_CENTER)
             {
-                while (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5 && PLAY_MODE) msleep(100);
+                while ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5 && PLAY_MODE) msleep(100);
                 msleep(200);
-                if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) continue;
+                if ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) continue;
                 play_zoom_center_on_last_af_point();
-                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 1, IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 1, IMGPLAY_ZOOM_LEVEL_MAX - 1);
                 fake_simple_button(BGMT_WHEEL_RIGHT);
             }
             quickzoom_pressed = 0;
@@ -1204,13 +1175,13 @@ tweak_task( void* unused)
         {
             if (quickzoom_pressed) 
             {
-                if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
+                if (quickzoom >= 2 && PLAY_MODE && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 1)
                 {
                     info_led_on();
                     quickzoom_pressed = 0;
                     #ifdef CONFIG_5DC
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
                         fake_simple_button(BGMT_PRESS_UP);
                         fake_simple_button(BGMT_UNPRESS_UDLR);
@@ -1218,8 +1189,8 @@ tweak_task( void* unused)
                     #else
                     for (int i = 0; i < 30; i++)
                     {
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
@@ -1230,7 +1201,7 @@ tweak_task( void* unused)
                     msleep(800); // not sure how to tell when it's safe to start zooming out
                     info_led_off();
                 }
-                else if (quickzoom >= 2 && PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
+                else if (quickzoom >= 2 && PLAY_MODE && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) == IMGPLAY_ZOOM_LEVEL_MAX) // already at 100%
                 {
                     msleep(100);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
@@ -1245,8 +1216,8 @@ tweak_task( void* unused)
                     while (!quickzoom_unpressed && PLAY_MODE) 
                     { 
                         #ifdef CONFIG_5DC
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MIN(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
+                        (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
+                        (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         #endif
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
                         msleep(50);
@@ -1261,8 +1232,8 @@ tweak_task( void* unused)
                 while (get_zoom_out_pressed() && PLAY_MODE) 
                 { 
                     #ifdef CONFIG_5DC
-                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
-                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
                     #endif
                     fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE);
                     msleep(50); 
@@ -1290,7 +1261,7 @@ tweak_task( void* unused)
 
         // faster focus box in playback
         #ifndef CONFIG_5D3 // doesn't need this, it's already very fast
-        if (arrow_pressed && is_pure_play_photo_mode() && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
+        if (arrow_pressed && is_pure_play_photo_mode() && quickzoom && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
         {
             msleep(200);
             int delay = 100;
@@ -1433,7 +1404,9 @@ static CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
         static CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         static CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
-        static int arrow_keys_audio = 0;
+        #ifdef FEATURE_ARROW_SHORTCUTS
+            static int arrow_keys_audio = 0;
+        #endif
     #endif
     static CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 #endif
@@ -1640,7 +1613,8 @@ int handle_arrow_keys(struct event * event)
                 case 1: input_toggle(); break;
                 #endif
                 #ifdef FEATURE_WHITE_BALANCE
-                case 2: 
+                case 2:
+                    redraw();
                     kelvin_n_gm_auto();
                     if (arrow_keys_mode%10) arrow_keys_mode = 10 + (arrow_keys_mode%10); // temporarily disable
                     break;
@@ -1772,7 +1746,6 @@ void display_shortcut_key_hints_lv()
     #ifdef CONFIG_4_3_SCREEN
     if (lv_dispsize > 1) return; // flickers in zoom mode
     #endif
-    if (NotifyBoxActive()) return;
 
     #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
     extern int lcd_release_running;
@@ -1789,27 +1762,31 @@ void display_shortcut_key_hints_lv()
     int x0 = os.x0 + os.x_ex/2;
     int y0 = os.y0 + os.y_ex/2;
 
+    int fnt = FONT(FONT_MED, COLOR_WHITE, 0) | FONT_ALIGN_CENTER | FONT_ALIGN_FILL | FONT_TEXT_WIDTH(100);
+    
     if (mode != old_mode)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*3, y0       - font_med.height/2,"      ");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, " ");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, " ");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, " ");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, " ");
+        bmp_printf(fnt, x0, y0       - font_med.height/2," ");
         
         if (!should_draw_zoom_overlay())
             crop_set_dirty(20);
     }
     
+    fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK)) | FONT_ALIGN_CENTER;
+
     if (mode == 1)
     {
 #ifdef FEATURE_ANALOG_GAIN
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Rec");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Rec+");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-Rec");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "Rec+");
 #endif
 #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Out+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Out");
 #endif
 #ifdef FEATURE_INPUT_SOURCE
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
@@ -1818,33 +1795,33 @@ void display_shortcut_key_hints_lv()
     else if (mode == 2)
     {
 #ifdef FEATURE_EXPO_ISO
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-ISO");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "ISO+");
 #endif
 #ifdef FEATURE_WHITE_BALANCE
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Kel+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Kel");
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
 #endif
     }
     else if (mode == 3)
     {
 #ifdef FEATURE_EXPO_SHUTTER
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Tv ");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-Tv ");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, " Tv+");
 #endif
 #ifdef FEATURE_EXPO_APERTURE
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, " Av+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Av ");
 #endif
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
     {
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Bri");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Bri+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Sat+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Sat");
+        bmp_printf(fnt, x0 - 150, y0 - font_med.height/2, "-Bri");
+        bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "Bri+");
+        bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Sat+");
+        bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Sat");
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
     }
     else if (mode == 10)
@@ -1853,10 +1830,10 @@ void display_shortcut_key_hints_lv()
         const int xf = x0;
         const int yf = y0;
         const int xs = 150;
-        bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
-        bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-        bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-        bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+        bmp_printf(fnt, xf - xs, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
+        bmp_printf(fnt, xf + xs, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+        bmp_printf(fnt, xf, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+        bmp_printf(fnt, xf, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
 #endif
     }
 
@@ -2232,14 +2209,6 @@ static struct menu_entry tweak_menus[] = {
         },
     },
     #endif
-    #ifdef FEATURE_AUTO_BURST_PICQ
-    {
-        .name = "Auto BurstPicQuality",
-        .priv = &auto_burst_pic_quality, 
-        .max  = 1,
-        .help = "Temporarily reduce picture quality in burst mode.",
-    },
-    #endif
     #if 0
     {
         .name = "LV Auto ISO (M mode)",
@@ -2387,7 +2356,7 @@ struct menu_entry expo_tweak_menus[] = {
         .icon_type = IT_DICE,
         .help = "Exposure simulation (LiveView display type).",
         #else
-        .name = "Exp.Sim",
+        .name = "ExpSim",
         .max = 1,
         .help = "Exposure simulation.",
         #endif
@@ -2900,8 +2869,8 @@ static CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
 
 #ifdef FEATURE_ANAMORPHIC_PREVIEW
 
-static int anamorphic_ratio_num[10] = {5, 4, 3, 5, 2};
-static int anamorphic_ratio_den[10] = {4, 3, 2, 3, 1};
+static int anamorphic_ratio_num[10] = {5, 4, 7, 3, 5, 2};
+static int anamorphic_ratio_den[10] = {4, 3, 5, 2, 3, 1};
 
 static MENU_UPDATE_FUNC(anamorphic_preview_display)
 {
@@ -3014,25 +2983,12 @@ static void FAST anamorphic_squeeze()
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
 #endif
 
-static uint16_t* defish_lut = INVALID_PTR;
-static int defish_projection_loaded = -1;
-
-static void defish_lut_load()
+static uint16_t* defish_lut_load()
 {
     char* defish_lut_file = defish_projection ? defish_lut_file_panini : defish_lut_file_rectilin;
-    if ((int)defish_projection != defish_projection_loaded)
-    {
-        if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
-        
-        int size = 0;
-        defish_lut = (uint16_t*) read_entire_file(defish_lut_file, &size);
-        defish_projection_loaded = defish_projection;
-    }
-    if (defish_lut == NULL)
-    {
-        bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
-        return;
-    }
+    int size = 0;
+    uint16_t* defish_lut = (uint16_t*) read_entire_file(defish_lut_file, &size);
+    return defish_lut;
 }
 
 
@@ -3055,15 +3011,28 @@ static void FAST defish_draw_lv_color_loop(uint64_t* src_buf, uint64_t* dst_buf,
         dst_buf[i] = src_buf[ind[i]];
 }
 
-// debug only
-//~ int* defish_ind;
+int* defish_ind;
+
+static MENU_SELECT_FUNC(defish_toggle)
+{
+    menu_numeric_toggle(priv, delta, 0, 2);
+    
+    if (!defish_preview && defish_ind)  /* no longer needed */
+    {
+        BMP_LOCK(   /* make sure we don't free it while it's being used */
+            if (defish_ind)
+            {
+                free(defish_ind);
+                defish_ind = 0;
+            }
+        )
+    }
+}
 
 static void defish_draw_lv_color()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
-    
-    defish_lut_load();
 
     uint32_t* src_buf;
     uint32_t* dst_buf;
@@ -3074,29 +3043,27 @@ static void defish_draw_lv_color()
     src_buf = CACHEABLE(src_buf);
     dst_buf = CACHEABLE(dst_buf);
     
-    static int* ind = 0;
-    if (!ind) 
+    static int defish_just_allocated = 0;
+    
+    if (!defish_ind) 
     {
-        ind = AllocateMemory(720*120*4);
+        defish_ind = malloc(720*120*4);
+        defish_just_allocated = 1;
     }
-    if (!ind) 
-    {
-        ind = (int*) shoot_malloc(720*120*4);
-        return;
-    }
-    if (!ind) 
-    {
-        NotifyBox(2000, "Not enough RAM for defishing :(");
-        return;
-    }
+    
+    if (!defish_ind) return;
     
     static int prev_sig = 0;
     int sig = defish_projection + vram_lv.width + vram_hd.width + DEFISH_HD*314;
     
-    if (sig != prev_sig)
+    if (sig != prev_sig || defish_just_allocated)
     {
         prev_sig = sig;
-        bzero32(ind, 720*120*4);
+        defish_just_allocated = 0;
+        bzero32(defish_ind, 720*120*4);
+
+        uint16_t * defish_lut = defish_lut_load();
+        if (!defish_lut) return;
     
         info_led_on();
         for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
@@ -3142,19 +3109,19 @@ static void defish_draw_lv_color()
                         int Jd = (off_j[k] ? off_j[k] - jd : jd);
                         ids = N2LV(Jd,Id)/8;
                     }
-                    ind[is] = ids;
+                    defish_ind[is] = ids;
                 }
             }
         }
         info_led_off();
+        free(defish_lut);
     }
-    //~ defish_ind = ind;
-    defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, ind);
+    
+    defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, defish_ind);
 }
 
 void defish_draw_play()
 {
-    defish_lut_load();
     struct vram_info * vram = get_yuv422_vram();
 
     uint32_t * lvram = (uint32_t *)vram->vram;
@@ -3168,6 +3135,9 @@ void defish_draw_play()
     int buf_size = w * h * 2;
     
     if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+
+    uint16_t * defish_lut = defish_lut_load();
+    if (!defish_lut) return;
 
     memcpy(aux_buf, lvram, buf_size);
     
@@ -3219,9 +3189,10 @@ void defish_draw_play()
                 *(dst) = (new_color & mask) | (*(dst) & ~mask);
             }
         }
-        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) break;
         if ((void*)get_yuv422_vram()->vram != (void*)lvram) break; // user moved to a new image?
     }
+    free(defish_lut);
 }
 #endif
 
@@ -3296,15 +3267,15 @@ int display_broken_for_mz()
 #endif
 
 
-void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
+int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
 #if defined(CONFIG_5D2)
     int sync = (MEM(x+0xe0) == YUV422_LV_BUFFER_1);
     int hacked = ( MEM(0x44fc+0xBC) == MEM(0x44fc+0xc4) && MEM(0x44fc+0xc4) == MEM(x+0xe0));
     display_broken = hacked;
 
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
 
     if (display_filter_enabled())
     {
@@ -3324,8 +3295,8 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     int hacked = ( MEM(0x455c+0xA4) == MEM(0x455c+0xAC) && MEM(0x455c+0xAC) == MEM(x+0xc8));
     display_broken = hacked;
 
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
 
     if (display_filter_enabled())
     {
@@ -3338,11 +3309,12 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     }
 #elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) // all new cameras should work with this method
 
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
 
     YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
+    return CBR_RET_STOP;
 }
 
 void display_filter_step(int k)
@@ -3518,6 +3490,7 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Defishing",
         .priv = &defish_preview, 
+        .select = defish_toggle,
         //~ .update = defish_preview_display, 
         .max    = 2,
         .depends_on = DEP_GLOBAL_DRAW,
@@ -3547,8 +3520,8 @@ static struct menu_entry display_menus[] = {
         .name = "Anamorphic",
         .priv     = &anamorphic_preview,
         .update = anamorphic_preview_display, 
-        .max = 5,
-        .choices = (const char *[]) {"OFF", "5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
+        .max = 6,
+        .choices = (const char *[]) {"OFF", "5:4 (1.25)", "4:3 (1.33)", "7:5 (1.4)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
         .depends_on = DEP_LIVEVIEW | DEP_GLOBAL_DRAW,
 /*
@@ -3556,8 +3529,8 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "Stretch Ratio",
                 .priv = &anamorphic_ratio_idx, 
-                .max = 4,
-                .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
+                .max = 5,
+                .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "7:5 (1.4)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL
@@ -3635,7 +3608,7 @@ static struct menu_entry display_menus[] = {
             #ifdef FEATURE_IMAGE_ORIENTATION
                 {
                     .name = "Orientation",
-                    .priv = &DISPLAY_ORIENTATION,
+                    .priv = (int*)&DISPLAY_ORIENTATION,
                     .select = display_orientation_toggle,
                     .max = 2,
                     .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
@@ -3760,11 +3733,14 @@ static struct menu_entry play_menus[] = {
 
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
-                .help = "You may use the LiveView button to Protect or Rate images.",
+                .help = "You may use the LiveView button to protect or rate images.",
+                #ifdef FEATURE_LV_BUTTON_RATE_UPDOWN
+                .help2 = "Also up/down keys/joystick work as +/- rating if zoomed out.",
+                #endif
                 .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
                 .max = 1,
-                .help = "You may use the LiveView button to Protect images quickly.",
+                .help = "You may use the LiveView button to protect images quickly.",
                 .icon_type = IT_BOOL,
                 #else
                 #error Hudson, we have a problem!
@@ -3873,3 +3849,4 @@ INIT_FUNC(__FILE__, tweak_init);
 #ifndef FEATURE_ARROW_SHORTCUTS
 int arrow_keys_shortcuts_active() { return 0; }
 #endif
+

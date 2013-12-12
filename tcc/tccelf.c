@@ -888,6 +888,70 @@ ST_FUNC void relocate_section(TCCState *s1, Section *s)
         sr->link = s1->dynsym;
 }
 
+/* hacked and arm only */
+/* it's a stripped_down relocate_section, without side effects, that counts how much extra RAM it needs for relocations */
+ST_FUNC int get_plt_got_size_for_relocate_section(TCCState *s1, Section *s)
+{
+    Section *sr;
+    ElfW_Rel *rel, *rel_end, *qrel;
+    ElfW(Sym) *sym;
+    int type, sym_index;
+    unsigned char *ptr;
+    addr_t val, addr;
+    
+    int extra_ram = 0;
+
+    sr = s->reloc;
+    rel_end = (ElfW_Rel *)(sr->data + sr->data_offset);
+    qrel = (ElfW_Rel *)sr->data;
+    for(rel = qrel;
+        rel < rel_end;
+        rel++) {
+        ptr = s->data + rel->r_offset;
+
+        sym_index = ELFW(R_SYM)(rel->r_info);
+        sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];
+        val = sym->st_value;
+        type = ELFW(R_TYPE)(rel->r_info);
+        addr = s->sh_addr + rel->r_offset;
+
+        /* CPU specific */
+        switch(type) {
+#if defined(TCC_TARGET_ARM)
+        case R_ARM_PC24:
+        case R_ARM_CALL:
+        case R_ARM_JUMP24:
+        case R_ARM_PLT32:
+            {
+                int x, is_thumb, is_call, blx_avail;
+                x = (*(int *)ptr)&0xffffff;
+                if (x & 0x800000)
+                    x -= 0x1000000;
+                x <<= 2;
+                blx_avail = (TCC_ARM_VERSION >= 5);
+                is_thumb = val & 1;
+                is_call = (type == R_ARM_CALL);
+                x += val - addr;
+#ifdef TCC_HAS_RUNTIME_PLTGOT
+                if (s1->output_type == TCC_OUTPUT_MEMORY) {
+                    if ((x & 3) || x >= 0x2000000 || x < -0x2000000)
+                        if (!(x & 3) || !blx_avail || !is_call) {
+                            extra_ram += JMP_TABLE_ENTRY_SIZE;
+                        }
+                }
+#endif
+            }
+            break;
+        default:
+            break;
+#else
+#error unsupported processor
+#endif
+        }
+    }
+    return extra_ram;
+}
+
 /* relocate relocation table in 'sr' */
 static void relocate_rel(TCCState *s1, Section *sr)
 {

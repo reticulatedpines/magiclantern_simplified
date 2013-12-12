@@ -11,7 +11,6 @@
 #undef FEATURE_AUDIO_REMOTE_SHOT
 #undef FEATURE_AUDIO_METERS
 
-#undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
 
 //~ #undef FEATURE_ARROW_SHORTCUTS
 
@@ -24,6 +23,9 @@
 #undef FEATURE_LV_BUTTON_RATE
 
 #undef FEATURE_TRAP_FOCUS
+
+// No suitable button
+#undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 
 // Glitchy
 #undef FEATURE_STICKY_DOF

@@ -9,3 +9,4 @@ http://www.magiclantern.fm/forum/?topic=7208
 :License: GPL
 :Credits: ML devs
 :Summary: Auto exposure algorithm
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=7208.0

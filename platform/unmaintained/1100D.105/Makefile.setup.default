@@ -1,0 +1,8 @@
+# compile position independent (experimental)
+CONFIG_PIC=n
+CONFIG_MEMCHECK=n
+
+CONFIG_RELOC=y
+
+ML_SRC_SMALL_FONTS=y
+ML_SRC_STATIC_FONTS=y

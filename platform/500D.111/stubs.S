@@ -40,8 +40,8 @@ NSTUB( 0xFF056EB0, _audio_ic_read )
 NSTUB( 0xFF056064, _audio_ic_write )
 NSTUB( 0xFF1A0D44, AcquireRecursiveLock)
 NSTUB( 0x150FC	 , additional_version )	/** Find the additional version string in GUI_GetFirmVersion */
-NSTUB( 0xFF1A7298, alloc_dma_memory )
-NSTUB( 0xFF06ACB4, AllocateMemory ) // thanks Alex
+NSTUB( 0xFF1A7298, _alloc_dma_memory )
+NSTUB( 0xFF06ACB4, _AllocateMemory ) // thanks Alex
 //NSTUB( 0xFF48E58C, audio_thresholds ) // not present in 500D - see audio.c (thank you alex).
 NSTUB( 0x27E04	 , bmp_vram_info )
 NSTUB( 0xFF06670C, bootdisk_disable )
@@ -71,7 +71,7 @@ NSTUB( 0xFF066A18, dmstart )	/** Debugging commands are all registered by name. 
 NSTUB( 0xFF066A58, dmstop )
 NSTUB( 0xFF066A98, DryosDebugMsg )	/** Look for the normal printf strings */
 NSTUB( 0xFF06732C, dumpf )
-NSTUB( 0xFF1975A4, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xFF1975A4, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB( 0xFF196494, FIO_CloseFile )
 NSTUB( 0xFF196CF8, FIO_CreateDirectory)
 NSTUB( 0xFF1963EC, FIO_CreateFile )
@@ -83,9 +83,9 @@ NSTUB( 0xFF196724, FIO_ReadFile )
 NSTUB( 0xFF196608, FIO_RemoveFile )
 NSTUB( 0xFF1968D4, FIO_WriteFile )
 NSTUB( 0xFF1968B4, FIO_SeekFile )
-NSTUB( 0xFF019044, free )
-NSTUB( 0xFF1A72CC, free_dma_memory )
-NSTUB( 0xFF06B044, FreeMemory ) // release_mem in Indy's IDC
+NSTUB( 0xFF019044, _free )
+NSTUB( 0xFF1A72CC, _free_dma_memory )
+NSTUB( 0xFF06B044, _FreeMemory ) // release_mem in Indy's IDC
 NSTUB( 0xFF330304, fsuDecodePartitionTable )
 NSTUB( 0xFF359804, GetCFnData )
 NSTUB( 0XFF062800, GetDisplayType )
@@ -126,7 +126,7 @@ NSTUB( 0x37880	 , LV_EX_Y)		//couldn't find in 500d dump anywhere -- for hdmi re
 NSTUB( 0x1C28	 , main_ctrl_struct )
 NSTUB( 0x25670	 , main_ctrl_struct_2 )
 NSTUB( 0xFF020828, main_ctrl_task )
-NSTUB( 0xFF018F70, malloc ) // maybe it's better to use Allocate/Free?
+NSTUB( 0xFF018F70, _malloc ) // maybe it's better to use Allocate/Free?
 NSTUB( 0xFF0696BC, msg_queue_post )
 NSTUB( 0xFF0694D0, msg_queue_receive )
 NSTUB( 0xFF069D74, msleep ) // called from EV_GETDONE_CACHE param 0x64

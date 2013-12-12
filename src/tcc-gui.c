@@ -113,7 +113,7 @@ static void find_scripts(void)
             }
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
+    FIO_FindClose(dirent);
     
     for (int i = 0; i < script_cnt; i++)
         script_parse_header(i);

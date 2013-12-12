@@ -35,6 +35,7 @@
 #define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
 
 int get_htp();
+int get_bv(); //APEX units
 int get_ae_value();
 
 struct lens_info
@@ -83,6 +84,7 @@ struct lens_info
         
         int flash_ae;
 
+        uint16_t                 lens_id;
         //~ float                   lens_rotation;
         //~ float                   lens_step;
 };
@@ -252,9 +254,21 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 //~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
 //~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
 
+// UNIT_1_8_EV
 #define APEX_TV(raw) ((int)(raw) - 56)
 #define APEX_AV(raw) ((raw) ? (int)(raw) - 8 : 0)
 #define APEX_SV(raw) ((int)(raw) - 32)
+
+// UNIT APEX * 10
+#define RAW2TV(raw) APEX_TV(raw) * 10 / 8
+#define RAW2AV(raw) APEX_AV(raw) * 10 / 8
+#define RAW2SV(raw) APEX_SV(raw) * 10 / 8
+#define RAW2EC(raw) raw * 10 / 8
+
+#define TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
+#define AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
+#define SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
+#define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
 
 // Conversions
 int raw2shutter_ms(int raw_shutter);
@@ -268,7 +282,7 @@ int round_noflicker(float value);
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
 void draw_ml_topbar();
-void draw_ml_bottombar(int double_buffering, int clear);
+void draw_ml_bottombar();
 
 void SW1(int v, int wait);
 void SW2(int v, int wait);
@@ -305,3 +319,87 @@ void aperture_toggle( void* priv, int sign);
 #define AF_DONT_CHANGE -1
 
 #endif
+
+// misc macros for avoiding numeric ev values
+#define EXPO_1_3_STOP 3
+#define EXPO_HALF_STOP 4
+#define EXPO_2_3_STOP 5
+#define EXPO_FULL_STOP 8
+
+// please extend as required, not every value is here yet
+#define ISO_100 72
+#define ISO_125 75
+#define ISO_160 77
+#define ISO_200 80
+#define ISO_250 83
+#define ISO_320 85
+#define ISO_400 88
+#define ISO_500 91
+#define ISO_640 93
+#define ISO_800 96
+#define ISO_1000 99
+#define ISO_1250 101
+#define ISO_1600 104
+#define ISO_2000 107
+#define ISO_2500 109
+#define ISO_3200 112
+#define ISO_4000 115
+#define ISO_5000 117
+#define ISO_6400 120
+#define ISO_12800 128
+#define ISO_25600 136
+
+#define SHUTTER_1_15 88
+#define SHUTTER_1_20 92
+#define SHUTTER_1_25 93
+#define SHUTTER_1_30 96
+#define SHUTTER_1_40 99
+#define SHUTTER_1_45 100
+#define SHUTTER_1_50 101
+#define SHUTTER_1_60 104
+#define SHUTTER_1_80 107
+#define SHUTTER_1_90 108
+#define SHUTTER_1_100 109
+#define SHUTTER_1_125 112
+#define SHUTTER_1_160 115
+#define SHUTTER_1_180 116
+#define SHUTTER_1_200 117
+#define SHUTTER_1_250 120
+#define SHUTTER_1_320 123
+#define SHUTTER_1_350 124
+#define SHUTTER_1_400 125
+#define SHUTTER_1_500 128
+#define SHUTTER_1_640 131
+#define SHUTTER_1_750 132
+#define SHUTTER_1_800 133
+#define SHUTTER_1_1000 136
+#define SHUTTER_1_1250 139
+#define SHUTTER_1_1500 140
+#define SHUTTER_1_1600 141
+#define SHUTTER_1_2000 144
+#define SHUTTER_1_2500 147
+#define SHUTTER_1_3000 148
+#define SHUTTER_1_3200 149
+#define SHUTTER_1_4000 152
+#define SHUTTER_1_5000 155
+#define SHUTTER_1_6000 156
+#define SHUTTER_1_6400 157
+#define SHUTTER_1_8000 160
+
+#define APERTURE_1_4 16
+#define APERTURE_2 24
+#define APERTURE_2_8 32
+#define APERTURE_3_5 36
+#define APERTURE_4 40
+#define APERTURE_4_5 44
+#define APERTURE_5_6 48
+#define APERTURE_6_7 52
+#define APERTURE_8 56
+#define APERTURE_9_5 60
+#define APERTURE_11 64
+#define APERTURE_13 68
+#define APERTURE_16 72
+#define APERTURE_19 76
+#define APERTURE_22 80
+#define APERTURE_27 84
+#define APERTURE_32 88

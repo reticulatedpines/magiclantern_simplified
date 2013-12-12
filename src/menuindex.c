@@ -17,17 +17,6 @@ static MENU_UPDATE_FUNC(user_guide_display)
     MENU_SET_VALUE("");
 }
 
-static MENU_UPDATE_FUNC(menu_edit_lv_print)
-{
-    MENU_SET_NAME("");
-    
-    if (!info->can_custom_draw) return;
-    bmp_printf(FONT_LARGE, info->x, info->y, "  /ZoomIn");
-    // draw a LiveView icon (like the display one, but erase the lines)
-    bfnt_draw_char(ICON_ML_DISPLAY, info->x-4, info->y-4, COLOR_WHITE, COLOR_BLACK);
-    bmp_fill(COLOR_BLACK, info->x + 6, info->y + 10, 19, 15);
-}
-
 static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
@@ -87,8 +76,7 @@ static struct menu_entry help_menus[] = {
         #ifdef CONFIG_500D
         .name = "Zoom In",
         #else
-        .name = "LiveView/ZoomIn",
-        .update = menu_edit_lv_print,
+        .name = SYM_LV"/ZoomIn",
         #endif
         .choices = CHOICES("Edit in LiveView"),
     },
@@ -97,6 +85,21 @@ static struct menu_entry help_menus[] = {
         .name = "Press MENU",
         .choices = CHOICES("Junkie mode"),
     },
+    #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
+    /* if BTN_ZEBRAS_FOR_PLAYBACK_NAME is undefined, you must define it (or undefine FEATURE_OVERLAYS_IN_PLAYBACK_MODE) */
+    {
+        .select = menu_nav_help_open,
+        .name = "Press "BTN_ZEBRAS_FOR_PLAYBACK_NAME,
+        .choices = CHOICES("Overlays (PLAY only)"),
+    },
+    #endif
+    #ifdef ARROW_MODE_TOGGLE_KEY
+    {
+        .select = menu_nav_help_open,
+        .name = "Press "ARROW_MODE_TOGGLE_KEY,
+        .choices = CHOICES("Shortcuts (LV only)"),
+    },
+    #endif
     {
         .name = "Key Shortcuts",
         .select = menu_help_go_to_label,

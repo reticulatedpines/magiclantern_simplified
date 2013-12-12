@@ -29,8 +29,6 @@ struct Histogram
 
 extern struct Histogram histogram;
 
-void hist_build();
-
 void hist_build_raw();
 
 /** Draw the histogram image into the bitmap framebuffer.

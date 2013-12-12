@@ -4,6 +4,10 @@ import sys, re
 import commands
 from datetime import datetime
 
+from align_string_proportional import word_wrap
+from rbf_read import extent_func, rbf_init_font
+rbf_init_font("../../data/fonts/argnor23.rbf")
+
 def run(cmd):
     return commands.getstatusoutput(cmd)[1]
 
@@ -55,7 +59,7 @@ add_string("Name", title)
 tags = {}
 for l in lines[2:]:
     l = l.strip()
-    m = re.match("^:([^:]+):([^:]+)$", l)
+    m = re.match("^:([^:]+):(.+)$", l)
     if m:
         name = m.groups()[0].strip()
         value = m.groups()[1].strip()
@@ -78,7 +82,7 @@ if "Summary" not in tags:
 # each section will become "Help page 1", "Help page 2" and so on
 
 # render the RST as html -> txt without the metadata tags
-txt = run('cat README.rst | grep -v -E "^:([^:])+:([^:])+$" | rst2html --no-xml-declaration | python ../html2text.py -b 59')
+txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700')
 
 desc = ""
 last_str = "Description"
@@ -102,15 +106,33 @@ add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
-last_changeset = run("hg log . -l 1 --template '{node|short}'")
-last_change_date = run("LC_TIME=EN hg log . -l 1 --template '{date|hgdate}'")
-split = last_change_date.split(" ")
-seconds = float(split[0]) + float(split[1])
-last_change_date = datetime.utcfromtimestamp(seconds).strftime("%Y-%m-%d %H:%M:%S UTC")
+last_change_info = run("LC_TIME=EN hg log . -r $(basename $(hg id -n) +):0 -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
+if len(last_change_info):
+    last_change_date, last_changeset, author, commit_msg = last_change_info.split("\n")
+    split = last_change_date.split(" ")
+    seconds = float(split[0])
+    last_change_date = datetime.utcfromtimestamp(seconds).strftime("%Y-%m-%d %H:%M:%S UTC")
+    
+    # trim changeset to 7 chars, like Bitbucket does
+    last_changeset = last_changeset[:7]
+    
+    # trim commit msg to 700px
+    size = extent_func(commit_msg)[0]
+    if size > 700:
+        new_size = 0
+        new_msg = ""
+        for c in commit_msg:
+            new_size += extent_func(c)[0]
+            if new_size > 700:
+                break
+            new_msg += c
+        commit_msg = new_msg + "..."
+        
+    add_string("Last update", "%s on %s by %s:\n%s" % (last_changeset, last_change_date, author, commit_msg))
+
 build_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 build_user = run("echo `whoami`@`hostname`")
 
-add_string("Last update", "%s (%s)" % (last_change_date, last_changeset))
 add_string("Build date", build_date)
 add_string("Build user", build_user)
 

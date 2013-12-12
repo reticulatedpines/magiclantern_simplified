@@ -3,7 +3,34 @@
 
 extern char camera_model_short[8];
 extern char camera_model[32];
+extern uint32_t camera_model_id;
 extern char firmware_version[32];
+
+#define MODEL_EOS_10D    0x80000168
+#define MODEL_EOS_300D   0x80000170
+#define MODEL_EOS_20D    0x80000175
+#define MODEL_EOS_450D   0x80000176
+#define MODEL_EOS_350D   0x80000189
+#define MODEL_EOS_40D    0x80000190
+#define MODEL_EOS_5D     0x80000213
+#define MODEL_EOS_5D2    0x80000218
+#define MODEL_EOS_30D    0x80000234
+#define MODEL_EOS_400D   0x80000236
+#define MODEL_EOS_7D     0x80000250
+#define MODEL_EOS_500D   0x80000252
+#define MODEL_EOS_1000D  0x80000254
+#define MODEL_EOS_50D    0x80000261
+#define MODEL_EOS_550D   0x80000270
+#define MODEL_EOS_5D3    0x80000285
+#define MODEL_EOS_600D   0x80000286
+#define MODEL_EOS_60D    0x80000287
+#define MODEL_EOS_1100D  0x80000288
+#define MODEL_EOS_650D   0x80000301
+#define MODEL_EOS_6D     0x80000302
+#define MODEL_EOS_70D    0x80000325
+#define MODEL_EOS_700D   0x80000326
+#define MODEL_EOS_M      0x80000331
+#define MODEL_EOS_100D   0x80000346
 
 extern int lv; // TRUE when LiveView is active
 extern int lv_paused; // only valid if lv is true
@@ -12,7 +39,8 @@ extern int lv_paused; // only valid if lv is true
 
 extern int lv_dispsize; // 1 / 5 / A
 extern int expsim;
-extern int shooting_mode;
+extern int shooting_mode;        /* C3M => M */
+extern int shooting_mode_custom; /* C3M => C3 */
 extern int shooting_type;
 extern int efic_temp;
 extern int gui_state;
@@ -22,6 +50,7 @@ extern int pic_quality;
 extern int avail_shot;
 extern int recording;
 extern int af_mode;
+extern int metering_mode;
 extern int dofpreview;
 extern int display_sensor;
 extern int shutter_count;

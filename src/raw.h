@@ -114,14 +114,13 @@ int raw_blue_pixel_bright(int x, int y);
 float raw_to_ev(int raw);
 int ev_to_raw(float ev);
 
-/* save a DNG file; all parameters are taken from raw_info */
-int save_dng(char* filename);
-
 /* quick preview of the raw buffer */
 void raw_preview_fast();
 
 /* pass -1 if default value for some parameter is fine */
-void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
+void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int quality);
+#define RAW_PREVIEW_COLOR_HALFRES   0   /* 360x480 color, pretty slow */
+#define RAW_PREVIEW_GRAY_ULTRA_FAST 1   /* 180x240, aims to be real-time */
 
 /* request/release/check LiveView RAW flag (lv_save_raw) */
 /* you have to call request/release in pairs (be careful not to request once and release twice) */
@@ -157,45 +156,73 @@ int get_dxo_dynamic_range(int raw_iso);
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
-    int api_version;            // increase this when changing the structure
-    void* buffer;               // points to image data
+    uint32_t api_version;           // increase this when changing the structure
+    #if INTPTR_MAX == INT32_MAX     // only works on 32-bit systems
+    void* buffer;                   // points to image data
+    #else
+    uint32_t do_not_use_this;       // this can't work on 64-bit systems
+    #endif
     
-    int height, width, pitch;
-    int frame_size;
-    int bits_per_pixel;         // 14
+    int32_t height, width, pitch;
+    int32_t frame_size;
+    int32_t bits_per_pixel;         // 14
 
-    int black_level;            // autodetected
-    int white_level;            // somewhere around 13000 - 16000, varies with camera, settings etc
-                                // would be best to autodetect it, but we can't do this reliably yet
-    union                       // DNG JPEG info
+    int32_t black_level;            // autodetected
+    int32_t white_level;            // somewhere around 13000 - 16000, varies with camera, settings etc
+                                    // would be best to autodetect it, but we can't do this reliably yet
+    union                           // DNG JPEG info
     {
         struct
         {
-            int x, y;           // DNG JPEG top left corner
-            int width, height;  // DNG JPEG size
+            int32_t x, y;           // DNG JPEG top left corner
+            int32_t width, height;  // DNG JPEG size
         } jpeg;
         struct
         {
-            int origin[2];
-            int size[2];
+            int32_t origin[2];
+            int32_t size[2];
         } crop;
     };
     union                       // DNG active sensor area (Y1, X1, Y2, X2)
     {
         struct
         {
-            int y1, x1, y2, x2;
+            int32_t y1, x1, y2, x2;
         } active_area;
-        int dng_active_area[4];
+        int32_t dng_active_area[4];
     };
-    int exposure_bias[2];       // DNG Exposure Bias (idk what's that)
-    int cfa_pattern;            // stick to 0x02010100 (RGBG) if you can
-    int calibration_illuminant1;
-    int color_matrix1[18];      // DNG Color Matrix
-    
-    int dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
+    int32_t exposure_bias[2];       // DNG Exposure Bias (idk what's that)
+    int32_t cfa_pattern;            // stick to 0x02010100 (RGBG) if you can
+    int32_t calibration_illuminant1;
+    int32_t color_matrix1[18];      // DNG Color Matrix
+    int32_t dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
 };
 
 extern struct raw_info raw_info;
+
+/* save a DNG file; all parameters are taken from raw_info */
+int save_dng(char* filename, struct raw_info * raw_info);
+
+/* do not include ML headers if used in postprocessing */
+#ifdef CONFIG_MAGICLANTERN
+/** Menu helpers **/
+#include "menu.h"
+
+/* use this if you want to print a warning if you need to shoot raw in order to use your feature (photo or video) */
+extern MENU_UPDATE_FUNC(menu_checkdep_raw);
+
+/* this prints the raw warning without checking */
+extern MENU_UPDATE_FUNC(menu_print_warning_raw);
+
+/* photo mode, non-LV: to know whether you will have access to raw data */
+extern int can_use_raw_overlays_photo();
+
+/* to be used in code using overlays directly (e.g. right before drawing zebras, to decide if they are raw or yuv) */
+extern int can_use_raw_overlays();
+
+/* to be used in menu, if you want to check if raw data will available in current mode (not necessarily at the time of displaying the menu) */
+extern int can_use_raw_overlays_menu();
+
+#endif
 
 #endif

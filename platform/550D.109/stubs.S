@@ -78,7 +78,7 @@ NSTUB( 0xFF1C693C, FIO_WriteFile )
 NSTUB( 0xFF1C679C, FIO_ReadFile )
 NSTUB( 0xFF1C66F4, FIO_RemoveFile )
 NSTUB( 0xFF1C71A0, FIO_CreateDirectory)
-NSTUB( 0xFF1C7060, FIO_RenameFile ) // 600D has debug strings for this, match.py finds it
+NSTUB( 0xFF1C7060, _FIO_RenameFile ) // doesn't work; 600D has debug strings for this, match.py finds it
 NSTUB( 0xFF1C691C, FIO_SeekFile)
 
 NSTUB( 0xFF069F58, give_semaphore )
@@ -90,6 +90,10 @@ NSTUB( 0xFF056E38, _prop_request_change )
 NSTUB( 0xFF057418, prop_deliver )
 NSTUB( 0xFF057654, prop_get_value )
 
+/** corectly named canon property reading functions **/
+NSTUB( 0xFF057654, PROP_GetMulticastProperty )
+NSTUB( 0xFF058284, PROPAD_GetPropertyData )
+
 NSTUB( 0xFF1C924C, dispcheck )
 NSTUB( 0xFF05DAF8, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x2E5B0, bmp_vram_info )
@@ -97,10 +101,10 @@ NSTUB( 0x8194C, vram_info )
 NSTUB( 0xFF28A6F8, vram_get_number )
 NSTUB( 0xFF1C7EA8, vram_get_pos_and_size )
 
-NSTUB( 0xFF018270, malloc ) // maybe it's better to use Allocate/Free?
-NSTUB( 0xFF0182cc, free )
-NSTUB( 0xFF06B270, AllocateMemory ) // thanks Alex
-NSTUB( 0xFF06B600, FreeMemory ) // release_mem in Indy's IDC
+NSTUB( 0xFF018270, _malloc ) // maybe it's better to use Allocate/Free?
+NSTUB( 0xFF0182cc, _free )
+NSTUB( 0xFF06B270, _AllocateMemory ) // thanks Alex
+NSTUB( 0xFF06B600, _FreeMemory ) // release_mem in Indy's IDC
 
 NSTUB( 0x2B74, dm_names )                // in DebugMsg, before the 1st loop target
 NSTUB( 0xFF06366C, LoadCalendarFromRTC )
@@ -121,8 +125,8 @@ NSTUB( 0xFF2B4D30, gui_task_destroy )
 NSTUB( 0xFF2B4AC0, ctrlman_dispatch_event )
 
 NSTUB( 0xFF09786C, prop_request_icu_auto_poweroff )
-NSTUB( 0xFF1DA26C, alloc_dma_memory )
-NSTUB( 0xFF1DA2A0, free_dma_memory )
+NSTUB( 0xFF1DA26C, _alloc_dma_memory )
+NSTUB( 0xFF1DA2A0, _free_dma_memory )
 
 NSTUB( 0xFF3EB9B0, cfReadBlk )
 NSTUB( 0x26258, cf_device )                // in cfReadBlk
@@ -150,7 +154,12 @@ NSTUB( 0xFF01FF94, gui_main_task )       //  uses a 8 functions table compared t
 NSTUB( 0xFF020ACC, gui_init_end )     // EndGuiInit
 NSTUB( 0x3AC8, gui_timer_struct )     // in GUI_Control_Post
 NSTUB( 0x1C04, gui_main_struct )      //  in gui_main_task
-NSTUB( 0xFF1D2B70, msg_queue_receive )
+
+NSTUB( 0xff1d2a60, msg_queue_create) // CreateMessageQueue
+NSTUB( 0xFF1D2B70, msg_queue_receive)
+NSTUB( 0xFF1D2D5C, msg_queue_post)
+NSTUB( 0xFF1D2D9C, msg_queue_count)
+
 NSTUB( 0xFF0952F0, gui_local_post )
 NSTUB( 0xFF094CF4, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF095728, gui_other_post )
@@ -172,7 +181,7 @@ NSTUB( 0xFF1AA430, mvrSetDeblockingFilter )
 
 NSTUB( 0xFF1C7760, FIO_FindFirstEx )
 NSTUB( 0xFF1C7854, FIO_FindNextEx )
-NSTUB( 0xff1c7934, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xff1c7934, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)
@@ -207,7 +216,6 @@ NSTUB( 0xFF0364A0, LVCAF_LensDriveStart )
 //NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 //NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 
-NSTUB(0xFF1D2D5C, msg_queue_post)
 
 // NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 
@@ -274,8 +282,6 @@ NSTUB(0xFF243820, SetImagePass_x5)
 NSTUB(0xff016b8c, get_current_task) // called from AJ_armlib_setup_related3
 
 NSTUB(0x2CDB0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
-
-NSTUB(0xff1d2a60, msg_queue_create) // CreateMessageQueue
 
 NSTUB(0xff03b3d8, PD_RemoteRelease)
 

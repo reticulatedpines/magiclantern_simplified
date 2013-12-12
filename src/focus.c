@@ -18,6 +18,9 @@ void lens_focus_enqueue_step(int dir);
 
 static int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
+static int focus_rack_auto_record = 0;
+static int focus_rack_enable_delay = 1;
+
 int should_override_zoom_buttons()
 {
     return (override_zoom_buttons && !is_manual_focus() && lv);// && get_menu_advanced_mode());
@@ -32,7 +35,7 @@ static CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
 static CONFIG_INT( "focus.delay.ms10", lens_focus_delay, 1 );
 static CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
 static CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
-
+static CONFIG_INT( "focus.flash.delay", focus_flash_delay, 0);
 
 // all focus commands from this module are done with the configured step size and delay
 int LensFocus(int num_steps)
@@ -257,6 +260,7 @@ focus_stack(
     if (drive_mode == DRIVE_SELFTIMER_2SEC) delay = 2;
     else if (drive_mode == DRIVE_SELFTIMER_REMOTE) delay = 10;
     
+    if (focus_rack_delay && focus_rack_enable_delay) delay += focus_rack_delay;
     if (delay) wait_notify(delay, "Focus stack");
     
     if (focus_stack_check_stop()) return;
@@ -318,6 +322,8 @@ focus_stack(
         if (LensFocus(real_steps) == 0)
             break;
         focus_moved_total += real_steps;
+
+        if (focus_flash_delay) wait_notify(focus_flash_delay, "Delaying...");
     }
 
     msleep(1000);
@@ -333,10 +339,12 @@ focus_stack(
     
     if (i >= count-1)
     {
+        if (beep_enabled) beep_custom(300,1000,false);
         NotifyBox(2000, "Focus stack done!" );
         msleep(1000);
         hdr_create_script(f0, 1); 
     } else {
+        if (beep_enabled) beep_custom(300,250,false);
         NotifyBox(2000, "Focus stack not completed");
     }
     
@@ -415,8 +423,6 @@ focus_reset_a( void * priv, int delta )
     else menu_enable_lv_transparent_mode();
 }
 
-static int focus_rack_auto_record = 0;
-static int focus_rack_enable_delay = 1;
 
 static void
 focus_toggle( void * priv )
@@ -643,16 +649,6 @@ static MENU_UPDATE_FUNC(follow_focus_print)
     if (follow_focus) MENU_SET_VALUE(
         get_follow_focus_mode() == 0 ? "Arrows" : "LCD sensor"
     );
-    if (follow_focus == 1)
-    {
-        int x = info->x;
-        int y = info->y;
-        if (info->can_custom_draw)
-        {
-            bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
-            bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
-        }
-    }
 }
 
 static MENU_UPDATE_FUNC(focus_delay_update)
@@ -710,7 +706,7 @@ int can_lv_trap_focus_be_active()
     if (dofpreview) return 0;
     if (is_movie_mode()) return 0;
     if (gui_state != GUISTATE_IDLE) return 0;
-    if (get_silent_pic()) return 0;
+    //~ if (get_silent_pic()) return 0;
     if (!is_manual_focus()) return 0;
     //~ bmp_printf(FONT_MED, 100, 100, "LVTF 1");
     return 1;
@@ -741,9 +737,15 @@ int get_lv_focus_confirmation()
     return ans; 
 }
 
+int get_focus_confirmation()
+{
+    return FOCUS_CONFIRMATION;
+}
+
 int is_manual_focus()
 {
-    return (af_mode & 0xF) == 3;
+    return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
+;
 }
 
 #ifdef FEATURE_MOVIE_AF
@@ -1041,8 +1043,8 @@ static MENU_UPDATE_FUNC(trap_focus_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus outside LiveView requires a chipped lens");
     if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Assign AF button to half-shutter from CFn!");
-    if (lv && get_silent_pic())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus in LV not working with silent pictures.");
+    //~ if (lv && get_silent_pic())
+        //~ MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus in LV not working with silent pictures.");
 }
 
 
@@ -1177,7 +1179,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Num. pics in front",
                 .priv = &focus_bracket_front,
                 .min = 0,
-                .max = 50,
+                .max = 100,
                 .help  = "Number of shots in front of current focus point.",
                 .help2 = "On some lenses, this may be reversed.",
             },
@@ -1185,7 +1187,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Num. pics behind",
                 .priv = &focus_bracket_behind,
                 .min = 0,
-                .max = 50,
+                .max = 100,
                 .help  = "Number of shots behind current focus point.",
                 .help2 = "On some lenses, this may be reversed.",
             },
@@ -1196,7 +1198,12 @@ static struct menu_entry focus_menu[] = {
                 .max = 10,
                 .help = "Number of focus steps between two pictures.",
             },
-
+            {
+                .name = "Flash Delay",
+                .priv    = &focus_flash_delay,
+                .max = 10,
+                .help = "Seconds between stack segments to let flashes recycle.",
+            },
             {
                 .name = "Copy rack focus range",
                 .select = focus_stack_copy_rack_focus_settings,
@@ -1268,11 +1275,11 @@ static struct menu_entry focus_menu[] = {
                 .help = "Focus direction for Up and Down keys.",
             },
             {
-                .name = "Rack Delay",
+                .name = "Start Delay",
                 .priv    = &focus_rack_delay,
-                .max = 20,
+                .max = 60,
                 .icon_type = IT_PERCENT_OFF,
-                .help = "Number of seconds before starting rack focus.",
+                .help = "Number of seconds before starting focus operation.",
             },
             MENU_EOL
         },
@@ -1295,10 +1302,6 @@ focus_init( void* unused )
 
     #ifdef FEATURE_AF_PATTERNS
     afp_menu_init();
-    #endif
-    
-    #ifdef FEATURE_AFMA_TUNING
-    afma_menu_init();
     #endif
 }
 

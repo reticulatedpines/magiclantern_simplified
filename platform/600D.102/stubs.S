@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.1 firmware for the 600d.
+ * in the Canon 1.0.2 firmware for the 600d.
  *
  */
 /*
@@ -96,6 +96,10 @@ NSTUB( 0xFF05B6E4, _prop_request_change )
 NSTUB( 0xFF05BCC4, prop_deliver )
 NSTUB( 0xFF05BF04, prop_get_value )
 
+/** corectly named canon property reading functions **/
+NSTUB( 0xFF05BF04, PROP_GetMulticastProperty )
+NSTUB( 0xFF05CB28, PROPAD_GetPropertyData )
+
 NSTUB( 0xff1e8fe0, dispcheck )
 NSTUB( 0xFF062CEC, SetBitmapVramAddress ) // where to find bmp_vram_info
 NSTUB( 0x1db6c, bmp_vram_info )
@@ -103,12 +107,12 @@ NSTUB( 0x75DDC, vram_info )
 NSTUB( 0xFF2E1124, vram_get_number ) // after "[ImgPlyer]   Rate"
 NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
 
-NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
-NSTUB( 0xFF018DB0, free )
+NSTUB( 0xFF018D58, _malloc ) // maybe it's better to use Allocate/Free?
+NSTUB( 0xFF018DB0, _free )
 
 NSTUB( 0xff0723f0, _AllocateMemory ) // "[MEM] NG AllocateMemory"
-NSTUB( 0xFF072780, FreeMemory )
-NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
+NSTUB( 0xFF072780, _FreeMemory )
+NSTUB( 0xff072280, _AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
@@ -130,8 +134,8 @@ NSTUB( 0xff31c6b4, gui_task_destroy )
 NSTUB( 0xff31c444, ctrlman_dispatch_event )
 
 NSTUB( 0xff230e48, prop_request_icu_auto_poweroff )           // "PROP_Request PROP_ICU_AUTO_POWEROFF(%d)"
-NSTUB( 0xff1fd2e4, alloc_dma_memory )
-NSTUB( 0xff1fd318, free_dma_memory )
+NSTUB( 0xff1fd2e4, _alloc_dma_memory )
+NSTUB( 0xff1fd318, _free_dma_memory )
 
 //NSTUB( 0xFF4F2648, cfReadBlk )
 //NSTUB( 0x15728, cf_device )                // in cfReadBlk
@@ -160,6 +164,9 @@ NSTUB( 0xff021f78, gui_init_end )     // EndGuiInit
 NSTUB( 0x4588, gui_timer_struct )     // in GUI_Control_Post
 NSTUB( 0x1C38, gui_main_struct )      //  in gui_main_task
 NSTUB( 0xff1f5a54, msg_queue_receive )
+NSTUB( 0xFF1F5944, msg_queue_create) // CreateMessageQueue
+NSTUB( 0xff1f5c40, msg_queue_post)
+NSTUB( 0xFF1F5C80, msg_queue_count)
 NSTUB( 0xFF0AA5A4, gui_local_post )
 NSTUB( 0xFF0A9E34, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF0AAB3C, gui_other_post )
@@ -182,7 +189,7 @@ NSTUB( 0xFF1C94E0, mvrSetDeblockingFilter )
 
 NSTUB( 0xFF1E74B0, FIO_FindFirstEx )
 NSTUB( 0xFF1E75A4, FIO_FindNextEx )
-NSTUB( 0xff1e7684, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
+NSTUB( 0xff1e7684, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
 // 550d 109 values!!
 NSTUB( 0x3787c, LV_EX_X)
@@ -208,7 +215,6 @@ NSTUB( 0xFF33BFAC, ReverseDisplay )
 
 NSTUB( 0x6290, mvr_config )
 
-NSTUB( 0xff1f5c40, msg_queue_post)
 //NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 NSTUB( 0xff29e25c, AfCtrl_SetLensParameterRemote )
@@ -263,7 +269,6 @@ NSTUB(0xff017618, get_current_task) // called from AJ_armlib_setup_related3
 
 NSTUB(0x1C36C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
-NSTUB(0xFF1F5944, msg_queue_create) // CreateMessageQueue
 
 NSTUB(0xFF0396E4, PD_RemoteRelease)
 

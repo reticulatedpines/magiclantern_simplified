@@ -76,8 +76,8 @@ struct menu_display_info
 #define MENU_MAX_VALUE_LEN 25
 #define MENU_MAX_SHORT_NAME_LEN 15
 #define MENU_MAX_SHORT_VALUE_LEN 15
-#define MENU_MAX_HELP_LEN 60
-#define MENU_MAX_WARNING_LEN 60
+#define MENU_MAX_HELP_LEN 100
+#define MENU_MAX_WARNING_LEN 100
 #define MENU_MAX_RINFO_LEN 30
 
 #define MENU_SET_NAME(fmt, ...)        snprintf(info->name,        MENU_MAX_NAME_LEN,        fmt, ## __VA_ARGS__)
@@ -174,8 +174,8 @@ struct menu_entry
         int16_t submenu_width; 
         int16_t submenu_height;
         
-        int16_t depends_on;     // hard requirement, won't work otherwise
-        int16_t works_best_in;  // soft requirement, it will work, but not as well
+        uint32_t depends_on;     // hard requirement, won't work otherwise
+        uint32_t works_best_in;  // soft requirement, it will work, but not as well
 };
 
 
@@ -275,15 +275,15 @@ menu_select(
         struct menu_entry *     entry
 );
 
-void menu_numeric_toggle(int* val, int delta, int min, int max);
+extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 
 extern void run_in_separate_task(void (*priv)(void), int delta);
 
+extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
 
-void menu_add( const char * name, struct menu_entry * new_entry, int count );
+extern void menu_remove(const char * name, struct menu_entry * old_entry, int count);
 
-void menu_remove(const char * name, struct menu_entry * old_entry, int count);
-
+extern void select_menu_by_name(char* name, const char* entry_name);
 
 extern void
 menu_init( void );

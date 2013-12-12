@@ -26,7 +26,10 @@ int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
 // disable Canon bottom bar
+
+#if defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK)
 static int bottom_bar_hack = 0;
+#endif
 
 #if defined(CONFIG_LVAPP_HACK_DEBUGMSG)
 
@@ -174,6 +177,8 @@ int handle_common_events_startup(struct event * event)
     extern int ml_started;
     if (!ml_started)    {
         if (event->param == BGMT_PRESS_SET) { _disable_ml_startup(); return 0;} // don't load ML
+        
+        if (handle_select_config_file_by_key_at_startup(event) == 0) return 0;
 
         #ifdef CONFIG_60D
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
@@ -601,3 +606,5 @@ int detect_double_click(int key, int pressed_code, int unpressed_code)
     }
     return 0;
 }
+
+char* get_info_button_name() { return INFO_BTN_NAME; }

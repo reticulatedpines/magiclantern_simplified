@@ -45,20 +45,10 @@ CONFIG_INT( "audio.effect.mode",    cfg_effect_mode,      0 );
 
 int audio_meters_are_drawn()
 {
-    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav()){
-        if(!cfg_override_audio){
-            return 0;
-        }
+    if(!cfg_override_audio){
+        return 0;
     }
-
-    return 
-        (
-         is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
-         )
-        ||
-        (
-         gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
-         );
+    return audio_meters_are_drawn_common();
 }
 
 static void audio_monitoring_update()

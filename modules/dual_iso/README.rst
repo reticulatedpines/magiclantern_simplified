@@ -5,6 +5,7 @@ Dual ISO
 :Author: a1ex
 :License: GPL
 :Summary: Dynamic range improvement by using two ISOs in one picture
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=7139.0
 
 Increases dynamic range by sampling the sensor at two different ISOs, switching ISO for every other line pair.
 This trick cleans up shadow noise, resulting in a dynamic range improvement of around 3 stops,
