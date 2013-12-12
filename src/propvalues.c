@@ -176,6 +176,11 @@ volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 #endif
 int __recording_custom = 0;
 
+void set_recording_custom(int state)
+{
+    __recording_custom = state;
+}
+
 int lv_disp_mode;
 
 #ifndef CONFIG_EOSM //~ we update lv_disp_mode from 

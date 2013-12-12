@@ -59,6 +59,7 @@ extern int __recording_custom;
 #define RECORDING_MJPEG (__recording_custom == 2) // not implemented, except for some proof of concept code
 #define RECORDING_CUSTOM (__recording_custom > 0) // anything that is not H.264
 #define RECORDING_STATE (__recording | (__recording_custom << 2))
+void set_recording_custom(int state);
 
 extern int af_mode;
 extern int metering_mode;

@@ -2601,7 +2601,7 @@ static void raw_video_rec_task()
         raw_recording_state = RAW_RECORDING;
         
         /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
-        __recording_custom = -1;
+        set_recording_custom(-1);
     
         /* create output file name */
         movie_filename = get_next_raw_movie_file_name();
@@ -2698,7 +2698,7 @@ static void raw_video_rec_task()
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
-                __recording_custom = 0;
+                set_recording_custom(0);
                 goto cleanup;
             }
             
@@ -2902,7 +2902,7 @@ static void raw_video_rec_task()
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
-                __recording_custom = 0;
+                set_recording_custom(0);
                 goto cleanup;
             }
             
@@ -2954,7 +2954,7 @@ static void raw_video_rec_task()
         /* wait until the other tasks calm down */
         msleep(500);
         
-        __recording_custom = 0;
+        set_recording_custom(0);
         
         if(test_mode)
         {
