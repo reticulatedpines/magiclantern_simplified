@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using mlv_view_sharp;
 
-using pixelType = System.Byte;
-
 namespace MLVViewSharp
 {
     public abstract class DebayerBase
@@ -95,17 +93,6 @@ namespace MLVViewSharp
             xyz[2] = (float)((1 - x - y) / y);
 
             return xyz;
-        }
-
-        protected pixelType ToPixelValue(float value)
-        {
-            /* quick check, hopefully faster than Math functions (?) */
-            if (value >= 0 && value <= 255)
-            {
-                return (pixelType)value;
-            }
-
-            return (pixelType)Math.Max(0, Math.Min(255, value));
         }
 
         /* found on the web: http://www.johndcook.com/csharp_erf.html (public domain) */
