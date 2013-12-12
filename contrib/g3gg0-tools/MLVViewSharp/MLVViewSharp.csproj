@@ -88,11 +88,13 @@
   <ItemGroup>
     <Compile Include="BitUnpack.cs" />
     <Compile Include="BitUnpackCanon.cs" />
+    <Compile Include="CubeLut.cs" />
     <Compile Include="Debayer.cs" />
     <Compile Include="DebayerBase.cs" />
     <Compile Include="DebayerHalfRes.cs" />
     <Compile Include="DebayerBilinear.cs" />
     <Compile Include="Lookup.cs" />
+    <Compile Include="Lut3D.cs" />
     <Compile Include="Matrix.cs" />
     <Compile Include="MLVViewerForm.cs">
       <SubType>Form</SubType>

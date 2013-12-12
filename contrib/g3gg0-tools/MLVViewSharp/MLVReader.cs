@@ -16,13 +16,18 @@ namespace mlv_view_sharp
     public class MLVReader
     {
         protected BinaryReader[] Reader = null;
-        protected string[] FileNames = null;
         protected MLVBlockHandler Handler = null;
         protected xrefEntry[] BlockIndex = null;
 
         protected Dictionary<uint, xrefEntry> FrameXrefList = null;
 
         public string LastType = "";
+
+        /* made public to show debug information */
+        public string[] FileNames = null;
+        public int FileNum = 0;
+        public long FilePos = 0;
+
 
         public uint TotalFrameCount = 0;
         public uint FrameRedundantErrors = 0;
@@ -279,6 +284,20 @@ namespace mlv_view_sharp
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
             FrameXrefList = frameXrefList;
 
+            /* check for non-header blocks with the same timestamp */
+            xrefEntry prev = new xrefEntry();
+            prev.timestamp = 0;
+            prev.fileNumber = 0;
+
+            foreach (var indexEntry in BlockIndex)
+            {
+                if (indexEntry.position != 0 && indexEntry.timestamp == prev.timestamp)
+                {
+                    FrameRedundantErrors++;
+                }
+                prev = indexEntry;
+            }
+
             uint curFrame = 0;
             foreach (var elem in frameXrefList.OrderBy(elem => elem.Key))
             {
@@ -322,20 +341,20 @@ namespace mlv_view_sharp
             }
 
             byte[] buf = new byte[16];
-            int fileNum = BlockIndex[CurrentBlockNumber].fileNumber;
-            long filePos = BlockIndex[CurrentBlockNumber].position;
+            FileNum = BlockIndex[CurrentBlockNumber].fileNumber;
+            FilePos = BlockIndex[CurrentBlockNumber].position;
 
             /* seek to current block pos */
-            Reader[fileNum].BaseStream.Position = filePos;
+            Reader[FileNum].BaseStream.Position = FilePos;
 
             /* if there are not enough blocks anymore */
-            if (Reader[fileNum].BaseStream.Position >= Reader[fileNum].BaseStream.Length - 16)
+            if (Reader[FileNum].BaseStream.Position >= Reader[FileNum].BaseStream.Length - 16)
             {
                 return false;
             }
 
             /* read MLV block header */
-            if (Reader[fileNum].Read(buf, 0, 16) != 16)
+            if (Reader[FileNum].Read(buf, 0, 16) != 16)
             {
                 return false;
             }
@@ -348,7 +367,7 @@ namespace mlv_view_sharp
             Array.Resize<byte>(ref buf, (int)length);
 
             /* now read the rest of the block */
-            if (Reader[fileNum].Read(buf, 16, (int)length - 16) != (int)length - 16)
+            if (Reader[FileNum].Read(buf, 16, (int)length - 16) != (int)length - 16)
             {
                 return false;
             }
