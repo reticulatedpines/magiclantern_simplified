@@ -1918,3 +1918,68 @@ static void sensor_timing_table_init()
 INIT_FUNC("sensor-timing", sensor_timing_table_init);
 
 #endif // NEW_FPS_METHOD
+
+int get_frame_iso()
+{
+    #ifdef FRAME_ISO
+    return FRAME_ISO & 0xFF;
+    #else
+    return 0;
+    #endif
+}
+
+void set_frame_iso(int iso)
+{
+    #ifdef CONFIG_FRAME_ISO_OVERRIDE
+    FRAME_ISO = iso | (iso << 8);
+    #endif
+}
+
+int can_set_frame_iso()
+{
+    #ifdef CONFIG_FRAME_ISO_OVERRIDE
+    return 1;
+    #else
+    return 0;
+    #endif
+}
+
+int get_frame_shutter_timer()
+{
+    #ifdef FRAME_SHUTTER_TIMER
+    return FRAME_SHUTTER_TIMER;
+    #else
+    return 0;
+    #endif
+}
+
+void set_frame_shutter_timer(int timer)
+{
+    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+        #ifdef CONFIG_DIGIC_V
+        FRAME_SHUTTER_TIMER = MAX(timer, 2);
+        #else
+        FRAME_SHUTTER_TIMER = MAX(timer, 1);
+        #endif
+    #endif
+}
+
+void set_frame_shutter(int shutter_reciprocal)
+{
+    /* is this really necessary? clean up by putting getters in macros? */
+    int ntsc = is_current_mode_ntsc();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
+    int crop = video_mode_crop;
+    
+    set_frame_shutter_timer(TG_FREQ_SHUTTER / shutter_reciprocal / 1000);
+}
+
+int can_set_frame_shutter_timer()
+{
+    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+    return 1;
+    #else
+    return 0;
+    #endif
+}
+
