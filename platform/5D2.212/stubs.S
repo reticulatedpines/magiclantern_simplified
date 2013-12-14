@@ -235,3 +235,8 @@ NSTUB(0xFF9A4828, RegisterEDmacPopCBR)
 NSTUB(0xFF9A47AC, UnregisterEDmacCompleteCBR)
 NSTUB(0xFF9A47F8, UnregisterEDmacAbortCBR)
 NSTUB(0xFF9A483C, UnregisterEDmacPopCBR)
+
+/** corectly named canon property reading functions **/
+NSTUB(0xFF85F344, PROP_GetMulticastProperty)
+NSTUB(0xFF85FD3C, PROPAD_GetPropertyData) //str:SearchFromProperty
+
