@@ -462,7 +462,7 @@ int raw_update_params()
     {
         raw_info.buffer = (uint32_t) raw_buffer_photo;
         
-        #ifdef CONFIG_60D
+        #if defined(CONFIG_60D) || defined(CONFIG_500D)
         raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
         #endif
         
@@ -522,6 +522,16 @@ int raw_update_params()
         skip_left = 126;
         skip_right = 20;
         skip_top = 82;
+        #endif
+
+        #ifdef CONFIG_500D
+        /* from debug log: [TTJ][150,5401,0] RAW(4832,3204,0,14) */
+        width = 4832;
+        height = 3204;
+        skip_left = 62;
+        skip_bottom = 28;
+        /* also we have a 40-pixel border on the right that contains image data */
+        raw_info.buffer -= 40*14/8;
         #endif
 
         #ifdef CONFIG_550D
