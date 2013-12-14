@@ -51,12 +51,12 @@
 
 
 //#define CONFIG_CONSOLE
-#define TRACE_DISABLED
+//#define TRACE_DISABLED
 
-#define DEBUG_REDRAW_INTERVAL    500   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#define MLV_RTCI_BLOCK_INTERVAL 2000
-#define MLV_INFO_BLOCK_INTERVAL 5000
-#define MAX_PATH                 100
+#define DEBUG_REDRAW_INTERVAL     1000
+#define MLV_RTCI_BLOCK_INTERVAL   2000
+#define MLV_INFO_BLOCK_INTERVAL  60000
+#define MAX_PATH                   100
 
 
 #include <module.h>
@@ -75,6 +75,8 @@
 #include "cache_hacks.h"
 #include "mlv.h"
 
+/* this replaces msg_queue_* functions with handcoded smaller ones. hopefully faster, if that is some bottleneck at all. */
+//#include "fast_queue.h"
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -93,7 +95,7 @@ static uint32_t cam_60d = 0;
 #define MAX_WRITER_THREADS 2
 
 static uint32_t raw_rec_edmac_align = 0x01000;
-static uint32_t raw_rec_write_align = 0x00200;
+static uint32_t raw_rec_write_align = 0x01000;
 
 static uint32_t mlv_writer_threads = 2;
 uint32_t raw_rec_trace_ctx = TRACE_ERROR;
@@ -130,6 +132,7 @@ static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write.speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip.frames", allow_frame_skip, 0);
 static CONFIG_INT("mlv.skip.card_spanning", card_spanning, 0);
+
 //~ static CONFIG_INT("mlv.sound", sound_rec, 2);
 #define sound_rec 2
 
@@ -177,6 +180,12 @@ static int32_t raw_previewing = 0;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
+
+#define MLV_METADATA_INITIAL 1
+#define MLV_METADATA_SPORADIC 2
+#define MLV_METADATA_CYCLIC 4
+
+static uint32_t mlv_metadata = MLV_METADATA_INITIAL;
 
 /* if these get set, on the next frame the according blocks get queued */
 static int32_t mlv_update_lens = 0;
@@ -279,6 +288,7 @@ static int32_t current_write_speed[MAX_WRITER_THREADS];
 /* mlv information */
 struct msg_queue *mlv_block_queue = NULL;
 struct msg_queue *mlv_mgr_queue = NULL;
+struct msg_queue *mlv_job_alloc_queue = NULL;
 static uint64_t mlv_start_timestamp = 0;
 static mlv_file_hdr_t mlv_file_hdr;
 
@@ -291,8 +301,6 @@ static int32_t mlv_file_count = 0;
 
 /* string buffer for test loops */
 static char test_results[100][100];
-
-
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
 
@@ -527,12 +535,14 @@ static char* guess_aspect_ratio(int32_t res_x, int32_t res_y)
 static int32_t predict_frames(int32_t write_speed)
 {
     int32_t slot_size = frame_size + 64 + raw_rec_edmac_align + raw_rec_write_align;
-    
     int32_t fps = fps_get_current_x1000();
     int32_t capture_speed = slot_size / 1000 * fps;
     int32_t buffer_fill_speed = capture_speed - write_speed;
+    
     if (buffer_fill_speed <= 0)
+    {
         return INT_MAX;
+    }
     
     int32_t write_size = 0;
     for (int32_t group = 0; group < slot_group_count; group++)
@@ -562,9 +572,13 @@ static char* guess_how_many_frames()
         int32_t write_speed = (write_speed_lo + write_speed_hi) / 2;
         write_speed = (write_speed * 10 + 512 * 1024) / (1024 * 1024);
         if (f_lo != f_hi)
+        {
             snprintf(msg, sizeof(msg), "Expect %d-%d frames at %d.%dMB/s.", f_lo, f_hi, write_speed / 10, write_speed % 10);
+        }
         else
+        {
             snprintf(msg, sizeof(msg), "Expect around %d frames at %d.%dMB/s.", f_lo, write_speed / 10, write_speed % 10);
+        }
     }
     else
     {
@@ -581,18 +595,21 @@ static MENU_UPDATE_FUNC(write_speed_update)
     int32_t ok = speed < measured_write_speed;
     speed /= 10;
 
-
     if (!measured_write_speed)
+    {
         MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
             "Write speed needed: %d.%d MB/s at %d.%03d fps.",
             speed/10, speed%10, fps/1000, fps%1000
         );
+    }
     else
+    {
         MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
             "%d.%d MB/s at %d.%03dp. %s",
             speed/10, speed%10, fps/1000, fps%1000,
             guess_how_many_frames()
         );
+    }
 }
 
 static void refresh_raw_settings(int32_t force)
@@ -623,8 +640,10 @@ static MENU_UPDATE_FUNC(raw_main_update)
     refresh_raw_settings(0);
 
     if (auto_power_off_time)
+    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
-
+    }
+    
     if (is_custom_movie_mode() && !is_native_movie_mode())
     {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
@@ -1059,8 +1078,12 @@ static int32_t get_free_slots()
 {
     int32_t free_slots = 0;
     for (int32_t i = 0; i < slot_count; i++)
+    {
         if (slots[i].status == SLOT_FREE)
+        {
             free_slots++;
+        }
+    }
     return free_slots;
 }
 
@@ -1326,7 +1349,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (RAW_IS_RECORDING)
     {
         /* enqueue lens, rtc, expo etc status */
-        if(should_run_polling_action(MLV_RTCI_BLOCK_INTERVAL, &rtci_queueing))
+        if(should_run_polling_action(MLV_RTCI_BLOCK_INTERVAL, &rtci_queueing) && (mlv_metadata & MLV_METADATA_CYCLIC))
         {
             trace_write(raw_rec_trace_ctx, "[polling_cbr] queueing RTCI");
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
@@ -1334,7 +1357,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             msg_queue_post(mlv_block_queue, rtci_hdr);
         }
 
-        if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing))
+        if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing) && (mlv_metadata & MLV_METADATA_CYCLIC))
         {
             trace_write(raw_rec_trace_ctx, "[polling_cbr] queueing INFO blocks");
             mlv_expo_hdr_t *expo_hdr = malloc(sizeof(mlv_expo_hdr_t));
@@ -1588,7 +1611,6 @@ static void hack_liveview(int32_t unhack)
 
 static int32_t FAST choose_next_capture_slot()
 {
-    
     switch(buffer_fill_method)
     {
         case 0:
@@ -1840,12 +1862,6 @@ static int32_t FAST process_frame()
     {
         return 0;
     }
-    
-    /* try a sync beep */
-    if ((sound_rec == 2 && frame_count == 1) && !test_mode)
-    {
-        //beep();
-    }
 
     int32_t ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
     
@@ -1890,7 +1906,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
-
+    
     dma_transfer_in_progress = process_frame();
     return 0;
 }
@@ -2205,44 +2221,34 @@ static void raw_writer_task(uint32_t writer)
         /* receive write job from dispatcher */
         if(msg_queue_receive(queue, &tmp_job, 1000))
         {
-            static uint32_t timeouts = 0;
-            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: message timed out %d times now", writer, ++timeouts);
-            continue;
-        }
-
-        /* just to make sure */
-        if(!tmp_job)
-        {
-            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: message is NULL", writer);
+            //static uint32_t timeouts = 0;
+            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: message timed out %d times now", writer, ++timeouts);
             continue;
         }
         
         if(tmp_job->job_type == JOB_TYPE_WRITE)
         {
-            /* keep this structure local to make sure there is no dereferencing at all */
-            write_job_t write_job = *tmp_job;
-            
             /* decrease number of queued writes */
             atomic_dec(&writer_job_count[writer]);
             
             /* this is an "abort" job */
-            if(write_job.block_len == 0)
+            if(tmp_job->block_len == 0)
             {
-                free(tmp_job);
+                msg_queue_post(mlv_job_alloc_queue, tmp_job);
+                //free(tmp_job);
                 trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: expected to terminate", writer);
                 break;
             }
             
-            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB, addr 0x%08X, size 0x%08X)", writer, write_job.block_len, write_job.block_start, write_job.block_size/1024, write_job.block_ptr, write_job.block_size);
+            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB, addr 0x%08X, size 0x%08X)", writer, tmp_job->block_len, tmp_job->block_start, tmp_job->block_size/1024, tmp_job->block_ptr, tmp_job->block_size);
             
             /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
-            int32_t ext_gating = 1;
-            if (ext_gating)
+            if (1)
             {
                 /* check if we will reach the 4GiB boundary with this write */
                 uint32_t free_space = 0xFFFFFFFF - written_chunk;
                 
-                if(free_space < write_job.block_size)
+                if(free_space < tmp_job->block_size)
                 {
                     trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close", writer);
                     
@@ -2281,7 +2287,7 @@ static void raw_writer_task(uint32_t writer)
                     
                     handle_requested = 0;
                 }
-                else if((free_space < 10 * write_job.block_size) && !handle_requested)
+                else if((free_space < 8 * tmp_job->block_size) && !handle_requested)
                 {
                     /* we will reach the 4GiB boundary soon */
                     trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB, request another chunk", writer);
@@ -2298,15 +2304,15 @@ static void raw_writer_task(uint32_t writer)
                 }
                 
                 /* start write and measure times */
-                write_job.last_time_after = last_time_after;
-                write_job.time_before = get_us_clock_value();
-                int32_t written = FIO_WriteFile(f, write_job.block_ptr, write_job.block_size);
-                write_job.time_after = get_us_clock_value();
+                tmp_job->last_time_after = last_time_after;
+                tmp_job->time_before = get_us_clock_value();
+                int32_t written = FIO_WriteFile(f, tmp_job->block_ptr, tmp_job->block_size);
+                tmp_job->time_after = get_us_clock_value();
                 
-                last_time_after = write_job.time_after;
+                last_time_after = tmp_job->time_after;
                 
                 /* handle disk full cases */
-                if (written != (int32_t)write_job.block_size) /* 4GB limit or card full? */
+                if (written != (int32_t)tmp_job->block_size) /* 4GB limit or card full? */
                 {
                     trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: %d", writer, written);
                     
@@ -2321,19 +2327,17 @@ static void raw_writer_task(uint32_t writer)
                     }
                     else
                     {
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, write_job.block_size);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, tmp_job->block_size);
                     }
                     goto abort;
                 }
                 
                 /* all fine */
-                written_chunk += write_job.block_size;
-                frames_written += write_job.block_len;
+                written_chunk += tmp_job->block_size;
+                frames_written += tmp_job->block_len;
             }
 
             /* send job back and wake up manager */
-            write_job.writer = writer;
-            *tmp_job = write_job;
             msg_queue_post(mlv_mgr_queue, tmp_job);
             //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: returned job 0x%08X", writer, tmp_job);
         }
@@ -2403,7 +2407,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         if (!allow_frame_skip && frame_limit >= 0 && frame_limit < (int32_t)write_job->block_len)
         {
             //trace_write(raw_rec_trace_ctx, "<-- careful, will overflow in %d.%d seconds, better write only %d frames", overflow_time/10, overflow_time%10, frame_limit);
-            write_job->block_len = MAX(1, frame_limit - 2);
+            write_job->block_len = MAX(1, frame_limit - 1);
             write_job->block_size = 0;
             
             /* now fix the buffer size to write */
@@ -2417,7 +2421,8 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     /* enqueue the next largest block */
     write_job->block_ptr = slots[write_job->block_start].ptr;
     
-    write_job_t *queue_job = malloc(sizeof(write_job_t));
+    write_job_t *queue_job = NULL; //malloc(sizeof(write_job_t));
+    msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
     *queue_job = *write_job;
     queue_job->job_type = JOB_TYPE_WRITE;
 
@@ -2608,7 +2613,7 @@ static void raw_video_rec_task()
         /* create writer threads with decreasing priority */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            uint32_t base_prio = 0x1C;
+            uint32_t base_prio = 0x12;
             task_create("writer_thread", base_prio + writer, 0x1000, raw_writer_task, (void*)writer);
         }
         
@@ -2657,7 +2662,7 @@ static void raw_video_rec_task()
             }
             
             /* when capture task had to skip a frame, stop recording */
-            if (!allow_frame_skip && frame_skips)
+            if (!allow_frame_skip && frame_skips && (raw_recording_state == RAW_RECORDING))
             {
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
                 raw_recording_state = RAW_FINISHING;
@@ -2757,7 +2762,9 @@ static void raw_video_rec_task()
                     written[returned_job->writer] += returned_job->block_size / 1024;
                     frames_written[returned_job->writer] += returned_job->block_len;
                     
-                    free(returned_job);
+                    
+                    msg_queue_post(mlv_job_alloc_queue, returned_job);
+                    //free(returned_job);
                 }
                 else if(returned_job->job_type == JOB_TYPE_NEXT_HANDLE)
                 {
@@ -2827,7 +2834,7 @@ static void raw_video_rec_task()
             }
             //trace_write(raw_rec_trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
             
-            if(mlv_update_lens)
+            if(mlv_update_lens && (mlv_metadata & MLV_METADATA_SPORADIC))
             {
                 mlv_update_lens = 0;
                 
@@ -2858,7 +2865,7 @@ static void raw_video_rec_task()
                 }
             }
             
-            if(mlv_update_styl)
+            if(mlv_update_styl && (mlv_metadata & MLV_METADATA_SPORADIC))
             {
                 mlv_update_styl = 0;
                 
@@ -2877,7 +2884,7 @@ static void raw_video_rec_task()
                 }
             }
             
-            if(mlv_update_wbal)
+            if(mlv_update_wbal && (mlv_metadata & MLV_METADATA_SPORADIC))
             {
                 mlv_update_wbal = 0;
                 
@@ -2940,12 +2947,12 @@ static void raw_video_rec_task()
         raw_recording_state = RAW_FINISHING;
         
         /* queue two aborts to cancel tasks */
-        write_job = malloc(sizeof(write_job_t));
+        msg_queue_receive(mlv_job_alloc_queue, &write_job, 0);
         write_job->job_type = JOB_TYPE_WRITE;
         write_job->block_len = 0;
         msg_queue_post(mlv_writer_queues[0], write_job);
-        
-        write_job = malloc(sizeof(write_job_t));
+
+        msg_queue_receive(mlv_job_alloc_queue, &write_job, 0);
         write_job->job_type = JOB_TYPE_WRITE;
         write_job->block_len = 0;
         msg_queue_post(mlv_writer_queues[1], write_job);
@@ -3045,7 +3052,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     {
         raw_recording_state = RAW_PREPARING;
         gui_stop_menu();
-        task_create("raw_rec_task", 0x0A, 0x1000, raw_video_rec_task, (void*)0);
+        task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
     }
 }
 
@@ -3162,7 +3169,7 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 {
     struct rolling_pitching * orientation = (struct rolling_pitching *) buf;
     
-    if (RAW_IS_RECORDING && orientation->status == 2)
+    if((RAW_IS_RECORDING && orientation->status == 2) && (mlv_metadata & MLV_METADATA_SPORADIC))
     {
         mlv_elvl_hdr_t *hdr = malloc(sizeof(mlv_elvl_hdr_t));
         
@@ -3235,25 +3242,6 @@ static struct menu_entry raw_video_menu[] =
                 .update = aspect_ratio_update,
                 .choices = aspect_ratio_choices,
             },
-            /*
-            {
-                .name = "Source ratio",
-                .priv = &source_ratio,
-                .max = 2,
-                .choices = CHOICES("Square pixels", "16:9", "3:2"),
-                .help  = "Choose aspect ratio of the source image (LiveView buffer).",
-                .help2 = "Useful for video modes with squeezed image (e.g. 720p).",
-            },
-            */
-            /* gets out of sync
-            {
-                .name = "Sound",
-                .priv = &sound_rec,
-                .max = 2,
-                .choices = CHOICES("OFF", "Separate WAV", "Sync beep"),
-                .help = "Sound recording options.",
-            },
-            */
             {
                 .name = "Global Draw",
                 .priv = &kill_gd,
@@ -3466,7 +3454,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     }
     
     /* nothing to handle, log keypress */
-    if(raw_recording_state == RAW_RECORDING)
+    if((raw_recording_state == RAW_RECORDING) && (mlv_metadata & MLV_METADATA_SPORADIC))
     {
         mlv_mark_hdr_t *hdr = malloc(sizeof(mlv_mark_hdr_t));
         
@@ -3558,6 +3546,12 @@ static unsigned int raw_rec_init()
     mlv_writer_queues[0] = (struct msg_queue *) msg_queue_create("mlv_writer_queue", 10);
     mlv_writer_queues[1] = (struct msg_queue *) msg_queue_create("mlv_writer_queue", 10);
     mlv_mgr_queue = (struct msg_queue *) msg_queue_create("mlv_mgr_queue", 10);
+    mlv_job_alloc_queue = (struct msg_queue *) msg_queue_create("mlv_job_alloc_queue", 10);
+    
+    for(int num = 0; num < 50; num++)
+    {
+        msg_queue_post(mlv_job_alloc_queue, malloc(sizeof(write_job_t)));
+    }
     
     /* default free text string is empty */
     strcpy(raw_tag_str, "");
@@ -3668,7 +3662,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
-    //~ MODULE_CONFIG(sound_rec)
     
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
