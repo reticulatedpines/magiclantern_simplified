@@ -832,7 +832,7 @@ static void FAST draw_zebras_raw()
     
     int zoom0 = (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
-    for (int i = os.y0+20; i < os.y_max; i ++)
+    for (int i = os.y0; i < os.y_max; i ++)
     {
         int y = BM2RAW_Y(i);
 

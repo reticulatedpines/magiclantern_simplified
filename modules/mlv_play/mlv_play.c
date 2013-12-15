@@ -216,6 +216,7 @@ static void mlv_play_prev()
 
 static void mlv_play_progressbar(int pct, char *msg)
 {
+    static int last_pct = -1;
     int border = 4;
     int height = 40;
     int width = 720 - 100;
@@ -228,10 +229,15 @@ static void mlv_play_progressbar(int pct, char *msg)
         bmp_fill(COLOR_BLACK, x, y - font_med.height - border, width, font_med.height);
         bmp_fill(COLOR_WHITE, x, y, width, height);
         bmp_fill(COLOR_BLACK, x + border - 1, y + border - 1, width - 2 * (border - 1), height - 2 * (border - 1));
+        last_pct = -1;
     }
-    bmp_fill(COLOR_BLUE, x + border, y + border, ((width - 2 * border) * pct) / 100, height - 2 * border);
     
-    bmp_printf(FONT_MED, x, y - font_med.height - border, msg);
+    if(last_pct != pct)
+    {
+        bmp_fill(COLOR_BLUE, x + border, y + border, ((width - 2 * border) * pct) / 100, height - 2 * border);
+        bmp_printf(FONT_MED, x, y - font_med.height - border, msg);
+        last_pct = pct;
+    }
 }
 
 static void mlv_del_task(char *parm)

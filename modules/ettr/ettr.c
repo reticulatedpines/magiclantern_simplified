@@ -698,7 +698,7 @@ static void auto_ettr_step()
     if (lens_info.raw_iso == 0 && is_m) return;
     if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
-    if (HDR_ENABLED) return;
+    if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET) return;
     int corr = auto_ettr_get_correction();
     if (corr != INT_MIN)
     {
@@ -715,7 +715,7 @@ static int auto_ettr_check_pre_lv()
     int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
     if (lens_info.raw_iso == 0 && is_m) return 0;
     if (lens_info.raw_shutter == 0 && is_m) return 0;
-    if (HDR_ENABLED) return 0;
+    if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET) return 0;
     int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
     return raw;
 }
@@ -1230,8 +1230,8 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
 
-    if (HDR_ENABLED)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+    if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing. Use trigger mode SET.");
 
     if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
