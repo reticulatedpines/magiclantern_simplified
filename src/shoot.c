@@ -5114,12 +5114,12 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 
     int under_numpix, over_numpix;
     int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
-    *under = under_numpix > 10;
-    *over = over_numpix > 10;
     int po = over_numpix * 10000 / total_numpix;
     int pu = under_numpix * 10000 / total_numpix;
-    if (*under) pu = MAX(pu, 1);
-    if (*over) po = MAX(po, 1);
+    if (over_numpix  > 0) po = MAX(po, 1);
+    if (under_numpix > 0) pu = MAX(pu, 1);
+    *over  = po >  15; // 0.15 % highlight ignore
+    *under = pu > 250; // 2.50 % shadow ignore
     bmp_printf(
         FONT_LARGE, 50, 50, 
         "Under:%3d.%02d%%\n"
