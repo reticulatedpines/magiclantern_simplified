@@ -115,9 +115,6 @@ static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,   
 static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1.2:1","1.175:1","1:1","1:2"};
 
 /* config variables */
-static CONFIG_INT("mlv.delay", start_delay_idx, 0);
-static CONFIG_INT("mlv.killgd", kill_gd, 0);
-static CONFIG_INT("mlv.reckey", rec_key, 0);
 
 CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
@@ -132,15 +129,16 @@ static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write.speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip.frames", allow_frame_skip, 0);
 static CONFIG_INT("mlv.skip.card_spanning", card_spanning, 0);
+static CONFIG_INT("mlv.delay", start_delay_idx, 0);
+static CONFIG_INT("mlv.killgd", kill_gd, 1);
+static CONFIG_INT("mlv.reckey", rec_key, 0);
 
-//~ static CONFIG_INT("mlv.sound", sound_rec, 2);
-#define sound_rec 2
 
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
 #define FRAMING_PANNING (dolly_mode == 1)
 
-static CONFIG_INT("mlv.preview", preview_mode, 1);
+static CONFIG_INT("mlv.preview", preview_mode, 0);
 #define PREVIEW_AUTO (preview_mode == 0)
 #define PREVIEW_CANON (preview_mode == 1)
 #define PREVIEW_ML (preview_mode == 2)
@@ -149,9 +147,10 @@ static CONFIG_INT("mlv.preview", preview_mode, 1);
 
 static CONFIG_INT("mlv.warm.up", warm_up, 0);
 static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
-static CONFIG_INT("mlv.small.hacks", small_hacks, 0);
+static CONFIG_INT("mlv.small.hacks", small_hacks, 1);
 
 static int start_delay = 0;
+
 /* state variables */
 static int32_t res_x = 0;
 static int32_t res_y = 0;
@@ -459,7 +458,7 @@ static void update_resolution_params()
     max_res_y = raw_info.jpeg.height & ~1;
 
     /* squeeze factor */
-    if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
+    if ( (cam_eos_m && !video_mode_crop) ? (lv_dispsize == 1) : (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) ) /* 720p, image squeezed */
     {
         /* assume the raw image should be 16:9 when de-squeezed */
         int32_t correct_height = max_res_x * 9 / 16;
@@ -632,10 +631,9 @@ static void refresh_raw_settings(int32_t force)
 
 static MENU_UPDATE_FUNC(raw_main_update)
 {
-    // reset_movie_cropmarks if raw_rec is disabled
-    refresh_cropmarks();
-    
     if (!mlv_video_enabled) return;
+    
+    refresh_cropmarks();
     
     refresh_raw_settings(0);
 
@@ -736,8 +734,9 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
 
 static MENU_UPDATE_FUNC(start_delay_update)
 {
-     switch (start_delay_idx) {
-	case 0: 
+    switch (start_delay_idx)
+    {
+        case 0: 
            start_delay = 0; break;
         case 1: 
             start_delay = 2; break;
@@ -747,7 +746,7 @@ static MENU_UPDATE_FUNC(start_delay_update)
             start_delay = 10; break;
         default: 
             start_delay= 0; break;
-     }
+    }
 }
 
 
@@ -1273,21 +1272,16 @@ static void raw_video_enable()
 {
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
-	if (cam_50d && !(hdmi_code == 5))
-	{
-		//~ call("lv_output_device", "vga"); //Shrink LV
-		call("lv_af_fase_addr", 0); //Turn off face detection
-		//~ call("lv_crop", 1); //Turn off face detection
-		//~ call("LV_OUTPUT_VRAM_TYPE", "vga"); //Turn off face detection
-		
-	}	
-/*
-	 if (cam_7d && !(hdmi_code == 5))
-			call("LV_OUTPUT_VRAM_TYPE", "vga");
-  */     
-    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
-    //~ if (cam_eos_m) set_custom_movie_mode(1);
-       if (!is_movie_mode()) set_custom_movie_mode(1);
+    
+    if (cam_50d && !(hdmi_code == 5))
+    {
+        call("lv_af_fase_addr", 0); //Turn off face detection
+    }
+    
+    if (!is_movie_mode())
+    {
+        set_custom_movie_mode(1);
+    }
     
     msleep(50);
 }
@@ -1295,7 +1289,10 @@ static void raw_video_enable()
 static void raw_video_disable()
 {
     raw_lv_release();
-    if (cam_eos_m) set_custom_movie_mode(0);
+    if (is_custom_movie_mode())
+    {
+        set_custom_movie_mode(0);
+    }
 }
 
 static void raw_lv_request_update()
@@ -1379,14 +1376,14 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             int32_t t = (frame_count * 1000 + fps/2) / fps;
             int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
             if (predicted < 10000)
-                bmp_printf( FONT_MED, 30, 70, 
+                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400, 
                     "%02d:%02d, %d frames / %d expected  ",
                     t/60, t%60,
                     frame_count,
                     predicted
                 );
             else
-                bmp_printf( FONT_MED, 30, 70, 
+                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400, 
                     "%02d:%02d, %d frames, continuous OK  ",
                     t/60, t%60,
                     frame_count
@@ -1421,17 +1418,20 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                             STR_APPEND(msg, ", %dms idle      ", idle_time[writer]); 
                         }
                     }
-                    bmp_printf( FONT_MED, 30, 130 + writer * font_med.height, "%s                   ", msg);
+                    bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s                   ", msg);
                 }
                 else
                 {
-                    bmp_printf( FONT_MED, 30, 130 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
+                    bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
                 }
             }
             
-            char msg[100];
-            snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
-            bmp_printf( FONT_MED, 30, 130 + mlv_writer_threads * font_med.height, "%s", msg);
+            if(card_spanning)
+            {
+                char msg[100];
+                snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
+                bmp_printf( FONT_MED, 30, 130 + mlv_writer_threads * font_med.height, "%s", msg);
+            }
         }
     }
 
@@ -1486,7 +1486,7 @@ static void hack_liveview_vsync()
     int32_t should_hack = 0;
     int32_t should_unhack = 0;
 
-    if (rec)
+    if(rec)
     {
         if (frame_count == 0)
         {
@@ -1519,14 +1519,14 @@ static void hack_liveview_vsync()
     }
     else if(should_unhack)
     {
-		if (cam_eos_m) //EOS-M not unhacking, why?
-		{
+        if (cam_eos_m) //EOS-M not unhacking, why?
+        {
             //call("aewb_enableaewb", 1);
             PauseLiveView();
             ResumeLiveView();
             idle_globaldraw_en();
-		}
-		else
+        }
+        else
         {
             task_create("lv_unhack", 0x1e, 0x1000, unhack_liveview_vsync, (void*)0);
         }
@@ -1536,9 +1536,17 @@ static void hack_liveview_vsync()
 /* this is a separate task */
 static void unhack_liveview_vsync(int32_t unused)
 {
-    while (!RAW_IS_IDLE) msleep(100);
+    while (!RAW_IS_IDLE)
+    {
+        msleep(100);
+    }
     PauseLiveView();
     ResumeLiveView();
+    
+    if (PREVIEW_NOT || kill_gd)
+    {
+        idle_globaldraw_en();
+    }    
 }
 
 static void hack_liveview(int32_t unhack)
@@ -1546,8 +1554,8 @@ static void hack_liveview(int32_t unhack)
     if (PREVIEW_NOT || kill_gd)
     {
         idle_globaldraw_dis();
-        clrscr();			
-    }	
+        clrscr();            
+    }    
     if (small_hacks)
     {
         /* disable canon graphics (gains a little speed) */
@@ -1567,7 +1575,6 @@ static void hack_liveview(int32_t unhack)
         call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
-		if (cam_7d) call("lv_no_flicker", unhack ? 0 : 1); //Disable Flicker
         
         /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
@@ -1577,10 +1584,10 @@ static void hack_liveview(int32_t unhack)
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :  
-			cam_6d  ? 0xFF52BE94 :
-			cam_eos_m ? 0xFF539C1C :
-			cam_700d ? 0xFF52B53C :
-			cam_7d  ? 0xFF345788 :
+            cam_6d  ? 0xFF52BE94 :
+            cam_eos_m ? 0xFF539C1C :
+            cam_700d ? 0xFF52B53C :
+            cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             /* ... */
             0;
@@ -3243,7 +3250,7 @@ static struct menu_entry raw_video_menu[] =
                 .choices = aspect_ratio_choices,
             },
             {
-                .name = "Global Draw",
+                .name = "Disable G. Draw",
                 .priv = &kill_gd,
                 .max = 1,
                 .choices = CHOICES("ON", "OFF"),
@@ -3267,14 +3274,15 @@ static struct menu_entry raw_video_menu[] =
             {
                 .name = "Preview",
                 .priv = &preview_mode,
-                .max = 3,
-                .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD"),
+                .max =  4,
+                .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD", "Hacked No Prev"),
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+                         "HaCKeD2: No preview. Disables Global draw while recording.\n"
             },
-			{
+            {
                 .name = "Start delay",
                 .priv = &start_delay_idx,
                 .max = 3,
@@ -3371,7 +3379,8 @@ static struct menu_entry raw_video_menu[] =
 
 static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
-    if (!mlv_video_enabled)
+    /* if module is disabled or canon is currently recording, return */
+    if (!mlv_video_enabled || (recording > 0))
         return 1;
 
     if (!is_movie_mode())
@@ -3384,12 +3393,12 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
     
-	/* MENU ON EOSM Photo Mode */
-	if (cam_eos_m)
+    /* MENU ON EOSM Photo Mode */
+    if (cam_eos_m)
     {
         rec_key_pressed = ( rec_key ? key== MODULE_KEY_MENU : (key == MODULE_KEY_LV || key == MODULE_KEY_REC) );
     }
-	 
+     
     /* ... or SET on 5D2/50D */
     if (cam_50d || cam_5d2) rec_key_pressed = (key == MODULE_KEY_PRESS_SET);
     
@@ -3478,7 +3487,7 @@ static uint32_t raw_rec_should_preview(uint32_t ctx)
     if (!is_movie_mode()) return 0;
 
     /* keep x10 mode unaltered, for focusing */
-    if (lv_dispsize == 10) return 0;
+    if (lv_dispsize == 10 && !cam_7d) return 0;
     
     if (PREVIEW_AUTO)
         /* enable preview in x5 mode, since framing doesn't match */
@@ -3518,7 +3527,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_force_aspect_ratio_1to1();
     raw_preview_fast_ex(
         (void*)-1,
-        PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
+        (PREVIEW_HACKED && RAW_RECORDING) ? (void*)-1 : buffers->dst_buf,
         -1,
         -1,
         get_halfshutter_pressed() ? RAW_PREVIEW_COLOR_HALFRES : RAW_PREVIEW_GRAY_ULTRA_FAST
@@ -3572,12 +3581,17 @@ static unsigned int raw_rec_init()
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
         
-        /* 50D doesn't have sound and can't even beep */
-        if (cam_50d && streq(e->name, "Sound"))
-        {
+        if (!cam_eos_m && streq(e->name, "Rec Key") )
             e->shidden = 1;
-            //sound_rec = 0;
-        }
+        if (cam_eos_m && streq(e->name, "Digital dolly") )
+            e->shidden = 1;
+
+        if (!cam_5d3 && streq(e->name, "CF-only buffers") )
+            e->shidden = 1;
+        if (!cam_5d3 && streq(e->name, "Card spanning") )
+            e->shidden = 1;
+        //~ if (streq(e->name, "Debug trace") )
+            //~ e->shidden = 1;
 
         /* Memory hack confirmed to work only on 5D3 and 6D */
         if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
