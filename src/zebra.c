@@ -407,12 +407,6 @@ int get_global_draw() // menu setting, or off if
 {
 #ifdef FEATURE_GLOBAL_DRAW
     
-    //~ PROP_HOUTPUT_TYPE handler only fires when Canon overlays are hidden, not restored.
-    //~ So we update lv_disp_mode here instead.
-    #ifdef CONFIG_EOSM
-        lv_disp_mode = (MEM(0x89BAC + 0x7C) != 3);
-    #endif
-    
     extern int ml_started;
     if (!ml_started) return 0;
     if (!global_draw) return 0;

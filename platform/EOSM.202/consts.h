@@ -226,7 +226,7 @@
 #define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x40501B24) // ADTG register 8061
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
-
+#define LV_DISP_MODE (MEM(0x89BAC + 0x7C) != 3)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x668C8
