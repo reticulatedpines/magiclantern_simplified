@@ -407,6 +407,10 @@ int get_global_draw() // menu setting, or off if
 {
 #ifdef FEATURE_GLOBAL_DRAW
     
+    #ifdef LV_DISP_MODE
+        lv_disp_mode = LV_DISP_MODE;
+    #endif
+
     extern int ml_started;
     if (!ml_started) return 0;
     if (!global_draw) return 0;
