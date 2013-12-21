@@ -883,7 +883,7 @@ int main (int argc, char *argv[])
     
     if(sizeof(mlv_file_hdr_t) != 52)
     {
-        printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is %d on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
+        printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is %zd on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
         return 0;
     }
     
@@ -1196,6 +1196,8 @@ int main (int argc, char *argv[])
     
     int in_file_count = 0;
     int in_file_num = 0;
+
+    uint32_t wav_file_size = 0; /* WAV format supports only 32-bit size */
 
     /* this is for our generated XREF table */
     frame_xref_t *frame_xref_table = NULL;
@@ -1512,14 +1514,58 @@ read_headers:
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
-                
-                if(out_file_wav == NULL)
+
+                if(output_filename)
                 {
-                    out_file_wav = fopen("snd.dat", "wb+");
+                    if(out_file_wav == NULL)
+                    {
+                        size_t name_len = strlen(output_filename) + 5;  // + .wav\0
+                        char* wav_file_name = malloc(name_len);
+                        /* NOTE, assumes little endian system, fix for big endian */
+                        uint32_t tmp_uint32;
+                        uint16_t tmp_uint16;
+
+                        strncpy(wav_file_name, output_filename, name_len);
+                        strncat(wav_file_name, ".wav", name_len);
+                        out_file_wav = fopen(wav_file_name, "wb");
+                        free(wav_file_name);
+                        if(!out_file_wav)
+                        {
+                            fprintf(stderr, "[E] Failed writing into audio output file\n");
+                            goto abort;
+                        }
+        
+                        /* Write header */
+                        fwrite("RIFF", 4, 1, out_file_wav);
+                        tmp_uint32 = 36; // Two headers combined size, will be patched later
+                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                        fwrite("WAVE", 4, 1, out_file_wav);
+
+                        fwrite("fmt ", 4, 1, out_file_wav);
+                        tmp_uint32 = 16; // Header size
+                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                        tmp_uint16 = 1; // PCM
+                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                        tmp_uint16 = 2; // Stereo
+                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                        tmp_uint32 = 48000; // Sample rate
+                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                        tmp_uint32 = 48000 * 2 * 2; // Byte rate (16-bit data, stereo)
+                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                        tmp_uint16 = 4; // Block align
+                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                        tmp_uint16 = 16; // Bits per sample
+                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
+
+                        fwrite("data", 4, 1, out_file_wav);
+                        tmp_uint32 = 0; // Audio data length, will be patched later
+                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                        wav_file_size = 0;
+                    }
+                
+                    fwrite(buf, frame_size, 1, out_file_wav);
+                    wav_file_size += frame_size;
                 }
-                
-                fwrite(buf, frame_size, 1, out_file_wav);
-                
                 free(buf);
             }
             
@@ -1583,7 +1629,7 @@ read_headers:
                             memcpy(frame_buffer, lzma_out, frame_size);
                             if(verbose)
                             {
-                                printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                                printf("    LZMA: %zd -> %zd  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
                             }
                         }
                         else
@@ -1926,7 +1972,7 @@ read_headers:
                                     
                                     if(verbose)
                                     {
-                                        printf("    LZMA: %d -> %d  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                                        printf("    LZMA: %zd -> %zd  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
                                     }
                                 }
                                 else
@@ -1943,7 +1989,7 @@ read_headers:
                             
                             if(frame_size != prev_frame_size)
                             {
-                                printf("  saving: %d -> %d  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
+                                printf("  saving: %zd -> %zd  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
                             }
                             
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
@@ -2455,6 +2501,19 @@ abort:
         fclose(out_file);
     }
 
+    if (out_file_wav)
+    {
+        /* Patch the WAV size fields */
+        uint32_t tmp_uint32 = wav_file_size + 36; /* + header size */
+        fseek(out_file_wav, SEEK_SET, 4);
+        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+
+        tmp_uint32 = wav_file_size; /* data size */
+        fseek(out_file_wav, SEEK_SET, 40);
+        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+        fclose(out_file_wav);
+    }
+
     /* passing NULL to free is absolutely legal, so no check required */
     free(lut_filename);
     free(subtract_filename);
@@ -2462,7 +2521,6 @@ abort:
     free(prev_frame_buffer);
     free(frame_arith_buffer);
     free(block_xref);
-    
 
     printf("[i] Done\n"); 
     printf("\n"); 
