@@ -53,7 +53,7 @@
 //#define CONFIG_CONSOLE
 //#define TRACE_DISABLED
 
-#define DEBUG_REDRAW_INTERVAL     1000
+#define DEBUG_REDRAW_INTERVAL      100
 #define MLV_RTCI_BLOCK_INTERVAL   2000
 #define MLV_INFO_BLOCK_INTERVAL  60000
 #define MAX_PATH                   100
@@ -180,11 +180,12 @@ static int32_t raw_previewing = 0;
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
 
-#define MLV_METADATA_INITIAL 1
+#define MLV_METADATA_INITIAL  1
 #define MLV_METADATA_SPORADIC 2
-#define MLV_METADATA_CYCLIC 4
+#define MLV_METADATA_CYCLIC   4
+#define MLV_METADATA_ALL      0xFF
 
-static uint32_t mlv_metadata = MLV_METADATA_INITIAL;
+static uint32_t mlv_metadata = MLV_METADATA_ALL;
 
 /* if these get set, on the next frame the according blocks get queued */
 static int32_t mlv_update_lens = 0;
@@ -203,7 +204,7 @@ struct frame_slot
     int32_t frame_number;   /* from 0 to n */
     int32_t size;
     int32_t writer;
-    enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
+    enum {SLOT_FREE, SLOT_FULL, SLOT_LOCKED, SLOT_WRITING} status;
 };
 
 struct frame_slot_group
@@ -321,7 +322,9 @@ static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
  *      Default: Do not throw away buffer, but throw away incoming frame (0)
  */
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_starting();
+extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_started();
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_stopping();
+extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_stopped();
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_frame(unsigned char *frame_data);
 extern WEAK_FUNC(ret_1) uint32_t raw_rec_cbr_save_buffer(uint32_t used, uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
@@ -1145,6 +1148,14 @@ static void show_buffer_status()
                     color = COLOR_LIGHT_BLUE;
                     break;
                     
+                case SLOT_LOCKED:
+                    if(enable_tracing)
+                    {
+                        buffer_str[buffer_str_pos++] = 'L';
+                    }
+                    color = COLOR_RED;
+                    break;
+                    
                 default:
                     if(enable_tracing)
                     {
@@ -1616,21 +1627,137 @@ static void hack_liveview(int32_t unhack)
     }
 }
 
+/* this can be called from anywhere to get a free memory slot. must be submitted using mlv_rec_release_slot() */
+int32_t mlv_rec_get_free_slot()
+{
+    uint32_t retries = 0;
+    int32_t allocated_slot = -1;
+    
+retry_find:
+    allocated_slot = -1;
+
+    /* find a slot in the smallest groups first */
+    for(int32_t group = slot_group_count - 1; group >= 0 ; group--)
+    {
+        for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
+        {
+            /* check for the slot being ready for saving */
+            if(slots[slot].status == SLOT_FREE)
+            {
+                allocated_slot = slot;
+                break;
+            }
+        }
+        
+        /* already found one? */
+        if(allocated_slot >= 0)
+        {
+            break;
+        }
+    }
+    
+    /* now try to mark this slot as being used */
+    if(allocated_slot >= 0)
+    {
+        uint32_t old_int = cli();
+        if(slots[allocated_slot].status == SLOT_FREE)
+        {
+            slots[allocated_slot].status = SLOT_LOCKED;
+        }
+        else
+        {
+            allocated_slot = -1;
+        }
+        sei(old_int);
+    }
+    
+    /* ok now check if allocation was successful and retry */
+    if(allocated_slot < 0)
+    {
+        retries++;
+        if(retries < 5)
+        {
+            goto retry_find;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    
+    return allocated_slot;
+}
+
+
+void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address)
+{
+    if(slot < 0 || slot >= slot_count)
+    {
+        *address = NULL;
+        *size = 0;
+        return;
+    }
+    
+    /* as the caller will use the slot for anything, we have to save out VIDF frame header 
+       (it contains padding and stuff that we dont want to recalculate)
+       we are using a NULL block with some data in it to store the VIDF.
+    */
+    
+    mlv_vidf_hdr_t *vidf = slots[slot].ptr;
+    
+    /* set old header to a skipped header format */
+    mlv_set_type((mlv_hdr_t *)vidf, "NULL");
+    
+    /* backup old size into free space */
+    ((uint32_t*) vidf)[sizeof(mlv_vidf_hdr_t)/4] = vidf->blockSize;
+    
+    /* then set the header to be totally skipped */
+    vidf->blockSize = 0x100;
+    
+    /* ok now return the shrunk buffer address */
+    *address = (void*)((uint32_t)slots[slot].ptr + 0x100);
+    *size = slots[slot].size - vidf->blockSize;
+}
+
+/* mark a previously with mlv_rec_get_free_slot() allocated slot for being reused or written into the file */
+void mlv_rec_release_slot(int32_t slot, uint32_t write)
+{
+    if(slot < 0 || slot >= slot_count)
+    {
+        return;
+    }
+    
+    if(write)
+    {
+        slots[slot].status = SLOT_FULL;
+    }
+    else
+    {
+        slots[slot].status = SLOT_FREE;
+    }
+}
+
 static int32_t FAST choose_next_capture_slot()
 {
+    uint32_t retries = 0;
+    int32_t allocated_slot = -1;
+    
+retry_find:
+    allocated_slot = -1;
+
     switch(buffer_fill_method)
     {
         case 0:
             /* new: return next free slot for out-of-order writing */
-            for (int32_t slot = 0; slot < slot_count; slot++)
+            for(int32_t slot = 0; slot < slot_count; slot++)
             {
-                if (slots[slot].status == SLOT_FREE)
+                if(slots[slot].status == SLOT_FREE)
                 {
-                    return slot;
+                    allocated_slot = slot;
+                    break;
                 }
             }
-    
-            return -1;
+            break;
             
         case 4:
         case 1:
@@ -1641,11 +1768,18 @@ static int32_t FAST choose_next_capture_slot()
                 {
                     if (slots[slot].status == SLOT_FREE)
                     {
-                        return slot;
+                        allocated_slot = slot;
+                        break;
                     }
                 }
+        
+                /* already found one? */
+                if(allocated_slot >= 0)
+                {
+                    break;
+                }
             }
-            return -1;
+            break;
             
         case 3:
             /* new method: first fill largest groups */
@@ -1655,81 +1789,105 @@ static int32_t FAST choose_next_capture_slot()
                 {
                     if (slots[slot].status == SLOT_FREE)
                     {
-                        return slot;
+                        allocated_slot = slot;
+                        break;
                     }
+                }
+        
+                /* already found one? */
+                if(allocated_slot >= 0)
+                {
+                    break;
                 }
             }
             
-            /* if those are already filled, queue anywhere */
             break;
             
         case 2:
         default:
-            /* use default method below */
+            /* keep on rolling? */
+            /* O(1) */
+            if (capture_slot >= 0 && capture_slot + 1 < slot_count)
+            {      
+                if(slots[capture_slot + 1].ptr == slots[capture_slot].ptr + slots[capture_slot].size && 
+                   slots[capture_slot + 1].status == SLOT_FREE && !force_new_buffer )
+                return capture_slot + 1;
+            }
+            
+            /* choose a new buffer? */
+            /* choose the largest contiguous free section */
+            /* O(n), n = slot_count */
+            int32_t len = 0;
+            void* prev_ptr = INVALID_PTR;
+            int32_t prev_blockSize = 0;
+            int32_t best_len = 0;
+            for (int32_t i = 0; i < slot_count; i++)
+            {
+                if (slots[i].status == SLOT_FREE)
+                {
+                    if (slots[i].ptr == prev_ptr + prev_blockSize)
+                    {
+                        len++;
+                        prev_ptr = slots[i].ptr;
+                        prev_blockSize = slots[i].size;
+                        if (len > best_len)
+                        {
+                            best_len = len;
+                            allocated_slot = i - len + 1;
+                        }
+                    }
+                    else
+                    {
+                        len = 1;
+                        prev_ptr = slots[i].ptr;
+                        prev_blockSize = slots[i].size;
+                        if (len > best_len)
+                        {
+                            best_len = len;
+                            allocated_slot = i;
+                        }
+                    }
+                }
+                else
+                {
+                    len = 0;
+                    prev_ptr = INVALID_PTR;
+                }
+            }
+        
             break;
     }
     
-    
-    /* keep on rolling? */
-    /* O(1) */
-    if (capture_slot >= 0 && capture_slot + 1 < slot_count)
-    {      
-        if(slots[capture_slot + 1].ptr == slots[capture_slot].ptr + slots[capture_slot].size && 
-           slots[capture_slot + 1].status == SLOT_FREE && !force_new_buffer )
-        return capture_slot + 1;
-    }
-    
-    
-    /* choose a new buffer? */
-    /* choose the largest contiguous free section */
-    /* O(n), n = slot_count */
-    int32_t len = 0;
-    void* prev_ptr = INVALID_PTR;
-    int32_t prev_blockSize = 0;
-    int32_t best_len = 0;
-    int32_t best_index = -1;
-    for (int32_t i = 0; i < slot_count; i++)
+    /* now try to mark this slot as being used */
+    if(allocated_slot >= 0)
     {
-        if (slots[i].status == SLOT_FREE)
+        uint32_t old_int = cli();
+        if(slots[allocated_slot].status == SLOT_FREE)
         {
-            if (slots[i].ptr == prev_ptr + prev_blockSize)
-            {
-                len++;
-                prev_ptr = slots[i].ptr;
-                prev_blockSize = slots[i].size;
-                if (len > best_len)
-                {
-                    best_len = len;
-                    best_index = i - len + 1;
-                }
-            }
-            else
-            {
-                len = 1;
-                prev_ptr = slots[i].ptr;
-                prev_blockSize = slots[i].size;
-                if (len > best_len)
-                {
-                    best_len = len;
-                    best_index = i;
-                }
-            }
+            slots[allocated_slot].status = SLOT_LOCKED;
         }
         else
         {
-            len = 0;
-            prev_ptr = INVALID_PTR;
+            allocated_slot = -1;
+        }
+        sei(old_int);
+    }
+    
+    /* ok now check if allocation was successful and retry */
+    if(allocated_slot < 0)
+    {
+        retries++;
+        if(retries < 5)
+        {
+            goto retry_find;
+        }
+        else
+        {
+            return -1;
         }
     }
-
-    /* fixme: */
-    /* avoid 32MB writes, they are slower (they require two DMA calls) */
-    /* go back a few K and the speed is restored */
-    //~ best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
     
-    force_new_buffer = 0;
-
-    return best_index;
+    return allocated_slot;
 }
 
 /* this function uses the frameSpace area in a VIDF that was meant for padding to insert some other block before */
@@ -1874,7 +2032,6 @@ static int32_t FAST process_frame()
     
     /* copy current frame to our buffer and crop it to its final size */
     slots[capture_slot].frame_number = frame_count;
-    slots[capture_slot].status = SLOT_FULL;
 
     //trace_write(raw_rec_trace_ctx, "==> enqueue frame %d in slot %d", frame_count, capture_slot);
 
@@ -1894,6 +2051,9 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     {
         edmac_copy_rectangle_finish();
         dma_transfer_in_progress = 0;
+        
+        /* now mark this buffer as being ready to transfer */
+        slots[capture_slot].status = SLOT_FULL;
     }
 
     if (!mlv_video_enabled) return 0;
@@ -1908,7 +2068,12 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     panning_update();
 
     if (!RAW_IS_RECORDING) return 0;
-    if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
+    if (!raw_lv_settings_still_valid())
+    {
+        raw_recording_state = RAW_FINISHING;
+        raw_rec_cbr_stopping();
+        return 0;
+    }
     if (!allow_frame_skip && frame_skips) return 0;
     
     /* double-buffering */
@@ -2372,6 +2537,7 @@ static void raw_writer_task(uint32_t writer)
         {
 abort:
             raw_recording_state = RAW_FINISHING;
+            raw_rec_cbr_stopping();
             bmp_printf( FONT_MED, 30, 90, "Movie recording stopped automagically     ");
             /* this is error beep, not audio sync beep */
             beep_times(2);
@@ -2641,6 +2807,9 @@ static void raw_video_rec_task()
         uint32_t used_slots = 0;
         uint32_t writing_slots = 0;
         uint32_t queued_writes = 0;
+    
+        /* some modules may do some specific stuff right when we started recording */
+        raw_rec_cbr_started();
         
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
@@ -2673,12 +2842,14 @@ static void raw_video_rec_task()
             {
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
                 raw_recording_state = RAW_FINISHING;
+                raw_rec_cbr_stopping();
             }
             
             if(test_mode && (frames_written[0] + frames_written[1] > 4000))
             {
                 trace_write(raw_rec_trace_ctx, "<-- stopped test mode, reached 4000 frames");
                 raw_recording_state = RAW_FINISHING;
+                raw_rec_cbr_stopping();
             }
             
             /* how fast are we writing? does this speed match our benchmarks? */
@@ -2952,6 +3123,7 @@ static void raw_video_rec_task()
         
         /* done, this will stop the vsync CBR and the copying task */
         raw_recording_state = RAW_FINISHING;
+        raw_rec_cbr_stopping();
         
         /* queue two aborts to cancel tasks */
         msg_queue_receive(mlv_job_alloc_queue, &write_job, 0);
@@ -3021,7 +3193,7 @@ static void raw_video_rec_task()
     
 cleanup:
     /* signal that we are stopping */
-    raw_rec_cbr_stopping();
+    raw_rec_cbr_stopped();
     
     bmp_printf( FONT_MED, 30, 70, 
         "Frames captured: %d               ", 
@@ -3053,7 +3225,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     {
         abort_test = 1;
         raw_recording_state = RAW_FINISHING;
-        //if (sound_rec == 2) beep();
+        raw_rec_cbr_stopping();
     }
     else
     {

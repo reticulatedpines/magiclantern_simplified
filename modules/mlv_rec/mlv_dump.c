@@ -1190,6 +1190,7 @@ int main (int argc, char *argv[])
     uint8_t *prev_frame_buffer = NULL;
     
     FILE *out_file = NULL;
+    FILE *out_file_wav = NULL;
     FILE **in_files = NULL;
     FILE *in_file = NULL;
     
@@ -1482,6 +1483,46 @@ read_headers:
                 }
             }
 
+            if(!memcmp(buf.blockType, "AUDF", 4))
+            {
+                mlv_audf_hdr_t block_hdr;
+                uint32_t hdr_size = MIN(sizeof(mlv_audf_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    fprintf(stderr, "[E] File ends in the middle of a block\n");
+                    goto abort;
+                }
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                if(verbose)
+                {
+                    printf("   Frame: #%d\n", block_hdr.frameNumber);
+                    printf("   Space: %d\n", block_hdr.frameSpace);
+                }
+                
+                /* skip frame space */
+                fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
+                
+                int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
+                void *buf = malloc(frame_size);
+                
+                if(fread(buf, frame_size, 1, in_file) != 1)
+                {
+                    fprintf(stderr, "[E] File ends in the middle of a block\n");
+                    goto abort;
+                }
+                
+                if(out_file_wav == NULL)
+                {
+                    out_file_wav = fopen("snd.dat", "wb+");
+                }
+                
+                fwrite(buf, frame_size, 1, out_file_wav);
+                
+                free(buf);
+            }
+            
             if(!memcmp(buf.blockType, "VIDF", 4))
             {
                 mlv_vidf_hdr_t block_hdr;
