@@ -195,7 +195,7 @@ NSTUB(0xFF454540, sdReadBlk)            // g3gg0: confirmed by DebugMsg - but ma
     //NSTUB(   0x208D8, sd_device)
 NSTUB(0xff0104d0, sei_restore)
 NSTUB(    0x1f54, sounddev)
-NSTUB(0xff063d64, sounddev_task)
+NSTUB(0xFF063C70, sounddev_task)
 NSTUB(0xFF0640EC, sounddev_active_in)
 NSTUB(0xff07b924, take_semaphore)
 NSTUB(0xff07beac, task_create)
@@ -225,7 +225,7 @@ NSTUB(0xff07cac8, GetMemoryInformation)
 
 NSTUB(0xff07fc28, msg_queue_create)
 
-NSTUB(0xff0372b4, PD_RemoteRelease)
+NSTUB(0xFF03F4A8, PD_RemoteRelease)
 NSTUB( 0xff16004c, PtpDps_remote_release_SW1_SW2_worker ) // called from: ptpRemoteRelease Occupy
 
     // for task information
