@@ -54,6 +54,8 @@ extern uint64_t get_us_clock_value();
 extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 extern int32_t mlv_rec_get_free_slot();
 extern void mlv_rec_release_slot(int32_t slot, uint32_t write);
+extern void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
+extern void mlv_rec_queue_block(mlv_hdr_t *hdr);
 
 static volatile int32_t mlv_snd_running = 0;
 static volatile int32_t mlv_writer_running = 0;
@@ -66,7 +68,10 @@ static struct msg_queue * volatile mlv_snd_buffers_done = NULL;
 static volatile uint32_t mlv_snd_in_buffers = 64;
 static volatile uint32_t mlv_snd_frame_number = 0;
 static volatile uint32_t mlv_snd_in_buffer_size = 0;
+
 static volatile uint32_t mlv_snd_in_sample_rate = 44100;
+static volatile uint32_t mlv_snd_in_channels = 2;
+static volatile uint32_t mlv_snd_in_bits_per_sample = 16;
 
 typedef struct
 {
@@ -314,7 +319,7 @@ static void mlv_snd_prepare_audio()
     mlv_snd_in_started = 0;
     mlv_snd_in_calls = 0;
     
-    /* set up audio output */
+    /* ToDo: set up audio output according to configuration */
     SetSamplingRate(mlv_snd_in_sample_rate, 0);
     MEM(0xC092011C) = 6;
     
@@ -329,7 +334,8 @@ static void mlv_snd_alloc_buffers()
     if(!mlv_snd_recording)
     {
         /* calculate buffer size */
-        mlv_snd_in_buffer_size = (44100 * 2 * 2) / 25;
+        int fps = 25;
+        mlv_snd_in_buffer_size = (mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels) / fps;
         
         /* prepare empty buffers */
         for(uint32_t buf = 0; buf < mlv_snd_in_buffers; buf++)
@@ -519,6 +525,23 @@ uint32_t raw_rec_cbr_started()
     {
         trace_write(trace_ctx, "raw_rec_cbr_started: allocating buffers");
         mlv_snd_alloc_buffers();
+        
+        /* queue an WAVI block that contains information about the audio format */
+        mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
+        
+        mlv_set_type((mlv_hdr_t*)hdr, "WAVI");
+        hdr->blockSize = sizeof(mlv_wavi_hdr_t);
+        mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, get_us_clock_value());
+        
+        /* this part is compatible to RIFF WAVE/fmt header */
+        hdr->format = 1;
+        hdr->channels = mlv_snd_in_channels;
+        hdr->samplingRate = mlv_snd_in_sample_rate;
+        hdr->bytesPerSecond = mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
+        hdr->blockAlign = (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
+        hdr->bitsPerSample = mlv_snd_in_bits_per_sample;
+        
+        mlv_rec_queue_block((mlv_hdr_t *)hdr);
     }
     return 0;
 }
@@ -536,6 +559,14 @@ uint32_t raw_rec_cbr_stopping()
 
 uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr)
 {
+    if(!memcmp(hdr->blockType, "MLVI", 4))
+    {
+        mlv_file_hdr_t *file_hdr = (mlv_file_hdr_t *)hdr;
+        
+        /* this block is filled on recording start and when the block gets updates on recording end */
+        file_hdr->audioClass = 1; /* 0=none, 1=WAV */
+        file_hdr->audioFrameCount = mlv_snd_frame_number;
+    }
     return 0;
 }
 
@@ -561,15 +592,13 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
         return 0;
     }
     
-    //trace_write(trace_ctx, "mlv_snd_vsync: frame %d", mlv_snd_frame_number);
-    
-    /* in running mode, start audio output here */
+    /* in running mode, start audio recording here */
     if(!mlv_snd_in_started)
     {
         uint32_t msgs = 0;
         msg_queue_count(mlv_snd_buffers_empty, &msgs);
         
-        if(msgs)
+        if(msgs >= 2)
         {
             trace_write(trace_ctx, "mlv_snd_vsync: starting audio");
             
@@ -654,10 +683,9 @@ static unsigned int mlv_snd_init()
     //}
     
     trace_write(trace_ctx, "mlv_snd_init: init queues");
-    mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", 257);
-    mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", 257);
+    mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", 300);
+    mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", 300);
     
-    /* enable tracing */
     menu_add("Audio", mlv_snd_menu, COUNT(mlv_snd_menu));
     trace_write(trace_ctx, "mlv_snd_init: done");
     
