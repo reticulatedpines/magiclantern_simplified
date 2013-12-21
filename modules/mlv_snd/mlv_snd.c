@@ -57,12 +57,7 @@ extern void mlv_rec_release_slot(int32_t slot, uint32_t write);
 extern void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
 extern void mlv_rec_queue_block(mlv_hdr_t *hdr);
 
-static volatile int32_t mlv_snd_running = 0;
-static volatile int32_t mlv_writer_running = 0;
-static volatile int32_t mlv_snd_recording = 0;
-static volatile uint32_t mlv_snd_in_started = 0;
-static volatile uint32_t mlv_snd_in_active = 0;
-static volatile uint32_t mlv_snd_in_calls = 0;
+static volatile int32_t mlv_snd_rec_active = 0;
 static struct msg_queue * volatile mlv_snd_buffers_empty = NULL;
 static struct msg_queue * volatile mlv_snd_buffers_done = NULL;
 static volatile uint32_t mlv_snd_in_buffers = 64;
@@ -89,6 +84,16 @@ typedef struct
 audio_data_t *mlv_snd_current_buffer = NULL;
 audio_data_t *mlv_snd_next_buffer = NULL;
 
+#define MLV_SND_STATE_IDLE                   0  /* waiting for action, set by writer task upon exit */
+#define MLV_SND_STATE_PREPARE                1  /* recording was started, set by mlv_snd_start() */
+#define MLV_SND_STATE_READY                  2  /* buffers etc are set up, set by mlv_snd_alloc_buffers() */
+#define MLV_SND_STATE_SOUND_RUNNING          3  /* ASIF sound recording was started, set by mlv_snd_vsync() */
+#define MLV_SND_STATE_SOUND_STOPPING         4  /* stop audio recording, set by mlv_snd_stop() */
+#define MLV_SND_STATE_SOUND_STOP_ASIF        5  /* waiting for ASIF to process its last buffer, set by mlv_snd_asif_in_cbr() */
+#define MLV_SND_STATE_SOUND_STOP_TASK        6  /* waiting for thread to stop, set by mlv_snd_asif_in_cbr() */
+#define MLV_SND_STATE_SOUND_STOPPED          7  /* all threads and stuff is stopped, finish cleanup, set by task */
+
+static uint32_t mlv_snd_state = MLV_SND_STATE_IDLE;
 
 static void mlv_snd_asif_in_cbr()
 {
@@ -106,40 +111,50 @@ static void mlv_snd_asif_in_cbr()
         mlv_snd_current_buffer = NULL;
     }
     
-    if(mlv_snd_running)
+    switch(mlv_snd_state)
     {
-        mlv_snd_in_active = 1;
-        mlv_snd_in_calls++;
-
-        uint32_t count = 0;
-        if(msg_queue_count(mlv_snd_buffers_empty, &count))
+        case MLV_SND_STATE_SOUND_RUNNING:
         {
-            trace_write(trace_ctx, "mlv_snd_asif_in_cbr: msg_queue_count failed");
-            return;
-        }
-        if(count < 1)
-        {
-            trace_write(trace_ctx, "mlv_snd_asif_in_cbr: no free buffers available");
-            return;
+            uint32_t count = 0;
+            if(msg_queue_count(mlv_snd_buffers_empty, &count))
+            {
+                trace_write(trace_ctx, "mlv_snd_asif_in_cbr: msg_queue_count failed");
+                return;
+            }
+            if(count < 1)
+            {
+                trace_write(trace_ctx, "mlv_snd_asif_in_cbr: no free buffers available");
+                return;
+            }
+            
+            /* the "next" buffer is the current one being filled */
+            mlv_snd_current_buffer = mlv_snd_next_buffer;
+            
+            /* get the new "next" and queue */
+            if(msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10))
+            {
+                trace_write(trace_ctx, "mlv_snd_asif_in_cbr: msg_queue_receive(mlv_snd_buffers_empty, ) failed");
+                return;
+            }
+            trace_write(trace_ctx, "mlv_snd_asif_in_cbr: queueing buffer in slot %d", mlv_snd_next_buffer->mlv_slot_id);
+            SetNextASIFADCBuffer(mlv_snd_next_buffer->data, mlv_snd_next_buffer->length);
+            break;
         }
         
-        /* the "next" buffer is the current one being filled */
-        mlv_snd_current_buffer = mlv_snd_next_buffer;
+        case MLV_SND_STATE_SOUND_STOPPING:
+            trace_write(trace_ctx, "mlv_snd_asif_in_cbr: stopping 1");
+            mlv_snd_state = MLV_SND_STATE_SOUND_STOP_ASIF;
+            break;
+            
+        case MLV_SND_STATE_SOUND_STOP_ASIF:
+            trace_write(trace_ctx, "mlv_snd_asif_in_cbr: stopping 2");
+            mlv_snd_state = MLV_SND_STATE_SOUND_STOP_TASK;
+            break;
         
-        /* get the new "next" and queue */
-        if(msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10))
-        {
-            trace_write(trace_ctx, "mlv_snd_asif_in_cbr: msg_queue_receive(mlv_snd_buffers_empty, ) failed");
-            return;
-        }
-        trace_write(trace_ctx, "mlv_snd_asif_in_cbr: queueing buffer in slot %d", mlv_snd_next_buffer->mlv_slot_id);
-        SetNextASIFADCBuffer(mlv_snd_next_buffer->data, mlv_snd_next_buffer->length);
+        default:
+            break;
     }
-    else
-    {
-        mlv_snd_in_active = 0;
-        trace_write(trace_ctx, "mlv_snd_asif_in_cbr: stopping");
-    }
+    
     //trace_write(trace_ctx, "mlv_snd_asif_in_cbr: returned");
 }
 
@@ -195,41 +210,31 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
 
 static void mlv_snd_stop()
 {
-    if(!mlv_snd_running)
-    {
-        return;
-    }
-
     trace_write(trace_ctx, "mlv_snd_stop: stopping worker and audio");
     
-    /* wait until audio stopped */
+    mlv_snd_state = MLV_SND_STATE_SOUND_STOPPING;
+    
+    /* wait until audio and task stopped */
     uint32_t loops = 100;
-    while((mlv_snd_in_active || mlv_writer_running) && (--loops > 0))
+    while((mlv_snd_state != MLV_SND_STATE_SOUND_STOPPED) && (--loops > 0))
     {
-        mlv_snd_running = 0;
         msleep(20);
     }
 
-    if(mlv_snd_in_active)
+    if(mlv_snd_state != MLV_SND_STATE_SOUND_STOPPED)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "audio failed to stop");
-        trace_write(trace_ctx, "mlv_snd_stop: failed to stop audio");
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "audio failed to stop, state %d", mlv_snd_state);
+        trace_write(trace_ctx, "mlv_snd_stop: failed to stop audio (state %d)", mlv_snd_state);
+        beep();
     }
-    if(mlv_writer_running)
-    {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "audio failed to stop");
-        trace_write(trace_ctx, "mlv_snd_stop: failed to stop writer");
-    }
-
-    mlv_writer_running = 0;
-    mlv_snd_in_active = 0;
-    mlv_snd_in_started = 0;
     
     /* now flush the buffers */
     trace_write(trace_ctx, "mlv_snd_stop: flush mlv_snd_buffers_done");
     mlv_snd_flush_entries(mlv_snd_buffers_done, 0);
     trace_write(trace_ctx, "mlv_snd_stop: flush mlv_snd_buffers_empty");
     mlv_snd_flush_entries(mlv_snd_buffers_empty, 1);
+
+    mlv_snd_state = MLV_SND_STATE_IDLE;
 }
 
 static void mlv_snd_queue_slot()
@@ -303,35 +308,17 @@ static void mlv_snd_queue_slot()
 
 static void mlv_snd_prepare_audio()
 {
-    if(mlv_snd_enable_tracing && (trace_ctx == TRACE_ERROR))
-    {
-        char filename[100];
-        snprintf(filename, sizeof(filename), "%smlv_snd.txt", MODULE_CARD_DRIVE);
-        trace_ctx = trace_start("mlv_snd", filename);
-        trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
-    }
-
-    /* make sure we are not active */
-    mlv_snd_stop();
-    
     mlv_snd_frame_number = 0;
-    mlv_snd_in_active = 0;
-    mlv_snd_in_started = 0;
-    mlv_snd_in_calls = 0;
     
     /* ToDo: set up audio output according to configuration */
     SetSamplingRate(mlv_snd_in_sample_rate, 0);
     MEM(0xC092011C) = 6;
-    
-    /* 5D3 */
-    //void (*SetAudioChannels) (int rate, signed int bits, int channels, int output) = 0xFF10EFF4;
-    //SetAudioChannels(mlv_snd_in_sample_rate, 16, 2, 0);
 }
 
 static void mlv_snd_alloc_buffers()
 {
     /* when called from mlv_rec record start cbr, get slot from mlv_rec. else allocate on our own */
-    if(!mlv_snd_recording)
+    if(!mlv_snd_rec_active)
     {
         /* calculate buffer size */
         int fps = 25;
@@ -356,7 +343,10 @@ static void mlv_snd_alloc_buffers()
     }
     else
     {
-        mlv_snd_in_buffer_size = 0x8000;
+        /* calculate buffer size */
+        int fps = 5;
+        mlv_snd_in_buffer_size = (mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels) / fps;
+        
         trace_write(trace_ctx, "mlv_snd_alloc_buffers: running in MLV mode, mlv_snd_in_buffer_size = %d", mlv_snd_in_buffer_size);
         
         mlv_snd_queue_slot();
@@ -364,195 +354,213 @@ static void mlv_snd_alloc_buffers()
     }
     
     /* now everything is ready to fire - real output activation happens as soon mlv_snd_running is set to 1 and mlv_snd_vsync() gets called */
+    mlv_snd_state = MLV_SND_STATE_READY;
 }
 
 static void mlv_snd_writer(int unused)
 {
-    int fft_size = 64;
-    //char filename[100];
-    //snprintf(filename, sizeof(filename), "%s/snd.raw", get_dcim_dir());
-    //FILE* file = FIO_CreateFileEx(filename);
+    uint32_t done = 0;
+    uint32_t fft_size = 64;
     
     kiss_fft_cfg cfg = kiss_fft_alloc(fft_size, 0, 0 ,0);
     kiss_fft_cpx *fft_in = malloc(fft_size * sizeof(kiss_fft_cpx));
     kiss_fft_cpx *fft_out = malloc(fft_size * sizeof(kiss_fft_cpx));
-    
-    mlv_writer_running = 1;
 
     TASK_LOOP
     {
         audio_data_t *buffer = NULL;
         
-        if(!mlv_snd_running)
+        if(done)
         {
-            trace_write(trace_ctx, "   --> WRITER: exiting");
             break;
         }
         
-        /* receive write job from dispatcher */
-        if(msg_queue_receive(mlv_snd_buffers_done, &buffer, 100))
+        switch(mlv_snd_state)
         {
-            static uint32_t timeouts = 0;
-            trace_write(trace_ctx, "   --> WRITER: message timed out %d times now", ++timeouts);
-            continue;
-        }
-        
-        if(!buffer)
-        {
-            static uint32_t timeouts = 0;
-            trace_write(trace_ctx, "   --> WRITER: message NULL %d times now", ++timeouts);
-            continue;
-        }
-        
-        if(buffer->mlv_slot_buffer)
-        {
-            trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d", buffer->mlv_slot_id);
+            case MLV_SND_STATE_SOUND_STOP_TASK:
+                trace_write(trace_ctx, "   --> WRITER: exiting");
+                done = 1;
+                break;
+                
+            case MLV_SND_STATE_SOUND_RUNNING:
             
-            mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
-            
-            hdr->timestamp = buffer->timestamp;
-            hdr->frameNumber = buffer->frameNumber;
-            
-            if(buffer->mlv_slot_end)
-            {
-                trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d (last buffer, so release)", buffer->mlv_slot_id);
-                mlv_rec_release_slot(buffer->mlv_slot_id, 1);
-                mlv_snd_queue_slot();
-            }
-            free(buffer);
-        }
-        else
-        {
-            trace_write(trace_ctx, "   --> WRITER: entry is dma buffer");
-            
-            if(!gui_menu_shown() && liveview_display_idle())
-            {
-                /* pepare data for KISS FFT */
-                for(int pos = 0; pos < fft_size; pos++)
+                /* receive write job from dispatcher */
+                if(msg_queue_receive(mlv_snd_buffers_done, &buffer, 100))
                 {
-                    fft_in[pos].r = buffer->data[2 * pos];
-                    fft_in[pos].i = 0;
+                    static uint32_t timeouts = 0;
+                    trace_write(trace_ctx, "   --> WRITER: message timed out %d times now", ++timeouts);
+                    break;
                 }
                 
-                kiss_fft(cfg, fft_in, fft_out);
-                
-                /* print FFT plot */
-                int x_start = 20;
-                int y_start = 420;
-                int height = 200;
-                int width = (720 - (2 * x_start));
-                float bar_width = (float)width / ((float)fft_size / 2);
-                
-                int last_x = 0;
-                int last_y = 0;
-                
-                for(int pos = 0; pos < fft_size / 2; pos++)
+                /* this must never happen */
+                if(!buffer)
                 {
-                    float val_r = FIX_TO_FLOAT(fft_out[pos].r) + FIX_TO_FLOAT(fft_out[fft_size - 1 - pos].r);
-                    float val_i = FIX_TO_FLOAT(fft_out[pos].i) + FIX_TO_FLOAT(fft_out[fft_size - 1 - pos].i);
+                    static uint32_t timeouts = 0;
+                    trace_write(trace_ctx, "   --> WRITER: message NULL %d times now", ++timeouts);
+                    break;
+                }
+                
+                /* in case the slot was for MLV video, handle it */
+                if(buffer->mlv_slot_buffer)
+                {
+                    trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d", buffer->mlv_slot_id);
                     
-                    uint32_t ampl = (uint32_t)MIN(height, sqrtf(QUAD(val_r) + QUAD(val_i)) * height * 8);
+                    mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
                     
-                    int x = x_start + pos * bar_width;
-                    int y = (y_start - height) + (height - ampl);
+                    /* fill recording information */
+                    hdr->timestamp = buffer->timestamp;
+                    hdr->frameNumber = buffer->frameNumber;
                     
-                    if(1)
+                    /* only queue for writing if the whole mlv_rec slot was filled */
+                    if(buffer->mlv_slot_end)
                     {
-                        bmp_fill(COLOR_EMPTY, x, y_start - height, bar_width + 1, (height - ampl));
-                        bmp_fill(COLOR_RED, x, y, bar_width - 1, ampl);
+                        trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d (last buffer, so release)", buffer->mlv_slot_id);
+                        mlv_rec_release_slot(buffer->mlv_slot_id, 1);
+                        mlv_snd_queue_slot();
                     }
-                    if(0)
+                    free(buffer);
+                }
+                else
+                {
+                    trace_write(trace_ctx, "   --> WRITER: entry is dma buffer");
+                    
+                    if(!gui_menu_shown() && liveview_display_idle())
                     {
-                        if(last_x && last_y)
+                        /* pepare data for KISS FFT */
+                        for(uint32_t pos = 0; pos < fft_size; pos++)
                         {
-                            bmp_fill(COLOR_EMPTY, x, y_start - height, bar_width + 1, height);
-                            draw_line(last_x, last_y, x, y, COLOR_WHITE);
+                            fft_in[pos].r = buffer->data[2 * pos];
+                            fft_in[pos].i = 0;
                         }
-                        last_x = x;
-                        last_y = y;
+                        
+                        kiss_fft(cfg, fft_in, fft_out);
+                        
+                        /* print FFT plot */
+                        int x_start = 20;
+                        int y_start = 420;
+                        int height = 200;
+                        int width = (720 - (2 * x_start));
+                        float bar_width = (float)width / ((float)fft_size / 2);
+                        
+                        for(uint32_t pos = 0; pos < fft_size / 2; pos++)
+                        {
+                            float val_r = FIX_TO_FLOAT(fft_out[pos].r) + FIX_TO_FLOAT(fft_out[fft_size - 1 - pos].r);
+                            float val_i = FIX_TO_FLOAT(fft_out[pos].i) + FIX_TO_FLOAT(fft_out[fft_size - 1 - pos].i);
+                            
+                            uint32_t ampl = (uint32_t)MIN(height, sqrtf(QUAD(val_r) + QUAD(val_i)) * height * 8);
+                            
+                            int x = x_start + pos * bar_width;
+                            int y = (y_start - height) + (height - ampl);
+                            
+                            if(1)
+                            {
+                                bmp_fill(COLOR_EMPTY, x, y_start - height, bar_width + 1, (height - ampl));
+                                bmp_fill(COLOR_RED, x, y, bar_width - 1, ampl);
+                            }
+                        }
+                        
+                        for(uint32_t freq = 0; freq < mlv_snd_in_sample_rate / 2; freq += 5000)
+                        {
+                            int x = x_start + (freq * width) / (mlv_snd_in_sample_rate / 2);
+                            draw_line(x, y_start - 30, x, y_start, COLOR_WHITE);
+                        }
+                        
+                        bmp_draw_rect(COLOR_WHITE, x_start - 2, y_start - height - 2, (720 - (2 * x_start)) + 4, height + 4);
                     }
+                    
+                    msg_queue_post(mlv_snd_buffers_empty, buffer);
                 }
-                
-                for(uint32_t freq = 0; freq < mlv_snd_in_sample_rate / 2; freq += 5000)
-                {
-                    int x = x_start + (freq * width) / (mlv_snd_in_sample_rate / 2);
-                    draw_line(x, y_start - 30, x, y_start, COLOR_WHITE);
-                }
-                
-                bmp_draw_rect(COLOR_WHITE, x_start - 2, y_start - height - 2, (720 - (2 * x_start)) + 4, height + 4);
-            }
+                break;
             
-            msg_queue_post(mlv_snd_buffers_empty, buffer);
-        }
-        if(0)
-        {
-            //FIO_WriteFile(file, buffer->data, buffer->length);
+            default:
+                msleep(100);
+                break;
         }
     }
     
-    //FIO_CloseFile(file);
     free(cfg);
     free(fft_in);
     free(fft_out);
     
-    mlv_writer_running = 0;
+    mlv_snd_state = MLV_SND_STATE_SOUND_STOPPED;
 }
 
 static void mlv_snd_start()
 {
+    if(mlv_snd_enable_tracing && (trace_ctx == TRACE_ERROR))
+    {
+        char filename[100];
+        snprintf(filename, sizeof(filename), "%smlv_snd.txt", MODULE_CARD_DRIVE);
+        trace_ctx = trace_start("mlv_snd", filename);
+        trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
+    }
+
     trace_write(trace_ctx, "mlv_snd_start: starting");
+    
     mlv_snd_prepare_audio();
-    mlv_snd_running = 1;
     task_create("mlv_snd", 0x16, 0x1000, mlv_snd_writer, NULL);
+    
+    mlv_snd_state = MLV_SND_STATE_PREPARE;
 }
 
+static void mlv_snd_queue_wavi()
+{
+    trace_write(trace_ctx, "mlv_snd_queue_wavi: queueing a WAVI block");
+        
+    /* queue an WAVI block that contains information about the audio format */
+    mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
+    
+    mlv_set_type((mlv_hdr_t*)hdr, "WAVI");
+    hdr->blockSize = sizeof(mlv_wavi_hdr_t);
+    mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, get_us_clock_value());
+    
+    /* this part is compatible to RIFF WAVE/fmt header */
+    hdr->format = 1;
+    hdr->channels = mlv_snd_in_channels;
+    hdr->samplingRate = mlv_snd_in_sample_rate;
+    hdr->bytesPerSecond = mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
+    hdr->blockAlign = (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
+    hdr->bitsPerSample = mlv_snd_in_bits_per_sample;
+    
+    mlv_rec_queue_block((mlv_hdr_t *)hdr);
+}
 
 /* public functions for raw_rec */
 uint32_t raw_rec_cbr_starting()
 {
-    if(mlv_snd_enabled)
+    if(!mlv_snd_enabled)
+    {
+        return 0;
+    }
+    
+    if(mlv_snd_state == MLV_SND_STATE_IDLE)
     {
         trace_write(trace_ctx, "raw_rec_cbr_starting: starting mlv_snd");
-        mlv_snd_recording = 1;
+        mlv_snd_rec_active = 1;
         mlv_snd_start();
     }
+    
     return 0;
 }
 
 uint32_t raw_rec_cbr_started()
 {
-    if(mlv_snd_recording)
+    if(mlv_snd_state == MLV_SND_STATE_PREPARE)
     {
         trace_write(trace_ctx, "raw_rec_cbr_started: allocating buffers");
         mlv_snd_alloc_buffers();
-        
-        /* queue an WAVI block that contains information about the audio format */
-        mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
-        
-        mlv_set_type((mlv_hdr_t*)hdr, "WAVI");
-        hdr->blockSize = sizeof(mlv_wavi_hdr_t);
-        mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, get_us_clock_value());
-        
-        /* this part is compatible to RIFF WAVE/fmt header */
-        hdr->format = 1;
-        hdr->channels = mlv_snd_in_channels;
-        hdr->samplingRate = mlv_snd_in_sample_rate;
-        hdr->bytesPerSecond = mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
-        hdr->blockAlign = (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
-        hdr->bitsPerSample = mlv_snd_in_bits_per_sample;
-        
-        mlv_rec_queue_block((mlv_hdr_t *)hdr);
+        mlv_snd_queue_wavi();
     }
     return 0;
 }
 
 uint32_t raw_rec_cbr_stopping()
 {
-    if(mlv_snd_recording)
+    if(mlv_snd_state != MLV_SND_STATE_IDLE)
     {
         trace_write(trace_ctx, "raw_rec_cbr_stopping: stopping");
         mlv_snd_stop();
-        mlv_snd_recording = 0;
+        mlv_snd_rec_active = 0;
     }
     return 0;
 }
@@ -587,45 +595,46 @@ static void mlv_snd_trace_buf(char *caption, uint8_t *buffer, uint32_t length)
 
 static unsigned int mlv_snd_vsync(unsigned int unused)
 {
-    if(!mlv_snd_enabled || !mlv_snd_running)
+    if(!mlv_snd_enabled)
+    {
+        return 0;
+    }
+    
+    if(mlv_snd_state != MLV_SND_STATE_READY)
     {
         return 0;
     }
     
     /* in running mode, start audio recording here */
-    if(!mlv_snd_in_started)
+    uint32_t msgs = 0;
+    msg_queue_count(mlv_snd_buffers_empty, &msgs);
+    
+    if(msgs >= 2)
     {
-        uint32_t msgs = 0;
-        msg_queue_count(mlv_snd_buffers_empty, &msgs);
+        trace_write(trace_ctx, "mlv_snd_vsync: starting audio");
         
-        if(msgs >= 2)
+        /* get two buffers and queue them to ASIF */
+        mlv_snd_current_buffer = NULL;
+        mlv_snd_next_buffer = NULL;
+        
+        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_current_buffer, 10);
+        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10);
+        
+        if(mlv_snd_current_buffer && mlv_snd_next_buffer)
         {
-            trace_write(trace_ctx, "mlv_snd_vsync: starting audio");
+            mlv_snd_state = MLV_SND_STATE_SOUND_RUNNING;
             
-            /* get two buffers and queue them to ASIF */
-            mlv_snd_current_buffer = NULL;
-            mlv_snd_next_buffer = NULL;
+            StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
             
-            msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_current_buffer, 10);
-            msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10);
-            
-            if(mlv_snd_current_buffer && mlv_snd_next_buffer)
-            {
-                mlv_snd_in_started = 1;
-                StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
-                
-                /* the current one will get filled right now */
-                mlv_snd_current_buffer->timestamp = get_us_clock_value();
-                trace_write(trace_ctx, "mlv_snd_vsync: starting audio DONE");
-            }
-            else
-            {
-                trace_write(trace_ctx, "mlv_snd_vsync: msg_queue_receive(mlv_snd_buffers_empty, ...) failed, retry next time");
-            }
+            /* the current one will get filled right now */
+            mlv_snd_current_buffer->timestamp = get_us_clock_value();
+            trace_write(trace_ctx, "mlv_snd_vsync: starting audio DONE");
+        }
+        else
+        {
+            trace_write(trace_ctx, "mlv_snd_vsync: msg_queue_receive(mlv_snd_buffers_empty, ...) failed, retry next time");
         }
     }
-    
-    mlv_snd_frame_number++;
     
     return 0;
 }
@@ -633,14 +642,16 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
 
 static MENU_SELECT_FUNC(mlv_snd_test_select)
 {
-    if(mlv_snd_running)
+    switch(mlv_snd_state)
     {
-        mlv_snd_stop();
-    }
-    else
-    {
-        mlv_snd_start();
-        mlv_snd_alloc_buffers();
+        case MLV_SND_STATE_IDLE:
+            mlv_snd_start();
+            mlv_snd_alloc_buffers();
+            break;
+            
+        case MLV_SND_STATE_SOUND_RUNNING:
+            mlv_snd_stop();
+            break;
     }
 }
 
