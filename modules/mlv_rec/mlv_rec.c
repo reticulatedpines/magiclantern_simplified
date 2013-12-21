@@ -1627,6 +1627,16 @@ static void hack_liveview(int32_t unhack)
     }
 }
 
+void mlv_rec_queue_block(mlv_hdr_t *hdr)
+{
+    msg_queue_post(mlv_block_queue, hdr);
+}
+
+void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp)
+{
+    hdr->timestamp = timestamp - mlv_start_timestamp;
+}
+
 /* this can be called from anywhere to get a free memory slot. must be submitted using mlv_rec_release_slot() */
 int32_t mlv_rec_get_free_slot()
 {
@@ -2127,6 +2137,14 @@ static int32_t get_next_chunk_file_name(char* base_name, char* filename, int32_t
     return 0;
 }
 
+static int32_t mlv_write_hdr(FILE* f, mlv_hdr_t *hdr)
+{
+    raw_rec_cbr_mlv_block(hdr);
+    
+    uint32_t written = FIO_WriteFile(f, hdr, hdr->blockSize);
+    
+    return written == hdr->blockSize;
+}
 
 static int32_t mlv_write_info(FILE* f)
 {
@@ -2162,8 +2180,7 @@ static int32_t mlv_write_info(FILE* f)
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     hdr->blockSize = sizeof(mlv_info_hdr_t) + strlen(str_pos);
     
-    int32_t written = FIO_WriteFile(f, hdr, hdr->blockSize);
-    ret = written == (int32_t)hdr->blockSize;
+    ret = mlv_write_hdr(f, (mlv_hdr_t *)hdr);
     
     free(hdr);
     return ret;
@@ -2190,13 +2207,6 @@ static void mlv_init_header()
     /* can be improved to make use of nom/denom */
     mlv_file_hdr.sourceFpsNom = fps_get_current_x1000();
     mlv_file_hdr.sourceFpsDenom = 1000;
-}
-
-static int32_t mlv_write_hdr(FILE* f, mlv_hdr_t *hdr)
-{
-    uint32_t written = FIO_WriteFile(f, hdr, hdr->blockSize);
-    
-    return written == hdr->blockSize;
 }
 
 static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
