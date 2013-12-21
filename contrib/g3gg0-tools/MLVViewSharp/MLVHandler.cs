@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Drawing.Imaging;
 
 using MLVViewSharp;
+using NAudio.Wave;
 
 namespace mlv_view_sharp
 {
@@ -22,6 +23,11 @@ namespace mlv_view_sharp
         internal Lut3D ColorLut = null;
 
         public int RawFixOffset = 0;
+        public bool VideoEnabled = true;
+        public bool AudioEnabled = true;
+
+        private WaveOut DriverOut;
+        private BufferedWaveProvider WaveProvider;
 
 
         public MLVTypes.mlv_rawi_hdr_t RawiHeader;
@@ -89,6 +95,23 @@ namespace mlv_view_sharp
             InfoString = Encoding.ASCII.GetString(raw_data, raw_pos, raw_length);
         }
 
+        public void HandleBlock(string type, MLVTypes.mlv_wavi_hdr_t header, byte[] raw_data, int raw_pos, int raw_length)
+        {
+            if (DriverOut != null)
+            {
+                DriverOut.Stop();
+            }
+            DriverOut = new WaveOut();
+            DriverOut.DesiredLatency = 100;
+
+            WaveFormat fmt = new WaveFormat((int)header.samplingRate, header.bitsPerSample, header.channels);
+            WaveProvider = new BufferedWaveProvider(fmt);
+            WaveProvider.BufferLength = 256 * 1024;
+
+            DriverOut.Init(WaveProvider);
+            DriverOut.Play();
+        }
+
         public void HandleBlock(string type, MLVTypes.mlv_rawi_hdr_t header, byte[] raw_data, int raw_pos, int raw_length)
         {
             RawiHeader = header;
@@ -133,11 +156,28 @@ namespace mlv_view_sharp
             int raw_pos = (int)parm[2];
         }
 
+        public void HandleBlock(string type, MLVTypes.mlv_audf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
+        {
+            if (WaveProvider != null)
+            {
+                while (WaveProvider.BufferedBytes + (int)(rawLength - header.frameSpace) > WaveProvider.BufferLength)
+                {
+                    Thread.Sleep(100);
+                }
+                WaveProvider.AddSamples(rawData, (int)(rawPos + header.frameSpace), (int)(rawLength - header.frameSpace));
+            }
+        }
+
         public void HandleBlock(string type, MLVTypes.mlv_vidf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
         {
             VidfHeader = header;
 
             if (FileHeader.videoClass != 0x01 || LockBitmap == null)
+            {
+                return;
+            }
+
+            if (!VideoEnabled)
             {
                 return;
             }
@@ -232,11 +272,13 @@ namespace mlv_view_sharp
                     HandleBlock(type, (MLVTypes.mlv_vidf_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "AUDF":
+                    HandleBlock(type, (MLVTypes.mlv_audf_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "RAWI":
                     HandleBlock(type, (MLVTypes.mlv_rawi_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "WAVI":
+                    HandleBlock(type, (MLVTypes.mlv_wavi_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "EXPO":
                     HandleBlock(type, (MLVTypes.mlv_expo_hdr_t)header, raw_data, raw_pos, raw_length);

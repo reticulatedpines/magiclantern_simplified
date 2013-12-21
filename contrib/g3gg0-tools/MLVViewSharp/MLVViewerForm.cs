@@ -44,6 +44,9 @@ namespace mlv_view_sharp
                 new MenuItem("-"), 
                 new MenuItem("Reset RGB White Balance", new EventHandler(menu_ResetWb)),
                 new MenuItem("-"), 
+                new MenuItem("Disable Video", new EventHandler(menu_DisableVideo)),
+                new MenuItem("Enable Video", new EventHandler(menu_EnableVideo)),
+                new MenuItem("-"), 
                 new MenuItem("Load .cube 3D-LUT", new EventHandler(menu_LoadLUT)),
                 new MenuItem("Reset LUT", new EventHandler(menu_ResetLUT)),
             });
@@ -62,6 +65,16 @@ namespace mlv_view_sharp
                 AutoplayFile = null;
             }
             base.OnLoad(e);
+        }
+
+        protected void menu_DisableVideo(Object sender, EventArgs e)
+        {
+            Handler.VideoEnabled = false;
+        }
+
+        protected void menu_EnableVideo(Object sender, EventArgs e)
+        {
+            Handler.VideoEnabled = true;
         }
 
         protected void menu_LoadLUT(Object sender, EventArgs e)
@@ -246,7 +259,7 @@ namespace mlv_view_sharp
 
                                     if (trackBarPosition.Value == lastFrameNumber)
                                     {
-                                        trackBarPosition.Value = (int)Handler.VidfHeader.frameNumber + 1;
+                                        trackBarPosition.Value = (int)Math.Min(trackBarPosition.Maximum, Handler.VidfHeader.frameNumber + 1);
                                     }
                                     else
                                     {
@@ -340,7 +353,7 @@ namespace mlv_view_sharp
                                 reader.CurrentBlockNumber = 0;
                                 Invoke(new Action(() =>
                                 {
-                                    trackBarPosition.Value = (int)Handler.VidfHeader.frameNumber + 1;
+                                    trackBarPosition.Value = (int)Math.Min(trackBarPosition.Maximum, Handler.VidfHeader.frameNumber + 1);
                                 }));
                             }
                         }
