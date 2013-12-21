@@ -2539,11 +2539,11 @@ abort:
     {
         /* Patch the WAV size fields */
         uint32_t tmp_uint32 = wav_file_size + 36; /* + header size */
-        fseek(out_file_wav, SEEK_SET, 4);
+        fseek(out_file_wav, 4, SEEK_SET);
         fwrite(&tmp_uint32, 4, 1, out_file_wav);
 
         tmp_uint32 = wav_file_size; /* data size */
-        fseek(out_file_wav, SEEK_SET, 40);
+        fseek(out_file_wav, 40, SEEK_SET);
         fwrite(&tmp_uint32, 4, 1, out_file_wav);
         fclose(out_file_wav);
     }
