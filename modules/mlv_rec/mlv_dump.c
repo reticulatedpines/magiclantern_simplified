@@ -1176,6 +1176,16 @@ int main (int argc, char *argv[])
     mlv_expo_hdr_t expo_info;
     mlv_idnt_hdr_t idnt_info;
     mlv_wbal_hdr_t wbal_info;
+    mlv_wavi_hdr_t wavi_info;
+    
+    /* initialize stuff */
+    memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
+    memset(&lens_info, 0x00, sizeof(mlv_lens_hdr_t));
+    memset(&expo_info, 0x00, sizeof(mlv_expo_hdr_t));
+    memset(&idnt_info, 0x00, sizeof(mlv_idnt_hdr_t));
+    memset(&wbal_info, 0x00, sizeof(mlv_wbal_hdr_t));
+    memset(&wavi_info, 0x00, sizeof(mlv_wavi_hdr_t));
+    
     char info_string[256] = "(MLV Video without INFO blocks)";
     
     /* this table contains the XREF chunk read from idx file, if existing */
@@ -1203,10 +1213,6 @@ int main (int argc, char *argv[])
     frame_xref_t *frame_xref_table = NULL;
     int frame_xref_allocated = 0;
     int frame_xref_entries = 0;
-
-    /* initialize stuff */
-    memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
-    memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     /* open files */
     in_files = load_all_chunks(input_filename, &in_file_count);
@@ -1540,21 +1546,21 @@ read_headers:
                         tmp_uint32 = 36; // Two headers combined size, will be patched later
                         fwrite(&tmp_uint32, 4, 1, out_file_wav);
                         fwrite("WAVE", 4, 1, out_file_wav);
-
+                        
                         fwrite("fmt ", 4, 1, out_file_wav);
                         tmp_uint32 = 16; // Header size
                         fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        tmp_uint16 = 1; // PCM
+                        tmp_uint16 = wavi_info.format; // PCM
                         fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                        tmp_uint16 = 2; // Stereo
+                        tmp_uint16 = wavi_info.channels; // Stereo
                         fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                        tmp_uint32 = 48000; // Sample rate
+                        tmp_uint32 = wavi_info.samplingRate; // Sample rate
                         fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        tmp_uint32 = 48000 * 2 * 2; // Byte rate (16-bit data, stereo)
+                        tmp_uint32 = wavi_info.bytesPerSecond; // Byte rate (16-bit data, stereo)
                         fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        tmp_uint16 = 4; // Block align
+                        tmp_uint16 = wavi_info.blockAlign; // Block align
                         fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                        tmp_uint16 = 16; // Bits per sample
+                        tmp_uint16 = wavi_info.bitsPerSample; // Bits per sample
                         fwrite(&tmp_uint16, 2, 1, out_file_wav);
 
                         fwrite("data", 4, 1, out_file_wav);
@@ -1568,8 +1574,7 @@ read_headers:
                 }
                 free(buf);
             }
-            
-            if(!memcmp(buf.blockType, "VIDF", 4))
+            else if(!memcmp(buf.blockType, "VIDF", 4))
             {
                 mlv_vidf_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_vidf_hdr_t), buf.blockSize);
@@ -2422,6 +2427,35 @@ read_headers:
                         goto abort;
                     }
                 }
+            }
+            else if(!memcmp(buf.blockType, "WAVI", 4))
+            {
+                mlv_wavi_hdr_t block_hdr;
+                uint32_t hdr_size = MIN(sizeof(mlv_wavi_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    fprintf(stderr, "[E] File ends in the middle of a block\n");
+                    goto abort;
+                }
+                
+                /* skip remaining data, if there is any */
+                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+
+                if(verbose)
+                {
+                    printf("    wav_info:\n");
+                    printf("      format           %d\n", block_hdr.format);
+                    printf("      channels         %d\n", block_hdr.channels);
+                    printf("      samplingRate     %d\n", block_hdr.samplingRate);
+                    printf("      bytesPerSecond   %d\n", block_hdr.bytesPerSecond);
+                    printf("      blockAlign       %d\n", block_hdr.blockAlign);
+                    printf("      bitsPerSample    %d\n", block_hdr.bitsPerSample);
+                }
+                
+                memcpy(&wavi_info, &block_hdr, sizeof(mlv_wavi_hdr_t));
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
             {
