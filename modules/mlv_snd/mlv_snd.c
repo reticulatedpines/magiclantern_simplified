@@ -100,7 +100,10 @@ static void mlv_snd_asif_in_cbr()
     //trace_write(trace_ctx, "mlv_snd_asif_in_cbr: entered");
     
     /* the next buffer is now being filled, so update timestamp */
-    mlv_snd_next_buffer->timestamp = get_us_clock_value();
+    if(mlv_snd_next_buffer)
+    {
+        mlv_snd_next_buffer->timestamp = get_us_clock_value();
+    }
     
     /* and pass the filled buffer into done queue */
     if(mlv_snd_current_buffer)
@@ -186,8 +189,8 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
             }
             else
             {
-                hdr->timestamp = entry->timestamp;
                 hdr->frameNumber = entry->frameNumber;
+                mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
             }
             
             if(entry->mlv_slot_end)
@@ -385,7 +388,7 @@ static void mlv_snd_writer(int unused)
             case MLV_SND_STATE_SOUND_RUNNING:
             
                 /* receive write job from dispatcher */
-                if(msg_queue_receive(mlv_snd_buffers_done, &buffer, 100))
+                if(msg_queue_receive(mlv_snd_buffers_done, &buffer, 500))
                 {
                     static uint32_t timeouts = 0;
                     trace_write(trace_ctx, "   --> WRITER: message timed out %d times now", ++timeouts);
@@ -408,8 +411,8 @@ static void mlv_snd_writer(int unused)
                     mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
                     
                     /* fill recording information */
-                    hdr->timestamp = buffer->timestamp;
                     hdr->frameNumber = buffer->frameNumber;
+                    mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, buffer->timestamp);
                     
                     /* only queue for writing if the whole mlv_rec slot was filled */
                     if(buffer->mlv_slot_end)
