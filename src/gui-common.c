@@ -45,7 +45,7 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     #elif defined(CONFIG_6D)
         MEM(0x841C0) = 0;
     #elif defined(CONFIG_EOSM)
-        MEM(0x5D88C) = 0;
+        MEM(0x5D43C) = 0;
     #endif
 
     #ifdef CONFIG_5D3
