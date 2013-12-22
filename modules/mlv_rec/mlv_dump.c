@@ -2276,7 +2276,7 @@ read_headers:
 
                 if(verbose)
                 {
-                    printf("     Date:        %02d.%02d.%04d\n", block_hdr.tm_mday, block_hdr.tm_mon, 1900 + block_hdr.tm_year);
+                    printf("     Date:        %02d.%02d.%04d\n", block_hdr.tm_mday, block_hdr.tm_mon + 1, 1900 + block_hdr.tm_year);
                     printf("     Time:        %02d:%02d:%02d (GMT+%d)\n", block_hdr.tm_hour, block_hdr.tm_min, block_hdr.tm_sec, block_hdr.tm_gmtoff);
                     printf("     Zone:        '%s'\n", block_hdr.tm_zone);
                     printf("     Day of week: %d\n", block_hdr.tm_wday);
