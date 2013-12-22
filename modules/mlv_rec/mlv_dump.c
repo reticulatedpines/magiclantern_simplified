@@ -33,6 +33,11 @@
 #include "../dual_iso/wirth.h"  /* fast median, generic implementation (also kth_smallest) */
 #include "../dual_iso/optmed.h" /* fast median for small common array sizes (3, 7, 9...) */
 
+#ifdef __WIN32
+#define FMT_SIZE "%u"
+#else
+#define FMT_SIZE "%zd"
+#endif
 
 #if defined(USE_LUA)
 #define LUA_LIB
@@ -883,7 +888,7 @@ int main (int argc, char *argv[])
     
     if(sizeof(mlv_file_hdr_t) != 52)
     {
-        printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is %zd on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
+        printf("Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is "FMT_SIZE" on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
         return 0;
     }
     
@@ -1634,7 +1639,7 @@ read_headers:
                             memcpy(frame_buffer, lzma_out, frame_size);
                             if(verbose)
                             {
-                                printf("    LZMA: %zd -> %zd  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                                printf("    LZMA: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
                             }
                         }
                         else
@@ -1977,7 +1982,7 @@ read_headers:
                                     
                                     if(verbose)
                                     {
-                                        printf("    LZMA: %zd -> %zd  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
+                                        printf("    LZMA: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
                                     }
                                 }
                                 else
@@ -1994,7 +1999,7 @@ read_headers:
                             
                             if(frame_size != prev_frame_size)
                             {
-                                printf("  saving: %zd -> %zd  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
+                                printf("  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
                             }
                             
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
