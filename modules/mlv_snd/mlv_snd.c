@@ -97,9 +97,7 @@ static uint32_t mlv_snd_state = MLV_SND_STATE_IDLE;
 
 static void mlv_snd_asif_in_cbr()
 {
-    //trace_write(trace_ctx, "mlv_snd_asif_in_cbr: entered");
-    
-    /* the next buffer is now being filled, so update timestamp */
+    /* the next buffer is now being filled, so update timestamp. do this first to be closer to real start. */
     if(mlv_snd_next_buffer)
     {
         mlv_snd_next_buffer->timestamp = get_us_clock_value();
@@ -111,8 +109,11 @@ static void mlv_snd_asif_in_cbr()
         mlv_snd_current_buffer->frameNumber = mlv_snd_frame_number;
         mlv_snd_frame_number++;
         msg_queue_post(mlv_snd_buffers_done, mlv_snd_current_buffer);
-        mlv_snd_current_buffer = NULL;
     }
+
+    /* the "next" buffer is the current one being filled */
+    mlv_snd_current_buffer = mlv_snd_next_buffer;
+    mlv_snd_next_buffer = NULL;
     
     switch(mlv_snd_state)
     {
@@ -129,9 +130,6 @@ static void mlv_snd_asif_in_cbr()
                 trace_write(trace_ctx, "mlv_snd_asif_in_cbr: no free buffers available");
                 return;
             }
-            
-            /* the "next" buffer is the current one being filled */
-            mlv_snd_current_buffer = mlv_snd_next_buffer;
             
             /* get the new "next" and queue */
             if(msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10))
@@ -157,8 +155,6 @@ static void mlv_snd_asif_in_cbr()
         default:
             break;
     }
-    
-    //trace_write(trace_ctx, "mlv_snd_asif_in_cbr: returned");
 }
 
 static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
@@ -189,6 +185,7 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
             }
             else
             {
+                trace_write(trace_ctx, "mlv_snd_flush_entries: data %d entry for frame #%d", entry->mlv_slot_id, entry->frameNumber);
                 hdr->frameNumber = entry->frameNumber;
                 mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
             }
@@ -272,9 +269,9 @@ static void mlv_snd_queue_slot()
         
         mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
         hdr->blockSize = block_size;
-        hdr->frameNumber = 0;
+        hdr->frameNumber = 0xFFFFFFFF;
         hdr->frameSpace = hdr_size - sizeof(mlv_audf_hdr_t);
-        hdr->timestamp = 0;
+        hdr->timestamp = 0xFFFFFFFFFFFFFFFF;
         
         /* store information about the buffer in the according queue entry */
         audio_data_t *entry = malloc(sizeof(audio_data_t));
@@ -406,7 +403,7 @@ static void mlv_snd_writer(int unused)
                 /* in case the slot was for MLV video, handle it */
                 if(buffer->mlv_slot_buffer)
                 {
-                    trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d", buffer->mlv_slot_id);
+                    trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d, setting frame #%d", buffer->mlv_slot_id, buffer->frameNumber);
                     
                     mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
                     
@@ -509,7 +506,7 @@ static void mlv_snd_start()
 static void mlv_snd_queue_wavi()
 {
     trace_write(trace_ctx, "mlv_snd_queue_wavi: queueing a WAVI block");
-        
+    
     /* queue an WAVI block that contains information about the audio format */
     mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
     
