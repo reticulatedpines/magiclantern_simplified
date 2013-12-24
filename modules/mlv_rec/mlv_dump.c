@@ -27,6 +27,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <time.h>
 
 /* dng related headers */
 #include <chdk-dng.h>
@@ -1182,6 +1183,7 @@ int main (int argc, char *argv[])
     mlv_idnt_hdr_t idnt_info;
     mlv_wbal_hdr_t wbal_info;
     mlv_wavi_hdr_t wavi_info;
+    mlv_rtci_hdr_t rtci_info;
     
     /* initialize stuff */
     memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
@@ -1190,6 +1192,7 @@ int main (int argc, char *argv[])
     memset(&idnt_info, 0x00, sizeof(mlv_idnt_hdr_t));
     memset(&wbal_info, 0x00, sizeof(mlv_wbal_hdr_t));
     memset(&wavi_info, 0x00, sizeof(mlv_wavi_hdr_t));
+    memset(&rtci_info, 0x00, sizeof(mlv_rtci_hdr_t));
     
     char info_string[256] = "(MLV Video without INFO blocks)";
     
@@ -1935,6 +1938,36 @@ read_headers:
                             
                             dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
                             
+                            /* calculate the time this frame was taken at, i.e., the start time + the current timestamp. this can be off by a second but it's better than nothing */
+                            int ms = 0.5 + buf.timestamp / 1000.0;
+                            int sec = ms / 1000;
+                            ms %= 1000;
+                            // FIXME: the struct tm doesn't have tm_gmtoff on Linux so the result might be wrong?
+                            struct tm tm;
+                            tm.tm_sec = rtci_info.tm_sec + sec;
+                            tm.tm_min = rtci_info.tm_min;
+                            tm.tm_hour = rtci_info.tm_hour;
+                            tm.tm_mday = rtci_info.tm_mday;
+                            tm.tm_mon = rtci_info.tm_mon;
+                            tm.tm_year = rtci_info.tm_year;
+                            tm.tm_wday = rtci_info.tm_wday;
+                            tm.tm_yday = rtci_info.tm_yday;
+                            tm.tm_isdst = rtci_info.tm_isdst;
+
+                            if(mktime(&tm) != -1)
+                            {
+                                char datetime_str[20], subsec_str[4];
+                                strftime(datetime_str, 20, "%Y:%m:%d %H:%M:%S", &tm);
+                                snprintf(subsec_str, sizeof(subsec_str), "%03d", ms);
+                                dng_set_datetime(datetime_str, subsec_str);
+                            }
+                            else
+                            {
+                                // soemthing went wrong. let's proceed anyway
+                                fprintf(stderr, "[W] Failed calculating the DateTime from the timestamp\n");
+                                dng_set_datetime("", "");
+                            }
+                            
                             
                             uint64_t serial = 0;
                             char *end;
@@ -2265,35 +2298,34 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))
             {
-                mlv_rtci_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_rtci_hdr_t), buf.blockSize);
 
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                if(fread(&rtci_info, hdr_size, 1, in_file) != 1)
                 {
                     fprintf(stderr, "[E] File ends in the middle of a block\n");
                     goto abort;
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                fseeko(in_file, position + rtci_info.blockSize, SEEK_SET);
                 
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                lua_handle_hdr(lua_state, buf.blockType, &rtci_info, sizeof(rtci_info));
 
                 if(verbose)
                 {
-                    printf("     Date:        %02d.%02d.%04d\n", block_hdr.tm_mday, block_hdr.tm_mon, 1900 + block_hdr.tm_year);
-                    printf("     Time:        %02d:%02d:%02d (GMT+%d)\n", block_hdr.tm_hour, block_hdr.tm_min, block_hdr.tm_sec, block_hdr.tm_gmtoff);
-                    printf("     Zone:        '%s'\n", block_hdr.tm_zone);
-                    printf("     Day of week: %d\n", block_hdr.tm_wday);
-                    printf("     Day of year: %d\n", block_hdr.tm_yday);
-                    printf("     Daylight s.: %d\n", block_hdr.tm_isdst);
+                    printf("     Date:        %02d.%02d.%04d\n", rtci_info.tm_mday, rtci_info.tm_mon + 1, 1900 + rtci_info.tm_year);
+                    printf("     Time:        %02d:%02d:%02d (GMT+%d)\n", rtci_info.tm_hour, rtci_info.tm_min, rtci_info.tm_sec, rtci_info.tm_gmtoff);
+                    printf("     Zone:        '%s'\n", rtci_info.tm_zone);
+                    printf("     Day of week: %d\n", rtci_info.tm_wday);
+                    printf("     Day of year: %d\n", rtci_info.tm_yday);
+                    printf("     Daylight s.: %d\n", rtci_info.tm_isdst);
                 }
             
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_rtci_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    rtci_info.blockSize = sizeof(mlv_rtci_hdr_t);
+                    if(fwrite(&rtci_info, rtci_info.blockSize, 1, out_file) != 1)
                     {
                         fprintf(stderr, "[E] Failed writing into output file\n");
                         goto abort;
