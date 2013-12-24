@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Collections;
 using System.Threading;
+using System.Diagnostics;
 
 namespace MLVBrowseSharp
 {
@@ -147,6 +148,147 @@ namespace MLVBrowseSharp
 
         internal void RightClick(Point pos)
         {
+            if (Form.ModifierKeys == Keys.Shift)
+            {
+
+            }
+            else
+            {
+                ContextMenu menu = new ContextMenu();
+
+                menu.MenuItems.Add("Export selected files as .RAW + .WAV", new EventHandler(Menu_ExportRaw));
+                menu.MenuItems.Add("Export selected files as .DNG + .WAV", new EventHandler(Menu_ExportDng));
+                menu.MenuItems.Add("-");
+                menu.MenuItems.Add("Open Shell Context Menu", new EventHandler(Menu_ShellContextMenu));
+
+                menu.Show(this, PointToClient(MousePosition));
+            }
+        }
+
+        private void RunProgram(string program, string[] parameters)
+        {
+            string param = String.Join(" ", parameters);
+            string prefix = "";
+
+            if (!Environment.OSVersion.Platform.ToString().Contains("Win32"))
+            {
+                prefix = "./";
+            }
+
+            string path = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + System.IO.Path.DirectorySeparatorChar;
+
+            Process proc = Process.Start(prefix + program, param);
+
+            proc.WaitForExit();
+            Thread.Sleep(5000);
+        }
+
+
+        private void ReplaceParameters(ref string[] parameters, string variable, string value)
+        {
+            for (int pos = 0; pos < parameters.Length; pos++)
+            {
+                if (parameters[pos].Contains(variable))
+                {
+                    parameters[pos] = parameters[pos].Replace(variable, value);
+                }
+            }
+        }
+
+        private void RunProgramForSelected(string program, string[] parameters)
+        {
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                if (icon.Selected)
+                {
+                    MLVFileIcon fileIcon = icon;
+                    ReplaceParameters(ref parameters, "%INFILE%", "\"" + fileIcon.FileInfo.FullName + "\"");
+                    ReplaceParameters(ref parameters, "%INFILENAME%", fileIcon.FileInfo.Name);
+
+                    /* delete index file */
+                    string idx = fileIcon.FileInfo.FullName.ToUpper().Replace(".MLV", ".IDX");
+                    if (File.Exists(idx))
+                    {
+                        try
+                        {
+                            File.Delete(idx);
+                        }
+                        catch (Exception e)
+                        {
+                            MessageBox.Show("There is a index file called " + idx + " which i cannot delete. Please delete it if you get problems during export");
+                        }
+                    }
+
+                    fileIcon.Processing = true;
+                    Thread processThread = new Thread(() =>
+                    {
+                        RunProgram(program, parameters);
+
+                        fileIcon.Invoke(new Action(() =>
+                        {
+                            fileIcon.Processing = false;
+                        }));
+                    });
+
+                    processThread.Start();
+                }
+            }
+        }
+
+        private string GetSavePath()
+        {
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.FileName = "[here]";
+            dlg.ValidateNames = false;
+            dlg.Title = "Select the path to write the .RAW to";
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                string path = dlg.FileName.Remove(dlg.FileName.LastIndexOf(System.IO.Path.DirectorySeparatorChar)) + System.IO.Path.DirectorySeparatorChar;
+                return path;
+            }
+            
+            return null;
+        }
+
+        void Menu_ExportRaw(object sender, EventArgs args)
+        {
+            string path = GetSavePath();
+
+            if(path == null)
+            {
+                return;
+            }
+
+            ArrayList mlvDumpParams = new ArrayList();
+            mlvDumpParams.Add("-r");
+            mlvDumpParams.Add("-o");
+            mlvDumpParams.Add("\"" + path + "%INFILENAME%.RAW\"");
+            mlvDumpParams.Add("%INFILE%");
+
+            RunProgramForSelected("mlv_dump", (string[])mlvDumpParams.ToArray(typeof(string)));
+        }
+
+        void Menu_ExportDng(object sender, EventArgs args)
+        {
+            string path = GetSavePath();
+
+            if (path == null)
+            {
+                return;
+            }
+
+            ArrayList mlvDumpParams = new ArrayList();
+            mlvDumpParams.Add("--dng");
+            mlvDumpParams.Add("-o");
+            mlvDumpParams.Add("\"" + path + "%INFILENAME%.frame_\"");
+            mlvDumpParams.Add("%INFILE%");
+
+            RunProgramForSelected("mlv_dump", (string[])mlvDumpParams.ToArray(typeof(string)));
+        }
+
+        void Menu_ShellContextMenu(object sender, EventArgs args)
+        {
             ArrayList selected = new ArrayList();
             foreach (MLVFileIcon icon in FileIcons)
             {
@@ -156,16 +298,9 @@ namespace MLVBrowseSharp
                 }
             }
 
-            if (Form.ModifierKeys == Keys.Shift)
-            {
-
-            }
-            else
-            {
-                ShellContextMenu ctxMnu = new ShellContextMenu();
-                FileInfo[] arrFI = (FileInfo[])selected.ToArray(typeof(FileInfo));
-                ctxMnu.ShowContextMenu(arrFI, this.PointToScreen(pos));
-            }
+            ShellContextMenu ctxMnu = new ShellContextMenu();
+            FileInfo[] arrFI = (FileInfo[])selected.ToArray(typeof(FileInfo));
+            ctxMnu.ShowContextMenu(arrFI, MousePosition);
         }
 
         internal void StartAnimation()

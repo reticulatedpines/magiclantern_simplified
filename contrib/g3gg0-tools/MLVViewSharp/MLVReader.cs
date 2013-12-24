@@ -431,7 +431,7 @@ namespace mlv_view_sharp
             {
                 if (indexEntry.position != 0 && indexEntry.timestamp == prev.timestamp)
                 {
-                    FrameRedundantErrors++;
+                    //FrameRedundantErrors++;
                 }
                 prev = indexEntry;
             }
