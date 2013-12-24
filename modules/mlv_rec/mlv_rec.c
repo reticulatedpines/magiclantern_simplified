@@ -2604,12 +2604,10 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     /* enqueue the next largest block */
     write_job->block_ptr = slots[write_job->block_start].ptr;
     
-    write_job_t *queue_job = NULL; //malloc(sizeof(write_job_t));
+    write_job_t *queue_job = NULL;
     msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
     *queue_job = *write_job;
     queue_job->job_type = JOB_TYPE_WRITE;
-
-    msg_queue_post(mlv_writer_queues[writer], queue_job);
 
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
@@ -2619,8 +2617,6 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         static int32_t failed = 0;
         uint32_t msg_count = 0;
         
-        slots[slot].status = SLOT_WRITING;
-        slots[slot].writer = writer;
         mlv_vidf_hdr_t *hdr = slots[slot].ptr;
         
         /* check if there is a block that should get embedded */
@@ -2655,8 +2651,12 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
                     break;
                 }
             }
-        }    
+        }
+        slots[slot].status = SLOT_WRITING;
+        slots[slot].writer = writer;
     }
+
+    msg_queue_post(mlv_writer_queues[writer], queue_job);
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
 

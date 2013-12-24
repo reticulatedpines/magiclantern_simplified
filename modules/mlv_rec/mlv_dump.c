@@ -1529,6 +1529,10 @@ read_headers:
                     goto abort;
                 }
 
+                if(!wavi_info.timestamp)
+                {
+                    fprintf(stderr, "[E] Received AUDF without WAVI, the .wav file might be corrupt\n");
+                }
                 if(output_filename)
                 {
                     if(out_file_wav == NULL)
