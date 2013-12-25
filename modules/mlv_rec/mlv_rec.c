@@ -1289,7 +1289,7 @@ static void raw_video_enable()
         call("lv_af_fase_addr", 0); //Turn off face detection
     }
     
-    if (!is_movie_mode())
+    if(cam_eos_m && !is_movie_mode())
     {
         set_custom_movie_mode(1);
     }
