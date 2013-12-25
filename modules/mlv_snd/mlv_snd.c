@@ -64,7 +64,11 @@ static volatile uint32_t mlv_snd_in_buffers = 64;
 static volatile uint32_t mlv_snd_frame_number = 0;
 static volatile uint32_t mlv_snd_in_buffer_size = 0;
 
-static volatile uint32_t mlv_snd_in_sample_rate = 44100;
+static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
+#define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
+
+static volatile uint32_t mlv_snd_rate_sel = 0;
+static volatile uint32_t mlv_snd_in_sample_rate = 0;
 static volatile uint32_t mlv_snd_in_channels = 2;
 static volatile uint32_t mlv_snd_in_bits_per_sample = 16;
 
@@ -309,9 +313,12 @@ static void mlv_snd_queue_slot()
 static void mlv_snd_prepare_audio()
 {
     mlv_snd_frame_number = 0;
+    mlv_snd_in_sample_rate = mlv_snd_rates[mlv_snd_rate_sel];
     
-    /* ToDo: set up audio output according to configuration */
+    /* set up audio output according to configuration */
     SetSamplingRate(mlv_snd_in_sample_rate, 0);
+    
+    /* set 16 bit per sample, stereo. not nice, should be done through SetAudioChannels() (0xFF10EFF4 on 5D3) */
     MEM(0xC092011C) = 6;
 }
 
@@ -360,7 +367,7 @@ static void mlv_snd_alloc_buffers()
 static void mlv_snd_writer(int unused)
 {
     uint32_t done = 0;
-    uint32_t fft_size = 64;
+    uint32_t fft_size = 128;
     
     kiss_fft_cfg cfg = kiss_fft_alloc(fft_size, 0, 0 ,0);
     kiss_fft_cpx *fft_in = malloc(fft_size * sizeof(kiss_fft_cpx));
@@ -666,7 +673,7 @@ static struct menu_entry mlv_snd_menu[] =
         .children = (struct menu_entry[])
         {
             {
-                .name = "Start/Stop FFT",
+                .name = "Debug: Start/Stop FFT",
                 .select = &mlv_snd_test_select,
                 .help = "Start and stop FFT display.",
             },
@@ -676,6 +683,14 @@ static struct menu_entry mlv_snd_menu[] =
                 .min = 0,
                 .max = 1,
                 .help = "Enable log file tracing. Needs camera restart.",
+            },
+            {
+                .name = "Sampling rate",
+                .priv = &mlv_snd_rate_sel,
+                .min = 0,
+                .max = COUNT(mlv_snd_rates)-1,
+                .choices = CHOICES(MLV_SND_RATE_TEXT),
+                .help = "Select your sampling rate.",
             },
             MENU_EOL,
         },
