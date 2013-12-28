@@ -309,7 +309,7 @@ namespace MLVBrowseSharp
             }
         }
 
-        private void SetText(string text)
+        public void SetText(string text)
         {
             try
             {
@@ -345,7 +345,7 @@ namespace MLVBrowseSharp
 
                 if (arg.Button == MouseButtons.Left)
                 {
-                    if (Form.ModifierKeys != Keys.Control)
+                    if (Form.ModifierKeys != Keys.Control && Form.ModifierKeys != Keys.Shift)
                     {
                         ParentList.UnselectAll();
                     }

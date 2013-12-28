@@ -101,15 +101,22 @@ namespace mlv_view_sharp
             {
                 DriverOut.Stop();
             }
-            DriverOut = new WaveOut();
-            DriverOut.DesiredLatency = 100;
+            try
+            {
+                DriverOut = new WaveOut();
+                DriverOut.DesiredLatency = 100;
 
-            WaveFormat fmt = new WaveFormat((int)header.samplingRate, header.bitsPerSample, header.channels);
-            WaveProvider = new BufferedWaveProvider(fmt);
-            WaveProvider.BufferLength = 256 * 1024;
+                WaveFormat fmt = new WaveFormat((int)header.samplingRate, header.bitsPerSample, header.channels);
+                WaveProvider = new BufferedWaveProvider(fmt);
+                WaveProvider.BufferLength = 256 * 1024;
 
-            DriverOut.Init(WaveProvider);
-            DriverOut.Play();
+                DriverOut.Init(WaveProvider);
+                DriverOut.Play();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("No audio support on this platform (" + ex.ToString() + ")");
+            }
         }
 
         public void HandleBlock(string type, MLVTypes.mlv_rawi_hdr_t header, byte[] raw_data, int raw_pos, int raw_length)

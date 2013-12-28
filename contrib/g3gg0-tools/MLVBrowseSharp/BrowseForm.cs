@@ -32,17 +32,24 @@ namespace MLVBrowseSharp
 
         private void UpdateFolders()
         {
-            foreach (var drive in DriveInfo.GetDrives())
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
-                string path = drive.Name[0] + ":\\";
-                if (drive.IsReady)
+                foreach (var drive in DriveInfo.GetDrives())
                 {
-                    AddRootNode(path, path + " (" + drive.VolumeLabel + ")");
+                    string path = drive.Name[0] + ":\\";
+                    if (drive.IsReady)
+                    {
+                        AddRootNode(path, path + " (" + drive.VolumeLabel + ")");
+                    }
+                    else
+                    {
+                        AddRootNode(path, path + " (" + drive.DriveType + ")");
+                    }
                 }
-                else
-                {
-                    AddRootNode(path, path + " (" + drive.DriveType + ")");
-                }
+            }
+            else
+            {
+                AddRootNode("/", "root (/)");
             }
         }
 
@@ -131,6 +138,11 @@ namespace MLVBrowseSharp
         private void chkAnimation_CheckedChanged(object sender, EventArgs e)
         {
             mlvFileList.AnimateAll = chkAnimation.Checked;
+        }
+
+        private void chkPreview_CheckedChanged(object sender, EventArgs e)
+        {
+            mlvFileList.ShowPreviews = chkPreview.Checked;
         }
     }
 }

@@ -18,10 +18,27 @@ namespace MLVBrowseSharp
         private ArrayList FileIcons = new ArrayList();
         public string[] Groups = new string[0];
         private bool _AnimateAll = false;
+        private bool _ShowPreviews = true;
 
         public MLVFileList()
         {
             InitializeComponent();
+        }
+
+        internal bool ShowPreviews
+        {
+            get
+            {
+                return _ShowPreviews;
+            }
+            set
+            {
+                _ShowPreviews = value;
+                foreach (MLVFileIcon icon in FileIcons)
+                {
+                    icon.Stop();
+                }
+            }
         }
 
         internal bool AnimateAll
@@ -92,22 +109,32 @@ namespace MLVBrowseSharp
             UpdateFileIcons();
 
             /* delay a bit so the GUI has enough time to render until the cpu load raises */
-            Thread renderStart = new Thread(() =>
+            if (ShowPreviews)
             {
-                Thread.Sleep(100);
+                Thread renderStart = new Thread(() =>
+                {
+                    Thread.Sleep(100);
 
-                /* first time animate until first video frame appears */
+                    /* first time animate until first video frame appears */
+                    foreach (MLVFileIcon icon in FileIcons)
+                    {
+                        icon.SingleStep = true;
+                        icon.Paused = false;
+
+                        icon.Start();
+                    }
+
+                    UpdateAnimationStatus();
+                });
+                renderStart.Start();
+            }
+            else
+            {
                 foreach (MLVFileIcon icon in FileIcons)
                 {
-                    icon.SingleStep = true;
-                    icon.Paused = false;
-
-                    icon.Start();
+                    icon.SetText("<no previews>");
                 }
-
-                UpdateAnimationStatus();
-            });
-            renderStart.Start();
+            }
         }
 
         private void UpdateFileIcons()
@@ -165,74 +192,19 @@ namespace MLVBrowseSharp
             }
         }
 
-        private void RunProgram(string program, string[] parameters)
-        {
-            string param = String.Join(" ", parameters);
-            string prefix = "";
-
-            if (!Environment.OSVersion.Platform.ToString().Contains("Win32"))
-            {
-                prefix = "./";
-            }
-
-            string path = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + System.IO.Path.DirectorySeparatorChar;
-
-            Process proc = Process.Start(prefix + program, param);
-
-            proc.WaitForExit();
-            Thread.Sleep(5000);
-        }
-
-
-        private void ReplaceParameters(ref string[] parameters, string variable, string value)
-        {
-            for (int pos = 0; pos < parameters.Length; pos++)
-            {
-                if (parameters[pos].Contains(variable))
-                {
-                    parameters[pos] = parameters[pos].Replace(variable, value);
-                }
-            }
-        }
-
         private void RunProgramForSelected(string program, string[] parameters)
         {
+            ArrayList files = new ArrayList();
+
             foreach (MLVFileIcon icon in FileIcons)
             {
                 if (icon.Selected)
                 {
-                    MLVFileIcon fileIcon = icon;
-                    ReplaceParameters(ref parameters, "%INFILE%", "\"" + fileIcon.FileInfo.FullName + "\"");
-                    ReplaceParameters(ref parameters, "%INFILENAME%", fileIcon.FileInfo.Name);
-
-                    /* delete index file */
-                    string idx = fileIcon.FileInfo.FullName.ToUpper().Replace(".MLV", ".IDX");
-                    if (File.Exists(idx))
-                    {
-                        try
-                        {
-                            File.Delete(idx);
-                        }
-                        catch (Exception e)
-                        {
-                            MessageBox.Show("There is a index file called " + idx + " which i cannot delete. Please delete it if you get problems during export");
-                        }
-                    }
-
-                    fileIcon.Processing = true;
-                    Thread processThread = new Thread(() =>
-                    {
-                        RunProgram(program, parameters);
-
-                        fileIcon.Invoke(new Action(() =>
-                        {
-                            fileIcon.Processing = false;
-                        }));
-                    });
-
-                    processThread.Start();
+                    files.Add(icon.FileInfo.FullName);
                 }
             }
+
+            ShellProgramHelper.RunForAll((string[])files.ToArray(typeof(string)), program, "", parameters);
         }
 
         private string GetSavePath()
@@ -261,7 +233,9 @@ namespace MLVBrowseSharp
             }
 
             ArrayList mlvDumpParams = new ArrayList();
+            mlvDumpParams.Add("--batch");
             mlvDumpParams.Add("-r");
+            mlvDumpParams.Add("-v");
             mlvDumpParams.Add("-o");
             mlvDumpParams.Add("\"" + path + "%INFILENAME%.RAW\"");
             mlvDumpParams.Add("%INFILE%");
@@ -279,7 +253,9 @@ namespace MLVBrowseSharp
             }
 
             ArrayList mlvDumpParams = new ArrayList();
+            mlvDumpParams.Add("--batch");
             mlvDumpParams.Add("--dng");
+            mlvDumpParams.Add("-v");
             mlvDumpParams.Add("-o");
             mlvDumpParams.Add("\"" + path + "%INFILENAME%.frame_\"");
             mlvDumpParams.Add("%INFILE%");
@@ -434,7 +410,7 @@ namespace MLVBrowseSharp
 
         private void fileList_MouseEnter(object sender, EventArgs e)
         {
-            Focus();
+            //Focus();
         }
     }
 }
