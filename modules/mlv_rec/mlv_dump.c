@@ -40,6 +40,13 @@
 #define FMT_SIZE "%zd"
 #endif
 
+#define ERR_OK              0
+#define ERR_STRUCT_ALIGN    1
+#define ERR_PARAM           2
+#define ERR_FILE            3
+#define ERR_INDEX_REQ       4
+#define ERR_MALLOC          5
+
 #if defined(USE_LUA)
 #define LUA_LIB
 #include "lua.h"
@@ -360,6 +367,7 @@ void print_msg(uint32_t type, const char* format, ... )
                 strcpy(fmt_str, "[E] ");
                 strcat(fmt_str, format);
                 vfprintf(stdout, fmt_str, args);
+                fflush(stdout);
             }
             break;
             
@@ -957,10 +965,14 @@ int main (int argc, char *argv[])
         {0,         0,                 0,  0 }
     };    
     
+    /* disable stdout buffering */
+    setvbuf(stderr, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    
     if(sizeof(mlv_file_hdr_t) != 52)
     {
         print_msg(MSG_INFO, "Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is "FMT_SIZE" on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
-        return 0;
+        return ERR_STRUCT_ALIGN;
     }
     
     int index = 0;
@@ -973,13 +985,13 @@ int main (int argc, char *argv[])
                 if(!optarg)
                 {
                     print_msg(MSG_ERROR, "Error: Missing LUA script filename\n");
-                    return 0;
+                    return ERR_PARAM;
                 }
                 lua_state = luaL_newstate();
                 if(!lua_state)
                 {
                     print_msg(MSG_ERROR, "LUA: Failed to init LUA library\n");
-                    return 0;
+                    return ERR_PARAM;
                 }
                 
                 luaL_openlibs(lua_state);
@@ -996,7 +1008,7 @@ int main (int argc, char *argv[])
                 break;
 #else
                 print_msg(MSG_ERROR, "LUA support not compiled into this binary\n");
-                return 0;
+                return ERR_PARAM;
 #endif
                 
             case 'x':
@@ -1025,7 +1037,7 @@ int main (int argc, char *argv[])
                 if(!optarg)
                 {
                     print_msg(MSG_ERROR, "Error: Missing subtract frame filename\n");
-                    return 0;
+                    return ERR_PARAM;
                 }
                 subtract_filename = strdup(optarg);
                 subtract_mode = 1;
@@ -1036,7 +1048,7 @@ int main (int argc, char *argv[])
                 if(!optarg)
                 {
                     print_msg(MSG_ERROR, "Error: Missing LUT filename\n");
-                    return 0;
+                    return ERR_PARAM;
                 }
                 lut_filename = strdup(optarg);
                 break;
@@ -1055,7 +1067,7 @@ int main (int argc, char *argv[])
                 compress_output = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
-                return 0;
+                return ERR_PARAM;
 #endif                
                 break;
                 
@@ -1064,7 +1076,7 @@ int main (int argc, char *argv[])
                 decompress_output = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
-                return 0;
+                return ERR_PARAM;
 #endif                
                 break;
                 
@@ -1072,7 +1084,7 @@ int main (int argc, char *argv[])
                 if(!optarg)
                 {
                     print_msg(MSG_ERROR, "Error: Missing output filename\n");
-                    return 0;
+                    return ERR_PARAM;
                 }
                 output_filename = strdup(optarg);
                 break;
@@ -1125,7 +1137,7 @@ int main (int argc, char *argv[])
                 
             default:
                 show_usage(argv[0]);
-                return 0;
+                return ERR_PARAM;
         }
     }   
     
@@ -1133,7 +1145,7 @@ int main (int argc, char *argv[])
     {
         print_msg(MSG_ERROR, "Error: Missing input filename\n");
         show_usage(argv[0]);
-        return 0;
+        return ERR_PARAM;
     }
     
     
@@ -1292,6 +1304,7 @@ int main (int argc, char *argv[])
     int in_file_num = 0;
 
     uint32_t wav_file_size = 0; /* WAV format supports only 32-bit size */
+    uint32_t wav_header_size = 0;
 
     /* this is for our generated XREF table */
     frame_xref_t *frame_xref_table = NULL;
@@ -1303,7 +1316,7 @@ int main (int argc, char *argv[])
     if(!in_files || !in_file_count)
     {
         print_msg(MSG_ERROR, "Failed to open file '%s'\n", input_filename);
-        return 0;
+        return ERR_FILE;
     }
     else
     {
@@ -1330,7 +1343,7 @@ int main (int argc, char *argv[])
             if(delta_encode_mode)
             {
                 print_msg(MSG_ERROR, "Delta encoding is not possible without an index file. Please create one using -x option.\n");
-                return 0;
+                return ERR_INDEX_REQ;
             }
         }
     }
@@ -1341,7 +1354,7 @@ int main (int argc, char *argv[])
         if(!frame_arith_buffer)
         {
             print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return 0;
+            return ERR_MALLOC;
         }
         memset(frame_arith_buffer, 0x00, frame_buffer_size);
     }
@@ -1353,7 +1366,7 @@ int main (int argc, char *argv[])
         if(ret)
         {
             print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
-            return 0;
+            return ERR_FILE;
         }
     }
     
@@ -1363,7 +1376,7 @@ int main (int argc, char *argv[])
         if(!prev_frame_buffer)
         {
             print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return 0;
+            return ERR_MALLOC;
         }
         memset(prev_frame_buffer, 0x00, frame_buffer_size);
     }
@@ -1374,7 +1387,7 @@ int main (int argc, char *argv[])
         if(!frame_buffer)
         {
             print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return 0;
+            return ERR_MALLOC;
         }
         
         if(!dng_output && output_filename)
@@ -1383,7 +1396,7 @@ int main (int argc, char *argv[])
             if(!out_file)
             {
                 print_msg(MSG_ERROR, "Failed to open file '%s'\n", output_filename);
-                return 0;
+                return ERR_FILE;
             }
         }
     }
@@ -1480,7 +1493,7 @@ read_headers:
                 
                 frame_xref_entries++;
             }
-                
+            
             /* is this the first file? */
             if(file_hdr.fileNum == 0)
             {
@@ -1607,54 +1620,12 @@ read_headers:
                 {
                     print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
                 }
-                if(output_filename)
-                {
-                    if(out_file_wav == NULL)
-                    {
-                        size_t name_len = strlen(output_filename) + 5;  // + .wav\0
-                        char* wav_file_name = malloc(name_len);
-                        /* NOTE, assumes little endian system, fix for big endian */
-                        uint32_t tmp_uint32;
-                        uint16_t tmp_uint16;
-
-                        strncpy(wav_file_name, output_filename, name_len);
-                        strncat(wav_file_name, ".wav", name_len);
-                        out_file_wav = fopen(wav_file_name, "wb");
-                        free(wav_file_name);
-                        if(!out_file_wav)
-                        {
-                            print_msg(MSG_ERROR, "Failed writing into audio output file\n");
-                            goto abort;
-                        }
-        
-                        /* Write header */
-                        fwrite("RIFF", 4, 1, out_file_wav);
-                        tmp_uint32 = 36; // Two headers combined size, will be patched later
-                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        fwrite("WAVE", 4, 1, out_file_wav);
-                        
-                        fwrite("fmt ", 4, 1, out_file_wav);
-                        tmp_uint32 = 16; // Header size
-                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        tmp_uint16 = wavi_info.format; // PCM
-                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                        tmp_uint16 = wavi_info.channels; // Stereo
-                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                        tmp_uint32 = wavi_info.samplingRate; // Sample rate
-                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        tmp_uint32 = wavi_info.bytesPerSecond; // Byte rate (16-bit data, stereo)
-                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        tmp_uint16 = wavi_info.blockAlign; // Block align
-                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                        tmp_uint16 = wavi_info.bitsPerSample; // Bits per sample
-                        fwrite(&tmp_uint16, 2, 1, out_file_wav);
-
-                        fwrite("data", 4, 1, out_file_wav);
-                        tmp_uint32 = 0; // Audio data length, will be patched later
-                        fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                        wav_file_size = 0;
-                    }
                 
+                /* only write WAV if the WAVI header created a file */
+                if(out_file_wav)
+                {
+                    /* assume block size is uniform, this allows random access */
+                    fseeko(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
                     fwrite(buf, frame_size, 1, out_file_wav);
                     wav_file_size += frame_size;
                 }
@@ -2573,6 +2544,54 @@ read_headers:
                 }
                 
                 memcpy(&wavi_info, &block_hdr, sizeof(mlv_wavi_hdr_t));
+            
+                if(output_filename && out_file_wav == NULL)
+                {
+                    size_t name_len = strlen(output_filename) + 5;  // + .wav\0
+                    char* wav_file_name = malloc(name_len);
+                    /* NOTE, assumes little endian system, fix for big endian */
+                    uint32_t tmp_uint32;
+                    uint16_t tmp_uint16;
+
+                    strncpy(wav_file_name, output_filename, name_len);
+                    strncat(wav_file_name, ".wav", name_len);
+                    out_file_wav = fopen(wav_file_name, "wb");
+                    free(wav_file_name);
+                    if(!out_file_wav)
+                    {
+                        print_msg(MSG_ERROR, "Failed writing into audio output file\n");
+                        goto abort;
+                    }
+    
+                    /* Write header */
+                    fwrite("RIFF", 4, 1, out_file_wav);
+                    tmp_uint32 = 36; // Two headers combined size, will be patched later
+                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    fwrite("WAVE", 4, 1, out_file_wav);
+                    
+                    fwrite("fmt ", 4, 1, out_file_wav);
+                    tmp_uint32 = 16; // Header size
+                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    tmp_uint16 = wavi_info.format; // PCM
+                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    tmp_uint16 = wavi_info.channels; // Stereo
+                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    tmp_uint32 = wavi_info.samplingRate; // Sample rate
+                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    tmp_uint32 = wavi_info.bytesPerSecond; // Byte rate (16-bit data, stereo)
+                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    tmp_uint16 = wavi_info.blockAlign; // Block align
+                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    tmp_uint16 = wavi_info.bitsPerSample; // Bits per sample
+                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+
+                    fwrite("data", 4, 1, out_file_wav);
+                    tmp_uint32 = 0; // Audio data length, will be patched later
+                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    
+                    wav_file_size = 0;
+                    wav_header_size = ftello(out_file_wav);
+                }
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
             {
@@ -2687,5 +2706,5 @@ abort:
     print_msg(MSG_INFO, "Done\n"); 
     print_msg(MSG_INFO, "\n"); 
 
-    return 0;
+    return ERR_OK;
 }
