@@ -880,7 +880,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
         {
             char msg[100];
             
-            snprintf(msg, sizeof(msg), "Saving index...");
+            snprintf(msg, sizeof(msg), "Saving index (%d entries)...", entries);
             mlv_play_progressbar(pct, msg);
             last_pct = pct;
         }
@@ -903,7 +903,6 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
 {
     frame_xref_t *frame_xref_table = NULL;
     uint32_t frame_xref_entries = 0;
-    uint32_t blocks = 0;
     uint32_t frame_xref_allocated = 0;
     mlv_file_hdr_t main_header;
     
@@ -923,6 +922,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
             }
             
             mlv_hdr_t buf;
+            uint64_t timestamp = 0;
             uint32_t position = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_CUR);
             
             uint32_t pct = ((position / 10) / (size / 1000));
@@ -988,22 +988,31 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 }
                 
                 /* emulate timestamp zero (will overwrite version string) */
-                buf.timestamp = 0;
+                timestamp = 0;
+            }
+            else
+            {
+                /* all other blocks have a timestamp */
+                timestamp = buf.timestamp;
             }
             
-            xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
-            
-            /* add xref data */
-            frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
-            frame_xref_table[frame_xref_entries].frameOffset = position;
-            frame_xref_table[frame_xref_entries].fileNumber = chunk;
-            
-            frame_xref_entries++;
+            /* dont index NULL blocks */
+            if(memcmp(buf.blockType, "NULL", 4))
+            {
+                xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+                
+                /* add xref data */
+                frame_xref_table[frame_xref_entries].frameTime = timestamp;
+                frame_xref_table[frame_xref_entries].frameOffset = position;
+                frame_xref_table[frame_xref_entries].fileNumber = chunk;
+                
+                frame_xref_entries++;
+            }
             
             FIO_SeekFileWrapper(chunk_files[chunk], position + buf.blockSize, SEEK_SET);
-            blocks++;
         }
     }
+    
     xref_sort(frame_xref_table, frame_xref_entries);
     save_index(filename, &main_header, chunk_count, frame_xref_table, frame_xref_entries);
 }
