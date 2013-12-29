@@ -43,12 +43,15 @@ static uint32_t trace_ctx = TRACE_ERROR;
 static CONFIG_INT("mlv.snd.enabled", mlv_snd_enabled, 0);
 static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
 
-extern WEAK_FUNC(ret_0) int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
-extern WEAK_FUNC(ret_0) int SetNextASIFADCBuffer(void *, uint32_t);
+extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
+extern int SetNextASIFADCBuffer(void *, uint32_t);
 extern WEAK_FUNC(ret_0) int PowerAudioOutput();
 extern WEAK_FUNC(ret_0) int audio_configure(uint32_t);
 extern WEAK_FUNC(ret_0) int SetAudioVolumeOut(uint32_t);
+extern WEAK_FUNC(ret_0) int SoundDevActiveIn(uint32_t);
+extern WEAK_FUNC(ret_0) int SoundDevShutDownIn();
 extern uint64_t get_us_clock_value();
+
 
 
 extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
@@ -232,6 +235,9 @@ static void mlv_snd_stop()
         beep();
     }
     
+    /* some models may need this */
+    SoundDevShutDownIn();
+    
     /* now flush the buffers */
     trace_write(trace_ctx, "mlv_snd_stop: flush mlv_snd_buffers_done");
     mlv_snd_flush_entries(mlv_snd_buffers_done, 0);
@@ -314,6 +320,9 @@ static void mlv_snd_prepare_audio()
 {
     mlv_snd_frame_number = 0;
     mlv_snd_in_sample_rate = mlv_snd_rates[mlv_snd_rate_sel];
+
+    /* some models may need this */
+    SoundDevActiveIn(0);
     
     /* set up audio output according to configuration */
     SetSamplingRate(mlv_snd_in_sample_rate, 0);
