@@ -2097,14 +2097,14 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     return 0;
 }
 
-static char* get_next_raw_movie_file_name()
+static char *get_next_raw_movie_file_name()
 {
     static char filename[100];
-
     struct tm now;
+    
     LoadCalendarFromRTC(&now);
 
-    for (int32_t number = 0 ; number < 100; number++)
+    for (int32_t number = 0; number < 100; number++)
     {
         /**
          * Get unique file names from the current date/time
@@ -2112,11 +2112,24 @@ static char* get_next_raw_movie_file_name()
          */
         snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
         
-        //trace_write(raw_rec_trace_ctx, "Filename: '%s'", filename);
+        /* when card spanning is enabled, primary writer is for CF, regardless which card is preferred */
+        if(card_spanning)
+        {
+            filename[0] = 'A';
+        }
+        
+        trace_write(raw_rec_trace_ctx, "Filename: '%s'", filename);
+        
         /* already existing file? */
         uint32_t size;
-        if( FIO_GetFileSize( filename, &size ) != 0 ) break;
-        if (size == 0) break;
+        if(FIO_GetFileSize( filename, &size ) != 0)
+        {
+            break;
+        }
+        if(size == 0)
+        {
+            break;
+        }
     }
     
     return filename;
@@ -2133,7 +2146,7 @@ static int32_t get_next_chunk_file_name(char* base_name, char* filename, int32_t
         snprintf(filename + len - 2, 3, "%02d", chunk-1);
     }
 
-    /* patch drive letter */
+    /* patch drive letter when using second writer (card spanning) */
     if(writer == 1)
     {
         filename[0] = 'B';
@@ -2745,7 +2758,7 @@ static void raw_video_rec_task()
         /* fill in file names for threads */
         get_next_chunk_file_name(mlv_movie_filename, chunk_filename[0], 0, 0);
         
-        if(card_spanning && cam_5d3)
+        if(card_spanning)
         {
             /* with card spanning, the first file is always written to CF card */
             /* also demand a second chunk, which will get written to SD */
@@ -3766,7 +3779,6 @@ static unsigned int raw_rec_init()
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
-        
         if (!cam_eos_m && streq(e->name, "Rec Key") )
             e->shidden = 1;
         if (cam_eos_m && streq(e->name, "Digital dolly") )
@@ -3776,8 +3788,6 @@ static unsigned int raw_rec_init()
             e->shidden = 1;
         if (!cam_5d3 && streq(e->name, "Card spanning") )
             e->shidden = 1;
-        //~ if (streq(e->name, "Debug trace") )
-            //~ e->shidden = 1;
 
         /* Memory hack confirmed to work only on 5D3 and 6D */
         if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
@@ -3786,8 +3796,14 @@ static unsigned int raw_rec_init()
             memory_hack = 0;
         }
     }
+    
+    /* disable card spanning on models other than 5D3 */
+    if(!cam_5d3)
+    {
+        card_spanning = 0;
+    }
 
-    if (cam_5d2 || cam_50d)
+    if(cam_5d2 || cam_50d)
     {
        raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
     }
@@ -3795,7 +3811,7 @@ static unsigned int raw_rec_init()
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
 
     /* some cards may like this */
-    if (warm_up)
+    if(warm_up)
     {
         NotifyBox(100000, "Card warming up...");
         char warmup_filename[100];
