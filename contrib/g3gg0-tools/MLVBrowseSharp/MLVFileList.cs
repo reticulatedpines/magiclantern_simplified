@@ -194,6 +194,7 @@ namespace MLVBrowseSharp
 
         private void RunProgramForSelected(string program, string[] parameters)
         {
+            Console.WriteLine("RunProgramForSelected: '" + program + " " + string.Join(" ", parameters) + "'");
             ArrayList files = new ArrayList();
 
             foreach (MLVFileIcon icon in FileIcons)

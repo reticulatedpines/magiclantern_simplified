@@ -171,11 +171,15 @@ namespace MLVBrowseSharp
 
         public static void RunForAll(string[] files, string binary, string description, string[] parameters)
         {
+            Console.WriteLine("RunForAll: '" + string.Join(" ", files) + "' '" + binary + " " + string.Join(" ", parameters) + "'");
+
             foreach (string file in files)
             {
-                ReplaceParameters(ref parameters, "%INFILE%", "\"" + file + "\"");
-                ReplaceParameters(ref parameters, "%INFILENAME%", new DirectoryInfo(file).Name);
+                string[] param = new string[parameters.Length];
+                Array.Copy(parameters, param, param.Length);
 
+                ReplaceParameters(ref param, "%INFILE%", "\"" + file + "\"");
+                ReplaceParameters(ref param, "%INFILENAME%", new DirectoryInfo(file).Name);
 
                 /* delete index file */
                 string idx = file.ToUpper().Replace(".MLV", ".IDX");
@@ -194,9 +198,10 @@ namespace MLVBrowseSharp
                 ConversionInstance instance = new ConversionInstance(file);
                 ConversionProgressItem convItem = new ConversionProgressItem(instance);
 
+                Console.WriteLine("RunForAll:     '" + binary + " " + string.Join(" ", param) + "'");
                 Thread processThread = new Thread(() =>
                 {
-                    instance.Execute(binary, description, String.Join(" ", parameters));
+                    instance.Execute(binary, description, String.Join(" ", param));
                 });
 
                 processThread.Start();
