@@ -1942,8 +1942,9 @@ read_headers:
                             void fix_vertical_stripes();
                             extern struct raw_info raw_info;
 
-                            char fn[100];
-                            snprintf(fn, sizeof(fn), "%s%06d.dng", output_filename, block_hdr.frameNumber);
+                            int frame_filename_len = strlen(output_filename) + 32;
+                            char *frame_filename = malloc(frame_filename_len);
+                            snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
                             
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
@@ -2032,10 +2033,12 @@ read_headers:
                             }
                             
                             /* finally save the DNG */
-                            save_dng(fn, &raw_info);
+                            save_dng(frame_filename, &raw_info);
                             
                             /* callout for a saved dng file */
-                            lua_call_va(lua_state, "dng_saved", "si", fn, block_hdr.frameNumber);
+                            lua_call_va(lua_state, "dng_saved", "si", frame_filename, block_hdr.frameNumber);
+                            
+                            free(frame_filename);
                         }
                         
                         if(mlv_output && !only_metadata_mode && !average_mode)
