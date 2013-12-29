@@ -634,7 +634,11 @@ static void refresh_raw_settings(int32_t force)
 
 static MENU_UPDATE_FUNC(raw_main_update)
 {
-    if (!mlv_video_enabled) return;
+    if (!mlv_video_enabled)
+    {
+        reset_movie_cropmarks();
+        return;
+    }
     
     refresh_cropmarks();
     
@@ -1300,7 +1304,7 @@ static void raw_video_enable()
 static void raw_video_disable()
 {
     raw_lv_release();
-    if (is_custom_movie_mode())
+    if (cam_eos_m && is_custom_movie_mode())
     {
         set_custom_movie_mode(0);
     }
