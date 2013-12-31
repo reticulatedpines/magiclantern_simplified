@@ -1988,7 +1988,7 @@ read_headers:
                             dng_set_focal(lens_info.focalLength, 1);
                             dng_set_iso(expo_info.isoValue);
                             
-                            dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
+                            //dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
                             
                             /* calculate the time this frame was taken at, i.e., the start time + the current timestamp. this can be off by a second but it's better than nothing */
                             int ms = 0.5 + buf.timestamp / 1000.0;
