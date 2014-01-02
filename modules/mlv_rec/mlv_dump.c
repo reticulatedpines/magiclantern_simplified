@@ -388,6 +388,26 @@ void print_msg(uint32_t type, const char* format, ... )
     va_end( args );
 }
 
+/* platform/target specific fseek/ftell functions go here */
+uint64_t file_get_pos(FILE *stream)
+{
+#if defined(__WIN32)
+    return ftello64(stream);
+#else
+    return ftello(stream);
+#endif
+}
+
+uint32_t file_set_pos(FILE *stream, uint64_t offset, int whence)
+{
+#if defined(__WIN32)
+    return fseeko64(stream, offset, whence);
+#else
+    return fseeko(stream, offset, whence);
+#endif
+}
+
+
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
 {
@@ -527,7 +547,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
         mlv_hdr_t buf;
         uint64_t position = 0;
         
-        position = ftello(in_file);
+        position = file_get_pos(in_file);
         
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
@@ -537,9 +557,9 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
         }
         
         /* jump back to the beginning of the block just read */
-        fseeko(in_file, position, SEEK_SET);
+        file_set_pos(in_file, position, SEEK_SET);
 
-        position = ftello(in_file);
+        position = file_get_pos(in_file);
         
         if(!memcmp(buf.blockType, "MLVI", 4))
         {
@@ -553,7 +573,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
                 ret = 3;
                 goto load_frame_finish;
             }
-            fseeko(in_file, position + file_hdr.blockSize, SEEK_SET);
+            file_set_pos(in_file, position + file_hdr.blockSize, SEEK_SET);
 
             if(file_hdr.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA)
             {
@@ -576,7 +596,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
             
             int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
 
-            fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
+            file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
             if(fread(frame_buffer, frame_size, 1, in_file) != 1)
             {
                 print_msg(MSG_ERROR, "File '%s' ends in the middle of a block\n", filename);
@@ -589,7 +609,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
         }
         else
         {
-            fseeko(in_file, position + buf.blockSize, SEEK_SET);
+            file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
         }
     }
     while(!feof(in_file));
@@ -604,7 +624,7 @@ load_frame_finish:
 mlv_xref_hdr_t *load_index(char *base_filename)
 {
     mlv_xref_hdr_t *block_hdr = NULL;
-    char filename[128];
+    char *filename = malloc(strlen(base_filename) + 16);
     FILE *in_file = NULL;
 
     strncpy(filename, base_filename, sizeof(filename));
@@ -614,6 +634,7 @@ mlv_xref_hdr_t *load_index(char *base_filename)
     
     if(!in_file)
     {
+        free(filename);
         return NULL;
     }
 
@@ -624,7 +645,7 @@ mlv_xref_hdr_t *load_index(char *base_filename)
         mlv_hdr_t buf;
         uint64_t position = 0;
         
-        position = ftello(in_file);
+        position = file_get_pos(in_file);
         
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
@@ -632,9 +653,9 @@ mlv_xref_hdr_t *load_index(char *base_filename)
         }
         
         /* jump back to the beginning of the block just read */
-        fseeko(in_file, position, SEEK_SET);
+        file_set_pos(in_file, position, SEEK_SET);
 
-        position = ftello(in_file);
+        position = file_get_pos(in_file);
         
         /* we should check the MLVI header for matching UID value to make sure its the right index... */
         if(!memcmp(buf.blockType, "XREF", 4))
@@ -650,11 +671,11 @@ mlv_xref_hdr_t *load_index(char *base_filename)
         }
         else
         {
-            fseeko(in_file, position + buf.blockSize, SEEK_SET);
+            file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
         }
         
         /* we are at the same position as before, so abort */
-        if(position == ftello(in_file))
+        if(position == file_get_pos(in_file))
         {
             print_msg(MSG_ERROR, "File '%s' has invalid blocks\n", filename);
             break;
@@ -664,12 +685,13 @@ mlv_xref_hdr_t *load_index(char *base_filename)
     
     fclose(in_file);
     
+    free(filename);
     return block_hdr;
 }
 
 void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount, frame_xref_t *index, int entries)
 {
-    char filename[128];
+    char *filename = malloc(strlen(base_filename) + 16);
     FILE *out_file = NULL;
 
     strncpy(filename, base_filename, sizeof(filename));
@@ -679,6 +701,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     
     if(!out_file)
     {
+        free(filename);
         print_msg(MSG_ERROR, "Failed writing into output file\n");
         return;
     }
@@ -708,6 +731,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     
     if(fwrite(&hdr, sizeof(mlv_xref_hdr_t), 1, out_file) != 1)
     {
+        free(filename);
         print_msg(MSG_ERROR, "Failed writing into output file\n");
         fclose(out_file);
         return;
@@ -725,12 +749,14 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
         
         if(fwrite(&field, sizeof(mlv_xref_t), 1, out_file) != 1)
         {
+            free(filename);
             print_msg(MSG_ERROR, "Failed writing into output file\n");
             fclose(out_file);
             return;
         }
     }
     
+    free(filename);
     fclose(out_file);
 }
 
@@ -738,7 +764,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
 FILE **load_all_chunks(char *base_filename, int *entries)
 {
     int seq_number = 0;
-    char filename[128];
+    char *filename = malloc(strlen(base_filename) + 16);
     
     strncpy(filename, base_filename, sizeof(filename));
     FILE **files = malloc(sizeof(FILE*));
@@ -746,6 +772,7 @@ FILE **load_all_chunks(char *base_filename, int *entries)
     files[0] = fopen(filename, "rb");
     if(!files[0])
     {
+        free(filename);
         return NULL;
     }
     
@@ -757,7 +784,7 @@ FILE **load_all_chunks(char *base_filename, int *entries)
         files = realloc(files, (*entries + 1) * sizeof(FILE*));
         
         /* check for the next file M00, M01 etc */
-        char seq_name[3];
+        char seq_name[8];
 
         sprintf(seq_name, "%02d", seq_number);
         seq_number++;
@@ -773,9 +800,12 @@ FILE **load_all_chunks(char *base_filename, int *entries)
         }
         else
         {
+            print_msg(MSG_INFO, "File %s not existing.\n", filename);
             break;
         }
     }
+    
+    free(filename);
     return files;
 }
 
@@ -1419,10 +1449,10 @@ read_headers:
             
             /* select file and seek to the right position */
             in_file = in_files[in_file_num];
-            fseeko(in_file, position, SEEK_SET);
+            file_set_pos(in_file, position, SEEK_SET);
         }
         
-        position = ftello(in_file);
+        position = file_get_pos(in_file);
         
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
@@ -1449,9 +1479,9 @@ read_headers:
         }
         
         /* jump back to the beginning of the block just read */
-        fseeko(in_file, position, SEEK_SET);
+        file_set_pos(in_file, position, SEEK_SET);
 
-        position = ftello(in_file);
+        position = file_get_pos(in_file);
         
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
@@ -1465,7 +1495,7 @@ read_headers:
                 print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                 goto abort;
             }
-            fseeko(in_file, position + file_hdr.blockSize, SEEK_SET);
+            file_set_pos(in_file, position + file_hdr.blockSize, SEEK_SET);
             
             lua_handle_hdr(lua_state, buf.blockType, &file_hdr, sizeof(file_hdr));
 
@@ -1605,7 +1635,7 @@ read_headers:
                 }
                 
                 /* skip frame space */
-                fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
+                file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                 
                 int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
                 void *buf = malloc(frame_size);
@@ -1625,7 +1655,7 @@ read_headers:
                 if(out_file_wav)
                 {
                     /* assume block size is uniform, this allows random access */
-                    fseeko(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
+                    file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
                     fwrite(buf, frame_size, 1, out_file_wav);
                     wav_file_size += frame_size;
                 }
@@ -1664,7 +1694,7 @@ read_headers:
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     int prev_frame_size = frame_size;
                     
-                    fseeko(in_file, block_hdr.frameSpace, SEEK_CUR);
+                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                     if(fread(frame_buffer, frame_size, 1, in_file) != 1)
                     {
                         print_msg(MSG_ERROR, "File ends in the middle of a block\n");
@@ -1933,7 +1963,7 @@ read_headers:
 
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_raw", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
                         
-                            fseeko(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
+                            file_set_pos(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
                             fwrite(frame_buffer, frame_size, 1, out_file);
                         }
                         
@@ -2008,7 +2038,8 @@ read_headers:
 
                             if(mktime(&tm) != -1)
                             {
-                                char datetime_str[20], subsec_str[4];
+                                char datetime_str[32];
+                                char subsec_str[8];
                                 strftime(datetime_str, 20, "%Y:%m:%d %H:%M:%S", &tm);
                                 snprintf(subsec_str, sizeof(subsec_str), "%03d", ms);
                                 dng_set_datetime(datetime_str, subsec_str);
@@ -2111,7 +2142,7 @@ read_headers:
                 }
                 else
                 {
-                    fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                    file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 }
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
@@ -2129,7 +2160,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + lens_info.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + lens_info.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &lens_info, sizeof(lens_info));
 
@@ -2223,7 +2254,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -2256,7 +2287,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -2291,7 +2322,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + wbal_info.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + wbal_info.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &wbal_info, sizeof(wbal_info));
 
@@ -2328,7 +2359,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + idnt_info.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + idnt_info.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &idnt_info, sizeof(idnt_info));
 
@@ -2361,7 +2392,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + rtci_info.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + rtci_info.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &rtci_info, sizeof(rtci_info));
 
@@ -2398,7 +2429,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -2429,7 +2460,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + expo_info.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + expo_info.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &expo_info, sizeof(expo_info));
 
@@ -2465,7 +2496,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -2531,7 +2562,7 @@ read_headers:
                 }
                 
                 /* skip remaining data, if there is any */
-                fseeko(in_file, position + block_hdr.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -2593,17 +2624,17 @@ read_headers:
                     fwrite(&tmp_uint32, 4, 1, out_file_wav);
                     
                     wav_file_size = 0;
-                    wav_header_size = ftello(out_file_wav);
+                    wav_header_size = file_get_pos(out_file_wav);
                 }
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
             {
-                fseeko(in_file, position + buf.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
             }
             else
             {
                 print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                fseeko(in_file, position + buf.blockSize, SEEK_SET);
+                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, "", 0);
             }
@@ -2662,7 +2693,7 @@ abort:
         lv_rec_footer.frameCount = vidf_max_number + 1;
         lv_rec_footer.raw_info.bits_per_pixel = 14;
         
-        fseeko(out_file, 0, SEEK_END);
+        file_set_pos(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
     }
     
@@ -2689,11 +2720,11 @@ abort:
     {
         /* Patch the WAV size fields */
         uint32_t tmp_uint32 = wav_file_size + 36; /* + header size */
-        fseek(out_file_wav, 4, SEEK_SET);
+        file_set_pos(out_file_wav, 4, SEEK_SET);
         fwrite(&tmp_uint32, 4, 1, out_file_wav);
 
         tmp_uint32 = wav_file_size; /* data size */
-        fseek(out_file_wav, 40, SEEK_SET);
+        file_set_pos(out_file_wav, 40, SEEK_SET);
         fwrite(&tmp_uint32, 4, 1, out_file_wav);
         fclose(out_file_wav);
     }
