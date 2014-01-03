@@ -126,7 +126,9 @@ static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
 static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 only list images
+#ifdef CONFIG_BULB
 static int hdr_first_shot_bulb = 0;
+#endif
 
 static CONFIG_INT( "interval.enabled", interval_enabled, 0 );
 static CONFIG_INT( "interval.trigger", interval_trigger, 0 );
