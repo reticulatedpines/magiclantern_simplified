@@ -5056,7 +5056,9 @@ static int hdr_shutter_release(int ev_x8)
         // restore settings back
         //~ set_shooting_mode(m0r);
 
+        #ifdef CONFIG_BULB
         if(!hdr_first_shot_bulb)
+        #endif
         {
             hdr_set_rawshutter(s0r);
         }
@@ -5280,11 +5282,13 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         msleep(100);
     }
 
+    #ifdef CONFIG_BULB
     // first exposure is bulb mode
     if(is_bulb_mode() && bulb_timer)
     {
         hdr_first_shot_bulb = 1;
     }
+    #endif
 
     switch (hdr_sequence)
     {
@@ -5307,11 +5311,13 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         {
             for( i = 1; i < steps; i ++  )
             {
+                #ifdef CONFIG_BULB
                 //do not skip frames with Bulb Timer
                 if(hdr_first_shot_bulb)
                 {
                     while (lens_info.job_state) msleep(100);
                 }
+                #endif
 
                 hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1));
                 if (hdr_check_cancel(0)) goto end;
@@ -5320,11 +5326,13 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         }
     }
 
+    #ifdef CONFIG_BULB
     if(hdr_first_shot_bulb)
     {
         ensure_bulb_mode();
         hdr_first_shot_bulb = 0;
     }
+    #endif
 
     hdr_create_script(f0, 0);
 
