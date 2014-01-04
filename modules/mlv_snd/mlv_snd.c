@@ -113,7 +113,6 @@ static void mlv_snd_asif_in_cbr()
     /* and pass the filled buffer into done queue */
     if(mlv_snd_current_buffer)
     {
-        mlv_set_type((mlv_hdr_t *)mlv_snd_current_buffer, "AUDF");
         mlv_snd_current_buffer->frameNumber = mlv_snd_frame_number;
         mlv_snd_frame_number++;
         msg_queue_post(mlv_snd_buffers_done, mlv_snd_current_buffer);
@@ -423,6 +422,7 @@ static void mlv_snd_writer(int unused)
                     trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d, setting frame #%d", buffer->mlv_slot_id, buffer->frameNumber);
                     
                     mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
+                    mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
                     
                     /* fill recording information */
                     hdr->frameNumber = buffer->frameNumber;
