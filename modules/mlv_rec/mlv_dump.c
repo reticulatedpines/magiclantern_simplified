@@ -1344,6 +1344,9 @@ int main (int argc, char *argv[])
     frame_xref_t *frame_xref_table = NULL;
     int frame_xref_allocated = 0;
     int frame_xref_entries = 0;
+    
+    int total_vidf_count = 0;
+    int total_audf_count = 0;
 
     /* open files */
     in_files = load_all_chunks(input_filename, &in_file_count);
@@ -1443,7 +1446,7 @@ int main (int argc, char *argv[])
         
 read_headers:
 
-        print_msg(MSG_PROGRESS, "B:%d/%d V:%d/%d A:%d/%d\n", blocks_processed, block_xref?block_xref->entryCount:0, vidf_frames_processed, main_header.videoFrameCount, audf_frames_processed, main_header.audioFrameCount);
+        print_msg(MSG_PROGRESS, "B:%d/%d V:%d/%d A:%d/%d\n", blocks_processed, block_xref?block_xref->entryCount:0, vidf_frames_processed, total_vidf_count, audf_frames_processed, total_audf_count);
         
         if(block_xref)
         {
@@ -1533,6 +1536,9 @@ read_headers:
             {
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
                 
+                total_vidf_count = main_header.videoFrameCount;
+                total_audf_count = main_header.audioFrameCount;
+                
                 if(mlv_output)
                 {
                     /* correct header size if needed */
@@ -1577,6 +1583,9 @@ read_headers:
                     print_msg(MSG_INFO, "Error: GUID within the file chunks mismatch!\n");
                     break;
                 }
+                
+                total_vidf_count += file_hdr.videoFrameCount;
+                total_audf_count += file_hdr.audioFrameCount;
             }
             
             if(raw_output)
