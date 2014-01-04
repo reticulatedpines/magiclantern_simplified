@@ -193,6 +193,7 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
             else
             {
                 trace_write(trace_ctx, "mlv_snd_flush_entries: data %d entry for frame #%d", entry->mlv_slot_id, entry->frameNumber);
+                mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
                 hdr->frameNumber = entry->frameNumber;
                 mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
             }
