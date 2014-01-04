@@ -624,10 +624,11 @@ load_frame_finish:
 mlv_xref_hdr_t *load_index(char *base_filename)
 {
     mlv_xref_hdr_t *block_hdr = NULL;
-    char *filename = malloc(strlen(base_filename) + 16);
+    int max_name_len = strlen(base_filename) + 16;
+    char *filename = malloc(max_name_len);
     FILE *in_file = NULL;
-
-    strncpy(filename, base_filename, sizeof(filename));
+    
+    strncpy(filename, base_filename, max_name_len);
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
     in_file = fopen(filename, "rb");
@@ -691,10 +692,12 @@ mlv_xref_hdr_t *load_index(char *base_filename)
 
 void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount, frame_xref_t *index, int entries)
 {
-    char *filename = malloc(strlen(base_filename) + 16);
+    int max_name_len = strlen(base_filename) + 16;
+    char *filename = malloc(max_name_len);
     FILE *out_file = NULL;
-
-    strncpy(filename, base_filename, sizeof(filename));
+    
+    strncpy(filename, base_filename, max_name_len);
+    
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
     out_file = fopen(filename, "wb+");
@@ -764,9 +767,10 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
 FILE **load_all_chunks(char *base_filename, int *entries)
 {
     int seq_number = 0;
-    char *filename = malloc(strlen(base_filename) + 16);
+    int max_name_len = strlen(base_filename) + 16;
+    char *filename = malloc(max_name_len);
     
-    strncpy(filename, base_filename, sizeof(filename));
+    strncpy(filename, base_filename, max_name_len);
     FILE **files = malloc(sizeof(FILE*));
     
     files[0] = fopen(filename, "rb");
