@@ -22,7 +22,12 @@ MINGW_AR=$(MINGW)-ar
 # large file support
 # get them with $(shell getconf LFS_CFLAGS)
 LFS_FLAGS=-DLARGEFILES -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
-MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS)
+
+ifdef FOR_OSX
+    MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS) -arch i386 -mmacosx-version-min=10.6
+else
+    MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS)
+endif
 
 # LZMA library flags
 LZMA_DIR=lzma/

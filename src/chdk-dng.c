@@ -389,6 +389,12 @@ void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g
     cam_AsShotNeutral[5] = gain_b_d;
 }
 
+void dng_set_datetime(char *datetime, char *subsectime)
+{
+    strncpy(cam_datetime, datetime, sizeof(cam_datetime));
+    strncpy(cam_subsectime, subsectime, sizeof(cam_subsectime));
+}
+
 
 static void create_dng_header(struct raw_info * raw_info){
     int i,j;

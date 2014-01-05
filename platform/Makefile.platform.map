@@ -9,6 +9,7 @@ PLATFORM_MAP = \
 	600D.102 \
 	650D.104 \
 	700D.111 \
+	EOSM.202 \
 
 PLATFORM_MAP_UNMAINTAINED = \
 	40D.111 \
@@ -16,7 +17,6 @@ PLATFORM_MAP_UNMAINTAINED = \
 	1100D.105 \
 	50D.109 \
 	6D.113 \
-	EOSM.106 \
 	100D.100 \
 
 platform_map = $(filter $(1).%, $(PLATFORM_MAP))

@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Collections;
 using System.Threading;
+using System.Diagnostics;
 
 namespace MLVBrowseSharp
 {
@@ -17,10 +18,27 @@ namespace MLVBrowseSharp
         private ArrayList FileIcons = new ArrayList();
         public string[] Groups = new string[0];
         private bool _AnimateAll = false;
+        private bool _ShowPreviews = true;
 
         public MLVFileList()
         {
             InitializeComponent();
+        }
+
+        internal bool ShowPreviews
+        {
+            get
+            {
+                return _ShowPreviews;
+            }
+            set
+            {
+                _ShowPreviews = value;
+                foreach (MLVFileIcon icon in FileIcons)
+                {
+                    icon.Stop();
+                }
+            }
         }
 
         internal bool AnimateAll
@@ -91,22 +109,32 @@ namespace MLVBrowseSharp
             UpdateFileIcons();
 
             /* delay a bit so the GUI has enough time to render until the cpu load raises */
-            Thread renderStart = new Thread(() =>
+            if (ShowPreviews)
             {
-                Thread.Sleep(100);
+                Thread renderStart = new Thread(() =>
+                {
+                    Thread.Sleep(100);
 
-                /* first time animate until first video frame appears */
+                    /* first time animate until first video frame appears */
+                    foreach (MLVFileIcon icon in FileIcons)
+                    {
+                        icon.SingleStep = true;
+                        icon.Paused = false;
+
+                        icon.Start();
+                    }
+
+                    UpdateAnimationStatus();
+                });
+                renderStart.Start();
+            }
+            else
+            {
                 foreach (MLVFileIcon icon in FileIcons)
                 {
-                    icon.SingleStep = true;
-                    icon.Paused = false;
-
-                    icon.Start();
+                    icon.SetText("<no previews>");
                 }
-
-                UpdateAnimationStatus();
-            });
-            renderStart.Start();
+            }
         }
 
         private void UpdateFileIcons()
@@ -147,6 +175,97 @@ namespace MLVBrowseSharp
 
         internal void RightClick(Point pos)
         {
+            if (Form.ModifierKeys == Keys.Shift)
+            {
+
+            }
+            else
+            {
+                ContextMenu menu = new ContextMenu();
+
+                menu.MenuItems.Add("Export selected files as .RAW + .WAV", new EventHandler(Menu_ExportRaw));
+                menu.MenuItems.Add("Export selected files as .DNG + .WAV", new EventHandler(Menu_ExportDng));
+                menu.MenuItems.Add("-");
+                menu.MenuItems.Add("Open Shell Context Menu", new EventHandler(Menu_ShellContextMenu));
+
+                menu.Show(this, PointToClient(MousePosition));
+            }
+        }
+
+        private void RunProgramForSelected(string program, string[] parameters)
+        {
+            Console.WriteLine("RunProgramForSelected: '" + program + " " + string.Join(" ", parameters) + "'");
+            ArrayList files = new ArrayList();
+
+            foreach (MLVFileIcon icon in FileIcons)
+            {
+                if (icon.Selected)
+                {
+                    files.Add(icon.FileInfo.FullName);
+                }
+            }
+
+            ShellProgramHelper.RunForAll((string[])files.ToArray(typeof(string)), program, "", parameters);
+        }
+
+        private string GetSavePath()
+        {
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.FileName = "[here]";
+            dlg.ValidateNames = false;
+            dlg.Title = "Select the path to write the .RAW to";
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                string path = dlg.FileName.Remove(dlg.FileName.LastIndexOf(System.IO.Path.DirectorySeparatorChar)) + System.IO.Path.DirectorySeparatorChar;
+                return path;
+            }
+            
+            return null;
+        }
+
+        void Menu_ExportRaw(object sender, EventArgs args)
+        {
+            string path = GetSavePath();
+
+            if(path == null)
+            {
+                return;
+            }
+
+            ArrayList mlvDumpParams = new ArrayList();
+            mlvDumpParams.Add("--batch");
+            mlvDumpParams.Add("-r");
+            mlvDumpParams.Add("-v");
+            mlvDumpParams.Add("-o");
+            mlvDumpParams.Add("\"" + path + "%INFILENAME%.RAW\"");
+            mlvDumpParams.Add("%INFILE%");
+
+            RunProgramForSelected("mlv_dump", (string[])mlvDumpParams.ToArray(typeof(string)));
+        }
+
+        void Menu_ExportDng(object sender, EventArgs args)
+        {
+            string path = GetSavePath();
+
+            if (path == null)
+            {
+                return;
+            }
+
+            ArrayList mlvDumpParams = new ArrayList();
+            mlvDumpParams.Add("--batch");
+            mlvDumpParams.Add("--dng");
+            mlvDumpParams.Add("-v");
+            mlvDumpParams.Add("-o");
+            mlvDumpParams.Add("\"" + path + "%INFILENAME%.frame_\"");
+            mlvDumpParams.Add("%INFILE%");
+
+            RunProgramForSelected("mlv_dump", (string[])mlvDumpParams.ToArray(typeof(string)));
+        }
+
+        void Menu_ShellContextMenu(object sender, EventArgs args)
+        {
             ArrayList selected = new ArrayList();
             foreach (MLVFileIcon icon in FileIcons)
             {
@@ -156,16 +275,9 @@ namespace MLVBrowseSharp
                 }
             }
 
-            if (Form.ModifierKeys == Keys.Shift)
-            {
-
-            }
-            else
-            {
-                ShellContextMenu ctxMnu = new ShellContextMenu();
-                FileInfo[] arrFI = (FileInfo[])selected.ToArray(typeof(FileInfo));
-                ctxMnu.ShowContextMenu(arrFI, this.PointToScreen(pos));
-            }
+            ShellContextMenu ctxMnu = new ShellContextMenu();
+            FileInfo[] arrFI = (FileInfo[])selected.ToArray(typeof(FileInfo));
+            ctxMnu.ShowContextMenu(arrFI, MousePosition);
         }
 
         internal void StartAnimation()
@@ -299,7 +411,7 @@ namespace MLVBrowseSharp
 
         private void fileList_MouseEnter(object sender, EventArgs e)
         {
-            Focus();
+            //Focus();
         }
     }
 }

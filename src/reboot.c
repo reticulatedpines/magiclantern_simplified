@@ -108,7 +108,7 @@ cstart( void )
     #endif
 
     #ifdef CONFIG_EOSM
-    if (s != (int)SIG_EOSM_106)
+    if (s != (int)SIG_EOSM_202)
         fail();
     #endif
 

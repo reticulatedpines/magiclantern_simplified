@@ -19,6 +19,8 @@ namespace MLVBrowseSharp
         public FileInfo FileInfo = null;
         private MLVFileList ParentList = null;
         private bool _Selected = false;
+        private bool _Processing = false;
+        
         internal bool Paused = false;
         internal bool SingleStep = true;
         private bool SeekMode = false;
@@ -307,7 +309,7 @@ namespace MLVBrowseSharp
             }
         }
 
-        private void SetText(string text)
+        public void SetText(string text)
         {
             try
             {
@@ -343,7 +345,7 @@ namespace MLVBrowseSharp
 
                 if (arg.Button == MouseButtons.Left)
                 {
-                    if (Form.ModifierKeys != Keys.Control)
+                    if (Form.ModifierKeys != Keys.Control && Form.ModifierKeys != Keys.Shift)
                     {
                         ParentList.UnselectAll();
                     }
@@ -363,6 +365,27 @@ namespace MLVBrowseSharp
                     ParentList.RightClick(new Point(arg.X, arg.Y));
                 }
                 ParentList.UpdateAnimationStatus();
+            }
+        }
+
+        public bool Processing
+        {
+            get
+            {
+                return _Processing;
+            }
+            set
+            {
+                _Processing = value;
+
+                Selected = Selected;
+
+                if (_Processing)
+                {
+                    BackColor = Color.GreenYellow;
+                    textLabel.BackColor = Color.GreenYellow;
+                    splitContainer1.BackColor = Color.GreenYellow;
+                }
             }
         }
 

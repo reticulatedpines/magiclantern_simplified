@@ -140,10 +140,10 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint16_t    tm_sec;    /* seconds (0-59) */
     uint16_t    tm_min;    /* minute (0-59) */
-    uint16_t    tm_hour;    /* hour (0-24) */
+    uint16_t    tm_hour;    /* hour (0-23) */
     uint16_t    tm_mday;    /* day of month (1-31) */
-    uint16_t    tm_mon;    /* month (1-12) */
-    uint16_t    tm_year;    /* year */
+    uint16_t    tm_mon;    /* month (0-11) */
+    uint16_t    tm_year;    /* year since 1900 */
     uint16_t    tm_wday;    /* day of week */
     uint16_t    tm_yday;    /* day of year */
     uint16_t    tm_isdst;    /* daylight saving */

@@ -407,12 +407,10 @@ int get_global_draw() // menu setting, or off if
 {
 #ifdef FEATURE_GLOBAL_DRAW
     
-    //~ PROP_HOUTPUT_TYPE handler only fires when Canon overlays are hidden, not restored.
-    //~ So we update lv_disp_mode here instead.
-    #ifdef CONFIG_EOSM
-        lv_disp_mode = (MEM(0x8A01C + 0x7C) != 3);
+    #ifdef LV_DISP_MODE
+        lv_disp_mode = LV_DISP_MODE;
     #endif
-    
+
     extern int ml_started;
     if (!ml_started) return 0;
     if (!global_draw) return 0;
@@ -3890,7 +3888,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
-    #if defined(CONFIG_DIGIC_V)
+    #if defined(CONFIG_DIGIC_V) && ! defined(CONFIG_EOSM)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else
