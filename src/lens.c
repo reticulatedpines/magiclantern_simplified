@@ -2388,6 +2388,11 @@ static LVINFO_UPDATE_FUNC(tv_update)
     {
         snprintf(buffer, sizeof(buffer), "BULB");
     }
+    else if (is_movie_mode())
+    {
+        int s = get_current_shutter_reciprocal_x1000() + 50;
+        snprintf(buffer, sizeof(buffer), SYM_1_SLASH "%d.%d", s/100/10, (s/100)%10);
+    }
     else if (lens_info.raw_shutter)
     {
         snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter(lens_info.raw_shutter));
