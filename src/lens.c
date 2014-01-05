@@ -2531,6 +2531,16 @@ static LVINFO_UPDATE_FUNC(batt_update)
     }
 }
 
+static LVINFO_UPDATE_FUNC(ae_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (lens_info.ae) {
+        snprintf(buffer, sizeof(buffer), "%s%d.%d", lens_info.ae < 0 ? "-" : "+", ABS(lens_info.ae) / 8, ((ABS(lens_info.ae) * 10 ) / 8 ) % 10 );
+        item->color_fg = lens_info.ae < 0 ? COLOR_RED : COLOR_CYAN;
+    }
+}
+
 static struct lvinfo_item info_items[] = {
     /* Top bar */
     {
@@ -2641,6 +2651,12 @@ static struct lvinfo_item info_items[] = {
         .name = "Battery",
         .which_bar = LV_BOTTOM_BAR_ONLY,
         .update = batt_update,
+        .preferred_position = 127,
+    },
+    {
+        .name = "Exposure Compensation",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = ae_update,
         .preferred_position = 127,
     }
 };
