@@ -541,20 +541,20 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", month, day, year);
     else  
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
-	
-    if ( size > 1024*1024*1024 )
+
+    if ( size >= 1024*1024*1024 )
     {
-        int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dGB", datestr, size_gb/10, size_gb%10);
+        int size_gb = (size/1024/1024 * 100 + 512)  / 1024;
+        snprintf( str, sizeof(str), "%s %2d.%2dGB", datestr, size_gb/100, size_gb%100);
     }
-    else if ( size > 1024*1024 )
+    else if ( size >= 1024*1024 )
     {
-        int size_mb = (size * 10 + 5) / 1024 / 1024;
+        int size_mb = (size/1024 * 10 + 512) / 1024;
         snprintf( str, sizeof(str), "%s %3d.%dMB", datestr, size_mb/10, size_mb%10);
     }
-    else if ( size > 1024 )
+    else if ( size >= 1024 )
     {
-        int size_kb = (size * 10 + 5) / 1024;
+        int size_kb = (size * 10 + 512) / 1024;
         snprintf( str, sizeof(str), "%s %3d.%dkB", datestr, size_kb/10, size_kb%10);
     }
     else
