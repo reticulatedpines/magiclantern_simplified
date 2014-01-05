@@ -2495,6 +2495,8 @@ static LVINFO_UPDATE_FUNC(af_mf_update)
 
 static LVINFO_UPDATE_FUNC(batt_update)
 {
+    item->height = 30;
+
     #ifdef CONFIG_BATTERY_INFO
     item->width = 70;
     #else
