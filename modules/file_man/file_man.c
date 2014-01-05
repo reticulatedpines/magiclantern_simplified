@@ -191,7 +191,8 @@ static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
     if (a->type != b->type) return a->type < b->type;
 
     // If the file types are the same, order alphabetically
-    return strcmp(a->name, b->name) <= 0;
+    int result = strcmp(a->name, b->name);
+    return (result < 0) || (result == 0 && strlen(a->name) <= strlen(b->name));
 }
 
 static void build_file_menu()
