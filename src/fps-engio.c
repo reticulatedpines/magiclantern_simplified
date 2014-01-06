@@ -1661,7 +1661,14 @@ static void fps_task()
             NotifyBox(2000, msg);
             fps_warned = 1;
         }
-        
+
+        // 50D-specific warning when the FPS is incorrectly locked to 22, likely due to overheating
+        // http://www.magiclantern.fm/forum/index.php?topic=6537.0
+        #ifdef CONFIG_50D
+        if (fps_warned && ((fps_get_current_x1000()/1000) == 22) && (fps_get_current_x1000() != fps_values_x1000[fps_override_index]) ) 
+            NotifyBox(2000, "FPS warning, possible overheating!\n");
+        #endif
+
         #ifdef FEATURE_EXPO_OVERRIDE
         if (CONTROL_BV && !is_movie_mode()) // changes in FPS may affect expsim calculations in photo mode
             bv_auto_update();
