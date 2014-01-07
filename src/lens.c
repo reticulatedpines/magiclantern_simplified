@@ -2557,9 +2557,29 @@ static LVINFO_UPDATE_FUNC(ae_update)
 {
     LVINFO_BUFFER(8);
 
-    if (lens_info.ae) {
-        snprintf(buffer, sizeof(buffer), "%s%d.%d", lens_info.ae < 0 ? "-" : "+", ABS(lens_info.ae) / 8, ((ABS(lens_info.ae) * 10 ) / 8 ) % 10 );
-        item->color_fg = lens_info.ae < 0 ? COLOR_RED : COLOR_CYAN;
+    switch(shooting_mode)
+    {
+        /* in semi-auto modes, this shows the exposure compensation dialed by user (all fine) */
+        case SHOOTMODE_P:
+        case SHOOTMODE_AV:
+        case SHOOTMODE_TV:
+        {
+            int ae = lens_info.ae * 10/8;
+            snprintf(buffer, sizeof(buffer), "%s%d.%d", FMT_FIXEDPOINT1S(ae));
+            /* note: it may be unclear what this is at first sight; maybe some symbol in the font can help? */
+            break;
+        }
+        
+        /* in M mode, the behavior is not consistent across cameras (on some it's 0, on others it's Canon metering) */
+        /* it may be a better idea to use AE_VALUE, but for me, Canon metering is completely irrelevant */
+        /* so I recommend looking at the ETTR indicator and histogram instead */
+        
+        /* in other modes, no idea */
+        
+        /* note: merging this indicator with the ETTR one may be a good idea (maybe also with a nice graphical meter) */
+        
+        default:
+            break;
     }
 }
 
@@ -2670,17 +2690,17 @@ static struct lvinfo_item info_items[] = {
         .priority = -1,
     },
     {
+        .name = "Exposure Compensation",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = ae_update,
+        .preferred_position = 50,
+    },
+    {
         .name = "Battery",
         .which_bar = LV_BOTTOM_BAR_ONLY,
         .update = batt_update,
         .preferred_position = 127,
     },
-    {
-        .name = "Exposure Compensation",
-        .which_bar = LV_BOTTOM_BAR_ONLY,
-        .update = ae_update,
-        .preferred_position = 127,
-    }
 };
 
 static void lens_info_init()
