@@ -226,6 +226,12 @@ lens_format_dist(
         unsigned                mm
 );
 
+/** Pretty prints the shutter speed given the raw shutter value as input */
+char* lens_format_shutter(int tv);
+
+/** Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input */
+char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000);
+
 #define KELVIN_MIN 1500
 #define KELVIN_MAX 15000
 #define KELVIN_STEP 100
