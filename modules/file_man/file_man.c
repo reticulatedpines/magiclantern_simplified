@@ -187,12 +187,15 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
 // Returns true if a should be ordered before b
 static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
 {
-    // Directories are grouped before files, which are grouped before actions
+    // If either file type is an action, don't change the order
+    if (a->type == TYPE_ACTION || b->type == TYPE_ACTION) return true;
+
+    // Directories are grouped before files
     if (a->type != b->type) return a->type < b->type;
 
-    // If the file types are the same, accept the order if they are actions or order alphabetically otherwise
+    // If the file types are the same, order alphabetically
     int result = strcmp(a->name, b->name);
-    return (a->type == TYPE_ACTION) || (result < 0) || (result == 0 && strlen(a->name) <= strlen(b->name));
+    return (result < 0) || (result == 0 && strlen(a->name) <= strlen(b->name));
 }
 
 static void build_file_menu()
