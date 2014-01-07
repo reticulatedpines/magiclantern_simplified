@@ -18,7 +18,6 @@ struct file_entry
     char name[MAX_PATH_LEN];
     unsigned int size;
     unsigned int type: 2;
-    unsigned int added: 1;
     unsigned int timestamp;
 };
 
@@ -184,45 +183,98 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
     return fe;
 }
 
+// Comparison used for the Mergesort on the filenames
+// Returns true if a should be ordered before b
+static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
+{
+    // If either file type is an action, don't change the order
+    if (a->type == TYPE_ACTION || b->type == TYPE_ACTION) return true;
+
+    // Directories are grouped before files
+    if (a->type != b->type) return a->type < b->type;
+
+    // If the file types are the same, order alphabetically
+    int result = strcmp(a->name, b->name);
+    return (result < 0) || (result == 0 && strlen(a->name) <= strlen(b->name));
+}
+
 static void build_file_menu()
 {
-    /* HaCKeD Sort */
-    int done = 0;
     int start_time = get_ms_clock_value();
-    while (!done)
-    {
-        done = 1;
 
-        for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        {
-            if (!fe->added)
-            {
-                /* are there any entries that should be before "fe" ? */
-                /* if yes, skip "fe", add those entries, and try again */
-                int should_skip = 0;
+    // Mergesort on a linked list
+    // e.g., http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
 
-                /* todo: use a O(n log n) sorting algorithm */
-                if (get_ms_clock_value() - start_time < 1000)
-                {
-                    for (struct file_entry * e = file_entries; e; e = e->next)
-                    {
-                        if (!e->added && e != fe && fe->type != TYPE_ACTION && e->type != TYPE_ACTION)
-                        {
-                            if (e->type < fe->type) { should_skip = 1; break; }
-                            if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
-                        }
-                    }
-                }
+    struct file_entry *list = file_entries;
+    struct file_entry *p, *q, *smallest, *tail;
 
-                if (!should_skip)
-                {
-                    menu_add("File Manager", &(fe->menu_entry), 1);
-                    fe->added = 1;
-                }
-                else done = 0;
+    int length = 1;
+    int nmerges, psize, qsize, i;
+
+    do {
+        p = list;
+        list = NULL; // points to the first element in the list of sorted 2*length chunks
+        tail = NULL; // points to the last element in the list of sorted 2*length chunks
+
+        nmerges = 0; // counts the number of merges in this pass
+
+        while (p) { // if some of the list has not yet been chunked...
+            nmerges++;
+
+            // p points to the first chunk of (up to) length elements
+            // q points to the following chunk of (up to) length elements, if it exists
+            q = p;
+            psize = 0;
+            for (i = 0; i < length; i++) {
+                psize++;
+                q = q->next;
+                if (q == NULL) break;
             }
+            qsize = length; // q may be shorted than qsize, so checking for NULL will be necessary
+
+            while (psize > 0 || (qsize > 0 && q)) {
+                // determine the smallest unsorted element
+                if (psize == 0) { // p is empty
+                    smallest = q;
+                    q = q->next;
+                    qsize--;
+                } else if (qsize == 0 || q == NULL) { // q is empty
+                    smallest = p;
+                    p = p->next;
+                    psize--;
+                } else if (ordered_file_entries(p,q)) { // first element of p is lower than (or the same as) the first element of q
+                    smallest = p;
+                    p = p->next;
+                    psize--;
+                } else { // first element of q is lower than first element of p
+                    smallest = q;
+                    q = q->next;
+                    qsize--;
+                }
+
+                // adds the smallest unsorted element to the end of the sorted list
+                if (tail) {
+                    tail->next = smallest;
+                } else {
+                    list = smallest;
+                }
+                tail = smallest;
+            }
+
+            // move the pointer past the end of the sorted chunks
+            p = q;
         }
-    }
+
+        tail->next = NULL;
+
+        length *= 2;
+
+    } while ((nmerges > 1) && (get_ms_clock_value() - start_time < 3000)); // Allows 3 seconds for the Mergesort
+
+    file_entries = list;
+
+    for (struct file_entry * fe = file_entries; fe; fe = fe->next)
+        menu_add("File Manager", &(fe->menu_entry), 1);
 }
 
 static struct semaphore * scandir_sem = 0;
@@ -541,20 +593,20 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", month, day, year);
     else  
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
-	
-    if ( size > 1024*1024*1024 )
+
+    if ( size >= 1024*1024*1024 )
     {
-        int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dGB", datestr, size_gb/10, size_gb%10);
+        int size_gb = (size/1024/1024 * 100 + 512)  / 1024;
+        snprintf( str, sizeof(str), "%s %2d.%2dGB", datestr, size_gb/100, size_gb%100);
     }
-    else if ( size > 1024*1024 )
+    else if ( size >= 1024*1024 )
     {
-        int size_mb = (size * 10 + 5) / 1024 / 1024;
+        int size_mb = (size/1024 * 10 + 512) / 1024;
         snprintf( str, sizeof(str), "%s %3d.%dMB", datestr, size_mb/10, size_mb%10);
     }
-    else if ( size > 1024 )
+    else if ( size >= 1024 )
     {
-        int size_kb = (size * 10 + 5) / 1024;
+        int size_kb = (size * 10 + 512) / 1024;
         snprintf( str, sizeof(str), "%s %3d.%dkB", datestr, size_kb/10, size_kb%10);
     }
     else
