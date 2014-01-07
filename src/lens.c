@@ -479,19 +479,35 @@ void draw_ml_bottombar()
     lvinfo_display(0,1);
 }
 
+// Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input
+char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
+{
+    static char shutter[32];
+    if (shutter_reciprocal_x1000 == 0)
+        snprintf(shutter, sizeof(shutter), "N/A");
+    else if (shutter_reciprocal_x1000 >= 10000000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", (shutter_reciprocal_x1000+500000)/1000000);
+    else if (shutter_reciprocal_x1000 >= 1000000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+50000)/100000*100);
+    else if (shutter_reciprocal_x1000 >= 100000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+5000)/10000*10);
+    else if (shutter_reciprocal_x1000 > 3000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+500)/1000);
+    else {
+        int shutter_x10 = (100000/shutter_reciprocal_x1000+5)/10;
+        if (shutter_x10 % 10 && shutter_x10 < 40)
+            snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
+        else
+            snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
+    } 
+    return shutter;
+}
+
+// Pretty prints the shutter speed given the raw shutter value as input
 char* lens_format_shutter(int tv)
 {
-      int shutter_x10 = raw2shutter_ms(tv) / 100;
-      int shutter_reciprocal = tv ? (int) roundf(4000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
-      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
-      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
-      static char shutter[32];
-      if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_reciprocal);
-      else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
-      return shutter;
+    int shutter_reciprocal_x1000 = tv ? (int) roundf(4000000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
+    return lens_format_shutter_reciprocal(shutter_reciprocal_x1000);
 }
 
 int FAST get_ml_topbar_pos()
@@ -2388,6 +2404,10 @@ static LVINFO_UPDATE_FUNC(tv_update)
     {
         snprintf(buffer, sizeof(buffer), "BULB");
     }
+    else if (is_movie_mode())
+    {
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000()));
+    }
     else if (lens_info.raw_shutter)
     {
         snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter(lens_info.raw_shutter));
@@ -2495,6 +2515,8 @@ static LVINFO_UPDATE_FUNC(af_mf_update)
 
 static LVINFO_UPDATE_FUNC(batt_update)
 {
+    item->height = 30;
+
     #ifdef CONFIG_BATTERY_INFO
     item->width = 70;
     #else
@@ -2528,6 +2550,16 @@ static LVINFO_UPDATE_FUNC(batt_update)
         bmp_draw_rect(col, xr-2, y_origin, 16, 27);
         bmp_draw_rect(col, xr-1, y_origin + 1, 14, 25);
         bmp_fill(col, xr+2, y_origin + 23 - bat, 8, bat);
+    }
+}
+
+static LVINFO_UPDATE_FUNC(ae_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (lens_info.ae) {
+        snprintf(buffer, sizeof(buffer), "%s%d.%d", lens_info.ae < 0 ? "-" : "+", ABS(lens_info.ae) / 8, ((ABS(lens_info.ae) * 10 ) / 8 ) % 10 );
+        item->color_fg = lens_info.ae < 0 ? COLOR_RED : COLOR_CYAN;
     }
 }
 
@@ -2641,6 +2673,12 @@ static struct lvinfo_item info_items[] = {
         .name = "Battery",
         .which_bar = LV_BOTTOM_BAR_ONLY,
         .update = batt_update,
+        .preferred_position = 127,
+    },
+    {
+        .name = "Exposure Compensation",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = ae_update,
         .preferred_position = 127,
     }
 };
