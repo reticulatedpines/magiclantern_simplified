@@ -1064,7 +1064,7 @@ int main (int argc, char *argv[])
             case 'a':
                 average_mode = 1;
                 decompress_output = 1;
-                no_metadata_mode = 1;
+                //no_metadata_mode = 1;
                 break;
                 
             case 's':
@@ -1306,6 +1306,7 @@ int main (int argc, char *argv[])
     mlv_wbal_hdr_t wbal_info;
     mlv_wavi_hdr_t wavi_info;
     mlv_rtci_hdr_t rtci_info;
+    mlv_vidf_hdr_t last_vidf;
     
     /* initialize stuff */
     memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
@@ -1686,6 +1687,9 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
+                
+                /* store last VIDF for reference */
+                last_vidf = block_hdr;
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
                 
@@ -2696,6 +2700,8 @@ abort:
         memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
         memcpy(hdr.blockType, "VIDF", 4);
         hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+        hdr.frameNumber = 0;
+        hdr.timestamp = last_vidf.timestamp;
         
         fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file);
         fwrite(frame_buffer, frame_size, 1, out_file);
