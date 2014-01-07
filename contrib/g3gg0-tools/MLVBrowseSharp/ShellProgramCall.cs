@@ -19,6 +19,8 @@ namespace MLVBrowseSharp
         private Process Proc = null;
         public string ErrorMessage = "";
 
+        private static Semaphore ThreadStartCount = new Semaphore(4, 4);
+
         public ShellProgramCall(string binary, string description, string parameters, LineCallbackDelegate cbr)
         {
             BinaryName = binary;
@@ -59,9 +61,12 @@ namespace MLVBrowseSharp
             string path = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + System.IO.Path.DirectorySeparatorChar;
 
             Commandline = binary + " " + Parameters;
+
+            Console.WriteLine("Want to execute: '" + Commandline + "', waiting for a free thread");
+            ThreadStartCount.WaitOne();
             try
             {
-                Console.WriteLine("Executing: '" + Commandline + "'");
+                Console.WriteLine("Now executing: '" + Commandline + "'");
 
                 Proc = new Process();
 
@@ -91,6 +96,8 @@ namespace MLVBrowseSharp
                 ErrorMessage = e.ToString();
                 return -1;
             }
+
+            ThreadStartCount.Release();
 
             return Proc.ExitCode;
         }

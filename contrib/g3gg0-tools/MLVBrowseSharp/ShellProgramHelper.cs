@@ -144,9 +144,13 @@ namespace MLVBrowseSharp
                                     int.TryParse(values[0], out VideoFrameNumber);
                                     int.TryParse(values[1], out VideoFrameCount);
 
-                                    if (BlockCount > 0)
+                                    if (BlockCount > 0 && VideoFrameCount > 0 && !float.IsNaN(VideoFrameCount))
                                     {
                                         Progress = (float)VideoFrameNumber / (float)VideoFrameCount;
+                                    }
+                                    else
+                                    {
+                                        Progress = 0;
                                     }
                                     break;
                                 }
@@ -180,20 +184,6 @@ namespace MLVBrowseSharp
 
                 ReplaceParameters(ref param, "%INFILE%", "\"" + file + "\"");
                 ReplaceParameters(ref param, "%INFILENAME%", new DirectoryInfo(file).Name);
-
-                /* delete index file */
-                string idx = file.ToUpper().Replace(".MLV", ".IDX");
-                if (File.Exists(idx))
-                {
-                    try
-                    {
-                        //File.Delete(idx);
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("There is a index file called " + idx + " which i cannot delete. Please delete it if you get problems during export");
-                    }
-                }
 
                 ConversionInstance instance = new ConversionInstance(file);
                 ConversionProgressItem convItem = new ConversionProgressItem(instance);

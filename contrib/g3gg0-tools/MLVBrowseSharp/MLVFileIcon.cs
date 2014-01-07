@@ -163,7 +163,7 @@ namespace MLVBrowseSharp
                                     }
                                     catch (Exception e)
                                     {
-                                        SetText(e.GetType().ToString());
+                                        SetText(e);
                                     }
                                 }));
                             }
@@ -220,12 +220,12 @@ namespace MLVBrowseSharp
             }
             catch (IOException ex)
             {
-                SetText(ex.GetType().ToString());
+                SetText(ex);
                 return;
             }
             catch (Exception ex)
             {
-                SetText(ex.GetType().ToString());
+                SetText(ex);
                 return;
             }
         }
@@ -288,8 +288,15 @@ namespace MLVBrowseSharp
 
                 if (tm_year > 1900 && tm_mon > 0 && tm_mday > 0)
                 {
-                    DateTime date = new DateTime(tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
-                    SetMetadata("Time: Date/Time", date.ToLongDateString() + " " + date.ToLongTimeString());
+                    try
+                    {
+                        DateTime date = new DateTime(tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
+                        SetMetadata("Time: Date/Time", date.ToLongDateString() + " " + date.ToLongTimeString());
+                    }
+                    catch (Exception e)
+                    {
+                        SetMetadata("Time: Date/Time (failed to parse)", tm_year.ToString() + "/" + tm_mon + "/" + tm_mday + " " + tm_hour + ":" + tm_min + ":" + tm_sec);
+                    }
                 }
                 else
                 {
@@ -309,7 +316,19 @@ namespace MLVBrowseSharp
             }
         }
 
+
+        private void SetText(Exception e)
+        {
+            SetText("Ex: " + e.Message, new Font("Courier New", 7));
+            SetMetadata("[ERROR] Exception occurred", Environment.NewLine + e.Message + Environment.NewLine + e.StackTrace);
+        }
+
         public void SetText(string text)
+        {
+            SetText(text, new Font("Courier New", 10));
+        }
+
+        public void SetText(string text, Font font)
         {
             try
             {
@@ -320,7 +339,7 @@ namespace MLVBrowseSharp
                         Bitmap bmp = new Bitmap(pictureBox.Width, pictureBox.Height);
                         Graphics graph = Graphics.FromImage(bmp);
                         pictureBox.Image = bmp;
-                        graph.DrawString(text, new Font("Courier New", 10), new SolidBrush(Color.Black), new PointF(0, pictureBox.Height/2));
+                        graph.DrawString(text, font, new SolidBrush(Color.Black), new PointF(0, pictureBox.Height / 2));
                     }
                     catch (Exception)
                     {

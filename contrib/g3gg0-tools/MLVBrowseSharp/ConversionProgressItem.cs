@@ -44,7 +44,7 @@ namespace MLVBrowseSharp
         {
             progressBar1.Minimum = 0;
             progressBar1.Maximum = 100;
-            progressBar1.Value = (int) Math.Min(progressBar1.Maximum, Conv.Progress * progressBar1.Maximum);
+            progressBar1.Value = (int)Math.Max(progressBar1.Minimum, Math.Min(progressBar1.Maximum, Conv.Progress * progressBar1.Maximum));
 
             if (Conv.Exited)
             {

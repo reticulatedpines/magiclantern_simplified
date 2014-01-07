@@ -21,8 +21,11 @@ namespace MLVBrowseSharp
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            Instance = null;
-            base.OnClosing(e);
+            e.Cancel = true;
+            return;
+
+            //Instance = null;
+            //base.OnClosing(e);
         }
 
         internal void AddItem(ConversionProgressItem item)
