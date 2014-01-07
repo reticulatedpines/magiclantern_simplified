@@ -479,19 +479,35 @@ void draw_ml_bottombar()
     lvinfo_display(0,1);
 }
 
-char* lens_format_shutter(int tv)
+// Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input
+char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
 {
-      int shutter_x10 = raw2shutter_ms(tv) / 100;
-      int shutter_reciprocal = tv ? (int) roundf(4000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
-      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
-      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
-      static char shutter[32];
-      if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
-      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", shutter_reciprocal/1000);
-      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_reciprocal);
-      else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
-      else snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
-      return shutter;
+    static char shutter[32];
+    if (shutter_reciprocal_x1000 == 0)
+        snprintf(shutter, sizeof(shutter), "N/A");
+    else if (shutter_reciprocal_x1000 >= 10000000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", (shutter_reciprocal_x1000+500000)/1000000);
+    else if (shutter_reciprocal_x1000 >= 1000000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+50000)/100000*100);
+    else if (shutter_reciprocal_x1000 >= 100000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+5000)/10000*10);
+    else if (shutter_reciprocal_x1000 > 3000)
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+500)/1000);
+    else {
+        int shutter_x10 = (100000/shutter_reciprocal_x1000+5)/10;
+        if (shutter_x10 % 10 && shutter_x10 < 40)
+            snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
+        else
+            snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
+    } 
+    return shutter;
+}
+
+// Pretty prints the shutter speed given the raw shutter value as input
+char* lens_format_raw_shutter(int tv)
+{
+    int shutter_reciprocal_x1000 = tv ? (int) roundf(4000000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
+    return lens_format_shutter_reciprocal(shutter_reciprocal_x1000);
 }
 
 int FAST get_ml_topbar_pos()
@@ -2390,12 +2406,11 @@ static LVINFO_UPDATE_FUNC(tv_update)
     }
     else if (is_movie_mode())
     {
-        int s = get_current_shutter_reciprocal_x1000() + 50;
-        snprintf(buffer, sizeof(buffer), SYM_1_SLASH "%d.%d", s/100/10, (s/100)%10);
+        snprintf(buffer, sizeof(buffer), lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000()));
     }
     else if (lens_info.raw_shutter)
     {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter(lens_info.raw_shutter));
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_raw_shutter(lens_info.raw_shutter));
     }
 
     if (CONTROL_BV)

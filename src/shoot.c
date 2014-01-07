@@ -1669,19 +1669,19 @@ static MENU_UPDATE_FUNC(shutter_display)
 {
     if (is_movie_mode())
     {
-        int s = get_current_shutter_reciprocal_x1000() + 50;
+        int s = get_current_shutter_reciprocal_x1000();
         int deg = 3600 * fps_get_current_x1000() / s;
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
-            SYM_1_SLASH "%d.%d, %d"SYM_DEGREE,
-            s/1000, (s%1000)/100,
+            "%s, %d"SYM_DEGREE,
+            lens_format_shutter_reciprocal(s),
             deg);
     }
     else
     {
         MENU_SET_VALUE(
             "%s",
-            lens_format_shutter(lens_info.raw_shutter)
+            lens_format_raw_shutter(lens_info.raw_shutter)
         );
     }
 
@@ -2771,13 +2771,13 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
 
             if (hdr_sequence == 1 && hdr_steps != 2)
             {
-                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(hdr_sequence_calc1));
-                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_raw_shutter(hdr_sequence_calc1));
+                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_raw_shutter(hdr_sequence_calc));
             }
             else
             {
-                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(lens_info.raw_shutter));
-                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_raw_shutter(lens_info.raw_shutter));
+                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_raw_shutter(hdr_sequence_calc));
             }
 
             if (hdr_sequence_calc_old > FASTEST_SHUTTER_SPEED_RAW)
