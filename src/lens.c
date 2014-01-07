@@ -504,7 +504,7 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
 }
 
 // Pretty prints the shutter speed given the raw shutter value as input
-char* lens_format_raw_shutter(int tv)
+char* lens_format_shutter(int tv)
 {
     int shutter_reciprocal_x1000 = tv ? (int) roundf(4000000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
     return lens_format_shutter_reciprocal(shutter_reciprocal_x1000);
@@ -2406,11 +2406,11 @@ static LVINFO_UPDATE_FUNC(tv_update)
     }
     else if (is_movie_mode())
     {
-        snprintf(buffer, sizeof(buffer), lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000()));
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000()));
     }
     else if (lens_info.raw_shutter)
     {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_raw_shutter(lens_info.raw_shutter));
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter(lens_info.raw_shutter));
     }
 
     if (CONTROL_BV)

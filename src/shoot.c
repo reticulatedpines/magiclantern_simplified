@@ -1681,7 +1681,7 @@ static MENU_UPDATE_FUNC(shutter_display)
     {
         MENU_SET_VALUE(
             "%s",
-            lens_format_raw_shutter(lens_info.raw_shutter)
+            lens_format_shutter(lens_info.raw_shutter)
         );
     }
 
@@ -2771,13 +2771,13 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
 
             if (hdr_sequence == 1 && hdr_steps != 2)
             {
-                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_raw_shutter(hdr_sequence_calc1));
-                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_raw_shutter(hdr_sequence_calc));
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(hdr_sequence_calc1));
+                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
             }
             else
             {
-                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_raw_shutter(lens_info.raw_shutter));
-                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_raw_shutter(hdr_sequence_calc));
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(lens_info.raw_shutter));
+                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
             }
 
             if (hdr_sequence_calc_old > FASTEST_SHUTTER_SPEED_RAW)
