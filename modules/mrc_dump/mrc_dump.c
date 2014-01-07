@@ -29,26 +29,27 @@ static reg_entry cp_regs[] =
     /* System control and configuration registers */
     { 15,  0,  0,  0,  0, "System Control: ID Code Register"  },
     { 15,  1,  0,  0,  0, "System Control: Control Register"  },
-    { 15,  6,  0,  0,  0, "Protection: Memory Region 0" },
-    { 15,  6,  0,  1,  0, "Protection: Memory Region 1" },
-    { 15,  6,  0,  2,  0, "Protection: Memory Region 2" },
-    { 15,  6,  0,  3,  0, "Protection: Memory Region 3" },
-    { 15,  6,  0,  4,  0, "Protection: Memory Region 4" },
-    { 15,  6,  0,  5,  0, "Protection: Memory Region 5" },
-    { 15,  6,  0,  6,  0, "Protection: Memory Region 6" },
-    { 15,  6,  0,  7,  0, "Protection: Memory Region 7" },
 
     /* Cache control and configuration registers */
     { 15,  0,  0,  0,  1, "Cache Control: Cache type register" },
-    { 15,  2,  0,  0,  0, "Cache Control: Data cachable bits" },
-    { 15,  2,  0,  0,  1, "Cache Control: Instruction cachable bits" },
-    { 15,  3,  0,  0,  0, "Cache Control: Data bufferable bits" },
+    
+    { 15,  2,  0,  0,  0, "Prot.Unit: Data cachable bits" },
+    { 15,  2,  0,  0,  1, "Prot.Unit: Instruction cachable bits" },
+    { 15,  3,  0,  0,  0, "Prot.Unit: Data bufferable bits" },
 
-    { 15,  5,  0,  0,  2, "Cache Control: Data acc. perm. bits" },
-    { 15,  5,  0,  0,  3, "Cache Control: Instr. acc. perm. bits" },
+    { 15,  5,  0,  0,  2, "Prot.Unit: Data acc. perm. bits" },
+    { 15,  5,  0,  0,  3, "Prot.Unit: Instr. acc. perm. bits" },
 
-    { 15,  9,  0,  0,  0, "Cache Control: Data cache lockdown ctrl" },
-    { 15,  9,  0,  0,  1, "Cache Control: Instr. cache lockdown ctrl" },
+    { 15,  9,  0,  0,  0, "Prot.Unit: Data cache lockdown ctrl" },
+    { 15,  9,  0,  0,  1, "Prot.Unit: Instr. cache lockdown ctrl" },
+    { 15,  6,  0,  0,  0, "Prot.Unit: Memory Region 0" },
+    { 15,  6,  0,  1,  0, "Prot.Unit: Memory Region 1" },
+    { 15,  6,  0,  2,  0, "Prot.Unit: Memory Region 2" },
+    { 15,  6,  0,  3,  0, "Prot.Unit: Memory Region 3" },
+    { 15,  6,  0,  4,  0, "Prot.Unit: Memory Region 4" },
+    { 15,  6,  0,  5,  0, "Prot.Unit: Memory Region 5" },
+    { 15,  6,  0,  6,  0, "Prot.Unit: Memory Region 6" },
+    { 15,  6,  0,  7,  0, "Prot.Unit: Memory Region 7" },
 
     /* TCM control and configuration registers */
     { 15,  0,  0,  0,  2, "TCM Control: TCM Size Register" },
