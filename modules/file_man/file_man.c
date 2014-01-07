@@ -310,6 +310,7 @@ static void ScanDir(char *path)
     int n = 0;
     do
     {
+        if (file.name[0] == 0) continue;        /* on ExFat it may return empty entries */ 
         if (file.name[0] == '.') continue;
         n++;
         if (file.mode & ATTR_DIRECTORY)
