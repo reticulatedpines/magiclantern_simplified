@@ -17,7 +17,7 @@
 #define FEATURE_AUDIO_METERS //only in while recording
 #define FEATURE_BEEP
 
-#undef FEATURE_ARROW_SHORTCUTS
+#define FEATURE_ARROW_SHORTCUTS
 
 // Not working :(
 #undef FEATURE_IMAGE_EFFECTS
