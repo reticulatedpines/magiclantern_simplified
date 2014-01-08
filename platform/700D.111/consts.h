@@ -218,7 +218,8 @@
 
     #define INFO_BTN_NAME "INFO"
     #define Q_BTN_NAME "[Q]"
-    #define ARROW_MODE_TOGGLE_KEY "DISP"
+
+#define ARROW_MODE_TOGGLE_KEY "LCD SENSOR"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)(0x23C20+0x10C))
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
