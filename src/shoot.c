@@ -5969,6 +5969,7 @@ shoot_task( void* unused )
         check_for_halfshutter_hold = bulb_timer && is_bulb_mode();
         #endif
         #ifdef FEATURE_INTERVALOMETER
+        check_for_halfshutter_hold &= !(interval_trigger == 1 && interval_enabled);
         check_for_halfshutter_hold |= interval_trigger == 2 && interval_enabled;
         #endif
         
@@ -6002,7 +6003,7 @@ shoot_task( void* unused )
         #ifdef FEATURE_BULB_TIMER
         if (bulb_timer && is_bulb_mode() && !gui_menu_shown()
         #ifdef FEATURE_INTERVALOMETER
-            && !(interval_trigger == 2 && interval_enabled)
+            && !((interval_trigger == 1 || interval_trigger == 2) && interval_enabled)
         #endif
             )
         {
