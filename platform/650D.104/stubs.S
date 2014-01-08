@@ -183,18 +183,37 @@ NSTUB(0x00013460, msg_queue_create)
 
 NSTUB(0xFF1001C0, PD_RemoteRelease)
 
+/** Audio **/
+NSTUB(0xFF335394, _audio_ic_write)
+NSTUB(0xFF3359E0, _audio_ic_read)
+
+NSTUB(0xFF10A9D0, sounddev_task )
+NSTUB(   0x239E4, sounddev )
+NSTUB(0xFF10AEBC, sounddev_active_in)
+
+NSTUB(0xFF10B6F4, SoundDevStopIn)
+NSTUB(0xFF10B7C4, SoundDevStopOut)
+
+NSTUB(0xFF10AEBC, SoundDevActiveIn)
+NSTUB(0xFF10B118, SoundDevActiveOut)
+NSTUB(0xFF10B0D8, SoundDevShutDownIn)
+
+NSTUB(0xFF1326EC, send_audio)
+
+NSTUB(0xFF7F27F4, audio_thresholds)
+
 // for task information
 NSTUB(0x247A4, task_max) // Not so sure....
 NSTUB(0x0001992C, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0x0000E68C, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
-NSTUB(0xFF133910, PowerAudioOutput) // not sure, looks different
-NSTUB(0xFF10891C, StartASIFDMADAC)  //~ warning: looks different
-NSTUB(0xFF108764, StartASIFDMAADC)  //~ warning: looks different
-NSTUB(0xFF1089F4, StopASIFDMADAC)   //~ warning: looks different
+NSTUB(0xFF133910, PowerAudioOutput)
+NSTUB(0xFF10891C, StartASIFDMADAC)
+NSTUB(0xFF108764, StartASIFDMAADC)
+NSTUB(0xFF1089F4, StopASIFDMADAC)
 NSTUB(0xFF108E98, SetNextASIFADCBuffer)
 NSTUB(0xFF108F4C, SetNextASIFDACBuffer)
 NSTUB(0xFF132D30, SetSamplingRate )
-NSTUB(0xFF1326A4, SetAudioVolumeOut) // FIXME: use call()
+NSTUB(0xFF1319CC, SetAudioVolumeOut) // keep volume
 NSTUB(0xFF13BBD4, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13BC20, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13BD38, FreeMemoryResource) // m_pfFreeMemoryCBR
