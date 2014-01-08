@@ -3020,11 +3020,17 @@ static MENU_UPDATE_FUNC(bulb_display)
         MENU_SET_VALUE(
             format_time_hours_minutes_seconds(d)
         );
-    else if (is_bulb_mode() && intervalometer_running) // even if it's not enabled, it will be used for intervalometer
+#ifdef FEATURE_INTERVALOMETER
+    else if (is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    {
         MENU_SET_VALUE(
             "OFF (%s)",
             format_time_hours_minutes_seconds(d)
         );
+        MENU_SET_ICON(MNI_ON, 0);
+        MENU_SET_WARNING(MENU_WARN_INFO, "Always on when in BULB mode and intervalometer running");
+    }
+#endif
     
     if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     if (entry->selected && intervalometer_running) timelapse_calc_display(entry, info);
