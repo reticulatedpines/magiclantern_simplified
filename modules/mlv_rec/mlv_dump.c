@@ -770,13 +770,14 @@ FILE **load_all_chunks(char *base_filename, int *entries)
     int max_name_len = strlen(base_filename) + 16;
     char *filename = malloc(max_name_len);
     
-    strncpy(filename, base_filename, max_name_len);
+    strncpy(filename, base_filename, max_name_len - 1);
     FILE **files = malloc(sizeof(FILE*));
     
     files[0] = fopen(filename, "rb");
     if(!files[0])
     {
         free(filename);
+        free(files);
         return NULL;
     }
     
@@ -785,7 +786,16 @@ FILE **load_all_chunks(char *base_filename, int *entries)
     (*entries)++;
     while(seq_number < 99)
     {
-        files = realloc(files, (*entries + 1) * sizeof(FILE*));
+        FILE **realloc_files = realloc(files, (*entries + 1) * sizeof(FILE*));
+        
+        if(!realloc_files)
+        {
+            free(filename);
+            free(files);
+            return NULL;
+        }
+        
+        files = realloc_files;
         
         /* check for the next file M00, M01 etc */
         char seq_name[8];
@@ -1656,6 +1666,7 @@ read_headers:
                 
                 if(fread(buf, frame_size, 1, in_file) != 1)
                 {
+                    free(buf);
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
@@ -2227,6 +2238,7 @@ read_headers:
 
                     if(fread(buf, str_length, 1, in_file) != 1)
                     {
+                        free(buf);
                         print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                         goto abort;
                     }
@@ -2246,11 +2258,13 @@ read_headers:
                         block_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
                         if(fwrite(&block_hdr, sizeof(mlv_info_hdr_t), 1, out_file) != 1)
                         {
+                            free(buf);
                             print_msg(MSG_ERROR, "Failed writing into output file\n");
                             goto abort;
                         }
                         if(fwrite(buf, str_length, 1, out_file) != 1)
                         {
+                            free(buf);
                             print_msg(MSG_ERROR, "Failed writing into output file\n");
                             goto abort;
                         }
