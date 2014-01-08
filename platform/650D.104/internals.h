@@ -86,8 +86,8 @@
 /** We can't change ExpSim from ML :( **/
 //~ #define CONFIG_EXPSIM
 
-/** We can't playback sounds via ASIF DMA (yet) **/
-//~ #define CONFIG_BEEP
+/** We can playback sounds via ASIF DMA **/
+#define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
