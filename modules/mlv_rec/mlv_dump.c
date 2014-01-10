@@ -1501,6 +1501,13 @@ read_headers:
 
         position = file_get_pos(in_file);
         
+        /* unexpected block header size? */
+        if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
+        {
+            print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
+            goto abort;
+        }
+
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
         {

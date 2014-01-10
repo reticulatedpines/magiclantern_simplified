@@ -354,6 +354,12 @@ namespace mlv_view_sharp
                     uint size = BitConverter.ToUInt32(buf, 4);
                     string type = Encoding.UTF8.GetString(buf, 0, 4);
 
+                    if (size < 0x10 || size > 50 * 1024 * 1024)
+                    {
+                        MessageBox.Show("File '" + FileNames[fileNum] + "' has a an invalid block at offset 0x" + offset.ToString("X8") + ".");
+                        break;
+                    }
+
                     /* just skip NULL blocks */
                     if (type != "NULL")
                     {

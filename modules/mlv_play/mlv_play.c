@@ -953,12 +953,21 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 }
             }
             
+            /* unexpected block header size? */
+            if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 10 * 1024 * 1024)
+            {
+                bmp_printf(FONT_MED, 30, 190, "Invalid header size: %d bytes at 0x%08X", buf.blockSize, position);
+                beep();
+                msleep(1000);
+                break;
+            }
+
             /* file header */
             if(!memcmp(buf.blockType, "MLVI", 4))
             {
                 mlv_file_hdr_t file_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
-
+                
                 FIO_SeekFileWrapper(chunk_files[chunk], position, SEEK_SET);
                 
                 /* read the whole header block, but limit size to either our local type size or the written block size */
@@ -1027,7 +1036,8 @@ static mlv_xref_hdr_t *mlv_play_get_index(char *filename, FILE **chunk_files, ui
         return table;
     }
     
-    bmp_printf(FONT_LARGE, 30, 100, "Please wait");
+    bmp_printf(FONT_LARGE, 30, 100, "Preparing:", filename);
+    bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
     build_index(filename, chunk_files, chunk_count);
     
     return load_index(filename);
@@ -1341,9 +1351,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     /* read footer information and update global variables, will seek automatically */
     if(chunk_count < 1 || !mlv_play_is_mlv(chunk_files[0]))
     {
-        bmp_printf(FONT_MED, 30, 190, "no valid .MLV file");
-        beep();
-        msleep(1000);
+        bmp_printf(FONT_LARGE, 30, 100, "Invalid MLV:", filename);
+        bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
         return;
     }
     
@@ -1572,9 +1581,8 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
     /* read footer information and update global variables, will seek automatically */
     if(chunk_count < 1 || !mlv_play_is_raw(chunk_files[chunk_count-1]))
     {
-        bmp_printf(FONT_MED, 30, 190, "no valid .RAW file");
-        beep();
-        msleep(1000);
+        bmp_printf(FONT_LARGE, 30, 100, "Invalid RAW:", filename);
+        bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
         return;
     }
     lv_rec_read_footer(chunk_files[chunk_count-1]);
