@@ -463,7 +463,6 @@ static MENU_UPDATE_FUNC(interval_start_after_display)
     if (auto_power_off_time && auto_power_off_time <= d)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
     
-    MENU_SET_ENABLED(interval_trigger != 3);
     if(interval_trigger == 3)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Has no effect when trigger is set to take a pic");
 }
@@ -504,9 +503,8 @@ static MENU_SELECT_FUNC(interval_trigger_toggle)
 
 static MENU_UPDATE_FUNC(interval_trigger_update)
 {
-    MENU_SET_ENABLED(interval_trigger);
     if(!interval_trigger)
-        MENU_SET_HELP("Starts intervalometer when you exit ML menu");
+        MENU_SET_HELP("Starts intervalometer when you exit ML menu, or at camera startup");
     if(interval_trigger == 1)
         MENU_SET_HELP("Starts intervalometer on half shutter press");
     if(interval_trigger == 2)
@@ -5841,6 +5839,16 @@ shoot_task( void* unused )
     #ifdef FEATURE_MLU
     mlu_selftimer_update();
     #endif
+    
+    
+#ifdef FEATURE_INTERVALOMETER
+    if (interval_enabled && interval_trigger == 0)
+    {
+        /* auto-start intervalometer, but wait for at least 10 seconds */
+        intervalometer_running = 1;
+        intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 10);
+   }
+#endif
     
     /*int loops = 0;
     int loops_abort = 0;*/
