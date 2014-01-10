@@ -3579,10 +3579,10 @@ static struct menu_entry raw_video_menu[] =
                 .choices = aspect_ratio_choices,
             },
             {
-                .name = "Disable G. Draw",
+                .name = "Global Draw",
                 .priv = &kill_gd,
                 .max = 1,
-                .choices = CHOICES("ON", "OFF"),
+                .choices = CHOICES("Allow", "OFF"),
                 .help = "Disable global draw while recording.\n Some previews depend on GD",
             },
             {
