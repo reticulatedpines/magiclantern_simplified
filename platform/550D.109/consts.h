@@ -259,10 +259,5 @@
 #define MALLOC_STRUCT 0x27c28
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-// measured by Андрей Басов
-// http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
-// not sure, exiftool says x-128
-//~ #define EFIC_CELSIUS (efic_temp * 3/2 - 202)
-
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
