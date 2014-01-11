@@ -3105,8 +3105,8 @@ static MENU_UPDATE_FUNC(shuttercount_display)
 static MENU_UPDATE_FUNC(efictemp_display)
 {
     MENU_SET_VALUE(
-        "%d C, %d F",
-        EFIC_CELSIUS, FAHRENHEIT
+        "%d C, %d F, %d raw",
+        EFIC_CELSIUS, FAHRENHEIT, efic_temp
     );
 }
 #else
