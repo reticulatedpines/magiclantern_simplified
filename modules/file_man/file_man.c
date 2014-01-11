@@ -142,7 +142,7 @@ static void clear_file_menu()
     {
         struct file_entry * next = file_entries->next;
         menu_remove("File Manager", &(file_entries->menu_entry), 1);
-        console_printf("%s\n", file_entries->name);
+        //console_printf("%s\n", file_entries->name);
         FreeMemory(file_entries);
         file_entries = next;
     }
@@ -274,7 +274,7 @@ static void build_file_menu()
     file_entries = list;
 
     for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        menu_add("File Manager", &(fe->menu_entry), 1);
+        menu_add("File Manager", &(fe->menu_entry), -1); // -1 to suppress updating of placeholders
 }
 
 static struct semaphore * scandir_sem = 0;
