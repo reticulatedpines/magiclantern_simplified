@@ -595,20 +595,30 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
     else  
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
 
-    if ( size >= 1024*1024*1024 )
+    if ( size >= 1000*1024*1024-512*1024/10 ) // transition from "999.9MB" to " 0.98GB"
     {
         int size_gb = (size/1024/1024 * 100 + 512)  / 1024;
-        snprintf( str, sizeof(str), "%s %2d.%2dGB", datestr, size_gb/100, size_gb%100);
+        snprintf( str, sizeof(str), "%s %s%2d.%02dGB", datestr, FMT_FIXEDPOINT2(size_gb));
     }
-    else if ( size >= 1024*1024 )
+    else if ( size >= 10*1024*1024-512*1024/100 ) // transition from " 9.99MB" to " 10.0MB"
     {
         int size_mb = (size/1024 * 10 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dMB", datestr, size_mb/10, size_mb%10);
+        snprintf( str, sizeof(str), "%s %s%3d.%01dMB", datestr, FMT_FIXEDPOINT1(size_mb));
     }
-    else if ( size >= 1024 )
+    else if ( size >= 1000*1024-512/10 ) // transition from "999.9kB" to " 0.98MB"
+    {
+        int size_mb = (size/1024 * 100 + 512) / 1024;
+        snprintf( str, sizeof(str), "%s %s%2d.%02dMB", datestr, FMT_FIXEDPOINT2(size_mb));
+    }
+    else if ( size >= 10*1024-512/100 ) // transition from " 9.99kB" to " 10.0kB"
     {
         int size_kb = (size * 10 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dkB", datestr, size_kb/10, size_kb%10);
+        snprintf( str, sizeof(str), "%s %s%3d.%01dkB", datestr, FMT_FIXEDPOINT1(size_kb));
+    }
+    else if ( size >= 1000 ) // transition from "  999 B" to " 0.98kB"
+    {
+        int size_kb = (size * 100 + 512) / 1024;
+        snprintf( str, sizeof(str), "%s %s%2d.%02dkB", datestr, FMT_FIXEDPOINT2(size_kb));
     }
     else
     {
