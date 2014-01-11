@@ -208,6 +208,7 @@ static void build_file_menu()
     struct file_entry *list = file_entries;
     struct file_entry *p, *q, *smallest, *tail;
 
+    int count = 0; // counts the total number of items in the menu
     int length = 1;
     int nmerges, psize, qsize, i;
 
@@ -227,8 +228,10 @@ static void build_file_menu()
             psize = 0;
             for (i = 0; i < length; i++) {
                 psize++;
+                if (length == 1) count++; // count up items only on the first pass
                 q = q->next;
                 if (q == NULL) break;
+                if (length == 1) count++; // count up items only on the first pass
             }
             qsize = length; // q may be shorted than qsize, so checking for NULL will be necessary
 
