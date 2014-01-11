@@ -8,10 +8,10 @@
 #undef FEATURE_FPS_WAV_RECORD
 #undef FEATURE_VOICE_TAGS
 #undef FEATURE_AUDIO_REMOTE_SHOT
+#undef FEATURE_BEEP //works, but messes up module menu
 
 // Audio features working
 #define FEATURE_AUDIO_METERS // only when recording movie
-#define FEATURE_BEEP
 
 //~ #undef FEATURE_ARROW_SHORTCUTS
 
