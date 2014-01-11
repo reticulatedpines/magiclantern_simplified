@@ -66,7 +66,7 @@ void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
 static void ensure_play_or_qr_mode_after_shot();
-void take_fast_pictures( int number );
+int take_fast_pictures( int number );
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
     #define AUDIO_REM_SHOT_POS_X 20
@@ -2863,13 +2863,14 @@ int set_drive_single()
 }
 
 // goes to Bulb mode and takes a pic with the specified duration (ms)
-void
+// returns nonzero if user canceled, zero otherwise
+int
 bulb_take_pic(int duration)
 {
+    int canceled = 0;
 #ifdef CONFIG_BULB
-
     extern int ml_taking_pic;
-    if (ml_taking_pic) return;
+    if (ml_taking_pic) return 1;
     ml_taking_pic = 1;
 
 
@@ -2976,6 +2977,7 @@ bulb_take_pic(int duration)
         // exposure was canceled earlier by user
         if (job_state_ready_to_take_pic()) 
         {
+            canceled = 1;
             beep();
             break;
         }
@@ -2999,6 +3001,7 @@ bulb_take_pic(int duration)
     
     ml_taking_pic = 0;
 #endif
+    return canceled;
 }
 
 #ifdef FEATURE_BULB_TIMER
@@ -4860,8 +4863,10 @@ void interval_create_script(int f0)
 #endif // FEATURE_INTERVALOMETER
 
 // normal pic, silent pic, bulb pic...
-void take_a_pic(int should_af)
+// returns zero if successful, nonzero otherwise (user canceled, module error, etc)
+int take_a_pic(int should_af)
 {
+    int canceled = 0;
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
         beep();
@@ -4871,25 +4876,33 @@ void take_a_pic(int should_af)
         display_on();
         _card_led_off();
         msleep(100);
-        return;
+        return canceled;
     }
     #endif
     
     #ifdef CONFIG_MODULES
-    if (module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING) == CBR_RET_CONTINUE)
+    if ((canceled = module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING)) == CBR_RET_CONTINUE)
     #endif
     {
         if (is_bulb_mode())
         {
             /* bulb mode? take a bulb exposure with bulb timer settings */
-            bulb_take_pic(timer_values[bulb_duration_index] * 1000);
+            canceled = bulb_take_pic(timer_values[bulb_duration_index] * 1000);
         }
         else
         {
             lens_take_picture(64, should_af);
         }
     }
+#ifdef CONFIG_MODULES
+    else if(canceled == CBR_RET_STOP)
+    {
+        //as long as the CBR didn't return an error, return success
+        canceled = 0;
+    }
+#endif
     lens_wait_readytotakepic(64);
+    return canceled;
 }
 
 // do a part of the bracket (half or full) with ISO
@@ -5671,8 +5684,9 @@ int is_continuous_drive()
         );
 }
 
-void take_fast_pictures( int number ) 
+int take_fast_pictures( int number )
 {
+    int canceled = 0;
     // take fast pictures
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     if ( number > 1 && is_continuous_drive() && !is_bulb_mode() && !snap_sim)
@@ -5707,9 +5721,11 @@ void take_fast_pictures( int number )
     {
         for (int i = 0; i < number; i++)
         {
-            take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE);
+            canceled = take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE);
+            if(canceled) break;
         }
     }
+    return canceled;
 }
 
 #ifdef FEATURE_MOTION_DETECT
@@ -6484,11 +6500,11 @@ shoot_task( void* unused )
             #ifdef FEATURE_MLU
             mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
             #endif
-            
+            int canceled = 0;
             if (dt == 0) // crazy mode - needs to be fast
             {
                 int num = interval_stop_after ? interval_stop_after : 100000;
-                take_fast_pictures(num);
+                canceled = take_fast_pictures(num);
                 intervalometer_pictures_taken += num - 1;
             }
             else if (HDR_ENABLED)
@@ -6498,8 +6514,12 @@ shoot_task( void* unused )
             else
             {
                 // count this as 1 picture
-                take_fast_pictures(pics_to_take_at_once+1);
+                canceled = take_fast_pictures(pics_to_take_at_once+1);
             }
+            
+            if(canceled)
+                intervalometer_stop();
+            
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
             
