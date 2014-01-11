@@ -3100,16 +3100,24 @@ static MENU_UPDATE_FUNC(shuttercount_display)
 #endif
 
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
-#define TO_F_10X(Tc)   (320+((9*10*(Tc))/5))
-#define TO_F_UNITS(Tc) ((TO_F_10X(Tc))/10)
-#define TO_F_DECIM(Tc) ((TO_F_10X(Tc))%10)
+#ifdef EFIC_CELSIUS
+#define FAHRENHEIT (EFIC_CELSIUS * 9 / 5 + 32)
 static MENU_UPDATE_FUNC(efictemp_display)
 {
     MENU_SET_VALUE(
-        "%d C, %d.%d F",
-        EFIC_CELSIUS, TO_F_UNITS(EFIC_CELSIUS), TO_F_DECIM(EFIC_CELSIUS)
+        "%d C, %d F, %d raw",
+        EFIC_CELSIUS, FAHRENHEIT, efic_temp
     );
 }
+#else
+static MENU_UPDATE_FUNC(efictemp_display)
+{
+    MENU_SET_VALUE(
+        "%d raw (help needed)",
+        efic_temp
+    );
+}
+#endif
 #endif
 
 #if 0 // CONFIG_5D2
@@ -3807,7 +3815,12 @@ static struct menu_entry debug_menus[] = {
         .name = "Internal Temp",
         .update = efictemp_display,
         .icon_type = IT_ALWAYS_ON,
+	 #ifdef EFIC_CELSIUS
         .help = "EFIC chip temperature (somewhere on the mainboard).",
+	 #else
+	.help = "EFIC chip temperature (raw values).",
+	.help2 = "http://www.magiclantern.fm/forum/index.php?topic=9673.0",
+	 #endif
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
 #endif
