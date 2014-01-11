@@ -858,6 +858,7 @@ menu_find_by_name(
     new_menu->prev      = menu;
     new_menu->next      = NULL; // Inserting at end
     new_menu->children  = NULL;
+    new_menu->children_tail  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
     new_menu->split_pos = -16;
@@ -1089,11 +1090,11 @@ menu_add(
 
     take_semaphore( menu_sem, 0 );
 
-    struct menu_entry * head = menu->children;
-    if( !head )
+    struct menu_entry * tail = menu->children_tail;
+    if( !tail )
     {
         // First one -- insert it as the selected item
-        head = menu->children   = new_entry;
+        tail = menu->children = menu->children_tail = new_entry;
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
@@ -1104,29 +1105,27 @@ menu_add(
         count--;
     }
 
-    // Find the end of the entries on the menu already
-    while( head->next )
-        head = head->next;
-
     for (int i = 0; i < count; i++)
     {
         new_entry->selected = 0;
-        new_entry->next     = head->next;
-        new_entry->prev     = head;
+        new_entry->next     = NULL;
+        new_entry->prev     = tail;
         new_entry->parent_menu = menu;
-        head->next      = new_entry;
-        head            = new_entry;
+        tail->next      = new_entry;
+        tail            = new_entry;
         menu_update_split_pos(menu, new_entry);
         menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
+
+    menu->children_tail = tail;
     
     give_semaphore( menu_sem );
 
 
     // create submenus
 
-    struct menu_entry * entry = head;
+    struct menu_entry * entry = tail;
     for (int i = 0; i < count0; i++)
     {
         if (entry->children)
@@ -1156,6 +1155,10 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
     if (menu->children == entry)
     {
         menu->children = entry->next;
+    }
+    if (menu->children_tail == entry)
+    {
+        menu->children_tail = entry->prev;
     }
     if (entry->prev)
     {

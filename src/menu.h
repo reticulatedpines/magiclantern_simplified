@@ -250,7 +250,8 @@ struct menu
         struct menu *           next;
         struct menu *           prev;
         const char *            name;
-        struct menu_entry *     children;
+        struct menu_entry *     children; // points to head of list
+        struct menu_entry *     children_tail; // points to tail of list
         int                     selected;
         int icon;
         int16_t submenu_width;
