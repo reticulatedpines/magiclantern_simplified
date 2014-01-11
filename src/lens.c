@@ -2280,6 +2280,7 @@ static LVINFO_UPDATE_FUNC(picstyle_update)
 
 static LVINFO_UPDATE_FUNC(temp_update)
 {
+  #ifdef EFIC_CELSIUS
     LVINFO_BUFFER(8);
     
     int t = EFIC_CELSIUS;
@@ -2292,6 +2293,7 @@ static LVINFO_UPDATE_FUNC(temp_update)
     {
         item->color_bg = COLOR_ORANGE;
     }
+  #endif
 }
 
 static LVINFO_UPDATE_FUNC(mvi_number_update)
