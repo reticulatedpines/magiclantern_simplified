@@ -1209,12 +1209,16 @@ menu_remove(
     
     menu_flags_load_dirty = 1;
 
-    for(struct menu_entry * entry = menu->children; entry; entry = entry->next)
-    {
+    int removed = 0;
+
+    struct menu_entry * entry = menu->children;
+    while(entry && removed < count) {
         if (entry >= old_entry && entry < old_entry + count)
         {
             menu_remove_entry(menu, entry);
+            removed++;
         }
+        entry = entry->next;
     }
 }
 
