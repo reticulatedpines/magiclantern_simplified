@@ -4881,7 +4881,8 @@ int take_a_pic(int should_af)
     #endif
     
     #ifdef CONFIG_MODULES
-    if ((canceled = module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING)) == CBR_RET_CONTINUE)
+    int cbr_result = 0;
+    if ((cbr_result = module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING)) == CBR_RET_CONTINUE)
     #endif
     {
         if (is_bulb_mode())
@@ -4895,10 +4896,9 @@ int take_a_pic(int should_af)
         }
     }
 #ifdef CONFIG_MODULES
-    else if(canceled == CBR_RET_STOP)
+    else
     {
-        //as long as the CBR didn't return an error, return success
-        canceled = 0;
+        return cbr_result != CBR_RET_STOP;
     }
 #endif
     lens_wait_readytotakepic(64);
