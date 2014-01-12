@@ -60,8 +60,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_file_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string fileMagic;    /* Magic Lantern Video file header */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string fileMagic
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* size of the whole header */
             [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 8)]
             public string versionString;    /* null-terminated C-string of the exact revision of this format */
@@ -80,8 +91,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_vidf_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* this block contains one frame of video data */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint32_t frameNumber;    /* unique video frame number */
@@ -96,8 +118,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_audf_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* this block contains audio data */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint32_t frameNumber;    /* unique audio frame number */
@@ -108,8 +141,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_rawi_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* when videoClass is RAW, this block will contain detailed format information */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint16_t xRes;    /* Configured video resolution, may differ from payload resolution */
@@ -120,8 +164,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_wavi_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* when audioClass is WAV, this block contains format details  compatible to RIFF */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint16_t format;    /* 1=Integer PCM, 6=alaw, 7=mulaw */
@@ -135,8 +190,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_expo_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint32_t isoMode;    /* 0=manual, 1=auto */
@@ -149,8 +215,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_lens_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint16_t focalLength;    /* in mm */
@@ -159,18 +236,30 @@ namespace mlv_view_sharp
             public uint8_t stabilizerMode;    /* 0=off, 1=on, (is the new L mode relevant) */
             public uint8_t autofocusMode;    /* 0=off, 1=on */
             public uint32_t flags;    /* 1=CA avail, 2=Vign avail, ... */
-            public uint32_t lensID;    /* hexadecimal lens ID (delivered by properties?) */
+            public uint32_t lensID;    /* hexafloat lens ID (delivered by properties?) */
             [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 32)]
             public string lensName;    /* full lens string */
             [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 32)]
             public string lensSerial; /* full lens serial number */
+
         };
 
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_rtci_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             public uint16_t tm_sec;    /* seconds (0-59) */
@@ -190,8 +279,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_idnt_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
             public uint64_t timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
             [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 32)]
@@ -212,21 +312,42 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_xref_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* can be added in post processing when out of order data is present */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* this can also be placed in a separate file with only file header plus this block */
             public uint64_t timestamp;
             public uint32_t frameType;    /* bitmask: 1=video, 2=audio */
             public uint32_t entryCount;    /* number of xrefs that follow here */
-            public mlv_xref_t xrefEntries;    /* this structure refers to the n'th video/audio frame offset in the files */
             /* uint8_t     xrefData[variable] */
         };
 
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_info_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* user definable info string. take number, location, etc. */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;
             public uint64_t timestamp;
             /* uint8_t     stringData[variable] */
@@ -235,8 +356,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_diso_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* Dual-ISO information */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;
             public uint64_t timestamp;
             public uint32_t dualMode;    /* bitmask: 0=off, 1=odd lines, 2=even lines, upper bits may be defined later */
@@ -246,8 +378,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_mark_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* markers set by user while recording */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;
             public uint64_t timestamp;
             public uint32_t type;    /* value may depend on the button being pressed or counts up (t.b.d) */
@@ -256,8 +399,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_styl_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;
             public uint64_t timestamp;
             public uint32_t picStyleId;
@@ -272,8 +426,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_elvl_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* Electronic level (orientation) data */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;
             public uint64_t timestamp;
             public uint32_t roll;    /* degrees x100 (here, 45.00 degrees) */
@@ -283,8 +448,19 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_wbal_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* White balance info */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;
             public uint64_t timestamp;
             public uint32_t wb_mode;    /* WB_AUTO 0, WB_SUNNY 1, WB_SHADE 8, WB_CLOUDY 2, WB_TUNGSTEN 3, WB_FLUORESCENT 4, WB_FLASH 5, WB_CUSTOM 6, WB_KELVIN 9 */
@@ -299,16 +475,29 @@ namespace mlv_view_sharp
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public unsafe struct mlv_null_hdr_t
         {
-            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-            public string blockType;    /* empty block */
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] blockTypeData;
+            public string blockType
+            {
+                get
+                {
+                    return Encoding.ASCII.GetString(blockTypeData);
+                }
+                set
+                {
+                    blockTypeData = Encoding.ASCII.GetBytes(value);
+                }
+            }
             public uint32_t blockSize;    /* total frame size */
         };
 
 
-        public static T ReadStruct<T>(this byte[] buffer)
+        public static T ReadStruct<T>(this byte[] buffer, int offset)
         where T : struct
         {
-            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+            byte[] data = new byte[buffer.Length - offset];
+            Array.Copy(buffer, offset, data, 0, data.Length);
+            GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             T result = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
             handle.Free();
             return result;
@@ -316,45 +505,65 @@ namespace mlv_view_sharp
 
         internal static object ToStruct(string type, byte[] buf)
         {
+            return ToStruct(type, buf, 0);
+        }
+
+        internal static object ToStruct(string type, byte[] buf, int offset)
+        {
             switch (type)
             {
                 case "MLVI":
-                    return ReadStruct<mlv_file_hdr_t>(buf);
+                    return ReadStruct<mlv_file_hdr_t>(buf, offset);
                 case "VIDF":
-                    return ReadStruct<mlv_vidf_hdr_t>(buf);
+                    return ReadStruct<mlv_vidf_hdr_t>(buf, offset);
                 case "AUDF":
-                    return ReadStruct<mlv_audf_hdr_t>(buf);
+                    return ReadStruct<mlv_audf_hdr_t>(buf, offset);
                 case "RAWI":
-                    return ReadStruct<mlv_rawi_hdr_t>(buf);
+                    return ReadStruct<mlv_rawi_hdr_t>(buf, offset);
                 case "WAVI":
-                    return ReadStruct<mlv_wavi_hdr_t>(buf);
+                    return ReadStruct<mlv_wavi_hdr_t>(buf, offset);
                 case "EXPO":
-                    return ReadStruct<mlv_expo_hdr_t>(buf);
+                    return ReadStruct<mlv_expo_hdr_t>(buf, offset);
                 case "LENS":
-                    return ReadStruct<mlv_lens_hdr_t>(buf);
+                    return ReadStruct<mlv_lens_hdr_t>(buf, offset);
                 case "RTCI":
-                    return ReadStruct<mlv_rtci_hdr_t>(buf);
+                    return ReadStruct<mlv_rtci_hdr_t>(buf, offset);
                 case "IDNT":
-                    return ReadStruct<mlv_idnt_hdr_t>(buf);
+                    return ReadStruct<mlv_idnt_hdr_t>(buf, offset);
                 case "XREF":
-                    return ReadStruct<mlv_xref_hdr_t>(buf);
+                    return ReadStruct<mlv_xref_hdr_t>(buf, offset);
+                case "XREF_ENTRY":
+                    return ReadStruct<mlv_xref_t>(buf, offset);
                 case "INFO":
-                    return ReadStruct<mlv_info_hdr_t>(buf);
+                    return ReadStruct<mlv_info_hdr_t>(buf, offset);
                 case "DISO":
-                    return ReadStruct<mlv_diso_hdr_t>(buf);
+                    return ReadStruct<mlv_diso_hdr_t>(buf, offset);
                 case "MARK":
-                    return ReadStruct<mlv_mark_hdr_t>(buf);
+                    return ReadStruct<mlv_mark_hdr_t>(buf, offset);
                 case "STYL":
-                    return ReadStruct<mlv_styl_hdr_t>(buf);
+                    return ReadStruct<mlv_styl_hdr_t>(buf, offset);
                 case "ELVL":
-                    return ReadStruct<mlv_elvl_hdr_t>(buf);
+                    return ReadStruct<mlv_elvl_hdr_t>(buf, offset);
                 case "WBAL":
-                    return ReadStruct<mlv_wbal_hdr_t>(buf);
+                    return ReadStruct<mlv_wbal_hdr_t>(buf, offset);
                 case "NULL":
-                    return ReadStruct<mlv_null_hdr_t>(buf);
+                    return ReadStruct<mlv_null_hdr_t>(buf, offset);
             }
 
             return null;
+        }
+
+        internal static byte[] ToByteArray(object block)
+        {
+            int size = Marshal.SizeOf(block);
+            byte[] arr = new byte[size];
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+
+            Marshal.StructureToPtr(block, ptr, true);
+            Marshal.Copy(ptr, arr, 0, size);
+            Marshal.FreeHGlobal(ptr);
+
+            return arr;
         }
     }
 }

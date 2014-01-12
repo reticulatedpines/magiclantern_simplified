@@ -399,7 +399,7 @@ int raw_update_params()
         #endif
         
         #ifdef CONFIG_5D3
-        skip_top        = zoom ?   60 : mv720 ?  20 :   30;
+        skip_top        = zoom ?   60 : mv720 ?  20 :   28;
         skip_left       = 146;
         skip_right      = 2;
         #endif
@@ -462,7 +462,7 @@ int raw_update_params()
     {
         raw_info.buffer = (uint32_t) raw_buffer_photo;
         
-        #ifdef CONFIG_60D
+        #if defined(CONFIG_60D) || defined(CONFIG_500D)
         raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
         #endif
         
@@ -522,6 +522,16 @@ int raw_update_params()
         skip_left = 126;
         skip_right = 20;
         skip_top = 82;
+        #endif
+
+        #ifdef CONFIG_500D
+        /* from debug log: [TTJ][150,5401,0] RAW(4832,3204,0,14) */
+        width = 4832;
+        height = 3204;
+        skip_left = 62;
+        skip_bottom = 28;
+        /* also we have a 40-pixel border on the right that contains image data */
+        raw_info.buffer -= 40*14/8;
         #endif
 
         #ifdef CONFIG_550D
@@ -1275,7 +1285,8 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     {
         int yr = LV2RAW_Y(y) & ~1;
 
-        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
+        /* on HDMI screens, BM2LV_DX() may get negative */
+        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
         {
             /* out of range, just fill with black */
             memset(&lv32[LV(0,y)/4], 0, BM2LV_DX(x2-x1)*2);
@@ -1365,7 +1376,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     {
         int yr = LV2RAW_Y(y) | 1;
 
-        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
+        /* on HDMI screens, BM2LV_DX() may get negative */
+        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
         {
             /* out of range, just fill with black */
             memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
@@ -1502,7 +1514,11 @@ static void raw_lv_update()
         beep();         /* second beep: changing raw type to something that isn't pink (this will be reset as soon as you enable raw back) */
         #endif
         /* fix pink preview in zoom */
-        *(volatile uint32_t*)0xc0f08114 = 0;
+        if (lv && lv_dispsize > 1 && DISPLAY_IS_ON)
+        {
+            /* todo: enqueue it in a vsync hook? */
+            EngDrvOutLV(0xc0f08114, 0);
+        }
         #endif
     }
 }

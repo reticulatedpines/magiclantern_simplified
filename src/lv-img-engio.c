@@ -399,7 +399,7 @@ void digic_dump()
     for (log_number = 0; log_number < 100; log_number++)
     {
         snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "digic%02d.LOG", log_number);
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
     }

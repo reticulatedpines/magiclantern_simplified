@@ -20,8 +20,8 @@
 
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 2);
-static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 2);
-static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
+static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 1);
+static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, -1);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
@@ -492,6 +492,19 @@ static int auto_ettr_work_m(int corr)
             int dr_gained = dual_iso_calc_dr_improvement(old_rec_iso, recovery_iso);
             snr_delta += dr_gained;
         }
+        
+        if (snr_delta + extra_snr_needed < 100) /* snr_delta + extra_snr_needed = SUM(dr_gained) */
+        {
+            /* too little gain? just shoot at base ISO */
+            recovery_iso = base_iso;
+            snr_delta = -extra_snr_needed;
+        }
+        else if (base_iso > MIN_ISO)
+        {
+            /* shooting at high ISO? go back one stop to protect some more highlights, because the cost is next to none */
+            base_iso -= 8;
+            expected_expo += 8;
+        }
 
         /* apply dual ISO settings */
         isor = base_iso;
@@ -528,7 +541,7 @@ static int auto_ettr_work_m(int corr)
     if (dual_iso)
     {
         int iso2_after = dual_iso_get_recovery_iso();
-        int dr2_before = dual_iso_calc_dr_improvement(iso_after, iso2_before);
+        int dr2_before = dual_iso_calc_dr_improvement(iso_before, iso2_before);
         int dr2_after = dual_iso_calc_dr_improvement(iso_after, iso2_after);
 
         if (debug_info)
@@ -685,7 +698,7 @@ static void auto_ettr_step()
     if (lens_info.raw_iso == 0 && is_m) return;
     if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
-    if (HDR_ENABLED) return;
+    if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET) return;
     int corr = auto_ettr_get_correction();
     if (corr != INT_MIN)
     {
@@ -702,7 +715,7 @@ static int auto_ettr_check_pre_lv()
     int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
     if (lens_info.raw_iso == 0 && is_m) return 0;
     if (lens_info.raw_shutter == 0 && is_m) return 0;
-    if (HDR_ENABLED) return 0;
+    if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET) return 0;
     int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
     return raw;
 }
@@ -794,9 +807,11 @@ static int auto_ettr_wait_lv_frames(int num_frames)
         count++;
         if (count > num_frames * frame_duration * 2 / 20)
         {
-            beep();
-            NotifyBox(2000, "Vsync err");
             auto_ettr_vsync_delta = 0;
+            return 0;
+        }
+        if (!lv)
+        {
             return 0;
         }
     }
@@ -823,7 +838,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
         {
             old_zoom = lv_dispsize;
             set_lv_zoom(1);
-            auto_ettr_wait_lv_frames(10);
+            if (!auto_ettr_wait_lv_frames(10)) return 0;
         }
 
         /* temporarily enable expsim while metering */
@@ -838,7 +853,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                 {
                     should_clear_bv = 1;
                     bv_toggle(0, 1);
-                    auto_ettr_wait_lv_frames(10);
+                    if (!auto_ettr_wait_lv_frames(10)) return 0;
                 }
             }
             else if (!expsim)
@@ -846,7 +861,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                 /* ExpSim should work well */
                 old_expsim = expsim;
                 set_expsim(1);
-                auto_ettr_wait_lv_frames(10);
+                if (!auto_ettr_wait_lv_frames(10)) return 0;
             }
         }
     }
@@ -888,15 +903,18 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
 static void auto_ettr_on_request_task_fast()
 {
     beep();
+    int raw_requested = 0;
+    
+    char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
-    if (!auto_ettr_prepare_lv(0, 1)) goto end;
-    if (!auto_ettr_check_lv()) goto end;
+    if (!auto_ettr_prepare_lv(0, 1)) goto err;
+    if (!auto_ettr_check_lv()) goto err;
     
     if (get_halfshutter_pressed())
     {
         msleep(500);
-        if (get_halfshutter_pressed()) goto end;
+        if (get_halfshutter_pressed()) goto err;
     }
 
 #undef AUTO_ETTR_DEBUG
@@ -926,7 +944,7 @@ static void auto_ettr_on_request_task_fast()
 
 
     NotifyBox(100000, "ETTR...");
-    raw_lv_request();
+    raw_lv_request(); raw_requested = 1;
     
     for (int i = 0; i < 5; i++)
     {
@@ -949,7 +967,7 @@ static void auto_ettr_on_request_task_fast()
                     break;
                 
                 /* wait for 2 frames before trying again */
-                if (!auto_ettr_wait_lv_frames(2)) goto end;
+                if (!auto_ettr_wait_lv_frames(2)) goto err;
             }
             auto_ettr_vsync_active = 0;
         }
@@ -974,25 +992,32 @@ static void auto_ettr_on_request_task_fast()
             if (i < 4 && status != ETTR_EXPO_LIMITS_REACHED)
             {
                 /* here we go again... */
-                auto_ettr_wait_lv_frames(15);
+                if (!auto_ettr_wait_lv_frames(15)) goto err;
             }
             else
             {
                 /* or... not? */
-                beep();
-                NotifyBox(2000, status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops");
-                goto end;
+                err_msg = status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops";
+                goto err;
             }
         }
     }
 
-    NotifyBoxHide();
-
-end:
+/* ok: */
     beep();
+    NotifyBoxHide();
+    goto cleanup;
+
+err:
+    beep();
+    beep();
+    NotifyBox(2000, err_msg);
+    goto cleanup;
+
+cleanup:
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
-    raw_lv_release();
+    if (raw_requested) raw_lv_release();
     auto_ettr_prepare_lv(1, 1);
 }
 
@@ -1063,15 +1088,16 @@ end:
 static void auto_ettr_on_request_task_slow()
 {
     beep();
+    char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
-    if (!auto_ettr_prepare_lv(0, 1)) goto end;
-    if (!auto_ettr_check_lv()) goto end;
+    if (!auto_ettr_prepare_lv(0, 1)) goto err;
+    if (!auto_ettr_check_lv()) goto err;
 
     if (get_halfshutter_pressed())
     {
         msleep(500);
-        if (get_halfshutter_pressed()) goto end;
+        if (get_halfshutter_pressed()) goto err;
     }
 
     NotifyBox(100000, "ETTR...");
@@ -1092,20 +1118,25 @@ static void auto_ettr_on_request_task_slow()
         if (status == ETTR_SETTLED)
             break;
         
-        if (get_halfshutter_pressed())
-            break;
-        
         if (k == 4 || status == ETTR_EXPO_LIMITS_REACHED)
         {
-            beep();
-            NotifyBox(2000, status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops");
-            goto end;
+            err_msg = status == ETTR_EXPO_LIMITS_REACHED ? "Expo limits reached" : "Whoops";
+            goto err;
         }
     }
-    NotifyBoxHide();
 
-end:
+/* ok: */
     beep();
+    NotifyBoxHide();
+    goto cleanup;
+
+err:
+    beep();
+    beep();
+    NotifyBox(2000, err_msg);
+    goto cleanup;
+
+cleanup:
     auto_ettr_prepare_lv(1, 1);
     auto_ettr_running = 0;
 }
@@ -1176,8 +1207,8 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
         {
             auto_ettr_running = 1;
             task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-            if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
         }
+        if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
     }
     return 1;
 }
@@ -1199,8 +1230,8 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
 
-    if (HDR_ENABLED)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+    if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing. Use trigger mode SET.");
 
     if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
@@ -1362,8 +1393,8 @@ static struct menu_entry ettr_menu[] =
                 .name = "Shadow SNR limit",
                 .priv = &auto_ettr_shadow_snr_limit,
                 .min = 0,
-                .max = 4,
-                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV"),
+                .max = 6,
+                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV"),
                 .help  = "Stop underexposing when at least 5% of the image gets",
                 .help2 = "noisier than selected SNR => will clip more highlights.",
                 .depends_on = DEP_MANUAL_ISO,
@@ -1381,7 +1412,6 @@ static struct menu_entry ettr_menu[] =
                 .max = 1,
                 .help  = "Let ETTR change DualISO settings so you get the SNR values",
                 .help2 = "in mids & shadows. It will disable dual ISO if not needed.",
-                .advanced = 1,
             },
             {
                 .name = "Show metered areas",

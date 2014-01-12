@@ -15,16 +15,19 @@
 #include "module.h"
 #endif
 
-//#define FEATURE_HDR_EXTENDED
+#ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+#define FEATURE_HDR_EXTENDED
+#endif
 
 #ifdef FEATURE_HDR_EXTENDED
 #define CONFIG_HDR_EXTENDED_STEPS 8
-static uint8_t hdrv_extended_shutter[CONFIG_HDR_EXTENDED_STEPS];
-static uint8_t hdrv_extended_iso[CONFIG_HDR_EXTENDED_STEPS];
-static uint32_t hdrv_extended_step_edit = 1;
+static int hdrv_extended_shutter[CONFIG_HDR_EXTENDED_STEPS];
+static int hdrv_extended_iso[CONFIG_HDR_EXTENDED_STEPS];
+static int hdrv_extended_step_edit = 1;
 
 static CONFIG_INT("hdrv.ext.en", hdrv_extended_mode, 0);
 static CONFIG_INT("hdrv.ext.steps", hdrv_extended_steps, 2);
+
 CONFIG_ARRAY_ELEMENT("hdrv.ext.shutter.0", hdrv_extended_shutter, 0, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.shutter.1", hdrv_extended_shutter, 1, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.shutter.2", hdrv_extended_shutter, 2, 0);
@@ -41,6 +44,7 @@ CONFIG_ARRAY_ELEMENT("hdrv.ext.iso.4", hdrv_extended_iso, 4, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.iso.5", hdrv_extended_iso, 5, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.iso.6", hdrv_extended_iso, 6, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.iso.7", hdrv_extended_iso, 7, 0);
+
 #endif
 
 static CONFIG_INT("hdrv.en", hdrv_enabled, 0);
@@ -73,103 +77,83 @@ static int is_hdr_valid_iso(int iso)
 #ifdef FEATURE_HDR_EXTENDED
 static int hdrv_shutter_table[] = { 0, 24, 25, 30, 40, 50, 60, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1500, 2000, 3000, 4000, 6000, 8000, 12500, 25000};
 
-static void hdrv_extended_shutter_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC (hdrv_extended_shutter_display)
 {
-    uint8_t *shutter_index = (uint8_t *)priv;
-    uint8_t pos = hdrv_extended_step_edit - 1;
+    int pos = hdrv_extended_step_edit - 1;
     
-    if(shutter_index[pos])
+    if(hdrv_extended_shutter[pos])
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Shutter #%d : 1/%d",
-            pos + 1,
-            hdrv_shutter_table[shutter_index[pos]]
-        );
+        MENU_SET_VALUE("#%d : 1/%d", pos + 1, hdrv_shutter_table[hdrv_extended_shutter[pos]]);
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Shutter #%d : ---",
-            pos + 1
-        );
+        MENU_SET_VALUE("#%d : ---", pos + 1);
     }
     
     if(hdrv_extended_step_edit > hdrv_extended_steps)
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This entry is unused. Increase step count.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This entry is unused. Increase step count.");
     }
 }
 
-void hdrv_extended_shutter_toggle(void* priv, int delta)
+static MENU_SELECT_FUNC (hdrv_extended_shutter_toggle)
 {
-    uint8_t *shutter_index = (uint8_t *)priv;
-    uint8_t pos = hdrv_extended_step_edit - 1;
+    int pos = hdrv_extended_step_edit - 1;
     int new_pos = 0;
 
-    new_pos = COERCE(shutter_index[pos] + delta, 0, COUNT(hdrv_shutter_table) - 1);
-    shutter_index[pos] = new_pos;
+    new_pos = COERCE(hdrv_extended_shutter[pos] + delta, 0, COUNT(hdrv_shutter_table) - 1);
+    hdrv_extended_shutter[pos] = new_pos;
 }
 
-static void hdrv_extended_iso_toggle(void* priv, int delta)
+static MENU_SELECT_FUNC (hdrv_extended_iso_toggle)
 {
-    uint8_t *iso_table = (uint8_t *)priv;
-    uint8_t pos = hdrv_extended_step_edit - 1;
+    int pos = hdrv_extended_step_edit - 1;
+    int new_iso = hdrv_extended_iso[pos];
+    
     do
     {
-        iso_table[pos] = mod(iso_table[pos] - 72 + delta, MAX_ISO_BV - 72 + 1) + 72;
+        new_iso = mod(new_iso - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;      
     }
-    while (!is_hdr_valid_iso(raw2iso(iso_table[pos])));
+    while (!is_hdr_valid_iso(raw2iso(new_iso))); 
+    
+    hdrv_extended_iso[pos] = new_iso;
 }
 
-void hdrv_extended_iso_display(void *priv, int x, int y, int selected)
+static MENU_UPDATE_FUNC (hdrv_extended_iso_display)
 {
-    uint8_t *iso_table = (uint8_t *)priv;
-    uint8_t pos = hdrv_extended_step_edit - 1;
-    int effective_iso = get_effective_hdr_iso_for_display(iso_table[pos]);
-    int d = effective_iso - iso_table[pos];
+    int pos = hdrv_extended_step_edit - 1;
+    int effective_iso = get_effective_hdr_iso_for_display(hdrv_extended_iso[pos]);
+    int d = effective_iso - hdrv_extended_iso[pos];
+    
     d = d * 10 / 8;
     
-    if(iso_table[pos])
+    if(hdrv_extended_iso[pos])
     {
-        if (d)
+        if(d)
         {
-            bmp_printf(
-                selected ? MENU_FONT_SEL : MENU_FONT,
-                x, y,
-                "ISO #%d: %d (%d, %s%d.%d EV)", 
+            MENU_SET_VALUE(
+                "#%d: %d (%d, %s%d.%d EV)", 
                 pos + 1,
                 raw2iso(effective_iso),
-                raw2iso(iso_table[pos]),
-                d > 0 ? "+" : "-", ABS(d)/10, ABS(d)%10
+                raw2iso(hdrv_extended_iso[pos]),
+                d > 0 ? "+" : "-", 
+                ABS(d)/10, 
+                ABS(d)%10
             );
         }
         else
         {
-            bmp_printf(
-                selected ? MENU_FONT_SEL : MENU_FONT,
-                x, y,
-                "ISO #%d     : %d", 
-                pos + 1,
-                raw2iso(effective_iso)
-            );
+            MENU_SET_VALUE("#%d: %d", pos + 1, raw2iso(effective_iso));
         }
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "ISO #%d     : ---", 
-            pos + 1
-        );
+        MENU_SET_VALUE("#%d: OFF", pos + 1);
     }
+    
     if(hdrv_extended_step_edit > hdrv_extended_steps)
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This entry is unused. Increase step count.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This entry is unused. Increase step count.");
     }
 }
 #endif
@@ -221,34 +205,49 @@ void hdr_step()
     if (!is_movie_mode()) return;
     if (!lens_info.raw_iso) return;
     
+    static int last_rec = 0;
     static int odd_frame = 0;
     static int frame;
     frame++;
         
     if (RECORDING)
     {
+        /* make sure recording always starts with frame zero */
+        if(!last_rec)
+        {
+            frame = 0;
+        }
         odd_frame = frame % 2;
     }
     else
-    {
-        if (!HALFSHUTTER_PRESSED) odd_frame = (get_seconds_clock() / 4) % 2;
+    {   
+        if (!HALFSHUTTER_PRESSED)
+        {
+            odd_frame = (get_seconds_clock() / 4) % 2;
+        }
     }
+    
+    last_rec = RECORDING;
 
     #ifdef FEATURE_HDR_EXTENDED
     if(hdrv_extended_mode)
     {
-        int table_pos = frame % hdrv_extended_steps;
-        uint32_t shutter_value = hdrv_extended_shutter[table_pos];
-        uint32_t iso_value = hdrv_extended_iso[table_pos];
+        /* ToDo: when setting shutter value, there is a one-frame delay on 5D3. thus adding +1 for shutter here. how about the other models? */
+        int table_pos_iso = frame % hdrv_extended_steps;
+        int table_pos_shutter = (frame + 1) % hdrv_extended_steps;
         
+        uint32_t shutter_value = hdrv_extended_shutter[table_pos_shutter];
+        uint32_t iso_value = hdrv_extended_iso[table_pos_iso];
+        
+        /* shutter_value is 24 for 1/24, 25, for 1/25 etc */
         if(shutter_value)
         {
-            FRAME_SHUTTER_TIMER = MAX(2, get_current_tg_freq() / (hdrv_shutter_table[shutter_value] * 1000));
+            set_frame_shutter(hdrv_shutter_table[shutter_value]);
         }
         
         if(iso_value)
         {
-            FRAME_ISO = iso_value | (iso_value << 8);
+            set_frame_iso(iso_value);
         }
     }
     else
@@ -258,7 +257,7 @@ void hdr_step()
         hdr_get_iso_range(&iso_low, &iso_high);
 
         int iso = odd_frame ? iso_low : iso_high; // ISO 100-1600
-        FRAME_ISO = iso | (iso << 8);
+        set_frame_iso(iso);
     }    
     #endif
 #endif
@@ -282,7 +281,7 @@ int hdr_kill_flicker()
         #ifdef FEATURE_HDR_EXTENDED
         if(hdrv_extended_mode)
         {
-        /* no flicker kill yet */
+            /* no flicker kill */
         }
         else
         #endif
@@ -290,7 +289,10 @@ int hdr_kill_flicker()
             static int prev_buf = 0;
             if (frame % 2 == odd_frame)
             {
-                if (prev_buf) YUV422_LV_BUFFER_DISPLAY_ADDR = prev_buf;
+                if (prev_buf)
+                {
+                    YUV422_LV_BUFFER_DISPLAY_ADDR = prev_buf;
+                }
             }
             else
             {
@@ -326,15 +328,8 @@ static MENU_UPDATE_FUNC(hdr_print)
             iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
             iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
 
-            MENU_SET_VALUE(
-                "ISO %d/%d,%d.%dEV",
-                iso_low, iso_high, 
-                ev_x10/10, ev_x10%10
-            );
-            MENU_SET_SHORT_VALUE(
-                "%d/%d",
-                iso_low, iso_high
-            );
+            MENU_SET_VALUE("ISO %d/%d,%d.%dEV", iso_low, iso_high, ev_x10/10, ev_x10%10);
+            MENU_SET_SHORT_VALUE("%d/%d", iso_low, iso_high);
         }
     }
 }
@@ -384,19 +379,11 @@ static MENU_UPDATE_FUNC(hdr_iso_display)
     
     if (d)
     {
-        MENU_SET_VALUE(
-            "%d (%d, %s%d.%d EV)", 
-            raw2iso(effective_iso),
-            raw2iso(hdr_iso),
-            d > 0 ? "+" : "-", ABS(d)/10, ABS(d)%10
-        );
+        MENU_SET_VALUE("%d (%d, %s%d.%d EV)", raw2iso(effective_iso), raw2iso(hdr_iso), d > 0 ? "+" : "-", ABS(d)/10, ABS(d)%10);
     }
     else
     {
-        MENU_SET_VALUE(
-            "%d", 
-            raw2iso(effective_iso)
-        );
+        MENU_SET_VALUE("%d", raw2iso(effective_iso));
     }
 }
 
@@ -452,22 +439,20 @@ static struct menu_entry hdr_menu[] = {
                 .help = "Edit ISO/Shutter settings.",
             },
             {
-                .name = "Ext. ISO",
-                .priv = hdrv_extended_iso,
+                .name = "ISO",
                 .min = 72,
                 .max = MAX_ISO_BV,
                 .select = hdrv_extended_iso_toggle,
-                .display = hdrv_extended_iso_display,
+                .update = hdrv_extended_iso_display,
                 .unit = UNIT_ISO,
                 .help = "Edit ISO settings.",
             },
             {
-                .name = "Ext. Shutter",
-                .priv = hdrv_extended_shutter,
-                .min = 1,
-                .max = MAX_ISO_BV,
+                .name = "Shutter",
+                .min = 0,
+                .max = COUNT(hdrv_shutter_table),
                 .select = hdrv_extended_shutter_toggle,
-                .display = hdrv_extended_shutter_display,
+                .update = hdrv_extended_shutter_display,
                 .help = "Edit Shutter settings.",
             },
             #endif
@@ -520,56 +505,3 @@ void hdr_mvr_log(char* mvr_logfile_buffer)
     }
 }
 
-int get_frame_iso()
-{
-    #ifdef FRAME_ISO
-    return FRAME_ISO & 0xFF;
-    #else
-    return 0;
-    #endif
-}
-
-void set_frame_iso(int iso)
-{
-    #ifdef CONFIG_FRAME_ISO_OVERRIDE
-    FRAME_ISO = iso | (iso << 8);
-    #endif
-}
-
-int can_set_frame_iso()
-{
-    #ifdef CONFIG_FRAME_ISO_OVERRIDE
-    return 1;
-    #else
-    return 0;
-    #endif
-}
-
-int get_frame_shutter_timer()
-{
-    #ifdef FRAME_SHUTTER_TIMER
-    return FRAME_SHUTTER_TIMER;
-    #else
-    return 0;
-    #endif
-}
-
-void set_frame_shutter_timer(int timer)
-{
-    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
-        #ifdef CONFIG_DIGIC_V
-        FRAME_SHUTTER_TIMER = MAX(timer, 2);
-        #else
-        FRAME_SHUTTER_TIMER = MAX(timer, 1);
-        #endif
-    #endif
-}
-
-int can_set_frame_shutter_timer()
-{
-    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
-    return 1;
-    #else
-    return 0;
-    #endif
-}

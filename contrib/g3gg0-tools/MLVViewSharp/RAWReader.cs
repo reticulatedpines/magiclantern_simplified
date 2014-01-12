@@ -16,13 +16,23 @@ using System.Collections;
 
 namespace mlv_view_sharp
 {
-
     /* file footer data */
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct lv_rec_file_footer_t
     {
-        [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-        public string magic;
+        [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+        public byte[] blockTypeData;
+        public string magic
+        {
+            get
+            {
+                return Encoding.ASCII.GetString(blockTypeData);
+            }
+            set
+            {
+                blockTypeData = Encoding.ASCII.GetBytes(value);
+            }
+        }
         public int16_t xRes;
         public int16_t yRes;
         public int32_t frameSize;
@@ -60,6 +70,8 @@ namespace mlv_view_sharp
 
         public RAWReader(string fileName, MLVBlockHandler handler)
         {
+            Handler = handler;
+
             /* ensure that we load the main file first */
             fileName = fileName.Substring(0, fileName.Length - 2) + "AW";
 
@@ -74,9 +86,6 @@ namespace mlv_view_sharp
             RawiHeader = ReadFooter();
             BuildIndex();
 
-
-            Handler = handler;
-
             /* fill with dummy values */
             FileHeader.audioClass = 0;
             FileHeader.videoClass = 1;
@@ -88,24 +97,46 @@ namespace mlv_view_sharp
         private void BuildIndex()
         {
             ArrayList list = new ArrayList();
+            Dictionary<uint, xrefEntry> frameXrefList = new Dictionary<uint, xrefEntry>();
+            long currentFileOffset = 0;
+            int fileNum = 0;
+            int block = 0;
 
-            for (int fileNum = 0; fileNum < Reader.Length; fileNum++)
+            while (fileNum < Reader.Length)
             {
-                long blocks = Reader[fileNum].BaseStream.Length / (long)Footer.frameSize;
+                /* create xref entry */
+                xrefEntry xref = new xrefEntry();
 
-                for (long block = 0; block < blocks; block++)
+                xref.fileNumber = fileNum;
+                xref.position = currentFileOffset;
+                xref.timestamp = (ulong)(block * (1000000000.0d / Footer.sourceFpsx1000));
+
+                list.Add(xref);
+
+                frameXrefList.Add((uint)block, xref);
+
+                /* increment position */
+                block++;
+                currentFileOffset += Footer.frameSize;
+
+                /* if the read goes beyond the file end, go to next file */
+                if (currentFileOffset > Reader[fileNum].BaseStream.Length)
                 {
-                    /* create xref entry */
-                    xrefEntry xref = new xrefEntry();
+                    currentFileOffset -= Reader[fileNum].BaseStream.Length;
+                    fileNum++;
+                }
 
-                    xref.fileNumber = fileNum;
-                    xref.position = block * Footer.frameSize;
-                    xref.timestamp = (ulong)(block * (1000000000.0d / Footer.sourceFpsx1000));
-
-                    list.Add(xref);
+                /* the last block isnt a frame, but the footer. so skip that one. */
+                if ((fileNum == Reader.Length - 1) && (Reader[fileNum].BaseStream.Length - currentFileOffset < Footer.frameSize))
+                {
+                    break;
                 }
             }
+
+            TotalFrameCount = (uint)block;
+
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
+            FrameXrefList = frameXrefList;
         }
 
         private MLVTypes.mlv_rawi_hdr_t ReadFooter()
@@ -143,7 +174,7 @@ namespace mlv_view_sharp
         }
 
 
-        internal override bool ReadBlock()
+        public override bool ReadBlock()
         {
             if (Reader == null)
             {
@@ -156,20 +187,25 @@ namespace mlv_view_sharp
             /* seek to current block pos */
             Reader[fileNum].BaseStream.Position = filePos;
 
-
-            /* if there are not enough blocks anymore */
-            if (Reader[fileNum].BaseStream.Position >= Reader[fileNum].BaseStream.Length - Footer.frameSize)
+            int read = Reader[fileNum].Read(FrameBuffer, 0, Footer.frameSize);
+            if (read != Footer.frameSize)
             {
-                return false;
-            }
+                if (fileNum >= Reader.Length || read < 0)
+                {
+                    return false;
+                }
 
-            /* read MLV block header */
-            if (Reader[fileNum].Read(FrameBuffer, 0, Footer.frameSize) != Footer.frameSize)
-            {
-                return false;
+                /* second part from the frame is in the next file */
+                fileNum++;
+                Reader[fileNum].BaseStream.Position = 0;
+                if (Reader[fileNum].Read(FrameBuffer, read, Footer.frameSize - read) != Footer.frameSize - read)
+                {
+                    return false;
+                }
             }
 
             VidfHeader.frameSpace = 0;
+            VidfHeader.frameNumber = (uint)CurrentBlockNumber;
 
             Handler("VIDF", VidfHeader, FrameBuffer, 0, Footer.frameSize);
 

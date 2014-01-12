@@ -38,11 +38,12 @@ struct raw_info raw_info;
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
-static void fix_vertical_stripes();
-static void chroma_smooth();
+void fix_vertical_stripes();
+void chroma_smooth();
 
 #define EV_RESOLUTION 32768
 
+#ifndef MLV2DNG
 int main(int argc, char** argv)
 {
     if (argc < 2)
@@ -145,6 +146,7 @@ int main(int argc, char** argv)
     printf("    ffmpeg -i %s%%6d.jpg -vcodec mjpeg -qscale 1 video.avi\n\n", prefix);
     return 0;
 }
+#endif
 
 int raw_get_pixel(int x, int y) {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
@@ -496,7 +498,7 @@ static void apply_vertical_stripes_correction()
     }
 }
 
-static void fix_vertical_stripes()
+void fix_vertical_stripes()
 {
     /* for speed: only detect correction factors from the first frame */
     static int first_time = 1;
@@ -670,8 +672,12 @@ static void chroma_smooth_3x3(unsigned short * inp, unsigned short * out, int* r
             }
 
             /* replace red and blue pixels with filtered values, keep green pixels unchanged */
-            out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            /* don't touch overexposed areas */
+            if (out[x   +     y * w] < raw_info.white_level)
+                out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            
+            if (out[x+1  + (y+1)* w] < raw_info.white_level)
+                out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
         }
     }
 }
@@ -836,8 +842,12 @@ static void chroma_smooth_2x2(unsigned short * inp, unsigned short * out, int* r
             }
 
             /* replace red and blue pixels with filtered values, keep green pixels unchanged */
-            out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            /* don't touch overexposed areas */
+            if (out[x   +     y * w] < raw_info.white_level)
+                out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            
+            if (out[x+1  + (y+1)* w] < raw_info.white_level)
+                out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
         }
     }
 }
@@ -997,13 +1007,17 @@ static void chroma_smooth_5x5(unsigned short * inp, unsigned short * out, int* r
             }
             
             /* replace red and blue pixels with filtered values, keep green pixels unchanged */
-            out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
-            out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            /* don't touch overexposed areas */
+            if (out[x   +     y * w] < raw_info.white_level)
+                out[x   +     y * w] = ev2raw[COERCE(gr + dr, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
+            
+            if (out[x+1  + (y+1)* w] < raw_info.white_level)
+                out[x+1 + (y+1) * w] = ev2raw[COERCE(gb + db, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)];
         }
     }
 }
 
-static void chroma_smooth()
+void chroma_smooth()
 {
     int black = raw_info.black_level;
     static int raw2ev[16384];

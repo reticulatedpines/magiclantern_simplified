@@ -16,11 +16,31 @@ namespace mlv_view_sharp
     public class MLVReader
     {
         protected BinaryReader[] Reader = null;
-        protected string[] FileNames = null;
         protected MLVBlockHandler Handler = null;
         protected xrefEntry[] BlockIndex = null;
 
+        protected Dictionary<uint, xrefEntry> FrameXrefList = null;
+
         public string LastType = "";
+
+        /* made public to show debug information */
+        public string IndexName = null;
+        public string[] FileNames = null;
+        public int FileNum = 0;
+        public long FilePos = 0;
+
+
+        public uint TotalFrameCount = 0;
+        public uint FrameRedundantErrors = 0;
+        public uint FrameMissingErrors = 0;
+        public uint FrameErrors
+        {
+            get
+            {
+                return FrameRedundantErrors + FrameMissingErrors;
+            }
+        }
+
         public int CurrentBlockNumber = 0;
         public int MaxBlockNumber
         {
@@ -48,7 +68,7 @@ namespace mlv_view_sharp
                 throw new ArgumentException();
             }
 
-            BuildIndex();
+            UpdateIndex();
 
             Handler = handler;
         }
@@ -122,6 +142,7 @@ namespace mlv_view_sharp
             {
                 return;
             }
+            IndexName = fileName.ToUpper().Replace(".MLV", ".IDX");
 
             int fileNum = 1;
             string chunkName = "";
@@ -150,7 +171,7 @@ namespace mlv_view_sharp
             /* open files now */
             for(int file = 0; file < fileNum; file++)
             {
-                Reader[file] = new BinaryReader(File.Open(FileNames[file], FileMode.Open, FileAccess.Read, FileShare.Read));
+                Reader[file] = new BinaryReader(File.Open(FileNames[file], FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             }
         }
 
@@ -167,6 +188,142 @@ namespace mlv_view_sharp
             public int fileNumber;
         }
 
+        protected byte[] ReadBlockData(BinaryReader reader)
+        {
+            long pos = reader.BaseStream.Position;
+
+            /* read block header */
+            byte[] buf = new byte[8];
+
+            if (reader.Read(buf, 0, buf.Length) != buf.Length)
+            {
+                throw new Exception("Failed to read file");
+            }
+
+            UInt32 length = BitConverter.ToUInt32(buf, 4);
+
+            /* resize buffer to the block size */
+            Array.Resize<byte>(ref buf, (int)length);
+
+            /* now read the block */
+            reader.BaseStream.Position = pos;
+            if (reader.Read(buf, 0, buf.Length) != buf.Length)
+            {
+                throw new Exception("Failed to read file");
+            }
+
+            return buf;
+        }
+
+        protected MLVTypes.mlv_file_hdr_t ReadMainHeader()
+        {
+            Reader[0].BaseStream.Position = 0;
+            byte[] block = ReadBlockData(Reader[0]);
+
+            return (MLVTypes.mlv_file_hdr_t)MLVTypes.ToStruct("MLVI", block);
+        }
+
+        private void UpdateIndex()
+        {
+            if (File.Exists(IndexName))
+            {
+                try
+                {
+                    LoadIndex();
+                    BuildFrameIndex();
+                    return;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+            }
+
+            BuildIndex();
+            SaveIndex();
+        }
+
+        private void BuildFrameIndex()
+        {
+            TotalFrameCount = 0;
+            Dictionary<uint, xrefEntry> frameXrefList = new Dictionary<uint, xrefEntry>();
+
+            for (int pos = 0; pos < BlockIndex.Length; pos++)
+            {
+                /* check if this is a VIDF block */
+                byte[] buf = new byte[16];
+                Reader[BlockIndex[pos].fileNumber].BaseStream.Position = BlockIndex[pos].position;
+
+                /* read MLV block header and seek to next block */
+                if (Reader[BlockIndex[pos].fileNumber].Read(buf, 0, buf.Length) != buf.Length)
+                {
+                    throw new Exception("Failed to read file, index seems corrupt.");
+                }
+
+                uint size = BitConverter.ToUInt32(buf, 4);
+                string type = Encoding.UTF8.GetString(buf, 0, 4);
+
+                if (type == "VIDF")
+                {
+                    /* hardcoded block size, better to use marshal? */
+                    byte[] vidfBuf = new byte[256];
+
+                    /* go back to header start */
+                    Reader[BlockIndex[pos].fileNumber].BaseStream.Position = BlockIndex[pos].position;
+                    if (Reader[BlockIndex[pos].fileNumber].Read(vidfBuf, 0, vidfBuf.Length) != vidfBuf.Length)
+                    {
+                        break;
+                    }
+
+                    MLVTypes.mlv_vidf_hdr_t header = (MLVTypes.mlv_vidf_hdr_t)MLVTypes.ToStruct("VIDF", vidfBuf);
+
+                    if (!frameXrefList.ContainsKey(header.frameNumber))
+                    {
+                        frameXrefList.Add(header.frameNumber, BlockIndex[pos]);
+                        BlockIndex[pos].timestamp = BitConverter.ToUInt64(buf, 8);
+                    }
+                    else
+                    {
+                        FrameRedundantErrors++;
+                    }
+
+                    TotalFrameCount = Math.Max(TotalFrameCount, header.frameNumber);
+                }
+            }
+            FrameXrefList = frameXrefList;
+        }
+
+        private void LoadIndex()
+        {
+            BinaryReader index = new BinaryReader(File.Open(IndexName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+
+            /* read MLV block header */
+            byte[] mlvBlockBuf = ReadBlockData(index);
+
+            MLVTypes.mlv_file_hdr_t fileHeader = (MLVTypes.mlv_file_hdr_t)MLVTypes.ToStruct("MLVI", mlvBlockBuf);
+            MLVTypes.mlv_file_hdr_t mainHeader = ReadMainHeader();
+
+            if (mainHeader.fileGuid != fileHeader.fileGuid)
+            {
+                throw new Exception("GUID mismatch");
+            }
+
+            byte[] xrefBlockBuf = ReadBlockData(index);
+            MLVTypes.mlv_xref_hdr_t xrefHeader = (MLVTypes.mlv_xref_hdr_t)MLVTypes.ToStruct("XREF", xrefBlockBuf);
+
+            BlockIndex = new xrefEntry[xrefHeader.entryCount];
+            int entrySize = Marshal.SizeOf(new MLVTypes.mlv_xref_t());
+
+            for (int pos = 0; pos < xrefHeader.entryCount; pos++)
+            {
+                MLVTypes.mlv_xref_t xrefEntry = (MLVTypes.mlv_xref_t)MLVTypes.ToStruct("XREF_ENTRY", xrefBlockBuf, Marshal.SizeOf(xrefHeader) + pos * entrySize);
+
+                BlockIndex[pos] = new xrefEntry();
+                BlockIndex[pos].fileNumber = xrefEntry.fileNumber;
+                BlockIndex[pos].position = (long)xrefEntry.frameOffset;
+            }
+        }
+
         private void BuildIndex()
         {
             if (Reader == null)
@@ -175,6 +332,9 @@ namespace mlv_view_sharp
             }
 
             ArrayList list = new ArrayList();
+            Dictionary<uint, xrefEntry> frameXrefList = new Dictionary<uint, xrefEntry>();
+
+            TotalFrameCount = 0;
 
             for(int fileNum = 0; fileNum < Reader.Length; fileNum++)
             {
@@ -190,9 +350,15 @@ namespace mlv_view_sharp
                     {
                         break;
                     }
-                    Reader[fileNum].BaseStream.Position = offset + BitConverter.ToUInt32(buf, 4);
 
+                    uint size = BitConverter.ToUInt32(buf, 4);
                     string type = Encoding.UTF8.GetString(buf, 0, 4);
+
+                    if (size < 0x10 || size > 50 * 1024 * 1024)
+                    {
+                        MessageBox.Show("File '" + FileNames[fileNum] + "' has a an invalid block at offset 0x" + offset.ToString("X8") + ".");
+                        break;
+                    }
 
                     /* just skip NULL blocks */
                     if (type != "NULL")
@@ -202,24 +368,158 @@ namespace mlv_view_sharp
 
                         xref.fileNumber = fileNum;
                         xref.position = offset;
-                        if (type != "MLVI")
+
+                        if (type == "MLVI")
                         {
-                            xref.timestamp = BitConverter.ToUInt64(buf, 8);
+                            byte[] mlviBuf = new byte[size];
+
+                            /* go back to header start */
+                            Reader[fileNum].BaseStream.Position = offset;
+                            if (Reader[fileNum].Read(mlviBuf, 0, mlviBuf.Length) != mlviBuf.Length)
+                            {
+                                break;
+                            }
+
+                            /* sum up the frame counts in all chunks */
+                            MLVTypes.mlv_file_hdr_t header = (MLVTypes.mlv_file_hdr_t)MLVTypes.ToStruct("MLVI", mlviBuf);
+                            TotalFrameCount += header.videoFrameCount;
+
+                            /* at this position there is the file version string */
+                            xref.timestamp = 0;
+                        }
+                        else if (type == "VIDF")
+                        {
+                            /* hardcoded block size, better to use marshal? */
+                            byte[] vidfBuf = new byte[256];
+
+                            /* go back to header start */
+                            Reader[fileNum].BaseStream.Position = offset;
+                            if (Reader[fileNum].Read(vidfBuf, 0, vidfBuf.Length) != vidfBuf.Length)
+                            {
+                                break;
+                            }
+
+                            MLVTypes.mlv_vidf_hdr_t header = (MLVTypes.mlv_vidf_hdr_t)MLVTypes.ToStruct("VIDF", vidfBuf);
+
+                            if (!frameXrefList.ContainsKey(header.frameNumber))
+                            {
+                                frameXrefList.Add(header.frameNumber, xref);
+                                xref.timestamp = BitConverter.ToUInt64(buf, 8);
+                            }
+                            else
+                            {
+                                FrameRedundantErrors++;
+                                //MessageBox.Show("File " + FileNames[0] + " contains frame #" + header.frameNumber + " more than once!");
+                            }
                         }
                         else
                         {
-                            xref.timestamp = 0;
+                            xref.timestamp = BitConverter.ToUInt64(buf, 8);
                         }
-
                         list.Add(xref);
                     }
+
+                    /* skip block */
+                    Reader[fileNum].BaseStream.Position = offset + size;
                 }
             }
+
+            /* update global indices */
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
+            FrameXrefList = frameXrefList;
+
+            /* check for non-header blocks with the same timestamp */
+            xrefEntry prev = new xrefEntry();
+            prev.timestamp = 0;
+            prev.fileNumber = 0;
+
+            foreach (var indexEntry in BlockIndex)
+            {
+                if (indexEntry.position != 0 && indexEntry.timestamp == prev.timestamp)
+                {
+                    //FrameRedundantErrors++;
+                }
+                prev = indexEntry;
+            }
+
+            uint curFrame = 0;
+            foreach (var elem in frameXrefList.OrderBy(elem => elem.Key))
+            {
+                if (elem.Key != curFrame)
+                {
+                    curFrame = elem.Key;
+                    FrameMissingErrors++;
+                }
+                curFrame++;
+            }
+        }
+
+        public void SaveIndex()
+        {
+            if (BlockIndex == null || BlockIndex.Length == 0)
+            {
+                return;
+            }
+
+            MLVTypes.mlv_file_hdr_t fileHeader = ReadMainHeader();
+            MLVTypes.mlv_xref_hdr_t xrefHdr = new MLVTypes.mlv_xref_hdr_t();
+
+            /* update MLVI header */
+            fileHeader.blockSize = (uint)Marshal.SizeOf(fileHeader);
+            fileHeader.videoFrameCount = 0;
+            fileHeader.audioFrameCount = 0;
+            fileHeader.fileNum = (ushort)FileNames.Length;
+
+            /* create XREF block */
+            xrefHdr.blockType = "XREF";
+            xrefHdr.blockSize = (uint)(Marshal.SizeOf(xrefHdr) + BlockIndex.Length * Marshal.SizeOf(new MLVTypes.mlv_xref_t()));
+            xrefHdr.timestamp = 1;
+            xrefHdr.entryCount = (uint)BlockIndex.Length;
+
+            /* open file */
+            BinaryWriter writer = new BinaryWriter(new FileStream(IndexName, FileMode.Create, FileAccess.Write));
+
+            writer.Write(MLVTypes.ToByteArray(fileHeader));
+            writer.Write(MLVTypes.ToByteArray(xrefHdr));
+
+            foreach (var entry in BlockIndex)
+            {
+                MLVTypes.mlv_xref_t xrefEntry;
+
+                xrefEntry.fileNumber = (ushort)entry.fileNumber;
+                xrefEntry.frameOffset = (ulong)entry.position;
+                xrefEntry.empty = 0;
+
+                writer.Write(MLVTypes.ToByteArray(xrefEntry));
+            }
+
+            writer.Close();
+        }
+
+        public virtual int GetFrameBlockNumber(uint frameNumber)
+        {
+            if(frameNumber < 1 )
+            {
+                return 0;
+            }
+
+            try
+            {
+                xrefEntry xref = FrameXrefList[frameNumber - 1];
+                int pos = Array.IndexOf(BlockIndex, Array.Find(BlockIndex, elem => elem.timestamp == xref.timestamp)) + 1;
+
+                return Math.Min(pos, BlockIndex.Length - 1);
+            }
+            catch (Exception e)
+            {
+                e.ToString();
+            }
+
+            return -1;
         }
 
 
-        internal virtual bool ReadBlock()
+        public virtual bool ReadBlock()
         {
             if (Reader == null)
             {
@@ -227,20 +527,20 @@ namespace mlv_view_sharp
             }
 
             byte[] buf = new byte[16];
-            int fileNum = BlockIndex[CurrentBlockNumber].fileNumber;
-            long filePos = BlockIndex[CurrentBlockNumber].position;
+            FileNum = BlockIndex[CurrentBlockNumber].fileNumber;
+            FilePos = BlockIndex[CurrentBlockNumber].position;
 
             /* seek to current block pos */
-            Reader[fileNum].BaseStream.Position = filePos;
+            Reader[FileNum].BaseStream.Position = FilePos;
 
             /* if there are not enough blocks anymore */
-            if (Reader[fileNum].BaseStream.Position >= Reader[fileNum].BaseStream.Length - 16)
+            if (Reader[FileNum].BaseStream.Position >= Reader[FileNum].BaseStream.Length - 16)
             {
                 return false;
             }
 
             /* read MLV block header */
-            if (Reader[fileNum].Read(buf, 0, 16) != 16)
+            if (Reader[FileNum].Read(buf, 0, 16) != 16)
             {
                 return false;
             }
@@ -253,13 +553,13 @@ namespace mlv_view_sharp
             Array.Resize<byte>(ref buf, (int)length);
 
             /* now read the rest of the block */
-            if (Reader[fileNum].Read(buf, 16, (int)length - 16) != (int)length - 16)
+            if (Reader[FileNum].Read(buf, 16, (int)length - 16) != (int)length - 16)
             {
                 return false;
             }
 
             var data = MLVTypes.ToStruct(type, buf);
-            int headerLength =  Marshal.SizeOf(data.GetType());
+            int headerLength = Marshal.SizeOf(data.GetType());
 
             Handler(type, data, buf, headerLength, buf.Length - headerLength);
 
@@ -268,7 +568,7 @@ namespace mlv_view_sharp
             return true;
         }
 
-        internal virtual void Close()
+        public virtual void Close()
         {
             if (Reader == null)
             {

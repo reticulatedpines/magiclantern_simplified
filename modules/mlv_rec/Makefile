@@ -6,6 +6,14 @@ MODULE_OBJS=mlv_rec.o mlv.o
 # include modules environment
 include ../Makefile.modules
 
+# just comment out to disable LUA
+#LUA_VER=5.2
+
+ifdef LUA_VER
+    LUA_CFLAGS=`pkg-config --cflags --libs lua$(LUA_VER)` -D USE_LUA
+else
+    LUA_CFLAGS=
+endif
 
 MINGW=i686-w64-mingw32
 MINGW_GCC=$(MINGW)-gcc
@@ -14,11 +22,16 @@ MINGW_AR=$(MINGW)-ar
 # large file support
 # get them with $(shell getconf LFS_CFLAGS)
 LFS_FLAGS=-DLARGEFILES -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
-MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR)
+
+ifdef FOR_OSX
+    MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS) -arch i386 -mmacosx-version-min=10.6
+else
+    MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS)
+endif
 
 # LZMA library flags
 LZMA_DIR=lzma/
-LZMA_CFLAGS=-c -O2 -Wall -c
+LZMA_CFLAGS=-c -O2 -Wall -m32 -c
 LZMA_INC=-I$(LZMA_DIR)
 LZMA_LIB=$(LZMA_DIR)lib7z.a
 LZMA_LIB_MINGW=$(LZMA_DIR)lib7z.w32.a
@@ -69,8 +82,12 @@ $(LZMA_LIB_MINGW): $(LZMA_OBJS_MINGW)
 #
 # mlv_dump rules
 #
-mlv_dump: $(LZMA_LIB) mlv_dump.c
-	$(call build,GCC,gcc -o $@ mlv_dump.c $(LZMA_LIB) $(LZMA_INC) $(MLV_CFLAGS))
+mlv_dump: $(LZMA_LIB) mlv_dump.c $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
+	$(call build,GCC,gcc -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR)  -ggdb)
+	$(call build,GCC,gcc -c ../lv_rec/raw2dng.c -DMLV2DNG -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64  -ggdb)
+	$(call build,GCC,gcc raw2dng.o chdk-dng.o -o $@ mlv_dump.c -m32 -lm $(LZMA_LIB) $(LZMA_INC) $(MLV_CFLAGS)  -ggdb)
 
-mlv_dump.exe: $(LZMA_LIB_MINGW) mlv_dump.c
-	$(call build,MINGW-GCC,$(MINGW_GCC) -o $@ mlv_dump.c $(LZMA_LIB_MINGW) $(LZMA_INC) $(MLV_CFLAGS))
+mlv_dump.exe: $(LZMA_LIB_MINGW) mlv_dump.c $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
+	$(call build,MINGW-GCC,$(MINGW_GCC) -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR)  -ggdb)
+	$(call build,MINGW-GCC,$(MINGW_GCC) -c ../lv_rec/raw2dng.c -DMLV2DNG -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64  -ggdb)
+	$(call build,MINGW-GCC,$(MINGW_GCC) raw2dng.o chdk-dng.o -o $@ mlv_dump.c $(LZMA_LIB_MINGW) $(LZMA_INC) $(MLV_CFLAGS))

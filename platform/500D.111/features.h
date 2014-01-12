@@ -1,6 +1,5 @@
 #include "all_features.h"
 
-#define FEATURE_AUTO_BURST_PICQ
 #define FEATURE_LV_3RD_PARTY_FLASH
 
 // audio controls kinda work, but very limited

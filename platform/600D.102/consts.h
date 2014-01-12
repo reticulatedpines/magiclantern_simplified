@@ -281,10 +281,9 @@
 // if not defined, default is 500
 #define BRAMP_CALIBRATION_DELAY 1000
 
-// measured by SDX
-// http://www.magiclantern.fm/forum/index.php?topic=4324.msg24231#msg24231
-// not sure, exiftool says x-128
-//~ #define EFIC_CELSIUS (efic_temp / 2 - 58)
-
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)

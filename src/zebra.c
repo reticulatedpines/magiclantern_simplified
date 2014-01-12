@@ -407,12 +407,10 @@ int get_global_draw() // menu setting, or off if
 {
 #ifdef FEATURE_GLOBAL_DRAW
     
-    //~ PROP_HOUTPUT_TYPE handler only fires when Canon overlays are hidden, not restored.
-    //~ So we update lv_disp_mode here instead.
-    #ifdef CONFIG_EOSM
-        lv_disp_mode = (MEM(0x8A01C + 0x7C) != 3);
+    #ifdef LV_DISP_MODE
+        lv_disp_mode = LV_DISP_MODE;
     #endif
-    
+
     extern int ml_started;
     if (!ml_started) return 0;
     if (!global_draw) return 0;
@@ -743,12 +741,11 @@ hist_build()
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
-    int yoffset = 0;
-    for( y = os.y0 + off, yoffset = y * vram_lv.pitch; y < os.y_max - off; y += 2, yoffset += vram_lv.pitch )
+    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[(yoffset + (BM2LV_X(x) << 1)) >> 2];
+            uint32_t pixel = buf[BM2LV(x,y) >> 2];
 
             // ignore magic zoom borders
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
@@ -833,7 +830,7 @@ static void FAST draw_zebras_raw()
     
     int zoom0 = (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
-    for (int i = os.y0+20; i < os.y_max; i ++)
+    for (int i = os.y0; i < os.y_max; i ++)
     {
         int y = BM2RAW_Y(i);
 
@@ -3891,7 +3888,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
-    #if defined(CONFIG_DIGIC_V)
+    #if defined(CONFIG_DIGIC_V) && ! defined(CONFIG_EOSM)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else

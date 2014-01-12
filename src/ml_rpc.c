@@ -34,10 +34,11 @@ uint32_t ml_rpc_transferred = 0;
 uint32_t ml_rpc_verbosity = 0;
 uint32_t ml_rpc_available_cached = 0;
 
+#ifndef CONFIG_7D_MASTER
 static uint32_t ret_parm1 = 0;
 static uint32_t ret_parm2 = 0;
 static uint32_t ret_parm3 = 0;
-
+#endif
 static uint32_t ml_rpc_read_addr = 0;
 static uint32_t ml_rpc_read_remain = 0;
 static uint32_t ml_rpc_read_pos = 0;
@@ -53,6 +54,7 @@ void ml_rpc_verbose(uint32_t state)
 uint32_t ml_rpc_call(uint32_t address, uint32_t arg0, uint32_t arg1)
 {
     ml_rpc_send(ML_RPC_CALL, address, arg0, arg1, 10);
+    return 0;
 }
 
 /* send a command with parameters to other digic. wait n*50ms for a response */
@@ -178,6 +180,7 @@ extern void vignetting_update_table(uint32_t *buffer, uint32_t length);
 uint32_t ml_rpc_handler_vignetting(uint8_t *buffer, uint32_t length)
 {
     vignetting_update_table((uint32_t *)buffer, length);
+    return 0;
 }
 
 #else
@@ -186,6 +189,7 @@ uint32_t ml_rpc_handler_vignetting(uint8_t *buffer, uint32_t length)
 uint32_t ml_rpc_send_vignetting(uint32_t *buffer, uint32_t length)
 {
     RequestRPC(ML_RPC_ID_VIGNETTING, buffer, length, 0, 0);
+    return 0;
 }
 #endif
 

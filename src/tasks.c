@@ -21,6 +21,10 @@ char* get_task_name_from_id(int id)
 #if defined(CONFIG_VXWORKS)
 return "?";
 #endif
+    if(id < 0)
+    {
+        return "?";
+    }
     
     char* name = "?";
     int c = id & 0xFF;

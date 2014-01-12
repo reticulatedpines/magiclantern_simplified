@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Threading;
+using MLVViewSharp;
 
 namespace mlv_view_sharp
 {
@@ -15,7 +16,12 @@ namespace mlv_view_sharp
         private string FileName = "";
         private Thread PlayThread = null;
         private bool Paused = false;
-        MLVHandler Handler = new MLVHandler();
+        private bool ForceReread = false;
+        
+        private MLVHandler Handler = new MLVHandler();
+        public string AutoplayFile = null;
+        private string FramePositionWarning = "";
+
 
         public MLVViewerForm()
         {
@@ -28,7 +34,95 @@ namespace mlv_view_sharp
                 new MenuItem("   1/4 Resolution (faster)", new EventHandler(menu_Debayer_4)), 
                 new MenuItem("   1/8 Resolution (guess what..)", new EventHandler(menu_Debayer_8)),
                 new MenuItem("-"), 
+                new MenuItem("Color correction matrices (white balance, colorspace...):"),
+                new MenuItem("   Enable (slow but better colors)", new EventHandler(menu_CorrectionOn)),
+                new MenuItem("   Disable (fast)", new EventHandler(menu_CorrectionOff)),
+                new MenuItem("-"), 
+                new MenuItem("Highlight recovery:"),
+                new MenuItem("   Enable (slow)", new EventHandler(menu_HighlightRecoveryOn)),
+                new MenuItem("   Disable (fast)", new EventHandler(menu_HighlightRecoveryOff)),
+                new MenuItem("-"), 
+                new MenuItem("Reset RGB White Balance", new EventHandler(menu_ResetWb)),
+                new MenuItem("-"), 
+                new MenuItem("Disable Video", new EventHandler(menu_DisableVideo)),
+                new MenuItem("Enable Video", new EventHandler(menu_EnableVideo)),
+                new MenuItem("-"), 
+                new MenuItem("Load .cube 3D-LUT", new EventHandler(menu_LoadLUT)),
+                new MenuItem("Reset LUT", new EventHandler(menu_ResetLUT)),
             });
+        }
+        public MLVViewerForm(string file)
+            : this()
+        {
+            AutoplayFile = file;
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            if (AutoplayFile != null)
+            {
+                PlaybackFile(AutoplayFile);
+                AutoplayFile = null;
+            }
+            base.OnLoad(e);
+        }
+
+        protected void menu_DisableVideo(Object sender, EventArgs e)
+        {
+            Handler.VideoEnabled = false;
+        }
+
+        protected void menu_EnableVideo(Object sender, EventArgs e)
+        {
+            Handler.VideoEnabled = true;
+        }
+
+        protected void menu_LoadLUT(Object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.DefaultExt = ".cube";
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    Lut3D lut = new CubeLut(dlg.FileName);
+                    Handler.SetLut(lut);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Failed to load LUT: " + ex.Message);
+                }
+            }
+        }
+
+        protected void menu_ResetLUT(Object sender, EventArgs e)
+        {
+            Handler.SetLut(null);
+        }
+        
+
+        protected void menu_ResetWb(Object sender, EventArgs e)
+        {
+            Handler.ResetWhite();
+        }
+
+        protected void menu_HighlightRecoveryOn(Object sender, EventArgs e)
+        {
+            Handler.HighlightRecovery = true;
+        }
+        protected void menu_HighlightRecoveryOff(Object sender, EventArgs e)
+        {
+            Handler.HighlightRecovery = false;
+        }
+
+        protected void menu_CorrectionOn(Object sender, EventArgs e)
+        {
+            Handler.UseCorrectionMatrices = true;
+        }
+        protected void menu_CorrectionOff(Object sender, EventArgs e)
+        {
+            Handler.UseCorrectionMatrices = false;
         }
 
         protected void menu_DebayerBilin(Object sender, EventArgs e)
@@ -69,21 +163,26 @@ namespace mlv_view_sharp
 
             if (files.Length > 0)
             {
-                if (PlayThread != null)
-                {
-                    PlayThread.Abort();
-                }
-                pictureBox.Image = null;
-
-                pictureBox.Image = new Bitmap(pictureBox.Size.Width, pictureBox.Size.Height);
-                Graphics g = Graphics.FromImage(pictureBox.Image);
-                g.DrawString("Loading File...", new Font("Courier New", 48), Brushes.Black, new Point(10, 10));
-                g.Dispose();
-
-                FileName = files[0];
-                PlayThread = new Thread(PlayFile);
-                PlayThread.Start();
+                PlaybackFile(files[0]);
             }
+        }
+
+        private void PlaybackFile(string file)
+        {
+            if (PlayThread != null)
+            {
+                PlayThread.Abort();
+            }
+            pictureBox.Image = null;
+
+            pictureBox.Image = new Bitmap(pictureBox.Size.Width, pictureBox.Size.Height);
+            Graphics g = Graphics.FromImage(pictureBox.Image);
+            g.DrawString("Loading File...", new Font("Courier New", 48), Brushes.Black, new Point(10, 10));
+            g.Dispose();
+
+            FileName = file;
+            PlayThread = new Thread(PlayFile);
+            PlayThread.Start();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -101,6 +200,7 @@ namespace mlv_view_sharp
         {
             MLVReader reader = null;
             Graphics picGraph = null;
+            int lastFrameNumber = 1;
 
             string suffix = FileName.ToLower().Substring(FileName.Length - 4, 2);
 
@@ -124,8 +224,9 @@ namespace mlv_view_sharp
 
             Invoke(new Action(() =>
             {
-                trackBar.Maximum = 0;
-                trackBar.Value = 0;
+                trackBarPosition.Minimum = 1;
+                trackBarPosition.Maximum = 1;
+                trackBarPosition.Value = 1;
             }));
             try
             {
@@ -140,32 +241,10 @@ namespace mlv_view_sharp
                             return;
                         }
 
+                        ForceReread = false;
 
                         /* create info string */
                         string metaData = CreateMetaData();
-
-                        /* update controls everytime */
-                        Invoke(new Action(() =>
-                        {
-                            try
-                            {
-                                txtInfo.Text = metaData.ToString();
-                                trackBar.Maximum = reader.MaxBlockNumber;
-                                if ((trackBar.Value == reader.CurrentBlockNumber) || (trackBar.Value == reader.CurrentBlockNumber - 1))
-                                {
-                                    trackBar.Value = reader.CurrentBlockNumber;
-                                }
-                                else
-                                {
-                                    reader.CurrentBlockNumber = trackBar.Value;
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox.Show("Exception: " + e);
-                            }
-                        }
-                        ));
 
                         if (Handler.FrameUpdated)
                         {
@@ -173,7 +252,37 @@ namespace mlv_view_sharp
                             {
                                 try
                                 {
+                                    txtInfo.Text = metaData.ToString();
+                                    trackBarPosition.Maximum = (int)reader.TotalFrameCount;
+
+                                    FramePositionWarning = "";
+
+                                    if (trackBarPosition.Value == lastFrameNumber)
+                                    {
+                                        trackBarPosition.Value = (int)Math.Min(trackBarPosition.Maximum, Handler.VidfHeader.frameNumber + 1);
+                                    }
+                                    else
+                                    {
+                                        int block = reader.GetFrameBlockNumber((uint)trackBarPosition.Value - 1);
+
+                                        if (block >= 0)
+                                        {
+                                            reader.CurrentBlockNumber = (int)block;
+                                        }
+                                        else
+                                        {
+                                            FramePositionWarning = "  |  This particular frame is not part of the footage. Maybe some chunks missing?";
+                                        }
+                                    }
+
+                                    lastFrameNumber = (int)Handler.VidfHeader.frameNumber + 1;
+
                                     Bitmap frame = Handler.CurrentFrame;
+
+                                    string advText = "File: '" + reader.FileNames[reader.FileNum] + "' Offset: 0x" + reader.FilePos.ToString("X8") + " FrameSpace: 0x" + (Handler.VidfHeader.frameSpace-Handler.RawFixOffset).ToString("X4");
+
+                                    lblPosition.Text = "Current position: " + (Handler.VidfHeader.frameNumber + 1) + "/" + (reader.TotalFrameCount) + FramePositionWarning;
+                                    lblPosition.Text += "    |    " + advText;
 
                                     /* update picturebox - this is very slow and inefficient */
                                     if (frame != null)
@@ -210,9 +319,14 @@ namespace mlv_view_sharp
                                 {
                                     try
                                     {
-                                        if (trackBar.Value != reader.CurrentBlockNumber)
+                                        if (trackBarPosition.Value != lastFrameNumber || ForceReread)
                                         {
-                                            reader.CurrentBlockNumber = trackBar.Value;
+                                            int block = reader.GetFrameBlockNumber((uint)trackBarPosition.Value - 1);
+
+                                            if (block >= 0)
+                                            {
+                                                reader.CurrentBlockNumber = (int)block;
+                                            }
                                             reread = true;
                                         }
                                     }
@@ -239,7 +353,7 @@ namespace mlv_view_sharp
                                 reader.CurrentBlockNumber = 0;
                                 Invoke(new Action(() =>
                                 {
-                                    trackBar.Value = reader.CurrentBlockNumber;
+                                    trackBarPosition.Value = (int)Math.Min(trackBarPosition.Maximum, Handler.VidfHeader.frameNumber + 1);
                                 }));
                             }
                         }
@@ -251,6 +365,12 @@ namespace mlv_view_sharp
                 reader.Close();
                 throw ex;
             }
+        }
+
+        private void WriteString(string text)
+        {
+            Graphics graph = Graphics.FromImage(pictureBox.Image);
+            graph.DrawString(text, new Font("Courier New", 50), new SolidBrush(Color.Black), new PointF(0, pictureBox.Height / 2));
         }
 
         private string CreateMetaData()
@@ -300,6 +420,92 @@ namespace mlv_view_sharp
                 Size = pictureBox.Image.Size;
                 pictureBox.Size = pictureBox.Image.Size;
             }
+        }
+
+        private void trackBarExposure_ValueChanged(object sender, EventArgs e)
+        {
+            float ev = (float)(trackBarExposure.Value) / 2.0f;
+
+            if (trackBarExposure.Value == 0)
+            {
+                lblExposure.Text = "Exposure: Auto";
+            }
+            else
+            {
+                lblExposure.Text = "Exposure: " + ev.ToString() + " EV";
+            }
+            Handler.ExposureCorrection = ev;
+        }
+
+        private void pictureBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                pictureBox.SizeMode = PictureBoxSizeMode.Normal;
+                toolTip1.SetToolTip(pictureBox, "Press SHIFT and release mouse button to set the current position as neutral gray.");
+            }
+        }
+
+        private void pictureBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                toolTip1.Hide(pictureBox);
+
+                if (Form.ModifierKeys == Keys.Shift && pictureBox.Image != null)
+                {
+                    Point pos = pictureBox.PointToClient(Cursor.Position);
+                    Bitmap bmp = new Bitmap(pictureBox.Image);
+                    int width = 8;
+
+                    int posX = Math.Min(Math.Max(width, pos.X - width), bmp.Width);
+                    int posY = Math.Min(Math.Max(width, pos.Y - width), bmp.Height);
+
+                    float rValue = 0;
+                    float gValue = 0;
+                    float bValue = 0;
+
+                    for (int x = posX - width / 2; x < posX + width / 2; x++)
+                    {
+                        for (int y = posY - width / 2; y < posY + width / 2; y++)
+                        {
+                            Color pixelColor = bmp.GetPixel(x, y);
+
+                            rValue += pixelColor.R;
+                            gValue += pixelColor.G;
+                            bValue += pixelColor.B;
+                        }
+                    }
+
+                    Handler.UseCorrectionMatrices = true;
+                    Handler.SetWhite(rValue, gValue, bValue);
+                }
+                pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            }
+        }
+
+        private void trackBarTemperature_ValueChanged(object sender, EventArgs e)
+        {
+            Handler.ColorTemperature = trackBarTemperature.Value;
+            lblTemperature.Text = "Temperature: " + Handler.ColorTemperature.ToString() + " K";
+        }
+
+        private void trackBarPosition_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == '+')
+            {
+                Handler.RawFixOffset++;
+            }
+            if (e.KeyChar == '-')
+            {
+                Handler.RawFixOffset--;
+            }
+            if (e.KeyChar == '0')
+            {
+                Handler.RawFixOffset = 0;
+            }
+
+            ForceReread = true;
         }
     }
 }

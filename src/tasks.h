@@ -83,7 +83,7 @@ struct task_attr_str {
 }; // size = 0x28
 
 /** Return the head of the running task list */
-extern struct task *
+extern int
 get_current_task(void);
 
 /** Official initial task.

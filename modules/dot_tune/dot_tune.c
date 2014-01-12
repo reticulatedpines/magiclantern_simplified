@@ -337,7 +337,6 @@ static void afma_auto_tune_automatic()
         msleep(300);
         afma_print_status_extended(score, range_display_min, range_display_max);
         //~ call("dispcheck"); // screenshot
-        NotifyBox(5000, "Double-check the focus target.");
     }
 }
 

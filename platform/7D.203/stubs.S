@@ -61,9 +61,11 @@ NSTUB(0xFF3D2644, PackMem_PopEDmacForMemorySuite)
 NSTUB(0xFF3D24A0, PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF3D2598, PackMem_StartEDmac)
 
+NSTUB(0xFF07AAFC, MasterExecute)
 
 NSTUB(0xFF07AED4, RegisterRPCHandler)
 NSTUB(0xFF07AF84, RequestRPC)
+NSTUB(0xFF07A954, QuickOutIPCTransfer)
 NSTUB(0xFF07A704, BulkOutIPCTransfer)
 NSTUB(0xFF07A7D4, BulkInIPCTransfer)
 
@@ -128,6 +130,7 @@ NSTUB(0xff4c6424, SetCFnData)
 NSTUB(0xff0a8738, SetGUIRequestMode)
 NSTUB(0xff072f7c, _audio_ic_read)
 NSTUB(0xff0730c8, _audio_ic_write)
+NSTUB(0xFF57B014, audio_thresholds)
 NSTUB(   0x16fb8, additional_version)
 NSTUB(0xff20da50, _alloc_dma_memory)
 NSTUB(   0x29a60, bmp_vram_info )
@@ -195,7 +198,7 @@ NSTUB(0xFF454540, sdReadBlk)            // g3gg0: confirmed by DebugMsg - but ma
     //NSTUB(   0x208D8, sd_device)
 NSTUB(0xff0104d0, sei_restore)
 NSTUB(    0x1f54, sounddev)
-NSTUB(0xff063d64, sounddev_task)
+NSTUB(0xFF063C70, sounddev_task)
 NSTUB(0xFF0640EC, sounddev_active_in)
 NSTUB(0xff07b924, take_semaphore)
 NSTUB(0xff07beac, task_create)
@@ -225,7 +228,7 @@ NSTUB(0xff07cac8, GetMemoryInformation)
 
 NSTUB(0xff07fc28, msg_queue_create)
 
-NSTUB(0xff0372b4, PD_RemoteRelease)
+NSTUB(0xFF03F4A8, PD_RemoteRelease)
 NSTUB( 0xff16004c, PtpDps_remote_release_SW1_SW2_worker ) // called from: ptpRemoteRelease Occupy
 
     // for task information
@@ -240,15 +243,27 @@ NSTUB(0xff080fdc, FreeMemoryResource) // m_pfFreeMemoryCBR
 
 NSTUB(0xff07365c, PowerAudioOutput)
 NSTUB(0xff061c44, StartASIFDMADAC)
-NSTUB(0xFF061A88, StartASIFDMAADC)
 NSTUB(0xff061d20, StopASIFDMADAC)
+NSTUB(0xFF061A88, StartASIFDMAADC)
+NSTUB(0xFF061C08, StopASIFDMAADC) // Called by SoundDevStopIn
+
+NSTUB(0xFF073F54, SetFilterRec)
+
 NSTUB(0xFF0621C4, SetNextASIFADCBuffer) // called by SetNextUINT8ASIFADCBuffer and SetNextINT16ASIFADCBuffer
 NSTUB(0xFF06227C, SetNextASIFDACBuffer)
 NSTUB(0xff0736f4, SetSamplingRate )
 NSTUB(0xFF073944, SetAudioVolumeOut)
+NSTUB(0xFF074410, PowerMicAmp)
+NSTUB(0xFF07443C, UnpowerMicAmp)
+
 
 NSTUB(0xFF06EDD0, AsyncEnableImagePhysicalScreenParameter)
 NSTUB(0xff06e8b0, EnableImagePhysicalScreenParameter)
 
 NSTUB(0xFF41E17C, StartPlayProtectGuideApp)
 NSTUB(0xff41dde0, StopPlayProtectGuideApp)
+
+/* ResLock */
+NSTUB(0xFF1F9694, CreateResLockEntry)
+NSTUB(0xFF1F9BDC, LockEngineResources)
+NSTUB(0xFF1F9D18, UnLockEngineResources)

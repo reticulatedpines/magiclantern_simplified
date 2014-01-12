@@ -17,6 +17,8 @@ namespace PropertyEditor
             public UInt32 Length;
             [XmlIgnore]
             public byte[] Data;
+            [XmlIgnore]
+            public UInt32 BaseAddress;
 
             [XmlAttribute("Id")]
             public string Id_
@@ -28,6 +30,19 @@ namespace PropertyEditor
                 set
                 {
                     Id = UInt32.Parse(value, System.Globalization.NumberStyles.HexNumber);
+                }
+            }
+
+            [XmlAttribute("BaseAddress")]
+            public string BaseAddress_
+            {
+                get
+                {
+                    return BaseAddress.ToString("X8");
+                }
+                set
+                {
+                    BaseAddress = UInt32.Parse(value, System.Globalization.NumberStyles.HexNumber);
                 }
             }
 
@@ -319,6 +334,11 @@ namespace PropertyEditor
                 UInt32 propertyId = GetUInt32(buffer, currentOffset);
                 UInt32 propertyLength = GetUInt32(buffer, currentOffset + 4);
 
+                if (propertyLength == 0)
+                {
+                    break;
+                }
+
                 Log.WriteLine("    [Property: {0:X8}, Length: {1:X8}] [Base: {2:X8}]", propertyId, propertyLength, currentOffset);
 
                 Property prop = new Property();
@@ -328,6 +348,7 @@ namespace PropertyEditor
                 {
                     prop.Length = propertyLength - 8;
                     prop.Data = new byte[prop.Length];
+                    prop.BaseAddress = (uint)currentOffset;
                     
                     Array.Copy(buffer, (int)currentOffset + 8, prop.Data, 0, prop.Data.Length);
 
@@ -336,6 +357,7 @@ namespace PropertyEditor
                 else
                 {
                     Console.Out.WriteLine("      [E] Property length invalid");
+                    break;
                 }
                 propList.Add(prop);
 

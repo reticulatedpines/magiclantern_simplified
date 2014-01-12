@@ -10,14 +10,14 @@
 // Disable all audio stuff
 #undef FEATURE_WAV_RECORDING
 #undef FEATURE_FPS_WAV_RECORD
-#undef FEATURE_BEEP
 #undef FEATURE_VOICE_TAGS
 #undef FEATURE_AUDIO_REMOTE_SHOT
-#undef FEATURE_AUDIO_METERS
 
-#undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
+// Audio features that work
+#define FEATURE_AUDIO_METERS //only in while recording
+#define FEATURE_BEEP
 
-#undef FEATURE_ARROW_SHORTCUTS
+#define FEATURE_ARROW_SHORTCUTS
 
 // Not working :(
 #undef FEATURE_IMAGE_EFFECTS

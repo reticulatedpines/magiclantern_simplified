@@ -156,8 +156,12 @@ int get_dxo_dynamic_range(int raw_iso);
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
-    uint32_t api_version;          // increase this when changing the structure
-    uint32_t buffer;               // points to image data
+    uint32_t api_version;           // increase this when changing the structure
+    #if INTPTR_MAX == INT32_MAX     // only works on 32-bit systems
+    void* buffer;                   // points to image data
+    #else
+    uint32_t do_not_use_this;       // this can't work on 64-bit systems
+    #endif
     
     int32_t height, width, pitch;
     int32_t frame_size;
@@ -199,7 +203,8 @@ extern struct raw_info raw_info;
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename, struct raw_info * raw_info);
 
-
+/* do not include ML headers if used in postprocessing */
+#ifdef CONFIG_MAGICLANTERN
 /** Menu helpers **/
 #include "menu.h"
 
@@ -217,5 +222,7 @@ extern int can_use_raw_overlays();
 
 /* to be used in menu, if you want to check if raw data will available in current mode (not necessarily at the time of displaying the menu) */
 extern int can_use_raw_overlays_menu();
+
+#endif
 
 #endif

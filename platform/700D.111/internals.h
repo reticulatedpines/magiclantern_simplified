@@ -38,6 +38,9 @@
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 #define CONFIG_LCD_SENSOR
 
+/** We can playback sounds via ASIF DMA **/
+#define CONFIG_BEEP
+
 /** File I/O **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
 

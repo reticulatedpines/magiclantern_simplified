@@ -73,7 +73,7 @@ void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp)
     hdr->kelvin = lens_info.kelvin;    
     hdr->wbgain_r = lens_info.WBGain_R;  
     hdr->wbgain_g = lens_info.WBGain_G;  
-    hdr->wbgain_b = lens_info.WBGain_G;  
+    hdr->wbgain_b = lens_info.WBGain_B;  
     hdr->wbs_gm = lens_info.wbs_gm;  
     hdr->wbs_ba = lens_info.wbs_ba;  
 }
@@ -168,7 +168,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     if(err || model_len < 36 || !model_data)
     {
         trace_write(raw_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
-        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d md:0x%8X ml:%d", err, model_data, model_len);
+        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraName), "ERR:%d md:0x%8X ml:%d", err, model_data, model_len);
         return;
     }
     
@@ -176,7 +176,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     if(err || !body_data || body_len == 0)
     {
         trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
-        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
+        snprintf((char*)hdr->cameraSerial, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
         return;
     }
     

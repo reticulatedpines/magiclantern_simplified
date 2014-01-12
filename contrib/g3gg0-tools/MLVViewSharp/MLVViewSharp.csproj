@@ -69,6 +69,14 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NAudio, Version=1.7.0.15, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>NAudio\NAudio.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.WindowsMediaFormat, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>NAudio\NAudio.WindowsMediaFormat.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -88,9 +96,14 @@
   <ItemGroup>
     <Compile Include="BitUnpack.cs" />
     <Compile Include="BitUnpackCanon.cs" />
+    <Compile Include="CubeLut.cs" />
     <Compile Include="Debayer.cs" />
+    <Compile Include="DebayerBase.cs" />
     <Compile Include="DebayerHalfRes.cs" />
     <Compile Include="DebayerBilinear.cs" />
+    <Compile Include="Lookup.cs" />
+    <Compile Include="Lut3D.cs" />
+    <Compile Include="Matrix.cs" />
     <Compile Include="MLVViewerForm.cs">
       <SubType>Form</SubType>
     </Compile>

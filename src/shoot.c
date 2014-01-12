@@ -66,7 +66,7 @@ void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
 static void ensure_play_or_qr_mode_after_shot();
-void take_fast_pictures( int number );
+int take_fast_pictures( int number );
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
     #define AUDIO_REM_SHOT_POS_X 20
@@ -463,7 +463,6 @@ static MENU_UPDATE_FUNC(interval_start_after_display)
     if (auto_power_off_time && auto_power_off_time <= d)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
     
-    MENU_SET_ENABLED(interval_trigger != 3);
     if(interval_trigger == 3)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Has no effect when trigger is set to take a pic");
 }
@@ -504,9 +503,8 @@ static MENU_SELECT_FUNC(interval_trigger_toggle)
 
 static MENU_UPDATE_FUNC(interval_trigger_update)
 {
-    MENU_SET_ENABLED(interval_trigger);
     if(!interval_trigger)
-        MENU_SET_HELP("Starts intervalometer when you exit ML menu");
+        MENU_SET_HELP("Starts intervalometer when you exit ML menu, or at camera startup");
     if(interval_trigger == 1)
         MENU_SET_HELP("Starts intervalometer on half shutter press");
     if(interval_trigger == 2)
@@ -1669,12 +1667,12 @@ static MENU_UPDATE_FUNC(shutter_display)
 {
     if (is_movie_mode())
     {
-        int s = get_current_shutter_reciprocal_x1000() + 50;
+        int s = get_current_shutter_reciprocal_x1000();
         int deg = 3600 * fps_get_current_x1000() / s;
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
-            SYM_1_SLASH "%d.%d, %d"SYM_DEGREE,
-            s/1000, (s%1000)/100,
+            "%s, %d"SYM_DEGREE,
+            lens_format_shutter_reciprocal(s),
             deg);
     }
     else
@@ -2730,6 +2728,65 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
     else
     {
         MENU_SET_VALUE("%d", hdr_steps);
+
+        if (shooting_mode == SHOOTMODE_M && hdr_type == 0 && hdr_iso == 0)
+        {
+            int hdr_sequence_calc = 0;
+            int hdr_sequence_calc_old = 0;
+            int hdr_sequence_calc1 = 0;
+
+            if (hdr_sequence == 0)
+            {
+                hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps-1));
+            }
+            else if (hdr_sequence == 1)
+            {
+                if (hdr_steps % 2 != 0)
+                {
+                    hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps-1)/2);
+                    hdr_sequence_calc1 = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-1)/2);
+                }
+                else
+                {
+                    hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps)/2);
+                    hdr_sequence_calc1 = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-2)/2);
+                }
+            }
+            else if (hdr_sequence == 2)
+            {
+                hdr_sequence_calc = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-1));
+            }
+
+            hdr_sequence_calc_old = hdr_sequence_calc;
+
+            if (hdr_sequence_calc > FASTEST_SHUTTER_SPEED_RAW)
+            {
+                hdr_sequence_calc = FASTEST_SHUTTER_SPEED_RAW;
+            }
+
+            char hdr_sequence_calc_char[32];
+            char hdr_sequence_calc_char1[32];
+
+            if (hdr_sequence == 1 && hdr_steps != 2)
+            {
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(hdr_sequence_calc1));
+                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
+            }
+            else
+            {
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(lens_info.raw_shutter));
+                snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
+            }
+
+            if (hdr_sequence_calc_old > FASTEST_SHUTTER_SPEED_RAW)
+            {
+                MENU_SET_RINFO("%s ... %sE", hdr_sequence_calc_char, hdr_sequence_calc_char1);
+            }
+            else
+            {
+                MENU_SET_RINFO("%s ... %s", hdr_sequence_calc_char, hdr_sequence_calc_char1);
+            }
+        }
     }
 
     hdr_check_excessive_settings(entry, info);
@@ -2806,13 +2863,14 @@ int set_drive_single()
 }
 
 // goes to Bulb mode and takes a pic with the specified duration (ms)
-void
+// returns nonzero if user canceled, zero otherwise
+int
 bulb_take_pic(int duration)
 {
+    int canceled = 0;
 #ifdef CONFIG_BULB
-
     extern int ml_taking_pic;
-    if (ml_taking_pic) return;
+    if (ml_taking_pic) return 1;
     ml_taking_pic = 1;
 
 
@@ -2919,6 +2977,7 @@ bulb_take_pic(int duration)
         // exposure was canceled earlier by user
         if (job_state_ready_to_take_pic()) 
         {
+            canceled = 1;
             beep();
             break;
         }
@@ -2942,6 +3001,7 @@ bulb_take_pic(int duration)
     
     ml_taking_pic = 0;
 #endif
+    return canceled;
 }
 
 #ifdef FEATURE_BULB_TIMER
@@ -2961,11 +3021,17 @@ static MENU_UPDATE_FUNC(bulb_display)
         MENU_SET_VALUE(
             format_time_hours_minutes_seconds(d)
         );
-    else if (is_bulb_mode() && intervalometer_running) // even if it's not enabled, it will be used for intervalometer
+#ifdef FEATURE_INTERVALOMETER
+    else if (is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    {
         MENU_SET_VALUE(
             "OFF (%s)",
             format_time_hours_minutes_seconds(d)
         );
+        MENU_SET_ICON(MNI_ON, 0);
+        MENU_SET_WARNING(MENU_WARN_INFO, "Always on when in BULB mode and intervalometer running");
+    }
+#endif
     
     if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     if (entry->selected && intervalometer_running) timelapse_calc_display(entry, info);
@@ -3693,10 +3759,10 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Frames",
                 .priv = &hdr_steps,
                 .min = 1,
-                .max = 15,
+                .max = 12,
                 .update = hdr_steps_update,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("Autodetect", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"),
+                .choices = CHOICES("Autodetect", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"),
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
@@ -4797,8 +4863,10 @@ void interval_create_script(int f0)
 #endif // FEATURE_INTERVALOMETER
 
 // normal pic, silent pic, bulb pic...
-void take_a_pic(int should_af)
+// returns zero if successful, nonzero otherwise (user canceled, module error, etc)
+int take_a_pic(int should_af)
 {
+    int canceled = 0;
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
         beep();
@@ -4808,25 +4876,33 @@ void take_a_pic(int should_af)
         display_on();
         _card_led_off();
         msleep(100);
-        return;
+        return canceled;
     }
     #endif
     
     #ifdef CONFIG_MODULES
-    if (module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING) == CBR_RET_CONTINUE)
+    int cbr_result = 0;
+    if ((cbr_result = module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING)) == CBR_RET_CONTINUE)
     #endif
     {
         if (is_bulb_mode())
         {
             /* bulb mode? take a bulb exposure with bulb timer settings */
-            bulb_take_pic(timer_values[bulb_duration_index] * 1000);
+            canceled = bulb_take_pic(timer_values[bulb_duration_index] * 1000);
         }
         else
         {
             lens_take_picture(64, should_af);
         }
     }
+#ifdef CONFIG_MODULES
+    else
+    {
+        return cbr_result != CBR_RET_STOP;
+    }
+#endif
     lens_wait_readytotakepic(64);
+    return canceled;
 }
 
 // do a part of the bracket (half or full) with ISO
@@ -5055,12 +5131,12 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 
     int under_numpix, over_numpix;
     int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
-    *under = under_numpix > 10;
-    *over = over_numpix > 10;
     int po = over_numpix * 10000 / total_numpix;
     int pu = under_numpix * 10000 / total_numpix;
-    if (*under) pu = MAX(pu, 1);
-    if (*over) po = MAX(po, 1);
+    if (over_numpix  > 0) po = MAX(po, 1);
+    if (under_numpix > 0) pu = MAX(pu, 1);
+    *over  = po >  15; // 0.15 % highlight ignore
+    *under = pu > 250; // 2.50 % shadow ignore
     bmp_printf(
         FONT_LARGE, 50, 50, 
         "Under:%3d.%02d%%\n"
@@ -5608,8 +5684,9 @@ int is_continuous_drive()
         );
 }
 
-void take_fast_pictures( int number ) 
+int take_fast_pictures( int number )
 {
+    int canceled = 0;
     // take fast pictures
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     if ( number > 1 && is_continuous_drive() && !is_bulb_mode() && !snap_sim)
@@ -5644,9 +5721,11 @@ void take_fast_pictures( int number )
     {
         for (int i = 0; i < number; i++)
         {
-            take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE);
+            canceled = take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE);
+            if(canceled) break;
         }
     }
+    return canceled;
 }
 
 #ifdef FEATURE_MOTION_DETECT
@@ -5776,6 +5855,16 @@ shoot_task( void* unused )
     #ifdef FEATURE_MLU
     mlu_selftimer_update();
     #endif
+    
+    
+#ifdef FEATURE_INTERVALOMETER
+    if (interval_enabled && interval_trigger == 0)
+    {
+        /* auto-start intervalometer, but wait for at least 10 seconds */
+        intervalometer_running = 1;
+        intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 10);
+   }
+#endif
     
     /*int loops = 0;
     int loops_abort = 0;*/
@@ -5910,6 +5999,7 @@ shoot_task( void* unused )
         check_for_halfshutter_hold = bulb_timer && is_bulb_mode();
         #endif
         #ifdef FEATURE_INTERVALOMETER
+        check_for_halfshutter_hold &= !(interval_trigger == 1 && interval_enabled);
         check_for_halfshutter_hold |= interval_trigger == 2 && interval_enabled;
         #endif
         
@@ -5943,7 +6033,7 @@ shoot_task( void* unused )
         #ifdef FEATURE_BULB_TIMER
         if (bulb_timer && is_bulb_mode() && !gui_menu_shown()
         #ifdef FEATURE_INTERVALOMETER
-            && !(interval_trigger == 2 && interval_enabled)
+            && !((interval_trigger == 1 || interval_trigger == 2) && interval_enabled)
         #endif
             )
         {
@@ -5996,7 +6086,7 @@ shoot_task( void* unused )
                 }
                 #endif
                 #ifdef FEATURE_INTERVALOMETER
-                if(interval_enabled && interval_trigger == 3)
+                if(interval_enabled && interval_trigger == 3 && !intervalometer_running)
                 {
                     intervalometer_running = 1;
                     intervalometer_pictures_taken = 1;
@@ -6410,11 +6500,11 @@ shoot_task( void* unused )
             #ifdef FEATURE_MLU
             mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
             #endif
-            
+            int canceled = 0;
             if (dt == 0) // crazy mode - needs to be fast
             {
                 int num = interval_stop_after ? interval_stop_after : 100000;
-                take_fast_pictures(num);
+                canceled = take_fast_pictures(num);
                 intervalometer_pictures_taken += num - 1;
             }
             else if (HDR_ENABLED)
@@ -6424,8 +6514,12 @@ shoot_task( void* unused )
             else
             {
                 // count this as 1 picture
-                take_fast_pictures(pics_to_take_at_once+1);
+                canceled = take_fast_pictures(pics_to_take_at_once+1);
             }
+            
+            if(canceled)
+                intervalometer_stop();
+            
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
             

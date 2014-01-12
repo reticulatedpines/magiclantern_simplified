@@ -94,6 +94,7 @@ NSTUB(   0x139BC, ReleaseRecursiveLock)
 NSTUB(   0x13460, msg_queue_create)
 NSTUB(   0x1375C, msg_queue_post)
 NSTUB(   0x13570, msg_queue_receive)
+NSTUB(   0x1379C, msg_queue_count)
 
 /** Tasks **/
 NSTUB(    0x6868, task_create)
@@ -188,18 +189,28 @@ NSTUB(0xFF4583C8, ptp_register_handler)
 NSTUB(0xFF2A7108, ptpPropSetUILock)
 
 /** Audio **/
-//NSTUB(0xff136f5c, _audio_ic_read)
-//NSTUB(0xff136ea4, _audio_ic_write)
+NSTUB(0xFF337EB8, _audio_ic_read)
+NSTUB(0xFF337870, _audio_ic_write)
+
+NSTUB(0xFF10B254, sounddev_task )
+NSTUB(   0x239F4, sounddev )
+NSTUB(0xFF10B73C, sounddev_active_in)
+
+NSTUB(0xFF10B73C, SoundDevActiveIn)
+NSTUB(0xFF10B998, SoundDevActiveOut)
+NSTUB(0xFF10B958, SoundDevShutDownIn)
+
+NSTUB(0xFF7FCA00, audio_thresholds)
 
 /** ASIF **/
-NSTUB(0xFF13435C, PowerAudioOutput) // not sure, looks different
-NSTUB(0xFF1091A0, StartASIFDMADAC)  //~ warning: looks different
-NSTUB(0xFF108FE8, StartASIFDMAADC)  //~ warning: looks different
-NSTUB(0xFF109278, StopASIFDMADAC)   //~ warning: looks different
+NSTUB(0xFF13435C, PowerAudioOutput) 
+NSTUB(0xFF1091A0, StartASIFDMADAC)  
+NSTUB(0xFF108FE8, StartASIFDMAADC)  
+NSTUB(0xFF109278, StopASIFDMADAC)   
 NSTUB(0xFF10971C, SetNextASIFADCBuffer)
 NSTUB(0xFF1097D0, SetNextASIFDACBuffer)
 NSTUB(0xFF1337AC, SetSamplingRate )
-NSTUB(0xFF133148, SetAudioVolumeOut)
+NSTUB(0xFF1324C4, SetAudioVolumeOut) //keep volume
 
 /** experimental EDMAC research **/
 NSTUB(    0x8B7C, CreateMemorySuite)

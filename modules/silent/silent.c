@@ -8,6 +8,8 @@
 #include <property.h>
 #include <raw.h>
 
+extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
+
 #define FEATURE_SILENT_PIC_RAW_BURST
 //~ #define FEATURE_SILENT_PIC_RAW
 
@@ -296,12 +298,15 @@ static void silent_pic_raw_init_preview()
     if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5)
     {
         /* init preview */
-        uint32_t* src_buf;
-        uint32_t* dst_buf;
+        uint32_t* src_buf = 0;
+        uint32_t* dst_buf = 0;
         display_filter_get_buffers(&src_buf, &dst_buf);
-        memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
-        memset(sp_frames[0], 0, raw_info.frame_size);
-        silent_pic_display_buf = CACHEABLE(dst_buf);
+        if (src_buf && dst_buf)
+        {
+            memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
+            memset(sp_frames[0], 0, raw_info.frame_size);
+            silent_pic_display_buf = CACHEABLE(dst_buf);
+        }
     }
 }
 

@@ -4,7 +4,6 @@
 #include <bmp.h>
 #include <menu.h>
 
-#define MEM(x) (*(volatile int*)(x))
 #define MRC_DUMP_STACK_SIZE 128
 
 
@@ -21,11 +20,11 @@ extern unsigned int mem_prot_irq_orig;
 extern unsigned int mem_prot_trap_stackptr;
 unsigned int mem_prot_trap_stack[MRC_DUMP_STACK_SIZE];
 
+unsigned int mem_prot_trap_orig = 0;
 unsigned int mem_prot_irq_end_full_addr = 0;
 unsigned int mem_prot_irq_end_part_addr = 0;
 unsigned int mem_prot_hook_full = 0;
 unsigned int mem_prot_hook_part = 0;
-
 
 void __attribute__ ((naked)) mem_prot_trap()
 {
@@ -197,6 +196,15 @@ void __attribute__ ((naked)) mem_prot_irq_end_part()
     );
 }
 
+static void clean_i_cache()
+{
+    asm(
+        "mov r0, #0\n"
+        "mcr p15, 0, r0, c7, c5, 0\n" // clean I cache
+        : : : "r0"
+    );
+}
+
 unsigned int mem_prot_find_hooks()
 {
     unsigned int addr = MEM(0x00000030);
@@ -259,6 +267,56 @@ void mem_prot_ins_ldr(unsigned int pos, unsigned int dest)
 }
 
 
+void mem_prot_uninstall()
+{
+    unsigned int int_status = cli();
+    
+    /* restore original irq handler */
+    MEM(0x00000030) = mem_prot_irq_orig;
+    
+    /* unhook os irq handler */
+    MEM(mem_prot_hook_full) = 0xE8FDDFFF;
+    MEM(mem_prot_hook_part) = 0xE8FD901F;
+    
+    /* remove our trap handler */
+    MEM(0x0000002C) = (unsigned int)mem_prot_trap_orig;
+    
+    /* set range 0x00000000 - 0x00001000 buffer/cache bits */
+    asm(
+        /* set area cachable */
+        "mrc    p15, 0, R4, c2, c0, 0\n"
+        "and    r4, #0x7F\n"
+        "mcr    p15, 0, R4, c2, c0, 0\n"
+        "mrc    p15, 0, R4, c2, c0, 1\n"
+        "and    r4, #0x7F\n"
+        "mcr    p15, 0, R4, c2, c0, 1\n"
+        
+        /* set area bufferable */
+        "mrc    p15, 0, R4, c3, c0, 0\n"
+        "and    r4, #0x7F\n"
+        "mcr    p15, 0, R4, c3, c0, 0\n"
+        
+        /* set access permissions */
+        "mrc    p15, 0, R4, c5, c0, 2\n"
+        "lsl    R4, #0x04\n"
+        "lsr    R4, #0x04\n"
+        "orr    R4, #0x30000000\n"
+        "mcr    p15, 0, R4, c5, c0, 2\n"
+        
+        "mrc    p15, 0, R4, c5, c0, 3\n"
+        "lsl    R4, #0x04\n"
+        "lsr    R4, #0x04\n"
+        "orr    R4, #0x30000000\n"
+        "mcr    p15, 0, R4, c5, c0, 3\n"
+        
+        : : : "r4"
+    );
+    clean_d_cache();
+    clean_i_cache();
+    
+    sei(int_status);
+}
+
 void mem_prot_install()
 {
     unsigned int err = mem_prot_find_hooks();
@@ -283,6 +341,7 @@ void mem_prot_install()
     mem_prot_ins_ldr(mem_prot_hook_part, mem_prot_irq_end_part_addr);
     
     /* install data abort handler */
+    mem_prot_trap_orig = MEM(0x0000002C);
     MEM(0x0000002C) = (unsigned int)&mem_prot_trap;
     
     /* set up its own stack */
@@ -321,11 +380,8 @@ void mem_prot_install()
     );
     
     clean_d_cache();
-    asm(
-        "mov r0, #0\n"
-        "mcr p15, 0, r0, c7, c5, 0\n" // clean I cache
-        : : : "r0"
-    );
+    clean_i_cache();
+    
     sei(int_status);
 }
 
@@ -392,6 +448,7 @@ unsigned int mem_prot_init()
 
 unsigned int mem_prot_deinit()
 {
+    mem_prot_uninstall();
     menu_remove("Debug", mem_prot_menu, COUNT(mem_prot_menu));
     return 0;
 }
@@ -403,12 +460,6 @@ MODULE_INFO_START()
     MODULE_INIT(mem_prot_init)
     MODULE_DEINIT(mem_prot_deinit)
 MODULE_INFO_END()
-
-MODULE_STRINGS_START()
-    MODULE_STRING("Author", "g3gg0")
-    MODULE_STRING("License", "GPL")
-    MODULE_STRING("Description", "Install a memory protection handler.")
-MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
 MODULE_CBRS_END()

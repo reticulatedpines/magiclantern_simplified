@@ -3,23 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using pixelType = System.Byte;
+using MLVViewSharp;
 
 namespace mlv_view_sharp
 {
-    public class DebayerBilinear : Debayer
+    public class DebayerBilinear : DebayerBase, Debayer
     {
-        public int _BlackLevel = 0;
-        public int _WhiteLevel = 0;
-        public float _Brightness = 0;
-        public int _Overexposed = 0;
-        public int _Underexposed = 0;
-        public float _Saturation = 0.0f;
-        public float[] _CamMatrix = new float[] { 1f, 0f, 0f, 0f, 0.5f, 0f, 0f, 0f, 1f };
-
-        private float[] PixelLookupTable = new float[16384];
-        private bool PixelLookupTableDirty = true;
-
         public float[,] MatrixCenter = new float[,] 
              { 
                  { 0.00f, 0.00f, 0.00f }, 
@@ -70,71 +59,8 @@ namespace mlv_view_sharp
                 /* B */
                 {{MatrixCross, MatrixTop}, {MatrixSide, MatrixCenter}},
             };
-        }
 
-        private void CreateLookupTable()
-        {
-            PixelLookupTableDirty = false;
-
-            int black = _BlackLevel;
-            int white = _WhiteLevel;
-            float brightness = _Brightness;
-
-            for (int pos = 0; pos < PixelLookupTable.Length; pos++)
-            {
-                /* subtract black level and scale to 0.0 to 1.0 */
-                int range = white - black;
-                float scal = (float)(pos - black) / range;
-
-                scal = Math.Max(0, scal);
-
-                /* apply brightness here to save another multiplication */
-                scal *= _Brightness;
-                PixelLookupTable[pos] = scal;
-            }
-        }
-
-        public void Process(ushort[,] pixelData, pixelType[, ,] rgbData)
-        {
-            Overexposed = 0;
-            Underexposed = 0;
-
-            if (PixelLookupTableDirty)
-            {
-                CreateLookupTable();
-            }
-
-            float[] matrix = _CamMatrix;
-            float[] rgbIn = new float[] { 0, 0, 0 };
-            float[] rgbOut = new float[] { 0, 0, 0 };
-
-            for (int y = 2; y < pixelData.GetLength(0) - 2; y++)
-            {
-                for (int x = 2; x < pixelData.GetLength(1) - 2; x++)
-                {
-                    /* assume RGRGRG and GBGBGB lines */
-                    rgbIn[0] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 0)];
-                    rgbIn[1] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 1)];
-                    rgbIn[2] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 2)];
-                    rgbOut[0] = 0;
-                    rgbOut[1] = 0;
-                    rgbOut[2] = 0;
-
-                    /* apply transformation matrix */
-                    for (int col = 0; col < 3; col++)
-                    {
-                        for (int row = 0; row < 3; row++)
-                        {
-                            rgbOut[row] += rgbIn[col] * matrix[col * 3 + row];
-                        }
-                    }
-
-                    for (int channel = 0; channel < 3; channel++)
-                    {
-                        rgbData[y, x, channel] = (pixelType)Math.Max(0, Math.Min(255, rgbOut[channel]));
-                    }
-                }
-            }
+            InitMatrices();
         }
 
         private float GetPixel(ushort[,] pixelData, int x, int y, int color)
@@ -157,100 +83,35 @@ namespace mlv_view_sharp
             }
 
             return value;
-
         }
 
-        #region Debayer Member
-
-        public int BlackLevel
+        public void Process(ushort[,] pixelData, float[, ,] rgbData)
         {
-            get
+            if (LookupTablesDirty)
             {
-                PixelLookupTableDirty = true;
-                return _BlackLevel;
+                CreateLookupTable();
+                UpdateMatrix();
             }
-            set
+
+            Matrix rgbInMatrix = new Matrix(3, 1);
+
+            for (int y = 2; y < pixelData.GetLength(0) - 2; y++)
             {
-                _BlackLevel = value;
+                for (int x = 2; x < pixelData.GetLength(1) - 2; x++)
+                {
+                    /* assume RGRGRG and GBGBGB lines */
+                    rgbInMatrix[0] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 0)];
+                    rgbInMatrix[1] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 1)];
+                    rgbInMatrix[2] = PixelLookupTable[(int)GetPixel(pixelData, x, y, 2)];
+
+                    /* apply transformation matrix */
+                    Matrix rgbOutMatrix = CorrectionMatrices(rgbInMatrix);
+
+                    rgbData[y, x, 0] = rgbOutMatrix[0];
+                    rgbData[y, x, 1] = rgbOutMatrix[1];
+                    rgbData[y, x, 2] = rgbOutMatrix[2];
+                }
             }
         }
-
-        public int WhiteLevel
-        {
-            get
-            {
-                PixelLookupTableDirty = true;
-                return _WhiteLevel;
-            }
-            set
-            {
-                _WhiteLevel = value;
-            }
-        }
-
-        public float Brightness
-        {
-            get
-            {
-                PixelLookupTableDirty = true;
-                return _Brightness;
-            }
-            set
-            {
-                _Brightness = value;
-            }
-        }
-
-        public int Overexposed
-        {
-            get
-            {
-                return _Overexposed;
-            }
-            set
-            {
-                _Overexposed = value;
-            }
-        }
-
-        public int Underexposed
-        {
-            get
-            {
-                return _Underexposed;
-            }
-            set
-            {
-                _Underexposed = value;
-            }
-        }
-
-        public float[] CamMatrix
-        {
-            get
-            {
-                return _CamMatrix;
-            }
-            set
-            {
-                //_CamMatrix = value;
-            }
-        }
-
-        public float Saturation
-        {
-            get
-            {
-                return _Saturation;
-            }
-            set
-            {
-                _Saturation = value;
-                _CamMatrix = new float[] { 1f, -_Saturation, -_Saturation, -_Saturation, 0.5f, -_Saturation, -_Saturation, -_Saturation, 1f };
-            }
-        }
-
-
-        #endregion
     }
 }

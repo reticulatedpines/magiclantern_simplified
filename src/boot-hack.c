@@ -40,6 +40,8 @@
 #include "boot-hack.h"
 #include "reloc.h"
 
+#include "ml-cbr.h"
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);
@@ -439,6 +441,7 @@ static void my_big_init_task()
     
     call("DisablePowerSave");
     load_fonts();
+    _ml_cbr_init();
     menu_init();
     debug_init();
     call_init_funcs( 0 );
@@ -589,7 +592,7 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
         "at %s:%d, task %s\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, get_task_name_from_id((unsigned int)get_current_task()), 
+        file, line, get_task_name_from_id(get_current_task()), 
         lv, shooting_mode
     );
     request_crash_log(1);
@@ -603,7 +606,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
         "at %s:%d (%s), task %s\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, func, get_task_name_from_id((unsigned int)get_current_task()), 
+        file, line, func, get_task_name_from_id(get_current_task()), 
         lv, shooting_mode
     );
     request_crash_log(2);
@@ -712,7 +715,7 @@ my_init_task(int a, int b, int c, int d)
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
     unsigned int backup_data = 0;
-    unsigned int task_id = (unsigned int)get_current_task();
+    unsigned int task_id = get_current_task();
 
     if(task_id > 0x68 && task_id < 0xFFFFFFFF)
     {
