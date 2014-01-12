@@ -299,7 +299,7 @@ static void build_file_menu()
         ptr++;
     }
 
-    menu_add("File Manager", compacted, -count); // negative to suppress updating of placeholders
+    menu_add_base("File Manager", compacted, count, false); // do not update placeholders
 }
 
 static struct semaphore * scandir_sem = 0;

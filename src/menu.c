@@ -1063,13 +1063,12 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
     }
 }
 
-// Specify a negative number for count if you want to suppress the updating of placeholders
-// This is crucial for performance on large menus that are known to not have placeholders
 void
-menu_add(
+menu_add_base(
     const char *        name,
     struct menu_entry * new_entry,
-    int         count
+    int         count,
+    bool update_placeholders
 )
 {
 #if defined(POSITION_INDEPENDENT)
@@ -1079,9 +1078,6 @@ menu_add(
     // There is nothing to display. Sounds crazy (but might result from ifdef's)
     if ( count == 0 )
         return;
-
-    bool update_placeholders = (count > 1);
-    count = ABS(count);
 
     // Walk the menu list to find a menu
     struct menu *       menu = menu_find_by_name( name, 0);
@@ -1154,6 +1150,17 @@ menu_add(
         entry = entry->prev;
         if (!entry) break;
     }
+}
+
+void
+menu_add(
+    const char *        name,
+    struct menu_entry * new_entry,
+    int         count
+)
+{
+    // Update placeholders
+    menu_add_base(name, new_entry, count, true);
 }
 
 static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)

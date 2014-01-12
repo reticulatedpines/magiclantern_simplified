@@ -280,6 +280,7 @@ extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 extern void run_in_separate_task(void (*priv)(void), int delta);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
+extern void menu_add_base( const char * name, struct menu_entry * new_entry, int count, bool update_placeholders );
 
 extern void menu_remove(const char * name, struct menu_entry * old_entry, int count);
 
