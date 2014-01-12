@@ -138,15 +138,20 @@ static struct menu_entry fileman_menu[] =
 
 static void clear_file_menu()
 {
+    if (!file_entries) return;
+
+    //Assumes that build_file_menu has been called, so the menu_entry data is compacted
+    struct menu_entry * compacted = file_entries->menu_entry;
+
     while (file_entries)
     {
         struct file_entry * next = file_entries->next;
         menu_remove("File Manager", file_entries->menu_entry, 1);
         //console_printf("%s\n", file_entries->name);
-        FreeMemory(file_entries->menu_entry);
         FreeMemory(file_entries);
         file_entries = next;
     }
+    FreeMemory(compacted);
 }
 
 static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
@@ -283,8 +288,18 @@ static void build_file_menu()
 
     file_entries = list;
 
-    for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        menu_add("File Manager", fe->menu_entry, -1); // -1 to suppress updating of placeholders
+    // Compacts all the independently allocated menu_entry structures into a single array
+    struct menu_entry * compacted = AllocateMemory(count*sizeof(struct menu_entry));
+    struct menu_entry * ptr = compacted;
+
+    for (struct file_entry * fe = file_entries; fe; fe = fe->next) {
+        memcpy(ptr, fe->menu_entry, sizeof(struct menu_entry));
+        FreeMemory(fe->menu_entry);
+        fe->menu_entry = ptr;
+        ptr++;
+    }
+
+    menu_add("File Manager", compacted, -count); // negative to suppress updating of placeholders
 }
 
 static struct semaphore * scandir_sem = 0;
