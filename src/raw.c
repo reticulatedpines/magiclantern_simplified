@@ -533,8 +533,8 @@ int raw_update_params()
         /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
         width = 5936;
         height = 3950;
-        skip_left = 126;
-        skip_right = 20;
+        skip_left = 120;
+        skip_right = 16;
         skip_top = 82;
         #endif
 
