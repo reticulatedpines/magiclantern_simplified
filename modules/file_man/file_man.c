@@ -14,7 +14,7 @@
 struct file_entry
 {
     struct file_entry * next;
-    struct menu_entry menu_entry;
+    struct menu_entry * menu_entry;
     char name[MAX_PATH_LEN];
     unsigned int size;
     unsigned int type: 2;
@@ -141,8 +141,9 @@ static void clear_file_menu()
     while (file_entries)
     {
         struct file_entry * next = file_entries->next;
-        menu_remove("File Manager", &(file_entries->menu_entry), 1);
+        menu_remove("File Manager", file_entries->menu_entry, 1);
         //console_printf("%s\n", file_entries->name);
+        FreeMemory(file_entries->menu_entry);
         FreeMemory(file_entries);
         file_entries = next;
     }
@@ -153,30 +154,36 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
     struct file_entry * fe = AllocateMemory(sizeof(struct file_entry));
     if (!fe) return 0;
     memset(fe, 0, sizeof(struct file_entry));
+    fe->menu_entry = AllocateMemory(sizeof(struct menu_entry));
+    if (!fe->menu_entry) {
+        FreeMemory(fe);
+        return 0;
+    }
+    memset(fe->menu_entry, 0, sizeof(struct menu_entry));
     snprintf(fe->name, sizeof(fe->name), "%s", txt);
     fe->size = size;
     fe->timestamp = timestamp;
 
-    fe->menu_entry.name = fe->name;
-    fe->menu_entry.priv = fe;
+    fe->menu_entry->name = fe->name;
+    fe->menu_entry->priv = fe;
 
     fe->type = type;
-    fe->menu_entry.select_Q = BrowseUpMenu;
+    fe->menu_entry->select_Q = BrowseUpMenu;
     if (fe->type == TYPE_DIR)
     {
-        fe->menu_entry.select = select_dir;
-        fe->menu_entry.update = update_dir;
+        fe->menu_entry->select = select_dir;
+        fe->menu_entry->update = update_dir;
     }
     else if (fe->type == TYPE_FILE)
     {
-        fe->menu_entry.select = select_file;
-        fe->menu_entry.update = update_file;
+        fe->menu_entry->select = select_file;
+        fe->menu_entry->update = update_file;
     }
     else if (fe->type == TYPE_ACTION)
     {
-        fe->menu_entry.select = default_select_action;
-        fe->menu_entry.update = update_action;
-        fe->menu_entry.icon_type = IT_ACTION;
+        fe->menu_entry->select = default_select_action;
+        fe->menu_entry->update = update_action;
+        fe->menu_entry->icon_type = IT_ACTION;
     }
     fe->next = file_entries;
     file_entries = fe;
@@ -277,7 +284,7 @@ static void build_file_menu()
     file_entries = list;
 
     for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        menu_add("File Manager", &(fe->menu_entry), -1); // -1 to suppress updating of placeholders
+        menu_add("File Manager", fe->menu_entry, -1); // -1 to suppress updating of placeholders
 }
 
 static struct semaphore * scandir_sem = 0;
@@ -354,17 +361,17 @@ static void ScanDir(char *path)
             /* need to add these in reverse order */
 
             e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0, 0);
-            if (e) e->menu_entry.select = FileOpCancel;
+            if (e) e->menu_entry->select = FileOpCancel;
 
             switch (op_mode)
             {
                 case FILE_OP_COPY:
                     e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0, 0);
-                    if (e) e->menu_entry.select = FileCopyStart;
+                    if (e) e->menu_entry->select = FileCopyStart;
                     break;
                 case FILE_OP_MOVE:
                     e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0, 0);
-                    if (e) e->menu_entry.select = FileMoveStart;
+                    if (e) e->menu_entry->select = FileMoveStart;
                     break;
             }
     }
@@ -393,9 +400,9 @@ static void restore_menu_selection(char* old_dir)
     {
         if (streq(fe->name, old_dir))
         {
-            fe->menu_entry.selected = 1;
+            fe->menu_entry->selected = 1;
             for (struct file_entry * e = file_entries; e; e = e->next)
-                if (e != fe) e->menu_entry.selected = 0;
+                if (e != fe) e->menu_entry->selected = 0;
             break;
         }
     }
@@ -995,8 +1002,8 @@ static MENU_SELECT_FUNC(file_menu)
             e = add_file_entry(msg, TYPE_ACTION, 0, 0);
             if (e)
             {
-                e->menu_entry.select = select_by_extension;
-                e->menu_entry.help = "Press PLAY to select individual files.";
+                e->menu_entry->select = select_by_extension;
+                e->menu_entry->help = "Press PLAY to select individual files.";
             }
         }
     }
@@ -1004,28 +1011,28 @@ static MENU_SELECT_FUNC(file_menu)
     if (sel)
     {
         e = add_file_entry("Clear selection", TYPE_ACTION, 0, 0);
-        if (e) e->menu_entry.select = mfile_clear_all_selected_menu;
+        if (e) e->menu_entry->select = mfile_clear_all_selected_menu;
     }
 
     e = add_file_entry("Delete", TYPE_ACTION, 0, 0);
     if (e)
     {
-        e->menu_entry.select = delete_file;
-        e->menu_entry.update = delete_confirm;
+        e->menu_entry->select = delete_file;
+        e->menu_entry->update = delete_confirm;
     }
 
     e = add_file_entry("Move", TYPE_ACTION, 0, 0);
     if (e)
     {
-        e->menu_entry.select = MoveFile;
-        //e->menu_entry.update = MoveFileProgress;
+        e->menu_entry->select = MoveFile;
+        //e->menu_entry->update = MoveFileProgress;
     }
 
     e = add_file_entry("Copy", TYPE_ACTION, 0, 0);
     if (e)
     {
-        e->menu_entry.select = CopyFile;
-        //e->menu_entry.update = CopyFileProgress;
+        e->menu_entry->select = CopyFile;
+        //e->menu_entry->update = CopyFileProgress;
     }
 
     if (!sel)
@@ -1033,8 +1040,8 @@ static MENU_SELECT_FUNC(file_menu)
         e = add_file_entry("View", TYPE_ACTION, 0, 0);
         if (e)
         {
-            e->menu_entry.select = viewfile_toggle;
-            e->menu_entry.update = viewfile_update;
+            e->menu_entry->select = viewfile_toggle;
+            e->menu_entry->update = viewfile_update;
         }
     }
 
@@ -1043,8 +1050,8 @@ static MENU_SELECT_FUNC(file_menu)
         e = add_file_entry(name, TYPE_FILE, size, timestamp);
         if (e)
         {
-            e->menu_entry.select = BrowseUpMenu;
-            e->menu_entry.priv = e;
+            e->menu_entry->select = BrowseUpMenu;
+            e->menu_entry->priv = e;
         }
     }
     else
@@ -1058,9 +1065,9 @@ static MENU_SELECT_FUNC(file_menu)
         e = add_file_entry(msg, TYPE_ACTION, 0, 0);
         if (e)
         {
-            e->menu_entry.icon_type = IT_BOOL,
-            e->menu_entry.select = BrowseUpMenu;
-            e->menu_entry.priv = e;
+            e->menu_entry->icon_type = IT_BOOL,
+            e->menu_entry->select = BrowseUpMenu;
+            e->menu_entry->priv = e;
         }
     }
 
