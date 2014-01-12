@@ -1045,10 +1045,10 @@ static void
 menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
 {
     if (!menu) return;
-
-    struct menu_entry * entry = menu->children;
-    while (entry && MENU_IS_PLACEHOLDER(entry)) {
-        if (entry != new_entry && streq(entry->name, new_entry->name))
+    
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+    {
+        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
         { /* found, let's try to swap the entries */
             
             placeholder_copy(entry, new_entry);
@@ -1061,10 +1061,11 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
             /* warning: the unused entry is still kept in place, but hidden; important to delete? */
             break;
         }
-        entry = entry->next;
     }
 }
 
+// Specify a negative number for count if you want to suppress the updating of placeholders
+// This is crucial for performance on large menus that are known to not have placeholders
 void
 menu_add(
     const char *        name,
@@ -1079,6 +1080,9 @@ menu_add(
     // There is nothing to display. Sounds crazy (but might result from ifdef's)
     if ( count == 0 )
         return;
+
+    bool update_placeholders = (count > 1);
+    count = ABS(count);
 
     // Walk the menu list to find a menu
     struct menu *       menu = menu_find_by_name( name, 0);
@@ -1115,7 +1119,7 @@ menu_add(
         tail->next      = new_entry;
         tail            = new_entry;
         menu_update_split_pos(menu, new_entry);
-        menu_update_placeholder(menu, new_entry);
+        if (update_placeholders) menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
 

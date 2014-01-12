@@ -277,7 +277,7 @@ static void build_file_menu()
     file_entries = list;
 
     for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        menu_add("File Manager", &(fe->menu_entry), 1);
+        menu_add("File Manager", &(fe->menu_entry), -1); // -1 to suppress updating of placeholders
 }
 
 static struct semaphore * scandir_sem = 0;
