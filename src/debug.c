@@ -2692,37 +2692,30 @@ void show_electronic_level()
 
 #ifdef CONFIG_HEXDUMP
 
-CONFIG_INT("hexdump", hexdump_addr, 0x5024);
+CONFIG_INT("hexdump", hexdump_addr, 0x24298);
 
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
 
 static MENU_UPDATE_FUNC (hexdump_print)
 {
-    int fnt = MENU_FONT;
-    int x = info->x;
+    if (!info->can_custom_draw) return;
+    int x = info->x_val;
     int y = info->y;
-    bmp_printf(
-        fnt,
-        x, y,
-        "HexDump : %8x",
-        hexdump_addr
-    );
-
-    fnt = FONT(fnt, COLOR_WHITE, COLOR_RED);
-
-    if (hexdump_digit_pos < 8)
-        bmp_printf(
-            fnt,
-            x + font_large.width * (17 - hexdump_digit_pos), y,
-            "%x",
-            (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF
-        );
+    
+    MENU_SET_VALUE("");
+    
+    for (int i = 0; i < 8; i++)
+    {
+        int pos = 7 - i;
+        int fnt = (pos == hexdump_digit_pos) ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED) : FONT_LARGE;
+        x += bmp_printf(fnt, x, y, "%x", (hexdump_addr >> (pos * 4)) & 0xF);
+    }
 }
 
 static MENU_UPDATE_FUNC (hexdump_print_value_hex)
 {
-    MENU_SET_VALUE("%x",
+    MENU_SET_VALUE("0x%x",
         MEMX(hexdump_addr)
     );
 }
@@ -2761,7 +2754,6 @@ static MENU_UPDATE_FUNC (hexdump_print_value_str)
     if (hexdump_addr & 0xF0000000) return;
     MENU_SET_VALUE(
         "%s",
-        "Val string: %s",
         (char*)hexdump_addr
     );
 }
@@ -3397,14 +3389,10 @@ static struct menu_entry debug_menus[] = {
                 .name = "HexDump",
                 .priv = &hexdump_addr,
                 .select = hexdump_digit_toggle,
+                .select_Q = hexdump_digit_pos_toggle,
                 .update = hexdump_print,
-                .help = "Address to be analyzed"
-            },
-            {
-                .name = "Edit digit",
-                .priv = &hexdump_digit_pos,
-                .max = 8,
-                .help = "Choose which digit to edit (0-7) or the entire nuber (8)."
+                .icon_type = IT_PERCENT,
+                .help = "Address to be analyzed. Press Q to select the digit to edit."
             },
             {
                 .name = "Pointer dereference",
