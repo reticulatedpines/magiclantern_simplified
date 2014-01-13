@@ -9,9 +9,10 @@
 #undef FEATURE_VOICE_TAGS
 #undef FEATURE_AUDIO_REMOTE_SHOT
 #undef FEATURE_BEEP //works, but messes up module menu
+#undef FEATURE_AUDIO_METERS // works, but cam not stable yet
 
 // Audio features working
-#define FEATURE_AUDIO_METERS // only when recording movie
+// nothing yet 8/
 
 //~ #undef FEATURE_ARROW_SHORTCUTS
 
