@@ -12,10 +12,10 @@
 #undef FEATURE_FPS_WAV_RECORD
 #undef FEATURE_VOICE_TAGS
 #undef FEATURE_AUDIO_REMOTE_SHOT
+#undef FEATURE_BEEP
 
 // Audio features that work
 #define FEATURE_AUDIO_METERS //only in while recording
-#define FEATURE_BEEP
 
 #define FEATURE_ARROW_SHORTCUTS
 
