@@ -39,7 +39,7 @@
 #define CONFIG_LCD_SENSOR
 
 /** We can playback sounds via ASIF DMA **/
-#define CONFIG_BEEP
+//#define CONFIG_BEEP //Works, but to many tasks or cam to deal with
 
 /** File I/O **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
