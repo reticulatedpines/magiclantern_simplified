@@ -3707,7 +3707,7 @@ static struct menu_entry raw_video_menu[] =
 static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
     /* if module is disabled or canon is currently recording, return */
-    if (!mlv_video_enabled || (recording > 0))
+    if (!mlv_video_enabled || RECORDING_H264)
         return 1;
 
     if (!is_movie_mode())
