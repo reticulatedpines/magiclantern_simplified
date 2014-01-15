@@ -3594,13 +3594,15 @@ menu_entry_select(
     }
     else if (mode == 2) // Q
     {
+        bool promotable_to_pickbox = HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children);
+
         if (menu_lv_transparent_mode) { menu_lv_transparent_mode = 0; }
         else if (edit_mode) { edit_mode = submenu_mode = 0; }
-        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
+        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1); // caution: entry may now be a dangling pointer
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
-        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children))
+        if (submenu_mode && promotable_to_pickbox)
             edit_mode = 1;
     }
     else if (mode == 3) // SET
