@@ -39,8 +39,8 @@ int get_alo()
        return alo & 0xFF; 
 }
 
-void set_alo(int value) 
+/*void set_alo(int value) 
 {  
     value = COERCE(value, 0, 3);
     prop_request_change(0x8000003d, value, 0x2f);
-}
+}*/
