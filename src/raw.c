@@ -474,6 +474,12 @@ int raw_update_params()
     else if (QR_MODE) // image review after taking pics
     {
 #ifdef CONFIG_RAW_PHOTO
+
+        if (!can_use_raw_overlays_photo())
+        {
+            return 0;
+        }
+
         raw_info.buffer = (void*) raw_buffer_photo;
         
         #if defined(CONFIG_60D) || defined(CONFIG_500D)
@@ -1642,7 +1648,8 @@ int get_dxo_dynamic_range(int raw_iso)
 
 int can_use_raw_overlays_photo()
 {
-    // MRAW/SRAW are causing trouble, figure out why
+    // MRAW/SRAW are causing trouble.
+    // Besides buffer address different on some cameras, these formats are lossy and break all my noise analysis tools
     // RAW and RAW+JPEG are OK
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
