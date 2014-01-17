@@ -319,13 +319,15 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 
 int histogram_or_small_waveform_enabled()
 {
-    return (
-        (
+    return 
+    (
         #ifdef FEATURE_HISTOGRAM
-        (hist_draw)
-        #ifdef FEATURE_RAW_OVERLAYS
-        && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())
-        #endif
+        (
+            (hist_draw) &&
+            #ifdef FEATURE_RAW_OVERLAYS
+            !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu()) &&
+            #endif
+            1
         )
         ||
         #endif
@@ -5258,6 +5260,7 @@ int handle_livev_playback(struct event * event, int button)
 {
     // move spotmeter in QR or playback mode
 
+#ifdef FEATURE_SPOTMETER
     #define CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
     #ifdef CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
     if ((QR_MODE && ZEBRAS_IN_QUICKREVIEW) || (PLAY_MODE && livev_playback))
@@ -5333,6 +5336,7 @@ int handle_livev_playback(struct event * event, int button)
         }
     }
     #endif
+#endif
 
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)

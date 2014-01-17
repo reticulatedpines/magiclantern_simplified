@@ -3291,6 +3291,7 @@ INIT_FUNC("deflicker", post_deflicker_init);
 
 static void post_deflicker_task()
 {
+#ifdef FEATURE_RAW_HISTOGRAM
     /* not quite correct in burst mode, but at least only one task will run at a time */
     /* so at least the last deflicker in a burst sequence should be correct */
     deflicker_waiting++;
@@ -3328,6 +3329,7 @@ static void post_deflicker_task()
     console_printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
     post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
     give_semaphore(deflicker_sem);
+#endif
 }
 
 static void post_deflicker_step()

@@ -139,6 +139,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
         #ifdef FEATURE_MAGIC_ZOOM
         digic_zoom_overlay_step(0);
         #endif
+        0;
     }
     #endif
     #endif
