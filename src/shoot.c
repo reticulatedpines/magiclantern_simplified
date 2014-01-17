@@ -5055,7 +5055,7 @@ static int hdr_shutter_release(int ev_x8)
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 20000)
+        if (msc >= 20000 || is_bulb_mode())
         {
             bulb_take_pic(msc);
         }
