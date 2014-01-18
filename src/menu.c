@@ -4092,7 +4092,7 @@ static struct menu * get_current_submenu()
 
 static int keyrepeat = 0;
 static int keyrep_countdown = 4;
-static int keyrep_ack = 1;
+static int keyrep_ack = 0;
 int handle_ml_menu_keyrepeat(struct event * event)
 {
     //~ if (menu_shown || arrow_keys_shortcuts_active())
@@ -4123,6 +4123,7 @@ int handle_ml_menu_keyrepeat(struct event * event)
             #endif
                 keyrepeat = 0;
                 keyrep_countdown = 4;
+                keyrep_ack = 0;
                 break;
         }
     }
@@ -4131,7 +4132,7 @@ int handle_ml_menu_keyrepeat(struct event * event)
 
 void keyrepeat_ack(int button_code) // also for arrow shortcuts
 {
-    if (button_code == keyrepeat) keyrep_ack = 1;
+    keyrep_ack = (button_code == keyrepeat);
 }
 
 int
@@ -4658,8 +4659,13 @@ menu_task( void* unused )
         {
             if (keyrepeat && menu_or_shortcut_menu_shown)
             {
-                keyrep_countdown--;
-                if (keyrep_countdown <= 0 && keyrep_ack) { keyrep_ack = 0; fake_simple_button(keyrepeat); }
+                if (keyrep_ack) {
+                    keyrep_countdown--;
+                    if (keyrep_countdown <= 0) {
+                        keyrep_ack = 0;
+                        fake_simple_button(keyrepeat);
+                    }
+                }
                 continue;
             }
 
