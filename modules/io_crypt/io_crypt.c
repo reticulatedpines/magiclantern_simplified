@@ -36,60 +36,13 @@ static IME_UPDATE_FUNC(iocrypt_ime_update)
     return IME_OK;
 }
 
-static void iocrypt_lfsr64_clock(uint64_t *lfsr_in, uint32_t clocks)
-{
-    uint64_t lfsr = *lfsr_in;
-    
-    for(uint32_t clock = 0; clock < clocks; clock++)
-    {
-        /* maximum length LFSR according to http://www.xilinx.com/support/documentation/application_notes/xapp052.pdf */
-        uint32_t bit = ((lfsr >> 63) ^ (lfsr >> 62) ^ (lfsr >> 60) ^ (lfsr >> 59)) & 1;
-        lfsr = (lfsr << 1) | bit;
-    }
-    
-    *lfsr_in = lfsr;
-}
-
-static void set_password(char *password)
-{
-    uint64_t key = 0xDEADBEEFDEADBEEF;
-    
-    /* use the password to generate an 128 bit key */
-    for(uint32_t pos = 0; pos < strlen((char *)password); pos++)
-    {
-        uint64_t mask = 0;
-        
-        mask = password[pos];
-        mask |= mask << 8;
-        mask |= mask << 16;
-        mask |= mask << 32;
-        
-        /* randomize random randomness with randomized random randomness */
-        iocrypt_lfsr64_clock(&mask, 8192 + pos * 11 + password[pos]);
-        key ^= mask;
-        iocrypt_lfsr64_clock(&key, 8192);
-    }
-    
-    /* some final clocking */
-    iocrypt_lfsr64_clock(&key, 8192);
-    
-    /* done, use that key */
-    iocrypt_key = key;
-    iocrypt_disabled = 0;
-    
-    gui_stop_menu();
-    give_semaphore(iocrypt_password_sem);
-    
-    trace_write(iocrypt_trace_ctx, "password: '%s'", password);
-    trace_write(iocrypt_trace_ctx, "password: 0x%08X%08X", iocrypt_key);
-}
-
 static IME_DONE_FUNC(iocrypt_ime_done)
 {
+    gui_stop_menu();
+    
     /* if key input dialog was cancelled */
     if(status != IME_OK)
     {
-        gui_stop_menu();
         iocrypt_disabled = 1;
         NotifyBox(2000, "Crypto disabled");
         beep();
@@ -98,15 +51,42 @@ static IME_DONE_FUNC(iocrypt_ime_done)
         return IME_OK;
     }
     
-    set_password(text);
+    hash_password(text, &iocrypt_key);
+    
+    /* done, use that key */
+    iocrypt_disabled = 0;
+    give_semaphore(iocrypt_password_sem);
+    
+#if 0    
+    /* do some unaligned writes to check alignment handling */
+    uint8_t buffer[256];
+    memset(buffer, 0x00, sizeof(buffer));
+    
+    FILE* f = FIO_CreateFileEx("B:/IO_CRYPT.CR2");
+    for(int loop = 0; loop < 10 * 1024; loop++)
+    {
+        FIO_WriteFile(f, &buffer[0], 19);
+        FIO_WriteFile(f, &buffer[1], 21);
+        FIO_WriteFile(f, &buffer[2], 33);
+        FIO_WriteFile(f, &buffer[3], 31);
+        FIO_WriteFile(f, &buffer[7], 3);
+        bmp_printf(FONT_LARGE, 0, 60, "Loop: %d", loop);
+    }
+    
+    FIO_CloseFile(f);
+    beep();
+#endif
+    
     return IME_OK;
 }
 
 static uint32_t iodev_GetPosition(uint32_t fd)
 {
     uint32_t *ctx = (uint32_t *)(iodev_ctx + iodev_ctx_size * fd);
+    
     return ctx[2];
 }
+
 
 /* these are the iodev hooks */
 static uint32_t hook_iodev_CloseFile(uint32_t fd)
@@ -208,7 +188,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             
             ret = orig_iodev->WriteFile(fd, work_ptr, length);
             
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, %s", buf, length, fd, fd_pos, iocrypt_files[fd].filename);
+            trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, fd_pos (now) = 0x%08X, %s", buf, length, fd, fd_pos, iodev_GetPosition(fd), iocrypt_files[fd].filename);
             
             /* if we were not able to write it from scratch, undo in-place encryption */
             if(work_ptr == buf)
@@ -235,7 +215,7 @@ static void iocrypt_enter_pw()
     
     gui_open_menu();
     
-    if(!ime_base_start("io_crypt: Enter password", iocrypt_ime_text, sizeof(iocrypt_ime_text), IME_UTF8, IME_CHARSET_ANY, &iocrypt_ime_update, &iocrypt_ime_done, 0, 0, 0, 0))
+    if(!ime_base_start("io_crypt: Enter password", iocrypt_ime_text, sizeof(iocrypt_ime_text) - 1, IME_UTF8, IME_CHARSET_ANY, &iocrypt_ime_update, &iocrypt_ime_done, 0, 0, 0, 0))
     {
         give_semaphore(iocrypt_password_sem);
         iocrypt_disabled = 1;

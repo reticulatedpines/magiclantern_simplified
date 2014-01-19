@@ -3,12 +3,11 @@
 #define __IO_CRYPT_H
 
 #define CRYPT_SCRATCH_SIZE 0x00800000
-#define CRYPT_BLOCKSIZE    0x00010000
-
 typedef struct crypt_cipher_t
 {
     void (*encrypt)(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
     void (*decrypt)(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
+    void (*reset)(void **ctx);
     void (*deinit)(void **ctx);
 } crypt_cipher_t;
 
