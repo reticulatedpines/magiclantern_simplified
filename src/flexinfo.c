@@ -1606,8 +1606,10 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
         case INFO_STRING_TEMPERATURE:
         {
+	    #ifdef EFIC_CELSIUS
             snprintf(buffer, maxsize, "%d", EFIC_CELSIUS);
             break;
+	    #endif
         }
         case INFO_STRING_WBMODE:
         {

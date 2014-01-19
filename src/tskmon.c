@@ -2,9 +2,9 @@
 #include "bmp.h"
 #include "tskmon.h"
 #include "tasks.h"
+#include "module.h"
+#include "menu.h"
 
-//#define CONFIG_TSKMON_TRACE
-//#define CONFIG_ISR_HOOKS
 
 #ifdef CONFIG_TSKMON
 
@@ -19,11 +19,6 @@ static uint32_t volatile tskmon_trace_active = 0;
 static uint32_t volatile tskmon_trace_size = 100000;
 static uint32_t volatile tskmon_trace_writepos = 0;
 static uint32_t volatile tskmon_trace_readpos = 0;
-static unsigned int (*tskmon_trace_start)(char *name, char *file_name) = MODULE_FUNCTION("trace_start");
-static unsigned int (*tskmon_trace_stop)(unsigned int trace, int wait) = MODULE_FUNCTION("trace_stop");
-static unsigned int (*tskmon_trace_format)(unsigned int context, unsigned int format, unsigned char separator) = MODULE_FUNCTION("trace_format")
-static unsigned int (*tskmon_trace_write)(unsigned int context, char *string, ...) = MODULE_FUNCTION("trace_write")
-static unsigned int (*tskmon_trace_write_tsc)(unsigned int context, uint64_t tsc, char *string, ...) = MODULE_FUNCTION("trace_write_tsc")
 #endif /* CONFIG_TSKMON_TRACE */
 
 static struct task *tskmon_last_task = NULL;
@@ -442,7 +437,7 @@ void tskmon_init()
 void tskmon_trace_write_csv()
 {
     /* write CPU details */
-    tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;CPU_DESCR;ARM946E;0");
+    trace_write_tsc(tskmon_trace_ctx, 0, "0;CPU_DESCR;ARM946E;0");
     
     for(int pos = 0; pos < tskmon_trace_writepos; pos++)
     {
@@ -488,14 +483,14 @@ void tskmon_trace_write_csv()
             }
             
             /* write the entries for this task/isr */
-            tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;PRIO;%s;%d", name_buf, tskmon_trace_buffer[pos].prio);
-            tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;SCHED;%s;%d", name_buf, scheduling);
+            trace_write_tsc(tskmon_trace_ctx, 0, "0;PRIO;%s;%d", name_buf, tskmon_trace_buffer[pos].prio);
+            trace_write_tsc(tskmon_trace_ctx, 0, "0;SCHED;%s;%d", name_buf, scheduling);
         }
     }
     
     /* we dont have any repeating schedule table and all timer values are given in microseconds */
-    tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;CycleCount;CycleCount;1");
-    tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;TPUS;TPUS;1");
+    trace_write_tsc(tskmon_trace_ctx, 0, "0;CycleCount;CycleCount;1");
+    trace_write_tsc(tskmon_trace_ctx, 0, "0;TPUS;TPUS;1");
     
     /* the absolute timer value isnt important, count relative starting from the first entry */
     tsc_t reference_tsc = tskmon_trace_buffer[0].tsc;
@@ -541,7 +536,7 @@ void tskmon_trace_write_csv()
         }
         
         /* try to write the entry. if it fails, try again */
-        if (tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;%s;%s_%s;%d", record, type, name_buf, ticks) != TRACE_OK)
+        if (trace_write_tsc(tskmon_trace_ctx, 0, "0;%s;%s_%s;%d", record, type, name_buf, ticks) != TRACE_OK)
         {
             /* failed to write, sleep and retry */
             pos--;
@@ -552,25 +547,39 @@ void tskmon_trace_write_csv()
 }
 #endif /* CONFIG_TSKMON_TRACE */
 
-void tskmon_trace()
+void tskmon_trace_thread()
 {
 #ifdef CONFIG_TSKMON_TRACE
-
-    msleep(2000);
+    
+    /* check for availability */
+    if(trace_start == &ret_0)
+    {
+        NotifyBox(2000, "symbol 'trace_start' not found");
+        beep();
+        beep();
+        return;
+    }
     
     /* if trace is already running, stop */
     if(tskmon_trace_active)
     {
+        bmp_printf(FONT_MED, 10, 20, "Stopping trace...");
         tskmon_trace_active = 0;
         beep();
         return;
     }
 
+    bmp_printf(FONT_MED, 10, 20, "Starting trace...");
+    beep();
+    msleep(2000);
+
     /* prepare the trace buffer, get it from shoot mem */
     tskmon_trace_buffer = shoot_malloc(tskmon_trace_size * sizeof(tskmon_trace_t));
     if(!tskmon_trace_buffer)
     {
-        bmp_printf(FONT_MED, 10, 20, "not enough RAM");
+        NotifyBox(2000, "Not enough RAM");
+        beep();
+        beep();
         return;
     }
     
@@ -578,16 +587,9 @@ void tskmon_trace()
     tskmon_trace_writepos = 0;
     tskmon_trace_readpos = 0;
     
-    /* check for availability */
-    if(tskmon_trace_start == &ret_0)
-    {
-        bmp_printf(FONT_MED, 10, 20, "tskmon_trace_start not found");
-        return;
-    }
-    
     /* create a new trace. use it as simple text file writer */
-    tskmon_trace_ctx = tskmon_trace_start("taskmon", CARD_DRIVE"tskmon.txt");
-    tskmon_trace_format(tskmon_trace_ctx, 0, '\000');
+    tskmon_trace_ctx = trace_start("tskmon", CARD_DRIVE"tskmon.txt");
+    trace_format(tskmon_trace_ctx, 0, '\000');
     
     /* start tskmon trace */
     tskmon_trace_active = 1;
@@ -604,13 +606,18 @@ void tskmon_trace()
     tskmon_trace_write_csv();
     
     /* and clean up */
-    tskmon_trace_stop(tskmon_trace_ctx, 1);
+    trace_stop(tskmon_trace_ctx, 1);
     
     shoot_free(tskmon_trace_buffer);
     bmp_printf(FONT_MED, 10, 20, "DONE");
     beep();
-    return;
+    
 #endif /* CONFIG_TSKMON_TRACE */
+}
+
+MENU_SELECT_FUNC(tskmon_trace)
+{
+    task_create("tskmon_trace", 0x1a, 0x1000, &tskmon_trace_thread, (void*)0);
 }
 
 

@@ -1064,10 +1064,11 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
 }
 
 void
-menu_add(
+menu_add_base(
     const char *        name,
     struct menu_entry * new_entry,
-    int         count
+    int         count,
+    bool update_placeholders
 )
 {
 #if defined(POSITION_INDEPENDENT)
@@ -1093,7 +1094,7 @@ menu_add(
     if( !head )
     {
         // First one -- insert it as the selected item
-        head = menu->children   = new_entry;
+        head = menu->children = new_entry;
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
@@ -1111,13 +1112,13 @@ menu_add(
     for (int i = 0; i < count; i++)
     {
         new_entry->selected = 0;
-        new_entry->next     = head->next;
+        new_entry->next     = NULL;
         new_entry->prev     = head;
         new_entry->parent_menu = menu;
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
-        menu_update_placeholder(menu, new_entry);
+        if (update_placeholders) menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
     
@@ -1149,6 +1150,17 @@ menu_add(
         entry = entry->prev;
         if (!entry) break;
     }
+}
+
+void
+menu_add(
+    const char *        name,
+    struct menu_entry * new_entry,
+    int         count
+)
+{
+    // Update placeholders
+    menu_add_base(name, new_entry, count, true);
 }
 
 static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
@@ -1209,12 +1221,16 @@ menu_remove(
     
     menu_flags_load_dirty = 1;
 
-    for(struct menu_entry * entry = menu->children; entry; entry = entry->next)
-    {
+    int removed = 0;
+
+    struct menu_entry * entry = menu->children;
+    while(entry && removed < count) {
         if (entry >= old_entry && entry < old_entry + count)
         {
             menu_remove_entry(menu, entry);
+            removed++;
         }
+        entry = entry->next;
     }
 }
 
@@ -3578,13 +3594,15 @@ menu_entry_select(
     }
     else if (mode == 2) // Q
     {
+        bool promotable_to_pickbox = HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children);
+
         if (menu_lv_transparent_mode) { menu_lv_transparent_mode = 0; }
         else if (edit_mode) { edit_mode = submenu_mode = 0; }
-        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
+        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1); // caution: entry may now be a dangling pointer
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
-        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children))
+        if (submenu_mode && promotable_to_pickbox)
             edit_mode = 1;
     }
     else if (mode == 3) // SET
@@ -4074,7 +4092,7 @@ static struct menu * get_current_submenu()
 
 static int keyrepeat = 0;
 static int keyrep_countdown = 4;
-static int keyrep_ack = 1;
+static int keyrep_ack = 0;
 int handle_ml_menu_keyrepeat(struct event * event)
 {
     //~ if (menu_shown || arrow_keys_shortcuts_active())
@@ -4105,6 +4123,7 @@ int handle_ml_menu_keyrepeat(struct event * event)
             #endif
                 keyrepeat = 0;
                 keyrep_countdown = 4;
+                keyrep_ack = 0;
                 break;
         }
     }
@@ -4113,7 +4132,7 @@ int handle_ml_menu_keyrepeat(struct event * event)
 
 void keyrepeat_ack(int button_code) // also for arrow shortcuts
 {
-    if (button_code == keyrepeat) keyrep_ack = 1;
+    keyrep_ack = (button_code == keyrepeat);
 }
 
 int
@@ -4640,8 +4659,13 @@ menu_task( void* unused )
         {
             if (keyrepeat && menu_or_shortcut_menu_shown)
             {
-                keyrep_countdown--;
-                if (keyrep_countdown <= 0 && keyrep_ack) { keyrep_ack = 0; fake_simple_button(keyrepeat); }
+                if (keyrep_ack) {
+                    keyrep_countdown--;
+                    if (keyrep_countdown <= 0) {
+                        keyrep_ack = 0;
+                        fake_simple_button(keyrepeat);
+                    }
+                }
                 continue;
             }
 

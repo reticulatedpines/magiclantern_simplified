@@ -64,14 +64,14 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
     int verbose = 0;
 
     va_start(vl, sig);
-    
+
 #if defined(USE_LUA)
     lua_getglobal(L, func);  /* get function */
 
     /* push arguments */
     narg = 0;
     while (*sig)
-    {  
+    {
         /* push arguments */
         switch (*sig++)
         {
@@ -113,7 +113,7 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
     /* do the call */
     nres = strlen(sig);  /* number of expected results */
     int ret = lua_pcall(L, narg, nres, 0);
-    
+
     if (ret != 0)  /* do the call */
     {
         if (lua_isstring(L, -1))
@@ -126,12 +126,12 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
         lua_pop(L, -1);
         return -4;
     }
-    
+
 
     /* retrieve results */
     nres = -nres;  /* stack index of first result */
     while (lua_gettop(L) && *sig)
-    {  
+    {
         /* get results */
         switch (*sig++)
         {
@@ -190,12 +190,12 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
                 }
                 const char **ret_data = va_arg(vl, const char **);
                 size_t *ret_length = va_arg(vl, size_t *);
-                
+
                 *ret_data = lua_tolstring(L, nres, ret_length);
                 lua_pop(L, -1);
                 break;
             }
-            
+
             default:
                 print_msg(MSG_INFO, "LUA: Error while calling '%s': Expected unknown, got %d\n", func, lua_type(L, nres));
                 lua_pop(L, -1);
@@ -230,7 +230,7 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
 #endif
 
     va_end(vl);
-    
+
     return 0;
 }
 
@@ -243,9 +243,9 @@ int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix,
     int ret_hdr_len = 0;
     int ret_data_len = 0;
     char func[128];
-    
+
     snprintf(func, sizeof(func), "handle_%.4s%s", type, suffix);
-    
+
     if(data)
     {
         lua_call_va(lua_state, func, "ll>ll", hdr, hdr_len, data, data_len, &ret_hdr, &ret_hdr_len, &ret_data, &ret_data_len);
@@ -254,7 +254,7 @@ int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix,
     {
         lua_call_va(lua_state, func, "l>l", hdr, hdr_len, &ret_hdr, &ret_hdr_len);
     }
-    
+
     /* callee updated block header */
     if(ret_hdr_len > 0 && ret_hdr_len == hdr_len)
     {
@@ -265,7 +265,7 @@ int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix,
     {
         print_msg(MSG_INFO, "LUA: Error while calling '%s': Returned header size mismatch - %d instead of %d\n", func, ret_hdr_len, hdr_len);
     }
-    
+
     /* callee updated block data */
     if(ret_data_len > 0 && ret_data_len == data_len)
     {
@@ -276,8 +276,8 @@ int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix,
     {
         print_msg(MSG_INFO, "LUA: Error while calling '%s': Returned data size mismatch - %d instead of %d\n", func, ret_data_len, data_len);
     }
-    
-    
+
+
 #endif
     return 0;
 }
@@ -317,7 +317,7 @@ char *strdup(const char *s);
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
-     
+
 #define ABS(a) \
    ({ __typeof__ (a) _a = (a); \
      _a > 0 ? _a : -_a; })
@@ -339,7 +339,7 @@ void print_msg(uint32_t type, const char* format, ... )
     va_list args;
     va_start( args, format );
     char *fmt_str = malloc(strlen(format) + 32);
-    
+
     switch(type)
     {
         case MSG_INFO:
@@ -354,7 +354,7 @@ void print_msg(uint32_t type, const char* format, ... )
                 vfprintf(stdout, fmt_str, args);
             }
             break;
-            
+
         case MSG_ERROR:
             if(!batch_mode)
             {
@@ -370,7 +370,7 @@ void print_msg(uint32_t type, const char* format, ... )
                 fflush(stdout);
             }
             break;
-            
+
         case MSG_PROGRESS:
             if(!batch_mode)
             {
@@ -383,7 +383,7 @@ void print_msg(uint32_t type, const char* format, ... )
             }
             break;
     }
-    
+
     free(fmt_str);
     va_end( args );
 }
@@ -409,7 +409,7 @@ uint32_t file_set_pos(FILE *stream, uint64_t offset, int whence)
 
 
 /* this structure is used to build the mlv_xref_t table */
-typedef struct 
+typedef struct
 {
     uint64_t    frameTime;
     uint64_t    frameOffset;
@@ -423,7 +423,7 @@ void xref_resize(frame_xref_t **table, int entries, int *allocated)
     {
         *table = NULL;
     }
-    
+
     /* only resize if the buffer is too small */
     if(entries * sizeof(frame_xref_t) > *allocated)
     {
@@ -435,7 +435,7 @@ void xref_resize(frame_xref_t **table, int entries, int *allocated)
 void xref_dump(mlv_xref_hdr_t *xref)
 {
     mlv_xref_t *xrefs = (mlv_xref_t*)&(((unsigned char *)xref)[sizeof(mlv_xref_hdr_t)]);
-    
+
     for(int pos = 0; pos < xref->entryCount; pos++)
     {
         print_msg(MSG_INFO, "Entry %d/%d\n", pos, xref->entryCount);
@@ -477,12 +477,12 @@ void bitinsert(uint16_t *dst, int position, int depth, uint16_t new_value)
     {
         /* this case is a bit simpler. the word fits into this uint16_t */
         uint16_t mask = ((1<<depth)-1) << shift_right;
-        
+
         /* shift and mask out */
         new_value <<= shift_right;
         new_value &= mask;
         old_value &= ~mask;
-        
+
         /* now combine */
         new_value |= old_value;
         dst[dst_pos] = new_value;
@@ -492,12 +492,12 @@ void bitinsert(uint16_t *dst, int position, int depth, uint16_t new_value)
         /* here we need two operations as the bits are split over two words */
         uint16_t mask1 = ((1<<(depth + shift_right))-1);
         uint16_t mask2 = ((1<<(-shift_right))-1) << (16+shift_right);
-        
+
         /* write the upper bits */
         old_value &= ~mask1;
         old_value |= (new_value >> (-shift_right)) & mask1;
         dst[dst_pos] = old_value;
-        
+
         /* write the lower bits */
         old_value = dst[dst_pos + 1];
         old_value &= ~mask2;
@@ -525,7 +525,7 @@ uint16_t bitextract(uint16_t *src, int position, int depth)
         value |= src[src_pos + 1] >> (16 + shift_right);
     }
     value &= (1<<depth) - 1;
-    
+
     return value;
 }
 
@@ -533,7 +533,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
 {
     FILE *in_file = NULL;
     int ret = 0;
-    
+
     /* open files */
     in_file = fopen(filename, "rb");
     if(!in_file)
@@ -546,21 +546,21 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
     {
         mlv_hdr_t buf;
         uint64_t position = 0;
-        
+
         position = file_get_pos(in_file);
-        
+
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
             print_msg(MSG_ERROR, "Failed to read from file '%s'\n", filename);
             ret = 2;
             goto load_frame_finish;
         }
-        
+
         /* jump back to the beginning of the block just read */
         file_set_pos(in_file, position, SEEK_SET);
 
         position = file_get_pos(in_file);
-        
+
         if(!memcmp(buf.blockType, "MLVI", 4))
         {
             mlv_file_hdr_t file_hdr;
@@ -593,7 +593,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
                 ret = 3;
                 goto load_frame_finish;
             }
-            
+
             int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
 
             file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
@@ -603,7 +603,7 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
                 ret = 4;
                 goto load_frame_finish;
             }
-            
+
             ret = 0;
             goto load_frame_finish;
         }
@@ -613,11 +613,11 @@ int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
         }
     }
     while(!feof(in_file));
-    
+
 load_frame_finish:
 
     fclose(in_file);
-    
+
     return ret;
 }
 
@@ -627,12 +627,12 @@ mlv_xref_hdr_t *load_index(char *base_filename)
     int max_name_len = strlen(base_filename) + 16;
     char *filename = malloc(max_name_len);
     FILE *in_file = NULL;
-    
+
     strncpy(filename, base_filename, max_name_len);
     strcpy(&filename[strlen(filename) - 3], "IDX");
-    
+
     in_file = fopen(filename, "rb");
-    
+
     if(!in_file)
     {
         free(filename);
@@ -640,24 +640,24 @@ mlv_xref_hdr_t *load_index(char *base_filename)
     }
 
     print_msg(MSG_INFO, "File %s opened (XREF)\n", filename);
-    
+
     do
     {
         mlv_hdr_t buf;
         uint64_t position = 0;
-        
+
         position = file_get_pos(in_file);
-        
+
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
             break;
         }
-        
+
         /* jump back to the beginning of the block just read */
         file_set_pos(in_file, position, SEEK_SET);
 
         position = file_get_pos(in_file);
-        
+
         /* we should check the MLVI header for matching UID value to make sure its the right index... */
         if(!memcmp(buf.blockType, "XREF", 4))
         {
@@ -674,7 +674,7 @@ mlv_xref_hdr_t *load_index(char *base_filename)
         {
             file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
         }
-        
+
         /* we are at the same position as before, so abort */
         if(position == file_get_pos(in_file))
         {
@@ -683,9 +683,9 @@ mlv_xref_hdr_t *load_index(char *base_filename)
         }
     }
     while(!feof(in_file));
-    
+
     fclose(in_file);
-    
+
     free(filename);
     return block_hdr;
 }
@@ -695,13 +695,13 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     int max_name_len = strlen(base_filename) + 16;
     char *filename = malloc(max_name_len);
     FILE *out_file = NULL;
-    
+
     strncpy(filename, base_filename, max_name_len);
-    
+
     strcpy(&filename[strlen(filename) - 3], "IDX");
-    
+
     out_file = fopen(filename, "wb+");
-    
+
     if(!out_file)
     {
         free(filename);
@@ -710,28 +710,28 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     }
 
     print_msg(MSG_INFO, "File %s opened for writing\n", filename);
-    
-    
+
+
     /* first write MLVI header */
     mlv_file_hdr_t file_hdr = *ref_file_hdr;
-    
+
     /* update fields */
     file_hdr.blockSize = sizeof(mlv_file_hdr_t);
     file_hdr.videoFrameCount = 0;
     file_hdr.audioFrameCount = 0;
     file_hdr.fileNum = fileCount + 1;
-    
+
     fwrite(&file_hdr, sizeof(mlv_file_hdr_t), 1, out_file);
 
-    
+
     /* now write XREF block */
     mlv_xref_hdr_t hdr;
-    
+
     memset(&hdr, 0x00, sizeof(mlv_xref_hdr_t));
     memcpy(hdr.blockType, "XREF", 4);
     hdr.blockSize = sizeof(mlv_xref_hdr_t) + entries * sizeof(mlv_xref_t);
     hdr.entryCount = entries;
-    
+
     if(fwrite(&hdr, sizeof(mlv_xref_hdr_t), 1, out_file) != 1)
     {
         free(filename);
@@ -739,17 +739,17 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
         fclose(out_file);
         return;
     }
-    
+
     /* and then the single entries */
     for(int entry = 0; entry < entries; entry++)
     {
         mlv_xref_t field;
-        
+
         memset(&field, 0x00, sizeof(mlv_xref_t));
-        
+
         field.frameOffset = index[entry].frameOffset;
         field.fileNumber = index[entry].fileNumber;
-        
+
         if(fwrite(&field, sizeof(mlv_xref_t), 1, out_file) != 1)
         {
             free(filename);
@@ -758,7 +758,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
             return;
         }
     }
-    
+
     free(filename);
     fclose(out_file);
 }
@@ -769,10 +769,10 @@ FILE **load_all_chunks(char *base_filename, int *entries)
     int seq_number = 0;
     int max_name_len = strlen(base_filename) + 16;
     char *filename = malloc(max_name_len);
-    
+
     strncpy(filename, base_filename, max_name_len - 1);
     FILE **files = malloc(sizeof(FILE*));
-    
+
     files[0] = fopen(filename, "rb");
     if(!files[0])
     {
@@ -780,23 +780,23 @@ FILE **load_all_chunks(char *base_filename, int *entries)
         free(files);
         return NULL;
     }
-    
+
     print_msg(MSG_INFO, "File %s opened\n", filename);
-    
+
     (*entries)++;
     while(seq_number < 99)
     {
         FILE **realloc_files = realloc(files, (*entries + 1) * sizeof(FILE*));
-        
+
         if(!realloc_files)
         {
             free(filename);
             free(files);
             return NULL;
         }
-        
+
         files = realloc_files;
-        
+
         /* check for the next file M00, M01 etc */
         char seq_name[8];
 
@@ -818,7 +818,7 @@ FILE **load_all_chunks(char *base_filename, int *entries)
             break;
         }
     }
-    
+
     free(filename);
     return files;
 }
@@ -845,7 +845,7 @@ void chroma_smooth(int method, struct raw_info *info)
     static int raw2ev[16384];
     static int _ev2raw[24*EV_RESOLUTION];
     int* ev2raw = _ev2raw + 10*EV_RESOLUTION;
-    
+
     int i;
     for (i = 0; i < 16384; i++)
     {
@@ -871,7 +871,7 @@ void chroma_smooth(int method, struct raw_info *info)
             aux[x + y*w] = aux2[x + y*w] = raw_get_pixel(x, y);
         }
     }
-    
+
     switch(method)
     {
         case 0:
@@ -886,7 +886,7 @@ void chroma_smooth(int method, struct raw_info *info)
             chroma_smooth_5x5(aux, aux2, raw2ev, ev2raw);
             break;
     }
-    
+
     for (y = 0; y < h; y++)
     {
         for (x = 0; x < w; x++)
@@ -906,7 +906,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " -o output_file      set the filename to write into\n");
     print_msg(MSG_INFO, " -v                  verbose output\n");
     print_msg(MSG_INFO, " --batch             output message suitable for batch processing\n");
-    
+
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- DNG output --\n");
     print_msg(MSG_INFO, " --dng               output frames into separate .dng files. set prefix with -o\n");
@@ -914,11 +914,11 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --cs2x2             2x2 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
-    
+
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
     print_msg(MSG_INFO, " -r                  output into a legacy raw file for e.g. raw2dng\n");
-    
+
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- MLV output --\n");
     print_msg(MSG_INFO, " -b bits             convert image data to given bit depth per channel (1-16)\n");
@@ -927,12 +927,12 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " -x                  build xref file (indexing)\n");
     print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
     print_msg(MSG_INFO, " -n                  write no metadata, only audio and video frames\n");
-    
+
     print_msg(MSG_INFO, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
     print_msg(MSG_INFO, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
-    
+
     print_msg(MSG_INFO, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
-    
+
     /* yet unclear which format to choose, so keep that as reminder */
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
 #ifdef MLV_USE_LZMA
@@ -952,13 +952,13 @@ int main (int argc, char *argv[])
     char *subtract_filename = NULL;
     char *lut_filename = NULL;
     int blocks_processed = 0;
-    
+
     int frame_start = 0;
     int frame_end = 0;
     int audf_frames_processed = 0;
     int vidf_frames_processed = 0;
     int vidf_max_number = 0;
-    
+
     int delta_encode_mode = 0;
     int xref_mode = 0;
     int average_mode = 0;
@@ -966,7 +966,7 @@ int main (int argc, char *argv[])
     int no_metadata_mode = 0;
     int only_metadata_mode = 0;
     int average_samples = 0;
-    
+
     int mlv_output = 0;
     int raw_output = 0;
     int bit_depth = 0;
@@ -976,10 +976,10 @@ int main (int argc, char *argv[])
     int verbose = 0;
     int lzma_level = 5;
     char opt = ' ';
-    
+
     int video_xRes = 0;
     int video_yRes = 0;
-    
+
 #ifdef MLV_USE_LZMA
     /* this may need some tuning */
     int lzma_dict = 1<<27;
@@ -1007,20 +1007,20 @@ int main (int argc, char *argv[])
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {0,         0,                 0,  0 }
-    };    
-    
+    };
+
     /* disable stdout buffering */
     setvbuf(stderr, NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IONBF, 0);
-    
+
     if(sizeof(mlv_file_hdr_t) != 52)
     {
         print_msg(MSG_INFO, "Error: Your compiler setup is weird. sizeof(mlv_file_hdr_t) is "FMT_SIZE" on your machine. Expected: 52\n", sizeof(mlv_file_hdr_t));
         return ERR_STRUCT_ALIGN;
     }
-    
+
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1) 
+    while ((opt = getopt_long(argc, argv, "L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
@@ -1037,14 +1037,14 @@ int main (int argc, char *argv[])
                     print_msg(MSG_ERROR, "LUA: Failed to init LUA library\n");
                     return ERR_PARAM;
                 }
-                
+
                 luaL_openlibs(lua_state);
 
                 if(luaL_loadfile(lua_state, optarg) != 0 || lua_pcall(lua_state, 0, 0, 0) != 0)
                 {
                     print_msg(MSG_ERROR, "LUA: Failed to load script\n");
                 }
-                
+
                 if(lua_call_va(lua_state, "init", "", 0) != 0)
                 {
                     print_msg(MSG_ERROR, "LUA: Failed to call 'init' in script\n");
@@ -1054,29 +1054,29 @@ int main (int argc, char *argv[])
                 print_msg(MSG_ERROR, "LUA support not compiled into this binary\n");
                 return ERR_PARAM;
 #endif
-                
+
             case 'x':
                 xref_mode = 1;
                 break;
-                
+
             case 'm':
                 only_metadata_mode = 1;
                 break;
-                
+
             case 'n':
                 no_metadata_mode = 1;
                 break;
-                
+
             case 'e':
                 delta_encode_mode = 1;
                 break;
-                
+
             case 'a':
                 average_mode = 1;
                 decompress_output = 1;
                 //no_metadata_mode = 1;
                 break;
-                
+
             case 's':
                 if(!optarg)
                 {
@@ -1087,7 +1087,7 @@ int main (int argc, char *argv[])
                 subtract_mode = 1;
                 decompress_output = 1;
                 break;
-                
+
             case 'u':
                 if(!optarg)
                 {
@@ -1096,34 +1096,34 @@ int main (int argc, char *argv[])
                 }
                 lut_filename = strdup(optarg);
                 break;
-                
+
             case 'v':
                 verbose = 1;
                 break;
-                
+
             case 'r':
                 raw_output = 1;
                 bit_depth = 14;
                 break;
-                
+
             case 'c':
 #ifdef MLV_USE_LZMA
                 compress_output = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
                 return ERR_PARAM;
-#endif                
+#endif
                 break;
-                
+
             case 'd':
 #ifdef MLV_USE_LZMA
                 decompress_output = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
                 return ERR_PARAM;
-#endif                
+#endif
                 break;
-                
+
             case 'o':
                 if(!optarg)
                 {
@@ -1132,22 +1132,22 @@ int main (int argc, char *argv[])
                 }
                 output_filename = strdup(optarg);
                 break;
-                
+
             case 'l':
                 lzma_level = MIN(9, MAX(0, atoi(optarg)));
                 break;
-                
+
             case 'f':
                 {
                     char *dash = strchr(optarg, '-');
-                    
+
                     /* try to parse "1-10" */
                     if(dash)
                     {
                         *dash = '\000';
                         frame_start = atoi(optarg);
                         frame_end = atoi(&dash[1]);
-                        
+
                         /* to makse sure it is a valid range */
                         if(frame_start > frame_end)
                         {
@@ -1161,79 +1161,79 @@ int main (int argc, char *argv[])
                     }
                 }
                 break;
-                
+
             case 'b':
                 if(!raw_output)
                 {
                     bit_depth = MIN(16, MAX(1, atoi(optarg)));
                 }
                 break;
-                
+
             case 'z':
                 if(!raw_output)
                 {
                     bit_zap = MIN(16, MAX(1, atoi(optarg)));
                 }
                 break;
-            
+
             case 0:
                 break;
-                
+
             default:
                 show_usage(argv[0]);
                 return ERR_PARAM;
         }
-    }   
-    
+    }
+
     if(optind >= argc)
     {
         print_msg(MSG_ERROR, "Error: Missing input filename\n");
         show_usage(argv[0]);
         return ERR_PARAM;
     }
-    
-    
-    
-    print_msg(MSG_INFO, "\n"); 
-    print_msg(MSG_INFO, " MLV Dumper v1.0\n"); 
-    print_msg(MSG_INFO, "-----------------\n"); 
-    print_msg(MSG_INFO, "\n"); 
-    
+
+
+
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, " MLV Dumper v1.0\n");
+    print_msg(MSG_INFO, "-----------------\n");
+    print_msg(MSG_INFO, "\n");
+
     /* get first file */
     input_filename = argv[optind];
-    
-    print_msg(MSG_INFO, "Mode of operation:\n"); 
-    print_msg(MSG_INFO, "   - Input MLV file: '%s'\n", input_filename); 
-    
+
+    print_msg(MSG_INFO, "Mode of operation:\n");
+    print_msg(MSG_INFO, "   - Input MLV file: '%s'\n", input_filename);
+
     if(verbose)
     {
-        print_msg(MSG_INFO, "   - Verbose messages\n"); 
+        print_msg(MSG_INFO, "   - Verbose messages\n");
     }
-    
+
     /* special case - splitting into frames doesnt require a specific output file */
     if(dng_output && !output_filename)
     {
         int len = strlen(input_filename) + 16;
         output_filename = malloc(len);
-        
+
         strcpy(output_filename, input_filename);
-        
+
         char *ext_dot = strrchr(output_filename, '.');
         if(ext_dot)
         {
             *ext_dot = '\000';
         }
-        
+
         strcat(output_filename, "_frame_");
     }
-    
+
     /* display and set/unset variables according to parameters to have a consistent state */
     if(output_filename)
     {
         if(dng_output)
         {
-            print_msg(MSG_INFO, "   - Convert to DNG frames\n"); 
-            
+            print_msg(MSG_INFO, "   - Convert to DNG frames\n");
+
             delta_encode_mode = 0;
             compress_output = 0;
             mlv_output = 0;
@@ -1241,13 +1241,13 @@ int main (int argc, char *argv[])
         }
         else if(raw_output)
         {
-            print_msg(MSG_INFO, "   - Convert to legacy RAW\n"); 
-            
+            print_msg(MSG_INFO, "   - Convert to legacy RAW\n");
+
             delta_encode_mode = 0;
             compress_output = 0;
             mlv_output = 0;
             dng_output = 0;
-            
+
             if(average_mode)
             {
                 print_msg(MSG_INFO, "   - disabled average mode, not possible\n");
@@ -1258,23 +1258,23 @@ int main (int argc, char *argv[])
         {
             mlv_output = 1;
             dng_output = 0;
-            
-            print_msg(MSG_INFO, "   - Rewrite MLV\n"); 
+
+            print_msg(MSG_INFO, "   - Rewrite MLV\n");
             if(bit_zap)
             {
-                print_msg(MSG_INFO, "   - Only store %d bits of information per pixel\n", bit_zap); 
+                print_msg(MSG_INFO, "   - Only store %d bits of information per pixel\n", bit_zap);
             }
             if(bit_depth)
             {
-                print_msg(MSG_INFO, "   - Convert to %d bpp\n", bit_depth); 
+                print_msg(MSG_INFO, "   - Convert to %d bpp\n", bit_depth);
             }
             if(delta_encode_mode)
             {
-                print_msg(MSG_INFO, "   - Only store changes to previous frame\n"); 
+                print_msg(MSG_INFO, "   - Only store changes to previous frame\n");
             }
             if(compress_output)
             {
-                print_msg(MSG_INFO, "   - Compress frame data\n"); 
+                print_msg(MSG_INFO, "   - Compress frame data\n");
             }
             if(average_mode)
             {
@@ -1283,28 +1283,28 @@ int main (int argc, char *argv[])
             }
             if(subtract_mode)
             {
-                print_msg(MSG_INFO, "   - Subtract reference frame '%s' from single images\n", subtract_filename); 
+                print_msg(MSG_INFO, "   - Subtract reference frame '%s' from single images\n", subtract_filename);
             }
         }
-        
-        print_msg(MSG_INFO, "   - Output into '%s'\n", output_filename); 
+
+        print_msg(MSG_INFO, "   - Output into '%s'\n", output_filename);
     }
     else
     {
         /* those dont make sense then */
         raw_output = 0;
         compress_output = 0;
-        
-        print_msg(MSG_INFO, "   - Verify file structure\n"); 
+
+        print_msg(MSG_INFO, "   - Verify file structure\n");
         if(verbose)
         {
-            print_msg(MSG_INFO, "   - Dump all block information\n"); 
+            print_msg(MSG_INFO, "   - Dump all block information\n");
         }
     }
-    
+
     if(xref_mode)
     {
-        print_msg(MSG_INFO, "   - Output .idx file for faster processing\n"); 
+        print_msg(MSG_INFO, "   - Output .idx file for faster processing\n");
     }
 
     /* start processing */
@@ -1317,7 +1317,7 @@ int main (int argc, char *argv[])
     mlv_wavi_hdr_t wavi_info;
     mlv_rtci_hdr_t rtci_info;
     mlv_vidf_hdr_t last_vidf;
-    
+
     /* initialize stuff */
     memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
     memset(&lens_info, 0x00, sizeof(mlv_lens_hdr_t));
@@ -1326,25 +1326,25 @@ int main (int argc, char *argv[])
     memset(&wbal_info, 0x00, sizeof(mlv_wbal_hdr_t));
     memset(&wavi_info, 0x00, sizeof(mlv_wavi_hdr_t));
     memset(&rtci_info, 0x00, sizeof(mlv_rtci_hdr_t));
-    
+
     char info_string[256] = "(MLV Video without INFO blocks)";
-    
+
     /* this table contains the XREF chunk read from idx file, if existing */
     mlv_xref_hdr_t *block_xref = NULL;
     mlv_xref_t *xrefs = NULL;
     int block_xref_pos = 0;
 
     uint32_t frame_buffer_size = 32*1024*1024;
-    
+
     uint32_t *frame_arith_buffer = NULL;
     uint8_t *frame_buffer = NULL;
     uint8_t *prev_frame_buffer = NULL;
-    
+
     FILE *out_file = NULL;
     FILE *out_file_wav = NULL;
     FILE **in_files = NULL;
     FILE *in_file = NULL;
-    
+
     int in_file_count = 0;
     int in_file_num = 0;
 
@@ -1355,7 +1355,7 @@ int main (int argc, char *argv[])
     frame_xref_t *frame_xref_table = NULL;
     int frame_xref_allocated = 0;
     int frame_xref_entries = 0;
-    
+
     int total_vidf_count = 0;
     int total_audf_count = 0;
 
@@ -1371,16 +1371,16 @@ int main (int argc, char *argv[])
         in_file_num = 0;
         in_file = in_files[in_file_num];
     }
-    
+
     if(!xref_mode)
     {
         block_xref = load_index(input_filename);
-        
+
         if(block_xref)
-        {   
+        {
             print_msg(MSG_INFO, "XREF table contains %d entries\n", block_xref->entryCount);
             xrefs = (mlv_xref_t *)((uint32_t)block_xref + sizeof(mlv_xref_hdr_t));
-            
+
             if(dump_xrefs)
             {
                 xref_dump(block_xref);
@@ -1395,7 +1395,7 @@ int main (int argc, char *argv[])
             }
         }
     }
-    
+
     if(average_mode || subtract_mode)
     {
         frame_arith_buffer = malloc(frame_buffer_size);
@@ -1406,18 +1406,18 @@ int main (int argc, char *argv[])
         }
         memset(frame_arith_buffer, 0x00, frame_buffer_size);
     }
-    
+
     if(subtract_mode)
     {
         int ret = load_frame(subtract_filename, 0, (uint8_t*)frame_arith_buffer);
-        
+
         if(ret)
         {
             print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
             return ERR_FILE;
         }
     }
-    
+
     //if(delta_encode_mode)
     {
         prev_frame_buffer = malloc(frame_buffer_size);
@@ -1428,7 +1428,7 @@ int main (int argc, char *argv[])
         }
         memset(prev_frame_buffer, 0x00, frame_buffer_size);
     }
-    
+
     if(output_filename || lua_state)
     {
         frame_buffer = malloc(frame_buffer_size);
@@ -1437,7 +1437,7 @@ int main (int argc, char *argv[])
             print_msg(MSG_ERROR, "Failed to alloc mem\n");
             return ERR_MALLOC;
         }
-        
+
         if(!dng_output && output_filename)
         {
             out_file = fopen(output_filename, "wb+");
@@ -1449,29 +1449,29 @@ int main (int argc, char *argv[])
         }
     }
 
-    print_msg(MSG_INFO, "Processing...\n"); 
+    print_msg(MSG_INFO, "Processing...\n");
     do
     {
         mlv_hdr_t buf;
         uint64_t position = 0;
-        
+
 read_headers:
 
         print_msg(MSG_PROGRESS, "B:%d/%d V:%d/%d A:%d/%d\n", blocks_processed, block_xref?block_xref->entryCount:0, vidf_frames_processed, total_vidf_count, audf_frames_processed, total_audf_count);
-        
+
         if(block_xref)
         {
             /* get the file and position of the next block */
             in_file_num = xrefs[block_xref_pos].fileNumber;
             position = xrefs[block_xref_pos].frameOffset;
-            
+
             /* select file and seek to the right position */
             in_file = in_files[in_file_num];
             file_set_pos(in_file, position, SEEK_SET);
         }
-        
+
         position = file_get_pos(in_file);
-        
+
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
             if(block_xref)
@@ -1480,7 +1480,7 @@ read_headers:
                 break;
             }
             print_msg(MSG_INFO, "Reached end of chunk %d/%d after %i blocks\n", in_file_num + 1, in_file_count, blocks_processed);
-            
+
             if(in_file_num < (in_file_count - 1))
             {
                 in_file_num++;
@@ -1490,17 +1490,17 @@ read_headers:
             {
                 break;
             }
-            
+
             blocks_processed = 0;
 
             goto read_headers;
         }
-        
+
         /* jump back to the beginning of the block just read */
         file_set_pos(in_file, position, SEEK_SET);
 
         position = file_get_pos(in_file);
-        
+
         /* unexpected block header size? */
         if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
         {
@@ -1521,7 +1521,7 @@ read_headers:
                 goto abort;
             }
             file_set_pos(in_file, position + file_hdr.blockSize, SEEK_SET);
-            
+
             lua_handle_hdr(lua_state, buf.blockType, &file_hdr, sizeof(file_hdr));
 
             if(verbose)
@@ -1540,33 +1540,33 @@ read_headers:
             if(xref_mode)
             {
                 xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
-                
+
                 /* add xref data */
                 frame_xref_table[frame_xref_entries].frameTime = 0;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
-                
+
                 frame_xref_entries++;
             }
-            
+
             /* is this the first file? */
             if(file_hdr.fileNum == 0)
             {
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
-                
+
                 total_vidf_count = main_header.videoFrameCount;
                 total_audf_count = main_header.audioFrameCount;
-                
+
                 if(mlv_output)
                 {
                     /* correct header size if needed */
                     file_hdr.blockSize = sizeof(mlv_file_hdr_t);
-                    
+
                     if(average_mode)
                     {
                         file_hdr.videoFrameCount = 1;
                     }
-                    
+
                     /* set the output compression flag */
                     if(compress_output)
                     {
@@ -1576,7 +1576,7 @@ read_headers:
                     {
                         file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
                     }
-                    
+
                     if(delta_encode_mode)
                     {
                         file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_DELTA;
@@ -1585,7 +1585,7 @@ read_headers:
                     {
                         file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_DELTA;
                     }
-                    
+
                     if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
                     {
                         print_msg(MSG_ERROR, "Failed writing into output file\n");
@@ -1601,11 +1601,11 @@ read_headers:
                     print_msg(MSG_INFO, "Error: GUID within the file chunks mismatch!\n");
                     break;
                 }
-                
+
                 total_vidf_count += file_hdr.videoFrameCount;
                 total_audf_count += file_hdr.audioFrameCount;
             }
-            
+
             if(raw_output)
             {
                 lv_rec_footer.frameCount += file_hdr.videoFrameCount;
@@ -1619,21 +1619,21 @@ read_headers:
             if(xref_mode && memcmp(buf.blockType, "NULL", 4))
             {
                 xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
-                
+
                 /* add xref data */
                 frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
-                
+
                 frame_xref_entries++;
             }
-                
+
             if(main_header.blockSize == 0)
             {
                 print_msg(MSG_ERROR, "Missing file header\n");
                 goto abort;
             }
-            
+
             if(verbose)
             {
                 print_msg(MSG_INFO, "Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
@@ -1657,20 +1657,20 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "   Frame: #%d\n", block_hdr.frameNumber);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
-                
+
                 /* skip frame space */
                 file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-                
+
                 int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
                 void *buf = malloc(frame_size);
-                
+
                 if(fread(buf, frame_size, 1, in_file) != 1)
                 {
                     free(buf);
@@ -1682,7 +1682,7 @@ read_headers:
                 {
                     print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
                 }
-                
+
                 /* only write WAV if the WAVI header created a file */
                 if(out_file_wav)
                 {
@@ -1692,7 +1692,7 @@ read_headers:
                     wav_file_size += frame_size;
                 }
                 free(buf);
-                
+
                 audf_frames_processed++;
             }
             else if(!memcmp(buf.blockType, "VIDF", 4))
@@ -1705,12 +1705,12 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* store last VIDF for reference */
                 last_vidf = block_hdr;
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
-                
+
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "   Frame: #%d\n", block_hdr.frameNumber);
@@ -1718,26 +1718,26 @@ read_headers:
                     print_msg(MSG_INFO, "     Pan: %dx%d\n", block_hdr.panPosX, block_hdr.panPosY);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
-                
+
                 if(raw_output || mlv_output || dng_output || lua_state)
                 {
                     /* if already compressed, we have to decompress it first */
                     int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
                     int recompress = compressed && compress_output;
                     int decompress = compressed && decompress_output;
-                    
+
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     int prev_frame_size = frame_size;
-                    
+
                     file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                     if(fread(frame_buffer, frame_size, 1, in_file) != 1)
                     {
                         print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                         goto abort;
                     }
-                    
+
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
-                    
+
                     if(recompress || decompress || ((raw_output || dng_output) && compressed))
                     {
 #ifdef MLV_USE_LZMA
@@ -1747,8 +1747,8 @@ read_headers:
                         unsigned char *lzma_out = malloc(lzma_out_size);
 
                         int ret = LzmaUncompress(
-                            lzma_out, &lzma_out_size, 
-                            (unsigned char *)&frame_buffer[4 + LZMA_PROPS_SIZE], &lzma_in_size, 
+                            lzma_out, &lzma_out_size,
+                            (unsigned char *)&frame_buffer[4 + LZMA_PROPS_SIZE], &lzma_in_size,
                             (unsigned char *)&frame_buffer[4], lzma_props_size
                             );
 
@@ -1771,68 +1771,68 @@ read_headers:
                         goto abort;
 #endif
                     }
-                    
+
                     int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
                     int new_depth = bit_depth;
-                    
+
                     /* this value changes in this context */
                     int current_depth = old_depth;
-                    
+
                     /* in average mode, sum up all pixel values of a pixel position */
                     if(average_mode)
                     {
                         int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-                        
+
                         for(int y = 0; y < video_yRes; y++)
                         {
                             uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
-                            
+
                             for(int x = 0; x < video_xRes; x++)
                             {
                                 uint16_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-                                
+
                                 frame_arith_buffer[y * video_xRes + x] += value;
                             }
                         }
-                        
+
                         average_samples++;
                     }
-                    
+
                     /* in subtract mode, subtrace reference frame */
                     if(subtract_mode)
                     {
                         int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-                        
+
                         for(int y = 0; y < video_yRes; y++)
                         {
                             uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
                             uint16_t *sub_line = (uint16_t *)&((uint8_t*)frame_arith_buffer)[y * pitch];
-                            
+
                             for(int x = 0; x < video_xRes; x++)
                             {
                                 int32_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
                                 int32_t sub_value = bitextract(sub_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-                                
+
                                 value -= sub_value;
                                 value += lv_rec_footer.raw_info.black_level;
                                 value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
-                                
+
                                 bitinsert(src_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
                             }
                         }
                     }
-                    
+
                     /* now resample bit depth if requested */
                     if(new_depth && (old_depth != new_depth))
                     {
                         int new_size = (video_xRes * video_yRes * new_depth + 7) / 8;
                         unsigned char *new_buffer = malloc(new_size);
-                        
+
                         if(verbose)
                         {
                             print_msg(MSG_INFO, "   depth: %d -> %d, size: %d -> %d (%2.2f%%)\n", old_depth, new_depth, frame_size, new_size, ((float)new_depth * 100.0f) / (float)old_depth);
                         }
-                        
+
                         int calced_size = ((video_xRes * video_yRes * old_depth + 7) / 8);
                         if(calced_size > frame_size)
                         {
@@ -1842,60 +1842,60 @@ read_headers:
 
                         int old_pitch = video_xRes * old_depth / 8;
                         int new_pitch = video_xRes * new_depth / 8;
-                        
+
                         for(int y = 0; y < video_yRes; y++)
                         {
                             uint16_t *src_line = (uint16_t *)&frame_buffer[y * old_pitch];
                             uint16_t *dst_line = (uint16_t *)&new_buffer[y * new_pitch];
-                            
+
                             for(int x = 0; x < video_xRes; x++)
                             {
                                 uint16_t value = bitextract(src_line, x, old_depth);
-                                
+
                                 /* normalize the old value to 16 bits */
                                 value <<= (16-old_depth);
-                                
+
                                 /* convert the old value to destination depth */
                                 value >>= (16-new_depth);
-                                
+
                                 bitinsert(dst_line, x, new_depth, value);
                             }
                         }
-                        
+
                         frame_size = new_size;
                         current_depth = new_depth;
-                        
+
                         memcpy(frame_buffer, new_buffer, frame_size);
                         free(new_buffer);
                     }
-                    
+
                     if(bit_zap)
                     {
                         int pitch = video_xRes * current_depth / 8;
                         uint32_t mask = ~((1 << (16 - bit_zap)) - 1);
-                        
+
                         for(int y = 0; y < video_yRes; y++)
                         {
                             uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
-                            
+
                             for(int x = 0; x < video_xRes; x++)
                             {
                                 int32_t value = bitextract(src_line, x, current_depth);
-                                
+
                                 /* normalize the old value to 16 bits */
                                 value <<= (16-current_depth);
-                                
+
                                 value &= mask;
-                                
+
                                 /* convert the old value to destination depth */
                                 value >>= (16-current_depth);
-                                
-                                
+
+
                                 bitinsert(src_line, x, current_depth, value);
                             }
                         }
                     }
-                    
+
                     if(delta_encode_mode)
                     {
                         /* only delta encode, if not already encoded */
@@ -1903,22 +1903,22 @@ read_headers:
                         {
                             uint8_t *current_frame_buffer = malloc(frame_size);
                             int pitch = video_xRes * current_depth / 8;
-                            
+
                             /* backup current frame for later */
                             memcpy(current_frame_buffer, frame_buffer, frame_size);
-                            
+
                             for(int y = 0; y < video_yRes; y++)
                             {
                                 uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
                                 uint16_t *ref_line = (uint16_t *)&prev_frame_buffer[y * pitch];
                                 int32_t offset = 1 << (current_depth - 1);
                                 int32_t max_val = (1 << current_depth) - 1;
-                                
+
                                 for(int x = 0; x < video_xRes; x++)
                                 {
                                     int32_t value = bitextract(src_line, x, current_depth);
                                     int32_t ref_value = bitextract(ref_line, x, current_depth);
-                                    
+
                                     /* when e.g. using 16 bit values:
                                            delta =  1      -> encode to 0x8001
                                            delta =  0      -> encode to 0x8000
@@ -1929,13 +1929,13 @@ read_headers:
                                        this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
                                     */
                                     int32_t delta = offset + value - ref_value;
-                                    
+
                                     uint16_t new_value = (uint16_t)(delta & max_val);
-                                    
+
                                     bitinsert(src_line, x, current_depth, new_value);
                                 }
                             }
-                            
+
                             /* save current original frame to prev buffer */
                             memcpy(prev_frame_buffer, current_frame_buffer, frame_size);
                             free(current_frame_buffer);
@@ -1947,19 +1947,19 @@ read_headers:
                         if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_DELTA)
                         {
                             int pitch = video_xRes * current_depth / 8;
-                           
+
                             for(int y = 0; y < video_yRes; y++)
                             {
                                 uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
                                 uint16_t *ref_line = (uint16_t *)&prev_frame_buffer[y * pitch];
                                 int32_t offset = 1 << (current_depth - 1);
                                 int32_t max_val = (1 << current_depth) - 1;
-                                
+
                                 for(int x = 0; x < video_xRes; x++)
                                 {
                                     int32_t value = bitextract(src_line, x, current_depth);
                                     int32_t ref_value = bitextract(ref_line, x, current_depth);
-                                    
+
                                     /* when e.g. using 16 bit values:
                                            delta =  1      -> encode to 0x8001
                                            delta =  0      -> encode to 0x8000
@@ -1970,25 +1970,25 @@ read_headers:
                                        this offset makes the frames uniform grey when viewing non-decoded frames and improves compression rate a bit.
                                     */
                                     int32_t delta = offset + value + ref_value;
-                                    
+
                                     uint16_t new_value = (uint16_t)(delta & max_val);
-                                    
+
                                     bitinsert(src_line, x, current_depth, new_value);
                                 }
                             }
-                            
+
                             /* save current original frame to prev buffer */
                             memcpy(prev_frame_buffer, frame_buffer, frame_size);
                         }
                     }
-                    
+
                     /* when no end was specified, save all frames */
                     uint32_t frame_selected = (!frame_end) || ((block_hdr.frameNumber >= frame_start) && (block_hdr.frameNumber <= frame_end));
-                    
+
                     if(frame_selected)
                     {
                         lua_handle_hdr_data(lua_state, buf.blockType, "_data_write", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
-                        
+
                         if(raw_output)
                         {
                             if(!lv_rec_footer.frameSize)
@@ -1997,11 +1997,11 @@ read_headers:
                             }
 
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_raw", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
-                        
+
                             file_set_pos(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
                             fwrite(frame_buffer, frame_size, 1, out_file);
                         }
-                        
+
                         if(dng_output)
                         {
                             void fix_vertical_stripes();
@@ -2010,13 +2010,13 @@ read_headers:
                             int frame_filename_len = strlen(output_filename) + 32;
                             char *frame_filename = malloc(frame_filename_len);
                             snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
-                            
+
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                             raw_info = lv_rec_footer.raw_info;
                             raw_info.frame_size = frame_size;
                             raw_info.buffer = frame_buffer;
-                            
+
                             /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
                             if (lv_rec_footer.xRes != raw_info.width)
                             {
@@ -2036,13 +2036,13 @@ read_headers:
                                 raw_info.jpeg.y = 0;
                                 raw_info.jpeg.height = raw_info.height;
                             }
-        
+
                             /* call raw2dng code */
                             fix_vertical_stripes();
-                            
+
                             /* this is internal again */
                             chroma_smooth(chroma_smooth_method, &raw_info);
-                            
+
                             /* set MLV metadata into DNG tags */
                             dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
                             dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
@@ -2052,9 +2052,9 @@ read_headers:
                             dng_set_lensmodel((char*)lens_info.lensName);
                             dng_set_focal(lens_info.focalLength, 1);
                             dng_set_iso(expo_info.isoValue);
-                            
+
                             //dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
-                            
+
                             /* calculate the time this frame was taken at, i.e., the start time + the current timestamp. this can be off by a second but it's better than nothing */
                             int ms = 0.5 + buf.timestamp / 1000.0;
                             int sec = ms / 1000;
@@ -2085,28 +2085,28 @@ read_headers:
                                 print_msg(MSG_ERROR, "[W] Failed calculating the DateTime from the timestamp\n");
                                 dng_set_datetime("", "");
                             }
-                            
-                            
+
+
                             uint64_t serial = 0;
                             char *end;
                             serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
                             if (serial && !*end)
                             {
                                 char serial_str[64];
-                                
+
                                 sprintf(serial_str, "%"PRIu64, serial);
                                 dng_set_camserial((char*)serial_str);
                             }
-                            
+
                             /* finally save the DNG */
                             save_dng(frame_filename, &raw_info);
-                            
+
                             /* callout for a saved dng file */
                             lua_call_va(lua_state, "dng_saved", "si", frame_filename, block_hdr.frameNumber);
-                            
+
                             free(frame_filename);
                         }
-                        
+
                         if(mlv_output && !only_metadata_mode && !average_mode)
                         {
                             if(compress_output)
@@ -2118,9 +2118,9 @@ read_headers:
                                 unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
 
                                 int ret = LzmaCompress(
-                                    &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size, 
-                                    (unsigned char *)frame_buffer, lzma_in_size, 
-                                    &lzma_out[0], &lzma_props_size, 
+                                    &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size,
+                                    (unsigned char *)frame_buffer, lzma_in_size,
+                                    &lzma_out[0], &lzma_props_size,
                                     lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
                                     );
 
@@ -2128,11 +2128,11 @@ read_headers:
                                 {
                                     /* store original frame size */
                                     *(uint32_t *)frame_buffer = frame_size;
-                                    
+
                                     /* set new compressed size and copy buffers */
                                     frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
                                     memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
-                                    
+
                                     if(verbose)
                                     {
                                         print_msg(MSG_INFO, "    LZMA: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
@@ -2149,19 +2149,19 @@ read_headers:
                                 goto abort;
 #endif
                             }
-                            
+
                             if(frame_size != prev_frame_size)
                             {
                                 print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
                             }
-                            
+
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
-                            
+
                             /* delete free space and correct header size if needed */
                             block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
                             block_hdr.frameSpace = 0;
                             block_hdr.frameNumber -= frame_start;
-                            
+
                             if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
                             {
                                 print_msg(MSG_ERROR, "Failed writing into output file\n");
@@ -2181,7 +2181,7 @@ read_headers:
                 }
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
-                
+
                 vidf_frames_processed++;
             }
             else if(!memcmp(buf.blockType, "LENS", 4))
@@ -2193,10 +2193,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + lens_info.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &lens_info, sizeof(lens_info));
 
                 if(verbose)
@@ -2211,7 +2211,7 @@ read_headers:
                     print_msg(MSG_INFO, "     Lens ID:     0x%08X\n", lens_info.lensID);
                     print_msg(MSG_INFO, "     Flags:       0x%08X\n", lens_info.flags);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2233,7 +2233,7 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 /* get the string length and malloc a buffer for that string */
@@ -2249,7 +2249,7 @@ read_headers:
                         print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                         goto abort;
                     }
-                    
+
                     strncpy(info_string, buf, sizeof(info_string));
 
                     if(verbose)
@@ -2257,7 +2257,7 @@ read_headers:
                         buf[str_length] = '\000';
                         print_msg(MSG_INFO, "     String:   '%s'\n", buf);
                     }
-                    
+
                     /* only output this block if there is any data */
                     if(mlv_output && !no_metadata_mode)
                     {
@@ -2290,10 +2290,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
@@ -2301,7 +2301,7 @@ read_headers:
                     print_msg(MSG_INFO, "     Roll:    %2.2f\n", (double)block_hdr.roll / 100.0f);
                     print_msg(MSG_INFO, "     Pitch:   %2.2f\n", (double)block_hdr.pitch / 100.0f);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2323,10 +2323,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
@@ -2337,7 +2337,7 @@ read_headers:
                     print_msg(MSG_INFO, "     saturation: %d\n", block_hdr.saturation);
                     print_msg(MSG_INFO, "     colortone:  %d\n", block_hdr.colortone);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2358,10 +2358,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + wbal_info.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &wbal_info, sizeof(wbal_info));
 
                 if(verbose)
@@ -2374,7 +2374,7 @@ read_headers:
                     print_msg(MSG_INFO, "     Shift GM:   %d\n", wbal_info.wbs_gm);
                     print_msg(MSG_INFO, "     Shift BA:   %d\n", wbal_info.wbs_ba);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2395,10 +2395,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + idnt_info.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &idnt_info, sizeof(idnt_info));
 
                 if(verbose)
@@ -2407,7 +2407,7 @@ read_headers:
                     print_msg(MSG_INFO, "     Camera Serial: '%s'\n", idnt_info.cameraSerial);
                     print_msg(MSG_INFO, "     Camera Model:  0x%08X\n", idnt_info.cameraModel);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2428,10 +2428,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + rtci_info.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &rtci_info, sizeof(rtci_info));
 
                 if(verbose)
@@ -2443,7 +2443,7 @@ read_headers:
                     print_msg(MSG_INFO, "     Day of year: %d\n", rtci_info.tm_yday);
                     print_msg(MSG_INFO, "     Daylight s.: %d\n", rtci_info.tm_isdst);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2465,17 +2465,17 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "  Button: 0x%02X\n", block_hdr.type);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2496,10 +2496,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + expo_info.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &expo_info, sizeof(expo_info));
 
                 if(verbose)
@@ -2510,7 +2510,7 @@ read_headers:
                     print_msg(MSG_INFO, "     ISO DGain:  %d/1024 EV\n", expo_info.digitalGain);
                     print_msg(MSG_INFO, "     Shutter:    %" PRIu64 " µs (1/%.2f)\n", expo_info.shutterValue, 1000000.0f/(float)expo_info.shutterValue);
                 }
-            
+
                 if(mlv_output && !no_metadata_mode)
                 {
                     /* correct header size if needed */
@@ -2532,10 +2532,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 video_xRes = block_hdr.xRes;
@@ -2569,18 +2569,18 @@ read_headers:
                     lv_rec_footer.yRes = block_hdr.yRes;
                     lv_rec_footer.raw_info = block_hdr.raw_info;
                 }
-            
+
                 /* always output RAWI blocks, its not just metadata, but important frame format data */
                 if(mlv_output)
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
-                    
+
                     if(bit_depth)
                     {
                         block_hdr.raw_info.bits_per_pixel = bit_depth;
                     }
-                    
+
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
                         print_msg(MSG_ERROR, "Failed writing into output file\n");
@@ -2598,10 +2598,10 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-                
+
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
@@ -2614,9 +2614,9 @@ read_headers:
                     print_msg(MSG_INFO, "      blockAlign       %d\n", block_hdr.blockAlign);
                     print_msg(MSG_INFO, "      bitsPerSample    %d\n", block_hdr.bitsPerSample);
                 }
-                
+
                 memcpy(&wavi_info, &block_hdr, sizeof(mlv_wavi_hdr_t));
-            
+
                 if(output_filename && out_file_wav == NULL)
                 {
                     size_t name_len = strlen(output_filename) + 5;  // + .wav\0
@@ -2634,13 +2634,13 @@ read_headers:
                         print_msg(MSG_ERROR, "Failed writing into audio output file\n");
                         goto abort;
                     }
-    
+
                     /* Write header */
                     fwrite("RIFF", 4, 1, out_file_wav);
                     tmp_uint32 = 36; // Two headers combined size, will be patched later
                     fwrite(&tmp_uint32, 4, 1, out_file_wav);
                     fwrite("WAVE", 4, 1, out_file_wav);
-                    
+
                     fwrite("fmt ", 4, 1, out_file_wav);
                     tmp_uint32 = 16; // Header size
                     fwrite(&tmp_uint32, 4, 1, out_file_wav);
@@ -2660,7 +2660,7 @@ read_headers:
                     fwrite("data", 4, 1, out_file_wav);
                     tmp_uint32 = 0; // Audio data length, will be patched later
                     fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                    
+
                     wav_file_size = 0;
                     wav_header_size = file_get_pos(out_file_wav);
                 }
@@ -2673,14 +2673,14 @@ read_headers:
             {
                 print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
                 file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
-                
+
                 lua_handle_hdr(lua_state, buf.blockType, "", 0);
             }
         }
-        
+
         /* count any read block, no matter if header or video frame */
         blocks_processed++;
-        
+
 
         if(block_xref)
         {
@@ -2693,11 +2693,11 @@ read_headers:
         }
     }
     while(!feof(in_file));
-    
+
 abort:
 
     print_msg(MSG_INFO, "Processed %d video frames\n", vidf_frames_processed);
-    
+
     /* in average mode, finalize average calculation and output the resulting average */
     if(average_mode)
     {
@@ -2708,22 +2708,22 @@ abort:
             for(int x = 0; x < video_xRes; x++)
             {
                 uint32_t value = frame_arith_buffer[y * video_xRes + x];
-                
+
                 value /= average_samples;
                 bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
             }
         }
-        
+
         int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
-        
+
         mlv_vidf_hdr_t hdr;
-        
+
         memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
         memcpy(hdr.blockType, "VIDF", 4);
         hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
         hdr.frameNumber = 0;
         hdr.timestamp = last_vidf.timestamp;
-        
+
         fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file);
         fwrite(frame_buffer, frame_size, 1, out_file);
     }
@@ -2732,11 +2732,11 @@ abort:
     {
         lv_rec_footer.frameCount = vidf_max_number + 1;
         lv_rec_footer.raw_info.bits_per_pixel = 14;
-        
+
         file_set_pos(out_file, 0, SEEK_END);
         fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
     }
-    
+
     if(xref_mode)
     {
         print_msg(MSG_INFO, "XREF table contains %d entries\n", frame_xref_entries);
@@ -2750,7 +2750,7 @@ abort:
         fclose(in_files[in_file_num]);
     }
     free(in_files);
-    
+
     if(out_file)
     {
         fclose(out_file);
@@ -2777,8 +2777,8 @@ abort:
     free(frame_arith_buffer);
     free(block_xref);
 
-    print_msg(MSG_INFO, "Done\n"); 
-    print_msg(MSG_INFO, "\n"); 
+    print_msg(MSG_INFO, "Done\n");
+    print_msg(MSG_INFO, "\n");
 
     return ERR_OK;
 }

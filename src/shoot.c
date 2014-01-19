@@ -126,6 +126,9 @@ static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
 static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 only list images
+#ifdef CONFIG_BULB
+static int hdr_first_shot_bulb = 0;
+#endif
 
 static CONFIG_INT( "interval.enabled", interval_enabled, 0 );
 static CONFIG_INT( "interval.trigger", interval_trigger, 0 );
@@ -2734,27 +2737,39 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
             int hdr_sequence_calc = 0;
             int hdr_sequence_calc_old = 0;
             int hdr_sequence_calc1 = 0;
+            int hdr_sequence_calc_shutter = 0;
+
+            #ifdef CONFIG_BULB
+            if(is_bulb_mode())
+            {
+                hdr_sequence_calc_shutter = shutter_ms_to_raw(timer_values[bulb_duration_index]*1000);
+            }
+            else
+            #endif
+            {
+                hdr_sequence_calc_shutter = lens_info.raw_shutter;
+            }
 
             if (hdr_sequence == 0)
             {
-                hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps-1));
+                hdr_sequence_calc = hdr_sequence_calc_shutter + (hdr_stepsize*(hdr_steps-1));
             }
             else if (hdr_sequence == 1)
             {
                 if (hdr_steps % 2 != 0)
                 {
-                    hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps-1)/2);
-                    hdr_sequence_calc1 = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-1)/2);
+                    hdr_sequence_calc = hdr_sequence_calc_shutter + (hdr_stepsize*(hdr_steps-1)/2);
+                    hdr_sequence_calc1 = hdr_sequence_calc_shutter - (hdr_stepsize*(hdr_steps-1)/2);
                 }
                 else
                 {
-                    hdr_sequence_calc = lens_info.raw_shutter + (hdr_stepsize*(hdr_steps)/2);
-                    hdr_sequence_calc1 = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-2)/2);
+                    hdr_sequence_calc = hdr_sequence_calc_shutter + (hdr_stepsize*(hdr_steps)/2);
+                    hdr_sequence_calc1 = hdr_sequence_calc_shutter - (hdr_stepsize*(hdr_steps-2)/2);
                 }
             }
             else if (hdr_sequence == 2)
             {
-                hdr_sequence_calc = lens_info.raw_shutter - (hdr_stepsize*(hdr_steps-1));
+                hdr_sequence_calc = hdr_sequence_calc_shutter - (hdr_stepsize*(hdr_steps-1));
             }
 
             hdr_sequence_calc_old = hdr_sequence_calc;
@@ -2774,7 +2789,7 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
             }
             else
             {
-                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(lens_info.raw_shutter));
+                snprintf(hdr_sequence_calc_char, sizeof(hdr_sequence_calc_char), "%s", lens_format_shutter(hdr_sequence_calc_shutter));
                 snprintf(hdr_sequence_calc_char1, sizeof(hdr_sequence_calc_char1), "%s", lens_format_shutter(hdr_sequence_calc));
             }
 
@@ -3276,6 +3291,7 @@ INIT_FUNC("deflicker", post_deflicker_init);
 
 static void post_deflicker_task()
 {
+#ifdef FEATURE_RAW_HISTOGRAM
     /* not quite correct in burst mode, but at least only one task will run at a time */
     /* so at least the last deflicker in a burst sequence should be correct */
     deflicker_waiting++;
@@ -3313,6 +3329,7 @@ static void post_deflicker_task()
     console_printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
     post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
     give_semaphore(deflicker_sem);
+#endif
 }
 
 static void post_deflicker_step()
@@ -5007,9 +5024,22 @@ static int hdr_shutter_release(int ev_x8)
 
         // apply EV correction in both "domains" (milliseconds and EV)
         int ms = raw2shutter_ms(lens_info.raw_shutter);
+        #ifdef CONFIG_BULB
+        if(hdr_first_shot_bulb)
+        {
+            ms = timer_values[bulb_duration_index]*1000;
+        }
+        #endif
         int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
         
         int rs = lens_info.raw_shutter;
+        #ifdef CONFIG_BULB
+        if(hdr_first_shot_bulb)
+        {
+            rs = shutter_ms_to_raw(timer_values[bulb_duration_index]*1000);
+        }
+        #endif
+
         if (rs == 0) // shouldn't happen
         {
             msleep(1000);
@@ -5027,7 +5057,7 @@ static int hdr_shutter_release(int ev_x8)
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 20000)
+        if (msc >= 20000 || is_bulb_mode())
         {
             bulb_take_pic(msc);
         }
@@ -5046,7 +5076,14 @@ static int hdr_shutter_release(int ev_x8)
 
         // restore settings back
         //~ set_shooting_mode(m0r);
-        hdr_set_rawshutter(s0r);
+
+        #ifdef CONFIG_BULB
+        if(!hdr_first_shot_bulb)
+        #endif
+        {
+            hdr_set_rawshutter(s0r);
+        }
+
         hdr_iso_shift_restore();
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (expsim0 == 2) set_expsim(expsim0);
@@ -5265,7 +5302,15 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     {
         msleep(100);
     }
-    
+
+    #ifdef CONFIG_BULB
+    // first exposure is bulb mode
+    if(is_bulb_mode() && bulb_timer)
+    {
+        hdr_first_shot_bulb = 1;
+    }
+    #endif
+
     switch (hdr_sequence)
     {
         case 1: // 0 - + -- ++ 
@@ -5287,12 +5332,28 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         {
             for( i = 1; i < steps; i ++  )
             {
+                #ifdef CONFIG_BULB
+                //do not skip frames with Bulb Timer
+                if(hdr_first_shot_bulb)
+                {
+                    while (lens_info.job_state) msleep(100);
+                }
+                #endif
+
                 hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1));
                 if (hdr_check_cancel(0)) goto end;
             }
             break;
         }
     }
+
+    #ifdef CONFIG_BULB
+    if(hdr_first_shot_bulb)
+    {
+        ensure_bulb_mode();
+        hdr_first_shot_bulb = 0;
+    }
+    #endif
 
     hdr_create_script(f0, 0);
 

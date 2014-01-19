@@ -641,9 +641,10 @@ static void histobar_refresh()
 
 static LVINFO_UPDATE_FUNC(histobar_update)
 {
+#ifdef FEATURE_RAW_HISTOGRAM
     if (!HISTOBAR_ENABLED)
         return;
-    
+#endif    
     if (!lv_luma_is_accurate())
         return;
     
@@ -705,9 +706,10 @@ static LVINFO_UPDATE_FUNC(histobar_indic_update)
     if (!hist_meter)
         return;
     
+#ifdef FEATURE_RAW_HISTOGRAM
     if (!HISTOBAR_ENABLED)
         return;
-    
+#endif
     if (!lv_luma_is_accurate())
         return;
     

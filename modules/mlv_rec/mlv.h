@@ -1,22 +1,22 @@
 /*
  * Copyright (C) 2013 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
- */ 
+ */
 
 #ifndef _mlv_h_
 #define _mlv_h_
@@ -201,26 +201,26 @@ typedef struct {
     uint8_t     blockType[4];
     uint32_t    blockSize;
     uint64_t    timestamp;
-    uint32_t    picStyleId; 
-    int32_t     contrast; 
-    int32_t     sharpness; 
-    int32_t     saturation; 
-    int32_t     colortone; 
+    uint32_t    picStyleId;
+    int32_t     contrast;
+    int32_t     sharpness;
+    int32_t     saturation;
+    int32_t     colortone;
     uint8_t     picStyleName[16];
 } PACKED mlv_styl_hdr_t;
 
-typedef struct {            
+typedef struct {
     uint8_t     blockType[4];    /* Electronic level (orientation) data */
-    uint32_t    blockSize;    
-    uint64_t    timestamp;    
+    uint32_t    blockSize;
+    uint64_t    timestamp;
     uint32_t    roll;    /* degrees x100 (here, 45.00 degrees) */
     uint32_t    pitch;    /* 10.00 degrees */
 } PACKED mlv_elvl_hdr_t;
 
-typedef struct {            
+typedef struct {
     uint8_t     blockType[4];    /* White balance info */
-    uint32_t    blockSize;    
-    uint64_t    timestamp;    
+    uint32_t    blockSize;
+    uint64_t    timestamp;
     uint32_t    wb_mode;    /* WB_AUTO 0, WB_SUNNY 1, WB_SHADE 8, WB_CLOUDY 2, WB_TUNGSTEN 3, WB_FLUORESCENT 4, WB_FLASH 5, WB_CUSTOM 6, WB_KELVIN 9 */
     uint32_t    kelvin;    /* only when wb_mode is WB_KELVIN */
     uint32_t    wbgain_r;    /* only when wb_mode is WB_CUSTOM */
@@ -228,7 +228,7 @@ typedef struct {
     uint32_t    wbgain_b;    /* note: it's 1/canon_gain (uses dcraw convention) */
     uint32_t    wbs_gm;    /* WBShift (no idea how to use these in post) */
     uint32_t    wbs_ba;    /* range: -9...9 */
-} PACKED mlv_wbal_hdr_t;            
+} PACKED mlv_wbal_hdr_t;
 
 #pragma pack(pop)
 
