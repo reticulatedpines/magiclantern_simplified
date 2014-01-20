@@ -568,13 +568,13 @@ int raw_update_params()
         #endif
 
       
-        #if defined(CONFIG_50D) // cr2 file
+        #if defined(CONFIG_50D)
         width = 4832;
         height = 3228;
-        skip_left = 72;
-        skip_right = 4832-4823;
-        skip_top = 56;
-        skip_bottom = 3228-3223;
+        skip_left = 62;
+        skip_top = 51;
+        /* shift buffer to match contents of CR2 opened by dcraw */
+        raw_info.buffer += 2 * width * 14/8 + 16*14/8;
         #endif 
 
 
