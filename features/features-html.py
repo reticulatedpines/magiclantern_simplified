@@ -295,6 +295,6 @@ version = run("LC_TIME=EN date +'%Y%b%d' && hg id")
 
 data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames, 'menus':menus, 'MN_COUNT': MN_COUNT, 'MN_DICT': MN_DICT,
         'porting_threads': porting_threads, 'friendly_names': friendly_names, 'feature_links': feature_links, 'readme_links': readme_links, 'version': version}
-mytemplate = Template(filename='features.tmpl')
+mytemplate = Template(filename='features-embed.tmpl')
 print mytemplate.render(**data)
 
