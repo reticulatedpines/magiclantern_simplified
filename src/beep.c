@@ -554,7 +554,7 @@ void beep_times(int times)
     int audio_recording = 0;
     #endif
 
-    if (!beep_enabled || recording > 0 || audio_recording)
+    if (!beep_enabled || RECORDING_H264 || audio_recording)
     {
         info_led_blink(times,50,50); // silent warning
         return;
@@ -576,7 +576,7 @@ void beep()
     int audio_recording = 0;
     #endif
 
-    if (recording <= 0 && !audio_recording) // breaks audio
+    if (!RECORDING_H264 && !audio_recording) // breaks audio
         unsafe_beep();
 }
 
@@ -586,7 +586,7 @@ void beep_custom(int duration, int frequency, int wait)
     int audio_recording = 0;
     #endif
 
-    if (!beep_enabled || recording > 0 || audio_recording)
+    if (!beep_enabled || RECORDING_H264 || audio_recording)
     {
         info_led_blink(1, duration, 10); // silent warning
         return;
@@ -866,7 +866,7 @@ static void wav_record_do()
     int q = QR_MODE;
     char* fn = wav_get_new_filename();
     snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
-    if (recording) wav_notify_filename();
+    if (RECORDING) wav_notify_filename();
     else msleep(100); // to avoid the noise from shortcut key
     wav_record(fn, q);
     if (q)
@@ -880,7 +880,7 @@ static void record_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
 
-    if (recording > 0 && sound_recording_mode != 1)
+    if (RECORDING_H264 && sound_recording_mode != 1)
     {
         NotifyBox(2000, 
             "Cannot record WAV sound \n"

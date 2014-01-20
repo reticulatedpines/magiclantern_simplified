@@ -2810,7 +2810,7 @@ static void raw_video_rec_task()
         raw_recording_state = RAW_RECORDING;
 
         /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
-        recording = -1;
+        set_recording_custom(CUSTOM_RECORDING_RAW);
 
         /* create output file name */
         mlv_movie_filename = get_next_raw_movie_file_name();
@@ -2927,7 +2927,7 @@ static void raw_video_rec_task()
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
-                recording = 0;
+                set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
                 goto cleanup;
             }
 
@@ -3224,7 +3224,7 @@ static void raw_video_rec_task()
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
-                recording = 0;
+                set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
                 goto cleanup;
             }
 
@@ -3309,7 +3309,7 @@ static void raw_video_rec_task()
         /* wait until the other tasks calm down */
         msleep(500);
 
-        recording = 0;
+        set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
         if(test_mode)
         {
@@ -3707,7 +3707,7 @@ static struct menu_entry raw_video_menu[] =
 static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
     /* if module is disabled or canon is currently recording, return */
-    if (!mlv_video_enabled || (recording > 0))
+    if (!mlv_video_enabled || RECORDING_H264)
         return 1;
 
     if (!is_movie_mode())

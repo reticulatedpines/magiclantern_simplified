@@ -408,7 +408,7 @@ static MENU_UPDATE_FUNC(rack_focus_print)
 {
 #ifdef FEATURE_LCD_SENSOR_REMOTE
     extern int lcd_release_running;
-    if (lcd_release_running && lcd_release_running < 3 && recording)
+    if (lcd_release_running && lcd_release_running < 3 && RECORDING)
         MENU_APPEND_VALUE(" (also w. LCD sensor)");
 #endif
     MENU_SET_ENABLED(0);
@@ -595,7 +595,7 @@ focus_task( void* unused )
                 gui_stop_menu();
                 NotifyBox(2000, "Rack Focus: REC Start");
                 ensure_movie_mode();
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     movie_started_by_ml = 1;
                     movie_start();
@@ -1314,7 +1314,7 @@ int handle_follow_focus_save_restore(struct event * event)
     if (!lv) return 1;
     if (is_manual_focus()) return 1;
 
-    if (recording && !gui_menu_shown())
+    if (RECORDING && !gui_menu_shown())
     {
         if (event->param == BGMT_PLAY) // this should be good as rack focus trigger key too
         {

@@ -146,7 +146,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 6
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(6, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 45 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 45 : 2)
 // outside LiveView, Canon menu is a good choice
 
 // position for displaying clock outside LV

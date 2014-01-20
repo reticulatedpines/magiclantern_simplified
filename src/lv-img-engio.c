@@ -550,7 +550,7 @@ void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 void vignetting_correction_apply_regs()
 {
     if (!is_movie_mode()) return;
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!lv) return;
     if (lv_paused) return;
     
@@ -757,7 +757,7 @@ static MENU_UPDATE_FUNC(shutter_finetune_display)
 
 void image_effects_step()
 {
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!lv) return;
     if (lv_paused) return;
 
@@ -808,7 +808,7 @@ void image_effects_step()
 void digic_iso_step()
 {
 #if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN) || defined(FEATURE_SHUTTER_FINE_TUNING)
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!lv) return;
     if (lv_paused) return;
     int mv = is_movie_mode();

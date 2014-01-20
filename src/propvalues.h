@@ -48,7 +48,23 @@ extern int auto_iso_range;
 extern int pic_quality;
 //~ extern int burst_count;
 extern int avail_shot;
-extern int recording;
+extern int __recording;
+extern int __recording_custom;
+#define NOT_RECORDING (__recording == 0 && __recording_custom == 0)
+#define RECORDING (__recording || __recording_custom)
+#define RECORDING_H264 (__recording > 0)
+#define RECORDING_H264_STARTING (__recording == 1) // 1 is preparing for recording
+#define RECORDING_H264_STARTED (__recording == 2) //2 is actually recording
+#define RECORDING_RAW (__recording_custom ==  CUSTOM_RECORDING_RAW)
+#define RECORDING_MJPEG (__recording_custom == CUSTOM_RECORDING_MJPEG) // not implemented, except for some proof of concept code
+#define RECORDING_CUSTOM (__recording_custom > 0) // anything that is not H.264
+#define RECORDING_STATE (__recording | (__recording_custom << 2))
+
+#define CUSTOM_RECORDING_NOT_RECORDING   0
+#define CUSTOM_RECORDING_RAW             1
+#define CUSTOM_RECORDING_MJPEG           2
+void set_recording_custom(int state);
+
 extern int af_mode;
 extern int metering_mode;
 extern int dofpreview;

@@ -357,7 +357,7 @@ static void ml_bar_clear(int ytop, int height)
             uint32_t m = *(uint32_t*)&M[BM(x,y)];
             uint32_t target = 0;
            
-            if (recording && y < 100)
+            if (RECORDING && y < 100)
             {
                 for(int byte_pos = 0; byte_pos < 4; byte_pos++)
                 {
@@ -651,9 +651,9 @@ void lens_wait_readytotakepic(int wait)
         if (shooting_mode == SHOOTMODE_M && lens_info.raw_shutter == 0) { msleep(50); continue; }
         if (job_state_ready_to_take_pic() && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
         msleep(50);
-        if (!recording) info_led_on();
+        if (NOT_RECORDING) info_led_on();
     }
-    if (!recording) info_led_off();
+    if (NOT_RECORDING) info_led_off();
 }
 
 static int mirror_locked = 0;

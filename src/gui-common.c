@@ -61,7 +61,7 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     
 #ifdef CONFIG_5D3
     extern int rec_led_off;
-    if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
+    if ((class == 34 || class == 35) && level == 1 && rec_led_off && RECORDING) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
 #endif
 
@@ -343,7 +343,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         {
             if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     video_mode[0] = 0xc;
                     video_mode[4] = 2;
@@ -356,7 +356,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         {
             if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     int x = 300;
                     prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
@@ -366,7 +366,7 @@ int handle_digital_zoom_shortcut(struct event * event)
             }
             if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     video_mode[0] = 0;
                     video_mode[4] = 0;
@@ -452,7 +452,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_mlu_handheld(event) == 0) return 0;
     #endif
     
-    if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
+    if (RECORDING && event->param == BGMT_MENU) redraw(); // MENU while RECORDING => force a redraw
     
     if (handle_buttons_being_held(event) == 0) return 0;
     //~ if (handle_morse_keys(event) == 0) return 0;

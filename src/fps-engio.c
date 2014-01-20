@@ -56,7 +56,7 @@
 void EngDrvOutLV(uint32_t reg, uint32_t val)
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
 
@@ -231,7 +231,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_B_MIN (fps_timer_b_orig - (ZOOM ? 44 : MV720 ? 0 : 70)) /* you can push LiveView until 68fps (timer_b_orig - 50), but good luck recording that */
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
-    #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
+    #define TG_FREQ_SHUTTER (ntsc || NOT_RECORDING ? 56760000 : 50000000)
     #define FPS_TIMER_A_MIN 520
 	#undef FPS_TIMER_B_MIN
 	#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1970)
@@ -582,7 +582,7 @@ static void set_sound_recording(int x)
 
 static void restore_sound_recording()
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (old_sound_recording_mode != -1)
     {
         set_sound_recording(old_sound_recording_mode);
@@ -592,7 +592,7 @@ static void restore_sound_recording()
 }
 static void disable_sound_recording()
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (SOUND_RECORDING_ENABLED && is_movie_mode())
     {
         old_sound_recording_mode = sound_recording_mode;
@@ -603,7 +603,7 @@ static void disable_sound_recording()
 
 static void update_sound_recording()
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (FPS_SOUND_DISABLE && fps_override && lv) disable_sound_recording();
     else restore_sound_recording();
 }
@@ -675,7 +675,7 @@ static int fps_needs_updating = 0;
 static void fps_setup_timerB(int fps_x1000)
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (lens_info.job_state) return;
     if (!fps_x1000) return;
 
@@ -728,7 +728,7 @@ static void fps_setup_timerB(int fps_x1000)
         
         fps_patch_timerB(timerB);
         written_value_b = timerB-1;
-        if (!recording) msleep(500);
+        if (NOT_RECORDING) msleep(500);
         // timer A was changed by refreshing the screen
         // timer B may not be refreshed when recording
         
@@ -831,7 +831,7 @@ static void flip_zoom_twostage(int stage)
 {
     // flip zoom or video mode back and forth to apply settings instantly
     if (!lv) return;
-    if (recording) return;
+    if (RECORDING) return;
     #ifndef CONFIG_DIGIC_V // causes corrupted video headers on 5D3
     if (is_movie_mode())
     {
@@ -903,7 +903,7 @@ static void fps_unpatch_table(int refresh)
 static void fps_register_reset()
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (lens_info.job_state) return;
 
     if (fps_reg_a_orig && fps_reg_b_orig)
@@ -1110,7 +1110,7 @@ Technical: timer B can be altered via engio (with side effect) or via table patc
 static void fps_setup_timerA(int fps_x1000)
 {
     if (!lv) return;
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!fps_x1000) return;
     if (lens_info.job_state) return;
 
@@ -1432,7 +1432,7 @@ static void fps_read_default_timer_values()
 {
     if (!lv) { fps_reg_a_orig = fps_reg_b_orig = 0; return; }
     
-    if (recording == 1) return;
+    if (RECORDING_H264_STARTING) return;
     //~ info_led_blink(1,10,10);
     fps_reg_a_orig = FPS_REGISTER_A_DEFAULT_VALUE;
     #ifdef NEW_FPS_METHOD
@@ -1525,7 +1525,7 @@ static void fps_task()
         #endif
         {
             #ifdef CONFIG_FPS_AGGRESSIVE_UPDATE
-            msleep(fps_override && recording ? 10 : 100);
+            msleep(fps_override && RECORDING ? 10 : 100);
             #else
             msleep(100);
             #endif
@@ -1538,7 +1538,7 @@ static void fps_task()
 
         static int fps_warned = 0;
         if (!lv) { fps_warned = 0; continue; }
-        if (!DISPLAY_IS_ON && !recording) continue;
+        if (!DISPLAY_IS_ON && NOT_RECORDING) continue;
         if (lens_info.job_state) continue;
         
         fps_read_current_timer_values();
@@ -1583,7 +1583,7 @@ static void fps_task()
             
             static float k = 0;
 
-            if (!(recording && MVR_FRAME_NUMBER < 1))
+            if (!(RECORDING && MVR_FRAME_NUMBER < 1))
             {
                 if (fps_ramp_up) k += delta; else k -= delta;
             }
@@ -1613,7 +1613,7 @@ static void fps_task()
         
         // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
         if (f < 5000)
-            while (recording && MVR_FRAME_NUMBER < video_mode_fps) 
+            while (RECORDING && MVR_FRAME_NUMBER < video_mode_fps)
                 msleep(MIN_MSLEEP);
 
         // on new cameras, timer B may be changed back and forth, e.g. EOS M: 2527/2528 for 24p
@@ -1629,7 +1629,7 @@ static void fps_task()
         
         //~ bmp_printf(FONT_LARGE, 50, 150, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
 
-        if (video_mode_changed && !recording) // Video mode changed, wait for it to settle
+        if (video_mode_changed && NOT_RECORDING) // Video mode changed, wait for it to settle
         {                                     // This won't happen while recording (obvious),
             #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
             fps_disable_timers_evfstate();
@@ -1715,7 +1715,7 @@ int handle_fps_events(struct event * event)
     // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
     // and to make the user interface responsive without having to wait for 30 frames
     int f = fps_values_x1000[fps_override_index];
-    if (f < 5000 && !recording &&
+    if (f < 5000 && NOT_RECORDING &&
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
         event->param == BGMT_PRESS_SET
     #else
