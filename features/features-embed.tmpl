@@ -1,0 +1,56 @@
+<table id="matrixTable" class="table table-hover">
+%for mn in menus:
+    %if MN_COUNT.get(mn,0) != 0:
+        <thead>
+            <tr><th align="left" colspan="${len(cams)+3}">&nbsp;</th></tr>
+            <tr><th align="left" colspan="${len(cams)+3}">${mn}</th></tr>
+            <tr>
+                <th></th>
+                <th></th>
+                <th></th>
+                %for camera in cams:
+                    %if shortnames[camera] in porting_threads:
+                        <th><a href="${porting_threads[shortnames[camera]]}">${shortnames[camera]}</a></th>
+                    %else:
+                        <th><a href="http://www.magiclantern.fm/forum/index.php#c3">${shortnames[camera]}</a></th>
+                    %endif
+                %endfor
+            </tr>
+        </thead>
+        <tbody>
+            %for f in AF:
+                %if MN_DICT.get(f[8:], "Other") == mn:
+                <tr>
+                    %if f in readme_links:
+                    <td width=10% style="white-space: nowrap;">
+                    %else:
+                    <td colspan="3">
+                    %endif
+                    
+                    %if f in feature_links:
+                        <a href="${feature_links[f]}">${f[8:]}</a>
+                    %else:
+                        <!--<td><a href="http://wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>-->
+                        ${f[8:]}
+                    %endif
+                    </td>
+                    %if f in readme_links:
+                        <td width=10% style="white-space: nowrap;">
+                        <font size="-3">${friendly_names.get(f, "")}</font>
+                        </td>
+                        <td>&nbsp;&nbsp;<a href="${readme_links[f]}"><font size="-3">[README]</font></a></td>
+                    %endif
+                    %for c in cams:
+                        %if FD.get((c,f))==True:
+                            <td>&#x2713;</td>
+                        %else:
+                            <td>${FD.get((c,f), "")}</td>
+                        %endif
+                    %endfor 
+                </tr>
+                %endif
+            %endfor
+        </tbody>
+    % endif
+%endfor
+</table>
