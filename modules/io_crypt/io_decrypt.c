@@ -37,14 +37,14 @@ int main(int argc, char *argv[])
     if(!in_file)
     {
         printf("Could not open '%s'\n", in_filename);
-        return;
+        return -1;
     } 
     
     FILE *out_file = fopen(out_filename, "w");
     if(!in_file)
     {
         printf("Could not open '%s'\n", out_filename);
-        return;
+        return -1;
     }
     
     char *buffer = malloc(BLOCKSIZE);

@@ -7,6 +7,9 @@
 
 #include <io_crypt.h>
 
+#include "crypt_lfsr64.h"
+#include "crypt_rsa.h"
+
 #include "../trace/trace.h"
 #include "../ime_base/ime_base.h"
 
@@ -228,11 +231,23 @@ static MENU_SELECT_FUNC(iocrypt_enter_pw_select)
     iocrypt_enter_pw();
 }
 
+static MENU_SELECT_FUNC(iocrypt_test_rsa)
+{
+    crypt_cipher_t *crypt_ctx;
+    crypt_rsa_init(&crypt_ctx, 0xDEADBEEF11223344);
+}
+
 static struct menu_entry iocrypt_menus[] =
 {
     {
         .name = "Enter io_crypt password",
         .select = &iocrypt_enter_pw_select,
+        .priv = NULL,
+        .icon_type = IT_ACTION,
+    },
+    {
+        .name = "Test RSA",
+        .select = &iocrypt_test_rsa,
         .priv = NULL,
         .icon_type = IT_ACTION,
     }
@@ -252,6 +267,13 @@ static unsigned int iocrypt_init()
         /* not verified */
         iodev_table = 0x2D3B8;
         iodev_ctx = 0x85510;
+        iodev_ctx_size = 0x18;
+    }
+    else if(streq(camera_model_short, "60D"))
+    {
+        /* not verified */
+        iodev_table = 0x3E2BC;
+        iodev_ctx = 0x5CB38;
         iodev_ctx_size = 0x18;
     }
     else if(streq(camera_model_short, "5D3"))
@@ -292,7 +314,7 @@ static unsigned int iocrypt_init()
     MEM(iodev_table) = (uint32_t)&hook_iodev;
     
     /* any file operation is routed through us now */
-    menu_add( "Debug", iocrypt_menus, COUNT(iocrypt_menus) );
+    menu_add("Debug", iocrypt_menus, COUNT(iocrypt_menus) );
     
     
     return 0;

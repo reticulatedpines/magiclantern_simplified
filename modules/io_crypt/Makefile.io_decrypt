@@ -1,0 +1,30 @@
+# Makefile for the io_decrypt software
+
+HOST_OBJ=io_decrypt.host.o crypt_lfsr64.host.o hash_password.host.o
+HOST_BIN=io_decrypt
+HOSTCC=gcc
+HOST_CFLAGS=-m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -I. -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -std=c99 -DHOST_PROGRAM
+HOST_LDFLAGS=-lm -m32 
+HOST_DEPS=crypt_lfsr64.h
+HOST=host
+
+ifdef CROSS
+	HOSTCC=~/mingw-w32/bin/i686-w64-mingw32-gcc
+	HOST_BIN=$(HOST_BIN).exe
+endif
+
+
+%.host.o: %.c
+	$(HOSTCC) $(HOST_CFLAGS) $(HOST_LDFLAGS) -o $@ -c $<
+
+$(HOST_BIN): $(HOST_OBJ) $(HOST_DEPS)
+	$(HOSTCC) $(HOST_CFLAGS) $(HOST_LDFLAGS) -o $@ $(HOST_OBJ)
+
+$(HOST_BIN).exe: $(HOST_C) $(HOST_DEPS)
+	$(HOSTCC) $(HOST_CFLAGS) $(HOST_LDFLAGS) -o $@ $(HOST_OBJ)
+
+clean::
+	$(call rm_files, $(HOST_BIN) $(HOST_BIN).exe)
+
+all:: $(HOST_BIN)
+
