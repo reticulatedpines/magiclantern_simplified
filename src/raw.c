@@ -572,10 +572,10 @@ int raw_update_params()
         width = 4832;
         height = 3228;
         skip_left = 64;
-        skip_top = 55;
+        skip_top = 54;
         /* 16-pixel border on the left that contains image data */
-        /* skip two lines to match CR2 opened by dcraw */
-        raw_info.buffer += 2 * width * 14/8 + 16*14/8;
+        /* skip three lines */
+        raw_info.buffer += 3 * width * 14/8 + 16*14/8;
         #endif 
 
 
