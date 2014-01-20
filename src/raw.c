@@ -571,9 +571,10 @@ int raw_update_params()
         #if defined(CONFIG_50D)
         width = 4832;
         height = 3228;
-        skip_left = 62;
-        skip_top = 51;
-        /* shift buffer to match contents of CR2 opened by dcraw */
+        skip_left = 64;
+        skip_top = 55;
+        /* 16-pixel border on the left that contains image data */
+        /* skip two lines to match CR2 opened by dcraw */
         raw_info.buffer += 2 * width * 14/8 + 16*14/8;
         #endif 
 
