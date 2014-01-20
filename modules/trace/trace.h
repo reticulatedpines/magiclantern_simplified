@@ -68,6 +68,22 @@ typedef struct
     unsigned int task;
 } trace_entry_t;
 
+
+#if defined(TRACE_DISABLED)
+
+#define trace_available()                            0
+#define trace_start(name, file_name)                 0
+#define trace_stop(trace, wait)                      0
+#define trace_format(context, format, separator)     0
+#define trace_set_flushrate(context, timeout)        0
+#define trace_flush(context)                         0
+#define trace_write(context, string, ...)            0
+#define trace_write_tsc(context, tsc, string, ...)   0
+#define trace_vwrite(context, tsc, string, ap)       0
+#define trace_write_binary(context, buffer, length)  0
+
+#else
+
 #if defined(MODULE)
 /* check if the module is available */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_available();
@@ -97,6 +113,7 @@ static unsigned int (*trace_write_tsc)(unsigned int context, uint64_t tsc, char 
 static unsigned int (*trace_vwrite)(unsigned int context, tsc_t tsc, char *string, va_list ap) = MODULE_FUNCTION(trace_vwrite);
 static unsigned int (*trace_write_binary)(unsigned int context, unsigned char *buffer, unsigned int length) = MODULE_FUNCTION(trace_write_binary);
 
+#endif
 #endif
 
 /* internal */
