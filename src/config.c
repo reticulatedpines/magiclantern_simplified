@@ -318,16 +318,6 @@ int config_parse_file(const char *filename)
     return 1;
 }
 
-struct config_var* get_config_vars_start()
-{
-	return _config_vars_start;
-}
-
-struct config_var* get_config_vars_end()
-{
-	return _config_vars_end;
-}
-
 static struct config_var* config_var_lookup(int* ptr)
 {
     for(struct config_var *var = _config_vars_start; var < _config_vars_end ; var++ )
