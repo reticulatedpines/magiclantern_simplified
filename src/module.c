@@ -1701,7 +1701,7 @@ void module_save_configs()
     console_printf("Save configs...\n");
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
-        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
+        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error && module_list[mod].config)
         {
             /* save config */
             char filename[64];
