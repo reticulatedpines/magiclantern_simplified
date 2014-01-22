@@ -1095,7 +1095,9 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     {
         for (int x = x1; x < x2; x += dx)
         {
-            black += raw_get_pixel(x, y);
+            int p = raw_get_pixel(x, y);
+            if (p == 0) continue;               /* bad pixel */
+            black += p;
             num++;
         }
     }
@@ -1108,7 +1110,9 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     {
         for (int x = x1; x < x2; x += dx)
         {
-            int dif = raw_get_pixel(x, y) - mean;
+            int p = raw_get_pixel(x, y);
+            if (p == 0) continue;
+            int dif = p - mean;
             stdev += dif * dif;
             
             #ifdef RAW_DEBUG_BLACK
