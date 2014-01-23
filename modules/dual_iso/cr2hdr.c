@@ -293,7 +293,7 @@ static int hdr_check();
 static int hdr_interpolate();
 static int black_subtract(int left_margin, int top_margin);
 static int black_subtract_simple(int left_margin, int top_margin);
-static int white_detect();
+static void white_detect(int* white_dark, int* white_bright);
 
 static inline int raw_get_pixel16(int x, int y) {
     unsigned short * buf = raw_info.buffer;
@@ -493,7 +493,6 @@ int main(int argc, char** argv)
 
         if (hdr_check())
         {
-            white_detect();
             if (!black_subtract(left_margin, top_margin))
                 printf("Black subtract didn't work\n");
 
@@ -544,7 +543,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
-static int white_detect_brute_force()
+static void white_detect(int* white_dark, int* white_bright)
 {
     /* sometimes the white level is much lower than 15000; this would cause pink highlights */
     /* workaround: consider the white level as a little under the maximum pixel value from the raw file */
@@ -553,10 +552,11 @@ static int white_detect_brute_force()
     
     /* ignore hot pixels when finding white level (at least 50 pixels should confirm it) */
     
-    int white = raw_info.white_level * 5 / 6;
-    int whites[8] = {white+500, white+500, white+500, white+500, white+500, white+500, white+500, white+500};
-    int maxies[8] = {white, white, white, white, white, white, white, white};
-    int counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    int white = 10000;
+    int whites[2] = {0, 0};
+    int maxies[2] = {white, white};
+    int counts[2] = {0, 0};
+    int safety_margins[2] = {100, 1000}; /* use a higher safety margin for the higher ISO */
 
     int x,y;
     for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
@@ -564,7 +564,7 @@ static int white_detect_brute_force()
         for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
         {
             int pix = raw_get_pixel16(x, y);
-            #define BIN_IDX ((y%4) + (x%2)*4)
+            #define BIN_IDX is_bright[y%4]
             if (pix > maxies[BIN_IDX])
             {
                 maxies[BIN_IDX] = pix;
@@ -575,29 +575,25 @@ static int white_detect_brute_force()
                 counts[BIN_IDX]++;
                 if (counts[BIN_IDX] > 50)
                 {
-                    whites[BIN_IDX] = maxies[BIN_IDX];
+                    whites[BIN_IDX] = maxies[BIN_IDX] - safety_margins[BIN_IDX];
                 }
             }
             #undef BIN_IDX
         }
     }
 
-    //~ printf("%8d %8d %8d %8d %8d %8d %8d %8d\n", whites[0], whites[1], whites[2], whites[3], whites[4], whites[5], whites[6], whites[7]);
-    //~ printf("%8d %8d %8d %8d %8d %8d %8d %8d\n", counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[7]);
+    /* no confirmed max? use unconfirmed ones */
+    if (whites[0] == 0) whites[0] = maxies[0] - safety_margins[1];
+    if (whites[1] == 0) whites[1] = maxies[1] - safety_margins[1];
+
+    //~ printf("%8d %8d\n", whites[0], whites[1]);
+    //~ printf("%8d %8d\n", counts[0], counts[1]);
     
-    int white1 = MIN(MIN(whites[0], whites[1]), MIN(whites[2], whites[3]));
-    int white2 = MIN(MIN(whites[4], whites[5]), MIN(whites[6], whites[7]));
-    white = MIN(white1, white2);
-    raw_info.white_level = white - 500;
-    printf("White level     : %d\n", raw_info.white_level);
-    return 1;
+    *white_dark = whites[0];
+    *white_bright = whites[1];
+    
+    printf("White levels    : %d %d\n", *white_dark, *white_bright);
 }
-
-static int white_detect()
-{
-    return white_detect_brute_force();
-}
-
 
 static int black_subtract(int left_margin, int top_margin)
 {
@@ -1028,7 +1024,7 @@ static int match_histograms(double* corr_ev, int* white_darkened)
 {
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
     int black = raw_info.black_level;
-    int white = raw_info.white_level;
+    int white = MIN(raw_info.white_level, *white_darkened);
 
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1492,7 +1488,10 @@ static int hdr_interpolate()
 
     if (!identify_bright_and_dark_fields(rggb))
         return 0;
-    
+
+    int white_bright = white;
+    white_detect(&white, &white_bright);
+
     double noise_std[4];
     double noise_avg;
     for (y = 0; y < 4; y++)
@@ -1514,6 +1513,9 @@ static int hdr_interpolate()
     bright_noise *= 4;
     dark_noise_ev += 2;
     bright_noise_ev += 2;
+    white *= 4;
+    white_bright *= 4;
+    raw_info.white_level = white;
 
     /* dark and bright exposures, interpolated */
     unsigned short* dark   = malloc(w * h * sizeof(unsigned short));
@@ -1578,14 +1580,14 @@ static int hdr_interpolate()
     //~ printf("Histogram matching...\n");
     /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
-    int white_darkened = white;
+    int white_darkened = white_bright;
     
     int ok = match_histograms(&corr_ev, &white_darkened);
     if (!ok) goto err;
 
     /* estimate dynamic range */
     double lowiso_dr = log2(white - black) - dark_noise_ev;
-    double highiso_dr = log2(white - black) - bright_noise_ev;
+    double highiso_dr = log2(white_bright - black) - bright_noise_ev;
     printf("Dynamic range   : %.02f (+) %.02f => %.02f EV (in theory)\n", lowiso_dr, highiso_dr, highiso_dr + corr_ev);
 
     /* correction factor for the bright exposure, which was just darkened */
