@@ -6,6 +6,7 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#define TRACE_DISABLED
 #include "../trace/trace.h"
 
 #else

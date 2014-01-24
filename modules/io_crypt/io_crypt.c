@@ -10,9 +10,14 @@
 #include "crypt_lfsr64.h"
 #include "crypt_rsa.h"
 
+#define TRACE_DISABLED
 #include "../trace/trace.h"
 #include "../ime_base/ime_base.h"
 
+
+static const uint8_t cr2_magic[] = "\x49\x49\x2A\x00";
+static const uint8_t jpg_magic[] = "\xff\xd8\xff\xe1";
+                    
 char *strncpy(char *dest, const char *src, size_t n);
 
 static iodev_handlers_t *orig_iodev = NULL;
@@ -22,7 +27,7 @@ uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 
 static uint8_t *iocrypt_scratch = NULL;
 static uint64_t iocrypt_key = 0;
-static uint32_t iocrypt_disabled = 1;
+static uint32_t iocrypt_enabled = 0;
 
 static fd_map_t iocrypt_files[32];
 static struct semaphore *iocrypt_password_sem = 0;
@@ -46,7 +51,8 @@ static IME_DONE_FUNC(iocrypt_ime_done)
     /* if key input dialog was cancelled */
     if(status != IME_OK)
     {
-        iocrypt_disabled = 1;
+        iocrypt_key = 0;
+        iocrypt_enabled = 0;
         NotifyBox(2000, "Crypto disabled");
         beep();
 
@@ -57,28 +63,8 @@ static IME_DONE_FUNC(iocrypt_ime_done)
     hash_password(text, &iocrypt_key);
     
     /* done, use that key */
-    iocrypt_disabled = 0;
+    iocrypt_enabled = 1;
     give_semaphore(iocrypt_password_sem);
-    
-#if 0    
-    /* do some unaligned writes to check alignment handling */
-    uint8_t buffer[256];
-    memset(buffer, 0x00, sizeof(buffer));
-    
-    FILE* f = FIO_CreateFileEx("B:/IO_CRYPT.CR2");
-    for(int loop = 0; loop < 10 * 1024; loop++)
-    {
-        FIO_WriteFile(f, &buffer[0], 19);
-        FIO_WriteFile(f, &buffer[1], 21);
-        FIO_WriteFile(f, &buffer[2], 33);
-        FIO_WriteFile(f, &buffer[3], 31);
-        FIO_WriteFile(f, &buffer[7], 3);
-        bmp_printf(FONT_LARGE, 0, 60, "Loop: %d", loop);
-    }
-    
-    FIO_CloseFile(f);
-    beep();
-#endif
     
     return IME_OK;
 }
@@ -88,6 +74,12 @@ static uint32_t iodev_GetPosition(uint32_t fd)
     uint32_t *ctx = (uint32_t *)(iodev_ctx + iodev_ctx_size * fd);
     
     return ctx[2];
+}
+
+static void iodev_SetPosition(uint32_t fd, uint32_t pos)
+{
+    uint32_t *ctx = (uint32_t *)(iodev_ctx + iodev_ctx_size * fd);
+    ctx[2] = pos;
 }
 
 
@@ -121,11 +113,41 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
         strncpy(iocrypt_files[fd].filename, filename, sizeof(iocrypt_files[fd].filename));
         
         /* shall we crypt the file? */
-        if(!iocrypt_disabled)
+        if(iocrypt_enabled && iocrypt_key)
         {
-            if(!strcmp(&filename[strlen(filename) - 3], "CR2") || !strcmp(&filename[strlen(filename) - 3], "JPG"))
+            char *ext = &filename[strlen(filename) - 3];
+            
+            if(!strcmp(ext, "CR2") || !strcmp(ext, "JPG"))
             {
-                crypt_lfsr64_init(&(iocrypt_files[fd].crypt_ctx), iocrypt_key);
+                /* when opening for read, first check if we really have to decrypt it */
+                if((flags & 3) == O_RDONLY)
+                {
+                    uint8_t buf[4];
+                    
+                    /* read and rewind file */
+                    orig_iodev->ReadFile(fd, buf, 4);
+                    iodev_SetPosition(fd, 0);
+                    
+                    /* check for JPEG or CR2 header */
+                    if(!strcmp(ext, "JPG") && !memcmp(buf, jpg_magic, 4))
+                    {
+                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted JPEG", filename);
+                    }
+                    else if(!strcmp(ext, "CR2") && !memcmp(buf, cr2_magic, 4))
+                    {
+                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted CR2", filename);
+                    }
+                    else
+                    {
+                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be encrypted", filename);
+                        crypt_lfsr64_init(&(iocrypt_files[fd].crypt_ctx), iocrypt_key);
+                    }
+                }
+                else
+                {
+                    /* when writing, always encrypt */
+                    crypt_lfsr64_init(&(iocrypt_files[fd].crypt_ctx), iocrypt_key);
+                }
             }
         }
 
@@ -221,10 +243,131 @@ static void iocrypt_enter_pw()
     if(!ime_base_start("io_crypt: Enter password", iocrypt_ime_text, sizeof(iocrypt_ime_text) - 1, IME_UTF8, IME_CHARSET_ANY, &iocrypt_ime_update, &iocrypt_ime_done, 0, 0, 0, 0))
     {
         give_semaphore(iocrypt_password_sem);
-        iocrypt_disabled = 1;
+        iocrypt_enabled = 0;
+        iocrypt_key = 0;
         NotifyBox(2000, "IME error, Crypto disabled");
     }
 }
+
+static void iocrypt_speed_test_write(char *file, uint32_t blocksize, uint32_t loops)
+{
+    uint8_t filename[32];
+    uint8_t *buffer = malloc(blocksize);
+    
+    if(!buffer)
+    {
+        return;
+    }
+    memset(buffer, 0x5A, blocksize);
+    
+    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), file);
+    FILE* f = FIO_CreateFileEx(filename);
+    if(f == INVALID_PTR)
+    {
+        free(buffer);
+        return;
+    }
+    
+    for(int loop = 0; loop < loops; loop++)
+    {
+        FIO_WriteFile(f, buffer, blocksize);
+    }
+    
+    FIO_CloseFile(f);
+    free(buffer);
+}
+
+static void iocrypt_speed_test_read(char *file, uint32_t blocksize)
+{
+    uint8_t filename[32];
+    uint8_t *buffer = malloc(blocksize);
+    
+    if(!buffer)
+    {
+        return;
+    }
+    
+    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), file);
+    
+    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+    if(f == INVALID_PTR)
+    {
+        free(buffer);
+        return;
+    }
+    
+    while(FIO_ReadFile(f, buffer, blocksize) == blocksize)
+    {
+    }
+    
+    FIO_CloseFile(f);
+    free(buffer);
+}
+
+static void iocrypt_speed_test()
+{
+    uint32_t unset = 0;
+    uint32_t loops = 10;
+    uint32_t blocks = 20;
+    uint32_t blocksize = 1*1024*1024;
+    gui_stop_menu();
+    msleep(500);
+    
+    if(!iocrypt_enabled)
+    {
+        unset = 1;
+        iocrypt_enabled = 1;
+        hash_password("Speed test password", &iocrypt_key);
+    }
+
+    bmp_printf(FONT_MED, 10, 30, "Starting benchmark");
+    for(int loop = 0; loop < loops; loop++)
+    {
+        uint32_t start = 0;
+        uint32_t delta = 0;
+        uint32_t speed = 0;
+        
+        start = get_ms_clock_value();
+        iocrypt_speed_test_write("IO_CRYPT.CR2", blocksize, blocks);
+        delta = get_ms_clock_value() - start;
+        speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
+        trace_write(iocrypt_trace_ctx, "iocrypt_speed_test: [crypted] write %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
+        bmp_printf(FONT_MED, 10, 60 + (4 * loop + 0) * font_med.height, "[crypted] write %d.%02d MB/s     ", speed/10, speed % 10);
+        
+        start = get_ms_clock_value();
+        iocrypt_speed_test_read("IO_CRYPT.CR2", blocksize);
+        delta = get_ms_clock_value() - start;
+        speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
+        trace_write(iocrypt_trace_ctx, "iocrypt_speed_test: [crypted] read %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
+        bmp_printf(FONT_MED, 10, 60 + (4 * loop + 1) * font_med.height, "[crypted] read %d.%02d MB/s      ", speed/10, speed % 10);
+
+        start = get_ms_clock_value();
+        iocrypt_speed_test_write("IO_CRYPT.DAT", blocksize, blocks);
+        delta = get_ms_clock_value() - start;
+        speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
+        trace_write(iocrypt_trace_ctx, "iocrypt_speed_test:   [plain] write %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
+        bmp_printf(FONT_MED, 10, 60 + (4 * loop + 2) * font_med.height, "[plain] write %d.%02d MB/s      ", speed/10, speed % 10);
+        start = get_ms_clock_value();
+        iocrypt_speed_test_read("IO_CRYPT.DAT", blocksize);
+        delta = get_ms_clock_value() - start;
+        speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
+        trace_write(iocrypt_trace_ctx, "iocrypt_speed_test:   [plain] read %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
+        bmp_printf(FONT_MED, 10, 60 + (4 * loop + 3) * font_med.height, "[plain] read %d.%02d MB/s     ", speed/10, speed % 10);
+        
+        FIO_RemoveFile("IO_CRYPT.CR2");
+        FIO_RemoveFile("IO_CRYPT.DAT");
+    }
+    
+    if(unset)
+    {
+        iocrypt_enabled = 0;
+        iocrypt_key = 0;
+    }
+    
+    bmp_printf(FONT_LARGE, 0, 60, "Test done");
+    beep();
+}
+
 
 static MENU_SELECT_FUNC(iocrypt_enter_pw_select)
 {
@@ -236,20 +379,56 @@ static MENU_SELECT_FUNC(iocrypt_test_rsa)
     task_create("rsa_test", 0x1e, 0x1000, crypt_rsa_test, (void*)0);
 }
 
+static MENU_SELECT_FUNC(iocrypt_test_speed)
+{
+    task_create("speed_test", 0x1e, 0x1000, iocrypt_speed_test, (void*)0);
+}
+
+static MENU_UPDATE_FUNC(iocrypt_update)
+{
+    if (!iocrypt_enabled)
+    {
+        return;
+    }
+    
+    if(!iocrypt_key)
+    {
+        MENU_SET_VALUE("No password!");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please set a password first.");
+    }
+}
+
 static struct menu_entry iocrypt_menus[] =
 {
     {
-        .name = "Enter io_crypt password",
-        .select = &iocrypt_enter_pw_select,
-        .priv = NULL,
-        .icon_type = IT_ACTION,
+        .name = "Encryption",
+        .priv = &iocrypt_enabled,
+        .update = &iocrypt_update,
+        .max = 1,
+        .help  = "Enable low level encryption.",
+        .submenu_width = 710,
+        .children = (struct menu_entry[]) {
+            {
+                .name = "Set password",
+                .select = &iocrypt_enter_pw_select,
+                .priv = NULL,
+                .icon_type = IT_ACTION,
+            },
+            {
+                .name = "Test speed",
+                .select = &iocrypt_test_speed,
+                .priv = NULL,
+                .icon_type = IT_ACTION,
+            },
+            {
+                .name = "Test RSA",
+                .select = &iocrypt_test_rsa,
+                .priv = NULL,
+                .icon_type = IT_ACTION,
+            },
+            MENU_EOL,
+        },
     },
-    {
-        .name = "Test RSA",
-        .select = &iocrypt_test_rsa,
-        .priv = NULL,
-        .icon_type = IT_ACTION,
-    }
 };
 
 static unsigned int iocrypt_init()
@@ -270,7 +449,6 @@ static unsigned int iocrypt_init()
     }
     else if(streq(camera_model_short, "60D"))
     {
-        /* not verified */
         iodev_table = 0x3E2BC;
         iodev_ctx = 0x5CB38;
         iodev_ctx_size = 0x18;
@@ -299,7 +477,7 @@ static unsigned int iocrypt_init()
     }
     
     /* ask for the initial password */
-    iocrypt_enter_pw();
+    //iocrypt_enter_pw();
     
     /* this memory is used for buffering encryption, so we dont have to undo the changes in memory */
     iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
