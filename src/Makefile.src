@@ -106,6 +106,8 @@ ML_SRC_OBJS = \
 	edmac.o \
 	menu.o \
 	debug.o \
+	rand.o \
+	posix.o \
 	cfn.o \
 	gui.o \
 	$(ML_PICSTYLE_OBJ) \
