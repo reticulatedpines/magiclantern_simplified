@@ -1,14 +1,6 @@
 
 
-#ifdef HOST_PROGRAM
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
-#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
-
-#else
+#ifdef MODULE
 
 #include <dryos.h>
 #include <property.h>
@@ -16,7 +8,22 @@
 #include <menu.h>
 #include "../trace/trace.h"
 
+#else
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+#define NotifyBox(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+#define beep() do { } while(0)
+#define beep_times(x) do { } while(0)
+#define msleep(x) usleep((x)*1000)
+#define task_create(a,b,c,d,e) do { d(e); } while(0)
+
 #endif
+
+#include <rand.h>
 
 #include "io_crypt.h"
 #include "crypt_rsa.h"
@@ -50,68 +57,35 @@ static bdigit_t small_primes[] = {
 };
 #define N_SMALL_PRIMES (sizeof(small_primes)/sizeof(bdigit_t))
 
-char *strdup(const char*str)
-{
-    char *ret = malloc(strlen(str) + 1);
-    strcpy(ret, str);
-    return ret;
-}
-
-int time()
-{
-    return rand();
-}
-
-int clock()
-{
-    return rand();
-}
-
-uint64_t rand_lfsr = 0xDEADBEEFDEADBEEF;
-int rand()
-{
-    int max_clocks = 512;
-
-    for(int clocks = 0; clocks < max_clocks; clocks++)
-    {
-        /* maximum length LFSR according to http://www.xilinx.com/support/documentation/application_notes/xapp052.pdf */
-        int bit = ((rand_lfsr >> 63) ^ (rand_lfsr >> 62) ^ (rand_lfsr >> 60) ^ (rand_lfsr >> 59)) & 1;
-        rand_lfsr = (rand_lfsr << 1) | bit;
-    }
-
-    return (int)rand_lfsr;
-}
-
-void srand(unsigned int value)
-{
-	rand_lfsr ^= value;
-    rand();
-	rand_lfsr ^= get_us_clock_value();
-    rand();
-}
-
-void *calloc(size_t nmemb, size_t size)
-{
-    void *ret = malloc(nmemb * size);
-    memset(ret, 0x00, nmemb * size);
-    
-    return ret;
-}
-
-void *realloc(void *ptr, size_t size)
-{
-    void *ret = malloc(size);
-    memcpy(ret, ptr, size);
-    free(ptr);
-    
-    return ret;
-}
 
 static int my_rand(unsigned char *bytes, size_t nbytes, const unsigned char *seed, size_t seedlen)
 {
-	while (nbytes--)
+    if(0 && seed)
+    {
+        for(size_t pos = 0; pos < seedlen / 4; pos++)
+        {
+            rand_seed(((uint32_t *)seed)[pos]);
+        }
+    }
+    
+    while(((uint32_t)bytes % 4) && nbytes)
 	{
-		*bytes++ = rand() & 0xFF;
+        uint32_t rn = 0;
+        rand_fill(&rn, 1);
+		*bytes++ = rn & 0xFF;
+        nbytes--;
+	}
+
+    uint32_t words = (nbytes / 4);
+    uint32_t remain = (nbytes % 4);
+    
+    rand_fill(bytes, words);
+    
+	for(int pos = 0; pos < remain; pos++)
+	{
+        uint32_t rn = 0;
+        rand_fill(&rn, 1);
+		bytes[words * 4 + pos] = (rn & 0xFF);
 	}
 
 	return 0;
@@ -170,7 +144,6 @@ int generateRSAPrime(BIGD p, size_t nbits, bdigit_t e, size_t ntests,
 			if (overflow)
 				break;
 
-//			give_a_sign('.');
 			count++;
 
 			/* Each time 2 is added to the current candidate
@@ -202,7 +175,6 @@ int generateRSAPrime(BIGD p, size_t nbits, bdigit_t e, size_t ntests,
 				continue;
 
 			/* Do expensive primality test */
-//			give_a_sign('*');
 			if (bdRabinMiller(p, ntests))
 			{	/* Success! - we have a prime */
 				done = 1;
@@ -212,10 +184,8 @@ int generateRSAPrime(BIGD p, size_t nbits, bdigit_t e, size_t ntests,
 		}
 	}
 
-
 	/* Clear up */
 	bdFree(&u);
-//	printf("\n");
 
 	return (done ? count : -1);
 }
@@ -333,7 +303,7 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
 
 	if (res != 0)
 	{
-		printf("Failed to generate RSA key!\n");
+		NotifyBox(5000, "Failed to generate RSA key!\n");
 		goto clean_up;
 	}
 
@@ -342,19 +312,25 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
 	priv_key->name = strdup ( "new key" );
 	pub_key->name = strdup ( "new key" );
 
-	buffer = (char*)malloc ( bdSizeof(n)*8+1 );
-	bdConvToHex ( n, buffer, 32768 );
+	size_t nchars = bdConvToHex(n, NULL, 0);
+	buffer = malloc(nchars+1);
+	nchars = bdConvToHex(n, buffer, nchars+1);
+    
 	priv_key->primefac = (char*)strdup ( (char *)buffer );
 	pub_key->primefac = (char*)strdup ( (char *)buffer );
 	free ( buffer );
-
-	buffer = (char*)malloc ( bdSizeof(d)*8+1 );
-	bdConvToHex ( d, buffer, 32768 );
+    
+    nchars = bdConvToHex(d, NULL, 0);
+	buffer = malloc(nchars+1);
+	nchars = bdConvToHex(d, buffer, nchars+1);
+    
 	priv_key->key = (char*)strdup ( (char *)buffer );
 	free ( buffer );
 
-	buffer = (char*)malloc ( bdSizeof(e)*8+1 );
-	bdConvToHex ( e, buffer, 32768 );
+    nchars = bdConvToHex(e, NULL, 0);
+	buffer = malloc(nchars+1);
+	nchars = bdConvToHex(e, buffer, nchars+1);
+    
 	pub_key->key = (char*)strdup ( (char *)buffer );
 	free ( buffer );
 
@@ -378,7 +354,7 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
 	bdConvToOctets ( source, tmp_buf,  bdSizeof(source)*4 );
 	if ( strcmp ( (char*)"Test", (char*)tmp_buf ) )
     {
-		printf ( " --------------    Key check FAILED!!  -----------------\n" );
+		printf ( "Key check FAILED!!\n" );
         beep();
     }
     
@@ -393,7 +369,6 @@ clean_up:
 	bdFree(&dP);
 	bdFree(&dQ);
 	bdFree(&qInv);
-
 
 	return 0;
 }
@@ -446,7 +421,7 @@ static void crypt_rsa_deinit(void **crypt_ctx)
     }
 }
 
-static uint32_t crypt_rsa_test(int size, t_crypt_key *priv_key, t_crypt_key *pub_key)
+static uint32_t crypt_rsa_testfunc(int size, t_crypt_key *priv_key, t_crypt_key *pub_key)
 {
     uint32_t ret = 0;
     
@@ -486,15 +461,43 @@ static uint32_t crypt_rsa_test(int size, t_crypt_key *priv_key, t_crypt_key *pub
         {
             ret = 1;
             trace_write(iocrypt_trace_ctx, "   post-decrypt: FAILED at pos %d", pos);
+
+            NotifyBox(5000, "Test failed, check log!\n");
+            beep();
             break;
         }
     }
     
     free(data);
     free(data_orig);
-    beep();
     
     return ret;
+}
+
+void crypt_rsa_test()
+{
+    /* dome some tests */
+    t_crypt_key priv_key;
+    t_crypt_key pub_key;
+    uint32_t ret = 0;
+    
+    ret |= crypt_rsa_testfunc(128, &priv_key, &pub_key);
+    ret |= crypt_rsa_testfunc(256, &priv_key, &pub_key);
+    ret |= crypt_rsa_testfunc(512, &priv_key, &pub_key);
+    ret |= crypt_rsa_testfunc(1024, &priv_key, &pub_key);
+    
+    msleep(5000);
+    beep();
+
+    if(ret)
+    {
+        NotifyBox(5000, "Test failed, check log!\n");
+        beep_times(5);
+    }
+    else
+    {
+        NotifyBox(5000, "Test finished successfully\n");
+    }
 }
 
 /* allocate and initialize an RSA cipher ctx and save to pointer */
@@ -514,23 +517,9 @@ void crypt_rsa_init(void **crypt_ctx, uint64_t password)
     ctx->cipher.encrypt = &crypt_rsa_encrypt;
     ctx->cipher.decrypt = &crypt_rsa_decrypt;
     ctx->cipher.deinit = &crypt_rsa_deinit;
-    ctx->password = password;
-    ctx->current_block = 0xFFFFFFFF;
     
     *crypt_ctx = ctx;
     trace_write(iocrypt_trace_ctx, "crypt_rsa_init: initialized");
-
-    /* dome some tests */
-    t_crypt_key priv_key;
-    t_crypt_key pub_key;
-    
-    crypt_rsa_test(128, &priv_key, &pub_key);
-    crypt_rsa_test(256, &priv_key, &pub_key);
-    crypt_rsa_test(512, &priv_key, &pub_key);
-    crypt_rsa_test(1024, &priv_key, &pub_key);
-    crypt_rsa_test(2048, &priv_key, &pub_key);
-    crypt_rsa_test(4096, &priv_key, &pub_key);    
-    crypt_rsa_test(8192, &priv_key, &pub_key);    
 }
 
 

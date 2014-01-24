@@ -26,7 +26,9 @@ This notice must always be retained in any copy.
 #include "bigd.h"
 #include "bigdigits.h"
 
+#ifdef MODULE
 #include "mem.h"
+#endif
 
 #define assert(x) do {} while(0)
 

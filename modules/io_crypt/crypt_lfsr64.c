@@ -1,20 +1,18 @@
-
-
-#ifdef HOST_PROGRAM
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
-#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
-
-#else
+#ifdef MODULE
 
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
 #include "../trace/trace.h"
+
+#else
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 
 #endif
 

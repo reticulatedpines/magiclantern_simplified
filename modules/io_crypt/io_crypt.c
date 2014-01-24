@@ -233,8 +233,7 @@ static MENU_SELECT_FUNC(iocrypt_enter_pw_select)
 
 static MENU_SELECT_FUNC(iocrypt_test_rsa)
 {
-    crypt_cipher_t *crypt_ctx;
-    crypt_rsa_init(&crypt_ctx, 0xDEADBEEF11223344);
+    task_create("rsa_test", 0x1e, 0x1000, crypt_rsa_test, (void*)0);
 }
 
 static struct menu_entry iocrypt_menus[] =
@@ -315,7 +314,6 @@ static unsigned int iocrypt_init()
     
     /* any file operation is routed through us now */
     menu_add("Debug", iocrypt_menus, COUNT(iocrypt_menus) );
-    
     
     return 0;
 }
