@@ -9,6 +9,8 @@
 
 #include "qsort.h"
 
+#define COUNT(x) (sizeof(x) / sizeof(x[0]))
+
 char *strdup(const char *s);
 
 
@@ -130,7 +132,7 @@ char **split_csv_line(char *line)
     
     if(columns != 3)
     {
-        printf("WARNING: Input file doesn't have 3 fields in CSV format. Expect problems.\n");
+        fprintf(stderr, "WARNING: Input file doesn't have 3 fields in CSV format. Expect problems.\n");
     }
     
     return csv;
@@ -142,7 +144,7 @@ char ***read_csv(char *file)
     
     if(!f)
     {
-        printf("Failed to open '%s'\n", file);
+        fprintf(stderr, "Failed to open '%s'\n", file);
         return NULL;
     }
     
@@ -176,7 +178,7 @@ char ***read_csv(char *file)
     
     fclose(f);
     
-    printf("    Read %d lines from %s\n", lines, file);
+    fprintf(stderr, "    Read %d lines from %s\n", lines, file);
     
     return csv;
 }
@@ -187,7 +189,7 @@ char ***read_stubs(char *file)
     
     if(!f)
     {
-        printf("Failed to open '%s'\n", file);
+        fprintf(stderr, "Failed to open '%s'\n", file);
         return NULL;
     }
     
@@ -204,7 +206,7 @@ char ***read_stubs(char *file)
         /* update array size if needed */
         if(!realloc_helper(&csv, &allocated, &lines, sizeof(char **)))
         {
-            printf("Failed to reallocate list\n");
+            fprintf(stderr, "Failed to reallocate list\n");
             fclose(f);
             free_csv(csv);
         }
@@ -272,6 +274,7 @@ char ***read_stubs(char *file)
             }
             char *name = start;
             
+            
             /* find string end */
             start = strstr(start, ")");
             if(!start)
@@ -292,6 +295,8 @@ char ***read_stubs(char *file)
             csv[lines][1] = strdup(name);
             csv[lines][2] = strdup("");
             csv[lines][3] = NULL;
+            
+            strlwr(csv[lines][0]);
             lines++;
             csv[lines] = NULL;
         }
@@ -299,7 +304,7 @@ char ***read_stubs(char *file)
     
     fclose(f);
     
-    printf("    Read %d lines from %s (%d ignored)\n", lines, file, ignored);
+    fprintf(stderr, "    Read %d lines from %s (%d ignored)\n", lines, file, ignored);
     
     return csv;
 }
@@ -364,7 +369,7 @@ char **build_address_list(char ****file_list)
             }
             if(!realloc_helper(&address_list, &allocated, &addresses, sizeof(char *)))
             {
-                printf("Failed to reallocate address list\n");
+                fprintf(stderr, "Failed to reallocate address list\n");
                 return NULL;
             }
             
@@ -380,7 +385,7 @@ char **build_address_list(char ****file_list)
     
     sort_by_name(address_list);
     filter_uniq(address_list);
-    printf("    Unique addresses: %d\n", count_entries(address_list));
+    fprintf(stderr, "    Unique addresses: %d\n", count_entries(address_list));
     
     return address_list;
 }
@@ -402,6 +407,22 @@ char **find_address(char *addr, char ***file)
     return NULL;
 }
 
+int get_prefix_type(char *name)
+{
+    char *prefixes[] = { "PROP_HANDLER:", "str:", "src:", "called_by:", "dec:", "nullsub", "sub_" };
+    
+    int is_default = 0;
+    for(int prefix = 0; prefix < COUNT(prefixes); prefix++)
+    {
+        if(!strncmp(name, prefixes[prefix], strlen(prefixes[prefix])))
+        {
+            return prefix;
+        }
+    }
+    return -1;
+}
+
+    
 void mark_if_differ(char **line, int files)
 {
     int differs = 0;
@@ -410,18 +431,21 @@ void mark_if_differ(char **line, int files)
     for(int file = 0; file < files; file++)
     {
         char *name = line[2 + 3*file + 1];
-        if(!strncmp(name, "sub_", 4))
+        int type = get_prefix_type(name);
+        
+        /* only handle when it is a manually edited name */
+        if(type < 0)
         {
-            /* ignore these too */
-        }
-        else if(strlen(name) > 2)
-        {
-            /* differs to last manually set name? */
-            if(last_name && strcmp(last_name, name))
+            /* 2-letter names... no! */
+            if(strlen(name) > 2)
             {
-                differs = 1;
+                /* differs to last manually set name? */
+                if(last_name && strcmp(last_name, name))
+                {
+                    differs = 1;
+                }
+                last_name = name;
             }
-            last_name = name;
         }
     }
     
@@ -431,10 +455,12 @@ void mark_if_differ(char **line, int files)
     }
 }
 
+
 void find_preferred_name(char **line, int files)
 {
     int have_name = -1;
     int have_default_name = -1;
+    int default_name_type = 999;
  
     /* dont do anything if merge is required */
     if(line[1][0] == 'X')
@@ -445,13 +471,22 @@ void find_preferred_name(char **line, int files)
     for(int file = 0; file < files; file++)
     {
         char *name = line[2 + 3*file + 1];
-        if(!strncmp(name, "sub_", 4))
+        int type = get_prefix_type(name);
+        
+        if(type < 0)
         {
-            have_default_name = file;
+            if(strlen(name) > 2)
+            {
+                have_name = file;
+            }
         }
-        else if(strlen(name) > 2)
+        else
         {
-            have_name = file;
+            if(type < default_name_type)
+            {
+                default_name_type = type;
+                have_default_name = file;
+            }
         }
     }
     
@@ -480,7 +515,7 @@ char ***merge_lists(char **address_list, char ****file_list, char **filenames)
         
         if(!realloc_helper(&csv, &allocated, &lines, sizeof(char **)))
         {
-            printf("Failed to reallocate address list\n");
+            fprintf(stderr, "Failed to reallocate address list\n");
             return NULL;
         }
         
@@ -490,7 +525,7 @@ char ***merge_lists(char **address_list, char ****file_list, char **filenames)
         csv[lines][1] = strdup(" ");
         csv[lines][2 + files * 3] = NULL;
         
-        //printf("Addr: %s\n", addr);
+        //fprintf(stderr, "Addr: %s\n", addr);
         
         char *last_name = NULL;
         int file = 0;
@@ -523,8 +558,15 @@ char ***merge_lists(char **address_list, char ****file_list, char **filenames)
     return csv;
 }
 
-void print_csv(char ***csv)
+void print_csv(char ***csv, char **filenames)
 {
+    printf("Address;Conflict;");
+    for(int pos = 0; pos < count_entries(filenames); pos++)
+    {
+        printf("%s_use;%s_name;%s_proto;", filenames[pos], filenames[pos], filenames[pos]);
+    }
+    printf("\n");
+    
     int line = 0;
     while(csv[line])
     {
@@ -557,36 +599,37 @@ int main(int argc, char *argv[])
         
         if(ext && !strncasecmp(ext, ".s", 2))
         {
-            printf("Reading stubs: '%s'\n", file);
+            fprintf(stderr, "Reading stubs: '%s'\n", file);
             new_file = read_stubs(file);
         }
         else if(ext && !strncasecmp(ext, ".csv", 4))
         {
-            printf("Reading csv: '%s'\n", file);
+            fprintf(stderr, "Reading csv: '%s'\n", file);
             new_file = read_csv(file);
         }
         else
         {
-            printf("Unknown: '%s'\n", file);
+            fprintf(stderr, "Unknown: '%s'\n", file);
         }
         
         if(new_file)
         {
             if(!realloc_helper(&file_list, &allocated, &files, sizeof(char ***)))
             {
-                printf("Failed to reallocate file list\n");
+                fprintf(stderr, "Failed to reallocate file list\n");
                 free_files(file_list);
                 exit(1);
             }
             filenames[files] = strdup(file);
             file_list[files] = new_file;
             files++;
+            filenames[files] = NULL;
             file_list[files] = NULL;
         }
     }
     
     char **address_list = build_address_list(file_list);
-    
     char ***merged = merge_lists(address_list, file_list, filenames);
-    print_csv(merged);
+    
+    print_csv(merged, filenames);
 }

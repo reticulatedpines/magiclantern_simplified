@@ -44,13 +44,13 @@ if [ "x$1" == "x" ]; then
     exit 1;
 fi
 
-src=$1;
+src="$1";
 files=0;
 shopt -s extglob
 declare -A FILEDATA;
 
 
-dos2unix $src >/dev/null 2>&1;
+dos2unix "$src" >/dev/null 2>&1;
 
 line=0;
 files=0;
@@ -63,7 +63,7 @@ if [ "x$mode" == "xidc" ]; then
 fi
 
 echo "Reading $src" 1>&2;
-for line_string in `cat $src | sed "s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/:/g;" | sed "s/;;/;:;/g;"`; do
+for line_string in `cat "$src" | sed "s/\t/;/g;s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/:/g;" | sed "s/;;/;:;/g;"`; do
     fields=(${line_string//;/ });
 
     #echo "fields: ${#fields[@]} from $line_string"
@@ -76,7 +76,7 @@ for line_string in `cat $src | sed "s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/:/g;" | sed
             filename=${fields[$pos]//:/ };
             filename=${filename##+([[:space:]])}; 
             filename=${filename%%+([[:space:]])};
-            filename=(${filename//_/ });
+            filename=(${filename//_use/});
             echo "    File #$file: ${filename[0]}" 1>&2;
         done
     else
