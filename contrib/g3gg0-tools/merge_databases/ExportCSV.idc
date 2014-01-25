@@ -1,4 +1,4 @@
-    
+
 #include <idc.idc>
 static main()
 {
@@ -11,7 +11,7 @@ static main()
     /* starting address for export, this one should work with any start address we use */
     ea = 0xF8000000;
     /* apply an offset in case the segment was set to the wrong address */
-    #offset = 0x07800000;
+    //offset = 0x07800000;
     offset = 0;
 
     auto file = fopen("export.csv", "w");

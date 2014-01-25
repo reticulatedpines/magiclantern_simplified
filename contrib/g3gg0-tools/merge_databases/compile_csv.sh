@@ -55,6 +55,13 @@ dos2unix $src >/dev/null 2>&1;
 line=0;
 files=0;
 
+    
+if [ "x$mode" == "xidc" ]; then
+    echo "#include <idc.idc>"
+    echo "static main()"
+    echo "{"
+fi
+
 echo "Reading $src" 1>&2;
 for line_string in `cat $src | sed "s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/:/g;" | sed "s/;;/;:;/g;"`; do
     fields=(${line_string//;/ });
@@ -101,8 +108,11 @@ for line_string in `cat $src | sed "s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/:/g;" | sed
                             echo "/* $proto */";
                         fi
                         echo "NSTUB($addr, $name)";
-                    elif  [ "x$mode" == "xidc" ]; then
-                        echo "    MakeNameEx($addr, \"$name\", SN_NOCHECK);";
+                    elif [ "x$mode" == "xidc" ]; then
+                        echo "    MakeCode($addr);";
+                        if [ "x${name:0:4}" != "xsub_" -a "x${name:0:7}" != "xnullsub" ]; then
+                            echo "    MakeNameEx($addr, \"$name\", SN_NOCHECK);";
+                        fi
                         if [ "x$proto" != "x" ]; then
                             echo "    SetType($addr, \"$proto\");";
                         fi
@@ -120,4 +130,7 @@ for line_string in `cat $src | sed "s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/:/g;" | sed
         line=$(($line+1));
     fi
 done
-file_length[${files}]=${line};
+    
+if [ "x$mode" == "xidc" ]; then
+    echo "}"
+fi
