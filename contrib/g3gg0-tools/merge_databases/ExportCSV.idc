@@ -2,12 +2,17 @@
 #include <idc.idc>
 static main()
 {
-    auto ea, str, count, ref;
+    auto ea, str, count, ref, offset;
     auto end;
     auto teststr;
     auto entries = 0;
+    auto named = 0;
 
-    ea = 0xFF000000;
+    /* starting address for export, this one should work with any start address we use */
+    ea = 0xF8000000;
+    /* apply an offset in case the segment was set to the wrong address */
+    #offset = 0x07800000;
+    offset = 0;
 
     auto file = fopen("export.csv", "w");
     while( ea != BADADDR )
@@ -28,12 +33,13 @@ static main()
             teststr = sprintf("sub_%X", ea);
             if( teststr != str )
             {
-                entries++;
-                fprintf(file, "0x%X;%s;%s\n", ea, str, GetType(ea) );
+                named++;
             }
+            entries++;
+            fprintf(file, "0x%X;%s;%s;\n", ea + offset, str, GetType(ea) );
         }
         ea = NextFunction(ea);
     }
     fclose(file);
-    Message("Done, exported %d entries\n", entries);
+    Message("Done, exported %d entries, %d with manual names\n", entries, named);
 }
