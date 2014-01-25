@@ -437,7 +437,7 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
         {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
         {0xC65A, T_SHORT,      1, 21},                                 // CalibrationIlluminant1 D65
-        {0xC65B, T_SHORT|T_SKIP, 1, 0},                                 // CalibrationIlluminant2 - Not currently used
+        //{0xC65B, T_SHORT, 1, 0},                                 // CalibrationIlluminant2 - Not currently used
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
     };
 
