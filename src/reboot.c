@@ -103,7 +103,7 @@ cstart( void )
     int s = compute_signature((int*)SIG_START, SIG_LEN);
 
     #ifdef CONFIG_5D3
-    if (s != (int)SIG_5D3_113)
+    if (s != (int)SIG_5D3_123)
         fail();
     #endif
 

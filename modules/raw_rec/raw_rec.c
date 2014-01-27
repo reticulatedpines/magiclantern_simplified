@@ -1190,7 +1190,7 @@ static void hack_liveview(int unhack)
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
-            cam_5d3 ? 0xff4acda4 :
+            cam_5d3 ? 0xFF4B7648 :
             cam_550d ? 0xFF2FE5E4 :            
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :            

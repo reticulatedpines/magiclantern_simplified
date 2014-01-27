@@ -1,5 +1,5 @@
 /*
- *  5D3 1.1.3 consts
+ *  5D3 1.2.3 consts
  */
 
 #define CARD_DRIVE ""
@@ -11,8 +11,8 @@
 #define FORMAT_BTN "[Q]"
 #define STR_LOC 11
 
-#define CARD_A_MAKER 0x68C8B
-#define CARD_A_MODEL 0x68CBF
+#define CARD_A_MAKER 0x68D24
+#define CARD_A_MODEL 0x68D57
 //~ #define CARD_A_LABEL 0x26E000 not good
 //need to find
 //#define CARD_B_MAKER 0x  
@@ -20,20 +20,20 @@
 //#define CARD_B_LABEL 0x
 
 // thanks Indy
-#define HIJACK_INSTR_BL_CSTART  0xff0c0d7c
-#define HIJACK_INSTR_BSS_END 0xff0c1cb8
-#define HIJACK_FIXBR_BZERO32 0xff0c1c1c
-#define HIJACK_FIXBR_CREATE_ITASK 0xff0c1ca8
-#define HIJACK_INSTR_MY_ITASK 0xff0c1cc4
+#define HIJACK_INSTR_BL_CSTART  0xFF0C0E10
+#define HIJACK_INSTR_BSS_END 0xFF0C1D4C
+#define HIJACK_FIXBR_BZERO32 0xFF0C1CB0
+#define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1D3C
+#define HIJACK_INSTR_MY_ITASK 0xFF0C1D58
 #define HIJACK_TASK_ADDR 0x23E14
 
 /* these are used in bitrate.c for video bitrate hacks */
-#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0
-#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF217624
+#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA570
+#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF21B8D0
 
 
 // no idea if it's overflowing, need to check experimentally 
-#define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+#define ARMLIB_OVERFLOWING_BUFFER 0x3b610 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
@@ -43,7 +43,7 @@
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x246a4+0x11c))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x24684+0x11c))
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
@@ -58,30 +58,30 @@
 #define IS_HD_BUFFER(x)  (1) // disable the check, it's complicated
 
 // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION (*(int*)0x276D0)
+#define FOCUS_CONFIRMATION (*(int*)0x2763C)
 
 // See "cam event metering"
-#define HALFSHUTTER_PRESSED (*(int*)0x251D4)
+#define HALFSHUTTER_PRESSED (*(int*)0x250E4)
 
 #define DISPLAY_SENSOR_POWERED 0
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
+#define GMT_IDLEHANDLER_TASK (*(int*)0x2E79C) // dec create_idleHandler_task
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xff796dac // dec gui_main_task
-//#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
+#define GMT_FUNCTABLE 0xFF7A3590 // dec gui_main_task
+//#define GMT_IDLEHANDLER_TASK (*(int*)0x2E79C) // dec create_idleHandler_task
 
 #define SENSOR_RES_X 5936
 #define SENSOR_RES_Y 3804
 
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x29754) == 0xF))
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x29754) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x296D4) == 0xF))
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x296D4) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
 // from a screenshot
 #define COLOR_FG_NONLV 1
 
-#define MVR_516_STRUCT (*(void**)0x241A0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_516_STRUCT (*(void**)0x241A8) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
 #define div_maybe(a,b) ((a)/(b))
 
@@ -100,10 +100,10 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-#define AE_STATE (*(int8_t*)(0x2E764 + 0x1C))
-#define AE_VALUE (*(int8_t*)(0x2E764 + 0x1D))
+#define AE_STATE (*(int8_t*)(0x2E6E4 + 0x1C))
+#define AE_VALUE (*(int8_t*)(0x2E6E4 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x26634) // not sure
+#define CURRENT_DIALOG_MAYBE (*(int*)0x26574) // not sure
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -186,33 +186,33 @@
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 5
 
-#define DIALOG_MnCardFormatBegin (0x363BC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-#define DIALOG_MnCardFormatExecute (0x39B98) // similar
+#define DIALOG_MnCardFormatBegin (0x36340) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x39B24) // similar
 
 #define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xf7363764
-#define BFNT_BITMAP_OFFSET 0xf7366868
-#define BFNT_BITMAP_DATA   0xf736996c
+#define BFNT_CHAR_CODES    0xF7363A50               // TODO! Does anything need changing here?
+#define BFNT_BITMAP_OFFSET 0xF7366BC4
+#define BFNT_BITMAP_DATA   0xF7369D38
 
-#define DLG_SIGNATURE 0x6E4944
+#define DLG_SIGNATURE 0x6E4944                      // TODO!  1.1.3: 0xFF44B094,   1.2.3: 0xFF453FC8
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
  #define AF_BTN_STAR 2
 
-#define IMGPLAY_ZOOM_LEVEL_ADDR (0x2E9C4) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x2E944) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-#define IMGPLAY_ZOOM_POS_X MEM(0x570EC) // CentrePos
-#define IMGPLAY_ZOOM_POS_Y MEM(0x570F0)
+#define IMGPLAY_ZOOM_POS_X MEM(0x57164) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x57168)
 #define IMGPLAY_ZOOM_POS_X_CENTER 360
 #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x323b0+0x2c)
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x32334+0x2c)
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x68BB8
@@ -249,14 +249,14 @@
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x3c268
+#define MALLOC_STRUCT 0x3c208
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x3327C) != 0x17) // dec CancelUnaviFeedBackTimer
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
 
-// temperature convertion from raw-temperature to celsius
+// temperature conversion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)

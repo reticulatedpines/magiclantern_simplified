@@ -1,4 +1,3 @@
-
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
@@ -817,8 +816,8 @@ static unsigned int iocrypt_init()
     else if(streq(camera_model_short, "5D3"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 5D3");
-        iodev_table = 0x44FA8;
-        iodev_ctx = 0x67140;
+        iodev_table = 0x44F38;
+        iodev_ctx = 0x671D8;
         iodev_ctx_size = 0x20;
     }
     else if(streq(camera_model_short, "650D"))
