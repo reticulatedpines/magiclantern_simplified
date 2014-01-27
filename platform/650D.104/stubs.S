@@ -160,8 +160,10 @@ NSTUB(0xFF528718, LiveViewApp_handler)
 NSTUB(0xFF5295C0, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF52A8C4, LiveViewApp_handler_end) // start of next function
 
-NSTUB(0xFF3B65D0, PlayMain_handler)
-NSTUB(0xFF542BA0, PlayMovieGuideApp_handler)
+//NSTUB(0xFF3B65D0, PlayMain_handler) // Maybe used when touch disabled??
+NSTUB(0xFF6F9D74, PlayMain_handler)
+//NSTUB(0xFF542BA0, PlayMovieGuideApp_handler) // Maybe used when touch disabled??
+NSTUB(0xFF666C4C, PlayMovieGuideApp_handler)
 NSTUB(0xFF690610, ErrCardForLVApp_handler)
 //NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
 NSTUB(0xFF512D54, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
