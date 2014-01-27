@@ -9,9 +9,9 @@
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define CONFIG_LVAPP_HACK_DEBUGMSG
-#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
+#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D) || defined(CONFIG_EOSM)
 #define CONFIG_LVAPP_HACK_FBUFF
 #endif
 
@@ -44,8 +44,6 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
     #elif defined(CONFIG_6D)
         MEM(0x841C0) = 0;
-    #elif defined(CONFIG_EOSM)
-        MEM(0x5D43C) = 0;
     #endif
 
     #ifdef CONFIG_5D3
