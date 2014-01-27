@@ -418,13 +418,6 @@ int raw_update_params()
         skip_right      = 2;
         #endif
 
-        #ifdef CONFIG_600D
-        //  raw_info.height = mv1080crop ? 1042 : zoom ? 1100 : mv720 ? 714 : 1176;
-        skip_top        =  26;
-        skip_left       = zoom ?   0 : 152;
-        skip_right      = zoom ?   0 : 2;
-        #endif        
-
         #ifdef CONFIG_6D
         //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
         skip_top        = zoom ? 30 : mv720 ? 28 : 28; //28
@@ -567,6 +560,13 @@ int raw_update_params()
         skip_left = 152;
         skip_right = 10;
         skip_top = 56;
+        #endif
+
+        #ifdef CONFIG_1100D
+        //  from debug log: [TTJ][150,2551,0] RAW(4352,2874,0,14)
+        width = 4352; //From TTJ Log
+        height = 2874+14;
+        //TODO: SKIP offsets
         #endif
 
         #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.

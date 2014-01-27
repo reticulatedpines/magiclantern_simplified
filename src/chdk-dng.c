@@ -71,7 +71,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define raw_size frame_size
 #define write FIO_WriteFile
 
-static void FAST reverse_bytes_order(char* buf, int count)
+void FAST reverse_bytes_order(char* buf, int count)
 {
 #ifdef __ARM__
     /* optimized swap from g3gg0 */
