@@ -565,8 +565,12 @@ int raw_update_params()
         #ifdef CONFIG_1100D
         //  from debug log: [TTJ][150,2551,0] RAW(4352,2874,0,14)
         width = 4352; //From TTJ Log
-        height = 2874+14;
-        //TODO: SKIP offsets
+        height = 2874;
+        skip_top = 16;
+        skip_left = 62;
+        /* 16-pixel border on the left that contains image data */
+        /* skip four lines */
+        raw_info.buffer += 4 * width * 14/8 + 16*14/8;
         #endif
 
         #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
