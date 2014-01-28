@@ -13,12 +13,18 @@
    defined in POSIX but not provided by our libc version or Canon's OS.
 */
 
+/**
+ * POSIX standard assumes rand() to return always positive integers
+ * but we may return negative ones when casting an uint32_t to int
+ */
 int rand()
 {
     uint32_t ret = 0;
     
     rand_fill(&ret, 1);
-    return ABS(ret);
+
+    // Clear sign bit
+    return ret & 0x7fffffff; 
 }
 
 void srand(unsigned int seed)
