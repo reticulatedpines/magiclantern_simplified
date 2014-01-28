@@ -436,7 +436,7 @@ int is_mvr_buffer_almost_full()
     if (RECORDING_H264_STARTING) return 1;
     // 2
     
-    int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
+    int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
     if (ans) warning = 1;
     return warning;
 }
