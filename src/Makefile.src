@@ -119,6 +119,7 @@ ML_SRC_OBJS = \
 	$(ML_BITRATE_OBJ) \
 	lcdsensor.o \
 	tweaks.o \
+	tweaks-eyefi.o \
 	lens.o \
 	property.o \
 	propvalues.o \
