@@ -100,6 +100,7 @@ static uint32_t cam_60d = 0;
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
 
+static uint32_t use_prealloc = 0;
 static uint32_t mlv_writer_threads = 2;
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 uint32_t raw_rec_trace_ctx = TRACE_ERROR;
@@ -2486,7 +2487,14 @@ static void raw_writer_task(uint32_t writer)
                     close_job->writer = writer;
                     strcpy(close_job->filename, chunk_filename[writer]);
 
-                    msg_queue_post(mlv_mgr_queue_close, close_job);
+                    if(use_prealloc)
+                    {
+                        msg_queue_post(mlv_mgr_queue_close, close_job);
+                    }
+                    else
+                    {
+                        msg_queue_post(mlv_mgr_queue, close_job);
+                    }
 
                     /* this should never happen, as the main queue handler should take care of us */
                     if(!next_file_handle)
@@ -2817,7 +2825,7 @@ static void raw_video_rec_task()
 
         /* fill in file names for threads */
 
-        if(card_spanning)
+        if(card_spanning || !use_prealloc)
         {
             /* with card spanning, the first file is always written to CF card */
             /* also demand a second chunk, which will get written to SD */
@@ -2862,7 +2870,7 @@ static void raw_video_rec_task()
             writer_job_count[writer] = 0;
             mlv_handles[writer] = NULL;
 
-            if(!card_spanning && mlv_prealloc_pos < MAX_PREALLOC_FILES)
+            if(use_prealloc && !card_spanning && mlv_prealloc_pos < MAX_PREALLOC_FILES)
             {
                 strcpy(chunk_filename[writer], mlv_prealloc_handles[mlv_prealloc_pos].filename);
                 trace_write(raw_rec_trace_ctx, "Filename(%d): '%s' (preallocated)", writer, chunk_filename[writer]);
@@ -3089,6 +3097,25 @@ static void raw_video_rec_task()
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], handle);
                 }
+                else if(returned_job->job_type == JOB_TYPE_CLOSE)
+                {
+                    close_job_t *handle = (close_job_t*)returned_job;
+
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
+
+                    FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                    mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
+                    FIO_CloseFile(handle->file_handle);
+
+                    /* in test mode remove all files after closing */
+                    if(test_mode)
+                    {
+                        FIO_RemoveFile(handle->filename);
+                    }
+
+                    /* "free" that job buffer again */
+                    msg_queue_post(mlv_job_alloc_queue, handle);
+                }
 
                 returned_job = NULL;
             }
@@ -3186,9 +3213,39 @@ static void raw_video_rec_task()
                 show_buffer_status();
             }
         }
+        
+        /* now close all queued files */
+        while(1)
+        {
+            write_job_t *returned_job = NULL;
+            if(msg_queue_receive(mlv_mgr_queue_close, &returned_job, 50))
+            {
+                break;
+            }
 
+            if(returned_job->job_type == JOB_TYPE_CLOSE)
+            {
+                close_job_t *handle = (close_job_t*)returned_job;
+
+                trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
+
+                FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
+                FIO_CloseFile(handle->file_handle);
+
+                /* in test mode remove all files after closing */
+                if(test_mode)
+                {
+                    FIO_RemoveFile(handle->filename);
+                }
+
+                /* "free" that job buffer again */
+                msg_queue_post(mlv_job_alloc_queue, handle);
+            }
+        }
+        
         /* close the pre-allocated files */
-        if(!card_spanning)
+        if(!card_spanning && use_prealloc)
         {
             /* first close all file handles */
             for(int pos = mlv_prealloc_pos; pos < MAX_PREALLOC_FILES; pos++)
@@ -3265,36 +3322,6 @@ static void raw_video_rec_task()
         /* flush queues */
         msleep(250);
 
-
-        /* now close all queued files */
-        while(1)
-        {
-            write_job_t *returned_job = NULL;
-            if(msg_queue_receive(mlv_mgr_queue_close, &returned_job, 50))
-            {
-                break;
-            }
-
-            if(returned_job->job_type == JOB_TYPE_CLOSE)
-            {
-                close_job_t *handle = (close_job_t*)returned_job;
-
-                trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
-
-                FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
-                mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
-                FIO_CloseFile(handle->file_handle);
-
-                /* in test mode remove all files after closing */
-                if(test_mode)
-                {
-                    FIO_RemoveFile(handle->filename);
-                }
-
-                /* "free" that job buffer again */
-                msg_queue_post(mlv_job_alloc_queue, handle);
-            }
-        }
 
         /* exclusive edmac access no longer needed */
         edmac_memcpy_res_unlock();
