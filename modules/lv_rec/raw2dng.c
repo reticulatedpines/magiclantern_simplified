@@ -552,9 +552,7 @@ void locate_badpixel()
         for (x = 6; x < w-6; x ++)
         {
             int p = raw_get_pixel(x, y);
-	    
-            int is_cold = 0;
-	    is_cold = (p == 0);
+	    int is_cold = (p == 0);
 	    
 	    if (is_cold && cold_pixels < MAX_BADPIXELS) /*generating a list containing the cold pixels*/
 	    {
