@@ -192,11 +192,11 @@
 #define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xF7363A50               // TODO! Does anything need changing here?
+#define BFNT_CHAR_CODES    0xF7363A50
 #define BFNT_BITMAP_OFFSET 0xF7366BC4
 #define BFNT_BITMAP_DATA   0xF7369D38
 
-#define DLG_SIGNATURE 0x6E4944                      // TODO!  1.1.3: 0xFF44B094,   1.2.3: 0xFF453FC8
+#define DLG_SIGNATURE 0x6E4944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
@@ -233,7 +233,7 @@
 #define Q_BTN_NAME "[Q]"
 #define ARROW_MODE_TOGGLE_KEY "RATE"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x247B0)
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x24734)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) //for mark iii
