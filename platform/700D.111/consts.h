@@ -161,7 +161,7 @@
 
     // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
     // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-    #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+    #define GUIMODE_ML_MENU (RECORDING_H264 ? 0 : lv ? 90 : 2) // any from 88...98 ?!
     #define NUM_PICSTYLES 10
     #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
@@ -274,3 +274,7 @@
 
     //~ max volume supported for beeps
     #define ASIF_MAX_VOL 5
+    
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp - 128)

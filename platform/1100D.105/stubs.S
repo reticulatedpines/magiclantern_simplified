@@ -204,6 +204,21 @@ NSTUB(0xff055cb8, SetNextASIFDACBuffer)
 NSTUB(0xff38f290, PlayMain_handler)
 NSTUB(0xff48b9d4, PlayMovieGuideApp_handler)
 
+/** EDMAC routines */
+NSTUB(0xFF1D34CC, SetEDmac)
+NSTUB(0xFF1D37CC, StartEDmac)
+NSTUB(0xFF1D3964, PopEDmac)
+NSTUB(0xFF1D391C, AbortEDmac)
+NSTUB(0xFF1D3584, ConnectWriteEDmac)
+NSTUB(0xFF1D3648, ConnectReadEDmac)
+
+/** register/unregister CBR names **/
+NSTUB(0xFF1D39BC, RegisterEDmacCompleteCBR) 
+NSTUB(0xFF1D39E4, RegisterEDmacAbortCBR)
+NSTUB(0xFF1D3AEC, RegisterEDmacPopCBR)
+NSTUB(0xFF1D39D0, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF1D3A24, UnregisterEDmacAbortCBR)
+NSTUB(0xFF1D3B00, UnregisterEDmacPopCBR) 
 
 NSTUB(0xFF1E8630, register_interrupt)
 NSTUB(0xFF1CACFC, MREQ_ISR)

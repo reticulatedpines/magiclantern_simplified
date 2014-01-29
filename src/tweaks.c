@@ -97,152 +97,6 @@ dofp_update()
 }
 #endif
 
-#ifdef FEATURE_EYEFI_TRICKS
-
-//EyeFi Trick (EyeFi confirmed working only on 600D-60D)
-//**********************************************************************/
-
-int check_eyefi()
-{
-    FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
-void EyeFi_RenameCR2toAVI(char* dir)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        if (file.name[0] == '.') continue;
-        if (!streq(file.name + 8, ".CR2")) continue;
-
-        static char oldname[50];
-        static char newname[50];
-        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-        strcpy(newname, oldname);
-        newname[strlen(newname) - 4] = 0;
-        STR_APPEND(newname, ".AVI");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-        FIO_RenameFile(oldname, newname);
-
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_FindClose(dirent);
-    beep();
-    redraw();
-}
-
-void EyeFi_RenameAVItoCR2(char* dir)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        if (file.name[0] == '.') continue;
-        if (!streq(file.name + 8, ".AVI")) continue;
-
-        static char oldname[50];
-        static char newname[50];
-        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-        strcpy(newname, oldname);
-        newname[strlen(newname) - 4] = 0;
-        STR_APPEND(newname, ".CR2");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-        FIO_RenameFile(oldname, newname);
-
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_FindClose(dirent);
-    beep();
-    redraw();
-}
-
-/*void EyeFi_Rename422toMP4(char* dir)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        if (file.name[0] == '.') continue;
-        if (!streq(file.name + 8, ".422")) continue;
-
-        static char oldname[50];
-        static char newname[50];
-        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-        strcpy(newname, oldname);
-        newname[strlen(newname) - 4] = 0;
-        STR_APPEND(newname, ".MP4");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-        FIO_RenameFile(oldname, newname);
-
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_FindClose(dirent);
-    beep();
-    redraw();
-}
-
-void EyeFi_RenameMP4to422(char* dir)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        if (file.name[0] == '.') continue;
-        if (!streq(file.name + 8, ".MP4")) continue;
-
-        static char oldname[50];
-        static char newname[50];
-        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-        strcpy(newname, oldname);
-        newname[strlen(newname) - 4] = 0;
-        STR_APPEND(newname, ".422");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-        FIO_RenameFile(oldname, newname);
-
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_FindClose(dirent);
-    beep();
-    redraw();
-}*/
-
-
-static void CR2toAVI(void* priv, int delta)
-{
-    EyeFi_RenameCR2toAVI((char*)get_dcim_dir());
-}
-
-static void AVItoCR2(void* priv, int delta)
-{
-    EyeFi_RenameAVItoCR2((char*)get_dcim_dir());
-}
-
-/*static void f422toMP4(void* priv, int delta)
-{
-    EyeFi_Rename422toMP4(get_dcim_dir());
-}
-
-static void MP4to422(void* priv, int delta)
-{
-    EyeFi_RenameMP4to422(get_dcim_dir());
-}*/
-#endif
-
 
 // ExpSim
 //**********************************************************************/
@@ -966,7 +820,7 @@ int handle_fast_zoom_box(struct event * event)
         BGMT_PRESS_SET
         #endif
         #ifndef CONFIG_550D // 550D should always center focus box with SET (it doesn't do by default)
-        && (focus_box_lv_jump || (recording && is_manual_focus()))
+        && (focus_box_lv_jump || (RECORDING && is_manual_focus()))
         #endif
         #ifdef FEATURE_LV_FOCUS_BOX_FAST
         && !arrow_pressed
@@ -1115,7 +969,7 @@ tweak_task( void* unused)
             display_countdown = 40;
         else if (display_countdown) display_countdown--;
         
-        msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 500);
+        msleep(display_countdown || RECORDING || halfshutter_sticky || dofpreview_sticky ? 50 : 500);
         
         movtweak_step();
 
@@ -1132,13 +986,6 @@ tweak_task( void* unused)
         arrow_key_step();
         #endif
 
-        #if 0
-        if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
-        {
-            lv_metering_adjust();
-        }
-        #endif
-        
         #ifdef FEATURE_PLAY_TIMELAPSE
         // timelapse playback
         if (timelapse_playback)
@@ -1339,7 +1186,7 @@ PROP_HANDLER(PROP_GUI_STATE)
     extern int hdr_enabled;
 
     if (gui_state == GUISTATE_QR && image_review_time == 0xff && quick_review_allow_zoom==1
-        && !is_intervalometer_running() && !hdr_enabled && !recording)
+        && !is_intervalometer_running() && !hdr_enabled && NOT_RECORDING)
     {
         fake_simple_button(BGMT_PLAY);
     }
@@ -1600,7 +1447,7 @@ int handle_arrow_keys(struct event * event)
         if (!is_arrow_mode_ok(arrow_keys_mode))
             return 1;
 
-        if (arrow_keys_use_set && !recording)
+        if (arrow_keys_use_set && NOT_RECORDING)
         if (event->param == BGMT_PRESS_SET
         #ifdef BGMT_JOY_CENTER
         || event->param == BGMT_JOY_CENTER
@@ -1789,7 +1636,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Out");
 #endif
 #ifdef FEATURE_INPUT_SOURCE
-        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
+        if (arrow_keys_use_set && NOT_RECORDING) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
 #endif
     }
     else if (mode == 2)
@@ -1801,7 +1648,7 @@ void display_shortcut_key_hints_lv()
 #ifdef FEATURE_WHITE_BALANCE
         bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Kel+");
         bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Kel");
-        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
+        if (arrow_keys_use_set && NOT_RECORDING) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
 #endif
     }
     else if (mode == 3)
@@ -1814,7 +1661,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, " Av+");
         bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Av ");
 #endif
-        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
+        if (arrow_keys_use_set && NOT_RECORDING) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
     {
@@ -1822,7 +1669,7 @@ void display_shortcut_key_hints_lv()
         bmp_printf(fnt, x0 + 150, y0 - font_med.height/2, "Bri+");
         bmp_printf(fnt, x0, y0 - 100 - font_med.height/2, "Sat+");
         bmp_printf(fnt, x0, y0 + 100 - font_med.height/2, "-Sat");
-        if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
+        if (arrow_keys_use_set && NOT_RECORDING) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Reset");
     }
     else if (mode == 10)
     {
@@ -2209,48 +2056,7 @@ static struct menu_entry tweak_menus[] = {
         },
     },
     #endif
-    #if 0
-    {
-        .name = "LV Auto ISO (M mode)",
-        .priv = &lv_metering,
-        .max = 4,
-        .update = lv_metering_print,
-        .help = "Experimental LV metering (Auto ISO). Too slow for real use."
-    },
-    #endif
 };
-#ifdef FEATURE_EYEFI_TRICKS
-static struct menu_entry eyefi_menus[] = {
-    {
-        .name        = "EyeFi Trick",
-        .select        = menu_open_submenu,
-        .help = "Rename CR2 files to AVI (trick for EyeFi cards).",
-        .children =  (struct menu_entry[]) {
-            {
-            	.name        = "Rename CR2 to AVI",
-            	.select        = CR2toAVI,
-            	.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
-         	},
-            {
-            	.name        = "Rename AVI to CR2",
-            	.select        = AVItoCR2,
-            	.help = "Rename back AVI files to CR2 (trick for EyeFi cards)."
-         	},
-            /*{
-            	.name        = "Rename 422 to MP4",
-            	.select        = f422toMP4,
-            	.help = "Rename 422 files to MP4 (trick for EyeFi cards)."
-         	},
-            {
-            	.name        = "Rename MP4 to 422",
-            	.select        = MP4to422,
-            	.help = "Rename back MP4 files to 422 (trick for EyeFi cards)."
-         	},*/
-            MENU_EOL
-        },
-    },
-};
-#endif    
 
 #ifdef FEATURE_UPSIDE_DOWN
 
@@ -3836,10 +3642,6 @@ static void tweak_init()
     menu_add( "Prefs", tweak_menus, COUNT(tweak_menus) );
     menu_add( "Display", display_menus, COUNT(display_menus) );
 
-    #ifdef FEATURE_EYEFI_TRICKS
-    if (check_eyefi())
-        menu_add( "Shoot", eyefi_menus, COUNT(eyefi_menus) );
-    #endif
 }
 
 INIT_FUNC(__FILE__, tweak_init);

@@ -729,7 +729,7 @@ ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
 void set_lv_zoom(int zoom)
 {
     if (!lv) return;
-    if (recording) return;
+    if (RECORDING) return;
     if (is_movie_mode() && video_mode_crop) return;
     zoom = COERCE(zoom, 1, 10);
     if (zoom > 1 && zoom < 10) zoom = 5;
@@ -1110,7 +1110,7 @@ void move_lv_afframe(int dx, int dy)
 #ifdef CONFIG_LIVEVIEW
     if (!liveview_display_idle()) return;
     if (is_movie_mode() && video_mode_crop) return;
-    if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
+    if (RECORDING && is_manual_focus()) // prop handler won't trigger, clear spotmeter
         clear_lv_afframe();
     
     static int aff[128];
@@ -2243,7 +2243,7 @@ const char* get_picstyle_shortname(int raw_picstyle)
 }
 static MENU_UPDATE_FUNC(picstyle_display)
 {
-    int i = picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle;
+    int i = picstyle_rec && RECORDING ? picstyle_before_rec : (int)lens_info.picstyle;
     
     MENU_SET_VALUE(
         get_picstyle_name(get_prop_picstyle_from_index(i))
@@ -2281,7 +2281,7 @@ static MENU_UPDATE_FUNC(picstyle_display_submenu)
 static void
 picstyle_toggle(void* priv, int sign )
 {
-    if (recording) return;
+    if (RECORDING) return;
     int p = lens_info.picstyle;
     p = mod(p + sign - 1, NUM_PICSTYLES) + 1;
     if (p)
@@ -2317,7 +2317,7 @@ static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
 static void
 picstyle_rec_sub_toggle( void * priv, int delta )
 {
-    if (recording) return;
+    if (RECORDING) return;
     picstyle_rec = mod(picstyle_rec+ delta, NUM_PICSTYLES+1);
 }
 
@@ -2452,7 +2452,7 @@ static void zoom_halfshutter_step()
 {
 #ifdef CONFIG_LIVEVIEW
     if (!lv) return;
-    if (recording) return;
+    if (RECORDING) return;
     
     if (zoom_halfshutter && is_manual_focus())
     {
@@ -2485,7 +2485,7 @@ static int zoom_focus_ring_disable_time = 0;
 static int zoom_focus_ring_flag = 0;
 void zoom_focus_ring_trigger() // called from prop handler
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (lv_dispsize > 1) return;
     if (gui_menu_shown()) return;
     if (!DISPLAY_IS_ON) return;
@@ -2495,7 +2495,7 @@ void zoom_focus_ring_trigger() // called from prop handler
 }
 void zoom_focus_ring_engage() // called from shoot_task
 {
-    if (recording) return;
+    if (RECORDING) return;
     if (lv_dispsize > 1) return;
     if (gui_menu_shown()) return;
     if (!DISPLAY_IS_ON) return;
@@ -2509,7 +2509,7 @@ static void zoom_focus_ring_step()
 {
     int zfr = (zoom_focus_ring && is_manual_focus());
     if (!zfr) return;
-    if (recording) return;
+    if (RECORDING) return;
     if (!DISPLAY_IS_ON) return;
     if (zoom_focus_ring_disable_time && miliseconds_clock > zoom_focus_ring_disable_time && !get_halfshutter_pressed())
     {
@@ -2537,7 +2537,7 @@ int zoom_x5_x10_step()
 int handle_zoom_x5_x10(struct event * event)
 {
     if (!lv) return 1;
-    if (recording) return 1;
+    if (RECORDING) return 1;
     
     if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
     #ifdef CONFIG_600D
@@ -5379,7 +5379,7 @@ void movie_start()
 
     ensure_movie_mode();
     
-    if (recording)
+    if (RECORDING)
     {
         NotifyBox(2000, "Already recording ");
         return;
@@ -5401,7 +5401,7 @@ void movie_start()
     for (int i = 0; i < 30; i++)
     {
         msleep(100);
-        if (recording == 2) break; // recording started
+        if (RECORDING_H264_STARTED) break; // recording started
     }
     msleep(500);
 #endif
@@ -5415,7 +5415,7 @@ void movie_end()
         NotifyBox(2000, "movie_end: not movie mode (%d,%d) ", shooting_type, shooting_mode);
         return;
     }
-    if (!recording)
+    if (NOT_RECORDING)
     {
         NotifyBox(2000, "movie_end: not recording ");
         return;
@@ -5431,7 +5431,7 @@ void movie_end()
     for (int i = 0; i < 20; i++)
     {
         msleep(100);
-        if (!recording) break;
+        if (NOT_RECORDING) break;
     }
     msleep(500);
 #endif
@@ -5527,7 +5527,7 @@ void remote_shot(int wait)
     while (gui_state != GUISTATE_IDLE) msleep(100);
     msleep(500);
     // restore zoom
-    if (lv && !recording && zoom > 1) set_lv_zoom(zoom);
+    if (lv && NOT_RECORDING && zoom > 1) set_lv_zoom(zoom);
 
     picture_was_taken_flag = 0;
 }
@@ -5796,7 +5796,7 @@ static void md_take_pics() // for motion detection
         for (int t=0; t<(int)motion_detect_delay; t++) {
             bmp_printf(FONT_MED, 0, 80, " Taking picture in %d.%ds   ", (int)(motion_detect_delay-t)/10, (int)(motion_detect_delay-t)%10);
             msleep(100);
-            int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+            int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && NOT_RECORDING && !gui_menu_shown();
             if (!mdx) return;
         }
     }
@@ -5852,7 +5852,7 @@ static void misc_shooting_info()
             #ifdef CONFIG_MOVIE_AE_WARNING
             #if defined(CONFIG_5D2)
             static int ae_warned = 0;
-            if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
+            if (is_movie_mode() && !lens_info.raw_shutter && RECORDING && MVR_FRAME_NUMBER < 10)
             {
                 if (!ae_warned && !gui_menu_shown())
                 {
@@ -6136,7 +6136,7 @@ shoot_task( void* unused )
         
         if (picture_was_taken_flag) // just took a picture, maybe we should take another one
         {
-            if (!recording)
+            if (NOT_RECORDING)
             {
                 #ifdef FEATURE_HDR_BRACKETING
                 if (HDR_ENABLED)
@@ -6302,7 +6302,7 @@ shoot_task( void* unused )
         }
 
         // same for motion detect
-        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown() && !intervalometer_running;
+        int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && NOT_RECORDING && !gui_menu_shown() && !intervalometer_running;
         #else
         int mdx = 0;
         #endif

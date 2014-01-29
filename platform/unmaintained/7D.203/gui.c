@@ -40,7 +40,7 @@ static int handle_buttons(struct event * event)
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
-	if (event->param == BGMT_LV && recording)
+	if (event->param == BGMT_LV && RECORDING)
 	{
 		extern int movie_was_stopped_by_set;
 		movie_was_stopped_by_set = 1;

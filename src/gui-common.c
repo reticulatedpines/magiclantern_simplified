@@ -9,9 +9,9 @@
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define CONFIG_LVAPP_HACK_DEBUGMSG
-#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
+#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D) || defined(CONFIG_EOSM)
 #define CONFIG_LVAPP_HACK_FBUFF
 #endif
 
@@ -44,8 +44,6 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
     #elif defined(CONFIG_6D)
         MEM(0x841C0) = 0;
-    #elif defined(CONFIG_EOSM)
-        MEM(0x5D43C) = 0;
     #endif
 
     #ifdef CONFIG_5D3
@@ -61,7 +59,7 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     
 #ifdef CONFIG_5D3
     extern int rec_led_off;
-    if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
+    if ((class == 34 || class == 35) && level == 1 && rec_led_off && RECORDING) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
 #endif
 
@@ -343,7 +341,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         {
             if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     video_mode[0] = 0xc;
                     video_mode[4] = 2;
@@ -356,7 +354,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         {
             if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     int x = 300;
                     prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
@@ -366,7 +364,7 @@ int handle_digital_zoom_shortcut(struct event * event)
             }
             if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     video_mode[0] = 0;
                     video_mode[4] = 0;
@@ -452,7 +450,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_mlu_handheld(event) == 0) return 0;
     #endif
     
-    if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
+    if (RECORDING && event->param == BGMT_MENU) redraw(); // MENU while RECORDING => force a redraw
     
     if (handle_buttons_being_held(event) == 0) return 0;
     //~ if (handle_morse_keys(event) == 0) return 0;

@@ -90,9 +90,9 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We can use DMA_MEMCPY **/
-// #define CONFIG_DMA_MEMCPY
+#define CONFIG_DMA_MEMCPY
 /** We don't know how to use edmac_memcpy. This one is really fast (600MB/s!) */
-// #define CONFIG_EDMAC_MEMCPY
+#define CONFIG_EDMAC_MEMCPY
 
 /** We know how to use engine resource locks */
 #define CONFIG_ENGINE_RESLOCK
@@ -129,5 +129,5 @@
 
 /** We don't have access to Raw data (yet) */
 //~ #define CONFIG_RAW_LIVEVIEW
-//~ #define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_PHOTO
 

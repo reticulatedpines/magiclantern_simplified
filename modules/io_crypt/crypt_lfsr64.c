@@ -1,20 +1,19 @@
+#ifdef MODULE
 
+#include <dryos.h>
+#include <property.h>
+#include <bmp.h>
+#include <menu.h>
+#define TRACE_DISABLED
+#include "../trace/trace.h"
 
-#ifdef HOST_PROGRAM
+#else
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
 #define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
-
-#else
-
-#include <dryos.h>
-#include <property.h>
-#include <bmp.h>
-#include <menu.h>
-#include "../trace/trace.h"
 
 #endif
 
@@ -71,13 +70,13 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
     
     ctx->current_block = block;
     
-    /* first feed it with base key and block */
+    /* first initialize LFSR with base key and block */
     ctx->lfsr_state = ctx->password ^ block;
-    crypt_lfsr64_clock(ctx, 32);
+    crypt_lfsr64_clock(ctx, 111);
     
     /* then update it with the file offset again and shift by an amount based on file offset */
     ctx->lfsr_state ^= block;
-    crypt_lfsr64_clock(ctx, (11 * block) % 128);
+    crypt_lfsr64_clock(ctx, (11 * block) % 16);
     
     /* mask it again */
     ctx->lfsr_state ^= ctx->password;
@@ -85,24 +84,20 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
     trace_write(iocrypt_trace_ctx, "update_key: offset 0x%08X, password: 0x%08X%08X, key: 0x%08X%08X", offset, (uint32_t)(ctx->password>>32), (uint32_t)ctx->password, (uint32_t)(ctx->lfsr_state>>32), (uint32_t)ctx->lfsr_state);
     
     /* build an array with key elements for every offset in uint8_t mode */
-    //trace_write(iocrypt_trace_ctx, "update_key: key_uint8");
     uint64_t lfsr = ctx->lfsr_state;
     for(int pos = 0; pos < 8; pos++)
     {
         ctx->key_uint8[pos] = (uint8_t)(lfsr & 0xFF);
         lfsr >>= 8;
-        //trace_write(iocrypt_trace_ctx, "update_key:     0x%02X", ctx->key_uint8[pos]);
     }
     
     /* build an array with key elements for every offset in uint64_t mode */
-    //trace_write(iocrypt_trace_ctx, "update_key: key_uint32");
     for(int pos = 0; pos < 8; pos++)
     {
         uint32_t elem_addr = &ctx->key_uint64[pos];
         
         memcpy((void*)elem_addr, &ctx->key_uint8[pos], 8 - pos);
         memcpy((void*)elem_addr + (8-pos), ctx->key_uint8, pos);
-        //trace_write(iocrypt_trace_ctx, "update_key:     0x%08X%08X", (uint32_t)(ctx->key_uint64[pos]>>32), (uint32_t)ctx->key_uint64[pos]);
     }
 }
 
@@ -115,7 +110,7 @@ static void crypt_lfsr64_encrypt(void *ctx_in, uint8_t *dst, uint8_t *src, uint3
     update_key(ctx, offset, 0); 
     
     /* try to get the addresses aligned */
-    trace_write(iocrypt_trace_ctx, "crypt_lfsr64_xor_uint8 offset 0x%08X, length 0x%08X", offset, length);
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_xor_uint8 offset 0x%08X, length 0x%08X", offset, length);
     while((IS_UNALIGNED(8) || (offset % 8)) && (length > 0))
     {
         uint32_t block_remain = offset % CRYPT_LFSR64_BLOCKSIZE;
@@ -132,9 +127,25 @@ static void crypt_lfsr64_encrypt(void *ctx_in, uint8_t *dst, uint8_t *src, uint3
         length -= 1;
     }
     
-    trace_write(iocrypt_trace_ctx, "crypt_lfsr64_xor_uint64 offset 0x%08X, length 0x%08X", offset, length);
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_xor_uint64 offset 0x%08X, length 0x%08X", offset, length);
     if(!IS_UNALIGNED(8))
     {
+        /* processing loop for 64 bit writes and even file offsets */
+        while(length >= 8 && ((offset % 8) == 0))
+        {
+            if((offset % CRYPT_LFSR64_BLOCKSIZE) == 0)
+            {
+                update_key(ctx, offset, 0);
+            }
+            
+            crypt_lfsr64_xor_uint64(dst, src, ctx, 0);
+            dst += 8;
+            src += 8;
+            offset += 8;
+            length -= 8;
+        }
+        
+        /* processing loop for 64 bit writes and odd file offsets */
         while(length >= 8)
         {
             uint32_t block_remain = offset % CRYPT_LFSR64_BLOCKSIZE;
@@ -157,7 +168,7 @@ static void crypt_lfsr64_encrypt(void *ctx_in, uint8_t *dst, uint8_t *src, uint3
     }
     
     /* do the rest */
-    trace_write(iocrypt_trace_ctx, "crypt_lfsr64_xor_uint8 offset 0x%08X, length 0x%08X", offset, length);
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_xor_uint8 offset 0x%08X, length 0x%08X", offset, length);
     while(length > 0)
     {
         uint32_t block_remain = offset % CRYPT_LFSR64_BLOCKSIZE;
@@ -175,6 +186,7 @@ static void crypt_lfsr64_encrypt(void *ctx_in, uint8_t *dst, uint8_t *src, uint3
         length -= 1;
     }
 }
+#undef IS_UNALIGNED
 
 /* using a symmetric cipher, both encryption and decryption are the same */
 static void crypt_lfsr64_decrypt(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)

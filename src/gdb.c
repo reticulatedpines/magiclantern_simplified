@@ -767,6 +767,8 @@ void gdb_exception_handler(uint32_t *ctx)
             if(bkpt->callback)
             {
                 bkpt->callback(bkpt);
+                /* restore context, watchpoint may alter registers */
+                gdb_memcpy(ctx, bkpt->ctx, 17*4);
             }
             
             if(bkpt->linkId != GDB_LINK_NONE)

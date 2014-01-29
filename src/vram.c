@@ -364,8 +364,8 @@ void update_vram_params()
     int bar_x = 0;
     int bar_y = 0;
     #else
-    int bar_x = recording && video_mode_resolution >= 2 ? os.off_43 : 0;
-    int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
+    int bar_x = RECORDING && video_mode_resolution >= 2 ? os.off_43 : 0;
+    int bar_y = RECORDING && video_mode_resolution <= 1 ? os.off_169 : 0;
     #endif
 
     vram_update_luts();

@@ -3978,7 +3978,7 @@ menu_redraw_do()
         alter_bitmap_palette_entry(COLOR_DARK_CYAN2_MOD,   COLOR_CYAN, 128, 128);
         // alter_bitmap_palette_entry(COLOR_DARK_YELLOW_MOD,   COLOR_YELLOW, 128, 128);
 
-        if (recording)
+        if (RECORDING)
             alter_bitmap_palette_entry(COLOR_BLACK, COLOR_BG, 256, 256);
     }
 #endif
@@ -4190,7 +4190,7 @@ handle_ml_menu_keys(struct event * event)
     
     int button_code = event->param;
 #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
-    if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
+    if (button_code == BGMT_INFO && RECORDING) button_code = BGMT_Q;
 #endif
 
     int menu_needs_full_redraw = 0; // if true, do not allow quick redraws
@@ -4529,7 +4529,7 @@ static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
     #if !defined(CONFIG_EOSM) // EOS M won't open otherwise
-    if (recording) return;
+    if (RECORDING) return;
     #endif
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
@@ -4548,7 +4548,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (recording) return;
+    if (RECORDING) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4613,7 +4613,7 @@ static void menu_close()
     
     close_canon_menu();
 	#ifdef CONFIG_EOSM
-	if (recording > 0)
+	if (RECORDING_H264)
 	SetGUIRequestMode(0);
 	#endif
     canon_gui_enable_front_buffer(0);
@@ -4680,7 +4680,7 @@ menu_task( void* unused )
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && (config_dirty || menu_flags_save_dirty) && !recording && !ml_shutdown_requested)
+                if (config_autosave && (config_dirty || menu_flags_save_dirty) && NOT_RECORDING && !ml_shutdown_requested)
                 {
                     save_config(0);
                     config_dirty = 0;
@@ -4715,7 +4715,7 @@ menu_task( void* unused )
             continue;
         }
         
-        if (recording && !lv) continue;
+        if (RECORDING && !lv) continue;
         
         // Set this flag a bit earlier in order to pause LiveView tasks.
         // Otherwise, high priority tasks such as focus peaking might delay the menu a bit.

@@ -232,9 +232,6 @@ NSTUB(0xFFCF7BBC - RAM_OFFSET, AbortEDmac)
 NSTUB(0xFFCF764C - RAM_OFFSET, ConnectWriteEDmac)
 NSTUB(0xFFCF7710 - RAM_OFFSET, ConnectReadEDmac)
 
-/** keep the old name until all are refcatored **/
-NSTUB(0xFFCF7C5C - RAM_OFFSET, EDMAC_RegisterCompleteCBR)
-
 /** register/unregister CBR names **/
 NSTUB(0xFFCF7C5C - RAM_OFFSET, RegisterEDmacCompleteCBR)
 NSTUB(0xFFCF7CF0 - RAM_OFFSET, RegisterEDmacAbortCBR)
