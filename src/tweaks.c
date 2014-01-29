@@ -986,13 +986,6 @@ tweak_task( void* unused)
         arrow_key_step();
         #endif
 
-        #if 0
-        if (lv_metering && !is_movie_mode() && lv && k % 5 == 0)
-        {
-            lv_metering_adjust();
-        }
-        #endif
-        
         #ifdef FEATURE_PLAY_TIMELAPSE
         // timelapse playback
         if (timelapse_playback)
@@ -2061,15 +2054,6 @@ static struct menu_entry tweak_menus[] = {
             },
             MENU_EOL,
         },
-    },
-    #endif
-    #if 0
-    {
-        .name = "LV Auto ISO (M mode)",
-        .priv = &lv_metering,
-        .max = 4,
-        .update = lv_metering_print,
-        .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
     #endif
 };
