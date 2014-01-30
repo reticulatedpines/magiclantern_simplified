@@ -41,15 +41,32 @@
 #define YUV422_LV_BUFFER_2 0x55617800
 #define YUV422_LV_BUFFER_3 0x55a27800
 
-// http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
-// stateobj_disp[1]
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x24684+0xBC))
+/* in LiveView it uses these 4 addresses (quad-buffered!)
+#define YUV422_LV_BUFFER_1 0x4715E000
+#define YUV422_LV_BUFFER_2 0x470AF000
+#define YUV422_LV_BUFFER_3 0x47000000
+#define YUV422_LV_BUFFER_4 0x4B546800
+*/
+
+
+/* This part of the code was changed to allow dual monitor support (both LCD and HDMI)
+ * 
+ * 113:
+ * RAM:DebugMsg(130, 4, msg='ImageEffect', arg3, unk_R4, unk_R5, unk_R6, unk_R7, ...)
+ * display_struct.off_0x11C = *(arg1)
+ *
+ * 123:
+ * RAM:DebugMsg(130, 3, msg='ImageEffect')
+ * ret_sub_FF132FA0_FF130A10->off_0x4 = *(arg1)
+ * 
+ * Looking in sub_FF132FA0 => returns *(0x24758 + 4*arg0), arg0 is 0 for built-in LCD and probably 1 for HDMI
+ */
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(*(uint32_t*)0x24758 + 4))
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
 
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch) // first line from DMA is dummy
-
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x54000000
