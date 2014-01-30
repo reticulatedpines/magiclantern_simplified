@@ -1,7 +1,13 @@
 #ifndef __CRYPT_LFSR_H
 #define __CRYPT_LFSR_H
 
-#define CRYPT_LFSR64_BLOCKSIZE    0x00002000
+/*  when write speed is about 70MiB/s unencrypted:
+        blocksize 0x00002000: 2MiB/s
+        blocksize 0x00010000: 5MiB/s
+        blocksize 0x00020000: 20MiB/s
+    the larger the block size is, the easier it is to reconstruct the current block key
+        */
+#define CRYPT_LFSR64_BLOCKSIZE    0x00020000
 
 typedef struct
 {

@@ -236,9 +236,6 @@ NSTUB(0x1C994, AbortEDmac) //FFCF7BBC
 NSTUB(0x1C5DC, ConnectWriteEDmac) //FFA85334
 NSTUB(0x1C6A0, ConnectReadEDmac) //FFA853F8
 
-/** keep the old name until all are refcatored **/
-NSTUB(0x1CA34, EDMAC_RegisterCompleteCBR)
-
 /** register/unregister CBR names **/
 NSTUB(0x1CA34, RegisterEDmacCompleteCBR) //FFCF7C5C
 NSTUB(0x1CB1C, RegisterEDmacAbortCBR) //FFCF7CF0

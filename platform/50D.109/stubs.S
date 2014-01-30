@@ -281,9 +281,6 @@ NSTUB(0xFF97CA98, PopEDmac)
 NSTUB(0xFF97C8F0, ConnectWriteEDmac)
 NSTUB(0xFF97C918, ConnectReadEDmac)
 
-/** keep the old name until all are refcatored **/
-NSTUB(0xFF97CA84, EDMAC_RegisterCompleteCBR)
-
 /** register/unregister CBR names **/
 NSTUB(0xFF97CA84, RegisterEDmacCompleteCBR)
 NSTUB(0xFF97CAAC, RegisterEDmacAbortCBR)

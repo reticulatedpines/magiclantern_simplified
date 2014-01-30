@@ -26,7 +26,10 @@ This notice must always be retained in any copy.
 #include <time.h>
 #include "bigdigits.h"
 
+#ifdef MODULE
 #include "mem.h"
+#endif
+
 /* For debugging - these are NOOPs */
 #define DPRINTF0(s) 
 #define DPRINTF1(s, a1) 

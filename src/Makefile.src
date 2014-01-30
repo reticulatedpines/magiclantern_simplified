@@ -106,6 +106,8 @@ ML_SRC_OBJS = \
 	edmac.o \
 	menu.o \
 	debug.o \
+	rand.o \
+	posix.o \
 	cfn.o \
 	gui.o \
 	$(ML_PICSTYLE_OBJ) \
@@ -117,6 +119,7 @@ ML_SRC_OBJS = \
 	$(ML_BITRATE_OBJ) \
 	lcdsensor.o \
 	tweaks.o \
+	tweaks-eyefi.o \
 	lens.o \
 	property.o \
 	propvalues.o \

@@ -1,9 +1,9 @@
 # Makefile for the io_decrypt software
 
-HOST_OBJ=io_decrypt.host.o crypt_lfsr64.host.o hash_password.host.o
+HOST_OBJ=io_decrypt.host.o crypt_lfsr64.host.o crypt_rsa.host.o hash_password.host.o bigdigits.host.o bigd.host.o
 HOST_BIN=io_decrypt
 HOSTCC=gcc
-HOST_CFLAGS=-m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -I. -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -std=c99 -DHOST_PROGRAM
+HOST_CFLAGS=-m32 -ggdb -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -I. -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -std=c99 -DHOST_PROGRAM
 HOST_LDFLAGS=-lm -m32 
 HOST_DEPS=crypt_lfsr64.h
 HOST=host

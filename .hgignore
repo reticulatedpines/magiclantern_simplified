@@ -83,6 +83,7 @@ doxygen-doc/*
 modules/*/*.dep
 modules/*/*.mo
 modules/*/*.sym
+modules/*/hgstamp
 modules/*/module_strings.h
 modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe

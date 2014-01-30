@@ -73,7 +73,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -217,6 +217,15 @@ void raw_buffer_intercept_from_stateobj()
      -819, 10000,     1944, 10000,    5931, 10000
 #endif
 
+#ifdef CONFIG_1100D
+    //~  { "Canon EOS 1100D", 0, 0x3510,
+    //~  { 6444,-904,-893,-4563,12308,2535,-903,2016,6728 } },
+    #define CAM_COLORMATRIX1                       \
+      6444, 10000,     -904, 10000,    -893, 10000,\
+    -4563, 10000,    12308, 10000,    2535, 10000, \
+     -903, 10000,     2016, 10000,    6728, 10000
+#endif
+
 #ifdef CONFIG_60D
         //~ { "Canon EOS 60D", 0, 0x2ff7,
         //~ {  6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
@@ -299,6 +308,10 @@ static int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
 static int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
 #endif
 
+#ifdef CONFIG_1100D
+static int dynamic_ranges[] = {1099, 1098, 1082, 1025, 965, 877, 784}; // No ISO 12800 available
+#endif
+
 #ifdef CONFIG_650D
 static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 #endif
@@ -354,6 +367,7 @@ int raw_update_params()
 
     if (lv)
     {
+#ifdef CONFIG_RAW_LIVEVIEW
         /* grab the image buffer from EDMAC; first pixel should be red */
         raw_info.buffer = (uint32_t) shamem_read(RAW_LV_EDMAC);
         if (!raw_info.buffer)
@@ -404,13 +418,6 @@ int raw_update_params()
         skip_right      = 2;
         #endif
 
-        #ifdef CONFIG_600D
-        //  raw_info.height = mv1080crop ? 1042 : zoom ? 1100 : mv720 ? 714 : 1176;
-        skip_top        =  26;
-        skip_left       = zoom ?   0 : 152;
-        skip_right      = zoom ?   0 : 2;
-        #endif        
-
         #ifdef CONFIG_6D
         //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
         skip_top        = zoom ? 30 : mv720 ? 28 : 28; //28
@@ -457,9 +464,13 @@ int raw_update_params()
 
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
+#else
+#warning RAW FEATURES WILL NOT WORK IN LIVEVIEW ON THIS BUILD
+#endif
     }
     else if (QR_MODE) // image review after taking pics
     {
+#ifdef CONFIG_RAW_PHOTO
         raw_info.buffer = (uint32_t) raw_buffer_photo;
         
         #if defined(CONFIG_60D) || defined(CONFIG_500D)
@@ -551,6 +562,17 @@ int raw_update_params()
         skip_top = 56;
         #endif
 
+        #ifdef CONFIG_1100D
+        //  from debug log: [TTJ][150,2551,0] RAW(4352,2874,0,14)
+        width = 4352; //From TTJ Log
+        height = 2874;
+        skip_top = 16;
+        skip_left = 62;
+        /* 16-pixel border on the left that contains image data */
+        /* skip four lines */
+        raw_info.buffer += 4 * width * 14/8 + 16*14/8;
+        #endif
+
         #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
         width = 5568;
         height = 3708;
@@ -598,6 +620,7 @@ int raw_update_params()
 
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
+#endif
     }
     else
     {
@@ -613,7 +636,7 @@ int raw_update_params()
         /* raw dimensions changed? force a full update, including preview window */
         dirty = 1;
     }
-    
+#ifdef CONFIG_RAW_LIVEVIEW 
     /* zoom mode changed? refresh params */
     {
         static int prev_zoom = 0;
@@ -638,6 +661,7 @@ int raw_update_params()
         prev_delta_x = delta_x;
         prev_delta_y = delta_y;
     }
+#endif
     
     if (dirty)
     {
@@ -770,6 +794,8 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
     int preview_skip_top = skip_top;
     int preview_width = raw_info.jpeg.width;
     int preview_height = raw_info.jpeg.height;
+
+#ifdef CONFIG_RAW_LIVEVIEW
     if (lv_dispsize > 1)
     {
         int delta_x, delta_y;
@@ -812,7 +838,8 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
             preview_height = vram_hd.height / zoom_corr;
         }
     }
-    
+#endif
+
     raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
@@ -1212,14 +1239,18 @@ static int compute_dynamic_range(int black_mean, int black_stdev, int white_leve
 
 void FAST raw_lv_redirect_edmac(void* ptr)
 {
+#ifdef CONFIG_RAW_LIVEVIEW
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
+#endif
 }
 
 int raw_lv_settings_still_valid()
 {
+#ifdef CONFIG_RAW_LIVEVIEW
     /* should be fast enough for vsync calls */
     int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
     if (edmac_pitch != raw_info.pitch) return 0;
+#endif
     return 1;
 }
 
@@ -1439,12 +1470,13 @@ void FAST raw_preview_fast()
     raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, -1);
 }
 
-static int lv_raw_enabled;
+static int lv_raw_enabled = 0;
 #ifdef PREFERRED_RAW_TYPE
 static int old_raw_type = -1;
 #endif
 static void raw_lv_enable()
 {
+#ifdef CONFIG_RAW_LIVEVIEW
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
     
@@ -1454,10 +1486,12 @@ static void raw_lv_enable()
 #elif defined(USE_LV_AF_RAW)
     call("lv_af_raw", 1);
 #endif
+#endif
 }
 
 static void raw_lv_disable()
 {
+#ifdef CONFIG_RAW_LIVEVIEW
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
     
@@ -1469,6 +1503,7 @@ static void raw_lv_disable()
     }
 #elif defined(USE_LV_AF_RAW)
     call("lv_af_raw", 0);
+#endif
 #endif
 }
 

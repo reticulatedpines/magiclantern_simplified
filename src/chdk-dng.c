@@ -71,7 +71,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define raw_size frame_size
 #define write FIO_WriteFile
 
-static void FAST reverse_bytes_order(char* buf, int count)
+void FAST reverse_bytes_order(char* buf, int count)
 {
 #ifdef __ARM__
     /* optimized swap from g3gg0 */
@@ -436,8 +436,8 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
         {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
         {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
-        {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
-        {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
+        {0xC65A, T_SHORT,      1, 21},                                 // CalibrationIlluminant1 D65
+        {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65 (change this if ColorMatrix2 is added)
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
     };
 

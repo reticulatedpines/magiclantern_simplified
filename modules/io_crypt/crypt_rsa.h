@@ -14,10 +14,10 @@ typedef struct
     crypt_cipher_t cipher;
     t_crypt_key pub_key;
     t_crypt_key priv_key;
-    uint64_t password;
-    uint32_t current_block;
 } rsa_ctx_t;
 
 void crypt_rsa_init(void **crypt_ctx, uint64_t password);
+void crypt_rsa_test();
+
 
 #endif
