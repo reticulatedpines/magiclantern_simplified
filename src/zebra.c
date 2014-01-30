@@ -3376,8 +3376,6 @@ PROP_HANDLER(PROP_GUI_STATE)
 #endif
 }
 
-extern uint32_t LCD_Palette[];
-
 void palette_disable(uint32_t disabled)
 {
     #ifdef CONFIG_VXWORKS
@@ -3388,16 +3386,16 @@ void palette_disable(uint32_t disabled)
     {
         for (int i = 0; i < 0x100; i++)
         {
-            EngDrvOut(0xC0F14400 + i*4, 0x00FF0000);
-            EngDrvOut(0xC0F14800 + i*4, 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3], 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3+0x300], 0x00FF0000);
         }
     }
     else
     {
         for (int i = 0; i < 0x100; i++)
         {
-            EngDrvOut(0xC0F14400 + i*4, LCD_Palette[i*3 + 2]);
-            EngDrvOut(0xC0F14800 + i*4, LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3], LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3+0x300], LCD_Palette[i*3 + 2]);
         }
     }
 }

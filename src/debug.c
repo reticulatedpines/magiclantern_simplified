@@ -1072,8 +1072,8 @@ static void stub_test_task(void* arg)
         }
 
         // engio
-        TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
-        TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
+        TEST_TRY_VOID(EngDrvOut(LCD_Palette[0], 0x1234));
+        TEST_TRY_FUNC_CHECK(shamem_read(LCD_Palette[0]), == 0x1234);
 
         // call, DISPLAY_IS_ON
         TEST_TRY_VOID(call("TurnOnDisplay"));
