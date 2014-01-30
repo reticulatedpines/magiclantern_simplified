@@ -145,7 +145,9 @@ int main(int argc, char** argv)
         fix_vertical_stripes();
 	
 	if (fix_bad_pixels )/* best done before interpolation */
+	{
 	    find_and_fix_bad_pixels();
+	}
 
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
@@ -534,11 +536,17 @@ void fix_vertical_stripes()
 static inline int FC(int row, int col)
 {
     if ((row%2) == 0 && (col%2) == 0)
+    {
         return 0;  /* red */
+    }
     else if ((row%2) == 1 && (col%2) == 1)
+    {
         return 2;  /* blue */
+    }
     else
+    {
         return 1;  /* green */
+    }
 }
 
 void locate_badpixel()
@@ -584,10 +592,14 @@ void repair_badpixel()
 	    for (j = -4; j <= 4; j++)
 	    {
 		if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
+		{
 		    continue;
+		}
                         
 		if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
+		{
 		    continue;
+		}
                         
 		int p = raw_get_pixel(x+j, y+i);
 		neighbours[k++] = -p;
