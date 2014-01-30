@@ -2825,7 +2825,7 @@ static void raw_video_rec_task()
 
         /* fill in file names for threads */
 
-        if(card_spanning || !use_prealloc)
+        if(card_spanning)
         {
             /* with card spanning, the first file is always written to CF card */
             /* also demand a second chunk, which will get written to SD */
@@ -2834,9 +2834,11 @@ static void raw_video_rec_task()
         }
         else
         {
-            mlv_prealloc_pos = 0;
-            mlv_prealloc_files(mlv_movie_filename, mlv_prealloc_handles, MAX_PREALLOC_FILES, 0);
-
+            if(use_prealloc)
+            {
+                mlv_prealloc_pos = 0;
+                mlv_prealloc_files(mlv_movie_filename, mlv_prealloc_handles, MAX_PREALLOC_FILES, 0);
+            }
             mlv_writer_threads = 1;
         }
 
@@ -2870,7 +2872,7 @@ static void raw_video_rec_task()
             writer_job_count[writer] = 0;
             mlv_handles[writer] = NULL;
 
-            if(use_prealloc && !card_spanning && mlv_prealloc_pos < MAX_PREALLOC_FILES)
+            if(use_prealloc && !card_spanning && (mlv_prealloc_pos < MAX_PREALLOC_FILES))
             {
                 strcpy(chunk_filename[writer], mlv_prealloc_handles[mlv_prealloc_pos].filename);
                 trace_write(raw_rec_trace_ctx, "Filename(%d): '%s' (preallocated)", writer, chunk_filename[writer]);
