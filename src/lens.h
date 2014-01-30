@@ -91,7 +91,7 @@ struct lens_info
 
 extern struct lens_info lens_info;
 
-#if defined(CONFIG_6D)
+#if defined(CONFIG_6D) || defined(CONFIG_5D3)
 struct prop_lv_lens
 {  
         uint32_t                lens_rotation; // Identical Doesn't Change
