@@ -1169,6 +1169,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
 
         // mallocs
+        // bypass the memory backend and use low-level calls only for these tests
         // run this test 200 times to check for memory leaks
         for (int i = 0; i < 200; i++)
         {
@@ -1176,19 +1177,19 @@ static void stub_test_task(void* arg)
             int m0, m1, m2;
             void* p;
             TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-            TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = _malloc(50*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
-            TEST_TRY_VOID(free(p));
+            TEST_TRY_VOID(_free(p));
             TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
             TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = _AllocateMemory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
-            TEST_TRY_VOID(FreeMemory(p));
+            TEST_TRY_VOID(-_FreeMemory(p));
             TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
             TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
@@ -1197,14 +1198,14 @@ static void stub_test_task(void* arg)
             int m01, m02, m11, m12;
             TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = _alloc_dma_memory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
-            TEST_TRY_VOID(free_dma_memory(p));
-            TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != 0);
+            TEST_TRY_VOID(_free_dma_memory(p));
+            TEST_TRY_FUNC_CHECK(p = (void*)_shoot_malloc(24*1024*1024), != 0);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-            TEST_TRY_VOID(shoot_free(p));
+            TEST_TRY_VOID(_shoot_free(p));
             TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
             TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
