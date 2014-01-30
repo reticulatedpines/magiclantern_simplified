@@ -37,17 +37,17 @@
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
+/* these are still used for playback 
 #define YUV422_LV_BUFFER_1 0x55207800 
 #define YUV422_LV_BUFFER_2 0x55617800
 #define YUV422_LV_BUFFER_3 0x55a27800
+*/
 
-/* in LiveView it uses these 4 addresses (quad-buffered!)
+/* in LiveView it uses these 4 addresses (quad-buffered!) */
 #define YUV422_LV_BUFFER_1 0x4715E000
 #define YUV422_LV_BUFFER_2 0x470AF000
 #define YUV422_LV_BUFFER_3 0x47000000
 #define YUV422_LV_BUFFER_4 0x4B546800
-*/
-
 
 /* This part of the code was changed to allow dual monitor support (both LCD and HDMI)
  * 
