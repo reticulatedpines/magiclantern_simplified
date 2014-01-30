@@ -2787,7 +2787,7 @@ void hexdump_digit_toggle(void* priv, int dir)
 
 void hexdump_digit_pos_toggle(void* priv, int dir)
 {
-    hexdump_digit_pos = mod(hexdump_digit_pos + 1, 9);
+    hexdump_digit_pos = mod(hexdump_digit_pos - 1, 9);
 }
 
 int hexdump_prev = 0;
