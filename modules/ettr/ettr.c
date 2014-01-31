@@ -46,6 +46,11 @@ static int show_metered_areas = 0;
 extern int hdr_enabled;
 #define HDR_ENABLED hdr_enabled
 
+/** Some cameras do not have raw liveview **/
+extern WEAK_FUNC(ret_0) void raw_lv_request();
+extern WEAK_FUNC(ret_0) void raw_lv_release();
+extern WEAK_FUNC(ret_0) int  raw_lv_is_enabled();
+
 static char* get_current_exposure_settings()
 {
     static char msg[50];
@@ -1215,6 +1220,10 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
 
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
+    if (lv && raw_lv_request == ret_0)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR Does not work in LV on this camera.");
+    }
     if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M, Av, Tv, P and RAW MOVIE modes.");
 
@@ -1334,7 +1343,7 @@ static struct menu_entry ettr_menu[] =
             {
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
-                .max = 3,
+                .max = 3, // NOTE: Modifed by the module init task to disable ETTR in LV if not supported
                 .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
                 .help  = "When should the exposure be adjusted for ETTR:",
                 .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
@@ -1436,6 +1445,11 @@ static struct menu_entry ettr_menu[] =
 
 static unsigned int ettr_init()
 {
+    if(raw_lv_request == ret_0)
+    {
+        auto_ettr_trigger  = auto_ettr_trigger > 1 ? 0 : auto_ettr_trigger;
+        ettr_menu[0].children[0].max = 1;
+    }
     menu_add("Expo", ettr_menu, COUNT(ettr_menu));
     return 0;
 }
