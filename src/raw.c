@@ -702,6 +702,7 @@ int raw_update_params()
         raw_info.white_level = autodetect_white_level(raw_info.white_level);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
+#ifdef CONFIG_RAW_LIVEVIEW
     else if (!is_movie_mode())
     {
         /* in photo mode, LV iso is not equal to photo ISO because of ExpSim *
@@ -739,6 +740,7 @@ int raw_update_params()
     {
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
+#endif
     
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
@@ -1237,22 +1239,20 @@ static int compute_dynamic_range(int black_mean, int black_stdev, int white_leve
     return dr;
 }
 
+#ifdef CONFIG_RAW_LIVEVIEW
 void FAST raw_lv_redirect_edmac(void* ptr)
 {
-#ifdef CONFIG_RAW_LIVEVIEW
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
-#endif
 }
 
 int raw_lv_settings_still_valid()
 {
-#ifdef CONFIG_RAW_LIVEVIEW
     /* should be fast enough for vsync calls */
     int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
     if (edmac_pitch != raw_info.pitch) return 0;
-#endif
     return 1;
 }
+#endif
 
 /* For accessing the pixels in a struct raw_pixblock, faster than via raw_get_pixel */
 /* todo: move in raw.h? */
@@ -1470,13 +1470,13 @@ void FAST raw_preview_fast()
     raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, -1);
 }
 
+#ifdef CONFIG_RAW_LIVEVIEW
 static int lv_raw_enabled = 0;
 #ifdef PREFERRED_RAW_TYPE
 static int old_raw_type = -1;
 #endif
 static void raw_lv_enable()
 {
-#ifdef CONFIG_RAW_LIVEVIEW
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
     
@@ -1486,12 +1486,10 @@ static void raw_lv_enable()
 #elif defined(USE_LV_AF_RAW)
     call("lv_af_raw", 1);
 #endif
-#endif
 }
 
 static void raw_lv_disable()
 {
-#ifdef CONFIG_RAW_LIVEVIEW
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
     
@@ -1503,7 +1501,6 @@ static void raw_lv_disable()
     }
 #elif defined(USE_LV_AF_RAW)
     call("lv_af_raw", 0);
-#endif
 #endif
 }
 
@@ -1570,6 +1567,7 @@ void raw_lv_release()
     ASSERT(raw_lv_request_count >= 0);
     raw_lv_update();
 }
+#endif
 
 /* may not be correct on 4:3 screens */
 void raw_force_aspect_ratio_1to1()
@@ -1646,14 +1644,17 @@ int can_use_raw_overlays()
     if (QR_MODE && can_use_raw_overlays_photo())
         return 1;
     
+#ifdef CONFIG_RAW_LIVEVIEW
     if (lv && raw_lv_is_enabled())
         return 1;
+#endif
     
     return 0;
 }
 
 int can_use_raw_overlays_menu()
 {
+#ifdef CONFIG_RAW_LVIEVIEW
     if (is_movie_mode())
     {
         /* in movie mode, raw overlays don't make much sense for H.264 video, so only show them for raw video */
@@ -1661,16 +1662,19 @@ int can_use_raw_overlays_menu()
             return 1;
     }
     else
+#endif
     {
         /* outside LiveView: only pure RAW is known to work */
         if (can_use_raw_overlays_photo())
             return 1;
 
+#ifdef CONFIG_RAW_LIVEVIEW
         /* in LiveView: we can display the raw overlays no matter what */
         /* so use them also for sRAW and mRAW, even if this may not work in QR mode */
         int raw = pic_quality & 0x60000;
         if (lv && raw)
             return 1;
+#endif
     }
 
     return 0;
