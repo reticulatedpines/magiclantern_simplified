@@ -48,9 +48,8 @@ LLL LL L  C  R  RR  RRR
 #define AF_POINT_R    0x44c00 // Right
 #define AF_POINT_RR   0x44e00 // Right-right
 #define AF_POINT_RRR  0x45000 // Right-right-right
-// ----------------------------------------------------
-#elif defined(CONFIG_6D)
 
+#elif defined(CONFIG_6D)
 #define AF_POINT_C  0x4A00 // Center
 #define AF_POINT_T  0x0A00 // Top
 #define AF_POINT_B  0x8A00 // Bottom
@@ -62,24 +61,6 @@ LLL LL L  C  R  RR  RRR
 #define AF_POINT_R  0x4E00 // Right
 #define AF_POINT_LL 0x4800 
 #define AF_POINT_RR 0x4C00
-//Center 0x4A00, 4a004a
-//TC 0xa00, 4a004a
-//BC 0x8a00, 4a004a
-//TL 0x2800, 4a004a
-//TR 0x2c00, 4a004a
-//L  0x4600, 4a004a
-//R  0x4e00, 4a004a
-//BL 0x6800, 4a004a
-//BR 0x6C00, 4a004a
-//LL 0x4800, 
-//RR 0x4C00,
-/*
-        *TC 
-    *TL        *TR
-L * *LL    *C    *RR    * R
-    *BL        *BR
-        *BC
-*/
 
 
 #else
