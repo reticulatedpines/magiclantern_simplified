@@ -769,8 +769,8 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     get_yuv422_vram(); // update vram parameters
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
-    lv2raw.tx = x - LV2RAW_DX(os.x0);
-    lv2raw.ty = y - LV2RAW_DY(os.y0);
+    lv2raw.tx = x - BM2RAW_DX(os.x0);
+    lv2raw.ty = y - BM2RAW_DY(os.y0);
 }
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom)
