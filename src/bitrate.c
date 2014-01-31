@@ -477,7 +477,7 @@ static MENU_SELECT_FUNC(hibr_wav_record_select){
 void movie_indicators_show()
 {
     #ifdef FEATURE_REC_INDICATOR
-    if (RECORDING_H264)
+    if (RECORDING_H264 && !gui_menu_shown() )
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -596,6 +596,9 @@ bitrate_task( void* unused )
             movie_elapsed_time_01s += 10;
             measure_bitrate();
             BMP_LOCK( show_mvr_buffer_status(); )
+            #ifdef FEATURE_REC_INDICATOR
+            movie_indicators_show();
+            #endif
         }
         else
         {
