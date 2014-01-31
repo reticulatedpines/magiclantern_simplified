@@ -795,7 +795,7 @@ my_init_task(int a, int b, int c, int d)
     }
     else
     {
-        /* patch dcache/icache  */
+        /* we are not sure if this is a instruction, so patch data cache also */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
     
