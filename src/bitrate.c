@@ -459,7 +459,7 @@ static void load_h264_ini()
 }
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
-static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
+static MENU_SELECT_FUNC(hibr_wav_record_select){
     menu_numeric_toggle(priv, 1, 0, 1);
     if (RECORDING_H264) return;
     int *onoff = (int *)priv;
@@ -540,7 +540,12 @@ static struct menu_entry mov_menus[] = {
                 .unit = UNIT_PERCENT,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
+            MENU_EOL
+        },
+    },
+};
 #ifdef FEATURE_NITRATE_WAV_RECORD
+static struct menu_entry wav_menus[] = {
             {
                 .name = "Sound Record",
                 .priv = &cfg_hibr_wav_record,
@@ -549,11 +554,8 @@ static struct menu_entry mov_menus[] = {
                 .choices = (const char *[]) {"Normal", "Separate WAV"},
                 .help = "You may get higher bitrates if you record sound separately.",
             },
-#endif
-            MENU_EOL
-        },
-    },
 };
+#endif
 
 static struct menu_entry mov_tweak_menus[] = {
 #ifdef FEATURE_REC_INDICATOR
@@ -572,6 +574,9 @@ static void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );
+	#ifdef FEATURE_NITRATE_WAV_RECORD
+	menu_add( "Audio", wav_menus, COUNT(wav_menus) );
+	#endif
 }
 
 INIT_FUNC(__FILE__, bitrate_init);
