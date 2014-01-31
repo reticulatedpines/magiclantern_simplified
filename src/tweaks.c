@@ -2386,7 +2386,7 @@ static void preview_contrast_n_saturation_step()
     int filter_register = 0xC0F14140; /* EnableFilter */
     static int filter_dirty = 0;
     
-    int current_filter_value = (int) shamem_read(crazy_register);
+    int current_filter_value = (int) shamem_read(filter_register);
     int desired_filter_value = 
         gui_menu_shown() && !menu_active_but_hidden() ? 0 :
         preview_peaking == 1 || (preview_peaking > 1 && preview_peaking_force_normal_image) ? 0x4d4 :
