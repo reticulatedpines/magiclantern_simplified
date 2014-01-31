@@ -232,7 +232,7 @@
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x32334+0x2c)
 
 // manual exposure overrides
-#define LVAE_STRUCT 0x68BB8
+#define LVAE_STRUCT 0x68C50
 #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
 #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
 #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
