@@ -130,11 +130,13 @@ static void mlv_snd_asif_in_cbr()
             if(msg_queue_count(mlv_snd_buffers_empty, &count))
             {
                 trace_write(trace_ctx, "mlv_snd_asif_in_cbr: msg_queue_count failed");
+                mlv_snd_state = MLV_SND_STATE_SOUND_STOP_ASIF;
                 return;
             }
             if(count < 1)
             {
                 trace_write(trace_ctx, "mlv_snd_asif_in_cbr: no free buffers available");
+                mlv_snd_state = MLV_SND_STATE_SOUND_STOP_ASIF;
                 return;
             }
             
@@ -142,6 +144,7 @@ static void mlv_snd_asif_in_cbr()
             if(msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10))
             {
                 trace_write(trace_ctx, "mlv_snd_asif_in_cbr: msg_queue_receive(mlv_snd_buffers_empty, ) failed");
+                mlv_snd_state = MLV_SND_STATE_SOUND_STOP_ASIF;
                 return;
             }
             trace_write(trace_ctx, "mlv_snd_asif_in_cbr: queueing buffer in slot %d", mlv_snd_next_buffer->mlv_slot_id);
