@@ -420,7 +420,7 @@ static void
 meter_task( void* unused )
 {
 
-#ifdef CONFIG_600D
+#if defined(CONFIG_600D)
     //initialize audio config for 600D
     audio_configure(1);    
 #endif
@@ -974,7 +974,7 @@ enable_recording(int mode)
             // Movie recording stopped;  (fallthrough)
         case 2:
             // Movie recording started
-            #ifdef CONFIG_600D
+            #if defined(CONFIG_600D)
             audio_configure(1);
             #else
             give_semaphore( gain.sem );

@@ -1417,7 +1417,7 @@ int handle_arrow_keys(struct event * event)
     }
     #endif
 
-    #ifdef CONFIG_5D2
+    #if defined(CONFIG_5D2)
     if (event->param == BGMT_PICSTYLE)
     {
         arrow_key_mode_toggle();

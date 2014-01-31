@@ -144,7 +144,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #endif
     #endif
     
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2)
     if (self == LV_STATE && old_state == 2 && input == 2) // lvVdInterrupt
     {
         display_filter_lv_vsync(old_state, x, input, z, t);
