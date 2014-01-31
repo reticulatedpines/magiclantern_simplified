@@ -71,12 +71,13 @@ NSTUB(0xFF13A12C, SetBitmapVramAddress)
 NSTUB(0xFF18DFE8, SetGUIRequestMode)
 NSTUB(0x752e0, sounddev )  // Maybe 0x752e0 or 0x753f4
 NSTUB(0xFF11E24C, sounddev_task )
-NSTUB(0xFF143118, _audio_ic_write)
-NSTUB(0xFF1424F4, _audio_ic_read)
+NSTUB(0xFF1422B0, _audio_ic_write) //SerialCommanSend(int *array)
+NSTUB(0xFF1424F4, _audio_ic_read) // Correct
 NSTUB(0xFF142820, TestSetAudioHeadPhone)
 NSTUB(0xFF1422B0, SerialCommand_Send)
 NSTUB(0xFF11EA28, SetAudioVolumeOut) //str:SetVolumeOut_Volume 1 Parameter
 NSTUB(0xFF9D031C, audio_thresholds)
+NSTUB(0xFF143C40 , SelectMic)
 
 
 NSTUB(0xFFCFD630 - RAM_OFFSET, _alloc_dma_memory)
@@ -195,8 +196,9 @@ NSTUB(0xFF142B70, SetAudioVolumeOut) //Keep Volume (%d->%d)
 NSTUB(0xFF11E9F4, SetAudioVolumeIn) // SetVolumeIn(alc, L, R)
 NSTUB(0xFF11E654, SoundDevActiveIn)
 NSTUB(0xFF11E680, SoundDevActiveOut)
-NSTUB(0xFF11E8AC, SoundDevShutDownIn)
+NSTUB(0xFF11C87C, SoundDevShutDownIn)
 NSTUB(0xFF11E6E0, SoundDevStartIn)
+NSTUB(0xFF11E740, SoundDevStopIn)
 
 
 NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
@@ -269,6 +271,13 @@ NSTUB(0xFF2B20A4, CreateResLockEntry)
 NSTUB(0xFF2B2564, LockEngineResources)
 NSTUB(0xFF2B2708, UnLockEngineResources)
 
+/** corectly named canon property reading functions **/
+NSTUB(0xFF1304DC, PROP_GetMulticastProperty)
+NSTUB(0xFF1319CC, PROPAD_GetPropertyData) //str:SearchFromProperty
+
+/** CFN **/
+NSTUB(0xFF69CD64, GetCFnData)
+NSTUB(0xFF69CE4C, SetCFnData)
 /** Unused **/
 //NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
 //NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)
