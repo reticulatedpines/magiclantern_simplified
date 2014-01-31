@@ -1139,7 +1139,7 @@ tweak_task( void* unused)
         upside_down_step();
         #endif
 
-        #if defined(FEATURE_LV_SATURATION) || defined(FEATURE_LV_BRIGHTNESS_CONTRAST)
+        #if defined(FEATURE_LV_SATURATION) || defined(FEATURE_LV_BRIGHTNESS_CONTRAST) || defined(FEATURE_DIGIC_FOCUS_PEAKING) || defined(FEATURE_LV_CRAZY_COLORS)
         preview_contrast_n_saturation_step();
         #endif
         
@@ -2254,6 +2254,18 @@ static void preview_contrast_n_saturation_step()
 #else
     if (!lv) return;
 #endif
+
+#ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    static int peaking_hs_last_press = 0;
+    int halfshutter_pressed = get_halfshutter_pressed();
+    if (halfshutter_pressed)
+    {
+        peaking_hs_last_press = get_ms_clock_value();
+    }
+    int preview_peaking_force_normal_image =
+        halfshutter_pressed ||                                  /* show normal image on half-hutter press */
+        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
+#endif
     
 #ifdef FEATURE_LV_SATURATION
 
@@ -2273,18 +2285,8 @@ static void preview_contrast_n_saturation_step()
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
-
-    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    static int peaking_hs_last_press = 0;
-    int halfshutter_pressed = get_halfshutter_pressed();
-    if (halfshutter_pressed)
-    {
-        peaking_hs_last_press = get_ms_clock_value();
-    }
-    int preview_peaking_force_normal_image =
-        halfshutter_pressed ||                                  /* show normal image on half-hutter press */
-        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
     
+    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
     if (preview_peaking == 2 && !preview_peaking_force_normal_image)
         desired_saturation = 0;
     else if (preview_peaking == 3 && !preview_peaking_force_normal_image)
@@ -3201,8 +3203,12 @@ static struct menu_entry display_menus[] = {
                 .name = "LV DIGIC peaking",
                 .priv = &preview_peaking,
                 .min = 0,
+                #ifdef FEATURE_LV_SATURATION
                 .max = 3,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
                 .edit_mode = EM_MANY_VALUES_LV,
+                #else
+                .max = 1,   /* the other options require saturation controls available */
+                #endif
                 .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image", "Edge + chroma"},
                 .help  = "Focus peaking via DIGIC. No CPU usage!",
                 .depends_on = DEP_LIVEVIEW,
