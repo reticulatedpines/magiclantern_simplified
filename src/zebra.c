@@ -4656,24 +4656,27 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef CONFIG_RAW_LIVEVIEW
-        if (!raw_flag && !is_movie_mode())
+        int raw_needed = 0;
+
+        /* if picture quality is raw, switch the LiveView to raw mode (photo, zoom 1x) */
+        int raw = pic_quality & 0x60000;
+        if (raw && lv_dispsize == 1 && !is_movie_mode())
         {
-            /* if picture quality is raw, switch the LiveView to raw mode */
-            int raw = pic_quality & 0x60000;
-            /* only histogram and spotmeter are working in LV raw mode */
-            if (raw && lv_dispsize == 1
-                && (
-#ifdef FEATURE_HISTOGRAM
-                    hist_draw ||
-#endif
-                    spotmeter_draw))
-            {
-                raw_lv_request();
-                raw_flag = 1;
-            }
+            /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
+            if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
+            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
-        if (raw_flag && lv_dispsize > 1)
+
+        if (!raw_flag && raw_needed)
         {
+            /* do we need any raw overlays? enable LV raw mode if we don't already have it */
+            raw_lv_request();
+            raw_flag = 1;
+        }
+        if (raw_flag && !raw_needed)
+        {
+            /* if we no longer need raw overlays, keep LiveView in normal mode (it does less stuff) */
             raw_lv_release();
             raw_flag = 0;
         }
