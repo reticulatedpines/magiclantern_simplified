@@ -167,7 +167,6 @@ static CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 1);
-static int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
 
@@ -2869,6 +2868,9 @@ fallback_from_raw:
 #endif
 
 #ifdef FEATURE_GHOST_IMAGE
+
+static int transparent_overlay_hidden = 0;
+
 static MENU_UPDATE_FUNC(transparent_overlay_display)
 {
     if (transparent_overlay && (transparent_overlay_offx || transparent_overlay_offy))

@@ -32,6 +32,7 @@
 #include "dryos.h"
 #include "property.h"
 #include "math.h"
+#include "string.h"
 #define umalloc alloc_dma_memory
 #define ufree free_dma_memory
 #define pow powf

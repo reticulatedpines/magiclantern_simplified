@@ -2923,7 +2923,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
-            bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
+            bmp_hexdump(FONT_SMALL, 0, 480-120, (void*) hexdump_addr, 32*10);
 #endif
 
         #ifdef FEATURE_SCREENSHOT
