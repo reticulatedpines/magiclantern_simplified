@@ -33,17 +33,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 }
 #endif
 
-int ivaparam, patched_errors=0, flush_errors=0;
-int time_indic_x =  720 - 160; // 160
-int time_indic_y = 0;
-int time_indic_width = 160;
-int time_indic_height = 20;
-int time_indic_warning = 120;
+extern int fps_override;
+static int ivaparam, patched_errors=0;
 
-int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
-int measured_bitrate = 0; // mbps
-int movie_bytes_written_32k = 0;
-int set =0;
+static int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
+static int measured_bitrate = 0; // mbps
+static int movie_bytes_written_32k = 0;
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
 int hibr_should_record_wav() { return cfg_hibr_wav_record; }
@@ -72,71 +67,6 @@ int hibr_should_record_wav() { return 0; }
 #define config_loaded (ivaparam == 1)
 #define config_disabled (ivaparam == 2)
 
-/*
-static void patch_flush_errors()
-{
-	 //FF0EB0C8:     eb3c5a0c        bl      assert__ram
-     //at ./MovieRecorder/MovWriter.c:980, task MovieRecorder
-     cache_fake(0xFF1F1244 , 0xE1A00000, TYPE_ICACHE);
-	//Still 112 	
-	//FF1F5074 bl	assert__ram
-	//at ./MovieRecorder/MovRecResource.c:584, task MovieRecorder
-	//Patching this causes the sig error.
-	//~ cache_fake(0xFF1F5074 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF250 , 0xE1A00000, TYPE_ICACHE);
-	
-	//~ cache_fake(0xFF1DF288 , 0xE1A00000, TYPE_ICACHE);
-
-
-	//~ cache_fake(0xFF1DF1D0 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF21C , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF250 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF2D4 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF308 , 0xE1A00000, TYPE_ICACHE); //Freeze STRT
-
-
-
-	
-	//pHeader->pcsSignature == m_pcsSignature
-	//~ cache_fake(0xFF1F4C2C , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1F4D00 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1F4C1C , 0x000050E1, TYPE_ICACHE);
-
-	//FF1F4C7C - FF1F4C10
-	//~ cache_fake(0xFF1F4C7C , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1F4C7C , 0xE1A00000, TYPE_ICACHE);
-*/
-	// Calls to Check pheader... Assert 0 Returns
-/*	cache_fake(0xFF1E1650 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1E1804 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F2F58 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1F2F74 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F4E78 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F5008 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F2F90 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1E02C4 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1E02D0 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1E02DC , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1D3218 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D3234 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D3250 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D326C , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D3288 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D32A4 , 0xE1A00000, TYPE_ICACHE);
-*/
-/*
-
-  flush_errors = 1;
-
-	
-}
-*/
 static void patch_errors()
 { 
 	#ifdef CONFIG_6D
@@ -239,7 +169,7 @@ int is_mvr_buffer_almost_full()
     if (NOT_RECORDING) return 0;
     if (RECORDING_H264_STARTING) return 1;
 
-    int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
+    int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
     if (ans) warning = 1;
     return warning;
 }
@@ -248,7 +178,7 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (RECORDING_H264 && get_global_draw() && !gui_menu_shown()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (RECORDING_H264 && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 int8_t* ivaparamstatus = (int8_t*)(l_EncoMode);
 uint8_t oldh2config;
@@ -372,8 +302,8 @@ void bitrate_set()
 
 void measure_bitrate() // called once / second
 {
-    static uint32_t prev_bytes_written = 0;
-    uint32_t bytes_written = MVR_BYTES_WRITTEN;
+    static uint64_t prev_bytes_written = 0;
+    uint64_t bytes_written = MVR_BYTES_WRITTEN;
     int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
     prev_bytes_written = bytes_written;
     movie_bytes_written_32k = bytes_written >> 15;
@@ -452,7 +382,7 @@ void time_indicator_show()
     }
 }
 #ifdef FEATURE_NITRATE_WAV_RECORD
-static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
+static MENU_SELECT_FUNC(hibr_wav_record_select){
     menu_numeric_toggle(priv, 1, 0, 1);
     if (RECORDING) return;
     int *onoff = (int *)priv;
@@ -666,7 +596,7 @@ INIT_FUNC(__FILE__, bitrate_init);
 
 void movie_indicators_show()
 {
-    if (RECORDING_H264)
+    if (RECORDING_H264 && !gui_menu_shown())
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -690,11 +620,12 @@ bitrate_task( void* unused )
             movie_indicators_show();
             
 			if ( (movie_elapsed_time_01s<200) && (movie_elapsed_time_01s>100) && 		
-					(measured_bitrate == 0) && (movie_bytes_written_32k == 0) )
+					(measured_bitrate == 0) && (movie_bytes_written_32k == 0) && (!fps_override) )
 					//~ && (!fps_override) && (bitrate_flushing_rate == 3) )
 						{// ASSERT (0);
 							//call ("SHUTDOWN");
 							//~ call ("dumpf");
+					ui_lock(UILOCK_NONE);
 					NotifyBox(2000,"Not writing! Check settings, reboot!");
 					msleep(1000);					
 					//~ prop_request_change(PROP_REBOOT_MAYBE, 0, 4);
