@@ -34,7 +34,6 @@ static CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
 static CONFIG_INT( "audio.mgain",      mgain,          4 );
 static CONFIG_INT( "audio.mic-power",  mic_power,      1 );
 static CONFIG_INT( "audio.o2gain",     o2gain,         0 );
-//CONFIG_INT( "audio.mic-in",   mic_in,         0 ); // not used any more?
 
 int audio_meters_are_drawn()
 {

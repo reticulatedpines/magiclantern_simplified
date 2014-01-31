@@ -843,7 +843,6 @@ PROP_HANDLER( PROP_MIC_INSERTED )
 #else
     audio_configure( 1 );
 #endif
-    //~ menu_set_dirty();
 }
 
 static int get_input_source()
