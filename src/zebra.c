@@ -276,8 +276,12 @@ int should_draw_zoom_overlay()
 
 int digic_zoom_overlay_enabled()
 {
+    #ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN
     return zoom_overlay_size == 3 &&
         should_draw_zoom_overlay();
+    #else
+    return 0;
+    #endif
 }
 
 int nondigic_zoom_overlay_enabled()
@@ -2945,12 +2949,12 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Size", 
                 .priv = &zoom_overlay_size,
-                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // old cameras - simple zoom box
-                .max = 2,
-                .help = "Size of zoom box (small / medium / large).",
-                #else // new cameras can do fullscreen too :)
+                #ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN // most new cameras can do fullscreen :)
                 .max = 3,
                 .help = "Size of zoom box (small / medium / large / full screen).",
+                #else // old cameras - simple zoom box
+                .max = 2,
+                .help = "Size of zoom box (small / medium / large).",
                 #endif
                 .choices = (const char *[]) {"Small", "Medium", "Large", "FullScreen"},
                 .icon_type = IT_SIZE,
@@ -3516,7 +3520,10 @@ void zoom_overlay_set_countdown(int x)
 
 void digic_zoom_overlay_step(int force_off)
 {
-#if !defined(CONFIG_VXWORKS)
+#ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN
+    #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    #error This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
+    #endif
     static int prev = 0;
     if (digic_zoom_overlay_enabled() && !force_off)
     {
