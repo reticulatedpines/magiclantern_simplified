@@ -556,7 +556,7 @@ static void white_detect(int* white_dark, int* white_bright)
     int whites[2] = {0, 0};
     int maxies[2] = {white, white};
     int counts[2] = {0, 0};
-    int safety_margins[2] = {100, 1000}; /* use a higher safety margin for the higher ISO */
+    int safety_margins[2] = {100, 2000}; /* use a higher safety margin for the higher ISO */
 
     int x,y;
     for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
@@ -583,7 +583,7 @@ static void white_detect(int* white_dark, int* white_bright)
     }
 
     /* no confirmed max? use unconfirmed ones */
-    if (whites[0] == 0) whites[0] = maxies[0] - safety_margins[1];
+    if (whites[0] == 0) whites[0] = maxies[0] - safety_margins[0];
     if (whites[1] == 0) whites[1] = maxies[1] - safety_margins[1];
 
     //~ printf("%8d %8d\n", whites[0], whites[1]);
