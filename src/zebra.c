@@ -4848,7 +4848,7 @@ void update_disp_mode_bits_from_params()
 #ifdef FEATURE_VECTORSCOPE
         (vectorscope_should_draw() ? 1<<13: 0) |
 #else
-        0
+        0 |
 #endif
         0;
         
