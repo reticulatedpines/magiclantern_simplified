@@ -4847,6 +4847,8 @@ void update_disp_mode_bits_from_params()
         //~ (defish_preview       ? 1<<12: 0) |
 #ifdef FEATURE_VECTORSCOPE
         (vectorscope_should_draw() ? 1<<13: 0) |
+#else
+        0
 #endif
         0;
         
