@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "io_crypt.h"
 #include "crypt_lfsr64.h"
@@ -11,6 +12,12 @@
 
 
 #define BLOCKSIZE (8 * 1024)
+
+
+static const uint8_t cr2_magic[] = "\x49\x49\x2A\x00";
+static const uint8_t jpg_magic[] = "\xff\xd8\xff\xe1";
+static const uint8_t rsa_magic[] = "\xff\xd8\xff\xd8";
+static const uint8_t lfsr_magic[] = "\xff\xd8\xff\x8d";
 
 
 static uint32_t lfsr113[] = { 0x00009821, 0x00098722, 0x00986332, 0x961FEFA7 };
@@ -40,31 +47,27 @@ void rand_seed(uint32_t seed)
     }
 }
 
+static crypt_cipher_t iocrypt_rsa_ctx;
 int main(int argc, char *argv[])
 {
-    if(argc == 2 && !strcmp(argv[1], "-t"))
+    if(argc < 3)
     {
-        crypt_rsa_test();
-        return;
-    }
-    
-    if(argc != 4)
-    {
-        printf("Usage: '%s <infile> <outfile> <password>\n", argv[0]);
+        printf("Usage: '%s <infile> <outfile> [password]\n", argv[0]);
         return -1;
     }
     
+    uint64_t key = 0;
+    uint32_t lfsr_blocksize = 0x00020000;
+    
     char *in_filename = argv[1];
     char *out_filename = argv[2];
-    char *password = argv[3];
-
-    /* hash the password */
-    uint64_t key = 0;
-    hash_password(password, &key);
     
-    /* setup cipher with that hash */
-    crypt_cipher_t *crypt_ctx;
-    crypt_lfsr64_init(&crypt_ctx, key);
+    /* password is optional */
+    if(argc >= 4)
+    {
+        /* hash the password */
+        hash_password(argv[3], &key);
+    }
     
     /* open files */
     FILE *in_file = fopen(in_filename, "rb");
@@ -82,7 +85,117 @@ int main(int argc, char *argv[])
     }
     
     char *buffer = malloc(BLOCKSIZE);
+    
+    
+    /* try to detect file type */
+    if(fread(buffer, 1, 4, in_file) != 4)
+    {
+        printf("Could not read '%s'\n", in_filename);
+        return -1;
+    }
+    
+    if(!memcmp(buffer, jpg_magic, 4))
+    {
+        printf("File type: JPEG (plain)\n");
+        return 0;
+    }
+    else if(!memcmp(buffer, cr2_magic, 4))
+    {
+        printf("File type: CR2 (plain)\n");
+        return 0;
+    }
+    else if(!memcmp(buffer, lfsr_magic, 4))
+    {
+        printf("File type: LFSR64\n");
+        
+        if(!key)
+        {
+            printf("Error: Please specify a password\n");
+            return -2;
+        }
+        if(fread(&lfsr_blocksize, 1, sizeof(uint32_t), in_file) != sizeof(uint32_t))
+        {
+            printf("Could not read '%s'\n", in_filename);
+            return -1;
+        }
+        
+        fseek(in_file, 0x200, SEEK_SET);
+    }
+    else if(!memcmp(buffer, rsa_magic, 4))
+    {
+        printf("File type: RSA+LFSR64\n");
+        
+        crypt_rsa_init(&iocrypt_rsa_ctx);
+
+        uint32_t encrypted_size = 0;
+        
+        if(fread(&encrypted_size, 1, sizeof(uint32_t), in_file) != sizeof(uint32_t))
+        {
+            printf("Could not read '%s'\n", in_filename);
+            return -1;
+        }
+        
+        if(fread(&lfsr_blocksize, 1, sizeof(uint32_t), in_file) != sizeof(uint32_t))
+        {
+            printf("Could not read '%s'\n", in_filename);
+            return -1;
+        }
+
+        if(!encrypted_size || encrypted_size > 32768 * 4)
+        {
+            printf("encrypted_size: %d\n", encrypted_size);
+            return -1;
+        }
+        
+        if(!lfsr_blocksize || lfsr_blocksize > 0x10000000)
+        {
+            printf("lfsr_blocksize: %d\n", lfsr_blocksize);
+            return -1;
+        }
+        
+        char *encrypted = malloc(encrypted_size);
+        if(fread(encrypted, 1, encrypted_size, in_file) != encrypted_size)
+        {
+            printf("Could not read '%s'\n", in_filename);
+            return -1;
+        }
+        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(&iocrypt_rsa_ctx, encrypted, encrypted, encrypted_size, 0);
+
+        if(!decrypted_size || decrypted_size > encrypted_size)
+        {
+            printf("decrypted_size: %d. maybe key mismatch?\n", decrypted_size);
+            return -1;
+        }
+        
+        /* that decrypted data is the file crypt key */
+        memcpy(&key, encrypted, sizeof(uint64_t));
+        
+        free(encrypted);
+    
+        uint32_t used_header = 4 + sizeof(uint32_t) + encrypted_size;
+        uint32_t aligned_header = (used_header + 0x1FF) & ~0x1FF;
+        
+        /* now skip that header and continue with LFSR113 decryption */
+        fseek(in_file, aligned_header, SEEK_SET);
+    }
+    else
+    {
+        if(key)
+        {
+            printf("File type: unknown. assuming LFSR64\n");
+        }
+        else
+        {
+            printf("File type: unknown. assuming LFSR64. Please specify a password\n");
+            return -2;
+        }
+    }
+    
+    /* setup cipher with that hash */
     uint32_t file_offset = 0;
+    crypt_cipher_t crypt_ctx;
+    crypt_lfsr64_init(&crypt_ctx, key);
+    crypt_ctx.set_blocksize(&crypt_ctx, lfsr_blocksize);
     
     while(!feof(in_file))
     {
@@ -90,9 +203,14 @@ int main(int argc, char *argv[])
         
         if(ret > 0)
         {
-            crypt_ctx->decrypt(crypt_ctx, buffer, buffer, ret, file_offset);
+            crypt_ctx.decrypt(&crypt_ctx, buffer, buffer, ret, file_offset);
             fwrite(buffer, 1, ret, out_file);
             file_offset += ret;
+        }
+        if(ret < 0)
+        {
+            printf("Could not read '%s'\n", in_filename);
+            break;
         }
     }
     
