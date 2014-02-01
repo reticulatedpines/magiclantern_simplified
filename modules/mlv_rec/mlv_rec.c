@@ -2881,25 +2881,26 @@ static void raw_video_rec_task()
             }
 
             /* not yet opened? */
-            if(!mlv_handles[writer])
+            if(!mlv_handles[writer] || mlv_handles[writer] == INVALID_PTR)
             {
                 get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], writer, writer);
                 trace_write(raw_rec_trace_ctx, "Filename(%d): '%s'", writer, chunk_filename[writer]);
                 mlv_handles[writer] = FIO_CreateFileEx(chunk_filename[writer]);
-
-                /* throw in a MLVI header */
-                mlv_file_hdr_t hdr = mlv_file_hdr;
-                hdr.fileNum = file_num;
-                raw_prepare_chunk(mlv_handles[writer], &hdr);
             }
 
             /* failed to open? */
-            if (mlv_handles[writer] == INVALID_PTR)
+            if (!mlv_handles[writer] || mlv_handles[writer] == INVALID_PTR)
             {
                 trace_write(raw_rec_trace_ctx, "FIO_CreateFileEx(#%d): FAILED", writer);
-                bmp_printf(FONT_MED, 30, 50, "File create error");
+                NotifyBox(50000, "Failed to create file. Card full?");
+                beep_times(2);
                 return;
             }
+            
+            /* throw in a MLVI header */
+            mlv_file_hdr_t hdr = mlv_file_hdr;
+            hdr.fileNum = file_num;
+            raw_prepare_chunk(mlv_handles[writer], &hdr);
         }
 
         /* create writer threads with decreasing priority */
@@ -2916,6 +2917,7 @@ static void raw_video_rec_task()
             thread_wait--;
             if(!thread_wait)
             {
+                NotifyBox(50000, "Threads failed to start");
                 trace_write(raw_rec_trace_ctx, "Threads failed to start");
                 beep_times(2);
                 return;
@@ -2959,6 +2961,7 @@ static void raw_video_rec_task()
             /* when capture task had to skip a frame, stop recording */
             if (!allow_frame_skip && frame_skips && (raw_recording_state == RAW_RECORDING))
             {
+                NotifyBox(50000, "Frame skipped. Stopping");
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
                 raw_recording_state = RAW_FINISHING;
                 raw_rec_cbr_stopping();
@@ -3086,15 +3089,17 @@ static void raw_video_rec_task()
                         get_next_chunk_file_name(mlv_movie_filename, handle->filename, handle->file_header.fileNum, handle->writer);
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, handle->filename);
                         handle->file_handle = FIO_CreateFileEx(handle->filename);
-                        raw_prepare_chunk(handle->file_handle, &handle->file_header);
                     }
 
                     /* failed to open? */
                     if(handle->file_handle == INVALID_PTR)
                     {
+                        NotifyBox(50000, "Failed to create file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
                         break;
                     }
+                    
+                    raw_prepare_chunk(handle->file_handle, &handle->file_header);
 
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], handle);
@@ -3975,9 +3980,12 @@ static unsigned int raw_rec_init()
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
         FILE* f = FIO_CreateFileEx(warmup_filename);
-        FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
-        FIO_CloseFile(f);
-        FIO_RemoveFile(warmup_filename);
+        if(f != INVALID_PTR)
+        {
+            FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
+            FIO_CloseFile(f);
+            FIO_RemoveFile(warmup_filename);
+        }
         NotifyBoxHide();
     }
 
