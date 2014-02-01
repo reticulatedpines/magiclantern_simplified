@@ -4,10 +4,6 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
-#include <config.h>
-
-#include <string.h>
-
 
 #include <io_crypt.h>
 
@@ -21,8 +17,8 @@
 
 static const uint8_t cr2_magic[] = "\x49\x49\x2A\x00";
 static const uint8_t jpg_magic[] = "\xff\xd8\xff\xe1";
-static const uint8_t rsa_magic[] = "\xff\xd8\xff\xd8";
-static const uint8_t lfsr_magic[] = "\xff\xd8\xff\x8d";
+                    
+char *strncpy(char *dest, const char *src, size_t n);
 
 static iodev_handlers_t *orig_iodev = NULL;
 static iodev_handlers_t hook_iodev;
@@ -31,8 +27,7 @@ uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 
 static uint8_t *iocrypt_scratch = NULL;
 static uint64_t iocrypt_key = 0;
-
-static crypt_cipher_t iocrypt_rsa_ctx;
+static uint32_t iocrypt_enabled = 0;
 
 static fd_map_t iocrypt_files[32];
 static struct semaphore *iocrypt_password_sem = 0;
@@ -43,37 +38,6 @@ static uint32_t iodev_table = 0;
 static uint32_t iodev_ctx = 0;
 static uint32_t iodev_ctx_size = 0;
 
-/* no encryption active */
-#define CRYPT_MODE_NONE                 0
-
-/* en-/decrypt on the fly with a symmetric cipher and given password */
-#define CRYPT_MODE_SYMMETRIC            1
-
-/* encrypt on the fly using a random key which gets stored using an asymmetric cipher. decryption on PC only. */
-#define CRYPT_MODE_ASYMMETRIC           2
-#define CRYPT_MODE_ASYMMETRIC_PARANOID  3
-
-/* same ciphers, but files are stored unencrypted and get encrypted when camera is idle */
-#define CRYPT_MODE_BACKGROUND_SYM       4
-#define CRYPT_MODE_BACKGROUND_ASYM      5
-
-
-/* dont redirect any file to fake images */
-#define CRYPT_FAKE_OFF                  0
-/* if encrypytion key is unknown, show fake image */
-#define CRYPT_FAKE_UNREADABLE           1
-/* if the file is encrypted, no matter if key is correct or not, show fake image */
-#define CRYPT_FAKE_ENCRYPTED            2
-/* all images are replaced with fake ones */
-#define CRYPT_FAKE_ALL                  3
-
-
-static CONFIG_INT("io_crypt.mode", iocrypt_mode, 0);
-static CONFIG_INT("io_crypt.fake", iocrypt_fake, 0);
-static CONFIG_INT("io_crypt.block_size", iocrypt_block_size, 4);
-static CONFIG_INT("io_crypt.ask_pass", iocrypt_ask_pass, 0);
-static CONFIG_INT("io_crypt.rsa_key_size", iocrypt_rsa_key_size, 2);
-
 
 static IME_UPDATE_FUNC(iocrypt_ime_update)
 {
@@ -82,12 +46,13 @@ static IME_UPDATE_FUNC(iocrypt_ime_update)
 
 static IME_DONE_FUNC(iocrypt_ime_done)
 {
-    //gui_stop_menu();
+    gui_stop_menu();
     
     /* if key input dialog was cancelled */
     if(status != IME_OK)
     {
         iocrypt_key = 0;
+        iocrypt_enabled = 0;
         NotifyBox(2000, "Crypto disabled");
         beep();
 
@@ -98,6 +63,7 @@ static IME_DONE_FUNC(iocrypt_ime_done)
     hash_password(text, &iocrypt_key);
     
     /* done, use that key */
+    iocrypt_enabled = 1;
     give_semaphore(iocrypt_password_sem);
     
     return IME_OK;
@@ -124,8 +90,8 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
     
     if(fd < COUNT(iocrypt_files))
     {
-        iocrypt_files[fd].crypt_ctx.deinit(&iocrypt_files[fd].crypt_ctx);
-        iocrypt_files[fd].crypt_ctx.priv = NULL;
+        iocrypt_files[fd].crypt_ctx->deinit((void **)&iocrypt_files[fd].crypt_ctx);
+        iocrypt_files[fd].crypt_ctx = NULL;
     }
     
     uint32_t ret = orig_iodev->CloseFile(fd);
@@ -133,221 +99,60 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
     return ret;
 }
 
-static uint32_t iocrypt_asym_init(int fd)
-{
-    uint64_t file_key = 0;
-    uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
-    uint32_t blocksize = crypt_rsa_blocksize(&iocrypt_rsa_ctx);
-    
-    trace_write(iocrypt_trace_ctx, "iocrypt_save_asym_hdr: block size %d bytes, lfsr_blocksize %d bytes", blocksize, lfsr_blocksize);
-    if(!blocksize)
-    {
-        return 0;
-    }
-    char *key = malloc(blocksize + 32);
-    
-    /* create a random per-file crypt key */
-    rand_fill(key, blocksize / 4);
-    memcpy(&file_key, key, sizeof(uint64_t));
-
-    /* encrypt the randomly generated per-file header with RSA public key */
-    uint32_t encrypted_size = iocrypt_rsa_ctx.encrypt(&iocrypt_rsa_ctx, (uint8_t*)key, (uint8_t*)key, blocksize, 0);
-    
-    /* write header, block size and encrypted key */
-    orig_iodev->WriteFile(fd, (uint8_t*)rsa_magic, 4);
-    orig_iodev->WriteFile(fd, (uint8_t*)&encrypted_size, sizeof(uint32_t));
-    orig_iodev->WriteFile(fd, (uint8_t*)&lfsr_blocksize, sizeof(uint32_t));
-    orig_iodev->WriteFile(fd, (uint8_t*)key, encrypted_size);
-    free(key);
-    
-    uint32_t used_header = 4 + sizeof(uint32_t) + sizeof(uint32_t) + encrypted_size;
-    uint32_t aligned_header = (used_header + 0x1FF) & ~0x1FF;
-    uint32_t remain = aligned_header - used_header;
-    
-    /* fill remaining space with random data */
-    char *filler = malloc(remain);
-    rand_fill(filler, remain / 4);
-    orig_iodev->WriteFile(fd, (uint8_t*)filler, remain);
-    free(filler);
-    
-    iocrypt_files[fd].header_size = aligned_header;
-    
-    /* rewind file */
-    iodev_SetPosition(fd, 0);
-    
-    /* init encryption */
-    iocrypt_files[fd].file_key = file_key;
-    crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
-    iocrypt_files[fd].crypt_ctx.set_blocksize(&iocrypt_files[fd].crypt_ctx, lfsr_blocksize);
-
-    return 1;
-}
-
-static uint32_t iocrypt_sym_init(int fd)
-{
-    uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
-    
-    trace_write(iocrypt_trace_ctx, "iocrypt_sym_init: lfsr_blocksize %d bytes", lfsr_blocksize);
-    
-    /* write header, block size and encrypted key */
-    orig_iodev->WriteFile(fd, (uint8_t*)lfsr_magic, 4);
-    orig_iodev->WriteFile(fd, (uint8_t*)&lfsr_blocksize, sizeof(uint32_t));
-    
-    iocrypt_files[fd].header_size = 0x200;
-    uint32_t remain = 0x200 - 8;
-    
-    /* fill remaining space with random data */
-    char *filler = malloc(remain);
-    rand_fill(filler, remain / 4);
-    orig_iodev->WriteFile(fd, (uint8_t*)filler, remain);
-    free(filler);
-    
-    /* rewind file */
-    iodev_SetPosition(fd, 0);
-    
-    /* init encryption */
-    iocrypt_files[fd].file_key = iocrypt_key;
-    crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
-    iocrypt_files[fd].crypt_ctx.set_blocksize(&iocrypt_files[fd].crypt_ctx, lfsr_blocksize);
-
-    return 1;
-}
-
 static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, char *filename_)
 {
-    int plain = 0;
-    int decryptable = 0;
-    
     uint32_t fd = orig_iodev->OpenFile(iodev, filename, flags, filename_);
     
     trace_write(iocrypt_trace_ctx, "iodev_OpenFile('%s', %d) = %d", filename, flags, fd);
     
     if(fd < COUNT(iocrypt_files))
     {
-        iocrypt_files[fd].crypt_ctx.priv = NULL;
-        iocrypt_files[fd].header_size = 0;
+        iocrypt_files[fd].crypt_ctx = NULL;
         
         /* copy filename */
         strncpy(iocrypt_files[fd].filename, filename, sizeof(iocrypt_files[fd].filename));
         
-        char *ext = &filename[strlen(filename) - 3];
-        
-        /* analyze file */
-        if(!strcmp(ext, "CR2") || !strcmp(ext, "JPG"))
+        /* shall we crypt the file? */
+        if(iocrypt_enabled && iocrypt_key)
         {
-            /* when opening for read, first check if we really have to decrypt it */
-            if((flags & 3) == O_RDONLY)
+            char *ext = &filename[strlen(filename) - 3];
+            
+            if(!strcmp(ext, "CR2") || !strcmp(ext, "JPG"))
             {
-                uint8_t buf[4];
-                
-                /* read and rewind file */
-                orig_iodev->ReadFile(fd, buf, 4);
-                iodev_SetPosition(fd, 0);
-                
-                /* check for JPEG or CR2 header */
-                if(!strcmp(ext, "JPG") && !memcmp(buf, jpg_magic, 4))
+                /* when opening for read, first check if we really have to decrypt it */
+                if((flags & 3) == O_RDONLY)
                 {
-                    trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted JPEG", filename);
-                    plain = 1;
-                }
-                else if(!strcmp(ext, "CR2") && !memcmp(buf, cr2_magic, 4))
-                {
-                    trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted CR2", filename);
-                    plain = 1;
-                }
-                else if(!memcmp(buf, lfsr_magic, 4))
-                {
-                    trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be LFSR encrypted, try to decrypt on the fly", filename);
-                    plain = 0;
+                    uint8_t buf[4];
                     
-                    uint32_t lfsr_blocksize = 0;
-                    orig_iodev->ReadFile(fd, &lfsr_blocksize, 4);
-                    iodev_SetPosition(fd, 0x200);
+                    /* read and rewind file */
+                    orig_iodev->ReadFile(fd, buf, 4);
+                    iodev_SetPosition(fd, 0);
                     
-                    crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_key);
-                    iocrypt_files[fd].crypt_ctx.set_blocksize(&iocrypt_files[fd].crypt_ctx, lfsr_blocksize);
-                    
-                    if(iocrypt_files[fd].crypt_ctx.priv)
+                    /* check for JPEG or CR2 header */
+                    if(!strcmp(ext, "JPG") && !memcmp(buf, jpg_magic, 4))
                     {
-                        /* read again to check if it is decryptable now */
-                        orig_iodev->ReadFile(fd, buf, 4);
-                        iodev_SetPosition(fd, 0);
-                        
-                        if(!memcmp(buf, jpg_magic, 4))
-                        {
-                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be decryptable JPEG", filename);
-                            decryptable = 1;
-                        }
-                        else if(!memcmp(buf, cr2_magic, 4))
-                        {
-                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be decryptable CR2", filename);
-                            decryptable = 1;
-                        }
-                        else
-                        {
-                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be not decryptable", filename);
-                        }
-                        
-                        /* shall we crypt the file? if not, release context */
-                        if(!decryptable)
-                        {
-                            iocrypt_files[fd].crypt_ctx.deinit(&iocrypt_files[fd].crypt_ctx);
-                        }
+                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted JPEG", filename);
                     }
-                }
-                else if(!memcmp(buf, rsa_magic, 4))
-                {
-                    trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be RSA encrypted", filename);
+                    else if(!strcmp(ext, "CR2") && !memcmp(buf, cr2_magic, 4))
+                    {
+                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted CR2", filename);
+                    }
+                    else
+                    {
+                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be encrypted", filename);
+                        crypt_lfsr64_init(&(iocrypt_files[fd].crypt_ctx), iocrypt_key);
+                    }
                 }
                 else
                 {
-                    trace_write(iocrypt_trace_ctx, "   ->> File '%s' is unknown", filename);
-                }
-            }
-            else
-            {
-                /* shall we crypt the file? */
-                switch(iocrypt_mode)
-                {
-                    case CRYPT_MODE_SYMMETRIC:
-                        if(iocrypt_key)
-                        {
-                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' will get encrypted with symmetric cipher", filename);
-                            if(!iocrypt_sym_init(fd))
-                            {
-                                trace_write(iocrypt_trace_ctx, "   FAILED TO SET UP ENCRYPTION");
-                                beep();
-                                NotifyBox(2000, "Some error happened, not encrypting!");
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            beep();
-                            NotifyBox(2000, "No key entered, not encrypting!");
-                        }
-                        break;
-                        
-                    case CRYPT_MODE_ASYMMETRIC:
-                    case CRYPT_MODE_ASYMMETRIC_PARANOID:
-                        trace_write(iocrypt_trace_ctx, "   ->> File '%s' will get encrypted with asymmetric cipher", filename);
-                        if(!iocrypt_asym_init(fd))
-                        {
-                            trace_write(iocrypt_trace_ctx, "   FAILED TO SET UP ENCRYPTION");
-                            beep();
-                            NotifyBox(2000, "No key entered, not encrypting!");
-                            break;
-                        }
-                        break;
-                        
-                    default:
-                        break;
+                    /* when writing, always encrypt */
+                    crypt_lfsr64_init(&(iocrypt_files[fd].crypt_ctx), iocrypt_key);
                 }
             }
         }
 
         /* log the encryption status */
-        if(iocrypt_files[fd].crypt_ctx.priv)
+        if(iocrypt_files[fd].crypt_ctx)
         {
             trace_write(iocrypt_trace_ctx, "   ->> ENCRYPTED '%s'", filename);
         }
@@ -363,32 +168,16 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
 static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
 {
     uint32_t fd_pos = iodev_GetPosition(fd);
-    
-    /* when there is some encryption active, handle file offset */
-    if(iocrypt_files[fd].crypt_ctx.priv)
-    {
-        trace_write(iocrypt_trace_ctx, "iodev_ReadFile: apply offset %d", iocrypt_files[fd].header_size);
-        iodev_SetPosition(fd, iodev_GetPosition(fd) + iocrypt_files[fd].header_size);
-    }
-    
     uint32_t ret = orig_iodev->ReadFile(fd, buf, length);
-    
-    /* when there is some encryption active, handle file offset */
-    if(iocrypt_files[fd].crypt_ctx.priv)
-    {
-        trace_write(iocrypt_trace_ctx, "iodev_ReadFile: undo offset %d", iocrypt_files[fd].header_size);
-        iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
-    }
-    
     
     if(fd < COUNT(iocrypt_files))
     {
         trace_write(iocrypt_trace_ctx, "iodev_ReadFile(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, %s", buf, length, fd, fd_pos, iocrypt_files[fd].filename);
         
-        if(iocrypt_files[fd].crypt_ctx.priv)
+        if(iocrypt_files[fd].crypt_ctx)
         {
             trace_write(iocrypt_trace_ctx, "   ->> DECRYPT");
-            iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
+            iocrypt_files[fd].crypt_ctx->decrypt(iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
             trace_write(iocrypt_trace_ctx, "   ->> DONE");
         }
     }
@@ -406,7 +195,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
         uint32_t misalign = ((uint32_t)buf) % 8;
         uint32_t fd_pos = iodev_GetPosition(fd);
         
-        if(iocrypt_files[fd].crypt_ctx.priv)
+        if(iocrypt_files[fd].crypt_ctx)
         {
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile pre(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, misalign = %d, %s", buf, length, fd, fd_pos, misalign, iocrypt_files[fd].filename);
         
@@ -419,26 +208,18 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             }
             
             trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
-            iocrypt_files[fd].crypt_ctx.encrypt(&iocrypt_files[fd].crypt_ctx, work_ptr, buf, length, fd_pos);
+            iocrypt_files[fd].crypt_ctx->encrypt(iocrypt_files[fd].crypt_ctx, work_ptr, buf, length, fd_pos);
             trace_write(iocrypt_trace_ctx, "   ->> DONE");
-            
-            /* when there is some encryption active, handle file offset */
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile: apply offset %d", iocrypt_files[fd].header_size);
-            iodev_SetPosition(fd, iodev_GetPosition(fd) + iocrypt_files[fd].header_size);
             
             ret = orig_iodev->WriteFile(fd, work_ptr, length);
             
-            /* when there is some encryption active, handle file offset */
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile: undo offset %d", iocrypt_files[fd].header_size);
-            iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
-        
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, fd_pos (now) = 0x%08X, %s", buf, length, fd, fd_pos, iodev_GetPosition(fd), iocrypt_files[fd].filename);
             
             /* if we were not able to write it from scratch, undo in-place encryption */
             if(work_ptr == buf)
             {
                 trace_write(iocrypt_trace_ctx, "   ->> CLEANUP");
-                iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
+                iocrypt_files[fd].crypt_ctx->decrypt(iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
                 trace_write(iocrypt_trace_ctx, "   ->> DONE");
             }
             
@@ -462,6 +243,7 @@ static void iocrypt_enter_pw()
     if(!ime_base_start("io_crypt: Enter password", iocrypt_ime_text, sizeof(iocrypt_ime_text) - 1, IME_UTF8, IME_CHARSET_ANY, &iocrypt_ime_update, &iocrypt_ime_done, 0, 0, 0, 0))
     {
         give_semaphore(iocrypt_password_sem);
+        iocrypt_enabled = 0;
         iocrypt_key = 0;
         NotifyBox(2000, "IME error, Crypto disabled");
     }
@@ -469,7 +251,7 @@ static void iocrypt_enter_pw()
 
 static void iocrypt_speed_test_write(char *file, uint32_t blocksize, uint32_t loops)
 {
-    char filename[32];
+    uint8_t filename[32];
     uint8_t *buffer = malloc(blocksize);
     
     if(!buffer)
@@ -486,7 +268,7 @@ static void iocrypt_speed_test_write(char *file, uint32_t blocksize, uint32_t lo
         return;
     }
     
-    for(uint32_t loop = 0; loop < loops; loop++)
+    for(int loop = 0; loop < loops; loop++)
     {
         FIO_WriteFile(f, buffer, blocksize);
     }
@@ -497,7 +279,7 @@ static void iocrypt_speed_test_write(char *file, uint32_t blocksize, uint32_t lo
 
 static void iocrypt_speed_test_read(char *file, uint32_t blocksize)
 {
-    char filename[32];
+    uint8_t filename[32];
     uint8_t *buffer = malloc(blocksize);
     
     if(!buffer)
@@ -514,7 +296,7 @@ static void iocrypt_speed_test_read(char *file, uint32_t blocksize)
         return;
     }
     
-    while(FIO_ReadFile(f, buffer, blocksize) == (int)blocksize)
+    while(FIO_ReadFile(f, buffer, blocksize) == blocksize)
     {
     }
     
@@ -531,11 +313,15 @@ static void iocrypt_speed_test()
     gui_stop_menu();
     msleep(500);
     
-
-    hash_password("Speed test password", &iocrypt_key);
+    if(!iocrypt_enabled)
+    {
+        unset = 1;
+        iocrypt_enabled = 1;
+        hash_password("Speed test password", &iocrypt_key);
+    }
 
     bmp_printf(FONT_MED, 10, 30, "Starting benchmark");
-    for(uint32_t loop = 0; loop < loops; loop++)
+    for(int loop = 0; loop < loops; loop++)
     {
         uint32_t start = 0;
         uint32_t delta = 0;
@@ -574,6 +360,7 @@ static void iocrypt_speed_test()
     
     if(unset)
     {
+        iocrypt_enabled = 0;
         iocrypt_key = 0;
     }
     
@@ -585,13 +372,6 @@ static void iocrypt_speed_test()
 static MENU_SELECT_FUNC(iocrypt_enter_pw_select)
 {
     iocrypt_enter_pw();
-}
-
-static MENU_SELECT_FUNC(iocrypt_rsa_key_select)
-{
-    crypt_rsa_set_keysize(512 << iocrypt_rsa_key_size);
-    
-    task_create("crypt_rsa_generate_keys", 0x1e, 0x1000, crypt_rsa_generate_keys, (void*)&iocrypt_rsa_ctx);
 }
 
 static MENU_SELECT_FUNC(iocrypt_test_rsa)
@@ -606,40 +386,15 @@ static MENU_SELECT_FUNC(iocrypt_test_speed)
 
 static MENU_UPDATE_FUNC(iocrypt_update)
 {
-    switch(iocrypt_mode)
+    if (!iocrypt_enabled)
     {
-        case CRYPT_MODE_SYMMETRIC:
-            if(!iocrypt_key)
-            {
-                MENU_SET_VALUE("No password!");
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please set a password first. Files are not encrypted yet.");
-            }
-            else
-            {
-                MENU_SET_VALUE("Active");
-            }
-            break;
-            
-        case CRYPT_MODE_ASYMMETRIC:
-        case CRYPT_MODE_ASYMMETRIC_PARANOID:
-            if(!crypt_rsa_get_pub(&iocrypt_rsa_ctx))
-            {
-                MENU_SET_VALUE("No Keys!");
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please create keys first. Files are not encrypted yet.");
-            }
-            else if(crypt_rsa_get_priv(&iocrypt_rsa_ctx))
-            {
-                MENU_SET_VALUE("INSECURE!");
-                MENU_SET_WARNING(MENU_WARN_ADVICE, "Move /ML/DATA/IO_CRYPT.KEY to a safe place and DELETE from card.");
-            }
-            else
-            {
-                MENU_SET_VALUE("Active");
-            }
-            break;
-            
-        default:
-            break;
+        return;
+    }
+    
+    if(!iocrypt_key)
+    {
+        MENU_SET_VALUE("No password!");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please set a password first.");
     }
 }
 
@@ -647,26 +402,12 @@ static struct menu_entry iocrypt_menus[] =
 {
     {
         .name = "Encryption",
+        .priv = &iocrypt_enabled,
         .update = &iocrypt_update,
+        .max = 1,
         .help  = "Enable low level encryption.",
         .submenu_width = 710,
         .children = (struct menu_entry[]) {
-            {
-                .name = "Encryption",
-                .priv = &iocrypt_mode,
-                .max = 2, /* the others are not implemented yet */
-                .choices = (const char *[]) {"OFF", "Password", "RSA", "RSA (paranoid)", "Background PW", "Background RSA"},
-                .help = "Select the encryption mode. The higher the level, the less comfort you have.",
-            },
-            /*
-            {
-                .name = "Show fake images",
-                .priv = &iocrypt_fake,
-                .max = 3,
-                .choices = (const char *[]) {"OFF", "Wrong Password", "All Encrypted", "All Images"},
-                .help = "Which images should get replaced by fake images.",
-            },
-            */
             {
                 .name = "Set password",
                 .select = &iocrypt_enter_pw_select,
@@ -674,41 +415,13 @@ static struct menu_entry iocrypt_menus[] =
                 .icon_type = IT_ACTION,
             },
             {
-                .name = "Blocksize",
-                .priv = &iocrypt_block_size,
-                .max = 6,
-                .choices = (const char *[]) {"8k", "16k", "32k", "64k", "128k", "256k", "512k"},
-                .help = "Blocks get encrypted with the same 64 bit key. The smaller the more secure but slower.",
-            },
-            {
-                .name = "Ask for password on startup",
-                .priv = &iocrypt_ask_pass,
-                .max = 1,
-                .help = "When enabled it will ask for the encryption password right after camera powerup.",
-            },
-            {
-                .name = "Create RSA Key",
-                .select = &iocrypt_rsa_key_select,
-                .priv = NULL,
-                .icon_type = IT_ACTION,
-                .help = "Do this ONCE at HOME and then store /priv.key on your PC safely.",
-            },
-            {
-                .name = "RSA Keysize",
-                .priv = &iocrypt_rsa_key_size,
-                .max = 3,
-                .choices = (const char *[]) {"512", "1024", "2048", "4096"},
-                .help = "Key size when creating a RSA key pair. The smaller, the less security you have.",
-            },
-            
-            {
-                .name = "Test: Speed",
+                .name = "Test speed",
                 .select = &iocrypt_test_speed,
                 .priv = NULL,
                 .icon_type = IT_ACTION,
             },
             {
-                .name = "Test: RSA",
+                .name = "Test RSA",
                 .select = &iocrypt_test_rsa,
                 .priv = NULL,
                 .icon_type = IT_ACTION,
@@ -764,10 +477,7 @@ static unsigned int iocrypt_init()
     }
     
     /* ask for the initial password */
-    if(iocrypt_ask_pass && (iocrypt_mode == CRYPT_MODE_SYMMETRIC || iocrypt_mode == CRYPT_MODE_BACKGROUND_SYM))
-    {
-        iocrypt_enter_pw();
-    }
+    //iocrypt_enter_pw();
     
     /* this memory is used for buffering encryption, so we dont have to undo the changes in memory */
     iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
@@ -779,9 +489,6 @@ static unsigned int iocrypt_init()
     hook_iodev.ReadFile = &hook_iodev_ReadFile;
     hook_iodev.WriteFile = &hook_iodev_WriteFile;
     MEM(iodev_table) = (uint32_t)&hook_iodev;
-    
-    
-    crypt_rsa_init(&iocrypt_rsa_ctx);
     
     /* any file operation is routed through us now */
     menu_add("Debug", iocrypt_menus, COUNT(iocrypt_menus) );
@@ -801,9 +508,3 @@ MODULE_INFO_START()
     MODULE_DEINIT(iocrypt_deinit)
 MODULE_INFO_END()
 
-MODULE_CONFIGS_START()
-    MODULE_CONFIG(iocrypt_mode)
-    MODULE_CONFIG(iocrypt_block_size)
-    MODULE_CONFIG(iocrypt_ask_pass)
-    MODULE_CONFIG(iocrypt_rsa_key_size)
-MODULE_CONFIGS_END()
