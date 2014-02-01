@@ -96,7 +96,7 @@ NSTUB(0x00007A94, _FreeMemory)
 NSTUB(0xFF0D6E5C, GUI_ChangeMode) // xref: GUI_ChangeMode:%d
 NSTUB(0xFF0D6CA0, GUI_Control) // xref: GUI_Control:%d 0x%x
 NSTUB(0xFF1BE180, GUI_GetFirmVersion)
-NSTUB(0xFF13095C, LoadCalendarFromRTC) // xref: [RTC] !! RTC FR !!\n
+NSTUB(0xFF130A44, LoadCalendarFromRTC) // xref: called by exceptionhandlercbr
 NSTUB(0xFF4D3B94, RedrawDisplay) // xref: Refresh whole
 NSTUB(0x000139BC, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF128870, SetBitmapVramAddress)
