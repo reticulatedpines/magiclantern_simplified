@@ -295,15 +295,16 @@ static int black_subtract(int left_margin, int top_margin);
 static int black_subtract_simple(int left_margin, int top_margin);
 static void white_detect(int* white_dark, int* white_bright);
 
-static inline int raw_get_pixel16(int x, int y) {
-    unsigned short * buf = raw_info.buffer;
+static inline int raw_get_pixel16(int x, int y)
+{
+    uint16_t * buf = raw_info.buffer;
     int value = buf[x + y * raw_info.width];
     return value;
 }
 
 static inline int raw_set_pixel16(int x, int y, int value)
 {
-    unsigned short * buf = raw_info.buffer;
+    uint16_t * buf = raw_info.buffer;
     buf[x + y * raw_info.width] = value;
     return value;
 }
@@ -329,11 +330,11 @@ static int startswith(char* str, char* prefix)
 static void reverse_bytes_order(void* buf, int count)
 {
     char* buf8 = (char*) buf;
-    unsigned short* buf16 = (unsigned short*) buf;
+    uint16_t* buf16 = (uint16_t*) buf;
     int i;
     for (i = 0; i < count/2; i++)
     {
-        unsigned short x = buf16[i];
+        uint16_t x = buf16[i];
         buf8[2*i+1] = x;
         buf8[2*i] = x >> 8;
     }
@@ -496,10 +497,6 @@ int main(int argc, char** argv)
             if (!black_subtract(left_margin, top_margin))
                 printf("Black subtract didn't work\n");
 
-            /* will use 16 bit processing and output, instead of 14 */
-            raw_info.black_level *= 4;
-            raw_info.white_level *= 4;
-
             if (hdr_interpolate())
             {
                 char out_filename[1000];
@@ -528,9 +525,6 @@ int main(int argc, char** argv)
             {
                 printf("ISO blending didn't work\n");
             }
-
-            raw_info.black_level /= 4;
-            raw_info.white_level /= 4;
         }
         else
         {
@@ -617,7 +611,7 @@ static int black_subtract(int left_margin, int top_margin)
     int* vblack = malloc(h * sizeof(int));
     int* hblack = malloc(w * sizeof(int));
     int* aux = malloc(MAX(w,h) * sizeof(int));
-    unsigned short * blackframe = malloc(w * h * sizeof(unsigned short));
+    uint16_t * blackframe = malloc(w * h * sizeof(uint16_t));
 
     /* data above this may be gibberish */
     int ymin = (top_margin-8-2) & ~3;
@@ -924,6 +918,24 @@ static int hdr_check()
 
 static int identify_bright_and_dark_fields(int rggb)
 {
+    /* first we need to know which lines are dark and which are bright */
+    /* the pattern is not always the same, so we need to autodetect it */
+
+    /* it may look like this */                       /* or like this */
+    /*
+               ab cd ef gh  ab cd ef gh               ab cd ef gh  ab cd ef gh
+                                       
+            0  RG RG RG RG  RG RG RG RG            0  rg rg rg rg  rg rg rg rg
+            1  gb gb gb gb  gb gb gb gb            1  gb gb gb gb  gb gb gb gb
+            2  rg rg rg rg  rg rg rg rg            2  RG RG RG RG  RG RG RG RG
+            3  GB GB GB GB  GB GB GB GB            3  GB GB GB GB  GB GB GB GB
+            4  RG RG RG RG  RG RG RG RG            4  rg rg rg rg  rg rg rg rg
+            5  gb gb gb gb  gb gb gb gb            5  gb gb gb gb  gb gb gb gb
+            6  rg rg rg rg  rg rg rg rg            6  RG RG RG RG  RG RG RG RG
+            7  GB GB GB GB  GB GB GB GB            7  GB GB GB GB  GB GB GB GB
+            8  RG RG RG RG  RG RG RG RG            8  rg rg rg rg  rg rg rg rg
+    */
+
     int white = raw_info.white_level/4; /* fixme: we work on 14 bits, but white level is the one for 16 bits here */
     if (white > 16383) return 0;        /* should be unreachable */
     
@@ -1256,7 +1268,7 @@ static int mean3(int a, int b, int c, int white, int* err)
 #include "chroma_smooth.c"
 #undef CHROMA_SMOOTH_5X5
 
-static void chroma_smooth(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+static void chroma_smooth(uint16_t * inp, uint16_t * out, int* raw2ev, int* ev2raw)
 {
     switch (chroma_smooth_method)
     {
@@ -1293,8 +1305,8 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     printf("Looking for hot/cold pixels...\n");
 
     /* hot pixel map */
-    unsigned short* hotpixel = malloc(w * h * sizeof(unsigned short));
-    memset(hotpixel, 0, w * h * sizeof(unsigned short));
+    uint16_t* hotpixel = malloc(w * h * sizeof(uint16_t));
+    memset(hotpixel, 0, w * h * sizeof(uint16_t));
 
     int hot_pixels = 0;
     int cold_pixels = 0;
@@ -1386,23 +1398,10 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
 
 static int hdr_interpolate()
 {
-    int ret = 1;
-    
-    int black = raw_info.black_level;
-    int white = raw_info.white_level;
-
+    int x, y;
     int w = raw_info.width;
     int h = raw_info.height;
 
-    int x, y;
-
-    /* for fast EV - raw conversion */
-    static int raw2ev[65536];   /* EV x EV_RESOLUTION */
-    static int ev2raw_0[24*EV_RESOLUTION];
-    
-    /* handle sub-black values (negative EV) */
-    int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
-    
     /* RGGB or GBRG? */
     double rggb_err = 0;
     double gbrg_err = 0;
@@ -1420,7 +1419,7 @@ static int hdr_interpolate()
             gbrg_err += MIN(ABS(tl-br), ABS(tl-pr));
         }
     }
-    
+
     /* which one looks more likely? */
     int rggb = (rggb_err < gbrg_err);
     
@@ -1434,6 +1433,31 @@ static int hdr_interpolate()
         raw_info.height--;
         h--;
     }
+
+    if (!identify_bright_and_dark_fields(rggb))
+        return 0;
+
+    int ret = 1;
+
+    /* will use 16 bit processing and output, instead of 14 */
+    raw_info.black_level *= 4;
+    raw_info.white_level *= 4;
+    
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+
+    int white_bright = white;
+    white_detect(&white, &white_bright);
+    white *= 4;
+    white_bright *= 4;
+    raw_info.white_level = white;
+
+    /* for fast EV - raw conversion */
+    static int raw2ev[65536];   /* EV x EV_RESOLUTION */
+    static int ev2raw_0[24*EV_RESOLUTION];
+    
+    /* handle sub-black values (negative EV) */
+    int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
 
     int i;
     for (i = 0; i < 65536; i++)
@@ -1468,30 +1492,6 @@ static int hdr_interpolate()
     //~ printf("%d %d %d %d %d %d %d *%d* %d %d %d %d %d\n", raw2ev[0], raw2ev[1000], raw2ev[2000], raw2ev[8188], raw2ev[8189], raw2ev[8190], raw2ev[8191], raw2ev[8192], raw2ev[8193], raw2ev[8194], raw2ev[8195], raw2ev[8196], raw2ev[8200]);
     //~ printf("%d %d %d %d %d %d %d *%d* %d %d %d %d %d\n", ev2raw[raw2ev[0]], ev2raw[raw2ev[1000]], ev2raw[raw2ev[2000]], ev2raw[raw2ev[8188]], ev2raw[raw2ev[8189]], ev2raw[raw2ev[8190]], ev2raw[raw2ev[8191]], ev2raw[raw2ev[8192]], ev2raw[raw2ev[8193]], ev2raw[raw2ev[8194]], ev2raw[raw2ev[8195]], ev2raw[raw2ev[8196]], ev2raw[raw2ev[8200]]);
 
-    /* first we need to know which lines are dark and which are bright */
-    /* the pattern is not always the same, so we need to autodetect it */
-
-    /* it may look like this */                       /* or like this */
-    /*
-               ab cd ef gh  ab cd ef gh               ab cd ef gh  ab cd ef gh
-                                       
-            0  RG RG RG RG  RG RG RG RG            0  rg rg rg rg  rg rg rg rg
-            1  gb gb gb gb  gb gb gb gb            1  gb gb gb gb  gb gb gb gb
-            2  rg rg rg rg  rg rg rg rg            2  RG RG RG RG  RG RG RG RG
-            3  GB GB GB GB  GB GB GB GB            3  GB GB GB GB  GB GB GB GB
-            4  RG RG RG RG  RG RG RG RG            4  rg rg rg rg  rg rg rg rg
-            5  gb gb gb gb  gb gb gb gb            5  gb gb gb gb  gb gb gb gb
-            6  rg rg rg rg  rg rg rg rg            6  RG RG RG RG  RG RG RG RG
-            7  GB GB GB GB  GB GB GB GB            7  GB GB GB GB  GB GB GB GB
-            8  RG RG RG RG  RG RG RG RG            8  rg rg rg rg  rg rg rg rg
-    */
-
-    if (!identify_bright_and_dark_fields(rggb))
-        return 0;
-
-    int white_bright = white;
-    white_detect(&white, &white_bright);
-
     double noise_std[4];
     double noise_avg;
     for (y = 0; y < 4; y++)
@@ -1523,31 +1523,28 @@ static int hdr_interpolate()
     bright_noise *= 4;
     dark_noise_ev += 2;
     bright_noise_ev += 2;
-    white *= 4;
-    white_bright *= 4;
-    raw_info.white_level = white;
 
     /* dark and bright exposures, interpolated */
-    unsigned short* dark   = malloc(w * h * sizeof(unsigned short));
-    unsigned short* bright = malloc(w * h * sizeof(unsigned short));
-    memset(dark, 0, w * h * sizeof(unsigned short));
-    memset(bright, 0, w * h * sizeof(unsigned short));
+    uint16_t* dark   = malloc(w * h * sizeof(uint16_t));
+    uint16_t* bright = malloc(w * h * sizeof(uint16_t));
+    memset(dark, 0, w * h * sizeof(uint16_t));
+    memset(bright, 0, w * h * sizeof(uint16_t));
     
     /* fullres image (minimizes aliasing) */
-    unsigned short* fullres = malloc(w * h * sizeof(unsigned short));
-    memset(fullres, 0, w * h * sizeof(unsigned short));
-    unsigned short* fullres_smooth = fullres;
+    uint16_t* fullres = malloc(w * h * sizeof(uint16_t));
+    memset(fullres, 0, w * h * sizeof(uint16_t));
+    uint16_t* fullres_smooth = fullres;
 
     /* halfres image (minimizes noise and banding) */
-    unsigned short* halfres = malloc(w * h * sizeof(unsigned short));
-    memset(halfres, 0, w * h * sizeof(unsigned short));
-    unsigned short* halfres_smooth = halfres;
+    uint16_t* halfres = malloc(w * h * sizeof(uint16_t));
+    memset(halfres, 0, w * h * sizeof(uint16_t));
+    uint16_t* halfres_smooth = halfres;
     
     /* overexposure map */
-    unsigned short* overexposed = 0;
+    uint16_t* overexposed = 0;
 
-    unsigned short* alias_map = malloc(w * h * sizeof(unsigned short));
-    memset(alias_map, 0, w * h * sizeof(unsigned short));
+    uint16_t* alias_map = malloc(w * h * sizeof(uint16_t));
+    memset(alias_map, 0, w * h * sizeof(uint16_t));
 
     /* fullres mixing curve */
     static double fullres_curve[65536];
@@ -1738,7 +1735,7 @@ static int hdr_interpolate()
         
         //~ printf("Grayscale...\n");
         /* convert to grayscale and de-squeeze for easier processing */
-        unsigned short * gray = malloc(w * h * sizeof(gray[0]));
+        uint16_t * gray = malloc(w * h * sizeof(gray[0]));
         for (y = 0; y < h; y ++)
             for (x = 0; x < w; x ++)
                 gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
@@ -1939,8 +1936,8 @@ static int hdr_interpolate()
 
         for (y = 2; y < h-2; y ++)
         {
-            unsigned short* native = BRIGHT_ROW ? bright : dark;
-            unsigned short* interp = BRIGHT_ROW ? dark : bright;
+            uint16_t* native = BRIGHT_ROW ? bright : dark;
+            uint16_t* interp = BRIGHT_ROW ? dark : bright;
             int is_rg = (y % 2 == 0); /* RG or GB? */
             int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
 
@@ -1992,8 +1989,8 @@ static int hdr_interpolate()
         printf("Interpolation   : mean23\n");
         for (y = 2; y < h-2; y ++)
         {
-            unsigned short* native = BRIGHT_ROW ? bright : dark;
-            unsigned short* interp = BRIGHT_ROW ? dark : bright;
+            uint16_t* native = BRIGHT_ROW ? bright : dark;
+            uint16_t* interp = BRIGHT_ROW ? dark : bright;
             int is_rg = (y % 2 == 0); /* RG or GB? */
             int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
             
@@ -2043,8 +2040,8 @@ static int hdr_interpolate()
     /* border interpolation */
     for (y = 0; y < 3; y ++)
     {
-        unsigned short* native = BRIGHT_ROW ? bright : dark;
-        unsigned short* interp = BRIGHT_ROW ? dark : bright;
+        uint16_t* native = BRIGHT_ROW ? bright : dark;
+        uint16_t* interp = BRIGHT_ROW ? dark : bright;
         
         for (x = 0; x < w; x ++)
         {
@@ -2055,8 +2052,8 @@ static int hdr_interpolate()
 
     for (y = h-2; y < h; y ++)
     {
-        unsigned short* native = BRIGHT_ROW ? bright : dark;
-        unsigned short* interp = BRIGHT_ROW ? dark : bright;
+        uint16_t* native = BRIGHT_ROW ? bright : dark;
+        uint16_t* interp = BRIGHT_ROW ? dark : bright;
         
         for (x = 0; x < w; x ++)
         {
@@ -2067,8 +2064,8 @@ static int hdr_interpolate()
 
     for (y = 2; y < h; y ++)
     {
-        unsigned short* native = BRIGHT_ROW ? bright : dark;
-        unsigned short* interp = BRIGHT_ROW ? dark : bright;
+        uint16_t* native = BRIGHT_ROW ? bright : dark;
+        uint16_t* interp = BRIGHT_ROW ? dark : bright;
         
         for (x = 0; x < 2; x ++)
         {
@@ -2293,12 +2290,12 @@ static int hdr_interpolate()
 
         if (use_fullres)
         {
-            fullres_smooth = malloc(w * h * sizeof(unsigned short));
-            memcpy(fullres_smooth, fullres, w * h * sizeof(unsigned short));
+            fullres_smooth = malloc(w * h * sizeof(uint16_t));
+            memcpy(fullres_smooth, fullres, w * h * sizeof(uint16_t));
         }
 
-        halfres_smooth = malloc(w * h * sizeof(unsigned short));
-        memcpy(halfres_smooth, halfres, w * h * sizeof(unsigned short));
+        halfres_smooth = malloc(w * h * sizeof(uint16_t));
+        memcpy(halfres_smooth, halfres, w * h * sizeof(uint16_t));
 
         chroma_smooth(fullres, fullres_smooth, raw2ev, ev2raw);
         chroma_smooth(halfres, halfres_smooth, raw2ev, ev2raw);
@@ -2363,7 +2360,7 @@ static int hdr_interpolate()
     {
         printf("Building alias map...\n");
 
-        unsigned short* alias_aux = malloc(w * h * sizeof(unsigned short));
+        uint16_t* alias_aux = malloc(w * h * sizeof(uint16_t));
         
         /* build the aliasing maps (where it's likely to get aliasing) */
         /* do this by comparing fullres and halfres images */
@@ -2396,7 +2393,7 @@ static int hdr_interpolate()
             save_dng("alias.dng");
         }
 
-        memcpy(alias_aux, alias_map, w * h * sizeof(unsigned short));
+        memcpy(alias_aux, alias_map, w * h * sizeof(uint16_t));
 
         printf("Filtering alias map...\n");
         for (y = 6; y < h-6; y ++)
@@ -2544,8 +2541,8 @@ static int hdr_interpolate()
     }
 
     /* where the image is overexposed? */
-    overexposed = malloc(w * h * sizeof(unsigned short));
-    memset(overexposed, 0, w * h * sizeof(unsigned short));
+    overexposed = malloc(w * h * sizeof(uint16_t));
+    memset(overexposed, 0, w * h * sizeof(uint16_t));
 
     for (y = 0; y < h; y ++)
     {
@@ -2556,8 +2553,8 @@ static int hdr_interpolate()
     }
     
     /* "blur" the overexposed map */
-    unsigned short* over_aux = malloc(w * h * sizeof(unsigned short));
-    memcpy(over_aux, overexposed, w * h * sizeof(unsigned short));
+    uint16_t* over_aux = malloc(w * h * sizeof(uint16_t));
+    memcpy(over_aux, overexposed, w * h * sizeof(uint16_t));
 
     for (y = 3; y < h-3; y ++)
     {
