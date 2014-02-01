@@ -704,6 +704,13 @@ static void auto_ettr_step()
     if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
     if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET) return;
+
+    if (!raw_update_params())
+    {
+        NotifyBox(5000, "Raw error");
+        return;
+    }
+
     int corr = auto_ettr_get_correction();
     if (corr != INT_MIN)
     {
@@ -950,7 +957,13 @@ static void auto_ettr_on_request_task_fast()
 
     NotifyBox(100000, "ETTR...");
     raw_lv_request(); raw_requested = 1;
-    
+
+    if (!raw_update_params())
+    {
+        err_msg = "Raw error";
+        goto err;
+    }
+
     for (int i = 0; i < 5; i++)
     {
         NotifyBox(100000, "ETTR (%d)...", i+1);
@@ -1046,6 +1059,13 @@ static void auto_ettr_step_lv_fast()
         goto end;
     
     raw_lv_request();
+
+    if (!raw_update_params())
+    {
+        NotifyBox(5000, "Raw error");
+        goto skip;
+    }
+
     int corr = auto_ettr_get_correction();
     
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
@@ -1084,6 +1104,8 @@ static void auto_ettr_step_lv_fast()
 
         auto_ettr_wait_lv_frames(15);
     }
+
+skip:
     raw_lv_release();
     
 end:
@@ -1111,6 +1133,13 @@ static void auto_ettr_on_request_task_slow()
         msleep(500);
         
         raw_lv_request();
+
+        if (!raw_update_params())
+        {
+            err_msg = "Raw error";
+            goto err;
+        }
+
         int corr = auto_ettr_get_correction();
         raw_lv_release();
 
