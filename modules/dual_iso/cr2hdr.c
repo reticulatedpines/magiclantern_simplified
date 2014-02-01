@@ -1503,6 +1503,16 @@ static int hdr_interpolate()
     double dark_noise_ev = log2(dark_noise);
     double bright_noise_ev = log2(bright_noise);
 
+    if (0)
+    {
+        /* dump the bright image without interpolation */
+        /* (well, use nearest neighbour, which is an interpolation in the same way as black and white are colors) */
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                raw_set_pixel16(x, y, raw_get_pixel_14to16(x, BRIGHT_ROW ? y : y+2));
+        goto end;
+    }
+
     /* promote from 14 to 16 bits */
     for (y = 0; y < h; y ++)
         for (x = 0; x < w; x ++)
@@ -2652,6 +2662,7 @@ static int hdr_interpolate()
     printf("Noise level     : %.02f (16-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
     printf("Dynamic range   : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
+end:
     if (!rggb) /* back to GBRG */
     {
         raw_info.buffer -= raw_info.pitch;
