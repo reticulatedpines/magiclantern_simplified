@@ -54,10 +54,6 @@ AWK=awk
 PYTHON=python2
 RST2LATEX=rst2latex.py
 
-NIGHTLY_ROOT:=$(HOME)/public_html/nightly
-NIGHTLY_ARCHIVE:=$(NIGHTLY_ROOT)/archive
-NIGHTLY_DIR:=$(NIGHTLY_ARCHIVE)/$(shell date +'%Y-%m-%d')-$(shell hg id -i -r .)
-
 # Naming convention for Magic Lantern builds:
 # General rules:
 # - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
