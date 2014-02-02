@@ -70,7 +70,7 @@
 #include <raw.h>
 #include <patch.h>
 
-static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
+static CONFIG_INT("isoless.enabled", isoless_enabled, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
 static CONFIG_INT("isoless.alt", isoless_alternate, 0);
 static CONFIG_INT("isoless.prefix", isoless_file_prefix, 0);
@@ -323,7 +323,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) goto end;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + isoless_ev_threshold + (lvi << 16) + (raw_mv << 17) + (raw_ph << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + get_shooting_card()->file_number * isoless_alternate + lens_info.raw_iso * 1234;
+    int sig = isoless_recovery_iso + isoless_ev_threshold + (lvi << 16) + (raw_mv << 17) + (raw_ph << 18) + (isoless_enabled << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + get_shooting_card()->file_number * isoless_alternate + lens_info.raw_iso * 1234;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -339,14 +339,14 @@ static unsigned int isoless_refresh(unsigned int ctx)
         enabled_ph = 0;
     }
 
-    if (isoless_hdr && dual_iso_is_sufficient() && raw_ph && !enabled_ph && PHOTO_CMOS_ISO_START && ((get_shooting_card()->file_number % 2) || !isoless_alternate))
+    if (isoless_enabled && dual_iso_is_sufficient() && raw_ph && !enabled_ph && PHOTO_CMOS_ISO_START && ((get_shooting_card()->file_number % 2) || !isoless_alternate))
     {
         enabled_ph = 1;
         int err = isoless_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
         if (err) { NotifyBox(10000, "ISOless PH err(%d)", err); enabled_ph = 0; }
     }
     
-    if (isoless_hdr && dual_iso_is_sufficient() && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START)
+    if (isoless_enabled && dual_iso_is_sufficient() && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START)
     {
         enabled_lv = 1;
         int err = isoless_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
@@ -392,16 +392,16 @@ end:
 int dual_iso_set_enabled(bool enabled)
 {
     if (enabled)
-        isoless_hdr = 1; 
+        isoless_enabled = 1; 
     else
-        isoless_hdr = 0;
+        isoless_enabled = 0;
 
     return 1; // module is loaded & responded != ret_0
 }
 
 int dual_iso_is_enabled()
 {
-    return isoless_hdr;
+    return isoless_enabled;
 }
 
 int dual_iso_is_active()
@@ -435,7 +435,7 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
     if (is_7d || is_1100d)
         return 0; /* seems to cause problems, figure out why */
     
-    if (!isoless_hdr) return 0;
+    if (!isoless_enabled) return 0;
     if (!is_play_or_qr_mode()) return 0;
     
     static int aux = INT_MIN;
@@ -588,7 +588,7 @@ static MENU_UPDATE_FUNC(isoless_info_update)
 
 static MENU_UPDATE_FUNC(isoless_update)
 {
-    if (!isoless_hdr)
+    if (!isoless_enabled)
         return;
 
     int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
@@ -612,7 +612,7 @@ static struct menu_entry isoless_menu[] =
 {
     {
         .name = "Dual ISO",
-        .priv = &isoless_hdr,
+        .priv = &isoless_enabled,
         .update = isoless_update,
         .max = 1,
         .help  = "Alternate ISO for every 2 sensor scan lines.",
@@ -922,7 +922,7 @@ static unsigned int isoless_init()
     }
     else
     {
-        isoless_hdr = 0;
+        isoless_enabled = 0;
         return 1;
     }
     return 0;
@@ -944,7 +944,7 @@ MODULE_CBRS_START()
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(isoless_hdr)
+    MODULE_CONFIG(isoless_enabled)
     MODULE_CONFIG(isoless_recovery_iso)
     MODULE_CONFIG(isoless_alternate)
     MODULE_CONFIG(isoless_file_prefix)
