@@ -385,7 +385,7 @@ end:
 }
 
 
-int dual_iso_is_sufficient()
+static int dual_iso_is_sufficient()
 {
     if (!isoless_ev_threshold || isoless_ev_threshold+9 <= dual_iso_get_dr_improvement()/10) return 1;
     return 0;
