@@ -299,6 +299,12 @@ static struct semaphore * isoless_sem = 0;
 static int enabled_lv = 0;
 static int enabled_ph = 0;
 
+static int dual_iso_is_sufficient()
+{
+    if (!isoless_ev_threshold || isoless_ev_threshold+14 <= dual_iso_get_dr_improvement()/10) return 1;
+    return 0;
+}
+
 /* thread safe */
 static unsigned int isoless_refresh(unsigned int ctx)
 {
@@ -381,13 +387,6 @@ static unsigned int isoless_refresh(unsigned int ctx)
 
 end:
     give_semaphore(isoless_sem);
-    return 0;
-}
-
-
-static int dual_iso_is_sufficient()
-{
-    if (!isoless_ev_threshold || isoless_ev_threshold+14 <= dual_iso_get_dr_improvement()/10) return 1;
     return 0;
 }
 
