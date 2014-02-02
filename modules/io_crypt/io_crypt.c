@@ -245,12 +245,12 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                 iodev_SetPosition(fd, 0);
                 
                 /* check for JPEG or CR2 header */
-                if(!strcmp(ext, "JPG") && !memcmp(buf, jpg_magic, 4))
+                if(!memcmp(buf, jpg_magic, 4))
                 {
                     trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted JPEG", filename);
                     plain = 1;
                 }
-                else if(!strcmp(ext, "CR2") && !memcmp(buf, cr2_magic, 4))
+                else if(!memcmp(buf, cr2_magic, 4))
                 {
                     trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted CR2", filename);
                     plain = 1;
@@ -261,6 +261,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                     plain = 0;
                     
                     uint32_t lfsr_blocksize = 0;
+                    iodev_SetPosition(fd, 4);
                     orig_iodev->ReadFile(fd, &lfsr_blocksize, 4);
                     iodev_SetPosition(fd, 0x200);
                     
@@ -273,6 +274,8 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                         orig_iodev->ReadFile(fd, buf, 4);
                         iodev_SetPosition(fd, 0);
                         
+                        iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, 4, 0);
+            
                         if(!memcmp(buf, jpg_magic, 4))
                         {
                             trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be decryptable JPEG", filename);
@@ -292,6 +295,10 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                         if(!decryptable)
                         {
                             iocrypt_files[fd].crypt_ctx.deinit(&iocrypt_files[fd].crypt_ctx);
+                        }
+                        else
+                        {
+                            iocrypt_files[fd].header_size = 0x200;
                         }
                     }
                 }
