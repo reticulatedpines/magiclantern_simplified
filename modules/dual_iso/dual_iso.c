@@ -618,7 +618,7 @@ static struct menu_entry isoless_menu[] =
             {
                 .name = "Min. DR to be gained",
                 .priv = &isoless_ev_threshold,
-                .max = 16,
+                .max = 11,
                 .unit = UNIT_ISO,
                 .choices = CHOICES("Any", "1.5 EV", "1.6 EV", "1.7 EV", "1.8 EV", "1.9 EV", "2.0 EV", "2.1 EV", "2.2 EV", "2.3 EV", "2.4 EV", "2.5 EV"),
                 .help  = "Min. amount of dynamic range you want to gain to use dual_iso.",
