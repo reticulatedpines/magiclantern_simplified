@@ -58,6 +58,8 @@
 #define MLV_INFO_BLOCK_INTERVAL  60000
 #define MAX_PATH                   100
 
+#define MLV_DUMMY_FILENAME "mlv_rec.tmp"
+
 
 #include <module.h>
 #include <dryos.h>
@@ -95,7 +97,7 @@ static uint32_t cam_60d = 0;
 #define MAX_WRITER_THREADS 2
 
 /* pre-allocate that number of files befroe recording starts */
-#define MAX_PREALLOC_FILES 5
+#define MAX_PREALLOC_FILES 10
 
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
@@ -137,6 +139,7 @@ static CONFIG_INT("mlv.skip.card_spanning", card_spanning, 0);
 static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
 static CONFIG_INT("mlv.reckey", rec_key, 0);
+static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 
 
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
@@ -355,6 +358,39 @@ extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_frame(unsigned char *frame_data);
 extern WEAK_FUNC(ret_1) uint32_t raw_rec_cbr_save_buffer(uint32_t used, uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
 extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_buffer(uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
+
+/* helpers for reserving disc space */
+static uint32_t mlv_rec_alloc_dummy(uint32_t size)
+{
+    char filename[32];
+    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
+
+    FILE *dummy_file = FIO_CreateFileEx(filename);
+    if(dummy_file == INVALID_PTR)
+    {
+        return 0;
+    }
+    
+    FIO_SeekFile(dummy_file, size + 1024 * 1024, SEEK_SET);
+    FIO_WriteFile(dummy_file, "", 1);
+    uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
+    FIO_CloseFile(dummy_file);
+    
+    if(new_pos < size)
+    {
+        return 0;
+    }
+    
+    return 1;
+}
+
+static void mlv_rec_release_dummy()
+{
+    char filename[32];
+    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
+
+    FIO_RemoveFile(filename);
+}
 
 /* helper functions for atomic in-/decrasing variables */
 static void atomic_inc(uint32_t *value)
@@ -918,6 +954,8 @@ static void free_buffers()
 
 static int32_t setup_buffers()
 {
+    uint32_t total_size = 0;
+    
     slot_count = 0;
     slot_group_count = 0;
     fullsize_buffers[0] = 0;
@@ -1007,6 +1045,7 @@ static int32_t setup_buffers()
             trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
             ptr += buf_size;
             size -= buf_size;
+            total_size += buf_size;
         }
 
         setup_chunk(ptr, size);
@@ -1103,7 +1142,9 @@ static int32_t setup_buffers()
     {
         trace_write(raw_rec_trace_ctx, "group: %d length: %d slot: %d", group, slot_groups[group].len, slot_groups[group].slot);
     }
-    return 1;
+    
+    /* now allocate a dummy file that is going to be released when disk runs full */
+    return mlv_rec_alloc_dummy(total_size);
 }
 
 static int32_t get_free_slots()
@@ -2087,7 +2128,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
     /* there may be DMA transfers started in process_frame, finish them */
     /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
-    if (dma_transfer_in_progress)
+    if(dma_transfer_in_progress)
     {
         edmac_copy_rectangle_finish();
         dma_transfer_in_progress = 0;
@@ -2096,25 +2137,37 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
         slots[capture_slot].status = SLOT_FULL;
     }
 
-    if (!mlv_video_enabled) return 0;
-    if (!is_movie_mode()) return 0;
+    if(!mlv_video_enabled || !is_movie_mode())
+    {
+        return 0;
+    }
 
-    if (frame_countdown)
+    if(frame_countdown)
+    {
         frame_countdown--;
-
+    }
+    
     hack_liveview_vsync();
 
     /* panning window is updated when recording, but also when not recording */
     panning_update();
 
-    if (!RAW_IS_RECORDING) return 0;
-    if (!raw_lv_settings_still_valid())
+    if(!RAW_IS_RECORDING)
+    {
+        return 0;
+    }
+    
+    if(!raw_lv_settings_still_valid())
     {
         raw_recording_state = RAW_FINISHING;
         raw_rec_cbr_stopping();
         return 0;
     }
-    if (!allow_frame_skip && frame_skips) return 0;
+    
+    if(!allow_frame_skip && frame_skips)
+    {
+        return 0;
+    }
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
@@ -2467,80 +2520,83 @@ static void raw_writer_task(uint32_t writer)
             /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
             if (1)
             {
-                /* check if we will reach the 4GiB boundary with this write */
-                uint32_t free_space = mlv_max_filesize - written_chunk;
-
-                if(free_space < tmp_job->block_size)
+                if(!large_file_support)
                 {
-                    trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close of '%s'", writer, chunk_filename[writer]);
+                    /* check if we will reach the 4GiB boundary with this write */
+                    uint32_t free_space = mlv_max_filesize - written_chunk;
 
-                    /* rewrite header */
-                    file_header.videoFrameCount = frames_written;
-
-                    /* queue a close command */
-                    close_job_t *close_job = NULL;
-                    msg_queue_receive(mlv_job_alloc_queue, &close_job, 0);
-
-                    close_job->job_type = JOB_TYPE_CLOSE;
-                    close_job->file_handle = f;
-                    close_job->file_header = file_header;
-                    close_job->writer = writer;
-                    strcpy(close_job->filename, chunk_filename[writer]);
-
-                    if(use_prealloc)
+                    if(free_space < tmp_job->block_size)
                     {
-                        msg_queue_post(mlv_mgr_queue_close, close_job);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close of '%s'", writer, chunk_filename[writer]);
+
+                        /* rewrite header */
+                        file_header.videoFrameCount = frames_written;
+
+                        /* queue a close command */
+                        close_job_t *close_job = NULL;
+                        msg_queue_receive(mlv_job_alloc_queue, &close_job, 0);
+
+                        close_job->job_type = JOB_TYPE_CLOSE;
+                        close_job->file_handle = f;
+                        close_job->file_header = file_header;
+                        close_job->writer = writer;
+                        strcpy(close_job->filename, chunk_filename[writer]);
+
+                        if(use_prealloc)
+                        {
+                            msg_queue_post(mlv_mgr_queue_close, close_job);
+                        }
+                        else
+                        {
+                            msg_queue_post(mlv_mgr_queue, close_job);
+                        }
+
+                        /* this should never happen, as the main queue handler should take care of us */
+                        if(!next_file_handle)
+                        {
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: no chunk prepared", writer);
+                            goto abort;
+                        }
+
+                        /* update file handle */
+                        f = next_file_handle;
+                        next_file_handle = NULL;
+
+                        /* also update filename */
+                        strcpy(chunk_filename[writer], next_filename);
+                        strcpy(next_filename, "");
+
+                        frames_written = 0;
+                        written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+
+                        /* write next header */
+                        file_header.fileNum = next_file_num;
+                        file_header.videoFrameCount = 0;
+                        file_header.audioFrameCount = 0;
+
+                        handle_requested = 0;
+
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s'", writer, chunk_filename[writer]);
                     }
-                    else
+                    else if((free_space < 8 * tmp_job->block_size) && !handle_requested)
                     {
-                        msg_queue_post(mlv_mgr_queue, close_job);
+                        /* we will reach the 4GiB boundary soon */
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB, request another chunk", writer);
+
+                        /* queue a preparation job */
+                        handle_job_t *prepare_job = NULL;
+                        msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
+
+                        prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
+                        prepare_job->writer = writer;
+                        prepare_job->file_handle = NULL;
+                        prepare_job->file_header = file_header;
+                        prepare_job->filename[0] = '\000';
+
+                        msg_queue_post(mlv_mgr_queue, prepare_job);
+
+                        handle_requested = 1;
                     }
-
-                    /* this should never happen, as the main queue handler should take care of us */
-                    if(!next_file_handle)
-                    {
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: no chunk prepared", writer);
-                        goto abort;
-                    }
-
-                    /* update file handle */
-                    f = next_file_handle;
-                    next_file_handle = NULL;
-
-                    /* also update filename */
-                    strcpy(chunk_filename[writer], next_filename);
-                    strcpy(next_filename, "");
-
-                    frames_written = 0;
-                    written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
-
-                    /* write next header */
-                    file_header.fileNum = next_file_num;
-                    file_header.videoFrameCount = 0;
-                    file_header.audioFrameCount = 0;
-
-                    handle_requested = 0;
-
-                    trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s'", writer, chunk_filename[writer]);
-                }
-                else if((free_space < 8 * tmp_job->block_size) && !handle_requested)
-                {
-                    /* we will reach the 4GiB boundary soon */
-                    trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB, request another chunk", writer);
-
-                    /* queue a preparation job */
-                    handle_job_t *prepare_job = NULL;
-                    msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
-
-                    prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
-                    prepare_job->writer = writer;
-                    prepare_job->file_handle = NULL;
-                    prepare_job->file_header = file_header;
-                    prepare_job->filename[0] = '\000';
-
-                    msg_queue_post(mlv_mgr_queue, prepare_job);
-
-                    handle_requested = 1;
                 }
 
                 /* start write and measure times */
@@ -2552,16 +2608,16 @@ static void raw_writer_task(uint32_t writer)
                 last_time_after = tmp_job->time_after;
 
                 /* handle disk full cases */
-                if (written != (int32_t)tmp_job->block_size) /* 4GB limit or card full? */
+                if(written != (int32_t)tmp_job->block_size) /* 4GB limit or card full? */
                 {
                     trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: %d", writer, written);
 
                     /* it failed right away? card must be full */
-                    if (written_chunk == 0)
+                    if(written_chunk == 0)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: could not write anything, exiting", writer);
                     }
-                    else if (written == -1)
+                    else if(written == -1)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed", writer);
                     }
@@ -2569,6 +2625,23 @@ static void raw_writer_task(uint32_t writer)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, tmp_job->block_size);
                     }
+
+                    /* okay, writing failed. now try to save what we have by reelasing the dummy file */
+                    mlv_rec_release_dummy();
+
+                    /* if the whole write call failed, nothing would have been saved */
+                    if(written < 0)
+                    {                        
+                        written = 0;
+                    }
+                    
+                    /* now try to write the remaining buffer content */
+                    written = FIO_WriteFile(f, &((char *)tmp_job->block_ptr)[written], tmp_job->block_size - written);
+                    if (written != (int32_t)(tmp_job->block_size - written)) /* 4GB limit or card full? */
+                    {
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: Even writing after removing dummy file failed. No idea what to do now.", writer);
+                    }
+                    
                     goto abort;
                 }
 
@@ -2719,6 +2792,15 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
 
+static void mlv_precreate_files(char *base_filename, uint32_t count)
+{
+    for(int pos = 0; pos < count; pos++)
+    {
+        char filename[64];
+        get_next_chunk_file_name(base_filename, filename, pos, 0);
+    }
+}
+
 static void mlv_prealloc_files(char *base_filename, prealloc_entry_t *prealloc_buf, uint32_t count, uint32_t writer)
 {
     for(int pos = 0; pos < count; pos++)
@@ -2745,6 +2827,19 @@ static void mlv_prealloc_files(char *base_filename, prealloc_entry_t *prealloc_b
     }
 }
 
+static void mlv_rec_wait_frames(uint32_t frames)
+{
+    frame_countdown = frames;
+    for (int32_t i = 0; i < 200; i++)
+    {
+        msleep(20);
+        if (frame_countdown == 0)
+        {
+            break;
+        }
+    }
+}
+
 static void raw_video_rec_task()
 {
     int test_loop = 0;
@@ -2757,12 +2852,7 @@ static void raw_video_rec_task()
     raw_rec_setup_trace();
 
     /* wait for two frames to be sure everything is refreshed */
-    frame_countdown = 2;
-    for (int32_t i = 0; i < 200; i++)
-    {
-        msleep(20);
-        if (frame_countdown == 0) break;
-    }
+    mlv_rec_wait_frames(5);
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
@@ -2776,13 +2866,17 @@ static void raw_video_rec_task()
 
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
 
+    /* wait for a few frames again to prevent some hickups going into footage */
+    mlv_rec_wait_frames(5);
+    
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
 
     /* allocate memory */
-    if (!setup_buffers())
+    if(!setup_buffers())
     {
-        bmp_printf( FONT_MED, 30, 50, "Memory error");
+        NotifyBox(5000, "Failed to create file. Card/RAM full?");
+        beep();
         goto cleanup;
     }
 
@@ -2793,7 +2887,6 @@ static void raw_video_rec_task()
     if(test_mode)
     {
         buffer_fill_method = 0;
-        //fast_card_buffers = 0;
         abort_test = 0;
     }
 
@@ -2831,6 +2924,7 @@ static void raw_video_rec_task()
             /* also demand a second chunk, which will get written to SD */
             /* accordingly we have to start two threads */
             mlv_writer_threads = 2;
+            mlv_precreate_files(mlv_movie_filename, MAX_PREALLOC_FILES);
         }
         else
         {
@@ -2892,7 +2986,7 @@ static void raw_video_rec_task()
             if (!mlv_handles[writer] || mlv_handles[writer] == INVALID_PTR)
             {
                 trace_write(raw_rec_trace_ctx, "FIO_CreateFileEx(#%d): FAILED", writer);
-                NotifyBox(50000, "Failed to create file. Card full?");
+                NotifyBox(5000, "Failed to create file. Card full?");
                 beep_times(2);
                 return;
             }
@@ -2917,7 +3011,7 @@ static void raw_video_rec_task()
             thread_wait--;
             if(!thread_wait)
             {
-                NotifyBox(50000, "Threads failed to start");
+                NotifyBox(5000, "Threads failed to start");
                 trace_write(raw_rec_trace_ctx, "Threads failed to start");
                 beep_times(2);
                 return;
@@ -2961,7 +3055,7 @@ static void raw_video_rec_task()
             /* when capture task had to skip a frame, stop recording */
             if (!allow_frame_skip && frame_skips && (raw_recording_state == RAW_RECORDING))
             {
-                NotifyBox(50000, "Frame skipped. Stopping");
+                NotifyBox(5000, "Frame skipped. Stopping");
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
                 raw_recording_state = RAW_FINISHING;
                 raw_rec_cbr_stopping();
@@ -3094,7 +3188,7 @@ static void raw_video_rec_task()
                     /* failed to open? */
                     if(handle->file_handle == INVALID_PTR)
                     {
-                        NotifyBox(50000, "Failed to create file. Card full?");
+                        NotifyBox(5000, "Failed to create file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
                         break;
                     }
@@ -3221,6 +3315,8 @@ static void raw_video_rec_task()
             }
         }
         
+        mlv_rec_release_dummy();
+        
         /* now close all queued files */
         while(1)
         {
@@ -3252,17 +3348,20 @@ static void raw_video_rec_task()
         }
         
         /* close the pre-allocated files */
-        if(!card_spanning && use_prealloc)
+        if(!card_spanning)
         {
-            /* first close all file handles */
-            for(int pos = mlv_prealloc_pos; pos < MAX_PREALLOC_FILES; pos++)
+            if(use_prealloc)
             {
-                if(mlv_prealloc_handles[pos].file_handle && mlv_prealloc_handles[pos].file_handle != INVALID_PTR)
+                /* first close all file handles */
+                for(int pos = mlv_prealloc_pos; pos < MAX_PREALLOC_FILES; pos++)
                 {
-                    FIO_CloseFile(mlv_prealloc_handles[pos].file_handle);
+                    if(mlv_prealloc_handles[pos].file_handle && mlv_prealloc_handles[pos].file_handle != INVALID_PTR)
+                    {
+                        FIO_CloseFile(mlv_prealloc_handles[pos].file_handle);
+                    }
                 }
             }
-
+            
             /* then delete all empty files */
             for(int pos = 0; pos < MAX_PREALLOC_FILES; pos++)
             {
@@ -3272,7 +3371,7 @@ static void raw_video_rec_task()
                     continue;
                 }
                 /* if only the size of a file header, remove again */
-                if(size == sizeof(mlv_file_hdr_t))
+                if(size <= sizeof(mlv_file_hdr_t))
                 {
                     FIO_RemoveFile(mlv_prealloc_handles[pos].filename);
                 }
@@ -3386,11 +3485,9 @@ static void raw_video_rec_task()
 cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
-
-    bmp_printf( FONT_MED, 30, 70,
-        "Frames captured: %d               ",
-        frame_count - 1
-    );
+    mlv_rec_release_dummy();
+    
+    NotifyBox(5000, "Frames captured: %d", frame_count - 1);
 
     if(show_graph)
     {
@@ -3652,6 +3749,13 @@ static struct menu_entry raw_video_menu[] =
                 .update = start_delay_update,
                 .help = "Start delay. Useful to stabilize in photo mode.",
                 .help2 = "Pressing shutter button.",
+            },
+            {
+                .name = "Files > 4GiB (exFAT)",
+                .priv = &large_file_support,
+                .max = 1,
+                .help = "Don't split files on 4GiB margins, not supported on all models.",
+                .help2 = "Ensure you formatted your card as exFAT!"
             },
             {
                 .name = "Digital dolly",
@@ -3938,6 +4042,14 @@ static unsigned int raw_rec_init()
     cam_7d = streq(camera_model_short, "7D");
     cam_700d = streq(camera_model_short, "700D");
     cam_60d = streq(camera_model_short, "60D");
+    
+    /* not all models support exFAT filesystem */
+    uint32_t exFAT = 1;
+    if(cam_5d2 || cam_50d || cam_7d)
+    {
+        exFAT = 0;
+        large_file_support = 0;
+    }
 
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
@@ -3950,6 +4062,8 @@ static unsigned int raw_rec_init()
         if (!cam_5d3 && streq(e->name, "CF-only buffers") )
             e->shidden = 1;
         if (!cam_5d3 && streq(e->name, "Card spanning") )
+            e->shidden = 1;
+        if (!exFAT && streq(e->name, "Files > 4GiB (exFAT)") )
             e->shidden = 1;
 
         /* Memory hack confirmed to work only on 5D3 and 6D */
@@ -4058,4 +4172,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(enable_tracing)
     MODULE_CONFIG(test_mode)
     MODULE_CONFIG(show_graph)
+    MODULE_CONFIG(large_file_support)
 MODULE_CONFIGS_END()
