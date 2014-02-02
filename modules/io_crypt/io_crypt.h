@@ -18,6 +18,7 @@ typedef struct
     crypt_cipher_t crypt_ctx;
     uint64_t file_key;
     uint32_t header_size;
+    uint32_t file_size;
     char filename[64];
 } fd_map_t;
 

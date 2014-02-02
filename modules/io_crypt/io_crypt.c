@@ -226,6 +226,8 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
     {
         iocrypt_files[fd].crypt_ctx.priv = NULL;
         iocrypt_files[fd].header_size = 0;
+    
+        FIO_GetFileSize(filename, &iocrypt_files[fd].file_size);
         
         /* copy filename */
         strncpy(iocrypt_files[fd].filename, filename, sizeof(iocrypt_files[fd].filename));
@@ -383,6 +385,14 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
     /* when there is some encryption active, handle file offset */
     if(iocrypt_files[fd].crypt_ctx.priv)
     {
+        /* if reading was beyond file end, provide zeroes */
+        if(ret < length)
+        {
+            memset(&buf[ret], 0x00, length - ret);
+            ret = MIN(length, iocrypt_files[fd].file_size - fd_pos);
+            iodev_SetPosition(fd, fd_pos + ret);
+        }
+       
         trace_write(iocrypt_trace_ctx, "iodev_ReadFile: undo offset %d", iocrypt_files[fd].header_size);
         iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
     }
@@ -390,7 +400,7 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
     
     if(fd < COUNT(iocrypt_files))
     {
-        trace_write(iocrypt_trace_ctx, "iodev_ReadFile(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, %s", buf, length, fd, fd_pos, iocrypt_files[fd].filename);
+        trace_write(iocrypt_trace_ctx, "iodev_ReadFile(0x%08X, 0x%08X) -> %s, fd = %d, pos_before = 0x%08X, ret %d, pos_after %d", buf, length, fd, fd_pos, iocrypt_files[fd].filename, ret, iodev_GetPosition(fd));
         
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
