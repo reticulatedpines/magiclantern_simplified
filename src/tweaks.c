@@ -1777,18 +1777,20 @@ int handle_zoom_trick_event(struct event * event)
 static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
+static CONFIG_INT("warn.wb", warn_wb, 0);
 
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
 {
-    static char msg[200];
+    static char msg[222];
     msg[0] = '\0';
     if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not M%s", separator); }
     if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Av%s", separator); }
     if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
     if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not P%s", separator); }
-    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not LRAW%s", separator); } 
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
+    if (warn_code & 8) { STR_APPEND(msg, "WB isn't set to auto%s", separator); } 
     return msg;
 }
 
@@ -1851,11 +1853,15 @@ static void warn_step()
     }
 
     int raw = pic_quality & 0x60000;
-    if (warn_picq && !raw)
+    int rawsize = pic_quality & 0xF;
+    if (warn_picq && (!raw || rawsize))
         warn_code |= 2;
     
     if (warn_alo && get_alo() != ALO_OFF)
         warn_code |= 4;
+
+    if (warn_wb && lens_info.wb_mode)
+        warn_code |= 8;
     
     warn_action(warn_code);
 }
@@ -2042,7 +2048,7 @@ static struct menu_entry tweak_menus[] = {
                 .name = "Quality warning",
                 .priv = &warn_picq,
                 .max = 1,
-                .choices = (const char *[]) {"OFF", "other than RAW"},
+                .choices = (const char *[]) {"OFF", "other than LRAW"},
                 .help = "Warn if you change the picture quality to something else.",
             },
             {
@@ -2051,6 +2057,13 @@ static struct menu_entry tweak_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"OFF", "other than OFF"},
                 .help = "Warn if you enable ALO by mistake.",
+            },
+            {
+                .name = "WB warning",
+                .priv = &warn_wb,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than AWB"},
+                .help = "Warn if you disable AWB by mistake.",
             },
             MENU_EOL,
         },
