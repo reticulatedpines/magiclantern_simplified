@@ -64,6 +64,7 @@ int fix_bad_pixels = 1;
 int use_fullres = 1;
 int use_alias_map = 1;
 int use_stripe_fix = 1;
+int compress_highlights = 0;
 
 int debug_black = 0;
 int debug_blend = 0;
@@ -151,6 +152,21 @@ struct cmd_group options[] = {
             { &use_alias_map,   1, "--alias-map",        NULL},
             { &use_stripe_fix,  0, "--no-stripe-fix",    "disable horizontal stripe fix" },
             { &use_stripe_fix,  1, "--stripe-fix",       NULL},
+            OPTION_EOL
+        },
+    },
+    {
+        "Shadow/highlight handling", (struct cmd_option[]) {
+            { &compress_highlights,     4, "--soft-film",       "bake a soft-film curve to compress highlights.\n"
+                                                                "                  (default 4 stops if specified; change wth --soft-film=1 to 8)" },
+            { &compress_highlights,     1, "--soft-film=1",     NULL},
+            { &compress_highlights,     2, "--soft-film=2",     NULL},
+            { &compress_highlights,     3, "--soft-film=3",     NULL},
+            { &compress_highlights,     4, "--soft-film=4",     NULL},
+            { &compress_highlights,     5, "--soft-film=5",     NULL},
+            { &compress_highlights,     6, "--soft-film=6",     NULL},
+            { &compress_highlights,     7, "--soft-film=7",     NULL},
+            { &compress_highlights,     8, "--soft-film=8",     NULL},
             OPTION_EOL
         },
     },
@@ -557,9 +573,6 @@ int main(int argc, char** argv)
                 out_filename[len-2] = 'N';
                 out_filename[len-1] = 'G';
 
-                /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
-                black_subtract_simple(left_margin, top_margin);
-
                 reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
                 printf("Output file     : %s\n", out_filename);
@@ -850,7 +863,7 @@ static int black_subtract_simple(int left_margin, int top_margin)
     {
         for (x = 2; x < left_margin - 8; x++)
         {
-            int p = raw_get_pixel16(x, y);
+            int p = raw_get_pixel20(x, y);
             if (p > 0)
             {
                 avg += p;
@@ -2695,6 +2708,11 @@ static int hdr_interpolate()
     printf("Noise level     : %.02f (20-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
     printf("Dynamic range   : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
+    /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
+    black_subtract_simple(raw_info.active_area.x1, raw_info.active_area.y1);
+    white = raw_info.white_level;
+    black = raw_info.black_level;
+
     /* go back from 20-bit to 16-bit output */
     raw_info.buffer = raw_buffer_16;
     raw_info.black_level /= 16;
@@ -2704,7 +2722,46 @@ static int hdr_interpolate()
         for (x = 0; x < w; x++)
             raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
 
+    if (compress_highlights)
+    {
+        /* Soft film curve from ufraw */
+        double exposure = 1 << compress_highlights;
+        double a = MAX(exposure * 2 - 1, 1e-5);
+
+        double baked_wb[3] = {2, 1, 2};
+        double max_wb = MAX(baked_wb[0], baked_wb[2]);
+        printf("Soft-film curve : +%.2f EV baked at WB %.2f %.2f %.2f\n", log2(exposure), baked_wb[0], baked_wb[1], baked_wb[2]);
+
+        static double soft_film[1<<20];
+        for (i = 0; i < 1<<20; i++)
+        {
+            double x = COERCE((double)(i - black) / (white - black), 0, 1);
+            soft_film[i] = (1 - 1/(1+a*x)) / (1 - 1/(1+a)) * (white/16 - black/16) + black/16;
+        }
+        
+        /* linear extrapolation under black level */
+        double delta = soft_film[black+1] - soft_film[black];
+        for (i = black-1; i > 0; i--)
+        {
+            soft_film[i] = soft_film[i+1] - delta;
+        }
+
+        for (y = 0; y < h; y++)
+        {
+            for (x = 0; x < w; x++)
+            {
+                double wb = baked_wb[FC(x,y)];
+                int raw_baked = COERCE(((int)raw_buffer_32[x + y*w] - black) * wb / max_wb + black, 0, (1<<20)-1);
+                raw_set_pixel16(x, y, COERCE((soft_film[raw_baked] - black/16) / wb + black/16, 0, 65535));
+                
+                /* with WB 1/1/1: */
+                //~ raw_set_pixel16(x, y, soft_film[raw_buffer_32[x + y*w]]);
+            }
+        }
+    }
+
 end:
+
     if (!rggb) /* back to GBRG */
     {
         raw_info.buffer -= raw_info.pitch;
