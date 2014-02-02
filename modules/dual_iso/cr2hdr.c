@@ -64,7 +64,8 @@ int fix_bad_pixels = 1;
 int use_fullres = 1;
 int use_alias_map = 1;
 int use_stripe_fix = 1;
-int compress_highlights = 0;
+float soft_film_ev = 0;
+float soft_film_wb[3] = {2, 1, 2};
 
 int debug_black = 0;
 int debug_blend = 0;
@@ -96,10 +97,11 @@ void check_shortcuts()
 
 struct cmd_option
 {
-    int* variable;
-    int value_to_assign;
-    char* option;
+    int* variable;              /* can be float */
+    int value_to_assign;        /* if the option field contains %d or %f, set this to number of %'s */
+    char* option;               /* can contain %d or %f for options with values */
     char* help;
+    int force_show;
 };
 #define OPTION_EOL { 0, 0, 0, 0 }
 
@@ -145,6 +147,13 @@ struct cmd_group options[] = {
         },
     },
     {
+        "Highlight/shadow handling", (struct cmd_option[]) {
+            { (int*)&soft_film_ev,    1, "--soft-film=%f",  "bake a soft-film curve to compress highlights and raise shadows by X EV" },
+            { (int*)&soft_film_wb[0], 3, "--wb=%f,%f,%f",   "use these RGB multipliers when baking the soft-film curve (default 2,1,2)" },
+            OPTION_EOL
+        },
+    },
+    {
         "Other postprocessing steps", (struct cmd_option[]) {
             { &use_fullres,     0, "--no-fullres",       "disable full-resolution blending" },
             { &use_fullres,     1, "--fullres",          NULL},
@@ -152,21 +161,6 @@ struct cmd_group options[] = {
             { &use_alias_map,   1, "--alias-map",        NULL},
             { &use_stripe_fix,  0, "--no-stripe-fix",    "disable horizontal stripe fix" },
             { &use_stripe_fix,  1, "--stripe-fix",       NULL},
-            OPTION_EOL
-        },
-    },
-    {
-        "Shadow/highlight handling", (struct cmd_option[]) {
-            { &compress_highlights,     4, "--soft-film",       "bake a soft-film curve to compress highlights.\n"
-                                                                "                  (default 4 stops if specified; change wth --soft-film=1 to 8)" },
-            { &compress_highlights,     1, "--soft-film=1",     NULL},
-            { &compress_highlights,     2, "--soft-film=2",     NULL},
-            { &compress_highlights,     3, "--soft-film=3",     NULL},
-            { &compress_highlights,     4, "--soft-film=4",     NULL},
-            { &compress_highlights,     5, "--soft-film=5",     NULL},
-            { &compress_highlights,     6, "--soft-film=6",     NULL},
-            { &compress_highlights,     7, "--soft-film=7",     NULL},
-            { &compress_highlights,     8, "--soft-film=8",     NULL},
             OPTION_EOL
         },
     },
@@ -199,6 +193,82 @@ struct cmd_group options[] = {
     OPTION_GROUP_EOL
 };
 
+
+static int startswith(char* str, char* prefix)
+{
+    char* s = str;
+    char* p = prefix;
+    for (; *p; s++,p++)
+        if (*s != *p) return 0;
+    return 1;
+}
+
+static void parse_sscanf(char* user_input, char* format, void* ptr, int num_vars)
+{
+    void* pointers[5] = {0, 0, 0, 0, 0};
+    if (num_vars > 5) goto err;
+    int i;
+    char* p = strchr(format, '%');
+    for (i = 0; p != NULL && i < num_vars; i++, p = strchr(p+1, '%'))
+    {
+        //~ printf("%s: %p %p\n", format, ptr, &soft_film_ev);
+        pointers[i] = ptr;
+        int size = 
+            *(p+1) == 'd' ? sizeof(int) :
+            *(p+1) == 'f' ? sizeof(float) :
+            0;
+        if (size == 0) goto err;
+        ptr += size;
+    }
+    if (i != num_vars) goto err;
+
+    int num = sscanf(user_input, format, pointers[0], pointers[1], pointers[2], pointers[3], pointers[4]);
+    if (num != num_vars)
+    {
+        printf("Error parsing %s: expected %d param%s, got %d\n", format, num_vars, num_vars == 1 ? "" : "s", num);
+        exit(1);
+    }
+
+    return;
+
+err:
+    printf("invalid option: %s (internal error)\n", format);
+    exit(1);
+}
+
+static void print_sscanf_option(char* format, void* ptr, int num_vars, char* help)
+{
+    int i = 0;
+    char* p;
+    int len = 0;
+    for (p = format; *p && i < num_vars; p++)
+    {
+        if (*p != '%')
+        {
+            len += printf("%c", *p);
+        }
+        else
+        {
+            if (*(p+1) == 'd')
+            {
+                len += printf("%d", *(int*)ptr);
+                ptr += sizeof(float);
+            }
+            else if (*(p+1) == 'f')
+            {
+                len += printf("%g", *(float*)ptr);
+                ptr += sizeof(int);
+            }
+            p++; i++;
+        }
+    }
+    while (len < 16)
+    {
+        len += printf(" ");
+    }
+    printf(": %s\n", help);
+}
+
 static void parse_commandline_option(char* option)
 {
     struct cmd_group * g;
@@ -207,7 +277,25 @@ static void parse_commandline_option(char* option)
         struct cmd_option * o;
         for (o = g->options; o->option; o++)
         {
-            if (!strcmp(option, o->option))
+            if (strchr(o->option, '%'))
+            {
+                char base[100];
+                snprintf(base, sizeof(base), "%s", o->option);
+                char* percent = strchr(base, '%');
+                if (percent)
+                {
+                    *percent = 0;   /* trim here */
+                    if (startswith(option, base))
+                    {
+                        /* note that o->variable is the array where %d's or %f's are stored */
+                        /* and o->value_to_assign is the number of items in that array */
+                        parse_sscanf(option, o->option, o->variable, o->value_to_assign);
+                        o->force_show = 1;
+                        return;
+                    }
+                }
+            }
+            else if (!strcmp(option, o->option))
             {
                 *(o->variable) = o->value_to_assign;
                 check_shortcuts();
@@ -216,6 +304,7 @@ static void parse_commandline_option(char* option)
         }
     }
     printf("Unknown option: %s\n", option);
+    exit(1);
 }
 
 static void show_commandline_help(char* progname)
@@ -246,15 +335,28 @@ static void solve_commandline_deps()
 static void show_active_options()
 {
     printf("Active options:\n");
+
     struct cmd_group * g;
     for (g = options; g->name; g++)
     {
         struct cmd_option * o;
         for (o = g->options; o->option; o++)
         {
-            if (o->help && (*o->variable) == o->value_to_assign)
+            if (strchr(o->option, '%'))
             {
-                printf("%-16s: %s\n", o->option, o->help);
+                if (o->force_show)
+                {
+                    /* note that o->variable is the array where %d's or %f's are stored */
+                    /* and o->value_to_assign is the number of items in that array */
+                    print_sscanf_option(o->option, o->variable, o->value_to_assign, o->help);
+                }
+            }
+            else
+            {
+                if (o->help && (*o->variable) == o->value_to_assign)
+                {
+                    printf("%-16s: %s\n", o->option, o->help);
+                }
             }
         }
     }
@@ -371,15 +473,6 @@ int raw_get_pixel_20to16(int x, int y) {
 
 void raw_set_pixel_20to16(int x, int y, int value) {
     raw_set_pixel16(x, y, value >> 4);
-}
-
-static int startswith(char* str, char* prefix)
-{
-    char* s = str;
-    char* p = prefix;
-    for (; *p; s++,p++)
-        if (*s != *p) return 0;
-    return 1;
 }
 
 static void reverse_bytes_order(void* buf, int count)
@@ -2722,13 +2815,18 @@ static int hdr_interpolate()
         for (x = 0; x < w; x++)
             raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
 
-    if (compress_highlights)
+    if (soft_film_ev > 0)
     {
         /* Soft film curve from ufraw */
-        double exposure = 1 << compress_highlights;
+        double exposure = pow(2, soft_film_ev);
         double a = MAX(exposure * 2 - 1, 1e-5);
 
-        double baked_wb[3] = {2, 1, 2};
+        double baked_wb[3] = {
+            soft_film_wb[0]/soft_film_wb[1],
+            1,
+            soft_film_wb[0]/soft_film_wb[1],
+        };
+        
         double max_wb = MAX(baked_wb[0], baked_wb[2]);
         printf("Soft-film curve : +%.2f EV baked at WB %.2f %.2f %.2f\n", log2(exposure), baked_wb[0], baked_wb[1], baked_wb[2]);
 
