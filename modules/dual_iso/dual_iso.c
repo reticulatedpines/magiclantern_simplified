@@ -387,7 +387,7 @@ end:
 
 static int dual_iso_is_sufficient()
 {
-    if (!isoless_ev_threshold || isoless_ev_threshold+9 <= dual_iso_get_dr_improvement()/10) return 1;
+    if (!isoless_ev_threshold || isoless_ev_threshold+14 <= dual_iso_get_dr_improvement()/10) return 1;
     return 0;
 }
 
@@ -621,7 +621,7 @@ static struct menu_entry isoless_menu[] =
                 .priv = &isoless_ev_threshold,
                 .max = 16,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("Any", "1.0 EV", "1.1 EV", "1.2 EV", "1.3 EV", "1.4 EV", "1.5 EV", "1.6 EV", "1.7 EV", "1.8 EV", "1.9 EV", "2.0 EV", "2.1 EV", "2.2 EV", "2.3 EV", "2.4 EV", "2.5 EV"),
+                .choices = CHOICES("Any", "1.5 EV", "1.6 EV", "1.7 EV", "1.8 EV", "1.9 EV", "2.0 EV", "2.1 EV", "2.2 EV", "2.3 EV", "2.4 EV", "2.5 EV"),
                 .help  = "Min. amount of dynamic range you want to gain to use dual_iso.",
                 .help2 = "(upper theoretical limit, estimated from DxO measurements)",
             },
