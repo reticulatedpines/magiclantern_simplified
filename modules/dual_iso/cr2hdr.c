@@ -321,6 +321,19 @@ static inline void raw_set_pixel32(int x, int y, int value)
     buf[x + y * raw_info.width] = value;
 }
 
+static inline int raw_get_pixel20(int x, int y)
+{
+    uint32_t * buf = raw_info.buffer;
+    int value = buf[x + y * raw_info.width];
+    return value & 0xFFFFF;
+}
+
+static inline void raw_set_pixel20(int x, int y, int value)
+{
+    uint32_t * buf = raw_info.buffer;
+    buf[x + y * raw_info.width] = COERCE(value, 0, 0xFFFFF);
+}
+
 int raw_get_pixel(int x, int y) {
     return raw_get_pixel16(x,y);
 }
@@ -545,7 +558,7 @@ int main(int argc, char** argv)
                 out_filename[len-1] = 'G';
 
                 /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
-                //~ black_subtract_simple(left_margin, top_margin);
+                black_subtract_simple(left_margin, top_margin);
 
                 reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
@@ -827,7 +840,6 @@ static int black_subtract_simple(int left_margin, int top_margin)
     if (left_margin < 10) return 0;
     if (top_margin < 10) return 0;
     
-    int w = raw_info.width;
     int h = raw_info.height;
 
     /* average left bar */
@@ -852,22 +864,8 @@ static int black_subtract_simple(int left_margin, int top_margin)
     int black_delta = raw_info.black_level - new_black;
     
     printf("Black adjust    : %d\n", (int)black_delta);
-
-    /* "subtract" the dark frame, keeping the exif black level and preserving the white level */
-    for (y = 0; y < h; y++)
-    {
-        for (x = 0; x < w; x++)
-        {
-            double p = raw_get_pixel16(x, y);
-            if (p > 0)
-            {
-                p += black_delta;
-                p = p * raw_info.white_level / (raw_info.white_level + black_delta);
-                p = COERCE(p, 0, 65535);
-                raw_set_pixel16(x, y, p);
-            }
-        }
-    }
+    raw_info.black_level -= black_delta;
+    raw_info.white_level -= black_delta;
     
     return 1;
 }
@@ -1174,9 +1172,9 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     double a = (mxy - mx*my) / (mx2 - mx*mx);
     double b = my - a * mx;
 
-    #define BLACK_DELTA_THR 256
+    #define BLACK_DELTA_THR 1000
 
-    if (ABS(b)/64 > BLACK_DELTA_THR)
+    if (ABS(b) > BLACK_DELTA_THR)
     {
         /* sum ting wong */
         b = 0;
@@ -1186,22 +1184,31 @@ static int match_histograms(double* corr_ev, int* white_darkened)
     }
 
     /* apply the correction */
+    double b20 = b * 16;
     for (y = 0; y < h-1; y ++)
     {
         for (x = 0; x < w; x ++)
         {
+            int p = raw_get_pixel32(x, y);
+            if (p == 0) continue;
+
             if (BRIGHT_ROW)
             {
                 /* bright exposure: darken and apply the black offset (fixme: why not half?) */
-                raw_set_pixel32(x, y, (raw_get_pixel32(x, y) - black20) * a + black20 + b*a);
+                p = (p - black20) * a + black20 + b20*a;
             }
             else
             {
-                raw_set_pixel32(x, y, raw_get_pixel32(x, y) - b + b*a);
+                p = p - b20 + b20*a;
             }
+            
+            /* out of range? mark as bad pixel and interpolate it later */
+            if (p < 0 || p > 0xFFFFF) p = 0;
+            
+            raw_set_pixel20(x, y, p);
         }
     }
-    *white_darkened = (white20 - black20 + b) * a + black20;
+    *white_darkened = (white20 - black20 + b20) * a + black20;
 
 after_black_correction:
     
@@ -1258,7 +1265,7 @@ after_black_correction:
     *corr_ev = log2(factor);
 
     printf("ISO difference  : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
-    printf("Black delta     : %.2f\n", b/64); /* we want to display black delta for the 14-bit original data, but we have computed it from 20-bit data */
+    printf("Black delta     : %.2f\n", b/4); /* we want to display black delta for the 14-bit original data, but we have computed it from 16-bit data */
     return 1;
 }
 
@@ -1352,7 +1359,7 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     {
         for (x = 6; x < w-6; x ++)
         {
-            int p = raw_get_pixel32(x, y);
+            int p = raw_get_pixel20(x, y);
             
             int is_hot = 0;
             int is_cold = 0;
@@ -1385,13 +1392,10 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                         if (FC(x+j, y+i) != fc0)
                             continue;
                         
-                        int p = raw_get_pixel32(x+j, y+i);
+                        int p = raw_get_pixel20(x+j, y+i);
                         neighbours[k++] = -p;
                     }
                 }
-                
-                if (k <= 4) /* not enough data to draw a conclusion */
-                    continue;
                 
                 int max = -kth_smallest_int(neighbours, k, 1);
                 is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
@@ -1422,7 +1426,7 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     for (y = 0; y < h; y ++)
         for (x = 0; x < w; x ++)
             if (hotpixel[x + y*w])
-                raw_set_pixel32(x, y, debug_bad_pixels ? black : hotpixel[x + y*w]);
+                raw_set_pixel20(x, y, debug_bad_pixels ? black : hotpixel[x + y*w]);
 
     if (hot_pixels)
         printf("Hot pixels      : %d\n", hot_pixels);
@@ -1499,7 +1503,7 @@ static int hdr_interpolate()
     int i;
     for (i = 0; i < 1<<20; i++)
     {
-        double signal = MAX(i/64.0 - black/64.0, -16383);
+        double signal = MAX(i/64.0 - black/64.0, -1023);
         if (signal > 0)
             raw2ev[i] = (int)round(log2(1+signal) * EV_RESOLUTION);
         else
@@ -1546,7 +1550,9 @@ static int hdr_interpolate()
         /* (well, use nearest neighbour, which is an interpolation in the same way as black and white are colors) */
         for (y = 0; y < h; y ++)
             for (x = 0; x < w; x ++)
-                raw_set_pixel16(x, y, raw_get_pixel_14to16(x, BRIGHT_ROW ? y : y+2));
+                raw_set_pixel16(x, y, raw_get_pixel_14to16(x, !BRIGHT_ROW ? y : y+2));
+        raw_info.black_level /= 16;
+        raw_info.white_level /= 16;
         goto end;
     }
 
@@ -1598,7 +1604,7 @@ static int hdr_interpolate()
     const double fullres_transition = 3;
     const double fullres_thr = 0.8;
     
-    for (i = 0; i < 1<<20; i++)
+    for (i = 0; i < (1<<20); i++)
     {
         double ev2 = log2(MAX(i/64.0 - black/64.0, 1));
         double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
@@ -1614,7 +1620,7 @@ static int hdr_interpolate()
 
         fprintf(f, "ev = [");
         for (i = 0; i < 65536; i++)
-            fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
+            fprintf(f, "%f ", log2(MAX(i/4.0 - black/64.0, 1)));
         fprintf(f, "];\n");
 
         fprintf(f, "f = [");
@@ -1746,7 +1752,7 @@ static int hdr_interpolate()
         /* undo green channel scaling */
         for (y = 0; y < h; y ++)
             for (x = 0; x < w; x ++)
-                green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, 65535);
+                green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, 0xFFFFF);
 
         if (debug_amaze)
         {
@@ -1838,7 +1844,7 @@ static int hdr_interpolate()
                 if (!BRIGHT_ROW)
                 {
                     /* interpolating bright exposure */
-                    if (fullres_curve[raw_get_pixel16(x, y)] > fullres_thr && !debug_edge)
+                    if (fullres_curve[raw_get_pixel32(x, y)] > fullres_thr && !debug_edge)
                     {
                         /* no high accuracy needed, just interpolate vertically */
                         not_shadow++;
@@ -1851,7 +1857,7 @@ static int hdr_interpolate()
                         deep_shadow++;
                     }
                 }
-                else if (raw_get_pixel16(x, y) < white_darkened && !debug_edge)
+                else if (raw_get_pixel32(x, y) < white_darkened && !debug_edge)
                 {
                     /* interpolating dark exposure, but we also have good data from the bright one */
                     not_overexposed++;
@@ -1991,10 +1997,10 @@ static int hdr_interpolate()
                     
                     int dxa = edge_directions[dir].a.x;
                     int dya = edge_directions[dir].a.y * s;
-                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, 65535);
+                    int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, 0xFFFFF);
                     int dxb = edge_directions[dir].b.x;
                     int dyb = edge_directions[dir].b.y * s;
-                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, 65535);
+                    int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, 0xFFFFF);
                     int pi = (raw2ev[pa] + raw2ev[pa] + raw2ev[pb]) / 3;
                     
                     interp[x   + y * w] = ev2raw[pi];
@@ -2156,7 +2162,7 @@ static int hdr_interpolate()
                     med_delta[i] = median_int_wirth(delta[i], delta_num[i]);
                     
                     /* avoid large corrections (they are probably outliers) */
-                    if (ABS(med_delta[i]) > 200) med_delta[i] = 0;
+                    if (ABS(med_delta[i]) > 200*16) med_delta[i] = 0;
                 }
                 else
                 {
@@ -2264,12 +2270,12 @@ static int hdr_interpolate()
     printf("Half-res blending...\n");
 
     /* mixing curve */
-    double max_ev = log2(white/4 - black/4);
-    static double mix_curve[65536];
+    double max_ev = log2(white/64 - black/64);
+    static double mix_curve[1<<20];
     
-    for (i = 0; i < 65536; i++)
+    for (i = 0; i < 1<<20; i++)
     {
-        double ev = log2(MAX(i/4.0 - black/4.0, 1)) + corr_ev;
+        double ev = log2(MAX(i/64.0 - black/64.0, 1)) + corr_ev;
         double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
         double k = (c+1) / 2;
         mix_curve[i] = k;
@@ -2287,7 +2293,7 @@ static int hdr_interpolate()
         
         fprintf(f, "k = [");
         for (i = 0; i < 65536; i++)
-            fprintf(f, "%f ", mix_curve[i]);
+            fprintf(f, "%f ", mix_curve[i*16]);
         fprintf(f, "];\n");
         
         fprintf(f, "plot(ev, k);\n");
@@ -2312,7 +2318,7 @@ static int hdr_interpolate()
             int dev = raw2ev[d];
 
             /* blending factor */
-            double k = COERCE(mix_curve[b & 65535], 0, 1);
+            double k = COERCE(mix_curve[b & 0xFFFFF], 0, 1);
             
             /* mix bright and dark exposures */
             int mixed = bev * (1-k) + dev * k;
@@ -2340,6 +2346,9 @@ static int hdr_interpolate()
     if (debug_blend)
     {
         raw_info.buffer = raw_buffer_16;
+        for (y = 3; y < h-2; y ++)
+            for (x = 2; x < w-2; x ++)
+                raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
         save_debug_dng("normal.dng");
         raw_info.buffer = raw_buffer_32;
 
@@ -2411,7 +2420,7 @@ static int hdr_interpolate()
                 int e_lin = ABS(f - h); /* error in linear space, for shadows (downweights noise) */
                 e_lin = MAX(e_lin - dark_noise*3/2, 0);
                 int e_log = ABS(fe - he); /* error in EV space, for highlights (highly sensitive to noise) */
-                alias_map[x + y*w] = MIN(MIN(e_lin*8, e_log/8), 65530);
+                alias_map[x + y*w] = MIN(MIN(e_lin/2, e_log/16), 65530);
             }
         }
 
@@ -2637,7 +2646,7 @@ static int hdr_interpolate()
             if (use_fullres)
             {
                 /* blending factor */
-                double f = fullres_curve[b & 65535];
+                double f = fullres_curve[b & 0xFFFFF];
                 
                 double c = 0;
                 if (use_alias_map)
@@ -2686,17 +2695,16 @@ static int hdr_interpolate()
     printf("Noise level     : %.02f (20-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
     printf("Dynamic range   : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
-end:
-
     /* go back from 20-bit to 16-bit output */
     raw_info.buffer = raw_buffer_16;
+    raw_info.black_level /= 16;
+    raw_info.white_level /= 16;
+
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++)
             raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
-    raw_info.black_level /= 16;
-    raw_info.white_level /= 16;
-    
 
+end:
     if (!rggb) /* back to GBRG */
     {
         raw_info.buffer -= raw_info.pitch;
