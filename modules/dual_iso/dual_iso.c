@@ -392,12 +392,17 @@ end:
 
 int dual_iso_is_enabled()
 {
+    return isoless_enabled;
+}
+
+int dual_iso_is_active()
+{
     return is_movie_mode() ? enabled_lv : enabled_ph;
 }
 
 int dual_iso_get_recovery_iso()
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     return ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
@@ -405,7 +410,7 @@ int dual_iso_get_recovery_iso()
 
 int dual_iso_set_recovery_iso(int iso)
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
@@ -587,7 +592,7 @@ static MENU_UPDATE_FUNC(isoless_update)
     
     int dr_improvement = dual_iso_get_dr_improvement() / 10;
     
-    if (dual_iso_is_enabled())
+    if (dual_iso_is_active())
         MENU_SET_RINFO("DR+%d.%d", dr_improvement/10, dr_improvement%10);
     else
         MENU_SET_RINFO("Orig. DR");
