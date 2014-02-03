@@ -402,12 +402,14 @@ int dual_iso_is_active()
 
 int dual_iso_get_ev_threshold()
 {
-    return isoless_ev_threshold;
+    return isoless_ev_threshold+14;
 }
 
-int dual_iso_set_ev_threshold(int menu_value)
+int dual_iso_set_ev_threshold(int ev)
 {
-    isoless_ev_threshold = menu_value;
+    if (ev <15) isoless_ev_threshold = 1;
+    else if (ev >25) isoless_ev_threshold = 11;
+    else isoless_ev_threshold = ev-14;
     return 0;
 }
 

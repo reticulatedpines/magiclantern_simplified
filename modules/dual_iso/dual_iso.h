@@ -12,6 +12,6 @@ extern WEAK_FUNC(ret_0) int dual_iso_calc_dr_improvement(int iso1, int iso2); /*
 
 extern WEAK_FUNC(ret_0) int dual_iso_get_dr_improvement(); /* with current settings */
 
-extern WEAK_FUNC(ret_0) int dual_iso_get_ev_threshold();
+extern WEAK_FUNC(ret_0) int dual_iso_get_ev_threshold(); /* ev x 10 */
 
-extern WEAK_FUNC(ret_0) int dual_iso_set_ev_threshold(int menu_value);
+extern WEAK_FUNC(ret_0) int dual_iso_set_ev_threshold(int ev); /* ev x10 */
