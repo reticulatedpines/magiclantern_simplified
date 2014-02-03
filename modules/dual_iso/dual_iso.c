@@ -400,6 +400,17 @@ int dual_iso_is_active()
     return is_movie_mode() ? enabled_lv : enabled_ph;
 }
 
+int dual_iso_get_ev_threshold()
+{
+    return isoless_ev_threshold;
+}
+
+int dual_iso_set_ev_threshold(int menu_value)
+{
+    isoless_ev_threshold = menu_value;
+    return 0;
+}
+
 int dual_iso_get_recovery_iso()
 {
     if (!dual_iso_is_active())

@@ -513,6 +513,7 @@ static int auto_ettr_work_m(int corr)
 
         /* apply dual ISO settings */
         isor = base_iso;
+        if (dual_iso_get_ev_threshold()) dual_iso_set_ev_threshold(0); // enable dual_iso no matter the ev gain
         dual_iso_set_recovery_iso(recovery_iso);
         extra_snr_needed = -snr_delta;
     }
