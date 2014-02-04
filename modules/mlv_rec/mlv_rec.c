@@ -1471,7 +1471,10 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                     frame_count
                 );
 
-            show_buffer_status();
+            if (show_graph) 
+            {
+                show_buffer_status();
+            }
 
             /* how fast are we writing? does this speed match our benchmarks? */
             for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
@@ -3309,7 +3312,7 @@ static void raw_video_rec_task()
                 }
             }
 
-            if(raw_recording_state != RAW_RECORDING)
+            if((raw_recording_state != RAW_RECORDING) && (show_graph))
             {
                 show_buffer_status();
             }
@@ -3391,7 +3394,10 @@ static void raw_video_rec_task()
                 goto cleanup;
             }
 
-            show_buffer_status();
+            if (show_graph) 
+            {
+                show_buffer_status();
+            }
 
             /* wait until all writers wrote their data */
             has_data = 0;
