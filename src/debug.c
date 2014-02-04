@@ -3819,7 +3819,7 @@ static struct menu_entry debug_menus[] = {
     {
         .name = "Battery level",
         .update = batt_display,
-        .help = "Battery remaining. Wait for 2%% discharge before reading.",
+        .help = "Battery remaining. Wait for 2% discharge before reading.",
         .icon_type = IT_ALWAYS_ON,
     },
 #endif
