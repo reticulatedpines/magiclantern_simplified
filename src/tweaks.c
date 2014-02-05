@@ -1788,7 +1788,7 @@ static char* get_warn_msg(char* separator)
     if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Av%s", separator); }
     if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
     if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not P%s", separator); }
-    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not LRAW%s", separator); } 
+    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
     if (warn_code & 8) { STR_APPEND(msg, "WB isn't set to auto%s", separator); } 
     return msg;
@@ -2048,7 +2048,7 @@ static struct menu_entry tweak_menus[] = {
                 .name = "Quality warning",
                 .priv = &warn_picq,
                 .max = 1,
-                .choices = (const char *[]) {"OFF", "other than LRAW"},
+                .choices = (const char *[]) {"OFF", "other than RAW"},
                 .help = "Warn if you change the picture quality to something else.",
             },
             {
