@@ -5062,7 +5062,7 @@ livev_lopriority_task( void* unused )
         #endif
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
+        if (crop_enabled && cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
         {
             msleep(500);
             if (PLAY_MODE && DISPLAY_IS_ON && ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)) // double-check

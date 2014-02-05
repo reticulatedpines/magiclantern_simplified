@@ -1354,7 +1354,7 @@ void auto_ettr_intervalometer_wait()
 
 static unsigned int auto_ettr_polling_cbr()
 {
-    if (lv && NOT_RECORDING)
+    if (lv && NOT_RECORDING && raw_lv_request != ret_0)
         auto_ettr_step_lv();
     return 0;
 }
