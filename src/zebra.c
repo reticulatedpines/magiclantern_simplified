@@ -3629,7 +3629,7 @@ static void draw_zoom_overlay(int dirty)
         lvr != CACHEABLE(YUV422_LV_BUFFER_1) && 
         lvr != CACHEABLE(YUV422_LV_BUFFER_2) && 
         lvr != CACHEABLE(YUV422_LV_BUFFER_3) &&
-        #ifdef YUV422_LV_BUFFER_3
+        #ifdef YUV422_LV_BUFFER_4
         lvr != CACHEABLE(YUV422_LV_BUFFER_4) &&
         #endif
        1)
