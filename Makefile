@@ -42,7 +42,10 @@ install_fir: fir
 platform_clean:
 	$(MAKE) -C platform clean
 
-clean: platform_clean doxygen_clean
+modules_clean:
+	$(MAKE) -C modules clean
+
+clean: platform_clean doxygen_clean modules_clean
 	$(call rm_files, \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
