@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
             printf("Could not read '%s'\n", in_filename);
             return -1;
         }
-        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(&iocrypt_rsa_ctx, encrypted, encrypted, encrypted_size, 0);
+        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(&iocrypt_rsa_ctx, (uint8_t *)encrypted, (uint8_t *)encrypted, encrypted_size, 0);
 
         if(!decrypted_size || decrypted_size > encrypted_size)
         {
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
         
         if(ret > 0)
         {
-            crypt_ctx.decrypt(&crypt_ctx, buffer, buffer, ret, file_offset);
+            crypt_ctx.decrypt(&crypt_ctx, (uint8_t *)buffer, (uint8_t *)buffer, ret, file_offset);
             fwrite(buffer, 1, ret, out_file);
             file_offset += ret;
         }

@@ -12,8 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
-#define trace_write(x,...) do { 0; } while (0)
+#define trace_write(x,...) do { (void)0; } while (0)
 //#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 
 #endif
@@ -193,6 +194,8 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         offset += 1;
         length -= 1;
     }
+    
+    return 0;
 }
 #undef IS_UNALIGNED
 
@@ -228,10 +231,10 @@ void crypt_lfsr64_init(crypt_cipher_t *crypt_ctx, uint64_t password)
     }
     
     /* setup cipher ctx */
-    crypt_ctx->encrypt = &crypt_lfsr64_encrypt;
-    crypt_ctx->decrypt = &crypt_lfsr64_decrypt;
-    crypt_ctx->deinit = &crypt_lfsr64_deinit;
-    crypt_ctx->set_blocksize = &crypt_lfsr64_set_blocksize;
+    crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_lfsr64_encrypt;
+    crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_lfsr64_decrypt;
+    crypt_ctx->deinit = (void (*)(void *))&crypt_lfsr64_deinit;
+    crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_lfsr64_set_blocksize;
     
     crypt_ctx->priv = ctx;
     ctx->password = password;

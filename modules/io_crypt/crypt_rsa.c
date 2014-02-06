@@ -8,8 +8,10 @@
 #include <menu.h>
 #include <string.h>
 
-//#define TRACE_DISABLED
+#define TRACE_DISABLED
 #include "../trace/trace.h"
+
+extern char *module_card_drive;
 
 #else
 
@@ -22,7 +24,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define trace_write(x,...) do { 0; } while (0)
+#define trace_write(x,...) do { (void)0; } while (0)
 //#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 
 #define NotifyBox(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
@@ -50,6 +52,8 @@ size_t getFileSize(const char * filename, int *ret)
     
     return 0;
 }
+
+char *module_card_drive = "";
 #endif
 
 #include <rand.h>
@@ -553,8 +557,12 @@ static void crypt_rsa_deinit(void **crypt_ctx)
     }
 }
 
-static uint32_t crypt_rsa_save(char *filename, t_crypt_key *key)
+static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
 {
+    char filename[32];
+    
+    snprintf(filename, sizeof(filename), "%s%s", module_card_drive, file);
+    
     FILE* f = FIO_CreateFileEx(filename);
     if(f == INVALID_PTR)
     {
@@ -573,7 +581,7 @@ static uint32_t crypt_rsa_save(char *filename, t_crypt_key *key)
 
 uint32_t crypt_rsa_load(char *filename, t_crypt_key *key)
 {
-    uint32_t size = 0;
+    int size = 0;
     
     if(FIO_GetFileSize(filename, &size))
     {
@@ -748,10 +756,10 @@ void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
     }
     
     /* setup cipher ctx */
-    crypt_ctx->encrypt = &crypt_rsa_encrypt;
-    crypt_ctx->decrypt = &crypt_rsa_decrypt;
-    crypt_ctx->deinit = &crypt_rsa_deinit;
-    crypt_ctx->set_blocksize = &crypt_rsa_set_blocksize;
+    crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_encrypt;
+    crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_decrypt;
+    crypt_ctx->deinit = (void (*)(void *))&crypt_rsa_deinit;
+    crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_rsa_set_blocksize;
     crypt_ctx->priv = ctx;
     
     /* load all keys that are on card */

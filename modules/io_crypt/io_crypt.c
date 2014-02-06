@@ -739,14 +739,12 @@ static unsigned int iocrypt_init()
 {
     if(streq(camera_model_short, "600D"))
     {
-        /* not verified */
         iodev_table = 0x1E684;
         iodev_ctx = 0x7EB08;
         iodev_ctx_size = 0x18;
     }
     else if(streq(camera_model_short, "7D"))
     {
-        /* not verified */
         iodev_table = 0x2D3B8;
         iodev_ctx = 0x85510;
         iodev_ctx_size = 0x18;
@@ -761,6 +759,13 @@ static unsigned int iocrypt_init()
     {
         iodev_table = 0x44FA8;
         iodev_ctx = 0x67140;
+        iodev_ctx_size = 0x20;
+    }
+    else if(streq(camera_model_short, "650D"))
+    {
+        /* not verified */
+        iodev_table = 0x54060;
+        iodev_ctx = 0x7C278;
         iodev_ctx_size = 0x20;
     }
     else
@@ -801,7 +806,7 @@ static unsigned int iocrypt_init()
     crypt_rsa_init(&iocrypt_rsa_ctx);
     
     /* any file operation is routed through us now */
-    menu_add("Debug", iocrypt_menus, COUNT(iocrypt_menus) );
+    menu_add("Shoot", iocrypt_menus, COUNT(iocrypt_menus) );
     
     return 0;
 }
