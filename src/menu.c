@@ -4084,19 +4084,9 @@ static struct menu_entry * get_selected_entry(struct menu * menu)  // argument i
                 break;
     }
     struct menu_entry * entry = menu->children;
-    for(int level = submenu_level; level >=0; level--)
-    {
-        for( ; entry ; entry = entry->next )
-        {
-            if( entry->selected )
-                break;
-        }
-        if(level > 1 && entry && entry->selected)
-            entry = entry->children;
-        if(level == 1) break;
-    }
-    if(entry && entry->selected)
-        return entry;
+    for( ; entry ; entry = entry->next )
+        if( entry->selected )
+            return entry;
     return 0;
 }
 
@@ -4104,8 +4094,17 @@ static struct menu * get_current_submenu()
 {
     struct menu_entry * entry = get_selected_entry(0);
     if (!entry) return 0;
-
-    if (entry->children)
+    
+    for(int level = submenu_level; level > 1; level--)
+    {
+        for(entry = entry->children ; entry ; entry = entry->next )
+        {
+            if( entry->selected )
+                break;
+        }
+        if(!entry) break;
+    }
+    if (entry && entry->children)
         return menu_find_by_name(entry->name, 0);
 
     // no submenu, fall back to edit mode
