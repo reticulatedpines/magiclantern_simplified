@@ -140,6 +140,7 @@ static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
 static CONFIG_INT("mlv.reckey", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
+static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 
 
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
@@ -365,14 +366,30 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     char filename[32];
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
 
+    /* add an megabyte extra */
+    size += 1024 * 1024;
+    
+    int file_size = 0;
+    if(!FIO_GetFileSize(filename, &file_size))
+    {
+        /* file already exists and reserves enough room */
+        if(file_size >= size)
+        {
+            return 1;
+        }
+        
+        /* not enough room, delete and rewrite */
+        FIO_RemoveFile(filename);
+    }
+    
     FILE *dummy_file = FIO_CreateFileEx(filename);
     if(dummy_file == INVALID_PTR)
     {
         return 0;
     }
     
-    FIO_SeekFile(dummy_file, size + 1024 * 1024, SEEK_SET);
-    FIO_WriteFile(dummy_file, "", 1);
+    bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
+    FIO_WriteFile(dummy_file, 0x40000000, size);
     uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
@@ -999,14 +1016,14 @@ static int32_t setup_buffers()
     {
         uint32_t size = GetSizeOfMemoryChunk(chunk);
         uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-
+        
         /* add some protection to detect overwrites */
         setup_prot(&ptr, &size);
         check_prot(ptr, size, 0);
 
-        if (size >= buf_size)
+        if(size >= buf_size)
         {
-            if (size - buf_size < waste)
+            if(size - buf_size < waste)
             {
                 waste = size - buf_size;
                 fullsize_buffers[0] = (void *)ptr;
@@ -1040,15 +1057,15 @@ static int32_t setup_buffers()
         setup_prot(&ptr, &size);
         check_prot(ptr, size, 0);
 
-        if (ptr == (uint32_t)fullsize_buffers[0]) /* already used */
+        if(ptr == (uint32_t)fullsize_buffers[0]) /* already used */
         {
             trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
             ptr += buf_size;
             size -= buf_size;
-            total_size += buf_size;
         }
 
         setup_chunk(ptr, size);
+        total_size += size;
 
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
@@ -1125,9 +1142,9 @@ static int32_t setup_buffers()
     do
     {
         int newn = 1;
-        for (int i = 0; i < n-1; ++i)
+        for(int i = 0; i < n-1; ++i)
         {
-            if (slot_groups[i].len < slot_groups[i+1].len)
+            if(slot_groups[i].len < slot_groups[i+1].len)
             {
                 struct frame_slot_group tmp = slot_groups[i+1];
                 slot_groups[i+1] = slot_groups[i];
@@ -1143,8 +1160,13 @@ static int32_t setup_buffers()
         trace_write(raw_rec_trace_ctx, "group: %d length: %d slot: %d", group, slot_groups[group].len, slot_groups[group].slot);
     }
     
-    /* now allocate a dummy file that is going to be released when disk runs full */
-    return mlv_rec_alloc_dummy(total_size);
+    if(create_dummy)
+    {
+        /* now allocate a dummy file that is going to be released when disk runs full */
+        return mlv_rec_alloc_dummy(total_size);
+    }
+    
+    return 1;
 }
 
 static int32_t get_free_slots()
@@ -3318,8 +3340,6 @@ static void raw_video_rec_task()
             }
         }
         
-        mlv_rec_release_dummy();
-        
         /* now close all queued files */
         while(1)
         {
@@ -3491,7 +3511,6 @@ static void raw_video_rec_task()
 cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
-    mlv_rec_release_dummy();
     
     NotifyBox(5000, "Frames captured: %d", frame_count - 1);
 
@@ -3826,6 +3845,12 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &card_spanning,
                 .max = 1,
                 .help  = "Span video file over cards to use SD+CF write speed",
+            },
+            {
+                .name = "Reserve card space",
+                .priv = &create_dummy,
+                .max = 1,
+                .help  = "Write a file before recording to prevent data loss on full card",
             },
             {
                 .name = "Tag: Text",
@@ -4179,4 +4204,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(test_mode)
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
+    MODULE_CONFIG(create_dummy)
 MODULE_CONFIGS_END()
