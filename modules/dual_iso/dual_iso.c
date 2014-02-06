@@ -95,6 +95,7 @@ static int is_600d = 0;
 static int is_650d = 0;
 static int is_700d = 0;
 static int is_eosm = 0;
+static int is_1100d = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
 static uint32_t FRAME_CMOS_ISO_COUNT = 0;
@@ -413,7 +414,7 @@ int dual_iso_set_recovery_iso(int iso)
 
 static unsigned int isoless_playback_fix(unsigned int ctx)
 {
-    if (is_7d)
+    if (is_7d || is_1100d)
         return 0; /* seems to cause problems, figure out why */
     
     if (!isoless_hdr) return 0;
@@ -876,6 +877,26 @@ static unsigned int isoless_init()
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
+    }
+    else if (streq(camera_model_short, "1100D"))
+    {
+        is_1100d = 1;
+        /*
+         100 - 0     0x407444B2
+         200 - 0x120 0x407444C6
+         400 - 0x240 0x407444DA
+         800 - 0x360 0x407444EE
+         1600 -0x480 0x40744502
+         3200 -0x5A0 0x40744516
+         */
+        
+        PHOTO_CMOS_ISO_START = 0x407444B2; // CMOS register 00    00 - for photo mode, ISO
+        PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to     3200
+        PHOTO_CMOS_ISO_SIZE  =         20; // distance between     ISO 100 and ISO 200 addresses, in bytes
+        
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 5;
+        CMOS_EXPECTED_FLAG = 0;
     }
 
 

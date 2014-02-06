@@ -6,22 +6,54 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include <string.h>
+
 #define TRACE_DISABLED
 #include "../trace/trace.h"
+
+extern char *module_card_drive;
 
 #else
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
-#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#define trace_write(x,...) do { (void)0; } while (0)
+//#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+
 #define NotifyBox(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+#define NotifyBoxHide() do { } while(0)
 #define beep() do { } while(0)
 #define beep_times(x) do { } while(0)
 #define msleep(x) usleep((x)*1000)
 #define task_create(a,b,c,d,e) do { d(e); } while(0)
 
+#define FIO_CreateFileEx(file) fopen(file, "w+")
+#define FIO_WriteFile(f,data,len) fwrite(data, 1, len, f)
+#define FIO_ReadFile(f,data,len) fread(data, 1, len, f)
+#define FIO_CloseFile(x) fclose(f)
+#define FIO_Open(file,mode) fopen(file, "r")
+#define FIO_GetFileSize(f,ret) getFileSize(f,ret)
+#define INVALID_PTR 0
+#define O_RDONLY 0
+#define O_SYNC 0
+
+size_t getFileSize(const char * filename, int *ret)
+{
+    struct stat st;
+    stat(filename, &st);
+    *ret = st.st_size;
+    
+    return 0;
+}
+
+char *module_card_drive = "";
 #endif
 
 #include <rand.h>
@@ -32,10 +64,11 @@
 #include "bigd.h"
 #include "bigdigits.h"  
 
+#define assert(x) do {} while(0)
 
+static uint32_t crypt_rsa_keysize = 1024;
 extern uint32_t iocrypt_trace_ctx;
 
-#define assert(x) do {} while(0)
 
 static bdigit_t small_primes[] = {
 	3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43,
@@ -59,7 +92,7 @@ static bdigit_t small_primes[] = {
 #define N_SMALL_PRIMES (sizeof(small_primes)/sizeof(bdigit_t))
 
 
-static int my_rand(unsigned char *bytes, size_t nbytes, const unsigned char *seed, size_t seedlen)
+static int crypt_rsa_rand(unsigned char *bytes, size_t nbytes, const unsigned char *seed, size_t seedlen)
 {
     if(0 && seed)
     {
@@ -80,9 +113,9 @@ static int my_rand(unsigned char *bytes, size_t nbytes, const unsigned char *see
     uint32_t words = (nbytes / 4);
     uint32_t remain = (nbytes % 4);
     
-    rand_fill(bytes, words);
+    rand_fill((uint32_t*)bytes, words);
     
-	for(int pos = 0; pos < remain; pos++)
+	for(uint32_t pos = 0; pos < remain; pos++)
 	{
         uint32_t rn = 0;
         rand_fill(&rn, 1);
@@ -91,7 +124,6 @@ static int my_rand(unsigned char *bytes, size_t nbytes, const unsigned char *see
 
 	return 0;
 }
-
 
 
 int generateRSAPrime(BIGD p, size_t nbits, bdigit_t e, size_t ntests,
@@ -299,10 +331,9 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
 	qInv = bdNew();
 
 	/* Create RSA key pair (n, e),(d, p, q, dP, dQ, qInv) */
-	/* NB we use simple my_rand() here -- you should use a proper cryptographically-secure RNG */
-	res = generateRSAKey(n, e, d, p, q, dP, dQ, qInv, nbits+1, 3, 50, NULL, 0, my_rand);
+	res = generateRSAKey(n, e, d, p, q, dP, dQ, qInv, nbits+1, 3, 50, NULL, 0, crypt_rsa_rand);
 
-	if (res != 0)
+	if(res != 0)
 	{
 		NotifyBox(5000, "Failed to generate RSA key!\n");
 		goto clean_up;
@@ -310,50 +341,50 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
 
 	priv_key->id = 0x00;
 	pub_key->id = 0x00;
-	priv_key->name = strdup ( "new key" );
-	pub_key->name = strdup ( "new key" );
+	priv_key->name = strdup("new key");
+	pub_key->name = strdup("new key");
 
 	size_t nchars = bdConvToHex(n, NULL, 0);
 	buffer = malloc(nchars+1);
 	nchars = bdConvToHex(n, buffer, nchars+1);
     
-	priv_key->primefac = (char*)strdup ( (char *)buffer );
-	pub_key->primefac = (char*)strdup ( (char *)buffer );
-	free ( buffer );
+	priv_key->primefac = (char*)strdup((char *)buffer);
+	pub_key->primefac = (char*)strdup((char *)buffer);
+	free(buffer);
     
     nchars = bdConvToHex(d, NULL, 0);
 	buffer = malloc(nchars+1);
 	nchars = bdConvToHex(d, buffer, nchars+1);
     
-	priv_key->key = (char*)strdup ( (char *)buffer );
-	free ( buffer );
+	priv_key->key = (char*)strdup((char *)buffer);
+	free(buffer);
 
     nchars = bdConvToHex(e, NULL, 0);
 	buffer = malloc(nchars+1);
 	nchars = bdConvToHex(e, buffer, nchars+1);
     
-	pub_key->key = (char*)strdup ( (char *)buffer );
-	free ( buffer );
+	pub_key->key = (char*)strdup((char *)buffer);
+	free(buffer);
 
 
-	bdConvFromHex ( d, priv_key->key );
-	bdConvFromHex ( e, pub_key->key );
-	bdConvFromHex ( n, pub_key->primefac );
+	bdConvFromHex(d, priv_key->key);
+	bdConvFromHex(e, pub_key->key);
+	bdConvFromHex(n, pub_key->primefac);
 
 	source = bdNew ();
 	result = bdNew ();
 	tmp_buf = (unsigned char*)malloc ( nbits*8*4 );
-	strcpy ( (char*)tmp_buf, "Test" );
+	strcpy((char*)tmp_buf, "Test");
 
-	bdConvFromOctets ( source, tmp_buf, 8 );
+	bdConvFromOctets( source, tmp_buf, 8);
 	bdModExp(result, source, d, n);
 
-	bdConvToOctets ( result, tmp_buf, bdSizeof(result)*4 );
-	bdConvFromOctets ( result, tmp_buf, bdSizeof(result)*4 );
+	bdConvToOctets(result, tmp_buf, bdSizeof(result)*4);
+	bdConvFromOctets(result, tmp_buf, bdSizeof(result)*4);
 
 	bdModExp(source, result, e, n);
-	bdConvToOctets ( source, tmp_buf,  bdSizeof(source)*4 );
-	if ( strcmp ( (char*)"Test", (char*)tmp_buf ) )
+	bdConvToOctets(source, tmp_buf, bdSizeof(source)*4);
+	if(strcmp((char*)"Test", (char*)tmp_buf))
     {
 		printf ( "Key check FAILED!!\n" );
         beep();
@@ -375,7 +406,7 @@ clean_up:
 }
 
 
-unsigned int crypt_rsa_crypt ( unsigned char *data, int length, t_crypt_key *key )
+unsigned int crypt_rsa_crypt(uint8_t *dst, uint8_t *src, int length, t_crypt_key *key)
 {
 	BIGD keyval;
 	BIGD primefac;
@@ -388,29 +419,133 @@ unsigned int crypt_rsa_crypt ( unsigned char *data, int length, t_crypt_key *key
 	buffer = bdNew();
 	result = bdNew();
 
-	bdConvFromHex ( keyval, key->key );
-	bdConvFromHex ( primefac, key->primefac );
-	bdConvFromOctets ( buffer, data, length );
+	bdConvFromHex(keyval, key->key);
+	bdConvFromHex(primefac, key->primefac);
+	bdConvFromOctets(buffer, src, length);
 
-	bdModExp ( result, buffer, keyval, primefac );
+	bdModExp(result, buffer, keyval, primefac);
 
 	bytes = bdSizeof (result)*4;
-	bdConvToOctets ( result, data, bytes );
+	bdConvToOctets(result, dst, bytes);
 
-	bdFree ( &keyval );
-	bdFree ( &primefac );
-	bdFree ( &buffer );
-	bdFree ( &result );
+	bdFree(&keyval);
+	bdFree(&primefac);
+	bdFree(&buffer);
+	bdFree(&result);
 
 	return bytes;
 }
 
-static void crypt_rsa_encrypt(void *ctx_in, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+t_crypt_key *crypt_rsa_get_priv(crypt_cipher_t *crypt_ctx)
 {
+    if(!crypt_ctx || !crypt_ctx->priv)
+    {
+        return NULL;
+    }
+    
+    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    
+    if(!strlen(ctx->priv_key.name))
+    {
+        return NULL;
+    }
+    
+    return &ctx->priv_key;
 }
 
-static void crypt_rsa_decrypt(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+t_crypt_key *crypt_rsa_get_pub(crypt_cipher_t *crypt_ctx)
 {
+    if(!crypt_ctx || !crypt_ctx->priv)
+    {
+        return NULL;
+    }
+    
+    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    
+    if(!strlen(ctx->pub_key.name))
+    {
+        return NULL;
+    }
+    
+    return &ctx->pub_key;
+}
+
+/* returns the key size in bits */
+uint32_t crypt_rsa_get_keysize(crypt_cipher_t *crypt_ctx)
+{
+    if(!crypt_ctx || !crypt_ctx->priv)
+    {
+        return 0;
+    }
+    
+    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    
+    int nibbles = strlen(ctx->pub_key.primefac);
+    
+    return nibbles * 4;
+}
+
+void crypt_rsa_set_keysize(uint32_t size)
+{
+    crypt_rsa_keysize = size;
+}
+
+void crypt_rsa_clear_key(t_crypt_key *key)
+{
+    key->name = "";
+    key->primefac = "";
+    key->key = "";
+}
+
+/* returns the key size in bits */
+uint32_t crypt_rsa_blocksize(crypt_cipher_t *crypt_ctx)
+{
+    uint32_t keysize = crypt_rsa_get_keysize(crypt_ctx);
+    
+    if(!keysize)
+    {
+        return 0;
+    }
+    
+    return (keysize / 8);
+}
+
+static uint32_t crypt_rsa_encrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+{
+    if(!crypt_ctx || !crypt_ctx->priv)
+    {
+        return 0;
+    }
+    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    
+    if(crypt_rsa_blocksize(crypt_ctx) > length)
+    {
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(crypt_ctx), length);
+        return 0;
+    }
+    
+    uint32_t new_len = crypt_rsa_crypt(dst, src, length, &ctx->pub_key);
+    
+    return new_len;
+}
+
+static uint32_t crypt_rsa_decrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+{
+    if(!crypt_ctx || !crypt_ctx->priv)
+    {
+        return 0;
+    }
+    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    
+    if(crypt_rsa_blocksize(crypt_ctx) > length)
+    {
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(crypt_ctx), length);
+        return 0;
+    }
+    
+    uint32_t new_len = crypt_rsa_crypt(dst, src, length, &ctx->priv_key);
+    
+    return new_len;
 }
 
 static void crypt_rsa_deinit(void **crypt_ctx)
@@ -420,6 +555,109 @@ static void crypt_rsa_deinit(void **crypt_ctx)
         free(*crypt_ctx);
         *crypt_ctx = NULL;
     }
+}
+
+static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
+{
+    char filename[32];
+    
+    snprintf(filename, sizeof(filename), "%s%s", module_card_drive, file);
+    
+    FILE* f = FIO_CreateFileEx(filename);
+    if(f == INVALID_PTR)
+    {
+        return 0;
+    }
+    
+    FIO_WriteFile(f, key->primefac, strlen(key->primefac));
+    FIO_WriteFile(f, "\n", 1);
+    FIO_WriteFile(f, key->key, strlen(key->key));
+    FIO_WriteFile(f, "\n", 1);
+    
+    FIO_CloseFile(f);
+    
+    return 1;
+}
+
+uint32_t crypt_rsa_load(char *filename, t_crypt_key *key)
+{
+    int size = 0;
+    
+    if(FIO_GetFileSize(filename, &size))
+    {
+        trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_load: file not found: '%s'", filename);
+        return 0;
+    }
+    
+    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+    if(f == INVALID_PTR)
+    {
+        return 0;
+    }
+    
+    char *buffer = malloc(size);
+    if(FIO_ReadFile(f, buffer, size) != (int)size)
+    {
+        trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_load: FIO_ReadFile failed");
+        free(buffer);
+        return 0;
+    }
+    
+    char *sep = strchr(buffer, '\n');
+    if(!sep)
+    {
+        trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_load: invalid file format");
+        free(buffer);
+        return 0;
+    }
+    
+    /* split strings */
+    *sep = '\000';
+    sep++;
+    
+    /* remove termination */
+    char *sep2 = strchr(sep, '\n');
+    if(sep2)
+    {
+        *sep2 = '\000';
+    }
+    
+    /* now fill key */
+    key->name = strdup(filename);
+    key->primefac = strdup(buffer);
+    key->key = strdup(sep);
+
+    free(buffer);
+    FIO_CloseFile(f);
+    
+    return 1;
+}
+
+
+void crypt_rsa_generate_keys(crypt_cipher_t *crypt_ctx)
+{
+    t_crypt_key priv_key;
+    t_crypt_key pub_key;
+    
+    NotifyBox(60000, "Creating RSA key (%d bits)\nthis may take a while", crypt_rsa_keysize);
+    trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d...", crypt_rsa_keysize);
+    crypt_rsa_generate(crypt_rsa_keysize, &priv_key, &pub_key);
+    trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d done", crypt_rsa_keysize);
+    NotifyBoxHide();
+    beep();
+    NotifyBox(2000, "RSA key generated!");
+    
+    crypt_rsa_save("ML/DATA/io_crypt.key", &priv_key);
+    crypt_rsa_save("ML/DATA/io_crypt.pub", &pub_key);
+    
+    /* now reload to make sure all is file */
+    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    
+    crypt_rsa_clear_key(&ctx->pub_key);
+    crypt_rsa_clear_key(&ctx->priv_key);
+    
+    crypt_rsa_load("ML/DATA/io_crypt.pub", &ctx->pub_key);
+    crypt_rsa_load("ML/DATA/io_crypt.key", &ctx->priv_key);
 }
 
 static uint32_t crypt_rsa_testfunc(int size, t_crypt_key *priv_key, t_crypt_key *pub_key)
@@ -451,9 +689,9 @@ static uint32_t crypt_rsa_testfunc(int size, t_crypt_key *priv_key, t_crypt_key 
     
     trace_write(iocrypt_trace_ctx, "Encryption test:");
     trace_write(iocrypt_trace_ctx, "   pre-crypt:    0x%08X%08X%08X%08X (%d bytes)", data[3], data[2], data[1], data[0], size_bytes);
-    uint32_t new_len = crypt_rsa_crypt(data, size / 8, pub_key);
+    uint32_t new_len = crypt_rsa_crypt((uint8_t*)data, (uint8_t*)data, size / 8, pub_key);
     trace_write(iocrypt_trace_ctx, "   post-crypt:   0x%08X%08X%08X%08X (%d bytes)", data[3], data[2], data[1], data[0], new_len);
-    new_len = crypt_rsa_crypt(data, new_len, priv_key);
+    new_len = crypt_rsa_crypt((uint8_t*)data, (uint8_t*)data, new_len, priv_key);
     trace_write(iocrypt_trace_ctx, "   post-decrypt: 0x%08X%08X%08X%08X (%d bytes)", data[3], data[2], data[1], data[0], size_bytes);
     
     for(int pos = 0; pos < (size_bytes / 4); pos++)
@@ -501,8 +739,13 @@ void crypt_rsa_test()
     }
 }
 
+static void crypt_rsa_set_blocksize(crypt_cipher_t *crypt_ctx, uint32_t size)
+{
+    crypt_rsa_keysize = size;
+}
+
 /* allocate and initialize an RSA cipher ctx and save to pointer */
-void crypt_rsa_init(void **crypt_ctx, uint64_t password)
+void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
 {
     rsa_ctx_t *ctx = malloc(sizeof(rsa_ctx_t));
     
@@ -512,14 +755,29 @@ void crypt_rsa_init(void **crypt_ctx, uint64_t password)
         return;
     }
     
-    srand(password);
-    
     /* setup cipher ctx */
-    ctx->cipher.encrypt = &crypt_rsa_encrypt;
-    ctx->cipher.decrypt = &crypt_rsa_decrypt;
-    ctx->cipher.deinit = &crypt_rsa_deinit;
+    crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_encrypt;
+    crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_decrypt;
+    crypt_ctx->deinit = (void (*)(void *))&crypt_rsa_deinit;
+    crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_rsa_set_blocksize;
+    crypt_ctx->priv = ctx;
     
-    *crypt_ctx = ctx;
+    /* load all keys that are on card */
+    crypt_rsa_clear_key(&ctx->pub_key);
+    crypt_rsa_clear_key(&ctx->priv_key);
+    
+    crypt_rsa_load("ML/DATA/io_crypt.pub", &ctx->pub_key);
+    crypt_rsa_load("ML/DATA/io_crypt.key", &ctx->priv_key);
+    crypt_rsa_load("io_crypt.pub", &ctx->pub_key);
+    crypt_rsa_load("io_crypt.key", &ctx->priv_key);
+    
+    //trace_write(iocrypt_trace_ctx, "    pub_key:  name     %s", ctx->pub_key.name);
+    //trace_write(iocrypt_trace_ctx, "    pub_key:  primefac %s", ctx->pub_key.primefac);
+    //trace_write(iocrypt_trace_ctx, "    pub_key:  key      %s", ctx->pub_key.key);
+    //trace_write(iocrypt_trace_ctx, "    priv_key:  name     %s", ctx->priv_key.name);
+    //trace_write(iocrypt_trace_ctx, "    priv_key:  primefac %s", ctx->priv_key.primefac);
+    //trace_write(iocrypt_trace_ctx, "    priv_key:  key      %s", ctx->priv_key.key);
+    
     trace_write(iocrypt_trace_ctx, "crypt_rsa_init: initialized");
 }
 

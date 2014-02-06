@@ -44,7 +44,8 @@ endif
 ifeq ($(ML_ZEBRA_OBJ), n)
 ML_ZEBRA_OBJ =
 else ifndef ML_ZEBRA_OBJ
-ML_ZEBRA_OBJ = zebra.o
+ML_ZEBRA_OBJ = zebra.o \
+			   vectorscope.o
 endif
 
 ifeq ($(ML_BOOTFLAGS_OBJ), n)

@@ -9,7 +9,6 @@
 
 int new_LiveViewApp_handler = 0xff123456;
 
-// dummy stubs
 /* called from misc_shooting_info() in shoot.c */
 
 void display_clock()

@@ -718,7 +718,7 @@ static void fps_setup_timerB(int fps_x1000)
         written_value_b = PACK(timerB, fps_reg_b_orig);
         EngDrvOutFPS(FPS_REGISTER_B, written_value_b);
         fps_needs_updating = 0;
-    #ifdef NEW_FPS_METHOD
+    #if defined(NEW_FPS_METHOD)
     }
     else
     {
@@ -1435,7 +1435,7 @@ static void fps_read_default_timer_values()
     if (RECORDING_H264_STARTING) return;
     //~ info_led_blink(1,10,10);
     fps_reg_a_orig = FPS_REGISTER_A_DEFAULT_VALUE;
-    #ifdef NEW_FPS_METHOD
+    #if defined(NEW_FPS_METHOD)
     int mode = get_fps_video_mode();
     unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
     fps_reg_b_orig = sensor_timing_table_original[pos] - 1; // nobody will change it from here :)
@@ -1722,7 +1722,7 @@ int handle_fps_events(struct event * event)
         event->param == BGMT_LV
     #endif
     
-    #ifdef NEW_FPS_METHOD
+    #if defined(NEW_FPS_METHOD)
     // we won't be able to change/restore FPS on the fly with table patching method :(
     && SENSOR_TIMING_TABLE != (intptr_t) sensor_timing_table_patched
     #endif

@@ -46,6 +46,11 @@ static int show_metered_areas = 0;
 extern int hdr_enabled;
 #define HDR_ENABLED hdr_enabled
 
+/** Some cameras do not have raw liveview **/
+extern WEAK_FUNC(ret_0) void raw_lv_request();
+extern WEAK_FUNC(ret_0) void raw_lv_release();
+extern WEAK_FUNC(ret_0) int  raw_lv_is_enabled();
+
 static char* get_current_exposure_settings()
 {
     static char msg[50];
@@ -699,6 +704,13 @@ static void auto_ettr_step()
     if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
     if (HDR_ENABLED && !AUTO_ETTR_TRIGGER_BY_SET) return;
+
+    if (!raw_update_params())
+    {
+        NotifyBox(5000, "Raw error");
+        return;
+    }
+
     int corr = auto_ettr_get_correction();
     if (corr != INT_MIN)
     {
@@ -945,7 +957,13 @@ static void auto_ettr_on_request_task_fast()
 
     NotifyBox(100000, "ETTR...");
     raw_lv_request(); raw_requested = 1;
-    
+
+    if (!raw_update_params())
+    {
+        err_msg = "Raw error";
+        goto err;
+    }
+
     for (int i = 0; i < 5; i++)
     {
         NotifyBox(100000, "ETTR (%d)...", i+1);
@@ -1041,6 +1059,13 @@ static void auto_ettr_step_lv_fast()
         goto end;
     
     raw_lv_request();
+
+    if (!raw_update_params())
+    {
+        NotifyBox(5000, "Raw error");
+        goto skip;
+    }
+
     int corr = auto_ettr_get_correction();
     
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
@@ -1079,6 +1104,8 @@ static void auto_ettr_step_lv_fast()
 
         auto_ettr_wait_lv_frames(15);
     }
+
+skip:
     raw_lv_release();
     
 end:
@@ -1106,6 +1133,13 @@ static void auto_ettr_on_request_task_slow()
         msleep(500);
         
         raw_lv_request();
+
+        if (!raw_update_params())
+        {
+            err_msg = "Raw error";
+            goto err;
+        }
+
         int corr = auto_ettr_get_correction();
         raw_lv_release();
 
@@ -1215,6 +1249,10 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
 
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
+    if (lv && raw_lv_request == ret_0)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR Does not work in LV on this camera.");
+    }
     if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M, Av, Tv, P and RAW MOVIE modes.");
 
@@ -1316,7 +1354,7 @@ void auto_ettr_intervalometer_wait()
 
 static unsigned int auto_ettr_polling_cbr()
 {
-    if (lv && NOT_RECORDING)
+    if (lv && NOT_RECORDING && raw_lv_request != ret_0)
         auto_ettr_step_lv();
     return 0;
 }
@@ -1334,7 +1372,7 @@ static struct menu_entry ettr_menu[] =
             {
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
-                .max = 3,
+                .max = 3, // NOTE: Modifed by the module init task to disable ETTR in LV if not supported
                 .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
                 .help  = "When should the exposure be adjusted for ETTR:",
                 .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
@@ -1436,6 +1474,11 @@ static struct menu_entry ettr_menu[] =
 
 static unsigned int ettr_init()
 {
+    if(raw_lv_request == ret_0)
+    {
+        auto_ettr_trigger  = auto_ettr_trigger > 1 ? 0 : auto_ettr_trigger;
+        ettr_menu[0].children[0].max = 1;
+    }
     menu_add("Expo", ettr_menu, COUNT(ettr_menu));
     return 0;
 }

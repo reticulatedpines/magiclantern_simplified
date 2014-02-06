@@ -135,7 +135,9 @@ static CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.cliplen", movie_cliplen,0);
 #endif
 
-//~ CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+#ifdef FEATURE_REMAP
+static CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+#endif
 static CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 static CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
 static CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
@@ -201,7 +203,7 @@ static void movie_rec_halfshutter_step()
 }
 #endif
 
-#if 0 // unstable
+#ifdef FEATURE_REMAP // unstable
 void do_movie_mode_remap()
 {
     if (gui_state == GUISTATE_PLAYMENU) return;
@@ -345,9 +347,12 @@ movtweak_task_init()
 static int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 {
     extern thunk ErrCardForLVApp_handler;
-    for (int i = 0; i <= wait/20; i++)
+    for(int i = 0; i <= wait/20; i++)
     {
-        if ((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler) return 1;
+        if((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler)
+        {
+            return 1;
+        }
         msleep(20);
     }
     return 0;
@@ -361,10 +366,11 @@ void movtweak_step()
 
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
+        
         #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
-        if (NOT_RECORDING && recording_prev > 0 && !movie_was_stopped_by_set) // see also gui.c
+        if(!RECORDING_H264 && recording_prev && !movie_was_stopped_by_set) // see also gui.c
         #else
-        if (NOT_RECORDING && recording_prev > 0 && wait_for_lv_err_msg(0))
+        if(!RECORDING_H264 && recording_prev && wait_for_lv_err_msg(0))
         #endif
         {
             if (movie_restart)
@@ -373,9 +379,12 @@ void movtweak_step()
                 movie_start();
             }
         }
-        recording_prev = RECORDING;
+        recording_prev = RECORDING_H264;
 
-        if (NOT_RECORDING) movie_was_stopped_by_set = 0;
+        if(!RECORDING_H264)
+        {
+            movie_was_stopped_by_set = 0;
+        }
     #endif
 
         #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
@@ -930,7 +939,7 @@ static struct menu_entry mov_menus[] = {
                 .choices = CHOICES("Start/Stop", "Start only", "Stop only"),
                 .help = "Select actions for half-shutter.",
             },
-            MENU_EOL
+            MENU_EOL,
         },
     },
     #endif
@@ -986,12 +995,18 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif
-                #if 0
+                #ifdef FEATURE_REMAP
                 {
                     .name = "MovieModeRemap",
                     .priv = &movie_mode_remap,
                     .update    = mode_remap_print,
-                    .select     = menu_ternary_toggle,
+                    .min = 0,
+                    #ifdef CONFIG_50D
+                    .max = 1,
+                    #else
+                    .max = 2,
+                    #endif
+                    .choices = CHOICES("OFF", "A-DEP", "CA"),
                     .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
                 },
                 #endif

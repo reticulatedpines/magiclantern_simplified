@@ -28,6 +28,7 @@
 #include <chdk-dng.h>
 #include "qsort.h"  /* much faster than standard C qsort */
 #include "../dual_iso/optmed.h"
+#include "../dual_iso/wirth.h"
 
 /* useful to clean pink dots, may also help with color aliasing, but it's best turned off if you don't have these problems */
 //~ #define CHROMA_SMOOTH
@@ -39,7 +40,16 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
+void find_and_fix_bad_pixels();
 void chroma_smooth();
+
+int fix_bad_pixels = 1; //1=fix badpixels, 0=disabled
+
+#define MAX_BADPIXELS 2000 /*max number of badpixels, which can be fixed*/
+struct xy { int x; int y; };
+struct xy badpixel_list[MAX_BADPIXELS];
+
+int cold_pixels = 0;
 
 #define EV_RESOLUTION 32768
 
@@ -131,10 +141,18 @@ int main(int argc, char** argv)
         
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
+	
         fix_vertical_stripes();
+	
+	if (fix_bad_pixels )/* best done before interpolation */
+	{
+	    find_and_fix_bad_pixels();
+	}
+
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
         #endif
+	
         dng_set_framerate(lv_rec_footer.sourceFpsx1000);
         save_dng(fn, &raw_info);
     }
@@ -513,6 +531,94 @@ void fix_vertical_stripes()
     {
         apply_vertical_stripes_correction();
     }
+}
+
+static inline int FC(int row, int col)
+{
+    if ((row%2) == 0 && (col%2) == 0)
+    {
+        return 0;  /* red */
+    }
+    else if ((row%2) == 1 && (col%2) == 1)
+    {
+        return 2;  /* blue */
+    }
+    else
+    {
+        return 1;  /* green */
+    }
+}
+
+void locate_badpixel()
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int x,y;
+    
+    for (y = 6; y < h-6; y ++) /*analysing the pixels of the frame*/
+    {
+        for (x = 6; x < w-6; x ++)
+        {
+            int p = raw_get_pixel(x, y);
+	    int is_cold = (p == 0);
+	    
+	    if (is_cold && cold_pixels < MAX_BADPIXELS) /*generating a list containing the cold pixels*/
+	    {
+		badpixel_list[cold_pixels].x = x;
+		badpixel_list[cold_pixels].y = y;
+		cold_pixels++;
+	    }
+	}
+    }
+    printf("\rCold pixels : %d                             \n", (cold_pixels));
+}
+
+void repair_badpixel()
+{
+    int badpix_list;
+    
+    for (badpix_list = 0; badpix_list < cold_pixels; badpix_list++)
+    {
+	int x = badpixel_list[badpix_list].x;
+	int y = badpixel_list[badpix_list].y;
+      
+	int neighbours[100];
+	int i,j;
+	int k = 0;
+	int fc0 = FC(x, y);
+	
+	for (i = -4; i <= 4; i++) /*examine the neighbours of the cold pixel*/
+	{
+	    for (j = -4; j <= 4; j++)
+	    {
+		if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
+		{
+		    continue;
+		}
+                        
+		if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
+		{
+		    continue;
+		}
+                        
+		int p = raw_get_pixel(x+j, y+i);
+		neighbours[k++] = -p;
+	    }
+	}
+	
+	raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
+    }
+}
+	    
+void find_and_fix_bad_pixels()
+{
+    static int first_frame = 1;
+    if (first_frame) /*searching for cold pixels only in the very first frame*/
+    {
+        locate_badpixel();
+        first_frame = 0;
+    }
+    repair_badpixel(); /*repair the detected cold pixels in all frames*/
 }
 
 #ifdef CHROMA_SMOOTH

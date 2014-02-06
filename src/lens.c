@@ -1455,7 +1455,7 @@ static void update_stuff()
     iso_components_update();
 }
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM)
 PROP_HANDLER( PROP_LV_FOCAL_DISTANCE )
 {
 #ifdef FEATURE_MAGIC_ZOOM

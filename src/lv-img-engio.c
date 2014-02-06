@@ -595,7 +595,7 @@ static void vignetting_coeff_toggle(void* priv, int delta)
 
     vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
 
-#ifdef CONFIG_7D
+#if defined(CONFIG_7D)
     if (vignetting_correction_enable)
         ml_rpc_send_vignetting(vignetting_data_prep, sizeof(vignetting_data_prep));
 #endif

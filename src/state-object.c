@@ -144,7 +144,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #endif
     #endif
     
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2)
     if (self == LV_STATE && old_state == 2 && input == 2) // lvVdInterrupt
     {
         display_filter_lv_vsync(old_state, x, input, z, t);
@@ -251,15 +251,18 @@ static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int 
     // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
     // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
     if (old_state == 0 && input == 3 && new_state == 1)
+	{
         raw_buffer_intercept_from_stateobj();
-        
+    }   
     #elif defined(CONFIG_50D)
     //~ FrontState - There are only 2
     //~ * FF882F00 - Mem1toJpeg
     //~ * FF882C5C - Mem1 to raw
     //~ * 9 -> Raw (3) -> 10 -> Jpeg(3) -> 8
     if (old_state == 9 && input == 3 && new_state == 10)
+    {
         raw_buffer_intercept_from_stateobj();
+    }
 	#endif
 
     return ans;

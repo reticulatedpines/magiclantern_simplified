@@ -131,6 +131,7 @@ NSTUB(0xFF018D34, _malloc)                         // might be good (dumps=1, sc
 NSTUB(0xFF073EB0, dma_memcpy)                     // Look for [HPC ERROR] Nothing DMA ch now!
 NSTUB(0xFF1E885C, msg_queue_receive)              // might be good (dumps=1, score=24)
 NSTUB(0xff1e8a48, msg_queue_post)
+NSTUB(0xFF1E8A88, msg_queue_count)
 NSTUB(0xFF06FA40, msleep)                         // might be good (dumps=1, score=1.1e+02)
 NSTUB(0xFF1B9544, mvrFixQScale)                   // might be good (dumps=1, score=4.8)
 NSTUB(0xFF1B9020, mvrSetDefQScale)                // might be good (dumps=1, score=4.7)
