@@ -514,7 +514,7 @@ silent_pic_take_raw(int interactive)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
-        ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
+        util_uilock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
         int i0 = MAX(0, sp_num_frames - sp_buffer_count);
         
         if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
@@ -544,7 +544,7 @@ silent_pic_take_raw(int interactive)
                 break;
             }
         }
-        ui_lock(UILOCK_NONE);
+        util_uilock(UILOCK_NONE);
         
         /* slit-scan: wait for half-shutter press after reviewing the image */
         if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN && interactive)
