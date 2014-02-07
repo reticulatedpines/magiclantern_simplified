@@ -579,9 +579,12 @@ static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
     return 1;
 }
 
-uint32_t crypt_rsa_load(char *filename, t_crypt_key *key)
+uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
 {
     int size = 0;
+    char filename[32];
+    
+    snprintf(filename, sizeof(filename), "%s%s", module_card_drive, file);
     
     if(FIO_GetFileSize(filename, &size))
     {
