@@ -3575,8 +3575,7 @@ menu_entry_select(
     {
         /* empty submenu? go back */
         menu_lv_transparent_mode = edit_mode = 0;
-        submenu_level--;
-        submenu_level = MAX(submenu_level, 0);
+        submenu_level = MAX(submenu_level - 1, 0);
         return;
     }
     
@@ -3584,8 +3583,7 @@ menu_entry_select(
     if (!is_visible(entry))
     {
         edit_mode = 0;
-        submenu_level--;
-        submenu_level = MAX(submenu_level, 0);
+        submenu_level = MAX(submenu_level - 1, 0);
         menu_lv_transparent_mode = 0;
         return;
     }
@@ -3604,8 +3602,7 @@ menu_entry_select(
         else if (edit_mode)
         {
             edit_mode = 0;
-            submenu_level--;
-            submenu_level = MAX(submenu_level, 0);
+            submenu_level = MAX(submenu_level - 1, 0);
         }
         else if ( entry->select_Q ) entry->select_Q( entry->priv, 1); // caution: entry may now be a dangling pointer
         else menu_toggle_submenu();
@@ -3634,8 +3631,7 @@ menu_entry_select(
             if (submenu_level && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry))
             {
                 edit_mode = 0;
-                submenu_level--;
-                submenu_level = MAX(submenu_level, 0);
+                submenu_level = MAX(submenu_level - 1, 0);
             }
             else if (edit_mode) edit_mode = 0;
             else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
@@ -5005,8 +5001,7 @@ void menu_open_submenu(struct menu_entry * entry)
 
 void menu_close_submenu()
 {
-    submenu_level--;
-    submenu_level = MAX(submenu_level, 0); //make sure we don't go negative
+    submenu_level = MAX(submenu_level - 1, 0); //make sure we don't go negative
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
