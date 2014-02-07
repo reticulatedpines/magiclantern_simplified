@@ -471,10 +471,8 @@ static void my_big_init_task()
     task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
     #endif
 
-    #ifdef CONFIG_CONFIG_FILE
-    // Read ML config
+    /* Read ML config. if feature disabled, nothing happens */
     config_load();
-    #endif
     
     debug_init_stuff();
 

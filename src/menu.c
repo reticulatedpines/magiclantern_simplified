@@ -4682,7 +4682,7 @@ menu_task( void* unused )
                 extern int config_autosave;
                 if (config_autosave && (config_dirty || menu_flags_save_dirty) && NOT_RECORDING && !ml_shutdown_requested)
                 {
-                    save_config(0);
+                    config_save();
                     config_dirty = 0;
                     menu_flags_save_dirty = 0;
                 }
