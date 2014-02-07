@@ -24,6 +24,7 @@
 
 #include "zebra.h"
 #include "vectorscope.h"
+#include "electronic_level.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
