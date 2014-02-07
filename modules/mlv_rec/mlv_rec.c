@@ -158,6 +158,11 @@ static CONFIG_INT("mlv.warm.up", warm_up, 0);
 static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
 static CONFIG_INT("mlv.small.hacks", small_hacks, 1);
 
+static CONFIG_INT("mlv.video.display_rec_info", display_rec_info, 1);
+#define DISPLAY_REC_INFO_NONE (display_rec_info == 0)
+#define DISPLAY_REC_INFO_ICON (display_rec_info == 1)
+#define DISPLAY_REC_INFO_DEBUG (display_rec_info == 2)
+
 static int start_delay = 0;
 
 /* state variables */
@@ -1070,9 +1075,12 @@ static int32_t setup_buffers()
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
 
-    char msg[100];
-    snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
-    bmp_printf(FONT_MED, 30, 90, msg);
+    if(DISPLAY_REC_INFO_DEBUG)
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
+        bmp_printf(FONT_MED, 30, 90, msg);
+    }
 
     /* we need at least 3 slots */
     if (slot_count < 3)
@@ -1283,7 +1291,7 @@ static void show_buffer_status()
         //trace_write(raw_rec_trace_ctx, buffer_str);
     }
 
-    if (frame_skips > 0)
+    if (DISPLAY_REC_INFO_DEBUG && frame_skips > 0)
     {
         bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skips", frame_skips);
     }
@@ -1474,70 +1482,107 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             msg_queue_post(mlv_block_queue, wbal_hdr);
         }
 
-        if(liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
+        if(!DISPLAY_REC_INFO_NONE && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
         {
-            int32_t fps = fps_get_current_x1000();
-            int32_t t = (frame_count * 1000 + fps/2) / fps;
-            int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-            if (predicted < 10000)
-                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
-                    "%02d:%02d, %d frames / %d expected  ",
-                    t/60, t%60,
-                    frame_count,
-                    predicted
-                );
-            else
-                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
-                    "%02d:%02d, %d frames, continuous OK  ",
-                    t/60, t%60,
-                    frame_count
-                );
-
-            if (show_graph) 
+            if(DISPLAY_REC_INFO_ICON)
             {
-                show_buffer_status();
-            }
-
-            /* how fast are we writing? does this speed match our benchmarks? */
-            for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
-            {
-                if (writing_time[writer] || idle_time[writer])
+                int32_t fps = fps_get_current_x1000();
+                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+                /* Position the Recording Icon */
+                int rl_x = 500;
+                int rl_y = 40;
+                int rl_color;
+                if (predicted < 10000)
                 {
-                    int32_t speed = current_write_speed[writer];
-                    int32_t idle_percent = idle_time[writer] * 100 / (writing_time[writer] + idle_time[writer]);
-                    speed /= 10;
-
-                    char msg[100];
-                    snprintf(msg, sizeof(msg),
-                        "%s: %d MB, %d.%d MB/s",
-                        chunk_filename[writer] + strlen(get_dcim_dir()) + 1, /* skip A:/DCIM/100CANON/ */
-                        written[writer] / 1024,
-                        speed/10, speed%10
-                    );
-                    if (idle_time[writer])
-                    {
-                        if (idle_percent)
-                        {
-                            STR_APPEND(msg, ", %d%% idle      ", idle_percent);
-                        }
-                        else
-                        {
-                            STR_APPEND(msg, ", %dms idle      ", idle_time[writer]);
-                        }
+                    int time_left = (predicted-frame_count) * 1000 / fps;
+                    if (time_left < 10) {
+                        rl_color = COLOR_DARK_RED;
+                    } else {
+                        rl_color = COLOR_YELLOW;
                     }
-                    bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s                   ", msg);
+                } else {
+                    rl_color = COLOR_GREEN1;
+                }
+                int rl_icon_width=0;
+                /* Draw the movie camera icon */
+                rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
+                
+                /* Display the Status */
+                if (!frame_skips)
+                {
+                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
                 }
                 else
                 {
-                    bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
+                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
                 }
             }
-
-            if(card_spanning)
+            else if(DISPLAY_REC_INFO_DEBUG)
             {
-                char msg[100];
-                snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
-                bmp_printf( FONT_MED, 30, 130 + mlv_writer_threads * font_med.height, "%s", msg);
+                int32_t fps = fps_get_current_x1000();
+                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+                if (predicted < 10000)
+                    bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
+                               "%02d:%02d, %d frames / %d expected  ",
+                               t/60, t%60,
+                               frame_count,
+                               predicted
+                               );
+                else
+                    bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
+                               "%02d:%02d, %d frames, continuous OK  ",
+                               t/60, t%60,
+                               frame_count
+                               );
+                
+                if (show_graph)
+                {
+                    show_buffer_status();
+                }
+                
+                /* how fast are we writing? does this speed match our benchmarks? */
+                for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+                {
+                    if (writing_time[writer] || idle_time[writer])
+                    {
+                        int32_t speed = current_write_speed[writer];
+                        int32_t idle_percent = idle_time[writer] * 100 / (writing_time[writer] + idle_time[writer]);
+                        speed /= 10;
+                        
+                        char msg[100];
+                        snprintf(msg, sizeof(msg),
+                                 "%s: %d MB, %d.%d MB/s",
+                                 chunk_filename[writer] + strlen(get_dcim_dir()) + 1, /* skip A:/DCIM/100CANON/ */
+                                 written[writer] / 1024,
+                                 speed/10, speed%10
+                                 );
+                        if (idle_time[writer])
+                        {
+                            if (idle_percent)
+                            {
+                                STR_APPEND(msg, ", %d%% idle      ", idle_percent);
+                            }
+                            else
+                            {
+                                STR_APPEND(msg, ", %dms idle      ", idle_time[writer]);
+                            }
+                        }
+                        bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s                   ", msg);
+                    }
+                    else
+                    {
+                        bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
+                    }
+                }
+                
+                if(card_spanning)
+                {
+                    char msg[100];
+                    snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
+                    bmp_printf( FONT_MED, 30, 130 + mlv_writer_threads * font_med.height, "%s", msg);
+                }
             }
         }
     }
@@ -3512,8 +3557,11 @@ cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
     
-    NotifyBox(5000, "Frames captured: %d", frame_count - 1);
-
+    if(DISPLAY_REC_INFO_DEBUG)
+    {
+        NotifyBox(5000, "Frames captured: %d", frame_count - 1);
+    }
+    
     if(show_graph)
     {
         take_screenshot(0);
@@ -3765,6 +3813,13 @@ static struct menu_entry raw_video_menu[] =
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
                          "HaCKeD2: No preview. Disables Global draw while recording.\n"
+            },
+            {
+                .name = "Status when recording",
+                .priv = &display_rec_info,
+                .max = 2,
+                .choices = CHOICES("None", "Icon", "Debug"),
+                .help = "Display status when recording.",
             },
             {
                 .name = "Start delay",
@@ -4193,6 +4248,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
     MODULE_CONFIG(rec_key)
+    MODULE_CONFIG(display_rec_info)
 
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
