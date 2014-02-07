@@ -30,6 +30,11 @@ void util_uilock(int what)
     msleep(50);
 }
 
+void ui_lock(int what)
+{
+    util_uilock(what);
+}
+
 void fake_simple_button(int bgmt_code)
 {
     if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
