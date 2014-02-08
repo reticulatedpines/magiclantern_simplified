@@ -14,7 +14,6 @@
 #include "crypt_lfsr64.h"
 #include "crypt_rsa.h"
 
-#define TRACE_DISABLED
 #include "../trace/trace.h"
 #include "../ime_base/ime_base.h"
 
@@ -264,7 +263,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                     
                     uint32_t lfsr_blocksize = 0;
                     iodev_SetPosition(fd, 4);
-                    orig_iodev->ReadFile(fd, &lfsr_blocksize, 4);
+                    orig_iodev->ReadFile(fd, (uint8_t *)&lfsr_blocksize, 4);
                     iodev_SetPosition(fd, 0x200);
                     
                     crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_key);
@@ -397,10 +396,9 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
         iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
     }
     
-    
     if(fd < COUNT(iocrypt_files))
     {
-        trace_write(iocrypt_trace_ctx, "iodev_ReadFile(0x%08X, 0x%08X) -> %s, fd = %d, pos_before = 0x%08X, ret %d, pos_after %d", buf, length, fd, fd_pos, iocrypt_files[fd].filename, ret, iodev_GetPosition(fd));
+        trace_write(iocrypt_trace_ctx, "iodev_ReadFile(0x%08X, 0x%08X) -> %s, fd = %d, pos_before = 0x%08X, ret %d, pos_after %d", buf, length, iocrypt_files[fd].filename, fd, fd_pos, iocrypt_files[fd].filename, ret, iodev_GetPosition(fd));
         
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
@@ -425,7 +423,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
         
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile pre(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, misalign = %d, %s", buf, length, fd, fd_pos, misalign, iocrypt_files[fd].filename);
+            trace_write(iocrypt_trace_ctx, "iodev_WriteFile pre(0x%08X, 0x%08X) -> %s, fd = %d, fd_pos = 0x%08X, misalign = %d", buf, length, iocrypt_files[fd].filename, fd, fd_pos, misalign);
         
             /* if there is no buffer or the size is too big, do expensive in-place encryption */
             if(iocrypt_scratch && (length <= CRYPT_SCRATCH_SIZE))
@@ -449,7 +447,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile: undo offset %d", iocrypt_files[fd].header_size);
             iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
         
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, fd_pos (now) = 0x%08X, %s", buf, length, fd, fd_pos, iodev_GetPosition(fd), iocrypt_files[fd].filename);
+            trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, fd_pos (now) = 0x%08X", buf, length, fd, fd_pos, iodev_GetPosition(fd));
             
             /* if we were not able to write it from scratch, undo in-place encryption */
             if(work_ptr == buf)
@@ -647,7 +645,7 @@ static MENU_UPDATE_FUNC(iocrypt_update)
             else if(crypt_rsa_get_priv(&iocrypt_rsa_ctx))
             {
                 MENU_SET_VALUE("INSECURE!");
-                MENU_SET_WARNING(MENU_WARN_ADVICE, "Move /ML/DATA/IO_CRYPT.KEY to a safe place and DELETE from card.");
+                MENU_SET_WARNING(MENU_WARN_ADVICE, "Move IO_CRYPT.KEY to a safe place and DELETE from card.");
             }
             else
             {
@@ -717,7 +715,6 @@ static struct menu_entry iocrypt_menus[] =
                 .choices = (const char *[]) {"512", "1024", "2048", "4096"},
                 .help = "Key size when creating a RSA key pair. The smaller, the less security you have.",
             },
-            
             {
                 .name = "Test: Speed",
                 .select = &iocrypt_test_speed,

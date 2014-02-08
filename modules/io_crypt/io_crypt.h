@@ -5,12 +5,18 @@
 #define CRYPT_SCRATCH_SIZE 0x00800000
 typedef struct crypt_cipher_t
 {
+    /* priv: private data for the encryption algorithm */
     void *priv;
+    /* encrypt: encrypt given data at *src of given length and store at *dst, returns encrypted data length */
     uint32_t (*encrypt)(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
+    /* encrypt: decrypt given data at *src of given length and store at *dst, returns decrypted data length */
     uint32_t (*decrypt)(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
-    void (*reset)(void *ctx);
-    void (*deinit)(void *ctx);
+    /* set_blocksize: set encryption algorithm parameter blocksize */
     void (*set_blocksize)(void *ctx, uint32_t size);
+    /* reset: reset internal data to the state right after initialization */
+    void (*reset)(void *ctx);
+    /* deinit: free private data */
+    void (*deinit)(void *ctx);
 } crypt_cipher_t;
 
 typedef struct

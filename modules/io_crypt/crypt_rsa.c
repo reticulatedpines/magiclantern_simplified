@@ -1,14 +1,14 @@
 
 
+//#define TRACE_DISABLED
+
 #ifdef MODULE
 
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
-#include <string.h>
 
-#define TRACE_DISABLED
 #include "../trace/trace.h"
 
 extern char *module_card_drive;
@@ -18,15 +18,18 @@ extern char *module_card_drive;
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#if defined(TRACE_DISABLED)
 #define trace_write(x,...) do { (void)0; } while (0)
-//#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+#else
+#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
+#endif
 
+/* simulate ML/DryOS behavoir for desktop mode */
 #define NotifyBox(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 #define NotifyBoxHide() do { } while(0)
 #define beep() do { } while(0)
@@ -40,6 +43,7 @@ extern char *module_card_drive;
 #define FIO_CloseFile(x) fclose(f)
 #define FIO_Open(file,mode) fopen(file, "r")
 #define FIO_GetFileSize(f,ret) getFileSize(f,ret)
+
 #define INVALID_PTR 0
 #define O_RDONLY 0
 #define O_SYNC 0
@@ -56,6 +60,8 @@ size_t getFileSize(const char * filename, int *ret)
 char *module_card_drive = "";
 #endif
 
+/* common includes */
+#include <string.h>
 #include <rand.h>
 
 #include "io_crypt.h"
@@ -557,6 +563,10 @@ static void crypt_rsa_deinit(void **crypt_ctx)
     }
 }
 
+static void crypt_rsa_reset(void **crypt_ctx)
+{
+}
+
 static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
 {
     char filename[32];
@@ -601,6 +611,7 @@ uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
     char *buffer = malloc(size);
     if(FIO_ReadFile(f, buffer, size) != (int)size)
     {
+        FIO_CloseFile(f);
         trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_load: FIO_ReadFile failed");
         free(buffer);
         return 0;
@@ -609,6 +620,7 @@ uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
     char *sep = strchr(buffer, '\n');
     if(!sep)
     {
+        FIO_CloseFile(f);
         trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_load: invalid file format");
         free(buffer);
         return 0;
@@ -762,6 +774,7 @@ void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
     crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_encrypt;
     crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_decrypt;
     crypt_ctx->deinit = (void (*)(void *))&crypt_rsa_deinit;
+    crypt_ctx->reset = (void (*)(void *))&crypt_rsa_reset;
     crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_rsa_set_blocksize;
     crypt_ctx->priv = ctx;
     
@@ -773,13 +786,6 @@ void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
     crypt_rsa_load("ML/DATA/io_crypt.key", &ctx->priv_key);
     crypt_rsa_load("io_crypt.pub", &ctx->pub_key);
     crypt_rsa_load("io_crypt.key", &ctx->priv_key);
-    
-    //trace_write(iocrypt_trace_ctx, "    pub_key:  name     %s", ctx->pub_key.name);
-    //trace_write(iocrypt_trace_ctx, "    pub_key:  primefac %s", ctx->pub_key.primefac);
-    //trace_write(iocrypt_trace_ctx, "    pub_key:  key      %s", ctx->pub_key.key);
-    //trace_write(iocrypt_trace_ctx, "    priv_key:  name     %s", ctx->priv_key.name);
-    //trace_write(iocrypt_trace_ctx, "    priv_key:  primefac %s", ctx->priv_key.primefac);
-    //trace_write(iocrypt_trace_ctx, "    priv_key:  key      %s", ctx->priv_key.key);
     
     trace_write(iocrypt_trace_ctx, "crypt_rsa_init: initialized");
 }

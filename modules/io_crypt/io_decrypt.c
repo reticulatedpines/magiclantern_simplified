@@ -50,9 +50,9 @@ void rand_seed(uint32_t seed)
 static crypt_cipher_t iocrypt_rsa_ctx;
 int main(int argc, char *argv[])
 {
-    if(argc < 3)
+    if(argc < 2)
     {
-        printf("Usage: '%s <infile> <outfile> [password]\n", argv[0]);
+        printf("Usage: '%s <infile> [outfile] [password]\n", argv[0]);
         return -1;
     }
     
@@ -60,7 +60,14 @@ int main(int argc, char *argv[])
     uint32_t lfsr_blocksize = 0x00020000;
     
     char *in_filename = argv[1];
-    char *out_filename = argv[2];
+    char *out_filename = malloc(strlen(in_filename) + 9);
+    
+    sprintf(out_filename, "%s_out.cr2", in_filename);
+    
+    if(argc >= 3)
+    {
+        out_filename = strdup(argv[2]);
+    }
     
     /* password is optional */
     if(argc >= 4)
@@ -216,4 +223,5 @@ int main(int argc, char *argv[])
     
     fclose(in_file);
     fclose(out_file);
+    free(out_filename);
 }
