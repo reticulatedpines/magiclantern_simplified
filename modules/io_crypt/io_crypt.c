@@ -28,6 +28,7 @@ static iodev_handlers_t hook_iodev;
 
 uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 
+static uint32_t iocrypt_scratch_used = 0;
 static uint8_t *iocrypt_scratch = NULL;
 static uint64_t iocrypt_key = 0;
 
@@ -35,6 +36,7 @@ static crypt_cipher_t iocrypt_rsa_ctx;
 
 static fd_map_t iocrypt_files[32];
 static struct semaphore *iocrypt_password_sem = 0;
+static struct semaphore *iocrypt_scratch_sem = 0;
 static char iocrypt_ime_text[128];
 
 /* those are model specific */
@@ -375,7 +377,6 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
     /* when there is some encryption active, handle file offset */
     if(iocrypt_files[fd].crypt_ctx.priv)
     {
-        trace_write(iocrypt_trace_ctx, "iodev_ReadFile: apply offset %d", iocrypt_files[fd].header_size);
         iodev_SetPosition(fd, iodev_GetPosition(fd) + iocrypt_files[fd].header_size);
     }
     
@@ -392,7 +393,6 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
             iodev_SetPosition(fd, fd_pos + ret);
         }
        
-        trace_write(iocrypt_trace_ctx, "iodev_ReadFile: undo offset %d", iocrypt_files[fd].header_size);
         iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
     }
     
@@ -428,9 +428,15 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             /* if there is no buffer or the size is too big, do expensive in-place encryption */
             if(iocrypt_scratch && (length <= CRYPT_SCRATCH_SIZE))
             {
-                /* update buffer to write from */
-                work_ptr = &iocrypt_scratch[misalign];
-                trace_write(iocrypt_trace_ctx, "   ->> double buffered");
+                take_semaphore(iocrypt_scratch_sem, 1000);
+                if(!iocrypt_scratch_used)
+                {
+                    /* update buffer to write from */
+                    work_ptr = &iocrypt_scratch[misalign];
+                    trace_write(iocrypt_trace_ctx, "   ->> double buffered");
+                    iocrypt_scratch_used = 1;
+                }
+                give_semaphore(iocrypt_scratch_sem);
             }
             
             trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
@@ -438,13 +444,11 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             trace_write(iocrypt_trace_ctx, "   ->> DONE");
             
             /* when there is some encryption active, handle file offset */
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile: apply offset %d", iocrypt_files[fd].header_size);
             iodev_SetPosition(fd, iodev_GetPosition(fd) + iocrypt_files[fd].header_size);
             
             ret = orig_iodev->WriteFile(fd, work_ptr, length);
             
             /* when there is some encryption active, handle file offset */
-            trace_write(iocrypt_trace_ctx, "iodev_WriteFile: undo offset %d", iocrypt_files[fd].header_size);
             iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
         
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, fd_pos (now) = 0x%08X", buf, length, fd, fd_pos, iodev_GetPosition(fd));
@@ -455,6 +459,12 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
                 trace_write(iocrypt_trace_ctx, "   ->> CLEANUP");
                 iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
                 trace_write(iocrypt_trace_ctx, "   ->> DONE");
+            }
+            else
+            {
+                take_semaphore(iocrypt_scratch_sem, 1000);
+                iocrypt_scratch_used = 0;
+                give_semaphore(iocrypt_scratch_sem);
             }
             
             return ret;
@@ -734,33 +744,51 @@ static struct menu_entry iocrypt_menus[] =
 
 static unsigned int iocrypt_init()
 {
+    /* for debugging */
+    if(1)
+    {
+        char filename[32];
+        
+        snprintf(filename, sizeof(filename), "%sIO_CRYPT.TXT", module_card_drive);
+        
+        iocrypt_trace_ctx = trace_start("debug", filename);
+        trace_set_flushrate(iocrypt_trace_ctx, 1000);
+        trace_format(iocrypt_trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
+        trace_write(iocrypt_trace_ctx, "io_crypt: Starting trace");
+    }
+    
+    
     if(streq(camera_model_short, "600D"))
     {
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 600D");
         iodev_table = 0x1E684;
         iodev_ctx = 0x7EB08;
         iodev_ctx_size = 0x18;
     }
     else if(streq(camera_model_short, "7D"))
     {
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 7D");
         iodev_table = 0x2D3B8;
         iodev_ctx = 0x85510;
         iodev_ctx_size = 0x18;
     }
     else if(streq(camera_model_short, "60D"))
     {
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 60D");
         iodev_table = 0x3E2BC;
         iodev_ctx = 0x5CB38;
         iodev_ctx_size = 0x18;
     }
     else if(streq(camera_model_short, "5D3"))
     {
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 5D3");
         iodev_table = 0x44FA8;
         iodev_ctx = 0x67140;
         iodev_ctx_size = 0x20;
     }
     else if(streq(camera_model_short, "650D"))
     {
-        /* not verified */
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 650D");
         iodev_table = 0x54060;
         iodev_ctx = 0x7C278;
         iodev_ctx_size = 0x20;
@@ -772,24 +800,17 @@ static unsigned int iocrypt_init()
     }
     
     iocrypt_password_sem = create_named_semaphore("iocrypt_pw", 1);
-    
-    /* for debugging */
-    if(1)
-    {
-        iocrypt_trace_ctx = trace_start("debug", "B:/IO_CRYPT.TXT");
-        trace_set_flushrate(iocrypt_trace_ctx, 1000);
-        trace_format(iocrypt_trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
-        trace_write(iocrypt_trace_ctx, "io_crypt: Starting trace");
-    }
+    iocrypt_scratch_sem = create_named_semaphore("iocrypt_scratch", 1);
     
     /* ask for the initial password */
     if(iocrypt_ask_pass && (iocrypt_mode == CRYPT_MODE_SYMMETRIC || iocrypt_mode == CRYPT_MODE_BACKGROUND_SYM))
     {
+        trace_write(iocrypt_trace_ctx, "io_crypt: Asking for password");
         iocrypt_enter_pw();
     }
     
     /* this memory is used for buffering encryption, so we dont have to undo the changes in memory */
-    iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
+    //iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
     
     /* now patch the iodev handlers */
     orig_iodev = (iodev_handlers_t *)MEM(iodev_table);

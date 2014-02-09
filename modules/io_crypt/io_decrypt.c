@@ -84,13 +84,6 @@ int main(int argc, char *argv[])
         return -1;
     } 
     
-    FILE *out_file = fopen(out_filename, "w");
-    if(!in_file)
-    {
-        printf("Could not open '%s'\n", out_filename);
-        return -1;
-    }
-    
     char *buffer = malloc(BLOCKSIZE);
     
     
@@ -199,10 +192,14 @@ int main(int argc, char *argv[])
     }
     
     /* setup cipher with that hash */
+    uint32_t first = 1;
+    FILE *out_file = NULL;
+    
     uint32_t file_offset = 0;
     crypt_cipher_t crypt_ctx;
     crypt_lfsr64_init(&crypt_ctx, key);
     crypt_ctx.set_blocksize(&crypt_ctx, lfsr_blocksize);
+    
     
     while(!feof(in_file))
     {
@@ -211,6 +208,36 @@ int main(int argc, char *argv[])
         if(ret > 0)
         {
             crypt_ctx.decrypt(&crypt_ctx, (uint8_t *)buffer, (uint8_t *)buffer, ret, file_offset);
+            
+            /* try to detect file type */
+            if(first)
+            {
+                first = 0;
+                
+                if(!memcmp(buffer, jpg_magic, 4))
+                {
+                    printf("File type: JPEG (decrypted)\n");
+                }
+                else if(!memcmp(buffer, cr2_magic, 4))
+                {
+                    printf("File type: CR2 (decrypted)\n");
+                }
+                else
+                {
+                    printf("File type: unknown. invalid key?\n");
+                    fclose(in_file);
+                    free(out_filename);
+                    return 0;
+                }
+                
+                out_file = fopen(out_filename, "w");
+                if(!out_file)
+                {
+                    printf("Could not open '%s'\n", out_filename);
+                    return -1;
+                }
+            }
+            
             fwrite(buffer, 1, ret, out_file);
             file_offset += ret;
         }

@@ -532,6 +532,12 @@ static uint32_t crypt_rsa_encrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8
     
     uint32_t new_len = crypt_rsa_crypt(dst, src, length, &ctx->pub_key);
     
+    if(new_len > length)
+    {
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: buffer overflow %d vs. %d", new_len, length);
+        return 0;
+    }
+    
     return new_len;
 }
 

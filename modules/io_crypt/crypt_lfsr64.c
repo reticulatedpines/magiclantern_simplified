@@ -153,7 +153,7 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         return in_length;
     }
     
-    /* either the pointers are 64 bit aligned now or all data is encrypted already. do 64 bit writes if possible. */
+    /* the pointers are 64 bit aligned now. do 64 bit writes if possible. */
     if((offset % 8) == 0)
     {
         /* processing loop for 64 bit writes at even file offsets. due to compiler optimizations this loop is faster */
@@ -225,7 +225,7 @@ static uint32_t crypt_lfsr64_decrypt(crypt_cipher_t *ctx, uint8_t *dst, uint8_t 
 /* set encryption blocksize for this context */
 static void crypt_lfsr64_set_blocksize(crypt_cipher_t *crypt_ctx, uint32_t size)
 {
-    lfsr64_ctx_t *ctx = crypt_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)crypt_ctx->priv;
     
     ctx->blocksize = size;
 }
@@ -245,8 +245,7 @@ static void crypt_lfsr64_reset(crypt_cipher_t *crypt_ctx)
 {
     lfsr64_ctx_t *ctx = crypt_ctx->priv;
     
-    /* to mark LFSR state as invalid */
-    ctx->current_block = 0xFFFFFFFF;
+    ctx->current_block = 0;
     ctx->lfsr_state = 0;
     ctx->blocksize = crypt_lfsr64_blocksize;
     
