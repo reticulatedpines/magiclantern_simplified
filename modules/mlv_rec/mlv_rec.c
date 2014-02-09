@@ -102,6 +102,7 @@ static uint32_t cam_60d = 0;
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
 
+static uint32_t mlv_rec_dma_active = 0;
 static uint32_t use_prealloc = 0;
 static uint32_t mlv_writer_threads = 2;
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
@@ -285,6 +286,11 @@ typedef struct
     char filename[MAX_PATH];
     FILE *file_handle;
 } prealloc_entry_t;
+
+/* for debugging */
+static uint64_t mlv_rec_dma_start = 0;
+static uint64_t mlv_rec_dma_end = 0;
+static uint64_t mlv_rec_dma_duration = 0;
 
 static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
 
@@ -1355,6 +1361,7 @@ static void show_buffer_status()
         prev_xp = xp;
 
         bmp_draw_rect(COLOR_GRAY(20), 0, ymin, 720, ymax-ymin);
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), 10, 10, "DMA: %d.%01d ms", mlv_rec_dma_duration / 1000, (mlv_rec_dma_duration / 100) % 10 );
     }
 }
 
@@ -2131,10 +2138,31 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
     return 4;
 }
 
+static void mlv_rec_dma_cbr_r(void *ctx)
+{
+    /* now mark the last filled buffer as being ready to transfer */
+    slots[capture_slot].status = SLOT_FULL;
+    mlv_rec_dma_active = 0;
+    
+    mlv_rec_dma_end = get_us_clock_value();
+    mlv_rec_dma_duration = (uint32_t)(mlv_rec_dma_end - mlv_rec_dma_start);
+    
+    edmac_copy_rectangle_adv_cleanup();
+    
+
+    extern uint32_t edmac_read_chan;
+    extern uint32_t edmac_write_chan;
+    trace_write(raw_rec_trace_ctx, "raw_rec_vsync_cbr: EDMAC copy time: %d us [0x%08X -> 0x%08X]", mlv_rec_dma_duration, edmac_get_address(edmac_read_chan), edmac_get_address(edmac_write_chan));
+}
+
+static void mlv_rec_dma_cbr_w(void *ctx)
+{
+}
+
 static int32_t FAST process_frame()
 {
     /* skip the first frame, it will be gibberish */
-    if (frame_count == 0)
+    if(frame_count == 0)
     {
         frame_count++;
         return 0;
@@ -2143,7 +2171,7 @@ static int32_t FAST process_frame()
     /* where to save the next frame? */
     capture_slot = choose_next_capture_slot(capture_slot);
 
-    if (capture_slot < 0)
+    if(capture_slot < 0)
     {
         /* card too slow */
         frame_skips++;
@@ -2166,6 +2194,11 @@ static int32_t FAST process_frame()
     hdr->cropPosY = (skip_y + 7) & ~7;
     hdr->panPosX = skip_x;
     hdr->panPosY = skip_y;
+    
+
+    /* double-buffering */
+    //raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
+
 
     void* ptr = (void*)((int32_t)hdr + sizeof(mlv_vidf_hdr_t) + hdr->frameSpace);
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
@@ -2178,8 +2211,11 @@ static int32_t FAST process_frame()
     {
         return 0;
     }
-
-    int32_t ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
+    
+    mlv_rec_dma_active = 1;
+    //int32_t ans = edmac_copy_rectangle_cbr_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, 0, 0, res_x*14/8, res_y, &mlv_rec_dma_cbr_r, &mlv_rec_dma_cbr_w, NULL);
+    int32_t ans = edmac_copy_rectangle_cbr_start(ptr, raw_info.buffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, 0, 0, res_x*14/8, res_y, &mlv_rec_dma_cbr_r, &mlv_rec_dma_cbr_w, NULL);
+    mlv_rec_dma_start = get_us_clock_value();
 
     /* copy current frame to our buffer and crop it to its final size */
     slots[capture_slot].frame_number = frame_count;
@@ -2194,19 +2230,15 @@ static int32_t FAST process_frame()
 
 static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
-    static int32_t dma_transfer_in_progress = 0;
-
-    /* there may be DMA transfers started in process_frame, finish them */
-    /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
-    if(dma_transfer_in_progress)
+    /* if DMA isn't finished yet, skip frame */
+    if(mlv_rec_dma_active)
     {
-        edmac_copy_rectangle_finish();
-        dma_transfer_in_progress = 0;
-
-        /* now mark this buffer as being ready to transfer */
-        slots[capture_slot].status = SLOT_FULL;
+        trace_write(raw_rec_trace_ctx, "raw_rec_vsync_cbr: skipping frame due to slow EDMAC");
+        frame_skips++;
+        return 0;
     }
 
+    
     if(!mlv_video_enabled || !is_movie_mode())
     {
         return 0;
@@ -2238,11 +2270,9 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     {
         return 0;
     }
-
-    /* double-buffering */
-    raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
-
-    dma_transfer_in_progress = process_frame();
+    
+    process_frame();
+    
     return 0;
 }
 
