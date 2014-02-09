@@ -741,11 +741,11 @@ void set_lv_zoom(int zoom)
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
     int hs = get_halfshutter_pressed();
     if (hs) SW1(0,0);
-    util_uilock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     #endif
     prop_request_change_wait(PROP_LV_DISPSIZE, &zoom, 4, 1000);
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
-    util_uilock(UILOCK_NONE);
+    gui_uilock(UILOCK_NONE);
     if (hs) SW1(1,0);
     #endif
     msleep(150);

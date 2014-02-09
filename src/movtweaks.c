@@ -312,8 +312,8 @@ void shutter_btn_rec_do(int rec)
 {
     if (shutter_btn_rec == 1)
     {
-        if (rec) util_uilock(UILOCK_SHUTTER);
-        else util_uilock(UILOCK_NONE);
+        if (rec) gui_uilock(UILOCK_SHUTTER);
+        else gui_uilock(UILOCK_NONE);
     }
     else if (shutter_btn_rec == 2)
     {
@@ -438,13 +438,13 @@ void movtweak_step()
             if (hdmi_code == 5)
             {
                 msleep(1000);
-                util_uilock(UILOCK_EVERYTHING);
+                gui_uilock(UILOCK_EVERYTHING);
                 BMP_LOCK(
                     ChangeHDMIOutputSizeToVGA();
                     msleep(300);
                 )
                 msleep(2000);
-                util_uilock(UILOCK_NONE);
+                gui_uilock(UILOCK_NONE);
                 msleep(5000);
             }
         }

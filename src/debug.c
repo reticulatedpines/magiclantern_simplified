@@ -498,7 +498,7 @@ static void bsod()
     } while (CURRENT_DIALOG_MAYBE != 1);
 
     canon_gui_disable_front_buffer();
-    util_uilock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
     int fnt = SHADOW_FONT(FONT_MED);
     int h = font_med.height;
@@ -3909,14 +3909,14 @@ static void HijackFormatDialogBox_main()
     // make sure we have something to restore :)
     if (!check_autoexec() && !check_fir()) return;
 
-    util_uilock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     
     while (!TmpMem_Init())  /* may fail because of not enough memory */
         msleep(100);
 
     // before user attempts to do something, copy ML files to RAM
     CopyMLFilesToRAM_BeforeFormat();
-    util_uilock(UILOCK_NONE);
+    gui_uilock(UILOCK_NONE);
 
     // all files copied, we can change the message in the format box and let the user know what's going on
     fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
@@ -3932,9 +3932,9 @@ static void HijackFormatDialogBox_main()
     // card was formatted (autoexec no longer there) => restore ML
     if (keep_ml_after_format && !check_autoexec())
     {
-        util_uilock(UILOCK_EVERYTHING);
+        gui_uilock(UILOCK_EVERYTHING);
         CopyMLFilesBack_AfterFormat();
-        util_uilock(UILOCK_NONE);
+        gui_uilock(UILOCK_NONE);
     }
 
     TmpMem_Done();

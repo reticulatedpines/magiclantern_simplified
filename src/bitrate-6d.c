@@ -114,7 +114,7 @@ static void patch_errors()
 static void load_h264_ini()
 {
     gui_stop_menu();
-	util_uilock(UILOCK_EVERYTHING);
+	gui_uilock(UILOCK_EVERYTHING);
 	if (h2config == 1)
 		{   call("IVAParamMode", "B:/ML/cbr.ini");
 		    //~ call("IVAParamMode", CARD_DRIVE "ML/cbr.ini");
@@ -137,7 +137,7 @@ static void load_h264_ini()
 		NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 	}
 	msleep(1000);
-	util_uilock(UILOCK_NONE);
+	gui_uilock(UILOCK_NONE);
 }	
 
 
@@ -625,7 +625,7 @@ bitrate_task( void* unused )
 						{// ASSERT (0);
 							//call ("SHUTDOWN");
 							//~ call ("dumpf");
-					util_uilock(UILOCK_NONE);
+					gui_uilock(UILOCK_NONE);
 					NotifyBox(2000,"Not writing! Check settings, reboot!");
 					msleep(1000);					
 					//~ prop_request_change(PROP_REBOOT_MAYBE, 0, 4);

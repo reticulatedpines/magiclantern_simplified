@@ -15,10 +15,4 @@ void util_atomic_dec(uint32_t *value);
  */
 void util_atomic_inc(uint32_t *value);
 
-/**
- * @brief lock specified things of the user interface
- * @param what one of UILOCK_NONE, UILOCK_EVERYTHING, UILOCK_POWER_SW, etc etc. see property.h
- */
-void util_uilock(int what);
-
 #endif

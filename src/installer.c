@@ -395,7 +395,7 @@ void firmware_fix()
     ensure_preconditions();
     
     clrscr();
-    util_uilock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     clrscr();
     int i;
     if( boot_flags->firmware )
@@ -409,7 +409,7 @@ void firmware_fix()
             call( "EnableMainFirm" ); // in movie mode, it causes ERR80 and then asks for a firmware update
     }
     info_led_blink(5, 100, 100);
-    util_uilock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+    gui_uilock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
 }
 
 void bootflag_toggle()
@@ -423,7 +423,7 @@ void bootflag_toggle()
     ensure_preconditions();
     
     clrscr();
-    util_uilock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     clrscr();
     int i;
     if( boot_flags->bootdisk )
@@ -447,7 +447,7 @@ void bootflag_toggle()
             call( "EnableBootDisk" );
     }
     info_led_blink(5, 100, 100);
-    util_uilock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+    gui_uilock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
 }
 
 static int compute_signature(int* start, int num)
@@ -486,7 +486,7 @@ void install_task()
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
     canon_gui_disable_front_buffer();
-    util_uilock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
     
@@ -501,7 +501,7 @@ void install_task()
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Initial install DONE!!! ");
     
-    util_uilock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+    gui_uilock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Going interactive.......");
     
@@ -714,7 +714,7 @@ void fake_simple_button(int bgmt_code)
 #define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
 #define UILOCK_EVERYTHING 0x4100017f
 
-void util_uilock(int x)
+void gui_uilock(int x)
 {
     int unlocked = 0x41000000;
     prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
