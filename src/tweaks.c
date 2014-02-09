@@ -1183,10 +1183,9 @@ static int play_dirty = 0;
 PROP_HANDLER(PROP_GUI_STATE)
 {
     int gui_state = buf[0];
-    extern int hdr_enabled;
 
     if (gui_state == GUISTATE_QR && image_review_time == 0xff && quick_review_allow_zoom==1
-        && !is_intervalometer_running() && !hdr_enabled && NOT_RECORDING)
+        && !is_intervalometer_running() && !is_hdr_bracketing_enabled() && NOT_RECORDING)
     {
         fake_simple_button(BGMT_PLAY);
     }
