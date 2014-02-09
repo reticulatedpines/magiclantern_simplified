@@ -62,7 +62,7 @@ endif
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
-	-W \
+	-Wextra \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
 	-Wno-implicit-function-declaration \
