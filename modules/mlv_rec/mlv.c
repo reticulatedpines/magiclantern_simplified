@@ -86,10 +86,10 @@ void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp)
     hdr->blockSize = sizeof(mlv_styl_hdr_t);
 
     hdr->picStyleId = lens_info.raw_picstyle;
-    hdr->contrast = picstyle_settings[lens_info.picstyle].contrast;
-    hdr->sharpness = picstyle_settings[lens_info.picstyle].sharpness;
-    hdr->saturation = picstyle_settings[lens_info.picstyle].saturation;
-    hdr->colortone = picstyle_settings[lens_info.picstyle].color_tone;
+    hdr->contrast = lens_get_contrast();
+    hdr->sharpness = lens_get_sharpness();
+    hdr->saturation = les_get_saturation();
+    hdr->colortone = lens_get_color_tone();
 
     strncpy((char *)hdr->picStyleName, get_picstyle_name(lens_info.raw_picstyle), sizeof(hdr->picStyleName));
 }
