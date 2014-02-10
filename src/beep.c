@@ -48,6 +48,10 @@ static void asif_stop_cbr()
 }
 static void play_beep(int16_t* buf, int N)
 {
+#if defined(CONFIG_7D)
+    if (RECORDING_H264)
+        return;
+#endif
     beep_playing = 1;
     SetSamplingRate(48000, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
@@ -59,6 +63,10 @@ static void play_beep(int16_t* buf, int N)
 
 static void play_beep_ex(int16_t* buf, int N, int sample_rate)
 {
+#if defined(CONFIG_7D)
+    if (RECORDING_H264)
+        return;
+#endif
     beep_playing = 1;
     SetSamplingRate(sample_rate, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
