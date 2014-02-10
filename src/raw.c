@@ -121,12 +121,6 @@ void raw_buffer_intercept_from_stateobj()
 #define RAW_TYPE_ADDRESS 0x2D168
 #endif
 
-#ifdef CONFIG_5D2
-/* a.d.: without lv_af_raw, 5D2 has magenta cast in zoom mode */
-/* af raw is actually edge detection for focusing (nanomad) */
-// #define USE_LV_AF_RAW
-#endif
-
 /**
  * RAW_TYPE 78 (and others) have a frame-wide green pattern on them
  * ACR can clear them but also kills some details and does not do
@@ -1504,8 +1498,6 @@ static void raw_lv_enable()
 #ifdef PREFERRED_RAW_TYPE
     old_raw_type = MEM(RAW_TYPE_ADDRESS);
     MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
-#elif defined(USE_LV_AF_RAW)
-    call("lv_af_raw", 1);
 #endif
 }
 
@@ -1520,8 +1512,6 @@ static void raw_lv_disable()
         MEM(RAW_TYPE_ADDRESS) = old_raw_type;
         old_raw_type = -1;
     }
-#elif defined(USE_LV_AF_RAW)
-    call("lv_af_raw", 0);
 #endif
 }
 
