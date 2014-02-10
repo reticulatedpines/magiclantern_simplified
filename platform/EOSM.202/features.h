@@ -15,10 +15,7 @@
 
 /* Working */
 #define FEATURE_CROP_MODE_HACK
-#define FEATURE_PREFIX //Named HDR Bracketing B01, B02, etc
-#define FEATURE_NOHELP //No one can help you now
 #define FEATURE_VIDEO_HACKS
-#define FEATURE_TIMER_HACK
 
 
 /* Debug */
@@ -28,7 +25,6 @@
 #define CONFIG_HEXDUMP
 #define CONFIG_TSKMON
 #define CONFIG_DEBUG_INTERCEPT
-#define FEATURE_PROP_DISPLAY
 //~ #define CONFIG_DIGIC_POKE
 //~ #define FEATURE_ISR_HOOKS
 //~ #define FEATURE_SHOW_SIGNATURE
