@@ -338,10 +338,13 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 
 static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
-static int autodetect_white_level();
+static int autodetect_white_level(int initial_guess);
 
 int raw_update_params()
 {
+    //~ static int k = 0;
+    //~ bmp_printf(FONT_MED, 250, 100, "raw update %d called from %s ", k++, get_task_name_from_id(get_current_task()));
+
     #ifdef RAW_DEBUG
     console_show();
     #endif
@@ -369,7 +372,7 @@ int raw_update_params()
     {
 #ifdef CONFIG_RAW_LIVEVIEW
         /* grab the image buffer from EDMAC; first pixel should be red */
-        raw_info.buffer = (uint32_t) shamem_read(RAW_LV_EDMAC);
+        raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
         if (!raw_info.buffer)
         {
             dbg_printf("LV raw buffer null\n");
@@ -471,7 +474,7 @@ int raw_update_params()
     else if (QR_MODE) // image review after taking pics
     {
 #ifdef CONFIG_RAW_PHOTO
-        raw_info.buffer = (uint32_t) raw_buffer_photo;
+        raw_info.buffer = (void*) raw_buffer_photo;
         
         #if defined(CONFIG_60D) || defined(CONFIG_500D)
         raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
@@ -663,20 +666,27 @@ int raw_update_params()
     }
 #endif
     
+    /* black and white autodetection are time-consuming */
+    /* only refresh once per second or if dirty, but never while recording */
+    static int bw_aux = INT_MIN;
+    int recompute_black_and_white = NOT_RECORDING && (dirty || should_run_polling_action(1000, &bw_aux));
+
     if (dirty)
     {
         raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
         dirty = 0;
     }
 
+    if (!recompute_black_and_white)
+    {
+        /* keep the old values */
+        return 1;
+    }
+
+    int black_mean, black_stdev;
     raw_info.white_level = WHITE_LEVEL;
 
-    static int black_mean, black_stdev;
-
-    int black_aux = INT_MIN;
-    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
-        raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev);
-        
+    raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev);
 
     if (!lv)
     {
@@ -1121,6 +1131,9 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
 
 static int autodetect_black_level(int* black_mean, int* black_stdev)
 {
+    //~ static int k = 0;
+    //~ bmp_printf(FONT_MED, 250, 50, "black refresh: %d ", k++);
+    
     /* also handle black level for dual ISO */
     int mean1 = 0;
     int stdev1 = 0;
