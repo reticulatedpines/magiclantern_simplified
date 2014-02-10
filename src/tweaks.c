@@ -3020,6 +3020,7 @@ void defish_draw_play()
 
 #ifdef CONFIG_DISPLAY_FILTERS
 
+static void* display_filter_buffer_unaligned = 0;
 static void* display_filter_buffer = 0;
 static int display_filter_valid_image = 0;
 
@@ -3145,9 +3146,10 @@ void display_filter_step(int k)
     if (!display_filter_enabled())
     {
         #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+        /* for new cameras: if there are no more display filters active, free the output buffer */
         if (display_filter_buffer)
         {
-            free(display_filter_buffer);
+            free(display_filter_buffer_unaligned);
             display_filter_buffer = 0;
         }
         #endif
@@ -3157,7 +3159,10 @@ void display_filter_step(int k)
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (!display_filter_buffer)
     {
-        display_filter_buffer = malloc(720*480*2);
+        /* for new cameras: when you enable a display filter, allocate the output buffer */
+        /* some routines (e.g. defishing) use 64-bit operations, so allocate a bit more and align the buffer */
+        display_filter_buffer_unaligned = malloc(720*480*2 + 32);
+        display_filter_buffer = ALIGN64SUP(display_filter_buffer_unaligned);
     }
     #endif
     
