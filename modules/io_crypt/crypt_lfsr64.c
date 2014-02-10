@@ -75,12 +75,19 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
     /* update the current encryption key whever reaching the next block */
     uint32_t block = offset / ctx->blocksize;
     
+    //trace_write(iocrypt_trace_ctx, "update_key: offset 0x%08X, block 0x%04X, current_block 0x%04X", offset, block, ctx->current_block);
+    
     if(!force)
     {
         if(ctx->current_block == block)
         {
+            //trace_write(iocrypt_trace_ctx, "update_key: return, no update needed");
             return;
         }
+    }
+    else
+    {
+        //trace_write(iocrypt_trace_ctx, "update_key: forced update");
     }
     
     ctx->current_block = block;
@@ -131,6 +138,8 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
     /* ensure initial key creation if necessary */
     update_key(ctx, offset, 0); 
     
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
+    
     /* try to get the addresses aligned */
     while((crypt_lfsr64_unaligned(src) || crypt_lfsr64_unaligned(dst)) && (length > 0))
     {
@@ -150,12 +159,14 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
     
     if(!length)
     {
+        //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: all done dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
         return in_length;
     }
     
     /* the pointers are 64 bit aligned now. do 64 bit writes if possible. */
     if((offset % 8) == 0)
     {
+        //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: (offset mod 8) == 0) dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
         /* processing loop for 64 bit writes at even file offsets. due to compiler optimizations this loop is faster */
         while(length >= 8)
         {
@@ -172,6 +183,7 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         }
     }
     
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: (length >= 8) dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
     /* processing loop for 64 bit writes at odd file offsets. this loop has to do an extra lookup */
     while(length >= 8)
     {
@@ -181,12 +193,29 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         {
             update_key(ctx, offset, 0);
         }
-        else if(block_remain < 8)
+        else if((block_remain + 8) > ctx->blocksize)
         {
-            /* okay here i get lazy to play safe. 
-               correct would be doing bytewise encryption for the remaining 1-7 bytes, then continue 64 bit crypts. 
-               but fall back to bytewise for all remaining bytes. */
-            break;
+            if(length >= 8)
+            {
+                for(int local_pos = 0; local_pos < 8; local_pos++)
+                {
+                    if((offset % ctx->blocksize) == 0)
+                    {
+                        update_key(ctx, offset, 0);
+                    }
+                    
+                    crypt_lfsr64_xor_uint8(dst, src, ctx, offset);
+                    dst += 1;
+                    src += 1;
+                    offset += 1;
+                    length -= 1;                
+                }
+            }
+            else
+            {
+                /* okay, do the rest with per-byte crypts */
+                break;
+            }
         }
         
         crypt_lfsr64_xor_uint64(dst, src, ctx, offset);
@@ -196,6 +225,7 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         length -= 8;
     }
     
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: (length > 0) dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
     /* do the rest, very slow */
     while(length > 0)
     {
@@ -213,7 +243,9 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         length -= 1;
     }
     
-    return length;
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: all done dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
+    
+    return in_length;
 }
 
 /* using a symmetric cipher, both encryption and decryption are the same */

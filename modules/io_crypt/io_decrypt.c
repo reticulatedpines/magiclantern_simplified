@@ -47,9 +47,62 @@ void rand_seed(uint32_t seed)
     }
 }
 
+/* this routine checks if the LFSR64 encryption is handling all cases correctly */
+static void io_decrypt_test()
+{
+    uint64_t key = 0xDEADBEEFDEADBEEF;
+    uint32_t lfsr_blocksize = 0x00000224;
+    uint32_t file_offset = 0;
+    crypt_cipher_t crypt_ctx;
+
+    /* initialize encryption with some common parameters */
+    crypt_lfsr64_init(&crypt_ctx, key);
+    crypt_ctx.set_blocksize(&crypt_ctx, lfsr_blocksize);
+    
+    rand_seed(0x12341234);
+    
+    uint32_t bufsize = 1 * 1024 * 1024;
+    char *buf_src = malloc(bufsize);
+    char *buf_dst = malloc(bufsize);
+    
+    for(int loop = 0; loop < 1000; loop++)
+    {
+        /* prepare both buffers */
+        rand_fill(buf_src, bufsize / 4);
+        memcpy(buf_dst, buf_src, bufsize);
+        
+        /* forge some test start and length */
+        uint32_t start = 0;
+        uint32_t length = 0;
+        
+        rand_fill(&start, 1);
+        rand_fill(&length, 1);
+        
+        start %= bufsize;
+        length %= (bufsize - start + 1);
+        
+        /* now do en- and de-cryption */
+        printf("#%03d 0x%08X 0x%08X\n", loop, start, length);
+        crypt_ctx.encrypt(&crypt_ctx, &buf_dst[start], &buf_src[start], length, 0);
+        crypt_ctx.decrypt(&crypt_ctx, &buf_dst[start], &buf_dst[start], length, 0);
+        
+        /* check if both match */
+        if(memcmp(buf_src, buf_dst, bufsize))
+        {
+            printf("  --> Check failed!!\n");
+            return;
+        }
+    }
+    
+    free(buf_src);
+    free(buf_dst);
+}
+
 static crypt_cipher_t iocrypt_rsa_ctx;
 int main(int argc, char *argv[])
 {
+    //io_decrypt_test();
+    
     if(argc < 2)
     {
         printf("Usage: '%s <infile> [outfile] [password]\n", argv[0]);
