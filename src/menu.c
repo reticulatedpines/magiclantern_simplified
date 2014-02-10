@@ -651,7 +651,9 @@ static int guess_submenu_enabled(struct menu_entry * entry)
         for( ; e ; e = e->next )
         {
             if (MENU_INT(e) && can_be_turned_off(e))
+            {
                 return 1;
+            }
         }
 
         return 0;
@@ -684,8 +686,6 @@ static void entry_draw_icon(
     int         warn
 )
 {
-    entry_guess_icon_type(entry);
-    
     switch (entry->icon_type)
     {
         case IT_BOOL:
@@ -1101,6 +1101,7 @@ menu_add_base(
         new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
+        entry_guess_icon_type(new_entry);
         new_entry++;
         count--;
     }
@@ -1118,6 +1119,7 @@ menu_add_base(
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
+        entry_guess_icon_type(new_entry);
         if (update_placeholders) menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
@@ -2025,7 +2027,6 @@ entry_default_display_info(
     info->icon = 0;
     info->icon_arg = 0;
 
-    entry_guess_icon_type(entry);
     info->enabled = entry_guess_enabled(entry);
     info->warning_level = check_default_warnings(entry, warning);
     
