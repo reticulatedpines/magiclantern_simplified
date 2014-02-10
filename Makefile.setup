@@ -62,7 +62,7 @@ endif
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
-	-W \
+	-Wextra \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
 	-Wno-implicit-function-declaration \
@@ -70,7 +70,6 @@ CFLAGS +=\
 	-Wno-format \
 	-Wdouble-promotion \
 	-ffast-math \
-	-fno-trapping-math \
 	-fsingle-precision-constant \
 	-fshort-double \
 	-std=gnu99 \
@@ -117,7 +116,7 @@ ifdef ML_SETUP_EXTENSION
 -include Makefile.$(ML_SETUP_EXTENSION).user
 endif
 
-$(foreach entry, $(_defined_configs), $(eval _CONFIGS-with-$($(entry))+= $(entry)))
+DUMMY=$(foreach entry, $(_defined_configs), $(eval _CONFIGS-with-$($(entry))+= $(entry)))
 # List of defined configs
 ML_SETUP_ENABLED_CONFIGS = $(_CONFIGS-with-y)
 

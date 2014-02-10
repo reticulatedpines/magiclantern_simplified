@@ -338,10 +338,13 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 
 static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
-static int autodetect_white_level();
+static int autodetect_white_level(int initial_guess);
 
 int raw_update_params()
 {
+    //~ static int k = 0;
+    //~ bmp_printf(FONT_MED, 250, 100, "raw update %d called from %s ", k++, get_task_name_from_id(get_current_task()));
+
     #ifdef RAW_DEBUG
     console_show();
     #endif
@@ -369,7 +372,7 @@ int raw_update_params()
     {
 #ifdef CONFIG_RAW_LIVEVIEW
         /* grab the image buffer from EDMAC; first pixel should be red */
-        raw_info.buffer = (uint32_t) shamem_read(RAW_LV_EDMAC);
+        raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
         if (!raw_info.buffer)
         {
             dbg_printf("LV raw buffer null\n");
@@ -471,7 +474,13 @@ int raw_update_params()
     else if (QR_MODE) // image review after taking pics
     {
 #ifdef CONFIG_RAW_PHOTO
-        raw_info.buffer = (uint32_t) raw_buffer_photo;
+
+        if (!can_use_raw_overlays_photo())
+        {
+            return 0;
+        }
+
+        raw_info.buffer = (void*) raw_buffer_photo;
         
         #if defined(CONFIG_60D) || defined(CONFIG_500D)
         raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
@@ -530,8 +539,8 @@ int raw_update_params()
         /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
         width = 5936;
         height = 3950;
-        skip_left = 126;
-        skip_right = 20;
+        skip_left = 120;
+        skip_right = 16;
         skip_top = 82;
         #endif
 
@@ -663,20 +672,26 @@ int raw_update_params()
     }
 #endif
     
+    /* black and white autodetection are time-consuming */
+    /* only refresh once per second or if dirty, but never while recording */
+    static int bw_aux = INT_MIN;
+    int recompute_black_and_white = NOT_RECORDING && (dirty || should_run_polling_action(1000, &bw_aux));
+
     if (dirty)
     {
         raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
         dirty = 0;
     }
 
+    if (!recompute_black_and_white)
+    {
+        /* keep the old values */
+        return 1;
+    }
+
+    int black_mean, black_stdev_x100;
     raw_info.white_level = WHITE_LEVEL;
-
-    static int black_mean, black_stdev;
-
-    int black_aux = INT_MIN;
-    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
-        raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev);
-        
+    raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev_x100);
 
     if (!lv)
     {
@@ -700,7 +715,7 @@ int raw_update_params()
         }
 
         raw_info.white_level = autodetect_white_level(raw_info.white_level);
-        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
+        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev_x100, raw_info.white_level);
     }
 #ifdef CONFIG_RAW_LIVEVIEW
     else if (!is_movie_mode())
@@ -738,7 +753,7 @@ int raw_update_params()
     }
     else /* movie mode, no tricks here */
     {
-        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
+        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev_x100, raw_info.white_level);
     }
 #endif
     
@@ -1071,7 +1086,7 @@ int FAST ev_to_raw(float ev)
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
-static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev)
+static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev_x100)
 {
     int black = 0;
     int num = 0;
@@ -1080,7 +1095,9 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     {
         for (int x = x1; x < x2; x += dx)
         {
-            black += raw_get_pixel(x, y);
+            int p = raw_get_pixel(x, y);
+            if (p == 0) continue;               /* bad pixel */
+            black += p;
             num++;
         }
     }
@@ -1093,7 +1110,9 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     {
         for (int x = x1; x < x2; x += dx)
         {
-            int dif = raw_get_pixel(x, y) - mean;
+            int p = raw_get_pixel(x, y);
+            if (p == 0) continue;
+            int dif = p - mean;
             stdev += dif * dif;
             
             #ifdef RAW_DEBUG_BLACK
@@ -1105,22 +1124,24 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     
     if (num)
     {
-        stdev /= num;
-        stdev = sqrtf(stdev);
+        stdev = sqrtf((float)stdev / num) * 100.0;
     }
     else
     {
         /* use some "sane" values instead of inf/nan */
-        stdev = 8;
+        stdev = 800;
         mean = 2048;
     }
     
     *out_mean = mean;
-    *out_stdev = stdev;
+    *out_stdev_x100 = stdev;
 }
 
-static int autodetect_black_level(int* black_mean, int* black_stdev)
+static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
 {
+    //~ static int k = 0;
+    //~ bmp_printf(FONT_MED, 250, 50, "black refresh: %d ", k++);
+    
     /* also handle black level for dual ISO */
     int mean1 = 0;
     int stdev1 = 0;
@@ -1162,7 +1183,7 @@ static int autodetect_black_level(int* black_mean, int* black_stdev)
     /* correct DR is high-iso DR + ABS(ISO difference) */
     /* or low-iso DR + DR improvement */
     *black_mean = (mean1 + mean2) / 2;
-    *black_stdev = MIN(stdev1, stdev2);
+    *black_stdev_x100 = MIN(stdev1, stdev2);
 
     return *black_mean;
 }
@@ -1208,7 +1229,7 @@ static int autodetect_white_level(int initial_guess)
     return white;
 }
 
-static int compute_dynamic_range(int black_mean, int black_stdev, int white_level)
+static int compute_dynamic_range(int black_mean, int black_stdev_x100, int white_level)
 {
     /**
      * A = full well capacity / read-out noise 
@@ -1222,12 +1243,12 @@ static int compute_dynamic_range(int black_mean, int black_stdev, int white_leve
 
 #ifdef RAW_DEBUG_DR
     int mean = black_mean * 100;
-    int stdev = black_stdev * 100;
+    int stdev = black_stdev_x100;
     bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
     white_level = autodetect_white_level(15000);
 #endif
 
-    int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev)) * 100);
+    int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev_x100 / 100.0)) * 100);
 
 #ifdef RAW_DEBUG_DR
     bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
@@ -1631,7 +1652,8 @@ int get_dxo_dynamic_range(int raw_iso)
 
 int can_use_raw_overlays_photo()
 {
-    // MRAW/SRAW are causing trouble, figure out why
+    // MRAW/SRAW are causing trouble.
+    // Besides buffer address different on some cameras, these formats are lossy and break all my noise analysis tools
     // RAW and RAW+JPEG are OK
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;

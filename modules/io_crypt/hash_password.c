@@ -1,12 +1,13 @@
 
 
-#ifdef HOST_PROGRAM
+#ifndef MODULE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
-#define trace_write(x,...) do { 0; } while (0)
+#define trace_write(x,...) do { (void)0; } while (0)
 //#define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 
 #else

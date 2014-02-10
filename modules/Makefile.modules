@@ -39,7 +39,7 @@ module_strings.h: README.rst hgstamp
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
 
 README.rst:
-	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
+	$(call build,README,echo "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
 
 $(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $(MODULE_OBJS))

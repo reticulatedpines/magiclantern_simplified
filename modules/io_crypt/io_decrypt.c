@@ -50,9 +50,9 @@ void rand_seed(uint32_t seed)
 static crypt_cipher_t iocrypt_rsa_ctx;
 int main(int argc, char *argv[])
 {
-    if(argc < 3)
+    if(argc < 2)
     {
-        printf("Usage: '%s <infile> <outfile> [password]\n", argv[0]);
+        printf("Usage: '%s <infile> [outfile] [password]\n", argv[0]);
         return -1;
     }
     
@@ -60,7 +60,14 @@ int main(int argc, char *argv[])
     uint32_t lfsr_blocksize = 0x00020000;
     
     char *in_filename = argv[1];
-    char *out_filename = argv[2];
+    char *out_filename = malloc(strlen(in_filename) + 9);
+    
+    sprintf(out_filename, "%s_out.cr2", in_filename);
+    
+    if(argc >= 3)
+    {
+        out_filename = strdup(argv[2]);
+    }
     
     /* password is optional */
     if(argc >= 4)
@@ -76,13 +83,6 @@ int main(int argc, char *argv[])
         printf("Could not open '%s'\n", in_filename);
         return -1;
     } 
-    
-    FILE *out_file = fopen(out_filename, "w");
-    if(!in_file)
-    {
-        printf("Could not open '%s'\n", out_filename);
-        return -1;
-    }
     
     char *buffer = malloc(BLOCKSIZE);
     
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
             printf("Could not read '%s'\n", in_filename);
             return -1;
         }
-        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(&iocrypt_rsa_ctx, encrypted, encrypted, encrypted_size, 0);
+        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(&iocrypt_rsa_ctx, (uint8_t *)encrypted, (uint8_t *)encrypted, encrypted_size, 0);
 
         if(!decrypted_size || decrypted_size > encrypted_size)
         {
@@ -192,10 +192,14 @@ int main(int argc, char *argv[])
     }
     
     /* setup cipher with that hash */
+    uint32_t first = 1;
+    FILE *out_file = NULL;
+    
     uint32_t file_offset = 0;
     crypt_cipher_t crypt_ctx;
     crypt_lfsr64_init(&crypt_ctx, key);
     crypt_ctx.set_blocksize(&crypt_ctx, lfsr_blocksize);
+    
     
     while(!feof(in_file))
     {
@@ -203,7 +207,37 @@ int main(int argc, char *argv[])
         
         if(ret > 0)
         {
-            crypt_ctx.decrypt(&crypt_ctx, buffer, buffer, ret, file_offset);
+            crypt_ctx.decrypt(&crypt_ctx, (uint8_t *)buffer, (uint8_t *)buffer, ret, file_offset);
+            
+            /* try to detect file type */
+            if(first)
+            {
+                first = 0;
+                
+                if(!memcmp(buffer, jpg_magic, 4))
+                {
+                    printf("File type: JPEG (decrypted)\n");
+                }
+                else if(!memcmp(buffer, cr2_magic, 4))
+                {
+                    printf("File type: CR2 (decrypted)\n");
+                }
+                else
+                {
+                    printf("File type: unknown. invalid key?\n");
+                    fclose(in_file);
+                    free(out_filename);
+                    return 0;
+                }
+                
+                out_file = fopen(out_filename, "w");
+                if(!out_file)
+                {
+                    printf("Could not open '%s'\n", out_filename);
+                    return -1;
+                }
+            }
+            
             fwrite(buffer, 1, ret, out_file);
             file_offset += ret;
         }
@@ -216,4 +250,5 @@ int main(int argc, char *argv[])
     
     fclose(in_file);
     fclose(out_file);
+    free(out_filename);
 }

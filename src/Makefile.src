@@ -44,7 +44,8 @@ endif
 ifeq ($(ML_ZEBRA_OBJ), n)
 ML_ZEBRA_OBJ =
 else ifndef ML_ZEBRA_OBJ
-ML_ZEBRA_OBJ = zebra.o
+ML_ZEBRA_OBJ = zebra.o \
+			   vectorscope.o
 endif
 
 ifeq ($(ML_BOOTFLAGS_OBJ), n)
@@ -108,6 +109,8 @@ ML_SRC_OBJS = \
 	debug.o \
 	rand.o \
 	posix.o \
+	util.o \
+	electronic_level.o \
 	cfn.o \
 	gui.o \
 	$(ML_PICSTYLE_OBJ) \

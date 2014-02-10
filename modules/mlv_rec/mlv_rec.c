@@ -114,8 +114,8 @@ static uint32_t abort_test = 0;
  **/
 
 
-static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728","1856","1920","2048","2240","2560","2880","3584")
+static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
 
 static uint32_t aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -140,6 +140,7 @@ static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
 static CONFIG_INT("mlv.reckey", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
+static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 
 
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
@@ -156,6 +157,11 @@ static CONFIG_INT("mlv.preview", preview_mode, 0);
 static CONFIG_INT("mlv.warm.up", warm_up, 0);
 static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
 static CONFIG_INT("mlv.small.hacks", small_hacks, 1);
+
+static CONFIG_INT("mlv.video.display_rec_info", display_rec_info, 1);
+#define DISPLAY_REC_INFO_NONE (display_rec_info == 0)
+#define DISPLAY_REC_INFO_ICON (display_rec_info == 1)
+#define DISPLAY_REC_INFO_DEBUG (display_rec_info == 2)
 
 static int start_delay = 0;
 
@@ -365,14 +371,30 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     char filename[32];
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
 
+    /* add an megabyte extra */
+    size += 1024 * 1024;
+    
+    int file_size = 0;
+    if(!FIO_GetFileSize(filename, &file_size))
+    {
+        /* file already exists and reserves enough room */
+        if(file_size >= size)
+        {
+            return 1;
+        }
+        
+        /* not enough room, delete and rewrite */
+        FIO_RemoveFile(filename);
+    }
+    
     FILE *dummy_file = FIO_CreateFileEx(filename);
     if(dummy_file == INVALID_PTR)
     {
         return 0;
     }
     
-    FIO_SeekFile(dummy_file, size + 1024 * 1024, SEEK_SET);
-    FIO_WriteFile(dummy_file, "", 1);
+    bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
+    FIO_WriteFile(dummy_file, 0x40000000, size);
     uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
@@ -999,14 +1021,14 @@ static int32_t setup_buffers()
     {
         uint32_t size = GetSizeOfMemoryChunk(chunk);
         uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-
+        
         /* add some protection to detect overwrites */
         setup_prot(&ptr, &size);
         check_prot(ptr, size, 0);
 
-        if (size >= buf_size)
+        if(size >= buf_size)
         {
-            if (size - buf_size < waste)
+            if(size - buf_size < waste)
             {
                 waste = size - buf_size;
                 fullsize_buffers[0] = (void *)ptr;
@@ -1040,22 +1062,25 @@ static int32_t setup_buffers()
         setup_prot(&ptr, &size);
         check_prot(ptr, size, 0);
 
-        if (ptr == (uint32_t)fullsize_buffers[0]) /* already used */
+        if(ptr == (uint32_t)fullsize_buffers[0]) /* already used */
         {
             trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
             ptr += buf_size;
             size -= buf_size;
-            total_size += buf_size;
         }
 
         setup_chunk(ptr, size);
+        total_size += size;
 
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
 
-    char msg[100];
-    snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
-    bmp_printf(FONT_MED, 30, 90, msg);
+    if(DISPLAY_REC_INFO_DEBUG)
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
+        bmp_printf(FONT_MED, 30, 90, msg);
+    }
 
     /* we need at least 3 slots */
     if (slot_count < 3)
@@ -1125,9 +1150,9 @@ static int32_t setup_buffers()
     do
     {
         int newn = 1;
-        for (int i = 0; i < n-1; ++i)
+        for(int i = 0; i < n-1; ++i)
         {
-            if (slot_groups[i].len < slot_groups[i+1].len)
+            if(slot_groups[i].len < slot_groups[i+1].len)
             {
                 struct frame_slot_group tmp = slot_groups[i+1];
                 slot_groups[i+1] = slot_groups[i];
@@ -1143,8 +1168,13 @@ static int32_t setup_buffers()
         trace_write(raw_rec_trace_ctx, "group: %d length: %d slot: %d", group, slot_groups[group].len, slot_groups[group].slot);
     }
     
-    /* now allocate a dummy file that is going to be released when disk runs full */
-    return mlv_rec_alloc_dummy(total_size);
+    if(create_dummy)
+    {
+        /* now allocate a dummy file that is going to be released when disk runs full */
+        return mlv_rec_alloc_dummy(total_size);
+    }
+    
+    return 1;
 }
 
 static int32_t get_free_slots()
@@ -1261,7 +1291,7 @@ static void show_buffer_status()
         //trace_write(raw_rec_trace_ctx, buffer_str);
     }
 
-    if (frame_skips > 0)
+    if (DISPLAY_REC_INFO_DEBUG && frame_skips > 0)
     {
         bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skips", frame_skips);
     }
@@ -1452,67 +1482,107 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             msg_queue_post(mlv_block_queue, wbal_hdr);
         }
 
-        if(liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
+        if(!DISPLAY_REC_INFO_NONE && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
         {
-            int32_t fps = fps_get_current_x1000();
-            int32_t t = (frame_count * 1000 + fps/2) / fps;
-            int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-            if (predicted < 10000)
-                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
-                    "%02d:%02d, %d frames / %d expected  ",
-                    t/60, t%60,
-                    frame_count,
-                    predicted
-                );
-            else
-                bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
-                    "%02d:%02d, %d frames, continuous OK  ",
-                    t/60, t%60,
-                    frame_count
-                );
-
-            show_buffer_status();
-
-            /* how fast are we writing? does this speed match our benchmarks? */
-            for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+            if(DISPLAY_REC_INFO_ICON)
             {
-                if (writing_time[writer] || idle_time[writer])
+                int32_t fps = fps_get_current_x1000();
+                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+                /* Position the Recording Icon */
+                int rl_x = 500;
+                int rl_y = 40;
+                int rl_color;
+                if (predicted < 10000)
                 {
-                    int32_t speed = current_write_speed[writer];
-                    int32_t idle_percent = idle_time[writer] * 100 / (writing_time[writer] + idle_time[writer]);
-                    speed /= 10;
-
-                    char msg[100];
-                    snprintf(msg, sizeof(msg),
-                        "%s: %d MB, %d.%d MB/s",
-                        chunk_filename[writer] + strlen(get_dcim_dir()) + 1, /* skip A:/DCIM/100CANON/ */
-                        written[writer] / 1024,
-                        speed/10, speed%10
-                    );
-                    if (idle_time[writer])
-                    {
-                        if (idle_percent)
-                        {
-                            STR_APPEND(msg, ", %d%% idle      ", idle_percent);
-                        }
-                        else
-                        {
-                            STR_APPEND(msg, ", %dms idle      ", idle_time[writer]);
-                        }
+                    int time_left = (predicted-frame_count) * 1000 / fps;
+                    if (time_left < 10) {
+                        rl_color = COLOR_DARK_RED;
+                    } else {
+                        rl_color = COLOR_YELLOW;
                     }
-                    bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s                   ", msg);
+                } else {
+                    rl_color = COLOR_GREEN1;
+                }
+                int rl_icon_width=0;
+                /* Draw the movie camera icon */
+                rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
+                
+                /* Display the Status */
+                if (!frame_skips)
+                {
+                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
                 }
                 else
                 {
-                    bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
+                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
                 }
             }
-
-            if(card_spanning)
+            else if(DISPLAY_REC_INFO_DEBUG)
             {
-                char msg[100];
-                snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
-                bmp_printf( FONT_MED, 30, 130 + mlv_writer_threads * font_med.height, "%s", msg);
+                int32_t fps = fps_get_current_x1000();
+                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+                if (predicted < 10000)
+                    bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
+                               "%02d:%02d, %d frames / %d expected  ",
+                               t/60, t%60,
+                               frame_count,
+                               predicted
+                               );
+                else
+                    bmp_printf( FONT_MED, 30, cam_50d ? 350 : 400,
+                               "%02d:%02d, %d frames, continuous OK  ",
+                               t/60, t%60,
+                               frame_count
+                               );
+                
+                if (show_graph)
+                {
+                    show_buffer_status();
+                }
+                
+                /* how fast are we writing? does this speed match our benchmarks? */
+                for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
+                {
+                    if (writing_time[writer] || idle_time[writer])
+                    {
+                        int32_t speed = current_write_speed[writer];
+                        int32_t idle_percent = idle_time[writer] * 100 / (writing_time[writer] + idle_time[writer]);
+                        speed /= 10;
+                        
+                        char msg[100];
+                        snprintf(msg, sizeof(msg),
+                                 "%s: %d MB, %d.%d MB/s",
+                                 chunk_filename[writer] + strlen(get_dcim_dir()) + 1, /* skip A:/DCIM/100CANON/ */
+                                 written[writer] / 1024,
+                                 speed/10, speed%10
+                                 );
+                        if (idle_time[writer])
+                        {
+                            if (idle_percent)
+                            {
+                                STR_APPEND(msg, ", %d%% idle      ", idle_percent);
+                            }
+                            else
+                            {
+                                STR_APPEND(msg, ", %dms idle      ", idle_time[writer]);
+                            }
+                        }
+                        bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s                   ", msg);
+                    }
+                    else
+                    {
+                        bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
+                    }
+                }
+                
+                if(card_spanning)
+                {
+                    char msg[100];
+                    snprintf(msg, sizeof(msg), "Total rate: %d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
+                    bmp_printf( FONT_MED, 30, 130 + mlv_writer_threads * font_med.height, "%s", msg);
+                }
             }
         }
     }
@@ -3147,7 +3217,7 @@ static void raw_video_rec_task()
                     /* hack working for one writer only */
                     current_write_speed[returned_job->writer] = rate*100/1024;
 
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %2d blocks, slot %2d, mgmt %6d µs",
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d µs",
                         returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time);
 
                     /* update statistics */
@@ -3309,13 +3379,11 @@ static void raw_video_rec_task()
                 }
             }
 
-            if(raw_recording_state != RAW_RECORDING)
+            if((raw_recording_state != RAW_RECORDING) && (show_graph))
             {
                 show_buffer_status();
             }
         }
-        
-        mlv_rec_release_dummy();
         
         /* now close all queued files */
         while(1)
@@ -3391,7 +3459,10 @@ static void raw_video_rec_task()
                 goto cleanup;
             }
 
-            show_buffer_status();
+            if (show_graph) 
+            {
+                show_buffer_status();
+            }
 
             /* wait until all writers wrote their data */
             has_data = 0;
@@ -3485,10 +3556,12 @@ static void raw_video_rec_task()
 cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
-    mlv_rec_release_dummy();
     
-    NotifyBox(5000, "Frames captured: %d", frame_count - 1);
-
+    if(DISPLAY_REC_INFO_DEBUG)
+    {
+        NotifyBox(5000, "Frames captured: %d", frame_count - 1);
+    }
+    
     if(show_graph)
     {
         take_screenshot(0);
@@ -3742,6 +3815,13 @@ static struct menu_entry raw_video_menu[] =
                          "HaCKeD2: No preview. Disables Global draw while recording.\n"
             },
             {
+                .name = "Status when recording",
+                .priv = &display_rec_info,
+                .max = 2,
+                .choices = CHOICES("None", "Icon", "Debug"),
+                .help = "Display status when recording.",
+            },
+            {
                 .name = "Start delay",
                 .priv = &start_delay_idx,
                 .max = 3,
@@ -3820,6 +3900,12 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &card_spanning,
                 .max = 1,
                 .help  = "Span video file over cards to use SD+CF write speed",
+            },
+            {
+                .name = "Reserve card space",
+                .priv = &create_dummy,
+                .max = 1,
+                .help  = "Write a file before recording to prevent data loss on full card",
             },
             {
                 .name = "Tag: Text",
@@ -4162,6 +4248,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
     MODULE_CONFIG(rec_key)
+    MODULE_CONFIG(display_rec_info)
 
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
@@ -4173,4 +4260,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(test_mode)
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
+    MODULE_CONFIG(create_dummy)
 MODULE_CONFIGS_END()

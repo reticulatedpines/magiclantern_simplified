@@ -160,7 +160,7 @@
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
 // * does not interfere with recording
 //~ #define GUIMODE_ML_MENU guimode_ml_menu
-#define GUIMODE_ML_MENU (RECORDING_H264 ? 0 : lv ? 45 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 45 : 2)
 // outside LiveView, Canon menu is a good choice
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))

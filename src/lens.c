@@ -2239,6 +2239,20 @@ static LVINFO_UPDATE_FUNC(picq_update)
             )
         );
     }
+    
+    #ifdef CONFIG_RAW_LIVEVIEW
+    if (raw_lv_is_enabled())
+    {
+        /* make it obvious that LiveView is in RAW mode */
+        /* (primarily for troubleshooting the raw backend, proper raw_lv_request/release calls and Magic Zoom slowdowns) */
+        if (is_movie_mode())
+        {
+            /* todo: icon? */
+            snprintf(buffer, sizeof(buffer), "RAW");
+        }
+        item->color_fg = COLOR_GREEN1;
+    }
+    #endif
 }
 
 static LVINFO_UPDATE_FUNC(alo_htp_update)
