@@ -2240,6 +2240,7 @@ static LVINFO_UPDATE_FUNC(picq_update)
         );
     }
     
+    #ifdef CONFIG_RAW_LIVEVIEW
     if (raw_lv_is_enabled())
     {
         /* make it obvious that LiveView is in RAW mode */
@@ -2251,6 +2252,7 @@ static LVINFO_UPDATE_FUNC(picq_update)
         }
         item->color_fg = COLOR_GREEN1;
     }
+    #endif
 }
 
 static LVINFO_UPDATE_FUNC(alo_htp_update)
