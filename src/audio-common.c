@@ -432,10 +432,10 @@ meter_task( void* unused )
                     BMP_LOCK( draw_meters(); )
 #ifdef CONFIG_7D
                 if (!RECORDING_H264 && !setonce)
-				{
+                {
                     audio_configure(1);
                     setonce=1;
-				}
+                }
                 if (RECORDING_H264) //Do it again after movie end.
                     setonce = 0;
 #endif

@@ -656,7 +656,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_600D) && !defined(CONFIG_DIGIC_V)  && !defined(CONFIG_7D)
+#if !defined(CONFIG_7D)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 
