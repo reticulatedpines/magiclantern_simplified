@@ -1676,7 +1676,7 @@ int can_use_raw_overlays()
 
 int can_use_raw_overlays_menu()
 {
-#ifdef CONFIG_RAW_LVIEVIEW
+#ifdef CONFIG_RAW_LIVEVIEW
     if (is_movie_mode())
     {
         /* in movie mode, raw overlays don't make much sense for H.264 video, so only show them for raw video */
