@@ -15,7 +15,7 @@ int card_select = 1;
 #define ML_CARD_LETTER (ml_card_select == 1 ? "A" : "B")
 
 CONFIG_INT("card.test", card_test_enabled, 1);
-CONFIG_INT("card.force_type", card_force_type, 0);
+CONFIG_INT("card.force_type", card_force_type, 1);
 
 /* enable to slow down the write speed, which improves compatibility with certain cards */
 /* only enable if needed */
