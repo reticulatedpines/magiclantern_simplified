@@ -92,7 +92,6 @@ static char* silent_pic_get_name()
 
 static void silent_pic_save_dng(char* filename, struct raw_info * raw_info)
 {
-    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info->jpeg.width, raw_info->jpeg.height);
     save_dng(filename, raw_info);
 }
 
@@ -166,15 +165,51 @@ static volatile int sp_max_frames = 0;      /* after how many pictures we should
 static volatile int sp_num_frames = 0;      /* how many pics we actually took */
 static volatile int sp_slitscan_line = 0;   /* current line for slit-scan */
 
-static void* silent_pic_display_buf = 0;
-
 static unsigned int silent_pic_preview(unsigned int ctx)
 {
-    if (silent_pic_display_buf)
+    static int preview_dirty = 0;
+    
+    /* just say whether we can preview or not */
+    if (ctx == 0)
     {
-        if (vram_redirect_lv_buffer(silent_pic_display_buf))
-            return CBR_RET_STOP;
+        if (!sp_running && preview_dirty)
+        {
+            /* cleanup the mess, if any */
+            raw_set_dirty();
+            preview_dirty = 0;
+        }
+
+        /* in slit-scan mode we need preview, obviously */
+        /* in zoom mode, the framing doesn't match, so we'll force preview for raw in x5 */
+        /* don't preview in x10 mode, so you can use it for focusing */
+        return sp_running && (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5);
     }
+    
+    struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
+    void* preview_buf = buffers->dst_buf;
+
+    /* try to preview the last completed frame; if there isn't any, use the first frame */
+    void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
+    int first_line = BM2LV_Y(os.y0);
+    int last_line = BM2LV_Y(os.y_max);
+
+    /* use full color preview for slit-scan, since we don't need real-time refresh */
+    int ultra_fast = (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN) ? 0 : 1;
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        for (int i = 0; i < sp_buffer_count; i++)
+            if (sp_focus[i] == INT_MAX)
+                raw_buf = sp_frames[i];
+    }
+    
+    raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
+    raw_force_aspect_ratio_1to1();
+    raw_preview_fast_ex(raw_buf, preview_buf, first_line, last_line, ultra_fast);
+
+    /* we have modified the raw preview rectangle; will force a refresh of raw parameters when preview is no longer needed */
+    preview_dirty = 1;
+    
     return CBR_RET_CONTINUE;
 }
 
@@ -290,57 +325,6 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     return 0;
 }
 
-static void silent_pic_raw_init_preview()
-{
-    /* in slit-scan mode we need preview, obviously */
-    /* in zoom mode, the framing doesn't match, so we'll force preview for raw in x5 */
-    /* don't preview in x10 mode, so you can use it for focusing */
-    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5)
-    {
-        /* init preview */
-        uint32_t* src_buf = 0;
-        uint32_t* dst_buf = 0;
-        display_filter_get_buffers(&src_buf, &dst_buf);
-        if (src_buf && dst_buf)
-        {
-            memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
-            memset(sp_frames[0], 0, raw_info.frame_size);
-            silent_pic_display_buf = CACHEABLE(dst_buf);
-        }
-    }
-}
-
-static void silent_pic_raw_update_preview()
-{
-    if (!silent_pic_display_buf) return;
-    /* try to preview the last completed frame; if there isn't any, use the first frame */
-    void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
-    static int first_line = 0;
-    int last_line;
-    int ultra_fast;
-    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
-    {
-        last_line = RAW2LV_Y(sp_slitscan_line);
-        if (first_line > last_line) first_line = BM2LV_Y(os.y0);
-        ultra_fast = 0; /* since we only refresh a few lines at a time, we can use better quality */
-    }
-    else
-    {
-        first_line = BM2LV_Y(os.y0);
-        last_line = BM2LV_Y(os.y_max);
-        ultra_fast = 1; /* we have to refresh complete frames, so we'll sacrifice quality to gain some speed */
-    }
-    
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
-    {
-        for (int i = 0; i < sp_buffer_count; i++)
-            if (sp_focus[i] == INT_MAX)
-                raw_buf = sp_frames[i];
-    }
-    
-    raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
-}
-
 static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
@@ -436,6 +420,7 @@ silent_pic_take_raw(int interactive)
     sp_num_frames = 0;
     sp_slitscan_line = 0;
     memset(sp_focus, 0, sizeof(sp_focus));
+    memset(sp_frames[0], 0, raw_info.frame_size);
 
     /* how many pics we should take? */
     switch (silent_pic_mode)
@@ -457,8 +442,6 @@ silent_pic_take_raw(int interactive)
     
     /* when triggered from e.g. intervalometer (noninteractive), take a full burst */
     sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS ? 200 : sp_buffer_count;
-    
-    silent_pic_raw_init_preview();
 
     /* copy the raw_info structure locally (so we can still save the DNGs when video mode changes) */
     struct raw_info local_raw_info = raw_info;
@@ -468,8 +451,6 @@ silent_pic_take_raw(int interactive)
     while (sp_running)
     {
         msleep(20);
-        
-        silent_pic_raw_update_preview();
         
         if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
             silent_pic_raw_show_focus(-1);
@@ -481,8 +462,6 @@ silent_pic_take_raw(int interactive)
             break;
         }
     }
-
-    silent_pic_display_buf = 0;
 
     /* disable the debug flag, no longer needed */
     raw_lv_release(); raw_flag = 0;
@@ -532,6 +511,8 @@ silent_pic_take_raw(int interactive)
                 silent_pic_raw_show_focus(i);
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
+            raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
+            raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
             silent_pic_save_dng(fn, &local_raw_info);
             
@@ -565,6 +546,7 @@ silent_pic_take_raw(int interactive)
         
         char* fn = silent_pic_get_name();
         local_raw_info.buffer = sp_frames[0];
+        bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
         silent_pic_save_dng(fn, &local_raw_info);
         redraw();
     }
@@ -660,10 +642,8 @@ MODULE_INFO_END()
 MODULE_CBRS_START()
     MODULE_CBR(CBR_CUSTOM_PICTURE_TAKING, silent_pic_take, 0)
     MODULE_CBR(CBR_SHOOT_TASK, silent_pic_polling_cbr, 0)
-    MODULE_CBR(CBR_VSYNC_DISPLAY, silent_pic_preview, 0)
-    #ifdef FEATURE_SILENT_PIC_RAW_BURST
     MODULE_CBR(CBR_VSYNC, silent_pic_raw_vsync, 0)
-    #endif
+    MODULE_CBR(CBR_DISPLAY_FILTER, silent_pic_preview, 0)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
