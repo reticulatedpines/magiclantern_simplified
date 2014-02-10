@@ -4040,7 +4040,7 @@ menu_redraw_task()
     }
 }
 
-TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x2000 );
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x8000 );
 
 void
 menu_redraw()
