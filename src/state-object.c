@@ -127,9 +127,6 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #ifdef CONFIG_MODULES
-        if (module_exec_cbr(CBR_VSYNC_DISPLAY) == CBR_RET_CONTINUE)
-        #endif
         #ifdef FEATURE_HDR_VIDEO
         if (hdr_kill_flicker() == CBR_RET_CONTINUE)
         #endif
