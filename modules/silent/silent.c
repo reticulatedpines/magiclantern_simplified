@@ -28,7 +28,11 @@ static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_RTL 3 // right to left
 #define SILENT_PIC_MODE_SLITSCAN_CENTER_H 4 // center horizontal
 //#define SILENT_PIC_MODE_SLITSCAN_CENTER_V 5 // center vertical
-
+static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
+{
+    if (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN)
+    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Slitscan is not enabled");
+}
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
     if (!silent_pic_enabled)
@@ -53,32 +57,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
 
         case SILENT_PIC_MODE_SLITSCAN:
-            switch (silent_pic_slitscan_mode)
-            {
-                case SILENT_PIC_MODE_SLITSCAN_SCAN_TTB:
-                    MENU_SET_VALUE("Slitscan-Scan-TTB");
-                    break;
-                
-                case SILENT_PIC_MODE_SLITSCAN_SCAN_BTT:
-                    MENU_SET_VALUE("Slitscan-Scan-BTT");
-                    break;
-                    
-                case SILENT_PIC_MODE_SLITSCAN_SCAN_LTR:
-                    MENU_SET_VALUE("Slitscan-Scan-LTR");
-                    break;
-                    
-                case SILENT_PIC_MODE_SLITSCAN_SCAN_RTL:
-                    MENU_SET_VALUE("Slitscan-Scan-RTL");
-                    break;
-                
-                case SILENT_PIC_MODE_SLITSCAN_CENTER_H:
-                    MENU_SET_VALUE("Slitscan-Center-H");
-                    break;
-                    
-          /*      case SILENT_PIC_MODE_SLITSCAN_CENTER_V:
-                    MENU_SET_VALUE("Slitscan-Center-V");
-                    break; */
-            }
+            MENU_SET_VALUE("Slitscan");
             break;
     }
 }
@@ -725,6 +704,7 @@ static struct menu_entry silent_menu[] = {
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
+        .update = silent_pic_display,
         .max  = 1,
         .depends_on = DEP_LIVEVIEW,
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
@@ -732,7 +712,6 @@ static struct menu_entry silent_menu[] = {
         .help2 = "File format: 14-bit DNG.",
         
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
-        .update = silent_pic_display,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Silent Mode",
@@ -750,6 +729,7 @@ static struct menu_entry silent_menu[] = {
             },
             {
                 .name = "Slitscan Mode",
+                .update = silent_pic_slitscan_display,
                 .priv = &silent_pic_slitscan_mode,
                 .max = 4,
                 .help = "Choose slitscan mode:",
@@ -759,7 +739,7 @@ static struct menu_entry silent_menu[] = {
                     "Scan from left to right.\n"
                     "Scan from right to left.\n"
                     "Keep scan line in middle of frame, horizontally.\n",
-                .choices = CHOICES("Scan-TTB", "Scan-BTT", "Scan-LTR", "Scan-RTL", "Center-H"),
+                .choices = CHOICES("Scan Top->Bottom", "Scan Bottom->Top", "Scan Left->Right", "Scan Right->Left", "Scan Horizontal"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
@@ -795,4 +775,5 @@ MODULE_CBRS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(silent_pic_enabled)
     MODULE_CONFIG(silent_pic_mode)
+    MODULE_CONFIG(silent_pic_slitscan_mode)
 MODULE_CONFIGS_END()
