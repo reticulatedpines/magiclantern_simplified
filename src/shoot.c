@@ -332,7 +332,10 @@ static void do_this_every_second() // called every second
     #endif
 
     #ifdef CONFIG_TSKMON
-    tskmon_stack_check_all();
+    if (!RECORDING_RAW)
+    {
+        tskmon_stack_check_all();
+    }
     #endif
     
     #ifdef FEATURE_SHOW_OVERLAY_FPS
