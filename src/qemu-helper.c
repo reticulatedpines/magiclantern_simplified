@@ -14,7 +14,7 @@
 #if defined(CONFIG_650D)
 #define RAM_OFFSET (0xFFA4DF58-0x1900)
 #elif defined(CONFIG_5D3)
-#define RAM_OFFSET 0xFF9DEF48
+#define RAM_OFFSET 0xFF9F07C0
 #elif defined(CONFIG_6D)
 #define RAM_OFFSET 0xFFCC34D4
 #elif defined(CONFIG_EOSM)

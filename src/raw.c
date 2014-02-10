@@ -151,7 +151,7 @@ void raw_buffer_intercept_from_stateobj()
  * note: values are off by 1
  */
 #define PREFERRED_RAW_TYPE 16
-#define RAW_TYPE_ADDRESS 0x2D168
+#define RAW_TYPE_ADDRESS 0x2D0E0
 #endif
 
 /**

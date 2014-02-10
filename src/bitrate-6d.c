@@ -56,10 +56,10 @@ int hibr_should_record_wav() { return 0; }
 
 #endif
 #ifdef CONFIG_5D3
-#define l_ivastring 0x4DA10
-#define l_initQP 0x27884
-#define l_targetR 0x27880
-#define l_EncoMode 0X2787C
+#define l_ivastring 0x4DA68
+#define l_initQP 0x277F0
+#define l_targetR 0x277EC
+#define l_EncoMode 0X277E8
 
 #endif
 
@@ -98,12 +98,12 @@ static void patch_errors()
 	#endif
 	
 	#ifdef CONFIG_5D3
-	cache_fake(0xFF1EA0F4 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF37F35C , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF370444 , 0xE1A00000, TYPE_ICACHE); //Player Not sure
-	cache_fake(0xFF0C28AC , 0xE1A00000, TYPE_ICACHE);
+	cache_fake(0xFF1ED1E0 , 0xE1A00000, TYPE_ICACHE);
+	cache_fake(0xFF386048 , 0xE1A00000, TYPE_ICACHE);
+	cache_fake(0xFF377134 , 0xE1A00000, TYPE_ICACHE); //Player Not sure
+	cache_fake(0xFF0C2940 , 0xE1A00000, TYPE_ICACHE);
 	//~ cache_fake(0xFF3BEFB4 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF0E3B3C , 0xE1510001, TYPE_ICACHE);
+	cache_fake(0xFF0E3BDC , 0xE1510001, TYPE_ICACHE);
 	//~ cache_fake(0xFF1E2734 , 0xE1510001, TYPE_ICACHE);
 	#endif
 
