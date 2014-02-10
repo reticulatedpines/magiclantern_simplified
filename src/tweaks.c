@@ -2760,6 +2760,7 @@ static void FAST anamorphic_squeeze()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+    if (!src_buf || !dst_buf) return;
     src_buf = CACHEABLE(src_buf);
     dst_buf = CACHEABLE(dst_buf);
     
@@ -2857,6 +2858,7 @@ static void defish_draw_lv_color()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+    if (!src_buf || !dst_buf) return;
     if (DEFISH_HD) src_buf = (void*)(get_yuv422_hd_vram()->vram);
     
     // small speedup (26fps with cacheable vs 20 without)
@@ -3017,6 +3019,10 @@ void defish_draw_play()
 #endif
 
 #ifdef CONFIG_DISPLAY_FILTERS
+
+static void* display_filter_buffer = 0;
+static int display_filter_valid_image = 0;
+
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 {
     //~ struct vram_info * vram = get_yuv422_vram();
@@ -3044,8 +3050,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
         buff = prev;
     prev = current;
     *src_buf = buff;
-
-    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
+    *dst_buf = CACHEABLE(display_filter_buffer);
 #else // just use some reasonable defaults that won't crash the camera
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
@@ -3076,8 +3081,6 @@ int display_filter_enabled()
     return fp ? 2 : 1;
 }
 
-static int display_filter_valid_image = 0;
-
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 static int display_broken = 0;
 int display_broken_for_mz() 
@@ -3085,7 +3088,6 @@ int display_broken_for_mz()
     return display_broken;
 }
 #endif
-
 
 int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
@@ -3129,10 +3131,10 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     }
 #elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) // all new cameras should work with this method
 
+    if (!display_filter_buffer) return CBR_RET_CONTINUE;
     if (!display_filter_valid_image) return CBR_RET_CONTINUE;
     if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
-
-    YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
+    YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) display_filter_buffer;
 #endif
     return CBR_RET_STOP;
 }
@@ -3140,7 +3142,24 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 void display_filter_step(int k)
 {
     
-    if (!display_filter_enabled()) return;
+    if (!display_filter_enabled())
+    {
+        #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+        if (display_filter_buffer)
+        {
+            free(display_filter_buffer);
+            display_filter_buffer = 0;
+        }
+        #endif
+        return;
+    }
+    
+    #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    if (!display_filter_buffer)
+    {
+        display_filter_buffer = malloc(720*480*2);
+    }
+    #endif
     
     msleep(20);
     

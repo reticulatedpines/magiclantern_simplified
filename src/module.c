@@ -957,7 +957,11 @@ int module_display_filter_update()
                     /* arg!=0: draw the filtered image in these buffers */
                     struct display_filter_buffers buffers;
                     display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
-                    cbr->handler((intptr_t) &buffers);
+                    
+                    if (buffers.src_buf && buffers.dst_buf) /* do not call the CBR with invalid arguments */
+                    {
+                        cbr->handler((intptr_t) &buffers);
+                    }
                     break;
                 }
                 cbr++;
