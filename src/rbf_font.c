@@ -286,6 +286,10 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     {
         for (yy=0; yy<height; ++yy)
         {
+            if (y+yy <= BMP_H_MINUS || y+yy >= BMP_H_PLUS)
+            {
+                break;
+            }
             for (xx=0; xx<pixel_width; ++xx)
             {
                 bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg);
@@ -305,6 +309,10 @@ static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata
     {
         for (yy=0; yy<height; ++yy)
         {
+            if (y+yy <= BMP_H_MINUS || y+yy >= BMP_H_PLUS)
+            {
+                break;
+            }
             for (xx=0; xx<pixel_width; ++xx)
             {
                 int px = (cdata[yy*width/8+xx/8] & (1<<(xx%8)));
