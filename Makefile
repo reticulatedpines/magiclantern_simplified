@@ -33,6 +33,9 @@ install_platform_all_model: platform_all_model
 
 install: install_platform_all_model
 
+all_modules:
+	$(MAKE) -C modules
+
 fir:
 	$(MAKE) -C installer clean_and_fir
 

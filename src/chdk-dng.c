@@ -255,7 +255,13 @@ static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
             return i;
     
     /* should be unreachable */
+#ifdef CONFIG_MAGICLANTERN
+    ASSERT(0);
+#else
     exit(1);
+#endif
+    __builtin_unreachable();
+    return -1;
 }
 
 // Index of specific entries in ifd0 below.
