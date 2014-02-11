@@ -15,12 +15,24 @@ extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint
 
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );
+static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
 #define SILENT_PIC_MODE_BURST_END_TRIGGER 2
 #define SILENT_PIC_MODE_BEST_SHOTS 3
 #define SILENT_PIC_MODE_SLITSCAN 4
 
+#define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
+#define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
+#define SILENT_PIC_MODE_SLITSCAN_SCAN_LTR 2 // left to right
+#define SILENT_PIC_MODE_SLITSCAN_SCAN_RTL 3 // right to left
+#define SILENT_PIC_MODE_SLITSCAN_CENTER_H 4 // center horizontal
+//#define SILENT_PIC_MODE_SLITSCAN_CENTER_V 5 // center vertical
+static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
+{
+    if (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN)
+    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Slitscan is not enabled");
+}
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
     if (!silent_pic_enabled)
@@ -45,7 +57,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
 
         case SILENT_PIC_MODE_SLITSCAN:
-            MENU_SET_VALUE("Slit-Scan");
+            MENU_SET_VALUE("Slitscan");
             break;
     }
 }
@@ -275,20 +287,118 @@ static int silent_pic_raw_choose_next_slot()
 static void silent_pic_raw_slitscan_vsync()
 {
     void* buf = sp_frames[0];
+    /*
+    * SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
+    * SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
+    * SILENT_PIC_MODE_SLITSCAN_SCAN_LTR 2 // left to right
+    * SILENT_PIC_MODE_SLITSCAN_SCAN_RTL 3 // right to left
+    * SILENT_PIC_MODE_SLITSCAN_CENTER_H 4 // center horizontal
+    * SILENT_PIC_MODE_SLITSCAN_CENTER_V 5 // center vertical
+     */
+    // probably a better way to do this than a switch, quite a bit of this code is redundant
+    switch (silent_pic_slitscan_mode)
+    {
+        case SILENT_PIC_MODE_SLITSCAN_SCAN_TTB:
+            if (sp_slitscan_line >= raw_info.height) /* done */
+            {
+                sp_running = 0;
+            } else {
+                int offset = raw_info.pitch * sp_slitscan_line;
+                memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
+                sp_slitscan_line++;
+                sp_num_frames = 1;
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
+            }
+            break;
+            
+        case SILENT_PIC_MODE_SLITSCAN_SCAN_BTT:
+            if (sp_slitscan_line >= raw_info.height) /* done */
+            {
+                sp_running = 0;
+            } else {
+                int offset = raw_info.pitch * (raw_info.height - sp_slitscan_line); // should start offset and bottom of frame
+                memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
+                sp_slitscan_line++;
+                sp_num_frames = 1;
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
+            }
+            break;
+            
+        case SILENT_PIC_MODE_SLITSCAN_SCAN_LTR:
+            if (sp_slitscan_line  >= raw_info.pitch)
+            {
+                sp_running = 0;
+            } else {
+                for (int i = 0; i < raw_info.height; i++) {
+                    // going down with i * pitch, then over to whatever line we're on
+                    int offset =  (i * raw_info.pitch) + sp_slitscan_line;
+                    // have to copy 7 bytes at a time, 4 x 14 bit pixels. memcpy only deals in whole bytes,
+                    // and if you cut the pixels apart bad things happen.
+                    memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), 7);
+                }
+                // move over the 7 bytes at a time.
+                sp_slitscan_line += 7;
+                sp_num_frames = 1;
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan Vertical: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
+            }
+            break;
+            
+        case SILENT_PIC_MODE_SLITSCAN_SCAN_RTL:
+            if (sp_slitscan_line  >= raw_info.pitch)
+            {
+                sp_running = 0;
+            } else {
+                for (int i = 0; i < raw_info.height; i++) {
+                    // going down with i * pitch, then back from the right of whatever line we're on
+                    int offset =  (i * raw_info.pitch) + (raw_info.pitch - sp_slitscan_line - 7);
+                    // have to copy 7 bytes at a time, 4 x 14 bit pixels. memcpy only deals in whole bytes.
+                    memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), 7);
+                }
+                // move over the 7 bytes at a time.
+                sp_slitscan_line += 7;
+                sp_num_frames = 1;
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan Vertical: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
+            }
+            break;
+        /* // not working yet! couldn't get the correct pixels out of the center of the frame.
+        case SILENT_PIC_MODE_SLITSCAN_CENTER_V:
+            if (sp_slitscan_line  >= raw_info.pitch)
+            {
+                sp_running = 0;
+            } else {
+                for (int i = 0; i < raw_info.height; i++) {
+                    // going down with i * pitch, then back from the right of whatever line we're on
+                    int offset =  (i * raw_info.pitch) + sp_slitscan_line;
+                    int middle = (i * raw_info.pitch) + (7 * 100);
+                    // have to copy 7 bytes at a time, 4 x 14 bit pixels. memcpy only deals in whole bytes.
+                    memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + middle), 7);
+                }
+                // move over the 7 bytes at a time.
+                sp_slitscan_line += 7;
+                sp_num_frames = 1;
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan Vertical: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
+            }
+            break; */
+            
+        case SILENT_PIC_MODE_SLITSCAN_CENTER_H:
+            if (sp_slitscan_line >= raw_info.height) /* done */
+            {
+                sp_running = 0;
+            } else {
+                int offset = raw_info.pitch * sp_slitscan_line;
+                int middle = raw_info.pitch * (raw_info.height / 2); // find the middle of the buffer
+                memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + middle), raw_info.pitch * 2);
+                sp_slitscan_line += 2; // have to copy two lines at a time, or we lose the green pixels
+                sp_num_frames = 1;
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
+            }
+            break;
+            
+        
+    }
     
-    if (sp_slitscan_line >= raw_info.height) /* done */
-    {
-        sp_running = 0;
-    }
-    else
-    {
-        int offset = raw_info.pitch * sp_slitscan_line;
-        memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
-        sp_slitscan_line++;
-        sp_num_frames = 1;
-        bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
-    }
 }
+
 
 /* called once per LiveView frame from LV state object */
 static unsigned int silent_pic_raw_vsync(unsigned int ctx)
@@ -594,6 +704,7 @@ static struct menu_entry silent_menu[] = {
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
+        .update = silent_pic_display,
         .max  = 1,
         .depends_on = DEP_LIVEVIEW,
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
@@ -601,7 +712,6 @@ static struct menu_entry silent_menu[] = {
         .help2 = "File format: 14-bit DNG.",
         
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
-        .update = silent_pic_display,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Silent Mode",
@@ -617,11 +727,27 @@ static struct menu_entry silent_menu[] = {
                 .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan"),
                 .icon_type = IT_DICE,
             },
+            {
+                .name = "Slitscan Mode",
+                .update = silent_pic_slitscan_display,
+                .priv = &silent_pic_slitscan_mode,
+                .max = 4,
+                .help = "Choose slitscan mode:",
+                .help2 =
+                    "Scan from top to bottom as picture is taken.\n"
+                    "Scan from bottom to top.\n"
+                    "Scan from left to right.\n"
+                    "Scan from right to left.\n"
+                    "Keep scan line in middle of frame, horizontally.\n",
+                .choices = CHOICES("Scan Top->Bottom", "Scan Bottom->Top", "Scan Left->Right", "Scan Right->Left", "Scan Horizontal"),
+                .icon_type = IT_DICE,
+            },
             MENU_EOL,
         },
         #endif
     },
 };
+
 
 static unsigned int silent_init()
 {
@@ -649,4 +775,5 @@ MODULE_CBRS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(silent_pic_enabled)
     MODULE_CONFIG(silent_pic_mode)
+    MODULE_CONFIG(silent_pic_slitscan_mode)
 MODULE_CONFIGS_END()
