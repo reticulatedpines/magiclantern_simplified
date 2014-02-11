@@ -67,6 +67,30 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #ifdef CONFIG_EDMAC_RAW_SLURP
 /* undefine so we don't use it by mistake */
 #undef RAW_LV_EDMAC
+
+/* hardcode Canon's raw buffer directly */
+/* you can find it from lv_raw_dump, arg1 passed to dump_file:
+ * 
+ * raw_buffer = get_raw_buffer()
+ * sprintf_maybe(filename, '%08lx.mm1', raw_buffer)
+ * ...
+ * dump_file(filename, raw_buffer, 7*something...)
+ */
+
+#ifdef CONFIG_60D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
+#endif
+
+#ifdef CONFIG_5D3
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)  /* 113 */
+//~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
+#endif
+
+#else
+
+/* with Canon lv_save_raw, just read it from EDMAC */
+#define DEFAULT_RAW_BUFFER shamem_read(RAW_LV_EDMAC)
+
 #endif
 
 /**
@@ -338,7 +362,6 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level(int initial_guess);
-static void raw_lv_refresh();
 
 /* returns 1 on success */
 static int raw_lv_get_resolution(int* width, int* height)
@@ -425,13 +448,7 @@ int raw_update_params()
             return 0;
         }
         
-        #ifdef CONFIG_EDMAC_RAW_SLURP
-        /* update resolution and reallocate buffer if needed */
-        raw_lv_refresh();
-        #else
-        /* grab the image buffer from EDMAC; first pixel should be red */
-        raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
-        #endif
+        raw_info.buffer = (void*) DEFAULT_RAW_BUFFER;
         
         if (!raw_info.buffer)
         {
@@ -1322,11 +1339,6 @@ static int compute_dynamic_range(int black_mean, int black_stdev_x100, int white
 static int lv_raw_enabled = 0;
 
 #ifdef CONFIG_EDMAC_RAW_SLURP
-/* we will allocate our own raw buffer */
-/* optimization: one might want to use Canon's too, but let's play safe for now */
-static void* default_raw_buffer_unaligned = 0;
-static int default_raw_buffer_size = 0;
-static void* default_raw_buffer = 0;
 static void* redirected_raw_buffer = 0;
 #endif
 
@@ -1343,7 +1355,7 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 void FAST raw_lv_vsync()
 {
     /* where should we save the raw data? */
-    void* buf = redirected_raw_buffer ? redirected_raw_buffer : default_raw_buffer;
+    void* buf = redirected_raw_buffer ? redirected_raw_buffer : (void*) DEFAULT_RAW_BUFFER;
     
     if (buf && lv_raw_enabled)
     {
@@ -1595,52 +1607,7 @@ void FAST raw_preview_fast()
 
 #ifdef CONFIG_RAW_LIVEVIEW
 
-#ifdef CONFIG_EDMAC_RAW_SLURP
-static void raw_lv_refresh()
-{
-    if (raw_lv_settings_still_valid())
-    {
-        dbg_printf("LV RAW still valid\n");
-        /* nothing to do */
-        return;
-    }
-    
-    dbg_printf("LV RAW refreshing\n");
-    /* stop any raw code that might be running */
-    lv_raw_enabled = 0;
-    wait_lv_frames(2);
-
-    if (!raw_lv_get_resolution(&raw_info.width, &raw_info.height))
-    {
-        dbg_printf("LV RAW resolution error\n");
-        return;
-    }
-    
-    raw_info.pitch  = raw_info.width * 14/8;
-    raw_info.frame_size = raw_info.height * raw_info.pitch;
-    int raw_buffer_size = raw_info.frame_size;
-
-    /* (re)allocate our raw buffer */
-    if (raw_buffer_size != default_raw_buffer_size)
-    {
-        if (default_raw_buffer_unaligned) free(default_raw_buffer_unaligned);
-        default_raw_buffer_unaligned = malloc(raw_buffer_size + 8192);
-        default_raw_buffer = raw_info.buffer = (void*)(((intptr_t)default_raw_buffer_unaligned + 4095) & ~4095);
-        if (!default_raw_buffer)
-        {
-            dbg_printf("LV RAW malloc error\n");
-            return;
-        }
-    }
-
-    /* Green light for our EDMAC code to pull the raw data directly */
-    lv_raw_enabled = 1;
-
-    /* recompute parameters */
-    wait_lv_frames(2);
-    raw_set_dirty();
-}
-#else
+#ifndef CONFIG_EDMAC_RAW_SLURP
     #ifdef PREFERRED_RAW_TYPE
     static int old_raw_type = -1;
     #endif
@@ -1648,10 +1615,9 @@ static void raw_lv_refresh()
 
 static void raw_lv_enable()
 {
-#ifdef CONFIG_EDMAC_RAW_SLURP
-    raw_lv_refresh();
-#else
     lv_raw_enabled = 1;
+
+#ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 1);
     
     #ifdef PREFERRED_RAW_TYPE
@@ -1666,17 +1632,7 @@ static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
     
-#ifdef CONFIG_EDMAC_RAW_SLURP
-    /* make sure the raw code stops before freeing the buffers */
-    wait_lv_frames(2);
-    
-    if (default_raw_buffer_unaligned)
-    {
-        free(default_raw_buffer_unaligned);
-        default_raw_buffer = default_raw_buffer_unaligned = 0;
-        default_raw_buffer_size = 0;
-    }
-#else
+#ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 0);
     
     #ifdef PREFERRED_RAW_TYPE
