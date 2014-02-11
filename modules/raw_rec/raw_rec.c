@@ -1016,8 +1016,8 @@ static void show_recording_status()
                 snprintf(msg, sizeof(msg), "%d.%01dMB/s", speed/10, speed%10);
                 if (idle_time)
                 {
-                    if (idle_percent) { STR_APPEND(msg, ", %2d%% idle  ", idle_percent); }
-                    else { STR_APPEND(msg,", %3dms idle  ", idle_time); }
+                    if (idle_percent) { STR_APPEND(msg, ", %d%% idle  ", idle_percent); }
+                    else { STR_APPEND(msg,", %dms idle  ", idle_time); }
                 }
                 bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
             }
