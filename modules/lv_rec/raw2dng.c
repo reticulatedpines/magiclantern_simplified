@@ -40,16 +40,10 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
-void find_and_fix_bad_pixels();
+void find_and_fix_bad_pixels(int fix_bad_pixels, int framenumber);
 void chroma_smooth();
 
-int fix_bad_pixels = 1; //1=fix badpixels, 0=disabled
-
-#define MAX_BADPIXELS 2000 /*max number of badpixels, which can be fixed*/
-struct xy { int x; int y; };
-struct xy badpixel_list[MAX_BADPIXELS];
-
-int cold_pixels = 0;
+int fix_bad_pixels = 1; //1=fix badpixels, 0=disable
 
 #define EV_RESOLUTION 32768
 
@@ -127,10 +121,10 @@ int main(int argc, char** argv)
     
     char* prefix = argc > 2 ? argv[2] : "";
 
-    int i;
-    for (i = 0; i < lv_rec_footer.frameCount; i++)
+    int framenumber;
+    for (framenumber = 0; framenumber < lv_rec_footer.frameCount; framenumber++)
     {
-        printf("\rProcessing frame %d of %d...", i+1, lv_rec_footer.frameCount);
+        printf("\rProcessing frame %d of %d...", framenumber+1, lv_rec_footer.frameCount);
         fflush(stdout);
         int r = fread(raw, 1, lv_rec_footer.frameSize, fi);
         CHECK(r == lv_rec_footer.frameSize, "fread");
@@ -140,14 +134,10 @@ int main(int argc, char** argv)
         //~ reverse_bytes_order(raw, lv_rec_footer.frameSize);
         
         char fn[100];
-        snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
+        snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, framenumber);
 	
         fix_vertical_stripes();
-	
-	if (fix_bad_pixels )/* best done before interpolation */
-	{
-	    find_and_fix_bad_pixels();
-	}
+	find_and_fix_bad_pixels(fix_bad_pixels, framenumber);
 
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
@@ -548,39 +538,52 @@ static inline int FC(int row, int col)
         return 1;  /* green */
     }
 }
-
-void locate_badpixel()
+	    
+void find_and_fix_bad_pixels(fix_bad_pixels, framenumber)
 {
+    int const max_badpixels = 2000; /*max.number of cold pixels, that can be repaired*/
+  
+    struct xy { int x; int y; };
+    struct xy badpixel_list[max_badpixels];
+    
+    static int cold_pixels = 0;
+    
     int w = raw_info.width;
     int h = raw_info.height;
+    int badpix_list;
     int x,y;
     
-    for (y = 6; y < h-6; y ++) /*analysing the pixels of the frame*/
+    if ( !fix_bad_pixels )
     {
-        for (x = 6; x < w-6; x ++)
-        {
-            int p = raw_get_pixel(x, y);
-	    int is_cold = (p == 0);
-	    
-	    if (is_cold && cold_pixels < MAX_BADPIXELS) /*generating a list containing the cold pixels*/
+	return;
+    }
+    
+    if ( framenumber == 0 ) /*only on the very first frame*/
+    {
+	cold_pixels = 0;
+	
+	for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
+	{
+	    for (x = 6; x < w-6; x ++)
 	    {
-		badpixel_list[cold_pixels].x = x;
-		badpixel_list[cold_pixels].y = y;
-		cold_pixels++;
+		int p = raw_get_pixel(x, y);
+		int is_cold = (p == 0);
+	    
+		if (is_cold && cold_pixels < max_badpixels) /*generate a list containing the cold pixels*/
+		{
+		    badpixel_list[cold_pixels].x = x;
+		    badpixel_list[cold_pixels].y = y;
+		    cold_pixels++; /*number of the detected cold pixels*/
+		}
 	    }
 	}
-    }
-    printf("\rCold pixels : %d                             \n", (cold_pixels));
-}
-
-void repair_badpixel()
-{
-    int badpix_list;
+	printf("\rCold pixels : %d                             \n", (cold_pixels));
+    }  
     
-    for (badpix_list = 0; badpix_list < cold_pixels; badpix_list++)
+    for (badpix_list = 0; badpix_list < cold_pixels; badpix_list++) /*repair the cold pixels*/
     {
-	int x = badpixel_list[badpix_list].x;
-	int y = badpixel_list[badpix_list].y;
+	x = badpixel_list[badpix_list].x;
+	y = badpixel_list[badpix_list].y;
       
 	int neighbours[100];
 	int i,j;
@@ -605,20 +608,9 @@ void repair_badpixel()
 		neighbours[k++] = -p;
 	    }
 	}
-	
 	raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
     }
-}
-	    
-void find_and_fix_bad_pixels()
-{
-    static int first_frame = 1;
-    if (first_frame) /*searching for cold pixels only in the very first frame*/
-    {
-        locate_badpixel();
-        first_frame = 0;
-    }
-    repair_badpixel(); /*repair the detected cold pixels in all frames*/
+    
 }
 
 #ifdef CHROMA_SMOOTH
