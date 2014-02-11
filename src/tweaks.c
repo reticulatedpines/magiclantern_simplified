@@ -1219,6 +1219,28 @@ int handle_swap_menu_erase(struct event * event)
 }
 #endif
 
+#ifdef FEATURE_SWAP_INFO_PLAY
+CONFIG_INT("swap.info", swap_info, 0);
+
+int handle_swap_info_play(struct event * event)
+{
+    if (swap_info && !IS_FAKE(event))
+    {
+        if (event->param == BGMT_INFO)
+        {
+            fake_simple_button(BGMT_PLAY);
+            return 0;
+        }
+        if (event->param == BGMT_PLAY)
+        {
+            fake_simple_button(BGMT_INFO);
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif
+
 #ifdef FEATURE_AUTO_MIRRORING_HACK
 extern unsigned display_dont_mirror;
 #endif
@@ -1971,7 +1993,7 @@ static struct menu_entry key_menus[] = {
     },
     #endif
 
-    #if defined(FEATURE_LCD_SENSOR_SHORTCUTS) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
+    #if defined(FEATURE_LCD_SENSOR_SHORTCUTS) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_SWAP_INFO_PLAY) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
     {
         .name       = "Misc key settings",
         .select = menu_open_submenu,
@@ -2009,6 +2031,14 @@ static struct menu_entry key_menus[] = {
                 .priv = &swap_menu,
                 .max  = 1,
                 .help = "Swaps MENU and ERASE buttons."
+            },
+            #endif
+            #ifdef FEATURE_SWAP_INFO_PLAY
+            {
+                .name = "Swap INFO <--> PLAY",
+                .priv = &swap_info,
+                .max  = 1,
+                .help = "Swaps INFO and PLAY buttons."
             },
             #endif
             #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT

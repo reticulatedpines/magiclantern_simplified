@@ -275,6 +275,7 @@
 
 #endif
     //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
+    //~ #define FEATURE_SWAP_INFO_PLAY // useful for 6D only
 
     #define FEATURE_WARNINGS_FOR_BAD_SETTINGS
 

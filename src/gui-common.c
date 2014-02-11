@@ -443,6 +443,10 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_swap_menu_erase(event) == 0) return 0;
     #endif
 
+    #ifdef FEATURE_SWAP_INFO_PLAY
+    if (handle_swap_info_play(event) == 0) return 0;
+    #endif
+
     if (handle_ml_menu_keys(event) == 0) return 0;
     
     #ifdef CONFIG_DIGIC_POKE
