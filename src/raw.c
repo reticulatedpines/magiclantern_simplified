@@ -482,17 +482,20 @@ int raw_update_params()
         #endif
 
         #ifdef CONFIG_500D
+        #warning FIXME: are these values correct for 1080p or 720p? (which of them?)
         skip_top    = 24;
         skip_left   = zoom ? 64 : 74;
         #endif
 
         #if defined(CONFIG_550D) || defined(CONFIG_600D)
+        #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 152;
         skip_right  = zoom ? 0 : 2;
         #endif
 
         #ifdef CONFIG_60D
+        #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 152;
         skip_right  = zoom ? 0 : 2;
@@ -506,6 +509,7 @@ int raw_update_params()
         #endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
+        #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
@@ -513,6 +517,7 @@ int raw_update_params()
         #endif
 
         #ifdef CONFIG_7D
+        #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 256;
         #endif
@@ -535,7 +540,7 @@ int raw_update_params()
         raw_info.buffer = (void*) raw_buffer_photo;
         
         #if defined(CONFIG_60D) || defined(CONFIG_500D)
-        raw_info.buffer = (uint32_t) shamem_read(RAW_PHOTO_EDMAC);
+        raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
         #endif
         
         if (!raw_info.buffer)
