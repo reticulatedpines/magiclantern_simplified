@@ -345,13 +345,28 @@ static int raw_lv_get_resolution(int* width, int* height)
 {
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
-    #ifdef CONFIG_5D3
-    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
+    /* params useful for hardcoding buffer sizes, according to video mode */
     int mv = is_movie_mode();
     int mv720 = mv && video_mode_resolution == 1;
+    int mv1080 = mv && video_mode_resolution == 0;
+    int mv640 = mv && video_mode_resolution == 2;
+    int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
+    int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
     int zoom = lv_dispsize > 1;
+
+    /* silence warnings; not all cameras have all these modes */
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+
+    #ifdef CONFIG_5D3
+    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
     *width  = zoom ? 3744 : mv720 ? 2080 : 2080;
     *height = zoom ? 1380 : mv720 ?  692 : 1318;    /* height must be exact! copy it from Debug->EDMAC */
+    return 1;
+    #endif
+
+    #ifdef CONFIG_60D
+    *width  = zoom ? 2520 : mv640crop ? 920 : mv720 || mv640 ? 1888 : 1888;
+    *height = zoom ? 1106 : mv640crop ? 624 : mv720 || mv640 ?  720 : 1182;
     return 1;
     #endif
     

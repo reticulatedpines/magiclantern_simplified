@@ -361,6 +361,10 @@ void find_free_edmac_channels()
 uint32_t raw_write_chan = 4;
 #endif
 
+#ifdef CONFIG_60D
+uint32_t raw_write_chan = 1;
+#endif
+
 static void edmac_slurp_complete_cbr (int ctx)
 {
     /* set default CBRs again and stop both DMAs */
