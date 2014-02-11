@@ -2662,6 +2662,7 @@ menu_display(
     int pos = get_menu_selected_pos(menu);
     int num_visible = get_menu_visible_count(menu);
     int target_height = 370;
+    if (is_menu_active("Help")) target_height -= 20;
     int natural_height = num_visible * font_large.height;
 
     /* if the menu items does not exceed max count by too much (e.g. 12 instead of 11),
