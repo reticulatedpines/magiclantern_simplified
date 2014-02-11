@@ -34,8 +34,38 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
+static volatile int vsync_counter = 0;
+
+/* waits for N LiveView frames */
+int wait_lv_frames(int num_frames)
+{
+    vsync_counter = 0;
+    int count = 0;
+    int frame_duration = 1000000 / fps_get_current_x1000();
+    while (vsync_counter < num_frames)
+    {
+        /* handle FPS override changes during the wait */
+        frame_duration = MAX(frame_duration, 1000000 / fps_get_current_x1000());
+        msleep(20);
+        count++;
+        if (count > num_frames * frame_duration * 2 / 20)
+        {
+            /* timeout */
+            return 0;
+        }
+        if (!lv)
+        {
+            /* LiveView closed */
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void FAST vsync_func() // called once per frame.. in theory :)
 {
+    vsync_counter++;
+
     #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
     #endif
