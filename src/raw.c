@@ -64,6 +64,11 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
 
+#ifdef CONFIG_EDMAC_RAW_SLURP
+/* undefine so we don't use it by mistake */
+#undef RAW_LV_EDMAC
+#endif
+
 /**
  * Photo-mode raw buffer address
  * On old cameras, it can be intercepted from SDSf3 state object, right after sdsMem1toRAWcompress.
@@ -333,10 +338,27 @@ static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
 static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level(int initial_guess);
+static void raw_lv_refresh();
 
 /* returns 1 on success */
 static int raw_lv_get_resolution(int* width, int* height)
 {
+#ifdef CONFIG_EDMAC_RAW_SLURP
+
+    #ifdef CONFIG_5D3
+    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
+    int mv = is_movie_mode();
+    int mv720 = mv && video_mode_resolution == 1;
+    int zoom = lv_dispsize > 1;
+    *width  = zoom ? 3744 : mv720 ? 2080 : 2080;
+    *height = zoom ? 1380 : mv720 ?  692 : 1318;    /* height must be exact! copy it from Debug->EDMAC */
+    return 1;
+    #endif
+    
+    /* unknown camera? */
+    return 0;
+
+#else
     /* autodetect raw size from EDMAC */
     uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
     uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
@@ -348,6 +370,7 @@ static int raw_lv_get_resolution(int* width, int* height)
     /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
     *height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
     return 1;
+#endif
 }
 
 int raw_update_params()
@@ -386,9 +409,14 @@ int raw_update_params()
             dbg_printf("LV raw disabled\n");
             return 0;
         }
-
+        
+        #ifdef CONFIG_EDMAC_RAW_SLURP
+        /* update resolution and reallocate buffer if needed */
+        raw_lv_refresh();
+        #else
         /* grab the image buffer from EDMAC; first pixel should be red */
         raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
+        #endif
         
         if (!raw_info.buffer)
         {
@@ -1273,10 +1301,50 @@ static int compute_dynamic_range(int black_mean, int black_stdev_x100, int white
 
 static int lv_raw_enabled = 0;
 
+#ifdef CONFIG_EDMAC_RAW_SLURP
+/* we will allocate our own raw buffer */
+/* optimization: one might want to use Canon's too, but let's play safe for now */
+static void* default_raw_buffer_unaligned = 0;
+static int default_raw_buffer_size = 0;
+static void* default_raw_buffer = 0;
+static void* redirected_raw_buffer = 0;
+#endif
+
 void FAST raw_lv_redirect_edmac(void* ptr)
 {
+    #ifdef CONFIG_EDMAC_RAW_SLURP
+    redirected_raw_buffer = (void*) CACHEABLE(ptr);
+    #else
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
+    #endif
 }
+
+#ifdef CONFIG_EDMAC_RAW_SLURP
+void FAST raw_lv_vsync()
+{
+    /* where should we save the raw data? */
+    void* buf = redirected_raw_buffer ? redirected_raw_buffer : default_raw_buffer;
+    
+    if (buf && lv_raw_enabled)
+    {
+        //~ bmp_printf(FONT_MED, 50, 50, "%x %dx%d  ", buf,  raw_info.pitch, raw_info.height);
+        /* pull the raw data into "buf" */
+        edmac_raw_slurp(CACHEABLE(buf), raw_info.pitch, raw_info.height);
+    }
+    else
+    {
+        //~ bmp_printf(FONT_MED, 50, 50, "%x %d...  ", buf,  lv_raw_enabled);
+    }
+    
+    /* overriding the buffer is only valid for one frame */
+    redirected_raw_buffer = 0;
+    
+    #ifdef PREFERRED_RAW_TYPE
+    /* this needs to be set for every single frame */
+    EngDrvOutLV(MEM(RAW_TYPE_ADDRESS-4), PREFERRED_RAW_TYPE);
+    #endif
+}
+#endif
 
 int raw_lv_settings_still_valid()
 {
@@ -1507,31 +1575,98 @@ void FAST raw_preview_fast()
 
 #ifdef CONFIG_RAW_LIVEVIEW
 
-#ifdef PREFERRED_RAW_TYPE
-static int old_raw_type = -1;
+#ifdef CONFIG_EDMAC_RAW_SLURP
+static void raw_lv_refresh()
+{
+    if (raw_lv_settings_still_valid())
+    {
+        dbg_printf("LV RAW still valid\n");
+        /* nothing to do */
+        return;
+    }
+    
+    dbg_printf("LV RAW refreshing\n");
+    /* stop any raw code that might be running */
+    lv_raw_enabled = 0;
+    wait_lv_frames(2);
+
+    if (!raw_lv_get_resolution(&raw_info.width, &raw_info.height))
+    {
+        dbg_printf("LV RAW resolution error\n");
+        return;
+    }
+    
+    raw_info.pitch  = raw_info.width * 14/8;
+    raw_info.frame_size = raw_info.height * raw_info.pitch;
+    int raw_buffer_size = raw_info.frame_size;
+
+    /* (re)allocate our raw buffer */
+    if (raw_buffer_size != default_raw_buffer_size)
+    {
+        if (default_raw_buffer_unaligned) free(default_raw_buffer_unaligned);
+        default_raw_buffer_unaligned = malloc(raw_buffer_size + 8192);
+        default_raw_buffer = raw_info.buffer = (void*)(((intptr_t)default_raw_buffer_unaligned + 4095) & ~4095);
+        if (!default_raw_buffer)
+        {
+            dbg_printf("LV RAW malloc error\n");
+            return;
+        }
+    }
+
+    /* Green light for our EDMAC code to pull the raw data directly */
+    lv_raw_enabled = 1;
+
+    /* recompute parameters */
+    wait_lv_frames(2);
+    raw_set_dirty();
+}
+#else
+    #ifdef PREFERRED_RAW_TYPE
+    static int old_raw_type = -1;
+    #endif
 #endif
+
 static void raw_lv_enable()
 {
+#ifdef CONFIG_EDMAC_RAW_SLURP
+    raw_lv_refresh();
+#else
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
     
-#ifdef PREFERRED_RAW_TYPE
+    #ifdef PREFERRED_RAW_TYPE
+    /* set new raw type; Canon's lv_save_raw will apply it */
     old_raw_type = MEM(RAW_TYPE_ADDRESS);
     MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
+    #endif
 #endif
 }
 
 static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
+    
+#ifdef CONFIG_EDMAC_RAW_SLURP
+    /* make sure the raw code stops before freeing the buffers */
+    wait_lv_frames(2);
+    
+    if (default_raw_buffer_unaligned)
+    {
+        free(default_raw_buffer_unaligned);
+        default_raw_buffer = default_raw_buffer_unaligned = 0;
+        default_raw_buffer_size = 0;
+    }
+#else
     call("lv_save_raw", 0);
     
-#ifdef PREFERRED_RAW_TYPE
+    #ifdef PREFERRED_RAW_TYPE
+    /* restore old raw type */
     if (old_raw_type != -1)
     {
         MEM(RAW_TYPE_ADDRESS) = old_raw_type;
         old_raw_type = -1;
     }
+    #endif
 #endif
 }
 

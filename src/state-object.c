@@ -69,6 +69,10 @@ static void FAST vsync_func() // called once per frame.. in theory :)
     #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
     #endif
+    
+    #ifdef CONFIG_EDMAC_RAW_SLURP
+    raw_lv_vsync();
+    #endif
 
     #if !defined(CONFIG_EVF_STATE_SYNC)
     // for those cameras, it's called from a different spot of the evf state object
