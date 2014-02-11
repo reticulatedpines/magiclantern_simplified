@@ -16,7 +16,7 @@ else
 endif
 
 # Supported camera models
-SUPPORTED_MODELS:=50D 60D 550D 600D 500D 5D2 5D3 7D 650D 700D EOSM 1100D
+SUPPORTED_MODELS:=50D 60D 550D 600D 500D 5D2 5D3 7D 650D 700D EOSM 1100D 6D
 
 # GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
@@ -43,8 +43,8 @@ LD_REAL=$(CROSS_COMPILE)ld
 STRIP=$(CROSS_COMPILE)strip
 
 # You can customize CFLAG here
-HOST_CFLAGS=-g -O3 -W -Wall
-#CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
+HOST_CFLAGS=-g -O3 -march=armv5te -mcpu=arm946e-s -W -Wall
+#CFLAG_USER = -DCONFIG_RELEASE_BUILD
 
 # Additional binaries
 HOST_CC=which gcc
