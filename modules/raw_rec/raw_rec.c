@@ -92,8 +92,8 @@ static int cam_60d = 0;
  * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728","1856","1920","2048","2240","2560","2880","3584")
+static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792, 1856,  1920,  2048,  2240,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
 
 static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -1013,11 +1013,11 @@ static void show_recording_status()
             if (writing_time)
             {
                 char msg[50];
-                snprintf(msg, sizeof(msg), "%02d.%01dMB/s", speed/10, speed%10);
+                snprintf(msg, sizeof(msg), "%d.%01dMB/s", speed/10, speed%10);
                 if (idle_time)
                 {
-                    if (idle_percent) { STR_APPEND(msg, ", %2d%%  idle", idle_percent); }
-                    else { STR_APPEND(msg,",%3dms idle", idle_time); }
+                    if (idle_percent) { STR_APPEND(msg, ", %d%% idle  ", idle_percent); }
+                    else { STR_APPEND(msg,", %dms idle  ", idle_time); }
                 }
                 bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
             }

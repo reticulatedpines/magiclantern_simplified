@@ -124,4 +124,9 @@ struct config_var* get_config_vars_end ();
 /* return the current settings directory (usually ML/SETTINGS, but not if you use a custom preset) */
 extern char* get_config_dir();
 
+void config_save();
+void config_save_at_shutdown();
+void config_load();
+
+
 #endif

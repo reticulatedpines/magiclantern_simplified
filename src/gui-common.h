@@ -206,4 +206,11 @@ int handle_common_events_startup(struct event * event);
 int handle_common_events_by_feature(struct event * event);
 int handle_other_events(struct event * event);
 
+/**
+ * @brief lock specified things of the user interface
+ * @param what one of UILOCK_NONE, UILOCK_EVERYTHING, UILOCK_POWER_SW, etc etc. see property.h
+ */
+void gui_uilock(int what);
+
+
 #endif

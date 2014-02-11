@@ -43,7 +43,7 @@ static void card_test(int type)
     {
         /* save the config with workaround enabled now, because if the test fails, we may no longer able to save it */
         cf_card_workaround = 1;
-        save_config(0,0);
+        config_save();
         cf_card_workaround = 0;
     }
 

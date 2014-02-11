@@ -1139,7 +1139,7 @@ tweak_task( void* unused)
         upside_down_step();
         #endif
 
-        #if defined(FEATURE_LV_SATURATION) || defined(FEATURE_LV_BRIGHTNESS_CONTRAST)
+        #if defined(FEATURE_LV_SATURATION) || defined(FEATURE_LV_BRIGHTNESS_CONTRAST) || defined(FEATURE_DIGIC_FOCUS_PEAKING) || defined(FEATURE_LV_CRAZY_COLORS)
         preview_contrast_n_saturation_step();
         #endif
         
@@ -1183,10 +1183,9 @@ static int play_dirty = 0;
 PROP_HANDLER(PROP_GUI_STATE)
 {
     int gui_state = buf[0];
-    extern int hdr_enabled;
 
     if (gui_state == GUISTATE_QR && image_review_time == 0xff && quick_review_allow_zoom==1
-        && !is_intervalometer_running() && !hdr_enabled && NOT_RECORDING)
+        && !is_intervalometer_running() && !is_hdr_bracketing_enabled() && NOT_RECORDING)
     {
         fake_simple_button(BGMT_PLAY);
     }
@@ -1777,11 +1776,12 @@ int handle_zoom_trick_event(struct event * event)
 static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
+static CONFIG_INT("warn.wb", warn_wb, 0);
 
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
 {
-    static char msg[200];
+    static char msg[222];
     msg[0] = '\0';
     if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not M%s", separator); }
     if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Av%s", separator); }
@@ -1789,6 +1789,7 @@ static char* get_warn_msg(char* separator)
     if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not P%s", separator); }
     if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
+    if (warn_code & 8) { STR_APPEND(msg, "WB isn't set to auto%s", separator); } 
     return msg;
 }
 
@@ -1851,11 +1852,15 @@ static void warn_step()
     }
 
     int raw = pic_quality & 0x60000;
-    if (warn_picq && !raw)
+    int rawsize = pic_quality & 0xF;
+    if (warn_picq && (!raw || rawsize))
         warn_code |= 2;
     
     if (warn_alo && get_alo() != ALO_OFF)
         warn_code |= 4;
+
+    if (warn_wb && lens_info.wb_mode)
+        warn_code |= 8;
     
     warn_action(warn_code);
 }
@@ -2052,6 +2057,13 @@ static struct menu_entry tweak_menus[] = {
                 .choices = (const char *[]) {"OFF", "other than OFF"},
                 .help = "Warn if you enable ALO by mistake.",
             },
+            {
+                .name = "WB warning",
+                .priv = &warn_wb,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than AWB"},
+                .help = "Warn if you disable AWB by mistake.",
+            },
             MENU_EOL,
         },
     },
@@ -2242,6 +2254,18 @@ static void preview_contrast_n_saturation_step()
 #else
     if (!lv) return;
 #endif
+
+#ifdef FEATURE_DIGIC_FOCUS_PEAKING
+    static int peaking_hs_last_press = 0;
+    int halfshutter_pressed = get_halfshutter_pressed();
+    if (halfshutter_pressed)
+    {
+        peaking_hs_last_press = get_ms_clock_value();
+    }
+    int preview_peaking_force_normal_image =
+        halfshutter_pressed ||                                  /* show normal image on half-hutter press */
+        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
+#endif
     
 #ifdef FEATURE_LV_SATURATION
 
@@ -2261,18 +2285,8 @@ static void preview_contrast_n_saturation_step()
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
-
-    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
-    static int peaking_hs_last_press = 0;
-    int halfshutter_pressed = get_halfshutter_pressed();
-    if (halfshutter_pressed)
-    {
-        peaking_hs_last_press = get_ms_clock_value();
-    }
-    int preview_peaking_force_normal_image =
-        halfshutter_pressed ||                                  /* show normal image on half-hutter press */
-        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
     
+    #ifdef FEATURE_DIGIC_FOCUS_PEAKING
     if (preview_peaking == 2 && !preview_peaking_force_normal_image)
         desired_saturation = 0;
     else if (preview_peaking == 3 && !preview_peaking_force_normal_image)
@@ -2374,7 +2388,7 @@ static void preview_contrast_n_saturation_step()
     int filter_register = 0xC0F14140; /* EnableFilter */
     static int filter_dirty = 0;
     
-    int current_filter_value = (int) shamem_read(crazy_register);
+    int current_filter_value = (int) shamem_read(filter_register);
     int desired_filter_value = 
         gui_menu_shown() && !menu_active_but_hidden() ? 0 :
         preview_peaking == 1 || (preview_peaking > 1 && preview_peaking_force_normal_image) ? 0x4d4 :
@@ -2746,6 +2760,7 @@ static void FAST anamorphic_squeeze()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+    if (!src_buf || !dst_buf) return;
     src_buf = CACHEABLE(src_buf);
     dst_buf = CACHEABLE(dst_buf);
     
@@ -2843,6 +2858,7 @@ static void defish_draw_lv_color()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+    if (!src_buf || !dst_buf) return;
     if (DEFISH_HD) src_buf = (void*)(get_yuv422_hd_vram()->vram);
     
     // small speedup (26fps with cacheable vs 20 without)
@@ -3003,6 +3019,11 @@ void defish_draw_play()
 #endif
 
 #ifdef CONFIG_DISPLAY_FILTERS
+
+static void* display_filter_buffer_unaligned = 0;
+static void* display_filter_buffer = 0;
+static int display_filter_valid_image = 0;
+
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 {
     //~ struct vram_info * vram = get_yuv422_vram();
@@ -3030,8 +3051,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
         buff = prev;
     prev = current;
     *src_buf = buff;
-
-    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
+    *dst_buf = CACHEABLE(display_filter_buffer);
 #else // just use some reasonable defaults that won't crash the camera
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
@@ -3062,8 +3082,6 @@ int display_filter_enabled()
     return fp ? 2 : 1;
 }
 
-static int display_filter_valid_image = 0;
-
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 static int display_broken = 0;
 int display_broken_for_mz() 
@@ -3071,7 +3089,6 @@ int display_broken_for_mz()
     return display_broken;
 }
 #endif
-
 
 int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
@@ -3115,10 +3132,10 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     }
 #elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) // all new cameras should work with this method
 
+    if (!display_filter_buffer) return CBR_RET_CONTINUE;
     if (!display_filter_valid_image) return CBR_RET_CONTINUE;
     if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
-
-    YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
+    YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) display_filter_buffer;
 #endif
     return CBR_RET_STOP;
 }
@@ -3126,7 +3143,28 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 void display_filter_step(int k)
 {
     
-    if (!display_filter_enabled()) return;
+    if (!display_filter_enabled())
+    {
+        #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+        /* for new cameras: if there are no more display filters active, free the output buffer */
+        if (display_filter_buffer)
+        {
+            free(display_filter_buffer_unaligned);
+            display_filter_buffer = 0;
+        }
+        #endif
+        return;
+    }
+    
+    #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    if (!display_filter_buffer)
+    {
+        /* for new cameras: when you enable a display filter, allocate the output buffer */
+        /* some routines (e.g. defishing) use 64-bit operations, so allocate a bit more and align the buffer */
+        display_filter_buffer_unaligned = malloc(720*480*2 + 32);
+        display_filter_buffer = ALIGN64SUP(display_filter_buffer_unaligned);
+    }
+    #endif
     
     msleep(20);
     
@@ -3189,8 +3227,12 @@ static struct menu_entry display_menus[] = {
                 .name = "LV DIGIC peaking",
                 .priv = &preview_peaking,
                 .min = 0,
+                #ifdef FEATURE_LV_SATURATION
                 .max = 3,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
                 .edit_mode = EM_MANY_VALUES_LV,
+                #else
+                .max = 1,   /* the other options require saturation controls available */
+                #endif
                 .choices = (const char *[]) {"OFF", "Slightly sharper", "Edge image", "Edge + chroma"},
                 .help  = "Focus peaking via DIGIC. No CPU usage!",
                 .depends_on = DEP_LIVEVIEW,

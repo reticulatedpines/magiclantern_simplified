@@ -574,16 +574,6 @@ void vram_clear_lv()
     memset(lv_vram->vram, 0, lv_vram->height * lv_vram->pitch);
 }
 
-int vram_redirect_lv_buffer(void* new_address)
-{
-    #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-    YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t)new_address;
-    return 1;
-    #else
-    return 0;
-    #endif
-}
-
 // those properties may signal a screen layout change
 
 PROP_HANDLER(PROP_HDMI_CHANGE)

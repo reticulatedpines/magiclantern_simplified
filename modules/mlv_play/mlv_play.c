@@ -546,8 +546,9 @@ static uint32_t mlv_play_osd_draw()
         
         case MLV_PLAY_MENU_FADEIN:
         {
-            mlv_play_osd_y -= border;
-            if(mlv_play_osd_y <= (int32_t)(os.y_max - font_large.height - y_offset))
+            int y_top = os.y_max - font_large.height - y_offset;
+            mlv_play_osd_y = MAX(mlv_play_osd_y - border, y_top);
+            if(mlv_play_osd_y <= y_top)
             {
                 mlv_play_osd_state = MLV_PLAY_MENU_SHOWN;
             }
@@ -557,8 +558,9 @@ static uint32_t mlv_play_osd_draw()
         
         case MLV_PLAY_MENU_FADEOUT:
         {
-            mlv_play_osd_y += border;
-            if(mlv_play_osd_y >= (int32_t)(os.y_max + border))
+            int y_bottom = os.y_max + 1;
+            mlv_play_osd_y = MIN(mlv_play_osd_y + border, y_bottom);
+            if(mlv_play_osd_y >= y_bottom)
             {
                 mlv_play_osd_state = MLV_PLAY_MENU_HIDDEN;
             }

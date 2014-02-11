@@ -101,12 +101,12 @@ int menu_help_active = 0; // also used in menuhelp.c
 int menu_redraw_blocked = 0; // also used in flexinfo
 static int menu_redraw_cancel = 0;
 
-static int submenu_mode = 0;
+static int submenu_level = 0;
 static int edit_mode = 0;
 static int customize_mode = 0;
 static int advanced_mode = 0;       /* cached value; only for submenus for now */
 
-#define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
+#define SUBMENU_OR_EDIT (submenu_level || edit_mode)
 
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
 //~ static CONFIG_INT("menu.set", set_action, 2);
@@ -651,7 +651,9 @@ static int guess_submenu_enabled(struct menu_entry * entry)
         for( ; e ; e = e->next )
         {
             if (MENU_INT(e) && can_be_turned_off(e))
+            {
                 return 1;
+            }
         }
 
         return 0;
@@ -684,8 +686,6 @@ static void entry_draw_icon(
     int         warn
 )
 {
-    entry_guess_icon_type(entry);
-    
     switch (entry->icon_type)
     {
         case IT_BOOL:
@@ -1101,6 +1101,7 @@ menu_add_base(
         new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
+        entry_guess_icon_type(new_entry);
         new_entry++;
         count--;
     }
@@ -1118,6 +1119,7 @@ menu_add_base(
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
+        entry_guess_icon_type(new_entry);
         if (update_placeholders) menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
@@ -2025,7 +2027,6 @@ entry_default_display_info(
     info->icon = 0;
     info->icon_arg = 0;
 
-    entry_guess_icon_type(entry);
     info->enabled = entry_guess_enabled(entry);
     info->warning_level = check_default_warnings(entry, warning);
     
@@ -2127,7 +2128,7 @@ entry_print(
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
         fnt = MENU_FONT_GRAY;
     
-    if (submenu_mode && !in_submenu)
+    if (submenu_level && !in_submenu)
         fnt = MENU_FONT_GRAY;
     
     int use_small_font = 0;
@@ -2136,7 +2137,7 @@ entry_print(
     
     int not_at_home = 
             !entry->parent_menu->selected &&     /* is it in some dynamic menu? (not in its original place) */
-            !submenu_mode &&                     /* hack: submenus are not marked as "selected", so we can't have dynamic submenus for now */
+            !submenu_level &&                     /* hack: submenus are not marked as "selected", so we can't have dynamic submenus for now */
             1;
     
     /* do not show right-side info in dynamic menus (looks a little tidier) */
@@ -2408,7 +2409,7 @@ static void
 menu_post_display()
 {
     char* cfg_preset = get_config_preset_name();
-    if (cfg_preset && !submenu_mode)
+    if (cfg_preset && !submenu_level)
     {
         bmp_printf(
             SHADOW_FONT(FONT(FONT_MED, COLOR_GRAY(40), COLOR_BLACK)) | FONT_ALIGN_RIGHT,
@@ -2661,6 +2662,7 @@ menu_display(
     int pos = get_menu_selected_pos(menu);
     int num_visible = get_menu_visible_count(menu);
     int target_height = 370;
+    if (is_menu_active("Help")) target_height -= 20;
     int natural_height = num_visible * font_large.height;
 
     /* if the menu items does not exceed max count by too much (e.g. 12 instead of 11),
@@ -2672,8 +2674,8 @@ menu_display(
         num_visible = MENU_LEN;
         natural_height = num_visible * font_large.height;
         /* leave some space for the scroll indicators */
-        target_height -= submenu_mode ? 16 : 12;
-        y += submenu_mode ? 4 : 2;
+        target_height -= submenu_level ? 16 : 12;
+        y += submenu_level ? 4 : 2;
     }
     else /* we can fit everything */
     {
@@ -3215,11 +3217,11 @@ show_vscroll(struct menu * parent){
     
     if(max > menu_len + 1){
         int y_lo = 44;
-        int h = submenu_mode ? 378 : 385;
+        int h = submenu_level ? 378 : 385;
         int size = (h - y_lo) * menu_len / max;
         int y = y_lo + ((h - size) * (pos-1) / (max-1));
         int x = MIN(360 + g_submenu_width/2, 720-3);
-        if (submenu_mode) x -= 6;
+        if (submenu_level) x -= 6;
         
         bmp_fill(COLOR_BLACK, x-2, y_lo, 6, h);
         bmp_fill(MENU_BAR_COLOR, x, y, 3, size);
@@ -3242,7 +3244,7 @@ menus_display(
         mod_menu_rebuild();
 
     struct menu * submenu = 0;
-    if (submenu_mode)
+    if (submenu_level)
         submenu = get_current_submenu();
     
     advanced_mode = submenu ? submenu->advanced : 1;
@@ -3574,14 +3576,16 @@ menu_entry_select(
     if( !entry )
     {
         /* empty submenu? go back */
-        menu_lv_transparent_mode = edit_mode = submenu_mode = 0;
+        menu_lv_transparent_mode = edit_mode = 0;
+        submenu_level = MAX(submenu_level - 1, 0);
         return;
     }
     
     // don't perform actions on empty items (can happen on empty submenus)
     if (!is_visible(entry))
     {
-        submenu_mode = edit_mode = 0;
+        edit_mode = 0;
+        submenu_level = MAX(submenu_level - 1, 0);
         menu_lv_transparent_mode = 0;
         return;
     }
@@ -3597,12 +3601,16 @@ menu_entry_select(
         bool promotable_to_pickbox = HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children);
 
         if (menu_lv_transparent_mode) { menu_lv_transparent_mode = 0; }
-        else if (edit_mode) { edit_mode = submenu_mode = 0; }
+        else if (edit_mode)
+        {
+            edit_mode = 0;
+            submenu_level = MAX(submenu_level - 1, 0);
+        }
         else if ( entry->select_Q ) entry->select_Q( entry->priv, 1); // caution: entry may now be a dangling pointer
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
-        if (submenu_mode && promotable_to_pickbox)
+        if (submenu_level && promotable_to_pickbox)
             edit_mode = 1;
     }
     else if (mode == 3) // SET
@@ -3622,7 +3630,11 @@ menu_entry_select(
         }
         else */
         {
-            if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
+            if (submenu_level && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry))
+            {
+                edit_mode = 0;
+                submenu_level = MAX(submenu_level - 1, 0);
+            }
             else if (edit_mode) edit_mode = 0;
             else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
             else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
@@ -3772,7 +3784,7 @@ menu_entry_move(
 static void menu_make_sure_selection_is_valid()
 {
     struct menu * menu = get_selected_menu();
-    if (submenu_mode)
+    if (submenu_level)
     {
         struct menu * main_menu = menu;
         menu = get_current_submenu();
@@ -3782,7 +3794,7 @@ static void menu_make_sure_selection_is_valid()
     // current menu has any valid items in current mode?
     if (!menu_has_visible_items(menu))
     {
-        if (submenu_mode) return; // empty submenu
+        if (submenu_level) return; // empty submenu
         menu_move(menu, -1); menu = get_selected_menu();
         menu_move(menu, 1); menu = get_selected_menu();
     }
@@ -4030,7 +4042,7 @@ menu_redraw_task()
     }
 }
 
-TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x2000 );
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x8000 );
 
 void
 menu_redraw()
@@ -4080,12 +4092,21 @@ static struct menu * get_current_submenu()
 {
     struct menu_entry * entry = get_selected_entry(0);
     if (!entry) return 0;
-
-    if (entry->children)
+    
+    for(int level = submenu_level; level > 1; level--)
+    {
+        for(entry = entry->children ; entry ; entry = entry->next )
+        {
+            if( entry->selected )
+                break;
+        }
+        if(!entry) break;
+    }
+    if (entry && entry->children)
         return menu_find_by_name(entry->name, 0);
 
     // no submenu, fall back to edit mode
-    submenu_mode = 0;
+    submenu_level--;
     edit_mode = 1;
     return 0;
 }
@@ -4181,7 +4202,7 @@ handle_ml_menu_keys(struct event * event)
     struct menu * menu = get_selected_menu();
 
     struct menu * main_menu = menu;
-    if (submenu_mode)
+    if (submenu_level)
     {
         main_menu = menu;
         menu = get_current_submenu();
@@ -4201,7 +4222,7 @@ handle_ml_menu_keys(struct event * event)
     {
         if (SUBMENU_OR_EDIT || menu_lv_transparent_mode || menu_help_active)
         {
-            submenu_mode = 0;
+            submenu_level = 0;
             edit_mode = 0;
             menu_lv_transparent_mode = 0;
             menu_help_active = 0;
@@ -4389,7 +4410,7 @@ handle_ml_menu_keys(struct event * event)
     
     // if submenu mode was changed, force a full redraw
     static int prev_menu_mode = 0;
-    int menu_mode = submenu_mode | edit_mode*2 | menu_lv_transparent_mode*4 | customize_mode*8 | junkie_mode*16;
+    int menu_mode = submenu_level | edit_mode*2 | menu_lv_transparent_mode*4 | customize_mode*8 | junkie_mode*16;
     if (menu_mode != prev_menu_mode) menu_needs_full_redraw = 1;
     prev_menu_mode = menu_mode;
     
@@ -4586,7 +4607,7 @@ static void menu_open()
 #endif
     
     menu_lv_transparent_mode = 0;
-    submenu_mode = 0;
+    submenu_level = 0;
     edit_mode = 0;
     customize_mode = 0;
     menu_help_active = 0;
@@ -4682,7 +4703,7 @@ menu_task( void* unused )
                 extern int config_autosave;
                 if (config_autosave && (config_dirty || menu_flags_save_dirty) && NOT_RECORDING && !ml_shutdown_requested)
                 {
-                    save_config(0);
+                    config_save();
                     config_dirty = 0;
                     menu_flags_save_dirty = 0;
                 }
@@ -4975,22 +4996,27 @@ static void menu_stop()
 
 void menu_open_submenu(struct menu_entry * entry)
 {
-    submenu_mode = 1;
+    submenu_level++;
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
 
 void menu_close_submenu()
 {
-    submenu_mode = 0;
+    submenu_level = MAX(submenu_level - 1, 0); //make sure we don't go negative
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
 
 void menu_toggle_submenu()
 {
-    if (!edit_mode || submenu_mode)
-        submenu_mode = !submenu_mode;
+    if (!edit_mode || submenu_level)
+    {
+        if(submenu_level == 0)
+            submenu_level++;
+        else
+            submenu_level--;
+    }
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
@@ -5500,7 +5526,7 @@ MENU_SELECT_FUNC(menu_advanced_toggle)
 {
     struct menu * menu = get_selected_menu();
     struct menu * main_menu = menu;
-    if (submenu_mode)
+    if (submenu_level)
     {
         main_menu = menu;
         menu = get_current_submenu();
