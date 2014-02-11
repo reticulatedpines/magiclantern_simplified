@@ -334,6 +334,22 @@ static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level(int initial_guess);
 
+/* returns 1 on success */
+static int raw_lv_get_resolution(int* width, int* height)
+{
+    /* autodetect raw size from EDMAC */
+    uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
+    uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
+    if (!lv_raw_size) return 0;
+
+    int pitch = lv_raw_size & 0xFFFF;
+    *width = pitch * 8 / 14;
+    
+    /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
+    *height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
+    return 1;
+}
+
 int raw_update_params()
 {
     //~ static int k = 0;
@@ -365,27 +381,26 @@ int raw_update_params()
     if (lv)
     {
 #ifdef CONFIG_RAW_LIVEVIEW
+        if (!raw_lv_is_enabled())
+        {
+            dbg_printf("LV raw disabled\n");
+            return 0;
+        }
+
         /* grab the image buffer from EDMAC; first pixel should be red */
         raw_info.buffer = (void*) shamem_read(RAW_LV_EDMAC);
+        
         if (!raw_info.buffer)
         {
             dbg_printf("LV raw buffer null\n");
             return 0;
         }
-
-        /* autodetect raw size from EDMAC */
-        uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
-        uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
-        if (!lv_raw_size)
+        
+        if (!raw_lv_get_resolution(&width, &height))
         {
-            dbg_printf("LV RAW size null\n");
+            dbg_printf("LV RAW size error\n");
             return 0;
         }
-        int pitch = lv_raw_size & 0xFFFF;
-        width = pitch * 8 / 14;
-        
-        /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
-        height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
         
         /* the raw edmac might be used by something else, and wrong numbers may be still there */
         /* e.g. 5D2: 1244x1, obviously wrong */
@@ -1255,6 +1270,9 @@ static int compute_dynamic_range(int black_mean, int black_stdev_x100, int white
 }
 
 #ifdef CONFIG_RAW_LIVEVIEW
+
+static int lv_raw_enabled = 0;
+
 void FAST raw_lv_redirect_edmac(void* ptr)
 {
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
@@ -1263,8 +1281,10 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 int raw_lv_settings_still_valid()
 {
     /* should be fast enough for vsync calls */
-    int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
-    if (edmac_pitch != raw_info.pitch) return 0;
+    if (!lv_raw_enabled) return 0;
+    int w, h;
+    if (!raw_lv_get_resolution(&w, &h)) return 0;
+    if (w != raw_info.width || h != raw_info.height) return 0;
     return 1;
 }
 #endif
@@ -1486,7 +1506,7 @@ void FAST raw_preview_fast()
 }
 
 #ifdef CONFIG_RAW_LIVEVIEW
-static int lv_raw_enabled = 0;
+
 #ifdef PREFERRED_RAW_TYPE
 static int old_raw_type = -1;
 #endif
