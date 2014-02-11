@@ -31,7 +31,7 @@ static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 {
     if (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN)
-    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Slitscan is not enabled");
+    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This option is only for slit-scan pictures.");
 }
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
@@ -57,7 +57,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
 
         case SILENT_PIC_MODE_SLITSCAN:
-            MENU_SET_VALUE("Slitscan");
+            MENU_SET_VALUE("Slit-Scan");
             break;
     }
 }
@@ -284,7 +284,7 @@ static int silent_pic_raw_choose_next_slot()
     return next_slot;
 }
 
-static void silent_pic_raw_slitscan_vsync()
+static void FAST silent_pic_raw_slitscan_vsync()
 {
     void* buf = sp_frames[0];
     /*
@@ -302,7 +302,9 @@ static void silent_pic_raw_slitscan_vsync()
             if (sp_slitscan_line >= raw_info.height) /* done */
             {
                 sp_running = 0;
-            } else {
+            }
+            else
+            {
                 int offset = raw_info.pitch * sp_slitscan_line;
                 memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
                 sp_slitscan_line++;
@@ -315,7 +317,9 @@ static void silent_pic_raw_slitscan_vsync()
             if (sp_slitscan_line >= raw_info.height) /* done */
             {
                 sp_running = 0;
-            } else {
+            }
+            else
+            {
                 int offset = raw_info.pitch * (raw_info.height - sp_slitscan_line); // should start offset and bottom of frame
                 memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
                 sp_slitscan_line++;
@@ -328,8 +332,11 @@ static void silent_pic_raw_slitscan_vsync()
             if (sp_slitscan_line  >= raw_info.pitch)
             {
                 sp_running = 0;
-            } else {
-                for (int i = 0; i < raw_info.height; i++) {
+            }
+            else
+            {
+                for (int i = 0; i < raw_info.height; i++)
+                {
                     // going down with i * pitch, then over to whatever line we're on
                     int offset =  (i * raw_info.pitch) + sp_slitscan_line;
                     // have to copy 7 bytes at a time, 4 x 14 bit pixels. memcpy only deals in whole bytes,
@@ -339,7 +346,7 @@ static void silent_pic_raw_slitscan_vsync()
                 // move over the 7 bytes at a time.
                 sp_slitscan_line += 7;
                 sp_num_frames = 1;
-                bmp_printf(FONT_MED, 0, 60, "Slit-scan Vertical: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
             }
             break;
             
@@ -347,8 +354,11 @@ static void silent_pic_raw_slitscan_vsync()
             if (sp_slitscan_line  >= raw_info.pitch)
             {
                 sp_running = 0;
-            } else {
-                for (int i = 0; i < raw_info.height; i++) {
+            }
+            else 
+            {
+                for (int i = 0; i < raw_info.height; i++)
+                {
                     // going down with i * pitch, then back from the right of whatever line we're on
                     int offset =  (i * raw_info.pitch) + (raw_info.pitch - sp_slitscan_line - 7);
                     // have to copy 7 bytes at a time, 4 x 14 bit pixels. memcpy only deals in whole bytes.
@@ -357,7 +367,7 @@ static void silent_pic_raw_slitscan_vsync()
                 // move over the 7 bytes at a time.
                 sp_slitscan_line += 7;
                 sp_num_frames = 1;
-                bmp_printf(FONT_MED, 0, 60, "Slit-scan Vertical: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
+                bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.pitch);
             }
             break;
         /* // not working yet! couldn't get the correct pixels out of the center of the frame.
@@ -384,11 +394,13 @@ static void silent_pic_raw_slitscan_vsync()
             if (sp_slitscan_line >= raw_info.height) /* done */
             {
                 sp_running = 0;
-            } else {
-                int offset = raw_info.pitch * sp_slitscan_line;
-                int middle = raw_info.pitch * (raw_info.height / 2); // find the middle of the buffer
+            }
+            else 
+            {
+                int offset = raw_info.pitch * (sp_slitscan_line & ~1);
+                int middle = raw_info.pitch * ((raw_info.height / 2) & ~1); // find the middle of the buffer, keep the parity
                 memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + middle), raw_info.pitch * 2);
-                sp_slitscan_line += 2; // have to copy two lines at a time, or we lose the green pixels
+                sp_slitscan_line += 2; // have to copy two lines at a time, or we lose the red or blue pixels
                 sp_num_frames = 1;
                 bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
             }
@@ -710,8 +722,8 @@ static struct menu_entry silent_menu[] = {
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
         .help2 = "File format: 14-bit DNG.",
-        
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
+        .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Silent Mode",
@@ -728,7 +740,7 @@ static struct menu_entry silent_menu[] = {
                 .icon_type = IT_DICE,
             },
             {
-                .name = "Slitscan Mode",
+                .name = "Slit-Scan Mode",
                 .update = silent_pic_slitscan_display,
                 .priv = &silent_pic_slitscan_mode,
                 .max = 4,
@@ -739,7 +751,7 @@ static struct menu_entry silent_menu[] = {
                     "Scan from left to right.\n"
                     "Scan from right to left.\n"
                     "Keep scan line in middle of frame, horizontally.\n",
-                .choices = CHOICES("Scan Top->Bottom", "Scan Bottom->Top", "Scan Left->Right", "Scan Right->Left", "Scan Horizontal"),
+                .choices = CHOICES("Top->Bottom", "Bottom->Top", "Left->Right", "Right->Left", "Horizontal"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
