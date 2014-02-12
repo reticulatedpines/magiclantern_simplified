@@ -513,7 +513,7 @@ bmp_load(
         size
     );
 
-    uint8_t * buf = alloc_dma_memory( size );
+    uint8_t * buf = fio_malloc( size );
     if( !buf )
     {
         DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
@@ -566,7 +566,7 @@ bmp_load(
         memcpy(fast_buf, buf, size);
         bmp = (struct bmp_file_t *) fast_buf;
         bmp->image = fast_buf + image_offset;
-        free_dma_memory( buf );
+        fio_free( buf );
         return bmp;
     } else if (compression==1 && bmp->compression==0) { // convert the loaded image into RLE8
         uint32_t size_needed = sizeof(struct bmp_file_t);
@@ -610,7 +610,7 @@ bmp_load(
          bmp->compression = 1;
         bmp->image = fast_buf + sizeof(struct bmp_file_t);
         bmp->image_size = size_needed;
-        free_dma_memory( buf );
+        fio_free( buf );
         //~ bmp_printf(FONT_SMALL,0,440,"Memory needed %d",size_needed);
         return bmp;
     }
@@ -619,7 +619,7 @@ fail_buf_copy:
 offsetsize_fail:
 signature_fail:
 read_fail:
-    free_dma_memory( buf );
+    fio_free( buf );
 malloc_fail:
 getfilesize_fail:
     DebugMsg( DM_MAGIC, 3, "bmp_load failed");
@@ -640,7 +640,7 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
 
     DEBUG("File '%s' size %d bytes", filename, size);
 
-    uint8_t * buf = alloc_dma_memory( size + 1);
+    uint8_t * buf = fio_malloc( size + 1);
     if( !buf )
     {
         DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
@@ -658,7 +658,7 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
 
 //~ fail_buf_copy:
 read_fail:
-    free_dma_memory( buf );
+    fio_free( buf );
 malloc_fail:
 getfilesize_fail:
     DEBUG("failed");
