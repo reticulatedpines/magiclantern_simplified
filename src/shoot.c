@@ -316,6 +316,13 @@ int should_run_polling_action(int period_ms, int* last_updated_time)
 
 static void do_this_every_second() // called every second
 {
+    if (reset_pre_shutdown_flag_step())
+    {
+        /* some things from here (especially tskmon stuff) lock up the camera (5D2, maybe others too?) */
+        /* figure out why; to me, it looks like a timing issue in tskmon_stack_checker (a short bmp_printf is fine, a longer one locks up) */
+        return;
+    }
+
     #ifdef FEATURE_INTERVALOMETER
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
@@ -324,8 +331,6 @@ static void do_this_every_second() // called every second
     #ifdef CONFIG_BATTERY_INFO
     RefreshBatteryLevel_1Hz();
     #endif
-    
-    reset_pre_shutdown_flag_step();
     
     #ifdef FEATURE_SHOW_CPU_USAGE
     task_update_loads();
