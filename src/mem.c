@@ -69,7 +69,7 @@ int GetFreeMemForAllocateMemory()
     return b;
 }
 
-int GetMaxRegionForAllocateMemory()
+static int GetMaxRegionForAllocateMemory()
 {
     int a;
     int err = GetSizeOfMaxRegion(&a);
@@ -77,7 +77,7 @@ int GetMaxRegionForAllocateMemory()
     return a;
 }
 
-int GetFreeMemForMalloc()
+static int GetFreeMemForMalloc()
 {
     return MALLOC_FREE_MEMORY;
 }
