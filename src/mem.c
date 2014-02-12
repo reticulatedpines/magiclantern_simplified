@@ -546,9 +546,17 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                     int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
                     //~ console_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
                     if (
-                            !require_preferred_free_space ||
-                            (free_space - size - 1024 > allocators[a].preferred_free_space)
-                        )
+                            (
+                                /* preferred free space is... well... optional */
+                                !require_preferred_free_space ||
+                                (free_space - size - 1024 > allocators[a].preferred_free_space)
+                            )
+                            &&
+                            (
+                                /* minimum_free_space is mandatory */
+                                free_space - size - 1024 > allocators[a].minimum_free_space
+                            )    
+                       )
                     {
                         /* do we have a large enough contiguous chunk? */
                         int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() : free_space / 4;
