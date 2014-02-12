@@ -1,7 +1,7 @@
 #Makefile for 6D
 
 ML_BITRATE_OBJ = bitrate-6d.o
-ML_AF_PATTERNS_OBJ = n
+ML_AF_PATTERNS_OBJ = y
 
 ML_SRC_EXTRA_OBJS = \
 	misc.o \
