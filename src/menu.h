@@ -222,6 +222,8 @@ struct menu_entry
 #define UNIT_PERCENT_x10 4
 #define UNIT_ISO 5
 #define UNIT_HEX 6
+#define UNIT_DEC 7
+#define UNIT_TIME 8
 
 #define DEPENDS_ON(foo) (entry->depends_on & (foo))
 #define WORKS_BEST_IN(foo) (entry->works_best_in & (foo))

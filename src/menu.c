@@ -105,6 +105,7 @@ static int submenu_level = 0;
 static int edit_mode = 0;
 static int customize_mode = 0;
 static int advanced_mode = 0;       /* cached value; only for submenus for now */
+static int caret_position = 0;
 
 #define SUBMENU_OR_EDIT (submenu_level || edit_mode)
 
@@ -556,6 +557,45 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
     }
     
     *val = v;
+}
+
+int powi(int base, int power)
+{
+    int result = 1;
+    while (power)
+    {
+        if (power & 1)
+            result *= base;
+        power >>= 1;
+        base *= base;
+    }
+    return result;
+}
+
+int log2i(int x)
+{
+    int result = 0;
+    while (x >>= 1) result++;
+    return result;
+}
+
+static int get_delta(struct menu_entry * entry, int sign)
+{
+    if(!edit_mode)
+        return sign;
+    else if(entry->unit == UNIT_DEC)
+        return sign * powi(10, caret_position);
+    else if(entry->unit == UNIT_HEX)
+        return sign * powi(16, caret_position);
+    else if(entry->unit == UNIT_TIME)
+    {
+        if(caret_position == 2) return sign * 10;
+        else if(caret_position == 4) return sign * 60;
+        else if(caret_position == 5) return sign * 600;
+        else if(caret_position == 7) return sign * 3600;
+        else if(caret_position == 8) return sign * 36000;
+    }
+    return sign;
 }
 
 void menu_numeric_toggle(int* val, int delta, int min, int max)
@@ -2081,8 +2121,41 @@ entry_default_display_info(
                 }
                 case UNIT_HEX:
                 {
-                    STR_APPEND(value, "0x%x", MEM(entry->priv));
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "0x%s%x", (zero_pad + COERCE(8-(caret_position - log2i(MEM(entry->priv))/4),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        STR_APPEND(value, "0x%x", MEM(entry->priv));
+                    }
                     break;
+                }
+                case UNIT_TIME:
+                {
+                    if(MEM(entry->priv) / 3600 > 0 || (entry->selected && caret_position > 5))
+                    {
+                        STR_APPEND(value,"%dh%02dm%02ds", MEM(entry->priv) / 3600, MEM(entry->priv) / 60 % 60, MEM(entry->priv) % 60);
+                    }
+                    else if((entry->selected && caret_position > 4))
+                    {
+                        STR_APPEND(value,"%02dm%02ds", MEM(entry->priv) / 60, MEM(entry->priv) % 60);
+                    }
+                    else if(MEM(entry->priv) / 60 > 0 || (entry->selected && caret_position > 2))
+                    {
+                        STR_APPEND(value,"%dm%02ds", MEM(entry->priv) / 60, MEM(entry->priv) % 60);
+                    }
+                    else if((entry->selected && caret_position > 1))
+                    {
+                        STR_APPEND(value,"%02ds", MEM(entry->priv) % 60);
+                    }
+                    else
+                    {
+                        STR_APPEND(value,"%ds", MEM(entry->priv));
+                    }
+                    break;
+                    
                 }
                 default:
                 {
@@ -2228,7 +2301,8 @@ skip_name:
         w += 2 * char_width;
     
     // value string too big? move it to the left
-    int end = w + bmp_string_width(fnt, info->value);
+    int val_width = bmp_string_width(fnt, info->value);
+    int end = w + val_width;
     int wmax = x_end - x;
 
     // right-justified info field?
@@ -2246,6 +2320,15 @@ skip_name:
         w -= (end - wmax);
     
     int xval = x + w;
+    
+    if(edit_mode &&
+       entry->selected &&
+       (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME) &&
+       caret_position >= (int)strlen(info->value))
+    {
+        bmp_fill(COLOR_WHITE, xval, y + fontspec_font(fnt)->height - 4, char_width, 2);
+        xval += char_width * (caret_position - strlen(info->value) + 1);
+    }
 
     // print value field
     bmp_printf(
@@ -2254,6 +2337,17 @@ skip_name:
         "%s",
         info->value
     );
+    
+    if(edit_mode &&
+       entry->selected &&
+       (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME) &&
+       caret_position < (int)strlen(info->value) &&
+       strlen(info->value) > 0)
+    {
+        int w1 = bmp_string_width(fnt, (info->value + strlen(info->value) - caret_position));
+        int w2 = bmp_string_width(fnt, (info->value + strlen(info->value) - caret_position - 1));
+        bmp_fill(COLOR_WHITE, xval + val_width - w2, y + fontspec_font(fnt)->height - 4, w2 - w1, 2);
+    }
 
     // print right-justified info, if any
     if (info->rinfo[0])
@@ -3593,7 +3687,7 @@ menu_entry_select(
     if(mode == 1) // decrement
     {
         if (entry->select) entry->select( entry->priv, -1);
-        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
+        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
         else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
     }
     else if (mode == 2) // Q
@@ -3648,7 +3742,7 @@ menu_entry_select(
     else // increment
     {
         if( entry->select ) entry->select( entry->priv, 1);
-        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
         else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
     }
     
@@ -3740,6 +3834,9 @@ menu_entry_move(
         give_semaphore( menu_sem );
         return;
     }
+    
+    //reset caret_position
+    caret_position = 0;
     
     // Deslect the current one
     entry->selected = 0;
@@ -4268,6 +4365,15 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_UP:
+        if (edit_mode && !menu_lv_transparent_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            {
+                menu_entry_select( menu, 0 );
+                break;
+            }
+        }
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
 
@@ -4282,6 +4388,15 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_DOWN:
+        if (edit_mode && !menu_lv_transparent_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            {
+                menu_entry_select( menu, 1 );
+                break;
+            }
+        }
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         
@@ -4296,6 +4411,17 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_RIGHT:
+        if(edit_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            {
+                caret_position = MAX(entry->unit == UNIT_TIME ? 1 : 0, caret_position - 1);
+                if(entry->unit == UNIT_TIME && (caret_position == 3 || caret_position == 6)) caret_position --;
+                menu_damage = 1;
+                break;
+            }
+        }
     case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
@@ -4305,6 +4431,23 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_LEFT:
+        if(edit_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            {
+                caret_position++;
+                if(entry->unit == UNIT_HEX && powi(16,caret_position) > MAX(abs(entry->max),abs(entry->min)))
+                    caret_position = 0;
+                else if(entry->unit == UNIT_DEC && powi(10,caret_position) > MAX(abs(entry->max),abs(entry->min)))
+                    caret_position = 0;
+                else if(entry->unit == UNIT_TIME && caret_position > 6)
+                    caret_position = 0;
+                if(entry->unit == UNIT_TIME && (caret_position == 0 || caret_position == 3 || caret_position == 6)) caret_position ++;
+                menu_damage = 1;
+                break;
+            }
+        }
     case BGMT_WHEEL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
