@@ -44,12 +44,10 @@ extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 
 static struct semaphore * beep_sem = 0;
-static struct semaphore * config_save_sem = 0;
 
 static void debug_init_func()
 {
     beep_sem = create_named_semaphore("beep_sem",1);
-    config_save_sem = create_named_semaphore("config_save_sem",1);
 }
 INIT_FUNC("debug", debug_init_func);
 
@@ -62,7 +60,6 @@ void display_off();
 void EngDrvOut(int reg, int value);
 unsigned GetFileSize(char* filename);
 
-void ui_lock(int what);
 
 void fake_halfshutter_step();
 
@@ -172,436 +169,6 @@ void info_led_blink(int times, int delay_on, int delay_off)
 }
 
 
-static int config_ok = 0;
-static int config_deleted = 0;
-
-// this can be called from more tasks (gui, prop handler, menu), so it needs to be thread safe
-void
-save_config( void * priv, int delta )
-{
-#ifdef CONFIG_CONFIG_FILE
-    take_semaphore(config_save_sem, 0);
-    update_disp_mode_bits_from_params();
-    char config_file[0x80];
-    snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
-    config_save_file(config_file);
-    config_menu_save_flags();
-    module_save_configs();
-    if (config_deleted) config_autosave = 1; /* this can be improved, because it's not doing a proper "undo" */
-    config_deleted = 0;
-    give_semaphore(config_save_sem);
-#endif
-}
-
-#ifdef CONFIG_CONFIG_FILE
-#ifdef CONFIG_PICOC
-static char last_preset_file[50] = "";
-static int preset_just_saved = 0;
-static int preset_scripts_dirty = 0;
-
-static char*
-find_picoc_config_filename()
-{
-    for (int i = 0; i < 10; i++)
-    {
-        snprintf(last_preset_file, sizeof(last_preset_file), CARD_DRIVE"ML/SCRIPTS/PRESET%d.C", i);
-
-        if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
-            return last_preset_file;
-    }
-    return 0;
-}
-
-// if the user tries to save more presets at a time,
-// he will fill the script directory with identical files
-// so.. let's calm him down :)
-static int preset_user_angry = 0;
-
-static void
-save_config_as_picoc(void* priv, int delta)
-{
-    if (preset_just_saved)
-    {
-        preset_user_angry = 1;
-        return;
-    }
-
-    char* fn = find_picoc_config_filename();
-    if (fn)
-    {
-        menu_save_current_config_as_picoc_preset(fn);
-        preset_just_saved = 1;
-        preset_scripts_dirty = 1;
-    }
-}
-
-static MENU_UPDATE_FUNC(save_config_as_picoc_update)
-{
-    static int last_displayed = 0;
-    int t = get_ms_clock_value_fast();
-
-    if (preset_just_saved == 2 && t - last_displayed > 2000) // if this menu was not displayed for a while, we can save a new preset
-    {
-        preset_just_saved = 0;
-        preset_user_angry = 0;
-    }
-
-    if (preset_scripts_dirty)
-    {
-        MENU_SET_RINFO("Restart");
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Restart camera so the new preset appears in Scripts menu.");
-    }
-
-    if (preset_just_saved)
-    {
-        MENU_SET_NAME(last_preset_file + strlen(CARD_DRIVE"ML/SCRIPTS/"));
-        if (preset_user_angry)
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Change some settings before saving a new preset.");
-        last_displayed = t;
-        preset_just_saved = 2;
-    }
-}
-
-#endif // picoc
-
-static MENU_UPDATE_FUNC(delete_config_update)
-{
-    if (config_deleted)
-    {
-        MENU_SET_RINFO("Restart");
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera to complete the process.");
-    }
-
-    MENU_SET_HELP("Only the current preset: %s", get_config_dir());
-}
-static MENU_UPDATE_FUNC(save_config_update)
-{
-    if (config_deleted)
-    {
-        MENU_SET_RINFO("Undo");
-    }
-    
-    MENU_SET_HELP("%s", get_config_dir());
-}
-
-static void
-delete_config( void * priv, int delta )
-{
-    char* path = get_config_dir();
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do
-    {
-        if (file.mode & ATTR_DIRECTORY)
-        {
-            continue; // is a directory
-        }
-        
-        char fn[0x80];
-        snprintf(fn, sizeof(fn), "%s%s", path, file.name);
-        FIO_RemoveFile(fn);
-    }
-    while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_FindClose(dirent);
-
-    config_deleted = 1;
-    
-    if (config_autosave)
-    {
-        /* at shutdown, config autosave may re-create the config files we just deleted */
-        /* => disable this feature in RAM only, until next reboot, without commiting it to card */
-        config_autosave = 0;
-    }
-}
-
-/* config presets */
-
-static const char* config_preset_file = 
-    CARD_DRIVE"ML/SETTINGS/CURRENT.SET";    /* contains the name of current preset */
-static int config_preset_index = 0;         /* preset being used right now */
-static int config_new_preset_index = 0;     /* preset that will be used after restart */
-static int config_preset_num = 3;           /* total presets available */
-static char* config_preset_choices[16] = {  /* preset names (reusable as menu choices) */
-    "OFF",
-    "Startup mode",
-    "Startup key",
-    "Preset 1   ",
-    "Preset 2   ",
-    "Preset 3   ",
-    "Preset 4   ",
-    "Preset 5   ",
-    "Preset 6   ",
-    "Preset 7   ",
-    "Preset 8   ",
-    "Preset 9   ",
-    "Preset 10  ",
-    "Preset 11  ",
-    "Preset 12  ",
-    "Preset 13  ", /* space needed: 8.3 */
-};
-
-static char config_dir[0x80];
-static char* config_preset_name;
-
-char* get_config_dir()
-{
-    return config_dir;
-}
-
-/* null if no preset */
-char* get_config_preset_name()
-{
-    return config_preset_name;
-}
-
-static struct menu_entry cfg_menus[];
-
-static void config_preset_scan()
-{
-    char* path = CARD_DRIVE "ML/SETTINGS/";
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
-    if(!IS_ERROR(dirent))
-    {
-        do
-        {
-            if (file.mode & ATTR_DIRECTORY)
-            {
-                if (file.name[0] == '.')
-                    continue;
-                
-                /* special names for keys pressed at startup */
-                if (streq(file.name + strlen(file.name)-4, ".KEY"))
-                    continue;
-
-                /* special names for mode-based config presets */
-                if (streq(file.name + strlen(file.name)-4, ".MOD"))
-                    continue;
-                
-                /* we have reserved statically 12 chars for each preset */
-                snprintf(
-                    config_preset_choices[config_preset_num], 12,
-                    "%s", file.name
-                );
-                config_preset_num++;
-                if (config_preset_num >= COUNT(config_preset_choices))
-                    break;
-            }
-        }
-        while( FIO_FindNextEx( dirent, &file ) == 0);
-        FIO_FindClose(dirent);
-    }
-    
-    /* update the Config Presets menu */
-    cfg_menus[0].children[0].max = config_preset_num - 1;
-}
-
-static MENU_SELECT_FUNC(config_preset_toggle)
-{
-    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num);
-    
-    if (!config_new_preset_index)
-    {
-        FIO_RemoveFile(config_preset_file);
-    }
-    else
-    {
-        FILE* f = FIO_CreateFileEx(config_preset_file);
-        if (config_new_preset_index == 1)
-            my_fprintf(f, "Startup mode");
-        else if (config_new_preset_index == 2)
-            my_fprintf(f, "Startup key");
-        else
-            my_fprintf(f, "%s", config_preset_choices[config_new_preset_index]);
-        FIO_CloseFile(f);
-    }
-}
-
-static int config_selected = 0;
-static char config_selected_by_key[9] = "";
-static char config_selected_by_mode[9] = "";
-static char config_selected_by_name[9] = "";
-
-static MENU_UPDATE_FUNC(config_preset_update)
-{
-    int preset_changed = (config_new_preset_index != config_preset_index);
-    char* current_preset_name = get_config_preset_name();
-    MENU_SET_RINFO(current_preset_name);
-
-    if (config_new_preset_index == 1) /* startup shooting mode */
-    {
-        char current_mode_name[9];
-        snprintf(current_mode_name, sizeof(current_mode_name), "%s", (char*) get_shootmode_name(shooting_mode_custom));
-        if (streq(config_selected_by_mode, current_mode_name))
-        {
-            MENU_SET_HELP("Config preset is selected by startup mode (on the mode dial).");
-        }
-        else
-        {
-            MENU_SET_RINFO("%s->%s", current_preset_name, current_mode_name);
-            if (config_selected_by_mode[0])
-            {
-                MENU_SET_HELP("Camera was started in %s; restart to load the config for %s.", config_selected_by_mode, current_mode_name);
-            }
-            else
-            {
-                MENU_SET_HELP("Restart to load the config for %s mode.", current_mode_name);
-            }
-        }
-    }
-    else if (config_new_preset_index == 2) /* startup key */
-    {
-        MENU_SET_HELP("At startup, press&hold MENU/PLAY/"INFO_BTN_NAME" to select the cfg preset.");
-    }
-    else /* named preset */
-    {
-        if (preset_changed)
-        {
-            MENU_SET_HELP("The new config preset will be used after you restart your camera.");
-            MENU_SET_RINFO("Restart");
-        }
-    }
-}
-
-int handle_select_config_file_by_key_at_startup(struct event * event)
-{
-    if (!config_selected)
-    {
-        char* key_name = 0;
-        switch (event->param)
-        {
-            case BGMT_MENU:
-                key_name = "MENU";
-                break;
-            case BGMT_INFO:
-                key_name = INFO_BTN_NAME;
-                break;
-            case BGMT_PLAY:
-                key_name = "PLAY";
-                break;
-        }
-        if (key_name)
-        {
-            /* we are not able to check the filesystem at this point */
-            snprintf(config_selected_by_key, sizeof(config_selected_by_key), "%s", key_name);
-            return 0;
-        }
-    }
-    
-    return 1;
-}
-
-static char* config_choose_startup_preset()
-{
-    int size = 0;
-
-    /* by default, work in ML/SETTINGS dir */
-    snprintf(config_dir, sizeof(config_dir), CARD_DRIVE "ML/SETTINGS/");
-
-    /* check for a preset file selected in menu */
-    char* preset_name = (char*) read_entire_file(config_preset_file, &size);
-    if (preset_name)
-    {
-        if (streq(preset_name, "Startup mode"))
-        {
-            /* will handle later */
-            config_preset_index = config_new_preset_index = 1;
-        }
-        else if (streq(preset_name, "Startup key"))
-        {
-            /* will handle later */
-            config_preset_index = config_new_preset_index = 2;
-        }
-        else
-        {
-            snprintf(config_selected_by_name, sizeof(config_selected_by_name), preset_name);
-            char preset_dir[0x80];
-            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s", preset_name);
-            if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
-            if (is_dir(preset_dir))
-            {
-                snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
-            }
-        }
-        free_dma_memory(preset_name);
-    }
-
-    /* scan the preset files and populate the menu */
-    config_preset_scan();
-
-    /* special cases: key pressed at startup, or startup mode */
-
-    /* key pressed at startup */
-    if (config_preset_index == 2)
-    {
-        if (config_selected_by_key[0])
-        {
-            char preset_dir[0x80];
-            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.KEY", config_selected_by_key);
-            if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
-            if (is_dir(preset_dir))
-            {
-                /* success */
-                snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
-                return config_selected_by_key;
-            }
-        }
-        /* didn't work */
-        return 0;
-    }
-    else config_selected_by_key[0] = 0;
-
-    /* startup shooting mode (if selected in menu) */
-    if (config_preset_index == 1)
-    {
-        snprintf(config_selected_by_mode, sizeof(config_selected_by_mode), "%s", get_shootmode_name(shooting_mode_custom));
-        char preset_dir[0x80];
-        snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.MOD", config_selected_by_mode);
-        if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
-        if (is_dir(preset_dir))
-        {
-            /* success */
-            snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
-            return config_selected_by_mode;
-        }
-        /* didn't work */
-        return 0;
-    }
-
-    /* lookup the current preset in menu */
-    for (int i = 0; i < config_preset_num; i++)
-    {
-        if (streq(config_preset_choices[i], config_selected_by_name))
-        {
-            config_preset_index = config_new_preset_index = i;
-            return config_selected_by_name;
-        }
-    }
-
-    /* using default config */
-    return 0;
-}
-
-/* called at startup, after init_func's */
-void config_load()
-{
-    config_selected = 1;
-    config_preset_name = config_choose_startup_preset();
-
-    if (config_preset_name)
-    {
-        NotifyBox(2000, "Config: %s", config_preset_name);
-        if (!DISPLAY_IS_ON) beep();
-    }
-    
-    char config_file[0x80];
-    snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
-    config_parse_file(config_file);
-}
-#endif
 
 #if CONFIG_DEBUGMSG
 
@@ -661,223 +228,6 @@ static void dump_logs(void* priv)
     task_create("dump_logs_task", 0x1e, 0, dump_logs_task, 0);
 }
 
-#ifdef CONFIG_ISO_TESTS
-
-void find_response_curve(char* fname)
-{
-    FILE* f = FIO_CreateFileEx(fname);
-
-    ensure_movie_mode();
-    clrscr();
-    set_lv_zoom(5);
-
-    msleep(1000);
-
-    for (int i = 0; i < 64*2; i+=8)
-        bmp_draw_rect(COLOR_BLACK,  i*5+40, 0, 8*5, 380);
-
-    draw_line( 40,  190,  720-40,  190, COLOR_BLACK);
-
-    extern int bv_auto;
-    //int bva0 = bv_auto;
-    bv_auto = 0; // make sure it won't interfere
-
-    bv_enable(); // for enabling fine 1/8 EV increments
-
-    int ma = (lens_info.raw_aperture_min + 7) & ~7;
-    for (int i = 0; i < 64*2; i++)
-    {
-        int a = (i/2) & ~7;                                // change aperture in full-stop increments
-        lens_set_rawaperture(ma + a);
-        lens_set_rawshutter(96 + i - a);                   // shutter can be changed in finer increments
-        msleep(400);
-        int Y,U,V;
-        get_spot_yuv(180, &Y, &U, &V);
-        dot( i*5 + 40 - 16,  380 - Y*380/255 - 16, COLOR_BLUE, 3); // dot has an offset of 16px
-        my_fprintf(f, "%d %d %d %d\n", i, Y, U, V);
-    }
-    FIO_CloseFile(f);
-    beep();
-    //~ call("dispcheck");
-    lens_set_rawaperture(ma);
-    lens_set_rawshutter(96);
-}
-
-void find_response_curve_ex(char* fname, int iso, int dgain, int htp)
-{
-    bmp_printf(FONT_MED, 0, 100, "ISO %d\nDGain %d\n%s", iso, dgain, htp ? "HTP" : "");
-    set_htp(htp);
-    msleep(100);
-    lens_set_iso(iso);
-    set_display_gain_equiv(dgain);
-
-    find_response_curve(fname);
-
-    set_display_gain_equiv(0);
-    set_htp(0);
-}
-
-static void iso_response_curve_current()
-{
-    msleep(2000);
-
-    static char name[100];
-    extern int digic_iso_gain;
-
-    snprintf(name, sizeof(name), CARD_DRIVE "ML/LOGS/i%d%s%s.txt",
-        raw2iso(lens_info.iso_equiv_raw),
-        digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "",
-        get_htp() ? "h" : "");
-
-    find_response_curve(name);
-}
-
-void iso_response_curve_160()
-{
-    msleep(2000);
-
-    // ISO 100x/160x/80x series
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso80e.txt",     100,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso160e.txt",    200,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso320e.txt",    400,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso640e.txt",    800,   790   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1250e.txt",   1600,  790   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2500e.txt",   3200,  790   , 0);
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso160.txt",    160,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso320.txt",    320,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso640.txt",    640,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1250.txt",   1250,    0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2500.txt",   2500,    0   , 0);
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso100.txt",    100,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200.txt",    200,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400.txt",    400,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800.txt",    800,     0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1600.txt",   1600,    0   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso3200.txt",   3200,    0   , 0);
-}
-
-void iso_response_curve_logain()
-{
-    msleep(2000);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso70e.txt",      100,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso140e.txt",     200,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso280e.txt",     400,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso560e.txt",     800,   724   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1100e.txt",    1600,  724   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2200e.txt",    3200,  724   , 0);
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso65e.txt",     100,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso130e.txt",    200,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso260e.txt",    400,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso520e.txt",    800,   664   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1000e.txt",   1600,  664   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso2000e.txt",   3200,  664   , 0);
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso50e.txt",     100,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso100e.txt",    200,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200e.txt",    400,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400e.txt",    800,   512   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800e.txt",    1600,  512   , 0);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1600e.txt",   3200,  512   , 0);
-}
-
-void iso_response_curve_htp()
-{
-    msleep(2000);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200h.txt",      200,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400h.txt",      400,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800h.txt",      800,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso1600h.txt",    1600,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso3200h.txt",    3200,   0   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso6400h.txt",    6400,   0   , 1);
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso140eh.txt",      200,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso280eh.txt",      400,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso560eh.txt",      800,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/is1100eh.txt",     1600,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/is2200eh.txt",     3200,   724   , 1);
-    find_response_curve_ex(CARD_DRIVE "MLis4500eh.txt",     6400,   724   , 1);
-
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso100eh.txt",      200,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso200eh.txt",      400,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso400eh.txt",      800,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/iso800eh.txt",     1600,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/is1600eh.txt",     3200,   512   , 1);
-    find_response_curve_ex(CARD_DRIVE "ML/LOGS/is3200eh.txt",     6400,   512   , 1);
-}
-
-void iso_movie_change_setting(int iso, int dgain, int shutter)
-{
-    lens_set_rawiso(iso);
-    lens_set_rawshutter(shutter);
-    set_display_gain_equiv(dgain);
-    msleep(2000);
-    silent_pic_take_test();
-}
-
-void iso_movie_test()
-{
-    msleep(2000);
-    ensure_movie_mode();
-
-    int r = lens_info.iso_equiv_raw ? lens_info.iso_equiv_raw : lens_info.raw_iso_auto;
-    int raw_iso0 = (r + 3) & ~7; // consider full-stop iso
-    int tv0 = lens_info.raw_shutter;
-    //int av0 = lens_info.raw_aperture;
-    bv_enable(); // this enables shutter speed adjust in finer increments
-
-    extern int bv_auto;
-    int bva0 = bv_auto;
-    bv_auto = 0; // make sure it won't interfere
-
-    set_htp(0); msleep(100);
-    movie_start();
-
-    iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO
-    iso_movie_change_setting(raw_iso0-3, 0, tv0-3); // "native" iso, overexpose by 3/8 EV
-
-    iso_movie_change_setting(raw_iso0, 790, tv0-3); // ML 160x equiv iso, overexpose by 3/8 EV
-    iso_movie_change_setting(raw_iso0, 724, tv0-4); // ML 140x equiv iso, overexpose by 4/8 EV
-    iso_movie_change_setting(raw_iso0, 664, tv0-5); // ML 130x equiv iso, overexpose by 5/8 EV
-
-    iso_movie_change_setting(raw_iso0-3, 790, tv0-6); // 100x ISO, -3/8 Canon gain, -3/8 ML gain, overexpose by 6/8 EV
-    iso_movie_change_setting(raw_iso0-3, 724, tv0-7); // 100x ISO, -3/8 Canon gain, -4/8 ML gain, overexpose by 7/8 EV
-    iso_movie_change_setting(raw_iso0-3, 664, tv0-7); // 100x ISO, -3/8 Canon gain, -5/8 ML gain, overexpose by 8/8 EV
-
-    msleep(1000);
-    movie_end();
-    msleep(2000);
-
-    set_htp(1);  // this can't be set while recording
-
-    movie_start();
-
-    iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO with HTP
-    iso_movie_change_setting(raw_iso0-3, 0, tv0-3); // "native" ISO with HTP, overexpose by 3/8 EV
-    iso_movie_change_setting(raw_iso0, 790, tv0-3); // ML 160x equiv iso with HTP, overexpose by 3/8 EV
-    iso_movie_change_setting(raw_iso0, 724, tv0-4); // ML 140x equiv iso with HTP, overexpose by 4/8 EV
-    iso_movie_change_setting(raw_iso0, 664, tv0-5); // ML 130x equiv iso with HTP, overexpose by 5/8 EV
-    iso_movie_change_setting(raw_iso0, 512, tv0-8); // ML 100x equiv iso with HTP, overexpose by 8/8 EV
-
-    iso_movie_change_setting(raw_iso0+8,   0, tv0);     // fullstop ISO + 1EV, with HTP
-    iso_movie_change_setting(raw_iso0-3+8, 0, tv0-3); // "native" ISO + 1EV, with HTP, overexpose by 3/8 EV
-    iso_movie_change_setting(raw_iso0+8, 790, tv0-3); // ML 160x equiv iso +1EV, with HTP, overexpose by 3/8 EV
-    iso_movie_change_setting(raw_iso0+8, 724, tv0-4); // ML 140x equiv iso +1EV, with HTP, overexpose by 4/8 EV
-    iso_movie_change_setting(raw_iso0+8, 664, tv0-5); // ML 130x equiv iso +1EV, with HTP, overexpose by 5/8 EV
-    iso_movie_change_setting(raw_iso0+8, 512, tv0-8); // ML 100x equiv iso +1EV, with HTP, overexpose by 8/8 EV
-
-    movie_end();
-
-    // restore settings back
-    iso_movie_change_setting(raw_iso0, 0, tv0);
-    bv_auto = bva0;
-}
-#endif // CONFIG_ISO_TESTS
-
-
 #ifdef FEATURE_GUIMODE_TEST
 // beware, might be dangerous, some gui modes will give errors
 void guimode_test()
@@ -931,7 +281,7 @@ static void bsod()
     } while (CURRENT_DIALOG_MAYBE != 1);
 
     canon_gui_disable_front_buffer();
-    ui_lock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
     int fnt = SHADOW_FONT(FONT_MED);
     int h = font_med.height;
@@ -1602,6 +952,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
 
         // mallocs
+        // bypass the memory backend and use low-level calls only for these tests
         // run this test 200 times to check for memory leaks
         for (int i = 0; i < 200; i++)
         {
@@ -1609,19 +960,19 @@ static void stub_test_task(void* arg)
             int m0, m1, m2;
             void* p;
             TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-            TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = _malloc(50*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
-            TEST_TRY_VOID(free(p));
+            TEST_TRY_VOID(_free(p));
             TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
             TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = _AllocateMemory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
-            TEST_TRY_VOID(FreeMemory(p));
+            TEST_TRY_VOID(-_FreeMemory(p));
             TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
             TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
@@ -1630,14 +981,14 @@ static void stub_test_task(void* arg)
             int m01, m02, m11, m12;
             TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = _alloc_dma_memory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
-            TEST_TRY_VOID(free_dma_memory(p));
-            TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != 0);
+            TEST_TRY_VOID(_free_dma_memory(p));
+            TEST_TRY_FUNC_CHECK(p = (void*)_shoot_malloc(24*1024*1024), != 0);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-            TEST_TRY_VOID(shoot_free(p));
+            TEST_TRY_VOID(_shoot_free(p));
             TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
             TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
@@ -2423,15 +1774,6 @@ extern void menu_self_test();
 
 #endif // CONFIG_STRESS_TEST
 
-void ui_lock(int x)
-{
-    int unlocked = UILOCK_NONE;
-    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-    msleep(50);
-    prop_request_change(PROP_ICU_UILOCK, &x, 4);
-    msleep(50);
-}
-
 #if CONFIG_DEBUGMSG
 
 int mem_spy = 0;
@@ -2620,109 +1962,33 @@ memfilt(void* m, void* M, int value)
 
 static int screenshot_sec = 0;
 
-PROP_INT(PROP_ICU_UILOCK, uilock);
-
-#ifdef CONFIG_ELECTRONIC_LEVEL
-
-struct rolling_pitching
-{
-    uint8_t status;
-    uint8_t cameraposture;
-    uint8_t roll_sensor1;
-    uint8_t roll_sensor2;
-    uint8_t pitch_sensor1;
-    uint8_t pitch_sensor2;
-};
-struct rolling_pitching level_data;
-
-PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
-{
-    memcpy(&level_data, buf, 6);
-}
-
-void draw_electronic_level(int angle, int prev_angle, int force_redraw)
-{
-    if (!force_redraw && angle == prev_angle) return;
-
-    int x0 = os.x0 + os.x_ex/2;
-    int y0 = os.y0 + os.y_ex/2;
-    int r = 200;
-    draw_angled_line(x0, y0, r, prev_angle, 0);
-    draw_angled_line(x0+1, y0+1, r, prev_angle, 0);
-    draw_angled_line(x0, y0, r, angle, (angle % 900) ? COLOR_BLACK : COLOR_GREEN1);
-    draw_angled_line(x0+1, y0+1, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
-}
-
-void disable_electronic_level()
-{
-    if (level_data.status == 2)
-    {
-        GUI_SetRollingPitchingLevelStatus(1);
-        msleep(100);
-    }
-}
-
-void show_electronic_level()
-{
-    static int prev_angle10 = 0;
-    int force_redraw = 0;
-    if (level_data.status != 2)
-    {
-        GUI_SetRollingPitchingLevelStatus(0);
-        msleep(100);
-        force_redraw = 1;
-    }
-
-    static int k = 0;
-    k++;
-    if (k % 10 == 0) force_redraw = 1;
-
-    int angle100 = level_data.roll_sensor1 * 256 + level_data.roll_sensor2;
-    int angle10 = angle100/10;
-    draw_electronic_level(angle10, prev_angle10, force_redraw);
-    draw_electronic_level(angle10 + 1800, prev_angle10 + 1800, force_redraw);
-    //~ draw_line(x0, y0, x0 + r * cos(angle), y0 + r * sin(angle), COLOR_BLUE);
-    prev_angle10 = angle10;
-
-    if (angle10 > 1800) angle10 -= 3600;
-    bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
-}
-
-#endif
 
 #ifdef CONFIG_HEXDUMP
 
-CONFIG_INT("hexdump", hexdump_addr, 0x5024);
+CONFIG_INT("hexdump", hexdump_addr, 0x24298);
 
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
 
 static MENU_UPDATE_FUNC (hexdump_print)
 {
-    int fnt = MENU_FONT;
-    int x = info->x;
+    if (!info->can_custom_draw) return;
+    int x = info->x_val;
     int y = info->y;
-    bmp_printf(
-        fnt,
-        x, y,
-        "HexDump : %8x",
-        hexdump_addr
-    );
-
-    fnt = FONT(fnt, COLOR_WHITE, COLOR_RED);
-
-    if (hexdump_digit_pos < 8)
-        bmp_printf(
-            fnt,
-            x + font_large.width * (17 - hexdump_digit_pos), y,
-            "%x",
-            (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF
-        );
+    
+    MENU_SET_VALUE("");
+    
+    for (int i = 0; i < 8; i++)
+    {
+        int pos = 7 - i;
+        int fnt = (pos == hexdump_digit_pos) ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED) : FONT_LARGE;
+        x += bmp_printf(fnt, x, y, "%x", (hexdump_addr >> (pos * 4)) & 0xF);
+    }
 }
 
 static MENU_UPDATE_FUNC (hexdump_print_value_hex)
 {
-    MENU_SET_VALUE("%x",
+    MENU_SET_VALUE("0x%x",
         MEMX(hexdump_addr)
     );
 }
@@ -2761,7 +2027,6 @@ static MENU_UPDATE_FUNC (hexdump_print_value_str)
     if (hexdump_addr & 0xF0000000) return;
     MENU_SET_VALUE(
         "%s",
-        "Val string: %s",
         (char*)hexdump_addr
     );
 }
@@ -2795,7 +2060,7 @@ void hexdump_digit_toggle(void* priv, int dir)
 
 void hexdump_digit_pos_toggle(void* priv, int dir)
 {
-    hexdump_digit_pos = mod(hexdump_digit_pos + 1, 9);
+    hexdump_digit_pos = mod(hexdump_digit_pos - 1, 9);
 }
 
 int hexdump_prev = 0;
@@ -3397,14 +2662,10 @@ static struct menu_entry debug_menus[] = {
                 .name = "HexDump",
                 .priv = &hexdump_addr,
                 .select = hexdump_digit_toggle,
+                .select_Q = hexdump_digit_pos_toggle,
                 .update = hexdump_print,
-                .help = "Address to be analyzed"
-            },
-            {
-                .name = "Edit digit",
-                .priv = &hexdump_digit_pos,
-                .max = 8,
-                .help = "Choose which digit to edit (0-7) or the entire nuber (8)."
+                .icon_type = IT_PERCENT,
+                .help = "Address to be analyzed. Press Q to select the digit to edit."
             },
             {
                 .name = "Pointer dereference",
@@ -3515,46 +2776,6 @@ static struct menu_entry debug_menus[] = {
         .priv        = j_tp_intercept,
         .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "Log TryPostEvents"
-    },
-#endif
-#ifdef CONFIG_ISO_TESTS
-    {
-        .name        = "ISO tests...",
-        .select        = menu_open_submenu,
-        .help = "Computes camera response curve for certain ISO values.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Response curve @ current ISO",
-                .priv = iso_response_curve_current,
-                .select = (void (*)(void*,int))run_in_separate_task,
-                .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
-            },
-            {
-                .name = "Test ISO 100x/160x/80x series",
-                .priv = iso_response_curve_160,
-                .select = (void (*)(void*,int))run_in_separate_task,
-                .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
-            },
-            {
-                .name = "Test 70x/65x/50x series",
-                .priv = iso_response_curve_logain,
-                .select = (void (*)(void*,int))run_in_separate_task,
-                .help = "ISOs with -0.5/-0.7/-0.8 EV of DIGIC gain. Takes 20 mins.",
-            },
-            {
-                .name = "Test HTP series",
-                .priv = iso_response_curve_htp,
-                .select = (void (*)(void*,int))run_in_separate_task,
-                .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
-            },
-            {
-                .name = "Movie test",
-                .priv = iso_movie_test,
-                .select = (void (*)(void*,int))run_in_separate_task,
-                .help = "Records two test movies, changing settings every 2 seconds.",
-            },
-            MENU_EOL
-        },
     },
 #endif
 #ifdef CONFIG_STRESS_TEST
@@ -3819,7 +3040,7 @@ static struct menu_entry debug_menus[] = {
     {
         .name = "Battery level",
         .update = batt_display,
-        .help = "Battery remaining. Wait for 2%% discharge before reading.",
+        .help = "Battery remaining. Wait for 2% discharge before reading.",
         .icon_type = IT_ALWAYS_ON,
     },
 #endif
@@ -3842,61 +3063,6 @@ static struct menu_entry debug_menus[] = {
     },
 #endif
 };
-
-#ifdef CONFIG_CONFIG_FILE
-static struct menu_entry cfg_menus[] = {
-{
-    .name = "Config files",
-    .select = menu_open_submenu,
-    .update = config_preset_update,
-    .submenu_width = 710,
-    .help = "Config auto save, manual save, restore defaults...",
-    .children =  (struct menu_entry[]) {
-        {
-            .name = "Config preset",
-            .priv = &config_new_preset_index,
-            .min = 0,
-            .max = 2,
-            .choices = (const char **) config_preset_choices,
-            .select = config_preset_toggle,
-            .update = config_preset_update,
-            .help = "Choose a configuration preset."
-        },
-        {
-            .name = "Config AutoSave",
-            .priv = &config_autosave,
-            .max  = 1,
-            .select        = config_autosave_toggle,
-            .help = "If enabled, ML settings are saved automatically at shutdown."
-        },
-        {
-            .name = "Save config now",
-            .select        = save_config,
-            .update        = save_config_update,
-            .help = "Save ML settings to current preset directory."
-        },
-        {
-            .name = "Restore ML defaults",
-            .select        = delete_config,
-            .update        = delete_config_update,
-            .help  = "This restores ML default settings, by deleting all CFG files.",
-        },
-
-        #ifdef CONFIG_PICOC
-        {
-            .name = "Export as PicoC script",
-            .select = save_config_as_picoc,
-            .update = save_config_as_picoc_update,
-            .help =  "Export current menu settings to ML/SCRIPTS/PRESETn.C.",
-            .help2 = "The preset will appear in Scripts menu. Edit/rename on PC.",
-        },
-        #endif
-
-        MENU_EOL,
-    },
-},
-};
-#endif
 
 #if CONFIG_DEBUGMSG
 
@@ -4107,7 +3273,6 @@ void
 debug_init_stuff( void )
 {
     //~ set_pic_quality(PICQ_RAW);
-    config_ok = 1;
 
     #ifdef CONFIG_WB_WORKAROUND
     if (is_movie_mode()) restore_kelvin_wb();
@@ -4120,18 +3285,6 @@ debug_init_stuff( void )
 
 TASK_CREATE( "debug_task", debug_loop_task, 0, 0x1e, 0x2000 );
 
-void config_save_at_shutdown()
-{
-#ifdef CONFIG_CONFIG_FILE
-    static int config_saved = 0;
-    if (config_ok && config_autosave && !config_saved)
-    {
-        config_saved = 1;
-        save_config(0, 0);
-        msleep(100);
-    }
-#endif
-}
 
 #ifdef CONFIG_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
     #ifndef FEATURE_EXPO_ISO
@@ -4500,14 +3653,14 @@ static void HijackFormatDialogBox_main()
     // make sure we have something to restore :)
     if (!check_autoexec() && !check_fir()) return;
 
-    ui_lock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     
     while (!TmpMem_Init())  /* may fail because of not enough memory */
         msleep(100);
 
     // before user attempts to do something, copy ML files to RAM
     CopyMLFilesToRAM_BeforeFormat();
-    ui_lock(UILOCK_NONE);
+    gui_uilock(UILOCK_NONE);
 
     // all files copied, we can change the message in the format box and let the user know what's going on
     fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
@@ -4523,22 +3676,14 @@ static void HijackFormatDialogBox_main()
     // card was formatted (autoexec no longer there) => restore ML
     if (keep_ml_after_format && !check_autoexec())
     {
-        ui_lock(UILOCK_EVERYTHING);
+        gui_uilock(UILOCK_EVERYTHING);
         CopyMLFilesBack_AfterFormat();
-        ui_lock(UILOCK_NONE);
+        gui_uilock(UILOCK_NONE);
     }
 
     TmpMem_Done();
 }
 #endif
-
-static void config_menu_init()
-{
-    #ifdef CONFIG_CONFIG_FILE
-    menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
-    #endif
-}
-INIT_FUNC("config", config_menu_init);
 
 void debug_menu_init()
 {
@@ -4613,14 +3758,6 @@ int handle_buttons_being_held(struct event * event)
     (void)zoom_in_pressed; /* silence warning */
 
     return 1;
-}
-
-void fake_simple_button(int bgmt_code)
-{
-    if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
-
-    if (ml_shutdown_requested) return;
-    GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
 // those functions seem not to be thread safe

@@ -106,14 +106,18 @@ int uniwb_is_active()
 
 //~ CONFIG_INT("iso_selection", iso_selection, 0);
 
-CONFIG_INT("hdr.enabled", hdr_enabled, 0);
+static CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 
 static PROP_INT(PROP_AEB, aeb_setting);
+
+int is_hdr_bracketing_enabled()
+{
 #ifdef FEATURE_HDR_BRACKETING
-#define HDR_ENABLED (hdr_enabled && !aeb_setting) // when Canon bracketing is active, ML bracketing should not run
+    return (hdr_enabled && !aeb_setting); // when Canon bracketing is active, ML bracketing should not run
 #else
-#define HDR_ENABLED 0
+    return 0;
 #endif
+}
 
 // The min and max EV delta encoded in 1/8 of EV
 #define HDR_STEPSIZE_MIN 4
@@ -312,6 +316,13 @@ int should_run_polling_action(int period_ms, int* last_updated_time)
 
 static void do_this_every_second() // called every second
 {
+    if (reset_pre_shutdown_flag_step())
+    {
+        /* some things from here (especially tskmon stuff) lock up the camera (5D2, maybe others too?) */
+        /* figure out why; to me, it looks like a timing issue in tskmon_stack_checker (a short bmp_printf is fine, a longer one locks up) */
+        return;
+    }
+
     #ifdef FEATURE_INTERVALOMETER
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
@@ -321,14 +332,15 @@ static void do_this_every_second() // called every second
     RefreshBatteryLevel_1Hz();
     #endif
     
-    reset_pre_shutdown_flag_step();
-    
     #ifdef FEATURE_SHOW_CPU_USAGE
     task_update_loads();
     #endif
 
     #ifdef CONFIG_TSKMON
-    tskmon_stack_check_all();
+    if (!RECORDING_RAW)
+    {
+        tskmon_stack_check_all();
+    }
     #endif
     
     #ifdef FEATURE_SHOW_OVERLAY_FPS
@@ -737,11 +749,11 @@ void set_lv_zoom(int zoom)
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
     int hs = get_halfshutter_pressed();
     if (hs) SW1(0,0);
-    ui_lock(UILOCK_EVERYTHING);
+    gui_uilock(UILOCK_EVERYTHING);
     #endif
     prop_request_change_wait(PROP_LV_DISPSIZE, &zoom, 4, 1000);
     #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
-    ui_lock(UILOCK_NONE);
+    gui_uilock(UILOCK_NONE);
     if (hs) SW1(1,0);
     #endif
     msleep(150);
@@ -795,7 +807,7 @@ int handle_mlu_handheld(struct event * event)
     {
         extern int ml_taking_pic;
         if (ml_taking_pic) return 1; // do not use this feature for pictures initiated by ML code
-        if (HDR_ENABLED) return 1; // may interfere with HDR bracketing
+        if (is_hdr_bracketing_enabled()) return 1; // may interfere with HDR bracketing
         if (trap_focus) return 1; // may not play nice with trap focus
         if (is_bulb_mode()) return 1; // not good in bulb mode
         if (aeb_setting) return 1; // not working with Canon bracketing
@@ -3120,7 +3132,7 @@ static MENU_UPDATE_FUNC(mlu_display)
     );
     if (mlu_mode == 2 && 
         (
-            HDR_ENABLED || 
+            is_hdr_bracketing_enabled() || 
             trap_focus || 
             is_bulb_mode() || 
             intervalometer_running || 
@@ -3134,7 +3146,7 @@ static MENU_UPDATE_FUNC(mlu_display)
     {
         static char msg[60];
         snprintf(msg, sizeof(msg), "Handhedld MLU does not work with %s.",
-            HDR_ENABLED ? "HDR bracketing" :
+            is_hdr_bracketing_enabled() ? "HDR bracketing" :
             trap_focus ? "trap focus" :
             is_bulb_mode() ? "bulb shots" :
             intervalometer_running ? "intervalometer" :
@@ -3335,7 +3347,7 @@ static void post_deflicker_task()
 static void post_deflicker_step()
 {
     if (!post_deflicker) return;
-    if (HDR_ENABLED) return;
+    if (is_hdr_bracketing_enabled()) return;
     
     /* not a really good idea to slow down the property task */
     /* must have a lower priority than clock_task */
@@ -3347,7 +3359,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     if (!can_use_raw_overlays_photo())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
 
-    if (HDR_ENABLED)
+    if (is_hdr_bracketing_enabled())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
 
     if (image_review_time == 0)
@@ -3492,7 +3504,7 @@ static MENU_UPDATE_FUNC(expo_lock_display)
         );
     }
 
-    if (HDR_ENABLED)
+    if (is_hdr_bracketing_enabled())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature does not work with HDR bracketing.");
 }
 
@@ -3564,7 +3576,7 @@ static void expo_lock_step()
     if (shooting_mode != SHOOTMODE_M) return;
     if (!lens_info.raw_iso) return;
     if (ISO_ADJUSTMENT_ACTIVE) return;
-    if (HDR_ENABLED) return;
+    if (is_hdr_bracketing_enabled()) return;
     
     int max_auto_iso = auto_iso_range & 0xFF;
     
@@ -3731,7 +3743,7 @@ static MENU_UPDATE_FUNC(pics_at_once_update)
     {
         MENU_SET_ENABLED(0);
     }
-    if (HDR_ENABLED)
+    if (is_hdr_bracketing_enabled())
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "No burst bracketing series, please.");
     }
@@ -3739,7 +3751,7 @@ static MENU_UPDATE_FUNC(pics_at_once_update)
 
 static MENU_UPDATE_FUNC(use_af_update)
 {
-    if (HDR_ENABLED)
+    if (is_hdr_bracketing_enabled())
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Autofocus and bracketing don't mix.");
     }
@@ -4980,7 +4992,7 @@ static int hdr_shutter_release(int ev_x8)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
-    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !is_bulb_mode();
+    int dont_change_exposure = ev_x8 == 0 && !is_hdr_bracketing_enabled() && !is_bulb_mode();
 
     if (dont_change_exposure)
     {
@@ -4990,7 +5002,7 @@ static int hdr_shutter_release(int ev_x8)
     
     // let's see if we have to do some other type of bracketing (aperture or flash)
     int av0 = lens_info.raw_aperture;
-    if (HDR_ENABLED)
+    if (is_hdr_bracketing_enabled())
     {
         if (hdr_type == 1) // flash => just set it
         {
@@ -5093,7 +5105,7 @@ static int hdr_shutter_release(int ev_x8)
         #endif
     }
 
-    if (HDR_ENABLED && hdr_type == 2) // aperture bracket - restore initial value
+    if (is_hdr_bracketing_enabled() && hdr_type == 2) // aperture bracket - restore initial value
         hdr_set_rawaperture(av0);
 
     lens_wait_readytotakepic(64);
@@ -5447,7 +5459,7 @@ void hdr_shot(int skip0, int wait)
 {
     NotifyBoxHide();
 #ifdef FEATURE_HDR_BRACKETING
-    if (HDR_ENABLED)
+    if (is_hdr_bracketing_enabled())
     {
         //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
         lens_wait_readytotakepic(64);
@@ -5515,7 +5527,7 @@ void remote_shot(int wait)
     {
         movie_start();
     }
-    else if (HDR_ENABLED)
+    else if (is_hdr_bracketing_enabled())
     {
         hdr_shot(0, wait);
     }
@@ -6033,7 +6045,7 @@ shoot_task( void* unused )
         #if defined(FEATURE_HDR_BRACKETING)
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
-        if ((HDR_ENABLED && hdr_delay) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+        if ((is_hdr_bracketing_enabled() && hdr_delay) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
             priority_feature_enabled = 1;
             if (get_halfshutter_pressed())
@@ -6142,7 +6154,7 @@ shoot_task( void* unused )
             if (NOT_RECORDING)
             {
                 #ifdef FEATURE_HDR_BRACKETING
-                if (HDR_ENABLED)
+                if (is_hdr_bracketing_enabled())
                 {
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
@@ -6571,7 +6583,7 @@ shoot_task( void* unused )
                 canceled = take_fast_pictures(num);
                 intervalometer_pictures_taken += num - 1;
             }
-            else if (HDR_ENABLED)
+            else if (is_hdr_bracketing_enabled())
             {
                 hdr_shot(0, 1);
             }

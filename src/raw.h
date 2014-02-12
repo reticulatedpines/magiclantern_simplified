@@ -71,7 +71,7 @@ struct raw_pixblock
     unsigned int f_lo: 4;
     unsigned int h: 14;     // even lines: green; odd lines: blue
     unsigned int g_lo: 2;
-} __attribute__((packed));
+} __attribute__((packed,aligned(2)));
 
 /* call this before performing any raw image analysis */
 /* returns 1=success, 0=failed */

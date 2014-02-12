@@ -845,14 +845,18 @@ void chroma_smooth(int method, struct raw_info *info)
     static int raw2ev[16384];
     static int _ev2raw[24*EV_RESOLUTION];
     int* ev2raw = _ev2raw + 10*EV_RESOLUTION;
+    
+    if(!method)
+    {
+        return;
+    }
 
-    int i;
-    for (i = 0; i < 16384; i++)
+    for(int i = 0; i < 16384; i++)
     {
         raw2ev[i] = log2(MAX(1, i - black)) * EV_RESOLUTION;
     }
 
-    for (i = -10*EV_RESOLUTION; i < 14*EV_RESOLUTION; i++)
+    for(int i = -10*EV_RESOLUTION; i < 14*EV_RESOLUTION; i++)
     {
         ev2raw[i] = black + pow(2, (float)i / EV_RESOLUTION);
     }
@@ -874,8 +878,6 @@ void chroma_smooth(int method, struct raw_info *info)
 
     switch(method)
     {
-        case 0:
-            break;
         case 2:
             chroma_smooth_2x2(aux, aux2, raw2ev, ev2raw);
             break;

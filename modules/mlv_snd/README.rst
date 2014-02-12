@@ -1,13 +1,9 @@
--e smpte
+mlv_snd
 ========
 
-Please write a one-page description for your module here.
-
-You may also add some metadata:
+With this module, mlv_rec is extended by sound recording support.
 
 :Author: g3gg0
 :License: GPL
-:Summary: Adds SMPTE output functionality to mlv_rec
+:Summary: Adds sound recording functionality to mlv_rec
 :Website: http://www.magiclantern.fm/
-
-

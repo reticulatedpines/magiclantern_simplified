@@ -62,7 +62,7 @@ endif
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
-	-W \
+	-Wextra \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
 	-Wno-implicit-function-declaration \
@@ -70,7 +70,6 @@ CFLAGS +=\
 	-Wno-format \
 	-Wdouble-promotion \
 	-ffast-math \
-	-fno-trapping-math \
 	-fsingle-precision-constant \
 	-fshort-double \
 	-std=gnu99 \
@@ -98,7 +97,9 @@ ifdef CONFIG_STATIC_FONTS
 $(error CONFIG_STATIC_FONTS must be renamed to ML_SRC_STATIC_FONTS)
 endif
 
+ensureCorrectValue = $(if $(filter $($(1)),y n 1 0), ,$(1)=n $(warning BAD VALUE FOR $(1)=$($(1)) DEFAULTING TO n))
 _defined_configs = $(filter CONFIG_%, $(.VARIABLES))
+$(foreach config, $(_defined_configs), $(eval $(call ensureCorrectValue,$(config))))
 # Functionality that disables all CONFIG_* entries
 ifeq ($(ML_SETUP_DISABLE_USER_CONFIGS),y)
 #show_config_values=$(foreach c, $(defined_configs), $(c)=$($(c)))

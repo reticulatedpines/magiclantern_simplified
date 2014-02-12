@@ -312,8 +312,8 @@ void shutter_btn_rec_do(int rec)
 {
     if (shutter_btn_rec == 1)
     {
-        if (rec) ui_lock(UILOCK_SHUTTER);
-        else ui_lock(UILOCK_NONE);
+        if (rec) gui_uilock(UILOCK_SHUTTER);
+        else gui_uilock(UILOCK_NONE);
     }
     else if (shutter_btn_rec == 2)
     {
@@ -347,9 +347,12 @@ movtweak_task_init()
 static int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 {
     extern thunk ErrCardForLVApp_handler;
-    for (int i = 0; i <= wait/20; i++)
+    for(int i = 0; i <= wait/20; i++)
     {
-        if ((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler) return 1;
+        if((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler)
+        {
+            return 1;
+        }
         msleep(20);
     }
     return 0;
@@ -363,10 +366,11 @@ void movtweak_step()
 
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
+        
         #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
-        if (NOT_RECORDING && recording_prev > 0 && !movie_was_stopped_by_set) // see also gui.c
+        if(!RECORDING_H264 && recording_prev && !movie_was_stopped_by_set) // see also gui.c
         #else
-        if (NOT_RECORDING && recording_prev > 0 && wait_for_lv_err_msg(0))
+        if(!RECORDING_H264 && recording_prev && wait_for_lv_err_msg(0))
         #endif
         {
             if (movie_restart)
@@ -375,9 +379,12 @@ void movtweak_step()
                 movie_start();
             }
         }
-        recording_prev = RECORDING;
+        recording_prev = RECORDING_H264;
 
-        if (NOT_RECORDING) movie_was_stopped_by_set = 0;
+        if(!RECORDING_H264)
+        {
+            movie_was_stopped_by_set = 0;
+        }
     #endif
 
         #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
@@ -431,13 +438,13 @@ void movtweak_step()
             if (hdmi_code == 5)
             {
                 msleep(1000);
-                ui_lock(UILOCK_EVERYTHING);
+                gui_uilock(UILOCK_EVERYTHING);
                 BMP_LOCK(
                     ChangeHDMIOutputSizeToVGA();
                     msleep(300);
                 )
                 msleep(2000);
-                ui_lock(UILOCK_NONE);
+                gui_uilock(UILOCK_NONE);
                 msleep(5000);
             }
         }

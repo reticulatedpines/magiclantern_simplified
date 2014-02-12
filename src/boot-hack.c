@@ -209,6 +209,10 @@ null_task( void )
     return;
 }
 
+static int _hold_your_horses = 1; // 0 after config is read
+int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+
 /**
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
@@ -224,6 +228,12 @@ my_task_dispatch_hook(
     #ifdef CONFIG_TSKMON
     tskmon_task_dispatch();
     #endif
+    
+    if (ml_started)
+    {
+        /* all task overrides should be done by now */
+        return;
+    }
 
     // Do nothing unless a new task is starting via the trampoile
     if( (*context)->pc != (uint32_t) task_trampoline )
@@ -372,10 +382,6 @@ static void backup_task()
 }
 #endif
 
-static int _hold_your_horses = 1; // 0 after config is read
-int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started 
-
 static int compute_signature(int* start, int num)
 {
         int c = 0;
@@ -471,10 +477,8 @@ static void my_big_init_task()
     task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
     #endif
 
-    #ifdef CONFIG_CONFIG_FILE
-    // Read ML config
+    /* Read ML config. if feature disabled, nothing happens */
     config_load();
-    #endif
     
     debug_init_stuff();
 
