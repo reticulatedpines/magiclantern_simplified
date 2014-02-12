@@ -39,6 +39,8 @@ extern void* _alloc_dma_memory(size_t size);
 extern void _free_dma_memory(void* ptr);
 extern int _shoot_get_free_space();
 
+static struct semaphore * mem_sem = 0;
+
 struct mem_allocator
 {
     char name[16];                          /* malloc, AllocateMemory, shoot_malloc, task_mem... */
@@ -614,6 +616,8 @@ static int choose_allocator(int size, unsigned int flags)
 /* returns 0 if it couldn't allocate */
 void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned int line)
 {
+    take_semaphore(mem_sem, 0);
+
     //~ console_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
     
     /* show files without full path in error messages (they are too big) */
@@ -635,17 +639,21 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
             snprintf(last_error_msg, sizeof(last_error_msg), "%s(%s) failed at %s:%d, %s.", allocators[allocator_index].name, format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
         }
         
+        give_semaphore(mem_sem);
         return ptr;
     }
     
     /* could not find an allocator (maybe out of memory?) */
     snprintf(last_error_msg_short, sizeof(last_error_msg_short), "alloc(%s)", format_memory_size_and_flags(size, flags));
     snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    give_semaphore(mem_sem);
     return 0;
 }
 
 void __mem_free(void* buf)
 {
+    take_semaphore(mem_sem, 0);
+    
     unsigned int ptr = ((unsigned int)buf - MEM_SEC_ZONE);
 
     int allocator_index = ((struct memcheck_hdr *)ptr)->allocator;
@@ -656,8 +664,10 @@ void __mem_free(void* buf)
     
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
-        return memcheck_free(buf, allocator_index, flags);
+        memcheck_free(buf, allocator_index, flags);
     }
+    
+    give_semaphore(mem_sem);
 }
 
 /* initialize memory pools, if any of them needs that */
@@ -1170,6 +1180,7 @@ static struct menu_entry mem_menus[] = {
 
 void mem_menu_init()
 {
+    mem_sem = create_named_semaphore("mem_sem", 1);
     menu_add("Debug", mem_menus, COUNT(mem_menus));
     //~ console_show();
 }
