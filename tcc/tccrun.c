@@ -187,7 +187,8 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
             int extra_ram = get_plt_got_size_for_relocate_section(s1, s);
             if (extra_ram)
             {
-                offset += extra_ram;
+                #warning FIXME: why does it overflow without this extra RAM when loading the big adtg_gui?
+                offset += extra_ram + 10240;
                 console_printf("%s: %d\n", s->name, extra_ram);
             }
         }
