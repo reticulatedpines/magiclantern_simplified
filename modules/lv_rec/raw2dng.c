@@ -40,10 +40,10 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
-void find_and_fix_bad_pixels(int fix_bad_pixels, int framenumber);
+void find_and_fix_cold_pixels(int fix, int framenumber);
 void chroma_smooth();
 
-int fix_bad_pixels = 1; //1=fix badpixels, 0=disable
+int fix_cold_pixels = 1; //1=fix cold pixels, 0=disable
 
 #define EV_RESOLUTION 32768
 
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, framenumber);
 	
         fix_vertical_stripes();
-	find_and_fix_bad_pixels(fix_bad_pixels, framenumber);
+	find_and_fix_cold_pixels(fix_cold_pixels, framenumber);
 
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
@@ -539,21 +539,21 @@ static inline int FC(int row, int col)
     }
 }
 	    
-void find_and_fix_bad_pixels(fix_bad_pixels, framenumber)
+void find_and_fix_cold_pixels(fix, framenumber)
 {
-    int const max_badpixels = 2000; /*max.number of cold pixels, that can be repaired*/
+    int const max_cold_pixels = 2000; /*max.number of cold pixels, that can be repaired*/
   
     struct xy { int x; int y; };
-    struct xy badpixel_list[max_badpixels];
+    struct xy cold_pixel_list[max_cold_pixels];
     
     static int cold_pixels = 0;
     
     int w = raw_info.width;
     int h = raw_info.height;
-    int badpix_list;
+    int bad_frame;
     int x,y;
     
-    if ( !fix_bad_pixels )
+    if ( !fix )
     {
 	return;
     }
@@ -569,10 +569,10 @@ void find_and_fix_bad_pixels(fix_bad_pixels, framenumber)
 		int p = raw_get_pixel(x, y);
 		int is_cold = (p == 0);
 	    
-		if (is_cold && cold_pixels < max_badpixels) /*generate a list containing the cold pixels*/
+		if (is_cold && cold_pixels < max_cold_pixels) /*generate a list containing the cold pixels*/
 		{
-		    badpixel_list[cold_pixels].x = x;
-		    badpixel_list[cold_pixels].y = y;
+		    cold_pixel_list[cold_pixels].x = x;
+		    cold_pixel_list[cold_pixels].y = y;
 		    cold_pixels++; /*number of the detected cold pixels*/
 		}
 	    }
@@ -580,10 +580,10 @@ void find_and_fix_bad_pixels(fix_bad_pixels, framenumber)
 	printf("\rCold pixels : %d                             \n", (cold_pixels));
     }  
     
-    for (badpix_list = 0; badpix_list < cold_pixels; badpix_list++) /*repair the cold pixels*/
+    for (bad_frame = 0; bad_frame < cold_pixels; bad_frame++) /*repair the cold pixels*/
     {
-	x = badpixel_list[badpix_list].x;
-	y = badpixel_list[badpix_list].y;
+	x = cold_pixel_list[bad_frame].x;
+	y = cold_pixel_list[bad_frame].y;
       
 	int neighbours[100];
 	int i,j;
