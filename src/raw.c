@@ -38,6 +38,10 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
+/* we use a recursive lock because both raw_update_params and raw_lv_request/release need exclusive access, 
+ * but raw_update_params may also be called by raw_lv_request */
+static void* raw_lock = 0;
+
 static int dirty = 0;
 
 /* dual ISO interface */
@@ -411,7 +415,7 @@ static int raw_lv_get_resolution(int* width, int* height)
 #endif
 }
 
-int raw_update_params()
+static int raw_update_params_work()
 {
     //~ static int k = 0;
     //~ bmp_printf(FONT_MED, 250, 100, "raw update %d called from %s ", k++, get_task_name_from_id(get_current_task()));
@@ -843,6 +847,15 @@ int raw_update_params()
     #endif
     
     return 1;
+}
+
+int raw_update_params()
+{
+    int ans = 0;
+    AcquireRecursiveLock(raw_lock, 0);
+    ans = raw_update_params_work();
+    ReleaseRecursiveLock(raw_lock);
+    return ans;
 }
 
 static int preview_rect_x;
@@ -1342,6 +1355,7 @@ static int lv_raw_enabled = 0;
 static void* redirected_raw_buffer = 0;
 #endif
 
+/* to be called from vsync hooks */
 void FAST raw_lv_redirect_edmac(void* ptr)
 {
     #ifdef CONFIG_EDMAC_RAW_SLURP
@@ -1700,14 +1714,18 @@ static void raw_lv_update()
 
 void raw_lv_request()
 {
+    AcquireRecursiveLock(raw_lock, 0);
     raw_lv_request_count++;
     raw_lv_update();
+    ReleaseRecursiveLock(raw_lock);
 }
 void raw_lv_release()
 {
+    AcquireRecursiveLock(raw_lock, 0);
     raw_lv_request_count--;
     ASSERT(raw_lv_request_count >= 0);
     raw_lv_update();
+    ReleaseRecursiveLock(raw_lock);
 }
 #endif
 
@@ -1838,3 +1856,10 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
         menu_set_warning_raw(entry, info);
     }
 }
+
+static void raw_init()
+{
+    raw_lock = CreateRecursiveLock(0);
+}
+
+INIT_FUNC("raw", raw_init);
