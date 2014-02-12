@@ -787,6 +787,15 @@ static void guess_free_mem()
 
 static MENU_UPDATE_FUNC(mem_error_display);
 
+static struct { uint32_t addr; char* name; } common_addresses[] = {
+    { RESTARTSTART,         "RST"},
+    { YUV422_HD_BUFFER_1,   "HD1"},
+    { YUV422_HD_BUFFER_1,   "HD2"},
+    { YUV422_LV_BUFFER_1,   "LV1"},
+    { YUV422_LV_BUFFER_2,   "LV2"},
+    { YUV422_LV_BUFFER_3,   "LV3"},
+};
+
 static MENU_UPDATE_FUNC(meminfo_display)
 {
     int M = GetFreeMemForAllocateMemory();
@@ -840,9 +849,32 @@ static MENU_UPDATE_FUNC(meminfo_display)
             MENU_SET_VALUE("%s", format_memory_size(max_shoot_malloc_frag_mem));
             MENU_SET_WARNING(MENU_WARN_INFO, shoot_malloc_frag_desc);
             guess_needed = 1;
+            
+            /* paint memory map */
             for (int i = 0; i < 720; i++)
                 if (memory_map[i])
                     draw_line(i, 400, i, 410, memory_map[i]);
+            
+            /* show some common addresses on the memory map */
+            for (int i = 0; i < COUNT(common_addresses); i++)
+            {
+                int c = MEMORY_MAP_ADDRESS_TO_INDEX(common_addresses[i].addr);
+                draw_line(c, 390, c, 400, COLOR_YELLOW);
+                bmp_printf(FONT_SMALL, c, 385, common_addresses[i].name);
+            }
+
+            /* show EDMAC addresses on the memory map */
+            for (int i = 0; i < 32; i++)
+            {
+                int a = edmac_get_address(i);
+                if (a)
+                {
+                    int c = MEMORY_MAP_ADDRESS_TO_INDEX(a);
+                    draw_line(c, 410, c, 420, COLOR_YELLOW);
+                    int msg = i < 10 ? '0'+i : 'a'+i;  /* extended hex to fit in the single character */
+                    bmp_printf(FONT_SMALL | FONT_ALIGN_CENTER, c, 415, "%s", (char*) &msg);
+                }
+            }
             break;
 
         #if defined(CONFIG_MEMPATCH_CHECK)
