@@ -69,6 +69,14 @@ int GetFreeMemForAllocateMemory()
     return b;
 }
 
+int GetMaxRegionForAllocateMemory()
+{
+    int a;
+    int err = GetSizeOfMaxRegion(&a);
+    if (err) return 0;
+    return a;
+}
+
 int GetFreeMemForMalloc()
 {
     return MALLOC_FREE_MEMORY;
@@ -93,6 +101,7 @@ static struct mem_allocator allocators[] = {
         .malloc_dma = _alloc_dma_memory,
         .free_dma = _free_dma_memory,
         .get_free_space = GetFreeMemForAllocateMemory,
+        .get_max_region = GetMaxRegionForAllocateMemory,
         .preferred_min_alloc_size = 0,
         .preferred_max_alloc_size = 512 * 1024,
         .preferred_free_space = 1024 * 1024 * 3/2,  /* at 1MB free, "dispcheck" may stop working */
@@ -910,6 +919,15 @@ static MENU_UPDATE_FUNC(mem_pool_display)
     {
         MENU_SET_VALUE("%s used", format_memory_size(used));
         MENU_SET_HELP("Memory used from %s. %d blocks allocated.", allocators[index].name, allocators[index].num_blocks);
+    }
+    
+    if (allocators[index].get_max_region)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Max region: %s.", format_memory_size(allocators[index].get_max_region()));
+    }
+    else
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "This allocator does not implement get_max_region.");
     }
     
     if (free_space > 0 && free_space < allocators[index].preferred_free_space)
