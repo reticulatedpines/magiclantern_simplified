@@ -435,11 +435,11 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
     int requires_dma = flags & MEM_DMA;
     if (requires_dma)
     {
-        ptr = (unsigned int) allocators[allocator_index].malloc_dma(len + 2 * MEM_SEC_ZONE);
+        ptr = (unsigned int) UNCACHEABLE(allocators[allocator_index].malloc_dma(len + 2 * MEM_SEC_ZONE));
     }
     else
     {
-        ptr = (unsigned int) allocators[allocator_index].malloc(len + 2 * MEM_SEC_ZONE);
+        ptr = (unsigned int) CACHEABLE(allocators[allocator_index].malloc(len + 2 * MEM_SEC_ZONE));
     }
     
     /* some allocators may return invalid ptr; discard it and return 0, as C malloc does */
