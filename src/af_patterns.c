@@ -7,7 +7,7 @@
 #include "af_patterns.h"
 #include "lens.h"
 
-static CONFIG_INT("focus.patterns", af_patterns, 0);
+CONFIG_INT("focus.patterns", af_patterns, 0);
 
 static type_PATTERN_MAP_ITEM pattern_map[] = {
 #if defined(CONFIG_6D)

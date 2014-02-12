@@ -51,13 +51,13 @@ LLL LL L  C  R  RR  RRR
 #define AF_POINT_RRR  0x45000 // Right-right-right
 
 #elif defined(CONFIG_6D)
-+/*
-+          T
-+    TL         TR
-+L   CL    C    CR    R
-+    BL         BR
-+          B
-+*/
+/*
+          T
+    TL         TR
+L   CL    C    CR    R
+    BL         BR
+          B
+*/
 #define AF_POINT_C  0x4A00 // Center
 #define AF_POINT_T  0x0A00 // Top
 #define AF_POINT_B  0x8A00 // Bottom
