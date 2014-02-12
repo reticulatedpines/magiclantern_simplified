@@ -35,7 +35,7 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 */
 
 static volatile int vsync_counter = 0;
-
+#ifndef CONFIG_7D_MASTER
 /* waits for N LiveView frames */
 int wait_lv_frames(int num_frames)
 {
@@ -61,7 +61,7 @@ int wait_lv_frames(int num_frames)
     }
     return 1;
 }
-
+#endif
 static void FAST vsync_func() // called once per frame.. in theory :)
 {
     vsync_counter++;
