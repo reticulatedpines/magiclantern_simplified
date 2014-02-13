@@ -59,6 +59,7 @@ NSTUB(0xFF020DFC, GUI_Control)                    // might be good (dumps=1, sco
 NSTUB(0xFF223218, GUI_GetFirmVersion)             // might be good (dumps=1, score=11)
 NSTUB(0xFF510C1C, GetCFnData)                     // might be good (dumps=1, score=19)
 NSTUB(0xFF070710, GetMemoryInformation)           // might be good (dumps=1, score=6.4)
+NSTUB(0xFF0706BC, GetSizeOfMaxRegion)
 NSTUB(0xFF3714A4, HideUnaviFeedBack_maybe)        // might be good (dumps=1, score=1.2)
 NSTUB(0xFF3712C8, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
 NSTUB(0x1C06C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
