@@ -836,6 +836,7 @@ static void guess_free_mem_task(void* priv, int delta)
     {
         beep();
         guess_mem_running = 0;
+        give_semaphore(mem_sem);
         return;
     }
     max_shoot_malloc_frag_mem = hSuite->size;
