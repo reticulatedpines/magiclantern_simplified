@@ -307,9 +307,26 @@ static void bsod()
 
 static void run_test()
 {
-    void* p = malloc(2*1024*1024);
-    free(p);
-    free(p); /* the backend should catch this */
+    /* check for memory leaks */
+    for (int i = 0; i < 1000; i++)
+    {
+        console_printf("%d/1000\n", i);
+        
+        /* with this large size, the backend will use shoot_malloc, which returns uncacheable pointers */
+        void* p = malloc(16*1024*1024 + 64);
+        
+        /* however, user code should not care about this; we have requested a plain old cacheable pointer; did we get one? */
+        ASSERT(p == CACHEABLE(p));
+        
+        /* do something with our memory */
+        memset(p, 1234, 1234);
+        msleep(20);
+        
+        /* done, now free it */
+        /* the backend should put back the uncacheable flag (if handled incorrectly, there may be memory leaks) */
+        free(p);
+        msleep(20);
+    }
     return;
 
    //~ bfnt_test();

@@ -32,6 +32,9 @@
 #define JUST_FREED 0xF12EEEED   /* FREEED */
 #define UNTRACKED 0xFFFFFFFF
 
+/* used for faking the cacheable flag (internally we must use the same flag as returned by allocator) */
+#define UNCACHEABLE_FLAG 0x8000
+
 typedef void* (*mem_init_func)();
 typedef void* (*mem_alloc_func)(size_t size);
 typedef void (*mem_free_func)(void* ptr);
@@ -482,9 +485,12 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
         ((unsigned char *)ptr)[pos] = 0xA5;
     }
     
+    /* did our allocator return a cacheable or uncacheable pointer? */
+    unsigned int uncacheable_flag = (ptr == (unsigned int) UNCACHEABLE(ptr)) ? UNCACHEABLE_FLAG : 0;
+    
     ((struct memcheck_hdr *)ptr)->length = len;
     ((struct memcheck_hdr *)ptr)->allocator = allocator_index;
-    ((struct memcheck_hdr *)ptr)->flags = flags;
+    ((struct memcheck_hdr *)ptr)->flags = flags | uncacheable_flag;
 
     memcheck_add(ptr, file, line);
     
@@ -681,6 +687,10 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
         }
         else
         {
+            /* force the cacheable pointer to be the way user requested it */
+            /* note: internally, this library must use the vanilla pointer (non-mangled) */
+            ptr = (flags & MEM_DMA) ? UNCACHEABLE(ptr) : CACHEABLE(ptr);
+
             dbg_printf("alloc ok, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
         }
         
@@ -699,11 +709,14 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
 void __mem_free(void* buf)
 {
     take_semaphore(mem_sem, 0);
-    
+
     unsigned int ptr = (unsigned int)buf - MEM_SEC_ZONE;
 
     int allocator_index = ((struct memcheck_hdr *)ptr)->allocator;
     unsigned int flags = ((struct memcheck_hdr *)ptr)->flags;
+
+    /* make sure the caching flag is the same as returned by the allocator */
+    buf = (flags & UNCACHEABLE_FLAG) ? UNCACHEABLE(buf) : CACHEABLE(buf);
 
     dbg_printf("free(%s) from task %s\n", format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), get_task_name_from_id((int)get_current_task()));
     
