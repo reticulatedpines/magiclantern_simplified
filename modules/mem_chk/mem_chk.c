@@ -218,14 +218,14 @@ static struct menu_entry mem_chk_menu[] =
 
 static unsigned int mem_chk_init()
 {
-    menu_add("Debug", mem_chk_menu, COUNT(mem_chk_menu));
+    menu_add("Burn-in tests", mem_chk_menu, COUNT(mem_chk_menu));
     return 0;
 }
 
 static unsigned int mem_chk_deinit()
 {
     mem_chk_abort_threads();
-    menu_remove("Debug", mem_chk_menu, COUNT(mem_chk_menu));
+    menu_remove("Burn-in tests", mem_chk_menu, COUNT(mem_chk_menu));
     return 0;
 }
 
