@@ -186,7 +186,6 @@ static int get_mic_power(int input_source)
 #ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update()
 {
-#ifndef CONFIG_7D
     // kill video connect/disconnect event... or not
     *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
@@ -196,7 +195,6 @@ static void audio_monitoring_update()
         msleep(1000);
         audio_monitoring_display_headphones_connected_or_not();
     }
-#endif
 }
 #endif
 

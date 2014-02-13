@@ -11,6 +11,7 @@
 #undef FEATURE_FPS_OVERRIDE
 
 #undef FEATURE_WIND_FILTER //Blocks Meters, esp external audio
+#undef FEATURE_HEADPHONE_MONITORING // need code on master (?)
 
 #define FEATURE_VIDEO_HACKS
 
