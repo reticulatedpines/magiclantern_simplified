@@ -779,6 +779,8 @@ static char memory_map[720];
 static volatile int guess_mem_running = 0;
 static void guess_free_mem_task(void* priv, int delta)
 {
+    take_semaphore(mem_sem, 0);
+
     /* reset values */
     max_stack_ack = 0;
     max_shoot_malloc_mem = 0;
@@ -869,6 +871,8 @@ static void guess_free_mem_task(void* priv, int delta)
 
     menu_redraw();
     guess_mem_running = 0;
+    
+    give_semaphore(mem_sem);
 }
 
 static void guess_free_mem()
