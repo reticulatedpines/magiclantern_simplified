@@ -596,7 +596,7 @@ static struct menu_entry audio_menus[] = {
     #endif
 };
 
-#ifdef CONFIG_AUDIO_CONTROLS
+#if defined(CONFIG_AUDIO_CONTROLS) && !defined(CONFIG_7D)
 
 void sounddev_task();
 
@@ -654,9 +654,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_7D)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
-#endif
 
 #endif
 

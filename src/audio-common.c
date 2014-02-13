@@ -402,10 +402,6 @@ compute_audio_levels(
     level->peak_fast = ( level->peak_fast * 7 + level->avg ) / 8;
 }
 
-#if defined(CONFIG_7D)
-static int setonce = 0;
-#endif
-
 /** Task to monitor the audio levels.
  *
  * Compute the average and peak level, periodically calling
@@ -416,45 +412,49 @@ static int setonce = 0;
 static void
 meter_task( void* unused )
 {
+    /* some models require the audio to be enabled using audio_configure() */
+    int reconfig_audio = 1;
 
-#if defined(CONFIG_600D) || defined(CONFIG_7D)
-    //initialize audio config for 600D
-    audio_configure(1);    
-#endif
-        
     TASK_LOOP
+    {
+        msleep(DISPLAY_IS_ON ? 50 : 500);
+        
+        if(audio_meters_are_drawn())
         {
-            msleep(DISPLAY_IS_ON ? 50 : 500);
-            
-            if (audio_meters_are_drawn())
+            if(!is_mvr_buffer_almost_full())
             {
-                if (!is_mvr_buffer_almost_full())
-                    BMP_LOCK( draw_meters(); )
-#ifdef CONFIG_7D
-                if (!RECORDING_H264 && !setonce)
-                {
-                    audio_configure(1);
-                    setonce=1;
-                }
-                if (RECORDING_H264) //Do it again after movie end.
-                    setonce = 0;
-#endif
+                BMP_LOCK( draw_meters(); )
             }
-#if defined(CONFIG_7D)
-            else if (PLAY_OR_QR_MODE || MENU_MODE) { setonce=0; }
+            
+            if(RECORDING)
+            {
+                reconfig_audio = 0;
+            }
+            else if(!reconfig_audio)
+            {
+#if defined(CONFIG_600D) || defined(CONFIG_7D)
+                audio_configure(1);
 #endif
-            if (audio_monitoring)
-                {
-                    static int hp = 0;
-                    int h = AUDIO_MONITORING_HEADPHONES_CONNECTED;
-                        
-                    if (h != hp)
-                        {
-                            audio_monitoring_display_headphones_connected_or_not();
-                        }
-                    hp = h;
-                }
+                reconfig_audio = 1;
+            }
         }
+        else if(PLAY_OR_QR_MODE || MENU_MODE)
+        {
+            reconfig_audio = 0;
+        }
+        
+        if(audio_monitoring)
+        {
+            static int hp = 0;
+            int h = AUDIO_MONITORING_HEADPHONES_CONNECTED;
+                
+            if (h != hp)
+            {
+                audio_monitoring_display_headphones_connected_or_not();
+            }
+            hp = h;
+        }
+    }
 }
 
 
