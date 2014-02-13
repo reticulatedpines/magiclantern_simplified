@@ -451,24 +451,33 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
 {
     unsigned int ptr;
     
-    // dbg_printf("alloc %d %s:%d\n ", len, file, line);
+    //~ dbg_printf("alloc %d %s:%d\n ", len, file, line);
+    //~ int t0 = get_ms_clock_value();
 
     int requires_dma = flags & MEM_DMA;
     if (requires_dma)
     {
-        ptr = (unsigned int) UNCACHEABLE(allocators[allocator_index].malloc_dma(len + 2 * MEM_SEC_ZONE));
+        ptr = (unsigned int) allocators[allocator_index].malloc_dma(len + 2 * MEM_SEC_ZONE);
     }
     else
     {
-        ptr = (unsigned int) CACHEABLE(allocators[allocator_index].malloc(len + 2 * MEM_SEC_ZONE));
+        ptr = (unsigned int) allocators[allocator_index].malloc(len + 2 * MEM_SEC_ZONE);
     }
+
+    //~ int t1 = get_ms_clock_value();
+    //~ dbg_printf("alloc returned %x, took %s%d.%03d s\n", ptr, FMT_FIXEDPOINT3(t1-t0));
     
     /* some allocators may return invalid ptr; discard it and return 0, as C malloc does */
     if ((intptr_t)ptr & 1) return 0;
     if (!ptr) return 0;
     
-    /* first fill all with 0xA5 */
-    for(unsigned pos = 0; pos < (len + 2 * MEM_SEC_ZONE); pos++)
+    /* fill MEM_SEC_ZONE with 0xA5 */
+    for(unsigned pos = 0; pos < MEM_SEC_ZONE; pos++)
+    {
+        ((unsigned char *)ptr)[pos] = 0xA5;
+    }
+
+    for(unsigned pos = len + MEM_SEC_ZONE; pos < len + 2 * MEM_SEC_ZONE; pos++)
     {
         ((unsigned char *)ptr)[pos] = 0xA5;
     }
@@ -535,6 +544,8 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         int has_non_dma = allocators[a].malloc ? 1 : 0;
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
         int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
+
+        /* TODO: get rid of cascaded if's (use negative logic and "continue") */
         
         /* do we need DMA? */
         if (
@@ -647,27 +658,40 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     /* did we find one? */
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
-        dbg_printf("using %s (%d blocks)\n", allocators[allocator_index].name, allocators[allocator_index].num_blocks);
-
         /* yes, let's allocate */
+
+        dbg_printf("using %s (%d blocks)\n", allocators[allocator_index].name, allocators[allocator_index].num_blocks);
+        
+        #ifdef MEM_DEBUG
+        int t0 = get_ms_clock_value();
+        #endif
+        
         void* ptr = memcheck_malloc(size, file, line, allocator_index, flags);
+        
+        #ifdef MEM_DEBUG
+        int t1 = get_ms_clock_value();
+        #endif
         
         if (!ptr)
         {
             /* didn't work? */
             snprintf(last_error_msg_short, sizeof(last_error_msg_short), "%s(%s,%x)", allocators[allocator_index].name, format_memory_size_and_flags(size, flags));
             snprintf(last_error_msg, sizeof(last_error_msg), "%s(%s) failed at %s:%d, %s.", allocators[allocator_index].name, format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+            dbg_printf("alloc fail, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
+        }
+        else
+        {
+            dbg_printf("alloc ok, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
         }
         
         give_semaphore(mem_sem);
-        dbg_printf("alloc ok\n");
         return ptr;
     }
     
     /* could not find an allocator (maybe out of memory?) */
     snprintf(last_error_msg_short, sizeof(last_error_msg_short), "alloc(%s)", format_memory_size_and_flags(size, flags));
     snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
-    dbg_printf("alloc fail\n");
+    dbg_printf("alloc not found\n");
     give_semaphore(mem_sem);
     return 0;
 }
@@ -676,7 +700,7 @@ void __mem_free(void* buf)
 {
     take_semaphore(mem_sem, 0);
     
-    unsigned int ptr = ((unsigned int)buf - MEM_SEC_ZONE);
+    unsigned int ptr = (unsigned int)buf - MEM_SEC_ZONE;
 
     int allocator_index = ((struct memcheck_hdr *)ptr)->allocator;
     unsigned int flags = ((struct memcheck_hdr *)ptr)->flags;
@@ -686,10 +710,14 @@ void __mem_free(void* buf)
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
         memcheck_free(buf, allocator_index, flags);
+        dbg_printf("free ok\n");
+    }
+    else
+    {
+        dbg_printf("free fail\n");
     }
     
     give_semaphore(mem_sem);
-    dbg_printf("free ok\n");
 }
 
 /* initialize memory pools, if any of them needs that */
