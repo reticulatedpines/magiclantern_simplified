@@ -813,20 +813,25 @@ static void guess_free_mem_task(void* priv, int delta)
 
     bin_search(1, 1024, stack_size_crit);
 
+    /* we won't keep these things allocated much, so we can pause malloc activity while running this (just so nothing will fail) */
+    /* note: we use the _underlined routines here, but please don't do that in user code */
+    take_semaphore(mem_sem, 0);
+
     {
-        struct memSuite * hSuite = shoot_malloc_suite_contig(0);
+        struct memSuite * hSuite = _shoot_malloc_suite_contig(0);
         if (!hSuite)
         {
             beep();
             guess_mem_running = 0;
+            give_semaphore(mem_sem);
             return;
         }
         ASSERT(hSuite->num_chunks == 1);
         max_shoot_malloc_mem = hSuite->size;
-        shoot_free_suite(hSuite);
+        _shoot_free_suite(hSuite);
     }
 
-    struct memSuite * hSuite = shoot_malloc_suite(0);
+    struct memSuite * hSuite = _shoot_malloc_suite(0);
     if (!hSuite)
     {
         beep();
@@ -865,7 +870,10 @@ static void guess_free_mem_task(void* priv, int delta)
 
     exmem_clear(hSuite, 0);
 
-    shoot_free_suite(hSuite);
+    _shoot_free_suite(hSuite);
+
+    /* mallocs can resume now */
+    give_semaphore(mem_sem);
 
     /* memory analysis: how much appears unused? */
     for (uint32_t i = 0; i < 720; i++)
