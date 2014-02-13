@@ -516,7 +516,7 @@ bmp_load(
     uint8_t * buf = fio_malloc( size );
     if( !buf )
     {
-        DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
+        DebugMsg( DM_MAGIC, 3, "%s: fio_malloc failed", filename );
         goto malloc_fail;
     }
 
@@ -643,7 +643,7 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
     uint8_t * buf = fio_malloc( size + 1);
     if( !buf )
     {
-        DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
+        DebugMsg( DM_MAGIC, 3, "%s: fio_malloc failed", filename );
         goto malloc_fail;
     }
     size_t rc = read_file( filename, buf, size );
