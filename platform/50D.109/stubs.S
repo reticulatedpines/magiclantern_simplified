@@ -273,7 +273,6 @@ NSTUB(0xff86bf7c, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff869524, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff869c9c, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 NSTUB(0xff868f44, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
-NSTUB(0xFF868074, GetSizeOfMaxRegion)
 
 /** EDMAC routines **/
 NSTUB(0xFF97C8D4, SetEDmac)
