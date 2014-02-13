@@ -1705,8 +1705,15 @@ static void hack_liveview(int32_t unhack)
 {
     if (PREVIEW_NOT || kill_gd)
     {
-        idle_globaldraw_dis();
-        clrscr();
+        if (!unhack)
+        {
+            idle_globaldraw_dis();
+            clrscr();
+        }
+        else
+        {
+            idle_globaldraw_en();
+        }
     }
     if (small_hacks)
     {
