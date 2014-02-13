@@ -645,8 +645,6 @@ static int guess_submenu_enabled(struct menu_entry * entry)
     else 
     {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
         struct menu_entry * e = entry->children;
-        
-        while (e->prev) e = e->prev;
 
         for( ; e ; e = e->next )
         {
@@ -1148,6 +1146,10 @@ menu_add_base(
                 menu_add(entry->name, entry->children, count);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
+            
+            /* ensure the "children" field always points to the very first item in the submenu */
+            /* (important when merging 2 submenus) */
+            while (entry->children->prev) entry->children = entry->children->prev;
         }
         entry = entry->prev;
         if (!entry) break;
@@ -4102,6 +4104,7 @@ static struct menu * get_current_submenu()
         }
         if(!entry) break;
     }
+
     if (entry && entry->children)
         return menu_find_by_name(entry->name, 0);
 
