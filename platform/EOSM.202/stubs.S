@@ -167,6 +167,7 @@ NSTUB(0xFF13B924, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xFFA72C98 - RAM_OFFSET, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA73434 - RAM_OFFSET, GetNextMemoryChunk)
 NSTUB(0xFFA72670 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+NSTUB(0x7C24, GetSizeOfMaxRegion)
 
 /** Engio **/
 NSTUB(0xFF2C19AC, _engio_write)

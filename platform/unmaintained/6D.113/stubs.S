@@ -214,6 +214,7 @@ NSTUB(0xFF14A588, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
 NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
+NSTUB(0x0A318, GetSizeOfMaxRegion)
 
 /* Electronic level - roll/pitch info */
 NSTUB(0xFF270968, GUI_SetRollingPitchingLevelStatus); // RequestRollingPitching - no side effects :)
