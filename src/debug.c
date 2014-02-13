@@ -307,6 +307,8 @@ static void bsod()
 
 static void run_test()
 {
+    msleep(1000);
+    
     /* check for memory leaks */
     for (int i = 0; i < 1000; i++)
     {
@@ -314,6 +316,12 @@ static void run_test()
         
         /* with this large size, the backend will use shoot_malloc, which returns uncacheable pointers */
         void* p = malloc(16*1024*1024 + 64);
+        
+        if (!p)
+        {
+            console_printf("malloc err\n");
+            continue;
+        }
         
         /* however, user code should not care about this; we have requested a plain old cacheable pointer; did we get one? */
         ASSERT(p == CACHEABLE(p));
