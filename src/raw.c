@@ -367,6 +367,7 @@ static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level(int initial_guess);
 
+#ifdef CONFIG_RAW_LIVEVIEW
 /* returns 1 on success */
 static int raw_lv_get_resolution(int* width, int* height)
 {
@@ -414,6 +415,7 @@ static int raw_lv_get_resolution(int* width, int* height)
     return 1;
 #endif
 }
+#endif
 
 static int raw_update_params_work()
 {
