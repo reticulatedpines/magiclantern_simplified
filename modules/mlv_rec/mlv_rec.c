@@ -374,7 +374,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     /* add an megabyte extra */
     size += 1024 * 1024;
     
-    int file_size = 0;
+    uint32_t file_size = 0;
     if(!FIO_GetFileSize(filename, &file_size))
     {
         /* file already exists and reserves enough room */
@@ -390,16 +390,18 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     FILE *dummy_file = FIO_CreateFileEx(filename);
     if(dummy_file == INVALID_PTR)
     {
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
         return 0;
     }
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
-    FIO_WriteFile(dummy_file, 0x40000000, size);
+    FIO_WriteFile(dummy_file, (void*)0x40000000, size);
     uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
     {
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to write to dummy file", filename);
         return 0;
     }
     
@@ -2871,7 +2873,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
 
 static void mlv_precreate_files(char *base_filename, uint32_t count)
 {
-    for(int pos = 0; pos < count; pos++)
+    for(uint32_t pos = 0; pos < count; pos++)
     {
         char filename[64];
         get_next_chunk_file_name(base_filename, filename, pos, 0);
@@ -2880,7 +2882,7 @@ static void mlv_precreate_files(char *base_filename, uint32_t count)
 
 static void mlv_prealloc_files(char *base_filename, prealloc_entry_t *prealloc_buf, uint32_t count, uint32_t writer)
 {
-    for(int pos = 0; pos < count; pos++)
+    for(uint32_t pos = 0; pos < count; pos++)
     {
         get_next_chunk_file_name(base_filename, prealloc_buf[pos].filename, pos, writer);
 
@@ -2952,6 +2954,7 @@ static void raw_video_rec_task()
     /* allocate memory */
     if(!setup_buffers())
     {
+        trace_write(raw_rec_trace_ctx, "FIO_CreateFileEx(#%d): FAILED");
         NotifyBox(5000, "Failed to create file. Card/RAM full?");
         beep();
         goto cleanup;
@@ -3563,11 +3566,13 @@ static void raw_video_rec_task()
 cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
-    
+
+    /*
     if(DISPLAY_REC_INFO_DEBUG)
     {
         NotifyBox(5000, "Frames captured: %d", frame_count - 1);
     }
+    */
     
     if(show_graph)
     {
