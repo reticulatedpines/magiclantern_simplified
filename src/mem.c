@@ -733,10 +733,37 @@ void __mem_free(void* buf)
     give_semaphore(mem_sem);
 }
 
+/* thread-safe wrappers for exmem routines */
+struct memSuite *shoot_malloc_suite(size_t size)
+{
+    take_semaphore(mem_sem, 0);
+    void* ans = _shoot_malloc_suite(size);
+    give_semaphore(mem_sem);
+    return ans;
+}
+
+void shoot_free_suite(struct memSuite * hSuite)
+{
+    take_semaphore(mem_sem, 0);
+    _shoot_free_suite(hSuite);
+    give_semaphore(mem_sem);
+}
+
+struct memSuite * shoot_malloc_suite_contig(size_t size)
+{
+    take_semaphore(mem_sem, 0);
+    void* ans = _shoot_malloc_suite_contig(size);
+    give_semaphore(mem_sem);
+    return ans;
+}
+
+
 /* initialize memory pools, if any of them needs that */
 /* (called as the first init func => mem.o should be first in the Makefile.src (well, after boot-hack) */
 static void mem_init()
 {
+    mem_sem = create_named_semaphore("mem_sem", 1);
+
     for (int a = 0; a < COUNT(allocators); a++)
     {
         if (allocators[a].init)
@@ -779,8 +806,6 @@ static char memory_map[720];
 static volatile int guess_mem_running = 0;
 static void guess_free_mem_task(void* priv, int delta)
 {
-    take_semaphore(mem_sem, 0);
-
     /* reset values */
     max_stack_ack = 0;
     max_shoot_malloc_mem = 0;
@@ -871,8 +896,6 @@ static void guess_free_mem_task(void* priv, int delta)
 
     menu_redraw();
     guess_mem_running = 0;
-    
-    give_semaphore(mem_sem);
 }
 
 static void guess_free_mem()
@@ -1250,7 +1273,6 @@ static struct menu_entry mem_menus[] = {
 
 void mem_menu_init()
 {
-    mem_sem = create_named_semaphore("mem_sem", 1);
     menu_add("Debug", mem_menus, COUNT(mem_menus));
     //~ console_show();
 }

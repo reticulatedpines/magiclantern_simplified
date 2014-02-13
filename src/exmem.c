@@ -47,7 +47,7 @@ static void freeCBR_nowait(unsigned int a)
 {
 }
 
-void shoot_free_suite(struct memSuite * hSuite)
+void _shoot_free_suite(struct memSuite * hSuite)
 {
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
@@ -151,7 +151,7 @@ static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
     return hSuite;
 }
 
-struct memSuite *shoot_malloc_suite(size_t size)
+struct memSuite *_shoot_malloc_suite(size_t size)
 {
     if(entire_memory_allocated)
     {
@@ -176,7 +176,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
             struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024, 1);
             if(testSuite)
             {
-                shoot_free_suite(testSuite);
+                _shoot_free_suite(testSuite);
                 max_size = size * 1024 * 1024;
             }
             else
@@ -185,7 +185,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
             }
         }
         /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
-        shoot_free_suite(backup);
+        _shoot_free_suite(backup);
         
         /* allocating max_size + backup_size was reported to fail sometimes */
         struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
@@ -195,7 +195,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     }
 }
 
-struct memSuite * shoot_malloc_suite_contig(size_t size)
+struct memSuite * _shoot_malloc_suite_contig(size_t size)
 {
     if (entire_memory_allocated)
     {
@@ -232,7 +232,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         //~ entire_memory_allocated = (void*) -1;   /* temporary, just mark as busy */
 
         /* find the largest chunk and try to allocate it */
-        struct memSuite * hSuite = shoot_malloc_suite(0);
+        struct memSuite * hSuite = _shoot_malloc_suite(0);
         if (!hSuite) return 0;
         
         int max_size = 0;
@@ -244,9 +244,9 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
             hChunk = GetNextMemoryChunk(hSuite, hChunk);
         }
         
-        shoot_free_suite(hSuite);
+        _shoot_free_suite(hSuite);
         
-        hSuite = shoot_malloc_suite_contig(max_size);
+        hSuite = _shoot_malloc_suite_contig(max_size);
         entire_memory_allocated = hSuite;   /* we need to know which memory suite ate all the RAM; when this is freed, we can shoot_malloc again */
         return hSuite;
     }
@@ -254,7 +254,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
 
 void* _shoot_malloc(size_t size)
 {
-    struct memSuite * theSuite = shoot_malloc_suite_contig(size + 4);
+    struct memSuite * theSuite = _shoot_malloc_suite_contig(size + 4);
     if (!theSuite) return 0;
     
     /* now we only have to tweak some things so it behaves like plain malloc */
