@@ -1093,7 +1093,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
             int flags = ((struct memcheck_hdr *)ptr)->flags;
             int allocator = ((struct memcheck_hdr *)ptr)->allocator;
             
-            if (size < 1024 || y > 300)
+            if (size < 32768 || y > 300)
             {
                 small_blocks++;
                 small_blocks_size += size;
@@ -1127,29 +1127,32 @@ static MENU_UPDATE_FUNC(mem_total_display)
         
         int t0 = history[first_index].timestamp;
         int t_end = get_ms_clock_value();
-        int peak_x = 0;
         int peak_y = y+10;
+        int peak = alloc_total_peak_with_memcheck;
+        int total = alloc_total_with_memcheck;
         if (t_end > t0)
         {
             int maxh = 480 - peak_y;
-            bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, 250);
-            for (int i = first_index; i != history_index; i = mod(i+1, HISTORY_ENTRIES))
+            bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, maxh);
+            int next_i;
+            for (int i = first_index; i != history_index; i = next_i)
             {
+                next_i = mod(i+1, HISTORY_ENTRIES);
                 int t = history[i].timestamp;
-                int t2 = history[i+1].timestamp;
+                int t2 = (next_i != history_index) ? history[next_i].timestamp : t_end;
+                if (t2 < t) continue;
                 if (i == history_index-1) t2 = t_end;
                 int x = 720 * (t - t0) / (t_end - t0);
                 int x2 = 720 * (t2 - t0) / (t_end - t0);
-                int h = history[i].alloc_total * maxh / alloc_total_peak_with_memcheck;
+                int h = MIN((uint64_t)history[i].alloc_total * maxh / peak, maxh);
                 y = 480 - h;
                 int w = MAX(x2-x, 2);
                 bmp_fill(h == maxh ? COLOR_RED : COLOR_BLUE, x, y, w, h);
-                if (h == maxh)
-                    peak_x = x;
             }
         }
-        bmp_printf(FONT_MED, peak_x+5, peak_y, "%s", format_memory_size(alloc_total_peak_with_memcheck));
-        bmp_printf(FONT_MED, 650, y-20, "%s", format_memory_size(alloc_total_with_memcheck));
+
+        bmp_printf(FONT_MED, 10, peak_y, "%s", format_memory_size(peak));
+        bmp_printf(FONT_MED, 650, MAX(y-20, peak_y), "%s", format_memory_size(total));
     }
     else
     {
