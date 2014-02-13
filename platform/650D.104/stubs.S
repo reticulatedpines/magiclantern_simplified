@@ -176,6 +176,7 @@ NSTUB(0x0000252C, get_current_task)
 NSTUB(   0x505EC, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(0x00007498, GetMemoryInformation)
+NSTUB(0x00007444, GetSizeOfMaxRegion)
 
 NSTUB(0x00013460, msg_queue_create)
 
