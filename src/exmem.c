@@ -277,6 +277,11 @@ void _shoot_free(void* ptr)
 /* just a dummy heuristic for now */
 int _shoot_get_free_space()
 {
+    if (!alloc_sem)
+    {
+        return 0;
+    }
+    
     if (entire_memory_allocated)
     {
         return 0;
