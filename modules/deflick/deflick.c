@@ -15,10 +15,14 @@
 #include "fileprefix.h"
 #include "module.h"
 
-static int post_deflicker = 0;
-static int post_deflicker_sidecar_type = 1;
-static int post_deflicker_percentile = 50;
-static int post_deflicker_target_level = -4;
+static CONFIG_INT("post.deflicker", post_deflicker, 0);
+static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);
+static CONFIG_INT("post.deflicker.prctile", post_deflicker_percentile, 50);
+static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
+
+static int deflicker_last_correction_x100 = 0;
+static struct semaphore * deflicker_sem = 0;
+static volatile int deflicker_waiting = 0;
 
 static char* xmp_template =
 "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Magic Lantern\">\n"
@@ -104,10 +108,6 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
 
     post_deflicker_save_sidecar_file(type, fn, ev);
 }
-
-static int deflicker_last_correction_x100 = 0;
-static struct semaphore * deflicker_sem = 0;
-static volatile int deflicker_waiting = 0;
 
 static void post_deflicker_task()
 {
@@ -242,6 +242,13 @@ static unsigned int post_deflicker_init()
 MODULE_INFO_START()
     MODULE_INIT(post_deflicker_init)
 MODULE_INFO_END()
+
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(post_deflicker)
+    MODULE_CONFIG(post_deflicker_sidecar_type)
+    MODULE_CONFIG(post_deflicker_percentile)
+    MODULE_CONFIG(post_deflicker_target_level)
+MODULE_CONFIGS_END()
 
 MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_GUI_STATE)
