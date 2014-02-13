@@ -156,6 +156,7 @@ NSTUB(0xff9e8c84 - RAM_OFFSET, _FreeMemory)
 NSTUB(0xff9f6ee4 - RAM_OFFSET, _alloc_dma_memory)
 NSTUB(0xff9f6f18 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF9E8688 - RAM_OFFSET, GetMemoryInformation)
+NSTUB(0xFF9E8634 - RAM_OFFSET, GetSizeOfMaxRegion)
 
 /** ExMem **/
 NSTUB(0xff13c134, AllocateMemoryResource) // m_pfAllocMemoryCBR
