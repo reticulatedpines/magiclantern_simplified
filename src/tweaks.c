@@ -2934,7 +2934,7 @@ static void defish_draw_lv_color()
             }
         }
         info_led_off();
-        free(defish_lut);
+        fio_free(defish_lut);
     }
     
     defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, defish_ind);

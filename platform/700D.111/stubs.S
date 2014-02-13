@@ -162,6 +162,7 @@ NSTUB(    0x7A94, _FreeMemory)
 NSTUB(   0x16E8C, _alloc_dma_memory)
 NSTUB(   0x16EC0, _free_dma_memory)
 NSTUB(    0x7498, GetMemoryInformation)
+NSTUB(    0x7444, GetSizeOfMaxRegion)
 
 /** ExMem **/
 NSTUB(0xFF13C5D8, AllocateMemoryResource)
