@@ -206,12 +206,10 @@ extern int ResumeLiveView();
 
 static int pre_shutdown_requested = 0; // used for preventing wakeup from paused LiveView at shutdown (causes race condition with Canon code and crashes)
 
-int reset_pre_shutdown_flag_step() // called every second
+void reset_pre_shutdown_flag_step() // called every second
 {
     if (pre_shutdown_requested && !sensor_cleaning)
         pre_shutdown_requested--;
-    
-    return pre_shutdown_requested;
 }
 
 void check_pre_shutdown_flag() // called from ml_shutdown
