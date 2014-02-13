@@ -10,11 +10,19 @@
  */
 #define NO_MALLOC_REDIRECT
 
+#undef MEM_DEBUG        /* define this one to print a log about who is allocating what */
+
 #include "compiler.h"
 #include "tasks.h"
 #include "limits.h"
 #include "bmp.h"
 #include "menu.h"
+
+#ifdef MEM_DEBUG
+#define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
+#else
+#define dbg_printf(fmt,...) {}
+#endif
 
 #define MEM_SEC_ZONE 32
 #define MEMCHECK_ENTRIES 256
@@ -58,6 +66,7 @@ struct mem_allocator
     int preferred_max_alloc_size;           /* (but if it can't find any, it may still use this buffer) */
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
     int minimum_free_space;                 /* will never allocate if free space would drop under this */
+    int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
     
     /* private stuff */
     int mem_used;
@@ -152,6 +161,7 @@ static struct mem_allocator allocators[] = {
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
         .preferred_max_alloc_size = 32 * 1024 * 1024,
+        .minimum_alloc_size = 32 * 1024,
     },
 #endif
 };
@@ -267,7 +277,7 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
     for(int pos = sizeof(struct memcheck_hdr); pos < MEM_SEC_ZONE; pos++)
     {
         unsigned char value = ((unsigned char *)ptr)[pos];
-        // console_printf("free check %d %x\n ", pos, value);
+        // dbg_printf("free check %d %x\n ", pos, value);
         if (value != 0xA5)
         {
             failed |= 2;
@@ -278,7 +288,7 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
     {
         int pos2 = MEM_SEC_ZONE + ((struct memcheck_hdr *)ptr)->length + pos;
         unsigned char value = ((unsigned char *)ptr)[pos2];
-        // console_printf("free check %d %x\n ", pos2, value);
+        // dbg_printf("free check %d %x\n ", pos2, value);
         if (value != 0xA5)
         {
             failed |= 4;
@@ -441,7 +451,7 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
 {
     unsigned int ptr;
     
-    // console_printf("alloc %d %s:%d\n ", len, file, line);
+    // dbg_printf("alloc %d %s:%d\n ", len, file, line);
 
     int requires_dma = flags & MEM_DMA;
     if (requires_dma)
@@ -539,14 +549,22 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                )
             {
                 /* matches preferred size criteria? */
-                if (
-                        !require_preferred_size ||
-                        (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                if 
+                    (
+                        (
+                            !require_preferred_size ||
+                            (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                        )
+                        && 
+                        (
+                            /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
+                            size >= allocators[a].minimum_alloc_size
+                        )
                    )
                 {
                     /* do we have enough free space without exceeding the preferred limit? */
                     int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
-                    //~ console_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
+                    //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
                     if (
                             (
                                 /* preferred free space is... well... optional */
@@ -563,7 +581,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                         /* do we have a large enough contiguous chunk? */
                         /* use a heuristic if we don't know, use a safety margin even if we know */
                         int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
-                        //~ console_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
+                        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
                         if (size < max_region)
                         {
                             /* yes, we do! */
@@ -618,7 +636,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
 {
     take_semaphore(mem_sem, 0);
 
-    //~ console_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    dbg_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
     
     /* show files without full path in error messages (they are too big) */
     file = file_name_without_path(file);
@@ -629,6 +647,8 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     /* did we find one? */
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
+        dbg_printf("using %s (%d blocks)\n", allocators[allocator_index].name, allocators[allocator_index].num_blocks);
+
         /* yes, let's allocate */
         void* ptr = memcheck_malloc(size, file, line, allocator_index, flags);
         
@@ -640,12 +660,14 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
         }
         
         give_semaphore(mem_sem);
+        dbg_printf("alloc ok\n");
         return ptr;
     }
     
     /* could not find an allocator (maybe out of memory?) */
     snprintf(last_error_msg_short, sizeof(last_error_msg_short), "alloc(%s)", format_memory_size_and_flags(size, flags));
     snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    dbg_printf("alloc fail\n");
     give_semaphore(mem_sem);
     return 0;
 }
@@ -659,8 +681,7 @@ void __mem_free(void* buf)
     int allocator_index = ((struct memcheck_hdr *)ptr)->allocator;
     unsigned int flags = ((struct memcheck_hdr *)ptr)->flags;
 
-    //~ unsigned int size = ((struct memcheck_hdr *)ptr)->length;
-    //~ console_printf("free(%s) from task %s\n", format_memory_size_and_flags(size, flags), get_task_name_from_id((int)get_current_task()));
+    dbg_printf("free(%s) from task %s\n", format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), get_task_name_from_id((int)get_current_task()));
     
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
@@ -668,6 +689,7 @@ void __mem_free(void* buf)
     }
     
     give_semaphore(mem_sem);
+    dbg_printf("free ok\n");
 }
 
 /* initialize memory pools, if any of them needs that */
