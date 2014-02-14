@@ -27,6 +27,7 @@
 #include <menu.h>
 #include <config.h>
 #include <bmp.h>
+#include <propvalues.h>
 #include "raw.h"
 #include "../trace/trace.h"
 #include "../mlv_rec/mlv.h"
@@ -241,6 +242,10 @@ static void mlv_snd_stop()
     
     /* some models may need this */
     SoundDevShutDownIn();
+    if(streq(camera_model_short, "7D"))
+    {
+        audio_configure(1);
+    }
     
     /* now flush the buffers */
     trace_write(trace_ctx, "mlv_snd_stop: flush mlv_snd_buffers_done");
@@ -644,7 +649,11 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
         if(mlv_snd_current_buffer && mlv_snd_next_buffer)
         {
             mlv_snd_state = MLV_SND_STATE_SOUND_RUNNING;
-            
+            if(streq(camera_model_short, "7D"))
+            {
+                audio_configure(1);
+            }
+        
             StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
             
             /* the current one will get filled right now */

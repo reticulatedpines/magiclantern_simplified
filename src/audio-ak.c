@@ -293,8 +293,10 @@ audio_configure( int force )
     // nothing here yet.
 #else
 
-#ifndef CONFIG_550D // no sound with external mic?!
+#ifdef FEATURE_WIND_FILTER // no sound with external mic?!
     audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
+#else //Turn it off
+    audio_ic_write( AUDIO_IC_FIL1 | 0);
 #endif
         
     // Enable loop mode and output digital volume2
@@ -652,7 +654,10 @@ my_sounddev_task()
         }
 }
 
+#if !defined(CONFIG_7D)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
+#endif
+
 #endif
 
 static void volume_display()
