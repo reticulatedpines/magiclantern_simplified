@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#define msleep(x) usleep((x)*1000)
+
 #if defined(TRACE_DISABLED)
 #define trace_write(x,...) do { (void)0; } while (0)
 #else
@@ -119,7 +121,7 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
         uint32_t elem_addr = (uint32_t)&ctx->key_uint64[pos];
         
         memcpy((void*)elem_addr, &ctx->key_uint8[pos], 8 - pos);
-        memcpy((void*)elem_addr + (8-pos), ctx->key_uint8, pos);
+        memcpy((void*)(elem_addr + (8 - pos)), &ctx->key_uint8[0], pos);
     }
 }
 
