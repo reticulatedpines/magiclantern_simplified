@@ -225,7 +225,6 @@ NSTUB(0xFF35DF58, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 NSTUB(0x29A9C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(0xff07cac8, GetMemoryInformation)
-NSTUB(0xFF07CA74, GetSizeOfMaxRegion)
 
 NSTUB(0xff07fc28, msg_queue_create)
 
