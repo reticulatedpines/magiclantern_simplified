@@ -68,7 +68,7 @@ static LVINFO_UPDATE_FUNC(indicator)
     int elapsed_time = get_seconds_clock() - movie_start_timestamp;
     int bytes_written_32k = MVR_BYTES_WRITTEN / 32768;
     int remaining_time = free_space_32k * elapsed_time / bytes_written_32k;
-    int avg_bitrate = MVR_BYTES_WRITTEN / 1024 / 1024 / elapsed_time;
+    int avg_bitrate = MVR_BYTES_WRITTEN / 1024 * 8 / 1024 / elapsed_time;
 
     switch(rec_indicator)
     {
@@ -103,12 +103,12 @@ static LVINFO_UPDATE_FUNC(indicator)
                 avg_bitrate
             );
             return;
-        case 3: //intstant bitrate
+        case 3: //instant bitrate
             snprintf(
                 buffer,
                 sizeof(buffer),
                 "%dMb/s",
-                (MVR_BYTES_WRITTEN / 1024 / 1024) / elapsed_time
+                measured_bitrate
              );
     }
 }
@@ -120,7 +120,26 @@ static struct lvinfo_item info_item = {
     .preferred_position = 127,
 };
 
-int is_mvr_buffer_almost_full() 
+void measure_bitrate() // called once / second
+{
+    static uint32_t prev_bytes_written = 0;
+    uint32_t bytes_written = MVR_BYTES_WRITTEN;
+    int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
+    if (bytes_delta < 0)
+    {
+        // We're either just starting a recording or we're wrapping over 4GB.
+        // either way, don't try to calculate the bitrate this time around.
+        prev_bytes_written = 0;
+        movie_bytes_written_32k = 0;
+        measured_bitrate = 0;
+        return;
+    }
+    prev_bytes_written = bytes_written;
+    movie_bytes_written_32k = bytes_written >> 15;
+    measured_bitrate = (bytes_delta / 1024) * 8 / 1024;
+}
+
+int is_mvr_buffer_almost_full()
 {
     return 0;
 }
