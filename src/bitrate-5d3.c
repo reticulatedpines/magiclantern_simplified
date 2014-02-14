@@ -10,6 +10,8 @@
 #include "config.h"
 #include "gui.h"
 #include "lens.h"
+#include "lvinfo.h"
+
 
 int hibr_should_record_wav() { return 0; }
 
@@ -17,7 +19,6 @@ static CONFIG_INT("h264.bitrate", bitrate, 3);
 CONFIG_INT( "rec_indicator", rec_indicator, 1);
 
 static int time_indic_warning = 120;
-static unsigned int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
 int measured_bitrate = 0; // mbps
 int movie_bytes_written_32k = 0;
@@ -44,6 +45,7 @@ PROP_HANDLER(PROP_MVR_REC_START)
         movie_start_timestamp = get_seconds_clock();
 }
 
+
 #if defined(CONFIG_6D)
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
@@ -53,61 +55,70 @@ extern int free_space_raw;
 #endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
-void indicator_show()
+static LVINFO_UPDATE_FUNC(indicator)
 {
+    LVINFO_BUFFER(8);
+    
+    /* Hide this LVINFO item if not recording H264 */
+    if(!RECORDING_H264)
+    {
+        snprintf(buffer,sizeof(buffer), ""); /* LVINFO won't display an empty buffer */
+        return;
+    }
+    
     int elapsed_time = get_seconds_clock() - movie_start_timestamp;
     int bytes_written_32k = MVR_BYTES_WRITTEN / 32768;
     int remaining_time = free_space_32k * elapsed_time / bytes_written_32k;
-    int avg_bitrate = MVR_BYTES_WRITTEN / 1024 * 8 / 1024 / elapsed_time;
-
-    int time_indic_x = os.x_max - 160;
-    int time_indic_y = get_ml_topbar_pos();
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
+    int avg_bitrate = MVR_BYTES_WRITTEN / 1024 / 1024 / elapsed_time;
 
     switch(rec_indicator)
     {
-        case 0: 
-            return;
-        case 1: // elapsed
-            bmp_printf(
-                FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
-                time_indic_x + 160 - 6 * font_med.width,
-                time_indic_y,
+        case 0: // elapsed
+            snprintf(
+                buffer, 
+                sizeof(buffer),
                 "%3d:%02d",
-                elapsed_time / 60,
+                elapsed_time / 60, 
                 elapsed_time % 60
             );
             return;
-        case 2: // remaining
-            bmp_printf(
-                remaining_time < time_indic_warning ? time_indic_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-                time_indic_x + 160 - 6 * font_med.width,
-                time_indic_y,
-                "%3d:%02d",
+        case 1: // remaining
+            snprintf(
+                buffer,
+                sizeof(buffer),
+                "%d:%02d",
                 remaining_time / 60,
                 remaining_time % 60
             );
+            if (remaining_time < time_indic_warning)
+            {
+                item->color_bg = COLOR_WHITE;
+                item->color_fg = COLOR_RED;
+            }
             return;
-        case 3: // avg bitrate
-            bmp_printf(
-                FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
-                time_indic_x + 160 - 6 * font_med.width,
-                time_indic_y,
+        case 2: // avg bitrate
+            snprintf(
+                buffer,
+                sizeof(buffer),
                 "%dMb/s",
                 avg_bitrate
             );
             return;
-        case 4: // instant bitrate
-            bmp_printf(
-                FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
-                time_indic_x + 160 - 6 * font_med.width,
-                time_indic_y,
+        case 3: //intstant bitrate
+            snprintf(
+                buffer,
+                sizeof(buffer),
                 "%dMb/s",
-                MVR_BYTES_WRITTEN / 1024 / 1024
-            );
-            return;
+                (MVR_BYTES_WRITTEN / 1024 / 1024) / elapsed_time
+             );
     }
 }
+
+static struct lvinfo_item info_item = {
+    .name = "Elapsed",
+    .which_bar = LV_TOP_BAR_ONLY,
+    .update = indicator,
+};
 
 int is_mvr_buffer_almost_full() 
 {
@@ -145,7 +156,7 @@ static struct menu_entry mov_menus[] = {
         .priv = &rec_indicator,
         .min = 0,
         .max = 3,
-        .choices = (const char *[]) {"Free space", "Elapsed time", "Remain.time (card)", "Average bitrate"},
+        .choices = (const char *[]) {"Elapsed Time", "Remaining Time", "Avg Bitrate", "Instant Bitrate"},
         .help = "What to display in top-right corner while recording.",
         .depends_on = DEP_MOVIE_MODE | DEP_GLOBAL_DRAW,
     },
@@ -154,14 +165,7 @@ static struct menu_entry mov_menus[] = {
 void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
+    lvinfo_add_item(&info_item);
 }
 
 INIT_FUNC(__FILE__, bitrate_init);
-
-void movie_indicators_show()
-{
-    if (RECORDING_H264)
-    {
-        BMP_LOCK( indicator_show(); )
-    }
-}
