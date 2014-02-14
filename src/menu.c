@@ -3768,6 +3768,8 @@ menu_entry_select(
         else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
     }
     
+    if(entry->unit == UNIT_TIME && edit_mode && caret_position == 0) caret_position = 1;
+    
     config_dirty = 1;
     mod_menu_dirty = 1;
 }
@@ -4442,7 +4444,7 @@ handle_ml_menu_keys(struct event * event)
                 caret_position--;
                 if(caret_position < 0 && entry->unit == UNIT_HEX) caret_position = log2i(MAX(abs(entry->max),abs(entry->min)))/4;
                 if(caret_position < 0 && entry->unit == UNIT_DEC) caret_position = log10i(MAX(abs(entry->max),abs(entry->min)));
-                if(caret_position < 0 && entry->unit == UNIT_TIME) caret_position = 7;
+                if(caret_position < 1 && entry->unit == UNIT_TIME) caret_position = 7;
                 if(entry->unit == UNIT_TIME && (caret_position == 3 || caret_position == 6)) caret_position --;
                 menu_damage = 1;
                 break;
