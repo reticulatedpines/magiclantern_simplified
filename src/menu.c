@@ -1943,12 +1943,12 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires Manual (M) mode.");
     else if (DEPENDS_ON(DEP_MANUAL_ISO) && !lens_info.raw_iso)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual ISO.");
-    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, (was_sound_recording_disabled_by_fps_override() && !fps_should_record_wav()) ? 
             "Sound recording was disabled by FPS override." :
             "Sound recording is disabled. Enable it from Canon menu."
         );
-    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Disable sound recording from Canon menu!");
     
     if (warning[0]) 
@@ -1984,9 +1984,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in Manual (M) mode.");
         else if (WORKS_BEST_IN(DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual ISO.");
-        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
-        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
         if (warning[0]) 

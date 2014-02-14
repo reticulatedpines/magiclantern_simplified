@@ -1,8 +1,39 @@
 #include "dryos.h"
 #include "lvinfo.h"
+#include "module.h"
 
+int sound_recording_enabled_canon()
+{
+    /* 1 means disabled */
+    return (sound_recording_mode != 1);
+}
 
-#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
+static int (*mlv_snd_is_enabled)() = MODULE_FUNCTION(mlv_snd_is_enabled);
+
+/* TODO: may need check for conditions like raw modules loaded and so on */
+int sound_recording_enabled()
+{
+    if (fps_should_record_wav())
+    {
+        /* this is supposed to work with sound turned off from Canon menu */
+        return 1;
+    }
+    
+    if (mlv_snd_is_enabled())
+    {
+        /* check for mlv_snd (it may or may not depend on Canon menu setting - g3gg0? ) */
+        return 1;
+    }
+    
+    if (is_movie_mode() && raw_lv_is_enabled())
+    {
+        /* no sound option found for raw video */
+        return 0;
+    }
+    
+    /* only H.264 is left => check the setting from Canon menu */
+    return sound_recording_enabled_canon();
+}
 
 #if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_100D)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
@@ -268,7 +299,7 @@ static int audio_meter_width = INT_MIN;
 static int audio_meters_are_drawn_common()
 {
 #ifdef FEATURE_AUDIO_METERS
-    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
+    if (!sound_recording_enabled())
         return 0;
         
     if (gui_menu_shown())

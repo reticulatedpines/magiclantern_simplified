@@ -248,7 +248,7 @@ static MENU_UPDATE_FUNC(bitrate_print)
             MENU_SET_ENABLED(0);
         }
         
-        if (bitrate_factor > 14 && SOUND_RECORDING_ENABLED)
+        if (bitrate_factor > 14 && sound_recording_enabled_canon())
             MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, high bitrates and sound recording don't mix.");
         else if (bitrate_factor > 10) 
             MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, recording may stop.");

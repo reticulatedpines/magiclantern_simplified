@@ -44,6 +44,11 @@ static uint32_t trace_ctx = TRACE_ERROR;
 static CONFIG_INT("mlv.snd.enabled", mlv_snd_enabled, 0);
 static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
 
+int mlv_snd_is_enabled()
+{
+    return mlv_snd_enabled;
+}
+
 extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
 extern int SetNextASIFADCBuffer(void *, uint32_t);
 extern WEAK_FUNC(ret_0) int PowerAudioOutput();
