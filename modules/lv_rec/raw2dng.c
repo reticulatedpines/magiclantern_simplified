@@ -116,7 +116,7 @@ int main(int argc, char** argv)
         raw_info.jpeg.y = 0;
         raw_info.jpeg.height = raw_info.height;
     }
-    
+
     raw_info.frame_size = lv_rec_footer.frameSize;
     
     char* prefix = argc > 2 ? argv[2] : "";
@@ -135,14 +135,14 @@ int main(int argc, char** argv)
         
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, framenumber);
-	
+
         fix_vertical_stripes();
-	find_and_fix_cold_pixels(fix_cold_pixels, framenumber);
+        find_and_fix_cold_pixels(fix_cold_pixels, framenumber);
 
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
         #endif
-	
+
         dng_set_framerate(lv_rec_footer.sourceFpsx1000);
         save_dng(fn, &raw_info);
     }
@@ -538,7 +538,7 @@ static inline int FC(int row, int col)
         return 1;  /* green */
     }
 }
-	    
+
 void find_and_fix_cold_pixels(fix, framenumber)
 {
     int const max_cold_pixels = 2000; /*max.number of cold pixels, that can be repaired*/
@@ -555,60 +555,60 @@ void find_and_fix_cold_pixels(fix, framenumber)
     
     if ( !fix )
     {
-	return;
+        return;
     }
     
     if ( framenumber == 0 ) /*only on the very first frame*/
     {
-	cold_pixels = 0;
-	
-	for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
-	{
-	    for (x = 6; x < w-6; x ++)
-	    {
-		int p = raw_get_pixel(x, y);
-		int is_cold = (p == 0);
-	    
-		if (is_cold && cold_pixels < max_cold_pixels) /*generate a list containing the cold pixels*/
-		{
-		    cold_pixel_list[cold_pixels].x = x;
-		    cold_pixel_list[cold_pixels].y = y;
-		    cold_pixels++; /*number of the detected cold pixels*/
-		}
-	    }
-	}
-	printf("\rCold pixels : %d                             \n", (cold_pixels));
+        cold_pixels = 0;
+
+        for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
+        {
+            for (x = 6; x < w-6; x ++)
+            {
+                int p = raw_get_pixel(x, y);
+                int is_cold = (p == 0);
+
+                if (is_cold && cold_pixels < max_cold_pixels) /*generate a list containing the cold pixels*/
+                {
+                    cold_pixel_list[cold_pixels].x = x;
+                    cold_pixel_list[cold_pixels].y = y;
+                    cold_pixels++; /*number of the detected cold pixels*/
+                }
+            }
+        }
+        printf("\rCold pixels : %d                             \n", (cold_pixels));
     }  
-    
+
     for (bad_frame = 0; bad_frame < cold_pixels; bad_frame++) /*repair the cold pixels*/
     {
-	x = cold_pixel_list[bad_frame].x;
-	y = cold_pixel_list[bad_frame].y;
+        x = cold_pixel_list[bad_frame].x;
+        y = cold_pixel_list[bad_frame].y;
       
-	int neighbours[100];
-	int i,j;
-	int k = 0;
-	int fc0 = FC(x, y);
-	
-	for (i = -4; i <= 4; i++) /*examine the neighbours of the cold pixel*/
-	{
-	    for (j = -4; j <= 4; j++)
-	    {
-		if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
-		{
-		    continue;
-		}
+        int neighbours[100];
+        int i,j;
+        int k = 0;
+        int fc0 = FC(x, y);
+
+        for (i = -4; i <= 4; i++) /*examine the neighbours of the cold pixel*/
+        {
+            for (j = -4; j <= 4; j++)
+            {
+                if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
+                {
+                    continue;
+                }
                         
-		if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
-		{
-		    continue;
-		}
-                        
-		int p = raw_get_pixel(x+j, y+i);
-		neighbours[k++] = -p;
-	    }
-	}
-	raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
+                if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
+                {
+                    continue;
+                }
+
+                int p = raw_get_pixel(x+j, y+i);
+                neighbours[k++] = -p;
+                }
+        }
+        raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
     }
     
 }
