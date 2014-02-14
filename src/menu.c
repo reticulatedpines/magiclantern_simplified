@@ -579,6 +579,13 @@ int log2i(int x)
     return result;
 }
 
+int log10i(int x)
+{
+    int result = 0;
+    while(x /= 10) result++;
+    return result;
+}
+
 static int get_delta(struct menu_entry * entry, int sign)
 {
     if(!edit_mode)
@@ -4417,7 +4424,10 @@ handle_ml_menu_keys(struct event * event)
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
             {
-                caret_position = MAX(entry->unit == UNIT_TIME ? 1 : 0, caret_position - 1);
+                caret_position--;
+                if(caret_position < 0 && entry->unit == UNIT_HEX) caret_position = log2i(MAX(abs(entry->max),abs(entry->min)))/4;
+                if(caret_position < 0 && entry->unit == UNIT_DEC) caret_position = log10i(MAX(abs(entry->max),abs(entry->min)));
+                if(caret_position < 0 && entry->unit == UNIT_TIME) caret_position = 7;
                 if(entry->unit == UNIT_TIME && (caret_position == 3 || caret_position == 6)) caret_position --;
                 menu_damage = 1;
                 break;
@@ -4442,8 +4452,8 @@ handle_ml_menu_keys(struct event * event)
                     caret_position = 0;
                 else if(entry->unit == UNIT_DEC && powi(10,caret_position) > MAX(abs(entry->max),abs(entry->min)))
                     caret_position = 0;
-                else if(entry->unit == UNIT_TIME && caret_position > 6)
-                    caret_position = 0;
+                else if(entry->unit == UNIT_TIME && caret_position > 7)
+                    caret_position = 1;
                 if(entry->unit == UNIT_TIME && (caret_position == 0 || caret_position == 3 || caret_position == 6)) caret_position ++;
                 menu_damage = 1;
                 break;
