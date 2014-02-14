@@ -28,7 +28,6 @@ static iodev_handlers_t hook_iodev;
 
 uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 
-static uint32_t iocrypt_scratch_used = 0;
 static uint8_t *iocrypt_scratch = NULL;
 static uint64_t iocrypt_key = 0;
 
@@ -125,8 +124,11 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
     
     if(fd < COUNT(iocrypt_files))
     {
-        iocrypt_files[fd].crypt_ctx.deinit(iocrypt_files[fd].crypt_ctx.priv);
-        iocrypt_files[fd].crypt_ctx.priv = NULL;
+        if(iocrypt_files[fd].crypt_ctx.priv)
+        {
+            iocrypt_files[fd].crypt_ctx.deinit(iocrypt_files[fd].crypt_ctx.priv);
+            iocrypt_files[fd].crypt_ctx.priv = NULL;
+        }
     }
     
     uint32_t ret = orig_iodev->CloseFile(fd);
@@ -429,15 +431,10 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             /* if there is no buffer or the size is too big, do expensive in-place encryption */
             if(iocrypt_scratch && (length <= CRYPT_SCRATCH_SIZE))
             {
-                take_semaphore(iocrypt_scratch_sem, 1000);
-                if(!iocrypt_scratch_used)
-                {
-                    /* update buffer to write from */
-                    work_ptr = &iocrypt_scratch[misalign];
-                    trace_write(iocrypt_trace_ctx, "   ->> double buffered");
-                    iocrypt_scratch_used = 1;
-                }
-                give_semaphore(iocrypt_scratch_sem);
+                take_semaphore(iocrypt_scratch_sem, 0);
+                /* update buffer to write from */
+                work_ptr = &iocrypt_scratch[misalign];
+                trace_write(iocrypt_trace_ctx, "   ->> double buffered");
             }
              
             trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
@@ -463,8 +460,6 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             }
             else
             {
-                take_semaphore(iocrypt_scratch_sem, 1000);
-                iocrypt_scratch_used = 0;
                 give_semaphore(iocrypt_scratch_sem);
             }
             
@@ -757,7 +752,9 @@ static unsigned int iocrypt_init()
         trace_format(iocrypt_trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
         trace_write(iocrypt_trace_ctx, "io_crypt: Starting trace");
     }
-    
+
+    /* clear file map */
+    memset(iocrypt_files, 0x00, sizeof(iocrypt_files));
     
     if(streq(camera_model_short, "600D"))
     {
@@ -811,7 +808,7 @@ static unsigned int iocrypt_init()
     }
     
     /* this memory is used for buffering encryption, so we dont have to undo the changes in memory */
-    //iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
+    iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
     
     /* now patch the iodev handlers */
     orig_iodev = (iodev_handlers_t *)MEM(iodev_table);
@@ -819,6 +816,7 @@ static unsigned int iocrypt_init()
     hook_iodev.OpenFile = &hook_iodev_OpenFile;
     hook_iodev.ReadFile = &hook_iodev_ReadFile;
     hook_iodev.WriteFile = &hook_iodev_WriteFile;
+    hook_iodev.CloseFile = &hook_iodev_CloseFile;
     MEM(iodev_table) = (uint32_t)&hook_iodev;
     
     
