@@ -27,6 +27,9 @@ static char* record_filename = 0;
 static int beep_custom_duration;
 static int beep_custom_frequency;
 
+static int audio_recording = 0;
+static int audio_recording_start_time = 0;
+
 CONFIG_INT("beep.enabled", beep_enabled, 1);
 static CONFIG_INT("beep.volume", beep_volume, 3);
 static CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
@@ -35,6 +38,33 @@ static CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noi
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
 static void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype);
+
+static int is_safe_to_beep()
+{
+    if (audio_recording)
+    {
+        /* do not beep while recording WAV */
+        return 0;
+    }
+    
+    if (RECORDING && sound_recording_enabled())
+    {
+        /* do not beep while recording any kind of video with sound */
+        return 0;
+    }
+    
+    #ifndef CONFIG_AUDIO_CONTROLS
+    if (lv && is_movie_mode())
+    {
+        /* do not beep in movie mode LiveView => breaks Canon audio */
+        /* cameras with ML audio controls should be able to restore audio functionality */
+        return 0;
+    }
+    #endif
+    
+    /* no restrictions */
+    return 1;
+}
 
 static void asif_stopped_cbr()
 {
@@ -238,8 +268,6 @@ wav_cleanup:
     file = INVALID_PTR;
 }
 
-static int audio_recording = 0;
-static int audio_recording_start_time = 0;
 static void asif_rec_stop_cbr()
 {
     audio_recording = 0;
@@ -513,13 +541,16 @@ static struct semaphore * beep_sem;
 
 static void play_test_tone()
 {
+    if (!is_safe_to_beep()) return;
     if (audio_stop_rec_or_play()) return;
+
 #ifdef CONFIG_600D
     if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
         NotifyBox(2000,"600D does not support\nPlay and monitoring together");
         return;
     }
 #endif
+
     beep_type = BEEP_LONG;
     give_semaphore(beep_sem);
 }
@@ -550,11 +581,7 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
-    #endif
-
-    if (!beep_enabled || RECORDING_H264 || audio_recording)
+    if (!beep_enabled || !is_safe_to_beep())
     {
         info_led_blink(times,50,50); // silent warning
         return;
@@ -572,21 +599,15 @@ void beep_times(int times)
 
 void beep()
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
-    #endif
-
-    if (!RECORDING_H264 && !audio_recording) // breaks audio
-        unsafe_beep();
+    if (!is_safe_to_beep())
+        return;
+    
+    unsafe_beep();
 }
 
 void beep_custom(int duration, int frequency, int wait)
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
-    #endif
-
-    if (!beep_enabled || RECORDING_H264 || audio_recording)
+    if (!beep_enabled || !is_safe_to_beep())
     {
         info_led_blink(1, duration, 10); // silent warning
         return;
@@ -955,6 +976,11 @@ PROP_HANDLER( PROP_MVR_REC_START )
 static MENU_UPDATE_FUNC(beep_update)
 {
     MENU_SET_ENABLED(beep_enabled);
+    
+    if (!is_safe_to_beep())
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Beeps disabled to prevent interference with audio recording.");
+    }
 }
 
 static struct menu_entry beep_menus[] = {
@@ -1009,7 +1035,7 @@ static struct menu_entry beep_menus[] = {
                 .name = "Test beep sound",
                 //~ .update = play_test_tone_print,
                 .icon_type = IT_ACTION,
-                .select = unsafe_beep,
+                .select = beep,
                 .help = "Play a short beep which will be used for ML events.",
             },
             MENU_EOL,
