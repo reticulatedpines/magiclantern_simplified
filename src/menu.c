@@ -612,7 +612,20 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
     *val = mod(*val - min + delta, max - min + 1) + min;
 }
 
-static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
+void menu_numeric_toggle_time(int * val, int delta, int min, int max)
+{
+    int deltas[] = {1,5,15,30,60,300,900,1800,3600};
+    int i = 0;
+    for(i = COUNT(deltas) - 1; i > 0; i--)
+        if(deltas[i] * 4 <= (delta < 0 ? *val - 1 : *val)) break;
+    delta *= deltas[i];
+    
+    *val = (*val + delta) / delta * delta;
+    if(*val > max) *val = min;
+    if(*val < min) *val = max;
+}
+
+static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time)
 {
     ASSERT(IS_ML_PTR(val));
     
@@ -620,7 +633,9 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
     static int prev_delta = 1000;
     int t = get_ms_clock_value();
     
-    if (max - min > 20)
+    if(is_time)
+        menu_numeric_toggle_time(val, delta, min, max);
+    else if (max - min > 20)
     {
         if (t - prev_t < 200 && prev_delta < 200)
             menu_numeric_toggle_R20(val, delta, min, max);
@@ -3694,8 +3709,8 @@ menu_entry_select(
     if(mode == 1) // decrement
     {
         if (entry->select) entry->select( entry->priv, -1);
-        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
+        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || (edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)))) menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
+        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
     }
     else if (mode == 2) // Q
     {
@@ -3743,14 +3758,14 @@ menu_entry_select(
             else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if (entry->select) entry->select( entry->priv, 1);
-            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
         }
     }
     else // increment
     {
         if( entry->select ) entry->select( entry->priv, 1);
-        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || (edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)))) menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
+        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
     }
     
     config_dirty = 1;
