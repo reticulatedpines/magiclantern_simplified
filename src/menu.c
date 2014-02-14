@@ -3835,9 +3835,6 @@ menu_entry_move(
         return;
     }
     
-    //reset caret_position
-    caret_position = 0;
-    
     // Deslect the current one
     entry->selected = 0;
 
@@ -3866,6 +3863,10 @@ menu_entry_move(
 
     // Select the new one, which might be the same as the old one
     entry->selected = 1;
+    
+    //reset caret_position
+    caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    
     give_semaphore( menu_sem );
 
     if (junkie_mode && menu->selected)
