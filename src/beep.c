@@ -54,7 +54,7 @@ static int is_safe_to_beep()
     }
     
     #ifndef CONFIG_AUDIO_CONTROLS
-    if (lv && is_movie_mode())
+    if (lv && is_movie_mode() && sound_recording_enabled())
     {
         /* do not beep in movie mode LiveView => breaks Canon audio */
         /* cameras with ML audio controls should be able to restore audio functionality */
