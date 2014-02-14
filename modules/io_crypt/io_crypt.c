@@ -125,7 +125,7 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
     
     if(fd < COUNT(iocrypt_files))
     {
-        iocrypt_files[fd].crypt_ctx.deinit(&iocrypt_files[fd].crypt_ctx);
+        iocrypt_files[fd].crypt_ctx.deinit(iocrypt_files[fd].crypt_ctx.priv);
         iocrypt_files[fd].crypt_ctx.priv = NULL;
     }
     
@@ -179,7 +179,7 @@ static uint32_t iocrypt_asym_init(int fd)
     /* init encryption */
     iocrypt_files[fd].file_key = file_key;
     crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
-    iocrypt_files[fd].crypt_ctx.set_blocksize(&iocrypt_files[fd].crypt_ctx, lfsr_blocksize);
+    iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
 
     return 1;
 }
@@ -209,7 +209,7 @@ static uint32_t iocrypt_sym_init(int fd)
     /* init encryption */
     iocrypt_files[fd].file_key = iocrypt_key;
     crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
-    iocrypt_files[fd].crypt_ctx.set_blocksize(&iocrypt_files[fd].crypt_ctx, lfsr_blocksize);
+    iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
 
     return 1;
 }
@@ -269,7 +269,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                     iodev_SetPosition(fd, 0x200);
                     
                     crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_key);
-                    iocrypt_files[fd].crypt_ctx.set_blocksize(&iocrypt_files[fd].crypt_ctx, lfsr_blocksize);
+                    iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
                     
                     if(iocrypt_files[fd].crypt_ctx.priv)
                     {
@@ -277,7 +277,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                         orig_iodev->ReadFile(fd, buf, 4);
                         iodev_SetPosition(fd, 0);
                         
-                        iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, 4, 0);
+                        iocrypt_files[fd].crypt_ctx.decrypt(iocrypt_files[fd].crypt_ctx.priv, buf, buf, 4, 0);
             
                         if(!memcmp(buf, jpg_magic, 4))
                         {
@@ -297,7 +297,8 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                         /* shall we crypt the file? if not, release context */
                         if(!decryptable)
                         {
-                            iocrypt_files[fd].crypt_ctx.deinit(&iocrypt_files[fd].crypt_ctx);
+                            iocrypt_files[fd].crypt_ctx.deinit(iocrypt_files[fd].crypt_ctx.priv);
+                            iocrypt_files[fd].crypt_ctx.priv = NULL;
                         }
                         else
                         {
@@ -403,7 +404,7 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
             trace_write(iocrypt_trace_ctx, "   ->> DECRYPT");
-            iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
+            iocrypt_files[fd].crypt_ctx.decrypt(iocrypt_files[fd].crypt_ctx.priv, buf, buf, length, fd_pos);
             trace_write(iocrypt_trace_ctx, "   ->> DONE");
         }
     }
@@ -438,9 +439,9 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
                 }
                 give_semaphore(iocrypt_scratch_sem);
             }
-            
+             
             trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
-            iocrypt_files[fd].crypt_ctx.encrypt(&iocrypt_files[fd].crypt_ctx, work_ptr, buf, length, fd_pos);
+            iocrypt_files[fd].crypt_ctx.encrypt(iocrypt_files[fd].crypt_ctx.priv, work_ptr, buf, length, fd_pos);
             trace_write(iocrypt_trace_ctx, "   ->> DONE");
             
             /* when there is some encryption active, handle file offset */
@@ -457,7 +458,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             if(work_ptr == buf)
             {
                 trace_write(iocrypt_trace_ctx, "   ->> CLEANUP");
-                iocrypt_files[fd].crypt_ctx.decrypt(&iocrypt_files[fd].crypt_ctx, buf, buf, length, fd_pos);
+                iocrypt_files[fd].crypt_ctx.decrypt(iocrypt_files[fd].crypt_ctx.priv, buf, buf, length, fd_pos);
                 trace_write(iocrypt_trace_ctx, "   ->> DONE");
             }
             else

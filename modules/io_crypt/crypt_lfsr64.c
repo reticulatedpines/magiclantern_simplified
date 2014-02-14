@@ -130,9 +130,9 @@ static uint32_t crypt_lfsr64_unaligned(void *addr)
 }
 
 /* de-/encryption routine, XORing every 64 bit word with an offset based crypt key */
-static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, uint8_t *src, uint32_t in_length, uint32_t offset)
+static uint32_t crypt_lfsr64_encrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src, uint32_t in_length, uint32_t offset)
 {
-    lfsr64_ctx_t *ctx = cipher_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
     uint32_t length = in_length;
     
     /* ensure initial key creation if necessary */
@@ -249,33 +249,34 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
 }
 
 /* using a symmetric cipher, both encryption and decryption are the same */
-static uint32_t crypt_lfsr64_decrypt(crypt_cipher_t *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+static uint32_t crypt_lfsr64_decrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
 {
-    return crypt_lfsr64_encrypt(ctx, dst, src, length, offset);
+    return crypt_lfsr64_encrypt(priv, dst, src, length, offset);
 }
 
 /* set encryption blocksize for this context */
-static void crypt_lfsr64_set_blocksize(crypt_cipher_t *crypt_ctx, uint32_t size)
+static void crypt_lfsr64_set_blocksize(crypt_priv_t *priv, uint32_t size)
 {
-    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)crypt_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
     
     ctx->blocksize = size;
 }
 
 /* not much to do here, just free the previously allocated structure */
-static void crypt_lfsr64_deinit(crypt_cipher_t *crypt_ctx)
+static void crypt_lfsr64_deinit(crypt_priv_t *priv)
 {
-    if(crypt_ctx && crypt_ctx->priv)
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
+    
+    if(ctx)
     {
-        free(crypt_ctx->priv);
-        crypt_ctx->priv = NULL;
+        free(ctx);
     }
 }
 
 /* reset operation is not implemented yet */
-static void crypt_lfsr64_reset(crypt_cipher_t *crypt_ctx)
+static void crypt_lfsr64_reset(crypt_priv_t *priv)
 {
-    lfsr64_ctx_t *ctx = crypt_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
     
     ctx->current_block = 0;
     ctx->lfsr_state = 0;
@@ -297,16 +298,16 @@ void crypt_lfsr64_init(crypt_cipher_t *crypt_ctx, uint64_t password)
     }
     
     /* setup cipher ctx */
-    crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_lfsr64_encrypt;
-    crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_lfsr64_decrypt;
-    crypt_ctx->deinit = (void (*)(void *))&crypt_lfsr64_deinit;
-    crypt_ctx->reset = (void (*)(void *))&crypt_lfsr64_reset;
-    crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_lfsr64_set_blocksize;
+    crypt_ctx->encrypt = &crypt_lfsr64_encrypt;
+    crypt_ctx->decrypt = &crypt_lfsr64_decrypt;
+    crypt_ctx->deinit = &crypt_lfsr64_deinit;
+    crypt_ctx->reset = &crypt_lfsr64_reset;
+    crypt_ctx->set_blocksize = &crypt_lfsr64_set_blocksize;
     crypt_ctx->priv = ctx;
     
     /* initialize to default values */
     ctx->password = password;
-    crypt_lfsr64_reset(crypt_ctx);
+    crypt_lfsr64_reset(ctx);
     
     trace_write(iocrypt_trace_ctx, "crypt_lfsr64_init: initialized");
 }
