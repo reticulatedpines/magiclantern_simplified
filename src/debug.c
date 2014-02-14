@@ -13,6 +13,7 @@
 #include "version.h"
 #include "edmac.h"
 #include "asm.h"
+#include "beep.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -72,7 +73,11 @@ void j_tp_intercept() { tp_intercept(); }
 
 void take_screenshot( int also_lv )
 {
-    beep();
+    /* in LV we potentially break audio */
+    if(!lv)
+    {
+        beep();
+    }
 
     FIO_RemoveFile(CARD_DRIVE"TEST.BMP");
 
