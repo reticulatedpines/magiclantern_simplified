@@ -59,10 +59,9 @@ static LVINFO_UPDATE_FUNC(indicator)
 {
     LVINFO_BUFFER(8);
     
-    /* Hide this LVINFO item if not recording H264 */
     if(!RECORDING_H264)
     {
-        snprintf(buffer,sizeof(buffer), ""); /* LVINFO won't display an empty buffer */
+        /* Hide this LVINFO item if not recording H264 */
         return;
     }
     
@@ -115,9 +114,10 @@ static LVINFO_UPDATE_FUNC(indicator)
 }
 
 static struct lvinfo_item info_item = {
-    .name = "Elapsed",
+    .name = "REC indicators",
     .which_bar = LV_TOP_BAR_ONLY,
     .update = indicator,
+    .preferred_position = 127,
 };
 
 int is_mvr_buffer_almost_full() 

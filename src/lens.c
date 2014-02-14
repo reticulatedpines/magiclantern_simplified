@@ -2337,6 +2337,12 @@ static LVINFO_UPDATE_FUNC(fps_update)
 static LVINFO_UPDATE_FUNC(free_space_update)
 {
     LVINFO_BUFFER(8);
+    
+    if (RECORDING)
+    {
+        /* leave space for the recording indicators */
+        return;
+    }
 
     extern int cluster_size;
     extern int free_space_raw;
