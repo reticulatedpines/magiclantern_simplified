@@ -73,11 +73,7 @@ void j_tp_intercept() { tp_intercept(); }
 
 void take_screenshot( int also_lv )
 {
-    /* in LV we potentially break audio */
-    if(!lv)
-    {
-        beep();
-    }
+    beep();
 
     FIO_RemoveFile(CARD_DRIVE"TEST.BMP");
 
