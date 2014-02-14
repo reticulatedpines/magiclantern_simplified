@@ -1007,7 +1007,7 @@ static int32_t setup_buffers()
         refresh_raw_settings(1);
     }
 
-    if (!mem_suite)
+    if(!mem_suite)
     {
         return 0;
     }
@@ -1042,7 +1042,7 @@ static int32_t setup_buffers()
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
 
-    if (fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
     {
         free_buffers();
         return 0;
@@ -2954,8 +2954,8 @@ static void raw_video_rec_task()
     /* allocate memory */
     if(!setup_buffers())
     {
-        trace_write(raw_rec_trace_ctx, "FIO_CreateFileEx(#%d): FAILED");
-        NotifyBox(5000, "Failed to create file. Card/RAM full?");
+        trace_write(raw_rec_trace_ctx, "Failed to setup. Card/RAM full?");
+        NotifyBox(5000, "Failed to setup. Card/RAM full?");
         beep();
         goto cleanup;
     }
