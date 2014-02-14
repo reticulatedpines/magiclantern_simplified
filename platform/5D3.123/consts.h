@@ -104,7 +104,7 @@
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x578), MEM(MVR_516_STRUCT + 0x57C))
+#define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x584), MEM(MVR_516_STRUCT + 0x588))
 #define MVR_BUFFER_USAGE_SOUND 0 // not sure
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
