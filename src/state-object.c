@@ -8,6 +8,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "beep.h"
 #include "state-object.h"
 #include <platform/state-object.h>
 #include "property.h"

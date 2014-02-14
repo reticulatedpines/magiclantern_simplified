@@ -7,6 +7,7 @@
 #include "config.h"
 #include "string.h"
 #include "property.h"
+#include "beep.h"
 #include "bmp.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM

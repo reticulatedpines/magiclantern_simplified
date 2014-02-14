@@ -16,6 +16,7 @@
 #include "tasks.h"
 #include "limits.h"
 #include "bmp.h"
+#include "beep.h"
 #include "menu.h"
 
 #ifdef MEM_DEBUG

@@ -30,6 +30,7 @@
 #include "lens.h"
 #include "font.h"
 #include "menu.h"
+#include "beep.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS

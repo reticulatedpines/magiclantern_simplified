@@ -38,6 +38,7 @@
 #include "raw.h"
 #include "histogram.h"
 #include "fileprefix.h"
+#include "beep.h"
 
 #if defined(CONFIG_MODULES)
 #include "module.h"

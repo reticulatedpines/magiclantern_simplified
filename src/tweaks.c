@@ -13,6 +13,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "module.h"
 
 static void lcd_adjust_position_step();

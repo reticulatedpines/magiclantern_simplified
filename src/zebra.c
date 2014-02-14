@@ -34,6 +34,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "raw.h"
 
 #include "imgconv.h"
