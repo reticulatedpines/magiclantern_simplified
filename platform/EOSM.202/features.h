@@ -15,7 +15,8 @@
 
 /* Working */
 #define FEATURE_CROP_MODE_HACK
-#define FEATURE_VIDEO_HACKS
+
+//~ #define FEATURE_VIDEO_HACKS // unclean patching
 
 
 /* Some Hope Yet */
