@@ -2163,6 +2163,19 @@ entry_default_display_info(
                     else { STR_APPEND(value, "%d", raw2iso(MEM(entry->priv))); }
                     break;
                 }
+                case UNIT_DEC:
+                {
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "%s%d", (zero_pad + COERCE(8-(caret_position - log10i(MEM(entry->priv))),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        STR_APPEND(value, "%d", MEM(entry->priv));
+                    }
+                    break;
+                }
                 case UNIT_HEX:
                 {
                     if(edit_mode)
