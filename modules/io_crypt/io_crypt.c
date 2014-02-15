@@ -31,6 +31,9 @@ uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 static uint8_t *iocrypt_scratch = NULL;
 static uint64_t iocrypt_key = 0;
 
+/* status for RSA key generation */
+static uint32_t iocrypt_rsa_key_active = 0;
+
 static crypt_cipher_t iocrypt_rsa_ctx;
 
 static fd_map_t iocrypt_files[32];
@@ -223,7 +226,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
     
     trace_write(iocrypt_trace_ctx, "iodev_OpenFile('%s', %d) = %d", filename, flags, fd);
     
-    if(fd < COUNT(iocrypt_files) && iocrypt_enabled)
+    if(fd < COUNT(iocrypt_files) && iocrypt_enabled && !drive_mode)
     {
         iocrypt_files[fd].crypt_ctx.priv = NULL;
         iocrypt_files[fd].header_size = 0;
@@ -373,7 +376,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
 
 static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
 {
-    if(!iocrypt_enabled)
+    if(!iocrypt_enabled || drive_mode)
     {
         return orig_iodev->ReadFile(fd, buf, length);
     }
@@ -421,7 +424,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
 {
     uint32_t ret = 0;
     
-    if(fd < COUNT(iocrypt_files) && iocrypt_enabled)
+    if(fd < COUNT(iocrypt_files) && iocrypt_enabled && !drive_mode)
     {
         uint8_t *work_ptr = buf;
         uint32_t misalign = ((uint32_t)buf) % 8;
@@ -605,6 +608,18 @@ static void iocrypt_speed_test()
     beep();
 }
 
+void crypt_rsa_generate_key()
+{
+    NotifyBox(60000, "Generating RSA key.\nThis takes a while!");
+    
+    iocrypt_rsa_key_active = 1;
+    crypt_rsa_generate_keys((void*)&iocrypt_rsa_ctx);
+    iocrypt_rsa_key_active = 0;
+    
+    NotifyBoxHide();
+    beep();
+    NotifyBox(2000, "RSA key generated!");
+}
 
 static MENU_SELECT_FUNC(iocrypt_enter_pw_select)
 {
@@ -615,7 +630,7 @@ static MENU_SELECT_FUNC(iocrypt_rsa_key_select)
 {
     crypt_rsa_set_keysize(512 << iocrypt_rsa_key_size);
     
-    task_create("crypt_rsa_generate_keys", 0x1e, 0x1000, crypt_rsa_generate_keys, (void*)&iocrypt_rsa_ctx);
+    task_create("crypt_rsa_generate_keys", 0x1e, 0x1000, crypt_rsa_generate_key, NULL);
 }
 
 static MENU_SELECT_FUNC(iocrypt_test_rsa)
@@ -659,6 +674,25 @@ static MENU_UPDATE_FUNC(iocrypt_update)
             
             MENU_SET_VALUE("ON, RSA");
             break;
+    }
+    
+    if(drive_mode)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Only available in single shot mode.");
+    }
+    if(iocrypt_rsa_key_active)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Still generating the RSA keys.");
+    }
+}
+
+
+static MENU_UPDATE_FUNC(iocrypt_rsa_key_update)
+{
+    if(iocrypt_rsa_key_active)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Still generating the RSA keys.");
+        MENU_SET_VALUE("Generating...");
     }
 }
 
@@ -711,6 +745,7 @@ static struct menu_entry iocrypt_menus[] =
             {
                 .name = "Create RSA Key",
                 .select = &iocrypt_rsa_key_select,
+                .update = &iocrypt_rsa_key_update,
                 .priv = NULL,
                 .icon_type = IT_ACTION,
                 .help = "Do this ONCE at HOME and then store /priv.key on your PC safely.",

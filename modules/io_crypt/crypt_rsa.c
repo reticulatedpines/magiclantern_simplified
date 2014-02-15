@@ -660,8 +660,6 @@ void crypt_rsa_generate_keys(void *priv)
     t_crypt_key pub_key;
     rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
-    
-    NotifyBox(60000, "Creating RSA key (%d bits)\nthis may take a while", crypt_rsa_keysize);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d...", crypt_rsa_keysize);
     crypt_rsa_generate(crypt_rsa_keysize, &priv_key, &pub_key);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d done", crypt_rsa_keysize);
