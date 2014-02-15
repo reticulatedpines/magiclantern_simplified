@@ -2439,7 +2439,7 @@ static LVINFO_UPDATE_FUNC(tv_update)
     }
 }
 
-static int (*dual_iso_is_active)() = MODULE_FUNCTION(dual_iso_is_active);
+static int (*dual_iso_is_enabled)() = MODULE_FUNCTION(dual_iso_is_enabled);
 static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
 
 static LVINFO_UPDATE_FUNC(iso_update)
@@ -2454,7 +2454,7 @@ static LVINFO_UPDATE_FUNC(iso_update)
         iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
         snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", iso_low, iso_high);
     }
-    else if (dual_iso_is_active())
+    else if (dual_iso_is_enabled())
     {
         snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", 
             raw2iso(lens_info.iso_analog_raw),
