@@ -96,8 +96,8 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We know how to use DMA_MEMCPY **/
-#define CONFIG_DMA_MEMCPY
+/** We know how to use DMA_MEMCPY, but we prefer not to **/
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
