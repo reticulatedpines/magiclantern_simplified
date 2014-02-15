@@ -442,14 +442,14 @@ unsigned int crypt_rsa_crypt(uint8_t *dst, uint8_t *src, int length, t_crypt_key
 	return bytes;
 }
 
-t_crypt_key *crypt_rsa_get_priv(crypt_cipher_t *crypt_ctx)
+t_crypt_key *crypt_rsa_get_priv(void *priv)
 {
-    if(!crypt_ctx || !crypt_ctx->priv)
+    if(!priv)
     {
         return NULL;
     }
     
-    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
     if(!strlen(ctx->priv_key.name))
     {
@@ -459,14 +459,14 @@ t_crypt_key *crypt_rsa_get_priv(crypt_cipher_t *crypt_ctx)
     return &ctx->priv_key;
 }
 
-t_crypt_key *crypt_rsa_get_pub(crypt_cipher_t *crypt_ctx)
+t_crypt_key *crypt_rsa_get_pub(void *priv)
 {
-    if(!crypt_ctx || !crypt_ctx->priv)
+    if(!priv)
     {
         return NULL;
     }
     
-    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
     if(!strlen(ctx->pub_key.name))
     {
@@ -477,14 +477,14 @@ t_crypt_key *crypt_rsa_get_pub(crypt_cipher_t *crypt_ctx)
 }
 
 /* returns the key size in bits */
-uint32_t crypt_rsa_get_keysize(crypt_cipher_t *crypt_ctx)
+uint32_t crypt_rsa_get_keysize(void *priv)
 {
-    if(!crypt_ctx || !crypt_ctx->priv)
+    if(!priv)
     {
         return 0;
     }
     
-    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
     int nibbles = strlen(ctx->pub_key.primefac);
     
@@ -504,9 +504,9 @@ void crypt_rsa_clear_key(t_crypt_key *key)
 }
 
 /* returns the key size in bits */
-uint32_t crypt_rsa_blocksize(crypt_cipher_t *crypt_ctx)
+uint32_t crypt_rsa_blocksize(crypt_priv_t *priv)
 {
-    uint32_t keysize = crypt_rsa_get_keysize(crypt_ctx);
+    uint32_t keysize = crypt_rsa_get_keysize(priv);
     
     if(!keysize)
     {
@@ -516,17 +516,17 @@ uint32_t crypt_rsa_blocksize(crypt_cipher_t *crypt_ctx)
     return (keysize / 8);
 }
 
-static uint32_t crypt_rsa_encrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+static uint32_t crypt_rsa_encrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
 {
-    if(!crypt_ctx || !crypt_ctx->priv)
+    if(!priv)
     {
         return 0;
     }
-    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
-    if(crypt_rsa_blocksize(crypt_ctx) > length)
+    if(crypt_rsa_blocksize(ctx) > length)
     {
-        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(crypt_ctx), length);
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(ctx), length);
         return 0;
     }
     
@@ -541,17 +541,17 @@ static uint32_t crypt_rsa_encrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8
     return new_len;
 }
 
-static uint32_t crypt_rsa_decrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+static uint32_t crypt_rsa_decrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
 {
-    if(!crypt_ctx || !crypt_ctx->priv)
+    if(!priv)
     {
         return 0;
     }
-    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
-    if(crypt_rsa_blocksize(crypt_ctx) > length)
+    if(crypt_rsa_blocksize(ctx) > length)
     {
-        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(crypt_ctx), length);
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(ctx), length);
         return 0;
     }
     
@@ -560,16 +560,15 @@ static uint32_t crypt_rsa_decrypt(crypt_cipher_t *crypt_ctx, uint8_t *dst, uint8
     return new_len;
 }
 
-static void crypt_rsa_deinit(void **crypt_ctx)
+static void crypt_rsa_deinit(crypt_priv_t *priv)
 {
-    if(*crypt_ctx)
+    if(priv)
     {
-        free(*crypt_ctx);
-        *crypt_ctx = NULL;
+        free(priv);
     }
 }
 
-static void crypt_rsa_reset(void **crypt_ctx)
+static void crypt_rsa_reset(crypt_priv_t *priv)
 {
 }
 
@@ -597,7 +596,7 @@ static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
 
 uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
 {
-    int size = 0;
+    uint32_t size = 0;
     char filename[32];
     
     snprintf(filename, sizeof(filename), "%s%s", module_card_drive, file);
@@ -655,12 +654,12 @@ uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
 }
 
 
-void crypt_rsa_generate_keys(crypt_cipher_t *crypt_ctx)
+void crypt_rsa_generate_keys(void *priv)
 {
     t_crypt_key priv_key;
     t_crypt_key pub_key;
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
-    NotifyBox(60000, "Creating RSA key (%d bits)\nthis may take a while", crypt_rsa_keysize);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d...", crypt_rsa_keysize);
     crypt_rsa_generate(crypt_rsa_keysize, &priv_key, &pub_key);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d done", crypt_rsa_keysize);
@@ -671,9 +670,7 @@ void crypt_rsa_generate_keys(crypt_cipher_t *crypt_ctx)
     crypt_rsa_save("ML/DATA/io_crypt.key", &priv_key);
     crypt_rsa_save("ML/DATA/io_crypt.pub", &pub_key);
     
-    /* now reload to make sure all is file */
-    rsa_ctx_t *ctx = (rsa_ctx_t *)crypt_ctx->priv;
-    
+    /* now reload to make sure all is fine */
     crypt_rsa_clear_key(&ctx->pub_key);
     crypt_rsa_clear_key(&ctx->priv_key);
     
@@ -702,7 +699,7 @@ static uint32_t crypt_rsa_testfunc(int size, t_crypt_key *priv_key, t_crypt_key 
     uint32_t *data = malloc(size_bytes * 2);
     uint32_t *data_orig = malloc(size_bytes * 2);
     
-    for(int pos = 0; pos < size_bytes; pos++)
+    for(uint32_t pos = 0; pos < size_bytes; pos++)
     {
         ((uint8_t *)data)[pos] = pos;
         ((uint8_t *)data_orig)[pos] = pos;
@@ -715,7 +712,7 @@ static uint32_t crypt_rsa_testfunc(int size, t_crypt_key *priv_key, t_crypt_key 
     new_len = crypt_rsa_crypt((uint8_t*)data, (uint8_t*)data, new_len, priv_key);
     trace_write(iocrypt_trace_ctx, "   post-decrypt: 0x%08X%08X%08X%08X (%d bytes)", data[3], data[2], data[1], data[0], size_bytes);
     
-    for(int pos = 0; pos < (size_bytes / 4); pos++)
+    for(uint32_t pos = 0; pos < (size_bytes / 4); pos++)
     {
         if(data[pos] != data_orig[pos])
         {
@@ -760,7 +757,7 @@ void crypt_rsa_test()
     }
 }
 
-static void crypt_rsa_set_blocksize(crypt_cipher_t *crypt_ctx, uint32_t size)
+static void crypt_rsa_set_blocksize(void *priv, uint32_t size)
 {
     crypt_rsa_keysize = size;
 }
@@ -777,11 +774,11 @@ void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
     }
     
     /* setup cipher ctx */
-    crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_encrypt;
-    crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_rsa_decrypt;
-    crypt_ctx->deinit = (void (*)(void *))&crypt_rsa_deinit;
-    crypt_ctx->reset = (void (*)(void *))&crypt_rsa_reset;
-    crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_rsa_set_blocksize;
+    crypt_ctx->encrypt = &crypt_rsa_encrypt;
+    crypt_ctx->decrypt = &crypt_rsa_decrypt;
+    crypt_ctx->deinit = &crypt_rsa_deinit;
+    crypt_ctx->reset = &crypt_rsa_reset;
+    crypt_ctx->set_blocksize = &crypt_rsa_set_blocksize;
     crypt_ctx->priv = ctx;
     
     /* load all keys that are on card */

@@ -13,6 +13,7 @@
 #include "version.h"
 #include "edmac.h"
 #include "asm.h"
+#include "beep.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -307,9 +308,34 @@ static void bsod()
 
 static void run_test()
 {
-    void* p = malloc(2*1024*1024);
-    free(p);
-    free(p); /* the backend should catch this */
+    msleep(1000);
+    
+    /* check for memory leaks */
+    for (int i = 0; i < 1000; i++)
+    {
+        console_printf("%d/1000\n", i);
+        
+        /* with this large size, the backend will use shoot_malloc, which returns uncacheable pointers */
+        void* p = malloc(16*1024*1024 + 64);
+        
+        if (!p)
+        {
+            console_printf("malloc err\n");
+            continue;
+        }
+        
+        /* however, user code should not care about this; we have requested a plain old cacheable pointer; did we get one? */
+        ASSERT(p == CACHEABLE(p));
+        
+        /* do something with our memory */
+        memset(p, 1234, 1234);
+        msleep(20);
+        
+        /* done, now free it */
+        /* the backend should put back the uncacheable flag (if handled incorrectly, there may be memory leaks) */
+        free(p);
+        msleep(20);
+    }
     return;
 
    //~ bfnt_test();
@@ -1072,8 +1098,8 @@ static void stub_test_task(void* arg)
         }
 
         // engio
-        TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
-        TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
+        TEST_TRY_VOID(EngDrvOut(LCD_Palette[0], 0x1234));
+        TEST_TRY_FUNC_CHECK(shamem_read(LCD_Palette[0]), == 0x1234);
 
         // call, DISPLAY_IS_ON
         TEST_TRY_VOID(call("TurnOnDisplay"));
@@ -3793,6 +3819,11 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         case MLEV_REDRAW:
             redraw_do();
+            break;
+        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
+            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
+            handle_livev_playback(event, MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
+            #endif
             break;
     }
     return 0;

@@ -189,6 +189,7 @@ NSTUB(0xFF1CD340, MuteOff_0)
 NSTUB(0xFF1CD2F8, MuteOn_0)
 
 NSTUB(0xff06f6d8, GetMemoryInformation) // called from AllocateMemory
+NSTUB(0xFF06F684, GetSizeOfMaxRegion)
 
 NSTUB(0xFF20BA90, GUI_SetRollingPitchingLevelStatus);
 

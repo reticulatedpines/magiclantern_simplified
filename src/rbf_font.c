@@ -1,6 +1,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "beep.h"
 #include "rbf_font.h"
 
 /* here some macros to wrap the CHDK functions for ML code */

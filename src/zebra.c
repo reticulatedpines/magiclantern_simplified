@@ -34,6 +34,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "raw.h"
 
 #include "imgconv.h"
@@ -122,9 +123,7 @@ static int is_zoom_mode_so_no_zebras()
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
-    #ifdef CONFIG_RAW_LIVEVIEW
     if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
-    #endif
     
     return 1;
 }
@@ -3350,10 +3349,7 @@ void clear_zebras_from_mirror()
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 static void trigger_zebras_for_qr()
 {
-    fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
-    #ifdef CONFIG_600D
-    if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
-    #endif
+    fake_simple_button(MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
 }
 #endif
 
@@ -3376,8 +3372,6 @@ PROP_HANDLER(PROP_GUI_STATE)
 #endif
 }
 
-extern uint32_t LCD_Palette[];
-
 void palette_disable(uint32_t disabled)
 {
     #ifdef CONFIG_VXWORKS
@@ -3388,16 +3382,16 @@ void palette_disable(uint32_t disabled)
     {
         for (int i = 0; i < 0x100; i++)
         {
-            EngDrvOut(0xC0F14400 + i*4, 0x00FF0000);
-            EngDrvOut(0xC0F14800 + i*4, 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3], 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3+0x300], 0x00FF0000);
         }
     }
     else
     {
         for (int i = 0; i < 0x100; i++)
         {
-            EngDrvOut(0xC0F14400 + i*4, LCD_Palette[i*3 + 2]);
-            EngDrvOut(0xC0F14800 + i*4, LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3], LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3+0x300], LCD_Palette[i*3 + 2]);
         }
     }
 }

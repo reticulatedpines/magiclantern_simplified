@@ -30,6 +30,7 @@
 #include "lens.h"
 #include "font.h"
 #include "menu.h"
+#include "beep.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
@@ -645,8 +646,6 @@ static int guess_submenu_enabled(struct menu_entry * entry)
     else 
     {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
         struct menu_entry * e = entry->children;
-        
-        while (e->prev) e = e->prev;
 
         for( ; e ; e = e->next )
         {
@@ -1148,6 +1147,10 @@ menu_add_base(
                 menu_add(entry->name, entry->children, count);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
+            
+            /* ensure the "children" field always points to the very first item in the submenu */
+            /* (important when merging 2 submenus) */
+            while (entry->children->prev) entry->children = entry->children->prev;
         }
         entry = entry->prev;
         if (!entry) break;
@@ -1940,12 +1943,12 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires Manual (M) mode.");
     else if (DEPENDS_ON(DEP_MANUAL_ISO) && !lens_info.raw_iso)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual ISO.");
-    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, (was_sound_recording_disabled_by_fps_override() && !fps_should_record_wav()) ? 
             "Sound recording was disabled by FPS override." :
             "Sound recording is disabled. Enable it from Canon menu."
         );
-    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Disable sound recording from Canon menu!");
     
     if (warning[0]) 
@@ -1981,9 +1984,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in Manual (M) mode.");
         else if (WORKS_BEST_IN(DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual ISO.");
-        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
-        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
         if (warning[0]) 
@@ -4102,6 +4105,7 @@ static struct menu * get_current_submenu()
         }
         if(!entry) break;
     }
+
     if (entry && entry->children)
         return menu_find_by_name(entry->name, 0);
 

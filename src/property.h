@@ -587,9 +587,6 @@ struct prop_handler
                 void *                  addr,
                 unsigned                len
         );
-
-        void *          token; // must be before token_handler
-        uint32_t        token_handler[2]; // function goes here!
 };
 
 

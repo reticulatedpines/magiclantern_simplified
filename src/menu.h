@@ -243,7 +243,6 @@ struct menu_entry
 
 #define DEP_SOUND_RECORDING (1<<14)
 #define DEP_NOT_SOUND_RECORDING (1<<15)
-#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1)
 
 struct menu
 {

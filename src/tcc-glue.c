@@ -67,7 +67,7 @@ int open(const char *pathname, int flags)
         printf("Error loading '%s': File does not exist\n", pathname);
         return -1;
     }
-    handle = alloc_dma_memory(sizeof(filehandle_t) + size);
+    handle = fio_malloc(sizeof(filehandle_t) + size);
     if(!handle)
     {
         printf("Error loading '%s': File too large\n", pathname);
@@ -81,7 +81,7 @@ int open(const char *pathname, int flags)
     if(!file)
     {
         printf("Error loading '%s': File does not exist\n", pathname);
-        free_dma_memory(handle);
+        fio_free(handle);
         return -1;
     }
     FIO_ReadFile(file, &handle->data, size);
@@ -103,7 +103,7 @@ int read(int fd, void *buf, int size)
 
 int close(int fd)
 {
-    free_dma_memory((void*)fd);
+    fio_free((void*)fd);
     return 0;
 }
 

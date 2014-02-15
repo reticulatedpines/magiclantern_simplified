@@ -643,4 +643,10 @@ struct audio_level *get_audio_levels(void);
 //horiz shift of audio meters to allow for label and numerical dB readout
 #define AUDIO_METER_OFFSET 20
 
+/* returns true when sound is enabled in Canon menu */
+int sound_recording_enabled_canon();
+
+/* returns true when sound is enabled in either Canon or ML menus */
+int sound_recording_enabled();
+
 #endif /* _audio_h_ */

@@ -28,6 +28,7 @@
 #include "module.h"
 #include "menu.h"
 #include "property.h"
+#include "beep.h"
 
 static int config_selected = 0;
 static char config_selected_by_key[9] = "";

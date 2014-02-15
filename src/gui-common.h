@@ -20,6 +20,8 @@
 #define MLEV_MENU_REDRAW -15
 #define MLEV_AV_SHORT -16
 #define MLEV_AV_LONG -17
+
+#define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
  
 
 /** \file

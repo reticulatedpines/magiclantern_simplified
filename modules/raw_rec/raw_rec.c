@@ -129,7 +129,13 @@ static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 #define INDICATOR_IN_LVINFO  1
 #define INDICATOR_ON_SCREEN  2
 #define INDICATOR_RAW_BUFFER 3
-static CONFIG_INT("raw.indicator.display", indicator_display, INDICATOR_ON_SCREEN);
+
+static int debug_info = 0;
+
+/* auto-choose the indicator style based on global draw settings */
+/* GD off: only "on screen" works, obviously */
+/* GD on: place it on the info bars to be minimally invasive */
+#define indicator_display (debug_info ? INDICATOR_RAW_BUFFER : get_global_draw() ? INDICATOR_IN_LVINFO : INDICATOR_ON_SCREEN)
 
 /* state variables */
 static int res_x = 0;
@@ -1917,27 +1923,6 @@ static MENU_UPDATE_FUNC(raw_playback_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
 }
 
-static MENU_UPDATE_FUNC(indicator_update)
-{
-    switch (indicator_display)
-    {
-        case INDICATOR_OFF:
-            MENU_SET_HELP("Disabled.");
-            break;
-        case INDICATOR_IN_LVINFO:
-            MENU_SET_HELP("Time in info bar: green, yellow, red (est. < 10 sec) status.");
-            break;
-        case INDICATOR_ON_SCREEN:
-            MENU_SET_HELP("Time+MB/s on screen: green, yellow, red (est. < 10 sec) status.");
-            break;
-        case INDICATOR_RAW_BUFFER:
-            MENU_SET_HELP("Time, stats and buffer allocation graph displayed on screen.");
-            break;
-        default:
-            break;
-    }
-}
-
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -1994,15 +1979,6 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Indicator display",
-                .priv = &indicator_display,
-                .max = 3,
-                .update = indicator_update,
-                .choices = CHOICES("OFF", "Info Bar", "On Screen", "Raw Buffers"),
-                .help = "Select recording time and buffer status indicator.",
-                .advanced = 1,
-            },
-            {
                 .name = "Digital dolly",
                 .priv = &dolly_mode,
                 .max = 1,
@@ -2039,6 +2015,13 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &small_hacks,
                 .max = 1,
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
+                .advanced = 1,
+            },
+            {
+                .name = "Debug info",
+                .priv = &debug_info,
+                .max = 1,
+                .help = "Show detailed info and buffer allocation graphs.",
                 .advanced = 1,
             },
             {
@@ -2300,5 +2283,4 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
-    MODULE_CONFIG(indicator_display)
 MODULE_CONFIGS_END()

@@ -18,21 +18,7 @@
 #define FEATURE_VIDEO_HACKS
 
 
-/* Debug */
-#undef CONFIG_STRESS_TEST // We don't need this so much.
-//~ #undef SHOULD_CHECK_SIG
-#undef CONFIG_AUTOBACKUP_ROM //WTF, Batman?
-#define CONFIG_HEXDUMP
-#define CONFIG_TSKMON
-#define CONFIG_DEBUG_INTERCEPT
-//~ #define CONFIG_DIGIC_POKE
-//~ #define FEATURE_ISR_HOOKS
-//~ #define FEATURE_SHOW_SIGNATURE
-
-
-
 /* Some Hope Yet */
-//~ #undef FEATURE_AUDIO_REMOTE_SHOT
 #undef FEATURE_TRAP_FOCUS
 #undef FEATURE_FOLLOW_FOCUS
 #undef FEATURE_RACK_FOCUS
@@ -49,19 +35,5 @@
 #undef FEATURE_LV_FOCUS_BOX_SNAP
 #undef FEATURE_ARROW_SHORTCUTS
 
-
-//~ #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
-//~ #define FEATURE_LV_FOCUS_BOX_AUTOHIDE
-
-#undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-//~ #undef FEATURE_AUDIO_METERS // Work While Recording
-//~ #undef FEATURE_LV_FOCUS_BOX_AUTOHIDE // Works in FB mode
-
-#define FEATURE_FOCUS_PEAK_DISP_FILTER //Need early sync.
-
-//~ #define FEATURE_PICQ_DANGEROUS // All 3 Props are len 4. Show up as len0? Mraw/Sraw causes crash.
-
 #define FEATURE_HEADPHONE_MONITORING
-#define CONFIG_DUMP_AUDIO
-
 #define FEATURE_EYEFI_TRICKS

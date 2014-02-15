@@ -13,6 +13,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "module.h"
 
 static void lcd_adjust_position_step();
@@ -2529,7 +2530,6 @@ static void brightness_saturation_reset()
 void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor, int chroma_scale_factor)
 {
 #ifndef CONFIG_VXWORKS
-    extern int LCD_Palette[];
     int orig_palette_entry = LCD_Palette[3*base_color + 2];
     int8_t opacity = (orig_palette_entry >> 24) & 0xFF;
     uint8_t orig_y = (orig_palette_entry >> 16) & 0xFF;
@@ -2547,8 +2547,8 @@ void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor
         ((v       & 0xFF));
 
     if (!DISPLAY_IS_ON) return;
-    EngDrvOut(0xC0F14400 + color*4, new_palette_entry);
-    EngDrvOut(0xC0F14800 + color*4, new_palette_entry);
+    EngDrvOut(LCD_Palette[3*color], new_palette_entry);
+    EngDrvOut(LCD_Palette[3*color+0x300], new_palette_entry);
 #endif
 }
 
@@ -2563,7 +2563,6 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
     {
         if (i==0 || i==3 || i==0x14) continue; // don't alter transparent entries
 
-        extern int LCD_Palette[];
         int orig_palette_entry = LCD_Palette[3*i + 2];
         //~ bmp_printf(FONT_LARGE,0,0,"%x ", orig_palette_entry);
         //~ msleep(300);
@@ -2584,8 +2583,8 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
             ((v       & 0xFF));
 
         if (!DISPLAY_IS_ON) return;
-        EngDrvOut(0xC0F14400 + i*4, new_palette_entry);
-        EngDrvOut(0xC0F14800 + i*4, new_palette_entry);
+        EngDrvOut(LCD_Palette[3*i], new_palette_entry);
+        EngDrvOut(LCD_Palette[3*i+0x300], new_palette_entry);
     }
 #endif
 }
@@ -2966,7 +2965,7 @@ static void defish_draw_lv_color()
             }
         }
         info_led_off();
-        free(defish_lut);
+        fio_free(defish_lut);
     }
     
     defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, defish_ind);

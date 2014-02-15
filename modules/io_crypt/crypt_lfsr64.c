@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#define msleep(x) usleep((x)*1000)
+
 #if defined(TRACE_DISABLED)
 #define trace_write(x,...) do { (void)0; } while (0)
 #else
@@ -119,21 +121,20 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
         uint32_t elem_addr = (uint32_t)&ctx->key_uint64[pos];
         
         memcpy((void*)elem_addr, &ctx->key_uint8[pos], 8 - pos);
-        memcpy((void*)elem_addr + (8-pos), ctx->key_uint8, pos);
+        memcpy((void*)(elem_addr + (8 - pos)), &ctx->key_uint8[0], pos);
     }
 }
 
-/* small helper to simplify alignment checking and make encrypt loops better readable */
-static uint32_t crypt_lfsr64_unaligned(void *addr)
-{
-    return ((uint32_t)addr) % 8;
-}
-
 /* de-/encryption routine, XORing every 64 bit word with an offset based crypt key */
-static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, uint8_t *src, uint32_t in_length, uint32_t offset)
+static uint32_t crypt_lfsr64_encrypt(crypt_priv_t *priv, uint8_t *dst_in, uint8_t *src_in, uint32_t in_length, uint32_t offset)
 {
-    lfsr64_ctx_t *ctx = cipher_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
+    uint8_t *dst = dst_in;
+    uint8_t *src = src_in;
     uint32_t length = in_length;
+    uint32_t blocksize = ctx->blocksize;
+    
+    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X, cipher_ctx: 0x%08X, priv: 0x%08X, blocksize: 0x%08X", dst_in, src_in, in_length, offset, cipher_ctx, cipher_ctx->priv, blocksize);
     
     /* ensure initial key creation if necessary */
     update_key(ctx, offset, 0); 
@@ -141,10 +142,10 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
     //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
     
     /* try to get the addresses aligned */
-    while((crypt_lfsr64_unaligned(src) || crypt_lfsr64_unaligned(dst)) && (length > 0))
+    while((((uint32_t)dst) % 8) && (length > 0))
     {
         /* at every block start, rerun key update */
-        if((offset % ctx->blocksize) == 0)
+        if((offset % blocksize) == 0)
         {
             update_key(ctx, offset, 0);
         }
@@ -170,7 +171,7 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         /* processing loop for 64 bit writes at even file offsets. due to compiler optimizations this loop is faster */
         while(length >= 8)
         {
-            if((offset % ctx->blocksize) == 0)
+            if((offset % blocksize) == 0)
             {
                 update_key(ctx, offset, 0);
             }
@@ -187,35 +188,34 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
     /* processing loop for 64 bit writes at odd file offsets. this loop has to do an extra lookup */
     while(length >= 8)
     {
-        uint32_t block_remain = offset % ctx->blocksize;
+        uint32_t block_remain = offset % blocksize;
         
         if(block_remain == 0)
         {
             update_key(ctx, offset, 0);
         }
-        else if((block_remain + 8) > ctx->blocksize)
+        else if((block_remain + 8) > blocksize)
         {
-            if(length >= 8)
-            {
-                for(int local_pos = 0; local_pos < 8; local_pos++)
-                {
-                    if((offset % ctx->blocksize) == 0)
-                    {
-                        update_key(ctx, offset, 0);
-                    }
-                    
-                    crypt_lfsr64_xor_uint8(dst, src, ctx, offset);
-                    dst += 1;
-                    src += 1;
-                    offset += 1;
-                    length -= 1;                
-                }
-            }
-            else
+            if(length < 8)
             {
                 /* okay, do the rest with per-byte crypts */
                 break;
             }
+            
+            for(int local_pos = 0; local_pos < 8; local_pos++)
+            {
+                if((offset % blocksize) == 0)
+                {
+                    update_key(ctx, offset, 0);
+                }
+                
+                crypt_lfsr64_xor_uint8(dst, src, ctx, offset);
+                dst += 1;
+                src += 1;
+                offset += 1;
+                length -= 1;                
+            }
+            continue;
         }
         
         crypt_lfsr64_xor_uint64(dst, src, ctx, offset);
@@ -229,7 +229,7 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
     /* do the rest, very slow */
     while(length > 0)
     {
-        uint32_t block_remain = offset % ctx->blocksize;
+        uint32_t block_remain = offset % blocksize;
         
         if(block_remain == 0)
         {
@@ -243,39 +243,47 @@ static uint32_t crypt_lfsr64_encrypt(crypt_cipher_t *cipher_ctx, uint8_t *dst, u
         length -= 1;
     }
     
-    //trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: all done dst 0x%08X, src 0x%08X, length: 0x%08X, offset: 0x%08X", dst, src, length, offset);
+    if((uint32_t)dst_in + in_length != (uint32_t)dst)
+    {
+        trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: ADDRESS ERROR dst 0x%08X/0x%08X, src 0x%08X/0x%08X, length: 0x%08X, offset: 0x%08X", dst, dst_in, src, src_in, length, offset);
+    }
+    if((uint32_t)src_in + in_length != (uint32_t)src)
+    {
+        trace_write(iocrypt_trace_ctx, "crypt_lfsr64_encrypt: ADDRESS ERROR dst 0x%08X/0x%08X, src 0x%08X/0x%08X, length: 0x%08X, offset: 0x%08X", dst, dst_in, src, src_in, length, offset);
+    }
     
     return in_length;
 }
 
 /* using a symmetric cipher, both encryption and decryption are the same */
-static uint32_t crypt_lfsr64_decrypt(crypt_cipher_t *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
+static uint32_t crypt_lfsr64_decrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset)
 {
-    return crypt_lfsr64_encrypt(ctx, dst, src, length, offset);
+    return crypt_lfsr64_encrypt(priv, dst, src, length, offset);
 }
 
 /* set encryption blocksize for this context */
-static void crypt_lfsr64_set_blocksize(crypt_cipher_t *crypt_ctx, uint32_t size)
+static void crypt_lfsr64_set_blocksize(crypt_priv_t *priv, uint32_t size)
 {
-    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)crypt_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
     
     ctx->blocksize = size;
 }
 
 /* not much to do here, just free the previously allocated structure */
-static void crypt_lfsr64_deinit(crypt_cipher_t *crypt_ctx)
+static void crypt_lfsr64_deinit(crypt_priv_t *priv)
 {
-    if(crypt_ctx && crypt_ctx->priv)
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
+    
+    if(ctx)
     {
-        free(crypt_ctx->priv);
-        crypt_ctx->priv = NULL;
+        free(ctx);
     }
 }
 
 /* reset operation is not implemented yet */
-static void crypt_lfsr64_reset(crypt_cipher_t *crypt_ctx)
+static void crypt_lfsr64_reset(crypt_priv_t *priv)
 {
-    lfsr64_ctx_t *ctx = crypt_ctx->priv;
+    lfsr64_ctx_t *ctx = (lfsr64_ctx_t *)priv;
     
     ctx->current_block = 0;
     ctx->lfsr_state = 0;
@@ -297,16 +305,16 @@ void crypt_lfsr64_init(crypt_cipher_t *crypt_ctx, uint64_t password)
     }
     
     /* setup cipher ctx */
-    crypt_ctx->encrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_lfsr64_encrypt;
-    crypt_ctx->decrypt = (uint32_t (*)(void *, uint8_t *, uint8_t *, uint32_t, uint32_t))&crypt_lfsr64_decrypt;
-    crypt_ctx->deinit = (void (*)(void *))&crypt_lfsr64_deinit;
-    crypt_ctx->reset = (void (*)(void *))&crypt_lfsr64_reset;
-    crypt_ctx->set_blocksize = (void (*)(void *, uint32_t))&crypt_lfsr64_set_blocksize;
+    crypt_ctx->encrypt = &crypt_lfsr64_encrypt;
+    crypt_ctx->decrypt = &crypt_lfsr64_decrypt;
+    crypt_ctx->deinit = &crypt_lfsr64_deinit;
+    crypt_ctx->reset = &crypt_lfsr64_reset;
+    crypt_ctx->set_blocksize = &crypt_lfsr64_set_blocksize;
     crypt_ctx->priv = ctx;
     
     /* initialize to default values */
     ctx->password = password;
-    crypt_lfsr64_reset(crypt_ctx);
+    crypt_lfsr64_reset(ctx);
     
     trace_write(iocrypt_trace_ctx, "crypt_lfsr64_init: initialized");
 }

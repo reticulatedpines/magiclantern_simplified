@@ -58,6 +58,10 @@
 #define MLV_INFO_BLOCK_INTERVAL  60000
 #define MAX_PATH                   100
 
+#define MLV_ICON_X 500
+#define MLV_ICON_Y 40
+
+
 #define MLV_DUMMY_FILENAME "mlv_rec.tmp"
 
 
@@ -374,7 +378,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     /* add an megabyte extra */
     size += 1024 * 1024;
     
-    int file_size = 0;
+    uint32_t file_size = 0;
     if(!FIO_GetFileSize(filename, &file_size))
     {
         /* file already exists and reserves enough room */
@@ -390,16 +394,18 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     FILE *dummy_file = FIO_CreateFileEx(filename);
     if(dummy_file == INVALID_PTR)
     {
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
         return 0;
     }
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
-    FIO_WriteFile(dummy_file, 0x40000000, size);
+    FIO_WriteFile(dummy_file, (void*)0x40000000, size);
     uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
     {
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to write to dummy file", filename);
         return 0;
     }
     
@@ -1005,7 +1011,7 @@ static int32_t setup_buffers()
         refresh_raw_settings(1);
     }
 
-    if (!mem_suite)
+    if(!mem_suite)
     {
         return 0;
     }
@@ -1040,7 +1046,7 @@ static int32_t setup_buffers()
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
 
-    if (fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
     {
         free_buffers();
         return 0;
@@ -1077,9 +1083,7 @@ static int32_t setup_buffers()
 
     if(DISPLAY_REC_INFO_DEBUG)
     {
-        char msg[100];
-        snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
-        bmp_printf(FONT_MED, 30, 90, msg);
+        bmp_printf(FONT_MED, 30, 90, "buffer size: %d frames", slot_count);
     }
 
     /* we need at least 3 slots */
@@ -1489,11 +1493,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 int32_t fps = fps_get_current_x1000();
                 int32_t t = (frame_count * 1000 + fps/2) / fps;
                 int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-                /* Position the Recording Icon */
-                int rl_x = 500;
-                int rl_y = 40;
+                /* print the Recording Icon */
                 int rl_color;
-                if (predicted < 10000)
+                if(predicted < 10000)
                 {
                     int time_left = (predicted-frame_count) * 1000 / fps;
                     if (time_left < 10) {
@@ -1501,21 +1503,24 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                     } else {
                         rl_color = COLOR_YELLOW;
                     }
-                } else {
-                    rl_color = COLOR_GREEN1;
-                }
-                int rl_icon_width=0;
-                /* Draw the movie camera icon */
-                rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
-                
-                /* Display the Status */
-                if (!frame_skips)
-                {
-                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
                 }
                 else
                 {
-                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
+                    rl_color = COLOR_GREEN1;
+                }
+                
+                int rl_icon_width=0;
+                /* Draw the movie camera icon */
+                rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, COLOR_BG_DARK);
+                
+                /* Display the Status */
+                if(!frame_skips)
+                {
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
+                }
+                else
+                {
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%d skipped", frame_skips);
                 }
             }
             else if(DISPLAY_REC_INFO_DEBUG)
@@ -1705,8 +1710,15 @@ static void hack_liveview(int32_t unhack)
 {
     if (PREVIEW_NOT || kill_gd)
     {
-        idle_globaldraw_dis();
-        clrscr();
+        if (!unhack)
+        {
+            idle_globaldraw_dis();
+            clrscr();
+        }
+        else
+        {
+            idle_globaldraw_en();
+        }
     }
     if (small_hacks)
     {
@@ -2864,7 +2876,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
 
 static void mlv_precreate_files(char *base_filename, uint32_t count)
 {
-    for(int pos = 0; pos < count; pos++)
+    for(uint32_t pos = 0; pos < count; pos++)
     {
         char filename[64];
         get_next_chunk_file_name(base_filename, filename, pos, 0);
@@ -2873,7 +2885,7 @@ static void mlv_precreate_files(char *base_filename, uint32_t count)
 
 static void mlv_prealloc_files(char *base_filename, prealloc_entry_t *prealloc_buf, uint32_t count, uint32_t writer)
 {
-    for(int pos = 0; pos < count; pos++)
+    for(uint32_t pos = 0; pos < count; pos++)
     {
         get_next_chunk_file_name(base_filename, prealloc_buf[pos].filename, pos, writer);
 
@@ -2918,6 +2930,16 @@ static void raw_video_rec_task()
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
 
+    if(DISPLAY_REC_INFO_DEBUG)
+    {
+        bmp_printf(FONT_MED, 30, 50, "Prepare recording...");
+    }
+    else if(DISPLAY_REC_INFO_ICON)
+    {
+        uint32_t width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, COLOR_WHITE, COLOR_BG_DARK);
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X + width, MLV_ICON_Y + 5, "Prepare");
+    }
+    
     /* make sure tracing is active */
     raw_rec_setup_trace();
 
@@ -2945,7 +2967,8 @@ static void raw_video_rec_task()
     /* allocate memory */
     if(!setup_buffers())
     {
-        NotifyBox(5000, "Failed to create file. Card/RAM full?");
+        trace_write(raw_rec_trace_ctx, "Failed to setup. Card/RAM full?");
+        NotifyBox(5000, "Failed to setup. Card/RAM full?");
         beep();
         goto cleanup;
     }
@@ -3556,11 +3579,13 @@ static void raw_video_rec_task()
 cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
-    
+
+    /*
     if(DISPLAY_REC_INFO_DEBUG)
     {
         NotifyBox(5000, "Frames captured: %d", frame_count - 1);
     }
+    */
     
     if(show_graph)
     {
