@@ -1001,10 +1001,10 @@ static unsigned int adtg_gui_init()
 {
     if (streq(camera_model_short, "5D3"))
     {
-        ADTG_WRITE_FUNC = 0x11644;
-        CMOS_WRITE_FUNC = 0x119CC;
-        CMOS2_WRITE_FUNC = 0x11784;
-        CMOS16_WRITE_FUNC = 0x11AB8;
+        ADTG_WRITE_FUNC = 0x11644;    // 0xFFA01E04 - RAM_OFFSET
+        CMOS_WRITE_FUNC = 0x119CC;    // 0xFFA0218C - RAM_OFFSET
+        CMOS2_WRITE_FUNC = 0x11784;   // 0xFFA01F44 - RAM_OFFSET
+        CMOS16_WRITE_FUNC = 0x11AB8;  // 0xFFA02278 - RAM_OFFSET
     }
     else if (streq(camera_model_short, "5D2"))
     {
