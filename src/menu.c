@@ -609,7 +609,9 @@ static int get_delta(struct menu_entry * entry, int sign)
 
 static int uses_caret_editing(struct menu_entry * entry)
 {
-    return entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME;
+    return 
+        entry->select == 0 &&   /* caret editing requires its own toggle logic */
+        (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME);  /* only these caret edit modes are supported */
 }
 
 static void caret_move(struct menu_entry * entry, int delta)
