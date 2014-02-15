@@ -3830,7 +3830,8 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Stop after",
                 .priv       = &interval_stop_after,
-                .max = 5000, // 5000 shots
+                .max        = 5000, // 5000 shots
+                .unit       = UNIT_DEC,
                 .update     = interval_stop_after_display,
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
