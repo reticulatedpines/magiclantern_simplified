@@ -25,9 +25,6 @@
 
 #undef FEATURE_TRAP_FOCUS
 
-// No suitable button
-#undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-
 // Glitchy
 #undef FEATURE_STICKY_DOF
 #undef FEATURE_STICKY_HALFSHUTTER

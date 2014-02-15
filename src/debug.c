@@ -3820,6 +3820,11 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_REDRAW:
             redraw_do();
             break;
+        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
+            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
+            handle_livev_playback(event, MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
+            #endif
+            break;
     }
     return 0;
 }

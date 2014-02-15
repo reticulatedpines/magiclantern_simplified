@@ -3351,10 +3351,7 @@ void clear_zebras_from_mirror()
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 static void trigger_zebras_for_qr()
 {
-    fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
-    #ifdef CONFIG_600D
-    if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
-    #endif
+    fake_simple_button(MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
 }
 #endif
 

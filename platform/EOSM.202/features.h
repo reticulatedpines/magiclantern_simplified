@@ -53,7 +53,6 @@
 //~ #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
 //~ #define FEATURE_LV_FOCUS_BOX_AUTOHIDE
 
-#undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 //~ #undef FEATURE_AUDIO_METERS // Work While Recording
 //~ #undef FEATURE_LV_FOCUS_BOX_AUTOHIDE // Works in FB mode
 
