@@ -632,12 +632,12 @@ static MENU_UPDATE_FUNC(iocrypt_update)
         case CRYPT_MODE_SYMMETRIC:
             if(!iocrypt_key)
             {
-                MENU_SET_VALUE("No password!");
+                MENU_SET_VALUE("Password (missing)");
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please set a password first. Files are not encrypted yet.");
             }
             else
             {
-                MENU_SET_VALUE("Active");
+                MENU_SET_VALUE("Password");
             }
             break;
             
@@ -645,21 +645,22 @@ static MENU_UPDATE_FUNC(iocrypt_update)
         case CRYPT_MODE_ASYMMETRIC_PARANOID:
             if(!crypt_rsa_get_pub(&iocrypt_rsa_ctx))
             {
-                MENU_SET_VALUE("No Keys!");
+                MENU_SET_VALUE("RSA (no keys)");
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please create keys first. Files are not encrypted yet.");
             }
             else if(crypt_rsa_get_priv(&iocrypt_rsa_ctx))
             {
-                MENU_SET_VALUE("INSECURE!");
+                MENU_SET_VALUE("RSA (insecure)");
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "Move IO_CRYPT.KEY to a safe place and DELETE from card.");
             }
             else
             {
-                MENU_SET_VALUE("Active");
+                MENU_SET_VALUE("RSA");
             }
             break;
             
         default:
+            MENU_SET_VALUE("Off");
             break;
     }
 }
@@ -669,16 +670,13 @@ static struct menu_entry iocrypt_menus[] =
     {
         .name = "Encryption",
         .update = &iocrypt_update,
-        .help  = "Enable low level encryption.",
+        .priv = &iocrypt_mode,
+        .max = 2, /* the others are not implemented yet */
+        .icon_type = IT_DICE_OFF,
+        .choices = (const char *[]) {"OFF", "Password", "RSA", "RSA (paranoid)", "Background PW", "Background RSA"},
+        .help = "Select the encryption mode. The higher the level, the less comfort you have.",
         .submenu_width = 710,
         .children = (struct menu_entry[]) {
-            {
-                .name = "Encryption",
-                .priv = &iocrypt_mode,
-                .max = 2, /* the others are not implemented yet */
-                .choices = (const char *[]) {"OFF", "Password", "RSA", "RSA (paranoid)", "Background PW", "Background RSA"},
-                .help = "Select the encryption mode. The higher the level, the less comfort you have.",
-            },
             /*
             {
                 .name = "Show fake images",
@@ -698,6 +696,7 @@ static struct menu_entry iocrypt_menus[] =
                 .name = "Blocksize",
                 .priv = &iocrypt_block_size,
                 .max = 6,
+                .icon_type = IT_DICE,
                 .choices = (const char *[]) {"8k", "16k", "32k", "64k", "128k", "256k", "512k"},
                 .help = "Blocks get encrypted with the same 64 bit key. The smaller the more secure but slower.",
             },
@@ -705,6 +704,7 @@ static struct menu_entry iocrypt_menus[] =
                 .name = "Ask for password on startup",
                 .priv = &iocrypt_ask_pass,
                 .max = 1,
+                .icon_type = IT_BOOL,
                 .help = "When enabled it will ask for the encryption password right after camera powerup.",
             },
             {
@@ -718,6 +718,7 @@ static struct menu_entry iocrypt_menus[] =
                 .name = "RSA Keysize",
                 .priv = &iocrypt_rsa_key_size,
                 .max = 3,
+                .icon_type = IT_DICE,
                 .choices = (const char *[]) {"512", "1024", "2048", "4096"},
                 .help = "Key size when creating a RSA key pair. The smaller, the less security you have.",
             },
