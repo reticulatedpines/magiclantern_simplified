@@ -3,14 +3,24 @@
 #define __IO_CRYPT_H
 
 #define CRYPT_SCRATCH_SIZE 0x00800000
+
+
+typedef void crypt_priv_t;
+
 typedef struct crypt_cipher_t
 {
-    void *priv;
-    uint32_t (*encrypt)(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
-    uint32_t (*decrypt)(void *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
-    void (*reset)(void *ctx);
-    void (*deinit)(void *ctx);
-    void (*set_blocksize)(void *ctx, uint32_t size);
+    /* priv: private data for the encryption algorithm */
+    crypt_priv_t *priv;
+    /* encrypt: encrypt given data at *src of given length and store at *dst, returns encrypted data length */
+    uint32_t (*encrypt)(crypt_priv_t *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
+    /* encrypt: decrypt given data at *src of given length and store at *dst, returns decrypted data length */
+    uint32_t (*decrypt)(crypt_priv_t *ctx, uint8_t *dst, uint8_t *src, uint32_t length, uint32_t offset);
+    /* set_blocksize: set encryption algorithm parameter blocksize */
+    void (*set_blocksize)(crypt_priv_t *ctx, uint32_t size);
+    /* reset: reset internal data to the state right after initialization */
+    void (*reset)(crypt_priv_t *ctx);
+    /* deinit: free private data */
+    void (*deinit)(crypt_priv_t *ctx);
 } crypt_cipher_t;
 
 typedef struct

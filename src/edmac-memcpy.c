@@ -351,3 +351,51 @@ void find_free_edmac_channels()
     }
 }
 #endif
+
+
+/** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
+#ifdef CONFIG_EDMAC_RAW_SLURP
+
+/* for other cameras, find a free channel with find_free_edmac_channels  */ 
+#ifdef CONFIG_5D3
+uint32_t raw_write_chan = 4;
+#endif
+
+#ifdef CONFIG_60D
+uint32_t raw_write_chan = 1;
+#endif
+
+static void edmac_slurp_complete_cbr (int ctx)
+{
+    /* set default CBRs again and stop both DMAs */
+    /* idk what to do with those; if I uncomment them, the camera crashes at startup in movie mode with raw_rec enabled */
+    //~ UnregisterEDmacCompleteCBR(raw_write_chan);
+    //~ UnregisterEDmacAbortCBR(raw_write_chan);
+    //~ UnregisterEDmacPopCBR(raw_write_chan);
+}
+
+void edmac_raw_slurp(void* dst, int w, int h)
+{
+    /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
+    uint32_t dmaFlags = 0x20001000;
+    
+    /* @g3gg0: this callback does get called */
+    RegisterEDmacCompleteCBR(raw_write_chan, &edmac_slurp_complete_cbr, 0);
+    RegisterEDmacAbortCBR(raw_write_chan, &edmac_slurp_complete_cbr, 0);
+    RegisterEDmacPopCBR(raw_write_chan, &edmac_slurp_complete_cbr, 0);
+    
+    /* connect the selected channels to 0 so the raw data from sensor is passed to write channel */
+    ConnectWriteEDmac(raw_write_chan, 0);
+    
+    /* xb is width */
+    /* yb is height-1 (number of repetitions) */
+    static struct edmac_info dst_edmac_info;
+    dst_edmac_info.xb = w;
+    dst_edmac_info.yb = h-1;
+    
+    SetEDmac(raw_write_chan, (void*)dst, &dst_edmac_info, dmaFlags);
+    
+    /* start transfer. no flags for write, 2 for read channels */
+    StartEDmac(raw_write_chan, 0);
+}
+#endif /* CONFIG_EDMAC_RAW_SLURP */

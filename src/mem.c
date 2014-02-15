@@ -10,11 +10,20 @@
  */
 #define NO_MALLOC_REDIRECT
 
+#undef MEM_DEBUG        /* define this one to print a log about who is allocating what */
+
 #include "compiler.h"
 #include "tasks.h"
 #include "limits.h"
 #include "bmp.h"
+#include "beep.h"
 #include "menu.h"
+
+#ifdef MEM_DEBUG
+#define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
+#else
+#define dbg_printf(fmt,...) {}
+#endif
 
 #define MEM_SEC_ZONE 32
 #define MEMCHECK_ENTRIES 256
@@ -23,6 +32,9 @@
 
 #define JUST_FREED 0xF12EEEED   /* FREEED */
 #define UNTRACKED 0xFFFFFFFF
+
+/* used for faking the cacheable flag (internally we must use the same flag as returned by allocator) */
+#define UNCACHEABLE_FLAG 0x8000
 
 typedef void* (*mem_init_func)();
 typedef void* (*mem_alloc_func)(size_t size);
@@ -38,6 +50,8 @@ extern void _FreeMemory(void* ptr);
 extern void* _alloc_dma_memory(size_t size);
 extern void _free_dma_memory(void* ptr);
 extern int _shoot_get_free_space();
+
+static struct semaphore * mem_sem = 0;
 
 struct mem_allocator
 {
@@ -56,6 +70,7 @@ struct mem_allocator
     int preferred_max_alloc_size;           /* (but if it can't find any, it may still use this buffer) */
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
     int minimum_free_space;                 /* will never allocate if free space would drop under this */
+    int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
     
     /* private stuff */
     int mem_used;
@@ -69,7 +84,15 @@ int GetFreeMemForAllocateMemory()
     return b;
 }
 
-int GetFreeMemForMalloc()
+static int GetMaxRegionForAllocateMemory()
+{
+    int a;
+    int err = GetSizeOfMaxRegion(&a);
+    if (err) return 0;
+    return a;
+}
+
+static int GetFreeMemForMalloc()
 {
     return MALLOC_FREE_MEMORY;
 }
@@ -93,6 +116,7 @@ static struct mem_allocator allocators[] = {
         .malloc_dma = _alloc_dma_memory,
         .free_dma = _free_dma_memory,
         .get_free_space = GetFreeMemForAllocateMemory,
+        .get_max_region = GetMaxRegionForAllocateMemory,
         .preferred_min_alloc_size = 0,
         .preferred_max_alloc_size = 512 * 1024,
         .preferred_free_space = 1024 * 1024 * 3/2,  /* at 1MB free, "dispcheck" may stop working */
@@ -141,6 +165,7 @@ static struct mem_allocator allocators[] = {
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
         .preferred_max_alloc_size = 32 * 1024 * 1024,
+        .minimum_alloc_size = 32 * 1024,
     },
 #endif
 };
@@ -256,7 +281,7 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
     for(int pos = sizeof(struct memcheck_hdr); pos < MEM_SEC_ZONE; pos++)
     {
         unsigned char value = ((unsigned char *)ptr)[pos];
-        // console_printf("free check %d %x\n ", pos, value);
+        // dbg_printf("free check %d %x\n ", pos, value);
         if (value != 0xA5)
         {
             failed |= 2;
@@ -267,7 +292,7 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
     {
         int pos2 = MEM_SEC_ZONE + ((struct memcheck_hdr *)ptr)->length + pos;
         unsigned char value = ((unsigned char *)ptr)[pos2];
-        // console_printf("free check %d %x\n ", pos2, value);
+        // dbg_printf("free check %d %x\n ", pos2, value);
         if (value != 0xA5)
         {
             failed |= 4;
@@ -430,7 +455,8 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
 {
     unsigned int ptr;
     
-    // console_printf("alloc %d %s:%d\n ", len, file, line);
+    //~ dbg_printf("alloc %d %s:%d\n ", len, file, line);
+    //~ int t0 = get_ms_clock_value();
 
     int requires_dma = flags & MEM_DMA;
     if (requires_dma)
@@ -441,20 +467,31 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
     {
         ptr = (unsigned int) allocators[allocator_index].malloc(len + 2 * MEM_SEC_ZONE);
     }
+
+    //~ int t1 = get_ms_clock_value();
+    //~ dbg_printf("alloc returned %x, took %s%d.%03d s\n", ptr, FMT_FIXEDPOINT3(t1-t0));
     
     /* some allocators may return invalid ptr; discard it and return 0, as C malloc does */
     if ((intptr_t)ptr & 1) return 0;
     if (!ptr) return 0;
     
-    /* first fill all with 0xA5 */
-    for(unsigned pos = 0; pos < (len + 2 * MEM_SEC_ZONE); pos++)
+    /* fill MEM_SEC_ZONE with 0xA5 */
+    for(unsigned pos = 0; pos < MEM_SEC_ZONE; pos++)
+    {
+        ((unsigned char *)ptr)[pos] = 0xA5;
+    }
+
+    for(unsigned pos = len + MEM_SEC_ZONE; pos < len + 2 * MEM_SEC_ZONE; pos++)
     {
         ((unsigned char *)ptr)[pos] = 0xA5;
     }
     
+    /* did our allocator return a cacheable or uncacheable pointer? */
+    unsigned int uncacheable_flag = (ptr == (unsigned int) UNCACHEABLE(ptr)) ? UNCACHEABLE_FLAG : 0;
+    
     ((struct memcheck_hdr *)ptr)->length = len;
     ((struct memcheck_hdr *)ptr)->allocator = allocator_index;
-    ((struct memcheck_hdr *)ptr)->flags = flags;
+    ((struct memcheck_hdr *)ptr)->flags = flags | uncacheable_flag;
 
     memcheck_add(ptr, file, line);
     
@@ -514,6 +551,8 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         int has_non_dma = allocators[a].malloc ? 1 : 0;
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
         int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
+
+        /* TODO: get rid of cascaded if's (use negative logic and "continue") */
         
         /* do we need DMA? */
         if (
@@ -528,22 +567,39 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                )
             {
                 /* matches preferred size criteria? */
-                if (
-                        !require_preferred_size ||
-                        (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                if 
+                    (
+                        (
+                            !require_preferred_size ||
+                            (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                        )
+                        && 
+                        (
+                            /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
+                            size >= allocators[a].minimum_alloc_size
+                        )
                    )
                 {
                     /* do we have enough free space without exceeding the preferred limit? */
                     int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
-                    //~ console_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
+                    //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
                     if (
-                            !require_preferred_free_space ||
-                            (free_space - size - 1024 > allocators[a].preferred_free_space)
-                        )
+                            (
+                                /* preferred free space is... well... optional */
+                                !require_preferred_free_space ||
+                                (free_space - size - 1024 > allocators[a].preferred_free_space)
+                            )
+                            &&
+                            (
+                                /* minimum_free_space is mandatory */
+                                free_space - size - 1024 > allocators[a].minimum_free_space
+                            )    
+                       )
                     {
                         /* do we have a large enough contiguous chunk? */
-                        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() : free_space / 2;
-                        //~ console_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
+                        /* use a heuristic if we don't know, use a safety margin even if we know */
+                        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
+                        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
                         if (size < max_region)
                         {
                             /* yes, we do! */
@@ -596,7 +652,9 @@ static int choose_allocator(int size, unsigned int flags)
 /* returns 0 if it couldn't allocate */
 void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned int line)
 {
-    //~ console_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    take_semaphore(mem_sem, 0);
+
+    dbg_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
     
     /* show files without full path in error messages (they are too big) */
     file = file_name_without_path(file);
@@ -608,44 +666,105 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
         /* yes, let's allocate */
+
+        dbg_printf("using %s (%d blocks)\n", allocators[allocator_index].name, allocators[allocator_index].num_blocks);
+        
+        #ifdef MEM_DEBUG
+        int t0 = get_ms_clock_value();
+        #endif
+        
         void* ptr = memcheck_malloc(size, file, line, allocator_index, flags);
+        
+        #ifdef MEM_DEBUG
+        int t1 = get_ms_clock_value();
+        #endif
         
         if (!ptr)
         {
             /* didn't work? */
             snprintf(last_error_msg_short, sizeof(last_error_msg_short), "%s(%s,%x)", allocators[allocator_index].name, format_memory_size_and_flags(size, flags));
             snprintf(last_error_msg, sizeof(last_error_msg), "%s(%s) failed at %s:%d, %s.", allocators[allocator_index].name, format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+            dbg_printf("alloc fail, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
+        }
+        else
+        {
+            /* force the cacheable pointer to be the way user requested it */
+            /* note: internally, this library must use the vanilla pointer (non-mangled) */
+            ptr = (flags & MEM_DMA) ? UNCACHEABLE(ptr) : CACHEABLE(ptr);
+
+            dbg_printf("alloc ok, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
         }
         
+        give_semaphore(mem_sem);
         return ptr;
     }
     
     /* could not find an allocator (maybe out of memory?) */
     snprintf(last_error_msg_short, sizeof(last_error_msg_short), "alloc(%s)", format_memory_size_and_flags(size, flags));
     snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    dbg_printf("alloc not found\n");
+    give_semaphore(mem_sem);
     return 0;
 }
 
 void __mem_free(void* buf)
 {
-    unsigned int ptr = ((unsigned int)buf - MEM_SEC_ZONE);
+    take_semaphore(mem_sem, 0);
+
+    unsigned int ptr = (unsigned int)buf - MEM_SEC_ZONE;
 
     int allocator_index = ((struct memcheck_hdr *)ptr)->allocator;
     unsigned int flags = ((struct memcheck_hdr *)ptr)->flags;
 
-    //~ unsigned int size = ((struct memcheck_hdr *)ptr)->length;
-    //~ console_printf("free(%s) from task %s\n", format_memory_size_and_flags(size, flags), get_task_name_from_id((int)get_current_task()));
+    /* make sure the caching flag is the same as returned by the allocator */
+    buf = (flags & UNCACHEABLE_FLAG) ? UNCACHEABLE(buf) : CACHEABLE(buf);
+
+    dbg_printf("free(%s) from task %s\n", format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), get_task_name_from_id((int)get_current_task()));
     
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
-        return memcheck_free(buf, allocator_index, flags);
+        memcheck_free(buf, allocator_index, flags);
+        dbg_printf("free ok\n");
     }
+    else
+    {
+        dbg_printf("free fail\n");
+    }
+    
+    give_semaphore(mem_sem);
 }
+
+/* thread-safe wrappers for exmem routines */
+struct memSuite *shoot_malloc_suite(size_t size)
+{
+    take_semaphore(mem_sem, 0);
+    void* ans = _shoot_malloc_suite(size);
+    give_semaphore(mem_sem);
+    return ans;
+}
+
+void shoot_free_suite(struct memSuite * hSuite)
+{
+    take_semaphore(mem_sem, 0);
+    _shoot_free_suite(hSuite);
+    give_semaphore(mem_sem);
+}
+
+struct memSuite * shoot_malloc_suite_contig(size_t size)
+{
+    take_semaphore(mem_sem, 0);
+    void* ans = _shoot_malloc_suite_contig(size);
+    give_semaphore(mem_sem);
+    return ans;
+}
+
 
 /* initialize memory pools, if any of them needs that */
 /* (called as the first init func => mem.o should be first in the Makefile.src (well, after boot-hack) */
 static void mem_init()
 {
+    mem_sem = create_named_semaphore("mem_sem", 1);
+
     for (int a = 0; a < COUNT(allocators); a++)
     {
         if (allocators[a].init)
@@ -695,24 +814,30 @@ static void guess_free_mem_task(void* priv, int delta)
 
     bin_search(1, 1024, stack_size_crit);
 
+    /* we won't keep these things allocated much, so we can pause malloc activity while running this (just so nothing will fail) */
+    /* note: we use the _underlined routines here, but please don't do that in user code */
+    take_semaphore(mem_sem, 0);
+
     {
-        struct memSuite * hSuite = shoot_malloc_suite_contig(0);
+        struct memSuite * hSuite = _shoot_malloc_suite_contig(0);
         if (!hSuite)
         {
             beep();
             guess_mem_running = 0;
+            give_semaphore(mem_sem);
             return;
         }
         ASSERT(hSuite->num_chunks == 1);
         max_shoot_malloc_mem = hSuite->size;
-        shoot_free_suite(hSuite);
+        _shoot_free_suite(hSuite);
     }
 
-    struct memSuite * hSuite = shoot_malloc_suite(0);
+    struct memSuite * hSuite = _shoot_malloc_suite(0);
     if (!hSuite)
     {
         beep();
         guess_mem_running = 0;
+        give_semaphore(mem_sem);
         return;
     }
     max_shoot_malloc_frag_mem = hSuite->size;
@@ -747,7 +872,10 @@ static void guess_free_mem_task(void* priv, int delta)
 
     exmem_clear(hSuite, 0);
 
-    shoot_free_suite(hSuite);
+    _shoot_free_suite(hSuite);
+
+    /* mallocs can resume now */
+    give_semaphore(mem_sem);
 
     /* memory analysis: how much appears unused? */
     for (uint32_t i = 0; i < 720; i++)
@@ -786,6 +914,15 @@ static void guess_free_mem()
 }
 
 static MENU_UPDATE_FUNC(mem_error_display);
+
+static struct { uint32_t addr; char* name; } common_addresses[] = {
+    { RESTARTSTART,         "RST"},
+    { YUV422_HD_BUFFER_1,   "HD1"},
+    { YUV422_HD_BUFFER_1,   "HD2"},
+    { YUV422_LV_BUFFER_1,   "LV1"},
+    { YUV422_LV_BUFFER_2,   "LV2"},
+    { YUV422_LV_BUFFER_3,   "LV3"},
+};
 
 static MENU_UPDATE_FUNC(meminfo_display)
 {
@@ -840,9 +977,32 @@ static MENU_UPDATE_FUNC(meminfo_display)
             MENU_SET_VALUE("%s", format_memory_size(max_shoot_malloc_frag_mem));
             MENU_SET_WARNING(MENU_WARN_INFO, shoot_malloc_frag_desc);
             guess_needed = 1;
+            
+            /* paint memory map */
             for (int i = 0; i < 720; i++)
                 if (memory_map[i])
                     draw_line(i, 400, i, 410, memory_map[i]);
+            
+            /* show some common addresses on the memory map */
+            for (int i = 0; i < COUNT(common_addresses); i++)
+            {
+                int c = MEMORY_MAP_ADDRESS_TO_INDEX(common_addresses[i].addr);
+                draw_line(c, 390, c, 400, COLOR_YELLOW);
+                bmp_printf(FONT_SMALL, c, 385, common_addresses[i].name);
+            }
+
+            /* show EDMAC addresses on the memory map */
+            for (int i = 0; i < 32; i++)
+            {
+                int a = edmac_get_address(i);
+                if (a)
+                {
+                    int c = MEMORY_MAP_ADDRESS_TO_INDEX(a);
+                    draw_line(c, 410, c, 420, COLOR_YELLOW);
+                    int msg = i < 10 ? '0'+i : 'a'+i;  /* extended hex to fit in the single character */
+                    bmp_printf(FONT_SMALL | FONT_ALIGN_CENTER, c, 415, "%s", (char*) &msg);
+                }
+            }
             break;
 
         #if defined(CONFIG_MEMPATCH_CHECK)
@@ -912,6 +1072,15 @@ static MENU_UPDATE_FUNC(mem_pool_display)
         MENU_SET_HELP("Memory used from %s. %d blocks allocated.", allocators[index].name, allocators[index].num_blocks);
     }
     
+    if (allocators[index].get_max_region)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Max region: %s.", format_memory_size(allocators[index].get_max_region()));
+    }
+    else
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "This allocator does not implement get_max_region.");
+    }
+    
     if (free_space > 0 && free_space < allocators[index].preferred_free_space)
     {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Would be nice to have at least %s free here.", format_memory_size(allocators[index].preferred_free_space));
@@ -961,7 +1130,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
             int flags = ((struct memcheck_hdr *)ptr)->flags;
             int allocator = ((struct memcheck_hdr *)ptr)->allocator;
             
-            if (size < 1024 || y > 300)
+            if (size < 32768 || y > 300)
             {
                 small_blocks++;
                 small_blocks_size += size;
@@ -995,29 +1164,32 @@ static MENU_UPDATE_FUNC(mem_total_display)
         
         int t0 = history[first_index].timestamp;
         int t_end = get_ms_clock_value();
-        int peak_x = 0;
         int peak_y = y+10;
+        int peak = alloc_total_peak_with_memcheck;
+        int total = alloc_total_with_memcheck;
         if (t_end > t0)
         {
             int maxh = 480 - peak_y;
-            bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, 250);
-            for (int i = first_index; i != history_index; i = mod(i+1, HISTORY_ENTRIES))
+            bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, maxh);
+            int next_i;
+            for (int i = first_index; i != history_index; i = next_i)
             {
+                next_i = mod(i+1, HISTORY_ENTRIES);
                 int t = history[i].timestamp;
-                int t2 = history[i+1].timestamp;
+                int t2 = (next_i != history_index) ? history[next_i].timestamp : t_end;
+                if (t2 < t) continue;
                 if (i == history_index-1) t2 = t_end;
                 int x = 720 * (t - t0) / (t_end - t0);
                 int x2 = 720 * (t2 - t0) / (t_end - t0);
-                int h = history[i].alloc_total * maxh / alloc_total_peak_with_memcheck;
+                int h = MIN((uint64_t)history[i].alloc_total * maxh / peak, maxh);
                 y = 480 - h;
                 int w = MAX(x2-x, 2);
                 bmp_fill(h == maxh ? COLOR_RED : COLOR_BLUE, x, y, w, h);
-                if (h == maxh)
-                    peak_x = x;
             }
         }
-        bmp_printf(FONT_MED, peak_x+5, peak_y, "%s", format_memory_size(alloc_total_peak_with_memcheck));
-        bmp_printf(FONT_MED, 650, y-20, "%s", format_memory_size(alloc_total_with_memcheck));
+
+        bmp_printf(FONT_MED, 10, peak_y, "%s", format_memory_size(peak));
+        bmp_printf(FONT_MED, 650, MAX(y-20, peak_y), "%s", format_memory_size(total));
     }
     else
     {

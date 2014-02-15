@@ -8,3 +8,7 @@ include ../Makefile.modules
 
 # include host tool makefile rules
 include Makefile.io_decrypt
+
+#CFLAGS+=-DTRACE_DISABLED
+#HOST_CFLAGS+=-DTRACE_DISABLED
+#MINGW_CFLAGS+=-DTRACE_DISABLED

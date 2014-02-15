@@ -4,7 +4,7 @@
 #include "tasks.h"
 #include "module.h"
 #include "menu.h"
-
+#include "propvalues.h"
 
 #ifdef CONFIG_TSKMON
 
@@ -308,6 +308,19 @@ static void null_pointer_check()
 void tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
+
+    if (RECORDING_RAW)
+    {
+        /* we need full speed; these checks might cause a small performance hit */
+        return;
+    }
+    
+    if (sensor_cleaning)
+    {
+        /* 5D2 locks up, even with loop of of asm("nop"); maybe others too? */
+        return;
+    }
+
     struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
 
     tskmon_stack_checker(next_task);

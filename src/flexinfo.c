@@ -1558,8 +1558,8 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_HDR:
 #ifdef FEATURE_HDR_BRACKETING
         {
-            extern int hdr_enabled, hdr_steps, hdr_stepsize;
-            if (!hdr_enabled)
+            extern int hdr_steps, hdr_stepsize;
+            if (!is_hdr_bracketing_enabled())
             {
                 return 1;
             }

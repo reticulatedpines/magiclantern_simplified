@@ -31,6 +31,7 @@
 #include "math.h"
 #include "version.h"
 #include "module.h"
+#include "raw.h"
 
 // for movie logging
 static char* mvr_logfile_buffer = 0;
@@ -2239,6 +2240,18 @@ static LVINFO_UPDATE_FUNC(picq_update)
             )
         );
     }
+    
+    if (raw_lv_is_enabled())
+    {
+        /* make it obvious that LiveView is in RAW mode */
+        /* (primarily for troubleshooting the raw backend, proper raw_lv_request/release calls and Magic Zoom slowdowns) */
+        if (is_movie_mode())
+        {
+            /* todo: icon? */
+            snprintf(buffer, sizeof(buffer), "RAW");
+        }
+        item->color_fg = COLOR_GREEN1;
+    }
 }
 
 static LVINFO_UPDATE_FUNC(alo_htp_update)
@@ -2259,11 +2272,9 @@ static LVINFO_UPDATE_FUNC(picstyle_update)
 
     if (is_movie_mode())
     {
-#ifdef CONFIG_RAW_LIVEVIEW
         /* picture style has no effect on raw video => don't display */
         if (raw_lv_is_enabled())
             return;
-#endif
     }
     else
     {
@@ -2323,6 +2334,12 @@ static LVINFO_UPDATE_FUNC(fps_update)
 static LVINFO_UPDATE_FUNC(free_space_update)
 {
     LVINFO_BUFFER(8);
+    
+    if (RECORDING)
+    {
+        /* leave space for the recording indicators */
+        return;
+    }
 
     extern int cluster_size;
     extern int free_space_raw;

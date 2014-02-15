@@ -33,6 +33,9 @@ install_platform_all_model: platform_all_model
 
 install: install_platform_all_model
 
+all_modules:
+	$(MAKE) -C modules
+
 fir:
 	$(MAKE) -C installer clean_and_fir
 
@@ -42,7 +45,10 @@ install_fir: fir
 platform_clean:
 	$(MAKE) -C platform clean
 
-clean: platform_clean doxygen_clean
+modules_clean:
+	$(MAKE) -C modules clean
+
+clean: platform_clean doxygen_clean modules_clean
 	$(call rm_files, \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \

@@ -71,7 +71,7 @@ struct raw_pixblock
     unsigned int f_lo: 4;
     unsigned int h: 14;     // even lines: green; odd lines: blue
     unsigned int g_lo: 2;
-} __attribute__((packed));
+} __attribute__((packed,aligned(2)));
 
 /* call this before performing any raw image analysis */
 /* returns 1=success, 0=failed */
@@ -223,6 +223,18 @@ extern int can_use_raw_overlays();
 /* to be used in menu, if you want to check if raw data will available in current mode (not necessarily at the time of displaying the menu) */
 extern int can_use_raw_overlays_menu();
 
+#endif
+
+#if defined(CONFIG_RAW_LIVEVIEW) || defined(MODULE)
+/* returns true if LiveView is currently in RAW mode */
+/* for movie mode, this only happens if some sort of raw recorder is active */
+/* for photo mode, it should happen when some raw overlays are active */
+extern int raw_lv_is_enabled();
+#else
+/* with this macro, the compiler will optimize out the code blocks that depend on LiveView raw support */
+/* (no need to sprinkle the code with #ifdef CONFIG_RAW_LIVEVIEW) */
+/* Q: any way to make this cleaner? (with weak func, the compiler no longer optimizes these things) */
+#define raw_lv_is_enabled() 0 
 #endif
 
 #endif

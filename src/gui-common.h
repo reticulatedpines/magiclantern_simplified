@@ -20,6 +20,8 @@
 #define MLEV_MENU_REDRAW -15
 #define MLEV_AV_SHORT -16
 #define MLEV_AV_LONG -17
+
+#define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
  
 
 /** \file
@@ -205,5 +207,12 @@ int detect_double_click(int key, int pressed_code, int unpressed_code);
 int handle_common_events_startup(struct event * event);
 int handle_common_events_by_feature(struct event * event);
 int handle_other_events(struct event * event);
+
+/**
+ * @brief lock specified things of the user interface
+ * @param what one of UILOCK_NONE, UILOCK_EVERYTHING, UILOCK_POWER_SW, etc etc. see property.h
+ */
+void gui_uilock(int what);
+
 
 #endif

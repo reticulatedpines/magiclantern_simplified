@@ -12,6 +12,7 @@
 #include "lens.h"
 #include "config.h"
 #include "ptp.h"
+#include "beep.h"
 
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);

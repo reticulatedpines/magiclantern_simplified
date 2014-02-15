@@ -24,6 +24,7 @@
 
 #include "zebra.h"
 #include "vectorscope.h"
+#include "electronic_level.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
@@ -33,6 +34,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "raw.h"
 
 #include "imgconv.h"
@@ -121,9 +123,7 @@ static int is_zoom_mode_so_no_zebras()
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
-    #ifdef CONFIG_RAW_LIVEVIEW
     if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
-    #endif
     
     return 1;
 }
@@ -176,7 +176,11 @@ static CONFIG_INT( "global.draw",   global_draw, 3 );
 #define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
 
 static CONFIG_INT( "zebra.draw",    zebra_draw, 1 );
+#ifdef FEATURE_ZEBRA_FAST
 static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lumafast
+#else
+static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   0 );// luma/rgb/lumafast
+#endif
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
 static CONFIG_INT( "zebra.rec", zebra_rec,  1 );
@@ -275,8 +279,12 @@ int should_draw_zoom_overlay()
 
 int digic_zoom_overlay_enabled()
 {
+    #ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN
     return zoom_overlay_size == 3 &&
         should_draw_zoom_overlay();
+    #else
+    return 0;
+    #endif
 }
 
 int nondigic_zoom_overlay_enabled()
@@ -2944,12 +2952,12 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Size", 
                 .priv = &zoom_overlay_size,
-                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // old cameras - simple zoom box
-                .max = 2,
-                .help = "Size of zoom box (small / medium / large).",
-                #else // new cameras can do fullscreen too :)
+                #ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN // most new cameras can do fullscreen :)
                 .max = 3,
                 .help = "Size of zoom box (small / medium / large / full screen).",
+                #else // old cameras - simple zoom box
+                .max = 2,
+                .help = "Size of zoom box (small / medium / large).",
                 #endif
                 .choices = (const char *[]) {"Small", "Medium", "Large", "FullScreen"},
                 .icon_type = IT_SIZE,
@@ -3111,7 +3119,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Use RAW histogram",
                 .priv = &raw_histogram_enable,
                 .max = 2,
-                .choices = CHOICES("OFF", "ON", "Simplified HistoBar"),
+                .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
                 .update = raw_histo_update,
                 .help = "Use RAW histogram whenever possible.",
             },
@@ -3341,10 +3349,7 @@ void clear_zebras_from_mirror()
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 static void trigger_zebras_for_qr()
 {
-    fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
-    #ifdef CONFIG_600D
-    if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
-    #endif
+    fake_simple_button(MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
 }
 #endif
 
@@ -3367,8 +3372,6 @@ PROP_HANDLER(PROP_GUI_STATE)
 #endif
 }
 
-extern uint32_t LCD_Palette[];
-
 void palette_disable(uint32_t disabled)
 {
     #ifdef CONFIG_VXWORKS
@@ -3379,16 +3382,16 @@ void palette_disable(uint32_t disabled)
     {
         for (int i = 0; i < 0x100; i++)
         {
-            EngDrvOut(0xC0F14400 + i*4, 0x00FF0000);
-            EngDrvOut(0xC0F14800 + i*4, 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3], 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3+0x300], 0x00FF0000);
         }
     }
     else
     {
         for (int i = 0; i < 0x100; i++)
         {
-            EngDrvOut(0xC0F14400 + i*4, LCD_Palette[i*3 + 2]);
-            EngDrvOut(0xC0F14800 + i*4, LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3], LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3+0x300], LCD_Palette[i*3 + 2]);
         }
     }
 }
@@ -3515,7 +3518,10 @@ void zoom_overlay_set_countdown(int x)
 
 void digic_zoom_overlay_step(int force_off)
 {
-#if !defined(CONFIG_VXWORKS)
+#ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN
+    #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    #error This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
+    #endif
     static int prev = 0;
     if (digic_zoom_overlay_enabled() && !force_off)
     {
@@ -4644,24 +4650,27 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef CONFIG_RAW_LIVEVIEW
-        if (!raw_flag && !is_movie_mode())
+        int raw_needed = 0;
+
+        /* if picture quality is raw, switch the LiveView to raw mode (photo, zoom 1x) */
+        int raw = pic_quality & 0x60000;
+        if (raw && lv_dispsize == 1 && !is_movie_mode())
         {
-            /* if picture quality is raw, switch the LiveView to raw mode */
-            int raw = pic_quality & 0x60000;
-            /* only histogram and spotmeter are working in LV raw mode */
-            if (raw && lv_dispsize == 1
-                && (
-#ifdef FEATURE_HISTOGRAM
-                    hist_draw ||
-#endif
-                    spotmeter_draw))
-            {
-                raw_lv_request();
-                raw_flag = 1;
-            }
+            /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
+            if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
+            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
-        if (raw_flag && lv_dispsize > 1)
+
+        if (!raw_flag && raw_needed)
         {
+            /* do we need any raw overlays? enable LV raw mode if we don't already have it */
+            raw_lv_request();
+            raw_flag = 1;
+        }
+        if (raw_flag && !raw_needed)
+        {
+            /* if we no longer need raw overlays, keep LiveView in normal mode (it does less stuff) */
             raw_lv_release();
             raw_flag = 0;
         }
@@ -4992,86 +5001,6 @@ static void livev_playback_refresh()
 
 int handle_livev_playback(struct event * event, int button)
 {
-    // move spotmeter in QR or playback mode
-
-#ifdef FEATURE_SPOTMETER
-    #define CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
-    #ifdef CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
-    if ((QR_MODE && ZEBRAS_IN_QUICKREVIEW) || (PLAY_MODE && livev_playback))
-    {
-        switch (event->param)
-        {
-            case BGMT_PRESS_LEFT:
-                spotmeter_playback_offset_x -= 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_RIGHT:
-                spotmeter_playback_offset_x += 50;
-                livev_playback_refresh();
-                return 0;
-            
-            case BGMT_PRESS_UP:
-                spotmeter_playback_offset_y -= 50;
-                livev_playback_refresh();
-                return 0;
-            
-            case BGMT_PRESS_DOWN:
-                spotmeter_playback_offset_y += 50;
-                livev_playback_refresh();
-                return 0;
-
-            #ifdef BGMT_PRESS_UP_LEFT
-            case BGMT_PRESS_UP_LEFT:
-                spotmeter_playback_offset_x -= 50;
-                spotmeter_playback_offset_y -= 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_DOWN_RIGHT:
-                spotmeter_playback_offset_x += 50;
-                spotmeter_playback_offset_y += 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_UP_RIGHT:
-                spotmeter_playback_offset_x += 50;
-                spotmeter_playback_offset_y -= 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_DOWN_LEFT:
-                spotmeter_playback_offset_x -= 50;
-                spotmeter_playback_offset_y += 50;
-                livev_playback_refresh();
-                return 0;
-            #endif
-
-            #ifdef BGMT_JOY_CENTER
-            case BGMT_JOY_CENTER:
-            #else
-            case BGMT_PRESS_SET:
-            #endif
-                if (QR_MODE && event->param == BGMT_PRESS_SET)  /* conflicts with voice tags */
-                    return 1;
-                spotmeter_playback_offset_x = spotmeter_playback_offset_y = 0;
-                livev_playback_refresh();
-                return 0;
-            
-            #ifdef BGMT_UNPRESS_UDLR
-            case BGMT_UNPRESS_UDLR:
-            #else
-            case BGMT_UNPRESS_LEFT:
-            case BGMT_UNPRESS_RIGHT:
-            case BGMT_UNPRESS_UP:
-            case BGMT_UNPRESS_DOWN:
-            #endif
-                return 0;
-        }
-    }
-    #endif
-#endif
-
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
     {

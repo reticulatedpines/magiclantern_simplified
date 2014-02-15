@@ -109,6 +109,8 @@ ML_SRC_OBJS = \
 	debug.o \
 	rand.o \
 	posix.o \
+	util.o \
+	electronic_level.o \
 	cfn.o \
 	gui.o \
 	$(ML_PICSTYLE_OBJ) \

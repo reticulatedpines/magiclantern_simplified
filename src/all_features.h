@@ -75,6 +75,10 @@
     #define FEATURE_FOCUS_PEAK
     //~ #define FEATURE_FOCUS_PEAK_DISP_FILTER // too slow
     #define FEATURE_MAGIC_ZOOM
+#ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    #define FEATURE_MAGIC_ZOOM_FULL_SCREEN
+#endif
+
     #define FEATURE_CROPMARKS
     #define FEATURE_GHOST_IMAGE
     #define FEATURE_SPOTMETER
@@ -271,6 +275,7 @@
 
 #endif
     //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
+    //~ #define FEATURE_SWAP_INFO_PLAY // useful for 6D only
 
     #define FEATURE_WARNINGS_FOR_BAD_SETTINGS
 

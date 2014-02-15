@@ -71,16 +71,16 @@ typedef struct
 
 #if defined(TRACE_DISABLED)
 
-#define trace_available()                            0
+#define trace_available()                            (void)0
 #define trace_start(name, file_name)                 0
-#define trace_stop(trace, wait)                      0
-#define trace_format(context, format, separator)     0
-#define trace_set_flushrate(context, timeout)        0
-#define trace_flush(context)                         0
-#define trace_write(context, string, ...)            0
-#define trace_write_tsc(context, tsc, string, ...)   0
-#define trace_vwrite(context, tsc, string, ap)       0
-#define trace_write_binary(context, buffer, length)  0
+#define trace_stop(trace, wait)                      (void)0
+#define trace_format(context, format, separator)     (void)0
+#define trace_set_flushrate(context, timeout)        (void)0
+#define trace_flush(context)                         (void)0
+#define trace_write(context, string, ...)            (void)0
+#define trace_write_tsc(context, tsc, string, ...)   (void)0
+#define trace_vwrite(context, tsc, string, ap)       (void)0
+#define trace_write_binary(context, buffer, length)  (void)0
 
 #else
 

@@ -845,14 +845,18 @@ void chroma_smooth(int method, struct raw_info *info)
     static int raw2ev[16384];
     static int _ev2raw[24*EV_RESOLUTION];
     int* ev2raw = _ev2raw + 10*EV_RESOLUTION;
+    
+    if(!method)
+    {
+        return;
+    }
 
-    int i;
-    for (i = 0; i < 16384; i++)
+    for(int i = 0; i < 16384; i++)
     {
         raw2ev[i] = log2(MAX(1, i - black)) * EV_RESOLUTION;
     }
 
-    for (i = -10*EV_RESOLUTION; i < 14*EV_RESOLUTION; i++)
+    for(int i = -10*EV_RESOLUTION; i < 14*EV_RESOLUTION; i++)
     {
         ev2raw[i] = black + pow(2, (float)i / EV_RESOLUTION);
     }
@@ -874,8 +878,6 @@ void chroma_smooth(int method, struct raw_info *info)
 
     switch(method)
     {
-        case 0:
-            break;
         case 2:
             chroma_smooth_2x2(aux, aux2, raw2ev, ev2raw);
             break;
@@ -914,6 +916,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --cs2x2             2x2 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
+    print_msg(MSG_INFO, " --fixcp             fix cold pixels\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -996,6 +999,7 @@ int main (int argc, char *argv[])
     int chroma_smooth_method = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
+    int fix_cold_pixels = 0;
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -1006,6 +1010,7 @@ int main (int argc, char *argv[])
         {"cs2x2",  no_argument, &chroma_smooth_method,  2 },
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
+        {"fixcp",  no_argument, &fix_cold_pixels,  1 },
         {0,         0,                 0,  0 }
     };
 
@@ -2005,6 +2010,7 @@ read_headers:
                         if(dng_output)
                         {
                             void fix_vertical_stripes();
+                            void find_and_fix_cold_pixels(int fix, int framenumber);
                             extern struct raw_info raw_info;
 
                             int frame_filename_len = strlen(output_filename) + 32;
@@ -2039,6 +2045,7 @@ read_headers:
 
                             /* call raw2dng code */
                             fix_vertical_stripes();
+                            find_and_fix_cold_pixels(fix_cold_pixels, block_hdr.frameNumber);
 
                             /* this is internal again */
                             chroma_smooth(chroma_smooth_method, &raw_info);

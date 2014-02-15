@@ -7,6 +7,7 @@
 #include "config.h"
 #include "string.h"
 #include "property.h"
+#include "beep.h"
 #include "bmp.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
@@ -353,7 +354,7 @@ static void _module_load_all(uint32_t list_only)
     
     if (size > 0)
     {
-        void* buf = (void*) tcc_malloc(size);
+        void* buf = (void*) malloc(size);
         
         reloc_status = tcc_relocate(state, buf);
 
@@ -957,7 +958,11 @@ int module_display_filter_update()
                     /* arg!=0: draw the filtered image in these buffers */
                     struct display_filter_buffers buffers;
                     display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
-                    cbr->handler((intptr_t) &buffers);
+                    
+                    if (buffers.src_buf && buffers.dst_buf) /* do not call the CBR with invalid arguments */
+                    {
+                        cbr->handler((intptr_t) &buffers);
+                    }
                     break;
                 }
                 cbr++;
@@ -1701,7 +1706,7 @@ void module_save_configs()
     console_printf("Save configs...\n");
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
-        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
+        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error && module_list[mod].config)
         {
             /* save config */
             char filename[64];

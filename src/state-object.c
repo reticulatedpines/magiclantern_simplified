@@ -8,6 +8,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "beep.h"
 #include "state-object.h"
 #include <platform/state-object.h>
 #include "property.h"
@@ -34,10 +35,44 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
+static volatile int vsync_counter = 0;
+#ifndef CONFIG_7D_MASTER
+/* waits for N LiveView frames */
+int wait_lv_frames(int num_frames)
+{
+    vsync_counter = 0;
+    int count = 0;
+    int frame_duration = 1000000 / fps_get_current_x1000();
+    while (vsync_counter < num_frames)
+    {
+        /* handle FPS override changes during the wait */
+        frame_duration = MAX(frame_duration, 1000000 / fps_get_current_x1000());
+        msleep(20);
+        count++;
+        if (count > num_frames * frame_duration * 2 / 20)
+        {
+            /* timeout */
+            return 0;
+        }
+        if (!lv)
+        {
+            /* LiveView closed */
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif
 static void FAST vsync_func() // called once per frame.. in theory :)
 {
+    vsync_counter++;
+
     #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
+    #endif
+    
+    #ifdef CONFIG_EDMAC_RAW_SLURP
+    raw_lv_vsync();
     #endif
 
     #if !defined(CONFIG_EVF_STATE_SYNC)
@@ -127,24 +162,22 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #ifdef CONFIG_MODULES
-        if (module_exec_cbr(CBR_VSYNC_DISPLAY) == CBR_RET_CONTINUE)
-        #endif
         #ifdef FEATURE_HDR_VIDEO
         if (hdr_kill_flicker() == CBR_RET_CONTINUE)
         #endif
         #ifdef CONFIG_DISPLAY_FILTERS
         if (display_filter_lv_vsync(old_state, x, input, z, t) == CBR_RET_CONTINUE)
+        {
+            #ifdef FEATURE_MAGIC_ZOOM
+            digic_zoom_overlay_step(0);
+            #endif
+        }
         #endif
-        #ifdef FEATURE_MAGIC_ZOOM
-        digic_zoom_overlay_step(0);
-        #endif
-        0;
     }
     #endif
     #endif
     
-#if defined(CONFIG_5D2)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (self == LV_STATE && old_state == 2 && input == 2) // lvVdInterrupt
     {
         display_filter_lv_vsync(old_state, x, input, z, t);

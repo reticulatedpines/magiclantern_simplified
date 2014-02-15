@@ -7,12 +7,11 @@
 #undef FEATURE_WAV_RECORDING
 #undef FEATURE_FPS_WAV_RECORD
 #undef FEATURE_VOICE_TAGS
-#undef FEATURE_AUDIO_REMOTE_SHOT
 #undef FEATURE_BEEP //works, but messes up module menu
 #undef FEATURE_AUDIO_METERS // works, but cam not stable yet
 
 // Audio features working
-// nothing yet 8/
+#define FEATURE_AUDIO_REMOTE_SHOT // generic enabled until AudioIC is programmed
 
 //~ #undef FEATURE_ARROW_SHORTCUTS
 
@@ -25,9 +24,6 @@
 #undef FEATURE_LV_BUTTON_RATE
 
 #undef FEATURE_TRAP_FOCUS
-
-// No suitable button
-#undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 
 // Glitchy
 #undef FEATURE_STICKY_DOF
