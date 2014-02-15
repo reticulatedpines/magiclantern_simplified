@@ -1,6 +1,7 @@
 #include "dryos.h"
 #include "lvinfo.h"
 #include "module.h"
+#include "raw.h"
 
 int sound_recording_enabled_canon()
 {

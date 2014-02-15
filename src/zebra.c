@@ -123,9 +123,7 @@ static int is_zoom_mode_so_no_zebras()
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
-    #ifdef CONFIG_RAW_LIVEVIEW
     if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
-    #endif
     
     return 1;
 }

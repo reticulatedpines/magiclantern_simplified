@@ -38,6 +38,7 @@
 #include "lens.h"
 #include "config.h"
 #include "math.h"
+#include "raw.h"
 
 #if defined(CONFIG_7D)
 #include "ml_rpc.h"
@@ -562,16 +563,11 @@ static int fps_should_disable_sound()
 {
     if (fps_override && lv && is_movie_mode())
     {
-        #ifdef CONFIG_RAW_LIVEVEW
         /* only disable sound when recording H.264, not raw */
         if (!raw_lv_is_enabled())
         {
             return 1;
         }
-        #else
-        /* only H.264 available */
-        return 1;
-        #endif
     }
 
     /* no problems, no messing with sound */
