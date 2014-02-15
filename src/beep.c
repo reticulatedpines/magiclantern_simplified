@@ -1097,14 +1097,6 @@ void Load_ASIFDMAADC(){
 
 static void beep_init()
 {
-#ifdef CONFIG_6D
-    cache_fake(HIJACK_ASIF_DAC_TIMEOUT, NOP_INSTR, TYPE_ICACHE);    //~ FF11CD44 Assert This. Does it not stop properly?
-    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT, NOP_INSTR, TYPE_ICACHE);    //~ Kill Wait for Semaphore
-    cache_fake(HIJACK_ASIF_ADC_TIMEOUT, NOP_INSTR, TYPE_ICACHE);    //~ FF11C99C ADC ASSERT
-    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT2, NOP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Semaphore
-    cache_fake(HIJACK_ASIF_CONT_JUMP_ADDR, HIJACK_ASIF_CONT_JUMP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Continue Jump Assert, change BEQ to B
-#endif
-
 #ifdef FEATURE_WAV_RECORDING
     wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
     wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);

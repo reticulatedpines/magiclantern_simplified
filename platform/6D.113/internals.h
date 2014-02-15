@@ -88,7 +88,7 @@
  #define CONFIG_EXPSIM
 
 /** Asif ADC may crash after 2min **/
-#define CONFIG_BEEP
+//~ #define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
