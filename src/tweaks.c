@@ -358,6 +358,7 @@ static CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
 
 static CONFIG_INT("play.set.wheel", play_set_wheel_action, 3);
+static CONFIG_INT("play.set.trigger", play_set_wheel_trigger, 0);
 
 static CONFIG_INT("quick.delete", quick_delete, 0);
 
@@ -496,6 +497,7 @@ int handle_set_wheel_play(struct event * event)
 {
     #ifdef FEATURE_SET_MAINDIAL
     static int set_maindial_action_enabled = 0;
+    static int play_set_wheel_hot = 0;
 
     if (!is_pure_play_photo_mode()) 
     {
@@ -508,25 +510,28 @@ int handle_set_wheel_play(struct event * event)
         return 1;
     }
 
-    if (event->param == BGMT_PRESS_SET)
+    if (play_set_wheel_trigger == 1 || play_set_wheel_trigger == 3)
     {
-        // for cameras where SET does not send an unpress event, pressing SET again should do the trick
-        set_maindial_action_enabled = !set_maindial_action_enabled;
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5DC)
-        ASSERT(set_maindial_action_enabled); // most cameras are expected to send Unpress SET event (if they don't, one needs to fix the quick erase feature)
-        #endif
-        print_set_maindial_hint(set_maindial_action_enabled);
-    }
-    else if (event->param == BGMT_UNPRESS_SET)
-    {
-        set_maindial_action_enabled = 0;
-        print_set_maindial_hint(0);
-    }
+        if (event->param == BGMT_PRESS_SET)
+        {
+            // for cameras where SET does not send an unpress event, pressing SET again should do the trick
+            set_maindial_action_enabled = !set_maindial_action_enabled;
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5DC)
+            ASSERT(set_maindial_action_enabled); // most cameras are expected to send Unpress SET event (if they don't, one needs to fix the quick erase feature)
+            #endif
+            print_set_maindial_hint(set_maindial_action_enabled);
+        }
+        else if (event->param == BGMT_UNPRESS_SET)
+        {
+            set_maindial_action_enabled = 0;
+            print_set_maindial_hint(0);
+        }
     
-    // make sure the display is updated, just in case
-    if (PLAY_MODE && set_maindial_action_enabled)
-    {
-        print_set_maindial_hint(1);
+        // make sure the display is updated, just in case
+        if (PLAY_MODE && set_maindial_action_enabled)
+        {
+            print_set_maindial_hint(1);
+        }
     }
 
     // SET+Wheel action in PLAY mode
@@ -556,12 +561,27 @@ int handle_set_wheel_play(struct event * event)
         #endif
     }
 
-    // some other key pressed without maindial action being active, cleanup things
-    if (!set_maindial_action_enabled && event->param != BGMT_PRESS_SET && event->param != BGMT_UNPRESS_SET)
+    // Left/Right action in PLAY mode
+    if (play_set_wheel_trigger > 1)
     {
+        if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT)
+        {
+            int dir = event->param == BGMT_PRESS_RIGHT ? 1 : -1;
+            play_set_wheel_hot = 1;
+            playback_set_wheel_action(dir);
+            return 0;
+        }
+    }
+
+    // some other key pressed without maindial action being active, cleanup things
+    if ((!set_maindial_action_enabled && event->param != BGMT_PRESS_SET && event->param != BGMT_UNPRESS_SET) ||
+        (play_set_wheel_trigger > 1 && play_set_wheel_hot &&
+         event->param != BGMT_PRESS_LEFT && event->param != BGMT_PRESS_RIGHT))
+    {
+        play_set_wheel_hot = 0;
         set_maindial_cleanup();
     }
-    
+
     #endif
     
     #ifdef FEATURE_QUICK_ERASE
@@ -3556,12 +3576,30 @@ static struct menu_entry play_menus[] = {
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_SET_MAINDIAL
             {
-                .name = "SET+MainDial",
-                .priv = &play_set_wheel_action, 
-                .max = 3,
-                .choices = (const char *[]) {"Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
-                .help = "What to do when you press SET and turn the scrollwheel.",
-                .icon_type = IT_DICE,
+                .name = "Play mode actions",
+                .help = "Several helpful image actions you can trigger in PLAY mode.",
+                .select = menu_open_submenu,
+                .submenu_width = 660,
+                .children =  (struct menu_entry[])
+                {
+                    {
+                        .name = "Acton type",
+                        .priv = &play_set_wheel_action, 
+                        .max = 3,
+                        .choices = (const char *[]) {"Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
+                        .help = "Chose the type action to perform when triggered.",
+                        .icon_type = IT_DICE,
+                    },
+                    {
+                        .name = "Trigger key(s)",
+                        .priv = &play_set_wheel_trigger,
+                        .max = 3,
+                        .choices = (const char *[]) {"OFF", "Set+MainDial", "Left/Right", "L/R & Set+Dial"},
+                        .help = "Either usa a key combination and/or just an easier single keystroke.",
+                        .icon_type = IT_BOOL,
+                    },
+                    MENU_EOL
+                }
             },
             #endif
             #ifdef FEATURE_IMAGE_REVIEW_PLAY
