@@ -607,6 +607,11 @@ static int get_delta(struct menu_entry * entry, int sign)
     return sign;
 }
 
+static int uses_caret_editing(struct menu_entry * entry)
+{
+    return entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME;
+}
+
 static void caret_move(struct menu_entry * entry, int delta)
 {
     int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(abs(entry->max),abs(entry->min)))/4 :
@@ -2360,10 +2365,10 @@ skip_name:
     
     int xval = x + w;
     
-    if(edit_mode &&
-       entry->selected &&
-       (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME) &&
-       caret_position >= (int)strlen(info->value))
+    if (edit_mode && 
+        entry->selected && 
+        uses_caret_editing(entry) && 
+        caret_position >= (int)strlen(info->value))
     {
         bmp_fill(COLOR_WHITE, xval, y + fontspec_font(fnt)->height - 4, char_width, 2);
         xval += char_width * (caret_position - strlen(info->value) + 1);
@@ -2379,7 +2384,7 @@ skip_name:
     
     if(edit_mode &&
        entry->selected &&
-       (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME) &&
+       uses_caret_editing(entry) &&
        caret_position < (int)strlen(info->value) &&
        strlen(info->value) > 0)
     {
@@ -3734,7 +3739,7 @@ menu_entry_select(
         {
             /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
             /* exception: hex fields are never fast-toggled */
-            if ((edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) || (entry->unit == UNIT_HEX))
+            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
@@ -3797,7 +3802,7 @@ menu_entry_select(
         }
         else if (IS_ML_PTR(entry->priv))
         {
-            if ((edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) || (entry->unit == UNIT_HEX))
+            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
@@ -4429,7 +4434,7 @@ handle_ml_menu_keys(struct event * event)
         if (edit_mode && !menu_lv_transparent_mode)
         {
             struct menu_entry * entry = get_selected_entry(menu);
-            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            if(entry && uses_caret_editing(entry))
             {
                 menu_entry_select( menu, 0 );
                 break;
@@ -4452,7 +4457,7 @@ handle_ml_menu_keys(struct event * event)
         if (edit_mode && !menu_lv_transparent_mode)
         {
             struct menu_entry * entry = get_selected_entry(menu);
-            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            if(entry && uses_caret_editing(entry))
             {
                 menu_entry_select( menu, 1 );
                 break;
@@ -4475,7 +4480,7 @@ handle_ml_menu_keys(struct event * event)
         if(edit_mode)
         {
             struct menu_entry * entry = get_selected_entry(menu);
-            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            if(entry && uses_caret_editing(entry))
             {
                 caret_move(entry, -1);
                 menu_damage = 1;
@@ -4494,7 +4499,7 @@ handle_ml_menu_keys(struct event * event)
         if(edit_mode)
         {
             struct menu_entry * entry = get_selected_entry(menu);
-            if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
+            if(entry && uses_caret_editing(entry))
             {
                 caret_move(entry, 1);
                 menu_damage = 1;
