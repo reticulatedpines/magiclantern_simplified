@@ -129,7 +129,7 @@ static int auto_ettr_get_correction()
     float ev_median_lo = raw_to_ev(raw_median_lo);
     float ev_shadow_lo = raw_to_ev(raw_shadow_lo);
     
-    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_active();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
     float ev_median_hi = ev_median_lo;
     float ev_shadow_hi = ev_shadow_lo; /* for dual ISO: for the bright exposure */
     
@@ -425,7 +425,7 @@ static int auto_ettr_work_m(int corr)
     //~ int old_expo = tv - iso;
 
     /* note: expo compensation will not clip with dual ISO, but will clip highlights without it */
-    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_active();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
     int delta = -corr * 8 / 100;
     
     int expected_expo = tv - iso + delta;               /* will clip without dual ISO */
@@ -511,7 +511,6 @@ static int auto_ettr_work_m(int corr)
 
         /* apply dual ISO settings */
         isor = base_iso;
-        if (dual_iso_get_ev_threshold()) dual_iso_set_ev_threshold(0); // enable dual_iso no matter the ev gain
         dual_iso_set_recovery_iso(recovery_iso);
         extra_snr_needed = -snr_delta;
     }
