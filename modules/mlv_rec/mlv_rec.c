@@ -58,6 +58,10 @@
 #define MLV_INFO_BLOCK_INTERVAL  60000
 #define MAX_PATH                   100
 
+#define MLV_ICON_X 500
+#define MLV_ICON_Y 40
+
+
 #define MLV_DUMMY_FILENAME "mlv_rec.tmp"
 
 
@@ -1079,9 +1083,7 @@ static int32_t setup_buffers()
 
     if(DISPLAY_REC_INFO_DEBUG)
     {
-        char msg[100];
-        snprintf(msg, sizeof(msg), "buffer size: %d frames", slot_count);
-        bmp_printf(FONT_MED, 30, 90, msg);
+        bmp_printf(FONT_MED, 30, 90, "buffer size: %d frames", slot_count);
     }
 
     /* we need at least 3 slots */
@@ -1491,11 +1493,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 int32_t fps = fps_get_current_x1000();
                 int32_t t = (frame_count * 1000 + fps/2) / fps;
                 int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
-                /* Position the Recording Icon */
-                int rl_x = 500;
-                int rl_y = 40;
+                /* print the Recording Icon */
                 int rl_color;
-                if (predicted < 10000)
+                if(predicted < 10000)
                 {
                     int time_left = (predicted-frame_count) * 1000 / fps;
                     if (time_left < 10) {
@@ -1503,21 +1503,24 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                     } else {
                         rl_color = COLOR_YELLOW;
                     }
-                } else {
-                    rl_color = COLOR_GREEN1;
-                }
-                int rl_icon_width=0;
-                /* Draw the movie camera icon */
-                rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
-                
-                /* Display the Status */
-                if (!frame_skips)
-                {
-                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
                 }
                 else
                 {
-                    bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
+                    rl_color = COLOR_GREEN1;
+                }
+                
+                int rl_icon_width=0;
+                /* Draw the movie camera icon */
+                rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, COLOR_BG_DARK);
+                
+                /* Display the Status */
+                if(!frame_skips)
+                {
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
+                }
+                else
+                {
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%d skipped", frame_skips);
                 }
             }
             else if(DISPLAY_REC_INFO_DEBUG)
@@ -2927,6 +2930,16 @@ static void raw_video_rec_task()
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
 
+    if(DISPLAY_REC_INFO_DEBUG)
+    {
+        bmp_printf(FONT_MED, 30, 50, "Prepare recording...");
+    }
+    else if(DISPLAY_REC_INFO_ICON)
+    {
+        uint32_t width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, COLOR_WHITE, COLOR_BG_DARK);
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X + width, MLV_ICON_Y + 5, "Prepare");
+    }
+    
     /* make sure tracing is active */
     raw_rec_setup_trace();
 
