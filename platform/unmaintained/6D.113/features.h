@@ -1,7 +1,5 @@
 #include "all_features.h"
 
-/* Works just fine */
-#define FEATURE_SWAP_INFO_PLAY
 
 /*Not Working Or Unnecessary*/
 #undef FEATURE_QUICK_ZOOM    //Canon Has it
