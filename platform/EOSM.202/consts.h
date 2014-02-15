@@ -149,7 +149,7 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
  //~ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
 
-#define GUIMODE_ML_MENU ( RECORDING ?  99 : 90 ) // any from 90...102 ?!
+#define GUIMODE_ML_MENU ( RECORDING_H264 ?  99 : 90 ) // any from 90...102 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50

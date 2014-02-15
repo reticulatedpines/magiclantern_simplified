@@ -69,8 +69,8 @@
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
-#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
+//~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+// ~#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
 #define CONFIG_DISPLAY_FILTERS
