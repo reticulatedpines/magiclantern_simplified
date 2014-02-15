@@ -132,7 +132,7 @@ NSTUB(0xFF623240, LiveViewWbApp_handler)
 NSTUB(0xff4afe08, LiveViewApp_handler)
 NSTUB(0xff36728c, PlayMain_handler)
 NSTUB(0xff4cba10, PlayMovieGuideApp_handler)
-	NSTUB(0xFF61BC80, ErrCardForLVApp_handler)
+	NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
 NSTUB(0xff49cc68, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xff4aba48, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 NSTUB(0xff4b6930, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
@@ -156,7 +156,6 @@ NSTUB(0xff9e8c84 - RAM_OFFSET, _FreeMemory)
 NSTUB(0xff9f6ee4 - RAM_OFFSET, _alloc_dma_memory)
 NSTUB(0xff9f6f18 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF9E8688 - RAM_OFFSET, GetMemoryInformation)
-NSTUB(0xFF9E8634 - RAM_OFFSET, GetSizeOfMaxRegion)
 
 /** ExMem **/
 NSTUB(0xff13c134, AllocateMemoryResource) // m_pfAllocMemoryCBR
@@ -202,6 +201,9 @@ NSTUB(0x00012AA4, PopEDmac)
 NSTUB(0x00012A5C, AbortEDmac)
 NSTUB(0x000126A4, ConnectWriteEDmac)
 NSTUB(0x00012768, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0x00012AFC, EDMAC_RegisterCompleteCBR)
 
 /** register/unregister CBR names **/
 NSTUB(0x00012AFC, RegisterEDmacCompleteCBR)
