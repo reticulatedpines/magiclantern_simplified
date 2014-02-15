@@ -2616,7 +2616,17 @@ menu_entry_process(
     {
         // should we override some things?
         if (entry->update)
+        {
+            /* in edit mode with caret, we will not allow the update function to override the entry value */
+            char default_value[MENU_MAX_VALUE_LEN];
+            if (edit_mode && uses_caret_editing(entry))
+                snprintf(default_value, MENU_MAX_VALUE_LEN, "%s", info.value);
+            
             entry->update(entry, &info);
+            
+            if (edit_mode && uses_caret_editing(entry))
+                snprintf(info.value, MENU_MAX_VALUE_LEN, "%s", default_value);
+        }
 
         // menu->update asked to draw the entire screen by itself? stop drawing right now
         if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
