@@ -617,7 +617,7 @@ static int uses_caret_editing(struct menu_entry * entry)
 static void caret_move(struct menu_entry * entry, int delta)
 {
     int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(abs(entry->max),abs(entry->min)))/4 :
-              (entry->unit == UNIT_DEC)  ? log10i(MAX(abs(entry->max),abs(entry->min)))  :
+              (entry->unit == UNIT_DEC)  ? log10i(MAX(abs(entry->max),abs(entry->min))/2)  :
               (entry->unit == UNIT_TIME) ? 7 : 0;
 
     menu_numeric_toggle(&caret_position, delta, 0, max);
