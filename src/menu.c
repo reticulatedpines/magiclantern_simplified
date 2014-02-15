@@ -559,6 +559,7 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
     *val = v;
 }
 
+/* TODO: move these to a math library */
 int powi(int base, int power)
 {
     int result = 1;
@@ -586,6 +587,7 @@ int log10i(int x)
     return result;
 }
 
+/* for editing with caret */
 static int get_delta(struct menu_entry * entry, int sign)
 {
     if(!edit_mode)
@@ -603,6 +605,21 @@ static int get_delta(struct menu_entry * entry, int sign)
         else if(caret_position == 8) return sign * 36000;
     }
     return sign;
+}
+
+static void caret_move(struct menu_entry * entry, int delta)
+{
+    int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(abs(entry->max),abs(entry->min)))/4 :
+              (entry->unit == UNIT_DEC)  ? log10i(MAX(abs(entry->max),abs(entry->min)))  :
+              (entry->unit == UNIT_TIME) ? 7 : 0;
+
+    menu_numeric_toggle(&caret_position, delta, 0, max);
+
+    /* skip "h", "m" and "s" positions for time fields */
+    if(entry->unit == UNIT_TIME && (caret_position == 0 || caret_position == 3 || caret_position == 6))
+    {
+        menu_numeric_toggle(&caret_position, delta, 0, max);
+    }
 }
 
 void menu_numeric_toggle(int* val, int delta, int min, int max)
@@ -3708,9 +3725,20 @@ menu_entry_select(
 
     if(mode == 1) // decrement
     {
-        if (entry->select) entry->select( entry->priv, -1);
-        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || (edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)))) menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        if (entry->select)
+        {
+            /* custom select function? use it */
+            entry->select( entry->priv, -1);
+        }
+        else if IS_ML_PTR(entry->priv)
+        {
+            /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
+            /* exception: hex fields are never fast-toggled */
+            if ((edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) || (entry->unit == UNIT_HEX))
+                menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
+            else
+                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        }
     }
     else if (mode == 2) // Q
     {
@@ -3761,11 +3789,19 @@ menu_entry_select(
             else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
         }
     }
-    else // increment
+    else // increment (same logic as decrement)
     {
-        if( entry->select ) entry->select( entry->priv, 1);
-        else if (IS_ML_PTR(entry->priv) && (entry->unit == UNIT_HEX || (edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)))) menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        if( entry->select )
+        {
+            entry->select( entry->priv, 1);
+        }
+        else if (IS_ML_PTR(entry->priv))
+        {
+            if ((edit_mode && (entry->unit == UNIT_DEC || entry->unit == UNIT_TIME)) || (entry->unit == UNIT_HEX))
+                menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
+            else
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        }
     }
     
     if(entry->unit == UNIT_TIME && edit_mode && caret_position == 0) caret_position = 1;
@@ -4441,11 +4477,7 @@ handle_ml_menu_keys(struct event * event)
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
             {
-                caret_position--;
-                if(caret_position < 0 && entry->unit == UNIT_HEX) caret_position = log2i(MAX(abs(entry->max),abs(entry->min)))/4;
-                if(caret_position < 0 && entry->unit == UNIT_DEC) caret_position = log10i(MAX(abs(entry->max),abs(entry->min)));
-                if(caret_position < 1 && entry->unit == UNIT_TIME) caret_position = 7;
-                if(entry->unit == UNIT_TIME && (caret_position == 3 || caret_position == 6)) caret_position --;
+                caret_move(entry, -1);
                 menu_damage = 1;
                 break;
             }
@@ -4464,14 +4496,7 @@ handle_ml_menu_keys(struct event * event)
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX || entry->unit == UNIT_TIME))
             {
-                caret_position++;
-                if(entry->unit == UNIT_HEX && powi(16,caret_position) > MAX(abs(entry->max),abs(entry->min)))
-                    caret_position = 0;
-                else if(entry->unit == UNIT_DEC && powi(10,caret_position) > MAX(abs(entry->max),abs(entry->min)))
-                    caret_position = 0;
-                else if(entry->unit == UNIT_TIME && caret_position > 7)
-                    caret_position = 1;
-                if(entry->unit == UNIT_TIME && (caret_position == 0 || caret_position == 3 || caret_position == 6)) caret_position ++;
+                caret_move(entry, 1);
                 menu_damage = 1;
                 break;
             }
