@@ -16,6 +16,7 @@ PLATFORM_MAP = \
 PLATFORM_MAP_UNMAINTAINED = \
 	40D.111 \
 	5DC.111 \
+	6D.113 \
 	100D.100 \
 
 platform_map = $(filter $(1).%, $(PLATFORM_MAP))

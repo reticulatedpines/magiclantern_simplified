@@ -43,8 +43,8 @@ LD_REAL=$(CROSS_COMPILE)ld
 STRIP=$(CROSS_COMPILE)strip
 
 # You can customize CFLAG here
-HOST_CFLAGS=-g -O3 -march=armv5te -mcpu=arm946e-s -W -Wall
-#CFLAG_USER = -DCONFIG_RELEASE_BUILD
+HOST_CFLAGS=-g -O3 -W -Wall
+#CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
 
 # Additional binaries
 HOST_CC=which gcc
