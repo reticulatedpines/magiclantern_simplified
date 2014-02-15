@@ -219,9 +219,9 @@ NSTUB(0xFF7FBBDC, audio_thresholds)
 NSTUB(	0x3E46C, sounddev )
 NSTUB(0xFF10CD40, sounddev_task )
 
-	NSTUB(0xFF10D118, SoundDevActiveIn)
-	NSTUB(0xFF10D144, SoundDevActiveOut)
-	NSTUB(0xFF10D370, SoundDevShutDownIn)
+NSTUB(0xFF10D148, SoundDevActiveIn)
+NSTUB(0xFF10D174, SoundDevActiveOut)
+NSTUB(0xFF10D3A0, SoundDevShutDownIn)
 
 
 /** ASIF **/
