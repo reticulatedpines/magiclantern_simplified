@@ -1994,23 +1994,6 @@ static int screenshot_sec = 0;
 CONFIG_INT("hexdump", hexdump_addr, 0x24298);
 
 int hexdump_enabled = 0;
-int hexdump_digit_pos = 0; // 0...7, 8=all
-
-static MENU_UPDATE_FUNC (hexdump_print)
-{
-    if (!info->can_custom_draw) return;
-    int x = info->x_val;
-    int y = info->y;
-    
-    MENU_SET_VALUE("");
-    
-    for (int i = 0; i < 8; i++)
-    {
-        int pos = 7 - i;
-        int fnt = (pos == hexdump_digit_pos) ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED) : FONT_LARGE;
-        x += bmp_printf(fnt, x, y, "%x", (hexdump_addr >> (pos * 4)) & 0xF);
-    }
-}
 
 static MENU_UPDATE_FUNC (hexdump_print_value_hex)
 {
@@ -2067,26 +2050,6 @@ static void
 hexdump_toggle_value_int16(void * priv, int delta)
 {
     (*(int16_t*)(hexdump_addr+2)) += delta;
-}
-
-void hexdump_digit_toggle(void* priv, int dir)
-{
-    if (hexdump_digit_pos < 8)
-    {
-        int digit = (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF;
-        digit = mod(digit + dir*(hexdump_digit_pos?1:4), 16);
-        hexdump_addr &= ~(0xF << (hexdump_digit_pos * 4));
-        hexdump_addr |= (digit << (hexdump_digit_pos * 4));
-    }
-    else
-    {
-        hexdump_addr += dir * 4;
-    }
-}
-
-void hexdump_digit_pos_toggle(void* priv, int dir)
-{
-    hexdump_digit_pos = mod(hexdump_digit_pos - 1, 9);
 }
 
 int hexdump_prev = 0;
@@ -2687,9 +2650,8 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "HexDump",
                 .priv = &hexdump_addr,
-                .select = hexdump_digit_toggle,
-                .select_Q = hexdump_digit_pos_toggle,
-                .update = hexdump_print,
+                .max = 0x20000000,
+                .unit = UNIT_HEX,
                 .icon_type = IT_PERCENT,
                 .help = "Address to be analyzed. Press Q to select the digit to edit."
             },
