@@ -610,7 +610,7 @@ static void iocrypt_speed_test()
 
 void crypt_rsa_generate_key()
 {
-    NotifyBox(60000, "Generating RSA key.\nThis takes a while!");
+    NotifyBox(600000, "Generating RSA key.\nThis takes a while!");
     
     iocrypt_rsa_key_active = 1;
     crypt_rsa_generate_keys((void*)&iocrypt_rsa_ctx);
