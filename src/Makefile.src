@@ -79,6 +79,7 @@ ML_INSTALLER_OBJS = \
 	$(ML_ENTRY_OBJ) \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
+	fio-ml.o \
 	installer.o \
 	ico.o \
 	bmp.o \
@@ -102,6 +103,7 @@ ML_OBJS-y += \
 
 ML_SRC_OBJS = \
 	$(ML_BOOT_HACK_OBJ) \
+	fio-ml.o \
 	mem.o \
 	ico.o \
 	edmac.o \

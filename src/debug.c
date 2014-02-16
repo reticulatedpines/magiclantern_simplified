@@ -14,6 +14,7 @@
 #include "edmac.h"
 #include "asm.h"
 #include "beep.h"
+#include "fio-ml.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -75,23 +76,23 @@ void take_screenshot( int also_lv )
 {
     beep();
 
-    FIO_RemoveFile(CARD_DRIVE"TEST.BMP");
+    FIO_RemoveFile("TEST.BMP");
 
     call( "dispcheck" );
     #ifdef FEATURE_SCREENSHOT_422
     if (also_lv) silent_pic_take_lv_dbg();
     #endif
 
-    if (GetFileSize(CARD_DRIVE"TEST.BMP") != 0xFFFFFFFF)
+    if (GetFileSize("TEST.BMP") != 0xFFFFFFFF)
     { // old camera, screenshot saved as TEST.BMP => move it to VRAMxx.BMP
         msleep(300);
         for (int i = 0; i < 100; i++)
         {
             char fn[50];
-            snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
+            snprintf(fn, sizeof(fn), "VRAM%d.BMP", i);
             if (GetFileSize(fn) == 0xFFFFFFFF) // this file does not exist
             {
-                FIO_RenameFile(CARD_DRIVE"TEST.BMP", fn);
+                FIO_RenameFile("TEST.BMP", fn);
                 break;
             }
         }
@@ -190,7 +191,7 @@ static void dump_rom_task(void* priv, int unused)
     msleep(200);
     FILE * f = NULL;
 
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
+    f = FIO_CreateFileEx("ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
@@ -199,7 +200,7 @@ static void dump_rom_task(void* priv, int unused)
     }
     msleep(200);
 
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM1.BIN");
+    f = FIO_CreateFileEx("ML/LOGS/ROM1.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
@@ -208,7 +209,7 @@ static void dump_rom_task(void* priv, int unused)
     }
     msleep(200);
 
-    dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
+    dump_big_seg(4, "ML/LOGS/RAM4.BIN");
 }
 
 static void dump_rom(void* priv, int unused)
@@ -239,7 +240,7 @@ void guimode_test()
         // some GUI modes may lock-up the camera or reboot
         // if this is the case, the troublesome mode will be skipped at next reboot.
         char fn[50];
-        snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
+        snprintf(fn, sizeof(fn), "VRAM%d.BMP", i);
 
         if (GetFileSize(fn) != 0xFFFFFFFF) // this gui mode was already tested?
             continue;
@@ -449,7 +450,7 @@ void run_in_separate_task(void (*priv)(void), int delta)
  * if we put it in root, it will benchmark the ML card;
  * if we put it in DCIM, it will benchmark the card selected in Canon menu, which is what we want.
  */
-#define CARD_BENCHMARK_FILE CARD_DRIVE"DCIM/bench.tmp"
+#define CARD_BENCHMARK_FILE "DCIM/bench.tmp"
 
 static void card_benchmark_wr(int bufsize, int K, int N)
 {
@@ -545,12 +546,7 @@ static void card_benchmark_task()
     msleep(1000);
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
 
-    #ifdef CONFIG_5D3
-    extern int card_select;
-    NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
-    #else
-    NotifyBox(2000, "Card benchmark (1 GB)...");
-    #endif
+    NotifyBox(2000, "%s Card benchmark (1 GB)...", get_ml_card()->type);
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
@@ -661,7 +657,7 @@ static void card_bufsize_benchmark_task()
     int x = 0;
     int y = 100;
 
-    FILE* log = FIO_CreateFileEx(CARD_DRIVE"bench.log");
+    FILE* log = FIO_CreateFileEx("bench.log");
     if (log == INVALID_PTR) goto cleanup;
 
     my_fprintf(log, "Buffer size experiment\n");
@@ -900,7 +896,7 @@ static void stub_test_task(void* arg)
     int passed_tests = 0;
     int failed_tests = 0;
 
-    FILE* log = FIO_CreateFileEx( CARD_DRIVE "stubtest.log" );
+    FILE* log = FIO_CreateFileEx( "stubtest.log" );
     int silence = 0;    // if 1, only failures are logged to file
     int ok = 1;
 
@@ -1173,30 +1169,30 @@ static void stub_test_task(void* arg)
         // file I/O
 
         FILE* f;
-        TEST_TRY_FUNC_CHECK(f = FIO_CreateFileEx(CARD_DRIVE"test.dat"), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(f = FIO_CreateFileEx("test.dat"), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_VOID(FIO_CloseFile(f));
         uint32_t size;
-        TEST_TRY_FUNC_CHECK(FIO_GetFileSize(CARD_DRIVE"test.dat", &size), == 0);
+        TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         void* p;
         TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
-        TEST_TRY_FUNC_CHECK(f = FIO_Open(CARD_DRIVE"test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(f = FIO_Open("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
         TEST_TRY_VOID(FIO_CloseFile(f));
         TEST_TRY_VOID(free_dma_memory(p));
 
         {
         int count = 0;
-        FILE* f = FIO_CreateFileEx(CARD_DRIVE"test.dat");
+        FILE* f = FIO_CreateFileEx("test.dat");
         for (int i = 0; i < 1000; i++)
             count += FIO_WriteFile(f, "Will it blend?\n", 15);
         FIO_CloseFile(f);
         TEST_TRY_FUNC_CHECK(count, == 1000*15);
         }
 
-        TEST_TRY_FUNC_CHECK(FIO_RemoveFile(CARD_DRIVE"test.dat"), == 0);
+        TEST_TRY_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
 
         // sw1
         TEST_TRY_VOID(SW1(1,100));
@@ -2091,7 +2087,7 @@ static void save_crash_log()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "CRASH%02d.LOG" : CARD_DRIVE "ASSERT%02d.LOG", log_number);
+        snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? "CRASH%02d.LOG" : "ASSERT%02d.LOG", log_number);
         uint32_t size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
@@ -2148,7 +2144,7 @@ static void crash_log_step()
     if (core_dump_requested)
     {
         NotifyBox(100000, "Saving core dump, please wait...\n");
-        dump_seg(core_dump_req_from, core_dump_req_from + core_dump_req_size, CARD_DRIVE"COREDUMP.DAT");
+        dump_seg(core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
         NotifyBox(10000, "Pls send COREDUMP.DAT to ML devs.\n");
         core_dump_requested = 0;
     }
@@ -2403,8 +2399,8 @@ static MENU_UPDATE_FUNC (prop_display)
 
 void prop_dump()
 {
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/PROP.LOG");
-    FILE* g = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
+    FILE* f = FIO_CreateFileEx("ML/LOGS/PROP.LOG");
+    FILE* g = FIO_CreateFileEx("ML/LOGS/PROP-STR.LOG");
 
     unsigned i, j, k;
 
@@ -3243,7 +3239,7 @@ struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
     if (logo == (void*) -1)
-        logo = bmp_load(CARD_DRIVE "ML/DOC/logo.bmp",0);
+        logo = bmp_load("ML/DOC/logo.bmp",0);
 }
 void show_logo()
 {
@@ -3555,25 +3551,24 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
 
 static void CopyMLFilesToRAM_BeforeFormat()
 {
-    TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
-    TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/FONTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0, 1);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0, 0);
+    TmpMem_AddFile("AUTOEXEC.BIN");
+    TmpMem_AddFile("MAGIC.FIR");
+    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/FONTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/MODULES/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/SCRIPTS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/DATA/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/CROPMKS/", 1, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/DOC/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/LOGS/", 0, 0);
     TmpMem_UpdateSizeDisplay(0);
 }
 
 // check if autoexec.bin is present on the card
 static int check_autoexec()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
+    FILE * f = FIO_Open("AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -3586,7 +3581,7 @@ static int check_autoexec()
 // check if magic.fir is present on the card
 static int check_fir()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "MAGIC.FIR", 0);
+    FILE * f = FIO_Open("MAGIC.FIR", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);

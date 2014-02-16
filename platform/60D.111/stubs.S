@@ -71,17 +71,17 @@ NSTUB( 0xFF1DA530, vsnprintf )
 NSTUB( 0xFF06EA08, msleep ) // called from EV_GETDONE_CACHE param 0x64
 NSTUB( 0xff06eabc, task_create )
 
-NSTUB( 0xFF1C9F9C, FIO_Open)
-NSTUB( 0xFF1CA058, FIO_CreateFile )
-NSTUB( 0xFF1CA104, FIO_RemoveFile ) // after FIO_CreateFile, before FIO_ReadFile
+NSTUB( 0xFF1C9F9C, _FIO_Open)
+NSTUB( 0xFF1CA058, _FIO_CreateFile )
+NSTUB( 0xFF1CA104, _FIO_RemoveFile ) // after _FIO_CreateFile, before FIO_ReadFile
 NSTUB( 0xFF1CA1AC, FIO_ReadFile )
 NSTUB( 0xFF1CA32C, FIO_SeekFile )
 NSTUB( 0xFF1CA34C, FIO_WriteFile )
 NSTUB( 0xFF1CA3FC, FIO_CloseFile )
-NSTUB( 0xFF1CA578, FIO_GetFileSize )
-NSTUB( 0xFF1CAC38, FIO_CreateDirectory)
+NSTUB( 0xFF1CA578, _FIO_GetFileSize )
+NSTUB( 0xFF1CAC38, _FIO_CreateDirectory)
 NSTUB( 0xFF1CAA70, FIO_RenameFile )
-NSTUB( 0xFF1CB1F8, FIO_FindFirstEx )
+NSTUB( 0xFF1CB1F8, _FIO_FindFirstEx )
 NSTUB( 0xFF1CB2EC, FIO_FindNextEx )
 NSTUB( 0xFF1CB3CC, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 

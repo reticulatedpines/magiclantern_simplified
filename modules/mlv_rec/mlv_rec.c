@@ -475,8 +475,7 @@ static void raw_rec_setup_trace()
         return;
     }
 
-    char filename[100];
-    snprintf(filename, sizeof(filename), "%sraw_rec.txt", MODULE_CARD_DRIVE);
+    char filename[] = "raw_rec.txt";
     raw_rec_trace_ctx = trace_start("raw_rec", filename);
     trace_set_flushrate(raw_rec_trace_ctx, 60000);
     trace_format(raw_rec_trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');

@@ -5409,7 +5409,7 @@ void config_menu_save_flags()
         }
     }
     
-    FILE * file = FIO_CreateFileEx( CARD_DRIVE "ML/LOGS/MENUS.LOG" );
+    FILE * file = FIO_CreateFileEx( "ML/LOGS/MENUS.LOG" );
     if( file == INVALID_PTR )
         return;
     

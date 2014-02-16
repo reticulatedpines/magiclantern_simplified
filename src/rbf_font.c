@@ -63,7 +63,7 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     
     /* was not loaded, try to load */
     char filename[128];
-    snprintf(filename, sizeof(filename), CARD_DRIVE "ML/FONTS/%s.RBF", file);
+    snprintf(filename, sizeof(filename), "ML/FONTS/%s.RBF", file);
     
     uint32_t size;
     if((FIO_GetFileSize( filename, &size ) != 0) || (size == 0))

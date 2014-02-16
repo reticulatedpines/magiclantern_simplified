@@ -362,7 +362,7 @@ INIT_FUNC("state_init", state_init);
 void update_state_fps() {
     NotifyBox(1000,"Logging");
     FILE* state_log_file = 0;
-    state_log_file = FIO_CreateFileEx(CARD_DRIVE "state.log");
+    state_log_file = FIO_CreateFileEx("state.log");
     if(state_log_file) {
         for(int i=0;i<num_states;++i) {
             for(int j=0;j<num_inputs;++j) {

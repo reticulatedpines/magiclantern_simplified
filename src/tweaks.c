@@ -2824,13 +2824,13 @@ static void FAST anamorphic_squeeze()
     );
 }*/
 
-//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
+//~ CONFIG_STR("defish.lut", defish_lut_file, "ML/SETTINGS/recti.lut");
 #if defined(CONFIG_FULLFRAME)
-#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
-#define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
+#define defish_lut_file_rectilin "ML/DATA/ff8r.lut"
+#define defish_lut_file_panini "ML/DATA/ff8p.lut"
 #else
-#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/apsc8r.lut"
-#define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
+#define defish_lut_file_rectilin "ML/DATA/apsc8r.lut"
+#define defish_lut_file_panini "ML/DATA/apsc8p.lut"
 #endif
 
 static uint16_t* defish_lut_load()

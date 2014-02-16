@@ -13,7 +13,7 @@
 #ifndef CONFIG_MODULES_MODEL_SYM
 #error Not defined file name with symbols
 #endif
-#define MAGIC_SYMBOLS                 CARD_DRIVE"ML/MODULES/"CONFIG_MODULES_MODEL_SYM
+#define MAGIC_SYMBOLS                 "ML/MODULES/"CONFIG_MODULES_MODEL_SYM
 
 /* unloads TCC after linking the modules */
 /* note: this breaks module_exec and ETTR */
@@ -23,7 +23,7 @@ extern int sscanf(const char *str, const char *format, ...);
 
 
 /* this must be public as it is used by modules */
-char *module_card_drive = CARD_DRIVE;
+char *module_card_drive = "";
 
 static module_entry_t module_list[MODULE_COUNT_MAX];
 

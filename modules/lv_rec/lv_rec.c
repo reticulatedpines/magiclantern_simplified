@@ -579,7 +579,7 @@ void lv_rec_start()
     /* get first available file name */    
     for (start_number = 0 ; start_number < 1000; start_number++)
     {
-        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%s%07d.%s", MODULE_CARD_DRIVE, save_data.filePrefix, start_number, save_data.fileSuffix);
+        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%07d.%s", save_data.filePrefix, start_number, save_data.fileSuffix);
         
         uint32_t size;
         if( FIO_GetFileSize( save_data.fileName, &size ) != 0 ) break;
@@ -647,7 +647,7 @@ void lv_rec_start()
                 {
                     if(!save_data.handle)
                     {
-                        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%s%07d.%s", MODULE_CARD_DRIVE, save_data.filePrefix, start_number, save_data.fileSuffix);
+                        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%07d.%s", save_data.filePrefix, start_number, save_data.fileSuffix);
                         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving to '%s'", save_data.fileName);
                         save_data.handle = FIO_CreateFileEx(save_data.fileName);
                         save_data.handleWritten = 0;
@@ -681,7 +681,7 @@ void lv_rec_start()
                 {
                     if((data.savedFrames % data.options.frameSkip) == 0)
                     {
-                        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%s%07d.%s", MODULE_CARD_DRIVE, save_data.filePrefix, start_number + (data.savedFrames / data.options.frameSkip), save_data.fileSuffix);
+                        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%07d.%s", save_data.filePrefix, start_number + (data.savedFrames / data.options.frameSkip), save_data.fileSuffix);
                         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", save_data.fileName);
                         save_data.handle = FIO_CreateFileEx(save_data.fileName);
                         save_data.handleWritten = 0;

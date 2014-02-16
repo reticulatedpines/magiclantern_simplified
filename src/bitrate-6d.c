@@ -117,22 +117,22 @@ static void load_h264_ini()
 	gui_uilock(UILOCK_EVERYTHING);
 	if (h2config == 1)
 		{   call("IVAParamMode", "B:/ML/cbr.ini");
-		    //~ call("IVAParamMode", CARD_DRIVE "ML/cbr.ini");
+		    //~ call("IVAParamMode", "ML/cbr.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else if (h2config == 2)
 		 {   call("IVAParamMode", "B:/ML/vbr.ini");
-		   //~ call("IVAParamMode", CARD_DRIVE "ML/vbr.ini");
+		   //~ call("IVAParamMode", "ML/vbr.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else if (h2config == 3)
 		{   call("IVAParamMode", "B:/ML/rc.ini");
-		    //~ call("IVAParamMode", CARD_DRIVE "ML/rc.ini");
+		    //~ call("IVAParamMode", "ML/rc.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else 
 	{	
-    	//~ call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
+    	//~ call("IVAParamMode", "ML/H264.ini");
     	call("IVAParamMode", "B:/ML/H264.ini");
 		NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 	}
@@ -648,8 +648,6 @@ TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
 
 #else /* dummy stubs, just to compile */
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
 int hibr_should_record_wav() { return 0; }
 int is_mvr_buffer_almost_full() { return 0; }
 void movie_indicators_show() {}

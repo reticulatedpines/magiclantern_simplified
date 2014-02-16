@@ -7,6 +7,7 @@
 #include <lens.h>
 #include <version.h>
 #include <flexinfo.h>
+#include <fio-ml.h>
 
 #ifdef FEATURE_FLEXINFO
 
@@ -28,16 +29,6 @@
 // those are not camera-specific LP-E6
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
-
-/* e.g. 5D3 has different free space calculation, decide it by property availability, maybe there are others too */
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-#ifdef PROP_CLUSTER_SIZE
-static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-static PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#else
-extern int cluster_size;
-extern int free_space_raw;
-#endif
 
 /* copied from lens.c to get crop information */
 #ifdef CONFIG_FULLFRAME
@@ -1251,6 +1242,7 @@ char *info_get_cardlabel(char drv)
 uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 {
     strcpy(buffer, "");
+    int free_space_32k = get_free_space_32k(get_shooting_card());
 
     switch(string_type)
     {

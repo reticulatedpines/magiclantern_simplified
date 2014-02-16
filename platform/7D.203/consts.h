@@ -2,7 +2,6 @@
  *  7D 2.0.3 consts
  */
 
-#define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138000
 #define LEDOFF 0x38400

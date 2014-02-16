@@ -7,6 +7,7 @@
 #include <config.h>
 #include <property.h>
 #include <raw.h>
+#include <fio-ml.h>
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
@@ -70,8 +71,10 @@ static char* silent_pic_get_name()
     static int prev_file_number = -1;
     static int prev_folder_number = -1;
     
-    char *extension = "DNG";
-    
+    char *extension   = "DNG";
+    int file_number   = get_shooting_card()->file_number;
+    int folder_number = get_shooting_card()->folder_number;
+
     if (prev_file_number != file_number) silent_number = 1;
     if (prev_folder_number != folder_number) silent_number = 1;
     

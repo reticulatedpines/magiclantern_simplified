@@ -75,15 +75,15 @@ NSTUB(0xFF1115E8, GetJpegSizeForLV)
 
 NSTUB( 0xFF0714C4, msleep ) // called from EV_GETDONE_CACHE param 0x64
 NSTUB( 0xFF071578, task_create )
-NSTUB( 0xFF1E6254, FIO_Open)
-NSTUB( 0xFF1E6310, FIO_CreateFile )
+NSTUB( 0xFF1E6254, _FIO_Open)
+NSTUB( 0xFF1E6310, _FIO_CreateFile )
 NSTUB( 0xFF1E66B4, FIO_CloseFile )
 NSTUB( 0xFF1E65E4, FIO_SeekFile)
-NSTUB( 0xFF1E6830, FIO_GetFileSize )
+NSTUB( 0xFF1E6830, _FIO_GetFileSize )
 NSTUB( 0xFF1E6604, FIO_WriteFile )
 NSTUB( 0xFF1E6464, FIO_ReadFile )
-NSTUB( 0xFF1E63BC, FIO_RemoveFile )
-NSTUB( 0xFF1E6EF0, FIO_CreateDirectory)
+NSTUB( 0xFF1E63BC, _FIO_RemoveFile )
+NSTUB( 0xFF1E6EF0, _FIO_CreateDirectory)
 NSTUB( 0xff1e6d28, FIO_RenameFile)
 NSTUB( 0xFF1E65E4, FIO_SeekFile)
 
@@ -187,7 +187,7 @@ NSTUB( 0xFF1C9874, mvrSetGopOptSizeVGA )
 NSTUB( 0xFF1C94E0, mvrSetDeblockingFilter )
 // FF04E88C mvrAppendCheckSetRecLimit
 
-NSTUB( 0xFF1E74B0, FIO_FindFirstEx )
+NSTUB( 0xFF1E74B0, _FIO_FindFirstEx )
 NSTUB( 0xFF1E75A4, FIO_FindNextEx )
 NSTUB( 0xff1e7684, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 

@@ -2,6 +2,9 @@
  * Camera internals for 5D3 1.1.3
  */
 
+/** This camera has both a CF and an SD slot **/
+#define CONFIG_DUAL_SLOT
+
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 5D3 port is young, but... let's give it a try! **/
 #define CONFIG_PROP_REQUEST_CHANGE

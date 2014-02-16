@@ -8,7 +8,7 @@
 
 int check_eyefi()
 {
-    FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
+    FILE * f = FIO_Open("EYEFI/REQC", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
