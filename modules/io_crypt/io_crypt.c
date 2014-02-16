@@ -219,7 +219,7 @@ static uint32_t iocrypt_asym_init(int fd)
     memcpy(&file_key, key, sizeof(uint64_t));
 
     /* encrypt the randomly generated per-file header with RSA public key */
-    iocrypt_job_t job;
+    volatile iocrypt_job_t job;
     
     job.type = CRYPT_JOB_ENCRYPT;
     job.semaphore = iocrypt_files[fd].semaphore;
@@ -234,7 +234,7 @@ static uint32_t iocrypt_asym_init(int fd)
 
     /* wait until worker finished */
     take_semaphore(job.semaphore, 0);
-    trace_write(iocrypt_trace_ctx, "iocrypt_asym_init: encrypt done");
+    trace_write(iocrypt_trace_ctx, "iocrypt_asym_init: encrypt done (%d)", job.ret);
     
     uint32_t encrypted_size = job.ret;
     
@@ -493,7 +493,7 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
             /* let the data being encrypted asynchronously */
-            iocrypt_job_t job;
+            volatile iocrypt_job_t job;
             
             job.type = CRYPT_JOB_DECRYPT;
             job.fd = fd;
@@ -533,7 +533,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             iodev_SetPosition(fd, iodev_GetPosition(fd) + iocrypt_files[fd].header_size);
             
             /* let the data being encrypted asynchronously */
-            iocrypt_job_t job;
+            volatile iocrypt_job_t job;
             
             job.type = CRYPT_JOB_ENCRYPT_WRITE;
             job.fd = fd;
@@ -694,7 +694,7 @@ static void iocrypt_speed_test()
     beep();
 }
 
-void crypt_rsa_generate_key()
+void iocrypt_rsa_key_gen()
 {
     NotifyBox(600000, "Generating RSA key.\nThis takes a while!");
     
@@ -716,7 +716,7 @@ static MENU_SELECT_FUNC(iocrypt_rsa_key_select)
 {
     crypt_rsa_set_keysize(512 << iocrypt_rsa_key_size);
     
-    task_create("crypt_rsa_generate_keys", 0x1e, 0x1000, crypt_rsa_generate_key, NULL);
+    task_create("crypt_rsa_generate_keys", 0x1e, 0x1000, iocrypt_rsa_key_gen, NULL);
 }
 
 static MENU_SELECT_FUNC(iocrypt_test_rsa)
@@ -890,7 +890,7 @@ static void iocrypt_task()
             {
                 trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
                 job->ret = job->ctx->encrypt(job->ctx->priv, job->dst, job->buf, job->length, job->fd_pos);
-                trace_write(iocrypt_trace_ctx, "   ->> DONE");
+                trace_write(iocrypt_trace_ctx, "   ->> DONE (%d)", job->ret);
                 
                 give_semaphore(job->semaphore);
                 break;
