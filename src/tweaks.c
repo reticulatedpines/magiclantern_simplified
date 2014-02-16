@@ -510,7 +510,11 @@ int handle_set_wheel_play(struct event * event)
         return 1;
     }
 
-    if (play_set_wheel_trigger == 1 || play_set_wheel_trigger == 3)
+    #define PLAY_ACTION_TRIGGER_WHEEL 1
+    #define PLAY_ACTION_TRIGGER_LR 2
+    #define PLAY_ACTION_TRIGGER_WHEEL_OR_LR 3
+    if (play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL || 
+        play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL_OR_LR)
     {
         if (event->param == BGMT_PRESS_SET)
         {
