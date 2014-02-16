@@ -5,6 +5,11 @@
 #define CRYPT_SCRATCH_SIZE 0x00800000
 
 
+#define CRYPT_JOB_ENCRYPT       0
+#define CRYPT_JOB_ENCRYPT_WRITE 1
+#define CRYPT_JOB_DECRYPT       2
+
+
 typedef void crypt_priv_t;
 
 typedef struct crypt_cipher_t
@@ -29,6 +34,7 @@ typedef struct
     uint64_t file_key;
     uint32_t header_size;
     uint32_t file_size;
+    struct semaphore *semaphore;
     char filename[64];
 } fd_map_t;
 
@@ -45,5 +51,17 @@ typedef struct
     uint32_t (*unk5)();
 } iodev_handlers_t;
 
+typedef struct
+{
+    uint32_t type;
+    crypt_cipher_t *ctx;
+    void *dst;
+    void *buf;
+    uint32_t length;
+    uint32_t fd_pos;
+    uint32_t ret;
+    uint32_t fd;
+    struct semaphore *semaphore;
+} iocrypt_job_t;
 
 #endif

@@ -173,7 +173,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     if (is_continuous_drive())
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
 
-    if (!post_deflicker)
+    if (post_deflicker)
     {
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "XMP");
         MENU_SET_RINFO("%dEV/%d%%", post_deflicker_target_level, post_deflicker_percentile);
