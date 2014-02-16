@@ -3587,7 +3587,7 @@ static struct menu_entry play_menus[] = {
                         .priv = &play_set_wheel_action, 
                         .max = 3,
                         .choices = (const char *[]) {"Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
-                        .help = "Chose the type action to perform when triggered.",
+                        .help = "Chose the action type to perform when triggered.",
                         .icon_type = IT_DICE,
                     },
                     {
@@ -3595,7 +3595,7 @@ static struct menu_entry play_menus[] = {
                         .priv = &play_set_wheel_trigger,
                         .max = 3,
                         .choices = (const char *[]) {"OFF", "Set+MainDial", "Left/Right", "L/R & Set+Dial"},
-                        .help = "Either usa a key combination and/or just an easier single keystroke.",
+                        .help = "Either use a key combination and/or just an easier single keystroke.",
                         .icon_type = IT_BOOL,
                     },
                     MENU_EOL
