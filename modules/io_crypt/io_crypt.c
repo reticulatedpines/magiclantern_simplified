@@ -1,14 +1,66 @@
 
+/*
+ * Copyright (C) 2013 Magic Lantern Team
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+ 
+/*
+    About how to find the model specific memory addresses
+    (example 7D v2.0.3, slave)
+
+    finding iodev_table
+    1. starting point FIO_ReadFile at 0xFF1FC434
+    2. if file handle id is < 100, it enters 0xFF3279F4
+    3. there the first call is 0xFF08CFA8
+    4. this function references to 0x2D3B0 (pointers to tables of functions) and calls a function from there using BX
+    5. as we (always) use the second entry in that table, our iodev_table = 0x2D3B8 (it points to 0xFF58B350)
+
+    the function tables have these functions:
+      0xFF58B350:
+      DCD iodev_OpenFile
+      DCD iodev_CloseFile
+      DCD iodev_unsupported
+      DCD iodev_ReadFile
+      DCD iodev_WriteFile
+      DCD iodev_unsupported
+      DCD iodev_unsupported
+      DCD iodev_unsupported_2
+      DCD iodev_unsupported
+
+    finding iodev_ctx (to be optimized away..)
+    1. go to iodev_OpenFile, which is at 0xFF458BBC (referenced in table found above)
+    2. enter the 3rd function 0xFF3E0D50. its the one with return value being checked (SUBS R5, R0, #0)
+    3. the first function (0xFF3E0958) being entered is allocating an fd.
+    4. this function references to 0x85510, so iodev_ctx = 0x85510
+
+    finding iodev_ctx_size (to be optimized away..)
+    1. the same function as you used above (0xFF3E0958) goes through all entries
+    2. it adds 0x18 bytes per iteration, so iodev_ctx_size = 0x18
+
+*/
+ 
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
 #include <config.h>
-
 #include <string.h>
-
-
 #include <io_crypt.h>
 
 #include "crypt_lfsr64.h"
@@ -17,37 +69,45 @@
 #include "../trace/trace.h"
 #include "../ime_base/ime_base.h"
 
+uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 
+/* magics used to detect or set file type */
 static const uint8_t cr2_magic[] = "\x49\x49\x2A\x00";
 static const uint8_t jpg_magic[] = "\xff\xd8\xff\xe1";
 static const uint8_t rsa_magic[] = "\xff\xd8\xff\xd8";
 static const uint8_t lfsr_magic[] = "\xff\xd8\xff\x8d";
 
+/* FIO function hooks */
 static iodev_handlers_t *orig_iodev = NULL;
 static iodev_handlers_t hook_iodev;
 
-uint32_t iocrypt_trace_ctx = TRACE_ERROR;
+/* those are model specific */
+static uint32_t iodev_table = 0;
+static uint32_t iodev_ctx = 0;
+static uint32_t iodev_ctx_size = 0;
 
+/* every file descriptor gets its own entry in this table */
+static fd_map_t iocrypt_files[32];
+
+/* scratch memory is used to put encrypted data into before it gets written */
 static uint8_t *iocrypt_scratch = NULL;
+
+/* current encryption key, derieved from password being entered */
 static uint64_t iocrypt_key = 0;
 
 /* status for RSA key generation */
 static uint32_t iocrypt_rsa_key_active = 0;
 
+/* RSA has a static context */
 static crypt_cipher_t iocrypt_rsa_ctx;
 
-static fd_map_t iocrypt_files[32];
+/* variables needed to set up password */
 static struct semaphore *iocrypt_password_sem = 0;
 static char iocrypt_ime_text[128];
 
 /* crypt thread data */
 struct msg_queue *iocrypt_msgs = NULL;
 static uint32_t iocrypt_shutdown = 0;
-
-/* those are model specific */
-static uint32_t iodev_table = 0;
-static uint32_t iodev_ctx = 0;
-static uint32_t iodev_ctx_size = 0;
 
 /* en-/decrypt on the fly with a symmetric cipher and given password */
 #define CRYPT_MODE_SYMMETRIC            0
@@ -107,6 +167,7 @@ static IME_DONE_FUNC(iocrypt_ime_done)
     return IME_OK;
 }
 
+/* ToDo: these directly read/write the current FIO position by altering FIO private data. is FIO_SeekFile safe to use here? */
 static uint32_t iodev_GetPosition(uint32_t fd)
 {
     uint32_t *ctx = (uint32_t *)(iodev_ctx + iodev_ctx_size * fd);

@@ -3,10 +3,10 @@
 
 typedef struct
 {
-	unsigned char id;
-	char *name;
-	char *primefac;
-	char *key;
+    unsigned char id;
+    char *name;
+    char *primefac;
+    char *key;
 } t_crypt_key;
 
 typedef struct
