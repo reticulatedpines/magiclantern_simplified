@@ -85,6 +85,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
 #endif
 
+#ifdef CONFIG_600D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
+#endif
+
 #ifdef CONFIG_5D3
 #define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)  /* 113 */
 //~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
@@ -397,7 +401,13 @@ static int raw_lv_get_resolution(int* width, int* height)
     *height = zoom ? 1106 : mv640crop ? 624 : mv720 || mv640 ?  720 : 1182;
     return 1;
     #endif
-    
+
+    #ifdef CONFIG_600D
+    *width  = zoom ? 2520 : mv1080crop ? 1952 : mv720  ? 1888 : 1888;
+    *height = zoom ? 1106 : mv1080crop ? 1048 : mv720  ?  720 : 1182;
+    return 1;
+    #endif
+
     /* unknown camera? */
     return 0;
 
