@@ -962,6 +962,7 @@ static unsigned int iocrypt_init()
         iodev_ctx = 0x67140;
         iodev_ctx_size = 0x20;
     }
+    /*
     else if(streq(camera_model_short, "650D"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 650D");
@@ -976,6 +977,7 @@ static unsigned int iocrypt_init()
         iodev_ctx = 0x49A64;
         iodev_ctx_size = 0x18;
     }
+    */
     else
     {
         NotifyBox(2000, "io_crypt: Camera unsupported");
