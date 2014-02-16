@@ -562,7 +562,7 @@ int handle_set_wheel_play(struct event * event)
     }
 
     // Left/Right action in PLAY mode
-    if (play_set_wheel_trigger > 1)
+    if (play_set_wheel_trigger > 1 && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
     {
         if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT)
         {
@@ -3583,7 +3583,7 @@ static struct menu_entry play_menus[] = {
                 .children =  (struct menu_entry[])
                 {
                     {
-                        .name = "Acton type",
+                        .name = "Action type",
                         .priv = &play_set_wheel_action, 
                         .max = 3,
                         .choices = (const char *[]) {"Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
