@@ -102,6 +102,7 @@ static crypt_cipher_t iocrypt_rsa_ctx;
 int main(int argc, char *argv[])
 {
     //io_decrypt_test();
+    //crypt_rsa_test();
     
     if(argc < 2)
     {
@@ -179,6 +180,12 @@ int main(int argc, char *argv[])
         printf("File type: RSA+LFSR64\n");
         
         crypt_rsa_init(&iocrypt_rsa_ctx);
+        
+        if(crypt_rsa_get_keysize(iocrypt_rsa_ctx.priv) < 64)
+        {
+            printf("Invalid key size\n");
+            return;
+        }
 
         uint32_t encrypted_size = 0;
         
@@ -212,7 +219,7 @@ int main(int argc, char *argv[])
             printf("Could not read '%s'\n", in_filename);
             return -1;
         }
-        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(&iocrypt_rsa_ctx, (uint8_t *)encrypted, (uint8_t *)encrypted, encrypted_size, 0);
+        uint32_t decrypted_size = iocrypt_rsa_ctx.decrypt(iocrypt_rsa_ctx.priv, (uint8_t *)encrypted, (uint8_t *)encrypted, encrypted_size, 0);
 
         if(!decrypted_size || decrypted_size > encrypted_size)
         {
@@ -251,7 +258,7 @@ int main(int argc, char *argv[])
     uint32_t file_offset = 0;
     crypt_cipher_t crypt_ctx;
     crypt_lfsr64_init(&crypt_ctx, key);
-    crypt_ctx.set_blocksize(&crypt_ctx, lfsr_blocksize);
+    crypt_ctx.set_blocksize(crypt_ctx.priv, lfsr_blocksize);
     
     
     while(!feof(in_file))
@@ -260,7 +267,7 @@ int main(int argc, char *argv[])
         
         if(ret > 0)
         {
-            crypt_ctx.decrypt(&crypt_ctx, (uint8_t *)buffer, (uint8_t *)buffer, ret, file_offset);
+            crypt_ctx.decrypt(crypt_ctx.priv, (uint8_t *)buffer, (uint8_t *)buffer, ret, file_offset);
             
             /* try to detect file type */
             if(first)

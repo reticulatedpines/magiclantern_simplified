@@ -70,7 +70,7 @@ char *module_card_drive = "";
 #include "bigd.h"
 #include "bigdigits.h"  
 
-#define assert(x) do {} while(0)
+#define assert(x) do { if(!(x)){ beep(); NotifyBox(5000, "ASSERT: "#x ); return -1;} } while(0)
 
 static uint32_t crypt_rsa_keysize = 1024;
 extern uint32_t iocrypt_trace_ctx;
@@ -231,19 +231,17 @@ int generateRSAPrime(BIGD p, size_t nbits, bdigit_t e, size_t ntests,
 
 int generateRSAKey(BIGD n, BIGD e, BIGD d, BIGD p, BIGD q, BIGD dP, BIGD dQ, BIGD qInv,
 	size_t nbits, bdigit_t ee, size_t ntests, unsigned char *seed, size_t seedlen,
-	BD_RANDFUNC randFunc)
+	BD_RANDFUNC randFunc, uint32_t *progress)
 {
 	BIGD g, p1, q1, phi;
 	size_t np, nq;
 	unsigned char *myseed = NULL;
-
+    
 	/* Initialise */
 	g = bdNew();
 	p1 = bdNew();
 	q1 = bdNew();
 	phi = bdNew();
-
-//	printf("Generating a %d-bit RSA key...\n", nbits);
 
 	/* We add an extra byte to the user-supplied seed */
 	myseed = (unsigned char*)malloc(seedlen + 1);
@@ -258,16 +256,20 @@ int generateRSAKey(BIGD n, BIGD e, BIGD d, BIGD p, BIGD q, BIGD dP, BIGD dQ, BIG
 	np = nbits - nq;
 
 	/* Make sure seeds are slightly different for p and q */
+    *progress = 1;
 	myseed[seedlen] = rand();
 	generateRSAPrime(p, np, ee, ntests, myseed, seedlen+1, randFunc);
+    *progress = 33;
 
 	myseed[seedlen] = rand();
 	generateRSAPrime(q, nq, ee, ntests, myseed, seedlen+1, randFunc);
+    *progress = 66;
     
 	/* Check that p != q (if so, RNG is faulty!) */
 	assert(!bdIsEqual(p, q));
 
 	generateRSAPrime(e, nq, ee, ntests, myseed, seedlen+1, randFunc);
+    *progress = 95;
 
 	/* If q > p swap p and q so p > q */
 	if (bdCompare(p, q) < 1)
@@ -312,11 +314,12 @@ int generateRSAKey(BIGD n, BIGD e, BIGD d, BIGD p, BIGD q, BIGD dP, BIGD dQ, BIG
 	bdFree(&q1);
 	bdFree(&phi);
 
+    *progress = 98;
 	return 0;
 }
 
 
-int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
+int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key, uint32_t *progress)
 {
 	int res = 0;
 	char *buffer = NULL;
@@ -337,7 +340,10 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key)
 	qInv = bdNew();
 
 	/* Create RSA key pair (n, e),(d, p, q, dP, dQ, qInv) */
-	res = generateRSAKey(n, e, d, p, q, dP, dQ, qInv, nbits+1, 3, 50, NULL, 0, crypt_rsa_rand);
+    char seed[256];
+    rand_fill(seed, sizeof(seed)/4);
+    
+	res = generateRSAKey(n, e, d, p, q, dP, dQ, qInv, nbits+1, 3, 50, seed, sizeof(seed), crypt_rsa_rand, progress);
 
 	if(res != 0)
 	{
@@ -407,8 +413,10 @@ clean_up:
 	bdFree(&dP);
 	bdFree(&dQ);
 	bdFree(&qInv);
+    
+    *progress = 99;
 
-	return 0;
+	return res;
 }
 
 
@@ -476,6 +484,19 @@ t_crypt_key *crypt_rsa_get_pub(void *priv)
     return &ctx->pub_key;
 }
 
+
+uint32_t crypt_rsa_get_keyprogress(crypt_priv_t *priv)
+{
+    if(!priv)
+    {
+        return 0;
+    }
+    
+    rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
+    
+    return ctx->progress;
+}
+
 /* returns the key size in bits */
 uint32_t crypt_rsa_get_keysize(void *priv)
 {
@@ -526,7 +547,7 @@ static uint32_t crypt_rsa_encrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src
     
     if(crypt_rsa_blocksize(ctx) > length)
     {
-        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(ctx), length);
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_encrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(ctx), length);
         return 0;
     }
     
@@ -534,7 +555,7 @@ static uint32_t crypt_rsa_encrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src
     
     if(new_len > length)
     {
-        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: buffer overflow %d vs. %d", new_len, length);
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_encrypt: new size %d vs. %d old size", new_len, length);
         return 0;
     }
     
@@ -660,12 +681,11 @@ void crypt_rsa_generate_keys(void *priv)
     t_crypt_key pub_key;
     rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
     
-    trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d...", crypt_rsa_keysize);
-    crypt_rsa_generate(crypt_rsa_keysize, &priv_key, &pub_key);
+    ctx->progress = 0;
+    
+    trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d", crypt_rsa_keysize);
+    crypt_rsa_generate(crypt_rsa_keysize, &priv_key, &pub_key, &ctx->progress);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d done", crypt_rsa_keysize);
-    NotifyBoxHide();
-    beep();
-    NotifyBox(2000, "RSA key generated!");
     
     crypt_rsa_save("ML/DATA/io_crypt.key", &priv_key);
     crypt_rsa_save("ML/DATA/io_crypt.pub", &pub_key);
@@ -676,15 +696,18 @@ void crypt_rsa_generate_keys(void *priv)
     
     crypt_rsa_load("ML/DATA/io_crypt.pub", &ctx->pub_key);
     crypt_rsa_load("ML/DATA/io_crypt.key", &ctx->priv_key);
+    
+    ctx->progress = 100;
 }
 
 static uint32_t crypt_rsa_testfunc(int size, t_crypt_key *priv_key, t_crypt_key *pub_key)
 {
     uint32_t ret = 0;
+    uint32_t progress = 0;
     
     NotifyBox(2000, "crypt_rsa_generate %d...", size);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d...", size);
-    crypt_rsa_generate(size, priv_key, pub_key);
+    crypt_rsa_generate(size, priv_key, pub_key, &progress);
     trace_write(iocrypt_trace_ctx, "io_crypt: crypt_rsa_generate %d done", size);
     NotifyBox(2000, "crypt_rsa_generate %d... DONE", size);
     
@@ -789,8 +812,12 @@ void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
     crypt_rsa_load("ML/DATA/io_crypt.key", &ctx->priv_key);
     crypt_rsa_load("io_crypt.pub", &ctx->pub_key);
     crypt_rsa_load("io_crypt.key", &ctx->priv_key);
+
+    trace_write(iocrypt_trace_ctx, "crypt_rsa_init: loaded %d bit key", crypt_rsa_get_keysize(ctx));
+
     
     trace_write(iocrypt_trace_ctx, "crypt_rsa_init: initialized");
+    
 }
 
 

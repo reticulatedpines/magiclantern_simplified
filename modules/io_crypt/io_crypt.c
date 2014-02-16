@@ -38,8 +38,11 @@ static crypt_cipher_t iocrypt_rsa_ctx;
 
 static fd_map_t iocrypt_files[32];
 static struct semaphore *iocrypt_password_sem = 0;
-static struct semaphore *iocrypt_scratch_sem = 0;
 static char iocrypt_ime_text[128];
+
+/* crypt thread data */
+struct msg_queue *iocrypt_msgs = NULL;
+static uint32_t iocrypt_shutdown = 0;
 
 /* those are model specific */
 static uint32_t iodev_table = 0;
@@ -141,7 +144,7 @@ static uint32_t iocrypt_asym_init(int fd)
 {
     uint64_t file_key = 0;
     uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
-    uint32_t blocksize = crypt_rsa_blocksize(&iocrypt_rsa_ctx);
+    uint32_t blocksize = crypt_rsa_blocksize(iocrypt_rsa_ctx.priv);
     
     trace_write(iocrypt_trace_ctx, "iocrypt_save_asym_hdr: block size %d bytes, lfsr_blocksize %d bytes", blocksize, lfsr_blocksize);
     if(!blocksize)
@@ -155,7 +158,24 @@ static uint32_t iocrypt_asym_init(int fd)
     memcpy(&file_key, key, sizeof(uint64_t));
 
     /* encrypt the randomly generated per-file header with RSA public key */
-    uint32_t encrypted_size = iocrypt_rsa_ctx.encrypt(&iocrypt_rsa_ctx, (uint8_t*)key, (uint8_t*)key, blocksize, 0);
+    iocrypt_job_t job;
+    
+    job.type = CRYPT_JOB_ENCRYPT;
+    job.semaphore = iocrypt_files[fd].semaphore;
+    job.ctx = &iocrypt_rsa_ctx;
+    job.dst = key;
+    job.buf = key;
+    job.length = blocksize;
+    job.fd_pos = 0;
+    
+    trace_write(iocrypt_trace_ctx, "iocrypt_asym_init: encrypt");
+    msg_queue_post(iocrypt_msgs, &job);
+
+    /* wait until worker finished */
+    take_semaphore(job.semaphore, 0);
+    trace_write(iocrypt_trace_ctx, "iocrypt_asym_init: encrypt done");
+    
+    uint32_t encrypted_size = job.ret;
     
     /* write header, block size and encrypted key */
     orig_iodev->WriteFile(fd, (uint8_t*)rsa_magic, 4);
@@ -226,7 +246,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
     
     trace_write(iocrypt_trace_ctx, "iodev_OpenFile('%s', %d) = %d", filename, flags, fd);
     
-    if(fd < COUNT(iocrypt_files) && iocrypt_enabled && !drive_mode)
+    if(fd < COUNT(iocrypt_files) && iocrypt_enabled)
     {
         iocrypt_files[fd].crypt_ctx.priv = NULL;
         iocrypt_files[fd].header_size = 0;
@@ -349,7 +369,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                         {
                             trace_write(iocrypt_trace_ctx, "   FAILED TO SET UP ENCRYPTION");
                             beep();
-                            NotifyBox(2000, "No key entered, not encrypting!");
+                            NotifyBox(2000, "RSA setup failed!");
                             break;
                         }
                         break;
@@ -376,7 +396,7 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
 
 static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
 {
-    if(!iocrypt_enabled || drive_mode)
+    if(!iocrypt_enabled)
     {
         return orig_iodev->ReadFile(fd, buf, length);
     }
@@ -411,9 +431,24 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
         
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
-            trace_write(iocrypt_trace_ctx, "   ->> DECRYPT");
-            iocrypt_files[fd].crypt_ctx.decrypt(iocrypt_files[fd].crypt_ctx.priv, buf, buf, length, fd_pos);
-            trace_write(iocrypt_trace_ctx, "   ->> DONE");
+            /* let the data being encrypted asynchronously */
+            iocrypt_job_t job;
+            
+            job.type = CRYPT_JOB_DECRYPT;
+            job.fd = fd;
+            job.semaphore = iocrypt_files[fd].semaphore;
+            job.ctx = &iocrypt_files[fd].crypt_ctx;
+            job.dst = buf;
+            job.buf = buf;
+            job.length = length;
+            job.fd_pos = fd_pos;
+            
+            trace_write(iocrypt_trace_ctx, "iodev_ReadFile: decrypt");
+            msg_queue_post(iocrypt_msgs, &job);
+            
+            /* wait until worker finished */
+            take_semaphore(job.semaphore, 0);
+            trace_write(iocrypt_trace_ctx, "iodev_ReadFile: decrypt done");
         }
     }
     
@@ -424,52 +459,42 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
 {
     uint32_t ret = 0;
     
-    if(fd < COUNT(iocrypt_files) && iocrypt_enabled && !drive_mode)
+    if(fd < COUNT(iocrypt_files) && iocrypt_enabled)
     {
-        uint8_t *work_ptr = buf;
         uint32_t misalign = ((uint32_t)buf) % 8;
         uint32_t fd_pos = iodev_GetPosition(fd);
         
         if(iocrypt_files[fd].crypt_ctx.priv)
         {
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile pre(0x%08X, 0x%08X) -> %s, fd = %d, fd_pos = 0x%08X, misalign = %d", buf, length, iocrypt_files[fd].filename, fd, fd_pos, misalign);
-        
-            /* if there is no buffer or the size is too big, do expensive in-place encryption */
-            if(iocrypt_scratch && (length <= CRYPT_SCRATCH_SIZE))
-            {
-                take_semaphore(iocrypt_scratch_sem, 0);
-                /* update buffer to write from */
-                work_ptr = &iocrypt_scratch[misalign];
-                trace_write(iocrypt_trace_ctx, "   ->> double buffered");
-            }
-             
-            trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
-            iocrypt_files[fd].crypt_ctx.encrypt(iocrypt_files[fd].crypt_ctx.priv, work_ptr, buf, length, fd_pos);
-            trace_write(iocrypt_trace_ctx, "   ->> DONE");
-            
+
             /* when there is some encryption active, handle file offset */
             iodev_SetPosition(fd, iodev_GetPosition(fd) + iocrypt_files[fd].header_size);
             
-            ret = orig_iodev->WriteFile(fd, work_ptr, length);
+            /* let the data being encrypted asynchronously */
+            iocrypt_job_t job;
+            
+            job.type = CRYPT_JOB_ENCRYPT_WRITE;
+            job.fd = fd;
+            job.semaphore = iocrypt_files[fd].semaphore;
+            job.ctx = &iocrypt_files[fd].crypt_ctx;
+            job.buf = buf;
+            job.length = length;
+            job.fd_pos = fd_pos;
+            
+            trace_write(iocrypt_trace_ctx, "iodev_WriteFile: encrypt");
+            msg_queue_post(iocrypt_msgs, &job);
+            
+            /* wait until worker finished */
+            take_semaphore(job.semaphore, 0);
+            trace_write(iocrypt_trace_ctx, "iodev_WriteFile: encrypt done");
             
             /* when there is some encryption active, handle file offset */
             iodev_SetPosition(fd, iodev_GetPosition(fd) - iocrypt_files[fd].header_size);
         
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile post(0x%08X, 0x%08X) -> fd = %d, fd_pos = 0x%08X, fd_pos (now) = 0x%08X", buf, length, fd, fd_pos, iodev_GetPosition(fd));
             
-            /* if we were not able to write it from scratch, undo in-place encryption */
-            if(work_ptr == buf)
-            {
-                trace_write(iocrypt_trace_ctx, "   ->> CLEANUP");
-                iocrypt_files[fd].crypt_ctx.decrypt(iocrypt_files[fd].crypt_ctx.priv, buf, buf, length, fd_pos);
-                trace_write(iocrypt_trace_ctx, "   ->> DONE");
-            }
-            else
-            {
-                give_semaphore(iocrypt_scratch_sem);
-            }
-            
-            return ret;
+            return job.ret;
         }
     }
     
@@ -613,7 +638,7 @@ void crypt_rsa_generate_key()
     NotifyBox(600000, "Generating RSA key.\nThis takes a while!");
     
     iocrypt_rsa_key_active = 1;
-    crypt_rsa_generate_keys((void*)&iocrypt_rsa_ctx);
+    crypt_rsa_generate_keys(iocrypt_rsa_ctx.priv);
     iocrypt_rsa_key_active = 0;
     
     NotifyBoxHide();
@@ -663,11 +688,11 @@ static MENU_UPDATE_FUNC(iocrypt_update)
             
         case CRYPT_MODE_ASYMMETRIC:
         case CRYPT_MODE_ASYMMETRIC_PARANOID:
-            if(!crypt_rsa_get_pub(&iocrypt_rsa_ctx))
+            if(!crypt_rsa_get_pub(iocrypt_rsa_ctx.priv))
             {
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please create keys first. Files are not encrypted yet.");
             }
-            else if(crypt_rsa_get_priv(&iocrypt_rsa_ctx))
+            else if(crypt_rsa_get_priv(iocrypt_rsa_ctx.priv))
             {
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "Move IO_CRYPT.KEY to a safe place and DELETE from card.");
             }
@@ -676,10 +701,6 @@ static MENU_UPDATE_FUNC(iocrypt_update)
             break;
     }
     
-    if(drive_mode)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Only available in single shot mode.");
-    }
     if(iocrypt_rsa_key_active)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Still generating the RSA keys.");
@@ -692,7 +713,7 @@ static MENU_UPDATE_FUNC(iocrypt_rsa_key_update)
     if(iocrypt_rsa_key_active)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Still generating the RSA keys.");
-        MENU_SET_VALUE("Generating...");
+        MENU_SET_VALUE("Generating, %d %%", crypt_rsa_get_keyprogress(iocrypt_rsa_ctx.priv));
     }
 }
 
@@ -775,6 +796,61 @@ static struct menu_entry iocrypt_menus[] =
     },
 };
 
+static void iocrypt_task()
+{
+    while(!iocrypt_shutdown && !ml_shutdown_requested)
+    {
+        int timeout = 500;
+        iocrypt_job_t *job = NULL;
+
+        /* fetch a new encryption job */
+        if(msg_queue_receive(iocrypt_msgs, &job, timeout))
+        {
+            continue;
+        }
+        
+        switch(job->type)
+        {
+            /* combined encrypt and write job which is atomic */
+            case CRYPT_JOB_ENCRYPT_WRITE:
+            {
+                trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
+                job->ctx->encrypt(job->ctx->priv, iocrypt_scratch, job->buf, job->length, job->fd_pos);
+                trace_write(iocrypt_trace_ctx, "   ->> WRITE");
+                job->ret = orig_iodev->WriteFile(job->fd, iocrypt_scratch, job->length);
+                trace_write(iocrypt_trace_ctx, "   ->> DONE");
+                
+                give_semaphore(job->semaphore);
+                break;
+            }
+            
+            /* simple decryption */
+            case CRYPT_JOB_ENCRYPT:
+            {
+                trace_write(iocrypt_trace_ctx, "   ->> ENCRYPT");
+                job->ret = job->ctx->encrypt(job->ctx->priv, job->dst, job->buf, job->length, job->fd_pos);
+                trace_write(iocrypt_trace_ctx, "   ->> DONE");
+                
+                give_semaphore(job->semaphore);
+                break;
+            }
+            
+            /* simple decryption */
+            case CRYPT_JOB_DECRYPT:
+            {
+                trace_write(iocrypt_trace_ctx, "   ->> DECRYPT");
+                job->ret = job->ctx->decrypt(job->ctx->priv, job->dst, job->buf, job->length, job->fd_pos);
+                trace_write(iocrypt_trace_ctx, "   ->> DONE");
+                
+                give_semaphore(job->semaphore);
+                break;
+            }
+        }
+    }
+    
+    iocrypt_shutdown = 0;
+}
+
 static unsigned int iocrypt_init()
 {
     /* for debugging */
@@ -791,7 +867,11 @@ static unsigned int iocrypt_init()
     }
 
     /* clear file map */
-    memset(iocrypt_files, 0x00, sizeof(iocrypt_files));
+    for(int pos = 0; pos < COUNT(iocrypt_files); pos++)
+    {
+        iocrypt_files[pos].crypt_ctx.priv = NULL;
+        iocrypt_files[pos].semaphore = create_named_semaphore("iocrypt_pw", 0);
+    }
     
     if(streq(camera_model_short, "600D"))
     {
@@ -835,7 +915,6 @@ static unsigned int iocrypt_init()
     }
     
     iocrypt_password_sem = create_named_semaphore("iocrypt_pw", 1);
-    iocrypt_scratch_sem = create_named_semaphore("iocrypt_scratch", 1);
     
     /* ask for the initial password */
     if(iocrypt_ask_pass && iocrypt_enabled && (iocrypt_mode == CRYPT_MODE_SYMMETRIC || iocrypt_mode == CRYPT_MODE_BACKGROUND_SYM))
@@ -856,8 +935,12 @@ static unsigned int iocrypt_init()
     hook_iodev.CloseFile = &hook_iodev_CloseFile;
     MEM(iodev_table) = (uint32_t)&hook_iodev;
     
+    /* create a message queue for processing crypt tasks asyncrhonously */
+    iocrypt_msgs = (struct msg_queue *) msg_queue_create("iocrypt_msgs", 100);
     
     crypt_rsa_init(&iocrypt_rsa_ctx);
+    
+    task_create("iocrypt_task", 0x1A, 0x1000, iocrypt_task, (void*)0);
     
     /* any file operation is routed through us now */
     menu_add("Shoot", iocrypt_menus, COUNT(iocrypt_menus) );
@@ -867,8 +950,18 @@ static unsigned int iocrypt_init()
 
 static unsigned int iocrypt_deinit()
 {
+    iocrypt_shutdown = 1;
+    
+    while(iocrypt_shutdown && !ml_shutdown_requested)
+    {
+        msleep(20);
+    }
+    
     MEM(iodev_table) = (uint32_t)orig_iodev;
-    shoot_free(iocrypt_scratch);
+    if(iocrypt_scratch)
+    {
+        shoot_free(iocrypt_scratch);
+    }
     return 0;
 }
 
