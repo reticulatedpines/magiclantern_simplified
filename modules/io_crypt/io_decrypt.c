@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
         if(crypt_rsa_get_keysize(iocrypt_rsa_ctx.priv) < 64)
         {
             printf("Invalid key size\n");
-            return;
+            return -1;
         }
 
         uint32_t encrypted_size = 0;
@@ -331,4 +331,5 @@ int main(int argc, char *argv[])
     fclose(in_file);
     fclose(out_file);
     free(out_filename);
+    return 0;
 }
