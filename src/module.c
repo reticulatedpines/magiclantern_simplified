@@ -22,9 +22,6 @@
 extern int sscanf(const char *str, const char *format, ...);
 
 
-/* this must be public as it is used by modules */
-char *module_card_drive = "";
-
 static module_entry_t module_list[MODULE_COUNT_MAX];
 
 #ifdef CONFIG_TCC_UNLOAD
