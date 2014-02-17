@@ -236,6 +236,11 @@ PROP_HANDLER(PROP_CLUSTER_SIZE_B)
     available_cards[CARD_B].cluster_size = buf[0];
 }
 
+PROP_HANDLER(PROP_CLUSTER_SIZE_C)
+{
+    available_cards[CARD_C].cluster_size = buf[0];
+}
+
 PROP_HANDLER(PROP_FREE_SPACE_A)
 {
     available_cards[CARD_A].free_space_raw = buf[0];
@@ -244,6 +249,11 @@ PROP_HANDLER(PROP_FREE_SPACE_A)
 PROP_HANDLER(PROP_FREE_SPACE_B)
 {
     available_cards[CARD_B].free_space_raw = buf[0];
+}
+
+PROP_HANDLER(PROP_FREE_SPACE_C)
+{
+    available_cards[CARD_C].free_space_raw = buf[0];
 }
 
 PROP_HANDLER(PROP_FILE_NUMBER_A)
@@ -256,6 +266,11 @@ PROP_HANDLER(PROP_FILE_NUMBER_B)
     available_cards[CARD_B].file_number = buf[0];
 }
 
+PROP_HANDLER(PROP_FILE_NUMBER_C)
+{
+    available_cards[CARD_C].file_number = buf[0];
+}
+
 PROP_HANDLER(PROP_FOLDER_NUMBER_A)
 {
     available_cards[CARD_A].folder_number = buf[0];
@@ -264,6 +279,11 @@ PROP_HANDLER(PROP_FOLDER_NUMBER_A)
 PROP_HANDLER(PROP_FOLDER_NUMBER_B)
 {
     available_cards[CARD_B].folder_number = buf[0];
+}
+
+PROP_HANDLER(PROP_FOLDER_NUMBER_C)
+{
+    available_cards[CARD_C].folder_number = buf[0];
 }
 
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)

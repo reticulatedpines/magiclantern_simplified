@@ -404,6 +404,13 @@
     #define PROP_CLUSTER_SIZE_B      0x02010007
     #define PROP_FREE_SPACE_B        0x0201000a
     #define PROP_CARD_RECORD_B       0x8003000c
+    
+    // WFT drive
+    #define PROP_FOLDER_NUMBER_C     0x02010002
+    #define PROP_FILE_NUMBER_C       0x02010005
+    #define PROP_CLUSTER_SIZE_C      0x02010008
+    #define PROP_FREE_SPACE_C        0x0201000b
+    #define PROP_CARD_RECORD_C       0x8003000d
 #endif
 
 #define PROP_USER_FILE_PREFIX  0x02050004
