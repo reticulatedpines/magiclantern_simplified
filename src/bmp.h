@@ -537,4 +537,12 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 
 void bfnt_test();
 
+#ifndef CONFIG_VXWORKS
+/* DryOS bitmap palette (engio register configuration) */
+/* todo: define a structure */
+/* palette entry for color i is i*3 + 2 */
+/* the DIGIC (ENGIO) register where this is written is i*3 */
+extern uint32_t LCD_Palette[];
+#endif
+
 #endif //#ifndef _bmp_h_

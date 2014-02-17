@@ -10,6 +10,5 @@ int is_hdr_bracketing_enabled();
 int get_interval_count();
 int get_interval_time();
 void set_interval_time(int seconds);
-void set_interval_index(int index);
 #endif
 #endif // __SHOOT_H_

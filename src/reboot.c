@@ -148,9 +148,6 @@ cstart( void )
     #elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
         *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
     #endif
-    #if defined(CONFIG_7D)
-        *(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
-    #endif
 
     blob_memcpy(
         (void*) RESTARTSTART,
@@ -159,6 +156,10 @@ cstart( void )
     );
     clean_d_cache();
     flush_caches();
+
+    #if defined(CONFIG_7D)
+        *(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
+    #endif
 
     /* Jump into the newly relocated code
        Q: Why target/compiler-specific attribute long_call?

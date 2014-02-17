@@ -3,6 +3,7 @@
 #include "bmp.h"
 #include "string.h"
 #include "menu.h"
+#include "beep.h"
 #include "config.h"
 
 // File I/O wrappers for handling the dual card slot on 5D3

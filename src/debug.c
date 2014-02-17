@@ -13,6 +13,7 @@
 #include "version.h"
 #include "edmac.h"
 #include "asm.h"
+#include "beep.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -307,9 +308,34 @@ static void bsod()
 
 static void run_test()
 {
-    void* p = malloc(2*1024*1024);
-    free(p);
-    free(p); /* the backend should catch this */
+    msleep(1000);
+    
+    /* check for memory leaks */
+    for (int i = 0; i < 1000; i++)
+    {
+        console_printf("%d/1000\n", i);
+        
+        /* with this large size, the backend will use shoot_malloc, which returns uncacheable pointers */
+        void* p = malloc(16*1024*1024 + 64);
+        
+        if (!p)
+        {
+            console_printf("malloc err\n");
+            continue;
+        }
+        
+        /* however, user code should not care about this; we have requested a plain old cacheable pointer; did we get one? */
+        ASSERT(p == CACHEABLE(p));
+        
+        /* do something with our memory */
+        memset(p, 1234, 1234);
+        msleep(20);
+        
+        /* done, now free it */
+        /* the backend should put back the uncacheable flag (if handled incorrectly, there may be memory leaks) */
+        free(p);
+        msleep(20);
+    }
     return;
 
    //~ bfnt_test();
@@ -1072,8 +1098,8 @@ static void stub_test_task(void* arg)
         }
 
         // engio
-        TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
-        TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
+        TEST_TRY_VOID(EngDrvOut(LCD_Palette[0], 0x1234));
+        TEST_TRY_FUNC_CHECK(shamem_read(LCD_Palette[0]), == 0x1234);
 
         // call, DISPLAY_IS_ON
         TEST_TRY_VOID(call("TurnOnDisplay"));
@@ -1968,23 +1994,6 @@ static int screenshot_sec = 0;
 CONFIG_INT("hexdump", hexdump_addr, 0x24298);
 
 int hexdump_enabled = 0;
-int hexdump_digit_pos = 0; // 0...7, 8=all
-
-static MENU_UPDATE_FUNC (hexdump_print)
-{
-    if (!info->can_custom_draw) return;
-    int x = info->x_val;
-    int y = info->y;
-    
-    MENU_SET_VALUE("");
-    
-    for (int i = 0; i < 8; i++)
-    {
-        int pos = 7 - i;
-        int fnt = (pos == hexdump_digit_pos) ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED) : FONT_LARGE;
-        x += bmp_printf(fnt, x, y, "%x", (hexdump_addr >> (pos * 4)) & 0xF);
-    }
-}
 
 static MENU_UPDATE_FUNC (hexdump_print_value_hex)
 {
@@ -2041,26 +2050,6 @@ static void
 hexdump_toggle_value_int16(void * priv, int delta)
 {
     (*(int16_t*)(hexdump_addr+2)) += delta;
-}
-
-void hexdump_digit_toggle(void* priv, int dir)
-{
-    if (hexdump_digit_pos < 8)
-    {
-        int digit = (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF;
-        digit = mod(digit + dir*(hexdump_digit_pos?1:4), 16);
-        hexdump_addr &= ~(0xF << (hexdump_digit_pos * 4));
-        hexdump_addr |= (digit << (hexdump_digit_pos * 4));
-    }
-    else
-    {
-        hexdump_addr += dir * 4;
-    }
-}
-
-void hexdump_digit_pos_toggle(void* priv, int dir)
-{
-    hexdump_digit_pos = mod(hexdump_digit_pos - 1, 9);
 }
 
 int hexdump_prev = 0;
@@ -2661,9 +2650,8 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "HexDump",
                 .priv = &hexdump_addr,
-                .select = hexdump_digit_toggle,
-                .select_Q = hexdump_digit_pos_toggle,
-                .update = hexdump_print,
+                .max = 0x20000000,
+                .unit = UNIT_HEX,
                 .icon_type = IT_PERCENT,
                 .help = "Address to be analyzed. Press Q to select the digit to edit."
             },
@@ -3793,6 +3781,11 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         case MLEV_REDRAW:
             redraw_do();
+            break;
+        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
+            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
+            handle_livev_playback(event, MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
+            #endif
             break;
     }
     return 0;

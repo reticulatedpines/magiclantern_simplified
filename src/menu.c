@@ -30,6 +30,7 @@
 #include "lens.h"
 #include "font.h"
 #include "menu.h"
+#include "beep.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
@@ -105,6 +106,7 @@ static int submenu_level = 0;
 static int edit_mode = 0;
 static int customize_mode = 0;
 static int advanced_mode = 0;       /* cached value; only for submenus for now */
+static int caret_position = 0;
 
 #define SUBMENU_OR_EDIT (submenu_level || edit_mode)
 
@@ -558,6 +560,76 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
     *val = v;
 }
 
+/* TODO: move these to a math library */
+int powi(int base, int power)
+{
+    int result = 1;
+    while (power)
+    {
+        if (power & 1)
+            result *= base;
+        power >>= 1;
+        base *= base;
+    }
+    return result;
+}
+
+int log2i(int x)
+{
+    int result = 0;
+    while (x >>= 1) result++;
+    return result;
+}
+
+int log10i(int x)
+{
+    int result = 0;
+    while(x /= 10) result++;
+    return result;
+}
+
+/* for editing with caret */
+static int get_delta(struct menu_entry * entry, int sign)
+{
+    if(!edit_mode)
+        return sign;
+    else if(entry->unit == UNIT_DEC)
+        return sign * powi(10, caret_position);
+    else if(entry->unit == UNIT_HEX)
+        return sign * powi(16, caret_position);
+    else if(entry->unit == UNIT_TIME)
+    {
+        if(caret_position == 2) return sign * 10;
+        else if(caret_position == 4) return sign * 60;
+        else if(caret_position == 5) return sign * 600;
+        else if(caret_position == 7) return sign * 3600;
+        else if(caret_position == 8) return sign * 36000;
+    }
+    return sign;
+}
+
+static int uses_caret_editing(struct menu_entry * entry)
+{
+    return 
+        entry->select == 0 &&   /* caret editing requires its own toggle logic */
+        (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME);  /* only these caret edit modes are supported */
+}
+
+static void caret_move(struct menu_entry * entry, int delta)
+{
+    int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(abs(entry->max),abs(entry->min)))/4 :
+              (entry->unit == UNIT_DEC)  ? log10i(MAX(abs(entry->max),abs(entry->min))/2)  :
+              (entry->unit == UNIT_TIME) ? 7 : 0;
+
+    menu_numeric_toggle(&caret_position, delta, 0, max);
+
+    /* skip "h", "m" and "s" positions for time fields */
+    if(entry->unit == UNIT_TIME && (caret_position == 0 || caret_position == 3 || caret_position == 6))
+    {
+        menu_numeric_toggle(&caret_position, delta, 0, max);
+    }
+}
+
 void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     ASSERT(IS_ML_PTR(val));
@@ -565,7 +637,20 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
     *val = mod(*val - min + delta, max - min + 1) + min;
 }
 
-static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
+void menu_numeric_toggle_time(int * val, int delta, int min, int max)
+{
+    int deltas[] = {1,5,15,30,60,300,900,1800,3600};
+    int i = 0;
+    for(i = COUNT(deltas) - 1; i > 0; i--)
+        if(deltas[i] * 4 <= (delta < 0 ? *val - 1 : *val)) break;
+    delta *= deltas[i];
+    
+    *val = (*val + delta) / delta * delta;
+    if(*val > max) *val = min;
+    if(*val < min) *val = max;
+}
+
+static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time)
 {
     ASSERT(IS_ML_PTR(val));
     
@@ -573,7 +658,9 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
     static int prev_delta = 1000;
     int t = get_ms_clock_value();
     
-    if (max - min > 20)
+    if(is_time)
+        menu_numeric_toggle_time(val, delta, min, max);
+    else if (max - min > 20)
     {
         if (t - prev_t < 200 && prev_delta < 200)
             menu_numeric_toggle_R20(val, delta, min, max);
@@ -645,8 +732,6 @@ static int guess_submenu_enabled(struct menu_entry * entry)
     else 
     {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
         struct menu_entry * e = entry->children;
-        
-        while (e->prev) e = e->prev;
 
         for( ; e ; e = e->next )
         {
@@ -1148,6 +1233,10 @@ menu_add_base(
                 menu_add(entry->name, entry->children, count);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
+            
+            /* ensure the "children" field always points to the very first item in the submenu */
+            /* (important when merging 2 submenus) */
+            while (entry->children->prev) entry->children = entry->children->prev;
         }
         entry = entry->prev;
         if (!entry) break;
@@ -1940,12 +2029,12 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires Manual (M) mode.");
     else if (DEPENDS_ON(DEP_MANUAL_ISO) && !lens_info.raw_iso)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual ISO.");
-    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, (was_sound_recording_disabled_by_fps_override() && !fps_should_record_wav()) ? 
             "Sound recording was disabled by FPS override." :
             "Sound recording is disabled. Enable it from Canon menu."
         );
-    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Disable sound recording from Canon menu!");
     
     if (warning[0]) 
@@ -1981,9 +2070,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in Manual (M) mode.");
         else if (WORKS_BEST_IN(DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual ISO.");
-        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
-        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
         if (warning[0]) 
@@ -2079,10 +2168,56 @@ entry_default_display_info(
                     else { STR_APPEND(value, "%d", raw2iso(MEM(entry->priv))); }
                     break;
                 }
+                case UNIT_DEC:
+                {
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "%s%d", (zero_pad + COERCE(8-(caret_position - log10i(MEM(entry->priv))),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        STR_APPEND(value, "%d", MEM(entry->priv));
+                    }
+                    break;
+                }
                 case UNIT_HEX:
                 {
-                    STR_APPEND(value, "0x%x", MEM(entry->priv));
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "0x%s%x", (zero_pad + COERCE(8-(caret_position - log2i(MEM(entry->priv))/4),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        STR_APPEND(value, "0x%x", MEM(entry->priv));
+                    }
                     break;
+                }
+                case UNIT_TIME:
+                {
+                    if(MEM(entry->priv) / 3600 > 0 || (entry->selected && caret_position > 5))
+                    {
+                        STR_APPEND(value,"%dh%02dm%02ds", MEM(entry->priv) / 3600, MEM(entry->priv) / 60 % 60, MEM(entry->priv) % 60);
+                    }
+                    else if((entry->selected && caret_position > 4))
+                    {
+                        STR_APPEND(value,"%02dm%02ds", MEM(entry->priv) / 60, MEM(entry->priv) % 60);
+                    }
+                    else if(MEM(entry->priv) / 60 > 0 || (entry->selected && caret_position > 2))
+                    {
+                        STR_APPEND(value,"%dm%02ds", MEM(entry->priv) / 60, MEM(entry->priv) % 60);
+                    }
+                    else if((entry->selected && caret_position > 1))
+                    {
+                        STR_APPEND(value,"%02ds", MEM(entry->priv) % 60);
+                    }
+                    else
+                    {
+                        STR_APPEND(value,"%ds", MEM(entry->priv));
+                    }
+                    break;
+                    
                 }
                 default:
                 {
@@ -2228,7 +2363,8 @@ skip_name:
         w += 2 * char_width;
     
     // value string too big? move it to the left
-    int end = w + bmp_string_width(fnt, info->value);
+    int val_width = bmp_string_width(fnt, info->value);
+    int end = w + val_width;
     int wmax = x_end - x;
 
     // right-justified info field?
@@ -2246,6 +2382,15 @@ skip_name:
         w -= (end - wmax);
     
     int xval = x + w;
+    
+    if (edit_mode && 
+        entry->selected && 
+        uses_caret_editing(entry) && 
+        caret_position >= (int)strlen(info->value))
+    {
+        bmp_fill(COLOR_WHITE, xval, y + fontspec_font(fnt)->height - 4, char_width, 2);
+        xval += char_width * (caret_position - strlen(info->value) + 1);
+    }
 
     // print value field
     bmp_printf(
@@ -2254,6 +2399,17 @@ skip_name:
         "%s",
         info->value
     );
+    
+    if(edit_mode &&
+       entry->selected &&
+       uses_caret_editing(entry) &&
+       caret_position < (int)strlen(info->value) &&
+       strlen(info->value) > 0)
+    {
+        int w1 = bmp_string_width(fnt, (info->value + strlen(info->value) - caret_position));
+        int w2 = bmp_string_width(fnt, (info->value + strlen(info->value) - caret_position - 1));
+        bmp_fill(COLOR_WHITE, xval + val_width - w2, y + fontspec_font(fnt)->height - 4, w2 - w1, 2);
+    }
 
     // print right-justified info, if any
     if (info->rinfo[0])
@@ -2465,7 +2621,17 @@ menu_entry_process(
     {
         // should we override some things?
         if (entry->update)
+        {
+            /* in edit mode with caret, we will not allow the update function to override the entry value */
+            char default_value[MENU_MAX_VALUE_LEN];
+            if (edit_mode && uses_caret_editing(entry))
+                snprintf(default_value, MENU_MAX_VALUE_LEN, "%s", info.value);
+            
             entry->update(entry, &info);
+            
+            if (edit_mode && uses_caret_editing(entry))
+                snprintf(info.value, MENU_MAX_VALUE_LEN, "%s", default_value);
+        }
 
         // menu->update asked to draw the entire screen by itself? stop drawing right now
         if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
@@ -3592,9 +3758,20 @@ menu_entry_select(
 
     if(mode == 1) // decrement
     {
-        if (entry->select) entry->select( entry->priv, -1);
-        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
+        if (entry->select)
+        {
+            /* custom select function? use it */
+            entry->select( entry->priv, -1);
+        }
+        else if IS_ML_PTR(entry->priv)
+        {
+            /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
+            /* exception: hex fields are never fast-toggled */
+            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+                menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
+            else
+                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        }
     }
     else if (mode == 2) // Q
     {
@@ -3642,15 +3819,25 @@ menu_entry_select(
             else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if (entry->select) entry->select( entry->priv, 1);
-            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
         }
     }
-    else // increment
+    else // increment (same logic as decrement)
     {
-        if( entry->select ) entry->select( entry->priv, 1);
-        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+        if( entry->select )
+        {
+            entry->select( entry->priv, 1);
+        }
+        else if (IS_ML_PTR(entry->priv))
+        {
+            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+                menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
+            else
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        }
     }
+    
+    if(entry->unit == UNIT_TIME && edit_mode && caret_position == 0) caret_position = 1;
     
     config_dirty = 1;
     mod_menu_dirty = 1;
@@ -3769,6 +3956,10 @@ menu_entry_move(
 
     // Select the new one, which might be the same as the old one
     entry->selected = 1;
+    
+    //reset caret_position
+    caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    
     give_semaphore( menu_sem );
 
     if (junkie_mode && menu->selected)
@@ -4102,6 +4293,7 @@ static struct menu * get_current_submenu()
         }
         if(!entry) break;
     }
+
     if (entry && entry->children)
         return menu_find_by_name(entry->name, 0);
 
@@ -4268,6 +4460,15 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_UP:
+        if (edit_mode && !menu_lv_transparent_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                menu_entry_select( menu, 0 );
+                break;
+            }
+        }
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
 
@@ -4282,6 +4483,15 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_DOWN:
+        if (edit_mode && !menu_lv_transparent_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                menu_entry_select( menu, 1 );
+                break;
+            }
+        }
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         
@@ -4296,6 +4506,16 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_RIGHT:
+        if(edit_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                caret_move(entry, -1);
+                menu_damage = 1;
+                break;
+            }
+        }
     case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
@@ -4305,6 +4525,16 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_LEFT:
+        if(edit_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                caret_move(entry, 1);
+                menu_damage = 1;
+                break;
+            }
+        }
     case BGMT_WHEEL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }

@@ -90,6 +90,7 @@ NSTUB( 0xFF330304, fsuDecodePartitionTable )
 NSTUB( 0xFF359804, GetCFnData )
 NSTUB( 0XFF062800, GetDisplayType )
 NSTUB( 0xFF06AA58, GetMemoryInformation ) // called from AllocateMemory
+NSTUB( 0xFF06AA04, GetSizeOfMaxRegion)
 NSTUB( 0xFF0699B8, give_semaphore )
 NSTUB( 0xFF09186C, gui_change_lcd_state_post )
 NSTUB( 0xFF090C4C, gui_change_mode )   // GUI_ChangeMode_Post

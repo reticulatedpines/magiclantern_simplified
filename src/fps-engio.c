@@ -38,6 +38,7 @@
 #include "lens.h"
 #include "config.h"
 #include "math.h"
+#include "raw.h"
 
 #if defined(CONFIG_7D)
 #include "ml_rpc.h"
@@ -141,7 +142,6 @@ static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add this to default Canon value
 static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add this to computed value (for fine tuning)
 static CONFIG_INT("fps.preset", fps_criteria, 0);
-#define FPS_SOUND_DISABLE 1
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
 static CONFIG_INT("fps.const.expo", fps_const_expo, 0);
@@ -559,7 +559,21 @@ int fps_get_shutter_speed_shift(int raw_shutter)
 // otherwise recording is not stable
 //--------------------------------------------------------
 
-#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1)
+static int fps_should_disable_sound()
+{
+    if (fps_override && lv && is_movie_mode())
+    {
+        /* only disable sound when recording H.264, not raw */
+        if (!raw_lv_is_enabled())
+        {
+            return 1;
+        }
+    }
+
+    /* no problems, no messing with sound */
+    return 0;
+}
+
 
 static int old_sound_recording_mode = -1;
 int was_sound_recording_disabled_by_fps_override()
@@ -593,7 +607,7 @@ static void restore_sound_recording()
 static void disable_sound_recording()
 {
     if (RECORDING) return;
-    if (SOUND_RECORDING_ENABLED && is_movie_mode())
+    if (sound_recording_enabled_canon() && is_movie_mode())
     {
         old_sound_recording_mode = sound_recording_mode;
         set_sound_recording(1);
@@ -604,7 +618,7 @@ static void disable_sound_recording()
 static void update_sound_recording()
 {
     if (RECORDING) return;
-    if (FPS_SOUND_DISABLE && fps_override && lv) disable_sound_recording();
+    if (fps_should_disable_sound()) disable_sound_recording();
     else restore_sound_recording();
 }
 
@@ -774,7 +788,7 @@ static MENU_UPDATE_FUNC(fps_print)
         
         /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
-        if (SOUND_RECORDING_ENABLED && is_movie_mode() && t > last_inactive + 1000)
+        if (sound_recording_enabled_canon() && is_movie_mode() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
 
 #ifndef CONFIG_FRAME_ISO_OVERRIDE

@@ -149,3 +149,5 @@
 #define CONFIG_JOY_CENTER_ACTIONS
 
 
+/** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
+#define CONFIG_EDMAC_RAW_SLURP
