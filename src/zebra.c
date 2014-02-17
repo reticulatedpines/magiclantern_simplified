@@ -257,7 +257,7 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
     if (display_broken_for_mz()) return 0;
     #endif
     
@@ -2157,7 +2157,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
     if (display_broken_for_mz())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
     #endif

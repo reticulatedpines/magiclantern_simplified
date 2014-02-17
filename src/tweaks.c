@@ -3111,7 +3111,7 @@ int display_filter_enabled()
     return fp ? 2 : 1;
 }
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
 static int display_broken = 0;
 int display_broken_for_mz() 
 {
@@ -3155,6 +3155,27 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         if (sync || hacked)
         {
             MEM(0x455c+0xA4) = 0;
+            YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            EnableImagePhysicalScreenParameter();
+        }
+    }
+#elif defined(CONFIG_7D)
+//4430 - Debug Flag
+//445C + E8 - Current LV or 0
+//455C + F0 - Current Lv or 0
+//x + F4 = LV buffer.. print x, look around
+    int sync = (MEM(x+0xF4) == YUV422_LV_BUFFER_1);
+    int hacked = ( MEM(0x4430+0xE8) == MEM(0x4430+0xF0) && MEM(0x4430+0xF0) == MEM(x+0xF4));
+    display_broken = hacked;
+
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
+
+    if (display_filter_enabled())
+    {
+        if (sync || hacked)
+        {
+            MEM(0x4430+0xE8) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
             EnableImagePhysicalScreenParameter();
         }
