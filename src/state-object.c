@@ -213,10 +213,11 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     
     #if !defined(CONFIG_7D_MASTER) && defined(CONFIG_7D)
     if (self == LV_STATE && input==5 && old_state == 5)       
-	    display_filter_lv_vsync(old_state, x, input, z, t);
-        vsync_func();
-		#endif
-
+    { 
+    display_filter_lv_vsync(old_state, x, input, z, t);
+    vsync_func();
+    }
+    #endif
     #ifdef EVF_STATE
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
     {
