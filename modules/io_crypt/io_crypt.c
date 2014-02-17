@@ -917,9 +917,7 @@ static unsigned int iocrypt_init()
     /* for debugging */
     if(1)
     {
-        char filename[32];
-        
-        snprintf(filename, sizeof(filename), "%sIO_CRYPT.TXT", module_card_drive);
+        char filename[32] = "IO_CRYPT.TXT";
         
         iocrypt_trace_ctx = trace_start("debug", filename);
         trace_set_flushrate(iocrypt_trace_ctx, 1000);
