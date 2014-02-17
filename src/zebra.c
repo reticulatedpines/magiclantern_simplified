@@ -4754,7 +4754,7 @@ livev_hipriority_task( void* unused )
         int kmm = k % m;
         if (!gui_menu_shown()) // don't update everything in one step, to reduce magic zoom flicker
         {
-            #if defined(CONFIG_550D) || defined(CONFIG_5D2)
+            #if defined(CONFIG_550D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (kmm == 0)
                 BMP_LOCK( if (lv) black_bars(); )
             #endif
