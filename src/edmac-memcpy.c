@@ -365,6 +365,12 @@ uint32_t raw_write_chan = 4;
 uint32_t raw_write_chan = 1;
 #endif
 
+#ifdef CONFIG_600D 
+// write-index 1, 4, 6, 8, 10, 11, 13
+uint32_t raw_write_chan = 4;
+#endif
+
+
 static void edmac_slurp_complete_cbr (int ctx)
 {
     /* set default CBRs again and stop both DMAs */
