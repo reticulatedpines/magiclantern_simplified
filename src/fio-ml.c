@@ -297,30 +297,36 @@ const char* get_dcim_dir()
     return dcim_dir;
 }
 
-static void guess_drive_letter(char* new_filename, const char* old_filename, int size)
+static void fixup_filename(char* new_filename, const char* old_filename, int size)
 {
-    if (old_filename[1] == ':')
+#define IS_IN_ML_DIR(filename)   (strncmp("ML/", filename, 3) == 0)
+#define IS_IN_ROOT_DIR(filename) (filename[0] == '/' || !strchr(filename, '/'))
+#define IS_DRV_PATH(filename)    (filename[1] == ':')
+
+    char* drive_letter = ML_CARD->drive_letter;
+
+    if (IS_DRV_PATH(old_filename))
     {
-        snprintf(new_filename, size, "%s", old_filename);
+        strncpy(new_filename, old_filename, size-1);
+        new_filename[size-1] = '\0';
         return;
     }
-    
-    if ((old_filename[0] == 'M' && old_filename[1] == 'L' && old_filename[2] == '/') // something in ML dir
-        || !strchr(old_filename, '/')) // something in root dir
+
+    if (!(IS_IN_ML_DIR(old_filename) || IS_IN_ROOT_DIR(old_filename)))
     {
-        snprintf(new_filename, 100, "%s:/%s", ML_CARD->drive_letter, old_filename);
+        drive_letter = SHOOTING_CARD->drive_letter;
     }
-    else
-    {
-        snprintf(new_filename, 100, "%s:/%s", SHOOTING_CARD->drive_letter, old_filename);
-    }
+    snprintf(new_filename, 100, "%s:/%s", drive_letter, old_filename);
+#undef IS_IN_ML_DIR
+#undef IS_IN_ROOT_DIR
+#undef IS_DRV_PATH
 }
 
 FILE* _FIO_Open(const char* filename, unsigned mode );
 FILE* FIO_Open(const char* filename, unsigned mode )
 {
     char new_filename[100];
-    guess_drive_letter(new_filename, filename, 100);
+    fixup_filename(new_filename, filename, 100);
     return _FIO_Open(new_filename, mode);
 }
 
@@ -328,7 +334,7 @@ FILE* _FIO_CreateFile(const char* filename );
 FILE* FIO_CreateFile(const char* filename )
 {
     char new_filename[100];
-    guess_drive_letter(new_filename, filename, 100);
+    fixup_filename(new_filename, filename, 100);
     return _FIO_CreateFile(new_filename);
 }
 
@@ -336,7 +342,7 @@ FILE* FIO_CreateFile(const char* filename )
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[100];
-    guess_drive_letter(new_filename, filename, 100);
+    fixup_filename(new_filename, filename, 100);
     return _FIO_GetFileSize(new_filename, size);
 }
 
@@ -344,7 +350,7 @@ int _FIO_RemoveFile(const char * filename);
 int FIO_RemoveFile(const char * filename)
 {
     char new_filename[100];
-    guess_drive_letter(new_filename, filename, 100);
+    fixup_filename(new_filename, filename, 100);
     return _FIO_RemoveFile(new_filename);
 }
 
@@ -352,7 +358,7 @@ struct fio_dirent * _FIO_FindFirstEx(const char * dirname, struct fio_file * fil
 struct fio_dirent * FIO_FindFirstEx(const char * dirname, struct fio_file * file)
 {
     char new_dirname[100];
-    guess_drive_letter(new_dirname, dirname, 100);
+    fixup_filename(new_dirname, dirname, 100);
     return _FIO_FindFirstEx(new_dirname, file);
 }
 
@@ -360,7 +366,7 @@ int _FIO_CreateDirectory(const char * dirname);
 int FIO_CreateDirectory(const char * dirname)
 {
     char new_dirname[100];
-    guess_drive_letter(new_dirname, dirname, 100);
+    fixup_filename(new_dirname, dirname, 100);
     return _FIO_CreateDirectory(new_dirname);
 }
 

@@ -3263,7 +3263,7 @@ debug_init_stuff( void )
     #endif
 
     #ifdef CONFIG_5D3
-    card_tests();
+    card_tweaks();
     #endif
 }
 
