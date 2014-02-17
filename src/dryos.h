@@ -544,8 +544,6 @@ extern FILE* FIO_CreateFileOrAppend( const char* name );
 extern int FIO_CopyFile(char *src,char *dst);
 extern int FIO_MoveFile(char *src,char *dst);   /* copy and erase */
 
-unsigned GetFileSize( char* filename );
-
 // stdio
 int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
 

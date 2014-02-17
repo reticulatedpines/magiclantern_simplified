@@ -380,9 +380,176 @@ int FIO_RenameFile(char *src,char *dst)
     fixup_filename(newDst, dst, 255);
     return _FIO_RenameFile(newSrc, newDst);
 }
+#else
+int FIO_RenameFile(char* src, char* dst)
+{
+    // FIO_RenameFile not known, or doesn't work
+    // emulate it by copy + erase (poor man's rename :P )
+    return FIO_MoveFile(src, dst);
+}
 #endif
 
+static unsigned _GetFileSize(char* filename)
+{
+    uint32_t size;
+    if( _FIO_GetFileSize( filename, &size ) != 0 )
+        return 0xFFFFFFFF;
+    return size;
+}
+unsigned GetFileSize(char* filename)
+{
+    char new_filename[100];
+    fixup_filename(new_filename, filename, 100);
+    return _GetFileSize(new_filename);
+}
 
+static void _FIO_CreateDir_recursive(char* path)
+{
+    //~ NotifyBox(2000, "create dir: %s ", path); msleep(2000);
+    // B:/ML/something
+    
+    if (is_dir(path)) return;
+
+    int n = strlen(path);
+    for (int i = n-1; i > 2; i--)
+    {
+        if (path[i] == '/')
+        {
+            path[i] = '\0';
+            if (!is_dir(path))
+                _FIO_CreateDir_recursive(path);
+            path[i] = '/';
+        }
+    }
+
+    _FIO_CreateDirectory(path);
+}
+
+// a wrapper that also creates missing dirs and removes existing file
+static FILE* _FIO_CreateFileEx(const char* name)
+{
+    // first assume the path is alright
+    _FIO_RemoveFile(name);
+    FILE* f = _FIO_CreateFile(name);
+    if (f != INVALID_PTR)
+        return f;
+
+    // if we are here, the path may be inexistent => create it
+    int n = strlen(name);
+    char* namae = (char*) name; // trick to ignore the const declaration and split the path easily
+    for (int i = n-1; i > 2; i--)
+    {
+         if (namae[i] == '/')
+         {
+             namae[i] = '\0';
+             _FIO_CreateDir_recursive(namae);
+             namae[i] = '/';
+         }
+    }
+
+    f = _FIO_CreateFile(name);
+        
+    return f;
+}
+FILE* FIO_CreateFileEx(const char* name)
+{
+    char new_name[100];
+    fixup_filename(new_name, name, 100);
+    return _FIO_CreateFileEx(new_name);
+}
+
+FILE* _FIO_CreateFileOrAppend(const char* name)
+{
+    /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
+    FILE * f = _FIO_Open(name, O_RDWR | O_SYNC);
+    if (f == INVALID_PTR)
+    {
+        f = _FIO_CreateFileEx(name);
+    }
+    else
+    {
+        FIO_SeekFile(f,0,SEEK_END);
+    }
+    return f;
+}
+FILE* FIO_CreateFileOrAppend(const char* name)
+{
+    char new_name[100];
+    fixup_filename(new_name, name, 100);
+    return _FIO_CreateFileOrAppend(new_name);
+}
+
+int _FIO_CopyFile(char *src,char *dst)
+{
+    const int bufsize = MIN(_GetFileSize(src), 128*1024);
+    
+    void* buf = alloc_dma_memory(bufsize);
+    if (!buf) return -1;
+
+    FILE* f = _FIO_Open(src, O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return -1;
+
+    FILE* g = _FIO_CreateFileEx(dst);
+    if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
+
+    int err = 0;
+    int r = 0;
+    while ((r = FIO_ReadFile(f, buf, bufsize)))
+    {
+        int w = FIO_WriteFile(g, buf, r);
+        if (w != r)
+        {
+            /* copy failed; abort and delete the incomplete file */
+            err = 1;
+            break;
+        }
+    }
+
+    FIO_CloseFile(f);
+    FIO_CloseFile(g);
+    free_dma_memory(buf);
+    
+    if (err)
+    {
+        _FIO_RemoveFile(dst);
+        return -1;
+    }
+    
+    /* all OK */
+    return 0;
+}
+int FIO_CopyFile(char *src,char *dst)
+{
+    char newSrc[255];
+    char newDst[255];
+    fixup_filename(newSrc, src, 255);
+    fixup_filename(newDst, dst, 255);
+    return _FIO_CopyFile(newSrc, newDst);
+}
+
+static int _FIO_MoveFile(char *src,char *dst)
+{
+    int err = _FIO_CopyFile(src,dst);
+    if (!err)
+    {
+        /* file copied, we can remove the old one */
+        _FIO_RemoveFile(src);
+        return 0;
+    }
+    else
+    {
+        /* something went wrong; keep the old file and return error code */
+        return err;
+    }
+}
+int FIO_MoveFile(char *src, char *dst)
+{
+    char newSrc[255];
+    char newDst[255];
+    fixup_filename(newSrc, src, 255);
+    fixup_filename(newDst, dst, 255);
+    return _FIO_MoveFile(newSrc, newDst);
+}
 
 struct menu_entry card_menus[] = {
     {

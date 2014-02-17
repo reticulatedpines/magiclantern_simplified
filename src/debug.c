@@ -60,7 +60,6 @@ void debug_menu_init();
 void display_on();
 void display_off();
 void EngDrvOut(int reg, int value);
-unsigned GetFileSize(char* filename);
 
 
 void fake_halfshutter_step();
@@ -3337,14 +3336,6 @@ PROP_HANDLER(PROP_ISO)
 }
 
 #endif
-
-unsigned GetFileSize(char* filename)
-{
-    uint32_t size;
-    if( FIO_GetFileSize( filename, &size ) != 0 )
-        return 0xFFFFFFFF;
-    return size;
-}
 
 static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 {
