@@ -541,7 +541,7 @@ static inline int FC(int row, int col)
 
 void find_and_fix_cold_pixels(fix, framenumber)
 {
-    int const max_cold_pixels = 2000; /*max.number of cold pixels, that can be repaired*/
+    int const max_cold_pixels = 5000; /*max.number of cold pixels, that can be repaired*/
   
     struct xy { int x; int y; };
     struct xy cold_pixel_list[max_cold_pixels];
