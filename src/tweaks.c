@@ -357,8 +357,11 @@ static CONFIG_INT("play.quick.zoom", quickzoom, 0);
 static CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
 
-static CONFIG_INT("play.set.wheel", play_set_wheel_action, 3);
+#define PLAY_ACTION_TRIGGER_WHEEL 1
+#define PLAY_ACTION_TRIGGER_LR 2
+#define PLAY_ACTION_TRIGGER_WHEEL_OR_LR 3
 static CONFIG_INT("play.set.trigger", play_set_wheel_trigger, 0);
+static CONFIG_INT("play.set.wheel", play_set_wheel_action, 3);
 
 static CONFIG_INT("quick.delete", quick_delete, 0);
 
@@ -510,9 +513,6 @@ int handle_set_wheel_play(struct event * event)
         return 1;
     }
 
-    #define PLAY_ACTION_TRIGGER_WHEEL 1
-    #define PLAY_ACTION_TRIGGER_LR 2
-    #define PLAY_ACTION_TRIGGER_WHEEL_OR_LR 3
     if (play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL || 
         play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL_OR_LR)
     {
