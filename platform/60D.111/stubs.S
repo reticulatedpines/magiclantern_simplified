@@ -80,7 +80,7 @@ NSTUB( 0xFF1CA34C, FIO_WriteFile )
 NSTUB( 0xFF1CA3FC, FIO_CloseFile )
 NSTUB( 0xFF1CA578, _FIO_GetFileSize )
 NSTUB( 0xFF1CAC38, _FIO_CreateDirectory)
-NSTUB( 0xFF1CAA70, FIO_RenameFile )
+NSTUB( 0xFF1CAA70, _FIO_RenameFile )
 NSTUB( 0xFF1CB1F8, _FIO_FindFirstEx )
 NSTUB( 0xFF1CB2EC, FIO_FindNextEx )
 NSTUB( 0xFF1CB3CC, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop

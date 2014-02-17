@@ -61,7 +61,7 @@ NSTUB(0xFF347150, _FIO_CreateDirectory)
 NSTUB(0xFF347718, _FIO_FindFirstEx)
 NSTUB(0xFF34780C, FIO_FindNextEx)
 NSTUB(0xFF3478EC, FIO_FindClose) // proper name: FindClose
-NSTUB(0xFF346F88, FIO_RenameFile)
+NSTUB(0xFF346F88, _FIO_RenameFile)
 
 /** Bitmap **/
 NSTUB(   0x6D2B4, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D

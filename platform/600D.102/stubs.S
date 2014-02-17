@@ -84,7 +84,7 @@ NSTUB( 0xFF1E6604, FIO_WriteFile )
 NSTUB( 0xFF1E6464, FIO_ReadFile )
 NSTUB( 0xFF1E63BC, _FIO_RemoveFile )
 NSTUB( 0xFF1E6EF0, _FIO_CreateDirectory)
-NSTUB( 0xff1e6d28, FIO_RenameFile)
+NSTUB( 0xff1e6d28, _FIO_RenameFile)
 NSTUB( 0xFF1E65E4, FIO_SeekFile)
 
 NSTUB( 0xFF0710D8, give_semaphore )

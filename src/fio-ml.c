@@ -370,6 +370,20 @@ int FIO_CreateDirectory(const char * dirname)
     return _FIO_CreateDirectory(new_dirname);
 }
 
+#if defined(CONFIG_FIO_RENAMEFILE_WORKS)
+int _FIO_RenameFile(char *src,char *dst);
+int FIO_RenameFile(char *src,char *dst)
+{
+    char newSrc[255];
+    char newDst[255];
+    fixup_filename(newSrc, src, 255);
+    fixup_filename(newDst, dst, 255);
+    return _FIO_RenameFile(newSrc, newDst);
+}
+#endif
+
+
+
 struct menu_entry card_menus[] = {
     {
         .name = "Card settings",
