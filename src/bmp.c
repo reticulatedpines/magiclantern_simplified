@@ -497,37 +497,8 @@ read_file(
 #define BmpAlloc malloc
 #define BmpFree free
 
-struct bmp_file_t *
-bmp_load(
-    const char *        filename,
-    uint32_t         compression // what compression to load the file into. 0: none, 1: RLE8
-)
+struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compression)
 {
-    DebugMsg( DM_MAGIC, 3, "bmp_load(%s)", filename);
-    uint32_t size;
-    if( FIO_GetFileSize( filename, &size ) != 0 )
-        goto getfilesize_fail;
-
-    DebugMsg( DM_MAGIC, 3, "File '%s' size %d bytes",
-        filename,
-        size
-    );
-
-    uint8_t * buf = fio_malloc( size );
-    if( !buf )
-    {
-        DebugMsg( DM_MAGIC, 3, "%s: fio_malloc failed", filename );
-        goto malloc_fail;
-    }
-
-    size_t i;
-    for( i=0 ; i<size; i++ )
-        buf[i] = 'A' + i;
-    size_t rc = read_file( filename, buf, size );
-    if( rc != size )
-        goto read_fail;
-
-
     struct bmp_file_t * bmp = (struct bmp_file_t *) buf;
     if( bmp->signature != 0x4D42 )
     {
@@ -618,6 +589,46 @@ bmp_load(
 fail_buf_copy:
 offsetsize_fail:
 signature_fail:
+    return NULL;
+}
+
+struct bmp_file_t *
+bmp_load(
+    const char *        filename,
+    uint32_t         compression // what compression to load the file into. 0: none, 1: RLE8
+)
+{
+    DebugMsg( DM_MAGIC, 3, "bmp_load(%s)", filename);
+    uint32_t size;
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+        goto getfilesize_fail;
+
+    DebugMsg( DM_MAGIC, 3, "File '%s' size %d bytes",
+        filename,
+        size
+    );
+
+    uint8_t * buf = fio_malloc( size );
+    if( !buf )
+    {
+        DebugMsg( DM_MAGIC, 3, "%s: fio_malloc failed", filename );
+        goto malloc_fail;
+    }
+
+    size_t i;
+    for( i=0 ; i<size; i++ )
+        buf[i] = 'A' + i;
+    size_t rc = read_file( filename, buf, size );
+    if( rc != size )
+        goto read_fail;
+
+    struct bmp_file_t *ret = bmp_load_ram(buf, size, compression);
+    
+    if(ret)
+    {
+        return ret;
+    }
+
 read_fail:
     fio_free( buf );
 malloc_fail:

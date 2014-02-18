@@ -356,6 +356,9 @@ struct bmp_file_t
 
 SIZE_CHECK_STRUCT( bmp_file_t, 54 );
 
+/* load bitmap from RAM address instead from file. called internally by bmp_load too. */
+extern struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compression);
+
 extern struct bmp_file_t *
 bmp_load(
         const char *            name,
