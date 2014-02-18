@@ -985,24 +985,6 @@ static MENU_SELECT_FUNC(module_menu_update_select)
 
 static const char* module_get_string(int mod_number, const char* name);
 
-/* careful: result must be freed with FreeMemory */
-static void* module_get_section_offline(char* filename, char* section_name)
-{
-    /* uses a little memory while loading, but can be probably optimized */
-    TCCState *state = tcc_new();
-    tcc_add_file(state, filename);
-    int size = 0;
-    void* buf = 0;
-    void* section = (void*) tcc_get_section_ptr(state, section_name, &size);
-    if (size)
-    {
-        buf = AllocateMemory(size);
-        memcpy(buf, section, size);
-    }
-    tcc_delete(state);
-    return buf;
-}
-
 static int startswith(const char* str, const char* prefix)
 {
     const char* s = str;
@@ -1574,7 +1556,7 @@ struct config_var* module_config_var_lookup(int* ptr)
 
 static void module_init()
 {
-    module_mq = (struct msg_queue *) msg_queue_create("module_mq", 1);
+    module_mq = (struct msg_queue *) msg_queue_create("module_mq", 10);
     menu_add("Modules", module_menu, COUNT(module_menu));
     menu_add("Debug", module_debug_menu, COUNT(module_debug_menu));
     module_menu_update();
@@ -1588,8 +1570,10 @@ static void module_load_offline_strings(int mod_number)
         module_list[mod_number].strings = module_default_strings;
         
         char* fn = module_list[mod_number].long_filename;
-        module_strpair_t * strings = module_get_section_offline(fn, ".module_strings");
-
+        
+        /* we should free this one after we are done with it */
+        module_strpair_t * strings = (void*) tcc_load_offline_section(fn, ".module_strings");
+ 
         if (strings)
         {
             int looks_ok = 1;
