@@ -36,6 +36,8 @@ all::
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 	$(call build,STAT,$(STAT_CMD) $@)
+%.rsc: %
+	$(call build,LD,$(LD_REAL) -r -b binary -o $@ $<)
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< 'BEGIN { print "#define SYM(a,n) n=a; .global n;\n" } s/[\r\n]//g; s/^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)$$/SYM(0x\1,\2)\n/ and print;'
