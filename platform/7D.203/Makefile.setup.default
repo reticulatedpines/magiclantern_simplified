@@ -3,7 +3,7 @@
 # compile position independent (experimental)
 CONFIG_PIC=n
 
-CONFIG_GDB=y
+CONFIG_GDB=n
 
 ML_PICSTYLE_AUTO=n
 

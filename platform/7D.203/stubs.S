@@ -240,6 +240,7 @@ NSTUB(0xff014c10, get_current_task)
 NSTUB(0xff080e78, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff080ec4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff080fdc, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFF07CA74, GetSizeOfMaxRegion)
 
 NSTUB(0xff07365c, PowerAudioOutput)
 NSTUB(0xff061c44, StartASIFDMADAC)

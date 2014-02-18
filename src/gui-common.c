@@ -206,12 +206,10 @@ extern int ResumeLiveView();
 
 static int pre_shutdown_requested = 0; // used for preventing wakeup from paused LiveView at shutdown (causes race condition with Canon code and crashes)
 
-int reset_pre_shutdown_flag_step() // called every second
+void reset_pre_shutdown_flag_step() // called every second
 {
     if (pre_shutdown_requested && !sensor_cleaning)
         pre_shutdown_requested--;
-    
-    return pre_shutdown_requested;
 }
 
 void check_pre_shutdown_flag() // called from ml_shutdown
@@ -445,6 +443,10 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_swap_menu_erase(event) == 0) return 0;
     #endif
 
+    #ifdef FEATURE_SWAP_INFO_PLAY
+    if (handle_swap_info_play(event) == 0) return 0;
+    #endif
+
     if (handle_ml_menu_keys(event) == 0) return 0;
     
     #ifdef CONFIG_DIGIC_POKE
@@ -476,7 +478,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
     #endif
     
-    #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
+    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE) && defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
     if (handle_livev_playback(event, BTN_ZEBRAS_FOR_PLAYBACK) == 0) return 0;
     #endif
 

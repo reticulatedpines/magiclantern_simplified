@@ -7,6 +7,7 @@
 #include "config.h"
 #include "string.h"
 #include "property.h"
+#include "beep.h"
 #include "bmp.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
@@ -353,7 +354,7 @@ static void _module_load_all(uint32_t list_only)
     
     if (size > 0)
     {
-        void* buf = (void*) tcc_malloc(size);
+        void* buf = (void*) malloc(size);
         
         reloc_status = tcc_relocate(state, buf);
 

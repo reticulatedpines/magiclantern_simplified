@@ -13,6 +13,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "module.h"
 
 static void lcd_adjust_position_step();
@@ -1219,6 +1220,28 @@ int handle_swap_menu_erase(struct event * event)
 }
 #endif
 
+#ifdef FEATURE_SWAP_INFO_PLAY
+CONFIG_INT("swap.info", swap_info, 0);
+
+int handle_swap_info_play(struct event * event)
+{
+    if (swap_info && !IS_FAKE(event))
+    {
+        if (event->param == BGMT_INFO)
+        {
+            fake_simple_button(BGMT_PLAY);
+            return 0;
+        }
+        if (event->param == BGMT_PLAY)
+        {
+            fake_simple_button(BGMT_INFO);
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif
+
 #ifdef FEATURE_AUTO_MIRRORING_HACK
 extern unsigned display_dont_mirror;
 #endif
@@ -1416,7 +1439,7 @@ int handle_arrow_keys(struct event * event)
     }
     #endif
 
-    #if defined(CONFIG_5D2)
+    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
     if (event->param == BGMT_PICSTYLE)
     {
         arrow_key_mode_toggle();
@@ -1971,7 +1994,7 @@ static struct menu_entry key_menus[] = {
     },
     #endif
 
-    #if defined(FEATURE_LCD_SENSOR_SHORTCUTS) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
+    #if defined(FEATURE_LCD_SENSOR_SHORTCUTS) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_SWAP_INFO_PLAY) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
     {
         .name       = "Misc key settings",
         .select = menu_open_submenu,
@@ -2009,6 +2032,14 @@ static struct menu_entry key_menus[] = {
                 .priv = &swap_menu,
                 .max  = 1,
                 .help = "Swaps MENU and ERASE buttons."
+            },
+            #endif
+            #ifdef FEATURE_SWAP_INFO_PLAY
+            {
+                .name = "Swap INFO <--> PLAY",
+                .priv = &swap_info,
+                .max  = 1,
+                .help = "Swaps INFO and PLAY buttons."
             },
             #endif
             #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
@@ -2499,7 +2530,6 @@ static void brightness_saturation_reset()
 void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor, int chroma_scale_factor)
 {
 #ifndef CONFIG_VXWORKS
-    extern int LCD_Palette[];
     int orig_palette_entry = LCD_Palette[3*base_color + 2];
     int8_t opacity = (orig_palette_entry >> 24) & 0xFF;
     uint8_t orig_y = (orig_palette_entry >> 16) & 0xFF;
@@ -2517,8 +2547,8 @@ void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor
         ((v       & 0xFF));
 
     if (!DISPLAY_IS_ON) return;
-    EngDrvOut(0xC0F14400 + color*4, new_palette_entry);
-    EngDrvOut(0xC0F14800 + color*4, new_palette_entry);
+    EngDrvOut(LCD_Palette[3*color], new_palette_entry);
+    EngDrvOut(LCD_Palette[3*color+0x300], new_palette_entry);
 #endif
 }
 
@@ -2533,7 +2563,6 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
     {
         if (i==0 || i==3 || i==0x14) continue; // don't alter transparent entries
 
-        extern int LCD_Palette[];
         int orig_palette_entry = LCD_Palette[3*i + 2];
         //~ bmp_printf(FONT_LARGE,0,0,"%x ", orig_palette_entry);
         //~ msleep(300);
@@ -2554,8 +2583,8 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
             ((v       & 0xFF));
 
         if (!DISPLAY_IS_ON) return;
-        EngDrvOut(0xC0F14400 + i*4, new_palette_entry);
-        EngDrvOut(0xC0F14800 + i*4, new_palette_entry);
+        EngDrvOut(LCD_Palette[3*i], new_palette_entry);
+        EngDrvOut(LCD_Palette[3*i+0x300], new_palette_entry);
     }
 #endif
 }
@@ -2936,7 +2965,7 @@ static void defish_draw_lv_color()
             }
         }
         info_led_off();
-        free(defish_lut);
+        fio_free(defish_lut);
     }
     
     defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, defish_ind);

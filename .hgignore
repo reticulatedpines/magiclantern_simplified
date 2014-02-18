@@ -91,5 +91,7 @@ tcc/localsyms
 src/menuindexentries.h
 modules/dual_iso/cr2hdr*
 modules/*/module_strings.h
+modules/mlv_rec/mlv_dump
+modules/mlv_rec/raw2dng
 
 syntax: regexp
