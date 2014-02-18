@@ -33,6 +33,7 @@
 #include <cropmarks.h>
 #include <edmac.h>
 #include <raw.h>
+#include <util.h>
 
 #include "../ime_base/ime_base.h"
 #include "../trace/trace.h"
@@ -41,6 +42,10 @@
 #include "../lv_rec/lv_rec.h"
 
 #define MAX_PATH                 100
+
+/* declare the video.bmp we have added */
+/* icon from: http://www.softicons.com/free-icons/system-icons/touch-of-gold-icons-by-skingcito/video-black-icon */
+EXTLD(video_bmp);
 
 char *strncpy(char *dest, const char *src, size_t n);
 
@@ -240,6 +245,37 @@ static void mlv_play_progressbar(int pct, char *msg)
     }
 }
 
+static void mlv_play_show_dlg(uint32_t duration, char *string)
+{
+    uint32_t width = 500;
+    uint32_t height = 128 + 20;
+    uint32_t pos_y = (480 - height) / 2;
+    uint32_t pos_x = (720 - width) / 2;
+    struct bmp_file_t *icon = NULL;
+    
+    icon = bmp_load_ram((uint8_t *)LDVAR(video_bmp), LDLEN(video_bmp), 0);
+    
+    bmp_fill(COLOR_BG, pos_x, pos_y, width, height);
+    
+    /* redraw 4 times in case it gets overdrawn */
+    for(int loop = 0; loop < 4; loop++)
+    {
+        if(icon)
+        {
+            bmp_draw_scaled_ex(icon, pos_x + 10, pos_y + 10, 128, 128, 0);
+        }
+        else
+        {
+            bmp_printf(FONT_CANON, pos_x + 10, pos_y + 10 - font_med.height / 2, "[X]");
+        }
+        
+        bmp_printf(FONT_CANON, pos_x + 128 + 20, pos_y + (128 / 2) - 16, string);
+        msleep(duration / 10);
+    }
+    
+    bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
+}
+
 static void mlv_del_task(char *parm)
 {
     uint32_t size = 0;
@@ -368,6 +404,7 @@ static void mlv_play_delete()
     char *msg = strdup(current.fullPath);
     
     task_create("mlv_del_task", 0x1e, 0x800, mlv_del_task, (void*)msg);
+    mlv_play_show_dlg(1000, "Deleting...");
 }
 
 static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
@@ -1976,6 +2013,7 @@ static void mlv_play_task(void *priv)
         
         if(mlv_playlist_entries <= 0)
         {
+            mlv_play_show_dlg(2000, "No videos found");
             return;
         }
         
@@ -1984,6 +2022,15 @@ static void mlv_play_task(void *priv)
     }
     else
     {
+        uint32_t size = 0;
+        /* is this file still available? if not, show dialog and return */
+        
+        if(FIO_GetFileSize(filename, &size))
+        {
+            mlv_play_show_dlg(2000, "No videos found");
+            return;
+        }
+        
         strcpy(mlv_play_current_filename, filename);
     }
     
