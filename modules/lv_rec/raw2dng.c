@@ -540,7 +540,7 @@ static inline int FC(int row, int col)
 }
 
 
-void find_and_fix_cold_pixels(fix, framenumber)
+void find_and_fix_cold_pixels(int fix, int framenumber)
 {
     #define MAX_COLD_PIXELS 5000
   
