@@ -203,10 +203,7 @@ localsyms: libtcctmp.o
 		| grep -v "^tcc_get_symbol$$" \
 		| grep -v "^tcc_add_symbol$$" \
 		| grep -v "^tcc_set_options$$" \
-		| grep -v "^tcc_malloc$$" \
-		| grep -v "^tcc_realloc$$" \
-		| grep -v "^tcc_free$$" \
-		| grep -v "^tcc_get_section_ptr$$" \
+		| grep -v "^tcc_load_offline_section$$" \
 		> $@
 
 #~ libtcc.a: libtcctmp.a localsyms
