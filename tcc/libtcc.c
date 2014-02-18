@@ -670,8 +670,6 @@ static void tcc_cleanup(void)
 LIBTCCAPI TCCState *tcc_new(void)
 {
     TCCState *s;
-    char buffer[100];
-    int a,b,c;
 
     tcc_cleanup();
 
@@ -688,84 +686,10 @@ LIBTCCAPI TCCState *tcc_new(void)
     //~ preprocess_new();
     s->include_stack_ptr = s->include_stack;
 
-    /* we add dummy defines for some special macros to speed up tests
-       and to have working defined() */
-    //~ define_push(TOK___LINE__, MACRO_OBJ, NULL, NULL);
-    //~ define_push(TOK___FILE__, MACRO_OBJ, NULL, NULL);
-    //~ define_push(TOK___DATE__, MACRO_OBJ, NULL, NULL);
-    //~ define_push(TOK___TIME__, MACRO_OBJ, NULL, NULL);
-
-    /* define __TINYC__ 92X  */
-    //~ sscanf(TCC_VERSION, "%d.%d.%d", &a, &b, &c);
-    /* #define TCC_VERSION "0.9.26" */
-    a=0; b=9; c=26;
-    snprintf(buffer, sizeof(buffer), "%d", a*10000 + b*100 + c);
-    tcc_define_symbol(s, "__TINYC__", buffer);
-
-    /* standard defines */
-    tcc_define_symbol(s, "__STDC__", NULL);
-    tcc_define_symbol(s, "__STDC_VERSION__", "199901L");
-
-    /* target defines */
-#if defined(TCC_TARGET_I386)
-    tcc_define_symbol(s, "__i386__", NULL);
-    tcc_define_symbol(s, "__i386", NULL);
-    tcc_define_symbol(s, "i386", NULL);
-#elif defined(TCC_TARGET_X86_64)
-    tcc_define_symbol(s, "__x86_64__", NULL);
-#elif defined(TCC_TARGET_ARM)
-    tcc_define_symbol(s, "__ARM_ARCH_4__", NULL);
-    tcc_define_symbol(s, "__arm_elf__", NULL);
-    tcc_define_symbol(s, "__arm_elf", NULL);
-    tcc_define_symbol(s, "arm_elf", NULL);
-    tcc_define_symbol(s, "__arm__", NULL);
-    tcc_define_symbol(s, "__arm", NULL);
-    tcc_define_symbol(s, "arm", NULL);
-    tcc_define_symbol(s, "__APCS_32__", NULL);
-#endif
-
-#ifdef TCC_TARGET_PE
-    tcc_define_symbol(s, "_WIN32", NULL);
-# ifdef TCC_TARGET_X86_64
-    tcc_define_symbol(s, "_WIN64", NULL);
-# endif
-#else
-    tcc_define_symbol(s, "__unix__", NULL);
-    tcc_define_symbol(s, "__unix", NULL);
-    tcc_define_symbol(s, "unix", NULL);
-# if defined(__linux)
-    tcc_define_symbol(s, "__linux__", NULL);
-    tcc_define_symbol(s, "__linux", NULL);
-# endif
-# if defined(__FreeBSD__)
-#  define str(s) #s
-    tcc_define_symbol(s, "__FreeBSD__", str( __FreeBSD__));
-#  undef str
-# endif
-# if defined(__FreeBSD_kernel__)
-    tcc_define_symbol(s, "__FreeBSD_kernel__", NULL);
-# endif
-#endif
-
-    /* TinyCC & gcc defines */
-#if defined TCC_TARGET_PE && defined TCC_TARGET_X86_64
-    tcc_define_symbol(s, "__SIZE_TYPE__", "unsigned long long");
-    tcc_define_symbol(s, "__PTRDIFF_TYPE__", "long long");
-#else
-    tcc_define_symbol(s, "__SIZE_TYPE__", "unsigned long");
-    tcc_define_symbol(s, "__PTRDIFF_TYPE__", "long");
-#endif
-
-#ifdef TCC_TARGET_PE
-    tcc_define_symbol(s, "__WCHAR_TYPE__", "unsigned short");
-#else
-    tcc_define_symbol(s, "__WCHAR_TYPE__", "int");
-#endif
-
 #ifndef TCC_TARGET_PE
     /* glibc defines */
-    tcc_define_symbol(s, "__REDIRECT(name, proto, alias)", "name proto __asm__ (#alias)");
-    tcc_define_symbol(s, "__REDIRECT_NTH(name, proto, alias)", "name proto __asm__ (#alias) __THROW");
+    //~ tcc_define_symbol(s, "__REDIRECT(name, proto, alias)", "name proto __asm__ (#alias)");
+    //~ tcc_define_symbol(s, "__REDIRECT_NTH(name, proto, alias)", "name proto __asm__ (#alias) __THROW");
     /* default library paths */
     tcc_add_library_path(s, CONFIG_TCC_LIBPATHS);
     /* paths for crt objects */
