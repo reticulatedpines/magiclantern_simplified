@@ -2,8 +2,9 @@ Silent Pictures
 ===============
 
 Take pictures in LiveView without shutter actuations.
-
 Format: 14-bit DNG, low-resolution, depending on LiveView mode (1080p, 720p, zoom and so on).
+
+You may want to load pic_view & file_man for reviewing pictures.
 
 Modes:
 
