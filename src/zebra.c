@@ -4997,13 +4997,20 @@ int handle_livev_playback(struct event * event)
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
     {
-        if (event->param == button)
+        switch(event->param)
         {
-            livev_playback_toggle();
-            return 0;
+#if defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
+            case BTN_ZEBRAS_FOR_PLAYBACK:
+                livev_playback_toggle();
+                return 0;
+#endif
+            case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
+                livev_playback_reset(); // Soft reset if triggered by HS
+                livev_playback_toggle();
+                return 0;
         }
         
-        else if (event->param == GMT_OLC_INFO_CHANGED)
+        if (event->param == GMT_OLC_INFO_CHANGED)
             return 1;
 
         #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
@@ -5035,8 +5042,6 @@ static void zebra_init()
 }
 
 INIT_FUNC(__FILE__, zebra_init);
-
-
 
 
 static void make_overlay()
