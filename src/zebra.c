@@ -4992,14 +4992,7 @@ static void livev_playback_reset()
     livev_playback = 0;
 }
 
-static void livev_playback_refresh()
-{
-    while (livev_for_playback_running) msleep(20);
-    livev_playback_toggle();
-    if (!livev_playback) livev_playback_toggle();
-}
-
-int handle_livev_playback(struct event * event, int button)
+int handle_livev_playback(struct event * event)
 {
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
