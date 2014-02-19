@@ -537,7 +537,6 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
         memcpy(fast_buf, buf, size);
         bmp = (struct bmp_file_t *) fast_buf;
         bmp->image = fast_buf + image_offset;
-        fio_free( buf );
         return bmp;
     } else if (compression==1 && bmp->compression==0) { // convert the loaded image into RLE8
         uint32_t size_needed = sizeof(struct bmp_file_t);
@@ -578,10 +577,9 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
         gpos[1] = 1;
 
         bmp = (struct bmp_file_t *) fast_buf;
-         bmp->compression = 1;
+        bmp->compression = 1;
         bmp->image = fast_buf + sizeof(struct bmp_file_t);
         bmp->image_size = size_needed;
-        fio_free( buf );
         //~ bmp_printf(FONT_SMALL,0,440,"Memory needed %d",size_needed);
         return bmp;
     }
@@ -623,6 +621,8 @@ bmp_load(
         goto read_fail;
 
     struct bmp_file_t *ret = bmp_load_ram(buf, size, compression);
+    
+    fio_free( buf );
     
     if(ret)
     {
