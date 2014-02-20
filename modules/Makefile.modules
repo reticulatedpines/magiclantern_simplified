@@ -33,7 +33,7 @@ delete_if_failed:
 -include $(MODULE_DEPS)
 
 clean::
-	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym hgstamp)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.dep *.sym hgstamp)
 
 module_strings.h: README.rst hgstamp
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
