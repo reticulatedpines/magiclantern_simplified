@@ -197,17 +197,18 @@ void find_ml_card()
     }
     else if (ml_cf && ml_sd)
     {
+        /* autoexec.bin gets loaded from the SD card first */
+        ML_CARD = &available_cards[CARD_B];
+
+        /* note: this function is called before load_fonts, so in order to print something, we need to load them */
+        load_fonts();
         clrscr();
-        for (int i = 0; i < 5; i++)
-        {
-            bmp_printf(FONT_CANON, 0, 0, "ML is on both cards, format one of them!");
-            msleep(1000);
-            beep();
-        }
-        redraw_after(2000);
+        bmp_printf(FONT_CANON, 0, 0, "Two ML cards - loading from SD.");
+        msleep(1000);
     }
     else
     {
+        load_fonts();
         clrscr();
         for (int i = 0; i < 5; i++)
         {
