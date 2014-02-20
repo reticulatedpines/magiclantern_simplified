@@ -50,7 +50,7 @@ ifeq ($(TARGET_COMPILER), arm-gcc)
 	CFLAGS += -Os -mthumb-interwork -march=armv5te \
 				-D__ARM__
 
-	LFLAGS += -nostdlib
+	LFLAGS += -L$(ARM_LIBPATH)
 endif
 
 #
