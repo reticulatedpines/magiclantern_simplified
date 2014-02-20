@@ -551,6 +551,7 @@ int FIO_MoveFile(char *src, char *dst)
     return _FIO_MoveFile(newSrc, newDst);
 }
 
+#ifdef CONFIG_DUAL_SLOT
 struct menu_entry card_menus[] = {
     {
         .name = "Card settings",
@@ -563,7 +564,6 @@ struct menu_entry card_menus[] = {
                 .update = &card_info_display,
                 .help = "CF card info: make and model."
             },*/
-#ifdef CONFIG_DUAL_SLOT
 #ifdef CONFIG_5D3
             {
                 .name = "Card test at startup", 
@@ -588,15 +588,17 @@ struct menu_entry card_menus[] = {
                 .choices = CHOICES("OFF", "CF", "SD"),
                 .help = "Make sure your preferred card is selected at startup."
             },
-#endif
             MENU_EOL,
         }
     }
 };
+#endif
 
 static void fio_init()
 {
+    #ifdef CONFIG_DUAL_SLOT
     menu_add( "Prefs", card_menus, COUNT(card_menus) );
+    #endif
 }
 
 
