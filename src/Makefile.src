@@ -178,8 +178,6 @@ include $(TOP_DIR)/Makefile.filerules
 
 # Magic Lantern rules
 
-ML_LIBC ?= dietlibc.a newlib-libc.a newlib-libm.a $(ARM_LIBGCC_A)
-
 magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 	$(call build,LD,$(LD) \
 		-o $@ \
