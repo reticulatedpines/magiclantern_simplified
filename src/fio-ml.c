@@ -182,6 +182,22 @@ static MENU_UPDATE_FUNC(card_test_update)
 }
 #endif
 
+static void startup_warning(char* msg)
+{
+    /* note: this function is called before load_fonts, so in order to print something, we need to load them */
+    load_fonts();
+    
+    if (!DISPLAY_IS_ON)
+    {
+        /* force playback mode if we start with display off */
+        SetGUIRequestMode(1);
+        msleep(1000);
+    }
+    
+    bmp_printf(FONT_LARGE, 0, 0, msg);
+    redraw_after(5000);
+}
+
 void find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
@@ -199,24 +215,11 @@ void find_ml_card()
     {
         /* autoexec.bin gets loaded from the SD card first */
         ML_CARD = &available_cards[CARD_B];
-
-        /* note: this function is called before load_fonts, so in order to print something, we need to load them */
-        load_fonts();
-        clrscr();
-        bmp_printf(FONT_CANON, 0, 0, "Two ML cards - loading from SD.");
-        msleep(1000);
+        startup_warning("ML on both cards, loading from SD.");
     }
     else
     {
-        load_fonts();
-        clrscr();
-        for (int i = 0; i < 5; i++)
-        {
-            bmp_printf(FONT_CANON, 0, 0, "Could not find ML files.");
-            msleep(1000);
-            beep();
-        }
-        redraw_after(2000);
+        startup_warning("Could not find ML files.");
     }
 }
 
