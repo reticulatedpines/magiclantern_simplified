@@ -4054,7 +4054,7 @@ menu_redraw_do()
         
         if (menu_help_active)
         {
-            BMP_LOCK( menu_help_redraw(); )
+            menu_help_redraw();
             menu_damage = 0;
         }
         else
@@ -4062,106 +4062,103 @@ menu_redraw_do()
             if (!lv) menu_lv_transparent_mode = 0;
             if (menu_lv_transparent_mode && edit_mode) edit_mode = 0;
 
-            //~ menu_damage = 0;
-            BMP_LOCK (
-                if (DOUBLE_BUFFERING)
-                {
-                    // draw to mirror buffer to avoid flicker
-                    //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
-                    bmp_draw_to_idle(1);
-                }
+            if (DOUBLE_BUFFERING)
+            {
+                // draw to mirror buffer to avoid flicker
+                //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
+                bmp_draw_to_idle(1);
+            }
+            
+            /*
+            int z = zebra_should_run();
+            if (menu_zebras_mirror_dirty && !z)
+            {
+                clear_zebras_from_mirror();
+                menu_zebras_mirror_dirty = 0;
+            }*/
+
+            if (menu_lv_transparent_mode)
+            {
+                bmp_fill( 0, 0, 0, 720, 480 );
                 
                 /*
-                int z = zebra_should_run();
-                if (menu_zebras_mirror_dirty && !z)
+                if (z)
                 {
-                    clear_zebras_from_mirror();
-                    menu_zebras_mirror_dirty = 0;
-                }*/
+                    if (prev_z) copy_zebras_from_mirror();
+                    else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
+                    menu_zebras_mirror_dirty = 1;
+                }
+                */
+                
+                if (hist_countdown == 0 && !should_draw_zoom_overlay())
+                    draw_histogram_and_waveform(); // too slow
+                else
+                    hist_countdown--;
+            }
+            else
+            {
+                bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
+            }
+            //~ prev_z = z;
 
-                if (menu_lv_transparent_mode)
+            menu_make_sure_selection_is_valid();
+            
+            menus_display( menus, 0, 0 ); 
+
+            if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
+            {
+                if (is_menu_active("Help")) menu_show_version();
+                if (is_menu_active("Focus")) display_lens_hyperfocal();
+            }
+            
+            if (menu_lv_transparent_mode) 
+            {
+                draw_ml_topbar();
+                draw_ml_bottombar();
+                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
+            }
+
+            if (beta_should_warn()) draw_beta_warning();
+            
+            #ifdef CONFIG_CONSOLE
+            console_draw_from_menu();
+            #endif
+
+            if (DOUBLE_BUFFERING)
+            {
+                // copy image to main buffer
+                bmp_draw_to_idle(0);
+
+                if (menu_redraw_cancel)
                 {
-                    bmp_fill( 0, 0, 0, 720, 480 );
-                    
-                    /*
-                    if (z)
-                    {
-                        if (prev_z) copy_zebras_from_mirror();
-                        else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
-                        menu_zebras_mirror_dirty = 1;
-                    }
-                    */
-                    
-                    if (hist_countdown == 0 && !should_draw_zoom_overlay())
-                        draw_histogram_and_waveform(); // too slow
-                    else
-                        hist_countdown--;
+                    /* maybe next time */
+                    menu_redraw_cancel = 0;
                 }
                 else
                 {
-                    bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
-                }
-                //~ prev_z = z;
-
-                menu_make_sure_selection_is_valid();
-                
-                menus_display( menus, 0, 0 ); 
-
-                if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
-                {
-                    if (is_menu_active("Help")) menu_show_version();
-                    if (is_menu_active("Focus")) display_lens_hyperfocal();
-                }
-                
-                if (menu_lv_transparent_mode) 
-                {
-                    draw_ml_topbar();
-                    draw_ml_bottombar();
-                    bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
-                }
-
-                if (beta_should_warn()) draw_beta_warning();
-                
-                #ifdef CONFIG_CONSOLE
-                console_draw_from_menu();
-                #endif
-
-                if (DOUBLE_BUFFERING)
-                {
-                    // copy image to main buffer
-                    bmp_draw_to_idle(0);
-
-                    if (menu_redraw_cancel)
+                    int screen_layout = get_screen_layout();
+                    if (hdmi_code == 2) // copy at a smaller scale to fit the screen
                     {
-                        /* maybe next time */
-                        menu_redraw_cancel = 0;
-                    }
-                    else
-                    {
-                        int screen_layout = get_screen_layout();
-                        if (hdmi_code == 2) // copy at a smaller scale to fit the screen
-                        {
-                            if (screen_layout == SCREENLAYOUT_16_10)
-                                bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
-                            else if (screen_layout == SCREENLAYOUT_16_9)
-                                bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
-                            else
-                            {
-                                if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
-                                else bmp_idle_copy(1,0);
-                            }
-                        }
-                        else if (EXT_MONITOR_RCA)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
+                        if (screen_layout == SCREENLAYOUT_16_10)
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
+                        else if (screen_layout == SCREENLAYOUT_16_9)
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
                         else
                         {
                             if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
                             else bmp_idle_copy(1,0);
                         }
                     }
-                    //~ bmp_idle_clear();
+                    else if (EXT_MONITOR_RCA)
+                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
+                    else
+                    {
+                        if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
+                        else bmp_idle_copy(1,0);
+                    }
                 }
-            )
+                //~ bmp_idle_clear();
+            }
             //~ update_stuff();
             lens_display_set_dirty();
         }
