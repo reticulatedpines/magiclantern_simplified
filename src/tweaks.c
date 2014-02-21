@@ -357,11 +357,11 @@ static CONFIG_INT("play.quick.zoom", quickzoom, 0);
 static CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
 
-#define PLAY_ACTION_TRIGGER_WHEEL 1
-#define PLAY_ACTION_TRIGGER_LR 2
-#define PLAY_ACTION_TRIGGER_WHEEL_OR_LR 3
+#define PLAY_ACTION_TRIGGER_WHEEL 0
+#define PLAY_ACTION_TRIGGER_LR 1
+#define PLAY_ACTION_TRIGGER_WHEEL_OR_LR 2
 static CONFIG_INT("play.set.trigger", play_set_wheel_trigger, 0);
-static CONFIG_INT("play.set.wheel", play_set_wheel_action, 3);
+static CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
 static CONFIG_INT("quick.delete", quick_delete, 0);
 
@@ -372,19 +372,19 @@ int timelapse_playback = 0;
 static void playback_set_wheel_action(int dir)
 {
     #ifdef CONFIG_5DC
-    play_set_wheel_action = COERCE(play_set_wheel_action, 2, 3);
+    play_set_wheel_action = COERCE(play_set_wheel_action, 3, 4);
     #endif
     #ifdef FEATURE_PLAY_EXPOSURE_FUSION
-    if (play_set_wheel_action == 0) expfuse_preview_update(dir); else
+    if (play_set_wheel_action == 1) expfuse_preview_update(dir); else
     #endif
     #ifdef FEATURE_PLAY_COMPARE_IMAGES
-    if (play_set_wheel_action == 1) playback_compare_images(dir); else
+    if (play_set_wheel_action == 2) playback_compare_images(dir); else
     #endif
     #ifdef FEATURE_PLAY_TIMELAPSE
-    if (play_set_wheel_action == 2) timelapse_playback = COERCE(timelapse_playback + dir, -1, 1); else
+    if (play_set_wheel_action == 3) timelapse_playback = COERCE(timelapse_playback + dir, -1, 1); else
     #endif
     #ifdef FEATURE_PLAY_EXPOSURE_ADJUST
-    if (play_set_wheel_action == 3) expo_adjust_playback(dir); else
+    if (play_set_wheel_action == 4) expo_adjust_playback(dir); else
     #endif
     {};
 }
@@ -433,10 +433,10 @@ static void print_set_maindial_hint(int set)
                 SHADOW_FONT(FONT_LARGE),
                 os.x0, os.y_max - font_large.height,
                 "Scrollwheel: %s", 
-                play_set_wheel_action == 0 ? "Exposure Fusion" : 
-                play_set_wheel_action == 1 ? "Compare Images" : 
-                play_set_wheel_action == 2 ? "Timelapse Play" : 
-                play_set_wheel_action == 3 ? "Exposure Adjust" : 
+                play_set_wheel_action == 1 ? "Exposure Fusion" : 
+                play_set_wheel_action == 2 ? "Compare Images" : 
+                play_set_wheel_action == 3 ? "Timelapse Play" : 
+                play_set_wheel_action == 4 ? "Exposure Adjust" : 
                 "err"
             );
         }
@@ -513,8 +513,9 @@ int handle_set_wheel_play(struct event * event)
         return 1;
     }
 
-    if (play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL || 
-        play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL_OR_LR)
+    if (play_set_wheel_action &&
+       (play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL || 
+        play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL_OR_LR))
     {
         if (event->param == BGMT_PRESS_SET)
         {
@@ -566,7 +567,7 @@ int handle_set_wheel_play(struct event * event)
     }
 
     // Left/Right action in PLAY mode
-    if (play_set_wheel_trigger > 1 && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
+    if (play_set_wheel_trigger && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
     {
         if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT)
         {
@@ -579,7 +580,7 @@ int handle_set_wheel_play(struct event * event)
 
     // some other key pressed without maindial action being active, cleanup things
     if ((!set_maindial_action_enabled && event->param != BGMT_PRESS_SET && event->param != BGMT_UNPRESS_SET) ||
-        (play_set_wheel_trigger > 1 && play_set_wheel_hot &&
+        (play_set_wheel_trigger && play_set_wheel_hot &&
          event->param != BGMT_PRESS_LEFT && event->param != BGMT_PRESS_RIGHT))
     {
         play_set_wheel_hot = 0;
@@ -3589,16 +3590,16 @@ static struct menu_entry play_menus[] = {
                     {
                         .name = "Action type",
                         .priv = &play_set_wheel_action, 
-                        .max = 3,
-                        .choices = (const char *[]) {"Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
+                        .max = 4,
+                        .choices = (const char *[]) {"OFF", "Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
                         .help = "Chose the action type to perform when triggered.",
                         .icon_type = IT_DICE,
                     },
                     {
                         .name = "Trigger key(s)",
                         .priv = &play_set_wheel_trigger,
-                        .max = 3,
-                        .choices = (const char *[]) {"OFF", "Set+MainDial", "Left/Right", "L/R & Set+Dial"},
+                        .max = 2,
+                        .choices = (const char *[]) {"Set+MainDial", "Left/Right", "L/R & Set+Dial"},
                         .help = "Either use a key combination and/or just an easier single keystroke.",
                         .icon_type = IT_BOOL,
                     },
