@@ -214,5 +214,8 @@ int handle_other_events(struct event * event);
  */
 void gui_uilock(int what);
 
+/* prevent Canon code from drawing on the screen */
+void canon_gui_disable_front_buffer();
+void canon_gui_enable_front_buffer(int also_redraw);
 
 #endif

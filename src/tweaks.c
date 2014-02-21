@@ -2204,7 +2204,7 @@ static void upside_down_step()
         {
             get_yuv422_vram();
             bmp_draw_to_idle(1);
-            canon_gui_disable_front_buffer();
+            canon_gui_disable_front_buffer(0);
             int voffset = (lv || PLAY_MODE || QR_MODE) ? (os.y0 + os.y_ex/2 - (BMP_H_PLUS+BMP_H_MINUS)/2) * 2 : 0;
             BMP_LOCK(
                 if (zebra_should_run())
