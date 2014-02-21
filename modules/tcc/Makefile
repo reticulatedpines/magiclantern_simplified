@@ -216,7 +216,7 @@ localsyms: libtcctmp.o
 	#~ $(OBJCOPY) libtcctmp.a libtcc.a --localize-symbols localsyms
 
 libtcctmp.o: libtcc.o tccpp.o tccgen.o tccelf.o tccasm.o tccrun.o arm-gen.o
-	$(LD_REAL) -r -o $@ $^
+	$(LD) -r -o $@ $^
 
 libtccx.o: libtcctmp.o localsyms
 	$(OBJCOPY) $< $@ --localize-symbols localsyms

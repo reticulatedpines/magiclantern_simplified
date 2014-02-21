@@ -178,8 +178,6 @@ include $(TOP_DIR)/Makefile.filerules
 
 # Magic Lantern rules
 
-ML_LIBC ?= dietlibc.a newlib-libc.a
-
 magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 	$(call build,LD,$(LD) \
 		-o $@ \
@@ -187,9 +185,7 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 		$(LFLAGS) \
 		-T \
 		$^ \
-		-lm \
-		-lgcc \
-        -Xlinker -Map=location.map \
+        -Map=location.map \
 	)
 
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
@@ -204,20 +200,22 @@ clean::
 autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
-		-nostdlib \
 		-e _start \
 		-Ttext $(AUTOEXEC_BASE) \
-		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
+		$^ \
+		--cref \
+		-Map=autoexec.map \
 	); \
 	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 
 autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
-		-nostdlib \
 		-e _start \
 		-Ttext $(FIR_BASE) \
-		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
+		$^ \
+		--cref \
+		-Map=autoexec.map \
 	);
 
 clean::
@@ -250,8 +248,6 @@ DIET_OBJ = \
 	atoi.o \
 	atol.o \
 
-DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
-
 $(DIET_OBJ): $(DIETLIBC_A)
 	$(call build,AR,$(AR) x $? $(DIET_OBJ))
 
@@ -268,16 +264,17 @@ NEWLIB_OBJ = \
 	lib_a-memset.o \
 	lib_a-memmove.o \
 
-NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
-
 $(NEWLIB_OBJ): $(NEWLIB_LIBC_A)
 	$(call build,AR,$(AR) x $? $(NEWLIB_OBJ))
 
 newlib-libc.a: $(NEWLIB_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
+newlib-libm.a: $(NEWLIB_LIBM_A)
+	$(call build,CP,$(CP) $^ $@)
+
 clean::
-	$(call rm_files, newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
+	$(call rm_files, newlib-libc.a newlib-libm.a dietlibc.a)
 
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
