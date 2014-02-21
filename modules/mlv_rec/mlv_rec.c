@@ -51,7 +51,7 @@
 
 
 //#define CONFIG_CONSOLE
-//#define TRACE_DISABLED
+#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL      100
 #define MLV_RTCI_BLOCK_INTERVAL   2000
@@ -413,21 +413,6 @@ static void mlv_rec_release_dummy()
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
 
     FIO_RemoveFile(filename);
-}
-
-/* helper functions for atomic in-/decrasing variables */
-static void atomic_inc(uint32_t *value)
-{
-    uint32_t old_int = cli();
-    (*value)++;
-    sei(old_int);
-}
-
-static void atomic_dec(uint32_t *value)
-{
-    uint32_t old_int = cli();
-    (*value)--;
-    sei(old_int);
 }
 
 /* calc required padding for given address */
@@ -1959,7 +1944,7 @@ retry_find:
                 }
             }
 
-            break;
+            /* fall through */
 
         case 2:
         default:
@@ -2407,7 +2392,7 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
 
-static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job)
+static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job, uint32_t max_size)
 {
     write_job_t job;
     uint32_t get_partial = 0;
@@ -2454,6 +2439,12 @@ retry_find:
                 block_len = 0;
                 block_size = 0;
                 block_start = 0;
+            }
+            
+            /* already over the maximum write block size? then break now */
+            if(max_size && job.block_size >= max_size)
+            {
+                break;
             }
         }
 
@@ -2576,7 +2567,7 @@ static void raw_writer_task(uint32_t writer)
 
     written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
     
-    atomic_inc(&threads_running);
+    util_atomic_inc(&threads_running);
     while(raw_recording_state == RAW_PREPARING)
     {
         msleep(20);
@@ -2599,7 +2590,7 @@ static void raw_writer_task(uint32_t writer)
         if(tmp_job->job_type == JOB_TYPE_WRITE)
         {
             /* decrease number of queued writes */
-            atomic_dec(&writer_job_count[writer]);
+            util_atomic_dec(&writer_job_count[writer]);
 
             /* this is an "abort" job */
             if(tmp_job->block_len == 0)
@@ -2788,7 +2779,7 @@ abort:
         FIO_RemoveFile(chunk_filename[writer]);
     }
 
-    atomic_dec(&threads_running);
+    util_atomic_dec(&threads_running);
 }
 
 static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
@@ -3192,10 +3183,10 @@ static void raw_video_rec_task()
                 //trace_write(raw_rec_trace_ctx, "<-- No jobs in fast-card queue");
 
                 /* in case there is something to write... */
-                if(find_largest_buffer(0, &write_job))
+                if(find_largest_buffer(0, &write_job, 16 * 1024 * 1024))
                 {
                     enqueue_buffer(0, &write_job);
-                    atomic_inc(&writer_job_count[0]);
+                    util_atomic_inc(&writer_job_count[0]);
                 }
                 else
                 {
@@ -3211,10 +3202,10 @@ static void raw_video_rec_task()
                 //trace_write(raw_rec_trace_ctx, "<-- No jobs in slow-card queue");
 
                 /* in case there is something to write... SD must not use the two largest buffers */
-                if(find_largest_buffer(fast_card_buffers, &write_job))
+                if(find_largest_buffer(fast_card_buffers, &write_job, 4 * 1024 * 1024))
                 {
                     enqueue_buffer(1, &write_job);
-                    atomic_inc(&writer_job_count[1]);
+                    util_atomic_inc(&writer_job_count[1]);
                 }
                 else
                 {
