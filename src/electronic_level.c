@@ -75,6 +75,8 @@ void show_electronic_level()
     prev_angle10 = angle10;
 }
 
+#define FMT_FIXEDPOINT1E(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "=", ABS(x)/10, ABS(x)%10
+
 static LVINFO_UPDATE_FUNC(electronic_level_update)
 {    
     LVINFO_BUFFER(8);
@@ -83,7 +85,7 @@ static LVINFO_UPDATE_FUNC(electronic_level_update)
         int angle10 = (level_data.roll_sensor1 * 256 + level_data.roll_sensor2) / 10;
         if (angle10 > 1800) angle10 -= 3600;
     
-        snprintf(buffer, sizeof(buffer), "%s%3d"SYM_DEGREE, angle10 == 0 ? "=" : (ABS(angle10) > 0 && ABS(angle10) < 10) ? SYM_PLUSMINUS : angle10 >= 10 ? "+" : angle10 <= 10 ? "-" : " ", ABS(angle10/10));
+        snprintf(buffer, sizeof(buffer), "%s%d.%d" SYM_DEGREE, FMT_FIXEDPOINT1E(angle10));
     
         item->color_fg = angle10 == 0 || ABS(angle10) == 900 || ABS(angle10) == 1800 ? COLOR_GREEN1 : COLOR_WHITE;
     }
