@@ -266,6 +266,7 @@ NEWLIB_OBJ = \
 	lib_a-memcpy-stub.o \
 	lib_a-memccpy.o \
 	lib_a-memset.o \
+	lib_a-memmove.o \
 
 NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
 
