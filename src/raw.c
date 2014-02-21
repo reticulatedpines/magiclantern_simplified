@@ -882,7 +882,9 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     preview_rect_w = w;
     preview_rect_h = h;
 
-    get_yuv422_vram(); // update vram parameters
+    /* note: this will call BMP_LOCK */
+    /* not exactly a good idea when we have already acquired raw_lock */
+    //~ get_yuv422_vram(); // update vram parameters
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
     lv2raw.tx = x - BM2RAW_DX(os.x0);
@@ -1871,6 +1873,9 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
 
 static void raw_init()
 {
+    /* make sure we have a valid set of VRAM parameters (just in case, if we are starting with globaldraw off */
+    get_yuv422_vram();
+    
     raw_lock = CreateRecursiveLock(0);
 }
 
