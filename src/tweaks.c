@@ -3593,7 +3593,7 @@ static struct menu_entry play_menus[] = {
                         .max = 4,
                         .choices = (const char *[]) {"OFF", "Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
                         .help = "Chose the action type to perform when triggered.",
-                        .icon_type = IT_DICE,
+                        .icon_type = IT_PERCENT_OFF,
                     },
                     {
                         .name = "Trigger key(s)",
@@ -3601,7 +3601,7 @@ static struct menu_entry play_menus[] = {
                         .max = 2,
                         .choices = (const char *[]) {"Set+MainDial", "Left/Right", "L/R & Set+Dial"},
                         .help = "Either use a key combination and/or just an easier single keystroke.",
-                        .icon_type = IT_BOOL,
+                        .icon_type = IT_DICE,
                     },
                     MENU_EOL
                 }
