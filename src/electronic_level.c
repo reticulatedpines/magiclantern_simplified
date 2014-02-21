@@ -83,8 +83,8 @@ void show_electronic_level()
 
 static LVINFO_UPDATE_FUNC(electronic_level_update)
 {
-	item->hidden = level_data.status == 2 ? 0 : 1;
-	item->disabled = level_data.status == 2 ? 0 : 1;
+    item->hidden = level_data.status == 2 ? 0 : 1;
+    item->disabled = level_data.status == 2 ? 0 : 1;
     
     LVINFO_BUFFER(8);
     int angle10 = (level_data.roll_sensor1 * 256 + level_data.roll_sensor2) / 10;
