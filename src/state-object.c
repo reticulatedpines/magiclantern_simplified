@@ -133,7 +133,6 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
-
 #elif defined(CONFIG_5D2)
     if (self == LV_STATE)//&& old_state == 4)
     {
@@ -213,10 +212,12 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #endif
     
     #if !defined(CONFIG_7D_MASTER) && defined(CONFIG_7D)
-    if (self == LV_STATE && input==5 && old_state == 5)
+    if (self == LV_STATE && input==5 && old_state == 5)       
+    { 
+        display_filter_lv_vsync(old_state, x, input, z, t);
         vsync_func();
+    }
     #endif
-
     #ifdef EVF_STATE
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
     {
