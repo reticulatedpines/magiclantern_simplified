@@ -2204,6 +2204,8 @@ static int32_t FAST process_frame()
 
 static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
+    static uint32_t edmac_timeouts = 0;
+    
     /* just a counter for waiting x frames, decrease whenever non-zero */
     if(frame_countdown)
     {
@@ -2220,8 +2222,19 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     {
         trace_write(raw_rec_trace_ctx, "raw_rec_vsync_cbr: skipping frame due to slow EDMAC");
         frame_skips++;
+        edmac_timeouts++;
+        
+        /* safety measure: try to abort recording if too many frames were dropped at once */
+        if(edmac_timeouts > 10)
+        {
+            edmac_timeouts = 0;
+            raw_recording_state = RAW_FINISHING;
+            raw_rec_cbr_stopping();
+        }
         return 0;
     }
+    
+    edmac_timeouts = 0;
     hack_liveview_vsync();
 
     /* panning window is updated when recording, but also when not recording */
