@@ -1573,7 +1573,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                     }
                     else
                     {
-                        bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", chunk_filename[writer]);
+                        bmp_printf( FONT_MED, 30, cam_50d ? 370 : 420 + writer * font_med.height, "%s: idle             ", filename);
                     }
                 }
                 
