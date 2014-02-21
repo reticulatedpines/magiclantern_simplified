@@ -70,6 +70,7 @@ CFLAGS +=\
 	-ffast-math \
 	-fsingle-precision-constant \
 	-fshort-double \
+	-fno-builtin-printf \
 	-std=gnu99 \
 	-Winline \
 	-I$(PLATFORM_INC) \
