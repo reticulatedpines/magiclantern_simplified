@@ -999,66 +999,66 @@ static MENU_UPDATE_FUNC(show_update)
 
 static unsigned int adtg_gui_init()
 {
-    if (streq(camera_model_short, "5D3"))
+    if (IS_CAMERA("5D3", "1.1.3"))
     {
         ADTG_WRITE_FUNC = 0x11644;
         CMOS_WRITE_FUNC = 0x119CC;
         CMOS2_WRITE_FUNC = 0x11784;
         CMOS16_WRITE_FUNC = 0x11AB8;
     }
-    else if (streq(camera_model_short, "5D2"))
+    else if (IS_CAMERA("5D2", "2.1.2"))
     {
         ADTG_WRITE_FUNC = 0xffa35cbc;
         CMOS_WRITE_FUNC = 0xffa35e70;
     }
-    else if (streq(camera_model_short, "500D")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg70325#msg70325
+    else if (IS_CAMERA("500D", "1.1.1")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg70325#msg70325
     {
         ADTG_WRITE_FUNC = 0xFF22F8F4; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0xFF22F9DC; //"[REG] ############ Start CMOS"
     }
-    else if (streq(camera_model_short, "550D")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg61551#msg61551
+    else if (IS_CAMERA("550D", "1.0.9")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg61551#msg61551
     {
         ADTG_WRITE_FUNC = 0xff27ee34;
         CMOS_WRITE_FUNC = 0xff27f028;
     }
-    else if (streq(camera_model_short, "60D")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg69719#msg69719
+    else if (IS_CAMERA("60D", "1.1.1")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg69719#msg69719
     {
         ADTG_WRITE_FUNC = 0xFF2C9788; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0xFF2C997C; //"[REG] ############ Start CMOS"
     }
-    else if (streq(camera_model_short, "50D")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg63322#msg63322
+    else if (IS_CAMERA("50D", "1.0.9")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg63322#msg63322
     {
         ADTG_WRITE_FUNC = 0xFFA11FDC;
         CMOS_WRITE_FUNC = 0xFFA12190;
     }
-    else if (streq(camera_model_short, "6D")) // from 1%
+    else if (IS_CAMERA("6D", "1.1.3")) // from 1%
     {
         CMOS_WRITE_FUNC = 0x2445C; //"[REG] ############ Start CMOS OC_KICK"
         CMOS2_WRITE_FUNC = 0x2420C; //"[REG] ############ Start CMOS"
         ADTG_WRITE_FUNC = 0x24108; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS16_WRITE_FUNC = 0x24548; //"[REG] ############ Start CMOS16 OC_KICK"
     }
-    else if (streq(camera_model_short, "EOSM")) // from 1%
+    else if (IS_CAMERA("EOSM", "2.0.2")) // from 1%
     {
         ADTG_WRITE_FUNC = 0x2986C;
         CMOS_WRITE_FUNC = 0x2998C;
     }
-    else if (streq(camera_model_short, "600D")) // from 1% TL 2.0
+    else if (IS_CAMERA("600D", "1.0.2")) // from 1% TL 2.0
     {
         ADTG_WRITE_FUNC = 0xFF2DCEF4; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0xFF2DD0E8; //"[REG] ############ Start CMOS"
     }
-    else if (streq(camera_model_short, "650D"))
+    else if (IS_CAMERA("650D", "1.0.4"))
     {
         ADTG_WRITE_FUNC = 0x178FC; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0x17A1C; //"[REG] ############ Start CMOS"
     }
-    else if (streq(camera_model_short, "700D"))
+    else if (IS_CAMERA("700D", "1.1.1"))
     {
         ADTG_WRITE_FUNC = 0x178FC; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0x17A1C; //"[REG] ############ Start CMOS"
     }    
-    else return 1;
+    else return CBR_RET_ERROR;
 
     
     menu_add("Debug", adtg_gui_menu, COUNT(adtg_gui_menu));

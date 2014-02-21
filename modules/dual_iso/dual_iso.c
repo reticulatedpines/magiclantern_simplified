@@ -653,7 +653,7 @@ static struct menu_entry isoless_menu[] =
 
 static unsigned int isoless_init()
 {
-    if (streq(camera_model_short, "5D3"))
+    if (IS_CAMERA("5D3", "1.1.3"))
     {
         FRAME_CMOS_ISO_START = 0x40452C72; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
         FRAME_CMOS_ISO_COUNT =          9; // from ISO 100 to 25600
@@ -667,7 +667,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 4;
         CMOS_EXPECTED_FLAG = 3;
     }
-    else if (streq(camera_model_short, "7D"))
+    else if (IS_CAMERA("7D", "2.0.3"))
     {
         is_7d = 1;
         
@@ -681,7 +681,7 @@ static unsigned int isoless_init()
         
         local_buf = alloc_dma_memory(PHOTO_CMOS_ISO_COUNT * PHOTO_CMOS_ISO_SIZE + 4);
     }
-    else if (streq(camera_model_short, "5D2"))
+    else if (IS_CAMERA("5D2", "2.1.2"))
     {
         is_5d2 = 1;
         
@@ -693,7 +693,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
     }
-    else if (streq(camera_model_short, "6D"))
+    else if (IS_CAMERA("6D", "1.1.3"))
     {
         is_6d = 1;
 
@@ -709,7 +709,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 0;
         CMOS_EXPECTED_FLAG = 0;
     }
-    else if (streq(camera_model_short, "50D"))
+    else if (IS_CAMERA("50D", "1.0.9"))
     {  
         // 100 - 0x04 - 160 - 0x94
         /* 00:00:04.078911     100   0004 404B548E */
@@ -728,7 +728,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 3;
         CMOS_EXPECTED_FLAG = 4;
     }
-    else if (streq(camera_model_short, "60D"))
+    else if (IS_CAMERA("60D", "1.1.1"))
     {  
         /*
         100 - 0
@@ -752,7 +752,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0; 
     }
-    else if (streq(camera_model_short, "500D"))
+    else if (IS_CAMERA("500D", "1.1.1"))
     {  
         is_500d = 1;    
 
@@ -764,7 +764,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 3;
         CMOS_EXPECTED_FLAG = 0;
     }
-    else if (streq(camera_model_short, "550D"))
+    else if (IS_CAMERA("550D", "1.0.9"))
     {
     	is_550d = 1;
 		
@@ -787,7 +787,7 @@ static unsigned int isoless_init()
 		CMOS_FLAG_BITS = 2;
 		CMOS_EXPECTED_FLAG = 0;
     }
-    else if (streq(camera_model_short, "600D"))
+    else if (IS_CAMERA("600D", "1.0.2"))
     {  
         /*
         100 - 0
@@ -811,7 +811,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
     }
-    else if (streq(camera_model_short, "700D"))
+    else if (IS_CAMERA("700D", "1.1.1"))
     {
         is_700d = 1;    
 
@@ -827,7 +827,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
     }
-    else if (streq(camera_model_short, "650D"))
+    else if (IS_CAMERA("650D", "1.0.4"))
     {
         is_650d = 1;    
 
@@ -844,7 +844,7 @@ static unsigned int isoless_init()
         CMOS_EXPECTED_FLAG = 3;
     }
 
-    else if (streq(camera_model_short, "EOSM"))
+    else if (IS_CAMERA("EOSM", "2.0.2"))
     {
         is_eosm = 1;    
         
@@ -878,7 +878,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
     }
-    else if (streq(camera_model_short, "1100D"))
+    else if (IS_CAMERA("1100D", "1.0.5"))
     {
         is_1100d = 1;
         /*

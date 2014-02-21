@@ -2198,17 +2198,17 @@ static struct lvinfo_item info_items[] = {
 
 static unsigned int raw_rec_init()
 {
-    cam_eos_m = streq(camera_model_short, "EOSM");
-    cam_5d2 = streq(camera_model_short, "5D2");
-    cam_50d = streq(camera_model_short, "50D");
-    cam_5d3 = streq(camera_model_short, "5D3");
-    cam_550d = streq(camera_model_short, "550D");
-    cam_6d = streq(camera_model_short, "6D");
-    cam_600d = streq(camera_model_short, "600D");
-    cam_650d = streq(camera_model_short, "650D");
-    cam_7d = streq(camera_model_short, "7D");
-    cam_700d = streq(camera_model_short, "700D");
-    cam_60d = streq(camera_model_short, "60D");
+    cam_eos_m = IS_CAMERA("EOSM", "2.0.2");
+    cam_5d2   = IS_CAMERA("5D2",  "2.1.2");
+    cam_50d   = IS_CAMERA("50D",  "1.0.9");
+    cam_5d3   = IS_CAMERA("5D3",  "1.1.3");
+    cam_550d  = IS_CAMERA("550D", "1.0.9");
+    cam_6d    = IS_CAMERA("6D",   "1.1.3");
+    cam_600d  = IS_CAMERA("600D", "1.0.2");
+    cam_650d  = IS_CAMERA("650D", "1.0.4");
+    cam_7d    = IS_CAMERA("7D",   "2.0.3");
+    cam_700d  = IS_CAMERA("700D", "1.1.1");
+    cam_60d   = IS_CAMERA("60D",  "1.1.1");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
