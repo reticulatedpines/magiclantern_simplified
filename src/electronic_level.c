@@ -1,5 +1,3 @@
-
-
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -74,26 +72,21 @@ void show_electronic_level()
     int angle10 = angle100/10;
     draw_electronic_level(angle10, prev_angle10, force_redraw);
     draw_electronic_level(angle10 + 1800, prev_angle10 + 1800, force_redraw);
-    //~ draw_line(x0, y0, x0 + r * cos(angle), y0 + r * sin(angle), COLOR_BLUE);
     prev_angle10 = angle10;
-
-    //if (angle10 > 1800) angle10 -= 3600;
-    //bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
 }
 
 static LVINFO_UPDATE_FUNC(electronic_level_update)
-{
-    item->hidden = level_data.status == 2 ? 0 : 1;
-    item->disabled = level_data.status == 2 ? 0 : 1;
-    
+{    
     LVINFO_BUFFER(8);
-    int angle10 = (level_data.roll_sensor1 * 256 + level_data.roll_sensor2) / 10;
-    if (angle10 > 1800) angle10 -= 3600;
+    if(level_data.status == 2)
+    {
+        int angle10 = (level_data.roll_sensor1 * 256 + level_data.roll_sensor2) / 10;
+        if (angle10 > 1800) angle10 -= 3600;
     
-    snprintf(buffer, sizeof(buffer), "%s%3d"SYM_DEGREE, angle10 == 0 ? "=" : (ABS(angle10) > 0 && ABS(angle10) < 10) ? SYM_PLUSMINUS : angle10 >= 10 ? "+" : angle10 <= 10 ? "-" : " ", ABS(angle10/10));
+        snprintf(buffer, sizeof(buffer), "%s%3d"SYM_DEGREE, angle10 == 0 ? "=" : (ABS(angle10) > 0 && ABS(angle10) < 10) ? SYM_PLUSMINUS : angle10 >= 10 ? "+" : angle10 <= 10 ? "-" : " ", ABS(angle10/10));
     
-    item->color_fg = angle10 == 0 || ABS(angle10) == 900 || ABS(angle10) == 1800 ? COLOR_GREEN1 : COLOR_WHITE;
-    
+        item->color_fg = angle10 == 0 || ABS(angle10) == 900 || ABS(angle10) == 1800 ? COLOR_GREEN1 : COLOR_WHITE;
+    }
 }
 
 static struct lvinfo_item info_items[] = {
@@ -103,8 +96,6 @@ static struct lvinfo_item info_items[] = {
         .update = electronic_level_update,
         .preferred_position = -100,
         .priority = 1,
-        .hidden = 1,
-        .disabled = 1,
     },
 };
 
