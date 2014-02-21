@@ -116,4 +116,3 @@ static void electronic_level_init()
 INIT_FUNC("electronic_level_info", electronic_level_init);
 
 #endif
-
