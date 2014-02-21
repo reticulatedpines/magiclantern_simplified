@@ -49,8 +49,6 @@ CFLAGS =
 ifeq ($(TARGET_COMPILER), arm-gcc)
 	CFLAGS += -Os -mthumb-interwork -march=armv5te \
 				-D__ARM__
-
-	LFLAGS += -nostdlib
 endif
 
 #
@@ -72,6 +70,7 @@ CFLAGS +=\
 	-ffast-math \
 	-fsingle-precision-constant \
 	-fshort-double \
+	-fno-builtin-printf \
 	-std=gnu99 \
 	-Winline \
 	-I$(PLATFORM_INC) \

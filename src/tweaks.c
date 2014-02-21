@@ -357,7 +357,11 @@ static CONFIG_INT("play.quick.zoom", quickzoom, 0);
 static CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
 
-static CONFIG_INT("play.set.wheel", play_set_wheel_action, 3);
+#define PLAY_ACTION_TRIGGER_WHEEL 0
+#define PLAY_ACTION_TRIGGER_LR 1
+#define PLAY_ACTION_TRIGGER_WHEEL_OR_LR 2
+static CONFIG_INT("play.set.trigger", play_set_wheel_trigger, 0);
+static CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
 static CONFIG_INT("quick.delete", quick_delete, 0);
 
@@ -368,19 +372,19 @@ int timelapse_playback = 0;
 static void playback_set_wheel_action(int dir)
 {
     #ifdef CONFIG_5DC
-    play_set_wheel_action = COERCE(play_set_wheel_action, 2, 3);
+    play_set_wheel_action = COERCE(play_set_wheel_action, 3, 4);
     #endif
     #ifdef FEATURE_PLAY_EXPOSURE_FUSION
-    if (play_set_wheel_action == 0) expfuse_preview_update(dir); else
+    if (play_set_wheel_action == 1) expfuse_preview_update(dir); else
     #endif
     #ifdef FEATURE_PLAY_COMPARE_IMAGES
-    if (play_set_wheel_action == 1) playback_compare_images(dir); else
+    if (play_set_wheel_action == 2) playback_compare_images(dir); else
     #endif
     #ifdef FEATURE_PLAY_TIMELAPSE
-    if (play_set_wheel_action == 2) timelapse_playback = COERCE(timelapse_playback + dir, -1, 1); else
+    if (play_set_wheel_action == 3) timelapse_playback = COERCE(timelapse_playback + dir, -1, 1); else
     #endif
     #ifdef FEATURE_PLAY_EXPOSURE_ADJUST
-    if (play_set_wheel_action == 3) expo_adjust_playback(dir); else
+    if (play_set_wheel_action == 4) expo_adjust_playback(dir); else
     #endif
     {};
 }
@@ -429,10 +433,10 @@ static void print_set_maindial_hint(int set)
                 SHADOW_FONT(FONT_LARGE),
                 os.x0, os.y_max - font_large.height,
                 "Scrollwheel: %s", 
-                play_set_wheel_action == 0 ? "Exposure Fusion" : 
-                play_set_wheel_action == 1 ? "Compare Images" : 
-                play_set_wheel_action == 2 ? "Timelapse Play" : 
-                play_set_wheel_action == 3 ? "Exposure Adjust" : 
+                play_set_wheel_action == 1 ? "Exposure Fusion" : 
+                play_set_wheel_action == 2 ? "Compare Images" : 
+                play_set_wheel_action == 3 ? "Timelapse Play" : 
+                play_set_wheel_action == 4 ? "Exposure Adjust" : 
                 "err"
             );
         }
@@ -496,6 +500,7 @@ int handle_set_wheel_play(struct event * event)
 {
     #ifdef FEATURE_SET_MAINDIAL
     static int set_maindial_action_enabled = 0;
+    static int play_set_wheel_hot = 0;
 
     if (!is_pure_play_photo_mode()) 
     {
@@ -508,25 +513,30 @@ int handle_set_wheel_play(struct event * event)
         return 1;
     }
 
-    if (event->param == BGMT_PRESS_SET)
+    if (play_set_wheel_action &&
+       (play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL || 
+        play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL_OR_LR))
     {
-        // for cameras where SET does not send an unpress event, pressing SET again should do the trick
-        set_maindial_action_enabled = !set_maindial_action_enabled;
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5DC)
-        ASSERT(set_maindial_action_enabled); // most cameras are expected to send Unpress SET event (if they don't, one needs to fix the quick erase feature)
-        #endif
-        print_set_maindial_hint(set_maindial_action_enabled);
-    }
-    else if (event->param == BGMT_UNPRESS_SET)
-    {
-        set_maindial_action_enabled = 0;
-        print_set_maindial_hint(0);
-    }
+        if (event->param == BGMT_PRESS_SET)
+        {
+            // for cameras where SET does not send an unpress event, pressing SET again should do the trick
+            set_maindial_action_enabled = !set_maindial_action_enabled;
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5DC)
+            ASSERT(set_maindial_action_enabled); // most cameras are expected to send Unpress SET event (if they don't, one needs to fix the quick erase feature)
+            #endif
+            print_set_maindial_hint(set_maindial_action_enabled);
+        }
+        else if (event->param == BGMT_UNPRESS_SET)
+        {
+            set_maindial_action_enabled = 0;
+            print_set_maindial_hint(0);
+        }
     
-    // make sure the display is updated, just in case
-    if (PLAY_MODE && set_maindial_action_enabled)
-    {
-        print_set_maindial_hint(1);
+        // make sure the display is updated, just in case
+        if (PLAY_MODE && set_maindial_action_enabled)
+        {
+            print_set_maindial_hint(1);
+        }
     }
 
     // SET+Wheel action in PLAY mode
@@ -556,12 +566,27 @@ int handle_set_wheel_play(struct event * event)
         #endif
     }
 
-    // some other key pressed without maindial action being active, cleanup things
-    if (!set_maindial_action_enabled && event->param != BGMT_PRESS_SET && event->param != BGMT_UNPRESS_SET)
+    // Left/Right action in PLAY mode
+    if (play_set_wheel_trigger && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) < 0)
     {
+        if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT)
+        {
+            int dir = event->param == BGMT_PRESS_RIGHT ? 1 : -1;
+            play_set_wheel_hot = 1;
+            playback_set_wheel_action(dir);
+            return 0;
+        }
+    }
+
+    // some other key pressed without maindial action being active, cleanup things
+    if ((!set_maindial_action_enabled && event->param != BGMT_PRESS_SET && event->param != BGMT_UNPRESS_SET) ||
+        (play_set_wheel_trigger && play_set_wheel_hot &&
+         event->param != BGMT_PRESS_LEFT && event->param != BGMT_PRESS_RIGHT))
+    {
+        play_set_wheel_hot = 0;
         set_maindial_cleanup();
     }
-    
+
     #endif
     
     #ifdef FEATURE_QUICK_ERASE
@@ -2179,7 +2204,7 @@ static void upside_down_step()
         {
             get_yuv422_vram();
             bmp_draw_to_idle(1);
-            canon_gui_disable_front_buffer();
+            canon_gui_disable_front_buffer(0);
             int voffset = (lv || PLAY_MODE || QR_MODE) ? (os.y0 + os.y_ex/2 - (BMP_H_PLUS+BMP_H_MINUS)/2) * 2 : 0;
             BMP_LOCK(
                 if (zebra_should_run())
@@ -3111,7 +3136,7 @@ int display_filter_enabled()
     return fp ? 2 : 1;
 }
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
 static int display_broken = 0;
 int display_broken_for_mz() 
 {
@@ -3155,6 +3180,27 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         if (sync || hacked)
         {
             MEM(0x455c+0xA4) = 0;
+            YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            EnableImagePhysicalScreenParameter();
+        }
+    }
+#elif defined(CONFIG_7D)
+//4430 - Debug Flag
+//445C + E8 - Current LV or 0
+//455C + F0 - Current Lv or 0
+//x + F4 = LV buffer.. print x, look around
+    int sync = (MEM(x+0xF4) == YUV422_LV_BUFFER_1);
+    int hacked = ( MEM(0x4430+0xE8) == MEM(0x4430+0xF0) && MEM(0x4430+0xF0) == MEM(x+0xF4));
+    display_broken = hacked;
+
+    if (!display_filter_valid_image) return CBR_RET_CONTINUE;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
+
+    if (display_filter_enabled())
+    {
+        if (sync || hacked)
+        {
+            MEM(0x4430+0xE8) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
             EnableImagePhysicalScreenParameter();
         }
@@ -3556,12 +3602,30 @@ static struct menu_entry play_menus[] = {
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_SET_MAINDIAL
             {
-                .name = "SET+MainDial",
-                .priv = &play_set_wheel_action, 
-                .max = 3,
-                .choices = (const char *[]) {"Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
-                .help = "What to do when you press SET and turn the scrollwheel.",
-                .icon_type = IT_DICE,
+                .name = "Play mode actions",
+                .help = "Several helpful image actions you can trigger in PLAY mode.",
+                .select = menu_open_submenu,
+                .submenu_width = 660,
+                .children =  (struct menu_entry[])
+                {
+                    {
+                        .name = "Action type",
+                        .priv = &play_set_wheel_action, 
+                        .max = 4,
+                        .choices = (const char *[]) {"OFF", "Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
+                        .help = "Chose the action type to perform when triggered.",
+                        .icon_type = IT_PERCENT_OFF,
+                    },
+                    {
+                        .name = "Trigger key(s)",
+                        .priv = &play_set_wheel_trigger,
+                        .max = 2,
+                        .choices = (const char *[]) {"Set+MainDial", "Left/Right", "L/R & Set+Dial"},
+                        .help = "Either use a key combination and/or just an easier single keystroke.",
+                        .icon_type = IT_DICE,
+                    },
+                    MENU_EOL
+                }
             },
             #endif
             #ifdef FEATURE_IMAGE_REVIEW_PLAY

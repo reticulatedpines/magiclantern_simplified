@@ -2486,12 +2486,12 @@ uint32_t info_print_screen()
 
     BMP_LOCK
     (
-        bmp_idle_copy(0,1);
-        bmp_draw_to_idle(1);
+        //~ bmp_idle_copy(0,1);
+        //~ bmp_draw_to_idle(1);
         info_print_config(info_config);
         info_print_config(info_config_dynamic);
-        bmp_draw_to_idle(0);
-        bmp_idle_copy(1,0);
+        //~ bmp_draw_to_idle(0);
+        //~ bmp_idle_copy(1,0);
     )
     give_semaphore(info_sem);
     
