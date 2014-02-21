@@ -315,7 +315,7 @@ module_symbol_##NAME = { \
 
 /* for camera-specific tricks in modules */
 /* e.g. if (IS_CAMERA("5D3", "1.2.3")) { adtg_write_addr = 0x1234 } */
-#define IS_CAMERA(model, firmware) (streq(camera_model_short, model) && streq(firmware_version, firmware))
+#define IS_CAMERA(model, firmware) (streq(__camera_model_short, model) && streq(firmware_version, firmware))
 
 #ifdef MODULE
 #include "module_strings.h"

@@ -8,7 +8,7 @@
 #define _propvalues_h_
 #include "property.h"
 
-char camera_model_short[8] = CAMERA_MODEL;
+char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
