@@ -653,7 +653,7 @@ static struct menu_entry isoless_menu[] =
 
 static unsigned int isoless_init()
 {
-    if (is_camera("5D3", "1.1.3"))
+    if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
     {
         FRAME_CMOS_ISO_START = 0x40452C72; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
         FRAME_CMOS_ISO_COUNT =          9; // from ISO 100 to 25600

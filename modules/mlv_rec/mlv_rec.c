@@ -4119,7 +4119,7 @@ static unsigned int raw_rec_init()
     cam_eos_m = is_camera("EOSM", "2.0.2");
     cam_5d2   = is_camera("5D2",  "2.1.2");
     cam_50d   = is_camera("50D",  "1.0.9");
-    cam_5d3   = is_camera("5D3",  "1.1.3");
+    cam_5d3   = is_camera("5D3",  "1.2.3");
     cam_550d  = is_camera("550D", "1.0.9");
     cam_6d    = is_camera("6D",   "1.1.3");
     cam_600d  = is_camera("600D", "1.0.2");
