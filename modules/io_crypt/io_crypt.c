@@ -955,9 +955,16 @@ static unsigned int iocrypt_init()
     }
     else if(is_camera("5D3", "1.1.3"))
     {
-        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 5D3");
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 5D3 1.1.3");
         iodev_table = 0x44FA8;
         iodev_ctx = 0x67140;
+        iodev_ctx_size = 0x20;
+    }
+    else if(is_camera("5D3", "1.2.3"))
+    {
+        trace_write(iocrypt_trace_ctx, "io_crypt: Detected 5D3 1.2.3");
+        iodev_table = 0x44F38;
+        iodev_ctx = 0x671D8;
         iodev_ctx_size = 0x20;
     }
     /*
