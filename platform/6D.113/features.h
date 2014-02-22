@@ -15,9 +15,4 @@
 
 /* Audio Features */
 #define FEATURE_HEADPHONE_MONITORING
-#define FEATURE_NITRATE_WAV_RECORD
-#define FEATURE_WAV_RECORDING
 #define FEATURE_AUDIO_METERS
-
-/* Not working */
-#undef FEATURE_AF_PATTERNS

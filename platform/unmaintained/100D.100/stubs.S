@@ -52,17 +52,17 @@ NSTUB(0xFF13AB60, LoadCalendarFromRTC)
 NSTUB(0xFFAD03A0 - RAM_OFFSET, vsnprintf)
 
 /** File I/O **/
-NSTUB(0xFF33E3AC,  FIO_CreateFile)
-NSTUB(0xFF33E2F0,  FIO_Open) // or OpenFile?
+NSTUB(0xFF33E3AC,  _FIO_CreateFile)
+NSTUB(0xFF33E2F0,  _FIO_Open) // or OpenFile?
 NSTUB(0xFF33E750,  FIO_CloseFile)
 NSTUB(0xFF33E680,  FIO_SeekFile)
 NSTUB(0xFF33E500,  FIO_ReadFile)
 NSTUB(0xFF33E6A0,  FIO_WriteFile)
-NSTUB(0xFF33E8CC,  FIO_GetFileSize)
-NSTUB(0xFF33E458,  FIO_RemoveFile)
+NSTUB(0xFF33E8CC,  _FIO_GetFileSize)
+NSTUB(0xFF33E458,  _FIO_RemoveFile)
 NSTUB(0xFF33EDE4,  FIO_RenameFile)
-NSTUB(0xFF33EFAC,  FIO_CreateDirectory)
-NSTUB(0xFF33F328,  FIO_FindFirstEx)
+NSTUB(0xFF33EFAC,  _FIO_CreateDirectory)
+NSTUB(0xFF33F328,  _FIO_FindFirstEx)
 NSTUB(0xFF33F668,  FIO_FindNextEx)
 NSTUB(0xFF33F748,  FIO_FindClose) // proper name: FindClose
 

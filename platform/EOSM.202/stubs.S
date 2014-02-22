@@ -49,19 +49,19 @@ NSTUB(0xFF132118, LoadCalendarFromRTC)
 NSTUB(0xFFA89B5C - RAM_OFFSET, vsnprintf) //205CC
 
 /** File I/O **/
-NSTUB(0xFF346550, FIO_CreateFile)
-NSTUB(0xFF346494, FIO_Open)
+NSTUB(0xFF346550, _FIO_CreateFile)
+NSTUB(0xFF346494, _FIO_Open)
 NSTUB(0xFF3468F4, FIO_CloseFile)
 NSTUB(0xFF346824, FIO_SeekFile)
 NSTUB(0xFF3466A4, FIO_ReadFile)
 NSTUB(0xFF346844, FIO_WriteFile)
-NSTUB(0xFF346A70, FIO_GetFileSize)
-NSTUB(0xFF3465FC, FIO_RemoveFile)
-NSTUB(0xFF347150, FIO_CreateDirectory)
-NSTUB(0xFF347718, FIO_FindFirstEx)
+NSTUB(0xFF346A70, _FIO_GetFileSize)
+NSTUB(0xFF3465FC, _FIO_RemoveFile)
+NSTUB(0xFF347150, _FIO_CreateDirectory)
+NSTUB(0xFF347718, _FIO_FindFirstEx)
 NSTUB(0xFF34780C, FIO_FindNextEx)
 NSTUB(0xFF3478EC, FIO_FindClose) // proper name: FindClose
-NSTUB(0xFF346F88, FIO_RenameFile)
+NSTUB(0xFF346F88, _FIO_RenameFile)
 
 /** Bitmap **/
 NSTUB(   0x6D2B4, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D

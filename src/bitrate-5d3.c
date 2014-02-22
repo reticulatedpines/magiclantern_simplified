@@ -12,7 +12,6 @@
 #include "lens.h"
 #include "lvinfo.h"
 
-
 int hibr_should_record_wav() { return 0; }
 
 static CONFIG_INT("h264.bitrate", bitrate, 3);
@@ -29,8 +28,6 @@ void bitrate_set()
     if (!is_movie_mode()) return; 
     if (gui_menu_shown()) return;
     if (RECORDING_H264) return;
-
-    //~ MEM(0x27880) = bitrate * 10000000;
 }
 
 void bitrate_mvr_log(char* mvr_logfile_buffer)
@@ -46,15 +43,6 @@ PROP_HANDLER(PROP_MVR_REC_START)
 }
 
 
-#if defined(CONFIG_6D)
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#else
-extern int cluster_size;
-extern int free_space_raw;
-#endif
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-
 static LVINFO_UPDATE_FUNC(indicator)
 {
     LVINFO_BUFFER(8);
@@ -67,7 +55,7 @@ static LVINFO_UPDATE_FUNC(indicator)
     
     int elapsed_time = get_seconds_clock() - movie_start_timestamp;
     int bytes_written_32k = MVR_BYTES_WRITTEN / 32768;
-    int remaining_time = free_space_32k * elapsed_time / bytes_written_32k;
+    int remaining_time = get_free_space_32k(get_shooting_card()) * elapsed_time / bytes_written_32k;
     int avg_bitrate = MVR_BYTES_WRITTEN / 1024 * 8 / 1024 / elapsed_time;
 
     switch(rec_indicator)
@@ -147,7 +135,7 @@ int is_mvr_buffer_almost_full()
 static void load_h264_ini()
 {
     gui_stop_menu();
-    call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
+    call("IVAParamMode", "ML/H264.ini");
     NotifyBox(2000, "%s", 0x4da10);
 }
 

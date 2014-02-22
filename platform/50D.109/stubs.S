@@ -37,7 +37,7 @@ NSTUB( 0xff811dbc, init_task ) // passed as arg to create_init_task, look for dm
 NSTUB( 0xFF817264, create_init_task )																		//d
 
 
-NSTUB( 0xff983474, FIO_FindFirstEx )																		//d
+NSTUB( 0xff983474, _FIO_FindFirstEx )																		//d
 NSTUB( 0xff9835A0, FIO_FindNextEx )																			//d
 NSTUB( 0xff9836A0, FIO_FindClose) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 
@@ -79,14 +79,14 @@ NSTUB( 0xff98e1e4, vsnprintf )									//d
 
 NSTUB( 0xff866e08, msleep ) // called from EV_GETDONE_CACHE param 0x64								//d
 NSTUB( 0xff866ebc, task_create )								//d
-NSTUB( 0xff982434, FIO_Open)									//d
-NSTUB( 0xff9824e8, FIO_CreateFile )								//d
+NSTUB( 0xff982434, _FIO_Open)									//d
+NSTUB( 0xff9824e8, _FIO_CreateFile )								//d
 NSTUB( 0xff982590, FIO_CloseFile )								//d
-NSTUB( 0xff982b84, FIO_GetFileSize )							//d
+NSTUB( 0xff982b84, _FIO_GetFileSize )							//d
 NSTUB( 0xff9829d0, FIO_WriteFile )								//d
 NSTUB( 0xff982820, FIO_ReadFile )								//d
-NSTUB( 0xff982704, FIO_RemoveFile )								//d
-NSTUB( 0xff982df4, FIO_CreateDirectory)
+NSTUB( 0xff982704, _FIO_RemoveFile )								//d
+NSTUB( 0xff982df4, _FIO_CreateDirectory)
 NSTUB( 0xFF9829A0, FIO_SeekFile) 								// mk11174 and Chucho  0xff9829b0
 	
 NSTUB( 0xff866a1c, give_semaphore )																		//d

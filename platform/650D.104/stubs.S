@@ -78,18 +78,18 @@ NSTUB(0xFF4B23E4, DeleteDialogBox)
 NSTUB(0x0000395C, DryosDebugMsg)
 
 //FIO Functions
-NSTUB(0xFF342568, FIO_CreateFile) // from Indy
+NSTUB(0xFF342568, _FIO_CreateFile) // from Indy
 NSTUB(0xFF34285C, FIO_WriteFile) // from Indy
 NSTUB(0xFF34290C, FIO_CloseFile) // from Indy
 NSTUB(0xFF343904, FIO_FindClose) // proper name: FindClose
-NSTUB(0xFF343168, FIO_CreateDirectory)
-NSTUB(0xFF343730, FIO_FindFirstEx)
+NSTUB(0xFF343168, _FIO_CreateDirectory)
+NSTUB(0xFF343730, _FIO_FindFirstEx)
 NSTUB(0xFF343824, FIO_FindNextEx)
-NSTUB(0xFF342A88, FIO_GetFileSize)
-NSTUB(0xFF3424AC, FIO_Open)
+NSTUB(0xFF342A88, _FIO_GetFileSize)
+NSTUB(0xFF3424AC, _FIO_Open)
 NSTUB(0xFF3426BC, FIO_ReadFile)
-NSTUB(0xFF342614, FIO_RemoveFile)
-NSTUB(0xFF342FA0, FIO_RenameFile)
+NSTUB(0xFF342614, _FIO_RemoveFile)
+NSTUB(0xFF342FA0, _FIO_RenameFile)
 NSTUB(0xFF34283C, FIO_SeekFile)
 
 NSTUB(0x00007A94, _FreeMemory)

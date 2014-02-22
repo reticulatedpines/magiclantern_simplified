@@ -1959,4 +1959,66 @@ ST_FUNC int tcc_load_ldscript(TCCState *s1)
 {
     return -1;
 }
+
+/* read a section from a .o file without having to create a TCC state and add the file there */
+/* it just reads that file, allocates memory for that section and fill it */
+/* buffer is malloc'ed from here (free it after you are done with it) */
+PUB_FUNC void* tcc_load_offline_section(char* filename, char* section_name)
+{ 
+    int fd = open(filename, O_RDONLY | O_BINARY);
+    ElfW(Ehdr) ehdr;
+    ElfW(Shdr) *shdr, *sh;
+    int i, j;
+    unsigned char *strsec;
+    char *sh_name;
+    Section *s;
+    void* ret = 0;
+
+    if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
+        goto fail1;
+    if (ehdr.e_ident[0] != ELFMAG0 ||
+        ehdr.e_ident[1] != ELFMAG1 ||
+        ehdr.e_ident[2] != ELFMAG2 ||
+        ehdr.e_ident[3] != ELFMAG3)
+        goto fail1;
+    /* test if object file */
+    if (ehdr.e_type != ET_REL)
+        goto fail1;
+    if (0) {
+    fail1:
+        tcc_error_noabort("invalid object file");
+        close(fd);
+        return 0;
+    }
+    /* read sections */
+    shdr = load_data(fd, ehdr.e_shoff, 
+                     sizeof(ElfW(Shdr)) * ehdr.e_shnum);
+    
+    /* load section names */
+    sh = &shdr[ehdr.e_shstrndx];
+    strsec = load_data(fd, sh->sh_offset, sh->sh_size);
+
+    /* now examine each section */
+    for(i = 1; i < ehdr.e_shnum; i++) {
+        sh = &shdr[i];
+        sh_name = strsec + sh->sh_name;
+        if (!strcmp(sh_name, section_name))
+        {
+            /* found section, read it contents and return it (of course, after cleaning up) */
+            lseek(fd, sh->sh_offset, SEEK_SET);
+            int size = sh->sh_size;
+            void* ptr = tcc_malloc(size);
+            read(fd, ptr, size);
+            ret = ptr;
+            break;
+        }
+    }
+
+ the_end:
+    close(fd);
+    tcc_free(strsec);
+    tcc_free(shdr);
+    return ret;
+}
+
 #endif /* ndef TCC_TARGET_PE */

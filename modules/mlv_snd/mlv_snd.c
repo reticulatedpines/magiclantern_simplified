@@ -517,8 +517,7 @@ static void mlv_snd_start()
 {
     if(mlv_snd_enable_tracing && (trace_ctx == TRACE_ERROR))
     {
-        char filename[100];
-        snprintf(filename, sizeof(filename), "%smlv_snd.txt", MODULE_CARD_DRIVE);
+        char filename[] = "mlv_snd.txt";
         trace_ctx = trace_start("mlv_snd", filename);
         trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
     }
@@ -724,8 +723,7 @@ static unsigned int mlv_snd_init()
     /* causes ERR70 ?! */
     //if(mlv_snd_enable_tracing)
     //{
-    //    char filename[100];
-    //    snprintf(filename, sizeof(filename), "%smlv_snd.txt", MODULE_CARD_DRIVE);
+    //    char filename[] = "mlv_snd.txt";
     //    trace_ctx = trace_start("mlv_snd", filename);
     //    trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
     //}

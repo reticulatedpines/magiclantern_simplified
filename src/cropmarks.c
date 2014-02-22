@@ -70,7 +70,7 @@ static void sort_cropmarks()
 static void find_cropmarks()
 {
     struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/CROPMKS/", &file );
+    struct fio_dirent * dirent = FIO_FindFirstEx( "ML/CROPMKS/", &file );
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "ML/CROPMKS dir missing\n"
@@ -117,7 +117,7 @@ static void reload_cropmark()
     if (!num_cropmarks) return;
     i = COERCE(i, 0, num_cropmarks-1);
     char bmpname[100];
-    snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "ML/CROPMKS/%s", cropmark_names[i]);
+    snprintf(bmpname, sizeof(bmpname), "ML/CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
     if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 }

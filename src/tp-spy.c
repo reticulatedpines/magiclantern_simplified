@@ -120,7 +120,7 @@ void tp_intercept()
     } else // subsequent call, save log to file
     {
 		tp_buf[tp_len] = 0;
-        dump_seg(tp_buf, tp_len, CARD_DRIVE"tp.log");
+        dump_seg(tp_buf, tp_len, "tp.log");
         NotifyBox(2000, "Saved %d bytes.", tp_len);
 		tp_len = 0;
     }

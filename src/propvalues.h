@@ -1,7 +1,7 @@
 #ifndef _propvalues_h_
 #define _propvalues_h_
 
-extern char camera_model_short[8];
+extern char __camera_model_short[8];
 extern char camera_model[32];
 extern uint32_t camera_model_id;
 extern char firmware_version[32];

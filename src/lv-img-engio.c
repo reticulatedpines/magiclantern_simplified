@@ -398,7 +398,7 @@ void digic_dump()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "digic%02d.LOG", log_number);
+        snprintf(log_filename, sizeof(log_filename), "digic%02d.LOG", log_number);
         uint32_t size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
@@ -421,7 +421,7 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/h264.log");
+    FILE* f = FIO_CreateFileEx("ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {

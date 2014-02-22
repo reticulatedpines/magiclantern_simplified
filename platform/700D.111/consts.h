@@ -2,7 +2,6 @@
  *  700D 1.1.1 consts
  */
 
-#define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
 #define LEDON 0x138800
 #define LEDOFF 0x838C00

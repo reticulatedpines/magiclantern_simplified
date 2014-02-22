@@ -1,6 +1,5 @@
 #include "all_features.h"
 
-#undef FEATURE_ARROW_SHORTCUTS // idk why :P
 #undef FEATURE_IMAGE_POSITION
 #undef FEATURE_FPS_OVERRIDE
 #undef FEATURE_FPS_WAV_RECORD
@@ -13,7 +12,7 @@
 #undef FEATURE_WIND_FILTER //Blocks Meters, esp external audio
 #undef FEATURE_HEADPHONE_MONITORING // need code on master (?)
 
-#define FEATURE_VIDEO_HACKS
+//~ #define FEATURE_VIDEO_HACKS // unclean patching
 
 #undef FEATURE_AF_PATTERNS
 

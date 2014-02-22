@@ -257,7 +257,7 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     if (display_broken_for_mz()) return 0;
     #endif
     
@@ -2157,9 +2157,9 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     if (display_broken_for_mz())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using display filters, go outside LiveView and back.");
     #endif
     #if !defined(CONFIG_6D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM)
     else if (is_movie_mode() && video_mode_fps > 30)
@@ -4765,7 +4765,7 @@ livev_hipriority_task( void* unused )
         int kmm = k % m;
         if (!gui_menu_shown()) // don't update everything in one step, to reduce magic zoom flicker
         {
-            #if defined(CONFIG_550D) || defined(CONFIG_5D2)
+            #if defined(CONFIG_550D) || defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
             if (kmm == 0)
                 BMP_LOCK( if (lv) black_bars(); )
             #endif
@@ -5003,25 +5003,25 @@ static void livev_playback_reset()
     livev_playback = 0;
 }
 
-static void livev_playback_refresh()
-{
-    while (livev_for_playback_running) msleep(20);
-    livev_playback_toggle();
-    if (!livev_playback) livev_playback_toggle();
-}
-
-int handle_livev_playback(struct event * event, int button)
+int handle_livev_playback(struct event * event)
 {
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
     {
-        if (event->param == button)
+        switch(event->param)
         {
-            livev_playback_toggle();
-            return 0;
+#if defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
+            case BTN_ZEBRAS_FOR_PLAYBACK:
+                livev_playback_toggle();
+                return 0;
+#endif
+            case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
+                livev_playback_reset(); // Soft reset if triggered by HS
+                livev_playback_toggle();
+                return 0;
         }
         
-        else if (event->param == GMT_OLC_INFO_CHANGED)
+        if (event->param == GMT_OLC_INFO_CHANGED)
             return 1;
 
         #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
@@ -5053,8 +5053,6 @@ static void zebra_init()
 }
 
 INIT_FUNC(__FILE__, zebra_init);
-
-
 
 
 static void make_overlay()
@@ -5093,7 +5091,7 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/DATA/overlay.dat");
+    FILE* f = FIO_CreateFileEx("ML/DATA/overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
@@ -5113,7 +5111,7 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_Open(CARD_DRIVE "ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
+    FILE* f = FIO_Open("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);

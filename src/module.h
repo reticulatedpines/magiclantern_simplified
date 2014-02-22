@@ -1,7 +1,7 @@
 #ifndef _module_h_
 #define _module_h_
 
-#define MODULE_PATH                   CARD_DRIVE"ML/MODULES/"
+#define MODULE_PATH                   "ML/MODULES/"
 
 /* module info structures */
 #define MODULE_INFO_PREFIX            __module_info_
@@ -98,7 +98,7 @@
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 4
+#define MODULE_MAJOR 5
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
 #define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
@@ -244,8 +244,6 @@ typedef struct
                                                                 };
 
 #if defined(MODULE)
-extern char *module_card_drive;
-#define MODULE_CARD_DRIVE                                       module_card_drive
 #define PROP_HANDLER(id)                                        MODULE_PROP_ENTRY_(MODULE_PROPHANDLER_PREFIX,MODULE_NAME, id, #id)
 #define MODULE_PROP_ENTRY_(prefix,modname,id,idstr)             MODULE_PROP_ENTRY__(prefix,modname,id,idstr)
 #define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, void *, unsigned int);\
@@ -312,6 +310,11 @@ module_symbol_##NAME = { \
 }     //.default_address = DEFAULT_ADDRESS, /* not used; can be useful for module unloading */
 
 #define MODULE_FUNCTION(name) MODULE_SYMBOL(name, ret_0)
+
+/* for camera-specific tricks in modules */
+/* e.g. if (is_camera("5D3", "1.2.3")) { adtg_write_addr = 0x1234 } */
+/* see propvalues.c */
+extern int is_camera(const char * model, const char * firmware);
 
 #ifdef MODULE
 #include "module_strings.h"

@@ -75,20 +75,6 @@ int display_idle()
         ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
-#ifndef CONFIG_5D3
-static char dcim_dir_suffix[6];
-static char dcim_dir[100];
-PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
-{
-    snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
-}
-const char* get_dcim_dir()
-{
-    snprintf(dcim_dir, sizeof(dcim_dir), CARD_DRIVE "DCIM/%03d%s", folder_number, dcim_dir_suffix);
-    return dcim_dir;
-}
-#endif
-
 int uniwb_is_active() 
 {
     return 
@@ -130,15 +116,14 @@ static int hdr_first_shot_bulb = 0;
 
 static CONFIG_INT( "interval.enabled", interval_enabled, 0 );
 static CONFIG_INT( "interval.trigger", interval_trigger, 0 );
-static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
-static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
+static CONFIG_INT( "interval.time", interval_time, 10 );
+static CONFIG_INT( "interval.start.time", interval_start_time, 3 );
 static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 static CONFIG_INT( "interval.scripts", interval_scripts, 0); //1 bash, 2 ms-dos, 3 text
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
-static int interval_time = -1;
 
 
 #define TRAP_NONE    0
@@ -165,7 +150,7 @@ static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
 static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
-static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
+static CONFIG_INT( "bulb.duration", bulb_duration, 5);
 static CONFIG_INT( "bulb.display.mode", bulb_display_mode, 0);
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
@@ -204,7 +189,7 @@ int motion_detect = 0; //int motion_detect_level = 8;
 static int audio_release_running = 0;
 #endif
 
-static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 25, 26, 27, 28, 29, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180, 195, 210, 225, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
+#define TIME_MAX_VALUE 28800 //8 hours
 
 #ifdef FEATURE_INTERVALOMETER
 int get_interval_count()
@@ -214,19 +199,12 @@ int get_interval_count()
 
 int get_interval_time()
 {
-    if(interval_time == -1)
-        interval_time = timer_values[interval_timer_index];
     return interval_time;
 }
 
 void set_interval_time(int seconds)
 {
     interval_time = seconds;
-}
-
-void set_interval_index(int index)
-{
-    interval_time = timer_values[index];
 }
 #endif
 
@@ -257,7 +235,7 @@ static const char* format_time_hours_minutes_seconds(int seconds)
 
 int get_bulb_shutter_raw_equiv()
 {
-    return shutterf_to_raw(timer_values[bulb_duration_index]);
+    return shutterf_to_raw(bulb_duration);
 }
 
 static void seconds_clock_update();
@@ -443,19 +421,13 @@ static MENU_UPDATE_FUNC(timelapse_calc_display)
 
 static MENU_UPDATE_FUNC(interval_timer_display)
 {
-    int d = timer_values[CURRENT_VALUE];
+    int d = CURRENT_VALUE;
     if (!d)
     {
         MENU_SET_NAME("Take pics...");
         MENU_SET_VALUE("like crazy");
     }
-    else
-    {
-        MENU_SET_VALUE(
-            format_time_hours_minutes_seconds(d)
-        );
-    }
-    MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
+    MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / TIME_MAX_VALUE);
     MENU_SET_ENABLED(1);
 
     if (auto_power_off_time && auto_power_off_time <= d)
@@ -466,14 +438,9 @@ static MENU_UPDATE_FUNC(interval_timer_display)
 
 static MENU_UPDATE_FUNC(interval_start_after_display)
 {
-    int d = timer_values[CURRENT_VALUE];
-    MENU_SET_VALUE(
-        format_time_hours_minutes_seconds(d)
-    );
-
-    MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
+    MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / TIME_MAX_VALUE);
     
-    if (auto_power_off_time && auto_power_off_time <= d)
+    if (auto_power_off_time && auto_power_off_time <= interval_start_time)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
     
     if(interval_trigger == 3)
@@ -492,19 +459,6 @@ static MENU_UPDATE_FUNC(interval_stop_after_display)
     if (d > avail_shot)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not enough space for %d shots (only for %d).", d, avail_shot);
     timelapse_calc_display(entry, info);
-}
-
-static MENU_SELECT_FUNC(interval_timer_toggle)
-{
-    int * ptr = priv;
-
-    if (priv == &interval_start_timer_index)
-        *ptr = mod(*ptr + delta - 1, COUNT(timer_values) - 1) + 1;
-    else
-        *ptr = mod(*ptr + delta, COUNT(timer_values));
-    
-    if(priv == &interval_timer_index)
-        set_interval_index(interval_timer_index);
 }
 
 static MENU_SELECT_FUNC(interval_trigger_toggle)
@@ -543,7 +497,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
             format_time_hours_minutes_seconds(d)
         );
         
-        int d_start = timer_values[interval_start_timer_index];
+        int d_start = interval_start_time;
         if (auto_power_off_time && auto_power_off_time <= MAX(d, d_start))
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
         
@@ -1497,7 +1451,7 @@ silent_pic_take_lv_dbg()
     char imgname[100];
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
-        snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
+        snprintf(imgname, sizeof(imgname), "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
         uint32_t size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
@@ -2752,7 +2706,7 @@ static MENU_UPDATE_FUNC(hdr_steps_update)
             #ifdef CONFIG_BULB
             if(is_bulb_mode())
             {
-                hdr_sequence_calc_shutter = shutter_ms_to_raw(timer_values[bulb_duration_index]*1000);
+                hdr_sequence_calc_shutter = shutter_ms_to_raw(bulb_duration*1000);
             }
             else
             #endif
@@ -3032,7 +2986,6 @@ bulb_take_pic(int duration)
 #ifdef FEATURE_BULB_TIMER
 static void bulb_toggle(void* priv, int delta)
 {
-    bulb_duration_index = mod(bulb_duration_index + delta - 1, COUNT(timer_values) - 1) + 1;
     #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update();
     #endif
@@ -3040,18 +2993,16 @@ static void bulb_toggle(void* priv, int delta)
 
 static MENU_UPDATE_FUNC(bulb_display)
 {
-    int d = timer_values[bulb_duration_index];
-
     if (bulb_timer)
         MENU_SET_VALUE(
-            format_time_hours_minutes_seconds(d)
+            format_time_hours_minutes_seconds(bulb_duration)
         );
 #ifdef FEATURE_INTERVALOMETER
-    else if (is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    if (bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
     {
         MENU_SET_VALUE(
             "OFF (%s)",
-            format_time_hours_minutes_seconds(d)
+            format_time_hours_minutes_seconds(bulb_duration)
         );
         MENU_SET_ICON(MNI_ON, 0);
         MENU_SET_WARNING(MENU_WARN_INFO, "Always on when in BULB mode and intervalometer running");
@@ -3060,15 +3011,6 @@ static MENU_UPDATE_FUNC(bulb_display)
     
     if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     if (entry->selected && intervalometer_running) timelapse_calc_display(entry, info);
-}
-
-static MENU_UPDATE_FUNC(bulb_display_submenu)
-{
-    int d = timer_values[bulb_duration_index];
-    if (!bulb_duration_index) d = 0;
-    MENU_SET_VALUE(
-        format_time_hours_minutes_seconds(d)
-    );
 }
 #endif
 
@@ -3666,10 +3608,11 @@ static struct menu_entry shoot_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Take a pic every",
-                .priv       = &interval_timer_index,
+                .priv       = &interval_time,
+                .max        = TIME_MAX_VALUE,
                 .update     = interval_timer_display,
-                .select     = interval_timer_toggle,
                 .icon_type  = IT_PERCENT,
+                .unit       = UNIT_TIME,
                 .help = "Duration between two shots.",
             },
             {
@@ -3683,16 +3626,18 @@ static struct menu_entry shoot_menus[] = {
             },
             {
                 .name = "Start after",
-                .priv       = &interval_start_timer_index,
+                .priv       = &interval_start_time,
+                .max        = TIME_MAX_VALUE,
                 .update     = interval_start_after_display,
-                .select     = interval_timer_toggle,
                 .icon_type  = IT_PERCENT,
+                .unit       = UNIT_TIME,
                 .help = "Start the intervalometer after X seconds / minutes / hours.",
             },
             {
                 .name = "Stop after",
                 .priv       = &interval_stop_after,
-                .max = 5000, // 5000 shots
+                .max        = 5000, // 5000 shots
+                .unit       = UNIT_DEC,
                 .update     = interval_stop_after_display,
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
@@ -3730,11 +3675,10 @@ MENU_PLACEHOLDER("Post Deflicker"),
         .children =  (struct menu_entry[]) {
             {
                 .name = "Exposure duration",
-                .priv = &bulb_duration_index,
-                .max = COUNT(timer_values)-1,
+                .priv = &bulb_duration,
+                .max = TIME_MAX_VALUE,
                 .icon_type = IT_PERCENT,
-                .select = bulb_toggle,
-                .update = bulb_display_submenu,
+                .unit = UNIT_TIME
             },
             {
                 .name = "Display during exposure",
@@ -4536,7 +4480,7 @@ void hdr_flag_picture_was_taken()
 
 int hdr_script_get_first_file_number(int skip0)
 {
-    return mod(file_number + 1 - (skip0 ? 1 : 0), 10000);
+    return mod(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
 }
 
 // create a post script for HDR bracketing or focus stacking,
@@ -4549,7 +4493,7 @@ void hdr_create_script(int f0, int focus_stack)
     if (snap_sim) return; // no script for virtual shots
     #endif
     
-    int steps = mod(file_number - f0 + 1, 10000);
+    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
 
     char name[100];
@@ -4607,7 +4551,7 @@ void interval_create_script(int f0)
 {
     if (!interval_scripts) return;
     
-    int steps = mod(file_number - f0 + 1, 10000);
+    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
     
     char name[100];
@@ -4697,7 +4641,7 @@ int take_a_pic(int should_af)
         if (is_bulb_mode())
         {
             /* bulb mode? take a bulb exposure with bulb timer settings */
-            canceled = bulb_take_pic(timer_values[bulb_duration_index] * 1000);
+            canceled = bulb_take_pic(bulb_duration * 1000);
         }
         else
         {
@@ -4819,7 +4763,7 @@ static int hdr_shutter_release(int ev_x8)
         #ifdef CONFIG_BULB
         if(hdr_first_shot_bulb)
         {
-            ms = timer_values[bulb_duration_index]*1000;
+            ms = bulb_duration*1000;
         }
         #endif
         int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
@@ -4828,7 +4772,7 @@ static int hdr_shutter_release(int ev_x8)
         #ifdef CONFIG_BULB
         if(hdr_first_shot_bulb)
         {
-            rs = shutter_ms_to_raw(timer_values[bulb_duration_index]*1000);
+            rs = shutter_ms_to_raw(bulb_duration*1000);
         }
         #endif
 
@@ -5440,7 +5384,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
-        interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
+        interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
         //~ display_on();
     }
 #endif
@@ -5547,10 +5491,10 @@ int take_fast_pictures( int number )
         lens_setup_af(shoot_use_af ? AF_ENABLE : AF_DISABLE);
         
         // continuous mode - simply hold shutter pressed 
-        int f0 = file_number;
+        int f0 = get_shooting_card()->file_number;
         SW1(1,100);
         SW2(1,100);
-        while (mod(f0 + number - file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
+        while (mod(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
             msleep(10);
         }
         SW2(0,100);
@@ -5715,7 +5659,7 @@ shoot_task( void* unused )
     {
         /* auto-start intervalometer, but wait for at least 10 seconds */
         intervalometer_running = 1;
-        intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 10);
+        intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 10);
    }
 #endif
     
@@ -5894,7 +5838,7 @@ shoot_task( void* unused )
             {
                 info_led_on();
                 
-                int d = timer_values[bulb_duration_index];
+                int d = bulb_duration;
                 NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 while (get_halfshutter_pressed())
                 {
@@ -5955,9 +5899,9 @@ shoot_task( void* unused )
         
         #ifdef FEATURE_FLASH_NOFLASH
         // toggle flash on/off for next picture
-        if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+        if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != get_shooting_card()->file_number % 2)
         {
-            strobo_firing = file_number % 2;
+            strobo_firing = get_shooting_card()->file_number % 2;
             set_flash_firing(strobo_firing);
         }
         
@@ -6301,7 +6245,7 @@ shoot_task( void* unused )
 
                     if (intervalometer_pictures_taken == 0)
                     {
-                        intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
+                        intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 1);
                     }
                     else
                     {
@@ -6393,10 +6337,10 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             if (intervalometer_pictures_taken)
             {
-                interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
+                interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
             }
             intervalometer_pictures_taken = 0;
-            intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
+            intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 1);
             #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT

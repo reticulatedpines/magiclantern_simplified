@@ -377,8 +377,8 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
 
 static void backup_task()
 {
-    backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
-    backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+    backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
@@ -398,9 +398,7 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
 {
-  #ifdef CONFIG_5D3
   find_ml_card();
-  #endif
 
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
@@ -433,7 +431,7 @@ static void my_big_init_task()
     call("EnableBootDisk");
     
     msleep(500);
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ROM.DAT");
+    FILE* f = FIO_CreateFileEx("ROM.DAT");
     if (f != INVALID_PTR) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);

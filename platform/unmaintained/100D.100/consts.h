@@ -4,7 +4,6 @@
  *  NOTHING FOUND YET
  */
 
-#define CARD_DRIVE ""
 #define CARD_LED_ADDRESS 0xC022C1FC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x93D800
 #define LEDOFF 0x83DC00

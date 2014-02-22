@@ -63,7 +63,7 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     
     /* was not loaded, try to load */
     char filename[128];
-    snprintf(filename, sizeof(filename), CARD_DRIVE "ML/FONTS/%s.RBF", file);
+    snprintf(filename, sizeof(filename), "ML/FONTS/%s.RBF", file);
     
     uint32_t size;
     if((FIO_GetFileSize( filename, &size ) != 0) || (size == 0))
@@ -579,6 +579,11 @@ struct font font_canon;
 /* must be called before menu_init, otherwise it can't measure strings */
 void load_fonts()
 {
+    /* tolerate multiple calls, but only run the first */
+    static int fonts_loaded = 0;
+    if (fonts_loaded) return;
+    fonts_loaded = 1;
+    
     /* fake font for Canon font backend, with the same metrics */
     font * canon_font = new_font();
     canon_font->hdr.height = 40;

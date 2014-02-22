@@ -203,17 +203,14 @@ localsyms: libtcctmp.o
 		| grep -v "^tcc_get_symbol$$" \
 		| grep -v "^tcc_add_symbol$$" \
 		| grep -v "^tcc_set_options$$" \
-		| grep -v "^tcc_malloc$$" \
-		| grep -v "^tcc_realloc$$" \
-		| grep -v "^tcc_free$$" \
-		| grep -v "^tcc_get_section_ptr$$" \
+		| grep -v "^tcc_load_offline_section$$" \
 		> $@
 
 #~ libtcc.a: libtcctmp.a localsyms
 	#~ $(OBJCOPY) libtcctmp.a libtcc.a --localize-symbols localsyms
 
 libtcctmp.o: libtcc.o tccpp.o tccgen.o tccelf.o tccasm.o tccrun.o arm-gen.o
-	$(LD_REAL) -r -o $@ $^
+	$(LD) -r -o $@ $^
 
 libtccx.o: libtcctmp.o localsyms
 	$(OBJCOPY) $< $@ --localize-symbols localsyms

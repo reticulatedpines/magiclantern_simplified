@@ -14,10 +14,11 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
 void* edmac_memcpy_start(void* dst, void* src, size_t length);
 void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h);
 void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
+void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);
+void edmac_copy_rectangle_adv_cleanup();
 
 /* these are blocking tho */
 void edmac_memcpy_finish();
-void edmac_copy_rectangle_finish();
 void edmac_copy_rectangle_finish();
 
 #endif

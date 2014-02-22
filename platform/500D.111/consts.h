@@ -2,7 +2,6 @@
  *  500D 1.1.1 consts
  */
 
-#define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses. TODO: Alex, plese double check it. reboot.c used a different address
 #define LEDON 0x46
 #define LEDOFF 0x44

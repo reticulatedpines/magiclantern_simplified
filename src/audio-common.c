@@ -82,7 +82,7 @@ static CONFIG_INT( "audio.lovl",       lovl,           0 );
 static CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 static int loopback = 1;
 static CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-static CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
+static CONFIG_INT( "audio.filters",    enable_filters,        0 ); //disable the HPF, LPF and pre-emphasis filters
 #define cfg_draw_meters 1
 static CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 static int do_draw_meters = 0;
@@ -841,7 +841,7 @@ audio_reg_dump_once()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
         {
-            snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "ML/audio%02d.LOG", log_number);
+            snprintf(log_filename, sizeof(log_filename), "ML/audio%02d.LOG", log_number);
             unsigned size;
             if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
             if (size == 0) break;

@@ -146,7 +146,7 @@ static void post_deflicker_task()
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
 
     console_printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
-    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
+    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, get_shooting_card()->file_number, correction);
     give_semaphore(deflicker_sem);
 }
 
@@ -173,7 +173,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     if (is_continuous_drive())
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
 
-    if (!post_deflicker)
+    if (post_deflicker)
     {
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "XMP");
         MENU_SET_RINFO("%dEV/%d%%", post_deflicker_target_level, post_deflicker_percentile);

@@ -85,6 +85,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
 #endif
 
+#ifdef CONFIG_600D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
+#endif
+
 #ifdef CONFIG_5D3
 //~ #define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)  /* 113 */
 #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
@@ -397,7 +401,13 @@ static int raw_lv_get_resolution(int* width, int* height)
     *height = zoom ? 1106 : mv640crop ? 624 : mv720 || mv640 ?  720 : 1182;
     return 1;
     #endif
-    
+
+    #ifdef CONFIG_600D
+    *width  = zoom ? 2520 : mv1080crop ? 1952 : mv720  ? 1888 : 1888;
+    *height = zoom ? 1106 : mv1080crop ? 1048 : mv720  ?  720 : 1182;
+    return 1;
+    #endif
+
     /* unknown camera? */
     return 0;
 
@@ -841,9 +851,9 @@ static int raw_update_params_work()
 
     #ifdef RAW_DEBUG_DUMP
     dbg_printf("saving raw buffer...\n");
-    dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), CARD_DRIVE"raw.buf");
+    dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), "raw.buf");
     dbg_printf("saving DNG...\n");
-    save_dng(CARD_DRIVE"raw.dng", &raw_info);
+    save_dng("raw.dng", &raw_info);
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     dbg_printf("done\n");
     #endif
@@ -872,7 +882,9 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     preview_rect_w = w;
     preview_rect_h = h;
 
-    get_yuv422_vram(); // update vram parameters
+    /* note: this will call BMP_LOCK */
+    /* not exactly a good idea when we have already acquired raw_lock */
+    //~ get_yuv422_vram(); // update vram parameters
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
     lv2raw.tx = x - BM2RAW_DX(os.x0);
@@ -1861,6 +1873,9 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
 
 static void raw_init()
 {
+    /* make sure we have a valid set of VRAM parameters (just in case, if we are starting with globaldraw off */
+    get_yuv422_vram();
+    
     raw_lock = CreateRecursiveLock(0);
 }
 

@@ -198,7 +198,7 @@ static void script_reset_params();
 static char* get_script_path(int script_index)
 {
     static char path[50];
-    snprintf(path, sizeof(path), "%sML/SCRIPTS/%s", MODULE_CARD_DRIVE, script_list[script_index]);
+    snprintf(path, sizeof(path), "ML/SCRIPTS/%s", script_list[script_index]);
     return path;
 }
 

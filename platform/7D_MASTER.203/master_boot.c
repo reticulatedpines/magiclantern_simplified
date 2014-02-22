@@ -116,8 +116,8 @@ void backup_region(char *file, uint32_t base, uint32_t length)
 void backup_task()
 {
     msleep(1000);
-    backup_region(CARD_DRIVE "ML/LOGS/M_ROM1.BIN", 0xF8000000, 0x01000000);
-    backup_region(CARD_DRIVE "ML/LOGS/M_ROM0.BIN", 0xF0000000, 0x01000000);
+    backup_region("ML/LOGS/M_ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region("ML/LOGS/M_ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 

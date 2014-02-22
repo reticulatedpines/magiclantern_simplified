@@ -1,5 +1,3 @@
-
-
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -12,6 +10,7 @@
 #include "version.h"
 #include "edmac.h"
 #include "asm.h"
+#include "lvinfo.h"
 
 #ifdef CONFIG_ELECTRONIC_LEVEL
 
@@ -73,12 +72,40 @@ void show_electronic_level()
     int angle10 = angle100/10;
     draw_electronic_level(angle10, prev_angle10, force_redraw);
     draw_electronic_level(angle10 + 1800, prev_angle10 + 1800, force_redraw);
-    //~ draw_line(x0, y0, x0 + r * cos(angle), y0 + r * sin(angle), COLOR_BLUE);
     prev_angle10 = angle10;
-
-    if (angle10 > 1800) angle10 -= 3600;
-    bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
 }
 
-#endif
+#define FMT_FIXEDPOINT1E(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "=", ABS(x)/10, ABS(x)%10
 
+static LVINFO_UPDATE_FUNC(electronic_level_update)
+{    
+    LVINFO_BUFFER(8);
+    if(level_data.status == 2)
+    {
+        int angle10 = (level_data.roll_sensor1 * 256 + level_data.roll_sensor2) / 10;
+        if (angle10 > 1800) angle10 -= 3600;
+    
+        snprintf(buffer, sizeof(buffer), "%s%d.%d" SYM_DEGREE, FMT_FIXEDPOINT1E(angle10));
+    
+        item->color_fg = angle10 == 0 || ABS(angle10) == 900 || ABS(angle10) == 1800 ? COLOR_GREEN1 : COLOR_WHITE;
+    }
+}
+
+static struct lvinfo_item info_items[] = {
+    {
+        .name = "Electronic level",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = electronic_level_update,
+        .preferred_position = -100,
+        .priority = 1,
+    },
+};
+
+static void electronic_level_init()
+{
+    lvinfo_add_items(info_items, COUNT(info_items));
+}
+
+INIT_FUNC("electronic_level_info", electronic_level_init);
+
+#endif

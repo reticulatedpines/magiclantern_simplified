@@ -87,12 +87,12 @@ static void edmac_memcpy_init()
 
 INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
 
-static void edmac_read_complete_cbr (int ctx)
+static void edmac_read_complete_cbr(void *ctx)
 {
     give_semaphore(edmac_read_done_sem);
 }
 
-static void edmac_write_complete_cbr (int ctx)
+static void edmac_write_complete_cbr(void * ctx)
 {
 }
 
@@ -117,7 +117,7 @@ void edmac_memcpy_res_unlock()
     #endif
 }
 
-void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
     take_semaphore(edmac_memcpy_sem, 0);
     
@@ -129,12 +129,12 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
     uint32_t dst_adjusted = ((uint32_t)dst & 0x1FFFFFFF) + dst_x + dst_y * dst_width;
     
     /* only read channel will emit a callback when reading from memory is done. write channels would just continue */
-    RegisterEDmacCompleteCBR(edmac_read_chan, &edmac_read_complete_cbr, 0);
-    RegisterEDmacAbortCBR(edmac_read_chan, &edmac_read_complete_cbr, 0);
-    RegisterEDmacPopCBR(edmac_read_chan, &edmac_read_complete_cbr, 0);
-    RegisterEDmacCompleteCBR(edmac_write_chan, &edmac_write_complete_cbr, 0);
-    RegisterEDmacAbortCBR(edmac_write_chan, &edmac_write_complete_cbr, 0);
-    RegisterEDmacPopCBR(edmac_write_chan, &edmac_write_complete_cbr, 0);
+    RegisterEDmacCompleteCBR(edmac_read_chan, cbr_r, cbr_ctx);
+    RegisterEDmacAbortCBR(edmac_read_chan, cbr_r, cbr_ctx);
+    RegisterEDmacPopCBR(edmac_read_chan, cbr_r, cbr_ctx);
+    RegisterEDmacCompleteCBR(edmac_write_chan, cbr_w, cbr_ctx);
+    RegisterEDmacAbortCBR(edmac_write_chan, cbr_w, cbr_ctx);
+    RegisterEDmacPopCBR(edmac_write_chan, cbr_w, cbr_ctx);
     
     /* connect the selected channels to 6 so any data read from RAM is passed to write channel */
     ConnectWriteEDmac(edmac_write_chan, dmaConnection);
@@ -162,13 +162,9 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
     return dst;
 }
 
-void edmac_copy_rectangle_adv_finish()
+/* cleanup channel configuration and release semaphore */
+void edmac_copy_rectangle_adv_cleanup()
 {
-    /* wait until read is finished */
-    int r = take_semaphore(edmac_read_done_sem, 1000);
-    if (r != 0)
-        NotifyBox(2000, "EDMAC timeout");
-
     /* set default CBRs again and stop both DMAs */
     UnregisterEDmacCompleteCBR(edmac_read_chan);
     UnregisterEDmacAbortCBR(edmac_read_chan);
@@ -178,6 +174,26 @@ void edmac_copy_rectangle_adv_finish()
     UnregisterEDmacPopCBR(edmac_write_chan);
 
     give_semaphore(edmac_memcpy_sem);
+}
+
+/* this function waits for the DMA transfer being finished by blocked wait on the read semaphore.
+   as soon the semaphore was taken, cleanup edmac configuration and release global EDMAC semaphore.
+ */
+void edmac_copy_rectangle_adv_finish()
+{
+    /* wait until read is finished */
+    int r = take_semaphore(edmac_read_done_sem, 1000);
+    if(r != 0)
+    {
+        NotifyBox(2000, "EDMAC timeout");
+    }
+    
+    edmac_copy_rectangle_adv_cleanup();
+}
+
+void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+{
+    return edmac_copy_rectangle_cbr_start(dst, src, src_width, src_x, src_y, dst_width, dst_x, dst_y, w, h, &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
 }
 
 void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
@@ -364,6 +380,12 @@ uint32_t raw_write_chan = 4;
 #ifdef CONFIG_60D
 uint32_t raw_write_chan = 1;
 #endif
+
+#ifdef CONFIG_600D 
+// write-index 1, 4, 6, 8, 10, 11, 13
+uint32_t raw_write_chan = 4;
+#endif
+
 
 static void edmac_slurp_complete_cbr (int ctx)
 {

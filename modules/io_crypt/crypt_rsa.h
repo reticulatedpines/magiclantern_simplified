@@ -3,22 +3,24 @@
 
 typedef struct
 {
-	unsigned char id;
-	char *name;
-	char *primefac;
-	char *key;
+    unsigned char id;
+    char *name;
+    char *primefac;
+    char *key;
 } t_crypt_key;
 
 typedef struct
 {
     t_crypt_key pub_key;
     t_crypt_key priv_key;
+    uint32_t progress;
 } rsa_ctx_t;
 
 
 t_crypt_key *crypt_rsa_get_priv(crypt_priv_t *priv);
 t_crypt_key *crypt_rsa_get_pub(crypt_priv_t *priv);
 uint32_t crypt_rsa_get_keysize(crypt_priv_t *priv);
+uint32_t crypt_rsa_get_keyprogress(crypt_priv_t *priv);
 uint32_t crypt_rsa_blocksize(crypt_priv_t *priv);
 void crypt_rsa_generate_keys(crypt_priv_t *priv);
 void crypt_rsa_set_keysize(uint32_t size);

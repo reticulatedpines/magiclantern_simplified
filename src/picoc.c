@@ -41,7 +41,7 @@ void script_reset_params();
 static char* get_script_path(int script_index)
 {
     static char path[50];
-    snprintf(path, sizeof(path), CARD_DRIVE"ML/SCRIPTS/%s", script_list[script_index]);
+    snprintf(path, sizeof(path), "ML/SCRIPTS/%s", script_list[script_index]);
     return path;
 }
 
@@ -105,7 +105,7 @@ static int is_valid_script_filename(char* filename)
 static void find_scripts(void)
 {
     struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/SCRIPTS/", &file );
+    struct fio_dirent * dirent = FIO_FindFirstEx( "ML/SCRIPTS/", &file );
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "Scripts dir missing" );
