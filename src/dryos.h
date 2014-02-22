@@ -44,6 +44,7 @@
 #include "consts.h"
 #include <stdarg.h>
 #include "exmem.h"
+#include "fio-ml.h"
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)

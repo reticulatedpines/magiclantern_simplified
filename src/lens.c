@@ -32,7 +32,6 @@
 #include "version.h"
 #include "module.h"
 #include "raw.h"
-#include "fio-ml.h"
 
 // for movie logging
 static char* mvr_logfile_buffer = 0;

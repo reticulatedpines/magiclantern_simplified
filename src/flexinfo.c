@@ -7,7 +7,6 @@
 #include <lens.h>
 #include <version.h>
 #include <flexinfo.h>
-#include <fio-ml.h>
 
 #ifdef FEATURE_FLEXINFO
 

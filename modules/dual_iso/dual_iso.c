@@ -67,7 +67,6 @@
 #include <lens.h>
 #include <math.h>
 #include <fileprefix.h>
-#include <fio-ml.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
