@@ -13,9 +13,14 @@ char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
 
+int is_camera(const char * model, const char * firmware)
+{
+    return streq(__camera_model_short, model) && streq(firmware_version, firmware);
+}
+
 PROP_HANDLER(PROP_CAM_MODEL)
 {
-    memcpy((char *)&camera_model_id, (uint32_t)buf + 32, 4);
+    memcpy((char *)&camera_model_id, (void*)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
 }
 
