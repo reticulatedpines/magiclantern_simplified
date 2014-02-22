@@ -4116,17 +4116,17 @@ static unsigned int raw_rec_init()
     /* default free text string is empty */
     strcpy(raw_tag_str, "");
 
-    cam_eos_m = streq(camera_model_short, "EOSM");
-    cam_5d2 = streq(camera_model_short, "5D2");
-    cam_50d = streq(camera_model_short, "50D");
-    cam_5d3 = streq(camera_model_short, "5D3");
-    cam_550d = streq(camera_model_short, "550D");
-    cam_6d = streq(camera_model_short, "6D");
-    cam_600d = streq(camera_model_short, "600D");
-    cam_650d = streq(camera_model_short, "650D");
-    cam_7d = streq(camera_model_short, "7D");
-    cam_700d = streq(camera_model_short, "700D");
-    cam_60d = streq(camera_model_short, "60D");
+    cam_eos_m = is_camera("EOSM", "2.0.2");
+    cam_5d2   = is_camera("5D2",  "2.1.2");
+    cam_50d   = is_camera("50D",  "1.0.9");
+    cam_5d3   = is_camera("5D3",  "1.1.3");
+    cam_550d  = is_camera("550D", "1.0.9");
+    cam_6d    = is_camera("6D",   "1.1.3");
+    cam_600d  = is_camera("600D", "1.0.2");
+    cam_650d  = is_camera("650D", "1.0.4");
+    cam_7d    = is_camera("7D",   "2.0.3");
+    cam_700d  = is_camera("700D", "1.1.1");
+    cam_60d   = is_camera("60D",  "1.1.1");
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;

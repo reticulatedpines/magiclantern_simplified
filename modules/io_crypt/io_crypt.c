@@ -932,28 +932,28 @@ static unsigned int iocrypt_init()
         iocrypt_files[pos].semaphore = create_named_semaphore("iocrypt_pw", 0);
     }
     
-    if(streq(camera_model_short, "600D"))
+    if(is_camera("600D", "1.0.2"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 600D");
         iodev_table = 0x1E684;
         iodev_ctx = 0x7EB08;
         iodev_ctx_size = 0x18;
     }
-    else if(streq(camera_model_short, "7D"))
+    else if(is_camera("7D", "2.0.3"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 7D");
         iodev_table = 0x2D3B8;
         iodev_ctx = 0x85510;
         iodev_ctx_size = 0x18;
     }
-    else if(streq(camera_model_short, "60D"))
+    else if(is_camera("60D", "1.1.1"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 60D");
         iodev_table = 0x3E2BC;
         iodev_ctx = 0x5CB38;
         iodev_ctx_size = 0x18;
     }
-    else if(streq(camera_model_short, "5D3"))
+    else if(is_camera("5D3", "1.1.3"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 5D3");
         iodev_table = 0x44FA8;
@@ -961,14 +961,14 @@ static unsigned int iocrypt_init()
         iodev_ctx_size = 0x20;
     }
     /*
-    else if(streq(camera_model_short, "650D"))
+    else if(is_camera("650D", "1.0.4"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 650D");
         iodev_table = 0x54060;
         iodev_ctx = 0x7C278;
         iodev_ctx_size = 0x20;
     }
-    else if(streq(camera_model_short, "50D"))
+    else if(is_camera("50D", "1.0.9"))
     {
         trace_write(iocrypt_trace_ctx, "io_crypt: Detected 50D");
         iodev_table = 0x1F208;
@@ -979,7 +979,7 @@ static unsigned int iocrypt_init()
     else
     {
         NotifyBox(2000, "io_crypt: Camera unsupported");
-        return 0;
+        return CBR_RET_ERROR;
     }
     
     iocrypt_password_sem = create_named_semaphore("iocrypt_pw", 1);

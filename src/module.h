@@ -311,6 +311,11 @@ module_symbol_##NAME = { \
 
 #define MODULE_FUNCTION(name) MODULE_SYMBOL(name, ret_0)
 
+/* for camera-specific tricks in modules */
+/* e.g. if (is_camera("5D3", "1.2.3")) { adtg_write_addr = 0x1234 } */
+/* see propvalues.c */
+extern int is_camera(const char * model, const char * firmware);
+
 #ifdef MODULE
 #include "module_strings.h"
 #endif
