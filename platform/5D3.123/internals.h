@@ -21,6 +21,9 @@
 /** This camera has a full-frame sensor */
 #define CONFIG_FULLFRAME
 
+/** This camera has both a CF and an SD slot **/
+#define CONFIG_DUAL_SLOT
+
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW
 #define CONFIG_MOVIE
