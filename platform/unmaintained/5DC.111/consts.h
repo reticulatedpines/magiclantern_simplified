@@ -2,7 +2,6 @@
  *  5Dc 1.1.1 consts
  */
 
-#define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200A0 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDBLUE     *(int*)0xC02200F0
 #define LEDRED      *(int*)0xC02200A0

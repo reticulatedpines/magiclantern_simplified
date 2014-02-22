@@ -876,7 +876,7 @@ void set_ml_palette()
     {      // if you change RGB palette, run this first to get the PB equivalent (comment out BmpDDev semaphores first)
         NotifyBox(10000, "%x ", PB_Palette);
         SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
-        FILE* f = FIO_CreateFileEx(CARD_DRIVE"pb.log");
+        FILE* f = FIO_CreateFileEx("pb.log");
         for (int i = 0; i < 16; i++)
             my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
         FIO_CloseFile(f);

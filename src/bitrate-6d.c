@@ -117,22 +117,22 @@ static void load_h264_ini()
 	gui_uilock(UILOCK_EVERYTHING);
 	if (h2config == 1)
 		{   call("IVAParamMode", "B:/ML/cbr.ini");
-		    //~ call("IVAParamMode", CARD_DRIVE "ML/cbr.ini");
+		    //~ call("IVAParamMode", "ML/cbr.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else if (h2config == 2)
 		 {   call("IVAParamMode", "B:/ML/vbr.ini");
-		   //~ call("IVAParamMode", CARD_DRIVE "ML/vbr.ini");
+		   //~ call("IVAParamMode", "ML/vbr.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else if (h2config == 3)
 		{   call("IVAParamMode", "B:/ML/rc.ini");
-		    //~ call("IVAParamMode", CARD_DRIVE "ML/rc.ini");
+		    //~ call("IVAParamMode", "ML/rc.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else 
 	{	
-    	//~ call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
+    	//~ call("IVAParamMode", "ML/H264.ini");
     	call("IVAParamMode", "B:/ML/H264.ini");
 		NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 	}
@@ -309,7 +309,7 @@ void measure_bitrate() // called once / second
     movie_bytes_written_32k = bytes_written >> 15;
     measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
 }
-
+/* New Card Backend
 #ifdef CONFIG_6D
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
@@ -318,7 +318,7 @@ PROP_INT(PROP_CLUSTER_SIZE_A, cluster_size);
 PROP_INT(PROP_FREE_SPACE_A, free_space_raw);
 #endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-
+*/
 void bitrate_mvr_log(char* mvr_logfile_buffer)
 {
     return;
@@ -343,7 +343,7 @@ void time_indicator_show()
     
     // time until filling the card
     // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
-    int time_cardfill = movie_elapsed_time_01s * free_space_32k / movie_bytes_written_32k / 10;
+    int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card())  / movie_bytes_written_32k / 10;
     
     // time until 4 GB
     int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
@@ -648,8 +648,6 @@ TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
 
 #else /* dummy stubs, just to compile */
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
 int hibr_should_record_wav() { return 0; }
 int is_mvr_buffer_almost_full() { return 0; }
 void movie_indicators_show() {}

@@ -44,6 +44,7 @@
 #include "consts.h"
 #include <stdarg.h>
 #include "exmem.h"
+#include "fio-ml.h"
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
@@ -543,8 +544,6 @@ extern FILE* FIO_CreateFileEx( const char* name );
 extern FILE* FIO_CreateFileOrAppend( const char* name );
 extern int FIO_CopyFile(char *src,char *dst);
 extern int FIO_MoveFile(char *src,char *dst);   /* copy and erase */
-
-unsigned GetFileSize( char* filename );
 
 // stdio
 int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it

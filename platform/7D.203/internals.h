@@ -2,6 +2,9 @@
  * Camera internals for 7D 2.0.3
  */
 
+/** This camera has a CF slot **/
+#define CONFIG_CF_SLOT
+
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 7D port is young, but for development we can enable properties safely. **/
 #define CONFIG_PROP_REQUEST_CHANGE

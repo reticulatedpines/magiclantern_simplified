@@ -7,7 +7,7 @@
 static void find_response_curve(const char* fname)
 {
     char fname_real[255];
-    snprintf(fname_real, sizeof(fname_real), "%sML/LOGS/%s", MODULE_CARD_DRIVE, fname);
+    snprintf(fname_real, sizeof(fname_real), "ML/LOGS/%s", fname);
     FILE* f = FIO_CreateFileEx(fname_real);
 
     ensure_movie_mode();
@@ -67,8 +67,7 @@ static void iso_response_curve_current()
     static char name[100];
     int digic_iso_gain = is_movie_mode() ? get_digic_iso_gain_movie() : get_digic_iso_gain_photo();
 
-    snprintf(name, sizeof(name), "%sML/LOGS/i%d%s%s.txt",
-        MODULE_CARD_DRIVE,
+    snprintf(name, sizeof(name), "ML/LOGS/i%d%s%s.txt",
         raw2iso(lens_info.iso_equiv_raw),
         digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "",
         get_htp() ? "h" : "");

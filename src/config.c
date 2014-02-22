@@ -457,7 +457,7 @@ static char *find_picoc_config_filename()
 {
     for (int i = 0; i < 10; i++)
     {
-        snprintf(last_preset_file, sizeof(last_preset_file), CARD_DRIVE"ML/SCRIPTS/PRESET%d.C", i);
+        snprintf(last_preset_file, sizeof(last_preset_file), "ML/SCRIPTS/PRESET%d.C", i);
 
         if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
             return last_preset_file;
@@ -506,7 +506,7 @@ static MENU_UPDATE_FUNC(config_save_as_picoc_update)
 
     if (preset_just_saved)
     {
-        MENU_SET_NAME(last_preset_file + strlen(CARD_DRIVE"ML/SCRIPTS/"));
+        MENU_SET_NAME(last_preset_file + strlen("ML/SCRIPTS/"));
         if (preset_user_angry)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Change some settings before saving a new preset.");
         last_displayed = t;
@@ -572,7 +572,7 @@ static void delete_config( void * priv, int delta )
 /* config presets */
 
 static const char* config_preset_file = 
-    CARD_DRIVE"ML/SETTINGS/CURRENT.SET";    /* contains the name of current preset */
+    "ML/SETTINGS/CURRENT.SET";    /* contains the name of current preset */
 static int config_preset_index = 0;         /* preset being used right now */
 static int config_new_preset_index = 0;     /* preset that will be used after restart */
 static int config_preset_num = 3;           /* total presets available */
@@ -613,7 +613,7 @@ static struct menu_entry cfg_menus[];
 
 static void config_preset_scan()
 {
-    char* path = CARD_DRIVE "ML/SETTINGS/";
+    char* path = "ML/SETTINGS/";
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
     if(!IS_ERROR(dirent))
@@ -751,7 +751,7 @@ static char* config_choose_startup_preset()
     int size = 0;
 
     /* by default, work in ML/SETTINGS dir */
-    snprintf(config_dir, sizeof(config_dir), CARD_DRIVE "ML/SETTINGS/");
+    snprintf(config_dir, sizeof(config_dir), "ML/SETTINGS/");
 
     /* check for a preset file selected in menu */
     char* preset_name = (char*) read_entire_file(config_preset_file, &size);
@@ -771,7 +771,7 @@ static char* config_choose_startup_preset()
         {
             snprintf(config_selected_by_name, sizeof(config_selected_by_name), preset_name);
             char preset_dir[0x80];
-            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s", preset_name);
+            snprintf(preset_dir, sizeof(preset_dir), "ML/SETTINGS/%s", preset_name);
             if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
             if (is_dir(preset_dir))
             {
@@ -792,7 +792,7 @@ static char* config_choose_startup_preset()
         if (config_selected_by_key[0])
         {
             char preset_dir[0x80];
-            snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.KEY", config_selected_by_key);
+            snprintf(preset_dir, sizeof(preset_dir), "ML/SETTINGS/%s.KEY", config_selected_by_key);
             if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
             if (is_dir(preset_dir))
             {
@@ -811,7 +811,7 @@ static char* config_choose_startup_preset()
     {
         snprintf(config_selected_by_mode, sizeof(config_selected_by_mode), "%s", get_shootmode_name(shooting_mode_custom));
         char preset_dir[0x80];
-        snprintf(preset_dir, sizeof(preset_dir), CARD_DRIVE"ML/SETTINGS/%s.MOD", config_selected_by_mode);
+        snprintf(preset_dir, sizeof(preset_dir), "ML/SETTINGS/%s.MOD", config_selected_by_mode);
         if (!is_dir(preset_dir)) { FIO_CreateDirectory(preset_dir); }
         if (is_dir(preset_dir))
         {

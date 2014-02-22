@@ -533,9 +533,7 @@ int FAST get_ml_topbar_pos()
 
 void free_space_show_photomode()
 {
-    extern int cluster_size;
-    extern int free_space_raw;
-    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+    int free_space_32k = get_free_space_32k(get_shooting_card());
 
     int fsg = free_space_32k >> 15;
     int fsgr = free_space_32k - (fsg << 15);
@@ -682,7 +680,7 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     {
         if (!mirror_locked)
         {
-            int fn = file_number;
+            int fn = get_shooting_card()->file_number;
             
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             SW1(1,50);
@@ -696,7 +694,7 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
             #endif
             
             msleep(500);
-            if (file_number != fn) // Heh... camera took a picture instead. Cool.
+            if (get_shooting_card()->file_number != fn) // Heh... camera took a picture instead. Cool.
                 return 1;
 
             if (lv) // we have somehow got into LiveView, where MLU does nothing... so, no need to wait
@@ -942,7 +940,7 @@ mvr_create_logfile(
     {
         // Movie stopped - write the log file
         char name[100];
-        snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), file_number);
+        snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), get_shooting_card()->file_number);
 
         FILE * mvr_logfile = mvr_logfile = FIO_CreateFileEx( name );
         if( mvr_logfile == INVALID_PTR )
@@ -2313,7 +2311,7 @@ static LVINFO_UPDATE_FUNC(mvi_number_update)
     
     if (is_native_movie_mode())
     {
-        snprintf(buffer, sizeof(buffer), "MVI_%04d", file_number);
+        snprintf(buffer, sizeof(buffer), "MVI_%04d", get_shooting_card()->file_number);
     }
 }
 
@@ -2341,9 +2339,7 @@ static LVINFO_UPDATE_FUNC(free_space_update)
         return;
     }
 
-    extern int cluster_size;
-    extern int free_space_raw;
-    int free_space_32k = (free_space_raw * (cluster_size>>10) / (32768>>10));
+    int free_space_32k = get_free_space_32k(get_shooting_card());
 
     int fsg = free_space_32k >> 15;
     int fsgr = free_space_32k - (fsg << 15);

@@ -2,7 +2,6 @@
  *  1100D 1.0.5 consts
  */
 #include "consts-600d.101.h"
-#define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44

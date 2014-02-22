@@ -601,7 +601,7 @@ void tskmon_trace_thread()
     tskmon_trace_readpos = 0;
     
     /* create a new trace. use it as simple text file writer */
-    tskmon_trace_ctx = trace_start("tskmon", CARD_DRIVE"tskmon.txt");
+    tskmon_trace_ctx = trace_start("tskmon", "tskmon.txt");
     trace_format(tskmon_trace_ctx, 0, '\000');
     
     /* start tskmon trace */

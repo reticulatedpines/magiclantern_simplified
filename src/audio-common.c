@@ -841,7 +841,7 @@ audio_reg_dump_once()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
         {
-            snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "ML/audio%02d.LOG", log_number);
+            snprintf(log_filename, sizeof(log_filename), "ML/audio%02d.LOG", log_number);
             unsigned size;
             if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
             if (size == 0) break;

@@ -2,7 +2,6 @@
  *  50D 1.0.9 consts
  */
 
-#define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44

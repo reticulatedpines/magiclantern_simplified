@@ -75,20 +75,6 @@ int display_idle()
         ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
-#ifndef CONFIG_5D3
-static char dcim_dir_suffix[6];
-static char dcim_dir[100];
-PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
-{
-    snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
-}
-const char* get_dcim_dir()
-{
-    snprintf(dcim_dir, sizeof(dcim_dir), CARD_DRIVE "DCIM/%03d%s", folder_number, dcim_dir_suffix);
-    return dcim_dir;
-}
-#endif
-
 int uniwb_is_active() 
 {
     return 
@@ -1465,7 +1451,7 @@ silent_pic_take_lv_dbg()
     char imgname[100];
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
-        snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
+        snprintf(imgname, sizeof(imgname), "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
         uint32_t size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
@@ -4494,7 +4480,7 @@ void hdr_flag_picture_was_taken()
 
 int hdr_script_get_first_file_number(int skip0)
 {
-    return mod(file_number + 1 - (skip0 ? 1 : 0), 10000);
+    return mod(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
 }
 
 // create a post script for HDR bracketing or focus stacking,
@@ -4507,7 +4493,7 @@ void hdr_create_script(int f0, int focus_stack)
     if (snap_sim) return; // no script for virtual shots
     #endif
     
-    int steps = mod(file_number - f0 + 1, 10000);
+    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
 
     char name[100];
@@ -4565,7 +4551,7 @@ void interval_create_script(int f0)
 {
     if (!interval_scripts) return;
     
-    int steps = mod(file_number - f0 + 1, 10000);
+    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
     
     char name[100];
@@ -5398,7 +5384,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
-        interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
+        interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
         //~ display_on();
     }
 #endif
@@ -5505,10 +5491,10 @@ int take_fast_pictures( int number )
         lens_setup_af(shoot_use_af ? AF_ENABLE : AF_DISABLE);
         
         // continuous mode - simply hold shutter pressed 
-        int f0 = file_number;
+        int f0 = get_shooting_card()->file_number;
         SW1(1,100);
         SW2(1,100);
-        while (mod(f0 + number - file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
+        while (mod(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
             msleep(10);
         }
         SW2(0,100);
@@ -5913,9 +5899,9 @@ shoot_task( void* unused )
         
         #ifdef FEATURE_FLASH_NOFLASH
         // toggle flash on/off for next picture
-        if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
+        if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != get_shooting_card()->file_number % 2)
         {
-            strobo_firing = file_number % 2;
+            strobo_firing = get_shooting_card()->file_number % 2;
             set_flash_firing(strobo_firing);
         }
         
@@ -6351,7 +6337,7 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             if (intervalometer_pictures_taken)
             {
-                interval_create_script(mod(file_number - intervalometer_pictures_taken + 1, 10000));
+                interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
             }
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 1);
