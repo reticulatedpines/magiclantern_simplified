@@ -275,8 +275,11 @@ newlib-libc.a: $(NEWLIB_OBJ)
 newlib-libm.a: $(NEWLIB_LIBM_A)
 	$(call build,CP,$(CP) $^ $@)
 
+gcc-libgcc.a: $(ARM_LIBGCC_A)
+	$(call build,CP,$(CP) $^ $@)
+
 clean::
-	$(call rm_files, newlib-libc.a newlib-libm.a dietlibc.a)
+	$(call rm_files, $(ML_LIBC))
 
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
