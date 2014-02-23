@@ -967,7 +967,7 @@ static unsigned int iocrypt_init()
         iodev_ctx = 0x671D8;
         iodev_ctx_size = 0x20;
     }
-	else if(is_camera("EOSM", "2.0.2"))
+    else if(is_camera("EOSM", "2.0.2"))
     {
         iodev_table = 0x6F518;
         iodev_ctx = 0x9C4A8;
