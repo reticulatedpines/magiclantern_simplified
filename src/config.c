@@ -336,6 +336,82 @@ static struct config_var* config_var_lookup(int* ptr)
 #endif
 }
 
+static struct config_var * get_config_var_struct(const char * name)
+{
+    for(struct config_var *  var = _config_vars_start ; var < _config_vars_end ; var++ )
+    {
+        if (streq(var->name, name))
+        {
+            return var;
+        }
+    }
+    
+#ifdef CONFIG_MODULES
+    return module_get_config_var(name);
+#else
+    return 0;
+#endif
+}
+
+int get_config_var(const char * name)
+{
+    struct config_var * var = get_config_var_struct(name);
+    
+    if(var && var->value)
+    {
+        return *(var->value);
+    }
+    
+    return 0;
+}
+
+static int set_config_var_struct(struct config_var * var, int new_value)
+{
+    if(var && var->value)
+    {
+        //check if the callback routine exists
+        if(var->update)
+        {
+            //run the callback routine
+            int cbr_result = var->update(var, *(var->value), new_value);
+            //if the cbr returns false, it means we are not allowed to change the value
+            if(cbr_result)
+            {
+                *(var->value) = new_value;
+                return cbr_result;
+            }
+        }
+        else
+        {
+            //no cbr so just set the value
+            *(var->value) = new_value;
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
+int set_config_var(const char * name, int new_value)
+{
+    return set_config_var_struct(get_config_var_struct(name), new_value);
+}
+
+int set_config_var_ptr(int* ptr, int new_value)
+{
+    struct config_var * var = config_var_lookup(ptr);
+    
+    if(ptr && !var)
+    {
+        //this is not actually a config var, so just set the value
+        *ptr = new_value;
+        return 1;
+    }
+    
+    return set_config_var_struct(var, new_value);
+}
+
+
 int config_var_was_changed(int* ptr)
 {
     struct config_var * var = config_var_lookup(ptr);

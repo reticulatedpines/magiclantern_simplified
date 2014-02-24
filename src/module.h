@@ -281,6 +281,9 @@ int module_unset_config_cbr();
 /* lookup a pointer in the list of config variables */
 struct config_var* module_config_var_lookup(int* ptr);
 
+/* lookup a config variable by name */
+struct config_var * module_get_config_var(const char * name);
+
 struct module_symbol_entry
 {
     const char * name;
