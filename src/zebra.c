@@ -3490,7 +3490,7 @@ int handle_zoom_overlay(struct event * event)
 #endif
 
     // move AF frame when recording
-    if (RECORDING && liveview_display_idle() && is_manual_focus())
+    if (RECORDING_H264 && liveview_display_idle() && is_manual_focus())
     {
         if (event->param == BGMT_PRESS_LEFT)
             { move_lv_afframe(-300, 0); return 0; }
