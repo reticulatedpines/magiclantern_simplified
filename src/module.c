@@ -1534,6 +1534,23 @@ static struct menu_entry module_debug_menu[] = {
     },
 };
 
+struct config_var * module_get_config_var(const char * name)
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_config_t * config = module_list[mod].config;
+        if(module_list[mod].valid && config)
+        {
+            for (module_config_t * mconfig = config; mconfig && mconfig->name; mconfig++)
+            {
+                if (streq(mconfig->ref->name, name))
+                    return (struct config_var *) mconfig->ref;
+            }
+        }
+    }
+    return 0;
+}
+
 struct config_var* module_config_var_lookup(int* ptr)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
