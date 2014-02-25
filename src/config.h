@@ -107,7 +107,7 @@ __config_##VAR = \
         _CONFIG_VAR( NAME, 0, int, VAR, VALUE, NULL )
 
 #define CONFIG_INT_UPDATE( NAME, VAR, VALUE, UPDATE_CBR ) \
-        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, UPDATE )
+        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, UPDATE_CBR )
 
 #define _CONFIG_ARRAY_ELEMENT( NAME, TYPE_ENUM, VAR, INDEX, VALUE ) \
 struct config_var \
