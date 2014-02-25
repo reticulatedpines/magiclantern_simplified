@@ -649,7 +649,7 @@ void set_afma(int value, int mode);
 
 #include "mem.h"
 
-#define IS_ML_PTR(val) ((uintptr_t)(val) > (uintptr_t)0x1000)
+#define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
 
 
 /* beeps */
