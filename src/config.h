@@ -106,14 +106,8 @@ __config_##VAR = \
 #define CONFIG_INT( NAME, VAR, VALUE ) \
         _CONFIG_VAR( NAME, 0, int, VAR, VALUE, NULL )
 
-#define CONFIG_UNSIGNED( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 0, unsigned int, VAR, VALUE, NULL )
-
 #define CONFIG_INT_UPDATE( NAME, VAR, VALUE, UPDATE_CBR ) \
         _CONFIG_VAR( NAME, 0, int, VAR, VALUE, UPDATE )
-
-#define CONFIG_UNSIGNED_UPDATE( NAME, VAR, VALUE, UPDATE_CBR ) \
-        _CONFIG_VAR( NAME, 0, unsigned int, VAR, VALUE, UPDATE_CBR )
 
 #define _CONFIG_ARRAY_ELEMENT( NAME, TYPE_ENUM, VAR, INDEX, VALUE ) \
 struct config_var \
