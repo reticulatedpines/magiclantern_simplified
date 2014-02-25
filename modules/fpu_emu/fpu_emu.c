@@ -209,32 +209,40 @@ static MENU_UPDATE_FUNC(fpu_emu_update_task)
 static uint32_t __attribute__((naked)) fpu_emu_test(uint32_t a, uint32_t b)
 {
     asm("\
-        FLTS F0, R0;\
-        FLTS F1, R1;\
-        FLTS F2, R1;\
-        \
-        ADFS F0, F0, F1;\
-        MUFS F0, F2, F0;\
-        MUFS F0, F2, F0;\
-        DVFS F0, F0, #5;\
-        \
-        FIX R0, F0;\
-        MOV PC, LR;\
+        MCR     p1, 0, R0,c0,c0, 0  ; /* FLTS F0, R0;     */ \
+        MCR     p1, 0, R1,c1,c0, 0  ; /* FLTS F1, R1;     */ \
+        MCR     p1, 0, R1,c2,c0, 0  ; /* FLTS F2, R1;     */ \
+        CDP     p1, 0, c0,c0,c1, 0  ; /* ADFS F0, F0, F1; */ \
+        CDP     p1, 1, c0,c2,c0, 0  ; /* MUFS F0, F2, F0; */ \
+        CDP     p1, 1, c0,c2,c0, 0  ; /* MUFS F0, F2, F0; */ \
+        CDP     p1, 4, c0,c0,c13, 0 ; /* DVFS F0, F0, #5; */ \
+        MRC     p1, 0, R0,c0,c0, 0  ; /* FIX R0, F0;      */ \
+        MOV PC, LR                  ;\
     ");
+}
+
+static uint32_t fpu_emu_check()
+{
+    /* make sure the range doesn't exceed unsigned integer range and is dividable by 5 */
+    uint32_t var0 = (rand() & 0x3F) + 1;
+    uint32_t var1 = ((rand() & 0x3F) + 1) * 5;
+    uint32_t ret_int = ((var0 + var1) * var1 * var1) / 5;
+    
+    return (fpu_emu_test(var0, var1) == ret_int);
 }
 
 static MENU_SELECT_FUNC(fpu_emu_select)
 {
-    uint32_t ret = fpu_emu_test(40, 50);
+    for(uint32_t loop = 0; loop < 100; loop++)
+    {
+        if(!fpu_emu_check())
+        {
+            NotifyBox(2000, "FPU check error");
+            return;
+        }
+    }
     
-    if(ret == 45000)
-    {
-        NotifyBox(2000, "FPU Emulation confirmed working");
-    }
-    else
-    {
-        NotifyBox(2000, "FPU Emulation returned invalid value");
-    }
+    NotifyBox(2000, "FPU check successful");
 }
 
 
