@@ -124,26 +124,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;
     }
-    //console_printf("Added %d Magic Lantern symbols\n", count);
-
-
-    /* these are just to make the code compile */
-    void longjmp();
-    void setjmp();
-
-    /* ToDo: parse the old plugin sections as all needed OS stubs are already described there */
-    tcc_add_symbol(s, "msleep", &msleep);
-    tcc_add_symbol(s, "longjmp", &longjmp);
-    tcc_add_symbol(s, "strcpy", &strcpy);
-    tcc_add_symbol(s, "setjmp", &setjmp);
-    //~ tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
-    //~ tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
-    tcc_add_symbol(s, "vsnprintf", &vsnprintf);
-    tcc_add_symbol(s, "strlen", &strlen);
-    tcc_add_symbol(s, "memcpy", &memcpy);
-    tcc_add_symbol(s, "console_printf", &console_printf);
-    tcc_add_symbol(s, "task_create", &task_create);
-
+    
     free_dma_memory(buf);
     return 0;
 }
