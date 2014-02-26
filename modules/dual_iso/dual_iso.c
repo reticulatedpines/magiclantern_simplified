@@ -425,6 +425,7 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
         return 0;
 
     uint32_t* lv = (uint32_t*)get_yuv422_vram()->vram;
+    if (!lv) return 0;
 
     /* try to guess the period of alternating lines */
     int avg[5];
