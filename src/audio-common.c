@@ -78,13 +78,69 @@ static struct gain_struct gain = {
     .sem                    = (void*) 1,
 };
 
-static CONFIG_INT( "audio.lovl",       lovl,           0 );
-static CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
+
+static int lovl_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
+    *(var->value) = COERCE(new_value, 0, 3);
+    audio_monitoring_update();
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static int audio_monitoring_var_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_HEADPHONE_MONITORING
+    *(var->value) = new_value;
+    audio_monitoring_update();
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static int alc_enable_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_AGC_TOGGLE
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static int input_choice_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_INPUT_SOURCE
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static int enable_filters_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_WIND_FILTER
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static CONFIG_INT_UPDATE("audio.lovl",         lovl,             0, lovl_update );
+static CONFIG_INT_UPDATE("audio.alc-enable",   alc_enable,       0, alc_enable_update );
 static int loopback = 1;
-static CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-static CONFIG_INT( "audio.filters",    enable_filters,        0 ); //disable the HPF, LPF and pre-emphasis filters
+static CONFIG_INT_UPDATE("audio.input-choice", input_choice,     4, input_choice_update ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+static CONFIG_INT_UPDATE("audio.filters",      enable_filters,   0, enable_filters_update ); //disable the HPF, LPF and pre-emphasis filters
 #define cfg_draw_meters 1
-static CONFIG_INT("audio.monitoring", audio_monitoring, 1);
+static CONFIG_INT_UPDATE("audio.monitoring",   audio_monitoring, 1, audio_monitoring_var_update );
 static int do_draw_meters = 0;
 
 static struct audio_level audio_levels[2];
@@ -998,14 +1054,6 @@ PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
 
 static void
-audio_monitoring_toggle( void * priv, int delta )
-{
-    audio_monitoring = !audio_monitoring;
-    audio_monitoring_update(); //call audio_monitoring_force_display()
-
-}
-
-static void
 enable_recording(int mode)
 {
     switch( mode )
@@ -1063,7 +1111,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 void input_toggle()
 {
 #ifdef FEATURE_INPUT_SOURCE
-    audio_input_toggle(&input_choice, 1);
+    set_config_var_ptr(&input_choice, input_choice + 1);
     NotifyBox(2000, "Input: %s", get_audio_input_string());
 #endif
 }
