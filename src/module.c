@@ -335,10 +335,6 @@ static void _module_load_all(uint32_t list_only)
         void* buf = (void*) malloc(size);
         
         reloc_status = tcc_relocate(state, buf);
-
-        /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
-        clean_d_cache();
-
         module_code = buf;
     }
     if(size < 0 || reloc_status < 0)
@@ -432,6 +428,9 @@ static void _module_load_all(uint32_t list_only)
             module_config_load(filename, &module_list[mod]);
         }
     }
+    
+    /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
+    sync_caches();
     
     /* go through all modules and initialize them */
     console_printf("Init modules...\n");

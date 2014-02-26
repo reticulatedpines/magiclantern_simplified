@@ -196,14 +196,6 @@ void __attribute__ ((naked)) mem_prot_irq_end_part()
     );
 }
 
-static void clean_i_cache()
-{
-    asm(
-        "mov r0, #0\n"
-        "mcr p15, 0, r0, c7, c5, 0\n" // clean I cache
-        : : : "r0"
-    );
-}
 
 unsigned int mem_prot_find_hooks()
 {
@@ -311,8 +303,8 @@ void mem_prot_uninstall()
         
         : : : "r4"
     );
-    clean_d_cache();
-    clean_i_cache();
+    
+    sync_caches();
     
     sei(int_status);
 }
@@ -379,8 +371,7 @@ void mem_prot_install()
         : : : "r4"
     );
     
-    clean_d_cache();
-    clean_i_cache();
+    sync_caches();
     
     sei(int_status);
 }
