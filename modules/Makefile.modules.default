@@ -1,4 +1,4 @@
 MODULE_CFLAGS += -I../../src/
 ML_MODULES_STATIC ?=
-ML_MODULES_DYNAMIC ?= raw_rec file_man pic_view ettr dual_iso autoexpo arkanoid silent dot_tune deflick mlv_play mlv_rec mlv_snd
+ML_MODULES_DYNAMIC ?= raw_rec file_man pic_view ettr dual_iso autoexpo arkanoid silent dot_tune deflick mlv_play mlv_rec mlv_snd adv_int
 
