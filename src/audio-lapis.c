@@ -29,18 +29,27 @@
 #include "gui.h"
 #include "audio-common.c"
 
-// Set defaults
-CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
-CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      0 );
-CONFIG_INT( "audio.analog_boost",   cfg_analog_boost,     0 ); //test
-CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        1 );
-CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
-CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
+static int override_audio_update(struct config_var* var, int old_value, int new_value);
+static int analog_gain_update(struct config_var* var, int old_value, int new_value);
+static int analog_boost_update(struct config_var* var, int old_value, int new_value);
+static int audio_filter_update(struct config_var* var, int old_value, int new_value);
+static int filter_hpf2config_update(struct config_var* var, int old_value, int new_value);
+static int recdgain_update(struct config_var* var, int old_value, int new_value);
+static int dgain_update(struct config_var* var, int old_value, int new_value);
+static int effect_mode_update(struct config_var* var, int old_value, int new_value);
 
-CONFIG_INT( "audio.dgain",          cfg_recdgain,         0 );
-CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
-CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
-CONFIG_INT( "audio.effect.mode",    cfg_effect_mode,      0 );
+// Set defaults
+CONFIG_INT_UPDATE( "audio.override_audio", cfg_override_audio,   0, override_audio_update );
+CONFIG_INT_UPDATE( "audio.analog_gain",    cfg_analog_gain,      0, analog_gain_update );
+CONFIG_INT_UPDATE( "audio.analog_boost",   cfg_analog_boost,     0, analog_boost_update ); //test
+CONFIG_INT_UPDATE( "audio.enable_dc",      cfg_filter_dc,        1, audio_filter_update );
+CONFIG_INT_UPDATE( "audio.enable_hpf2",    cfg_filter_hpf2,      0, audio_filter_update );
+CONFIG_INT_UPDATE( "audio.hpf2config",     cfg_filter_hpf2config,7, filter_hpf2config_update );
+
+CONFIG_INT_UPDATE( "audio.dgain",          cfg_recdgain,         0, recdgain_update );
+CONFIG_INT_UPDATE( "audio.dgain.l",        dgain_l,              8, dgain_update );
+CONFIG_INT_UPDATE( "audio.dgain.r",        dgain_r,              8, dgain_update );
+CONFIG_INT_UPDATE( "audio.effect.mode",    cfg_effect_mode,      0, effect_mode_update );
 
 
 int audio_meters_are_drawn()
@@ -388,13 +397,6 @@ audio_lovl_toggle( void * priv, int delta )
     audio_ic_set_lineout_vol();
 }
 
-static void
-audio_dgain_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 15);
-    audio_ic_set_RecLRbalance();
-}
-
 
 static int
 get_dgain_val(int isL){
@@ -416,6 +418,76 @@ get_dgain_val(int isL){
     return 0;
 }
 
+static int override_audio_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 1);
+    audio_configure(2);
+    return 1;
+}
+
+static int analog_gain_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 5);
+    audio_ic_set_analog_gain();
+    return 1;
+}
+
+static int analog_boost_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 6);
+    audio_ic_set_micboost();
+    return 1;
+}
+
+static int effect_mode_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 5);
+    audio_ic_set_effect_mode();
+    return 1;
+}
+
+static int audio_filter_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 1);
+    audio_ic_set_filters(OP_STANDALONE);
+    return 1;
+}
+
+static int filter_hpf2config_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 7);
+    audio_ic_set_filters(OP_STANDALONE);
+    return 1;
+}
+
+static int recdgain_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 126);
+    audio_ic_set_recdgain();
+    return 1;
+}
+static int dgain_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = COERCE(new_value, 0, 15);
+    audio_ic_set_RecLRbalance();
+    return 1;
+}
+
+static int alc_enable_update(struct config_var* var, int old_value, int new_value)
+{
+    *(var->value) = new_value;
+    audio_ic_set_agc();
+    return 1;
+}
+
+static int input_choice_update(struct config_var* var, int old_value, int new_value)
+{
+    if(new_value == 3) return 0; //temporarily disabled Ext:balanced. We can't find it.
+    *(var->value) = new_value;
+    audio_ic_set_input(OP_STANDALONE);
+    return 1;
+}
+
 static MENU_UPDATE_FUNC(audio_dgain_display)
 {
     int dgainval = get_dgain_val(entry->priv == &dgain_l ? 1 : 0);
@@ -430,50 +502,10 @@ static MENU_UPDATE_FUNC(audio_lovl_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Headphone monitoring is disabled");
 }
 
-static void
-audio_alc_toggle( void * priv, int delta )
+static MENU_UPDATE_FUNC(audio_input_display)
 {
-    menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_agc();
-}
-
-static void
-audio_input_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 4);
-    if(*(unsigned*)priv == 3) *(unsigned*)priv += delta; //tamporaly disabled Ext:balanced. We can't find it.
-    audio_ic_set_input(OP_STANDALONE);
-}
-
-static void override_audio_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, 1, 0, 1);
-    audio_configure(2);
-}
-
-static void analog_gain_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 5);
-    audio_ic_set_analog_gain();
-}
-
-static void analog_boost_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 6);
-    audio_ic_set_micboost();
-}
-
-static void audio_effect_mode_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 5);
-    audio_ic_set_effect_mode();
-}
-
-/** DSP Filter Function Enable Register p77 HPF1 HPF2 */
-static void audio_filter_dc_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters(OP_STANDALONE);
+    if(input_choice == 3)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "The 'Balanced' option is not working");
 }
 
 static MENU_UPDATE_FUNC(audio_filter_dc_display)
@@ -484,37 +516,11 @@ static MENU_UPDATE_FUNC(audio_filter_dc_display)
     }
 
 }
-static void audio_filter_hpf2_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters(OP_STANDALONE);
-}
-
-static void audio_hpf2config_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 7);
-    audio_ic_set_filters(OP_STANDALONE);
-}
-
-static void
-audio_filters_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters(OP_STANDALONE);
-}
-
-static void
-audio_filters_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters(OP_STANDALONE);
-}
 
 static void
 audio_recdgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -2*delta, 0, 126); 
-    audio_ic_set_recdgain();
+    menu_numeric_toggle(priv, -2*delta, 0, 126);
 }
 
 static int get_cfg_recdgain(){
@@ -546,14 +552,12 @@ static struct menu_entry audio_menus[] = {
         .name        = "Override audio settings",
         .priv           = &cfg_override_audio,
         .max            = 1,
-        .select         = override_audio_toggle,
         .depends_on     = DEP_SOUND_RECORDING,
         .help = "Override audio setting by ML",
     },
     {
         .name        = "Analog gain",
         .priv           = &cfg_analog_gain,
-        .select         = analog_gain_toggle,
         .max            = 5,
         .icon_type      = IT_PERCENT,
         .choices        = CHOICES("0 dB", "+6 dB", "+15 dB", "+24 dB", "+33 dB", "+35 dB"),
@@ -563,7 +567,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name        = "Mic Boost",
         .priv           = &cfg_analog_boost,
-        .select         = analog_boost_toggle,
         .max            = 6,
         .icon_type      = IT_PERCENT,
         .choices        = CHOICES("0 dB","+5 dB","+10 dB","+15 dB","+20 dB","+25 dB","+30 dB"),
@@ -579,7 +582,6 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Record Effect Mode",
                 .priv           = &cfg_effect_mode,
-                .select         = audio_effect_mode_toggle,
                 .max            = 5,
                 .icon_type      = IT_DICE,
                 .choices        = CHOICES("Notch Filter", "EQ", "Notch EQ", "Enhnc REC", "Enhnc RECPLAY", "Loud"),
@@ -590,7 +592,6 @@ static struct menu_entry audio_menus[] = {
                 .priv           = &cfg_recdgain,
                 .max            = 126,
                 .icon_type      = IT_PERCENT,
-                .select         = audio_recdgain_toggle,
                 .help = "Record Digital Volume. ",
                 .edit_mode = EM_MANY_VALUES,
             },
@@ -599,7 +600,6 @@ static struct menu_entry audio_menus[] = {
                 .priv           = &dgain_l,
                 .max            = 15,
                 .icon_type      = IT_PERCENT,
-                .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
                 .edit_mode = EM_MANY_VALUES,
@@ -609,7 +609,6 @@ static struct menu_entry audio_menus[] = {
                 .priv           = &dgain_r,
                 .max            = 15,
                 .icon_type      = IT_PERCENT,
-                .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
                 .edit_mode = EM_MANY_VALUES,
@@ -617,7 +616,6 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "AGC",
                 .priv           = &alc_enable,
-                .select         = audio_alc_toggle,
                 .max            = 1,
                 .help = "Automatic Gain Control - turn it off :)",
                 //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
@@ -629,7 +627,7 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Input source",
         .priv           = &input_choice,
-        .select         = audio_input_toggle,
+        .update         = audio_input_display,
         .max            = 4,
         .icon_type      = IT_ALWAYS_ON,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "Balanced (N/A)", "Auto int/ext"},
@@ -646,7 +644,6 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "DC filter",
                 .priv              = &cfg_filter_dc,
-                .select            = audio_filter_dc_toggle,
                 .max               = 1,
                 .update            = audio_filter_dc_display,
                 .help = "first-order high pass filter for DC cut",
@@ -654,14 +651,12 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "High Pass filter",
                 .priv              = &cfg_filter_hpf2,
-                .select            = audio_filter_hpf2_toggle,
                 .max                = 1,
                 .help = "second-order high pass filter for noise cut",
             },
             {
                 .name = "HPF2 Cutoff Hz",
                 .priv           = &cfg_filter_hpf2config,
-                .select         = audio_hpf2config_toggle,
                 .max            = 7,
                 .icon_type      = IT_PERCENT,
                 .choices        = CHOICES("80Hz", "100Hz", "130Hz", "160Hz", "200Hz", "260Hz", "320Hz", "400Hz"),
@@ -686,14 +681,12 @@ static struct menu_entry audio_menus[] = {
         .name = "Headphone Mon.",
         .priv = &audio_monitoring,
         .max  = 1,
-        .select         = audio_monitoring_toggle,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
         .depends_on     = DEP_SOUND_RECORDING,
     },
     {
         .name = "Headphone Volume",
         .priv           = &lovl,
-        .select         = audio_lovl_toggle,
         .max            = 6,
         .icon_type      = IT_PERCENT,
         .update         = audio_lovl_display,
@@ -720,13 +713,13 @@ static void volume_display()
 
 void volume_up()
 {
-    analog_gain_toggle(&cfg_analog_gain,1);
+    set_config_var_ptr(&cfg_analog_gain, cfg_analog_gain + 1);
     volume_display();
 }
 
 void volume_down()
 {
-    analog_gain_toggle(&cfg_analog_gain,-1);
+    set_config_var_ptr(&cfg_analog_gain, cfg_analog_gain - 1);
     volume_display();
 }
 
@@ -736,12 +729,12 @@ static void out_volume_display()
 }
 void out_volume_up()
 {
-    audio_lovl_toggle(&lovl,1);
+    set_config_var_ptr(&lovl, lovl + 1);
     out_volume_display();
 }
 void out_volume_down()
 {
-    audio_lovl_toggle(&lovl,-1);
+    set_config_var_ptr(&lovl, lovl - 1);
     out_volume_display();
 }
 

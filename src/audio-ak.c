@@ -371,6 +371,28 @@ static int mgain_update(struct config_var* var, int old_value, int new_value)
 #endif
 }
 
+static int alc_enable_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_AGC_TOGGLE
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static int input_choice_update(struct config_var* var, int old_value, int new_value)
+{
+#ifdef FEATURE_INPUT_SOURCE
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
 static int mic_power_update(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_MIC_POWER

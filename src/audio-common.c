@@ -101,28 +101,6 @@ static int audio_monitoring_var_update(struct config_var* var, int old_value, in
 #endif
 }
 
-static int alc_enable_update(struct config_var* var, int old_value, int new_value)
-{
-#ifdef FEATURE_AGC_TOGGLE
-    *(var->value) = new_value;
-    audio_configure( 1 );
-    return 1;
-#else
-    return 0;
-#endif
-}
-
-static int input_choice_update(struct config_var* var, int old_value, int new_value)
-{
-#ifdef FEATURE_INPUT_SOURCE
-    *(var->value) = new_value;
-    audio_configure( 1 );
-    return 1;
-#else
-    return 0;
-#endif
-}
-
 static int enable_filters_update(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_WIND_FILTER
@@ -133,6 +111,9 @@ static int enable_filters_update(struct config_var* var, int old_value, int new_
     return 0;
 #endif
 }
+
+static int alc_enable_update(struct config_var* var, int old_value, int new_value);
+static int input_choice_update(struct config_var* var, int old_value, int new_value);
 
 static CONFIG_INT_UPDATE("audio.lovl",         lovl,             0, lovl_update );
 static CONFIG_INT_UPDATE("audio.alc-enable",   alc_enable,       0, alc_enable_update );
