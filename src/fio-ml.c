@@ -71,7 +71,7 @@ int get_free_space_32k(const struct card_info* card)
 
 
 static CONFIG_INT("card.test", card_test_enabled, 1);
-static CONFIG_INT("card.force_type", card_force_type, 0);
+static CONFIG_INT("card.force_type", card_force_type, 1);
 
 #ifdef CONFIG_5D3
 static void card_test(struct card_info * card)
