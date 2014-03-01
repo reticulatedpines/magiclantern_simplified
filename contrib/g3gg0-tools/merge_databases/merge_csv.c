@@ -13,6 +13,24 @@
 
 char *strdup(const char *s);
 
+void trim_spaces(char *str)
+{
+    char *ptr = str;
+    int length = strlen(str);
+
+    while(isspace(ptr[length - 1]))
+    {
+        length--;
+        ptr[length] = 0;
+    }
+    while(*ptr && isspace(*ptr))
+    {
+        ptr++;
+        length--;
+    }
+
+    memmove(str, ptr, length + 1);
+}
 
 void strlwr(char *str)
 {
@@ -216,12 +234,6 @@ char ***read_stubs(char *file)
         /* fill new line */
         if(fgets(line, sizeof(line), f) > 0)
         {
-            if(!strstr(line, "NSTUB"))
-            {
-                ignored++;
-                continue;
-            }
-            
             char *start = line;
             /* trim leading spaces */
             while(*start && *start == ' ')
@@ -262,10 +274,7 @@ char ***read_stubs(char *file)
             start++;
 
             /* trim trailing spaces of address */
-            while(strrchr(addr, ' '))
-            {
-                *strrchr(addr, ' ') = '\000';
-            }
+            trim_spaces(addr);
             
             /* trim leading spaces */
             while(*start && *start == ' ')
