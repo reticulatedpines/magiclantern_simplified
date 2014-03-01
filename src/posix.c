@@ -66,3 +66,24 @@ void *realloc(void *ptr, size_t size)
     
     return ret;
 }
+
+size_t strlcat(char *dest, const char *src, size_t n)
+{
+    uint32_t dst_len = strlen(dest);
+    uint32_t src_len = strlen(src);
+    uint32_t len = MIN(n - dst_len - 1, src_len);
+    
+    memcpy(&dest[dst_len], src, len);
+    dest[dst_len + len] = '\000';
+    
+    return dst_len + len;
+}
+
+
+char *strcat(char *dest, const char *src)
+{
+    strlcat(dest, src, 0x7FFFFFFF);
+    return dest;
+}
+
+
