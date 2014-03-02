@@ -21,13 +21,13 @@ SUPPORTED_MODELS:=50D 60D 550D 600D 500D 5D2 5D3 7D 650D 700D EOSM 1100D 6D
 # GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 ARM_ABI=none-eabi
-GCC_VERSION=-4.7.3
+GCC_VERSION=-4.8.3
 DIETLIB_VERSION=0.33
 
 NEWLIB_OPT_LEVEL=O3
 DIETLIBC_OPT_LEVEL=Os
 
-ARM_PATH=~/gcc-arm-none-eabi-4_7-2012q4
+ARM_PATH=~/gcc-arm-none-eabi-4_8-2013q4
 ARM_BINPATH=$(ARM_PATH)/bin
 ARM_LIBGCC_PATH=$(ARM_PATH)/lib/gcc/arm-$(ARM_ABI)/$(subst -,,$(GCC_VERSION))
 NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI)-$(NEWLIB_OPT_LEVEL)
@@ -39,7 +39,7 @@ NEWLIB_LIBM_A=$(NEWLIB_PATH)/libm.a
 NEWLIB_LIBC_A=$(NEWLIB_PATH)/libc.a
 DIETLIBC_A=$(DIETLIBC_PATH)/dietlibc.a
 
-ML_LIBC = dietlibc.a newlib-libc.a newlib-libm.a $(ARM_LIBGCC_A)
+ML_LIBC = dietlibc.a newlib-libc.a newlib-libm.a gcc-libgcc.a
 
 CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
 

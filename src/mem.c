@@ -165,7 +165,11 @@ static struct mem_allocator allocators[] = {
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
         .preferred_max_alloc_size = 32 * 1024 * 1024,
+        #ifdef CONFIG_1100D
+        .minimum_alloc_size = 5 * 1024,
+        #else
         .minimum_alloc_size = 32 * 1024,
+        #endif
     },
 #endif
 };

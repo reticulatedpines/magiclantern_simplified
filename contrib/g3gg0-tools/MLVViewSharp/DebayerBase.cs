@@ -133,7 +133,8 @@ namespace MLVViewSharp
 
             /* get the XYZ --> cone reference whites for requested temperatures */
             Matrix dst = coneDomain * KelvinToXYZ(ColorTemperature);
-            Matrix src = coneDomain * KelvinToXYZ(5000);
+            /* verify: do all our matrices that came from dcraw really convert raw to D65? */
+            Matrix src = coneDomain * KelvinToXYZ(6500);
 
             /* scale coordinates in cone color space */
             Matrix xyzScale = new Matrix(3, 3);

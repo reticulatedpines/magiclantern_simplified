@@ -263,7 +263,7 @@ void close_liveview()
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);
-static CONFIG_UNSIGNED("shutter.lock.value", shutter_lock_value, 0);
+static CONFIG_INT("shutter.lock.value", shutter_lock_value, 0);
 
 #ifdef FEATURE_SHUTTER_LOCK
 static void
@@ -286,7 +286,7 @@ static void shutter_lock_step()
 {
     if (is_movie_mode()) // no effect in photo mode
     {
-        unsigned shutter = lens_info.raw_shutter;
+        int shutter = lens_info.raw_shutter;
         if (shutter_lock_value == 0) shutter_lock_value = shutter; // make sure it's some valid value
         if (!gui_menu_shown()) // lock shutter
         {

@@ -72,10 +72,40 @@ select_normal_vectors( void )
     );
 }
 
+/*
+     naming conventions
+    --------------------
+    
+    FLUSH instruction cache:
+        just mark all entries in the I cache as invalid. no other effect than slowing down code execution until cache is populated again.
+    
+    DRAIN write buffer:
+        halt CPU execution until every RAM write operation has finished.
+    
+    FLUSH data cache / cache entry:
+        invalidating the cache content *without* writing back the dirty data into memory. (dangerous!)
+        this will simply mark any data in cache (or in the line) as invalid, no matter if it was written back into RAM.
+        e.g. 
+            mcr p15, 0, Rd, c7, c6, 0  # whole D cache
+            mcr p15, 0, Rd, c7, c6, 1  # single line in D cache
+    
+    CLEAN data cache entry:
+        cleaning is the process of checking a single cahe entry and writing it back into RAM if it was not written yet.
+        this will ensure that the contents of the data cache are also in RAM. only possible for a single line, so we have to loop though all lines.
+        e.g.
+            mcr p15, 0, Rd, c7, c10, 1 # Clean data cache entry (by address)
+            mcr p15, 0, Rd, c7, c14, 1 # Clean data cache entry (by index/segment)
+            
+    CLEAN and FLUSH data cache entry:
+        the logical consequence - write it back into RAM and mark cache entry as invalid. As if it never was in cache.
+        e.g.
+            mcr p15, 0, Rd, c7, c10, 2 # Clean and flush data cache entry (by address)
+            mcr p15, 0, Rd, c7, c14, 2 # Clean and flush data cache entry (by index/segment)
 
+*/
 
-static inline void
-flush_caches( void )
+/* do you really want to call that? */
+static inline void flush_caches()
 {
     uint32_t reg = 0;
     asm(
@@ -88,9 +118,8 @@ flush_caches( void )
     );
 }
 
-
-static inline void
-clean_d_cache( void )
+/* write back all data into RAM and mark as invalid in data cache */
+static inline void clean_d_cache()
 {
     uint32_t segment = 0;
     do {
@@ -103,6 +132,30 @@ clean_d_cache( void )
             );
         }
     } while( segment += 0x40000000 );
+    
+    /* ensure everything is written into RAM, halts CPU execution until pending operations are done */
+    uint32_t reg = 0;
+    asm(
+        "mcr p15, 0, %0, c7, c10, 4\n" // drain write buffer
+        : : "r"(reg)
+    );
+}
+
+/* mark all entries in I cache as invalid */
+static inline void flush_i_cache()
+{
+    asm(
+        "mov r0, #0\n"
+        "mcr p15, 0, r0, c7, c5, 0\n" // flush I cache
+        : : : "r0"
+    );
+}
+
+/* ensure data is written into RAM and the instruction cache is empty so everything will get fetched again */
+static inline void sync_caches()
+{
+    clean_d_cache();
+    flush_i_cache();
 }
 
 // This must be a macro

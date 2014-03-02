@@ -524,7 +524,7 @@ static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
         v = COERCE(round_to_R20(v), min, max);
     }
     
-    *val = v;
+    set_config_var_ptr(val, v);
 }
 
 static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
@@ -557,7 +557,7 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
         }
     }
     
-    *val = v;
+    set_config_var_ptr(val, v);
 }
 
 /* TODO: move these to a math library */
@@ -634,7 +634,7 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     ASSERT(IS_ML_PTR(val));
 
-    *val = mod(*val - min + delta, max - min + 1) + min;
+    set_config_var_ptr(val, mod(*val - min + delta, max - min + 1) + min);
 }
 
 void menu_numeric_toggle_time(int * val, int delta, int min, int max)
@@ -645,9 +645,11 @@ void menu_numeric_toggle_time(int * val, int delta, int min, int max)
         if(deltas[i] * 4 <= (delta < 0 ? *val - 1 : *val)) break;
     delta *= deltas[i];
     
-    *val = (*val + delta) / delta * delta;
-    if(*val > max) *val = min;
-    if(*val < min) *val = max;
+    int new_val = (*val + delta) / delta * delta;
+    if(new_val > max) new_val = min;
+    if(new_val < min) new_val = max;
+    
+    set_config_var_ptr(val, new_val);
 }
 
 static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time)
@@ -669,7 +671,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     }
     else
     {
-        *val = mod(*val - min + delta, max - min + 1) + min;
+        set_config_var_ptr(val, mod(*val - min + delta, max - min + 1) + min);
     }
     
     prev_delta = t - prev_t;
