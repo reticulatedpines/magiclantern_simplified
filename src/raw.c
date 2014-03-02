@@ -627,11 +627,12 @@ static int raw_update_params_work()
 
         #ifdef CONFIG_5D3
         /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
-        width = 5936;
-        height = 3950;
-        skip_left = 120;
-        skip_right = 16;
-        skip_top = 82;
+        width = 5936;       /* note: CR2 size, at least from dcraw, exiftool and adobedng->dcraw, is 5920 */
+        height = 3950+2;    /* add 2 pixels just to make sure there's no useful data after our buffer */
+        skip_left = 122;    /* this gives a tight fit; dcraw uses 124 */
+        skip_right = 18;    /* this part seems to be the beginning of OB, but doesn't end up in the CR2 (or if it does, I don't know how to read it) */
+        skip_top = 80;      /* matches dcraw */
+        skip_bottom = 2;    /* don't use these 2 pixels */
         #endif
 
         #ifdef CONFIG_500D
