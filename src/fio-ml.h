@@ -21,4 +21,8 @@ struct card_info * get_card(int cardId);
 
 int get_free_space_32k (const struct card_info * card);
 
+/* returns true if the specified file or directory exists */
+int is_file(char* path);
+int is_dir(char* path);
+
 #endif

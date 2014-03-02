@@ -554,6 +554,27 @@ int FIO_MoveFile(char *src, char *dst)
     return _FIO_MoveFile(newSrc, newDst);
 }
 
+int is_file(char* path)
+{
+    uint32_t file_size = 0;
+    return !FIO_GetFileSize(path, &file_size);
+}
+
+int is_dir(char* path)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if( IS_ERROR(dirent) )
+    {
+        return 0; // this dir does not exist
+    }
+    else 
+    {
+        FIO_FindClose(dirent);
+        return 1; // dir found
+    }
+}
+
 #ifdef CONFIG_DUAL_SLOT
 struct menu_entry card_menus[] = {
     {
