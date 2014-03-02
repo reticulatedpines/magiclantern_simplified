@@ -1786,15 +1786,12 @@ int get_dxo_dynamic_range(int raw_iso)
     }
     else if (iso_digital < 0)
     {
-        /* there's also a bit of DR lost at ISO 160, 320 and so on,
-         * probably because of quantization error in shadows
-         * in theory, there shouldn't be any, because raw data and white level are scaled by a constant (I guess)
+        /* at ISO 160, 320 and so on, the DR is:
+         * - pretty much the same on old cameras (a tiny bit lost because of quantization error)
+         * - 0.1 stops on new cameras (best guess: starting from 550D)
          * 
-         * I don't know how to estimate it, so... let it be 0.1 EV
-         * 
-         * this may need a closer look
+         * important?
          */
-        dr -= 10;
     }
     
     return dr;
