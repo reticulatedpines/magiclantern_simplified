@@ -312,7 +312,7 @@ static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
     }
 }
 
-void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
+void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X)
 {
     dst = ALIGN32(dst);
     src = ALIGN32(src);

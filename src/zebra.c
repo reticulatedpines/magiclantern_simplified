@@ -3749,7 +3749,7 @@ static void draw_zoom_overlay(int dirty)
         if(y%2 == 0) // The 1100D has half-height LCD res so we line-skip one from the sensor
         #endif
         {
-            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X, 0 /*zoom_overlay_lut*/);
+            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X);
             d += lv->width;
         }
         if (y%X==0) s += hd->width;
