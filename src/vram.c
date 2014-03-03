@@ -8,7 +8,6 @@
 #include "propvalues.h"
 #include "bmp.h"
 #include "menu.h"
-#include "imgconv.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 
