@@ -73,6 +73,7 @@
 #include <config.h>
 #include <math.h>
 #include <cropmarks.h>
+#include <screenshot.h>
 #include "edmac.h"
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -3563,7 +3564,7 @@ cleanup:
     
     if(show_graph)
     {
-        take_screenshot(0);
+        take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
     }
     trace_flush(raw_rec_trace_ctx);
 

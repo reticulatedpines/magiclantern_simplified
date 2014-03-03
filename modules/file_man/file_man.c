@@ -1186,7 +1186,7 @@ static MENU_UPDATE_FUNC(update_file)
             if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
             
             /* error? */
-            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", gPath, filetype->type);
+            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", filename, filetype->type);
             else bmp_printf(FONT_MED, 0, 460, "%s", filename);
             
             if (status != 1) dirty = 1;

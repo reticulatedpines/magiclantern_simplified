@@ -63,6 +63,7 @@
 #include <config.h>
 #include <math.h>
 #include <cropmarks.h>
+#include <screenshot.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
@@ -1877,7 +1878,7 @@ cleanup:
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
-    take_screenshot(0);
+    take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
     #endif
     hack_liveview(1);
     redraw();

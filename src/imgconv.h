@@ -58,4 +58,7 @@ int yuv411_to_422(uint32_t addr);
 
 void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B);
 
+/* you can get pixoff with the *2LV(x,y)/2 macros, e.g. BM2LV(x,y)/2 or LV(x,y)/2 */
+uint32_t yuv422_get_pixel(uint32_t* buf, int pixoff);
+
 #endif /* _imgconv_h_ */

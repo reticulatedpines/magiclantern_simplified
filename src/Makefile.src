@@ -158,6 +158,7 @@ ML_SRC_OBJS = \
 	crop-mode-hack.o \
 	ph_info_disp.o \
 	flexinfo.o \
+	screenshot.o \
 	fileprefix.o \
 	lvinfo.o \
 	ml-cbr.o 

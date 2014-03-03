@@ -65,40 +65,21 @@ static MENU_UPDATE_FUNC(silent_pic_display)
 static char* silent_pic_get_name()
 {
     static char imgname[100];
-    static int silent_number = 1; // cache this number for speed (so it won't check all files until 10000 to find the next free number)
-    
-    static int prev_file_number = -1;
-    static int prev_folder_number = -1;
     
     char *extension   = "DNG";
     int file_number   = get_shooting_card()->file_number;
-    int folder_number = get_shooting_card()->folder_number;
-
-    if (prev_file_number != file_number) silent_number = 1;
-    if (prev_folder_number != folder_number) silent_number = 1;
-    
-    prev_file_number = file_number;
-    prev_folder_number = folder_number;
     
     if (is_intervalometer_running())
     {
-        for ( ; silent_number < 100000000; silent_number++)
-        {
-            snprintf(imgname, sizeof(imgname), "%s/%08d.%s", get_dcim_dir(), silent_number, extension);
-            uint32_t size;
-            if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-            if (size == 0) break;
-        }
+        char pattern[100];
+        snprintf(pattern, sizeof(pattern), "%s/%%08d.%s", get_dcim_dir(), 0, extension);
+        get_numbered_file_name(pattern, 99999999, imgname, sizeof(imgname));
     }
     else
     {
-        for ( ; silent_number < 10000; silent_number++)
-        {
-            snprintf(imgname, sizeof(imgname), "%s/%04d%04d.%s", get_dcim_dir(), file_number, silent_number, extension);
-            uint32_t size;
-            if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-            if (size == 0) break;
-        }
+        char pattern[100];
+        snprintf(pattern, sizeof(pattern), "%s/%04d%%04d.%s", get_dcim_dir(), file_number, 0, extension);
+        get_numbered_file_name(pattern, 9999, imgname, sizeof(imgname));
     }
     bmp_printf(FONT_MED, 0, 35, "%s    ", imgname);
     return imgname;
