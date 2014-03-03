@@ -1442,24 +1442,6 @@ void ensure_movie_mode()
 #endif
 }
 
-#ifdef FEATURE_SCREENSHOT_422
-void
-silent_pic_take_lv_dbg()
-{
-    struct vram_info * vram = get_yuv422_vram();
-    int silent_number;
-    char imgname[100];
-    for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
-    {
-        snprintf(imgname, sizeof(imgname), "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
-        uint32_t size;
-        if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-        if (size == 0) break;
-    }
-    dump_seg(vram->vram, vram->pitch * vram->height, imgname);
-}
-#endif
-
 #ifdef FEATURE_EXPO_ISO
 
 static MENU_UPDATE_FUNC(iso_icon_update)

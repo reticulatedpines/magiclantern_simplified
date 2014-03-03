@@ -80,6 +80,24 @@ struct vram_info * get_yuv422_hd_vram();
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 void vram_clear_lv();
 
+/**
+ * Take a screenshot of the BMP overlay and (optionally) the YUV overlay
+ * and save it as PPM (a very simple image format).
+ * 
+ * filename can be:
+ * - 0 -> screenshot will be VRAM0.PPM to VRAM9999.PPM
+ * - a plain file name, including the PPM extension
+ * - a file pattern containing a %d or similar (e.g. "screen%02d.png")
+ *
+ * also_yuv: if true, also save the LiveView overlay wherever the BMP is transparent.
+ * 
+ * returns 1 on success, 0 on failure.
+ */
+int take_screenshot( char* filename, int also_yuv );
+
+
+/* Coordinate transformations between different VRAMs */
+/* http://magiclantern.wikia.com/wiki/VRAM/Geometry */
 
 // [ sx   0   x ]
 // [  0  sy   y ]

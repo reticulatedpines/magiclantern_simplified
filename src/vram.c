@@ -8,6 +8,7 @@
 #include "propvalues.h"
 #include "bmp.h"
 #include "menu.h"
+#include "imgconv.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 
@@ -453,7 +454,8 @@ void lut_init()
 
 static inline void * get_yuv422buffer(int offset)
 {
-    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
+    /* 5D3 has quad-buffered LV, so the old switch can't work */
+    #if defined(CONFIG_1100D) || defined(CONFIG_6D) || defined(CONFIG_5D3)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
     if (YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_1)
@@ -631,6 +633,114 @@ PROP_HANDLER(PROP_LV_MOVIE_SELECT)
 {
     vram_params_set_dirty();
 }
+
+#ifdef FEATURE_SCREENSHOT
+
+int take_screenshot( char* filename, int also_yuv )
+{
+    beep();
+    
+    uint32_t* lv_buffer = (uint32_t*) get_yuv422_vram()->vram;
+
+    /* setup buffer */
+    /* todo: support HDMI resolutions? */
+    unsigned char * rgb = malloc(720 * 480 * 3);
+    if (!rgb)
+    {
+        return 0;
+    }
+    
+    /* fill it with data */
+    info_led_on();
+    for (int y = 0; y < 480; y++)
+    {
+        for (int x = 0; x < 720; x++)
+        {
+            int p = bmp_getpixel(x, y);
+
+            /* get palette entry (including our DIGIC pokes, if any) */
+            uint32_t pal = shamem_read(LCD_Palette[3*p]);
+            if (!pal) pal = LCD_Palette[3*p + 2];
+            int8_t opacity = (pal >> 24) & 0xFF;
+            uint8_t Y = (pal >> 16) & 0xFF;
+            int8_t  U = (pal >>  8) & 0xFF;
+            int8_t  V = (pal >>  0) & 0xFF;
+            
+            /* handle transparency (incomplete, needs more reverse engineering) */
+            if (also_yuv && lv_buffer)
+            {
+                if (pal == 0x00FF0000) /* fully transparent */
+                {
+                    uint32_t uyvy = lv_buffer[BM2LV(x,y)/4];
+                    Y = UYVY_GET_AVG_Y(uyvy);
+                    U = UYVY_GET_U(uyvy);
+                    V = UYVY_GET_V(uyvy);
+                }
+                else if (opacity == 0 || opacity == 1)  /* semi-transparent? */
+                {
+                    /* todo: use full-res instead of half-res */
+                    uint32_t uyvy = lv_buffer[BM2LV(x,y)/4];
+                    uint8_t Y2 = UYVY_GET_AVG_Y(uyvy);
+                    int8_t U2 = UYVY_GET_U(uyvy);
+                    int8_t V2 = UYVY_GET_V(uyvy);
+                    
+                    Y = ((int)Y + (int)Y2) / 2;
+                    U = ((int)U + (int)U2) / 2;
+                    V = ((int)V + (int)V2) / 2;
+                }
+                /* other transparency codes? */
+            }
+            
+            /* convert to RGB */
+            int R,G,B;
+            yuv2rgb(Y, U, V, &R, &G, &B);
+            
+            /* copy to our buffer */
+            rgb[(y*720 + x)*3    ] = R;
+            rgb[(y*720 + x)*3 + 1] = G;
+            rgb[(y*720 + x)*3 + 2] = B;
+        }
+    }
+    info_led_off();
+
+    /* output filename */
+    char path[100];
+    
+    if (filename)
+    {
+        if (strchr(filename, '%'))
+        {
+            get_numbered_file_name(filename, 9999, path, sizeof(path));
+        }
+        else
+        {
+            snprintf(path, sizeof(path), "%s", filename);
+        }
+    }
+    else
+    {
+        get_numbered_file_name("VRAM%d.PPM", 9999, path, sizeof(path));
+    }
+
+    FILE *f = FIO_CreateFileEx(path);
+    if (f == INVALID_PTR)
+    {
+        free(rgb);
+        return 0;
+    }
+    
+    /* 8-bit RGB */
+    my_fprintf(f, "P6\n720 480\n255\n");
+    
+    FIO_WriteFile(f, rgb, 720*480*3);
+    
+    FIO_CloseFile(f);
+    free(rgb);
+
+    return 1;
+}
+#endif
+
 
 #if CONFIG_DEBUGMSG
 

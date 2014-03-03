@@ -68,38 +68,6 @@ void j_debug_intercept() { debug_intercept(); }
 void j_tp_intercept() { tp_intercept(); }
 #endif
 
-#ifdef FEATURE_SCREENSHOT
-
-void take_screenshot( int also_lv )
-{
-    beep();
-
-    FIO_RemoveFile("TEST.BMP");
-
-    call( "dispcheck" );
-    #ifdef FEATURE_SCREENSHOT_422
-    if (also_lv) silent_pic_take_lv_dbg();
-    #endif
-
-    if (GetFileSize("TEST.BMP") != 0xFFFFFFFF)
-    { // old camera, screenshot saved as TEST.BMP => move it to VRAMxx.BMP
-        msleep(300);
-        for (int i = 0; i < 100; i++)
-        {
-            char fn[50];
-            snprintf(fn, sizeof(fn), "VRAM%d.BMP", i);
-            if (GetFileSize(fn) == 0xFFFFFFFF) // this file does not exist
-            {
-                FIO_RenameFile("TEST.BMP", fn);
-                break;
-            }
-        }
-    }
-
-
-}
-#endif
-
 #if CONFIG_DEBUGMSG
 static int draw_prop = 0;
 
@@ -252,7 +220,7 @@ void guimode_test()
         msleep(1000);
         FIO_RemoveFile(fn);
 
-        take_screenshot(0);
+        take_screenshot(0, 0);
 
         // try to reset to initial gui mode
         SetGUIRequestMode(0);
@@ -2168,7 +2136,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
     TASK_LOOP
     {
-        
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, (void*) hexdump_addr, 32*10);
@@ -2180,7 +2147,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             info_led_blink(1, 20, 1000-20-200);
             screenshot_sec--;
             if (!screenshot_sec)
-                take_screenshot(1);
+                take_screenshot(0, 1);
         }
         #endif
 

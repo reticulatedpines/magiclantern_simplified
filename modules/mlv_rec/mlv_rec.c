@@ -3563,7 +3563,7 @@ cleanup:
     
     if(show_graph)
     {
-        take_screenshot(0);
+        take_screenshot(0, 0);
     }
     trace_flush(raw_rec_trace_ctx);
 
