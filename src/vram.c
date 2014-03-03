@@ -686,30 +686,34 @@ int take_screenshot( char* filename, uint32_t mode )
                 pal = 0x00FF0000;
             }
             
-            if (save_yuv)
+            uint32_t uyvy = 0;
+
+            /* handle transparency (incomplete, needs more reverse engineering) */
+            if (pal == 0x00FF0000) /* fully transparent */
             {
-                /* handle transparency (incomplete, needs more reverse engineering) */
-                if (pal == 0x00FF0000) /* fully transparent */
+                if (save_yuv)
                 {
-                    uint32_t uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
-                    Y = UYVY_GET_AVG_Y(uyvy);
-                    U = UYVY_GET_U(uyvy);
-                    V = UYVY_GET_V(uyvy);
+                    uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
                 }
-                else if (opacity == 0 || opacity == 1)  /* semi-transparent? */
-                {
-                    /* todo: use full-res instead of half-res */
-                    uint32_t uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
-                    uint8_t Y2 = UYVY_GET_AVG_Y(uyvy);
-                    int8_t U2 = UYVY_GET_U(uyvy);
-                    int8_t V2 = UYVY_GET_V(uyvy);
-                    
-                    Y = ((int)Y + (int)Y2) / 2;
-                    U = ((int)U + (int)U2) / 2;
-                    V = ((int)V + (int)V2) / 2;
-                }
-                /* other transparency codes? */
+                Y = UYVY_GET_AVG_Y(uyvy);
+                U = UYVY_GET_U(uyvy);
+                V = UYVY_GET_V(uyvy);
             }
+            else if (opacity == 0 || opacity == 1)  /* semi-transparent? */
+            {
+                if (save_yuv)
+                {
+                    uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
+                }
+                uint8_t Y2 = UYVY_GET_AVG_Y(uyvy);
+                int8_t U2 = UYVY_GET_U(uyvy);
+                int8_t V2 = UYVY_GET_V(uyvy);
+                
+                Y = ((int)Y + (int)Y2) / 2;
+                U = ((int)U + (int)U2) / 2;
+                V = ((int)V + (int)V2) / 2;
+            }
+            /* other transparency codes? */
             
             /* convert to RGB */
             int R,G,B;
