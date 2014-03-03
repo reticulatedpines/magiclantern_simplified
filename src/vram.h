@@ -25,7 +25,6 @@
  */
 
 #include "compiler.h"
-#include "screenshot.h"
 
 /** Write the VRAM to a BMP file named "A:/test.bmp" */
 extern void

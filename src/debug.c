@@ -14,6 +14,7 @@
 #include "edmac.h"
 #include "asm.h"
 #include "beep.h"
+#include "screenshot.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"

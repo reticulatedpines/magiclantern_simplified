@@ -73,6 +73,7 @@
 #include <config.h>
 #include <math.h>
 #include <cropmarks.h>
+#include <screenshot.h>
 #include "edmac.h"
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"

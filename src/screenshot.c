@@ -2,8 +2,8 @@
 
 #include "dryos.h"
 #include "bmp.h"
-#include "vram.h"
 #include "imgconv.h"
+#include "screenshot.h"
 
 #ifdef FEATURE_SCREENSHOT
 
