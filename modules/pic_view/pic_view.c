@@ -209,6 +209,49 @@ err:
     return 0;
 }
 
+static int ppm_show(char* filename)
+{
+    uint32_t size;
+    if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
+    char * buf = fio_malloc(size);
+
+    size_t rc = read_file( filename, buf, size );
+    if( rc != size ) goto err;
+
+    struct vram_info * vram = get_yuv422_vram();
+    uint32_t * lvram = (uint32_t *)vram->vram;
+    if (!lvram) goto err;
+
+    /* only ML screenshots are supported for now, to keep things simple */
+    char* ml_header = "P6\n720 480\n255\n";
+    if (strncmp(buf, ml_header, strlen(ml_header)))
+        goto err;
+    
+    char* rgb = buf + strlen(ml_header);
+    for (int y = 0; y < 480; y++)
+    {
+        for (int x = 0; x < 720; x++)
+        {
+            int R = rgb[(y*720 + x)*3    ];
+            int G = rgb[(y*720 + x)*3 + 1];
+            int B = rgb[(y*720 + x)*3 + 2];
+            uint32_t uyvy = rgb2yuv422(R, G, B);
+
+            int pixoff_dst = LV(x,y) / 2;
+            uint32_t* dst = &lvram[pixoff_dst / 2];
+            uint32_t mask = (pixoff_dst % 2 ? 0xffFF00FF : 0x00FFffFF);
+            *(dst) = (uyvy & mask) | (*(dst) & ~mask);
+        }
+    }
+
+    fio_free(buf);
+    return 1;
+
+err:
+    fio_free(buf);
+    return 0;
+}
+
 FILETYPE_HANDLER(bmp_filehandler)
 {
     switch(cmd)
@@ -245,12 +288,25 @@ FILETYPE_HANDLER(dng_filehandler)
     return 0;
 }
 
+FILETYPE_HANDLER(ppm_filehandler)
+{
+    extern int gui_state;
+    switch(cmd)
+    {
+        case FILEMAN_CMD_VIEW_IN_MENU:
+            if (!menu_request_image_backend()) return 2;
+            if (gui_state != GUISTATE_PLAYMENU) return 2;
+            return ppm_show(filename) ? 1 : -1;
+    }
+    return 0;
+}
 
 static unsigned int pic_view_init()
 {
     fileman_register_type("BMP", "Bitmap image", bmp_filehandler);
     fileman_register_type("422", "YUV422 image", yuv422_filehandler);
     fileman_register_type("DNG", "DNG image", dng_filehandler);
+    fileman_register_type("PPM", "PPM image", ppm_filehandler);
     return 0;
 }
 
