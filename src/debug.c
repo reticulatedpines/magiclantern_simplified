@@ -283,7 +283,7 @@ static void run_test()
     {
         console_printf("%d/1000\n", i);
         
-        /* with this large size, the backend will use shoot_malloc, which returns uncacheable pointers */
+        /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
         void* p = malloc(16*1024*1024 + 64);
         
         if (!p)
@@ -349,17 +349,7 @@ static void run_test()
     exmem_test();
     return;
 #endif
-/*
-#ifdef CONFIG_MEMCHECK
-    console_show();
-    console_printf("should raise error at index=10...\n");
-    char* foo = AllocateMemory(10);
-    foo[9] = 0;
-    foo[10] = 0;
-    FreeMemory(foo);
-    msleep(1000);
-#endif
-*/
+
 #ifdef CONFIG_MODULES
     console_show();
 
@@ -448,7 +438,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     msleep(2000);
 
     {
-        void* buf = shoot_malloc(bufsize);
+        void* buf = fio_malloc(bufsize);
         if (buf)
         {
             FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
@@ -460,7 +450,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
-            shoot_free(buf);
+            fio_free(buf);
             int t1 = get_ms_clock_value();
             int speed = filesize * 1000 * 10 / (t1 - t0);
             bmp_printf(FONT_MED, x, y += font_med.height, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
@@ -771,8 +761,8 @@ static void mem_benchmark_task()
 
     void* buf1 = 0;
     void* buf2 = 0;
-    buf1 = shoot_malloc(bufsize);
-    buf2 = shoot_malloc(bufsize);
+    buf1 = tmp_malloc(bufsize);
+    buf2 = tmp_malloc(bufsize);
     if (!buf1 || !buf2)
     {
         bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
@@ -816,8 +806,8 @@ static void mem_benchmark_task()
     canon_gui_enable_front_buffer(0);
 
 cleanup:
-    if (buf1) shoot_free(buf1);
-    if (buf2) shoot_free(buf2);
+    if (buf1) tmp_free(buf1);
+    if (buf2) tmp_free(buf2);
 }
 
 #endif
@@ -1144,11 +1134,11 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         void* p;
-        TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(p = _alloc_dma_memory(0x20000), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(f = FIO_Open("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
         TEST_TRY_VOID(FIO_CloseFile(f));
-        TEST_TRY_VOID(free_dma_memory(p));
+        TEST_TRY_VOID(_free_dma_memory(p));
 
         {
         int count = 0;
@@ -1824,9 +1814,9 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
     //~ msleep(2000);
     //mem_spy_len is number of int32's
-    if (!dbg_memmirror) dbg_memmirror = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memmirror) dbg_memmirror = malloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memmirror) return;
-    if (!dbg_memchanges) dbg_memchanges = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memchanges) dbg_memchanges = malloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memchanges) return;
     int i;
     //~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
@@ -3158,7 +3148,7 @@ debug_init( void )
 #if CONFIG_DEBUGMSG
     draw_prop = 0;
     static unsigned* property_list = 0;
-    if (!property_list) property_list = SmallAlloc(num_properties * sizeof(unsigned));
+    if (!property_list) property_list = malloc(num_properties * sizeof(unsigned));
     if (!property_list) return;
     unsigned i, j, k;
     unsigned actual_num_properties = 0;
@@ -3397,7 +3387,7 @@ static int TmpMem_Init()
     ASSERT(!tmp_files);
     static int retries = 0;
     tmp_file_index = 0;
-    if (!tmp_files) tmp_files = SmallAlloc(200 * sizeof(struct tmp_file));
+    if (!tmp_files) tmp_files = malloc(200 * sizeof(struct tmp_file));
     if (!tmp_files)
     {
         retries++;
@@ -3410,17 +3400,17 @@ static int TmpMem_Init()
         return 0;
     }
 
-    if (!tmp_buffer) tmp_buffer = (void*)shoot_malloc(TMP_MAX_BUF_SIZE);
+    if (!tmp_buffer) tmp_buffer = (void*)fio_malloc(TMP_MAX_BUF_SIZE);
     if (!tmp_buffer)
     {
         retries++;
         HijackCurrentDialogBox(4,
-            retries > 2 ? "Restart your camera (shoot_malloc err)." :
-                          "Format: shoot_malloc error, retrying..."
+            retries > 2 ? "Restart your camera (fio_malloc err)." :
+                          "Format: fio_malloc error, retrying..."
         );
         beep();
         msleep(2000);
-        SmallFree(tmp_files); tmp_files = 0;
+        free(tmp_files); tmp_files = 0;
         return 0;
     }
 
@@ -3432,8 +3422,8 @@ static int TmpMem_Init()
 
 static void TmpMem_Done()
 {
-    SmallFree(tmp_files); tmp_files = 0;
-    shoot_free(tmp_buffer); tmp_buffer = 0;
+    free(tmp_files); tmp_files = 0;
+    fio_free(tmp_buffer); tmp_buffer = 0;
 }
 
 static void TmpMem_UpdateSizeDisplay(int counting)

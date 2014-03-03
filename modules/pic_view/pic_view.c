@@ -100,7 +100,7 @@ static int dng_show(char* filename)
 {
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
-    char* buf = shoot_malloc(size);
+    char* buf = fio_malloc(size);
     if (!buf) return 0;
 
     size_t rc = read_file( filename, buf, size );
@@ -130,13 +130,13 @@ static int dng_show(char* filename)
 
     vram_clear_lv();
     raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
-    shoot_free(buf);
+    fio_free(buf);
     raw_set_dirty();
     
     bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.jpeg.width, raw_info.jpeg.height);
     return 1;
 err:
-    shoot_free(buf);
+    fio_free(buf);
     raw_set_dirty();
     return 0;
 }
@@ -154,7 +154,7 @@ static int yuv422_show(char* filename)
 {
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
-    uint32_t * buf = shoot_malloc(size);
+    uint32_t * buf = fio_malloc(size);
     if (!buf) return 0;
     struct vram_info * vram = get_yuv422_vram();
     if (!vram->vram) goto err;
@@ -202,11 +202,11 @@ static int yuv422_show(char* filename)
     size_t rc = read_file( filename, buf, size );
     if( rc != size ) goto err;
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
-    shoot_free(buf);
+    fio_free(buf);
     return 1;
 
 err:
-    shoot_free(buf);
+    fio_free(buf);
     return 0;
 }
 

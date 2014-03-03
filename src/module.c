@@ -69,7 +69,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         console_printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
-    buf = alloc_dma_memory(size);
+    buf = fio_malloc(size);
     if(!buf)
     {
         console_printf("Error loading '%s': File too large\n", filename);
@@ -80,7 +80,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     if(!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
-        free_dma_memory(buf);
+        fio_free(buf);
         return -1;
     }
     FIO_ReadFile(file, buf, size);
@@ -124,7 +124,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         count++;
     }
     
-    free_dma_memory(buf);
+    fio_free(buf);
     return 0;
 }
 
@@ -1609,7 +1609,7 @@ static void module_unload_offline_strings(int mod_number)
 {
     if (module_list[mod_number].strings)
     {
-        FreeMemory(module_list[mod_number].strings);
+        free(module_list[mod_number].strings);
         module_list[mod_number].strings = 0;
     }
 }

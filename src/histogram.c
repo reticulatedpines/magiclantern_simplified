@@ -425,7 +425,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
 
-    int* hist = SmallAlloc(16384*4);
+    int* hist = malloc(16384*4);
     if (!hist) return -1;
     memset(hist, 0, 16384*4);
 
@@ -524,7 +524,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
         output_raw_values[k] = ans;
     }
 
-    SmallFree(hist);
+    free(hist);
     return 1;
 }
 

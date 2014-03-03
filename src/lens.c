@@ -957,7 +957,7 @@ mvr_create_logfile(
 
         FIO_CloseFile( mvr_logfile );
         
-        free_dma_memory(mvr_logfile_buffer);
+        fio_free(mvr_logfile_buffer);
         mvr_logfile_buffer = 0;
         return;
     }
@@ -966,7 +966,7 @@ mvr_create_logfile(
         return;
 
     // Movie starting
-    mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
+    mvr_logfile_buffer = fio_malloc(MVR_LOG_BUF_SIZE);
 
     snprintf( mvr_logfile_buffer, MVR_LOG_BUF_SIZE,
         "# Magic Lantern %s\n\n",

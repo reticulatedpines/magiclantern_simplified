@@ -22,7 +22,7 @@
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
     int size = stateobj->max_inputs * stateobj->max_states * sizeof(struct state_transition);
-    struct state_transition * new_matrix = (struct state_transition *)AllocateMemory(size);
+    struct state_transition * new_matrix = (struct state_transition *)malloc(size);
     memcpy(new_matrix, stateobj->state_matrix, size);
     stateobj->state_matrix = new_matrix;
 }

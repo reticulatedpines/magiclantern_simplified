@@ -184,7 +184,7 @@ static void cmos16_log(breakpoint_t *bkpt)
 void adtg_log_task()
 {
     adtg_buf_pos_max = 128 * 1024;
-    adtg_buf = shoot_malloc(adtg_buf_pos_max * 4 + 0x100);
+    adtg_buf = fio_malloc(adtg_buf_pos_max * 4 + 0x100);
     
     if(!adtg_buf)
     {   
@@ -253,7 +253,7 @@ void adtg_log_task()
     /* free buffer */
     void *buf = adtg_buf;
     adtg_buf = NULL;
-    shoot_free(buf);
+    fio_free(buf);
 }
 
 static MENU_SELECT_FUNC(adtg_log_toggle)

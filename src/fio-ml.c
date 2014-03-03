@@ -486,7 +486,7 @@ int _FIO_CopyFile(char *src,char *dst)
     if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
 
     const int bufsize = MIN(_GetFileSize(src), 128*1024);
-    void* buf = alloc_dma_memory(bufsize);
+    void* buf = fio_malloc(bufsize);
     if (!buf) return -1;
 
     int err = 0;
@@ -504,7 +504,7 @@ int _FIO_CopyFile(char *src,char *dst)
 
     FIO_CloseFile(f);
     FIO_CloseFile(g);
-    free_dma_memory(buf);
+    fio_free(buf);
     
     if (err)
     {

@@ -33,8 +33,8 @@
 #include "property.h"
 #include "math.h"
 #include "string.h"
-#define umalloc alloc_dma_memory
-#define ufree free_dma_memory
+#define umalloc fio_malloc
+#define ufree fio_free
 #define pow powf
 
 static int get_tick_count() { return get_ms_clock_value_fast(); }

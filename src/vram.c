@@ -433,8 +433,8 @@ int* lut_hd2bm_y = 0;
 
 void lut_realloc(int** buf, int size)
 {
-    if (*buf) FreeMemory(*buf);
-    *buf = AllocateMemory(size);
+    if (*buf) free(*buf);
+    *buf = malloc(size);
 }
 
 void lut_init()

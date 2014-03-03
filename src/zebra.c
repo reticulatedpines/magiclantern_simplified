@@ -1041,7 +1041,7 @@ static void waveform_init()
 {
 #ifdef FEATURE_WAVEFORM
     if (!waveform)
-        waveform = SmallAlloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+        waveform = malloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
 #endif
 }
@@ -1056,19 +1056,14 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        // shoot_malloc is not that stable
-        //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
-        //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
-        //~ #else
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
         #elif defined(CONFIG_EOSM)
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
-        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
+        bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE);
         #endif
-        //~ #endif
         if (!bvram_mirror_start) 
         {   
             while(1)
@@ -1768,9 +1763,9 @@ draw_zebra_and_focus( int Z, int F )
     if (F && focus_peaking)
     {
         // clear previously written pixels
-        if (unlikely(!dirty_pixels)) dirty_pixels = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixels)) dirty_pixels = malloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixels)) return -1;
-        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = malloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixel_values)) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)

@@ -216,7 +216,7 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
         else
         {
             trace_write(trace_ctx, "mlv_snd_flush_entries: entry is allocated mem");
-            free_dma_memory(entry->data);
+            fio_free(entry->data);
         }
         free(entry);
         
@@ -356,7 +356,7 @@ static void mlv_snd_alloc_buffers()
         {
             audio_data_t *entry = malloc(sizeof(audio_data_t));
             
-            entry->data = (uint16_t *)alloc_dma_memory(mlv_snd_in_buffer_size);
+            entry->data = (uint16_t *)fio_malloc(mlv_snd_in_buffer_size);
             entry->length = mlv_snd_in_buffer_size;
             entry->timestamp = 0;
             

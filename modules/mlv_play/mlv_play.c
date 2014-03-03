@@ -1528,11 +1528,11 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 /* the first few queued dont have anything allocated, so don't free */
                 if(buffer->frameBuffer)
                 {
-                    shoot_free(buffer->frameBuffer);
+                    fio_free(buffer->frameBuffer);
                 }
                 
                 buffer->frameSize = frame_size;
-                buffer->frameBuffer = shoot_malloc(buffer->frameSize);
+                buffer->frameBuffer = fio_malloc(buffer->frameSize);
                 
                 if(!buffer->frameBuffer)
                 {
@@ -1951,7 +1951,7 @@ static void mlv_leave_playback()
         /* free allocated buffers */
         if(buffer->frameBuffer)
         {
-            shoot_free(buffer->frameBuffer);
+            fio_free(buffer->frameBuffer);
         }
         
         free(buffer);

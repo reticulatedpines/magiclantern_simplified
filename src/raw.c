@@ -1471,7 +1471,7 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
     
-    int* lv2rx = SmallAlloc(x2 * 4);
+    int* lv2rx = malloc(x2 * 4);
     if (!lv2rx) return;
     for (int x = x1; x < x2; x++)
         lv2rx[x] = LV2RAW_X(x) & ~1;
@@ -1534,7 +1534,7 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
             lv32[LV(x,y)/4] = yuv;
         }
     }
-    SmallFree(lv2rx);
+    free(lv2rx);
 }
 
 static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
@@ -1563,7 +1563,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
     
-    int* lv2rx = SmallAlloc(x2 * 4);
+    int* lv2rx = malloc(x2 * 4);
     if (!lv2rx) return;
     for (int x = x1; x < x2; x++)
         lv2rx[x] = LV2RAW_X(x) & ~1;
@@ -1596,7 +1596,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
             lv64[idx + vram_lv.pitch/8] = Y;
         }
     }
-    SmallFree(lv2rx);
+    free(lv2rx);
 }
 
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)

@@ -30,7 +30,7 @@ uint32_t dyn_fonts = 0;
 
 static font *new_font() {
     // allocate font from cached memory
-    font *f = AllocateMemory(sizeof(font));
+    font *f = malloc(sizeof(font));
     if (f) {
         memset(f,0,sizeof(font));      // wipe memory
         // return address in cached memory
@@ -80,12 +80,12 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     if(!rbf_font_load(filename, font, 0))
     {
         bmp_printf(FONT_CANON, 0, 0, "%s not loaded", file);
-        FreeMemory(font);
+        free(font);
         return FONT_CANON;
     }
 
     /* now updated cached font name (not filename) */
-    dyn_font_name[dyn_fonts] = AllocateMemory(strlen(filename) + 1);
+    dyn_font_name[dyn_fonts] = malloc(strlen(filename) + 1);
     strcpy(dyn_font_name[dyn_fonts], file);
     
     /* and measure font sizes */
@@ -110,9 +110,9 @@ static void alloc_cTable(font *f) {
 
     // If existing data has been allocated then we are re-using the font data
     // See if it the existing cTable data is large enough to hold the new font data
-    // If not FreeMemory it so new memory will be allocated
+    // If not free it so new memory will be allocated
     if ((f->cTable != 0) && (f->cTableSizeMax < (f->charCount*f->hdr.charSize))) {
-        FreeMemory(f->cTable);              // free the memory
+        free(f->cTable);              // free the memory
         f->cTable = 0;                // clear pointer so new memory is allocated
         f->cTableSizeMax = 0;
     }
@@ -121,7 +121,7 @@ static void alloc_cTable(font *f) {
     if (f->cTable == 0) {
         // Allocate memory from cached pool
         int size = f->charCount*f->hdr.charSize;
-        f->cTable = AllocateMemory(size);
+        f->cTable = malloc(size);
 
         // save size
         f->cTableSize = f->charCount*f->hdr.charSize;
@@ -150,7 +150,7 @@ static int font_read(FILE* fd, unsigned char *dest, int len)
 
     if(!ubuffer)
     {
-        ubuffer = alloc_dma_memory(UBUFFER_SIZE);
+        ubuffer = fio_malloc(UBUFFER_SIZE);
     }
     
     if (ubuffer)
@@ -171,6 +171,8 @@ static int font_read(FILE* fd, unsigned char *dest, int len)
             len -= to_read;
         }
     }
+    
+    free(ubuffer);
 
     return bytes_read;
 }
