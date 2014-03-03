@@ -9,41 +9,58 @@
 
 int take_screenshot( char* filename, uint32_t mode )
 {
+    /* image buffers */
+    uint8_t * rgb = 0;
+    uint8_t * bmp_copy = 0;
+    uint32_t * yuv_copy = 0;
+    
     beep();
+    info_led_on();
     
     /* what to save? */
     int save_bmp = mode & SCREENSHOT_BMP;
     int save_yuv = mode & SCREENSHOT_YUV;
     
-    uint32_t* lv_buffer = (uint32_t*) get_yuv422_vram()->vram;
+    uint8_t* bvram = bmp_vram();
+    uint32_t* lvram = (uint32_t*) get_yuv422_vram()->vram;
     
-    if (!lv_buffer)
+    if (!lvram)
     {
         /* can we save the YUV buffer? (it might be uninitialized, e.g. in photo mode before going to LV) */
         save_yuv = 0;
     }
 
-    /* setup buffer */
-    /* todo: support HDMI resolutions? */
-    unsigned char * rgb = malloc(720 * 480 * 3);
-    if (!rgb)
+    /* do a fast temporary copy of the VRAMs to minimize motion artifacts (tearing) */
+    bmp_copy = malloc(720 * 480);
+    yuv_copy = malloc(vram_lv.width * vram_lv.pitch);
+    if (!bmp_copy) goto err;
+    if (!yuv_copy) goto err;
+    
+    memcpy(yuv_copy, lvram, vram_lv.width * vram_lv.pitch);
+    for (int y = 0; y < 480; y++)
     {
-        return 0;
+        memcpy(bmp_copy + y*720, &bvram[BM(0,y)], 720);
     }
+
+    /* setup output buffer */
+    /* todo: support HDMI resolutions? */
+    rgb = malloc(720 * 480 * 3);
+    if (!rgb) goto err;
     
     /* fill it with data */
-    info_led_on();
     for (int y = 0; y < 480; y++)
     {
         for (int x = 0; x < 720; x++)
         {
-            int p = bmp_getpixel(x, y);
-            
+            int p = 0;
             uint8_t Y = 0; int8_t U = 0; int8_t V = 0;
             uint32_t pal = 0; uint8_t opacity = 0;
             
             if (save_bmp)
             {
+                /* get pixel at (x,y) */
+                p = bmp_copy[x + y*720];
+                
                 /* get palette entry (including our DIGIC pokes, if any) */
                 pal = shamem_read(LCD_Palette[3*p]);
                 if (!pal) pal = LCD_Palette[3*p + 2];
@@ -65,7 +82,7 @@ int take_screenshot( char* filename, uint32_t mode )
             {
                 if (save_yuv)
                 {
-                    uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
+                    uyvy = yuv422_get_pixel(yuv_copy, BM2LV(x,y)/2);
                 }
                 Y = UYVY_GET_AVG_Y(uyvy);
                 U = UYVY_GET_U(uyvy);
@@ -75,7 +92,7 @@ int take_screenshot( char* filename, uint32_t mode )
             {
                 if (save_yuv)
                 {
-                    uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
+                    uyvy = yuv422_get_pixel(yuv_copy, BM2LV(x,y)/2);
                 }
                 uint8_t Y2 = UYVY_GET_AVG_Y(uyvy);
                 int8_t U2 = UYVY_GET_U(uyvy);
@@ -121,8 +138,7 @@ int take_screenshot( char* filename, uint32_t mode )
     FILE *f = FIO_CreateFileEx(path);
     if (f == INVALID_PTR)
     {
-        free(rgb);
-        return 0;
+        goto err;
     }
     
     /* 8-bit RGB */
@@ -132,7 +148,15 @@ int take_screenshot( char* filename, uint32_t mode )
     
     FIO_CloseFile(f);
     free(rgb);
-
+    free(bmp_copy);
+    free(yuv_copy);
     return 1;
+
+err:
+    if (rgb) free(rgb);
+    if (bmp_copy) free(bmp_copy);
+    if (yuv_copy) free(yuv_copy);
+    info_led_off();
+    return 0;
 }
 #endif
