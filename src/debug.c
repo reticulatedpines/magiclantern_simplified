@@ -2661,9 +2661,10 @@ static struct menu_entry debug_menus[] = {
     },*/
     #ifdef FEATURE_SCREENSHOT
     {
-        .name = "Screenshot - 10s",
-        .select     = screenshot_start,
-        .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
+        .name   = "Screenshot - 10s",
+        .select = screenshot_start,
+        .help   = "Screenshot after 10 seconds => VRAMx.PPM.",
+        .help2  = "The screenshot will contain BMP and YUV overlays."
     },
     #endif
 /*    {
