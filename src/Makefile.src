@@ -240,6 +240,7 @@ DIET_OBJ = \
 	strncmp.o \
 	strcpy.o \
 	strcmp.o \
+	strcasecmp.o \
 	errno.o \
 	errno_location.o \
 	strtoull.o \
