@@ -129,7 +129,7 @@ static int dng_show(char* filename)
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
     vram_clear_lv();
-    raw_preview_fast_ex(-1, -1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
+    raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
     shoot_free(buf);
     raw_set_dirty();
     
@@ -157,6 +157,7 @@ static int yuv422_show(char* filename)
     uint32_t * buf = shoot_malloc(size);
     if (!buf) return 0;
     struct vram_info * vram = get_yuv422_vram();
+    if (!vram->vram) goto err;
 
     clrscr();
     bmp_printf(FONT_MED, 600, 460, "%d", size);
