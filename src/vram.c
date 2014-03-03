@@ -691,7 +691,7 @@ int take_screenshot( char* filename, uint32_t mode )
                 /* handle transparency (incomplete, needs more reverse engineering) */
                 if (pal == 0x00FF0000) /* fully transparent */
                 {
-                    uint32_t uyvy = lv_buffer[BM2LV(x,y)/4];
+                    uint32_t uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
                     Y = UYVY_GET_AVG_Y(uyvy);
                     U = UYVY_GET_U(uyvy);
                     V = UYVY_GET_V(uyvy);
@@ -699,7 +699,7 @@ int take_screenshot( char* filename, uint32_t mode )
                 else if (opacity == 0 || opacity == 1)  /* semi-transparent? */
                 {
                     /* todo: use full-res instead of half-res */
-                    uint32_t uyvy = lv_buffer[BM2LV(x,y)/4];
+                    uint32_t uyvy = yuv422_get_pixel(lv_buffer, BM2LV(x,y)/2);
                     uint8_t Y2 = UYVY_GET_AVG_Y(uyvy);
                     int8_t U2 = UYVY_GET_U(uyvy);
                     int8_t V2 = UYVY_GET_V(uyvy);
