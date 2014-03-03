@@ -3062,8 +3062,11 @@ void defish_draw_play()
 
 #ifdef CONFIG_DISPLAY_FILTERS
 
+#ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 static void* display_filter_buffer_unaligned = 0;
 static void* display_filter_buffer = 0;
+#endif
+
 static int display_filter_valid_image = 0;
 
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)

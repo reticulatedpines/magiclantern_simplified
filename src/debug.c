@@ -939,7 +939,7 @@ static void stub_test_task(void* arg)
             int m0, m1, m2;
             void* p;
             TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-            TEST_TRY_FUNC_CHECK(p = _malloc(50*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = (void*)_malloc(50*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
             TEST_TRY_VOID(_free(p));
@@ -948,10 +948,10 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
             TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = _AllocateMemory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = (void*)_AllocateMemory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
-            TEST_TRY_VOID(-_FreeMemory(p));
+            TEST_TRY_VOID(_FreeMemory(p));
             TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
             TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
@@ -960,7 +960,7 @@ static void stub_test_task(void* arg)
             int m01, m02, m11, m12;
             TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = _alloc_dma_memory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
@@ -1134,7 +1134,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         void* p;
-        TEST_TRY_FUNC_CHECK(p = _alloc_dma_memory(0x20000), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(f = FIO_Open("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
         TEST_TRY_VOID(FIO_CloseFile(f));

@@ -1116,6 +1116,8 @@ static void beep_init()
 //~ #ifdef CONFIG_600D
     //~ Load_ASIFDMAADC();
 //~ #endif
+
+    (void)audio_recording_start_time;
 }
 
 INIT_FUNC("beep.init", beep_init);
