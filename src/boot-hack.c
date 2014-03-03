@@ -353,7 +353,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     }
     
     /* no, create file and store data */
-    handle = FIO_CreateFileEx(file);
+    handle = FIO_CreateFile(file);
     if (handle != INVALID_PTR)
     {
       while(pos < length)
@@ -431,7 +431,7 @@ static void my_big_init_task()
     call("EnableBootDisk");
     
     msleep(500);
-    FILE* f = FIO_CreateFileEx("ROM.DAT");
+    FILE* f = FIO_CreateFile("ROM.DAT");
     if (f != INVALID_PTR) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);

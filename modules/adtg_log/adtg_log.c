@@ -246,7 +246,7 @@ void adtg_log_task()
     /* dump all stuff */
     char filename[100];
     snprintf(filename, sizeof(filename), "%s/adtg.bin", get_dcim_dir());
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     FIO_WriteFile(f, adtg_buf, adtg_buf_pos * 4); 
     FIO_CloseFile(f);
     

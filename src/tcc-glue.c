@@ -133,7 +133,7 @@ FILE* fopen(const char * filename, const char * modes)
     if (modes[0] == 'r')
         return FIO_Open(filename, O_RDONLY | O_SYNC);
     else if (modes[0] == 'w')
-        return FIO_CreateFileEx(filename);
+        return FIO_CreateFile(filename);
     else printf("fopen: %s n/a\n", modes);
     return NULL;
 }

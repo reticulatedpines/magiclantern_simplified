@@ -1629,7 +1629,7 @@ static void module_load_task(void* unused)
         }
         else
         {
-            FILE *handle = FIO_CreateFileEx(module_lockfile);
+            FILE *handle = FIO_CreateFile(module_lockfile);
             FIO_WriteFile(handle, lockstr, strlen(lockstr));
             FIO_CloseFile(handle);
             

@@ -1479,7 +1479,7 @@ static void raw_video_rec_task()
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
     snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
-    FILE* bf = FIO_CreateFileEx(backup_filename);
+    FILE* bf = FIO_CreateFile(backup_filename);
     if (bf == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -1493,7 +1493,7 @@ static void raw_video_rec_task()
     int chunk = 0;
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
-    f = FIO_CreateFileEx(raw_movie_filename);
+    f = FIO_CreateFile(raw_movie_filename);
     if (f == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -1686,7 +1686,7 @@ static void raw_video_rec_task()
                 
                 /* try to create a new chunk */
                 chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-                FILE* g = FIO_CreateFileEx(chunk_filename);
+                FILE* g = FIO_CreateFile(chunk_filename);
                 if (g == INVALID_PTR) goto abort;
                 
                 /* write the remaining data in the new chunk */
@@ -1844,7 +1844,7 @@ abort_and_check_early_stop:
             /* try to save footer in a new chunk */
             FIO_CloseFile(f); f = 0;
             chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-            FILE* g = FIO_CreateFileEx(chunk_filename);
+            FILE* g = FIO_CreateFile(chunk_filename);
             if (g != INVALID_PTR)
             {
                 footer_ok = lv_rec_save_footer(g);
@@ -2245,7 +2245,7 @@ static unsigned int raw_rec_init()
         NotifyBox(100000, "Card warming up...");
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
-        FILE* f = FIO_CreateFileEx(warmup_filename);
+        FILE* f = FIO_CreateFile(warmup_filename);
         FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
         FIO_CloseFile(f);
         FIO_RemoveFile(warmup_filename);

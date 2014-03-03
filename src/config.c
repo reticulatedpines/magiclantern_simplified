@@ -226,7 +226,7 @@ int config_save_file(const char *filename)
         count++;
     }
     
-    FILE * file = FIO_CreateFileEx( filename );
+    FILE * file = FIO_CreateFile( filename );
     if( file == INVALID_PTR )
     {
         free_dma_memory(msg);
@@ -289,7 +289,7 @@ void config_flag_file_setting_save(char* file, int setting)
     FIO_RemoveFile(file);
     if (setting)
     {
-        FILE* f = FIO_CreateFileEx(file);
+        FILE* f = FIO_CreateFile(file);
         FIO_CloseFile(f);
     }
 }
@@ -505,7 +505,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
         goto finish;
     }
     
-    FILE * file = FIO_CreateFileEx( filename );
+    FILE * file = FIO_CreateFile( filename );
     if( file == INVALID_PTR )
     {
         free_dma_memory(msg);
@@ -742,7 +742,7 @@ static MENU_SELECT_FUNC(config_preset_toggle)
     }
     else
     {
-        FILE* f = FIO_CreateFileEx(config_preset_file);
+        FILE* f = FIO_CreateFile(config_preset_file);
         if (config_new_preset_index == 1)
             my_fprintf(f, "Startup mode");
         else if (config_new_preset_index == 2)

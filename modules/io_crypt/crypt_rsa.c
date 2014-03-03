@@ -66,7 +66,7 @@ This notice must always be retained in any copy.
 #define msleep(x) usleep((x)*1000)
 #define task_create(a,b,c,d,e) do { d(e); } while(0)
 
-#define FIO_CreateFileEx(file) fopen(file, "w+")
+#define FIO_CreateFile(file) fopen(file, "w+")
 #define FIO_WriteFile(f,data,len) fwrite(data, 1, len, f)
 #define FIO_ReadFile(f,data,len) fread(data, 1, len, f)
 #define FIO_CloseFile(x) fclose(f)
@@ -617,7 +617,7 @@ static void crypt_rsa_reset(crypt_priv_t *priv)
 
 static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
 {
-    FILE* f = FIO_CreateFileEx(file);
+    FILE* f = FIO_CreateFile(file);
     if(f == INVALID_PTR)
     {
         return 0;

@@ -158,7 +158,7 @@ static void dump_rom_task(void* priv, int unused)
     msleep(200);
     FILE * f = NULL;
 
-    f = FIO_CreateFileEx("ML/LOGS/ROM0.BIN");
+    f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
@@ -167,7 +167,7 @@ static void dump_rom_task(void* priv, int unused)
     }
     msleep(200);
 
-    f = FIO_CreateFileEx("ML/LOGS/ROM1.BIN");
+    f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
@@ -430,7 +430,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     int filesize = 1024; // MB
     int n = filesize * 1024 * 1024 / bufsize;
     {
-        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
+        FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
         int t0 = get_ms_clock_value();
         int i;
         for (i = 0; i < n; i++)
@@ -559,7 +559,7 @@ static void twocard_write_task(char* filename)
     int cf = filename[0] == 'A';
     int msg;
     int filesize = 0;
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if (f != INVALID_PTR)
     {
         while (msg_queue_receive(twocard_mq, (struct event **) &msg, 1000) == 0)
@@ -624,7 +624,7 @@ static void card_bufsize_benchmark_task()
     int x = 0;
     int y = 100;
 
-    FILE* log = FIO_CreateFileEx("bench.log");
+    FILE* log = FIO_CreateFile("bench.log");
     if (log == INVALID_PTR) goto cleanup;
 
     my_fprintf(log, "Buffer size experiment\n");
@@ -645,7 +645,7 @@ static void card_bufsize_benchmark_task()
         uint32_t filesize = 256; // MB
         uint32_t n = filesize * 1024 * 1024 / bufsize;
 
-        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
+        FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
         int t0 = get_ms_clock_value();
         int total = 0;
         for (uint32_t i = 0; i < n; i++)
@@ -863,7 +863,7 @@ static void stub_test_task(void* arg)
     int passed_tests = 0;
     int failed_tests = 0;
 
-    FILE* log = FIO_CreateFileEx( "stubtest.log" );
+    FILE* log = FIO_CreateFile( "stubtest.log" );
     int silence = 0;    // if 1, only failures are logged to file
     int ok = 1;
 
@@ -1136,7 +1136,7 @@ static void stub_test_task(void* arg)
         // file I/O
 
         FILE* f;
-        TEST_TRY_FUNC_CHECK(f = FIO_CreateFileEx("test.dat"), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_VOID(FIO_CloseFile(f));
@@ -1152,7 +1152,7 @@ static void stub_test_task(void* arg)
 
         {
         int count = 0;
-        FILE* f = FIO_CreateFileEx("test.dat");
+        FILE* f = FIO_CreateFile("test.dat");
         for (int i = 0; i < 1000; i++)
             count += FIO_WriteFile(f, "Will it blend?\n", 15);
         FIO_CloseFile(f);
@@ -2060,7 +2060,7 @@ static void save_crash_log()
         if (size == 0) break;
     }
 
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
     my_fprintf(f, "%s\n\n", get_assert_msg());
     my_fprintf(f,
         "Magic Lantern version : %s\n"
@@ -2365,8 +2365,8 @@ static MENU_UPDATE_FUNC (prop_display)
 
 void prop_dump()
 {
-    FILE* f = FIO_CreateFileEx("ML/LOGS/PROP.LOG");
-    FILE* g = FIO_CreateFileEx("ML/LOGS/PROP-STR.LOG");
+    FILE* f = FIO_CreateFile("ML/LOGS/PROP.LOG");
+    FILE* g = FIO_CreateFile("ML/LOGS/PROP-STR.LOG");
 
     unsigned i, j, k;
 

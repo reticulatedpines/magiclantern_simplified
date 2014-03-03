@@ -847,7 +847,7 @@ audio_reg_dump_once()
             if (size == 0) break;
         }
     
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
 
 	unsigned i;
 	for( i=0 ; i<COUNT(audio_regs_once) ; i++ )

@@ -93,7 +93,7 @@ static void shootspy_init(void* unused)
 void save_log()
 {
     NotifyBox(1000, "%d ", strlen(log));
-    FILE* f = FIO_CreateFileEx("shoot.log");
+    FILE* f = FIO_CreateFile("shoot.log");
     FIO_WriteFile(f, UNCACHEABLE(log), strlen(log));
     FIO_CloseFile(f);
     beep();

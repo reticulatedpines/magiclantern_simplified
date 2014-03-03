@@ -942,7 +942,7 @@ mvr_create_logfile(
         char name[100];
         snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), get_shooting_card()->file_number);
 
-        FILE * mvr_logfile = mvr_logfile = FIO_CreateFileEx( name );
+        FILE * mvr_logfile = mvr_logfile = FIO_CreateFile( name );
         if( mvr_logfile == INVALID_PTR )
         {
             bmp_printf( FONT_MED, 0, 40,

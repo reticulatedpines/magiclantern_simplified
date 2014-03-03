@@ -314,7 +314,7 @@ static void wav_recordsmall(char* filename, int duration, int show_progress)
     info_led_off();
     msleep(1000);
        
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
     FIO_CloseFile(f);
     free_dma_memory(wav_buf);
@@ -449,7 +449,7 @@ static void wav_record(char* filename, int show_progress)
     if (!buf2) return;
 
     if( file != INVALID_PTR ) return;
-    file = FIO_CreateFileEx(filename);
+    file = FIO_CreateFile(filename);
     if( file == INVALID_PTR ) return;
     FIO_WriteFile(file, UNCACHEABLE(wav_header), sizeof(wav_header));
     

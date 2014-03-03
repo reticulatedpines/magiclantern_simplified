@@ -991,7 +991,7 @@ waveform_draw_image(
 static FILE * g_aj_logfile = INVALID_PTR;
 static unsigned int aj_create_log_file( char * name)
 {
-   g_aj_logfile = FIO_CreateFileEx( name );
+   g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
       bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
@@ -5088,7 +5088,7 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FILE* f = FIO_CreateFileEx("ML/DATA/overlay.dat");
+    FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");

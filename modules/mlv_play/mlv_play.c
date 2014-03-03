@@ -874,7 +874,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     strncpy(filename, base_filename, sizeof(filename));
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
-    out_file = FIO_CreateFileEx(filename);
+    out_file = FIO_CreateFile(filename);
     
     if(out_file == INVALID_PTR)
     {

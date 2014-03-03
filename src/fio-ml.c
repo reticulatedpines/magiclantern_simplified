@@ -95,7 +95,7 @@ static void card_test(struct card_info * card)
     {
         char testFile[] = "X:/test.dat";
         snprintf(testFile, sizeof(testFile), "%s:/test.dat", card->drive_letter);
-        FILE* f = FIO_CreateFileEx(testFile);
+        FILE* f = FIO_CreateFile(testFile);
         int fail = 0;
         for (int i = 0; i < 100; i++)
         {
@@ -334,14 +334,6 @@ FILE* FIO_Open(const char* filename, unsigned mode )
     return _FIO_Open(new_filename, mode);
 }
 
-FILE* _FIO_CreateFile(const char* filename );
-FILE* FIO_CreateFile(const char* filename )
-{
-    char new_filename[100];
-    fixup_filename(new_filename, filename, 100);
-    return _FIO_CreateFile(new_filename);
-}
-
 //~ int _FIO_GetFileSize(const char * filename, unsigned * size);
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
@@ -429,6 +421,8 @@ static void _FIO_CreateDir_recursive(char* path)
     _FIO_CreateDirectory(path);
 }
 
+FILE* _FIO_CreateFile(const char* filename );
+
 // a wrapper that also creates missing dirs and removes existing file
 static FILE* _FIO_CreateFileEx(const char* name)
 {
@@ -455,7 +449,7 @@ static FILE* _FIO_CreateFileEx(const char* name)
         
     return f;
 }
-FILE* FIO_CreateFileEx(const char* name)
+FILE* FIO_CreateFile(const char* name)
 {
     char new_name[100];
     fixup_filename(new_name, name, 100);
@@ -468,7 +462,7 @@ FILE* _FIO_CreateFileOrAppend(const char* name)
     FILE * f = _FIO_Open(name, O_RDWR | O_SYNC);
     if (f == INVALID_PTR)
     {
-        f = _FIO_CreateFileEx(name);
+        f = _FIO_CreateFile(name);
     }
     else
     {
@@ -488,7 +482,7 @@ int _FIO_CopyFile(char *src,char *dst)
     FILE* f = _FIO_Open(src, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return -1;
 
-    FILE* g = _FIO_CreateFileEx(dst);
+    FILE* g = _FIO_CreateFile(dst);
     if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
 
     const int bufsize = MIN(_GetFileSize(src), 128*1024);

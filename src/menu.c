@@ -5328,7 +5328,7 @@ static void menu_save_flags(char* filename)
         }
     }
     
-    FILE * file = FIO_CreateFileEx(filename);
+    FILE * file = FIO_CreateFile(filename);
     if( file == INVALID_PTR )
         goto end;
     
@@ -5408,7 +5408,7 @@ void config_menu_save_flags()
         }
     }
     
-    FILE * file = FIO_CreateFileEx( "ML/LOGS/MENUS.LOG" );
+    FILE * file = FIO_CreateFile( "ML/LOGS/MENUS.LOG" );
     if( file == INVALID_PTR )
         return;
     
@@ -5609,7 +5609,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     
     //~ ASSERT(cfglen == strlen(cfg)); // seems OK
     
-    FILE * file = FIO_CreateFileEx(filename);
+    FILE * file = FIO_CreateFile(filename);
     if( file == INVALID_PTR )
         goto end;
     

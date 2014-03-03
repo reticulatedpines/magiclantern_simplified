@@ -4481,10 +4481,10 @@ void hdr_create_script(int f0, int focus_stack)
     char name[100];
     snprintf(name, sizeof(name), "%s/%s_%04d.%s", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0, hdr_scripts == 3 ? "txt" : "sh");
 
-    FILE * f = FIO_CreateFileEx(name);
+    FILE * f = FIO_CreateFile(name);
     if ( f == INVALID_PTR )
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
+        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFile: error for %s", name );
         return;
     }
     

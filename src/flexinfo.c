@@ -983,7 +983,7 @@ uint32_t info_save_config(info_elem_t *config, char *file)
         elements++;
     }
 
-    FILE* f = FIO_CreateFileEx(file);
+    FILE* f = FIO_CreateFile(file);
     if(!f)
     {
         return 1;

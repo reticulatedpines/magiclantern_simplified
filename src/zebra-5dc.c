@@ -784,7 +784,7 @@ waveform_draw_image(
 static FILE * g_aj_logfile = INVALID_PTR;
 unsigned int aj_create_log_file( char * name)
 {
-   g_aj_logfile = FIO_CreateFileEx( name );
+   g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
       bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
