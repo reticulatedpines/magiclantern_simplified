@@ -19,9 +19,6 @@ static inline int rbf_char_width(font *rbf_font, int ch);
 static int RBF_HDR_MAGIC1 = 0x0DF00EE0;
 static int RBF_HDR_MAGIC2 = 0x00000003;
 
-
-static unsigned char *ubuffer = 0;                  // uncached memory buffer for reading font data from SD card
-
 struct font font_dynamic[MAX_DYN_FONTS+1];
 static char *dyn_font_name[MAX_DYN_FONTS+1];
 uint32_t dyn_fonts = 0;
@@ -148,31 +145,15 @@ static int font_read(FILE* fd, unsigned char *dest, int len)
     // Return actual bytes read
     int bytes_read = 0;
 
-    if(!ubuffer)
-    {
-        ubuffer = fio_malloc(UBUFFER_SIZE);
-    }
+    unsigned char *ubuffer = fio_malloc(len);
     
     if (ubuffer)
     {
-        // Read file in UBUFFER_SIZE blocks
-        while (len)
-        {
-            // Calc size of next block to read = min(UBUFFER_SIZE, len)
-            int to_read = UBUFFER_SIZE;
-            if (to_read > len) to_read = len;
-
-            // Read block and copy to dest
-            bytes_read += FIO_ReadFile(fd, ubuffer, to_read);
-            memcpy(dest, ubuffer, to_read);
-
-            // Increment dest pointer, decrement len left to read
-            dest += to_read;
-            len -= to_read;
-        }
+        // Read block and copy to dest
+        bytes_read += FIO_ReadFile(fd, ubuffer, len);
+        memcpy(dest, ubuffer, len);
+        fio_free(ubuffer);
     }
-    
-    free(ubuffer);
 
     return bytes_read;
 }
