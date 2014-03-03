@@ -115,7 +115,7 @@ static struct filetype_handler *fileman_find_filetype(char *extension)
 {
     for(int pos = 0; pos < fileman_filetype_registered; pos++)
     {
-        if(!strcmp(extension, fileman_filetypes[pos].extension))
+        if(!strcasecmp(extension, fileman_filetypes[pos].extension))
         {
             return &fileman_filetypes[pos];
         }
