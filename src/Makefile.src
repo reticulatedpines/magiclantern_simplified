@@ -63,7 +63,7 @@ endif
 ifeq ($(ML_ENTRY_OBJ), n)
 ML_ENTRY_OBJ =
 else ifndef ML_ENTRY_OBJ
-ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
+ML_ENTRY_OBJ = entry.o
 endif
 
 ifeq ($(ML_SRC_PROFILE),minimal)
