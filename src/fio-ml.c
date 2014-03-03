@@ -575,6 +575,20 @@ int is_dir(char* path)
     }
 }
 
+int get_numbered_file_name(const char* pattern, int nmax, char* filename, int maxlen)
+{
+    for (int num = 0; num <= nmax; num++)
+    {
+        snprintf(filename, maxlen, pattern, num);
+        uint32_t size;
+        if( FIO_GetFileSize( filename, &size ) != 0 ) return num;
+        if (size == 0) return num;
+    }
+
+    snprintf(filename, maxlen, pattern, 0);
+    return -1;
+}
+
 #ifdef CONFIG_DUAL_SLOT
 struct menu_entry card_menus[] = {
     {
