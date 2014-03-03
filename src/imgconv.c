@@ -346,3 +346,14 @@ void little_cleanup(void* BP, void* MP)
     bp++; mp++;
     if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 }
+
+uint32_t yuv422_get_pixel(uint32_t* buf, int pixoff)
+{
+    uint32_t* src = &buf[pixoff / 2];
+    
+    uint32_t chroma = (*src)  & 0x00FF00FF;
+    uint32_t luma1 = (*src >>  8) & 0xFF;
+    uint32_t luma2 = (*src >> 24) & 0xFF;
+    uint32_t luma = pixoff % 2 ? luma2 : luma1;
+    return (chroma | (luma << 8) | (luma << 24));
+}
