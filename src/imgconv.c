@@ -99,9 +99,9 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
  */
 uint32_t rgb2yuv422(int R, int G, int B)
 {
-    int Y = ( 227*R + 733*G +  74*B) / 1024;
-    int U = (-117*R - 395*G + 512*B) / 1024;
-    int V = ( 514*R - 467*G -  47*B) / 1024;
+    int Y = COERCE(( 227*R + 733*G +  74*B) / 1024, 0, 255);
+    int U = COERCE((-117*R - 395*G + 512*B) / 1024, -128, 127);
+    int V = COERCE(( 514*R - 467*G -  47*B) / 1024, -128, 127);
     return UYVY_PACK(U,Y,V,Y);
 }
 
