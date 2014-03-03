@@ -635,11 +635,21 @@ PROP_HANDLER(PROP_LV_MOVIE_SELECT)
 
 #ifdef FEATURE_SCREENSHOT
 
-int take_screenshot( char* filename, int also_yuv )
+int take_screenshot( char* filename, uint32_t mode )
 {
     beep();
     
+    /* what to save? */
+    int save_bmp = mode & SCREENSHOT_BMP;
+    int save_yuv = mode & SCREENSHOT_YUV;
+    
     uint32_t* lv_buffer = (uint32_t*) get_yuv422_vram()->vram;
+    
+    if (!lv_buffer)
+    {
+        /* can we save the YUV buffer? (it might be uninitialized, e.g. in photo mode before going to LV) */
+        save_yuv = 0;
+    }
 
     /* setup buffer */
     /* todo: support HDMI resolutions? */
@@ -656,18 +666,29 @@ int take_screenshot( char* filename, int also_yuv )
         for (int x = 0; x < 720; x++)
         {
             int p = bmp_getpixel(x, y);
-
-            /* get palette entry (including our DIGIC pokes, if any) */
-            uint32_t pal = shamem_read(LCD_Palette[3*p]);
-            if (!pal) pal = LCD_Palette[3*p + 2];
-            int8_t opacity = (pal >> 24) & 0xFF;
-            uint8_t Y = (pal >> 16) & 0xFF;
-            int8_t  U = (pal >>  8) & 0xFF;
-            int8_t  V = (pal >>  0) & 0xFF;
             
-            /* handle transparency (incomplete, needs more reverse engineering) */
-            if (also_yuv && lv_buffer)
+            uint8_t Y = 0; int8_t U = 0; int8_t V = 0;
+            uint32_t pal = 0; uint8_t opacity = 0;
+            
+            if (save_bmp)
             {
+                /* get palette entry (including our DIGIC pokes, if any) */
+                pal = shamem_read(LCD_Palette[3*p]);
+                if (!pal) pal = LCD_Palette[3*p + 2];
+                opacity = (pal >> 24) & 0xFF;
+                Y = (pal >> 16) & 0xFF;
+                U = (pal >>  8) & 0xFF;
+                V = (pal >>  0) & 0xFF;
+            }
+            else
+            {
+                /* don't save BMP overlay => just pretend the entire palette is transparent */
+                pal = 0x00FF0000;
+            }
+            
+            if (save_yuv)
+            {
+                /* handle transparency (incomplete, needs more reverse engineering) */
                 if (pal == 0x00FF0000) /* fully transparent */
                 {
                     uint32_t uyvy = lv_buffer[BM2LV(x,y)/4];
@@ -705,7 +726,11 @@ int take_screenshot( char* filename, int also_yuv )
     /* output filename */
     char path[100];
     
-    if (filename)
+    if (filename == SCREENSHOT_FILENAME_AUTO)
+    {
+        get_numbered_file_name("VRAM%d.PPM", 9999, path, sizeof(path));
+    }
+    else
     {
         if (strchr(filename, '%'))
         {
@@ -715,10 +740,6 @@ int take_screenshot( char* filename, int also_yuv )
         {
             snprintf(path, sizeof(path), "%s", filename);
         }
-    }
-    else
-    {
-        get_numbered_file_name("VRAM%d.PPM", 9999, path, sizeof(path));
     }
 
     FILE *f = FIO_CreateFileEx(path);

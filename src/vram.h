@@ -93,7 +93,11 @@ void vram_clear_lv();
  * 
  * returns 1 on success, 0 on failure.
  */
-int take_screenshot( char* filename, int also_yuv );
+int take_screenshot( char* filename, uint32_t mode );
+
+#define SCREENSHOT_FILENAME_AUTO 0  /* pass it instead of filename => VRAM0.PPM - VRAM9999.PPM in root directory of the ML card */
+#define SCREENSHOT_BMP 1            /* mode flag: save BMP overlays */
+#define SCREENSHOT_YUV 2            /* mode flag: save YUV422 overlays (specify both flags to get them merged) */
 
 
 /* Coordinate transformations between different VRAMs */

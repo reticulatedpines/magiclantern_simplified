@@ -220,7 +220,7 @@ void guimode_test()
         msleep(1000);
         FIO_RemoveFile(fn);
 
-        take_screenshot(0, 0);
+        take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
 
         // try to reset to initial gui mode
         SetGUIRequestMode(0);
@@ -2147,7 +2147,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             info_led_blink(1, 20, 1000-20-200);
             screenshot_sec--;
             if (!screenshot_sec)
-                take_screenshot(0, 1);
+                take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP | SCREENSHOT_YUV);
         }
         #endif
 

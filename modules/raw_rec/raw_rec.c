@@ -1877,7 +1877,7 @@ cleanup:
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
-    take_screenshot(0, 0);
+    take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
     #endif
     hack_liveview(1);
     redraw();
