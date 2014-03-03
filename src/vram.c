@@ -454,8 +454,7 @@ void lut_init()
 
 static inline void * get_yuv422buffer(int offset)
 {
-    /* 5D3 has quad-buffered LV, so the old switch can't work */
-    #if defined(CONFIG_1100D) || defined(CONFIG_6D) || defined(CONFIG_5D3)
+    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
     if (YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_1)
