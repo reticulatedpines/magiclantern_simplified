@@ -9,6 +9,14 @@
 
 /* this file needs to get included in dryos.h to replace old malloc / AllocateMemory calls */
 
+/* not used; will be replaced by macros in order to get calling context (file and line) */
+extern void * malloc( size_t len );
+extern void free( void * buf );
+
+/* in posix.c */
+extern void * realloc( void * buf, size_t newlen );
+
+/* not to be called directly (only via macros) */
 extern void * __mem_malloc( size_t len, unsigned int flags, const char *file, unsigned int line);
 extern void __mem_free( void * buf);
 

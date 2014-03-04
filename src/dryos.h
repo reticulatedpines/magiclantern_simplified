@@ -421,11 +421,6 @@ struct dryos_meminfo
 };
 SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 
-extern void * malloc( size_t len );
-extern void free( void * buf );
-
-//extern void * realloc( void * buf, size_t newlen );
-
 /** Set if the firmware was loaded via AUTOEXEC.BIN */
 extern int autoboot_loaded;
 
@@ -555,12 +550,6 @@ extern char* strcpy( char* dst, const char * src );
 extern void*  memcpy( void *, const void *, size_t );
 extern int atoi( const char * );
 extern int streq( const char *, const char * );
-extern void* AllocateMemory( size_t size );
-extern void FreeMemory( void* ptr );
-extern void my_memcpy( void* dst, const void* src, size_t size );
-/** Allocate DMA memory for writing to the CF card */
-extern void * alloc_dma_memory( size_t len );
-extern void free_dma_memory( const void * ptr );
 extern char* strstr( const char* str1, const char* str2 );
 extern char* strpbrk( const char* str1, const char* str2 );
 extern char* strchr( const char* str, int c );
