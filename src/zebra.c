@@ -1195,12 +1195,12 @@ static void draw_zebras( int Z )
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
+        #ifdef FEATURE_ZEBRA_FAST
         int only_over  = (zebra_level_hi <= 100 && zebra_level_lo ==   0);
         int only_under = (zebra_level_lo  >   0 && zebra_level_hi  > 100);
         int only_one = only_over || only_under;
 
         // fast zebras
-        #ifdef FEATURE_ZEBRA_FAST
         /*
             C0F140cc configurable "zebra" (actually solid color)
             -------- -------- -------- --------
@@ -4608,10 +4608,9 @@ livev_hipriority_task( void* unused )
         {
             msleep(100);
         }
-        
-        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
 
         #ifdef FEATURE_ZEBRA_FAST
+        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
