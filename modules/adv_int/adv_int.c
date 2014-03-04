@@ -364,7 +364,7 @@ static MENU_SELECT_FUNC(adv_int_save)
     
     snprintf(filename,MAX_PATH,"%sSEQ.TXT",get_config_dir());
     
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if(f != INVALID_PTR)
     {
         for(struct keyframe * current = keyframes; current; current = current->next)
