@@ -260,7 +260,7 @@ static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
 #else
     exit(1);
 #endif
-    __builtin_unreachable();
+    while(1);
     return -1;
 }
 
