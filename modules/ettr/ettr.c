@@ -1247,7 +1247,7 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
 
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
-    if (lv && (void*)&raw_lv_request == (void*)&ret_0)
+    if (lv && ((void*)&raw_lv_request == (void*)&ret_0))
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR Does not work in LV on this camera.");
     }
@@ -1352,7 +1352,7 @@ void auto_ettr_intervalometer_wait()
 
 static unsigned int auto_ettr_polling_cbr()
 {
-    if (lv && NOT_RECORDING && (void*)&raw_lv_request != (void*)&ret_0)
+    if (lv && NOT_RECORDING && ((void*)&raw_lv_request != (void*)&ret_0))
         auto_ettr_step_lv();
     return 0;
 }
@@ -1472,7 +1472,7 @@ static struct menu_entry ettr_menu[] =
 
 static unsigned int ettr_init()
 {
-    if((void*)&raw_lv_request == (void*)&ret_0)
+    if ((void*)&raw_lv_request == (void*)&ret_0)
     {
         auto_ettr_trigger  = auto_ettr_trigger > 1 ? 0 : auto_ettr_trigger;
         ettr_menu[0].children[0].max = 1;
