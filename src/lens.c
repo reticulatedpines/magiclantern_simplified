@@ -1166,7 +1166,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
     )
