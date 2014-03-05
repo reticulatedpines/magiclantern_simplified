@@ -1856,10 +1856,16 @@ static int hdr_interpolate()
 
         amaze_demosaic_RT(rawData, red, green, blue, 0, 0, w, h);
 
-        /* undo green channel scaling */
+        /* undo green channel scaling and clamp the other channels */
         for (y = 0; y < h; y ++)
+        {
             for (x = 0; x < w; x ++)
+            {
                 green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, 0xFFFFF);
+                red[y][x] = COERCE(red[y][x], 0, 0xFFFFF);
+                blue[y][x] = COERCE(blue[y][x], 0, 0xFFFFF);
+            }
+        }
 
         if (debug_amaze)
         {
