@@ -121,3 +121,6 @@
 
 /** We can use the DMA controller to copy data */
 #define CONFIG_EDMAC_MEMCPY
+
+/** There are no manual exposure controls in movie mode => we need expo override */
+#define CONFIG_NO_MANUAL_EXPOSURE_MOVIE

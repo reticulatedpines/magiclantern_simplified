@@ -1164,7 +1164,7 @@ PROP_HANDLER( PROP_ISO )
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
     )
@@ -1225,10 +1225,10 @@ PROP_HANDLER( PROP_SHUTTER )
             && (ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
 
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
-      	#ifdef CONFIG_6D
+        #ifdef CONFIG_6D
         && !(buf[0] == FASTEST_SHUTTER_SPEED_RAW )
         #endif
 
