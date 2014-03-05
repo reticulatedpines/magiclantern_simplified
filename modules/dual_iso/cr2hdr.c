@@ -1544,6 +1544,32 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     free(hotpixel);
 }
 
+/* soft-film curve from ufraw-mod */
+static double soft_film(double raw, double exposure, int in_black, int in_white, int out_black, int out_white)
+{
+    double a = MAX(exposure - 1, 1e-5);
+    if (raw > in_black)
+    {
+        /* at low values, force the derivative equal to exposure (in linear units) */
+        /* at high values, map in_white to out_white (which normally happens at exposure=1) */
+        double x = (raw - in_black) / (in_white - in_black);
+        return (1.0 - 1.0/(1.0 + a*x)) / (1.0 - 1.0/(1.0 + a)) * (out_white - out_black) + out_black;
+    }
+    else
+    {
+        /* linear extrapolation below black */
+        return COERCE((raw - in_black) * exposure / (in_white - in_black) * (out_white - out_black) + out_black, 0, out_white);
+    }
+}
+
+static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_white, int out_black, int out_white, double wb, double max_wb)
+{
+    double raw_baked = (raw - in_black) * wb / max_wb + in_black;
+    double raw_soft = soft_film(raw_baked, exposure * max_wb, in_black, in_white, out_black, out_white);
+    double raw_adjusted = (raw_soft - out_black) / wb + out_black;
+    return raw_adjusted;
+}
+
 static int hdr_interpolate()
 {
     int x, y;
@@ -2826,7 +2852,6 @@ static int hdr_interpolate()
     {
         /* Soft film curve from ufraw */
         double exposure = pow(2, soft_film_ev);
-        double a = MAX(exposure * 2 - 1, 1e-5);
 
         double baked_wb[3] = {
             soft_film_wb[0]/soft_film_wb[1],
@@ -2837,18 +2862,30 @@ static int hdr_interpolate()
         double max_wb = MAX(baked_wb[0], baked_wb[2]);
         printf("Soft-film curve : +%.2f EV baked at WB %.2f %.2f %.2f\n", log2(exposure), baked_wb[0], baked_wb[1], baked_wb[2]);
 
-        static double soft_film[1<<20];
-        for (i = 0; i < 1<<20; i++)
+        if (0)
         {
-            double x = COERCE((double)(i - black) / (white - black), 0, 1);
-            soft_film[i] = (1 - 1/(1+a*x)) / (1 - 1/(1+a)) * (white/16 - black/16) + black/16;
-        }
-        
-        /* linear extrapolation under black level */
-        double delta = soft_film[black+1] - soft_film[black];
-        for (i = black-1; i > 0; i--)
-        {
-            soft_film[i] = soft_film[i+1] - delta;
+            FILE* f = fopen("soft-film.m", "w");
+            int k;
+            for (k = 0; k < 3; k++)
+            {
+                double wb = baked_wb[k];
+                char* rgb = "rgb";
+                fprintf(f, "s%c = [", rgb[k]);
+                for (i = 0; i < 1<<20; i++)
+                {
+                    int raw_compressed = soft_film_bakedwb(i, exposure, black, white, black/16, white/16, wb, max_wb);
+                    fprintf(f, "%d ", raw_compressed);
+                }
+                fprintf(f, "];\n");
+            }
+            
+            fprintf(f, "x = log2(max(1,(1:2^20) - 1 - %d));\n", black);
+            fprintf(f, "yr = log2(max(1, sr - %d));\n", black/16);
+            fprintf(f, "yg = log2(max(1, sg - %d));\n", black/16);
+            fprintf(f, "yb = log2(max(1, sb - %d));\n", black/16);
+            fprintf(f, "plot(x, yr, 'r', x, yg, 'g', x, yb, 'b')\n");
+            fclose(f);
+            if(system("octave --persist soft-film.m"));
         }
 
         for (y = 0; y < h; y++)
@@ -2856,11 +2893,11 @@ static int hdr_interpolate()
             for (x = 0; x < w; x++)
             {
                 double wb = baked_wb[FC(x,y)];
-                int raw_baked = COERCE(((int)raw_buffer_32[x + y*w] - black) * wb / max_wb + black, 0, (1<<20)-1);
-                raw_set_pixel16(x, y, COERCE((soft_film[raw_baked] - black/16) / wb + black/16, 0, 65535));
+                int raw_compressed = soft_film_bakedwb(raw_buffer_32[x + y*w], exposure, black, white, black/16, white/16, wb, max_wb);
+                raw_set_pixel16(x, y, COERCE(raw_compressed, 0, 65535));
                 
                 /* with WB 1/1/1: */
-                //~ raw_set_pixel16(x, y, soft_film[raw_buffer_32[x + y*w]]);
+                //~ raw_set_pixel16(x, y, soft_film(raw_buffer_32[x + y*w], exposure, black, white, black/16, white/16));
             }
         }
     }
