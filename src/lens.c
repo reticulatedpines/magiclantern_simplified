@@ -1081,12 +1081,10 @@ PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
-    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE
-        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
-        && !is_movie_mode()
-        #endif
-    )
+    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE)
     {
+        /* when you adjust ISO from Canon menu, sync expo override too */
+        /* this should work even on cameras without manual exposure control, since it's safeguarded by ISO_ADJUSTMENT_ACTIVE */
         bv_set_rawiso(buf[0]);
     }
     bv_auto_update();
