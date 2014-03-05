@@ -2831,7 +2831,7 @@ static int hdr_interpolate()
         double baked_wb[3] = {
             soft_film_wb[0]/soft_film_wb[1],
             1,
-            soft_film_wb[0]/soft_film_wb[1],
+            soft_film_wb[2]/soft_film_wb[1],
         };
         
         double max_wb = MAX(baked_wb[0], baked_wb[2]);
