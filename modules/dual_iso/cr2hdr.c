@@ -1366,6 +1366,7 @@ after_black_correction:
     {
         printf("Doesn't look like interlaced ISO\n");
         factor = 1;
+        return 0;
     }
     
     *corr_ev = log2(factor);
