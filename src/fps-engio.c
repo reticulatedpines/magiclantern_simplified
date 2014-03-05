@@ -1962,6 +1962,10 @@ void set_frame_iso(int iso)
 
 int can_set_frame_iso()
 {
+    #ifdef CONFIG_EOSM
+    if (!RECORDING_H264) return 0;  /* EOS-M is stubborn, http://www.magiclantern.fm/forum/index.php?topic=5200.msg104816#msg104816 */
+    #endif
+    
     #ifdef CONFIG_FRAME_ISO_OVERRIDE
     return 1;
     #else
@@ -2002,6 +2006,10 @@ void set_frame_shutter(int shutter_reciprocal)
 
 int can_set_frame_shutter_timer()
 {
+    #ifdef CONFIG_EOSM
+    if (!RECORDING_H264) return 0;  /* EOS-M is stubborn, http://www.magiclantern.fm/forum/index.php?topic=5200.msg104816#msg104816 */
+    #endif
+
     #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
     return 1;
     #else
