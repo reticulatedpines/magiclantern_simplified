@@ -1589,6 +1589,11 @@ static int hdr_interpolate()
             int br = raw_get_pixel16(x+1, y+1);
             int pl = raw_get_pixel16(x, y-1);
             int pr = raw_get_pixel16(x+1, y-1);
+            if (MIN(pl,pr) < raw_info.black_level + 32)
+            {
+                /* too noisy, not relevant */
+                continue;
+            }
             rggb_err += MIN(ABS(tr-bl), ABS(tr-pl));
             gbrg_err += MIN(ABS(tl-br), ABS(tl-pr));
         }
