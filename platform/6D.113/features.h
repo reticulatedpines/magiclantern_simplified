@@ -16,5 +16,3 @@
 /* Audio Features */
 #define FEATURE_HEADPHONE_MONITORING
 #define FEATURE_AUDIO_METERS
-
-#undef FEATURE_EXPO_LOCK /* depends on ISO_ADJUSTMENT_ACTIVE; important? (on 5D2, without it is unusable when changing ISO, for example) */

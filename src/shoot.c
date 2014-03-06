@@ -3314,7 +3314,9 @@ static void expo_lock_step()
     
     if (shooting_mode != SHOOTMODE_M) return;
     if (!lens_info.raw_iso) return;
-    if (ISO_ADJUSTMENT_ACTIVE) return;
+    #ifdef ISO_ADJUSTMENT_ACTIVE
+    if (ISO_ADJUSTMENT_ACTIVE) return;  /* careful with disabling this one: does expo lock work when changing ISO from Canon menu? (try both ISO->Tv and ISO->Av, movie/photo, LV or outside LV) */
+    #endif
     if (is_hdr_bracketing_enabled()) return;
     
     int max_auto_iso = auto_iso_range & 0xFF;
