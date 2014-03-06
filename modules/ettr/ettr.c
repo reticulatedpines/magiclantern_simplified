@@ -1231,7 +1231,11 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
     if (lv && !auto_ettr_check_in_lv()) return 1;
     
     if (
+#ifdef MODEL_EOS_M
+            (AUTO_ETTR_TRIGGER_BY_SET && detect_double_click(key, MODULE_KEY_TOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER)) ||
+#else
             (AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
+#endif
             (AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && detect_double_click(key, MODULE_KEY_PRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER)) ||
        0)
     {
@@ -1280,7 +1284,11 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_VALUE(
             AUTO_ETTR_TRIGGER_ALWAYS_ON ? "Always ON" : 
             AUTO_ETTR_TRIGGER_AUTO_SNAP ? "Auto Snap" : 
-            AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" : 
+#ifdef MODEL_EOS_M
+            AUTO_ETTR_TRIGGER_BY_SET ? "Screen DblTap" :
+#else
+            AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" :
+#endif
             AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK ? "HalfS DBC" : "err"
         );
     }
@@ -1371,11 +1379,23 @@ static struct menu_entry ettr_menu[] =
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
                 .max = 3, // NOTE: Modifed by the module init task to disable ETTR in LV if not supported
-                .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
+                .choices = CHOICES(
+                		"Always ON",
+                		"Auto Snap",
+#ifdef MODEL_EOS_M
+                		"Screen DblTap",
+#else
+                		"Press SET",
+#endif
+                		"HalfS DblClick"),
                 .help  = "When should the exposure be adjusted for ETTR:",
                 .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
                          "Auto Snap: after u take a pic,trigger another pic if needed\n"
-                         "Press SET: meter for ETTR when you press SET (LiveView)\n"
+#ifdef MODEL_EOS_M
+                         "Dbl Tap: meter for ETTR when you tap the screen twice\n"
+#else
+                         "Screen DblTap: meter for ETTR when you press SET (LiveView)\n"
+#endif
                          "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
             },
             {
