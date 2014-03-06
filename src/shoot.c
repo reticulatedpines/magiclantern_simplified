@@ -320,8 +320,8 @@ static void do_this_every_second() // called every second
     if(j%10 == 0) update_state_fps();
     #endif
 
-    // TODO: update bitrate.c and bitrate-6d.c to use this approach too
-    #ifdef CONFIG_5D3
+    // TODO: update bitrate.c to use this approach too
+    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (RECORDING_H264)
     {
         measure_bitrate();

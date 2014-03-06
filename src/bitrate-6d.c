@@ -300,25 +300,25 @@ void bitrate_set()
 
 }
 
-void measure_bitrate() // called once / second
+void measure_bitrate() // called from every second task
 {
-    static uint64_t prev_bytes_written = 0;
-    uint64_t bytes_written = MVR_BYTES_WRITTEN;
+    static uint32_t prev_bytes_written = 0;
+    uint32_t bytes_written = MVR_BYTES_WRITTEN;
     int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
+    if (bytes_delta < 0)
+    {
+        // We're either just starting a recording or we're wrapping over 4GB.
+        // either way, don't try to calculate the bitrate this time around.
+        prev_bytes_written = 0;
+        movie_bytes_written_32k = 0;
+        measured_bitrate = 0;
+        return;
+    }
     prev_bytes_written = bytes_written;
     movie_bytes_written_32k = bytes_written >> 15;
-    measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
+    measured_bitrate = (bytes_delta / 1024) * 8 / 1024;
 }
-/* New Card Backend
-#ifdef CONFIG_6D
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#else //5D3
-PROP_INT(PROP_CLUSTER_SIZE_A, cluster_size);
-PROP_INT(PROP_FREE_SPACE_A, free_space_raw);
-#endif
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-*/
+
 void bitrate_mvr_log(char* mvr_logfile_buffer)
 {
     return;
@@ -614,7 +614,6 @@ bitrate_task( void* unused )
             /* uses a bit of CPU, but it's precise */
             wait_till_next_second();
             movie_elapsed_time_01s += 10;
-            measure_bitrate();
             
             BMP_LOCK( show_mvr_buffer_status(); )
             movie_indicators_show();
