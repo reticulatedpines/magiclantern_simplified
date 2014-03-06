@@ -60,6 +60,16 @@
 #define BGMT_PRESS_FULLSHUTTER 0x52
 #define BGMT_UNPRESS_FULLSHUTTER 0x53
 
+// touch events
+#define BGMT_TOUCH_1_FINGER 0x6f
+#define BGMT_UNTOUCH_1_FINGER 0x70
+#define BGMT_TOUCH_2_FINGER 0x76
+#define BGMT_UNTOUCH_2_FINGER 0x77
+#define BGMT_TOUCH_MOVE 0x71 // when one or two finger are moving
+#define BGMT_TOUCH_PINCH_START 0x78 // when two fingers are touched and start moving
+#define BGMT_TOUCH_PINCH_STOP 0x79 // when two fingers are touched and stop moving
+
+
     #define BGMT_FLASH_MOVIE 0
     #define BGMT_PRESS_FLASH_MOVIE 0
     #define BGMT_UNPRESS_FLASH_MOVIE 0
