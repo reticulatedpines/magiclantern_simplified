@@ -9,3 +9,6 @@ MODULE_OBJS=fpu_emu.o nwfpe/fpopcode.o nwfpe/fpa11.o nwfpe/fpa11_cprt.o nwfpe/fp
 MODULE_CFLAGS += -I$(shell pwd) -D__LINUX_ARM_ARCH__=5 -D__pure=__attribute__\(\(const\)\) -D__user= -D__ARMEL__ -mabi=apcs-gnu
 # include modules environment
 include $(TOP_DIR)/modules/Makefile.modules
+
+clean::
+	$(call rm_files, nwfpe/*.d)

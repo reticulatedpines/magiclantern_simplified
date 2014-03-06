@@ -2866,18 +2866,6 @@ static uint16_t* defish_lut_load()
     return defish_lut;
 }
 
-
-static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
-{
-    uint32_t* src = &buf[pixoff / 2];
-    
-    uint32_t chroma = (*src)  & 0x00FF00FF;
-    uint32_t luma1 = (*src >>  8) & 0xFF;
-    uint32_t luma2 = (*src >> 24) & 0xFF;
-    uint32_t luma = pixoff % 2 ? luma2 : luma1;
-    return (chroma | (luma << 8) | (luma << 24));
-}
-
 static void FAST defish_draw_lv_color_loop(uint64_t* src_buf, uint64_t* dst_buf, int* ind)
 {
     src_buf = CACHEABLE((intptr_t)src_buf & ~7);
@@ -3057,7 +3045,7 @@ void defish_draw_play()
                 //~ uint32_t new_color = get_yuv_pixel_averaged(aux_buf, Id, Jd);
 
                 int pixoff_src = N2LV(Jd,Id) / 2;
-                uint32_t new_color = get_yuv_pixel(aux_buf, pixoff_src);
+                uint32_t new_color = yuv422_get_pixel(aux_buf, pixoff_src);
 
                 int pixoff_dst = LV(X,Y) / 2;
                 uint32_t* dst = &lvram[pixoff_dst / 2];

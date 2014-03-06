@@ -5739,15 +5739,33 @@ void menu_self_test()
 #endif // CONFIG_STRESS_TEST
 #endif // CONFIG_PICOC
 
+/* returns 1 if the backend is ready to use, 0 if caller should call this one again to re-check */
 int menu_request_image_backend()
 {
+    static int last_guimode_request = 0;
+    int t = get_ms_clock_value();
+    
     if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
     {
-        SetGUIRequestMode(DLG_PLAY);
+        if (t > last_guimode_request + 1000)
+        {
+            SetGUIRequestMode(DLG_PLAY);
+            last_guimode_request = t;
+        }
+        
+        /* not ready, please retry */
         return 0;
     }
-    clrscr();
-    return 1;
+
+    if (t > last_guimode_request + 500 && DISPLAY_IS_ON && get_yuv422_vram()->vram)
+    {
+        /* ready to draw on the YUV buffer! */
+        clrscr();
+        return 1;
+    }
+    
+    /* not yet ready, please retry */
+    return 0;
 }
 
 

@@ -78,6 +78,7 @@ NSTUB(0xff9e79a4 - RAM_OFFSET, msleep)
 
 /** Semaphores **/
 NSTUB(0xff9e7368 - RAM_OFFSET, create_named_semaphore)
+NSTUB(0xff9e7410 - RAM_OFFSET, delete_semaphore)
 NSTUB(0xff9e74c8 - RAM_OFFSET, take_semaphore)
 NSTUB(0xff9e75b4 - RAM_OFFSET, give_semaphore)
 

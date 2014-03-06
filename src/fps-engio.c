@@ -250,6 +250,10 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000)
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
+#elif defined(CONFIG_700D)
+    #define TG_FREQ_BASE 32000000 //copy from 650D
+    #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000) //copy from 650D
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
     #define TG_FREQ_SHUTTER 23188405 // not sure

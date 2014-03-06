@@ -298,7 +298,6 @@
     //~ #define FEATURE_SHOW_OVERLAY_FPS
 
     #define FEATURE_SCREENSHOT
-    #define FEATURE_SCREENSHOT_422
 
     #define FEATURE_DONT_CLICK_ME
 

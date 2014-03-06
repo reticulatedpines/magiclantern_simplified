@@ -89,8 +89,12 @@ NSTUB( 0xff982704, _FIO_RemoveFile )								//d
 NSTUB( 0xff982df4, _FIO_CreateDirectory)
 NSTUB( 0xFF9829A0, FIO_SeekFile) 								// mk11174 and Chucho  0xff9829b0
 	
-NSTUB( 0xff866a1c, give_semaphore )																		//d
-NSTUB( 0xff866934, take_semaphore )																		//d
+/** Semaphores **/
+NSTUB( 0xff8667d4, create_named_semaphore )
+NSTUB( 0xFF86687C, delete_semaphore )
+NSTUB( 0xff866a1c, give_semaphore )
+NSTUB( 0xff866934, take_semaphore )
+
 NSTUB( 0xff863e5c, dm_set_store_level ) // called by "dmstore"											//d
 NSTUB( 0xff85978c, prop_register_slave ) // called by"GUI_RegisterPropertySlave"							//d
 NSTUB( 0xff8598c4, _prop_request_change )																//d
@@ -121,7 +125,6 @@ NSTUB( 0xff859860, _prop_cleanup )
 //NSTUB( 0xff855b68, sounddev_active_in )
 //NSTUB( 0x2348	 , sounddev )                    // in sounddev_task								//d
 
-NSTUB( 0xff8667d4, create_named_semaphore )
 NSTUB( 0xffa45f94, gui_task_create )
 NSTUB( 0xffa460b4, gui_task_destroy )
 NSTUB( 0xffa45e44, ctrlman_dispatch_event )

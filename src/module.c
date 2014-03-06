@@ -34,7 +34,6 @@ static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_disabled, 0);
-#define module_autoload_enabled (!module_autoload_disabled)
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -124,26 +123,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;
     }
-    //console_printf("Added %d Magic Lantern symbols\n", count);
-
-
-    /* these are just to make the code compile */
-    void longjmp();
-    void setjmp();
-
-    /* ToDo: parse the old plugin sections as all needed OS stubs are already described there */
-    tcc_add_symbol(s, "msleep", &msleep);
-    tcc_add_symbol(s, "longjmp", &longjmp);
-    tcc_add_symbol(s, "strcpy", &strcpy);
-    tcc_add_symbol(s, "setjmp", &setjmp);
-    //~ tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
-    //~ tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
-    tcc_add_symbol(s, "vsnprintf", &vsnprintf);
-    tcc_add_symbol(s, "strlen", &strlen);
-    tcc_add_symbol(s, "memcpy", &memcpy);
-    tcc_add_symbol(s, "console_printf", &console_printf);
-    tcc_add_symbol(s, "task_create", &task_create);
-
+    
     free_dma_memory(buf);
     return 0;
 }
@@ -151,9 +131,18 @@ static int module_load_symbols(TCCState *s, char *filename)
 /* this is not perfect, as .Mo and .mO aren't detected. important? */
 static int module_valid_filename(char* filename)
 {
-    int n = strlen(filename);
-    if ((n > 3) && (streq(filename + n - 3, ".MO") || streq(filename + n - 3, ".mo")) && (filename[0] != '.') && (filename[0] != '_'))
+    int len = strlen(filename);
+    
+    if((len < 3) || (filename[0] == '.') || (filename[0] == '_'))
+    {
+        return 0;
+    }
+    
+    if(!strcmp(&filename[len - 3], ".MO") || !strcmp(&filename[len - 3], ".mo") )
+    {
         return 1;
+    }
+    
     return 0;
 }
 
@@ -354,10 +343,6 @@ static void _module_load_all(uint32_t list_only)
         void* buf = (void*) malloc(size);
         
         reloc_status = tcc_relocate(state, buf);
-
-        /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
-        clean_d_cache();
-
         module_code = buf;
     }
     if(size < 0 || reloc_status < 0)
@@ -451,6 +436,9 @@ static void _module_load_all(uint32_t list_only)
             module_config_load(filename, &module_list[mod]);
         }
     }
+    
+    /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
+    sync_caches();
     
     /* go through all modules and initialize them */
     console_printf("Init modules...\n");
@@ -1630,7 +1618,7 @@ static void module_load_task(void* unused)
 {
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
 
-    if(module_autoload_enabled)
+    if(!module_autoload_disabled)
     {
         uint32_t size;
         if(!module_ignore_crashes && FIO_GetFileSize( module_lockfile, &size ) == 0 )
@@ -1724,7 +1712,7 @@ int module_shutdown()
 {
     _module_unload_all();
     
-    if(module_autoload_enabled)
+    if(!module_autoload_disabled)
     {
         /* remove lockfile */
         FIO_RemoveFile(module_lockfile);
