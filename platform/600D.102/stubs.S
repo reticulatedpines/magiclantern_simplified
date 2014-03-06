@@ -87,8 +87,6 @@ NSTUB( 0xFF1E6EF0, _FIO_CreateDirectory)
 NSTUB( 0xff1e6d28, _FIO_RenameFile)
 NSTUB( 0xFF1E65E4, FIO_SeekFile)
 
-NSTUB( 0xFF0710D8, give_semaphore )
-NSTUB( 0xFF070FF0, take_semaphore )
 NSTUB( 0xFF06E6F8, dm_set_store_level ) // called by "dmstore"
 NSTUB( 0xff06e690, dm_set_print_level )
 NSTUB( 0xFF05BD4C, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
@@ -128,7 +126,6 @@ NSTUB( 0xFF057BE0, sounddev_active_in )      // "SoundDevActiveIn"
 NSTUB( 0xFF5DF9A0, audio_thresholds )        // find "ALV_Initialize", then pointer to "AudioLevel", thresholds are following array of 41 values
 NSTUB( 0x1EA8, sounddev )                    // in sounddev_task
 
-NSTUB( 0xff070e90, create_named_semaphore )
 NSTUB( 0xff31c594, gui_task_create )
 NSTUB( 0xff31c6b4, gui_task_destroy )
 NSTUB( 0xff31c444, ctrlman_dispatch_event )
@@ -312,6 +309,14 @@ NSTUB(0xFF1E0B80, RegisterEDmacPopCBR)
 NSTUB(0xFF1E0A64, UnregisterEDmacCompleteCBR)
 NSTUB(0xFF1E0AB8, UnregisterEDmacAbortCBR)
 NSTUB(0xFF1E0B94, UnregisterEDmacPopCBR) 
+
+/** Semaphores **/
+NSTUB( 0xff070e90, create_named_semaphore )
+NSTUB( 0xFF070F38, delete_semaphore )
+NSTUB( 0xFF0710D8, give_semaphore )
+NSTUB( 0xFF070FF0, take_semaphore )
+
+
 
 /** Unused **/
 //NSTUB(0xFF073580, GetRemainOfMemoryChunk)

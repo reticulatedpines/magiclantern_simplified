@@ -99,9 +99,9 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
  */
 uint32_t rgb2yuv422(int R, int G, int B)
 {
-    int Y = ( 227*R + 733*G +  74*B) / 1024;
-    int U = (-117*R - 395*G + 512*B) / 1024;
-    int V = ( 514*R - 467*G -  47*B) / 1024;
+    int Y = COERCE(( 227*R + 733*G +  74*B) / 1024, 0, 255);
+    int U = COERCE((-117*R - 395*G + 512*B) / 1024, -128, 127);
+    int V = COERCE(( 514*R - 467*G -  47*B) / 1024, -128, 127);
     return UYVY_PACK(U,Y,V,Y);
 }
 
@@ -345,4 +345,15 @@ void little_cleanup(void* BP, void* MP)
     if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
     bp++; mp++;
     if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
+}
+
+uint32_t yuv422_get_pixel(uint32_t* buf, int pixoff)
+{
+    uint32_t* src = &buf[pixoff / 2];
+    
+    uint32_t chroma = (*src)  & 0x00FF00FF;
+    uint32_t luma1 = (*src >>  8) & 0xFF;
+    uint32_t luma2 = (*src >> 24) & 0xFF;
+    uint32_t luma = pixoff % 2 ? luma2 : luma1;
+    return (chroma | (luma << 8) | (luma << 24));
 }

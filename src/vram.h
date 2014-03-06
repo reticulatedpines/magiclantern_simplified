@@ -80,6 +80,8 @@ struct vram_info * get_yuv422_hd_vram();
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 void vram_clear_lv();
 
+/* Coordinate transformations between different VRAMs */
+/* http://magiclantern.wikia.com/wiki/VRAM/Geometry */
 
 // [ sx   0   x ]
 // [  0  sy   y ]

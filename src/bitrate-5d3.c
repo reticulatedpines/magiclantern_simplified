@@ -135,8 +135,17 @@ int is_mvr_buffer_almost_full()
 static void load_h264_ini()
 {
     gui_stop_menu();
-    call("IVAParamMode", "ML/H264.ini");
-    NotifyBox(2000, "%s", 0x4da10);
+    char path[20] = "X:/ML/H264.ini";
+    path[0] = get_ml_card()->drive_letter[0];
+    if (is_file(path))
+    {
+        call("IVAParamMode", path);
+        NotifyBox(2000, "Loaded %s", path);
+    }
+    else
+    {
+        NotifyBox(2000, "%s not found", path);
+    }
 }
 
 static struct menu_entry mov_menus[] = {

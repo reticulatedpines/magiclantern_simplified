@@ -86,7 +86,6 @@ NSTUB(0xFFB8B750, cfReadBlk)                      // might be good (dumps=1, sco
 NSTUB(   0x20890, cf_device)
 NSTUB(0xFF812E44, cli_save)
 NSTUB(0xFF817470, create_init_task)
-NSTUB(0xFF86DC28, create_named_semaphore)
 NSTUB(0xFF810894, cstart)
 NSTUB(0xFFA6BDD0, ctrlman_dispatch_event)
 NSTUB(0xFFA6DA0C, dialog_redraw)
@@ -100,7 +99,6 @@ NSTUB(0xFF86B7F8, dumpf)
 NSTUB(0xFF818FD4, _free)
 NSTUB(0xFF9BA1C4, _free_dma_memory)
 NSTUB(0xFFB30CC0, fsuDecodePartitionTable)
-NSTUB(0xFF86DE70, give_semaphore)
 NSTUB(0xFF892358, gui_change_lcd_state_post)
 NSTUB(0xFF891718, gui_change_mode)
 NSTUB(0xFF8922C0, gui_change_shoot_type_post)
@@ -145,7 +143,6 @@ NSTUB(0xFF812E58, sei_restore)
 NSTUB(    0x2360, sounddev)
 NSTUB(0xff85b0e4, sounddev_task)
 NSTUB(0xff85b454, sounddev_active_in)
-NSTUB(0xFF86DD88, take_semaphore)
 NSTUB(0xFF86E2E4, task_create)
 NSTUB(    0x1934, task_dispatch_hook )
 NSTUB(0xFF8773C0, task_trampoline)
@@ -237,4 +234,11 @@ NSTUB(0xFF9A483C, UnregisterEDmacPopCBR)
 /** corectly named canon property reading functions **/
 NSTUB(0xFF85F344, PROP_GetMulticastProperty)
 NSTUB(0xFF85FD3C, PROPAD_GetPropertyData) //str:SearchFromProperty
+
+
+/** Semaphores **/
+NSTUB(0xFF86DC28, create_named_semaphore)
+NSTUB(0xFF86DCD0, delete_semaphore)
+NSTUB(0xFF86DD88, take_semaphore)
+NSTUB(0xFF86DE70, give_semaphore)
 

@@ -485,16 +485,15 @@ FILE* FIO_CreateFileOrAppend(const char* name)
 
 int _FIO_CopyFile(char *src,char *dst)
 {
-    const int bufsize = MIN(_GetFileSize(src), 128*1024);
-    
-    void* buf = alloc_dma_memory(bufsize);
-    if (!buf) return -1;
-
     FILE* f = _FIO_Open(src, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return -1;
 
     FILE* g = _FIO_CreateFileEx(dst);
     if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
+
+    const int bufsize = MIN(_GetFileSize(src), 128*1024);
+    void* buf = alloc_dma_memory(bufsize);
+    if (!buf) return -1;
 
     int err = 0;
     int r = 0;
@@ -553,6 +552,41 @@ int FIO_MoveFile(char *src, char *dst)
     fixup_filename(newSrc, src, 255);
     fixup_filename(newDst, dst, 255);
     return _FIO_MoveFile(newSrc, newDst);
+}
+
+int is_file(char* path)
+{
+    uint32_t file_size = 0;
+    return !FIO_GetFileSize(path, &file_size);
+}
+
+int is_dir(char* path)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if( IS_ERROR(dirent) )
+    {
+        return 0; // this dir does not exist
+    }
+    else 
+    {
+        FIO_FindClose(dirent);
+        return 1; // dir found
+    }
+}
+
+int get_numbered_file_name(const char* pattern, int nmax, char* filename, int maxlen)
+{
+    for (int num = 0; num <= nmax; num++)
+    {
+        snprintf(filename, maxlen, pattern, num);
+        uint32_t size;
+        if( FIO_GetFileSize( filename, &size ) != 0 ) return num;
+        if (size == 0) return num;
+    }
+
+    snprintf(filename, maxlen, pattern, 0);
+    return -1;
 }
 
 #ifdef CONFIG_DUAL_SLOT
