@@ -1191,8 +1191,20 @@ tweak_task( void* unused)
         }
         #endif
         
-        if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
+        /* reset powersave counters for those events don't send a button code, e.g. shutter/aperture change 
+         * (GMT_OLC_INFO_CHANGED doesn't reset them, because it's also sent by auto exposure changes)
+         * => we use heuristics like Canon bottom bar or popping up to detect these events */
+        if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
+        {
             idle_wakeup_reset_counters();
+        }
+        
+        #ifdef ISO_ADJUSTMENT_ACTIVE
+        if (ISO_ADJUSTMENT_ACTIVE)
+        {
+            idle_wakeup_reset_counters();
+        }
+        #endif
     }
 }
 

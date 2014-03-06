@@ -112,7 +112,7 @@ Output size: 5496 x 3670
 #define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 
 //That Function is dead.
-#define ISO_ADJUSTMENT_ACTIVE 0
+//~ #define ISO_ADJUSTMENT_ACTIVE 0
 
 // from a screenshot
 #define COLOR_FG_NONLV 1

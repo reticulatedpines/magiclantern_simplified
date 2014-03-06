@@ -5260,17 +5260,21 @@ int handle_quick_access_menu_items(struct event * event)
     if (event->param == BGMT_Q && !gui_menu_shown())
     #endif
     {
+        #ifdef ISO_ADJUSTMENT_ACTIVE
         if (ISO_ADJUSTMENT_ACTIVE)
+        #else
+        if (0)
+        #endif
         {
             select_menu("Expo", 0);
             give_semaphore( gui_sem ); 
             return 0;
         }
-#ifdef CURRENT_DIALOG_MAYBE_2
+        #ifdef CURRENT_DIALOG_MAYBE_2
         else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
-#else
+        #else
         else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
-#endif
+        #endif
         {
             select_menu("Focus", 0);
             give_semaphore( gui_sem ); 

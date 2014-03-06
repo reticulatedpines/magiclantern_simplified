@@ -42,7 +42,7 @@
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2C10) // dec create_idleHandler_task
 
     #define LV_BOTTOM_BAR_DISPLAYED 0
-    #define ISO_ADJUSTMENT_ACTIVE 0
+    //~ #define ISO_ADJUSTMENT_ACTIVE 0
 
 // from a screenshot
 #define COLOR_FG_NONLV 1

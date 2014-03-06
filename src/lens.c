@@ -1081,10 +1081,17 @@ PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
-    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE)
+    else if 
+        (
+            buf[0] && !gui_menu_shown()
+            #if defined(ISO_ADJUSTMENT_ACTIVE) || defined(CONFIG_NO_MANUAL_EXPOSURE_MOVIE)
+            && ISO_ADJUSTMENT_ACTIVE
+            #endif
+        )
     {
         /* when you adjust ISO from Canon menu, sync expo override too */
         /* this should work even on cameras without manual exposure control, since it's safeguarded by ISO_ADJUSTMENT_ACTIVE */
+        /* (that's why ISO_ADJUSTMENT_ACTIVE is mandatory for cameras with CONFIG_NO_MANUAL_EXPOSURE_MOVIE, and optional on others) */
         bv_set_rawiso(buf[0]);
     }
     bv_auto_update();
@@ -2391,11 +2398,14 @@ static LVINFO_UPDATE_FUNC(iso_update)
         STR_APPEND(buffer, "D+");
     }
 
+    #ifdef ISO_ADJUSTMENT_ACTIVE
     if (ISO_ADJUSTMENT_ACTIVE)
     {
         item->color_bg = COLOR_LIGHT_BLUE;
     }
-    else if (CONTROL_BV)
+    else
+    #endif
+    if (CONTROL_BV)
     {
         /* mark the "exposure override" mode */
         item->color_bg = 18;
