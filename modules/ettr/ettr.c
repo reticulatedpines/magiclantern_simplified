@@ -40,6 +40,7 @@ static int show_metered_areas = 0;
 #define AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK (auto_ettr_trigger == 3)
 
 /* status codes */
+#define ETTR_EXPO_PRECOND_TIMEOUT -2
 #define ETTR_EXPO_LIMITS_REACHED -1
 #define ETTR_NEED_MORE_SHOTS 0
 #define ETTR_SETTLED 1
@@ -620,6 +621,21 @@ static char prev_exposure_settings[50];
 
 static int auto_ettr_work(int corr)
 {
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE)
+    {
+        /* in M mode, wait until shutter speed is reported by Canon firmware */
+        int waited = 0;
+        while (lens_info.raw_shutter == 0)
+        {
+            if (waited > 2000)
+            {
+                return ETTR_EXPO_PRECOND_TIMEOUT;
+            }
+            msleep(50);
+            waited += 50;
+        }
+    }
+
     /* save initial exposure settings so we can print them */
     char* expo_settings = get_current_exposure_settings();
     snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
@@ -671,6 +687,13 @@ static void auto_ettr_step_task(int corr)
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
+    else if (status == ETTR_EXPO_PRECOND_TIMEOUT)
+    {
+        beep_times(3);
+        ettr_pics_took = 0;
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: timeout while waiting for preconditions\n");
+    }
     else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
     {
         /* take another pic */
@@ -699,7 +722,6 @@ static void auto_ettr_step()
     if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE) return;
     int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
     if (lens_info.raw_iso == 0 && is_m) return;
-    if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
     if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET) return;
 
