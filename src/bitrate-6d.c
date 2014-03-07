@@ -652,4 +652,5 @@ int is_mvr_buffer_almost_full() { return 0; }
 void movie_indicators_show() {}
 void time_indicator_show() {}
 void bitrate_mvr_log(char* mvr_logfile_buffer) {}
+void measure_bitrate() {}
 #endif
