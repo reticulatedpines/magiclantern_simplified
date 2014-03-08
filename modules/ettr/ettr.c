@@ -1233,8 +1233,8 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
     if (lv && !auto_ettr_check_in_lv()) return 1;
     
     if (
-            (camera_model_id == MODEL_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && detect_double_click(key, MODULE_KEY_TOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER)) ||
-            (camera_model_id != MODEL_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
+            (IS_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && detect_double_click(key, MODULE_KEY_TOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER)) ||
+            (!IS_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
             (AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && detect_double_click(key, MODULE_KEY_PRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER)) ||
        0)
     {
