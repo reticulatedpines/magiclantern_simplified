@@ -746,13 +746,23 @@ static unsigned int adv_int_cbr()
     return 0;
 }
 
-static unsigned int adv_int_pic_cbr()
+static int running = 0;
+
+static void adv_int_task()
 {
-    if(adv_int_external)
+    running = 1;
+    adv_int_cbr();
+    running = 0;
+}
+
+PROP_HANDLER(PROP_GUI_STATE)
+{
+    int* data = buf;
+    if (data[0] == GUISTATE_QR)
     {
-        return adv_int_cbr();
+        if (adv_int_external && !running)
+            task_create("adv_int_task", 0x1c, 0x1000, adv_int_task, (void*)0);
     }
-    return 0;
 }
 
 static struct menu_entry adv_int_menu[] =
@@ -982,14 +992,17 @@ static unsigned int adv_int_deinit()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_INTERVALOMETER, adv_int_cbr, 0)
-    MODULE_CBR(CBR_POST_SHOOT, adv_int_pic_cbr, 0)
 MODULE_CBRS_END()
 
 MODULE_INFO_START()
     MODULE_INIT(adv_int_init)
     MODULE_DEINIT(adv_int_deinit)
 MODULE_INFO_END()
-           
+
+MODULE_PROPHANDLERS_START()
+    MODULE_PROPHANDLER(PROP_GUI_STATE)
+MODULE_PROPHANDLERS_END()
+
 MODULE_CONFIGS_START()
     MODULE_CONFIG(adv_int)
     MODULE_CONFIG(adv_int_use_global_time)
