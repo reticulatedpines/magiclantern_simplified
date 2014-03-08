@@ -1375,14 +1375,11 @@ static struct menu_entry ettr_menu[] =
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
                 .max = 3, // NOTE: Modifed by the module init task to disable ETTR in LV if not supported
-                .choices = CHOICES(
-                		"Always ON",
-                		"Auto Snap",
-                		"Press SET",
-                		"HalfS DblClick"),
+                // choices is set in module init because it is dynamic now
+                //~ .choices =
                 .help  = "When should the exposure be adjusted for ETTR:",
-                // is set in update menu because it is dynamic now
-                // ~.help2 =
+                // help2 is set in module init because it is dynamic now
+                //~ .help2 =
             },
             {
                 .name = "Slowest shutter",
@@ -1488,7 +1485,7 @@ static unsigned int ettr_init()
     // Modify menu for the EOS M
     if (IS_EOS_M)
     {
-        ettr_menu[0].children[0].choices[2] = "Screen DblTap";
+        ettr_menu[0].children[0].choices = CHOICES("Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick");
         ettr_menu[0].children[0].help2 =
                 "Always ON: when you take a pic, or continuously in LiveView\n"
                 "Auto Snap: after u take a pic,trigger another pic if needed\n"
@@ -1497,6 +1494,7 @@ static unsigned int ettr_init()
     }
     else
     {
+        ettr_menu[0].children[0].choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick");
         ettr_menu[0].children[0].help2 =
                 "Always ON: when you take a pic, or continuously in LiveView\n"
                 "Auto Snap: after u take a pic,trigger another pic if needed\n"
