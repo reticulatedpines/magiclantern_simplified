@@ -478,6 +478,50 @@ static MENU_UPDATE_FUNC(iso_menu_update)
     MENU_SET_RINFO("ISO%d", lens_info.iso);
 }
 
+/************************************************************/
+/* From shoot.c */
+
+static MENU_UPDATE_FUNC(iso_icon_update)
+{
+    if (lens_info.iso)
+        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
+    else
+        MENU_SET_ICON(MNI_AUTO, 0);
+}
+
+static MENU_UPDATE_FUNC(iso_display)
+{
+    MENU_SET_VALUE("%s", lens_info.iso ? "" : "Auto");
+    
+    if (lens_info.iso)
+    {
+        if (lens_info.raw_iso == lens_info.iso_equiv_raw)
+        {
+            MENU_SET_VALUE("%d", raw2iso(lens_info.iso_equiv_raw));
+            
+            if (!menu_active_but_hidden())
+            {
+                int Sv = APEX_SV(lens_info.iso_equiv_raw) * 10/8;
+                MENU_SET_RINFO("Sv%s%d.%d", FMT_FIXEDPOINT1(Sv));
+            }
+            
+        }
+        else
+        {
+            int dg = lens_info.iso_equiv_raw - lens_info.raw_iso;
+            dg = dg * 10/8;
+            MENU_SET_VALUE("%d",raw2iso(lens_info.iso_equiv_raw));
+            MENU_SET_RINFO("%d,%s%d.%dEV",raw2iso(lens_info.raw_iso),FMT_FIXEDPOINT1S(dg));
+        }
+    }
+    
+    iso_icon_update(entry, info);
+    
+    MENU_SET_SHORT_NAME(" "); // obvious from value
+}
+
+/************************************************************/
+
 static MENU_SELECT_FUNC(kelvin_menu_select)
 {
     int * val = (int*)priv;
@@ -779,7 +823,26 @@ static struct menu_entry adv_int_menu[] =
                         .update = iso_menu_update,
                         .max = 1,
                         .icon_type = IT_BOOL,
-                        .help = "Include current ISO in Keyframe"
+                        .help = "Include current ISO in Keyframe",
+                        .children = (struct menu_entry[])
+                        {
+                            {
+                                .name = "Enabled",
+                                .priv = &keyframe_iso,
+                                .update = iso_menu_update,
+                                .max = 1,
+                                .icon_type = IT_BOOL,
+                                .help = "Include current ISO in Keyframe"
+                            },
+                            {
+                                .name = "Adjust ISO",
+                                .update = iso_display,
+                                .select = iso_toggle,
+                                .help  = "Adjust and fine-tune ISO. Also displays APEX Sv value.",
+                                .edit_mode = EM_MANY_VALUES_LV,
+                            },
+                            MENU_EOL
+                        }
                     },
                     {
                         .name = "Focus",
