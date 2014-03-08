@@ -481,6 +481,26 @@ static MENU_UPDATE_FUNC(iso_menu_update)
 /************************************************************/
 /* From shoot.c */
 
+static MENU_UPDATE_FUNC(shutter_display)
+{
+    MENU_SET_VALUE("%s", lens_format_shutter(lens_info.raw_shutter));
+    if (!menu_active_but_hidden())
+    {
+        int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
+        if (lens_info.raw_shutter) MENU_SET_RINFO("Tv%s%d.%d",FMT_FIXEDPOINT1(Tv));
+    }
+    
+    if (lens_info.raw_shutter)
+    {
+        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
+        MENU_SET_ENABLED(1);
+    }
+    else 
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Shutter speed is automatic - cannot adjust manually.");
+    
+    MENU_SET_SHORT_NAME(" "); // obvious from value
+}
+
 static MENU_UPDATE_FUNC(aperture_display)
 {
     int a = lens_info.aperture;
@@ -822,13 +842,33 @@ static struct menu_entry adv_int_menu[] =
                         .help2 = "* Computed time inacurate if ramping interval time"
                     },
                     {
-                        .name = "Shutter",
+                        .name = "Shutter ",
                         .priv = &keyframe_shutter,
+                        .select = menu_open_submenu,
                         .update = shutter_menu_update,
                         .max = 1,
                         .icon_type = IT_BOOL,
                         .works_best_in = DEP_M_MODE,
-                        .help = "Include current Shutter in Keyframe"
+                        .help = "Include current Shutter in Keyframe",
+                        .children = (struct menu_entry[])
+                        {
+                            {
+                                .name = "Enabled",
+                                .priv = &keyframe_shutter,
+                                .max = 1,
+                                .icon_type = IT_BOOL,
+                                .help = "Include current Shutter in Keyframe"
+                            },
+                            {
+                                .name = "Adjust Shutter",
+                                .update     = shutter_display,
+                                .select     = shutter_toggle,
+                                .icon_type  = IT_PERCENT,
+                                .help = "Fine-tune shutter value. Displays APEX Tv or degrees equiv.",
+                                .edit_mode = EM_MANY_VALUES_LV,
+                            },
+                            MENU_EOL
+                        }
                     },
                     {
                         .name = "Aperture ",
@@ -844,7 +884,6 @@ static struct menu_entry adv_int_menu[] =
                             {
                                 .name = "Enabled",
                                 .priv = &keyframe_aperture,
-                                .update = aperture_menu_update,
                                 .max = 1,
                                 .icon_type = IT_BOOL,
                                 .help = "Include current Aperture in Keyframe"
@@ -874,7 +913,6 @@ static struct menu_entry adv_int_menu[] =
                             {
                                 .name = "Enabled",
                                 .priv = &keyframe_iso,
-                                .update = iso_menu_update,
                                 .max = 1,
                                 .icon_type = IT_BOOL,
                                 .help = "Include current ISO in Keyframe"
