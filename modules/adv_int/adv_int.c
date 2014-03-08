@@ -481,6 +481,32 @@ static MENU_UPDATE_FUNC(iso_menu_update)
 /************************************************************/
 /* From shoot.c */
 
+static MENU_UPDATE_FUNC(aperture_display)
+{
+    int a = lens_info.aperture;
+    int av = APEX_AV(lens_info.raw_aperture) * 10/8;
+    if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
+        a = av = 0;
+    MENU_SET_VALUE(SYM_F_SLASH"%d.%d",a / 10,a % 10,av / 8,(av % 8) * 10/8);
+    
+    if (!menu_active_but_hidden())
+    {
+        if (a) MENU_SET_RINFO("Av%s%d.%d",FMT_FIXEDPOINT1(av));
+    }
+    if (!lens_info.aperture)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
+        MENU_SET_ICON(MNI_PERCENT_OFF, 0);
+    }
+    else
+    {
+        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_aperture - lens_info.raw_aperture_min) * 100 / (lens_info.raw_aperture_max - lens_info.raw_aperture_min));
+        MENU_SET_ENABLED(1);
+    }
+    
+    MENU_SET_SHORT_NAME(" "); // obvious from value
+}
+
 static MENU_UPDATE_FUNC(iso_icon_update)
 {
     if (lens_info.iso)
@@ -492,7 +518,6 @@ static MENU_UPDATE_FUNC(iso_icon_update)
 static MENU_UPDATE_FUNC(iso_display)
 {
     MENU_SET_VALUE("%s", lens_info.iso ? "" : "Auto");
-    
     if (lens_info.iso)
     {
         if (lens_info.raw_iso == lens_info.iso_equiv_raw)
@@ -504,7 +529,6 @@ static MENU_UPDATE_FUNC(iso_display)
                 int Sv = APEX_SV(lens_info.iso_equiv_raw) * 10/8;
                 MENU_SET_RINFO("Sv%s%d.%d", FMT_FIXEDPOINT1(Sv));
             }
-            
         }
         else
         {
@@ -514,9 +538,7 @@ static MENU_UPDATE_FUNC(iso_display)
             MENU_SET_RINFO("%d,%s%d.%dEV",raw2iso(lens_info.raw_iso),FMT_FIXEDPOINT1S(dg));
         }
     }
-    
     iso_icon_update(entry, info);
-    
     MENU_SET_SHORT_NAME(" "); // obvious from value
 }
 
@@ -809,17 +831,40 @@ static struct menu_entry adv_int_menu[] =
                         .help = "Include current Shutter in Keyframe"
                     },
                     {
-                        .name = "Aperture",
+                        .name = "Aperture ",
                         .priv = &keyframe_aperture,
+                        .select = menu_open_submenu,
                         .update = aperture_menu_update,
                         .max = 1,
                         .icon_type = IT_BOOL,
                         .works_best_in = DEP_M_MODE,
-                        .help = "Include current Aperture in Keyframe"
+                        .help = "Include current Aperture in Keyframe",
+                        .children = (struct menu_entry[])
+                        {
+                            {
+                                .name = "Enabled",
+                                .priv = &keyframe_aperture,
+                                .update = aperture_menu_update,
+                                .max = 1,
+                                .icon_type = IT_BOOL,
+                                .help = "Include current Aperture in Keyframe"
+                            },
+                            {
+                                .name = "Adjust Aperture",
+                                .update     = aperture_display,
+                                .select     = aperture_toggle,
+                                .icon_type  = IT_PERCENT,
+                                .help = "Adjust aperture. Also displays APEX aperture (Av) in stops.",
+                                .depends_on = DEP_CHIPPED_LENS,
+                                .edit_mode = EM_MANY_VALUES_LV,
+                            },
+                            MENU_EOL
+                        }
                     },
                     {
-                        .name = "ISO",
+                        .name = "ISO ",
                         .priv = &keyframe_iso,
+                        .select = menu_open_submenu,
                         .update = iso_menu_update,
                         .max = 1,
                         .icon_type = IT_BOOL,
