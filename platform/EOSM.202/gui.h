@@ -1,16 +1,14 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-// used for knowing when canon's lv overlays are showing
-#define GUI_LV_OVERLAYS_HIDDEN -7
-#define GUI_LV_OVERLAYS_VISIBLE 0x37
-
 
 // button codes as received by gui_main_task
 #define BGMT_WHEEL_UP 2
 #define BGMT_WHEEL_DOWN 3
-    #define BGMT_WHEEL_LEFT 12345
-    #define BGMT_WHEEL_RIGHT 123456
+
+/* no top wheel => use fake negative values => they will fail read-only tests and will not be passed to Canon firmware */
+#define BGMT_WHEEL_LEFT -12345
+#define BGMT_WHEEL_RIGHT -123456
 
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_SET 0x5
@@ -20,38 +18,21 @@
 #define BGMT_PLAY 0xb
 #define BGMT_TRASH BGMT_TOUCH_2_FINGER
 
-    #define BGMT_PRESS_DP 0x2f
-    #define BGMT_UNPRESS_DP 0x35
-    #define BGMT_RATE 0x21
 #define BGMT_REC 0x1E
 
+/* no zoom buttons => fake codes */
+#define BGMT_PRESS_ZOOMIN_MAYBE -0x112
+#define BGMT_UNPRESS_ZOOMIN_MAYBE -0x113
 
-    #define BGMT_PRESS_ZOOMIN_MAYBE 0x12
-    #define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
-    //~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
-    //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
-
-    #define BGMT_LV 0x1E
-#define BGMT_Q 0xFE // dummy value > 0 so button can be faked with fake_simple_button()
-
-    //~ #define BGMT_FUNC 0x12
-    #define BGMT_PICSTYLE 0x13
-    //~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
-#if 0
-#define BGMT_JOY_CENTER 0x3e
-#define BGMT_UNPRESS_UDLR 0x35
-#endif
+#define BGMT_LV 0x1E
+#define BGMT_Q -0xFFFE // dummy value so button can be faked with fake_simple_button(); negative means internal ML event, not passed to Canon code
 
 #define BGMT_PRESS_UP 0x2a          //~ unpress = 0x2b
 #define BGMT_UNPRESS_UP 0x2b
-    #define BGMT_PRESS_UP_RIGHT 0x17
-    #define BGMT_PRESS_UP_LEFT 0x18
 #define BGMT_PRESS_RIGHT 0x26       //~ unpress = 0x27
 #define BGMT_UNPRESS_RIGHT 0x27
 #define BGMT_PRESS_LEFT 0x28        //~ unpress = 0x29
 #define BGMT_UNPRESS_LEFT 0x29
-    #define BGMT_PRESS_DOWN_RIGHT 0x1B
-    #define BGMT_PRESS_DOWN_LEFT 0x1C
 #define BGMT_PRESS_DOWN 0x2c        //~ unpress = 0x2d
 #define BGMT_UNPRESS_DOWN 0x2d
 
@@ -68,15 +49,6 @@
 #define BGMT_TOUCH_MOVE 0x71 // when one or two finger are moving
 #define BGMT_TOUCH_PINCH_START 0x78 // when two fingers are touched and start moving
 #define BGMT_TOUCH_PINCH_STOP 0x79 // when two fingers are touched and stop moving
-
-
-    #define BGMT_FLASH_MOVIE 0
-    #define BGMT_PRESS_FLASH_MOVIE 0
-    #define BGMT_UNPRESS_FLASH_MOVIE 0
-    #define FLASH_BTN_MOVIE_MODE 0
-    #define BGMT_ISO_MOVIE 0
-    #define BGMT_PRESS_ISO_MOVIE 0
-    #define BGMT_UNPRESS_ISO_MOVIE 0
 
 #define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x54 // unhandled buttons?
 
