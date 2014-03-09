@@ -4659,6 +4659,8 @@ int handle_ml_menu_touch(struct event * event)
             fake_simple_button(BGMT_Q);
             return 0;
         case BGMT_TOUCH_2_FINGER:
+            fake_simple_button(BGMT_TRASH);
+            return 0;
         case BGMT_UNTOUCH_1_FINGER:
         case BGMT_UNTOUCH_2_FINGER:
             return 0;
@@ -5203,7 +5205,11 @@ int handle_ml_menu_erase(struct event * event)
 {
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
+#ifdef CONFIG_TOUCHSCREEN
+    if (event->param == BGMT_TRASH || event->param == BGMT_TOUCH_2_FINGER)
+#else
     if (event->param == BGMT_TRASH)
+#endif
     {
         if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
         {
