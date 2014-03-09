@@ -481,10 +481,20 @@ static int auto_ettr_work_m(int corr)
     int shutter_lim = auto_ettr_max_shutter;
 
     /* can't go slower than 1/fps in movie mode */
-    if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
+    if (is_movie_mode())
+    {
+        shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
+        if (!expo_override_active())
+        {
+            /* without expo override, in movie mode we can't set exposures longer than 1/30 */
+            shutter_lim = MAX(shutter_lim, SHUTTER_1_30);
+        }
+    }
 
     /* apply exposure correction */
     tv += delta;
+
+    if (debug_info) printf("expo after comp: %d\n", tv - iso);
 
     /* use the lowest ISO for which we can get shutter = shutter_lim or higher */
     int offset = MIN(tv - shutter_lim, iso - MIN_ISO);
@@ -499,6 +509,7 @@ static int auto_ettr_work_m(int corr)
     /* prefer rounding towards lower ISOs */
     int max_auto_iso = auto_iso_range & 0xFF;
     int isor = COERCE(iso / 8 * 8, MIN_ISO, max_auto_iso);
+    if (debug_info) printf("iso rounding: %d -> %d (expo %d -> %d)\n", iso, isor, tvr - iso, tvr - isor);
     
     /* can we use dual ISO to recover the highlights? (HR = highlight recovery) */
     if (dual_iso)
