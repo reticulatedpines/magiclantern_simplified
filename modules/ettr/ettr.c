@@ -1498,6 +1498,21 @@ static struct menu_entry ettr_menu[] =
     },
 };
 
+const char * trigger_choices_eosm[] = {"Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick"};
+const char * trigger_choices_others[] = {"Always ON", "Auto Snap", "Press SET", "HalfS DblClick"};
+
+const char * trigger_help_eosm = 
+    "Always ON: when you take a pic, or continuously in LiveView\n"
+    "Auto Snap: after u take a pic,trigger another pic if needed\n"
+    "Screen DblTap: meter for ETTR when you tap the screen twice\n"
+    "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
+
+const char * trigger_help_others = 
+    "Always ON: when you take a pic, or continuously in LiveView\n"
+    "Auto Snap: after u take a pic,trigger another pic if needed\n"
+    "Press SET: meter for ETTR when you press SET (LiveView)\n"
+    "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
+
 static unsigned int ettr_init()
 {
     if ((void*)&raw_lv_request == (void*)&ret_0)
@@ -1505,27 +1520,20 @@ static unsigned int ettr_init()
         auto_ettr_trigger  = auto_ettr_trigger > 1 ? 0 : auto_ettr_trigger;
         ettr_menu[0].children[0].max = 1;
     }
-    menu_add("Expo", ettr_menu, COUNT(ettr_menu));
 
     // Modify menu for the EOS M
     if (IS_EOS_M)
     {
-        ettr_menu[0].children[0].choices = CHOICES("Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick");
-        ettr_menu[0].children[0].help2 =
-                "Always ON: when you take a pic, or continuously in LiveView\n"
-                "Auto Snap: after u take a pic,trigger another pic if needed\n"
-                "Screen DblTap: meter for ETTR when you tap the screen twice\n"
-                "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
+        ettr_menu[0].children[0].choices = trigger_choices_eosm;
+        ettr_menu[0].children[0].help2 = trigger_help_eosm;
     }
     else
     {
-        ettr_menu[0].children[0].choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick");
-        ettr_menu[0].children[0].help2 =
-                "Always ON: when you take a pic, or continuously in LiveView\n"
-                "Auto Snap: after u take a pic,trigger another pic if needed\n"
-                "Press SET: meter for ETTR when you press SET (LiveView)\n"
-                "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
+        ettr_menu[0].children[0].choices = trigger_choices_others;
+        ettr_menu[0].children[0].help2 = trigger_help_others;
     }
+
+    menu_add("Expo", ettr_menu, COUNT(ettr_menu));
 
     return 0;
 }
