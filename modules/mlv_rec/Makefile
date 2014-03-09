@@ -6,32 +6,30 @@ MODULE_OBJS=mlv_rec.o mlv.o
 # include modules environment
 include ../Makefile.modules
 
+MLV_CFLAGS = -I$(SRC_DIR) -D MLV_USE_LZMA -Wpadded -mno-ms-bitfields -D _7ZIP_ST -D MLV2DNG
+MLV_LFLAGS = 
+MLV_LIBS = -lm
+MLV_LIBS_MINGW = -lm
+
+
 # just comment out to disable LUA
 #LUA_VER=5.2
 
 ifdef LUA_VER
-    LUA_CFLAGS=`pkg-config --cflags --libs lua$(LUA_VER)` -D USE_LUA
-else
-    LUA_CFLAGS=
+    MLV_CFLAGS += $(shell pkg-config --cflags lua$(LUA_VER)) -D USE_LUA
+    MLV_LFLAGS += 
+    MLV_LIBS += $(shell pkg-config --libs lua$(LUA_VER))
+    MLV_LIBS_MINGW += $(shell pkg-config --libs lua$(LUA_VER))
 endif
 
-MINGW=i686-w64-mingw32
-MINGW_GCC=$(MINGW)-gcc
-MINGW_AR=$(MINGW)-ar
 
-# large file support
-# get them with $(shell getconf LFS_CFLAGS)
-LFS_FLAGS=-DLARGEFILES -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
-
+# add target architecture for OSX
 ifdef FOR_OSX
-    MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS) -arch i386 -mmacosx-version-min=10.6
-else
-    MLV_CFLAGS=-DMLV_USE_LZMA -Wpadded -mno-ms-bitfields -std=c99 -O2 -Wall $(LFS_FLAGS) -I$(SRC_DIR) $(LUA_CFLAGS)
+    MLV_CFLAGS += -arch i386 -mmacosx-version-min=10.6
 endif
 
 # LZMA library flags
 LZMA_DIR=lzma/
-LZMA_CFLAGS=-c -O2 -Wall -m32 -c
 LZMA_INC=-I$(LZMA_DIR)
 LZMA_LIB=$(LZMA_DIR)lib7z.a
 LZMA_LIB_MINGW=$(LZMA_DIR)lib7z.w32.a
@@ -40,54 +38,42 @@ LZMA_OBJS=$(LZMA_DIR)7zAlloc.host.o $(LZMA_DIR)7zBuf.host.o $(LZMA_DIR)7zBuf2.ho
 LZMA_OBJS_MINGW=$(LZMA_DIR)Threads.w32.o $(LZMA_DIR)LzFindMt.w32.o $(LZMA_DIR)MtCoder.w32.o $(LZMA_DIR)7zAlloc.w32.o $(LZMA_DIR)7zBuf.w32.o $(LZMA_DIR)7zBuf2.w32.o $(LZMA_DIR)7zCrc.w32.o $(LZMA_DIR)7zCrcOpt.w32.o $(LZMA_DIR)7zDec.w32.o $(LZMA_DIR)7zFile.w32.o $(LZMA_DIR)7zIn.w32.o $(LZMA_DIR)7zStream.w32.o $(LZMA_DIR)Alloc.w32.o $(LZMA_DIR)Bcj2.w32.o $(LZMA_DIR)Bra.w32.o $(LZMA_DIR)Bra86.w32.o $(LZMA_DIR)BraIA64.w32.o $(LZMA_DIR)CpuArch.w32.o $(LZMA_DIR)Delta.w32.o $(LZMA_DIR)LzFind.w32.o $(LZMA_DIR)Lzma2Dec.w32.o $(LZMA_DIR)Lzma2Enc.w32.o $(LZMA_DIR)Lzma86Dec.w32.o $(LZMA_DIR)Lzma86Enc.w32.o $(LZMA_DIR)LzmaDec.w32.o $(LZMA_DIR)LzmaEnc.w32.o $(LZMA_DIR)LzmaLib.w32.o $(LZMA_DIR)Ppmd7.w32.o $(LZMA_DIR)Ppmd7Dec.w32.o $(LZMA_DIR)Ppmd7Enc.w32.o $(LZMA_DIR)Sha256.w32.o $(LZMA_DIR)Xz.w32.o $(LZMA_DIR)XzCrc64.w32.o
 
 
+MLV_CFLAGS += $(LZMA_INC)
+MLV_LFLAGS += 
+MLV_LIBS += $(LZMA_LIB)
+MLV_LIBS_MINGW += $(LZMA_LIB_MINGW)
 
-all:: raw2dng mlv_dump
+MLV_DUMP_OBJS=mlv_dump.host.o $(SRC_DIR)/chdk-dng.host.o ../lv_rec/raw2dng.host.o $(LZMA_LIB) 
+MLV_DUMP_OBJS_MINGW=mlv_dump.w32.o $(SRC_DIR)/chdk-dng.w32.o ../lv_rec/raw2dng.w32.o $(LZMA_LIB_MINGW) 
+
 
 clean::
-	$(call rm_files, raw2dng mlv_dump $(LZMA_OBJS) $(LZMA_LIB) $(LZMA_OBJS_MINGW) $(LZMA_LIB_MINGW) )
-
-# RAW to DNG converter for PC
-raw2dng: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
-	$(call build,GCC,gcc -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR))
-	$(call build,GCC,gcc -c ../lv_rec/raw2dng.c -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64)
-	$(call build,GCC,gcc raw2dng.o chdk-dng.o -o raw2dng -lm -m32)
-
-raw2dng.exe: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
-	$(call build,MINGW-GCC,$(MINGW_GCC) -c $(SRC_DIR)/chdk-dng.c -m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR))
-	$(call build,MINGW-GCC,$(MINGW_GCC) -c ../lv_rec/raw2dng.c -m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64)
-	$(call build,MINGW-GCC,$(MINGW_GCC) raw2dng.o chdk-dng.o -o raw2dng.exe -lm -m32)
-
-# debug tool
-dng2raw: dng2raw.c
-	$(call build,GCC,gcc dng2raw.c -m32 -O2 -Wall -I$(SRC_DIR)) -o dng2raw
+	$(call rm_files, mlv_dump mlv_dump.exe $(LZMA_OBJS) $(LZMA_LIB) $(LZMA_OBJS_MINGW) $(LZMA_LIB_MINGW) )
 
 #
 # rules for host and win32 objects
 #
 %.host.o: %.c
-	gcc $(LZMA_CFLAGS) -D_7ZIP_ST  -mno-ms-bitfields -o $@ $<
+	$(call build,HOST_CC,$(HOST_CC) $(HOST_CFLAGS) $(HOST_LFS_FLAGS) $(MLV_CFLAGS) -o $@ -c $<)
 
 %.w32.o: %.c
-	$(MINGW_GCC) $(LZMA_CFLAGS) -D_7ZIP_MT  -mno-ms-bitfields -o $@ $<
+	$(call build,MINGW_GCC,$(MINGW_GCC) $(MINGW_CFLAGS) $(MINGW_LFS_FLAGS) $(MLV_CFLAGS) -o $@ -c $<)
 
 #
 # create static LZMA library
 #
 $(LZMA_LIB): $(LZMA_OBJS)
-	ar -q $@ $(LZMA_OBJS)
+	$(call build,HOST_AR,$(HOST_AR) -q $@ $(LZMA_OBJS) )
 
 $(LZMA_LIB_MINGW): $(LZMA_OBJS_MINGW)
-	$(MINGW_AR) -q $@ $(LZMA_OBJS_MINGW)
+	$(call build,MINGW_AR,$(MINGW_AR) -q $@ $(LZMA_OBJS_MINGW) )
     
 #
 # mlv_dump rules
 #
-mlv_dump: $(LZMA_LIB) mlv_dump.c $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
-	$(call build,GCC,gcc -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR)  -ggdb)
-	$(call build,GCC,gcc -c ../lv_rec/raw2dng.c -DMLV2DNG -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64  -ggdb)
-	$(call build,GCC,gcc raw2dng.o chdk-dng.o -o $@ mlv_dump.c -m32 -lm $(LZMA_LIB) $(LZMA_INC) $(MLV_CFLAGS)  -ggdb)
+mlv_dump: $(MLV_DUMP_OBJS)
+	$(call build,HOST_CC,$(HOST_CC) $(HOST_LFLAGS) $(MLV_LFLAGS) $(MLV_DUMP_OBJS) -o $@ $(HOST_LIBS) $(MLV_LIBS) )
 
-mlv_dump.exe: $(LZMA_LIB_MINGW) mlv_dump.c $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
-	$(call build,MINGW-GCC,$(MINGW_GCC) -c $(SRC_DIR)/chdk-dng.c -m32 -O2 -Wall -I$(SRC_DIR)  -ggdb)
-	$(call build,MINGW-GCC,$(MINGW_GCC) -c ../lv_rec/raw2dng.c -DMLV2DNG -m32 -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64  -ggdb)
-	$(call build,MINGW-GCC,$(MINGW_GCC) raw2dng.o chdk-dng.o -o $@ mlv_dump.c $(LZMA_LIB_MINGW) $(LZMA_INC) $(MLV_CFLAGS))
+mlv_dump.exe: $(MLV_DUMP_OBJS_MINGW)
+	$(call build,MINGW_GCC,$(MINGW_GCC) $(MINGW_LFLAGS) $(MLV_LFLAGS) $(MLV_DUMP_OBJS_MINGW) -o $@ $(MINGW_LIBS) $(MLV_LIBS_MINGW) )
+
