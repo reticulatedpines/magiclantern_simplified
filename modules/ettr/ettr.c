@@ -1498,16 +1498,16 @@ static struct menu_entry ettr_menu[] =
     },
 };
 
-const char * trigger_choices_eosm[] = {"Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick"};
-const char * trigger_choices_others[] = {"Always ON", "Auto Snap", "Press SET", "HalfS DblClick"};
+static const char * trigger_choices_eosm[] = {"Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick"};
+static const char * trigger_choices_others[] = {"Always ON", "Auto Snap", "Press SET", "HalfS DblClick"};
 
-const char * trigger_help_eosm = 
+static const char * trigger_help_eosm = 
     "Always ON: when you take a pic, or continuously in LiveView\n"
     "Auto Snap: after u take a pic,trigger another pic if needed\n"
     "Screen DblTap: meter for ETTR when you tap the screen twice\n"
     "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
 
-const char * trigger_help_others = 
+static const char * trigger_help_others = 
     "Always ON: when you take a pic, or continuously in LiveView\n"
     "Auto Snap: after u take a pic,trigger another pic if needed\n"
     "Press SET: meter for ETTR when you press SET (LiveView)\n"
