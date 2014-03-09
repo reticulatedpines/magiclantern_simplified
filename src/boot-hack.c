@@ -905,6 +905,7 @@ my_init_task(int a, int b, int c, int d)
             msleep(100);
         }
         bmp_printf(FONT_CANON, 0, 0, "Magic OFF");
+        info_led_off();
     #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';
