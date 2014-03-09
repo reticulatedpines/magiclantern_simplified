@@ -1177,21 +1177,13 @@ static int32_t get_free_slots()
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
-
-    char buffer_str[256];
-    int buffer_str_pos = 0;
-
+    
     int32_t scale = MAX(1, (300 / slot_count + 1) & ~1);
     int32_t x = 30;
     int32_t y = 50;
 
     for (int32_t group = 0; group < slot_group_count; group++)
     {
-        if(enable_tracing)
-        {
-            buffer_str[buffer_str_pos++] = '[';
-        }
-
         for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
         {
             int32_t color = COLOR_BLACK;
@@ -1199,53 +1191,29 @@ static void show_buffer_status()
             switch(slots[slot].status)
             {
                 case SLOT_FREE:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = ' ';
-                    }
                     color = COLOR_GRAY(10);
                     break;
 
                 case SLOT_WRITING:
                     if(slots[slot].writer == 0)
                     {
-                        if(enable_tracing)
-                        {
-                            buffer_str[buffer_str_pos++] = '0';
-                        }
                         color = COLOR_GREEN1;
                     }
                     else
                     {
-                        if(enable_tracing)
-                        {
-                            buffer_str[buffer_str_pos++] = '1';
-                        }
                         color = COLOR_YELLOW;
                     }
                     break;
 
                 case SLOT_FULL:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = 'F';
-                    }
                     color = COLOR_LIGHT_BLUE;
                     break;
 
                 case SLOT_LOCKED:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = 'L';
-                    }
                     color = COLOR_RED;
                     break;
 
                 default:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = '?';
-                    }
                     color = COLOR_BLACK;
                     break;
             }
@@ -1262,17 +1230,6 @@ static void show_buffer_status()
             }
         }
         x += MAX(2, scale);
-
-        if(enable_tracing)
-        {
-            buffer_str[buffer_str_pos++] = ']';
-        }
-    }
-
-    if(enable_tracing)
-    {
-        buffer_str[buffer_str_pos++] = '\000';
-        //trace_write(raw_rec_trace_ctx, buffer_str);
     }
 
     if (DISPLAY_REC_INFO_DEBUG && frame_skips > 0)
