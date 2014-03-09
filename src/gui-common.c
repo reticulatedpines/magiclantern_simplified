@@ -179,7 +179,11 @@ int handle_common_events_startup(struct event * event)
 
     extern int ml_started;
     if (!ml_started)    {
+#ifdef CONFIG_EOSM // EOSM has a combined Q/SET button, SET button event is not sent properly
+        if (event->param == BGMT_INFO) { _disable_ml_startup(); return 0;} // don't load ML
+#else
         if (event->param == BGMT_PRESS_SET) { _disable_ml_startup(); return 0;} // don't load ML
+#endif
         
         if (handle_select_config_file_by_key_at_startup(event) == 0) return 0;
 
