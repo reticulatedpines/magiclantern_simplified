@@ -240,6 +240,7 @@ static int auto_ettr_get_correction()
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
+    float overexposed_percentage = 0;
     if (ev < -0.1)
     {
         /* cool, we know exactly how much to correct, we'll return "correction" */
@@ -254,6 +255,9 @@ static int auto_ettr_get_correction()
     {
         /* image is overexposed */
         /* and we don't know how much to go back in order to fix the overexposure */
+
+        /* we can find out how many pixels are clipped, but this doesn't help much in knowing how many stops we should go back */
+        overexposed_percentage = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
 
         /* from the previous shot, we know where the highlights were, compared to some lower percentiles */
         /* let's assume this didn't change; meter at those percentiles and extrapolate the result */
@@ -299,10 +303,9 @@ static int auto_ettr_get_correction()
             /* scene changed? measurements from previous shot not confirmed or vary too much?
              * 
              * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 13EV */
-            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
-            //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
+            //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed_percentage * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
-            float corr = - log2f(1 + overexposed*overexposed);
+            float corr = - log2f(1 + overexposed_percentage*overexposed_percentage);
             
             /* with dual ISO, the cost of underexposing is not that high, so prefer it to improve convergence */
             if (dual_iso)
@@ -349,6 +352,13 @@ static int auto_ettr_get_correction()
         }
         int clipped = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY);
         bmp_printf(FONT_MED, 50, 120, "Clipped highs: %s%d.%02d%% ", FMT_FIXEDPOINT2(clipped));
+    }
+
+    if (overexposed_percentage > 0 && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit) && !dual_iso)
+    {
+        /* if the image is overexposed and we have SNR limits, we could meter for those instead */
+        /* don't underexpose by more than 2 EV in one step though */
+        correction -= 2;
     }
 
     /* are we underexposing too much? */
