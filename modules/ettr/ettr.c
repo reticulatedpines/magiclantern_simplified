@@ -1039,7 +1039,7 @@ static void auto_ettr_on_request_task_fast()
             if (i < 4 && status != ETTR_EXPO_LIMITS_REACHED)
             {
                 /* here we go again... */
-                if (!auto_ettr_wait_lv_frames(15)) goto err;
+                if (!auto_ettr_wait_lv_frames(30)) goto err;
             }
             else
             {
@@ -1131,7 +1131,7 @@ static void auto_ettr_step_lv_fast()
         /* apply the final correction via properties */
         auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
-        auto_ettr_wait_lv_frames(15);
+        auto_ettr_wait_lv_frames(30);
     }
 
 skip:
