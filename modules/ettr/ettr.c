@@ -858,15 +858,86 @@ static int auto_ettr_wait_lv_frames(int num_frames)
         count++;
         if (count > num_frames * frame_duration * 2 / 20)
         {
-            auto_ettr_vsync_delta = 0;
+            /* timeout */
             return 0;
         }
         if (!lv)
         {
+            /* outside lv */
             return 0;
         }
     }
     return 1;
+}
+
+/* wait until LiveView exposure changes from the old values to something else (with timeout on number of frames) */
+static int auto_ettr_wait_lv_expo_change(int max_frames, int old_iso, int old_shutter)
+{
+    /* todo: also look at aperture changes */
+    for (int i = 0; i < max_frames; i++)
+    {
+        int current_iso = get_frame_iso();
+        int current_shutter = get_frame_shutter_timer();
+        bmp_printf(FONT_MED, 50, 100, "wait expo change: %x %x   ", current_iso, current_shutter);
+        if (current_iso != old_iso || current_shutter != old_shutter)
+        {
+            bmp_printf(FONT_MED, 50, 100, "exposure changed to: %x %x   ", current_iso, current_shutter);
+            /* exposure changed */
+            return 1;
+        }
+        if (!auto_ettr_wait_lv_frames(1))
+        {
+            /* whoops */
+            return 0;
+        }
+    }
+    
+    /* timeout */
+    return 0;
+}
+
+/* wait until LiveView exposure settles (identical on two consecutive frames) */
+static int auto_ettr_wait_lv_expo_settle(int max_frames)
+{
+    /* todo: also look at aperture changes */
+    int old_iso = -1;
+    int old_shutter = -1;
+    for (int i = 0; i < max_frames; i++)
+    {
+        int current_iso = get_frame_iso();
+        int current_shutter = get_frame_shutter_timer();
+        bmp_printf(FONT_MED, 50, 100, "wait lv expo settle: %x %x   ", current_iso, current_shutter);
+        if (current_iso == old_iso && current_shutter == old_shutter)
+        {
+            /* looks like it settled */
+            bmp_printf(FONT_MED, 50, 100, "lv expo maybe settled at: %x %x   ", current_iso, current_shutter);
+            
+            /* wait one more frame, just in case */
+            if (auto_ettr_wait_lv_frames(2) == 0)
+            {
+                return 0;
+            }
+            
+            current_iso = get_frame_iso();
+            current_shutter = get_frame_shutter_timer();
+            if (current_iso == old_iso && current_shutter == old_shutter)
+            {
+                bmp_printf(FONT_MED, 50, 100, "lv exposure settled at: %x %x   ", current_iso, current_shutter);
+                /* looks like it did settle */
+                return 1;
+            }
+        }
+        if (!auto_ettr_wait_lv_frames(1))
+        {
+            /* whoops */
+            return 0;
+        }
+        old_iso = current_iso;
+        old_shutter = current_shutter;
+    }
+    
+    /* timeout */
+    return 0;
 }
 
 static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
@@ -1006,12 +1077,18 @@ static void auto_ettr_on_request_task_fast()
     for (int i = 0; i < 5; i++)
     {
         NotifyBox(100000, "ETTR (%d)...", i+1);
+
+        /* make sure the LiveView exposure is settled before reading */
+        if (!auto_ettr_wait_lv_expo_settle(30)) break;
+
         if (fps_get_shutter_speed_shift(160) == 0)
         {
             auto_ettr_vsync_active = 1;
             auto_ettr_vsync_delta = 0;
             for (int k = 0; k < 5; k++)
             {
+                //~ bmp_printf(FONT_MED, 50, 150, "ETTR (%d.%d)", i+1, k+1);
+                
                 /* see how far we are from the ideal exposure */
                 int corr = auto_ettr_get_correction();
                 if (corr == INT_MIN) break;
@@ -1037,6 +1114,8 @@ static void auto_ettr_on_request_task_fast()
 
         /* apply the correction via properties */
         int corr = auto_ettr_vsync_delta * 100 / 8;
+        int old_iso = get_frame_iso();
+        int old_shutter = get_frame_shutter_timer();
         int status = auto_ettr_work(corr);
     
         if (status == ETTR_SETTLED)
@@ -1049,7 +1128,7 @@ static void auto_ettr_on_request_task_fast()
             if (i < 4 && status != ETTR_EXPO_LIMITS_REACHED)
             {
                 /* here we go again... */
-                if (!auto_ettr_wait_lv_frames(30)) goto err;
+                if (!auto_ettr_wait_lv_expo_change(30, old_iso, old_shutter)) goto err;
             }
             else
             {
@@ -1105,6 +1184,10 @@ static void auto_ettr_step_lv_fast()
         goto skip;
     }
 
+    /* make sure the LiveView exposure is settled before reading */
+    if (!auto_ettr_wait_lv_expo_settle(30)) goto skip;
+
+    /* get exposure correction */
     int corr = auto_ettr_get_correction();
     
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
@@ -1139,9 +1222,12 @@ static void auto_ettr_step_lv_fast()
         }
 
         /* apply the final correction via properties */
+        int old_iso = get_frame_iso();
+        int old_shutter = get_frame_shutter_timer();
+
         auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
-        auto_ettr_wait_lv_frames(30);
+        auto_ettr_wait_lv_expo_change(30, old_iso, old_shutter);
     }
 
 skip:
