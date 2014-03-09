@@ -260,7 +260,7 @@ static int auto_ettr_get_correction()
 
         /* we can find out how many pixels are clipped, but this doesn't help much in knowing how many stops we should go back */
         overexposed_percentage = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
-        if (debug_info) printf("overexposure area: %d/100%%\n", (int)(overexposed_percentage * 100));
+        if (debug_info) printf("overexposure area: %s%d.%d%%\n", FMT_FIXEDPOINT2((int)(overexposed_percentage * 100)));
 
         /* from the previous shot, we know where the highlights were, compared to some lower percentiles */
         /* let's assume this didn't change; meter at those percentiles and extrapolate the result */
@@ -398,7 +398,11 @@ static int auto_ettr_get_correction()
     
     if (debug_info)
     {
-        printf("Expo diff SNR: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_delta_snr));
+        int expo_hi = correction0 * 100.0;
+        int expo_snr = correction * 100.0;
+        printf("Expo highlight: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_hi));
+        printf("Expo SNR limit: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_snr));
+        printf("Expo delta SNR: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_delta_snr));
     }
 
     /* exposure correction so it doesn't clip anything more than allowed by highlight ignore */
@@ -418,6 +422,11 @@ static int auto_ettr_get_correction()
         last_value = corr_without_clipping + expo_delta_snr;
         extra_snr_needed = 0;
     }
+    
+    if (debug_info)
+    {
+        printf("Expo correction: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(last_value));
+    }
     return last_value;
 }
 
@@ -432,7 +441,7 @@ int auto_ettr_export_correction(int* out)
 /* returns: 0 = nothing changed, 1 = OK, -1 = exposure limits reached */
 static int auto_ettr_work_m(int corr)
 {
-    printf("\nauto_ettr_work_m(%d)\n", corr);
+    if (debug_info) printf("\nauto_ettr_work_m(%d)\n", corr);
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     
@@ -1103,7 +1112,7 @@ static void auto_ettr_on_request_task_fast()
             auto_ettr_vsync_delta = 0;
             for (int k = 0; k < 5; k++)
             {
-                //~ bmp_printf(FONT_MED, 50, 150, "ETTR (%d.%d)", i+1, k+1);
+                if (debug_info) printf("ETTR (%d.%d)\n", i+1, k+1);
                 
                 /* see how far we are from the ideal exposure */
                 int corr = auto_ettr_get_correction();
