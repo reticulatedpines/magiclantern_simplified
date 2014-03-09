@@ -16,8 +16,7 @@
 #define BGMT_MENU 0x6
 #define BGMT_INFO 0x7
 #define BGMT_PLAY 0xb
-#define BGMT_TRASH BGMT_TOUCH_2_FINGER
-
+#define BGMT_TRASH -0xFFFD // dummy value so button can be faked with fake_simple_button(); negative means internal ML event, not passed to Canon code
 #define BGMT_REC 0x1E
 
 /* no zoom buttons => fake codes */
