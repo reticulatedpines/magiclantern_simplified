@@ -173,18 +173,6 @@ static char *strcat(char *dest, const char *src)
     return strcpy(&dest[strlen(dest)], src);
 }
 
-static void *realloc(void *ptr, uint32_t size)
-{
-    void *new_ptr = malloc(size);
-    
-    /* yeah, this will read beyond the end, but that won't cause any trouble, just leaves garbage behind our data */
-    memcpy(new_ptr, ptr, size);
-    
-    free(ptr);
-    
-    return new_ptr;
-}
-
 static void mlv_play_next()
 {
     playlist_entry_t current;
