@@ -22,14 +22,14 @@ my_fprintf(
 {
     va_list         ap;
 
-    char* buf = alloc_dma_memory(4096);
+    char* buf = fio_malloc(4096);
 
     va_start( ap, fmt );
     int len = vsnprintf( buf, 4095, fmt, ap );
     va_end( ap );
 
     FIO_WriteFile( file, buf, len );
-    free_dma_memory(buf);
+    fio_free(buf);
     return len;
 }
 

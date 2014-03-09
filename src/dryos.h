@@ -421,11 +421,6 @@ struct dryos_meminfo
 };
 SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 
-extern void * malloc( size_t len );
-extern void free( void * buf );
-
-//extern void * realloc( void * buf, size_t newlen );
-
 /** Set if the firmware was loaded via AUTOEXEC.BIN */
 extern int autoboot_loaded;
 
@@ -528,7 +523,6 @@ extern FILE* FIO_Open( const char* filename, unsigned mode );
 extern int FIO_ReadFile( FILE* stream, void* ptr, size_t count );
 extern int FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
 extern void FIO_CloseFile( FILE* stream );
-extern FILE* FIO_CreateFile( const char* name );
 
 /* Returns 0 for success */
 extern int FIO_GetFileSize( const char * filename, uint32_t * size );
@@ -540,7 +534,7 @@ extern int FIO_SeekFile( FILE* stream, size_t position, int whence );
 extern int FIO_RenameFile(char *src,char *dst);
 
 /* ML wrappers */
-extern FILE* FIO_CreateFileEx( const char* name );
+extern FILE* FIO_CreateFile( const char* name );
 extern FILE* FIO_CreateFileOrAppend( const char* name );
 extern int FIO_CopyFile(char *src,char *dst);
 extern int FIO_MoveFile(char *src,char *dst);   /* copy and erase */
@@ -556,12 +550,6 @@ extern char* strcpy( char* dst, const char * src );
 extern void*  memcpy( void *, const void *, size_t );
 extern int atoi( const char * );
 extern int streq( const char *, const char * );
-extern void* AllocateMemory( size_t size );
-extern void FreeMemory( void* ptr );
-extern void my_memcpy( void* dst, const void* src, size_t size );
-/** Allocate DMA memory for writing to the CF card */
-extern void * alloc_dma_memory( size_t len );
-extern void free_dma_memory( const void * ptr );
 extern char* strstr( const char* str1, const char* str2 );
 extern char* strpbrk( const char* str1, const char* str2 );
 extern char* strchr( const char* str, int c );

@@ -8,7 +8,7 @@ static void find_response_curve(const char* fname)
 {
     char fname_real[255];
     snprintf(fname_real, sizeof(fname_real), "ML/LOGS/%s", fname);
-    FILE* f = FIO_CreateFileEx(fname_real);
+    FILE* f = FIO_CreateFile(fname_real);
 
     ensure_movie_mode();
     clrscr();

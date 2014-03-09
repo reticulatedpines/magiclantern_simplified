@@ -173,18 +173,6 @@ static char *strcat(char *dest, const char *src)
     return strcpy(&dest[strlen(dest)], src);
 }
 
-static void *realloc(void *ptr, uint32_t size)
-{
-    void *new_ptr = malloc(size);
-    
-    /* yeah, this will read beyond the end, but that won't cause any trouble, just leaves garbage behind our data */
-    memcpy(new_ptr, ptr, size);
-    
-    free(ptr);
-    
-    return new_ptr;
-}
-
 static void mlv_play_next()
 {
     playlist_entry_t current;
@@ -874,7 +862,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     strncpy(filename, base_filename, sizeof(filename));
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
-    out_file = FIO_CreateFileEx(filename);
+    out_file = FIO_CreateFile(filename);
     
     if(out_file == INVALID_PTR)
     {
@@ -1528,11 +1516,11 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 /* the first few queued dont have anything allocated, so don't free */
                 if(buffer->frameBuffer)
                 {
-                    shoot_free(buffer->frameBuffer);
+                    fio_free(buffer->frameBuffer);
                 }
                 
                 buffer->frameSize = frame_size;
-                buffer->frameBuffer = shoot_malloc(buffer->frameSize);
+                buffer->frameBuffer = fio_malloc(buffer->frameSize);
                 
                 if(!buffer->frameBuffer)
                 {
@@ -1951,7 +1939,7 @@ static void mlv_leave_playback()
         /* free allocated buffers */
         if(buffer->frameBuffer)
         {
-            shoot_free(buffer->frameBuffer);
+            fio_free(buffer->frameBuffer);
         }
         
         free(buffer);

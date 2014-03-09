@@ -636,7 +636,7 @@ my_sounddev_task()
     
 #ifdef CONFIG_AUDIO_REG_LOG
     // Create the logging file
-    reg_file = FIO_CreateFileEx("ML/audioreg.txt" );
+    reg_file = FIO_CreateFile("ML/audioreg.txt" );
 #endif
     
     msleep(500);

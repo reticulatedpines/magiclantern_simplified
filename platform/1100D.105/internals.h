@@ -131,3 +131,5 @@
 //~ #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
 
+/** There are no manual exposure controls in movie mode => we need expo override */
+#define CONFIG_NO_MANUAL_EXPOSURE_MOVIE

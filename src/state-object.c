@@ -22,7 +22,7 @@
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
     int size = stateobj->max_inputs * stateobj->max_states * sizeof(struct state_transition);
-    struct state_transition * new_matrix = (struct state_transition *)AllocateMemory(size);
+    struct state_transition * new_matrix = (struct state_transition *)malloc(size);
     memcpy(new_matrix, stateobj->state_matrix, size);
     stateobj->state_matrix = new_matrix;
 }
@@ -363,7 +363,7 @@ INIT_FUNC("state_init", state_init);
 void update_state_fps() {
     NotifyBox(1000,"Logging");
     FILE* state_log_file = 0;
-    state_log_file = FIO_CreateFileEx("state.log");
+    state_log_file = FIO_CreateFile("state.log");
     if(state_log_file) {
         for(int i=0;i<num_states;++i) {
             for(int j=0;j<num_inputs;++j) {

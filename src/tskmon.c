@@ -587,7 +587,7 @@ void tskmon_trace_thread()
     msleep(2000);
 
     /* prepare the trace buffer, get it from shoot mem */
-    tskmon_trace_buffer = shoot_malloc(tskmon_trace_size * sizeof(tskmon_trace_t));
+    tskmon_trace_buffer = fio_malloc(tskmon_trace_size * sizeof(tskmon_trace_t));
     if(!tskmon_trace_buffer)
     {
         NotifyBox(2000, "Not enough RAM");
@@ -621,7 +621,7 @@ void tskmon_trace_thread()
     /* and clean up */
     trace_stop(tskmon_trace_ctx, 1);
     
-    shoot_free(tskmon_trace_buffer);
+    fio_free(tskmon_trace_buffer);
     bmp_printf(FONT_MED, 10, 20, "DONE");
     beep();
     

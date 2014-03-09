@@ -933,7 +933,7 @@ menu_find_by_name(
     }
 
     // Not found; create it
-    struct menu * new_menu = SmallAlloc( sizeof(*new_menu) );
+    struct menu * new_menu = malloc( sizeof(*new_menu) );
     if( !new_menu )
     {
         give_semaphore( menu_sem );
@@ -5260,17 +5260,21 @@ int handle_quick_access_menu_items(struct event * event)
     if (event->param == BGMT_Q && !gui_menu_shown())
     #endif
     {
+        #ifdef ISO_ADJUSTMENT_ACTIVE
         if (ISO_ADJUSTMENT_ACTIVE)
+        #else
+        if (0)
+        #endif
         {
             select_menu("Expo", 0);
             give_semaphore( gui_sem ); 
             return 0;
         }
-#ifdef CURRENT_DIALOG_MAYBE_2
+        #ifdef CURRENT_DIALOG_MAYBE_2
         else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
-#else
+        #else
         else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
-#endif
+        #endif
         {
             select_menu("Focus", 0);
             give_semaphore( gui_sem ); 
@@ -5301,7 +5305,7 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
 
 static void menu_save_flags(char* filename)
 {
-    char* cfg = alloc_dma_memory(CFG_SIZE);
+    char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
     int lastlen = 0;
@@ -5328,7 +5332,7 @@ static void menu_save_flags(char* filename)
         }
     }
     
-    FILE * file = FIO_CreateFileEx(filename);
+    FILE * file = FIO_CreateFile(filename);
     if( file == INVALID_PTR )
         goto end;
     
@@ -5337,7 +5341,7 @@ static void menu_save_flags(char* filename)
     FIO_CloseFile( file );
 
 end:
-    free_dma_memory(cfg);
+    fio_free(cfg);
 }
 
 static void menu_load_flags(char* filename)
@@ -5368,7 +5372,7 @@ static void menu_load_flags(char* filename)
             prev = i;
         }
     }
-    free_dma_memory(buf);
+    fio_free(buf);
 }
 
 
@@ -5391,7 +5395,7 @@ void config_menu_save_flags()
 
 /*void menu_save_all_items_dbg()
 {
-    char* cfg = alloc_dma_memory(CFG_SIZE);
+    char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
 
     int unnamed = 0;
@@ -5408,7 +5412,7 @@ void config_menu_save_flags()
         }
     }
     
-    FILE * file = FIO_CreateFileEx( "ML/LOGS/MENUS.LOG" );
+    FILE * file = FIO_CreateFile( "ML/LOGS/MENUS.LOG" );
     if( file == INVALID_PTR )
         return;
     
@@ -5418,7 +5422,7 @@ void config_menu_save_flags()
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 end:
-    free_dma_memory(cfg);
+    fio_free(cfg);
 }*/
 
 int menu_get_value_from_script(const char* name, const char* entry_name)
@@ -5528,7 +5532,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
 
-    char* cfg = alloc_dma_memory(CFG_SIZE);
+    char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
     int lastlen = 0;
@@ -5609,7 +5613,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     
     //~ ASSERT(cfglen == strlen(cfg)); // seems OK
     
-    FILE * file = FIO_CreateFileEx(filename);
+    FILE * file = FIO_CreateFile(filename);
     if( file == INVALID_PTR )
         goto end;
     
@@ -5618,7 +5622,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     FIO_CloseFile( file );
 
 end:
-    free_dma_memory(cfg);
+    fio_free(cfg);
     give_semaphore(menu_sem);
 }
 

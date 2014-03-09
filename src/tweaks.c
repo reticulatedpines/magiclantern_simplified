@@ -1191,8 +1191,20 @@ tweak_task( void* unused)
         }
         #endif
         
-        if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || ISO_ADJUSTMENT_ACTIVE)
+        /* reset powersave counters for those events don't send a button code, e.g. shutter/aperture change 
+         * (GMT_OLC_INFO_CHANGED doesn't reset them, because it's also sent by auto exposure changes)
+         * => we use heuristics like Canon bottom bar or popping up to detect these events */
+        if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
+        {
             idle_wakeup_reset_counters();
+        }
+        
+        #ifdef ISO_ADJUSTMENT_ACTIVE
+        if (ISO_ADJUSTMENT_ACTIVE)
+        {
+            idle_wakeup_reset_counters();
+        }
+        #endif
     }
 }
 
@@ -3062,8 +3074,11 @@ void defish_draw_play()
 
 #ifdef CONFIG_DISPLAY_FILTERS
 
+#ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 static void* display_filter_buffer_unaligned = 0;
 static void* display_filter_buffer = 0;
+#endif
+
 static int display_filter_valid_image = 0;
 
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)

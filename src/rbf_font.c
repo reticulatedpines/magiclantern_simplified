@@ -19,9 +19,6 @@ static inline int rbf_char_width(font *rbf_font, int ch);
 static int RBF_HDR_MAGIC1 = 0x0DF00EE0;
 static int RBF_HDR_MAGIC2 = 0x00000003;
 
-
-static unsigned char *ubuffer = 0;                  // uncached memory buffer for reading font data from SD card
-
 struct font font_dynamic[MAX_DYN_FONTS+1];
 static char *dyn_font_name[MAX_DYN_FONTS+1];
 uint32_t dyn_fonts = 0;
@@ -30,7 +27,7 @@ uint32_t dyn_fonts = 0;
 
 static font *new_font() {
     // allocate font from cached memory
-    font *f = AllocateMemory(sizeof(font));
+    font *f = malloc(sizeof(font));
     if (f) {
         memset(f,0,sizeof(font));      // wipe memory
         // return address in cached memory
@@ -80,12 +77,12 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     if(!rbf_font_load(filename, font, 0))
     {
         bmp_printf(FONT_CANON, 0, 0, "%s not loaded", file);
-        FreeMemory(font);
+        free(font);
         return FONT_CANON;
     }
 
     /* now updated cached font name (not filename) */
-    dyn_font_name[dyn_fonts] = AllocateMemory(strlen(filename) + 1);
+    dyn_font_name[dyn_fonts] = malloc(strlen(filename) + 1);
     strcpy(dyn_font_name[dyn_fonts], file);
     
     /* and measure font sizes */
@@ -110,9 +107,9 @@ static void alloc_cTable(font *f) {
 
     // If existing data has been allocated then we are re-using the font data
     // See if it the existing cTable data is large enough to hold the new font data
-    // If not FreeMemory it so new memory will be allocated
+    // If not free it so new memory will be allocated
     if ((f->cTable != 0) && (f->cTableSizeMax < (f->charCount*f->hdr.charSize))) {
-        FreeMemory(f->cTable);              // free the memory
+        free(f->cTable);              // free the memory
         f->cTable = 0;                // clear pointer so new memory is allocated
         f->cTableSizeMax = 0;
     }
@@ -121,7 +118,7 @@ static void alloc_cTable(font *f) {
     if (f->cTable == 0) {
         // Allocate memory from cached pool
         int size = f->charCount*f->hdr.charSize;
-        f->cTable = AllocateMemory(size);
+        f->cTable = malloc(size);
 
         // save size
         f->cTableSize = f->charCount*f->hdr.charSize;
@@ -148,28 +145,14 @@ static int font_read(FILE* fd, unsigned char *dest, int len)
     // Return actual bytes read
     int bytes_read = 0;
 
-    if(!ubuffer)
-    {
-        ubuffer = alloc_dma_memory(UBUFFER_SIZE);
-    }
+    unsigned char *ubuffer = fio_malloc(len);
     
     if (ubuffer)
     {
-        // Read file in UBUFFER_SIZE blocks
-        while (len)
-        {
-            // Calc size of next block to read = min(UBUFFER_SIZE, len)
-            int to_read = UBUFFER_SIZE;
-            if (to_read > len) to_read = len;
-
-            // Read block and copy to dest
-            bytes_read += FIO_ReadFile(fd, ubuffer, to_read);
-            memcpy(dest, ubuffer, to_read);
-
-            // Increment dest pointer, decrement len left to read
-            dest += to_read;
-            len -= to_read;
-        }
+        // Read block and copy to dest
+        bytes_read += FIO_ReadFile(fd, ubuffer, len);
+        memcpy(dest, ubuffer, len);
+        fio_free(ubuffer);
     }
 
     return bytes_read;

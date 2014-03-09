@@ -181,7 +181,7 @@ static void wav_playsmall(char* filename)
     info_led_off();
     
 end:
-    free_dma_memory(buf);
+    fio_free(buf);
 }
 
 
@@ -286,7 +286,7 @@ static void record_show_progress()
 static void wav_recordsmall(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
-    uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
+    uint8_t* wav_buf = fio_malloc(sizeof(wav_header) + N);
     if (!wav_buf) 
     {
         NotifyBox(2000, "WAV: not enough memory");
@@ -314,10 +314,10 @@ static void wav_recordsmall(char* filename, int duration, int show_progress)
     info_led_off();
     msleep(1000);
        
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
     FIO_CloseFile(f);
-    free_dma_memory(wav_buf);
+    fio_free(wav_buf);
 }
 
 #endif
@@ -386,15 +386,15 @@ static void add_write_q(void *buf){
 
     if(tmpq->multiplex < QBUF_SIZE){
         if(!tmpq->buf){
-            tmpq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
+            tmpq->buf = fio_malloc(WAV_BUF_SIZE*QBUF_SIZE);
         }
         int offset = WAV_BUF_SIZE * tmpq->multiplex;
         memcpy(tmpq->buf + offset,buf,WAV_BUF_SIZE);
         tmpq->multiplex++;
     }else{
-        newq = SmallAlloc(sizeof(WRITE_Q));
+        newq = malloc(sizeof(WRITE_Q));
         memset(newq,0,sizeof(WRITE_Q));
-        newq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
+        newq->buf = fio_malloc(WAV_BUF_SIZE*QBUF_SIZE);
         memcpy(newq->buf ,buf,WAV_BUF_SIZE);
         newq->multiplex++;
         tmpq->next = newq;
@@ -409,9 +409,9 @@ static void write_q_dump(){
         prevq = tmpq;
         tmpq = tmpq->next;
         FIO_WriteFile(file, UNCACHEABLE(tmpq->buf), WAV_BUF_SIZE * tmpq->multiplex);
-        free_dma_memory(tmpq->buf);
+        fio_free(tmpq->buf);
         prevq->next = tmpq->next;
-        SmallFree(tmpq);
+        free(tmpq);
         tmpq = prevq;
     }
 }
@@ -449,7 +449,7 @@ static void wav_record(char* filename, int show_progress)
     if (!buf2) return;
 
     if( file != INVALID_PTR ) return;
-    file = FIO_CreateFileEx(filename);
+    file = FIO_CreateFile(filename);
     if( file == INVALID_PTR ) return;
     FIO_WriteFile(file, UNCACHEABLE(wav_header), sizeof(wav_header));
     
@@ -684,41 +684,41 @@ static void beep_task()
         {
             info_led_on();
             int N = 48000*5;
-            int16_t* beep_buf = SmallAlloc(N*2);
-            if (!beep_buf) { N = 48000; beep_buf = SmallAlloc(N*2); } // not enough RAM, try a shorter tone
-            if (!beep_buf) { N = 10000; beep_buf = SmallAlloc(N*2); } // even shorter
+            int16_t* beep_buf = malloc(N*2);
+            if (!beep_buf) { N = 48000; beep_buf = malloc(N*2); } // not enough RAM, try a shorter tone
+            if (!beep_buf) { N = 10000; beep_buf = malloc(N*2); } // even shorter
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, N);
             while (beep_playing) msleep(100);
-            SmallFree(beep_buf);
+            free(beep_buf);
             info_led_off();
         }
         else if (beep_type == BEEP_SHORT)
         {
             int N = 5000;
-            int16_t* beep_buf = SmallAlloc(N*2);
+            int16_t* beep_buf = malloc(N*2);
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, 5000, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, 5000);
             while (beep_playing) msleep(20);
-            SmallFree(beep_buf);
+            free(beep_buf);
         }
         else if (beep_type == BEEP_CUSTOM_LEN_FREQ)
         {
             int N = beep_custom_duration * 48;
-            int16_t* beep_buf = SmallAlloc(N*2);
+            int16_t* beep_buf = malloc(N*2);
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, N, beep_custom_frequency, 0);
             play_beep(beep_buf, N);
             while (beep_playing) msleep(20);
-            SmallFree(beep_buf);
+            free(beep_buf);
         }
         else if (beep_type > 0) // N beeps
         {
             int times = beep_type;
             int N = 10000;
-            int16_t* beep_buf = SmallAlloc(N*2);
+            int16_t* beep_buf = malloc(N*2);
             if (!beep_buf) continue;
             generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
             
@@ -735,7 +735,7 @@ static void beep_task()
                 msleep(120);
             }
             
-            SmallFree(beep_buf);
+            free(beep_buf);
         }
         msleep(100);
         audio_configure(1);
@@ -1098,10 +1098,10 @@ void Load_ASIFDMAADC(){
 static void beep_init()
 {
 #ifdef FEATURE_WAV_RECORDING
-    wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
-    wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
+    wav_buf[0] = fio_malloc(WAV_BUF_SIZE);
+    wav_buf[1] = fio_malloc(WAV_BUF_SIZE);
     
-    rootq = SmallAlloc(sizeof(WRITE_Q));
+    rootq = malloc(sizeof(WRITE_Q));
     memset(rootq,0,sizeof(WRITE_Q));
     rootq->multiplex=100;
 #endif
@@ -1116,6 +1116,8 @@ static void beep_init()
 //~ #ifdef CONFIG_600D
     //~ Load_ASIFDMAADC();
 //~ #endif
+
+    (void)audio_recording_start_time;
 }
 
 INIT_FUNC("beep.init", beep_init);

@@ -74,7 +74,7 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
 {
     unsigned int written = 0;
     
-    FILE *f = FIO_CreateFileEx(file);
+    FILE *f = FIO_CreateFile(file);
     if (f != (void*) -1)
     {
         struct memChunk *currentChunk;

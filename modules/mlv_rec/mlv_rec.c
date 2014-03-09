@@ -387,7 +387,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
         FIO_RemoveFile(filename);
     }
     
-    FILE *dummy_file = FIO_CreateFileEx(filename);
+    FILE *dummy_file = FIO_CreateFile(filename);
     if(dummy_file == INVALID_PTR)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
@@ -2928,14 +2928,14 @@ static void mlv_rec_precreate_files(char *base_filename, uint32_t count)
         FILE *handle = NULL;
         
         get_next_chunk_file_name(base_filename, filename, pos, 0);
-        handle = FIO_CreateFileEx(filename);
+        handle = FIO_CreateFile(filename);
         FIO_CloseFile(handle);
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         
         if(card_spanning)
         {
             get_next_chunk_file_name(base_filename, filename, pos, 1);
-            handle = FIO_CreateFileEx(filename);
+            handle = FIO_CreateFile(filename);
             FIO_CloseFile(handle);
             trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         }
@@ -3084,12 +3084,12 @@ static void raw_video_rec_task()
 
             get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], writer, writer);
             trace_write(raw_rec_trace_ctx, "Filename (Thread #%d): '%s'", writer, chunk_filename[writer]);
-            mlv_handles[writer] = FIO_CreateFileEx(chunk_filename[writer]);
+            mlv_handles[writer] = FIO_CreateFile(chunk_filename[writer]);
 
             /* failed to open? */
             if(mlv_handles[writer] == INVALID_PTR)
             {
-                trace_write(raw_rec_trace_ctx, "FIO_CreateFileEx(#%d): FAILED", writer);
+                trace_write(raw_rec_trace_ctx, "FIO_CreateFile(#%d): FAILED", writer);
                 NotifyBox(5000, "Failed to create file. Card full?");
                 beep_times(2);
                 return;
@@ -3279,7 +3279,7 @@ static void raw_video_rec_task()
                     /* create the file */
                     get_next_chunk_file_name(mlv_movie_filename, handle->filename, handle->file_header.fileNum, handle->writer);
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, handle->filename);
-                    handle->file_handle = FIO_CreateFileEx(handle->filename);
+                    handle->file_handle = FIO_CreateFile(handle->filename);
 
                     /* failed to open? */
                     if(handle->file_handle == INVALID_PTR)
@@ -4179,7 +4179,7 @@ static unsigned int raw_rec_init()
         NotifyBox(100000, "Card warming up...");
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
-        FILE* f = FIO_CreateFileEx(warmup_filename);
+        FILE* f = FIO_CreateFile(warmup_filename);
         if(f != INVALID_PTR)
         {
             FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));

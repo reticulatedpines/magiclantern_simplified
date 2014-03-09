@@ -9,7 +9,6 @@
 
 //-------------------------------------------------------------------
 #define RBF_MAX_NAME        64
-#define UBUFFER_SIZE        256 // Amount of uncached memory to allocate for file reading
 
 //-------------------------------------------------------------------
 // Format of header block for each character in the 'font_data' array

@@ -87,7 +87,7 @@ static void cbr_init()
 {
 #if defined(CONFIG_7D)
     /* we must do all transfers via uncached memory. prepare that buffer */
-    bulk_transfer_buf = alloc_dma_memory(0x1000);
+    bulk_transfer_buf = fio_malloc(0x1000);
     /* now load master's mvr_config into local */
     bitrate_read_mvr_config();
 #endif

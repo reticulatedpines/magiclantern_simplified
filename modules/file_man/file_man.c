@@ -148,20 +148,20 @@ static void clear_file_menu()
         struct file_entry * next = file_entries->next;
         menu_remove("File Manager", file_entries->menu_entry, 1);
         //console_printf("%s\n", file_entries->name);
-        FreeMemory(file_entries);
+        free(file_entries);
         file_entries = next;
     }
-    FreeMemory(compacted);
+    free(compacted);
 }
 
 static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
 {
-    struct file_entry * fe = AllocateMemory(sizeof(struct file_entry));
+    struct file_entry * fe = malloc(sizeof(struct file_entry));
     if (!fe) return 0;
     memset(fe, 0, sizeof(struct file_entry));
-    fe->menu_entry = AllocateMemory(sizeof(struct menu_entry));
+    fe->menu_entry = malloc(sizeof(struct menu_entry));
     if (!fe->menu_entry) {
-        FreeMemory(fe);
+        free(fe);
         return 0;
     }
     memset(fe->menu_entry, 0, sizeof(struct menu_entry));
@@ -289,12 +289,12 @@ static void build_file_menu()
     file_entries = list;
 
     // Compacts all the independently allocated menu_entry structures into a single array
-    struct menu_entry * compacted = AllocateMemory(count*sizeof(struct menu_entry));
+    struct menu_entry * compacted = malloc(count*sizeof(struct menu_entry));
     struct menu_entry * ptr = compacted;
 
     for (struct file_entry * fe = file_entries; fe; fe = fe->next) {
         memcpy(ptr, fe->menu_entry, sizeof(struct menu_entry));
-        FreeMemory(fe->menu_entry);
+        free(fe->menu_entry);
         fe->menu_entry = ptr;
         ptr++;
     }
@@ -697,7 +697,7 @@ FILETYPE_HANDLER(text_handler)
     if (cmd != FILEMAN_CMD_VIEW_IN_MENU)
         return 0; /* this handler only knows to show things in menu */
     
-    char* buf = alloc_dma_memory(1025);
+    char* buf = fio_malloc(1025);
     if (!buf) return 0;
     
     FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
@@ -709,12 +709,12 @@ FILETYPE_HANDLER(text_handler)
         for (int i = 0; i < r; i++)
             if (buf[i] == 0) buf[i] = ' ';
         big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
-        free_dma_memory(buf);
+        fio_free(buf);
         return 1;
     }
     else
     {
-        free_dma_memory(buf);
+        fio_free(buf);
         return 0;
     }
 }
@@ -831,7 +831,7 @@ mfile_find_remove(char* path)
         if(!strcmp(mf->name,path))
         { //match
             prevmf->next = mf->next;
-            FreeMemory((void *)mf);
+            free((void *)mf);
             return 1;
         }
     }
@@ -846,7 +846,7 @@ mfile_add_tail(char* path)
     while(mf->next)
         mf = mf->next;
 
-    newmf = AllocateMemory(sizeof(FILES_LIST));
+    newmf = malloc(sizeof(FILES_LIST));
     memset(newmf,0,sizeof(FILES_LIST));
     strcpy(newmf->name, path);
     newmf->next = NULL;
@@ -865,7 +865,7 @@ mfile_clean_all()
         prevmf = mf;
         mf = mf->next;
         prevmf->next = mf->next;
-        FreeMemory((void *)mf);
+        free((void *)mf);
         mf = prevmf;
     }
     return 0;
@@ -1240,7 +1240,7 @@ static unsigned int fileman_init()
     mfile_sem = create_named_semaphore("mfile", 1);
     menu_add("Debug", fileman_menu, COUNT(fileman_menu));
     op_mode = FILE_OP_NONE;
-    mfile_root = AllocateMemory(sizeof(FILES_LIST));
+    mfile_root = malloc(sizeof(FILES_LIST));
     memset(mfile_root,0,sizeof(FILES_LIST));
     mfile_root->next = NULL;
     InitRootDir();
@@ -1256,7 +1256,7 @@ static unsigned int fileman_deinit()
     //FUTURE TODO: release semaphore here.
     clear_file_menu();
     mfile_clean_all();
-    FreeMemory(mfile_root);
+    free(mfile_root);
     menu_remove("Debug", fileman_menu, COUNT(fileman_menu));
     return 0;
 }

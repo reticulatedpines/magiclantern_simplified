@@ -592,7 +592,7 @@ static void iocrypt_speed_test_write(char *file, uint32_t blocksize, uint32_t lo
     memset(buffer, 0x5A, blocksize);
     
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), file);
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if(f == INVALID_PTR)
     {
         free(buffer);

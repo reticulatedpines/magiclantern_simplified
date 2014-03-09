@@ -792,7 +792,7 @@ static MENU_UPDATE_FUNC(fps_print)
         
         /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
-        if (sound_recording_enabled_canon() && is_movie_mode() && t > last_inactive + 1000)
+        if (sound_recording_enabled_canon() && is_movie_mode() && !raw_lv_is_enabled() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
 
 #ifndef CONFIG_FRAME_ISO_OVERRIDE
@@ -905,9 +905,9 @@ void flip_zoom()
 
 static void fps_unpatch_table(int refresh)
 {
-    if (SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_original)
+    if (SENSOR_TIMING_TABLE == (uintptr_t) sensor_timing_table_original)
         return;
-    SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
+    SENSOR_TIMING_TABLE = (uintptr_t) sensor_timing_table_original;
     
     if (refresh)
     {
@@ -1742,7 +1742,7 @@ int handle_fps_events(struct event * event)
     
     #if defined(NEW_FPS_METHOD)
     // we won't be able to change/restore FPS on the fly with table patching method :(
-    && SENSOR_TIMING_TABLE != (intptr_t) sensor_timing_table_patched
+    && SENSOR_TIMING_TABLE != (uintptr_t) sensor_timing_table_patched
     #endif
     )
     {
@@ -1907,7 +1907,7 @@ static void fps_patch_timerB(int timer_value)
     int mode = get_fps_video_mode();   
     int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
 
-    if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
+    if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (uintptr_t) sensor_timing_table_patched)
         return;
 
     // at this point we are in previous FPS mode (maybe with timer A altered)
@@ -1962,6 +1962,10 @@ void set_frame_iso(int iso)
 
 int can_set_frame_iso()
 {
+    #ifdef CONFIG_EOSM
+    if (!RECORDING_H264) return 0;  /* EOS-M is stubborn, http://www.magiclantern.fm/forum/index.php?topic=5200.msg104816#msg104816 */
+    #endif
+    
     #ifdef CONFIG_FRAME_ISO_OVERRIDE
     return 1;
     #else
@@ -1995,12 +1999,17 @@ void set_frame_shutter(int shutter_reciprocal)
     int ntsc = is_current_mode_ntsc();
     int zoom = lv_dispsize > 1 ? 1 : 0;
     int crop = video_mode_crop;
+    (void)zoom; (void)crop;
     
     set_frame_shutter_timer(TG_FREQ_SHUTTER / shutter_reciprocal / 1000);
 }
 
 int can_set_frame_shutter_timer()
 {
+    #ifdef CONFIG_EOSM
+    if (!RECORDING_H264) return 0;  /* EOS-M is stubborn, http://www.magiclantern.fm/forum/index.php?topic=5200.msg104816#msg104816 */
+    #endif
+
     #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
     return 1;
     #else

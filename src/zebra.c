@@ -991,7 +991,7 @@ waveform_draw_image(
 static FILE * g_aj_logfile = INVALID_PTR;
 static unsigned int aj_create_log_file( char * name)
 {
-   g_aj_logfile = FIO_CreateFileEx( name );
+   g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
       bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
@@ -1041,7 +1041,7 @@ static void waveform_init()
 {
 #ifdef FEATURE_WAVEFORM
     if (!waveform)
-        waveform = SmallAlloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+        waveform = malloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
 #endif
 }
@@ -1056,19 +1056,14 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        // shoot_malloc is not that stable
-        //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
-        //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
-        //~ #else
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
         #elif defined(CONFIG_EOSM)
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
-        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
+        bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE);
         #endif
-        //~ #endif
         if (!bvram_mirror_start) 
         {   
             while(1)
@@ -1200,12 +1195,12 @@ static void draw_zebras( int Z )
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
+        #ifdef FEATURE_ZEBRA_FAST
         int only_over  = (zebra_level_hi <= 100 && zebra_level_lo ==   0);
         int only_under = (zebra_level_lo  >   0 && zebra_level_hi  > 100);
         int only_one = only_over || only_under;
 
         // fast zebras
-        #ifdef FEATURE_ZEBRA_FAST
         /*
             C0F140cc configurable "zebra" (actually solid color)
             -------- -------- -------- --------
@@ -1768,9 +1763,9 @@ draw_zebra_and_focus( int Z, int F )
     if (F && focus_peaking)
     {
         // clear previously written pixels
-        if (unlikely(!dirty_pixels)) dirty_pixels = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixels)) dirty_pixels = malloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixels)) return -1;
-        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = malloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixel_values)) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)
@@ -3754,7 +3749,7 @@ static void draw_zoom_overlay(int dirty)
         if(y%2 == 0) // The 1100D has half-height LCD res so we line-skip one from the sensor
         #endif
         {
-            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X, 0 /*zoom_overlay_lut*/);
+            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X);
             d += lv->width;
         }
         if (y%X==0) s += hd->width;
@@ -4613,10 +4608,9 @@ livev_hipriority_task( void* unused )
         {
             msleep(100);
         }
-        
-        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
 
         #ifdef FEATURE_ZEBRA_FAST
+        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
@@ -5088,7 +5082,7 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FILE* f = FIO_CreateFileEx("ML/DATA/overlay.dat");
+    FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");

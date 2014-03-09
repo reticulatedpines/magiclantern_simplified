@@ -494,9 +494,6 @@ read_file(
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
 
-#define BmpAlloc malloc
-#define BmpFree free
-
 struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compression)
 {
     struct bmp_file_t * bmp = (struct bmp_file_t *) buf;
@@ -531,7 +528,7 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
     // and release the uncacheable space.
 
     if (compression==bmp->compression) {
-        uint8_t * fast_buf = BmpAlloc( size + 32);
+        uint8_t * fast_buf = malloc( size + 32);
         if( !fast_buf )
             goto fail_buf_copy;
         memcpy(fast_buf, buf, size);
@@ -558,7 +555,7 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
             size_needed += 2; //0000 EOL
         }
         size_needed += 2; //0001 EOF
-        fast_buf = BmpAlloc( size_needed );
+        fast_buf = malloc( size_needed );
         if( !fast_buf ) goto fail_buf_copy;
         memcpy(fast_buf, buf, sizeof(struct bmp_file_t));
         gpos = fast_buf + sizeof(struct bmp_file_t);
@@ -639,7 +636,7 @@ getfilesize_fail:
 
 void bmp_free(struct bmp_file_t * bmp)
 {
-    if (bmp) BmpFree(bmp);
+    if (bmp) free(bmp);
 }
 
 uint8_t* read_entire_file(const char * filename, int* buf_size)
@@ -737,7 +734,6 @@ void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax
     int xs,ys; // those sweep the BMP VRAM (and are scaled)
 
     #ifdef USE_LUT
-    // we better don't use AllocateMemory for LUT (Err 70)
     static int16_t lut[960];
     for (xs = x0; xs < (x0 + xmax); xs++)
     {
@@ -876,7 +872,7 @@ void set_ml_palette()
     {      // if you change RGB palette, run this first to get the PB equivalent (comment out BmpDDev semaphores first)
         NotifyBox(10000, "%x ", PB_Palette);
         SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
-        FILE* f = FIO_CreateFileEx("pb.log");
+        FILE* f = FIO_CreateFile("pb.log");
         for (int i = 0; i < 16; i++)
             my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
         FIO_CloseFile(f);
@@ -1016,7 +1012,6 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 
     if (bmp->compression == 0) {
 #ifdef USE_LUT
-        // we better don't use AllocateMemory for LUT (Err 70)
         static int16_t lut[960];
         for (xs = x0; xs < (x0 + w); xs++)
         {

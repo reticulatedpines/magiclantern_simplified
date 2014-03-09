@@ -158,7 +158,7 @@ static void dump_rom_task(void* priv, int unused)
     msleep(200);
     FILE * f = NULL;
 
-    f = FIO_CreateFileEx("ML/LOGS/ROM0.BIN");
+    f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
@@ -167,7 +167,7 @@ static void dump_rom_task(void* priv, int unused)
     }
     msleep(200);
 
-    f = FIO_CreateFileEx("ML/LOGS/ROM1.BIN");
+    f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
     if (f != (void*) -1)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
@@ -283,7 +283,7 @@ static void run_test()
     {
         console_printf("%d/1000\n", i);
         
-        /* with this large size, the backend will use shoot_malloc, which returns uncacheable pointers */
+        /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
         void* p = malloc(16*1024*1024 + 64);
         
         if (!p)
@@ -349,17 +349,7 @@ static void run_test()
     exmem_test();
     return;
 #endif
-/*
-#ifdef CONFIG_MEMCHECK
-    console_show();
-    console_printf("should raise error at index=10...\n");
-    char* foo = AllocateMemory(10);
-    foo[9] = 0;
-    foo[10] = 0;
-    FreeMemory(foo);
-    msleep(1000);
-#endif
-*/
+
 #ifdef CONFIG_MODULES
     console_show();
 
@@ -430,7 +420,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     int filesize = 1024; // MB
     int n = filesize * 1024 * 1024 / bufsize;
     {
-        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
+        FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
         int t0 = get_ms_clock_value();
         int i;
         for (i = 0; i < n; i++)
@@ -448,7 +438,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     msleep(2000);
 
     {
-        void* buf = shoot_malloc(bufsize);
+        void* buf = fio_malloc(bufsize);
         if (buf)
         {
             FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
@@ -460,7 +450,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
-            shoot_free(buf);
+            fio_free(buf);
             int t1 = get_ms_clock_value();
             int speed = filesize * 1000 * 10 / (t1 - t0);
             bmp_printf(FONT_MED, x, y += font_med.height, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
@@ -559,7 +549,7 @@ static void twocard_write_task(char* filename)
     int cf = filename[0] == 'A';
     int msg;
     int filesize = 0;
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if (f != INVALID_PTR)
     {
         while (msg_queue_receive(twocard_mq, (struct event **) &msg, 1000) == 0)
@@ -624,7 +614,7 @@ static void card_bufsize_benchmark_task()
     int x = 0;
     int y = 100;
 
-    FILE* log = FIO_CreateFileEx("bench.log");
+    FILE* log = FIO_CreateFile("bench.log");
     if (log == INVALID_PTR) goto cleanup;
 
     my_fprintf(log, "Buffer size experiment\n");
@@ -645,7 +635,7 @@ static void card_bufsize_benchmark_task()
         uint32_t filesize = 256; // MB
         uint32_t n = filesize * 1024 * 1024 / bufsize;
 
-        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
+        FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
         int t0 = get_ms_clock_value();
         int total = 0;
         for (uint32_t i = 0; i < n; i++)
@@ -771,8 +761,8 @@ static void mem_benchmark_task()
 
     void* buf1 = 0;
     void* buf2 = 0;
-    buf1 = shoot_malloc(bufsize);
-    buf2 = shoot_malloc(bufsize);
+    buf1 = tmp_malloc(bufsize);
+    buf2 = tmp_malloc(bufsize);
     if (!buf1 || !buf2)
     {
         bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
@@ -816,8 +806,8 @@ static void mem_benchmark_task()
     canon_gui_enable_front_buffer(0);
 
 cleanup:
-    if (buf1) shoot_free(buf1);
-    if (buf2) shoot_free(buf2);
+    if (buf1) tmp_free(buf1);
+    if (buf2) tmp_free(buf2);
 }
 
 #endif
@@ -863,7 +853,7 @@ static void stub_test_task(void* arg)
     int passed_tests = 0;
     int failed_tests = 0;
 
-    FILE* log = FIO_CreateFileEx( "stubtest.log" );
+    FILE* log = FIO_CreateFile( "stubtest.log" );
     int silence = 0;    // if 1, only failures are logged to file
     int ok = 1;
 
@@ -949,7 +939,7 @@ static void stub_test_task(void* arg)
             int m0, m1, m2;
             void* p;
             TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-            TEST_TRY_FUNC_CHECK(p = _malloc(50*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = (void*)_malloc(50*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
             TEST_TRY_VOID(_free(p));
@@ -958,10 +948,10 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
             TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = _AllocateMemory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = (void*)_AllocateMemory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
             TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
-            TEST_TRY_VOID(-_FreeMemory(p));
+            TEST_TRY_VOID(_FreeMemory(p));
             TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
             TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
             TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
@@ -970,7 +960,7 @@ static void stub_test_task(void* arg)
             int m01, m02, m11, m12;
             TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
             TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-            TEST_TRY_FUNC_CHECK(p = _alloc_dma_memory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(256*1024), != 0);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
             TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
             TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
@@ -1136,7 +1126,7 @@ static void stub_test_task(void* arg)
         // file I/O
 
         FILE* f;
-        TEST_TRY_FUNC_CHECK(f = FIO_CreateFileEx("test.dat"), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_VOID(FIO_CloseFile(f));
@@ -1144,15 +1134,15 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         void* p;
-        TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(f = FIO_Open("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
         TEST_TRY_VOID(FIO_CloseFile(f));
-        TEST_TRY_VOID(free_dma_memory(p));
+        TEST_TRY_VOID(_free_dma_memory(p));
 
         {
         int count = 0;
-        FILE* f = FIO_CreateFileEx("test.dat");
+        FILE* f = FIO_CreateFile("test.dat");
         for (int i = 0; i < 1000; i++)
             count += FIO_WriteFile(f, "Will it blend?\n", 15);
         FIO_CloseFile(f);
@@ -1824,9 +1814,9 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
     //~ msleep(2000);
     //mem_spy_len is number of int32's
-    if (!dbg_memmirror) dbg_memmirror = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memmirror) dbg_memmirror = malloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memmirror) return;
-    if (!dbg_memchanges) dbg_memchanges = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memchanges) dbg_memchanges = malloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memchanges) return;
     int i;
     //~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
@@ -2060,7 +2050,7 @@ static void save_crash_log()
         if (size == 0) break;
     }
 
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
     my_fprintf(f, "%s\n\n", get_assert_msg());
     my_fprintf(f,
         "Magic Lantern version : %s\n"
@@ -2365,8 +2355,8 @@ static MENU_UPDATE_FUNC (prop_display)
 
 void prop_dump()
 {
-    FILE* f = FIO_CreateFileEx("ML/LOGS/PROP.LOG");
-    FILE* g = FIO_CreateFileEx("ML/LOGS/PROP-STR.LOG");
+    FILE* f = FIO_CreateFile("ML/LOGS/PROP.LOG");
+    FILE* g = FIO_CreateFile("ML/LOGS/PROP-STR.LOG");
 
     unsigned i, j, k;
 
@@ -3158,7 +3148,7 @@ debug_init( void )
 #if CONFIG_DEBUGMSG
     draw_prop = 0;
     static unsigned* property_list = 0;
-    if (!property_list) property_list = SmallAlloc(num_properties * sizeof(unsigned));
+    if (!property_list) property_list = malloc(num_properties * sizeof(unsigned));
     if (!property_list) return;
     unsigned i, j, k;
     unsigned actual_num_properties = 0;
@@ -3397,7 +3387,7 @@ static int TmpMem_Init()
     ASSERT(!tmp_files);
     static int retries = 0;
     tmp_file_index = 0;
-    if (!tmp_files) tmp_files = SmallAlloc(200 * sizeof(struct tmp_file));
+    if (!tmp_files) tmp_files = malloc(200 * sizeof(struct tmp_file));
     if (!tmp_files)
     {
         retries++;
@@ -3410,17 +3400,17 @@ static int TmpMem_Init()
         return 0;
     }
 
-    if (!tmp_buffer) tmp_buffer = (void*)shoot_malloc(TMP_MAX_BUF_SIZE);
+    if (!tmp_buffer) tmp_buffer = (void*)fio_malloc(TMP_MAX_BUF_SIZE);
     if (!tmp_buffer)
     {
         retries++;
         HijackCurrentDialogBox(4,
-            retries > 2 ? "Restart your camera (shoot_malloc err)." :
-                          "Format: shoot_malloc error, retrying..."
+            retries > 2 ? "Restart your camera (fio_malloc err)." :
+                          "Format: fio_malloc error, retrying..."
         );
         beep();
         msleep(2000);
-        SmallFree(tmp_files); tmp_files = 0;
+        free(tmp_files); tmp_files = 0;
         return 0;
     }
 
@@ -3432,8 +3422,8 @@ static int TmpMem_Init()
 
 static void TmpMem_Done()
 {
-    SmallFree(tmp_files); tmp_files = 0;
-    shoot_free(tmp_buffer); tmp_buffer = 0;
+    free(tmp_files); tmp_files = 0;
+    fio_free(tmp_buffer); tmp_buffer = 0;
 }
 
 static void TmpMem_UpdateSizeDisplay(int counting)

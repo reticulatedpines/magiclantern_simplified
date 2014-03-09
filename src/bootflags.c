@@ -163,7 +163,7 @@ bootflag_write_bootblock( void )
     struct cf_device * const dev = (struct cf_device *)sd_device[1];
 #endif
 
-    uint8_t *block = alloc_dma_memory( 512 );
+    uint8_t *block = fio_malloc( 512 );
     int i;
     for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
     
@@ -192,7 +192,7 @@ bootflag_write_bootblock( void )
     }
     else if (p.type == 7) // ExFAT
     {
-        uint8_t* buffer = alloc_dma_memory(512*24);
+        uint8_t* buffer = fio_malloc(512*24);
         dev->read_block( dev, buffer, p.sectors_before_partition, 24 );
 
         int off1 = 130;
@@ -205,15 +205,15 @@ bootflag_write_bootblock( void )
         exfat_sum((uint32_t*)(buffer+512*12));
 
         dev->write_block( dev, buffer, p.sectors_before_partition, 24 );
-        free_dma_memory( buffer );
+        fio_free( buffer );
     }
     else
     {
-        free_dma_memory( block );
+        fio_free( block );
         NotifyBox(2000, "Unknown partition: %d", p.type); msleep(2000);
         return 0;
     }
-    free_dma_memory( block );
+    fio_free( block );
     return 1; // success!
 }
 
@@ -230,7 +230,7 @@ bootflag_write_bootblock( void )
     struct cf_device * const dev = cf_device[5];
 #endif
     
-    uint8_t *block = alloc_dma_memory( 512 );
+    uint8_t *block = fio_malloc( 512 );
     
     int i;
     for(i=0; i<512; i++) block[i] = 0xAA;
@@ -256,7 +256,7 @@ bootflag_write_bootblock( void )
     }
     else if( strncmp((const char*) block + 0x3, "EXFAT", 5) == 0 ) //check if this card is EXFAT
     {
-        uint8_t* buffer = alloc_dma_memory(512*24);
+        uint8_t* buffer = fio_malloc(512*24);
         dev->read_block( dev, 0, 24, buffer );
         int off1 = 130;
         int off2 = 122;
@@ -267,7 +267,7 @@ bootflag_write_bootblock( void )
         exfat_sum((uint32_t*)(buffer));
         exfat_sum((uint32_t*)(buffer+512*12));
         dev->write_block( dev, 0, 24, buffer );
-        free_dma_memory( buffer );
+        fio_free( buffer );
     }
     else // if it's not FAT16 neither FAT32, don't do anything.
     {
@@ -275,7 +275,7 @@ bootflag_write_bootblock( void )
         return 0;
     }
     
-    free_dma_memory( block );
+    fio_free( block );
     return 1;
 }
 #endif

@@ -187,7 +187,7 @@ int config_save_file(const char *filename)
     DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
     
     #define MAX_SIZE 10240
-    char* msg = alloc_dma_memory(MAX_SIZE);
+    char* msg = fio_malloc(MAX_SIZE);
     msg[0] = '\0';
   
     snprintf( msg, MAX_SIZE,
@@ -226,10 +226,10 @@ int config_save_file(const char *filename)
         count++;
     }
     
-    FILE * file = FIO_CreateFileEx( filename );
+    FILE * file = FIO_CreateFile( filename );
     if( file == INVALID_PTR )
     {
-        free_dma_memory(msg);
+        fio_free(msg);
         return -1;
     }
     
@@ -237,7 +237,7 @@ int config_save_file(const char *filename)
 
     FIO_CloseFile( file );
     
-    free_dma_memory(msg);
+    fio_free(msg);
     
     return count;
 }
@@ -289,7 +289,7 @@ void config_flag_file_setting_save(char* file, int setting)
     FIO_RemoveFile(file);
     if (setting)
     {
-        FILE* f = FIO_CreateFileEx(file);
+        FILE* f = FIO_CreateFile(file);
         FIO_CloseFile(f);
     }
 }
@@ -314,7 +314,7 @@ int config_parse_file(const char *filename)
     config_file_buf = (void*)read_entire_file(filename, &config_file_size);
     config_file_pos = 0;
     config_parse();
-    free_dma_memory(config_file_buf);
+    fio_free(config_file_buf);
     config_file_buf = 0;
     return 1;
 }
@@ -465,7 +465,7 @@ unsigned int module_config_load(char *filename, module_entry_t *module)
         return -1;
     config_file_pos = 0;
     module_config_parse(module);
-    free_dma_memory(config_file_buf);
+    fio_free(config_file_buf);
     config_file_buf = 0;
     return 0;
 }
@@ -475,7 +475,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
     if (!module->config)
         return -1;
 
-    char* msg = alloc_dma_memory(MAX_SIZE);
+    char* msg = fio_malloc(MAX_SIZE);
     msg[0] = '\0';
 
     snprintf( msg, MAX_SIZE,
@@ -505,10 +505,10 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
         goto finish;
     }
     
-    FILE * file = FIO_CreateFileEx( filename );
+    FILE * file = FIO_CreateFile( filename );
     if( file == INVALID_PTR )
     {
-        free_dma_memory(msg);
+        fio_free(msg);
         return -1;
     }
     
@@ -516,7 +516,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
 
     FIO_CloseFile( file );
 finish:
-    free_dma_memory(msg);
+    fio_free(msg);
     return 0;
 }
 
@@ -742,7 +742,7 @@ static MENU_SELECT_FUNC(config_preset_toggle)
     }
     else
     {
-        FILE* f = FIO_CreateFileEx(config_preset_file);
+        FILE* f = FIO_CreateFile(config_preset_file);
         if (config_new_preset_index == 1)
             my_fprintf(f, "Startup mode");
         else if (config_new_preset_index == 2)
@@ -854,7 +854,7 @@ static char* config_choose_startup_preset()
                 snprintf(config_dir, sizeof(config_dir), "%s/", preset_dir);
             }
         }
-        free_dma_memory(preset_name);
+        fio_free(preset_name);
     }
 
     /* scan the preset files and populate the menu */

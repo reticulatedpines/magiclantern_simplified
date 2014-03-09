@@ -865,7 +865,7 @@ uint32_t info_load_config(char *filename)
         return 1;
 	}
 
-	char *xml_config = alloc_dma_memory(size + 1);
+	char *xml_config = fio_malloc(size + 1);
     xml_config[size] = '\0';
 	if (!xml_config)
 	{
@@ -874,21 +874,21 @@ uint32_t info_load_config(char *filename)
 
 	if ((unsigned)read_file(filename, xml_config, size)!=size)
 	{
-        free_dma_memory(xml_config);
+        fio_free(xml_config);
         return 1;
 	}
 
     /* read first xml token */
     if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
     {
-        free_dma_memory(xml_config);
+        fio_free(xml_config);
         return 1;
     }
 
     /* should be a flexinfo */
     if(strncmp(xml_element, "flexinfo", 8))
     {
-        free_dma_memory(xml_config);
+        fio_free(xml_config);
         return 1;
     }
 
@@ -899,7 +899,7 @@ uint32_t info_load_config(char *filename)
     }
 
     /* allocate the new config */
-    info_elem_t *new_config = (info_elem_t *)alloc_dma_memory(allocated_elements*sizeof(info_elem_t));
+    info_elem_t *new_config = (info_elem_t *)fio_malloc(allocated_elements*sizeof(info_elem_t));
     memset(new_config, 0, allocated_elements*sizeof(info_elem_t));
 
     /* first is config header */
@@ -921,8 +921,8 @@ uint32_t info_load_config(char *filename)
         /* read next element */
         if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
         {
-            free_dma_memory(new_config);
-            free_dma_memory(xml_config);
+            fio_free(new_config);
+            fio_free(xml_config);
             return 1;
         }
 
@@ -960,15 +960,15 @@ uint32_t info_load_config(char *filename)
         config_element_pos++;
         if(ret || allocated_elements < config_element_pos)
         {
-            free_dma_memory(new_config);
-            free_dma_memory(xml_config);
+            fio_free(new_config);
+            fio_free(xml_config);
             return ret;
         }
 
     } while (!done);
 
-    free_dma_memory(xml_config);
-    free_dma_memory(new_config);
+    fio_free(xml_config);
+    fio_free(new_config);
     memcpy(info_config, new_config, config_element_pos * sizeof(info_elem_t));
     return 0;
 }
@@ -983,7 +983,7 @@ uint32_t info_save_config(info_elem_t *config, char *file)
         elements++;
     }
 
-    FILE* f = FIO_CreateFileEx(file);
+    FILE* f = FIO_CreateFile(file);
     if(!f)
     {
         return 1;

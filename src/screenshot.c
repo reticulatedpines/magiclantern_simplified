@@ -135,7 +135,7 @@ int take_screenshot( char* filename, uint32_t mode )
         }
     }
 
-    FILE *f = FIO_CreateFileEx(path);
+    FILE *f = FIO_CreateFile(path);
     if (f == INVALID_PTR)
     {
         goto err;

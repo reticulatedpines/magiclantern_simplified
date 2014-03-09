@@ -404,7 +404,7 @@ void digic_dump()
         if (size == 0) break;
     }
 
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {
@@ -421,7 +421,7 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FILE* f = FIO_CreateFileEx("ML/LOGS/h264.log");
+    FILE* f = FIO_CreateFile("ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {

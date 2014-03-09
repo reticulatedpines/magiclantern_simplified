@@ -314,88 +314,6 @@ int raw2iso(int raw_iso)
     return iso;
 }
 
-//~ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
-
-static void double_buffering_start(int ytop, int height)
-{
-    #ifdef CONFIG_500D // err70
-    return;
-    #endif
-    // use double buffering to avoid flicker
-    bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_H_PLUS - height);
-    memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
-    bmp_draw_to_idle(1);
-}
-
-static void double_buffering_end(int ytop, int height)
-{
-    #ifdef CONFIG_500D // err70
-    return;
-    #endif
-    // done drawing, copy image to main BMP buffer
-    bmp_draw_to_idle(0);
-    bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_H_PLUS - height);
-    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
-    bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
-}
-
-static void ml_bar_clear(int ytop, int height)
-{
-    uint8_t* B = bmp_vram();
-    uint8_t* M = (uint8_t *)get_bvram_mirror();
-    if (!B) return;
-    if (!M) return;
-    int menu = gui_menu_shown();
-    int ymax = MIN(ytop + height, BMP_H_PLUS);
-   
-    for (int y = ytop; y < ymax; y++)
-    {
-        for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x+=4)
-        {
-            uint32_t p = *(uint32_t*)&B[BM(x,y)];
-            uint32_t m = *(uint32_t*)&M[BM(x,y)];
-            uint32_t target = 0;
-           
-            if (RECORDING && y < 100)
-            {
-                for(int byte_pos = 0; byte_pos < 4; byte_pos++)
-                {
-                    uint8_t val = (p >> (8*byte_pos));
-                   
-                    /* is that one red? */
-                    if((val & 0xFF) == COLOR_RED)
-                    {
-                        /* mask out cropmark */
-                        m &= ~(0x80<<(8*byte_pos));
-                    }
-                }
-            }
-           
-            if (menu)
-            {
-                target = (COLOR_BLACK<<24) | (COLOR_BLACK<<16) | (COLOR_BLACK<<8) | (COLOR_BLACK<<0);
-            }
-            else
-            {
-                for(int byte_pos = 0; byte_pos < 4; byte_pos++)
-                {
-                    uint8_t val = (m >> (8*byte_pos));
-                   
-                    /* is that one to draw? */
-                    if(val & 0x80)
-                    {
-                        val &= 0x7F;
-                        target |= (val<<(8*byte_pos));
-                    }
-                }
-            }
-            *(uint32_t*)&B[BM(x,y)] = target;
-        }
-    }
-}
-
 char* get_shootmode_name(int shooting_mode)
 {
     return
@@ -942,7 +860,7 @@ mvr_create_logfile(
         char name[100];
         snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), get_shooting_card()->file_number);
 
-        FILE * mvr_logfile = mvr_logfile = FIO_CreateFileEx( name );
+        FILE * mvr_logfile = mvr_logfile = FIO_CreateFile( name );
         if( mvr_logfile == INVALID_PTR )
         {
             bmp_printf( FONT_MED, 0, 40,
@@ -957,7 +875,7 @@ mvr_create_logfile(
 
         FIO_CloseFile( mvr_logfile );
         
-        free_dma_memory(mvr_logfile_buffer);
+        fio_free(mvr_logfile_buffer);
         mvr_logfile_buffer = 0;
         return;
     }
@@ -966,7 +884,7 @@ mvr_create_logfile(
         return;
 
     // Movie starting
-    mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
+    mvr_logfile_buffer = fio_malloc(MVR_LOG_BUF_SIZE);
 
     snprintf( mvr_logfile_buffer, MVR_LOG_BUF_SIZE,
         "# Magic Lantern %s\n\n",
@@ -1163,12 +1081,17 @@ PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
-    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE
-        #ifdef CONFIG_500D
-        && !is_movie_mode()
-        #endif
-    )
+    else if 
+        (
+            buf[0] && !gui_menu_shown()
+            #if defined(ISO_ADJUSTMENT_ACTIVE) || defined(CONFIG_NO_MANUAL_EXPOSURE_MOVIE)
+            && ISO_ADJUSTMENT_ACTIVE
+            #endif
+        )
     {
+        /* when you adjust ISO from Canon menu, sync expo override too */
+        /* this should work even on cameras without manual exposure control, since it's safeguarded by ISO_ADJUSTMENT_ACTIVE */
+        /* (that's why ISO_ADJUSTMENT_ACTIVE is mandatory for cameras with CONFIG_NO_MANUAL_EXPOSURE_MOVIE, and optional on others) */
         bv_set_rawiso(buf[0]);
     }
     bv_auto_update();
@@ -1225,10 +1148,10 @@ PROP_HANDLER( PROP_SHUTTER )
             && (ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
 
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
-      	#ifdef CONFIG_6D
+        #ifdef CONFIG_6D
         && !(buf[0] == FASTEST_SHUTTER_SPEED_RAW )
         #endif
 
@@ -1248,7 +1171,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
     )
@@ -2475,11 +2398,14 @@ static LVINFO_UPDATE_FUNC(iso_update)
         STR_APPEND(buffer, "D+");
     }
 
+    #ifdef ISO_ADJUSTMENT_ACTIVE
     if (ISO_ADJUSTMENT_ACTIVE)
     {
         item->color_bg = COLOR_LIGHT_BLUE;
     }
-    else if (CONTROL_BV)
+    else
+    #endif
+    if (CONTROL_BV)
     {
         /* mark the "exposure override" mode */
         item->color_bg = 18;

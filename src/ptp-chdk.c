@@ -122,7 +122,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     break;
                 }
 
-                buf = alloc_dma_memory(length);
+                buf = fio_malloc(length);
 
                 if ( !buf )
                 {
@@ -186,7 +186,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     msg.id = PTP_RC_GeneralError;
                 }
 
-                free_dma_memory(buf);
+                fio_free(buf);
             }
             break;
 
@@ -200,7 +200,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             
 #if defined(PTP_7D_MASTER_ACCESS)
             length = context->get_data_size(context->handle);
-            buf = alloc_dma_memory( length );
+            buf = fio_malloc( length );
 
             if ( !buf )
             {
@@ -211,7 +211,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             if ( !recv_ptp_data(context,buf,length) )
             {
                 msg.id = PTP_RC_GeneralError;
-                free_dma_memory(buf);
+                fio_free(buf);
                 break;
             }
             
@@ -229,7 +229,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             {
                 msleep(100);
             }
-            free_dma_memory(buf);
+            fio_free(buf);
             
 #else      
             context->get_data_size(context->handle); // XXX required call before receiving
@@ -301,7 +301,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 uint32_t *buf = NULL;
 
                 size = context->get_data_size(context->handle);
-                buf = alloc_dma_memory(size);
+                buf = fio_malloc(size);
 
                 if ( !recv_ptp_data(context, (char *)buf, size) )
                 {
@@ -399,7 +399,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             {
                 if ( temp_data_kind == 1 )
                 {
-                    free_dma_memory(temp_data.str);
+                    fio_free(temp_data.str);
                 } else if ( temp_data_kind == 2 )
                 {
                     //~ lua_close(temp_data.lua_state);
@@ -408,7 +408,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
                 temp_data_extra = context->get_data_size(context->handle);
 
-                temp_data.str = (char *) alloc_dma_memory(temp_data_extra);
+                temp_data.str = (char *) fio_malloc(temp_data_extra);
                 if ( temp_data.str == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -426,7 +426,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             {
                 if ( temp_data_kind == 1 )
                 {
-                    free_dma_memory(temp_data.str);
+                    fio_free(temp_data.str);
                 }
                 else if ( temp_data_kind == 2 )
                 {
@@ -447,7 +447,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 recv_ptp_data(context,(char *) &fn_len,4);
                 s -= 4;
 
-                fn = (char *) alloc_dma_memory(fn_len+1);
+                fn = (char *) fio_malloc(fn_len+1);
                 if ( fn == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -465,12 +465,12 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 if ( f == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
-                    free_dma_memory(fn);
+                    fio_free(fn);
                     break;
                 }
-                free_dma_memory(fn);
+                fio_free(fn);
 
-                buf = (char *) alloc_dma_memory(BUF_SIZE);
+                buf = (char *) fio_malloc(BUF_SIZE);
                 if ( buf == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -492,7 +492,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
                 FIO_CloseFile(f);
 
-                free_dma_memory(buf);
+                fio_free(buf);
                 break;
             }
 
@@ -522,7 +522,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 memcpy(fn,temp_data.str,temp_data_extra);
                 fn[temp_data_extra] = '\0';
 
-                free_dma_memory(temp_data.str);
+                fio_free(temp_data.str);
                 temp_data_kind = 0;
 
                 if( FIO_GetFileSize( fn, &s ) != 0 )
@@ -542,7 +542,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 }
 
                 char *buf;
-                buf = (char *) alloc_dma_memory(BUF_SIZE);
+                buf = (char *) fio_malloc(BUF_SIZE);
                 if ( buf == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -558,7 +558,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     tmp = 0;
                 }
                 FIO_CloseFile(f);
-                free_dma_memory(buf);
+                fio_free(buf);
                 // XXX check that we actually read/send s bytes! (t == 0)
 
                 msg.param_count = 1;

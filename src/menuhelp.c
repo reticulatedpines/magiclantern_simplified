@@ -129,7 +129,7 @@ void menu_help_show_page(int page)
             extern int _bmp_draw_should_stop;
             if (!_bmp_draw_should_stop) save_vram(rpath);
             #endif
-            FreeMemory(doc);
+            free(doc);
         }
         else
         {
@@ -205,7 +205,7 @@ void menu_help_go_to_label(void* label, int delta)
         }
     }
 
-    free_dma_memory(buf);
+    fio_free(buf);
     
     current_page = page;
     menu_help_active = 1;
