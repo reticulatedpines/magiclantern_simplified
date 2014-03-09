@@ -32,7 +32,7 @@
     //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
     #define BGMT_LV 0x1E
-#define BGMT_Q BGMT_TOUCH_1_FINGER
+#define BGMT_Q 0xFE // dummy value > 0 so button can be faked with fake_simple_button()
 
     //~ #define BGMT_FUNC 0x12
     #define BGMT_PICSTYLE 0x13

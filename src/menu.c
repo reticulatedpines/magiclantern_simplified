@@ -4584,10 +4584,10 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_hidden_should_display_help = 0;
         break;
 #ifdef CONFIG_TOUCHSCREEN
-    case TOUCH_1_FINGER:
-    case TOUCH_2_FINGER:
-    case UNTOUCH_1_FINGER:
-    case UNTOUCH_2_FINGER:
+    case BGMT_TOUCH_1_FINGER:
+    case BGMT_TOUCH_2_FINGER:
+    case BGMT_UNTOUCH_1_FINGER:
+    case BGMT_UNTOUCH_2_FINGER:
         return handle_ml_menu_touch(event);
 #endif
 #ifdef BGMT_RATE
@@ -4655,12 +4655,12 @@ int handle_ml_menu_touch(struct event * event)
 {
     int button_code = event->param;
     switch (button_code) {
-        case TOUCH_1_FINGER:
+        case BGMT_TOUCH_1_FINGER:
             fake_simple_button(BGMT_Q);
             return 0;
-        case TOUCH_2_FINGER:
-        case UNTOUCH_1_FINGER:
-        case UNTOUCH_2_FINGER:
+        case BGMT_TOUCH_2_FINGER:
+        case BGMT_UNTOUCH_1_FINGER:
+        case BGMT_UNTOUCH_2_FINGER:
             return 0;
         default:
             return 1;
