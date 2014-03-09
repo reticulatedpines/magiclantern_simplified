@@ -91,6 +91,10 @@
 #define MODULE_KEY_UNPRESS_FLASH_MOVIE     (32)
 #define MODULE_KEY_PRESS_DP                (33)
 #define MODULE_KEY_UNPRESS_DP              (34)
+#define MODULE_KEY_TOUCH_1_FINGER          (35)
+#define MODULE_KEY_UNTOUCH_1_FINGER        (36)
+#define MODULE_KEY_TOUCH_2_FINGER          (37)
+#define MODULE_KEY_UNTOUCH_2_FINGER        (38)
 
 
 #define MODULE_KEY_CANON     0
