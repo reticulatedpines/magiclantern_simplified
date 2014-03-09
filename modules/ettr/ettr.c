@@ -623,7 +623,12 @@ static char prev_exposure_settings[50];
 
 static int auto_ettr_work(int corr)
 {
-    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE)
+    /* will we call auto_ettr_work_m or auto_ettr_work_auto? */
+    int manual_mode = 
+        expo_override_active() || /* consider this one as a fake manual mode */
+        !(shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P);  /* auto ETTR only supports these auto modes */
+    
+    if (manual_mode)
     {
         /* in M mode, wait until shutter speed is reported by Canon firmware */
         int waited = 0;
@@ -642,12 +647,10 @@ static int auto_ettr_work(int corr)
     char* expo_settings = get_current_exposure_settings();
     snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
     
-    if (expo_override_active())
+    if (manual_mode)
         return auto_ettr_work_m(corr);
-    else if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
-        return auto_ettr_work_auto(corr);
     else
-        return auto_ettr_work_m(corr);
+        return auto_ettr_work_auto(corr);
 }
 
 static volatile int auto_ettr_running = 0;
