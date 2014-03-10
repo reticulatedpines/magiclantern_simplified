@@ -15,7 +15,7 @@ int get_shutter_speed_us_from_timer(int timer);
 int fps_get_shutter_speed_shift(int raw_shutter);
 
 /* from DebugMsg hack */
-int fps_override_shutter_blanking();
+void fps_override_shutter_blanking();
 
 /* from movtweaks (gradual expo) */
 void fps_expo_iso_step();
