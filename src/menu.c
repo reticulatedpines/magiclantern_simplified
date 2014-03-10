@@ -560,34 +560,6 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
     set_config_var_ptr(val, v);
 }
 
-/* TODO: move these to a math library */
-int powi(int base, int power)
-{
-    int result = 1;
-    while (power)
-    {
-        if (power & 1)
-            result *= base;
-        power >>= 1;
-        base *= base;
-    }
-    return result;
-}
-
-int log2i(int x)
-{
-    int result = 0;
-    while (x >>= 1) result++;
-    return result;
-}
-
-int log10i(int x)
-{
-    int result = 0;
-    while(x /= 10) result++;
-    return result;
-}
-
 /* for editing with caret */
 static int get_delta(struct menu_entry * entry, int sign)
 {
