@@ -187,6 +187,7 @@ extern int iscntrl( int x );
 
 /** message queue calls **/
 extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
+extern int32_t msg_queue_post(struct msg_queue * queue, uint32_t msg);
 extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);
 extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
 
