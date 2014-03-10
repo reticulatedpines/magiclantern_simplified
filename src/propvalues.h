@@ -104,6 +104,7 @@ extern int auto_power_off_time;
 extern struct bmp_ov_loc_size os;
 
 bool is_movie_mode();
+bool is_native_movie_mode();
 
 #ifndef _beep_c_
 extern int beep_enabled;
