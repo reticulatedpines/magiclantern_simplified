@@ -195,14 +195,6 @@ extern void SetCFnData(int group, int number, int value);
         #define DebugMsg(a,b,fmt,...) { }
 #endif
 
-#ifndef CONFIG_CONSOLE
-    #define console_printf(fmt,...) { }
-    #define console_puts(fmt,...) { }
-    #define console_show() { }
-    #define console_hide() { }
-#endif
-
-
 #define DEBUG(fmt,...) DebugMsg(50,3,"%s:%d: " fmt, __func__, __LINE__, ## __VA_ARGS__)
 
 void ml_assert_handler(char* msg, char* file, int line, const char* func);
