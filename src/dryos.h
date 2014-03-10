@@ -44,20 +44,12 @@
 #include "consts.h"
 #include <stdarg.h>
 #include "exmem.h"
+#include "mem.h"
 #include "fio-ml.h"
 #include "imath.h"
 
-/** Check a pointer for error code */
-#define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
-
-extern void * memset ( void * ptr, int value, size_t num );
 extern float roundf(float x);
 extern float powf(float x, float y);
-extern uint32_t shamem_read(uint32_t addr);
-extern void* memset64(void* dest, int val, size_t n);
-extern void* memcpy64(void* dest, void* srce, size_t n);
-extern void* dma_memcpy(void* dest, void* srce, size_t n);
-extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
@@ -200,8 +192,6 @@ FR_SyncReadFile(
         size_t                  mem_offset
 );
 
-
-#define INVALID_PTR             ((void *)0xFFFFFFFF)
 
 extern void
 FIO_CloseSync(
@@ -458,23 +448,6 @@ int rand (void);
 
 #define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
 
-#define MEM(x) *(volatile uint32_t*)(x)
-#define MEMX(x) ( \
-        ((((uint32_t)(x)) & 0xF0000000UL) == 0xC0000000UL) ? (uint32_t)shamem_read(x) : \
-        ((((uint32_t)(x)) & 0xF0000000UL) == 0xE0000000UL) ? (uint32_t)0xDEADBEAF : \
-        ((((uint32_t)(x)) & 0xF0000000UL) == 0x70000000UL) ? (uint32_t)0xDEADBEAF : \
-        ((((uint32_t)(x)) & 0xF0000000UL) == 0x80000000UL) ? (uint32_t)0xDEADBEAF : \
-        *(volatile uint32_t *)(x) \
-)
-
-#define ALIGN16(x) ((__typeof__(x))(((uint32_t)(x)) & ~1))
-#define ALIGN32(x) ((__typeof__(x))(((uint32_t)(x)) & ~3))
-#define ALIGN64(x) ((__typeof__(x))(((uint32_t)(x)) & ~7))
-
-#define ALIGN16SUP(x) ((__typeof__(x))(((uint32_t)(x) + 1) & ~1))
-#define ALIGN32SUP(x) ((__typeof__(x))(((uint32_t)(x) + 3) & ~3))
-#define ALIGN64SUP(x) ((__typeof__(x))(((uint32_t)(x) + 7) & ~7))
-
 #if defined(POSITION_INDEPENDENT)
 extern uint32_t _ml_base_address;
 #define PIC_RESOLVE(x) ( ((uint32_t) (x) >> 24 == 0xE0)?((uint32_t) (x) - 0xE0000000 + _ml_base_address):(x) )
@@ -515,14 +488,11 @@ extern int snprintf( char* str, size_t n, const char* fmt, ... );
 extern int strcmp( const char* s1, const char* s2 );
 extern long strtol( const char * str, char ** endptr, int base );
 extern char* strcpy( char* dst, const char * src );
-extern void*  memcpy( void *, const void *, size_t );
 extern int atoi( const char * );
 extern int streq( const char *, const char * );
 extern char* strstr( const char* str1, const char* str2 );
 extern char* strpbrk( const char* str1, const char* str2 );
 extern char* strchr( const char* str, int c );
-extern int memcmp( const void* s1, const void* s2,size_t n );
-extern void * memchr( const void *s, int c, size_t n );
 extern size_t strspn( const char *s1, const char *s2 );
 extern int tolower( int c );
 extern int toupper( int c );
@@ -579,11 +549,6 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_PER_LENS 2
 #define AFMA_MODE_PER_LENS_WIDE 0x102
 #define AFMA_MODE_PER_LENS_TELE 0x202
-
-
-#include "mem.h"
-
-#define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
 
 
 /* beeps */
