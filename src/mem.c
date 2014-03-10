@@ -18,6 +18,8 @@
 #include "bmp.h"
 #include "beep.h"
 #include "menu.h"
+#include "edmac.h"
+#include "util.h"
 
 #ifdef MEM_DEBUG
 #define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }

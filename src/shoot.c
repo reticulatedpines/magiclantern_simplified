@@ -24,9 +24,8 @@
  */
 
 #include "shoot.h"
-#include "config-defines.h"
-
 #include "dryos.h"
+#include "util.h"
 #include "bmp.h"
 #include "version.h"
 #include "config.h"
@@ -382,19 +381,6 @@ seconds_clock_task( void* unused )
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
 
-
-typedef int (*CritFunc)(int);
-// crit returns negative if the tested value is too high, positive if too low, 0 if perfect
-int bin_search(int lo, int hi, CritFunc crit)
-{
-    ASSERT(crit);
-    if (lo >= hi-1) return lo;
-    int m = (lo+hi)/2;
-    int c = crit(m);
-    if (c == 0) return m;
-    if (c > 0) return bin_search(m, hi, crit);
-    return bin_search(lo, m, crit);
-}
 
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
