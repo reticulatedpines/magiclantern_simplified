@@ -38,7 +38,7 @@ extern int lv_paused; // only valid if lv is true
 #define LV_NON_PAUSED (lv && !lv_paused)
 
 extern int lv_dispsize; // 1 / 5 / A
-extern int expsim;
+extern int _expsim; /* private, use get_expsim instead */
 extern int shooting_mode;        /* C3M => M */
 extern int shooting_mode_custom; /* C3M => C3 */
 extern int shooting_type;
@@ -108,5 +108,9 @@ bool is_movie_mode();
 #ifndef _beep_c_
 extern int beep_enabled;
 #endif
+
+/* in tweaks.c */
+int get_expsim();
+void set_expsim(int expsim);
 
 #endif

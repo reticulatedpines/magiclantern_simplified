@@ -104,7 +104,7 @@ dofp_update()
 
 int get_expsim()
 {
-    //bmp_printf(FONT_MED, 50, 50, "mov: %d expsim:%d lv_mov: %d", is_movie_mode(), expsim, lv_movie_select);
+    //bmp_printf(FONT_MED, 50, 50, "mov: %d expsim:%d lv_mov: %d", is_movie_mode(), _expsim, lv_movie_select);
     
 #if defined(CONFIG_7D)
     /* 7D has expsim in video mode, but expsim is for photo mode only. so return 2 if in video mode */
@@ -113,8 +113,8 @@ int get_expsim()
         return 2;
     }
 #endif
-    if (expsim == 3) return 0; /* on 5D3, this means "off" and 0 means "when pressing DOF" */
-    return expsim;
+    if (_expsim == 3) return 0; /* on 5D3, this means "off" and 0 means "when pressing DOF" */
+    return _expsim;
 }
 #ifdef CONFIG_EXPSIM
 
@@ -180,7 +180,7 @@ static MENU_UPDATE_FUNC(expsim_display)
         MENU_SET_ICON(MNI_DICE, 0);
         #endif
     }
-    else if (expsim == 3)
+    else if (_expsim == 3)
     {
         MENU_SET_VALUE("OFF");
         MENU_SET_ICON(MNI_OFF, 0);
@@ -199,7 +199,7 @@ static MENU_UPDATE_FUNC(expsim_display)
 }
 #endif
 
-#else // no expsim, use some dummy stubs
+#else // no _expsim, use some dummy stubs
 void set_expsim(){};
 #endif
 
@@ -2246,7 +2246,7 @@ struct menu_entry expo_tweak_menus[] = {
         .max = 1,
         .help = "Exposure simulation.",
         #endif
-        .priv = &expsim,
+        .priv = &_expsim,
         .select = expsim_toggle,
         .update = expsim_display,
         .depends_on = DEP_LIVEVIEW,
