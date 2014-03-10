@@ -10,6 +10,7 @@
 #include "menu.h"
 #include "config.h"
 #include "math.h"
+#include "fps.h"
 
 //~ #define EngDrvOutLV(reg, value) *(int*)(reg) = value
 

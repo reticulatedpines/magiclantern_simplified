@@ -39,6 +39,7 @@
 #include "config.h"
 #include "math.h"
 #include "raw.h"
+#include "fps.h"
 
 #if defined(CONFIG_7D)
 #include "ml_rpc.h"
