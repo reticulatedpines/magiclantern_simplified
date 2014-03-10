@@ -225,11 +225,12 @@ void info_led_blink(int times, int delay_on, int delay_off);
 void _card_led_on();
 void _card_led_off();
 
+/** timing */
+/* todo: move to a separate file */
+int get_seconds_clock();
+int get_ms_clock_value();
+uint64_t get_us_clock_value();
+int get_ms_clock_value_fast();
+int should_run_polling_action(int period_ms, int* last_updated_time);
 
 #endif
-
-
-
-
-
-
