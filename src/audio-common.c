@@ -2,6 +2,9 @@
 #include "lvinfo.h"
 #include "module.h"
 #include "raw.h"
+#include "zebra.h"
+
+static void audio_monitoring_update();
 
 int sound_recording_enabled_canon()
 {

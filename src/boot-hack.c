@@ -570,7 +570,7 @@ static void my_big_init_task()
 }*/
 
 /** Blocks execution until config is read */
-void hold_your_horses(int showlogo)
+void hold_your_horses()
 {
     while (_hold_your_horses)
     {

@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "gui.h"
 #include "audio-common.c"
+#include "boot-hack.h"
 
 static CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 static CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
@@ -611,7 +612,7 @@ my_sounddev_task()
     msleep( 1500 );
     if (magic_is_off()) { sounddev_task(); return; }
     
-    hold_your_horses(1);
+    hold_your_horses();
     
     DebugMsg( DM_AUDIO, 3,
               "!!!!! %s started sem=%x",
