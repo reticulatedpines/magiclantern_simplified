@@ -138,9 +138,16 @@ int get_config_var(const char * name);
 /* return the current settings directory (usually ML/SETTINGS, but not if you use a custom preset) */
 extern char* get_config_dir();
 
+/* return true if the specified config variable (identified by a pointer to its current value)
+ * is no longer at its default value */
+int config_var_was_changed(int* ptr);
+
 void config_save();
-void config_save_at_shutdown();
+void config_save_at_shutdown(); /* CBR */
 void config_load();
 
+/* simple boolean settings that live outside of config files (just by presence of a file) */
+int config_flag_file_setting_load(char* file);
+void config_flag_file_setting_save(char* file, int setting);
 
 #endif
