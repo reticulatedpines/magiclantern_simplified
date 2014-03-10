@@ -1,6 +1,8 @@
 #ifndef _big_gui_h_
 #define _big_gui_h_
 
+#include "dialog.h"
+
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
@@ -188,6 +190,7 @@ gui_hide_menu( int redisplay_time );
 #endif
 
 void fake_simple_button(int bgmt_code);
+void GUI_Control(int bgmt_code, int obj, int arg, int unknown);
 
 #define QR_MODE (gui_state == GUISTATE_QR)
 #define PLAY_OR_QR_MODE (PLAY_MODE || QR_MODE)
@@ -218,6 +221,11 @@ void gui_uilock(int what);
 void canon_gui_disable_front_buffer();
 void canon_gui_enable_front_buffer(int also_redraw);
 
+void redraw();
 void redraw_after(int msec);
+void _redraw_do();  /* private */
+
+/* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
+void SetGUIRequestMode(int mode);
 
 #endif
