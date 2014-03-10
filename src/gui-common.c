@@ -642,3 +642,13 @@ void fake_simple_button(int bgmt_code)
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
+static void redraw_after_task(int msec)
+{
+    msleep(msec);
+    redraw();
+}
+
+void redraw_after(int msec)
+{
+    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
+}

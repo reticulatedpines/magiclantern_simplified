@@ -2282,18 +2282,6 @@ static void rec_picstyle_change(int rec)
 #endif // REC pic style
 #endif // pic style
 
-
-static void redraw_after_task(int msec)
-{
-    msleep(msec);
-    redraw();
-}
-
-void redraw_after(int msec)
-{
-    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
-}
-
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {

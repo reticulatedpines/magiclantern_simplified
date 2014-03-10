@@ -218,4 +218,6 @@ void gui_uilock(int what);
 void canon_gui_disable_front_buffer();
 void canon_gui_enable_front_buffer(int also_redraw);
 
+void redraw_after(int msec);
+
 #endif
