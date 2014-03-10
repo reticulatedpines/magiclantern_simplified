@@ -1196,13 +1196,13 @@ tweak_task( void* unused)
          * => we use heuristics like Canon bottom bar or popping up to detect these events */
         if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
         {
-            idle_wakeup_reset_counters();
+            idle_wakeup_reset_counters(0);
         }
         
         #ifdef ISO_ADJUSTMENT_ACTIVE
         if (ISO_ADJUSTMENT_ACTIVE)
         {
-            idle_wakeup_reset_counters();
+            idle_wakeup_reset_counters(0);
         }
         #endif
     }
