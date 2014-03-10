@@ -218,12 +218,6 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_PER_LENS_WIDE 0x102
 #define AFMA_MODE_PER_LENS_TELE 0x202
 
-
-/* beeps */
-void beep();
-void beep_times(int times);
-void beep_custom(int duration, int frequency, int wait);
-
 #endif
 
 
