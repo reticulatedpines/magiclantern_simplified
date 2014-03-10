@@ -47,6 +47,7 @@
 #include "mem.h"
 #include "fio-ml.h"
 #include "imath.h"
+#include "notify_box.h"
 
 extern float roundf(float x);
 extern float powf(float x, float y);
