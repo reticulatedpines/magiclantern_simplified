@@ -3732,7 +3732,8 @@ int handle_tricky_canon_calls(struct event * event)
             #endif
             break;
     }
-    return 0;
+    
+    return 1;
 }
 
 void display_on()

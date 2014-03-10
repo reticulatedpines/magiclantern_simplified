@@ -820,6 +820,18 @@ int FAST module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
+#if !defined(BGMT_TOUCH_1_FINGER)
+#define BGMT_TOUCH_1_FINGER -1
+#endif
+#if !defined(BGMT_UNTOUCH_1_FINGER)
+#define BGMT_UNTOUCH_1_FINGER -1
+#endif
+#if !defined(BGMT_TOUCH_2_FINGER)
+#define BGMT_TOUCH_2_FINGER -1
+#endif
+#if !defined(BGMT_UNTOUCH_2_FINGER)
+#define BGMT_UNTOUCH_2_FINGER -1
+#endif
 int module_translate_key(int key, int dest)
 {
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             , dest);
@@ -838,7 +850,6 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_REC                  , MODULE_KEY_REC                  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         , dest);
     MODULE_TRANSLATE_KEY(BGMT_LV                   , MODULE_KEY_LV                   , dest);
-    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
     MODULE_TRANSLATE_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             , dest);
     MODULE_TRANSLATE_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             , dest);
@@ -854,6 +865,11 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    , dest);
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TOUCH_1_FINGER       , MODULE_KEY_TOUCH_1_FINGER       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_1_FINGER     , MODULE_KEY_UNTOUCH_1_FINGER     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TOUCH_2_FINGER       , MODULE_KEY_TOUCH_2_FINGER       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_2_FINGER     , MODULE_KEY_UNTOUCH_2_FINGER     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
     /* these are not simple key codes, so they will not work with MODULE_TRANSLATE_KEY */
     //~ MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
     //~ MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
