@@ -38,6 +38,17 @@
 #include "histogram.h"
 #include "fileprefix.h"
 #include "beep.h"
+#include "zebra.h"
+#include "cropmarks.h"
+#include "focus.h"
+#include "picstyle.h"
+#include "imgconv.h"
+#include "fps.h"
+#include "lvinfo.h"
+
+/* only included for clock CBRs (to be removed after refactoring) */
+#include "battery.h"
+#include "tskmon.h"
 
 #if defined(CONFIG_MODULES)
 #include "module.h"
@@ -48,8 +59,6 @@ static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
 
 void move_lv_afframe(int dx, int dy);
-void movie_start();
-void movie_end();
 void display_trap_focus_info();
 #ifdef FEATURE_LCD_SENSOR_REMOTE
 void display_lcd_remote_icon(int x0, int y0);
@@ -323,6 +332,7 @@ static void do_this_every_second() // called every second
     #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (RECORDING_H264)
     {
+        extern void measure_bitrate();
         measure_bitrate();
         lens_display_set_dirty();
     }
@@ -1531,7 +1541,7 @@ static void
 analog_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
-    int a, d;
+    unsigned int a; int d;
     split_iso(r, &a, &d);
     a = COERCE(a + sign * 8, MIN_ISO, MAX_ANALOG_ISO);
     lens_set_rawiso(a + d);
@@ -1541,7 +1551,7 @@ static void
 digital_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
-    int a, d;
+    unsigned int a; int d;
     split_iso(r, &a, &d);
     d = COERCE(d + sign, -3, (a == MAX_ANALOG_ISO ? 16 : 4));
     while (d > 8 && d < 16) d += sign;
@@ -1740,8 +1750,7 @@ aperture_toggle( void* priv, int sign)
 
 #ifdef FEATURE_WHITE_BALANCE
 
-void
-kelvin_toggle( void* priv, int sign )
+void kelvin_toggle( void* priv, int sign )
 {
     int k;
     switch (lens_info.wb_mode)
@@ -2281,6 +2290,9 @@ static void rec_picstyle_change(int rec)
 
 #endif // REC pic style
 #endif // pic style
+
+/* to be refactored with CBR */
+extern void rec_notify_trigger(int rec);
 
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
@@ -5519,6 +5531,10 @@ static void misc_shooting_info()
 {
     if (!DISPLAY_IS_ON) return;
     
+    /* from ph_info_disp.c */
+    extern void display_shortcut_key_hints_lv();
+    extern void display_shooting_info();
+
     display_shortcut_key_hints_lv();
 
     if (get_global_draw())

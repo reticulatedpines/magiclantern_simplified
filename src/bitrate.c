@@ -11,6 +11,8 @@
 #include "gui.h"
 #include "lens.h"
 #include "mvr.h"
+#include "zebra.h"
+#include "lvinfo.h"
 
 //----------------begin qscale-----------------
 static CONFIG_INT( "h264.qscale", qscale_neg, 8 );

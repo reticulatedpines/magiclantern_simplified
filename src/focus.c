@@ -14,6 +14,8 @@
 #include "config.h"
 #include "ptp.h"
 #include "beep.h"
+#include "zebra.h"
+#include "shoot.h"
 
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);

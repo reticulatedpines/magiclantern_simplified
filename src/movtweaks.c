@@ -12,6 +12,10 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "shoot.h"
+#include "zebra.h"
+#include "fps.h"
+#include "beep.h"
 
 #ifdef FEATURE_REC_NOTIFY
 

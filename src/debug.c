@@ -15,6 +15,11 @@
 #include "asm.h"
 #include "beep.h"
 #include "screenshot.h"
+#include "console.h"
+#include "zebra.h"
+#include "shoot.h"
+#include "cropmarks.h"
+#include "fw-signature.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -845,6 +850,14 @@ static void test_task() { test_task_created = 1; }
 
 static void stub_test_task(void* arg)
 {
+    /* this calls some private functions that should not be called from user code */
+    extern void* _malloc(size_t size);
+    extern void _free(void* ptr);
+    extern void* _AllocateMemory(size_t size);
+    extern void _FreeMemory(void* ptr);
+    extern void* _alloc_dma_memory(size_t size);
+    extern void _free_dma_memory(void* ptr);
+
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
     msleep(1000);
@@ -1306,7 +1319,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: image compare: %d", i);
         playback_compare_images_task(1);
     }
-    get_out_of_play_mode();
+    get_out_of_play_mode(500);
     msleep(2000);
 #endif
 
@@ -1317,7 +1330,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: exposure fusion: %d", i);
         expfuse_preview_update_task(1);
     }
-    get_out_of_play_mode();
+    get_out_of_play_mode(500);
     msleep(2000);
 #endif
 
@@ -1335,7 +1348,7 @@ static void stress_test_task(void* unused)
         msleep(200);
     }
     timelapse_playback = 0;
-    get_out_of_play_mode();
+    get_out_of_play_mode(500);
 
     msleep(2000);
 
@@ -2107,7 +2120,7 @@ static void crash_log_step()
 
     //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
     extern thunk ErrForCamera_handler;
-    if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+    if (get_current_dialog_handler() == &ErrForCamera_handler)
     {
         if (!dmlog_saved)
         {
@@ -3215,7 +3228,11 @@ debug_init_stuff( void )
     //~ set_pic_quality(PICQ_RAW);
 
     #ifdef CONFIG_WB_WORKAROUND
-    if (is_movie_mode()) restore_kelvin_wb();
+    if (is_movie_mode())
+    {
+        extern void restore_kelvin_wb(); /* movtweaks.c */
+        restore_kelvin_wb();
+    }
     #endif
 
     #ifdef CONFIG_5D3
@@ -3555,6 +3572,8 @@ static void CopyMLFilesBack_AfterFormat()
     if(check_autoexec())
     {
         HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        
+        extern void bootflag_write_bootblock(void);
         bootflag_write_bootblock();
     }
 
@@ -3711,11 +3730,11 @@ int handle_tricky_canon_calls(struct event * event)
             #endif
             break;
         case MLEV_REDRAW:
-            redraw_do();
+            _redraw_do();   /* todo: move in gui-common.c */
             break;
         case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
             #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event);
+            handle_livev_playback(event); /* todo: move back to zebra.c */
             #endif
             break;
     }

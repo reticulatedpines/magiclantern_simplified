@@ -36,6 +36,7 @@
 #include "menuhelp.h"
 #include "console.h"
 #include "debug.h"
+#include "lvinfo.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS

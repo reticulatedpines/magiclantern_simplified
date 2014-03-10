@@ -8,6 +8,7 @@
 
 #include "dryos.h"
 #include "libtcc.h"
+#include "console.h"
 
 void exit(int code) 
 {
@@ -42,7 +43,7 @@ int fputs(FILE* unused, const char * fmt)
 
 int putchar(int c)
 {
-    console_puts(&c);
+    console_puts((char*)&c);
     return c;
 }
 

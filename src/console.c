@@ -6,6 +6,8 @@
 #include "gui.h"
 #include "property.h"
 #include "config.h"
+#include "zebra.h"
+#include "shoot.h"
 
 #ifndef CONFIG_CONSOLE
 #error Something went wrong CONFIg_CONSOLE should be defined

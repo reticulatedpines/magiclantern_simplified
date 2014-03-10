@@ -36,10 +36,16 @@
 #include "math.h"
 #include "beep.h"
 #include "raw.h"
+#include "shoot.h"
+#include "focus.h"
+#include "lvinfo.h"
 
 #include "imgconv.h"
 #include "falsecolor.h"
 #include "histogram.h"
+
+/* todo: move battery stuff in battery.c */
+#include "battery.h"
 
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
 #define FEATURE_RAW_OVERLAYS
@@ -3768,7 +3774,11 @@ BMP_LOCK(
     #ifdef FEATURE_DEFISHING_PREVIEW
     extern int defish_preview;
     if (defish_preview)
+    {
+        /* to refactor with CBR + separate file */
+        extern void defish_draw_play();
         defish_draw_play();
+    }
     #endif
 
     #ifdef FEATURE_SPOTMETER
@@ -4289,7 +4299,7 @@ clearscreen_loop:
             int i;
             for (i = 0; i < (int)clearscreen_delay/20; i++)
             {
-                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(); )
+                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(1,1); )
                 msleep(20);
                 if (!(get_halfshutter_pressed() || dofpreview))
                     goto clearscreen_loop;
@@ -4366,7 +4376,7 @@ CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
 // * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
-void redraw_do()
+void _redraw_do()
 {
     extern int ml_started;
     if (!ml_started) return;
@@ -4377,7 +4387,12 @@ BMP_LOCK (
 #ifdef CONFIG_VARIANGLE_DISPLAY
     if (display_dont_mirror && display_dont_mirror_dirty)
     {
-        if (lcd_position == 1) NormalDisplay();
+        if (lcd_position == 1)
+        {
+            /* Canon stub, usually available only on cameras with variable displays */
+            extern void NormalDisplay();
+            NormalDisplay();
+        }
         display_dont_mirror_dirty = 0;
     }
 #endif
@@ -4600,6 +4615,8 @@ livev_hipriority_task( void* unused )
             msleep(10);
 
             #ifdef CONFIG_DISPLAY_FILTERS
+            /* to refactor with CBR */
+            extern void display_filter_step(int frame_number);
             display_filter_step(k);
             #endif
             
@@ -4635,6 +4652,8 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef FEATURE_REC_NOTIFY
+        /* to refactor with CBR */
+        extern void rec_notify_continuous(int called_from_menu);
         if (k % 8 == 7) rec_notify_continuous(0);
         #endif
         

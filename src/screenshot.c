@@ -3,6 +3,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "imgconv.h"
+#include "beep.h"
 #include "screenshot.h"
 
 #ifdef FEATURE_SCREENSHOT

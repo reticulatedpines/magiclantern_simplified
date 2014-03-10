@@ -8,6 +8,8 @@
 #include "propvalues.h"
 #include "bmp.h"
 #include "menu.h"
+#include "shoot.h"
+#include "zebra.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 

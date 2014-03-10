@@ -1,7 +1,6 @@
 /** \file
  * Tweaks to default UI behavior
  */
-#include "zebra.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -15,6 +14,13 @@
 #include "math.h"
 #include "beep.h"
 #include "module.h"
+#include "shoot.h"
+#include "focus.h"
+#include "imgconv.h"
+#include "zebra.h"
+#include "cropmarks.h"
+#include "hdr.h"
+#include "lvinfo.h"
 
 static void lcd_adjust_position_step();
 static void arrow_key_step();
@@ -985,6 +991,8 @@ static void
 tweak_task( void* unused)
 {
     //~ do_movie_mode_remap();
+    
+    extern void movtweak_task_init();
     movtweak_task_init();
     
     TASK_LOOP
@@ -997,6 +1005,7 @@ tweak_task( void* unused)
         
         msleep(display_countdown || RECORDING || halfshutter_sticky || dofpreview_sticky ? 50 : 500);
         
+        extern void movtweak_step();
         movtweak_step();
 
         #ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
@@ -1541,7 +1550,7 @@ int handle_arrow_keys(struct event * event)
                 case 1: out_volume_up(); break;
                 #endif
                 #ifdef FEATURE_WHITE_BALANCE
-                case 2: kelvin_toggle(-1, 1); break;
+                case 2: kelvin_toggle((void*)-1, 1); break;
                 #endif
                 #ifdef FEATURE_EXPO_APERTURE
                 case 3: aperture_toggle((void*)-1, 1); break;
@@ -1561,7 +1570,7 @@ int handle_arrow_keys(struct event * event)
                 case 1: out_volume_down(); break;
                 #endif
                 #ifdef FEATURE_WHITE_BALANCE
-                case 2: kelvin_toggle(-1, -1); break;
+                case 2: kelvin_toggle((void*)-1, -1); break;
                 #endif
                 #ifdef FEATURE_EXPO_APERTURE
                 case 3: aperture_toggle((void*)-1, -1); break;
@@ -2626,7 +2635,7 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
 #endif
 }
 
-void grayscale_menus_step()
+static void grayscale_menus_step()
 {
     /*
 #ifndef CONFIG_VXWORKS
@@ -2657,7 +2666,7 @@ void grayscale_menus_step()
     int guimode = CURRENT_DIALOG_MAYBE;
     int d = DISPLAY_IS_ON;
     int b = bmp_color_scheme;
-    int sig = get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();
+    int sig = (int)get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();
     int transition = (sig != prev_sig);
     
     if (ml_shutdown_requested) return;

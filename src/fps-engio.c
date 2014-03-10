@@ -40,6 +40,7 @@
 #include "math.h"
 #include "raw.h"
 #include "fps.h"
+#include "shoot.h"
 
 #if defined(CONFIG_7D)
 #include "ml_rpc.h"
@@ -486,6 +487,7 @@ int get_current_shutter_reciprocal_x1000()
     int timer = FRAME_SHUTTER_TIMER;
 
     #ifdef FEATURE_SHUTTER_FINE_TUNING
+    extern int shutter_finetune_get_adjusted_timer(); /* lv-img-engio.c, to be cleaned up somehow */
     timer = shutter_finetune_get_adjusted_timer();
     #endif
     
@@ -1447,6 +1449,9 @@ static void fps_read_current_timer_values()
     return changed;    
 }*/
 
+static int get_fps_video_mode();
+static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize);
+
 static void fps_read_default_timer_values()
 {
     if (!lv) { fps_reg_a_orig = fps_reg_b_orig = 0; return; }
@@ -1840,7 +1845,7 @@ void fps_expo_iso_step()
 
 #ifdef NEW_FPS_METHOD
 
-int get_fps_video_mode()
+static int get_fps_video_mode()
 {
     int mode =
         lv_dispsize > 1 || get_expsim()!=2 ? 2 :
@@ -1852,7 +1857,7 @@ int get_fps_video_mode()
     return mode;
 }
 
-int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
+static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
 {
     unsigned short ret[2];   
     

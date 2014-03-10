@@ -29,6 +29,8 @@
 #include "menu.h"
 #include "property.h"
 #include "beep.h"
+#include "shoot.h"
+#include "zebra.h"
 
 static int config_selected = 0;
 static char config_selected_by_key[9] = "";

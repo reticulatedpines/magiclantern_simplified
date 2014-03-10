@@ -26,6 +26,8 @@
 #include "lens.h"
 #include "module.h"
 #include "menu.h"
+#include "edmac-memcpy.h"
+#include "imgconv.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */

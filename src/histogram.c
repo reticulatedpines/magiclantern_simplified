@@ -14,6 +14,9 @@
 #include "histogram.h"
 #include "module.h"
 
+#include "zebra.h"
+#include "falsecolor.h"
+
 
 #if defined(FEATURE_HISTOGRAM)
 

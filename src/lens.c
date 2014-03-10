@@ -37,6 +37,7 @@
 #include "battery.h"
 #include "lens.h"
 #include "shoot.h"
+#include "hdr.h"
 #include "fps.h"
 #include "picstyle.h"
 #include "focus.h"
