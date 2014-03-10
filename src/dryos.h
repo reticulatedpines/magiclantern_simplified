@@ -570,28 +570,6 @@ const char* get_dcim_dir();
 static unsigned int ret_0() { return 0; }
 static unsigned int ret_1() { return 1; }
 
-// fixed point formatting for printf's
-
-// to be used with "%s%d.%d" - for values with one decimal place
-#define FMT_FIXEDPOINT1(x)  (x) < 0 ? "-" :                 "", ABS(x)/10, ABS(x)%10
-#define FMT_FIXEDPOINT1S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/10, ABS(x)%10
-
-// to be used with "%s%d.%02d" - for values with two decimal places
-#define FMT_FIXEDPOINT2(x)  (x) < 0 ? "-" :                 "", ABS(x)/100, ABS(x)%100
-#define FMT_FIXEDPOINT2S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/100, ABS(x)%100
-
-// to be used with "%s%d.%03d" - for values with three decimal places
-#define FMT_FIXEDPOINT3(x)  (x) < 0 ? "-" :                 "", ABS(x)/1000, ABS(x)%1000
-#define FMT_FIXEDPOINT3S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/1000, ABS(x)%1000
-
-// to be used with "%s%d.%04d" - for values with three decimal places
-#define FMT_FIXEDPOINT4(x)  (x) < 0 ? "-" :                 "", ABS(x)/10000, ABS(x)%10000
-#define FMT_FIXEDPOINT4S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/10000, ABS(x)%10000
-
-// to be used with "%s%d.%05d" - for values with three decimal places
-#define FMT_FIXEDPOINT5(x)  (x) < 0 ? "-" :                 "", ABS(x)/100000, ABS(x)%100000
-#define FMT_FIXEDPOINT5S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/100000, ABS(x)%100000
-
 /** AF microadjustment **/
 int get_afma(int mode);
 void set_afma(int value, int mode);
