@@ -109,7 +109,7 @@ static void reload_cropmark()
     {
         void* old_crop = cropmarks;
         cropmarks = 0;
-        bmp_free(old_crop);
+        free(old_crop);
     }
 
     cropmark_clear_cache();

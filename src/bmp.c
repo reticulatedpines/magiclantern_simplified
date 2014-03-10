@@ -636,11 +636,6 @@ getfilesize_fail:
     return NULL;
 }
 
-void bmp_free(struct bmp_file_t * bmp)
-{
-    if (bmp) free(bmp);
-}
-
 uint8_t* read_entire_file(const char * filename, int* buf_size)
 {
     *buf_size = 0;

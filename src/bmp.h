@@ -140,6 +140,7 @@ void bmp_draw_to_idle(int value);
 /* fullsize is useful for HDMI monitors, where the BMP area is larger */
 void bmp_idle_copy(int direction, int fullsize);
 
+void bmp_putpixel(int x, int y, uint8_t color);
 void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 
@@ -583,5 +584,13 @@ void draw_line(int x1, int y1, int x2, int y2, int cl);
 void fill_circle(int x, int y, int r, int cl);
 void draw_circle(int x, int y, int r, int cl);
 void draw_angled_line(int x, int y, int r, int ang, int cl); /* ang is degrees x10 */
+
+/* zebra.c, to be moved to bmp.c */
+void bvram_mirror_init();
+uint8_t* get_bvram_mirror();
+
+/* tweaks.c, for making overlays match anamorphic preview */
+/* todo: remove it and refactor display filters so zebra overlays read directly from filtered buffer */
+extern int anamorphic_squeeze_bmp_y(int y);
 
 #endif //#ifndef _bmp_h_
