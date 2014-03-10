@@ -3,6 +3,8 @@
 
 #include "dialog.h"
 
+#include "dialog.h"
+
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 
@@ -227,5 +229,119 @@ void _redraw_do();  /* private */
 
 /* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
 void SetGUIRequestMode(int mode);
+
+/* on some cameras, Canon encodes multiple scrollwheel clicks in a single event */
+/* this breaks them down into individual events, for ML code that expects one event = one click */
+int handle_scrollwheel_fast_clicks(struct event * event);
+
+/* Canon prints over ML bottom bar? */
+int is_canon_bottom_bar_dirty();
+
+
+/* todo: refactor with CBRs */
+/* these are private (I'm declaring them here just for letting the compiler checking the type) */
+int handle_tricky_canon_calls(struct event * event);
+int handle_select_config_file_by_key_at_startup(struct event * event);
+int handle_disp_preset_key(struct event * event);
+int handle_av_short_for_menu(struct event * event);
+int handle_module_keys(struct event * event);
+int handle_flexinfo_keys(struct event * event);
+int handle_picoc_keys(struct event * event);
+int handle_digital_zoom_shortcut(struct event * event);
+int handle_upside_down(struct event * event);
+int handle_swap_menu_erase(struct event * event);
+int handle_swap_info_play(struct event * event);
+int handle_ml_menu_keys(struct event * event);
+int handle_digic_poke(struct event * event);
+int handle_mlu_handheld(struct event * event);
+int handle_buttons_being_held(struct event * event);
+int handle_ml_menu_erase(struct event * event);
+int handle_zoom_trick_event(struct event * event);
+int handle_intervalometer(struct event * event);
+int handle_transparent_overlay(struct event * event);
+int handle_livev_playback(struct event * event);
+int handle_set_wheel_play(struct event * event);
+int handle_arrow_keys(struct event * event);
+int handle_trap_focus(struct event * event);
+int handle_follow_focus(struct event * event);
+int handle_follow_focus_save_restore(struct event * event);
+int handle_zoom_overlay(struct event * event);
+int handle_zoom_x5_x10(struct event * event);
+int handle_krzoom(struct event * event);
+int handle_quick_access_menu_items(struct event * event);
+int handle_fps_events(struct event * event);
+int handle_expo_preset(struct event * event);
+int handle_disp_preset_key(struct event * event);
+int handle_fast_zoom_box(struct event * event);
+int handle_af_patterns(struct event * event);
+int handle_voice_tags(struct event * event);
+int handle_lv_play(struct event * event);
+int handle_fast_zoom_in_play_mode(struct event * event);
+void spy_event(struct event * event);
+
+int handle_keep_ml_after_format_toggle();
+
+void check_pre_shutdown_flag();
+void reset_pre_shutdown_flag_step();
+
+/* to be moved from debug.c */
+int get_zoom_out_pressed();
+
+/* on some cameras, Canon encodes multiple scrollwheel clicks in a single event */
+/* this breaks them down into individual events, for ML code that expects one event = one click */
+int handle_scrollwheel_fast_clicks(struct event * event);
+
+/* Canon prints over ML bottom bar? */
+int is_canon_bottom_bar_dirty();
+
+
+/* todo: refactor with CBRs */
+/* these are private (I'm declaring them here just for letting the compiler checking the type) */
+int handle_tricky_canon_calls(struct event * event);
+int handle_select_config_file_by_key_at_startup(struct event * event);
+int handle_disp_preset_key(struct event * event);
+int handle_av_short_for_menu(struct event * event);
+int handle_module_keys(struct event * event);
+int handle_flexinfo_keys(struct event * event);
+int handle_picoc_keys(struct event * event);
+int handle_digital_zoom_shortcut(struct event * event);
+int handle_upside_down(struct event * event);
+int handle_swap_menu_erase(struct event * event);
+int handle_swap_info_play(struct event * event);
+int handle_ml_menu_keys(struct event * event);
+int handle_digic_poke(struct event * event);
+int handle_mlu_handheld(struct event * event);
+int handle_buttons_being_held(struct event * event);
+int handle_ml_menu_erase(struct event * event);
+int handle_zoom_trick_event(struct event * event);
+int handle_intervalometer(struct event * event);
+int handle_transparent_overlay(struct event * event);
+int handle_livev_playback(struct event * event);
+int handle_set_wheel_play(struct event * event);
+int handle_arrow_keys(struct event * event);
+int handle_trap_focus(struct event * event);
+int handle_follow_focus(struct event * event);
+int handle_follow_focus_save_restore(struct event * event);
+int handle_zoom_overlay(struct event * event);
+int handle_zoom_x5_x10(struct event * event);
+int handle_krzoom(struct event * event);
+int handle_quick_access_menu_items(struct event * event);
+int handle_fps_events(struct event * event);
+int handle_expo_preset(struct event * event);
+int handle_disp_preset_key(struct event * event);
+int handle_fast_zoom_box(struct event * event);
+int handle_af_patterns(struct event * event);
+int handle_voice_tags(struct event * event);
+int handle_lv_play(struct event * event);
+int handle_fast_zoom_in_play_mode(struct event * event);
+void spy_event(struct event * event);
+
+int handle_keep_ml_after_format_toggle();
+
+void check_pre_shutdown_flag();
+void reset_pre_shutdown_flag_step();
+
+/* to be moved from debug.c */
+int get_zoom_out_pressed();
 
 #endif
