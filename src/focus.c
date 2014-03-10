@@ -7,6 +7,7 @@
  * is safe to send another one.
  */
 #include "dryos.h"
+#include "focus.h"
 #include "menu.h"
 #include "bmp.h"
 #include "lens.h"
@@ -746,7 +747,6 @@ int get_focus_confirmation()
 int is_manual_focus()
 {
     return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
-;
 }
 
 #ifdef FEATURE_MOVIE_AF
