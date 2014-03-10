@@ -21,6 +21,13 @@ void edmac_copy_rectangle_adv_cleanup();
 void edmac_memcpy_finish();
 void edmac_copy_rectangle_finish();
 
+/* Lock/unlock engine resources used by edmac_memcpy (only if ported for your camera) */
+void edmac_memcpy_res_lock();
+void edmac_memcpy_res_unlock();
+
+/* pulls the raw data from EDMAC without Canon's lv_save_raw (for raw backend) */
+void edmac_raw_slurp(void* dst, int w, int h);
+
 #endif
 
 #endif // _edmac_memcpy_h_
