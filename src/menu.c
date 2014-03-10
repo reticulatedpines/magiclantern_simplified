@@ -31,6 +31,11 @@
 #include "font.h"
 #include "menu.h"
 #include "beep.h"
+#include "zebra.h"
+#include "focus.h"
+#include "menuhelp.h"
+#include "console.h"
+#include "debug.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
@@ -4065,7 +4070,7 @@ menu_redraw_do()
                 */
                 
                 if (hist_countdown == 0 && !should_draw_zoom_overlay())
-                    draw_histogram_and_waveform(); // too slow
+                    draw_histogram_and_waveform(0); // too slow
                 else
                     hist_countdown--;
             }
@@ -4760,7 +4765,7 @@ static void piggyback_canon_menu()
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
     if (new_gui_mode) start_redraw_flood();
-    if (new_gui_mode != CURRENT_DIALOG_MAYBE) 
+    if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
     { 
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
@@ -4867,6 +4872,7 @@ menu_task( void* unused )
 {
     extern int ml_started;
     while (!ml_started) msleep(100);
+    
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
@@ -5155,7 +5161,7 @@ menu_help_go_to_selected_entry(
 
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
-    menu_help_go_to_label(entry->name);
+    menu_help_go_to_label((char*) entry->name, 0);
     give_semaphore(menu_sem);
 }
 
