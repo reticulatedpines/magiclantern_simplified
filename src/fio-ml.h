@@ -119,4 +119,10 @@ extern int FIO_MoveFile(char *src,char *dst);   /* copy and erase */
 /* for ML startup */
 void _find_ml_card();
 
+/* dump anything from RAM to a file */
+void dump_seg(uint32_t start, uint32_t size, char* filename);
+
+/* dump 0x10000000 bytes (256MB) from 0x10000000 * k */
+void dump_big_seg(int k, char* filename);
+
 #endif
