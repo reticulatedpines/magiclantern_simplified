@@ -4,6 +4,7 @@
 #include "bmp.h"
 
 extern void* _malloc(size_t size);
+extern void _free(void* ptr);
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
