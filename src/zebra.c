@@ -5102,7 +5102,7 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_Open("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
+    FILE* f = FIO_OpenFile("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);

@@ -75,7 +75,7 @@ NSTUB(0xFF1115E8, GetJpegSizeForLV)
 
 NSTUB( 0xFF0714C4, msleep ) // called from EV_GETDONE_CACHE param 0x64
 NSTUB( 0xFF071578, task_create )
-NSTUB( 0xFF1E6254, _FIO_Open)
+NSTUB( 0xFF1E6254, _FIO_OpenFile)
 NSTUB( 0xFF1E6310, _FIO_CreateFile )
 NSTUB( 0xFF1E66B4, FIO_CloseFile )
 NSTUB( 0xFF1E65E4, FIO_SeekFile)

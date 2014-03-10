@@ -534,7 +534,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
                 bmp_printf(FONT_LARGE, 0, 0, "DL '%s' %db", fn, s);
 
-                f = FIO_Open(fn, 0);
+                f = FIO_OpenFile(fn, 0);
                 if ( f == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;

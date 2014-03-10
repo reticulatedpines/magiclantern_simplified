@@ -483,7 +483,7 @@ read_file(
     size_t            size
 )
 {
-    FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if( file == INVALID_PTR )
         return -1;
     unsigned rc = FIO_ReadFile( file, buf, size );

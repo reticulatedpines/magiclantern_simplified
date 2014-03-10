@@ -220,7 +220,7 @@ static void wav_play(char* filename)
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
-    file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if( file == INVALID_PTR ) return;
 
     int s1 = FIO_ReadFile( file, buf1, WAV_BUF_SIZE );

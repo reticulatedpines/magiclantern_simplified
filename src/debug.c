@@ -441,7 +441,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         void* buf = fio_malloc(bufsize);
         if (buf)
         {
-            FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
+            FILE* f = FIO_OpenFile(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
             int t0 = get_ms_clock_value();
             int i;
             for (i = 0; i < n; i++)
@@ -1135,7 +1135,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         void* p;
         TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != (int)INVALID_PTR);
-        TEST_TRY_FUNC_CHECK(f = FIO_Open("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
         TEST_TRY_VOID(FIO_CloseFile(f));
         TEST_TRY_VOID(_free_dma_memory(p));
@@ -3300,7 +3300,7 @@ static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
     int size = GetFileSize(filename);
     if (!size) return 0;
 
-    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+    FILE* f = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return 0;
     int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
     FIO_CloseFile(f);
@@ -3517,7 +3517,7 @@ static void CopyMLFilesToRAM_BeforeFormat()
 // check if autoexec.bin is present on the card
 static int check_autoexec()
 {
-    FILE * f = FIO_Open("AUTOEXEC.BIN", 0);
+    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -3530,7 +3530,7 @@ static int check_autoexec()
 // check if magic.fir is present on the card
 static int check_fir()
 {
-    FILE * f = FIO_Open("MAGIC.FIR", 0);
+    FILE * f = FIO_OpenFile("MAGIC.FIR", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);

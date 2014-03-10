@@ -96,7 +96,7 @@ struct fio_file {
 };
 
 // file IO
-extern FILE* FIO_Open( const char* filename, unsigned mode );
+extern FILE* FIO_OpenFile( const char* filename, unsigned mode );
 extern int FIO_ReadFile( FILE* stream, void* ptr, size_t count );
 extern int FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
 extern void FIO_CloseFile( FILE* stream );

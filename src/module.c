@@ -76,7 +76,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         return -1;
     }
 
-    file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);

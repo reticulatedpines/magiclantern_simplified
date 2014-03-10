@@ -53,7 +53,7 @@ NSTUB(0xFFAD03A0 - RAM_OFFSET, vsnprintf)
 
 /** File I/O **/
 NSTUB(0xFF33E3AC,  _FIO_CreateFile)
-NSTUB(0xFF33E2F0,  _FIO_Open) // or OpenFile?
+NSTUB(0xFF33E2F0,  _FIO_OpenFile) // or OpenFile?
 NSTUB(0xFF33E750,  FIO_CloseFile)
 NSTUB(0xFF33E680,  FIO_SeekFile)
 NSTUB(0xFF33E500,  FIO_ReadFile)

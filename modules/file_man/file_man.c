@@ -700,7 +700,7 @@ FILETYPE_HANDLER(text_handler)
     char* buf = fio_malloc(1025);
     if (!buf) return 0;
     
-    FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if (file != INVALID_PTR)
     {
         int r = FIO_ReadFile(file, buf, 1024);

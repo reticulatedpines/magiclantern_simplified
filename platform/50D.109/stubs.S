@@ -79,7 +79,7 @@ NSTUB( 0xff98e1e4, vsnprintf )									//d
 
 NSTUB( 0xff866e08, msleep ) // called from EV_GETDONE_CACHE param 0x64								//d
 NSTUB( 0xff866ebc, task_create )								//d
-NSTUB( 0xff982434, _FIO_Open)									//d
+NSTUB( 0xff982434, _FIO_OpenFile)									//d
 NSTUB( 0xff9824e8, _FIO_CreateFile )								//d
 NSTUB( 0xff982590, FIO_CloseFile )								//d
 NSTUB( 0xff982b84, _FIO_GetFileSize )							//d

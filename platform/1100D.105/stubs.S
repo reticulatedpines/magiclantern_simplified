@@ -48,7 +48,7 @@ NSTUB(0xFF1D927C, _FIO_CreateFile)                 // might be good (dumps=1, sc
 NSTUB(0xFF1DA41C, _FIO_FindFirstEx)                // might be good (dumps=1, score=50)
 NSTUB(0xFF1DA510, FIO_FindNextEx)                 // might be good (dumps=1, score=50)
 NSTUB(0xFF1D979C, _FIO_GetFileSize)                // might be good (dumps=1, score=92)
-NSTUB(0xFF1D91C0, _FIO_Open)                       // might be good (dumps=1, score=92)
+NSTUB(0xFF1D91C0, _FIO_OpenFile)                       // might be good (dumps=1, score=92)
 NSTUB(0xFF1D93D0, FIO_ReadFile)                   // might be good (dumps=1, score=87)
 NSTUB(0xFF1D9328, _FIO_RemoveFile)                 // might be good (dumps=1, score=53)
 NSTUB(0xFF1D9570, FIO_WriteFile)                  // might be good (dumps=1, score=65)

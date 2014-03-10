@@ -326,12 +326,12 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #undef IS_DRV_PATH
 }
 
-FILE* _FIO_Open(const char* filename, unsigned mode );
-FILE* FIO_Open(const char* filename, unsigned mode )
+FILE* _FIO_OpenFile(const char* filename, unsigned mode );
+FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
-    return _FIO_Open(new_filename, mode);
+    return _FIO_OpenFile(new_filename, mode);
 }
 
 //~ int _FIO_GetFileSize(const char * filename, unsigned * size);
@@ -459,7 +459,7 @@ FILE* FIO_CreateFile(const char* name)
 FILE* _FIO_CreateFileOrAppend(const char* name)
 {
     /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
-    FILE * f = _FIO_Open(name, O_RDWR | O_SYNC);
+    FILE * f = _FIO_OpenFile(name, O_RDWR | O_SYNC);
     if (f == INVALID_PTR)
     {
         f = _FIO_CreateFile(name);
@@ -479,7 +479,7 @@ FILE* FIO_CreateFileOrAppend(const char* name)
 
 int _FIO_CopyFile(char *src,char *dst)
 {
-    FILE* f = _FIO_Open(src, O_RDONLY | O_SYNC);
+    FILE* f = _FIO_OpenFile(src, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return -1;
 
     FILE* g = _FIO_CreateFile(dst);
