@@ -209,7 +209,7 @@ void guimode_test()
         char fn[50];
         snprintf(fn, sizeof(fn), "VRAM%d.BMP", i);
 
-        if (GetFileSize(fn) != 0xFFFFFFFF) // this gui mode was already tested?
+        if (FIO_GetFileSize_direct(fn) != 0xFFFFFFFF) // this gui mode was already tested?
             continue;
 
         NotifyBox(500, "Trying GUI mode %d...", i);
@@ -2101,7 +2101,7 @@ static void crash_log_step()
     if (core_dump_requested)
     {
         NotifyBox(100000, "Saving core dump, please wait...\n");
-        dump_seg(core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
+        dump_seg((void*)core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
         NotifyBox(10000, "Pls send COREDUMP.DAT to ML devs.\n");
         core_dump_requested = 0;
     }
@@ -3220,7 +3220,7 @@ debug_init_stuff( void )
     #endif
 
     #ifdef CONFIG_5D3
-    card_tweaks();
+    _card_tweaks();
     #endif
 }
 
@@ -3294,18 +3294,6 @@ PROP_HANDLER(PROP_ISO)
 }
 
 #endif
-
-static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
-{
-    int size = GetFileSize(filename);
-    if (!size) return 0;
-
-    FILE* f = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 0;
-    int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
-    FIO_CloseFile(f);
-    return r;
-}
 
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
@@ -3441,12 +3429,12 @@ static void TmpMem_AddFile(char* filename)
     if (!tmp_buffer) return;
     if (!tmp_buffer_ptr) return;
 
-    int filesize = GetFileSize(filename);
+    int filesize = FIO_GetFileSize_direct(filename);
     if (filesize == -1) return;
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
 
-    ReadFileToBuffer(filename, tmp_buffer_ptr, filesize);
+    read_file(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
     tmp_files[tmp_file_index].buf = tmp_buffer_ptr;
     tmp_files[tmp_file_index].size = filesize;

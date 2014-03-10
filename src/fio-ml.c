@@ -138,7 +138,7 @@ static void card_test(struct card_info * card)
 /** 
  * Called from debug_init_stuff
  */
-void card_tweaks()
+void _card_tweaks()
 {
 #ifdef CONFIG_5D3
     if (card_test_enabled)
@@ -334,7 +334,7 @@ FILE* FIO_OpenFile(const char* filename, unsigned mode )
     return _FIO_OpenFile(new_filename, mode);
 }
 
-//~ int _FIO_GetFileSize(const char * filename, unsigned * size);
+int _FIO_GetFileSize(const char * filename, uint32_t * size);
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[100];
@@ -392,7 +392,8 @@ static unsigned _GetFileSize(char* filename)
         return 0xFFFFFFFF;
     return size;
 }
-unsigned GetFileSize(char* filename)
+
+uint32_t FIO_GetFileSize_direct(const char* filename)
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
@@ -603,11 +604,11 @@ static void aj_close_log_file( void )
    g_aj_logfile = INVALID_PTR;
 }
 
-void dump_seg(uint32_t start, uint32_t size, char* filename)
+void dump_seg(void* start, uint32_t size, char* filename)
 {
     DEBUG();
     aj_create_log_file(filename);
-    FIO_WriteFile( g_aj_logfile, (const void *) start, size );
+    FIO_WriteFile( g_aj_logfile, start, size );
     aj_close_log_file();
     DEBUG();
 }

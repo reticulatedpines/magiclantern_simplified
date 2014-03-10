@@ -109,6 +109,9 @@ extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
 extern void FIO_FindClose( struct fio_dirent * dirent );
 extern int FIO_SeekFile( FILE* stream, size_t position, int whence );
 extern int FIO_RenameFile(char *src,char *dst);
+extern int FIO_RemoveFile(const char * filename);
+extern int FIO_GetFileSize(const char * filename, uint32_t * size);
+extern uint32_t FIO_GetFileSize_direct(const char * filename);   /* todo: use just this one */
 
 /* ML wrappers */
 extern FILE* FIO_CreateFile( const char* name );
@@ -116,11 +119,14 @@ extern FILE* FIO_CreateFileOrAppend( const char* name );
 extern int FIO_CopyFile(char *src,char *dst);
 extern int FIO_MoveFile(char *src,char *dst);   /* copy and erase */
 
+extern int FIO_CreateDirectory(const char * dirname);
+
 /* for ML startup */
 void _find_ml_card();
+void _card_tweaks();
 
 /* dump anything from RAM to a file */
-void dump_seg(uint32_t start, uint32_t size, char* filename);
+void dump_seg(void* start, uint32_t size, char* filename);
 
 /* dump 0x10000000 bytes (256MB) from 0x10000000 * k */
 void dump_big_seg(int k, char* filename);
