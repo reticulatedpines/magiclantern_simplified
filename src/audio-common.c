@@ -4,8 +4,6 @@
 #include "raw.h"
 #include "zebra.h"
 
-static void audio_monitoring_update();
-
 int sound_recording_enabled_canon()
 {
     /* 1 means disabled */
@@ -48,9 +46,6 @@ static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
-#ifdef FEATURE_HEADPHONE_MONITORING
-static void audio_monitoring_update();
-#endif
 static void audio_input_toggle( void * priv, int delta );
 
 #ifdef CONFIG_600D
@@ -999,14 +994,16 @@ void audio_monitoring_display_headphones_connected_or_not()
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
+#ifdef FEATURE_HEADPHONE_MONITORING
+static void audio_monitoring_update();
 
 static void
 audio_monitoring_toggle( void * priv, int delta )
 {
     audio_monitoring = !audio_monitoring;
     audio_monitoring_update(); //call audio_monitoring_force_display()
-
 }
+#endif
 
 static void
 enable_recording(int mode)
