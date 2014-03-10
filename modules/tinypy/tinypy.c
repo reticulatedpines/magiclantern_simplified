@@ -2366,7 +2366,7 @@ int tp_step(TP) {
         case TP_IBITAND: RA = tp_bitwise_and(tp,RB,RC); break;
         case TP_IBITOR:  RA = tp_bitwise_or(tp,RB,RC); break;
         case TP_IBITXOR:  RA = tp_bitwise_xor(tp,RB,RC); break;
-        case TP_IMOD:  RA = tp_mod(tp,RB,RC); break;
+        case TP_IMOD:  RA = tp_MOD(tp,RB,RC); break;
         case TP_ILSH:  RA = tp_lsh(tp,RB,RC); break;
         case TP_IRSH:  RA = tp_rsh(tp,RB,RC); break;
         case TP_ICMP: RA = tp_number(tp_cmp(tp,RB,RC)); break;

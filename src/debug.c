@@ -906,7 +906,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC(t0 = *(uint32_t*)0xC0242014);
         TEST_TRY_VOID(msleep(250));
         TEST_TRY_FUNC(t1 = *(uint32_t*)0xC0242014);
-        TEST_TRY_FUNC_CHECK(ABS(mod(t1-t0, 1048576)/1000 - 250), < 30);
+        TEST_TRY_FUNC_CHECK(ABS(MOD(t1-t0, 1048576)/1000 - 250), < 30);
 
         // calendar
         struct tm now;
@@ -927,8 +927,8 @@ static void stub_test_task(void* arg)
         TEST_TRY_VOID(msleep(1500));
         TEST_TRY_VOID(LoadCalendarFromRTC( &now ));
         TEST_TRY_FUNC(s1 = now.tm_sec);
-        TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), >= 1);
-        TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
+        TEST_TRY_FUNC_CHECK(MOD(s1-s0, 60), >= 1);
+        TEST_TRY_FUNC_CHECK(MOD(s1-s0, 60), <= 2);
 
         // mallocs
         // bypass the memory backend and use low-level calls only for these tests
@@ -1292,7 +1292,7 @@ static void stress_test_task(void* unused)
             case 5: fake_simple_button(BGMT_MENU); break;
             //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
         }
-        dir = mod(dir + rand()%3 - 1, 7);
+        dir = MOD(dir + rand()%3 - 1, 7);
         msleep(MIN_MSLEEP);
     }
     gui_stop_menu();
@@ -2396,8 +2396,8 @@ void prop_dump()
 }
 
 static void prop_toggle_i(void* priv, int unused) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
-static void prop_toggle_j(void* priv, int unused) {prop_j = mod(prop_j + 1, 0x10); }
-static void prop_toggle_k(void* priv, int dir) {if (dir < 0) prop_toggle_j(priv, dir); prop_k = mod(prop_k + 1, 0x51); }
+static void prop_toggle_j(void* priv, int unused) {prop_j = MOD(prop_j + 1, 0x10); }
+static void prop_toggle_k(void* priv, int dir) {if (dir < 0) prop_toggle_j(priv, dir); prop_k = MOD(prop_k + 1, 0x51); }
 #endif
 
 #ifdef CONFIG_KILL_FLICKER

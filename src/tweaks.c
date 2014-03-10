@@ -143,7 +143,7 @@ static void
 expsim_toggle( void * priv, int delta)
 {
     #ifdef CONFIG_EXPSIM_MOVIE
-    int e = mod(get_expsim() + delta, 3);
+    int e = MOD(get_expsim() + delta, 3);
     #else
     if (is_movie_mode()) return;
     int e = !get_expsim();
@@ -1288,7 +1288,7 @@ void display_orientation_toggle(void* priv, int dir)
 {
     int o = DISPLAY_ORIENTATION;
     if (o < 0 || o > 2) return;
-    o = mod(o + dir, 3);
+    o = MOD(o + dir, 3);
     if (o == 0) NormalDisplay();
     else if (o == 1) ReverseDisplay();
     else MirrorDisplay();
@@ -1359,7 +1359,7 @@ static void arrow_key_mode_toggle()
     
     do
     {
-        arrow_keys_mode = mod(arrow_keys_mode + 1, 5);
+        arrow_keys_mode = MOD(arrow_keys_mode + 1, 5);
     }
     while (!is_arrow_mode_ok(arrow_keys_mode));
     NotifyBoxHide();

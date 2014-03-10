@@ -125,7 +125,7 @@ static void reload_cropmark()
 static void
 crop_toggle( void* priv, int sign )
 {
-    crop_index = mod(crop_index + sign, num_cropmarks);
+    crop_index = MOD(crop_index + sign, num_cropmarks);
     //~ reload_cropmark(crop_index);
     crop_set_dirty(10);
 }

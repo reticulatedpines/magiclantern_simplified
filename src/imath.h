@@ -5,9 +5,9 @@ int log2i(int x);
 int log10i(int x);
 
 // mod like in math... x mod n is from 0 to n-1
-//~ #define mod(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
+//~ #define MOD(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
 
-#define mod(x,m) \
+#define MOD(x,m) \
    ({ int _x = (x); \
       int _m = (m); \
      (_x % _m + _m) % _m; })

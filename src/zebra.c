@@ -2748,7 +2748,7 @@ static void idle_timeout_toggle(void* priv, int sign)
 {
     int* t = (int*)priv;
     int i = current_timeout_index(*t);
-    i = mod(i + sign, COUNT(timeout_values));
+    i = MOD(i + sign, COUNT(timeout_values));
     *(int*)priv = timeout_values[i];
 }
 #endif
@@ -3614,7 +3614,7 @@ static void draw_zoom_overlay(int dirty)
         while(1)
         {
             int t1 = *(uint32_t*)0xC0242014;
-            int dt = mod(t1 - t0, 1048576);
+            int dt = MOD(t1 - t0, 1048576);
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;
             if (dt > timeout_us)
@@ -4911,7 +4911,7 @@ int toggle_disp_mode()
 {
     update_disp_mode_bits_from_params();
     idle_wakeup_reset_counters(-3);
-    disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
+    disp_mode = MOD(disp_mode + 1, disp_profiles_0 + 1);
     BMP_LOCK( do_disp_mode_change(); )
     //~ menu_set_dirty();
     return disp_mode == 0;

@@ -160,7 +160,7 @@ TP_MATH_FUNC1(fabs)
 TP_MATH_FUNC1(floor)
 
 /*
- * fmod(x, y)
+ * fMOD(x, y)
  *
  * return the remainder of dividing x by y. that is,
  * return x - n * y, where n is the quotient of x/y.

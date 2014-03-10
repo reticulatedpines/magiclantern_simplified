@@ -1343,7 +1343,7 @@ static int FAST process_frame()
         /* send it for saving, even if it isn't done yet */
         /* it's quite unlikely that FIO DMA will be faster than EDMAC */
         writing_queue[writing_queue_tail] = capture_slot;
-        writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
+        writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
     }
     else
     {
@@ -1591,10 +1591,10 @@ static void raw_video_rec_task()
         /* group items from the queue in a contiguous block - as many as we can */
         int last_grouped = w_head;
         
-        for (int i = w_head; i != w_tail; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != w_tail; i = MOD(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
-            int group_pos = mod(i - w_head, COUNT(writing_queue));
+            int group_pos = MOD(i - w_head, COUNT(writing_queue));
 
             /* TBH, I don't care if these are part of the same group or not,
              * as long as pointers are ordered correctly */
@@ -1605,7 +1605,7 @@ static void raw_video_rec_task()
         }
         
         /* grouped frames from w_head to last_grouped (including both ends) */
-        int num_frames = mod(last_grouped - w_head + 1, COUNT(writing_queue));
+        int num_frames = MOD(last_grouped - w_head + 1, COUNT(writing_queue));
         
         int free_slots = get_free_slots();
         
@@ -1625,7 +1625,7 @@ static void raw_video_rec_task()
             }
         }
         
-        int after_last_grouped = mod(w_head + num_frames, COUNT(writing_queue));
+        int after_last_grouped = MOD(w_head + num_frames, COUNT(writing_queue));
 
         /* write queue empty? better search for a new larger buffer */
         if (after_last_grouped == writing_queue_tail)
@@ -1637,7 +1637,7 @@ static void raw_video_rec_task()
         int size_used = frame_size * num_frames;
 
         /* mark these frames as "writing" */
-        for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
             if (slots[slot_index].status != SLOT_FULL)
@@ -1719,10 +1719,10 @@ static void raw_video_rec_task()
         }
 
         /* for detecting early stops */
-        last_block_size = mod(after_last_grouped - w_head, COUNT(writing_queue));
+        last_block_size = MOD(after_last_grouped - w_head, COUNT(writing_queue));
 
         /* mark these frames as "free" so they can be reused */
-        for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
         {
             if (i == writing_queue_tail)
             {
@@ -1804,7 +1804,7 @@ abort_and_check_early_stop:
     }
 
     /* write remaining frames */
-    for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
+    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(slots)))
     {
         int slot_index = writing_queue[writing_queue_head];
 

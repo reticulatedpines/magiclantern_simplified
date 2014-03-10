@@ -1345,7 +1345,7 @@ static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
 static MENU_SELECT_FUNC(auto_ettr_max_shutter_toggle)
 {
     if (auto_ettr_adjust_mode == 0)
-        auto_ettr_max_shutter = mod(auto_ettr_max_shutter/4*4 - 16 + delta * 4, 152 - 16 + 4) + 16;
+        auto_ettr_max_shutter = MOD(auto_ettr_max_shutter/4*4 - 16 + delta * 4, 152 - 16 + 4) + 16;
 }
 
 PROP_HANDLER(PROP_GUI_STATE)

@@ -146,13 +146,13 @@ void menu_help_redraw()
 
 void menu_help_next_page()
 {
-    current_page = mod(current_page, help_pages) + 1;
+    current_page = MOD(current_page, help_pages) + 1;
     menu_help_active = 1;
 }
 
 void menu_help_prev_page()
 {
-    current_page = mod(current_page - 2, help_pages) + 1;
+    current_page = MOD(current_page - 2, help_pages) + 1;
     menu_help_active = 1;
 }
 

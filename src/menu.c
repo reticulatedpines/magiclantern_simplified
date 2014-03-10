@@ -606,7 +606,7 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     ASSERT(IS_ML_PTR(val));
 
-    set_config_var_ptr(val, mod(*val - min + delta, max - min + 1) + min);
+    set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
 }
 
 void menu_numeric_toggle_time(int * val, int delta, int min, int max)
@@ -643,7 +643,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     }
     else
     {
-        set_config_var_ptr(val, mod(*val - min + delta, max - min + 1) + min);
+        set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
     }
     
     prev_delta = t - prev_t;

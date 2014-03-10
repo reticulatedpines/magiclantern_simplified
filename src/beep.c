@@ -774,7 +774,7 @@ static int find_wav(int * index, char* fn)
         *index = N-1;
     }
     
-    *index = mod(*index, N);
+    *index = MOD(*index, N);
 
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )

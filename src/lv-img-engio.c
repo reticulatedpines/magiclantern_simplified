@@ -151,7 +151,7 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
         if (digic_iso_presets[i] >= *priv) break;
     
     do {
-        i = mod(i + delta, COUNT(digic_iso_presets));
+        i = MOD(i + delta, COUNT(digic_iso_presets));
     } while ((!mv && digic_iso_presets[i] < 1024)
     #ifdef CONFIG_DIGIC_V
     || (mv && digic_iso_presets[i] > 2048) // high display gains not working

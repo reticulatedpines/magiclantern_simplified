@@ -303,9 +303,9 @@ bitrate_factor_toggle(void* priv, int delta)
     if (RECORDING_H264) return;
  
 #if defined(FEATURE_VIDEO_HACKS)
-    bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
+    bitrate_factor = MOD(bitrate_factor + delta - 1, 200) + 1;
 #else
-    bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
+    bitrate_factor = MOD(bitrate_factor + delta - 1, 30) + 1;
 #endif
 }
 

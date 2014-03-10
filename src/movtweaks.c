@@ -160,7 +160,7 @@ static void movie_cliplen_toggle(void* priv, int sign)
 {
     int* t = (int*)priv;
     int i = current_cliplen_index(*t);
-    i = mod(i + sign, COUNT(movie_cliplen_values));
+    i = MOD(i + sign, COUNT(movie_cliplen_values));
     *(int*)priv = movie_cliplen_values[i];
 }
 

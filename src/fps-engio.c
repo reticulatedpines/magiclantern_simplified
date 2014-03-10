@@ -320,7 +320,7 @@ static uint16_t sensor_timing_table_patched[175*2];
 
 static int calc_tg_freq(int timerA)
 {
-    int f = (TG_FREQ_BASE / timerA) * 1000 + mod(TG_FREQ_BASE, timerA) * 1000 / timerA;
+    int f = (TG_FREQ_BASE / timerA) * 1000 + MOD(TG_FREQ_BASE, timerA) * 1000 / timerA;
     return f;
 }
 
@@ -953,7 +953,7 @@ static void fps_reset()
 
 static void fps_change_value(void* priv, int delta)
 {
-    fps_override_index = mod(fps_override_index + delta, COUNT(fps_values_x1000));
+    fps_override_index = MOD(fps_override_index + delta, COUNT(fps_values_x1000));
     desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
     if (fps_override) fps_needs_updating = 1;
@@ -1231,7 +1231,7 @@ static void fps_criteria_change(void* priv, int delta)
 {
     desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
-    fps_criteria = mod(fps_criteria + delta, 4);
+    fps_criteria = MOD(fps_criteria + delta, 4);
     if (fps_override) fps_needs_updating = 1;
 }
 

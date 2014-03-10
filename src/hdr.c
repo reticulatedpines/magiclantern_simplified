@@ -112,7 +112,7 @@ static MENU_SELECT_FUNC (hdrv_extended_iso_toggle)
     
     do
     {
-        new_iso = mod(new_iso - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;      
+        new_iso = MOD(new_iso - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;      
     }
     while (!is_hdr_valid_iso(raw2iso(new_iso))); 
     
@@ -170,7 +170,7 @@ static void hdr_iso_toggle(void* priv, int delta)
     int* v = (int*)priv;
     do
     {
-        *v = mod(*v - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;
+        *v = MOD(*v - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;
     }
     while (!is_hdr_valid_iso(raw2iso(*v)));
 }

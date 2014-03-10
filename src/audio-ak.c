@@ -374,7 +374,7 @@ audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
-    *ptr = mod((*ptr + delta), 10);
+    *ptr = MOD((*ptr + delta), 10);
 #else
     *ptr = (*ptr + delta) & 0x7;
 #endif

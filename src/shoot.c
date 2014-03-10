@@ -1061,7 +1061,7 @@ void center_lv_afframe_do()
             emin = e;
         }
     }
-    int next = mod(current + 1, n);
+    int next = MOD(current + 1, n);
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d %d %d %d ", Xc, Yc, pos_x[0], pos_y[0]);
     move_lv_afframe(pos_x[next] - Xc, pos_y[next] - Yc);
@@ -1589,11 +1589,11 @@ iso_toggle( void * priv, int sign )
     int k;
     for (k = 0; k < 10; k++)
     {
-        i = mod(i + sign, COUNT(codes_iso));
+        i = MOD(i + sign, COUNT(codes_iso));
         
 
         while (!iso_checker(values_iso[i]))
-            i = mod(i + sign, COUNT(codes_iso));
+            i = MOD(i + sign, COUNT(codes_iso));
         
         if (priv == (void*)-1 && SGN(i - i0) != sign) // wrapped around
             break;
@@ -1667,7 +1667,7 @@ shutter_toggle(void* priv, int sign)
     for (k = 0; k < 15; k++)
     {
         int new_i = i;
-        new_i = mod(new_i + sign, COUNT(codes_shutter));
+        new_i = MOD(new_i + sign, COUNT(codes_shutter));
 
         //~ bmp_printf(FONT_MED, 100, 300, "%d -> %d ", codes_shutter[i0], codes_shutter[new_i]);
         
@@ -1777,7 +1777,7 @@ kelvin_toggle( void* priv, int sign )
     if (priv == (void*)-1) // no wrap around
         k = COERCE(k + sign * step, KELVIN_MIN, KELVIN_MAX);
     else // allow wrap around
-        k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * step, KELVIN_MAX - KELVIN_MIN + step);
+        k = KELVIN_MIN + MOD(k - KELVIN_MIN + sign * step, KELVIN_MAX - KELVIN_MIN + step);
     
     lens_set_kelvin(k);
 }
@@ -1981,7 +1981,7 @@ static void
 wbs_gm_toggle( void * priv, int sign )
 {
     int gm = lens_info.wbs_gm;
-    int newgm = mod((gm + 9 - sign), 19) - 9;
+    int newgm = MOD((gm + 9 - sign), 19) - 9;
     newgm = newgm & 0xFF;
     prop_request_change(PROP_WBS_GM, &newgm, 4);
 }
@@ -2004,7 +2004,7 @@ static void
 wbs_ba_toggle( void * priv, int sign )
 {
     int ba = lens_info.wbs_ba;
-    int newba = mod((ba + 9 + sign), 19) - 9;
+    int newba = MOD((ba + 9 + sign), 19) - 9;
     newba = newba & 0xFF;
     prop_request_change(PROP_WBS_BA, &newba, 4);
 }
@@ -2018,7 +2018,7 @@ contrast_toggle( void * priv, int sign )
 {
     int c = lens_get_contrast();
     if (c < -4 || c > 4) return;
-    int newc = mod((c + 4 + sign), 9) - 4;
+    int newc = MOD((c + 4 + sign), 9) - 4;
     lens_set_contrast(newc);
 }
 
@@ -2038,7 +2038,7 @@ sharpness_toggle( void * priv, int sign )
 {
     int c = lens_get_sharpness();
     if (c < 0 || c > 7) return;
-    int newc = mod(c + sign, 8);
+    int newc = MOD(c + sign, 8);
     lens_set_sharpness(newc);
 }
 
@@ -2057,7 +2057,7 @@ saturation_toggle( void * priv, int sign )
 {
     int c = lens_get_saturation();
     if (c < -4 || c > 4) return;
-    int newc = mod((c + 4 + sign), 9) - 4;
+    int newc = MOD((c + 4 + sign), 9) - 4;
     lens_set_saturation(newc);
 }
 
@@ -2081,7 +2081,7 @@ color_tone_toggle( void * priv, int sign )
 {
     int c = lens_get_color_tone();
     if (c < -4 || c > 4) return;
-    int newc = mod((c + 4 + sign), 9) - 4;
+    int newc = MOD((c + 4 + sign), 9) - 4;
     lens_set_color_tone(newc);
 }
 
@@ -2225,7 +2225,7 @@ picstyle_toggle(void* priv, int sign )
 {
     if (RECORDING) return;
     int p = lens_info.picstyle;
-    p = mod(p + sign - 1, NUM_PICSTYLES) + 1;
+    p = MOD(p + sign - 1, NUM_PICSTYLES) + 1;
     if (p)
     {
         p = get_prop_picstyle_from_index(p);
@@ -2260,7 +2260,7 @@ static void
 picstyle_rec_sub_toggle( void * priv, int delta )
 {
     if (RECORDING) return;
-    picstyle_rec = mod(picstyle_rec+ delta, NUM_PICSTYLES+1);
+    picstyle_rec = MOD(picstyle_rec+ delta, NUM_PICSTYLES+1);
 }
 
 static void rec_picstyle_change(int rec)
@@ -3024,7 +3024,7 @@ static void
 mlu_toggle_mode( void * priv, int delta )
 {
     #ifdef FEATURE_MLU_HANDHELD
-    mlu_mode = mod(mlu_mode + delta, 3);
+    mlu_mode = MOD(mlu_mode + delta, 3);
     #else
     mlu_mode = !mlu_mode;
     #endif
@@ -4460,7 +4460,7 @@ void hdr_flag_picture_was_taken()
 
 int hdr_script_get_first_file_number(int skip0)
 {
-    return mod(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
+    return MOD(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
 }
 
 // create a post script for HDR bracketing or focus stacking,
@@ -4473,7 +4473,7 @@ void hdr_create_script(int f0, int focus_stack)
     if (snap_sim) return; // no script for virtual shots
     #endif
     
-    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
+    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
 
     char name[100];
@@ -4489,22 +4489,22 @@ void hdr_create_script(int f0, int focus_stack)
     if (hdr_scripts == 1)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "%s%04d.JPG ", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.JPG ", get_file_prefix(), MOD(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
     }
     else if (hdr_scripts == 2)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
         my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), MOD(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
@@ -4514,12 +4514,12 @@ void hdr_create_script(int f0, int focus_stack)
     {
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), MOD(f0 + i, 10000));
         }
     }
     
     FIO_CloseFile(f);
-    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
+    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
 
@@ -4531,7 +4531,7 @@ void interval_create_script(int f0)
 {
     if (!interval_scripts) return;
     
-    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
+    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
     
     char name[100];
@@ -4570,7 +4570,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\nmkdir INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), MOD(f0 + i, 10000), f0);
         }
     }
     else if (interval_scripts == 2)
@@ -4578,7 +4578,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\nMD INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), MOD(f0 + i, 10000), f0);
         }
     }
     else if(interval_scripts == 3)
@@ -4586,7 +4586,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\n*** New Sequence ***\n");
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), MOD(f0 + i, 10000));
         }
     }
     
@@ -5364,7 +5364,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
-        interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
+        interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
         //~ display_on();
     }
 #endif
@@ -5474,7 +5474,7 @@ int take_fast_pictures( int number )
         int f0 = get_shooting_card()->file_number;
         SW1(1,100);
         SW2(1,100);
-        while (mod(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
+        while (MOD(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
             msleep(10);
         }
         SW2(0,100);
@@ -6317,7 +6317,7 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             if (intervalometer_pictures_taken)
             {
-                interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
+                interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
             }
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 1);

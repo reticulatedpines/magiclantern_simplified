@@ -399,7 +399,7 @@ static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        mlv_play_quality = mod(mlv_play_quality + 1, 2);
+        mlv_play_quality = MOD(mlv_play_quality + 1, 2);
     }
     
     if(msg)
@@ -439,7 +439,7 @@ static void mlv_play_osd_pause(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        mlv_play_paused = mod(mlv_play_paused + 1, 2);
+        mlv_play_paused = MOD(mlv_play_paused + 1, 2);
     }
     
     if(msg)
@@ -721,7 +721,7 @@ static void mlv_play_osd_task(void *priv)
                     if(key == MODULE_KEY_INFO)
                     {
                         clrscr();
-                        mlv_play_info = mod(mlv_play_info + 1, 2) ? 2 : 0;
+                        mlv_play_info = MOD(mlv_play_info + 1, 2) ? 2 : 0;
                     }
                     break;
                 }
