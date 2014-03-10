@@ -456,15 +456,15 @@ int rand (void);
 //~ #define ASSERT(x) {}
 
 #define MIN(a,b) \
-   ({ typeof ((a)+(b)) _a = (a); \
-      typeof ((a)+(b)) _b = (b); \
+   ({ __typeof__ ((a)+(b)) _a = (a); \
+      __typeof__ ((a)+(b)) _b = (b); \
      _a < _b ? _a : _b; })
 
 #define MIN_DUMB(a,b) ((a) < (b) ? (a) : (b))
 
 #define MAX(a,b) \
-   ({ typeof ((a)+(b)) _a = (a); \
-       typeof ((a)+(b)) _b = (b); \
+   ({ __typeof__ ((a)+(b)) _a = (a); \
+       __typeof__ ((a)+(b)) _b = (b); \
      _a > _b ? _a : _b; })
 
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
@@ -499,13 +499,13 @@ int rand (void);
         *(volatile uint32_t *)(x) \
 )
 
-#define ALIGN16(x) ((typeof(x))(((uint32_t)(x)) & ~1))
-#define ALIGN32(x) ((typeof(x))(((uint32_t)(x)) & ~3))
-#define ALIGN64(x) ((typeof(x))(((uint32_t)(x)) & ~7))
+#define ALIGN16(x) ((__typeof__(x))(((uint32_t)(x)) & ~1))
+#define ALIGN32(x) ((__typeof__(x))(((uint32_t)(x)) & ~3))
+#define ALIGN64(x) ((__typeof__(x))(((uint32_t)(x)) & ~7))
 
-#define ALIGN16SUP(x) ((typeof(x))(((uint32_t)(x) + 1) & ~1))
-#define ALIGN32SUP(x) ((typeof(x))(((uint32_t)(x) + 3) & ~3))
-#define ALIGN64SUP(x) ((typeof(x))(((uint32_t)(x) + 7) & ~7))
+#define ALIGN16SUP(x) ((__typeof__(x))(((uint32_t)(x) + 1) & ~1))
+#define ALIGN32SUP(x) ((__typeof__(x))(((uint32_t)(x) + 3) & ~3))
+#define ALIGN64SUP(x) ((__typeof__(x))(((uint32_t)(x) + 7) & ~7))
 
 #if defined(POSITION_INDEPENDENT)
 extern uint32_t _ml_base_address;
