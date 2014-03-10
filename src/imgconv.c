@@ -245,39 +245,6 @@ void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
     *B = COERCE(y + yuv2rgb_BU[U], 0, 255);
 }
 
-
-void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
-{
-    ASSERT(src);
-    ASSERT(dst);
-    if (!dst) return;
-    int i,j;
-    
-    // only used for menu => 720x480
-    static int16_t js_cache[720];
-    
-    for (j = 0; j < 720; j++)
-        js_cache[j] = (j - x0) * denx / 128 + x0;
-    
-    for (i = 0; i < 480; i++)
-    {
-        int is = (i - y0) * deny / 128 + y0;
-        uint8_t* dst_r = &dst[BM(0,i)];
-        uint8_t* src_r = &src[BM(0,is)];
-        
-        if (is >= 0 && is < 480)
-        {
-            for (j = 0; j < 720; j++)
-            {
-                int js = js_cache[j];
-                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
-            }
-        }
-        else
-            bzero32(dst_r, 720);
-    }
-}
-
 static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
     dst = ALIGN32(dst);

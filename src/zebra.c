@@ -82,7 +82,6 @@ extern void zoom_sharpen_step();
 extern void bv_auto_update();
 
 void lens_display_set_dirty();
-void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 //~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
@@ -139,12 +138,6 @@ int lv_luma_is_accurate()
 #ifdef FEATURE_SHOW_OVERLAY_FPS
 static int show_lv_fps = 0; // for debugging
 #endif
-
-static int _bmp_muted = false;
-static int _bmp_unmuted = false;
-int bmp_is_on() { return !_bmp_muted; }
-void bmp_on();
-void bmp_off();
 
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
@@ -3364,55 +3357,6 @@ PROP_HANDLER(PROP_GUI_STATE)
         fake_simple_button(BGMT_LV); // update ghost image
     }
 #endif
-}
-
-void palette_disable(uint32_t disabled)
-{
-    #ifdef CONFIG_VXWORKS
-    return; // see set_ml_palette
-    #endif
-
-    if(disabled)
-    {
-        for (int i = 0; i < 0x100; i++)
-        {
-            EngDrvOut(LCD_Palette[i*3], 0x00FF0000);
-            EngDrvOut(LCD_Palette[i*3+0x300], 0x00FF0000);
-        }
-    }
-    else
-    {
-        for (int i = 0; i < 0x100; i++)
-        {
-            EngDrvOut(LCD_Palette[i*3], LCD_Palette[i*3 + 2]);
-            EngDrvOut(LCD_Palette[i*3+0x300], LCD_Palette[i*3 + 2]);
-        }
-    }
-}
-//~ #endif
-
-void bmp_on()
-{
-    if (!_bmp_unmuted) 
-    {
-        palette_disable(0);
-        _bmp_muted = false; _bmp_unmuted = true;
-    }
-}
-
-void bmp_off()
-{
-    if (!_bmp_muted)
-    {
-        _bmp_muted = true; _bmp_unmuted = false;
-        palette_disable(1);
-    }
-}
-
-void bmp_mute_flag_reset()
-{
-    _bmp_muted = 0;
-    _bmp_unmuted = 0;
 }
 
 #ifdef FEATURE_MAGIC_ZOOM
