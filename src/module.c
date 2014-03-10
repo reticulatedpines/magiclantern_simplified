@@ -1590,7 +1590,8 @@ static void module_load_offline_strings(int mod_number)
         char* fn = module_list[mod_number].long_filename;
         
         /* we should free this one after we are done with it */
-        module_strpair_t * strings = (void*) tcc_load_offline_section(fn, ".module_strings");
+        extern void* tcc_load_offline_section(char* filename, char* section_name);
+        module_strpair_t * strings = tcc_load_offline_section(fn, ".module_strings");
  
         if (strings)
         {
