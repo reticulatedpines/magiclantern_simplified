@@ -83,7 +83,7 @@ MENU_UPDATE_FUNC(digic_iso_print_movie)
     int G = 0;
     G = gain_to_ev_scaled(DIGIC_ISO_GAIN_MOVIE, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    int GA = ABS(G);
     
     MENU_SET_VALUE(
         "%s%d.%d EV",
@@ -100,7 +100,7 @@ MENU_UPDATE_FUNC(display_gain_print)
 {
     int G = gain_to_ev_scaled(DIGIC_ISO_GAIN_PHOTO, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    int GA = ABS(G);
     display_gain_menu_index = GA/10;
 }
 

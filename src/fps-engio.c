@@ -1062,7 +1062,7 @@ static int fps_try_to_get_exact_freq(int fps_x1000)
         int tb = calc_tg_freq(t) / fps_x1000;
         if (tb < FPS_TIMER_B_MIN || tb > FPS_TIMER_B_MAX) continue;
         int actual_fps = calc_fps_x1000(t, tb);
-        int e = abs(fps_x1000 - actual_fps);
+        int e = ABS(fps_x1000 - actual_fps);
         if (e < min_err)
         {
             min_err = e;
