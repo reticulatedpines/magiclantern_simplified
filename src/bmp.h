@@ -548,4 +548,10 @@ void bfnt_test();
 extern uint32_t LCD_Palette[];
 #endif
 
+/* from CHDK GUI */
+void draw_line(int x1, int y1, int x2, int y2, int cl);
+void fill_circle(int x, int y, int r, int cl);
+void draw_circle(int x, int y, int r, int cl);
+void draw_angled_line(int x, int y, int r, int ang, int cl); /* ang is degrees x10 */
+
 #endif //#ifndef _bmp_h_
