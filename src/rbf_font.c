@@ -560,7 +560,7 @@ struct font font_large;
 struct font font_canon;
 
 /* must be called before menu_init, otherwise it can't measure strings */
-void load_fonts()
+void _load_fonts()
 {
     /* tolerate multiple calls, but only run the first */
     static int fonts_loaded = 0;

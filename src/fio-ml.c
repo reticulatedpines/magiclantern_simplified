@@ -185,7 +185,7 @@ static MENU_UPDATE_FUNC(card_test_update)
 static void startup_warning(char* msg)
 {
     /* note: this function is called before load_fonts, so in order to print something, we need to load them */
-    load_fonts();
+    _load_fonts();
     
     if (!DISPLAY_IS_ON)
     {
@@ -198,7 +198,7 @@ static void startup_warning(char* msg)
     redraw_after(5000);
 }
 
-void find_ml_card()
+void _find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
     int ml_sd = is_dir("B:/ML");
