@@ -1525,7 +1525,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "ISO: raw %d  ", i);
         lens_set_rawiso(i); msleep(200);
     }
-    lens_set_iso(88);
+    lens_set_rawiso(ISO_400);
 
     stress_test_picture(2, 2000);
 

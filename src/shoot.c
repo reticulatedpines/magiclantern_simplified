@@ -4702,7 +4702,7 @@ static int hdr_shutter_release(int ev_x8)
     if (!manual) // auto modes
     {
         hdr_iso_shift(ev_x8); // don't change the EV value
-        int ae0 = lens_get_ae();
+        int ae0 = lens_info.ae;
         ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
         take_a_pic(AF_DONT_CHANGE);
         hdr_set_ae(ae0);
