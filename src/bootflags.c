@@ -170,6 +170,7 @@ bootflag_write_bootblock( void )
     dev->read_block( dev, block, 0, 1 );
 
     struct partition_table p;
+    extern void fsuDecodePartitionTable(void* partition_address_on_card, struct partition_table * ptable);
     fsuDecodePartitionTable(block + 446, &p);
 
     //~ NotifyBox(1000, "decoded => %x,%x,%x", p.type, p.sectors_before_partition, p.sectors_in_partition);
@@ -281,43 +282,6 @@ bootflag_write_bootblock( void )
 #endif
 
 
-/** Perform an initial install and configuration */
-static void
-initial_install(void)
-{
-    bmp_fill(COLOR_BG, 0, 0, 720, 480);
-    bmp_printf(FONT_LARGE, 0, 30, "Magic Lantern install");
-
-    FILE * f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
-        FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
-        FIO_CloseFile(f);
-    }
-
-    f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
-        FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
-        FIO_CloseFile(f);
-    }
-
-    bmp_printf(FONT_LARGE, 0, 90, "Setting boot flag");
-    bootdisk_enable();
-
-    //bmp_printf(FONT_LARGE, 0, 120, "Writing boot block");
-    //bootflag_write_bootblock();
-
-    bmp_printf(FONT_LARGE, 0, 150, "Writing boot log");
-    dumpf();
-
-    bmp_printf(FONT_LARGE, 0, 180, "Done!");
-}
-
-
-
 #if 0
 void
 bootflag_display_all(
@@ -405,28 +369,3 @@ struct menu_entry boot_menus[] = {
 #endif
 };
 #endif
-
-#if 0
-static void
-bootflags_init( void )
-{
-    if( autoboot_loaded == 0 )
-        initial_install();
-
-    //~ menu_add( "Play", boot_menus, COUNT(boot_menus) );
-
-    /*if( disable_powersave )
-    {
-        DebugMsg( DM_MAGIC, 3,
-            "%s: Disabling powersave",
-            __func__
-        );
-
-        prop_request_icu_auto_poweroff( EM_PROHIBIT );
-    }*/
-
-}
-#endif
-
-
-//~ INIT_FUNC( __FILE__, bootflags_init );
