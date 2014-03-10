@@ -59,7 +59,6 @@ static void HijackFormatDialogBox_main();
 void debug_menu_init();
 void display_on();
 void display_off();
-void EngDrvOut(int reg, int value);
 
 
 void fake_halfshutter_step();
@@ -3735,7 +3734,7 @@ void display_off()
 
 
 // engio functions may fail and lock the camera
-void EngDrvOut(int reg, int value)
+void EngDrvOut(uint32_t reg, uint32_t value)
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera

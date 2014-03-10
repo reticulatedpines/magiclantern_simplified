@@ -235,4 +235,11 @@ uint64_t get_us_clock_value();
 int get_ms_clock_value_fast();
 int should_run_polling_action(int period_ms, int* last_updated_time);
 
+/** ENGIO */
+
+/* write a value to a ENGIO register */
+void _EngDrvOut(uint32_t reg, uint32_t value);    /* Canon stub */
+void EngDrvOut(uint32_t reg, uint32_t value);     /* ML wrapper */
+void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-only calls */
+
 #endif
