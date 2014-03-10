@@ -103,4 +103,8 @@ extern void* memcpy64(void* dest, void* srce, size_t n);
 extern void* dma_memcpy(void* dest, void* srce, size_t n);
 extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 
+/* free memory info */
+int GetFreeMemForAllocateMemory();
+static int GetFreeMemForMalloc();
+
 #endif

@@ -79,6 +79,10 @@ struct mem_allocator
     int num_blocks;
 };
 
+/* Canon stubs */
+extern int GetMemoryInformation(int* total, int* free);
+extern int GetSizeOfMaxRegion(int* max_region);
+
 int GetFreeMemForAllocateMemory()
 {
     int a,b;
