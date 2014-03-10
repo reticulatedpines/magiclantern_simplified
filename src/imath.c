@@ -1,5 +1,8 @@
 /* integer math */
 
+#include "dryos.h"
+#include "math.h"
+
 int powi(int base, int power)
 {
     int result = 1;
@@ -25,4 +28,11 @@ int log10i(int x)
     int result = 0;
     while(x /= 10) result++;
     return result;
+}
+
+/* todo: integer-only implementation? */
+uint32_t log_length(int v)
+{
+    if (!v) return 0;
+    return (unsigned int)(log2f(v) * 100);
 }

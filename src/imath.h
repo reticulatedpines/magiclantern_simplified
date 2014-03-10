@@ -60,3 +60,6 @@ int log10i(int x);
 // to be used with "%s%d.%05d" - for values with three decimal places
 #define FMT_FIXEDPOINT5(x)  (x) < 0 ? "-" :                 "", ABS(x)/100000, ABS(x)%100000
 #define FMT_FIXEDPOINT5S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/100000, ABS(x)%100000
+
+/* log2(x) * 100 */
+uint32_t log_length(int v);

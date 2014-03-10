@@ -78,7 +78,6 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
 
 //~ static void defish_draw_play();
 
-extern unsigned int log_length(int x);
 extern void zoom_sharpen_step();
 extern void bv_auto_update();
 
