@@ -46,7 +46,7 @@ NSTUB(   0x26CE8, additional_version)
 /** Misc **/
 NSTUB(0xC0220000, camera_engine)
 NSTUB(0xFF131610, LoadCalendarFromRTC)
-NSTUB(0xFFA71D84 - RAM_OFFSET, vsnprintf)
+NSTUB(   0x14EE4, vsnprintf)
 NSTUB(0xFF340EB0, register_func)
 NSTUB(0xFF100A48, PD_RemoteRelease)
 NSTUB(0xFF19EB3C, ENCODE_StartEncodeJpeg)
@@ -73,8 +73,8 @@ NSTUB(0xFF129384, SetBitmapVramAddress)
 
 /** Debug messages **/
 NSTUB(   0x241C8, dm_names)
-//NSTUB(0xFFA60B68 - RAM_OFFSET, dm_set_store_level)
-//NSTUB(0xFFA60B00 - RAM_OFFSET, dm_set_print_level)
+NSTUB(    0x3CC8, dm_set_store_level)
+NSTUB(    0x3C60, dm_set_print_level)
 NSTUB(    0x395C, DryosDebugMsg)
 
 /** Task sleep **/
