@@ -2,14 +2,14 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.1.1 firmware for the 700D.
+ * in the Canon 1.1.3 firmware for the 700D.
  *
  *  Indented line = incorrect.
  *  Initial stubs identified by Nanomad, most of the other stubs were matched by hand
  *  Stubs sorted, checked and some added by TheUnkn0wn
  */
 /*
- * Copyright (C) 2012 Magic Lantern Team
+ * Copyright (C) 2014 Magic Lantern Team
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,47 +34,47 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
-#define RAM_OFFSET (0xFFA5E120-0x1900) // Nanomad: some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
+#define RAM_OFFSET (0xFFA5E7A0-0x1900) // Nanomad: some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
 
 /** Startup **/
 NSTUB(0xFF0C1C20, cstart)
 NSTUB(   0x1C45C, bzero32)
 NSTUB(    0x2EB8, create_init_task)
-NSTUB(0xFF0C5408, init_task)
+NSTUB(0xFF0C540C, init_task)
 NSTUB(   0x26CE8, additional_version)
 
 /** Misc **/
 NSTUB(0xC0220000, camera_engine)
-NSTUB(0xFF13153C, LoadCalendarFromRTC)
-NSTUB(0xFFA71704 - RAM_OFFSET, vsnprintf)
-NSTUB(0xFF3409C4, register_func)
-NSTUB(0xFF100A44, PD_RemoteRelease)
-NSTUB(0xFF19E87C, ENCODE_StartEncodeJpeg)
+NSTUB(0xFF131610, LoadCalendarFromRTC)
+NSTUB(0xFFA71D84 - RAM_OFFSET, vsnprintf)
+NSTUB(0xFF340EB0, register_func)
+NSTUB(0xFF100A48, PD_RemoteRelease)
+NSTUB(0xFF19EB3C, ENCODE_StartEncodeJpeg)
 
 /** File I/O **/
-NSTUB(0xFF344A2C, _FIO_Open)
-NSTUB(0xFF344AE8, _FIO_CreateFile)
-NSTUB(0xFF344B94, _FIO_RemoveFile)
-NSTUB(0xFF344C3C, FIO_ReadFile)
-NSTUB(0xFF344DBC, FIO_SeekFile)
-NSTUB(0xFF344DDC, FIO_WriteFile)
-NSTUB(0xFF344E8C, FIO_CloseFile)
-NSTUB(0xFF345008, _FIO_GetFileSize)
-NSTUB(0xFF345520, _FIO_RenameFile)
-NSTUB(0xFF3456E8, _FIO_CreateDirectory)
-NSTUB(0xFF345CB0, _FIO_FindFirstEx)
-NSTUB(0xFF345DA4, FIO_FindNextEx)
-NSTUB(0xFF345E84, FIO_FindClose) //FindClose
+NSTUB(0xFF344F18, _FIO_Open)
+NSTUB(0xFF344FD4, _FIO_CreateFile)
+NSTUB(0xFF345080, _FIO_RemoveFile)
+NSTUB(0xFF345128, FIO_ReadFile)
+NSTUB(0xFF3452A8, FIO_SeekFile)
+NSTUB(0xFF3452C8, FIO_WriteFile)
+NSTUB(0xFF345378, FIO_CloseFile)
+NSTUB(0xFF3454F4, _FIO_GetFileSize)
+NSTUB(0xFF345A0C, _FIO_RenameFile)
+NSTUB(0xFF345B4C, _FIO_CreateDirectory)
+NSTUB(0xFF34619C, _FIO_FindFirstEx)
+NSTUB(0xFF346290, FIO_FindNextEx)
+NSTUB(0xFF346370, FIO_FindClose) //FindClose
 
 /** Bitmap **/
 NSTUB(   0x522CC, bmp_vram_info)
 NSTUB(   0x50ACC, LCD_Palette)
-NSTUB(0xFF1292B0, SetBitmapVramAddress)
+NSTUB(0xFF129384, SetBitmapVramAddress)
 
 /** Debug messages **/
 NSTUB(   0x241C8, dm_names)
-NSTUB(0xFFA604E8 - RAM_OFFSET, dm_set_store_level)
-NSTUB(0xFFA60480 - RAM_OFFSET, dm_set_print_level)
+//NSTUB(0xFFA60B68 - RAM_OFFSET, dm_set_store_level)
+//NSTUB(0xFFA60B00 - RAM_OFFSET, dm_set_print_level)
 NSTUB(    0x395C, DryosDebugMsg)
 
 /** Task sleep **/
@@ -112,51 +112,51 @@ NSTUB(0xFF0C10F4, cli_save)
 NSTUB(0xFF0C1108, sei_restore)
 
 /** Eventprocs (call by name) **/
-NSTUB(0xFF138A34, call)
+NSTUB(0xFF138B08, call)
 
 /** GUI **/
-NSTUB(0xFF0D6E30, GUI_Control)
-NSTUB(0xFF1AB548, SetGUIRequestMode)
-NSTUB(0xFF0D6A5C, gui_main_task)
+NSTUB(0xFF0D6E34, GUI_Control)
+NSTUB(0xFF1AB808, SetGUIRequestMode)
+NSTUB(0xFF0D6A60, gui_main_task)
 NSTUB(   0x236B0, gui_main_struct)
-NSTUB(0xFF0D74A4, gui_init_end)
-NSTUB(0xFF1C6ED0, gui_massive_event_loop)
+NSTUB(0xFF0D74A8, gui_init_end)
+NSTUB(0xFF1C7190, gui_massive_event_loop)
 NSTUB(   0x3D8A0, gui_task_list)
-NSTUB(0xFF1B7580, GUI_SetRollingPitchingLevelStatus)
-NSTUB(0xFF0D6FEC, GUI_ChangeMode)
-NSTUB(0xFF1BFE58, GUI_GetFirmVersion)
+NSTUB(0xFF1B7840, GUI_SetRollingPitchingLevelStatus)
+NSTUB(0xFF0D6FF0, GUI_ChangeMode)
+NSTUB(0xFF1C0118, GUI_GetFirmVersion)
 //NSTUB(0xFF4B4844, gui_task_create)
 //NSTUB(0xFF4B4970, gui_task_destroy)
 
 /** Dialog API **/
-NSTUB(0xFF4B6970, CreateDialogBox)
-NSTUB(0xFF4B5938, DeleteDialogBox)
-NSTUB(0xFF4B76AC, dialog_redraw)
-NSTUB(0xFF523C90, dialog_set_property_str)
-NSTUB(0xFF4D70E8, RedrawDisplay)
+NSTUB(0xFF4B6E5C, CreateDialogBox)
+NSTUB(0xFF4B7220, DeleteDialogBox)
+NSTUB(0xFF4B7B98, dialog_redraw)
+NSTUB(0xFF5241D0, dialog_set_property_str)
+NSTUB(0xFF4D75D4, RedrawDisplay)
 
 /** Dialog handlers **/
-NSTUB(0xFF6E64B8, LiveViewShutterApp_handler)
-NSTUB(0xFF52BE30, LiveViewApp_handler)
-NSTUB(0xFF52CD54, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
-NSTUB(0xFF52E1DC, LiveViewApp_handler_end)
-NSTUB(0xFF3B98C4, PlayMain_handler)
-NSTUB(0xFF546CDC, PlayMovieGuideApp_handler)
-NSTUB(0xFF695354, ErrCardForLVApp_handler)
-NSTUB(0xFF529930, HideUnaviFeedBack_maybe)
-NSTUB(0xFF532B98, ShootOlcApp_handler)
-NSTUB(0xFF5160D4, ErrForCamera_handler)
+NSTUB(0xFF6E6B24, LiveViewShutterApp_handler)
+NSTUB(0xFF52C370, LiveViewApp_handler)
+NSTUB(0xFF52D294, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
+NSTUB(0xFF52E71C, LiveViewApp_handler_end)
+NSTUB(0xFF3B9DB0, PlayMain_handler)
+NSTUB(0xFF54721C, PlayMovieGuideApp_handler)
+NSTUB(0xFF695978, ErrCardForLVApp_handler)
+NSTUB(0xFF529E70, HideUnaviFeedBack_maybe)
+NSTUB(0xFF5330D8, ShootOlcApp_handler)
+NSTUB(0xFF516614, ErrForCamera_handler)
 
 /** Properties **/
-NSTUB(0xFF11F1C8, prop_register_slave)
-NSTUB(0xFF11FA44, _prop_cleanup)
-NSTUB(0xFF11F978, prop_deliver)
-NSTUB(0xFF11F3BC, _prop_request_change)
-NSTUB(0xFF11FBA0, prop_get_value)
+NSTUB(0xFF11F29C, prop_register_slave)
+NSTUB(0xFF11FB18, _prop_cleanup)
+NSTUB(0xFF11FA4C, prop_deliver)
+NSTUB(0xFF11F490, _prop_request_change)
+NSTUB(0xFF11FC74, prop_get_value)
 
 /** Memory allocation **/
-NSTUB(0xFF0C82E8, _malloc)
-NSTUB(0xFF0C8340, _free) // see "can't malloc"
+NSTUB(0xFF0C82EC, _malloc)
+NSTUB(0xFF0C8344, _free) // see "can't malloc"
 NSTUB(    0x76F8, _AllocateMemory)
 NSTUB(    0x7A94, _FreeMemory)
 NSTUB(   0x16E8C, _alloc_dma_memory)
@@ -165,9 +165,9 @@ NSTUB(    0x7498, GetMemoryInformation)
 NSTUB(    0x7444, GetSizeOfMaxRegion)
 
 /** ExMem **/
-NSTUB(0xFF13C5D8, AllocateMemoryResource)
-NSTUB(0xFF13C624, AllocateContinuousMemoryResource)
-NSTUB(0xFF13C73C, FreeMemoryResource)
+NSTUB(0xFF13C6AC, AllocateMemoryResource)
+NSTUB(0xFF13C6F8, AllocateContinuousMemoryResource)
+NSTUB(0xFF13C810, FreeMemoryResource)
 NSTUB(    0x8F28, GetFirstChunkFromSuite)
 NSTUB(    0x96C4, GetNextMemoryChunk)
 NSTUB(    0x8900, GetMemoryAddressOfMemoryChunk)
@@ -178,40 +178,40 @@ NSTUB(    0x88A0, GetRemainOfMemoryChunk)
 
 /** VRAM **/
 NSTUB(   0x6EDD8, vram_info)
-NSTUB(0xFF3FA61C, vram_get_number)
+NSTUB(0xFF3FAB08, vram_get_number)
 
 /** Engio **/
-NSTUB(0xFF2C2960, _engio_write)
-NSTUB(0xFF2C26E4, shamem_read)
-NSTUB(0xFF2C2648, _EngDrvOut)
+NSTUB(0xFF2C2C20, _engio_write)
+NSTUB(0xFF2C29A4, shamem_read)
+NSTUB(0xFF2C2908, _EngDrvOut)
 
 /** PTP **/
-NSTUB(0xFF4583C8, ptp_register_handler)
-NSTUB(0xFF2A7108, ptpPropSetUILock)
+NSTUB(0xFF4588B4, ptp_register_handler)
+NSTUB(0xFF2A73C8, ptpPropSetUILock)
 
 /** Audio **/
-NSTUB(0xFF337EB8, _audio_ic_read)
-NSTUB(0xFF337870, _audio_ic_write)
+NSTUB(0xFF3383A4, _audio_ic_read)
+NSTUB(0xFF337D5C, _audio_ic_write)
 
-NSTUB(0xFF10B254, sounddev_task )
+NSTUB(0xFF10B258, sounddev_task )
 NSTUB(   0x239F4, sounddev )
-NSTUB(0xFF10B73C, sounddev_active_in)
+NSTUB(0xFF10B740, sounddev_active_in)
 
-NSTUB(0xFF10B73C, SoundDevActiveIn)
-NSTUB(0xFF10B998, SoundDevActiveOut)
-NSTUB(0xFF10B958, SoundDevShutDownIn)
+NSTUB(0xFF10B740, SoundDevActiveIn)
+NSTUB(0xFF10B99C, SoundDevActiveOut)
+NSTUB(0xFF10B95C, SoundDevShutDownIn)
 
-NSTUB(0xFF7FCA00, audio_thresholds)
+NSTUB(0xFF7FD080, audio_thresholds)
 
 /** ASIF **/
-NSTUB(0xFF13435C, PowerAudioOutput) 
-NSTUB(0xFF1091A0, StartASIFDMADAC)  
-NSTUB(0xFF108FE8, StartASIFDMAADC)  
-NSTUB(0xFF109278, StopASIFDMADAC)   
-NSTUB(0xFF10971C, SetNextASIFADCBuffer)
-NSTUB(0xFF1097D0, SetNextASIFDACBuffer)
-NSTUB(0xFF1337AC, SetSamplingRate )
-NSTUB(0xFF1324C4, SetAudioVolumeOut) //keep volume
+NSTUB(0xFF134430, PowerAudioOutput) 
+NSTUB(0xFF1091A4, StartASIFDMADAC)  
+NSTUB(0xFF108FEC, StartASIFDMAADC)  
+NSTUB(0xFF10927C, StopASIFDMADAC)   
+NSTUB(0xFF109720, SetNextASIFADCBuffer)
+NSTUB(0xFF1097D4, SetNextASIFDACBuffer)
+NSTUB(0xFF133880, SetSamplingRate )
+NSTUB(0xFF132598, SetAudioVolumeOut) //keep volume
 
 /** experimental EDMAC research **/
 NSTUB(    0x8B7C, CreateMemorySuite)
@@ -234,56 +234,56 @@ NSTUB(   0x11AA8, UnregisterEDmacAbortCBR)
 NSTUB(   0x11B3C, UnregisterEDmacPopCBR)
 
 /** PackMem **/
-NSTUB(0xFF5F3354, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF5F33F0, PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF5F3068, PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF5F3284, PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF5F317C, PackMem_StartEDmac)
+NSTUB(0xFF5F3894, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF5F3930, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF5F35A8, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF5F37C4, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF5F36BC, PackMem_StartEDmac)
 
 /** ResLock */
-NSTUB(0xFF2C67FC, CreateResLockEntry)
-NSTUB(0xFF2C6CC4, LockEngineResources)
-NSTUB(0xFF2C6E68, UnLockEngineResources)
+NSTUB(0xFF2C6ABC, CreateResLockEntry)
+NSTUB(0xFF2C6F84, LockEngineResources)
+NSTUB(0xFF2C7128, UnLockEngineResources)
 
 /** DMA **/
 NSTUB(0xA460, dma_memcpy)
 
 /** MVR **/
-NSTUB(0xFF2C191C, mvrSetPrintMovieLog)
-NSTUB(0xFF2C132C, mvrSetQscale)
+NSTUB(0xFF2C1BDC, mvrSetPrintMovieLog)
+NSTUB(0xFF2C15EC, mvrSetQscale)
 NSTUB(   0x314F4, mvr_config)
-NSTUB(0xFF2C18F8, mvrFixQScale)
-NSTUB(0xFF2C13F0, mvrSetDefQScale)
+NSTUB(0xFF2C1BB8, mvrFixQScale)
+NSTUB(0xFF2C16B0, mvrSetDefQScale)
 
 /** Storage **/
-NSTUB(0xFF745CB4, cfReadBlk)
-NSTUB(0xFF74C200, sdReadBlk)
-NSTUB(0xFF74BF1C, sdWriteBlk)
+NSTUB(0xFF746320, cfReadBlk)
+NSTUB(0xFF74C870, sdReadBlk)
+NSTUB(0xFF74C58C, sdWriteBlk)
 NSTUB(   0x48FFC, sd_device)
-NSTUB(0xFF62FA24, fsuDecodePartitionTable)
+NSTUB(0xFF62FFD4, fsuDecodePartitionTable)
 
 /** Bootdisk **/
-NSTUB(0xFF1386C8, bootdisk_enable)
-NSTUB(0xFF1386D4, bootdisk_disable)
+NSTUB(0xFF13879C, bootdisk_enable)
+NSTUB(0xFF1387A8, bootdisk_disable)
 
 /** Display **/
-NSTUB(0xFF4D8C3C, NormalDisplay)
-NSTUB(0xFF4D8C0C, ReverseDisplay)
-NSTUB(0xFF4D8BDC, MirrorDisplay)
-NSTUB(0xFF3330D8, touch_cbr_canon)
-NSTUB(0xFF5AAB5C, lvae_setdispgain)
-NSTUB(0xFF32AC9C, dispcheck)
+NSTUB(0xFF4D9128, NormalDisplay)
+NSTUB(0xFF4D90F8, ReverseDisplay)
+NSTUB(0xFF4D90C8, MirrorDisplay)
+NSTUB(0xFF3335C4, touch_cbr_canon)
+NSTUB(0xFF5AB09C, lvae_setdispgain)
+NSTUB(0xFF32B188, dispcheck)
 
 /** Custom function numbers **/
-NSTUB(0xFF674A08, GetCFnData)
-NSTUB(0xFF674C20, SetCFnData)
+NSTUB(0xFF67502C, GetCFnData)
+NSTUB(0xFF675244, SetCFnData)
 
 /** Events **/
-NSTUB(0xFF4B46F4, ctrlman_dispatch_event)
+NSTUB(0xFF4B4BE0, ctrlman_dispatch_event)
 NSTUB(0x16C44, TryPostEvent)
 NSTUB(0x16CA0, TryPostEvent_end)
 NSTUB(0x16564, TryPostStageEvent)
 NSTUB(0x165C0, TryPostStageEvent_end)
 
 /** LCD Sensor **/
-NSTUB(0xFF145E84, DispSensorStart)
+NSTUB(0xFF145F58, DispSensorStart)
