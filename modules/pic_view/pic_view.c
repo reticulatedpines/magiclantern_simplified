@@ -7,6 +7,7 @@
 #include <menu.h>
 #include "../file_man/file_man.h"
 #include "raw.h"
+#include "imgconv.h"
 
 #define T_BYTE      1
 #define T_ASCII     2
@@ -146,7 +147,7 @@ static int bmp_show(char* file)
     void* bmp = bmp_load(file, 1);
     if (!bmp) return 0;
     bmp_draw_scaled_ex(bmp, 0, 0, 720, 480, 0);
-    bmp_free(bmp);
+    free(bmp);
     return 1;
 }
 
