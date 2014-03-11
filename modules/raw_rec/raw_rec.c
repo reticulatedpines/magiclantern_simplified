@@ -66,9 +66,14 @@
 #include <screenshot.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
+#include "edmac-memcpy.h"
 #include "../file_man/file_man.h"
 #include "cache_hacks.h"
 #include "lvinfo.h"
+#include "beep.h"
+#include "raw.h"
+#include "zebra.h"
+#include "fps.h"
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -615,7 +620,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
     }
     
     /* check if the footer is in the right format */
-    if(strncmp(footer.magic, "RAWM", 4))
+    if(strncmp((char*)footer.magic, "RAWM", 4))
     {
         bmp_printf(FONT_MED, 30, 190, "Footer format mismatch");
         beep();
@@ -1367,7 +1372,7 @@ static int FAST process_frame()
 
     //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
-    int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
+    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;

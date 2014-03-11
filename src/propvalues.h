@@ -105,6 +105,8 @@ extern struct bmp_ov_loc_size os;
 
 bool is_movie_mode();
 bool is_native_movie_mode();
+bool is_custom_movie_mode();
+void set_custom_movie_mode();
 
 #ifndef _beep_c_
 extern int beep_enabled;

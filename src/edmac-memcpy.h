@@ -1,8 +1,8 @@
 #ifndef _edmac_memcpy_h_
 #define _edmac_memcpy_h_
 
+#include "sys/types.h"
 
-#ifdef CONFIG_EDMAC_MEMCPY
 void* edmac_memcpy(void* dst, void* src, size_t length);
 void* edmac_memset(void* dst, int value, size_t length);
 
@@ -27,7 +27,5 @@ void edmac_memcpy_res_unlock();
 
 /* pulls the raw data from EDMAC without Canon's lv_save_raw (for raw backend) */
 void edmac_raw_slurp(void* dst, int w, int h);
-
-#endif
 
 #endif // _edmac_memcpy_h_
