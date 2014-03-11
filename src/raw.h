@@ -212,7 +212,7 @@ int save_dng(char* filename, struct raw_info * raw_info);
 extern MENU_UPDATE_FUNC(menu_checkdep_raw);
 
 /* this prints the raw warning without checking */
-extern MENU_UPDATE_FUNC(menu_print_warning_raw);
+extern MENU_UPDATE_FUNC(menu_set_warning_raw);
 
 /* photo mode, non-LV: to know whether you will have access to raw data */
 extern int can_use_raw_overlays_photo();
