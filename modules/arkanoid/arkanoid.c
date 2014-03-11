@@ -4,6 +4,7 @@
 #include <config.h>
 #include <menu.h>
 #include <font.h>
+#include <beep.h>
 #include "arkanoid.h"
 
 #include <cordic-16bit.h>
@@ -45,6 +46,7 @@ static int ball_count;
 static element elem[MAX_ELEMS+1];
 
 static CONFIG_INT("games.arkanoid.level", level, 1);
+static CONFIG_INT("games.arkanoid.sound", sound, 0);
 
 extern int menu_redraw_blocked;
 extern int menu_shown;
@@ -249,6 +251,11 @@ static void hit_test(element *a){
         if(e->type != ELEM_PAD && e->type != ELEM_BRICK) continue;
         if(!hit_test_test(a, e)) continue;
         
+        if (sound)
+        {
+            beep_custom(20, 750 + rand()%500, 0);
+        }
+        
         if(e->type == ELEM_PAD) {
             int angle = 180 - ABS((a->x + a->w / 2) - e->x) / e->w * 180;
             angle = COERCE(angle, 10, 170);
@@ -425,7 +432,18 @@ static void ball_ef(element* e){
         if(--ball_count == 0) {
             reset_elems();
             arkanoid_next_state = ARK_LOGO;
-        }
+            if (sound)
+            {
+                beep_custom(1000, 200, 0);
+            }
+       }
+       else
+       {
+            if (sound)
+            {
+                beep_custom(300, 200, 0);
+            }
+       }
     }
 }
 
@@ -529,6 +547,11 @@ static struct menu_entry arkanoid_menu[] =
                 .max = 10,
                 .min = 1,
             },
+            {
+                .name = "Sound",
+                .priv = &sound,
+                .max = 1,
+            },
             MENU_EOL,
         }
     }
@@ -596,4 +619,5 @@ MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(level)
+    MODULE_CONFIG(sound)
 MODULE_CONFIGS_END()
