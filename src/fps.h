@@ -14,6 +14,9 @@ int get_shutter_speed_us_from_timer(int timer);
 /* how would current FPS settings change some shutter speed? (in 1/8 EV increments) */
 int fps_get_shutter_speed_shift(int raw_shutter);
 
+/* slowest shutter speed */
+int get_max_shutter_timer();
+
 /* from DebugMsg hack */
 void fps_override_shutter_blanking();
 

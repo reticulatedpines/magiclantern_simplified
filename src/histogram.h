@@ -47,6 +47,7 @@ hist_draw_image(
 void hist_highlight(int level);
 
 int raw_hist_get_percentile_level(int percentile, int gray_projection, int speed);
+int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed);
 int raw_hist_get_overexposure_percentage(int gray_projection);
 
 extern struct menu_entry hist_menu_entry;

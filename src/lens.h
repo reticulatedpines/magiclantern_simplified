@@ -34,10 +34,6 @@
 #define MVR_LOG_BUF_SIZE 8192
 #define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
 
-int get_htp();
-int get_bv(); //APEX units
-int get_ae_value();
-
 struct lens_info
 {
         void *                  token;
@@ -204,6 +200,7 @@ extern void lens_set_drivemode( int dm );
 extern void lens_set_wbs_gm(int value);
 extern void lens_set_wbs_ba(int value);
 
+extern int expo_override_active();
 extern int bv_set_rawshutter(unsigned shutter);
 extern int bv_set_rawaperture(unsigned aperture);
 extern int bv_set_rawiso(unsigned iso);
@@ -359,6 +356,15 @@ int is_native_iso(int iso);
 
 /* to be renamed to is_fullstop_iso (also check exceptions) */
 int is_round_iso(int iso);
+
+/* don't rely on this one yet */
+int get_max_analog_iso();
+
+/* auto expo interface (Canon metering) */
+int get_max_ae_ev();
+int get_ae_value();
+int get_bv();   // APEX units
+int get_ae_state();
 
 #define AF_ENABLE 1
 #define AF_DISABLE 0

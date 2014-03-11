@@ -57,6 +57,7 @@ void playback_compare_images_task(int direction);
 
 /* movtweaks.c (to be moved in a more logical place) */
 void force_liveview();
+void close_liveview();
 
 /* to be moved to separate file (backlight.c/h?) */
 void set_backlight_level(int level);
@@ -112,6 +113,14 @@ void schedule_remote_shot();
 
 /* drive mode */
 int set_drive_single();
+int is_continuous_drive();
+
+/* expo lock */
+void expo_lock_update_value();
+int round_expo_comp(int ae);
+int round_aperture(int av);
+int round_shutter(int tv, int slowest_shutter);
+int expo_value_rounding_ok(int raw, int is_aperture);
 
 /* to be refactored with CBRs (maybe with the lvinfo engine) */
 void iso_refresh_display();

@@ -18,6 +18,7 @@
 #include <fps.h>
 #include <focus.h>
 #include <beep.h>
+#include <histogram.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
