@@ -6,6 +6,7 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include <beep.h>
 #include "file_man.h"
 
 

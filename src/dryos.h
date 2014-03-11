@@ -166,6 +166,7 @@ extern size_t strlen( const char* str );
 extern int snprintf( char* str, size_t n, const char* fmt, ... );
 extern int strcmp( const char* s1, const char* s2 );
 extern int strncmp( const char* s1, const char* s2, size_t n);
+extern int strcasecmp( const char* s1, const char* s2 );
 extern long strtol( const char * str, char ** endptr, int base );
 extern unsigned long strtoul( const char * str, char ** endptr, int base );
 extern char* strcpy( char* dst, const char * src );
