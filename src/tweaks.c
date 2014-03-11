@@ -206,7 +206,7 @@ static MENU_UPDATE_FUNC(expsim_display)
 #endif
 
 #else // no _expsim, use some dummy stubs
-void set_expsim(){};
+void set_expsim(int expsim){};
 #endif
 
 /*
