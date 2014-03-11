@@ -60,18 +60,18 @@ static void arkanoid_draw_elem(element * e, int x, int y, int z, int color)
     if(e->fade == -1) return;
     switch(e->type){
         case ELEM_PAD:
-            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, 4, 0);
-            bmp_draw_rect_chamfer(color, (int)x + 1, (int)y + 1, e->w - 2, e->h - 2, 4, 0);
+            bmp_draw_rect_chamfer(color, x, y, e->w, e->h, 4, 0);
+            bmp_draw_rect_chamfer(color, x + 1, y + 1, e->w - 2, e->h - 2, 4, 0);
             break;
         case ELEM_BALL:
-            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, (e->w + e->h) / 8, 0);
+            bmp_draw_rect_chamfer(color, x, y, e->w, e->h, (e->w + e->h) / 8, 0);
             break;
         case ELEM_BRICK:
-            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, 2, 0);
+            bmp_draw_rect_chamfer(color, x, y, e->w, e->h, 2, 0);
             break;
         case ELEM_FALL_BRICK:
-            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, 2, 0);
-            bfnt_draw_char(e->c1, (int)x, (int)y, color, 0);
+            bmp_draw_rect_chamfer(color, x, y, e->w, e->h, 2, 0);
+            bfnt_draw_char(e->c1, x, y, color, 0);
             break;
         case ELEM_ML:
             bmp_printf(FONT(FONT_LARGE, color, 0), 720 / 2 - 13 * font_large.width / 2, 480 / 2 - font_large.width / 2, "Magic Lantern");
@@ -86,17 +86,32 @@ static void arkanoid_redraw()
 {
         int z;
 
+        /* erase elements that changed their position (to minimize flicker) */
         for(z = 0; z <= MAX_Z; z++) {
             ELEM_LOOP
             (
-                arkanoid_draw_elem(e, e->old_x, e->old_y, z, 0);
+                if (e->old_x != e->x || e->old_y != e->y)
+                {
+                    arkanoid_draw_elem(e, e->old_x, e->old_y, z, 0);
+                }
             )
         }
 
         for(z = 0; z <= MAX_Z; z++) {
             ELEM_LOOP
             (
+                if (e->deleted)
+                {
+                    /* remove deleted elements from simulation */
+                    e->type = ELEM_NULL;
+                    e->deleted = 0;
+                    continue;
+                }
+                
+                /* draw each element */
                 arkanoid_draw_elem(e, e->x, e->y, z, e->color);
+                
+                /* keep track of old position */
                 e->old_x = e->x;
                 e->old_y = e->y;
             )
@@ -106,8 +121,10 @@ static void arkanoid_redraw()
 
 
 static  element* new_elem(int type){
-    if(cur_elem == MAX_ELEMS) cur_elem=10; //first ten has higher priority
+    cur_elem = COERCE(cur_elem, 0, MAX_ELEMS-1);
+    memset(&elem[cur_elem], 0, sizeof(element));
     elem[cur_elem].type = type;
+    elem[cur_elem+1].type = ELEM_END;
     return &elem[cur_elem++];
 }
 
@@ -124,7 +141,8 @@ static void fade(element *e, int fade_delta){
 static void generate_level() {
     int x, y;
     int width = 0;
-    int i = - NUM_ML_ICONS - 2 + rand()%100;
+    //~ int i = - NUM_ML_ICONS - 2 + rand()%100;
+    int i = 25;
     for(y = 20; y < 380;y += 44){
         for(x = 50; x < 720 - 50;){
             if((level * level < rand() % 100)){
@@ -135,8 +153,8 @@ static void generate_level() {
             brick_count ++;
             
             while(i++<100){
-                width = bfnt_draw_char(i, 720, 480, 0, 0);
-                if (width) break;
+                width = bfnt_char_get_width(i);
+                if (width > 0 && width < 100) break;
             }
             
             e->x = x;
@@ -439,7 +457,7 @@ static void ball_ef(element* e){
     }
     
     if(arkanoid_state == ARK_GAME_PLAYING && e->y > 460) {
-        e->type = ELEM_NULL;
+        e->deleted = 1;
         if(--ball_count == 0) {
             reset_elems();
             arkanoid_next_state = ARK_LOGO;
@@ -464,7 +482,7 @@ static void pad_ef(element* e){
 
 static void fall_brick_ef(element* e) {
     e->y += e->speed;
-    if(e->y > 480)e->type=ELEM_NULL;
+    if(e->y > 480)e->deleted = 1;
 }
 
 static void arkanoid_task()

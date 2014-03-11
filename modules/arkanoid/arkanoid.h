@@ -24,6 +24,7 @@ typedef struct
     int fade_delta;
     
     int c1;
+    int deleted;
 } element;
 
 #endif
