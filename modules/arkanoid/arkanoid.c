@@ -48,6 +48,11 @@ static element elem[MAX_ELEMS+1];
 static CONFIG_INT("games.arkanoid.level", level, 1);
 static CONFIG_INT("games.arkanoid.sound", sound, 0);
 
+static int sound_event;
+#define SOUND_EVENT_COLLISION 1
+#define SOUND_EVENT_BALL_LOST 2
+#define SOUND_EVENT_ALL_BALLS_LOST 4
+
 extern int menu_redraw_blocked;
 extern int menu_shown;
 
@@ -280,10 +285,7 @@ static void hit_test(element *a){
         if(e->type != ELEM_PAD && e->type != ELEM_BRICK) continue;
         if(!hit_test_test(a, e)) continue;
         
-        if (sound)
-        {
-            beep_custom(20, 750 + rand()%500, 0);
-        }
+        sound_event |= SOUND_EVENT_COLLISION;
         
         if(e->type == ELEM_PAD) {
             int angle = 180 - ABS((a->x + a->w / 2) - e->x) / e->w * 180;
@@ -461,17 +463,11 @@ static void ball_ef(element* e){
         if(--ball_count == 0) {
             reset_elems();
             arkanoid_next_state = ARK_LOGO;
-            if (sound)
-            {
-                beep_custom(1000, 200, 0);
-            }
+            sound_event |= SOUND_EVENT_ALL_BALLS_LOST;
        }
        else
        {
-            if (sound)
-            {
-                beep_custom(300, 200, 0);
-            }
+            sound_event |= SOUND_EVENT_BALL_LOST;
        }
     }
 }
@@ -525,7 +521,6 @@ static void arkanoid_task()
             clrscr();
         }
         
-        
         ELEM_LOOP
         (
             handle_fades(e);
@@ -540,6 +535,31 @@ static void arkanoid_task()
                 case ELEM_FALL_BRICK: fall_brick_ef(e); break;
             }
         )
+        
+        if (sound)
+        {
+            /* play the most important event */
+            if (sound_event & SOUND_EVENT_ALL_BALLS_LOST)
+            {
+                info_led_on();
+                beep_custom(0, 0, 1);       /* dummy call to wait until last sound was played */
+                beep_custom(1000, 200, 0);  /* but play this sound in background */
+                info_led_off();
+            }
+            else if (sound_event & SOUND_EVENT_BALL_LOST)
+            {
+                info_led_on();
+                beep_custom(0, 0, 1);       /* dummy call to wait until last sound was played */
+                beep_custom(300, 200, 0);   /* but play this sound in background */
+                info_led_off();
+            }
+            else if (sound_event & SOUND_EVENT_COLLISION)
+            {
+                /* regular collision; don't mind if it skips a beep */
+                beep_custom(20, 750 + rand()%500, 0);
+            }
+            sound_event = 0;
+        }
         
         arkanoid_redraw();
         msleep(40);
