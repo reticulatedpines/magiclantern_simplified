@@ -80,12 +80,12 @@ testit('floor(-1.0)', math.floor(-1.0), -1)
 testit('floor(-1.5)', math.floor(-1.5), -2)
 
 #print 'fmod'
-testit('fMOD(10,1)', math.fMOD(10,1), 0)
-testit('fMOD(10,0.5)', math.fMOD(10,0.5), 0)
-testit('fMOD(10,1.5)', math.fMOD(10,1.5), 1)
-testit('fMOD(-10,1)', math.fMOD(-10,1), 0)
-testit('fMOD(-10,0.5)', math.fMOD(-10,0.5), 0)
-testit('fMOD(-10,1.5)', math.fMOD(-10,1.5), -1)
+testit('fmod(10,1)', math.fmod(10,1), 0)
+testit('fmod(10,0.5)', math.fmod(10,0.5), 0)
+testit('fmod(10,1.5)', math.fmod(10,1.5), 1)
+testit('fmod(-10,1)', math.fmod(-10,1), 0)
+testit('fmod(-10,0.5)', math.fmod(-10,0.5), 0)
+testit('fmod(-10,1.5)', math.fmod(-10,1.5), -1)
 
 #print 'frexp'
 def testfrexp(name, value, expected):
