@@ -470,4 +470,4 @@ void set_htp(int value);
 int job_state_ready_to_take_pic();
 void lens_wait_readytotakepic();
 
-#endif /* __lens_h */
+#endif /* _lens_h_ */
