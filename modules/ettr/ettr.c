@@ -15,6 +15,9 @@
 #include <math.h>
 #include <zebra.h>
 #include <shoot.h>
+#include <fps.h>
+#include <focus.h>
+#include <beep.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
@@ -759,7 +762,7 @@ static int auto_ettr_check_pre_lv()
 
 static int auto_ettr_check_in_lv()
 {
-    if (AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim) return 0;
+    if (AUTO_ETTR_TRIGGER_ALWAYS_ON && !get_expsim()) return 0;
     if (AUTO_ETTR_TRIGGER_ALWAYS_ON && lv_dispsize != 1) return 0;
     if (LV_PAUSED) return 0;
     if (!liveview_display_idle()) return 0;
@@ -878,7 +881,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
             if (!auto_ettr_wait_lv_frames(10)) return 0;
         }
 
-        /* temporarily enable expsim while metering */
+        /* temporarily enable get_expsim() while metering */
         if (force_expsim_and_zoom)
         {
             if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])
@@ -893,10 +896,10 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                     if (!auto_ettr_wait_lv_frames(10)) return 0;
                 }
             }
-            else if (!expsim)
+            else if (!get_expsim())
             {
                 /* ExpSim should work well */
-                old_expsim = expsim;
+                old_expsim = get_expsim();
                 set_expsim(1);
                 if (!auto_ettr_wait_lv_frames(10)) return 0;
             }
@@ -1297,7 +1300,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing. Use trigger mode SET.");
 
-    if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim)
+    if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !get_expsim())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
     
     if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)

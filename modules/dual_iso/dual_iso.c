@@ -82,6 +82,8 @@ extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
+int dual_iso_is_enabled();
+
 /* camera-specific constants */
 
 static int is_7d = 0;

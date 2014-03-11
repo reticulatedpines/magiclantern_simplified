@@ -52,7 +52,7 @@ int mlv_snd_is_enabled()
 extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
 extern int SetNextASIFADCBuffer(void *, uint32_t);
 extern WEAK_FUNC(ret_0) int PowerAudioOutput();
-extern WEAK_FUNC(ret_0) int audio_configure(uint32_t);
+extern WEAK_FUNC(ret_0) void audio_configure(int);
 extern WEAK_FUNC(ret_0) int SetAudioVolumeOut(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevActiveIn(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevShutDownIn();
