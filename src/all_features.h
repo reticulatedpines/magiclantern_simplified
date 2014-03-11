@@ -292,7 +292,7 @@
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
     /* to be refactored with the lvinfo engine */
-    //~ #define FEATURE_FLEXINFO
+    #define FEATURE_FLEXINFO
 
 /** Debug menu **/
 
