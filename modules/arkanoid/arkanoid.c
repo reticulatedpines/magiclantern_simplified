@@ -447,6 +447,8 @@ static void ball_ef(element* e){
         e->y += e->deltaY;
         ball_coerce(e);
         
+        if (e->y > 460) break;
+        
         if(arkanoid_state == ARK_GAME_PLAYING) {        
             x = (int)e->x;
             y = (int)e->y;
