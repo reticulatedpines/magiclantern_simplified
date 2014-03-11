@@ -247,4 +247,9 @@ void _EngDrvOut(uint32_t reg, uint32_t value);    /* Canon stub */
 void EngDrvOut(uint32_t reg, uint32_t value);     /* ML wrapper */
 void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-only calls */
 
+#ifdef CONFIG_550D
+/** 550D hack for DISPLAY_IS_ON */
+extern int get_display_is_on_550D();
+#endif
+
 #endif
