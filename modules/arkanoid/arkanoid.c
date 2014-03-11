@@ -146,8 +146,7 @@ static void fade(element *e, int fade_delta){
 static void generate_level() {
     int x, y;
     int width = 0;
-    //~ int i = - NUM_ML_ICONS - 2 + rand()%100;
-    int i = 25;
+    int i = - NUM_ML_ICONS - 2 + rand()%100;
     for(y = 20; y < 380;y += 44){
         for(x = 50; x < 720 - 50;){
             if((level * level < rand() % 100)){
