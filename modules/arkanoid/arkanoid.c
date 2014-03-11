@@ -54,45 +54,56 @@ extern int menu_shown;
 #define LOGO_ARR_LEN 153
 int logo_arr[LOGO_ARR_LEN+1][2] = {{268,48}, {147,57}, {229,46}, {269,72}, {229,70}, {159,81}, {195,83}, {269,83}, {229,81}, {279,45}, {147,46}, {148,81}, {290,50}, {158,46}, {288,61}, {167,52}, {170,63}, {211,74}, {206,83}, {197,47}, {288,75}, {251,83}, {240,82}, {203,65}, {297,83}, {167,74}, {193,57}, {209,46}, {186,78}, {279,67}, {269,61}, {147,69}, {229,58}, {133,216}, {328,215}, {193,219}, {459,195}, {548,204}, {459,255}, {559,263}, {258,200}, {526,201}, {387,205}, {439,200}, {441,212}, {124,239}, {314,252}, {195,249}, {258,226}, {526,238}, {526,227}, {548,249}, {387,249}, {408,222}, {119,250}, {178,264}, {308,263}, {195,264}, {258,253}, {258,239}, {526,263}, {525,250}, {387,262}, {424,244}, {139,202}, {341,189}, {192,205}, {467,189}, {548,190}, {458,243}, {457,230}, {548,234}, {257,187}, {526,188}, {387,190}, {440,188}, {147,188}, {332,200}, {191,190}, {478,187}, {561,189}, {154,201}, {349,199}, {397,200}, {218,190}, {204,188}, {490,187}, {573,192}, {161,214}, {371,250}, {349,228}, {416,232}, {230,197}, {500,193}, {505,204}, {584,200}, {509,239}, {507,228}, {596,222}, {596,233}, {297,188}, {164,228}, {169,241}, {358,212}, {402,211}, {227,248}, {219,238}, {222,222}, {269,231}, {270,219}, {152,230}, {317,240}, {233,210}, {506,217}, {592,210}, {492,264}, {508,250}, {502,259}, {592,244}, {582,254}, {287,199}, {172,252}, {375,262}, {367,238}, {362,226}, {237,262}, {293,262}, {257,265}, {279,241}, {285,250}, {141,230}, {115,262}, {324,228}, {208,229}, {478,264}, {572,260}, {280,210}, {129,228}, {338,229}, {194,232}, {457,218}, {457,206}, {548,219}, {466,263}, {548,262}, {257,212}, {526,214}, {387,219}, {387,234}, {441,223}, {440,236}, {441,248}, {432,254}, {441,263}};
 
+static void arkanoid_draw_elem(element * e, int x, int y, int z, int color)
+{
+    if(e->z != z) return;
+    if(e->fade == -1) return;
+    switch(e->type){
+        case ELEM_PAD:
+            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, 4, 0);
+            bmp_draw_rect_chamfer(color, (int)x + 1, (int)y + 1, e->w - 2, e->h - 2, 4, 0);
+            break;
+        case ELEM_BALL:
+            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, (e->w + e->h) / 8, 0);
+            break;
+        case ELEM_BRICK:
+            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, 2, 0);
+            break;
+        case ELEM_FALL_BRICK:
+            bmp_draw_rect_chamfer(color, (int)x, (int)y, e->w, e->h, 2, 0);
+            bfnt_draw_char(e->c1, (int)x, (int)y, color, 0);
+            break;
+        case ELEM_ML:
+            bmp_printf(FONT(FONT_LARGE, color, 0), 720 / 2 - 13 * font_large.width / 2, 480 / 2 - font_large.width / 2, "Magic Lantern");
+            break;
+        case ELEM_PRESENT:
+            bmp_printf(FONT(FONT_LARGE, color, 0), 720 / 2 - 7 * font_large.width / 2, 480 / 2 - font_large.width / 2, "present");
+            break;
+    }
+    //bmp_printf(FONT_MED, (int)e->x, (int)e->y, "%d", e->c1);
+}
 static void arkanoid_redraw()
 {
-    BMP_LOCK
-    (
-        clrscr();
         int z;
+
         for(z = 0; z <= MAX_Z; z++) {
             ELEM_LOOP
             (
-                if(e->z != z)continue;
-                if(e->fade == -1) continue;
-                switch(e->type){
-                    case ELEM_PAD:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 4, 0);
-                        bmp_draw_rect_chamfer(e->color, (int)e->x + 1, (int)e->y + 1, e->w - 2, e->h - 2, 4, 0);
-                        break;
-                    case ELEM_BALL:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, (e->w + e->h) / 8, 0);
-                        break;
-                    case ELEM_BRICK:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 2, 0);
-                        break;
-                    case ELEM_FALL_BRICK:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 2, 0);
-                        bfnt_draw_char(e->c1, (int)e->x, (int)e->y, e->color, 0);
-                        break;
-                    case ELEM_ML:
-                        bmp_printf(FONT(FONT_LARGE, e->color, 0), 720 / 2 - 13 * font_large.width / 2, 480 / 2 - font_large.width / 2, "Magic Lantern");
-                        break;
-                    case ELEM_PRESENT:
-                        bmp_printf(FONT(FONT_LARGE, e->color, 0), 720 / 2 - 7 * font_large.width / 2, 480 / 2 - font_large.width / 2, "present");
-                        break;
-                }
-                //bmp_printf(FONT_MED, (int)e->x, (int)e->y, "%d", e->c1);
+                arkanoid_draw_elem(e, e->old_x, e->old_y, z, 0);
+            )
+        }
+
+        for(z = 0; z <= MAX_Z; z++) {
+            ELEM_LOOP
+            (
+                arkanoid_draw_elem(e, e->x, e->y, z, e->color);
+                e->old_x = e->x;
+                e->old_y = e->y;
             )
         }
         //bmp_printf(FONT_LARGE, 0, 0, "%d", cur_elem);
-    );
 }
+
 
 static  element* new_elem(int type){
     if(cur_elem == MAX_ELEMS) cur_elem=10; //first ten has higher priority
@@ -492,6 +503,7 @@ static void arkanoid_task()
                     arkanoid_game_start();
             }
             arkanoid_state = arkanoid_next_state;
+            clrscr();
         }
         
         

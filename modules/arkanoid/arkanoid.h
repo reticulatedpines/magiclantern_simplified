@@ -7,6 +7,8 @@ typedef struct
     
     float x;
     float y;
+    float old_x;
+    float old_y;
     int z;
     
     int w;
