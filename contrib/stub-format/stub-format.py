@@ -70,14 +70,32 @@ for l in lines:
         if name[1] == '_':
             name = name[1:]
         
+        # strip whitespace from the right
+        comment = comment.rstrip()
+        if comment.strip() == ";": comment = ""
+        
         # add RAM_OFFSET, if any
         if (addr & 0xFF000000) or name.strip() in data_structs or RAM_OFFSET is None:
             addr = "0x%X" % addr
-            if out: print >> out, "NSTUB(%10s, %s)%s" % (addr, name, comment)
         else:
             addr = "0x%X - RAM_OFFSET" % (addr + RAM_OFFSET)
-            print "NSTUB(%10s, %s)%s" % (addr, name, comment)
-            if out: print >> out, "NSTUB(%10s, %s)%s" % (addr, name, comment)
+
+        # format the part without comments
+        code = "NSTUB(%10s, %s)" % (addr, name)
+
+        if comment:
+            comment = comment.strip().replace("; //", "//").replace("//~", "//").replace("// ~", "//").replace("//", "// ")
+            for i in range(10):
+                comment = comment.replace("//  ", "// ")
+            output = "%-60s%s" % (code, comment)
+            print output
+        else:
+            output = code
+
+        if "RAM_OFFSET" in code:
+            print output
+        
+        if out: print >> out, output
     else:
         if out: print >> out, l
 
