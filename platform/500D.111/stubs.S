@@ -110,7 +110,6 @@ NSTUB(0xFF091720,  gui_post_10000085)                       // should be called 
 NSTUB(0xFF1BECF4,  GUI_SetLvMode)
 NSTUB(0xFF267774,  gui_task_create)
 NSTUB(0xFF267894,  gui_task_destroy)
-NSTUB(0xFF267894,  gui_task_destroy)
 NSTUB(   0x1874C,  gui_task_list)                           // look in gui_task_create
 NSTUB(0xFF1A09AC,  gui_timer_something)
 NSTUB(    0x3B90,  gui_timer_struct)                        // in GUI_Control_Post

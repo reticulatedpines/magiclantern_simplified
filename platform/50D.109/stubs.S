@@ -152,7 +152,6 @@ NSTUB(0xFF812E58,  sei_restore)                             // d
 NSTUB(0xFF9ED888,  ptp_register_handler)                    // d
 NSTUB(0xFF90E764,  gui_lock)                                // PtpPropSetUILock											// d
 NSTUB(0xFF8652CC,  oneshot_timer)                           // d
-NSTUB(0xFFA460B4,  gui_task_destroy)                        // d
 NSTUB(0xFF8225F0,  gui_main_task)                           // identical to 5d2 and 500d									// d
 NSTUB(0xFF822FA0,  gui_init_end)                            // EndGuiInit														// d
 NSTUB(    0x3960,  gui_timer_struct)                        // in GUI_Control_Post										// d
@@ -222,7 +221,6 @@ NSTUB(0xFF868074,  GetSizeOfMaxRegion)
 
 NSTUB(0xFFA4717C,  CreateDialogBox)
 NSTUB(0xFFA46C14,  DeleteDialogBox)
-NSTUB(0xFFA47A80,  dialog_redraw)
 NSTUB(0xFFAAB654,  dialog_set_property_str)
 
 NSTUB(0xFFBE75DC,  StartFactoryMenuApp)
@@ -264,7 +262,7 @@ NSTUB(0xFF8542C4,  PowerAudioOutput)
 NSTUB(0xFF852494,  StartASIFDMADAC)
 NSTUB(0xFF852A80,  StopASIFDMADAC)
 NSTUB(0xFF855290,  SetSamplingRate)
-//NSTUB(0xFF8527B0, SetSamplingRate )
+//NSTUB(0xFF8527B0, SetSamplingRate_bad )
 NSTUB(0xFF85460C,  SetAudioVolumeOut)
 NSTUB(0xFF853250,  TH_asif_initialize)
 NSTUB(0xFF854FC8,  TH_audio_ic_initialize)

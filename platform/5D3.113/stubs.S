@@ -29,8 +29,6 @@
 
 .text
 
-NSTUB( ROMBASEADDR, firmware_entry )
-
 #define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
 
 
@@ -38,6 +36,7 @@ NSTUB(0xFFA02C50 - RAM_OFFSET,  pre_isr_hook)
 NSTUB(0xFFA02C54 - RAM_OFFSET,  post_isr_hook)
 
 /** Startup **/
+NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB(0xFF0C1C0C,  cstart)
 NSTUB(0xFF9FB390 - RAM_OFFSET,  bzero32)
 NSTUB(0xFF9E1E00 - RAM_OFFSET,  create_init_task)
@@ -163,10 +162,11 @@ NSTUB(0xFF9E8634 - RAM_OFFSET,  GetSizeOfMaxRegion)
 NSTUB(0xFF13C134,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
 NSTUB(0xFF13C180,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13C298,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
-
 NSTUB(0xFF9EA118 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
 NSTUB(0xFF9E9AF0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
+NSTUB(0xFF9E9D6C - RAM_OFFSET,  CreateMemorySuite)
+NSTUB(0xFF9E9B64 - RAM_OFFSET,  DeleteMemorySuite)
 
 /** Engio **/
 NSTUB(0xFF28CC3C, _engio_write)
@@ -190,21 +190,14 @@ NSTUB(0xFF10F288,  SetNextASIFDACBuffer)
 NSTUB(0xFF1379A4,  SetSamplingRate)
 NSTUB(0xFF1370A4,  SetAudioVolumeOut)
 
-/** experimental EDMAC research **/
-NSTUB(0xFF9E9D6C - RAM_OFFSET,  CreateMemorySuite)
-NSTUB(0xFF9E9B64 - RAM_OFFSET,  DeleteMemorySuite)
 
-
-/** EDMAC routines */
+/** EDMAC */
 NSTUB(0xFF9F1540 - RAM_OFFSET,  SetEDmac)
 NSTUB(0xFF9F1858 - RAM_OFFSET,  StartEDmac)
-//NSTUB(0x12B38, PopEDmac)
 NSTUB(0xFF9F19EC - RAM_OFFSET,  PopEDmac)
 NSTUB(0xFF9F19A4 - RAM_OFFSET,  AbortEDmac)
 NSTUB(0xFF9F15EC - RAM_OFFSET,  ConnectWriteEDmac)
 NSTUB(0xFF9F16B0 - RAM_OFFSET,  ConnectReadEDmac)
-
-/** register/unregister CBR names **/
 NSTUB(0xFF9F1A44 - RAM_OFFSET,  RegisterEDmacCompleteCBR)
 NSTUB(0xFF9F1B2C - RAM_OFFSET,  RegisterEDmacAbortCBR)
 NSTUB(0xFF9F1BC0 - RAM_OFFSET,  RegisterEDmacPopCBR)
@@ -225,20 +218,18 @@ NSTUB(0xFF29105C,  LockEngineResources)
 NSTUB(0xFF291200,  UnLockEngineResources)
 
 
-/** Making the card bootable (not working on 5D3) **/
+/** Making the card bootable **/
 // NSTUB(0xff6ab324, cfReadBlk)
 // NSTUB(   0x20890, cf_device) idk...
 // NSTUB(0xff6b16ac, sdReadBlk)
 // NSTUB(   0x399D4, sd_device)
 // NSTUB(0xff5bb2c8, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 
-/* Electronic level - roll/pitch info */
+/** Electronic Level */
 NSTUB(0xFF272050,  GUI_SetRollingPitchingLevelStatus)       // RequestRollingPitching - no side effects :)
-// NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus) // has side effects
+// NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus_bad) // has side effects
 
 /** Unused **/
-// NSTUB(0x23D08, pre_isr_hook)
-// NSTUB(0x23D0C, post_isr_hook)
 // NSTUB(0xff181314, ENCODE_StartEncodeJpeg)
 // NSTUB(0xFF9EB650 - RAM_OFFSET, dma_memcpy)
 // NSTUB(0xff1064c8, PD_RemoteRelease)

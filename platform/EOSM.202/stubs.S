@@ -205,13 +205,13 @@ NSTUB(0xFF5FF054,  PackMem_PopEDmacForMemorySuite)
 NSTUB(0xFF45FBDC,  ptp_register_handler)
 
 /** Audio **/
-//	NSTUB(0xFF130C94, _audio_ic_read) // Good Candidate i2c read
-//	NSTUB(0xFF339B00, _audio_ic_read) // Good Candidate i2c read
+//	NSTUB(0xFF130C94, _audio_ic_read_1) // Good Candidate i2c read
+//	NSTUB(0xFF339B00, _audio_ic_read_2) // Good Candidate i2c read
 NSTUB(0xFF339ADC, _audio_ic_read)                           // Good Candidate i2c read
 NSTUB(0xFF339490, _audio_ic_write)                          // str:i2c(int *array)
 
 NSTUB(0xFF339490,  i2c_write)
-#NSTUB(0xFF3463F8, i2c_read)
+//NSTUB(0xFF3463F8, i2c_read_bad)
 NSTUB(0xFF346230,  i2c_read)
 NSTUB(0xFF133DC0,  send_audio)
 
@@ -239,21 +239,21 @@ NSTUB(0xFF134CE4,  PowerMicAmp)
 
 
 
-//NSTUB(0xFF2BF578, StartASIFDMADAC)  //~ Direct
-//NSTUB(0xFF111D74, StartASIFDMADAC)  //~ SePlayStart
+//NSTUB(0xFF2BF578, StartASIFDMADAC_1)  //~ Direct
+//NSTUB(0xFF111D74, StartASIFDMADAC_2)  //~ SePlayStart
 	
 	
 	
 
-//NSTUB(0xFF10AC98, StopASIFDMADAC)   //~ NormalStopAsif
-//NSTUB(0xFF2BF754, StopASIFDMADAC)   //~ ACTRL Direct
-//NSTUB(0xFF4743D0, StopASIFDMADAC)   //~ AsifStopCBR
-//NSTUB(0xFF133CA0, StopASIFDMADAC)   //~ StopPlayWavData
-//NSTUB(0xFF111EE4, StopASIFDMADAC)   //~ TouchSoundSePlayStop
-//NSTUB(0xFF111D10, StopASIFDMADAC)   //~ SeTerminate
-	//NSTUB(0xFF339938, StopASIFDMADAC)   //~ Call Play Stop
+//NSTUB(0xFF10AC98, StopASIFDMADAC_1)   //~ NormalStopAsif
+//NSTUB(0xFF2BF754, StopASIFDMADAC_2)   //~ ACTRL Direct
+//NSTUB(0xFF4743D0, StopASIFDMADAC_3)   //~ AsifStopCBR
+//NSTUB(0xFF133CA0, StopASIFDMADAC_4)   //~ StopPlayWavData
+//NSTUB(0xFF111EE4, StopASIFDMADAC_5)   //~ TouchSoundSePlayStop
+//NSTUB(0xFF111D10, StopASIFDMADAC_6)   //~ SeTerminate
+	//NSTUB(0xFF339938, StopASIFDMADAC_7)   //~ Call Play Stop
 
-//NSTUB(0xFF2BFAEC, SetNextASIFDACBuffer) // Int16 Direct Control
+//NSTUB(0xFF2BFAEC, SetNextASIFDACBuffer_1) // Int16 Direct Control
 
 
 

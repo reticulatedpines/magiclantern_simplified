@@ -255,7 +255,7 @@ NSTUB(   0x314F4,  mvr_config)
 NSTUB(0xFF2C18F8,  mvrFixQScale)
 NSTUB(0xFF2C13F0,  mvrSetDefQScale)
 
-/** Storage **/
+/** Making the card bootable **/
 NSTUB(0xFF745CB4,  cfReadBlk)
 NSTUB(0xFF74C200,  sdReadBlk)
 NSTUB(0xFF74BF1C,  sdWriteBlk)

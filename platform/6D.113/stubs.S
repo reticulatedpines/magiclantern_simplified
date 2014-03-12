@@ -75,7 +75,7 @@ NSTUB(0xFF1422B0, _audio_ic_write)                          // SerialCommanSend(
 NSTUB(0xFF1424F4, _audio_ic_read)                           // Correct
 NSTUB(0xFF142820,  TestSetAudioHeadPhone)
 NSTUB(0xFF1422B0,  SerialCommand_Send)
-NSTUB(0xFF11EA28,  SetAudioVolumeOut)                       // str:SetVolumeOut_Volume 1 Parameter
+//NSTUB(0xFF11EA28,  SetAudioVolumeOut_idk1)                       // str:SetVolumeOut_Volume 1 Parameter
 NSTUB(0xFF9D031C,  audio_thresholds)
 NSTUB(0xFF143C40,  SelectMic)
 
@@ -129,7 +129,6 @@ NSTUB(   0xB99DC,  vram_info)
 NSTUB(0xFF713774,  LiveViewShutterApp_handler)
 
 //~ Doesn't take over like wifi app. level dialog non lv - FF71666C
-//NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
 //NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
 NSTUB(0xFF71666C,  DeadViewLevelApp_handler)                // 
 NSTUB(0xFF71DB88,  LiveViewWifiApp_handler)                 // str:CONNECT_VIDEO_HDMI_TERMINATE_WINSYS_DELETE_DIA_v3)
@@ -185,14 +184,14 @@ NSTUB(0xFF11C5D0,  StartASIFDMAADC)                         // warning: looks di
 NSTUB(0xFF11CC24,  StopASIFDMADAC)                          // warning: looks different
 NSTUB(0xFF11C87C,  StopASIFDMAADC)                          // warning: looks different
 NSTUB(0xFF11D0EC,  SetNextASIFADCBuffer)
-//NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer) //From ACTRL
+//NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer_bad) //From ACTRL
 NSTUB(0xFF11D2D4,  SetNextASIFDACBuffer)                    // From Event Generating Functions
 NSTUB(0xFF143D0C,  PowerMicAmp)
 
 NSTUB(0xFF143638,  SetFilterRec)
 NSTUB(0xFF142A74,  UnpowerSpeakerForWav)
 NSTUB(0xFF142DE4,  SetSamplingRate)                         // AudioIC.c_SetRate_hHPTimer Identical
-NSTUB(0xFF142B70,  SetAudioVolumeOut)                       // Keep Volume (%d->%d)
+//NSTUB(0xFF142B70,  SetAudioVolumeOut_idk2)                       // Keep Volume (%d->%d)
 NSTUB(0xFF11E9F4,  SetAudioVolumeIn)                        // SetVolumeIn(alc, L, R)
 NSTUB(0xFF11E654,  SoundDevActiveIn)
 NSTUB(0xFF11E680,  SoundDevActiveOut)

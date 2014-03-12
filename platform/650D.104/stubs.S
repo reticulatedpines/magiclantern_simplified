@@ -77,7 +77,7 @@ NSTUB(    0xA0FC,  CreateRecursiveLock)
 NSTUB(0xFF4B23E4,  DeleteDialogBox)
 NSTUB(    0x395C,  DryosDebugMsg)
 
-//FIO Functions
+/* FIO Functions */
 NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
 NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
 NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
@@ -156,9 +156,9 @@ NSTUB(0xFF528718,  LiveViewApp_handler)
 NSTUB(0xFF5295C0,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF52A8C4,  LiveViewApp_handler_end)                 // start of next function
 
-//NSTUB(0xFF3B65D0, PlayMain_handler) // Maybe used when touch disabled??
+//NSTUB(0xFF3B65D0, PlayMain_handler_bad) // Maybe used when touch disabled??
 NSTUB(0xFF6F9D74,  PlayMain_handler)
-//NSTUB(0xFF542BA0, PlayMovieGuideApp_handler) // Maybe used when touch disabled??
+//NSTUB(0xFF542BA0, PlayMovieGuideApp_handler_bad) // Maybe used when touch disabled??
 NSTUB(0xFF666C4C,  PlayMovieGuideApp_handler)
 NSTUB(0xFF690610,  ErrCardForLVApp_handler)
 //NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
@@ -201,10 +201,11 @@ NSTUB(0xFF1326EC,  send_audio)
 
 NSTUB(0xFF7F27F4,  audio_thresholds)
 
-// for task information
+/* for task information */
 NSTUB(   0x247A4,  task_max)                                // Not so sure....
 NSTUB(   0x1992C,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 NSTUB(    0xE68C,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
+
 NSTUB(0xFF133910,  PowerAudioOutput)
 NSTUB(0xFF10891C,  StartASIFDMADAC)
 NSTUB(0xFF108764,  StartASIFDMAADC)

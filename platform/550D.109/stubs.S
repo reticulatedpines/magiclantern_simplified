@@ -149,7 +149,6 @@ NSTUB(0xFF010514,  sei_restore)
 NSTUB(0xFF250BF0,  ptp_register_handler)
 NSTUB(0xFF13F6C4,  gui_lock)                                // PtpPropSetUILock
 NSTUB(0xFF068BB8,  oneshot_timer)
-NSTUB(0xFF2B4D30,  gui_task_destroy)
 NSTUB(0xFF01FF94,  gui_main_task)                           // uses a 8 functions table compared to 5d2 204
 NSTUB(0xFF020ACC,  gui_init_end)                            // EndGuiInit
 NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
@@ -187,7 +186,6 @@ NSTUB(   0x3787C,  LV_EX_X)
 NSTUB(   0x37880,  LV_EX_Y)
 
 NSTUB(0xFF020450,  GUI_ChangeMode)
-//NSTUB( 0xFF020350, GUI_Control)
 
 //NSTUB( 0xFF2DF524, AJ_guess_LED_ON )
 //NSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
@@ -307,10 +305,10 @@ NSTUB(0xFF064EB8,  PlayWaveData)                            // args: sampling ra
 NSTUB(0xFF064114,  PowerAudioOutput)
 NSTUB(0xFF051AFC,  StartASIFDMADAC)
 NSTUB(0xFF051950,  StartASIFDMAADC)
-NSTUB(0xFF052114,  SetNextASIFADCBuffer)
+//NSTUB(0xFF052114,  SetNextASIFADCBuffer_idk1)
 NSTUB(0xFF0521CC,  SetNextASIFDACBuffer)
 NSTUB(0xFF051BD0,  StopASIFDMADAC)
-NSTUB(0xFF052088,  SetNextASIFADCBuffer)
+//NSTUB(0xFF052088,  SetNextASIFADCBuffer_idk2)
 NSTUB(0xFF06419C,  SetSamplingRate)
 NSTUB(0xFF063EA8,  SetAudioVolumeOut)
 
