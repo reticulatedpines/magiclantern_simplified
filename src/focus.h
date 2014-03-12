@@ -26,6 +26,8 @@ int get_follow_focus_dir_v();
 int can_lv_trap_focus_be_active();
 int get_lv_focus_confirmation();
 
+int get_focus_confirmation();
+
 /* focus stacking */
 int is_focus_stack_enabled();
 

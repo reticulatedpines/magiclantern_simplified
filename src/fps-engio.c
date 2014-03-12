@@ -2005,7 +2005,7 @@ void set_frame_shutter(int shutter_reciprocal)
     int ntsc = is_current_mode_ntsc();
     int zoom = lv_dispsize > 1 ? 1 : 0;
     int crop = video_mode_crop;
-    (void)zoom; (void)crop;
+    (void)zoom; (void)crop; (void)ntsc;
     
     set_frame_shutter_timer(TG_FREQ_SHUTTER / shutter_reciprocal / 1000);
 }

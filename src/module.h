@@ -295,6 +295,8 @@ void module_save_configs();
 unsigned int module_config_load(char *filename, module_entry_t *module);
 unsigned int module_config_save(char *filename, module_entry_t *module);
 
+int module_send_keypress(int module_key);
+
 /* display filter interface for modules */
 int module_display_filter_enabled();
 int module_display_filter_update();
