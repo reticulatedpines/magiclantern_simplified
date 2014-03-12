@@ -284,6 +284,8 @@ int handle_keep_ml_after_format_toggle();
 void check_pre_shutdown_flag();
 void reset_pre_shutdown_flag_step();
 
+char* get_info_button_name();
+
 /* to be moved from debug.c */
 int get_zoom_out_pressed();
 

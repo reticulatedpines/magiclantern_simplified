@@ -9,6 +9,22 @@
 #include "bmp.h"
 #include "lens.h"
 #include "module.h"
+#include "focus.h"
+#include "shoot.h"
+#include "beep.h"
+#include "zebra.h"
+
+/* afma.c */
+extern void set_afma_mode(int mode);
+extern int get_afma_mode();
+extern int get_afma_max();
+
+/* lens.c */
+extern void restore_af_button_assignment();
+extern void assign_af_button_to_halfshutter();
+
+/* state-object.c */
+extern int display_is_on();
 
 static int AFMA_MAX = 0;
 
