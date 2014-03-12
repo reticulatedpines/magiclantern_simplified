@@ -119,6 +119,12 @@ void edmac_memcpy_res_unlock()
 
 void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
+    /* dmaFlags are set up for 16 bytes per transfer, and overflow checking seems to be done every 8 bytes */
+    /* widths that are not modulo 8 will cause overflow (the DMA will not stop) */
+    /* do not remove this check, or risk permanent camera bricking */
+    if (dst_width % 8)
+        return 0;
+
     take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
@@ -199,7 +205,7 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
 void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
 {
     void* ans = edmac_copy_rectangle_adv_start(dst, src, src_width, src_x, src_y, dst_width, dst_x, dst_y, w, h);
-    edmac_copy_rectangle_adv_finish();
+    if (ans) edmac_copy_rectangle_adv_finish();
     return ans;
 }
 
