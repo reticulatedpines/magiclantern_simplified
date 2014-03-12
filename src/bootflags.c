@@ -3,8 +3,6 @@
  */
 #include "dryos.h"
 #include "bmp.h"
-#include "menu.h"
-#include "config.h"
 
 /* CF/SD device structure. we have two types which have different parameter order and little differences in behavior */
 #if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D)
@@ -74,37 +72,6 @@ struct boot_flags
 
 static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;;
 
-
-
-/** Write the auto-boot flags to the CF card and to the flash memory */
-static void
-bootflag_toggle( void * priv )
-{
-    if( boot_flags->bootdisk )
-        call( "DisableBootDisk" );
-    else
-        call( "EnableBootDisk" );
-}
-
-
-#if 0
-void
-bootflag_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        //23456789012
-        "Autoboot (!!!) : %s",
-        boot_flags->bootdisk != 0 ? "ON " : "OFF"
-    );
-}
-#endif
 
 extern struct cf_device * const cf_device[];
 extern struct cf_device * const sd_device[];
@@ -279,93 +246,4 @@ bootflag_write_bootblock( void )
     fio_free( block );
     return 1;
 }
-#endif
-
-
-#if 0
-void
-bootflag_display_all(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf( FONT_MED,
-        x,
-        y,
-        "Firmware    %d\n"
-        "Bootdisk    %d\n"
-        "RAM_EXE     %d\n"
-        "Update      %d\n",
-        boot_flags->firmware,
-        boot_flags->bootdisk,
-        boot_flags->ram_exe,
-        boot_flags->update
-    );
-}
-#endif
-
-/*
-CONFIG_INT( "disable-powersave", disable_powersave, 0 );
-
-static void
-powersave_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x,
-        y,
-        //23456789012
-        "Powersave   %s\n",
-        !disable_powersave ? "ON " : "OFF"
-    );
-}
-
-
-static void
-powersave_toggle( void )
-{
-    disable_powersave = !disable_powersave;
-
-    prop_request_icu_auto_poweroff(
-        disable_powersave ? EM_PROHIBIT : EM_ALLOW
-    );
-}
-*/
-
-#if 0
-
-struct menu_entry boot_menus[] = {
-    {
-        .display    = menu_print,
-        .priv       = "Write MBR",
-        .select     = bootflag_write_bootblock,
-    },
-
-    /*{
-        .display    = bootflag_display,
-        .select     = bootflag_toggle,
-    },*/
-    {
-        .display = bootflag_display_all,
-        .help = "Boot flags (read-only)"
-    }
-/*
-    {
-        .display    = powersave_display,
-        .select     = powersave_toggle,
-    }, */
-
-#if 0
-    {
-        .display    = bootflag_display_all,
-    },
-#endif
-};
 #endif
