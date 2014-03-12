@@ -202,7 +202,16 @@ void find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
     int ml_sd = is_dir("B:/ML");
+
+    if (ml_cf && ml_sd)
+    {
+        /* ambiguity? let's look for autoexec.bin */
+        ml_cf = is_file("A:/AUTOEXEC.BIN");
+        ml_sd = is_file("B:/AUTOEXEC.BIN");
+    }
     
+    /* maybe todo: if both cards have autoexec, check which one is bootable? important? */
+
     if (ml_cf && !ml_sd)
     {
         ML_CARD = &available_cards[CARD_A];
@@ -213,7 +222,8 @@ void find_ml_card()
     }
     else if (ml_cf && ml_sd)
     {
-        /* autoexec.bin gets loaded from the SD card first */
+        /* still ambiguity? */
+        /* we know Canon loads autoexec.bin from the SD card first */
         ML_CARD = &available_cards[CARD_B];
         startup_warning("ML on both cards, loading from SD.");
     }
