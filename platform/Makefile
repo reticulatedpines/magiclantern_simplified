@@ -34,3 +34,6 @@ $(ALL_SUPPORTED_MODELS):
 
 beautify-stubs:
 	for f in */stubs.S ; do python ../contrib/stub-format/stub-format.py $$f $$f; done
+
+reorder-stubs:
+	python ../contrib/stub-format/stub-reorder.py all

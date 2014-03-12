@@ -262,6 +262,6 @@ for k,s in enumerate(stubs):
     for s2 in stubs:
         lookup_mising_stubs(s, s2)
 
-    f = "%d.S" % k
+    f = s[2]
     print f
     print_stubs(s, f)
