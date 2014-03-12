@@ -255,13 +255,18 @@ for inp in inputs:
 
 orig_stubs = deepcopy(stubs)
 
+# first merge all the stubs, so everything gets categorized
 for k,s in enumerate(stubs):
     for s2 in orig_stubs:
         merge_stubs(s, s2)  # merging with itself should not change anything
 
+# find stubs present on other cameras
+for k,s in enumerate(stubs):
     for s2 in stubs:
         lookup_mising_stubs(s, s2)
 
+# print the results
+for k,s in enumerate(stubs):
     f = s[2]
     print f
     print_stubs(s, f)
