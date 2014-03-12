@@ -256,6 +256,7 @@ int should_draw_zoom_overlay()
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+    extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz()) return 0;
     #endif
     
@@ -2104,6 +2105,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
     else if (hdmi_code == 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+    extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using display filters, go outside LiveView and back.");
     #endif
@@ -4202,8 +4204,10 @@ static void idle_kill_flicker()
         if (is_movie_mode())
         {
             black_bars_16x9();
-            if (RECORDING)
+            if (RECORDING) {
+                extern void dot(int x, int y, int color, int radius); /* menu.c */
                 dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
+            }
         }
     }
 }

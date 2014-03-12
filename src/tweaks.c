@@ -3172,6 +3172,7 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         {
             MEM(0x44fc+0xBC) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            extern void EnableImagePhysicalScreenParameter();
             EnableImagePhysicalScreenParameter();
         }
     }
@@ -3193,6 +3194,7 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         {
             MEM(0x455c+0xA4) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            extern void EnableImagePhysicalScreenParameter();
             EnableImagePhysicalScreenParameter();
         }
     }
@@ -3214,6 +3216,7 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         {
             MEM(0x4430+0xE8) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            extern void EnableImagePhysicalScreenParameter();
             EnableImagePhysicalScreenParameter();
         }
     }

@@ -2308,6 +2308,7 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
     #endif
     
     #ifdef CONFIG_MOVIE_RECORDING_50D_SHUTTER_HACK
+    extern void shutter_btn_rec_do(int rec); /* movtweaks.c */
     shutter_btn_rec_do(rec);
     #endif
 }
