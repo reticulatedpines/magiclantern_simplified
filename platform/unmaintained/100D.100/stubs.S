@@ -44,7 +44,7 @@ NSTUB(0xFF0C1BD0,  cstart)
 NSTUB(0xFFAF5BB8 - RAM_OFFSET,  bzero32)
 NSTUB(0xFFA9A738 - RAM_OFFSET,  create_init_task)
 NSTUB(0xFF0C56C0,  init_task)
-NSTUB(   0x687BC,  additional_version)   //~ just after string: "***** PROP_ARTIST size = 0[%d]"
+NSTUB(   0x687BC,  additional_version)                      // just after string: "***** PROP_ARTIST size = 0[%d]"
 
 /** Misc **/
 NSTUB(0xC0220000,  camera_engine)
@@ -53,7 +53,7 @@ NSTUB(0xFFAD03A0 - RAM_OFFSET,  vsnprintf)
 
 /** File I/O **/
 NSTUB(0xFF33E3AC, _FIO_CreateFile)
-NSTUB(0xFF33E2F0, _FIO_OpenFile) // or OpenFile?
+NSTUB(0xFF33E2F0, _FIO_OpenFile)                            // or OpenFile?
 NSTUB(0xFF33E750,  FIO_CloseFile)
 NSTUB(0xFF33E680,  FIO_SeekFile)
 NSTUB(0xFF33E500,  FIO_ReadFile)
@@ -64,14 +64,14 @@ NSTUB(0xFF33EDE4,  FIO_RenameFile)
 NSTUB(0xFF33EFAC, _FIO_CreateDirectory)
 NSTUB(0xFF33F328, _FIO_FindFirstEx)
 NSTUB(0xFF33F668,  FIO_FindNextEx)
-NSTUB(0xFF33F748,  FIO_FindClose) // proper name: FindClose
+NSTUB(0xFF33F748,  FIO_FindClose)                           // proper name: FindClose
 
 /** Bitmap **/
-NSTUB(   0x8ED9C,  bmp_vram_info)                 // look in SetBitmapVramAddress - as in 60D
-NSTUB(   0x8D59C,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(   0x8ED9C,  bmp_vram_info)                           // look in SetBitmapVramAddress - as in 60D
+NSTUB(   0x8D59C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 /** Debug messages **/
-NSTUB(   0x66108,  dm_names) //~ first 'LDR R4, =foo' in any debug function with string "./DbgMgr/DbgMgr.c"
+NSTUB(   0x66108,  dm_names)                                // first 'LDR R4, =foo' in any debug function with string "./DbgMgr/DbgMgr.c"
 NSTUB(0xFFA9C284 - RAM_OFFSET,  DryosDebugMsg)
 NSTUB(0xFFA9C5F0 - RAM_OFFSET,  dm_set_store_level)
 NSTUB(0xFFA9C588 - RAM_OFFSET,  dm_set_print_level)
@@ -86,8 +86,8 @@ NSTUB(0xFFA9ED54 - RAM_OFFSET,  give_semaphore)
 
 /** Recursive locks **/
 NSTUB(0xFFAA2DFC - RAM_OFFSET,  CreateRecursiveLock)
-NSTUB(0xFFACED0C - RAM_OFFSET,  AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-NSTUB(0xFFACEE20 - RAM_OFFSET,  ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFFACED0C - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
+NSTUB(0xFFACEE20 - RAM_OFFSET,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
 
 /** Message queues **/
 NSTUB(0xFFAA2C14 - RAM_OFFSET,  msg_queue_create)
@@ -96,14 +96,14 @@ NSTUB(0xFFACE9D4 - RAM_OFFSET,  msg_queue_receive)
 
 /** Tasks **/
 NSTUB(0xFFA9F1F8 - RAM_OFFSET,  task_create)
-NSTUB(0xFFAFC9AC - RAM_OFFSET,  task_dispatch_hook)  //~ just above cstart
+NSTUB(0xFFAFC9AC - RAM_OFFSET,  task_dispatch_hook)         // just above cstart
 NSTUB(0xFFAA4880 - RAM_OFFSET,  task_trampoline)
 
 /** Task info **/
 NSTUB(   0x6676C,  task_max)
 NSTUB(0xFFA99DAC - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFAE3694 - RAM_OFFSET,  is_taskid_valid) // AJ_task_trampoline_related_p10
-NSTUB(0xFFAA7330 - RAM_OFFSET,  get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(0xFFAE3694 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(0xFFAA7330 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 
 /** Interrupts **/
 NSTUB(0xFF0C10B0,  cli_save)
@@ -116,10 +116,10 @@ NSTUB(0xFF143278,  call)
 NSTUB(0xFF0D6348,  GUI_Control)
 NSTUB(0xFF196BE8,  SetGUIRequestMode)
 NSTUB(0xFF0D5F74,  gui_main_task)
-NSTUB(   0x6557C,  gui_main_struct)  //~ in gui_main_task
+NSTUB(   0x6557C,  gui_main_struct)                         // in gui_main_task
 NSTUB(0xFF0D69EC,  gui_init_end)
 NSTUB(0xFF1B2C88,  gui_massive_event_loop)
-NSTUB(0xFFB0D9D0 - RAM_OFFSET,  gui_task_list)    //~ by string "DispatchingStackPointer != SIZE_OF_DISPATCHING_STACK -2"
+NSTUB(0xFFB0D9D0 - RAM_OFFSET,  gui_task_list)              // by string "DispatchingStackPointer != SIZE_OF_DISPATCHING_STACK -2"
 
 /** Dialog API **/
 NSTUB(0xFF4BE61C,  CreateDialogBox)
@@ -130,25 +130,25 @@ NSTUB(0xFF4E1F80,  RedrawDisplay)
 
 /** Dialog handlers **/
 NSTUB(0xFF6B4DD8,  LiveViewLevelApp_handler)
-NSTUB(0xFF623240,  LiveViewWbApp_handler)    //~ absent in 100d?!
+NSTUB(0xFF623240,  LiveViewWbApp_handler)                   // absent in 100d?!
 NSTUB(0xFF541510,  LiveViewApp_handler)
 NSTUB(0xFF3AE880,  PlayMain_handler)
 NSTUB(0xFF55F944,  PlayMovieGuideApp_handler)
-NSTUB(0xFF525714,  ErrCardForLVApp_handler) // not sure
-NSTUB(0xFF5267D8,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-NSTUB(0xFF53B5A4,  HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
-NSTUB(0xFF54E650,  ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+NSTUB(0xFF525714,  ErrCardForLVApp_handler)                 // not sure
+NSTUB(0xFF5267D8,  ErrForCamera_handler)                    // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xFF53B5A4,  HideUnaviFeedBack_maybe)                 // look for StartUnaviFeedBackTimer
+NSTUB(0xFF54E650,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
 /** Properties **/
 NSTUB(0xFF127F14,  prop_register_slave)
 NSTUB(0xFF12874C, _prop_cleanup)
 NSTUB(0xFF128680,  prop_deliver)
 NSTUB(0xFF128104, _prop_request_change)
-NSTUB(0xFF12886C, _prop_get_value) // unsafe
+NSTUB(0xFF12886C, _prop_get_value)                          // unsafe
 
 /** Memory allocation **/
 NSTUB(0xFF0C8FC8,  malloc)
-NSTUB(0xFF0C9020,  free) // see "can't malloc"
+NSTUB(0xFF0C9020,  free)                                    // see "can't malloc"
 NSTUB(0xFFAA0088 - RAM_OFFSET,  AllocateMemory)
 NSTUB(0xFFAA0424 - RAM_OFFSET,  FreeMemory)
 NSTUB(0xFFAD2348 - RAM_OFFSET,  alloc_dma_memory)
@@ -156,9 +156,9 @@ NSTUB(0xFFAD237C - RAM_OFFSET,  free_dma_memory)
 NSTUB(0xFFA9FE28 - RAM_OFFSET,  GetMemoryInformation)
 
 /** ExMem **/
-NSTUB(0xFF146E18,  AllocateMemoryResource) // m_pfAllocMemoryCBR
-NSTUB(0xFF146E64,  AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
-NSTUB(0xFF146F7C,  FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFF146E18,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF146E64,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
+NSTUB(0xFF146F7C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 
 NSTUB(0xFFAA16B8 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFAA23BC - RAM_OFFSET,  GetNextMemoryChunk)
@@ -166,14 +166,14 @@ NSTUB(0xFFAA1334 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 
 /** Engio **/
 NSTUB(0xFF2B2254, _engio_write)
-NSTUB(0xFF2B1FD8,  shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-NSTUB(0xFF2B1F3C, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
+NSTUB(0xFF2B1FD8,  shamem_read)                             // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+NSTUB(0xFF2B1F3C, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
 /** PTP **/
 NSTUB(0xFF296974,  ptp_register_handler)
 
 /** Audio **/
-NSTUB(0xFF136F5C, _audio_ic_read)   //~ needs work
+NSTUB(0xFF136F5C, _audio_ic_read)                           // needs work
 NSTUB(0xFF136EA4, _audio_ic_write)
 
 /** ASIF **/
@@ -223,7 +223,7 @@ NSTUB(0xFF64BB20,  cfReadBlk)
 // NSTUB(   0x20890, cf_device) idk...
 NSTUB(0xFF652028,  sdReadBlk)
 NSTUB(   0x7FB50,  sd_device)
-NSTUB(0xFF4F64AC,  fsuDecodePartitionTable) // AJ_fsuGetPart_related
+NSTUB(0xFF4F64AC,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
 
 NSTUB(0xFF2B11EC,  mvrFixQScale)
 NSTUB(   0x6BCE4,  mvr_config)

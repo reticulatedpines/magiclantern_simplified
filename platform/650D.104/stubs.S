@@ -44,7 +44,7 @@ NSTUB(    0x8974,  DeleteMemorySuite)
 /** EDMAC routines */
 NSTUB(   0x11480,  SetEDmac)
 NSTUB(   0x11798,  StartEDmac)
-NSTUB(   0x1192C,  PopEDmac) //Xref: PackMem_PopEDmacForMemorySuite
+NSTUB(   0x1192C,  PopEDmac)                                // Xref: PackMem_PopEDmacForMemorySuite
 NSTUB(   0x118E4,  AbortEDmac)
 NSTUB(   0x1152C,  ConnectWriteEDmac)
 NSTUB(   0x115F0,  ConnectReadEDmac)
@@ -70,7 +70,7 @@ NSTUB(0xFF0C1C10,  cstart)
 //NSTUB(0xFF137CC4, bootdisk_enable)
 //NSTUB(0xFF137CD0, bootdisk_disable)
 
-NSTUB(   0x138A8,  AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
+NSTUB(   0x138A8,  AcquireRecursiveLock)                    // AJ_KernelDry_KerRLock.c
 NSTUB(    0x76F8, _AllocateMemory)
 NSTUB(0xFF4B341C,  CreateDialogBox)
 NSTUB(    0xA0FC,  CreateRecursiveLock)
@@ -78,10 +78,10 @@ NSTUB(0xFF4B23E4,  DeleteDialogBox)
 NSTUB(    0x395C,  DryosDebugMsg)
 
 //FIO Functions
-NSTUB(0xFF342568, _FIO_CreateFile) // from Indy
-NSTUB(0xFF34285C,  FIO_WriteFile) // from Indy
-NSTUB(0xFF34290C,  FIO_CloseFile) // from Indy
-NSTUB(0xFF343904,  FIO_FindClose) // proper name: FindClose
+NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
+NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
+NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
+NSTUB(0xFF343904,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF343168, _FIO_CreateDirectory)
 NSTUB(0xFF343730, _FIO_FindFirstEx)
 NSTUB(0xFF343824,  FIO_FindNextEx)
@@ -93,17 +93,17 @@ NSTUB(0xFF342FA0, _FIO_RenameFile)
 NSTUB(0xFF34283C,  FIO_SeekFile)
 
 NSTUB(    0x7A94, _FreeMemory)
-NSTUB(0xFF0D6E5C,  GUI_ChangeMode) // xref: GUI_ChangeMode:%d
-NSTUB(0xFF0D6CA0,  GUI_Control) // xref: GUI_Control:%d 0x%x
+NSTUB(0xFF0D6E5C,  GUI_ChangeMode)                          // xref: GUI_ChangeMode:%d
+NSTUB(0xFF0D6CA0,  GUI_Control)                             // xref: GUI_Control:%d 0x%x
 NSTUB(0xFF1BE180,  GUI_GetFirmVersion)
-NSTUB(0xFF130A44,  LoadCalendarFromRTC) // xref: called by exceptionhandlercbr
-NSTUB(0xFF4D3B94,  RedrawDisplay) // xref: Refresh whole
-NSTUB(   0x139BC,  ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by exceptionhandlercbr
+NSTUB(0xFF4D3B94,  RedrawDisplay)                           // xref: Refresh whole
+NSTUB(   0x139BC,  ReleaseRecursiveLock)                    // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF128870,  SetBitmapVramAddress)
-NSTUB(0xFF1A98E0,  SetGUIRequestMode) // xref: SetGUIRequestMode(%d)
+NSTUB(0xFF1A98E0,  SetGUIRequestMode)                       // xref: SetGUIRequestMode(%d)
 
 NSTUB(   0x16E8C, _alloc_dma_memory)
-NSTUB(   0x51DEC,  bmp_vram_info) // look in SetBitmapVramAddress - as in 60D
+NSTUB(   0x51DEC,  bmp_vram_info)                           // look in SetBitmapVramAddress - as in 60D
 NSTUB(   0x1C45C,  bzero32)
 NSTUB(0xFF138030,  call)
 NSTUB(0xC0220000,  camera_engine)
@@ -115,13 +115,13 @@ NSTUB(0xFF4B11A0,  ctrlman_dispatch_event)
 NSTUB(0xFF4B4158,  dialog_redraw)
 NSTUB(0xFF5207E4,  dialog_set_property_str)
 NSTUB(   0x241BC,  dm_names)
-NSTUB(    0x3CC8,  dm_set_store_level) // Not so sure
-NSTUB(    0x3C60,  dm_set_print_level) // Not so sure
-NSTUB(0xFF328844,  dispcheck) // xref: BitmapVram=NULL!!
+NSTUB(    0x3CC8,  dm_set_store_level)                      // Not so sure
+NSTUB(    0x3C60,  dm_set_print_level)                      // Not so sure
+NSTUB(0xFF328844,  dispcheck)                               // xref: BitmapVram=NULL!!
 
-NSTUB(0xFF0C8368, _free) // see "can't malloc", it calls both malloc and free
+NSTUB(0xFF0C8368, _free)                                    // see "can't malloc", it calls both malloc and free
 NSTUB(   0x16EC0, _free_dma_memory)
-NSTUB(0xFF62B124,  fsuDecodePartitionTable) // AJ_fsuGetPart_related
+NSTUB(0xFF62B124,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
 NSTUB(    0x63C4,  give_semaphore)
 NSTUB(0xFF0D7314,  gui_init_end)
 NSTUB(   0x236A8,  gui_main_struct)
@@ -147,14 +147,14 @@ NSTUB(    0x62D8,  take_semaphore)
 NSTUB(    0x6868,  task_create)
 NSTUB(   0x232C4,  task_dispatch_hook)
 NSTUB(    0xBB80,  task_trampoline)
-NSTUB(   0x14EE4,  vsnprintf) // not sure it gets called from RAM
+NSTUB(   0x14EE4,  vsnprintf)                               // not sure it gets called from RAM
 NSTUB(0xFF3F73D4,  vram_get_number)
-NSTUB(   0x6E4A8,  vram_info) // in vram_get_number
+NSTUB(   0x6E4A8,  vram_info)                               // in vram_get_number
 NSTUB(0xFF6E056C,  LiveViewShutterApp_handler)
 
 NSTUB(0xFF528718,  LiveViewApp_handler)
 NSTUB(0xFF5295C0,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
-NSTUB(0xFF52A8C4,  LiveViewApp_handler_end) // start of next function
+NSTUB(0xFF52A8C4,  LiveViewApp_handler_end)                 // start of next function
 
 //NSTUB(0xFF3B65D0, PlayMain_handler) // Maybe used when touch disabled??
 NSTUB(0xFF6F9D74,  PlayMain_handler)
@@ -162,18 +162,18 @@ NSTUB(0xFF6F9D74,  PlayMain_handler)
 NSTUB(0xFF666C4C,  PlayMovieGuideApp_handler)
 NSTUB(0xFF690610,  ErrCardForLVApp_handler)
 //NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
-NSTUB(0xFF512D54,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-NSTUB(0xFF5262A4,  HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
+NSTUB(0xFF512D54,  ErrForCamera_handler)                    // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xFF5262A4,  HideUnaviFeedBack_maybe)                 // look for StartUnaviFeedBackTimer
 
 NSTUB(0xFF2C0778, _engio_write)
-NSTUB(0xFF2C04FC,  shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-NSTUB(0xFF2C0460, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
+NSTUB(0xFF2C04FC,  shamem_read)                             // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+NSTUB(0xFF2C0460, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
-NSTUB(0xFF52EFE8,  ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+NSTUB(0xFF52EFE8,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
 NSTUB(    0x252C,  get_current_task)
 
-NSTUB(   0x505EC,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(   0x505EC,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(    0x7498,  GetMemoryInformation)
 NSTUB(    0x7444,  GetSizeOfMaxRegion)
@@ -202,9 +202,9 @@ NSTUB(0xFF1326EC,  send_audio)
 NSTUB(0xFF7F27F4,  audio_thresholds)
 
 // for task information
-NSTUB(   0x247A4,  task_max) // Not so sure....
-NSTUB(   0x1992C,  is_taskid_valid) // AJ_task_trampoline_related_p10
-NSTUB(    0xE68C,  get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(   0x247A4,  task_max)                                // Not so sure....
+NSTUB(   0x1992C,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0xE68C,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF133910,  PowerAudioOutput)
 NSTUB(0xFF10891C,  StartASIFDMADAC)
 NSTUB(0xFF108764,  StartASIFDMAADC)
@@ -212,10 +212,10 @@ NSTUB(0xFF1089F4,  StopASIFDMADAC)
 NSTUB(0xFF108E98,  SetNextASIFADCBuffer)
 NSTUB(0xFF108F4C,  SetNextASIFDACBuffer)
 NSTUB(0xFF132D30,  SetSamplingRate)
-NSTUB(0xFF1319CC,  SetAudioVolumeOut) // keep volume
-NSTUB(0xFF13BBD4,  AllocateMemoryResource) // m_pfAllocMemoryCBR
-NSTUB(0xFF13BC20,  AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
-NSTUB(0xFF13BD38,  FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFF1319CC,  SetAudioVolumeOut)                       // keep volume
+NSTUB(0xFF13BBD4,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF13BC20,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
+NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 
 NSTUB(    0x8F28,  GetFirstChunkFromSuite)
 NSTUB(    0x8900,  GetMemoryAddressOfMemoryChunk)
@@ -225,26 +225,26 @@ NSTUB(    0x88A0,  GetRemainOfMemoryChunk)
 //NSTUB(0x00008CE8, GetNumberOfChunks)
 NSTUB(    0x96C4,  GetNextMemoryChunk)
 
-NSTUB(    0xA460,  dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
+NSTUB(    0xA460,  dma_memcpy)                              // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 
 NSTUB(0xFF1B589C,  GUI_SetRollingPitchingLevelStatus)
 
-NSTUB(0xFF2BF734,  mvrSetPrintMovieLog) // FIXME: use call()
-NSTUB(0xFF2BF144,  mvrSetQscale) // FIXME: use call(()
+NSTUB(0xFF2BF734,  mvrSetPrintMovieLog)                     // FIXME: use call()
+NSTUB(0xFF2BF144,  mvrSetQscale)                            // FIXME: use call(()
 NSTUB(   0x31424,  mvr_config)
-NSTUB(0xFF2BF710,  mvrFixQScale)    // FIXME: use call()
-NSTUB(0xFF2BF208,  mvrSetDefQScale) // FIXME: use cal()
+NSTUB(0xFF2BF710,  mvrFixQScale)                            // FIXME: use call()
+NSTUB(0xFF2BF208,  mvrSetDefQScale)                         // FIXME: use cal()
 
 NSTUB(0xFF11F150,  prop_get_value)
 NSTUB(0xFF2A5098,  ptpPropSetUILock)
 NSTUB(0xFF330C80,  touch_cbr_canon)
 
-NSTUB(0xFF66FEE8,  GetCFnData) // xref: Illegal Data GetCFnData
-NSTUB(0xFF670100,  SetCFnData) // xref: Illegal Data SetCFnData
+NSTUB(0xFF66FEE8,  GetCFnData)                              // xref: Illegal Data GetCFnData
+NSTUB(0xFF670100,  SetCFnData)                              // xref: Illegal Data SetCFnData
 
-NSTUB(0xFF4D56E8,  NormalDisplay)  // xref: Normal start
-NSTUB(0xFF4D56B8,  ReverseDisplay) // xref: Reverse start
-NSTUB(0xFF4D5688,  MirrorDisplay)  // xref: Mirror start
+NSTUB(0xFF4D56E8,  NormalDisplay)                           // xref: Normal start
+NSTUB(0xFF4D56B8,  ReverseDisplay)                          // xref: Reverse start
+NSTUB(0xFF4D5688,  MirrorDisplay)                           // xref: Mirror start
 
 NSTUB(   0x16C44,  TryPostEvent)
 NSTUB(   0x16CA0,  TryPostEvent_end)

@@ -93,15 +93,15 @@ NSTUB(0xFF11A8E0,  GetJpegBufForLV)
 NSTUB(0xFF11A8EC,  GetJpegSizeForLV)
 
 NSTUB(0xFF0705E4,  set_brightness_registers)
-NSTUB(0xFF205FA8,  AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
+NSTUB(0xFF205FA8,  AcquireRecursiveLock)                    // AJ_KernelDry_KerRLock.c
 NSTUB(0xFF07CD24, _AllocateMemory)
 NSTUB(0xFF2FFD3C,  CreateDialogBox)
 NSTUB(0xFF07FE0C,  CreateRecursiveLock)
 NSTUB(0xFF2FF7C4,  DeleteDialogBox)
 NSTUB(0xFF0776AC,  DryosDebugMsg)
-NSTUB(0xFF1FD554,  FIO_FindClose) // AJ__switch_0x1A50_n_calls_fstOpenDir
+NSTUB(0xFF1FD554,  FIO_FindClose)                           // AJ__switch_0x1A50_n_calls_fstOpenDir
 NSTUB(0xFF1FC684,  FIO_CloseFile)
-NSTUB(0xFF1FCCF4, _FIO_CreateDirectory) // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
+NSTUB(0xFF1FCCF4, _FIO_CreateDirectory)                     // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
 NSTUB(0xFF1FC2E0, _FIO_CreateFile)
 NSTUB(0xFF1FD2B8, _FIO_FindFirstEx)
 NSTUB(0xFF1FD42C,  FIO_FindNextEx)
@@ -120,10 +120,10 @@ NSTUB(0xFF242F38,  GuiEdLedBlink)
 NSTUB(0xFF242F14,  GuiEdLedOff)
 NSTUB(0xFF242EF0,  GuiEdLedOn)
 NSTUB(0xFF075210,  LoadCalendarFromRTC)
-NSTUB(0xFF072290,  MuteOff_0) // not sure
+NSTUB(0xFF072290,  MuteOff_0)                               // not sure
 NSTUB(0xFF06D6A8,  MuteOn_0)
 NSTUB(0xFF317EE8,  RedrawDisplay)
-NSTUB(0xFF2060BC,  ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFF2060BC,  ReleaseRecursiveLock)                    // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF15FD74,  RemoteRelease)
 NSTUB(0xFF06F2FC,  SetBitmapVramAddress)
 NSTUB(0xFF4C6424,  SetCFnData)
@@ -137,7 +137,7 @@ NSTUB(   0x29A60,  bmp_vram_info)
 NSTUB(0xFF50CDEC,  bzero32)
 NSTUB(0xFF07842C,  call)
 NSTUB(0xC0220000,  camera_engine)
-NSTUB(0xFF44EBB0,  cfReadBlk)                      // might be good (dumps=1, score=6.1)  g3gg0: confirmed by debugmsg 'cfReadBlk'
+NSTUB(0xFF44EBB0,  cfReadBlk)                               // might be good (dumps=1, score=6.1)  g3gg0: confirmed by debugmsg 'cfReadBlk'
 NSTUB(   0x22938,  cf_device)
 NSTUB(0xFF0104BC,  cli_save)
 NSTUB(0xFF01559C,  create_init_task)
@@ -151,7 +151,7 @@ NSTUB(    0x2B18,  dm_names)
 NSTUB(0xFF077990,  dm_set_store_level)
 NSTUB(0xFF01634C, _free)
 NSTUB(0xFF20DA84, _free_dma_memory)
-NSTUB(0xFF3D7798,  fsuDecodePartitionTable) // AJ_fsuGetPart_related
+NSTUB(0xFF3D7798,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
 NSTUB(0xFF07BA0C,  give_semaphore)
 NSTUB(0xFF0AB97C,  gui_change_lcd_state_post)
 NSTUB(0xFF0AABC4,  gui_change_mode)
@@ -195,7 +195,7 @@ NSTUB(0xFF0686A4,  prop_unregister_slave)
 NSTUB(0xFF067FAC, _prop_request_change)
 NSTUB(0xFF2885CC,  ptp_register_handler)
 NSTUB(0xFF20AE48,  register_func)
-NSTUB(0xFF454540,  sdReadBlk)            // g3gg0: confirmed by DebugMsg - but makes no sense on 7D
+NSTUB(0xFF454540,  sdReadBlk)                               // g3gg0: confirmed by DebugMsg - but makes no sense on 7D
     //NSTUB(   0x208D8, sd_device)
 NSTUB(0xFF0104D0,  sei_restore)
 NSTUB(    0x1F54,  sounddev)
@@ -215,43 +215,43 @@ NSTUB(0xFF35AC90,  OlcAFFrameApp_handler)
 NSTUB(0xFF430250,  ErrCardForLVApp_handler)
 NSTUB(0xFF3674A4,  LiveViewWbApp_handler)
 NSTUB(0xFF236E9C,  GUI_SetRollingPitchingLevelStatus)
-NSTUB(0xFF336D60,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xFF336D60,  ErrForCamera_handler)                    // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 
 NSTUB(0xFF1F6B20, _engio_write)
-NSTUB(0xFF1F664C,  shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-NSTUB(0xFF1F675C, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
+NSTUB(0xFF1F664C,  shamem_read)                             // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+NSTUB(0xFF1F675C, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
-NSTUB(0xFF35DF58,  ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+NSTUB(0xFF35DF58,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
-NSTUB(   0x29A9C,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(   0x29A9C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 NSTUB(0xFF07CAC8,  GetMemoryInformation)
 
 NSTUB(0xFF07FC28,  msg_queue_create)
 
 NSTUB(0xFF03F4A8,  PD_RemoteRelease)
-NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker) // called from: ptpRemoteRelease Occupy
+NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 
     // for task information
 NSTUB(    0x2B24,  task_max)
-NSTUB(0xFF087940,  is_taskid_valid) // AJ_task_trampoline_related_p10
-NSTUB(0xFF08779C,  get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(0xFF087940,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(0xFF08779C,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF014C10,  get_current_task)
 
-NSTUB(0xFF080E78,  AllocateMemoryResource) // m_pfAllocMemoryCBR
-NSTUB(0xFF080EC4,  AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
-NSTUB(0xFF080FDC,  FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFF080E78,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF080EC4,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
+NSTUB(0xFF080FDC,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF07CA74,  GetSizeOfMaxRegion)
 
 NSTUB(0xFF07365C,  PowerAudioOutput)
 NSTUB(0xFF061C44,  StartASIFDMADAC)
 NSTUB(0xFF061D20,  StopASIFDMADAC)
 NSTUB(0xFF061A88,  StartASIFDMAADC)
-NSTUB(0xFF061C08,  StopASIFDMAADC) // Called by SoundDevStopIn
+NSTUB(0xFF061C08,  StopASIFDMAADC)                          // Called by SoundDevStopIn
 
 NSTUB(0xFF073F54,  SetFilterRec)
 
-NSTUB(0xFF0621C4,  SetNextASIFADCBuffer) // called by SetNextUINT8ASIFADCBuffer and SetNextINT16ASIFADCBuffer
+NSTUB(0xFF0621C4,  SetNextASIFADCBuffer)                    // called by SetNextUINT8ASIFADCBuffer and SetNextINT16ASIFADCBuffer
 NSTUB(0xFF06227C,  SetNextASIFDACBuffer)
 NSTUB(0xFF0736F4,  SetSamplingRate)
 NSTUB(0xFF073944,  SetAudioVolumeOut)

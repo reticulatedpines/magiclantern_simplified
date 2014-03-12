@@ -40,7 +40,7 @@ NSTUB(0xFFB57578, _exit)
 //NSTUB( 0xFFB445F4, _memchr )
 //NSTUB( 0xFFB44628, _memcmp )
 //NSTUB( 0xFFB446DC, _memset )
-NSTUB(0xFFAB3CD4, _prop_cleanup)                // not sure
+NSTUB(0xFFAB3CD4, _prop_cleanup)                            // not sure
 NSTUB(0xFFAB3D44, _prop_request_change)
 //NSTUB( 0xFFB44728, _strchr )
 //NSTUB( 0xFFB44B34, _strpbrk )
@@ -119,8 +119,8 @@ NSTUB(0xFF8B7E18,  EnableBootDisk)
 NSTUB(0xFFB2DCE8,  EnablePowerSave)
 NSTUB(0xFF86F01C,  EndGuiInit)
 NSTUB(0xFFB16C84,  EnumHashTable)
-NSTUB(0xDEADBEEF,  ErrCardForLVApp_handler)       // not called
-NSTUB(0xDEADBEEF,  ErrForCamera_handler)          // not called
+NSTUB(0xDEADBEEF,  ErrCardForLVApp_handler)                 // not called
+NSTUB(0xDEADBEEF,  ErrForCamera_handler)                    // not called
 NSTUB(0xFFB47218,  errnoOfTaskGet)
 NSTUB(0xFFB47260,  errnoOfTaskSet)
 NSTUB(0xFFB53304,  eventClear)
@@ -147,7 +147,7 @@ NSTUB(0xFFB417E0,  fgetpos)
 NSTUB(0xFFB41844,  fgets)
 NSTUB(0xFFB41978,  fileno)
 NSTUB(0xFFB1A1A4,  FindName)
-NSTUB(0xFFAE6070,  FIO_FindClose)// not sure
+NSTUB(0xFFAE6070,  FIO_FindClose)                           // not sure
 NSTUB(0xFFAE5B78,  FIO_CloseFile)
 NSTUB(0xFFAE5D7C, _FIO_CreateDirectory)
 NSTUB(0xFFAE5B2C, _FIO_CreateFile)
@@ -203,7 +203,7 @@ NSTUB(0xFF818B7C,  GUI_ChangeMode)
 NSTUB(0xFF8190D0,  GUI_Control)
 NSTUB(0xFF81800C,  gui_massive_event_loop)
 NSTUB(0xFF818D98,  gui_massive_event_loop2)
-NSTUB(    0xF1C8,  gui_task_list)                    // not 100% sure
+NSTUB(    0xF1C8,  gui_task_list)                           // not 100% sure
 NSTUB(0xFF86EB28,  GUILock_TurnOnDisplay)
 NSTUB(0xFF815A3C,  idle_handler)
 NSTUB(0xFFB5168C,  index)
@@ -232,7 +232,7 @@ NSTUB(0xFFB4A854,  iosRead)
 NSTUB(0xFFB4A930,  iosWrite)
 NSTUB(0xFFB4A358,  ioGlobalStdSet)
 NSTUB(0xFFB53610,  kernelTimeSlice)
-NSTUB(0xDEADBEEF,  LiveViewApp_handler)           // not called
+NSTUB(0xDEADBEEF,  LiveViewApp_handler)                     // not called
 NSTUB(0xFFB112DC,  LoadCalendarFromRTC)
 NSTUB(0xFF810054,  loc_FF810054)
 NSTUB(0xFF810100,  loc_FF810100)
@@ -288,7 +288,7 @@ NSTUB(0xFFB544EC,  msgQNumMsgs)
 NSTUB(0xFFB541BC,  msgQReceive)
 NSTUB(0xFFB53E40,  msgQSend)
 NSTUB(0xFFB187F4,  msleep)
-NSTUB(0xDEADBEEF,  new_LiveViewApp_handler)       // not called
+NSTUB(0xDEADBEEF,  new_LiveViewApp_handler)                 // not called
 NSTUB(0xFF8191A0,  NotifyGUIEvent)
 NSTUB(0xFFB0AC74,  NotifyTurnOnDisplayToBitmapDisplayDevice)
 NSTUB(0xFF810FF4,  off_FF810FF4)
@@ -350,7 +350,7 @@ NSTUB(0xFFB51F30,  qPut)
 NSTUB(0xFFB51F70,  qRemove)
 NSTUB(0xFFB51F90,  qResort)
 NSTUB(0xFFB51EC0,  qTerminate)
-NSTUB(0xFFB19700,  QueryTaskByName)//~ returns pointer to task structure by searching task name
+NSTUB(0xFFB19700,  QueryTaskByName)                         // returns pointer to task structure by searching task name
 NSTUB(0xFFB4D854,  reboot)
 NSTUB(0xFFB4D8CC,  rebootHookAdd)
 NSTUB(0xFFB49E5C,  remove)
@@ -392,7 +392,7 @@ NSTUB(0xFFB553F0,  semQInit)
 NSTUB(0xFFB43234,  setbuf)
 NSTUB(0xFFB36BB0,  setjmp)
 NSTUB(0xFFB43290,  setvbuf)
-NSTUB(0xDEADBEEF,  ShootOlcApp_handler)           // not called
+NSTUB(0xDEADBEEF,  ShootOlcApp_handler)                     // not called
 NSTUB(0xFF8946A8,  sht_regread)
 NSTUB(0xFFB128F0,  ShutdownEventProcedureService)
 NSTUB(0xFF811EE0,  startupCompleteCallback)
@@ -510,7 +510,7 @@ NSTUB(0xFF810E84,  sysStart)
 NSTUB(0xFF81090C,  sysToMonitor)
 NSTUB(0xFF81090C,  sysToMonitor)
 NSTUB(0xFFB1828C,  take_semaphore)
-NSTUB(0xFFB18B40,  task_create)// CreateTask
+NSTUB(0xFFB18B40,  task_create)                             // CreateTask
 NSTUB(0xFF811080,  task_Startup)
 NSTUB(0xFFB5BB04,  taskArgsGet)
 NSTUB(0xFFB5BADC,  taskArgsSet)

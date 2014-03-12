@@ -64,7 +64,7 @@ NSTUB(0xFF345520, _FIO_RenameFile)
 NSTUB(0xFF3456E8, _FIO_CreateDirectory)
 NSTUB(0xFF345CB0, _FIO_FindFirstEx)
 NSTUB(0xFF345DA4,  FIO_FindNextEx)
-NSTUB(0xFF345E84,  FIO_FindClose) //FindClose
+NSTUB(0xFF345E84,  FIO_FindClose)                           // FindClose
 
 /** Bitmap **/
 NSTUB(   0x522CC,  bmp_vram_info)
@@ -156,7 +156,7 @@ NSTUB(0xFF11FBA0,  prop_get_value)
 
 /** Memory allocation **/
 NSTUB(0xFF0C82E8, _malloc)
-NSTUB(0xFF0C8340, _free) // see "can't malloc"
+NSTUB(0xFF0C8340, _free)                                    // see "can't malloc"
 NSTUB(0xFFA63F18 - RAM_OFFSET, _AllocateMemory)
 NSTUB(0xFFA642B4 - RAM_OFFSET, _FreeMemory)
 NSTUB(0xFFA736AC - RAM_OFFSET, _alloc_dma_memory)
@@ -204,14 +204,14 @@ NSTUB(0xFF10B958,  SoundDevShutDownIn)
 NSTUB(0xFF7FCA00,  audio_thresholds)
 
 /** ASIF **/
-NSTUB(0xFF13435C,  PowerAudioOutput) 
-NSTUB(0xFF1091A0,  StartASIFDMADAC)  
-NSTUB(0xFF108FE8,  StartASIFDMAADC)  
-NSTUB(0xFF109278,  StopASIFDMADAC)   
+NSTUB(0xFF13435C,  PowerAudioOutput)
+NSTUB(0xFF1091A0,  StartASIFDMADAC)
+NSTUB(0xFF108FE8,  StartASIFDMAADC)
+NSTUB(0xFF109278,  StopASIFDMADAC)
 NSTUB(0xFF10971C,  SetNextASIFADCBuffer)
 NSTUB(0xFF1097D0,  SetNextASIFDACBuffer)
 NSTUB(0xFF1337AC,  SetSamplingRate)
-NSTUB(0xFF1324C4,  SetAudioVolumeOut) //keep volume
+NSTUB(0xFF1324C4,  SetAudioVolumeOut)                       // keep volume
 
 /** experimental EDMAC research **/
 NSTUB(0xFFA6539C - RAM_OFFSET,  CreateMemorySuite)
