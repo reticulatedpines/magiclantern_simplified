@@ -238,12 +238,12 @@ NSTUB(0xFF2953B8, LockEngineResources)
 NSTUB(0xFF29555C, UnLockEngineResources)
 
 
-/** Making the card bootable (not working on 5D3) **/
+/** Making the card bootable **/
+NSTUB(   0x39960, sd_device)
+NSTUB(   0x36184, cf_device_ptr)    // cf_device is at MEM(MEM(0x36184) + 0x10)
+NSTUB(0xFF5C5E0C, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 // NSTUB(0xFF6B64C0, cfReadBlk)
-// NSTUB(   0x20890, cf_device) idk...
 // NSTUB(0xFF6BC848, sdReadBlk)
-// NSTUB(   0x39960, sd_device)
-// NSTUB(0xFF5C5E0C, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 
 /* Electronic level - roll/pitch info */
 NSTUB(0xFF2763A4, GUI_SetRollingPitchingLevelStatus); // RequestRollingPitching - no side effects :)

@@ -8,7 +8,7 @@
 
 //~ Format dialog consts
 #define FORMAT_BTN "[Q]"
-#define STR_LOC 11
+#define STR_LOC 13
 
 #define CARD_A_MAKER 0x68D24
 #define CARD_A_MODEL 0x68D57
@@ -204,6 +204,7 @@
 
 #define DIALOG_MnCardFormatBegin (0x36340) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B24) // similar
+#define FORMATTING_CF_CARD (MEM(0x3633C) == 1)  // in CreateDialogBox(DlgMnCardFormatBegin), *0x3633C = HALFWORD(arg0); 1=cf, 2=sd
 
 #define BULB_MIN_EXPOSURE 500
 
