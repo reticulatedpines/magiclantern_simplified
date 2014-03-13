@@ -60,10 +60,14 @@ NSTUB(    0x1C4C,  gui_main_struct)
 NSTUB(   0x15B30,  gui_task_list)
 NSTUB(0xFF824060,  GUI_ChangeMode)
 NSTUB(0xFF823E60,  GUI_Control)
+NSTUB(0xFF9CE5D8,  GUI_SetLvMode)
+NSTUB(0xFF9CE7D0,  Gui_SetSoundRecord)
 NSTUB(0xFF88F710,  SetGUIRequestMode)
 NSTUB(0xFF82434C,  gui_init_end)
 NSTUB(0xFF82399C,  gui_main_task)
 NSTUB(0xFF8901A4,  gui_massive_event_loop)
+// NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
+// NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 
 /** ASIF **/
 NSTUB(0xFF85A890,  PowerAudioOutput)
@@ -74,10 +78,18 @@ NSTUB(0xFF859D74,  SetSamplingRate)
 NSTUB(0xFF8580E8,  StartASIFDMAADC)
 NSTUB(0xFF85828C,  StartASIFDMADAC)
 NSTUB(0xFF858360,  StopASIFDMADAC)
+// NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
+// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
+NSTUB(    0x2360,  sounddev)
 NSTUB(0xFF859468, _audio_ic_read)
 NSTUB(0xFF859638, _audio_ic_write)
+NSTUB(0xFFCB4B0C,  audio_thresholds)                        // delta = 40 bytes compared to 2.1.1, as with StartFactoryMenuApp
+NSTUB(0xFF85B454,  sounddev_active_in)
+NSTUB(0xFF85B0E4,  sounddev_task)
 
 /** Bitmap **/
 NSTUB(   0x27660,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -86,6 +98,8 @@ NSTUB(   0x27624,  bmp_vram_info)
 /** CFN **/
 NSTUB(0xFFB5E88C,  GetCFnData)
 NSTUB(0xFFB5E994,  SetCFnData)
+// NSTUB(    ???,  GUI_GetCFnForTab4)                       /* present on 7D.203 */
+// NSTUB(    ???,  GUI_SetCFnForTab4)                       /* present on 7D.203 */
 
 /** Camera interface? **/
 NSTUB(0xC0220000,  camera_engine)
@@ -110,11 +124,14 @@ NSTUB(0xFFADBEE8,  LiveViewWbApp_handler)
 NSTUB(0xFFAC3964,  PlayMain_handler)
 NSTUB(0xFFB74E8C,  PlayMovieGuideApp_handler)
 NSTUB(0xFFACF26C,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+NSTUB(0xFFB6B1D4,  StartPlayProtectGuideApp)
+NSTUB(0xFFB6AF34,  StopPlayProtectGuideApp)
 // NSTUB(    ???,  HideUnaviFeedBack_maybe)                 /* present on 60D.111, 6D.113, 5D3.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
 // NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
 // NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
 
 /** Display **/
 // NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
@@ -140,6 +157,7 @@ NSTUB(0xFF9A483C,  UnregisterEDmacPopCBR)
 NSTUB(0xFF9A54A8, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
 NSTUB(0xFF9A5618, _engio_write)
 NSTUB(0xFF9A550C,  shamem_read)                             // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+// NSTUB(    ???,  EngDrvOut)                               /* present on 7D_MASTER.203 */
 
 /** Eventprocs (call by name) **/
 NSTUB(0xFF86BCE0,  call)
@@ -160,13 +178,33 @@ NSTUB(0xFF871270,  GetNextMemoryChunk)                      // AJ_PackMemory_Pac
 // NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
+/** GUI for old cameras **/
+NSTUB(    0x38F0,  gui_timer_struct)
+NSTUB(0xFF892358,  gui_change_lcd_state_post)
+NSTUB(0xFF891718,  gui_change_mode)
+NSTUB(0xFF8922C0,  gui_change_shoot_type_post)
+NSTUB(0xFF89284C,  gui_init_event)
+NSTUB(0xFF891BBC,  gui_local_post)
+NSTUB(0xFF891FB4,  gui_other_post)
+NSTUB(0xFF89220C,  gui_post_10000085)
+NSTUB(0xFF9B3AD0,  gui_timer_something)
+
 /** H264 Encoder **/
 NSTUB(    0x86B0,  mvr_config)
 NSTUB(0xFF9905D4,  mvrFixQScale)
 NSTUB(0xFF990188,  mvrSetDefQScale)
+// NSTUB(    ???,  mvrSetFullHDOptSize)                     /* present on 500D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
+// NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
+
+/** Interrupts **/
+// NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
+// NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
+// NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
+// NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** LCD Sensor **/
 NSTUB(0xFF9D8250,  DispSensorStart)
+NSTUB(0xFF9B1BE0,  LightMeasure_n_Callback_r0)
 
 /** Making the card bootable **/
 NSTUB(   0x20890,  cf_device)
@@ -182,6 +220,7 @@ NSTUB(0xFF9BA190, _alloc_dma_memory)
 NSTUB(0xFF818FD4, _free)
 NSTUB(0xFF9BA1C4, _free_dma_memory)
 NSTUB(0xFF818F00, _malloc)
+// NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
 
 /** Message queues **/
 NSTUB(0xFF86DBB4,  msg_queue_count)
@@ -207,6 +246,12 @@ NSTUB(0xFF85F228, _prop_request_change)
 NSTUB(0xFF85F068,  prop_deliver)
 NSTUB(0xFF85F0F0,  prop_register_slave)
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
+
+/** RPC (for 7D) **/
+// NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
+// NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
+// NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF9B3E68,  AcquireRecursiveLock)
@@ -236,55 +281,16 @@ NSTUB(0xFF86E22C,  msleep)
 NSTUB(    0x1934,  task_dispatch_hook)
 NSTUB(0xFF86E2E4,  task_create)
 NSTUB(0xFF8773C0,  task_trampoline)
+// NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
+// NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 
 /** Misc **/
-NSTUB(    0x38F0,  gui_timer_struct)
-NSTUB(    0x2360,  sounddev)
 NSTUB(0xFF86412C,  EnableImagePhysicalScreenParameter)
-NSTUB(0xFF9CE5D8,  GUI_SetLvMode)
-NSTUB(0xFF9CE7D0,  Gui_SetSoundRecord)
-NSTUB(0xFF9B1BE0,  LightMeasure_n_Callback_r0)
 NSTUB(0xFF8696D8,  LoadCalendarFromRTC)
 NSTUB(0xFF92EEB8,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
-NSTUB(0xFFB6B1D4,  StartPlayProtectGuideApp)
-NSTUB(0xFFB6AF34,  StopPlayProtectGuideApp)
-NSTUB(0xFFCB4B0C,  audio_thresholds)                        // delta = 40 bytes compared to 2.1.1, as with StartFactoryMenuApp
-NSTUB(0xFF892358,  gui_change_lcd_state_post)
-NSTUB(0xFF891718,  gui_change_mode)
-NSTUB(0xFF8922C0,  gui_change_shoot_type_post)
-NSTUB(0xFF89284C,  gui_init_event)
-NSTUB(0xFF891BBC,  gui_local_post)
-NSTUB(0xFF891FB4,  gui_other_post)
-NSTUB(0xFF89220C,  gui_post_10000085)
-NSTUB(0xFF9B3AD0,  gui_timer_something)
-NSTUB(0xFF85B454,  sounddev_active_in)
-NSTUB(0xFF85B0E4,  sounddev_task)
 NSTUB(0xFF9B7324,  vsnprintf)
-// NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
-// NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
-// NSTUB(    ???,  EngDrvOut)                               /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  GUI_GetCFnForTab4)                       /* present on 7D.203 */
-// NSTUB(    ???,  GUI_SetCFnForTab4)                       /* present on 7D.203 */
-// NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
-// NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
-// NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
-// NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
-// NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
-// NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
-// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
-// NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
-// NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  mvrSetFullHDOptSize)                     /* present on 500D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
-// NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
-// NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
-// NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
-// NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** Unused stubs or porting notes **/
 ///NSTUB(0xFF9B96A8,  AJ_UserLevel_task)

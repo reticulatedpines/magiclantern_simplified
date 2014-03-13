@@ -63,6 +63,10 @@ NSTUB(0xFF0A3434,  SetGUIRequestMode)
 NSTUB(0xFF02144C,  gui_init_end)                            // might be good (dumps=1, score=4.2)
 NSTUB(0xFF020A40,  gui_main_task)                           // might be good (dumps=1, score=5.5)
 // NSTUB(    ???,  GUI_ChangeMode)                          /* present on 7D.203, 500D.111, 6D.113, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
+// NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
+// NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
+// NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
 // NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109 */
 
 /** ASIF **/
@@ -74,10 +78,18 @@ NSTUB(0xFF069F88,  SetSamplingRate)
 NSTUB(0xFF0554C4,  StartASIFDMAADC)
 NSTUB(0xFF055678,  StartASIFDMADAC)
 NSTUB(0xFF05574C,  StopASIFDMADAC)
+// NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
+// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
+NSTUB(    0x1E58,  sounddev)                                // in sounddev_task
 NSTUB(0xFF0699F4, _audio_ic_read)                           // might be good (dumps=1, score=4.6)
 NSTUB(0xFF069B38, _audio_ic_write)                          // might be good (dumps=1, score=24)
+NSTUB(0xFF5A67E4,  audio_thresholds)
+NSTUB(0xFF0579DC,  sounddev_active_in)
+NSTUB(0xFF057570,  sounddev_task)                           // might be good (dumps=1, score=8.2)
 
 /** Bitmap **/
 NSTUB(   0x1C06C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -86,6 +98,8 @@ NSTUB(   0x1D86C,  bmp_vram_info)                           // no match
 /** CFN **/
 NSTUB(0xFF510C1C,  GetCFnData)                              // might be good (dumps=1, score=19)
 NSTUB(0xFF510E48,  SetCFnData)                              // might be good (dumps=1, score=19)
+// NSTUB(    ???,  GUI_GetCFnForTab4)                       /* present on 7D.203 */
+// NSTUB(    ???,  GUI_SetCFnForTab4)                       /* present on 7D.203 */
 
 /** Camera interface? **/
 NSTUB(0xC0220000,  camera_engine)
@@ -115,6 +129,9 @@ NSTUB(0xFF383AC8,  ShootOlcApp_handler)
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
 // NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
+// NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
+// NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
+// NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
 
 /** Display **/
 NSTUB(0xFF337C2C,  MirrorDisplay)                           // might be good (dumps=1, score=3.4)
@@ -140,6 +157,7 @@ NSTUB(0xFF1D3B00,  UnregisterEDmacPopCBR)
 NSTUB(0xFF1D48C8, _EngDrvOut)                               // might be good (dumps=1, score=61)
 NSTUB(0xFF1D4C8C, _engio_write)                             // might be good (dumps=1, score=77)
 NSTUB(0xFF1D47B8,  shamem_read)                             // might be good (dumps=1, score=10)
+// NSTUB(    ???,  EngDrvOut)                               /* present on 7D_MASTER.203 */
 
 /** Eventprocs (call by name) **/
 NSTUB(0xFF06D7DC,  call)                                    // might be good (dumps=1, score=1.3e+02)
@@ -160,13 +178,33 @@ NSTUB(0xFF0728A8,  GetNextMemoryChunk)                      // AJ_PackMemory_Pac
 // NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
+/** GUI for old cameras **/
+NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
+NSTUB(0xFF0A7420,  gui_change_mode)                         // might be good (dumps=1, score=10)
+NSTUB(0xFF0A7B90,  gui_local_post)                          // might be good (dumps=1, score=3.2)
+NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (dumps=1, score=0.99)
+// NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+// NSTUB(    ???,  gui_change_shoot_type_post)              /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+// NSTUB(    ???,  gui_init_event)                          /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+// NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
+// NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
 NSTUB(0xFF1B9544,  mvrFixQScale)                            // might be good (dumps=1, score=4.8)
 NSTUB(0xFF1B9020,  mvrSetDefQScale)                         // might be good (dumps=1, score=4.7)
+NSTUB(0xFF1B9058,  mvrSetFullHDOptSize)                     // might be good (dumps=1, score=4.9)
+NSTUB(0xFF1B9248,  mvrSetGopOptSizeFULLHD)                  // might be good (dumps=1, score=4.7)
+
+/** Interrupts **/
+// NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
+// NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
+// NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
+// NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** LCD Sensor **/
 // NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
 
 /** Making the card bootable **/
 NSTUB(   0x1553C,  cf_device)                               // in cfReadBlk
@@ -182,6 +220,7 @@ NSTUB(0xFF1EFE08, _alloc_dma_memory)                        // might be good (du
 NSTUB(0xFF018D8C, _free)                                    // might be good (dumps=1, score=14)
 NSTUB(0xFF1EFE3C, _free_dma_memory)                         // might be good (dumps=1, score=80)
 NSTUB(0xFF018D34, _malloc)                                  // might be good (dumps=1, score=11)
+// NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
 
 /** Message queues **/
 NSTUB(0xFF1E8A88,  msg_queue_count)
@@ -207,6 +246,12 @@ NSTUB(0xFF05BA3C,  prop_deliver)                            // might be good (du
 NSTUB(0xFF05BAC4,  prop_register_slave)                     // might be good (dumps=1, score=39)
 // NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
+
+/** RPC (for 7D) **/
+// NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
+// NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
+// NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF1E8B94,  AcquireRecursiveLock)                    // might be good (dumps=1, score=14)
@@ -236,56 +281,17 @@ NSTUB(0xFF06FA40,  msleep)                                  // might be good (du
 NSTUB(    0x193C,  task_dispatch_hook)
 NSTUB(0xFF06FAF4,  task_create)                             // might be good (dumps=1, score=23)
 NSTUB(0xFF07C970,  task_trampoline)                         // might be good (dumps=1, score=0.5)
+// NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
+// NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 
 /** Misc **/
-NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
 NSTUB(   0x736B4,  lv_path_struct)                          // first arg of SelectPathDriveMode
-NSTUB(    0x1E58,  sounddev)                                // in sounddev_task
 NSTUB(0xFF0694E4,  LoadCalendarFromRTC)                     // might be good (dumps=1, score=30)
-NSTUB(0xFF5A67E4,  audio_thresholds)
-NSTUB(0xFF0A7420,  gui_change_mode)                         // might be good (dumps=1, score=10)
-NSTUB(0xFF0A7B90,  gui_local_post)                          // might be good (dumps=1, score=3.2)
-NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (dumps=1, score=0.99)
-NSTUB(0xFF1B9058,  mvrSetFullHDOptSize)                     // might be good (dumps=1, score=4.9)
-NSTUB(0xFF1B9248,  mvrSetGopOptSizeFULLHD)                  // might be good (dumps=1, score=4.7)
-NSTUB(0xFF0579DC,  sounddev_active_in)
-NSTUB(0xFF057570,  sounddev_task)                           // might be good (dumps=1, score=8.2)
 NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (dumps=1, score=9.5)
 //NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
-// NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
-// NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
-// NSTUB(    ???,  EngDrvOut)                               /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  GUI_GetCFnForTab4)                       /* present on 7D.203 */
-// NSTUB(    ???,  GUI_SetCFnForTab4)                       /* present on 7D.203 */
-// NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
-// NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
-// NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
-// NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
-// NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
-// NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
-// NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
-// NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
-// NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
-// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
-// NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
-// NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
-// NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
-// NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
-// NSTUB(    ???,  gui_change_shoot_type_post)              /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
-// NSTUB(    ???,  gui_init_event)                          /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
-// NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
-// NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
-// NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
-// NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
-// NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** Unused stubs or porting notes **/
 ///NSTUB(0xFF1D391C,  AbortEDmac)
