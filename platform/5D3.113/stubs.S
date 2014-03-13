@@ -232,13 +232,6 @@ NSTUB(0xFF9F35C8 - RAM_OFFSET,  msg_queue_receive)
 NSTUB(0xFF3F4F54,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
 
-/** PackMem **/
-NSTUB(0xFF576564,  PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF576634,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF5766D0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF576348,  PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF57645C,  PackMem_StartEDmac)
-
 /** Properties **/
 NSTUB(0xFF12523C,  PROPAD_GetPropertyData)
 NSTUB(0xFF123C88, _prop_cleanup)
@@ -307,6 +300,11 @@ NSTUB(0xFF9F4F3C - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xff2f3f44, MuteOn_0)
 ///NSTUB(0xff1064c8, PD_RemoteRelease)
 ///NSTUB(0xFF123DE4,  PROP_GetMulticastProperty)
+///NSTUB(0xFF576564,  PackMem_PopEDmacForMemorySuite)
+///NSTUB(0xFF576634,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+///NSTUB(0xFF5766D0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
+///NSTUB(0xFF576348,  PackMem_SetEDmacForMemorySuite)
+///NSTUB(0xFF57645C,  PackMem_StartEDmac)
 ///NSTUB(0xFF9F19EC - RAM_OFFSET,  PopEDmac)
 ///NSTUB(0xFF46D03C,  RedrawDisplay)
 ///NSTUB(0xff12e110, SetBitmapVramAddress)

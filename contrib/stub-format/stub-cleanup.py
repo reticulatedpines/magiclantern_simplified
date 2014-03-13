@@ -30,6 +30,11 @@ force_unused = [
     "EngDrvIn",
     "ptpPropButtonSW1",
     "ptpPropButtonSW2",
+    "PackMem_PopEDmacForMemorySuite",       # from old EDMAC research (lv_rec)
+    "PackMem_RegisterEDmacCompleteCBRForMemorySuite",
+    "PackMem_RegisterEDmacPopCBRForMemorySuite",
+    "PackMem_SetEDmacForMemorySuite",
+    "PackMem_StartEDmac",
 ]
 
 def check_used_work(stub):

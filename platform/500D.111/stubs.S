@@ -236,13 +236,6 @@ NSTUB(0xFF0694D0,  msg_queue_receive)
 NSTUB(0xFF20C498,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
 
-/** PackMem **/
-// NSTUB(    ???,  PackMem_PopEDmacForMemorySuite)          /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)/* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_RegisterEDmacPopCBRForMemorySuite)/* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_SetEDmacForMemorySuite)          /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-
 /** Properties **/
 NSTUB(0xFF05993C, _prop_cleanup)
 NSTUB(0xFF059988, _prop_request_change)

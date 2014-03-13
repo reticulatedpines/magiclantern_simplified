@@ -232,13 +232,6 @@ NSTUB(0xFF1E885C,  msg_queue_receive)                       // might be good (du
 NSTUB(0xFF2A35D4,  ptp_register_handler)                    // might be good (dumps=1, score=38)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
 
-/** PackMem **/
-// NSTUB(    ???,  PackMem_PopEDmacForMemorySuite)          /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)/* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_RegisterEDmacPopCBRForMemorySuite)/* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_SetEDmacForMemorySuite)          /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-
 /** Properties **/
 NSTUB(0xFF05BBE4, _prop_cleanup)                            // might be good (dumps=1, score=42)
 NSTUB(0xFF05B45C, _prop_request_change)                     // might be good (dumps=1, score=1.7e+02)

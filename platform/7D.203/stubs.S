@@ -232,13 +232,6 @@ NSTUB(0xFF205C70,  msg_queue_receive)
 NSTUB(0xFF2885CC,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
 
-/** PackMem **/
-NSTUB(0xFF3D2644,  PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF3D26EC,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF3D275C,  PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF3D24A0,  PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF3D2598,  PackMem_StartEDmac)
-
 /** Properties **/
 NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
 NSTUB(0xFF068734, _prop_cleanup)
@@ -310,7 +303,12 @@ NSTUB(0xFF209670,  vsnprintf)
 ///NSTUB(0xFF35AC90,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF03F4A8,  PD_RemoteRelease)
 ///NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
+///NSTUB(0xFF3D2644,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF3D27CC,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
+///NSTUB(0xFF3D26EC,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+///NSTUB(0xFF3D275C,  PackMem_RegisterEDmacPopCBRForMemorySuite)
+///NSTUB(0xFF3D24A0,  PackMem_SetEDmacForMemorySuite)
+///NSTUB(0xFF3D2598,  PackMem_StartEDmac)
 ///NSTUB(0xFF1F5864,  PopEDmac)
 ///NSTUB(0xFF074410,  PowerMicAmp)
 ///NSTUB(0xFF07A954,  QuickOutIPCTransfer)

@@ -236,13 +236,6 @@ NSTUB(   0x13570,  msg_queue_receive)
 NSTUB(0xFF2A5098,  ptpPropSetUILock)
 NSTUB(0xFF454EB0,  ptp_register_handler)
 
-/** PackMem **/
-NSTUB(0xFF5EE984,  PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF5EEA54,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF5EEAF0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF5EE768,  PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF5EE87C,  PackMem_StartEDmac)
-
 /** Properties **/
 NSTUB(0xFF11EFF4, _prop_cleanup)
 NSTUB(0xFF11E96C, _prop_request_change)
@@ -307,6 +300,11 @@ NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by e
 ///NSTUB(0x000088D0, GetSizeOfMemoryChunk)
 ///NSTUB(0x00008C08, GetSizeOfMemorySuite)
 ///NSTUB(0xFF1001C0,  PD_RemoteRelease)
+///NSTUB(0xFF5EE984,  PackMem_PopEDmacForMemorySuite)
+///NSTUB(0xFF5EEA54,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+///NSTUB(0xFF5EEAF0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
+///NSTUB(0xFF5EE768,  PackMem_SetEDmacForMemorySuite)
+///NSTUB(0xFF5EE87C,  PackMem_StartEDmac)
 ///NSTUB(0xFF3B65D0, PlayMain_handler_bad) // Maybe used when touch disabled??
 ///NSTUB(0xFF542BA0, PlayMovieGuideApp_handler_bad) // Maybe used when touch disabled??
 ///NSTUB(   0x1192C,  PopEDmac)                                // Xref: PackMem_PopEDmacForMemorySuite

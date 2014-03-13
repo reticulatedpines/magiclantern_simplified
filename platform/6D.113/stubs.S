@@ -238,13 +238,6 @@ NSTUB(0xFFCF9D14 - RAM_OFFSET,  msg_queue_receive)
 NSTUB(0xFF292A24,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
 
-/** PackMem **/
-NSTUB(0xFF612998,  PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF612A68,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF612B04,  PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF61277C,  PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF612890,  PackMem_StartEDmac)
-
 /** Properties **/
 NSTUB(0xFF1319CC,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF1303BC, _prop_cleanup)
@@ -317,7 +310,12 @@ NSTUB(0xFFCFB688 - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF31E2A4,  MuteOn_0)
 ///NSTUB(0xFF10ACAC,  PD_RemoteRelease)                        // string: "COM_RemoteRelease:%lx, %lx"
 ///NSTUB(0xFF1304DC,  PROP_GetMulticastProperty)
+///NSTUB(0xFF612998,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF612BA0,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
+///NSTUB(0xFF612A68,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+///NSTUB(0xFF612B04,  PackMem_RegisterEDmacPopCBRForMemorySuite)
+///NSTUB(0xFF61277C,  PackMem_SetEDmacForMemorySuite)
+///NSTUB(0xFF612890,  PackMem_StartEDmac)
 ///NSTUB(0xFF55D170,  PlayQMenu_handler)
 ///NSTUB(0xFFCF7C04 - RAM_OFFSET,  PopEDmac)
 ///NSTUB(0xFF143D0C,  PowerMicAmp)
