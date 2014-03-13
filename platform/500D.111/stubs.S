@@ -238,6 +238,9 @@ NSTUB(0xFF059AA4, _prop_get_value)
 NSTUB(0xFF059988, _prop_request_change)
 NSTUB(0xFF0597E0,  prop_deliver)
 NSTUB(0xFF059868,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"
+// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  PROP_GetMulticastProperty)               /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF1A0D44,  AcquireRecursiveLock)
@@ -362,8 +365,6 @@ NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg
 // NSTUB(    ???,  OlcAFFrameApp_handler)                   /* present on 7D.203, 60D.111, 5D2.212 */
 // NSTUB(    ???,  PD_GetBatteryPower)                      /* present on 600D.102 */
 // NSTUB(    ???,  PD_RemoteRelease)                        /* present on 7D.203, 6D.113, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
-// NSTUB(    ???,  PROP_GetMulticastProperty)               /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  PackMem_RegisterEDmacAbortCBRForMemorySuite)/* present on 7D.203, 6D.113, EOSM.202 */
 // NSTUB(    ???,  PlayQMenu_handler)                       /* present on 6D.113 */
 // NSTUB(    ???,  PlayWaveData)                            /* present on 550D.109 */
@@ -432,7 +433,6 @@ NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */

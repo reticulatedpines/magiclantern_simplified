@@ -233,12 +233,15 @@ NSTUB(0xFF576348,  PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF57645C,  PackMem_StartEDmac)
 
 /** Properties **/
+NSTUB(0xFF12523C,  PROPAD_GetPropertyData)
+NSTUB(0xFF123DE4,  PROP_GetMulticastProperty)
 NSTUB(0xFF123C88, _prop_cleanup)
 NSTUB(0xFF123DE4, _prop_get_value)                          // unsafe
 NSTUB(0xFF123600, _prop_request_change)
 NSTUB(0xFF123BBC,  prop_deliver)
 NSTUB(0xFF12340C,  prop_register_slave)
 // NSTUB(    ???,  prop_get_value)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF9F3900 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
@@ -279,8 +282,6 @@ NSTUB(0xFF9ECD70 - RAM_OFFSET,  task_trampoline)
 
 /** Misc **/
 NSTUB(0xFF135F10,  LoadCalendarFromRTC)
-NSTUB(0xFF12523C,  PROPAD_GetPropertyData)
-NSTUB(0xFF123DE4,  PROP_GetMulticastProperty)
 NSTUB(0xFFA02C54 - RAM_OFFSET,  post_isr_hook)
 NSTUB(0xFFA02C50 - RAM_OFFSET,  pre_isr_hook)
 NSTUB(0xFF9F4F3C - RAM_OFFSET,  vsnprintf)
@@ -428,7 +429,6 @@ NSTUB(0xFF9F4F3C - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  oneshot_timer)                           /* present on 7D.203, 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
 // NSTUB(    ???,  prop_request_icu_auto_poweroff)          /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */

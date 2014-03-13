@@ -236,11 +236,14 @@ NSTUB(0xFF29352C,  ptp_register_handler)
 // NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** Properties **/
+NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
+NSTUB(0xFF05B210,  PROP_GetMulticastProperty)
 NSTUB(0xFF05B178, _prop_cleanup)
 NSTUB(0xFF05B210, _prop_get_value)
 NSTUB(0xFF05A9F0, _prop_request_change)
 NSTUB(0xFF05AFD0,  prop_deliver)
 NSTUB(0xFF05B058,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF1D6E24,  AcquireRecursiveLock)
@@ -294,8 +297,6 @@ NSTUB(0xFF067B68,  LoadCalendarFromRTC)
 NSTUB(0xFF1CD340,  MuteOff_0)
 NSTUB(0xFF1CD2F8,  MuteOn_0)
 NSTUB(0xFF382A0C,  OlcAFFrameApp_handler)
-NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
-NSTUB(0xFF05B210,  PROP_GetMulticastProperty)
 NSTUB(0xFF382E30,  StartShootOlcAFFrameApp)
 NSTUB(0xFF4838C8,  StartShootOlcMeteringApp)
 NSTUB(0xFF5ADA3C,  audio_thresholds)                        // after ptr to "ALVFactorySemSignature"
@@ -435,7 +436,6 @@ NSTUB(0xFF1DA530,  vsnprintf)
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
 // NSTUB(    ???,  prop_request_icu_auto_poweroff)          /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */

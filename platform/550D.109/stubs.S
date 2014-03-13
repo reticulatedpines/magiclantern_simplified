@@ -238,11 +238,14 @@ NSTUB(0xFF250BF0,  ptp_register_handler)
 // NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** Properties **/
+NSTUB(0xFF058284,  PROPAD_GetPropertyData)
+NSTUB(0xFF057654,  PROP_GetMulticastProperty)
 NSTUB(0xFF0575C0, _prop_cleanup)
 NSTUB(0xFF057654, _prop_get_value)
 NSTUB(0xFF056E38, _prop_request_change)
 NSTUB(0xFF057418,  prop_deliver)
 NSTUB(0xFF0574A0,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF1D2EA8,  AcquireRecursiveLock)
@@ -301,8 +304,6 @@ NSTUB(0xFF06366C,  LoadCalendarFromRTC)
 NSTUB(0xFF1C98A8,  MuteOff_0)
 NSTUB(0xFF1C9860,  MuteOn_0)
 NSTUB(0xFF03B3D8,  PD_RemoteRelease)
-NSTUB(0xFF058284,  PROPAD_GetPropertyData)
-NSTUB(0xFF057654,  PROP_GetMulticastProperty)
 NSTUB(0xFF064EB8,  PlayWaveData)                            // args: sampling rate, bit, channel, size maybe; wav data ptr is at 0x26F8
 NSTUB(0xFF1A16D0,  ReadyLiveViewDevice)
 NSTUB(0xFF13F7B4,  RemoteRelease)
@@ -448,7 +449,6 @@ NSTUB(0xFFFFAF20,  write_bootflags_to_card)
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */
 // NSTUB(    ???,  send_audio)                              /* present on 650D.104, EOSM.202 */
 // NSTUB(    ???,  set_brightness_registers)                /* present on 7D.203 */

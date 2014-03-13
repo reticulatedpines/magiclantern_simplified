@@ -250,11 +250,14 @@ NSTUB(0xFF2A49A0,  ptp_register_handler)
 // NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** Properties **/
+NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
+NSTUB(0xFF05BF04,  PROP_GetMulticastProperty)
 NSTUB(0xFF05BE6C, _prop_cleanup)
 NSTUB(0xFF05BF04, _prop_get_value)
 NSTUB(0xFF05B6E4, _prop_request_change)
 NSTUB(0xFF05BCC4,  prop_deliver)
 NSTUB(0xFF05BD4C,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF1F5D8C,  AcquireRecursiveLock)
@@ -312,8 +315,6 @@ NSTUB(0xFF1E963C,  MuteOff_0)
 NSTUB(0xFF1E95F4,  MuteOn_0)
 NSTUB(0xFF039D4C,  PD_GetBatteryPower)
 NSTUB(0xFF0396E4,  PD_RemoteRelease)
-NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
-NSTUB(0xFF05BF04,  PROP_GetMulticastProperty)
 NSTUB(0xFF14B9E4,  RemoteRelease)
 NSTUB(0xFF072280, _AllocateMemory_do)                       // no err70, malloc structure at 0x3070
 NSTUB(0xFF5DF9A0,  audio_thresholds)                        // find "ALV_Initialize", then pointer to "AudioLevel", thresholds are following array of 41 values
@@ -454,7 +455,6 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */
 // NSTUB(    ???,  send_audio)                              /* present on 650D.104, EOSM.202 */
 // NSTUB(    ???,  set_brightness_registers)                /* present on 7D.203 */

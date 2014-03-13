@@ -229,11 +229,14 @@ NSTUB(0xFF3D24A0,  PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF3D2598,  PackMem_StartEDmac)
 
 /** Properties **/
+NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
+NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
 NSTUB(0xFF068734, _prop_cleanup)
 NSTUB(0xFF0687C8, _prop_get_value)
 NSTUB(0xFF067FAC, _prop_request_change)
 NSTUB(0xFF06858C,  prop_deliver)
 NSTUB(0xFF068614,  prop_register_slave)
+NSTUB(0xFF0686A4,  prop_unregister_slave)
 
 /** Recursive locks **/
 NSTUB(0xFF205FA8,  AcquireRecursiveLock)                    // AJ_KernelDry_KerRLock.c
@@ -297,8 +300,6 @@ NSTUB(0xFF072290,  MuteOff_0)                               // not sure
 NSTUB(0xFF06D6A8,  MuteOn_0)
 NSTUB(0xFF35AC90,  OlcAFFrameApp_handler)
 NSTUB(0xFF03F4A8,  PD_RemoteRelease)
-NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
-NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
 NSTUB(0xFF3D27CC,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
 NSTUB(0xFF074410,  PowerMicAmp)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
@@ -330,7 +331,6 @@ NSTUB(0xFF0AB858,  gui_post_100000a1)
 NSTUB(0xFF07B708,  gui_timer_something)
 NSTUB(0xFF1E0870,  mvrSetDeblockingFilter)
 NSTUB(0xFF078E6C,  oneshot_timer)
-NSTUB(0xFF0686A4,  prop_unregister_slave)
 NSTUB(0xFF20AE48,  register_func)
 NSTUB(0xFF0705E4,  set_brightness_registers)
 NSTUB(0xFF0640EC,  sounddev_active_in)

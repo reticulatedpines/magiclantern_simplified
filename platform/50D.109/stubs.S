@@ -238,11 +238,14 @@ NSTUB(0xFF9ED888,  ptp_register_handler)                    // d
 // NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** Properties **/
+NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
+NSTUB(0xFF8599E0,  PROP_GetMulticastProperty)
 NSTUB(0xFF859860, _prop_cleanup)
 NSTUB(0xFF8599E0, _prop_get_value)                          // d
 NSTUB(0xFF8598C4, _prop_request_change)                     // d
 NSTUB(0xFF859704,  prop_deliver)                            // d
 NSTUB(0xFF85978C,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"							// d
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF98AD28,  AcquireRecursiveLock)
@@ -301,8 +304,6 @@ NSTUB(0xFF834B04,  LVCAF_LensDriveStart)                    // d
 NSTUB(0xFF86334C,  LoadCalendarFromRTC)
 NSTUB(0xFF85DDDC,  MuteOff_0)                               // not quite the same as in other cameras, but should work
 NSTUB(0xFF85DD98,  MuteOn_0)                                // idem
-NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
-NSTUB(0xFF8599E0,  PROP_GetMulticastProperty)
 NSTUB(0xFF90EC2C,  RemoteRelease)
 NSTUB(0xFFBE75DC,  StartFactoryMenuApp)
 NSTUB(0xFF853250,  TH_asif_initialize)
@@ -441,7 +442,6 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */
 // NSTUB(    ???,  send_audio)                              /* present on 650D.104, EOSM.202 */
 // NSTUB(    ???,  set_brightness_registers)                /* present on 7D.203 */

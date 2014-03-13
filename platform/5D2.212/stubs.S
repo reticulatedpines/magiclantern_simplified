@@ -229,11 +229,14 @@ NSTUB(0xFFA0FED8,  ptp_register_handler)
 // NSTUB(    ???,  PackMem_StartEDmac)                      /* present on 7D.203, 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** Properties **/
+NSTUB(0xFF85FD3C,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
+NSTUB(0xFF85F344,  PROP_GetMulticastProperty)
 NSTUB(0xFF85F1C4, _prop_cleanup)
 NSTUB(0xFF85F344, _prop_get_value)
 NSTUB(0xFF85F228, _prop_request_change)
 NSTUB(0xFF85F068,  prop_deliver)
 NSTUB(0xFF85F0F0,  prop_register_slave)
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF9B3E68,  AcquireRecursiveLock)
@@ -294,8 +297,6 @@ NSTUB(0xFF86438C,  MuteOff_0)
 NSTUB(0xFF864358,  MuteOn_0)
 NSTUB(0xFFAC7AC8,  OlcAFFrameApp_handler)
 NSTUB(0xFF83C1E4,  PD_RemoteRelease)
-NSTUB(0xFF85FD3C,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
-NSTUB(0xFF85F344,  PROP_GetMulticastProperty)
 NSTUB(0xFF92EEB8,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF92EBDC,  RemoteRelease)
 NSTUB(0xFFBFB8B0,  StartFactoryMenuApp)                     // Ambiguous match. Found matches: ffbfb8b0/15, ffbfb860/5.1
@@ -428,7 +429,6 @@ NSTUB(0xFF9B7324,  vsnprintf)
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  register_interrupt)                      /* present on 6D.113, 1100D.105 */

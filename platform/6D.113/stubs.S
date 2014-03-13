@@ -238,11 +238,14 @@ NSTUB(0xFF61277C,  PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF612890,  PackMem_StartEDmac)
 
 /** Properties **/
+NSTUB(0xFF1319CC,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
+NSTUB(0xFF1304DC,  PROP_GetMulticastProperty)
 NSTUB(0xFF1303BC, _prop_cleanup)
 NSTUB(0xFF1304DC, _prop_get_value)                          // unsafe?
 NSTUB(0xFF12FD74, _prop_request_change)
 NSTUB(0xFF1302F0,  prop_deliver)
 NSTUB(0xFF12FB84,  prop_register_slave)
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFFCFA04C - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
@@ -294,8 +297,6 @@ NSTUB(0xFFCF8BE4 - RAM_OFFSET,  MREQ_ISR)
 NSTUB(0xFF31E2EC,  MuteOff_0)
 NSTUB(0xFF31E2A4,  MuteOn_0)
 NSTUB(0xFF10ACAC,  PD_RemoteRelease)                        // string: "COM_RemoteRelease:%lx, %lx"
-NSTUB(0xFF1319CC,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
-NSTUB(0xFF1304DC,  PROP_GetMulticastProperty)
 NSTUB(0xFF612BA0,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
 NSTUB(0xFF55D170,  PlayQMenu_handler)
 NSTUB(0xFF143D0C,  PowerMicAmp)
@@ -438,7 +439,6 @@ NSTUB(0xFFCFB688 - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  oneshot_timer)                           /* present on 7D.203, 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
 // NSTUB(    ???,  prop_request_icu_auto_poweroff)          /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  send_audio)                              /* present on 650D.104, EOSM.202 */

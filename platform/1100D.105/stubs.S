@@ -237,6 +237,9 @@ NSTUB(0xFF05BC7C, _prop_get_value)                          // might be good (du
 NSTUB(0xFF05B45C, _prop_request_change)                     // might be good (dumps=1, score=1.7e+02)
 NSTUB(0xFF05BA3C,  prop_deliver)                            // might be good (dumps=1, score=44)
 NSTUB(0xFF05BAC4,  prop_register_slave)                     // might be good (dumps=1, score=39)
+// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  PROP_GetMulticastProperty)               /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** Recursive locks **/
 NSTUB(0xFF1E8B94,  AcquireRecursiveLock)                    // might be good (dumps=1, score=14)
@@ -360,8 +363,6 @@ NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (du
 // NSTUB(    ???,  MasterExecute)                           /* present on 7D.203 */
 // NSTUB(    ???,  OlcAFFrameApp_handler)                   /* present on 7D.203, 60D.111, 5D2.212 */
 // NSTUB(    ???,  PD_GetBatteryPower)                      /* present on 600D.102 */
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
-// NSTUB(    ???,  PROP_GetMulticastProperty)               /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  PackMem_RegisterEDmacAbortCBRForMemorySuite)/* present on 7D.203, 6D.113, EOSM.202 */
 // NSTUB(    ???,  PlayQMenu_handler)                       /* present on 6D.113 */
 // NSTUB(    ???,  PlayWaveData)                            /* present on 550D.109 */
@@ -433,7 +434,6 @@ NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (du
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 // NSTUB(    ???,  prop_change__DispType)                   /* present on 500D.111 */
-// NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  send_audio)                              /* present on 650D.104, EOSM.202 */
