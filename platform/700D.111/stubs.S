@@ -180,10 +180,10 @@ NSTUB(0xFFA65748 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFA65120 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA65EE4 - RAM_OFFSET,  GetNextMemoryChunk)
 NSTUB(0xFFA650C0 - RAM_OFFSET,  GetRemainOfMemoryChunk)
-// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
 //NSTUB(    0x8CE8, GetNumberOfChunks)
 //NSTUB(    0x88D0, GetSizeOfMemoryChunk)
 //NSTUB(    0x8C08, GetSizeOfMemorySuite)
+// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x314F4,  mvr_config)

@@ -323,6 +323,7 @@ NSTUB(0xFF054B8C,  sounddev_active_in)
 NSTUB(0xFF0549E8,  sounddev_task)
 NSTUB(0xFF198194,  vram_get_pos_and_size)
 NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg, near the bottom.  It calls vsnprintf() -- with a buffer size of 0x4C. */
+//NSTUB( 0xFF48E58C, audio_thresholds ) // not present in 500D - see audio.c (thank you alex).
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
@@ -413,7 +414,6 @@ NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg
 // NSTUB(    ???,  asifAIntDmaDac)                          /* present on 6D.113 */
 // NSTUB(    ???,  asifAStopDmaAdc)                         /* present on 6D.113 */
 // NSTUB(    ???,  asifAStopDmaDac)                         /* present on 6D.113 */
-//NSTUB( 0xFF48E58C, audio_thresholds ) // not present in 500D - see audio.c (thank you alex).
 // NSTUB(    ???,  copy_malloc_info_maybe)                  /* present on 6D.113 */
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  dialog_something_1)                      /* present on 550D.109 */

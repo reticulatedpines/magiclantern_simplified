@@ -192,13 +192,13 @@ NSTUB(0xFF076704,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF073B98,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF0735E0,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF07432C,  GetNextMemoryChunk)
-// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 //NSTUB(0xFF073910, GetNumberOfChunks)
 //NSTUB(0xFF073580, GetRemainOfMemoryChunk)
 //NSTUB(0xFF0735B0, GetSizeOfMemoryChunk)
 //NSTUB(0xFF0738AC, GetSizeOfMemorySuite)
+// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
+// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** H264 Encoder **/
 NSTUB(    0x6290,  mvr_config)
@@ -344,17 +344,19 @@ NSTUB(0xFF057BE0,  sounddev_active_in)                      // "SoundDevActiveIn
 NSTUB(0xFF057774,  sounddev_task)                           // "[SND] _SoundDeviceTask"
 NSTUB(0xFF1E7C04,  vram_get_pos_and_size)
 NSTUB(0xFF1F94BC,  vsnprintf)
+//NSTUB( 0xFF34B724, AJ_guess_LED_OFF )
+//NSTUB( 0xFF34B6F4, AJ_guess_LED_ON )   // led for SD/CF read and write ops
+//NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
+//NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
+// NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
+// NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )               // not found
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
-//NSTUB( 0xFF34B724, AJ_guess_LED_OFF )
-//NSTUB( 0xFF34B6F4, AJ_guess_LED_ON )   // led for SD/CF read and write ops
 // NSTUB(    ???,  AsyncEnableImagePhysicalScreenParameter) /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  BeginMovieRecSequence)                   /* present on 50D.109, 5D2.212 */
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
-//NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
-//NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  CreateBinarySemaphore)                   /* present on 60D.111 */
 // NSTUB(    ???,  DeadViewLevelApp_handler)                /* present on 6D.113 */
 // NSTUB(    ???,  DebugMsg)                                /* present on 1100D.105 */
@@ -393,7 +395,6 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 // NSTUB(    ???,  PtpPropButtonSW1)                        /* present on 1100D.105 */
 // NSTUB(    ???,  PtpPropButtonSW2)                        /* present on 1100D.105 */
 // NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
-// NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  SIO3_ISR)                                /* present on 6D.113, 1100D.105 */
@@ -407,7 +408,6 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 // NSTUB(    ???,  SetOutputTypeByPressInfoToStorage)       /* present on 500D.111 */
 // NSTUB(    ???,  SetVolumeInVolume)                       /* present on 7D.203 */
 // NSTUB(    ???,  SetWindCutMode)                          /* present on 7D.203 */
-// NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )               // not found
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  SoundDevActiveOut)                       /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  SoundDevLock)                            /* present on 7D.203 */

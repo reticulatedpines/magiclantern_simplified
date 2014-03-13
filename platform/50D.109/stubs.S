@@ -333,6 +333,16 @@ NSTUB(0xFF90EDE8,  ptpPropButtonSW2)
 NSTUB(0xFF98F96C,  register_func)                           // d
 NSTUB(0xFF983B98,  vram_get_pos_and_size)
 NSTUB(0xFF98E1E4,  vsnprintf)                               // d
+//NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
+//NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
+//NSTUB(0xFF8527B0, SetSamplingRate_bad )
+//NSTUB( 0xFF17BF94, mvrSetGopOptSizeFULLHD )
+//NSTUB( 0xFF17BFDC, mvrSetGopOptSizeHD )
+//NSTUB( 0xFF17C024, mvrSetGopOptSizeVGA )
+//NSTUB( 0xFF17BF24, mvrSetHDOptSize )
+//NSTUB( 0x2348	 , sounddev )                    // in sounddev_task								//d
+//NSTUB( 0xff855b68, sounddev_active_in )
+//NSTUB( 0xff855778, sounddev_task )
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
@@ -342,8 +352,6 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
 // NSTUB(    ???,  CancelBottomInfoDispTimer)               /* present on 60D.111, 600D.102, 550D.109 */
 // NSTUB(    ???,  ChangeColorPalette)                      /* present on 500D.111, 5D2.212, 600D.102, 550D.109, 1100D.105 */
-//NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
-//NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
 // NSTUB(    ???,  CreateBinarySemaphore)                   /* present on 60D.111 */
 // NSTUB(    ???,  DeadViewLevelApp_handler)                /* present on 6D.113 */
 // NSTUB(    ???,  DebugMsg)                                /* present on 1100D.105 */
@@ -391,7 +399,6 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 // NSTUB(    ???,  SetFilterRec)                            /* present on 7D.203, 6D.113 */
 // NSTUB(    ???,  SetImagePass_x5)                         /* present on 550D.109 */
 // NSTUB(    ???,  SetOutputTypeByPressInfoToStorage)       /* present on 500D.111 */
-//NSTUB(0xFF8527B0, SetSamplingRate_bad )
 // NSTUB(    ???,  SetVolumeInVolume)                       /* present on 7D.203 */
 // NSTUB(    ???,  SetWindCutMode)                          /* present on 7D.203 */
 // NSTUB(    ???,  SleepLiveViewDevice)                     /* present on 550D.109 */
@@ -431,10 +438,6 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
-//NSTUB( 0xFF17BF94, mvrSetGopOptSizeFULLHD )
-//NSTUB( 0xFF17BFDC, mvrSetGopOptSizeHD )
-//NSTUB( 0xFF17C024, mvrSetGopOptSizeVGA )
-//NSTUB( 0xFF17BF24, mvrSetHDOptSize )
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 // NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
@@ -445,9 +448,6 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 // NSTUB(    ???,  set_brightness_registers)                /* present on 7D.203 */
 // NSTUB(    ???,  set_fps_maybe)                           /* present on 5D2.212 */
 // NSTUB(    ???,  set_lv_stuff_to_win_system__maybe)       /* present on 500D.111 */
-//NSTUB( 0x2348	 , sounddev )                    // in sounddev_task								//d
-//NSTUB( 0xff855b68, sounddev_active_in )
-//NSTUB( 0xff855778, sounddev_task )
 // NSTUB(    ???,  struct_1e774_0x40_something)             /* present on 550D.109 */
 // NSTUB(    ???,  winsys_struct_1e774_clr_0x30)            /* present on 550D.109 */
 // NSTUB(    ???,  winsys_struct_1e774_set_0x30)            /* present on 550D.109 */

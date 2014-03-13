@@ -345,16 +345,19 @@ NSTUB(0xFF1D6638,  vsnprintf)
 NSTUB(0xFF2CFB08,  winsys_struct_1e774_clr_0x30)
 NSTUB(0xFF2CFB18,  winsys_struct_1e774_set_0x30)
 NSTUB(0xFFFFAF20,  write_bootflags_to_card)
-// NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
 //NSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
 //NSTUB( 0xFF2DF524, AJ_guess_LED_ON )
+//NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
+//NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
+// NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
+//NSTUB(0xFF052114,  SetNextASIFADCBuffer_idk1)
+//NSTUB(0xFF052088,  SetNextASIFADCBuffer_idk2)
+// NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
 // NSTUB(    ???,  AfCtrl_SetLensParameterRemote)           /* present on 600D.102 */
 // NSTUB(    ???,  AsyncEnableImagePhysicalScreenParameter) /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  BeginMovieRecSequence)                   /* present on 50D.109, 5D2.212 */
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
-//NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
-//NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  CreateBinarySemaphore)                   /* present on 60D.111 */
 // NSTUB(    ???,  DeadViewLevelApp_handler)                /* present on 6D.113 */
 // NSTUB(    ???,  DebugMsg)                                /* present on 1100D.105 */
@@ -383,7 +386,6 @@ NSTUB(0xFFFFAF20,  write_bootflags_to_card)
 // NSTUB(    ???,  MREQ_ISR)                                /* present on 6D.113, 1100D.105 */
 // NSTUB(    ???,  MasterExecute)                           /* present on 7D.203 */
 // NSTUB(    ???,  OlcAFFrameApp_handler)                   /* present on 7D.203, 60D.111, 5D2.212 */
-// NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 // NSTUB(    ???,  PackMem_RegisterEDmacAbortCBRForMemorySuite)/* present on 7D.203, 6D.113, EOSM.202 */
 // NSTUB(    ???,  PlayQMenu_handler)                       /* present on 6D.113 */
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 7D.203, 6D.113, EOSM.202 */
@@ -400,8 +402,6 @@ NSTUB(0xFFFFAF20,  write_bootflags_to_card)
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SetDisplayDlgLV)                         /* present on 6D.113 */
 // NSTUB(    ???,  SetFilterRec)                            /* present on 7D.203, 6D.113 */
-//NSTUB(0xFF052114,  SetNextASIFADCBuffer_idk1)
-//NSTUB(0xFF052088,  SetNextASIFADCBuffer_idk2)
 // NSTUB(    ???,  SetOutputTypeByPressInfoToStorage)       /* present on 500D.111 */
 // NSTUB(    ???,  SetVolumeInVolume)                       /* present on 7D.203 */
 // NSTUB(    ???,  SetWindCutMode)                          /* present on 7D.203 */

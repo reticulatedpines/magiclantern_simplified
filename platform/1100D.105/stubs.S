@@ -174,13 +174,13 @@ NSTUB(0xFF074C80,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF072114,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF071B5C,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF0728A8,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 //NSTUB(0xff071e8c, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
 //NSTUB(0xff071afc, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
 //NSTUB(0xff071b2c, GetSizeOfMemoryChunk) // AJ_PackMemory_IsChunkSignature
 //NSTUB(0xff071e28, GetSizeOfMemorySuite)
+// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
+// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
@@ -319,11 +319,12 @@ NSTUB(0xFF0579DC,  sounddev_active_in)
 NSTUB(0xFF057570,  sounddev_task)                           // might be good (dumps=1, score=8.2)
 NSTUB(0xFF1DAB90,  vram_get_pos_and_size)
 NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (dumps=1, score=9.5)
+//NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
+//NSTUB(0xff35abc4, ErrCardApp_handler) Unused
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
 // NSTUB(    ???,  AfCtrl_SetLensParameterRemote)           /* present on 600D.102 */
-//NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 // NSTUB(    ???,  AsyncEnableImagePhysicalScreenParameter) /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  BeginMovieRecSequence)                   /* present on 50D.109, 5D2.212 */
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
@@ -336,7 +337,6 @@ NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (du
 // NSTUB(    ???,  EndMovieRecSequence)                     /* present on 50D.109 */
 // NSTUB(    ???,  EngDrvIn)                                /* present on 60D.111 */
 // NSTUB(    ???,  EngDrvOut)                               /* present on 7D_MASTER.203 */
-//NSTUB(0xff35abc4, ErrCardApp_handler) Unused
 // NSTUB(    ???,  GUI_CONTROL)                             /* present on 550D.109 */
 // NSTUB(    ???,  GUI_Control_Post)                        /* present on 60D.111 */
 // NSTUB(    ???,  GUI_GetCFnForTab4)                       /* present on 7D.203 */

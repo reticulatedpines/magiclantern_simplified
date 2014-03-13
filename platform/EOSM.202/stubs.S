@@ -41,6 +41,7 @@
 //FIND
 //Unused
 
+
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB(0xFF0C1C10,  cstart)
@@ -134,17 +135,17 @@ NSTUB(0xFF6FBD44,  LiveViewShutterApp_handler)
 NSTUB(0xFF3BC078,  PlayMain_handler)
 NSTUB(0xFF5540E4,  PlayMovieGuideApp_handler)
 NSTUB(0xFF541BD4,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
-// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 	//NSTUB(0xff658aa8, LiveViewLevelApp_handler)
 	//NSTUB(0xFF623240, LiveViewWbApp_handler)
+// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 
 /** Display **/
+//NSTUB(0xFF5B6688, lvae_setdispgain)
 // NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  dispcheck)                               /* present on 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
-//NSTUB(0xFF5B6688, lvae_setdispgain)
 
 /** EDMAC **/
 NSTUB(0xFFA85FF0 - RAM_OFFSET,  AbortEDmac)
@@ -187,11 +188,11 @@ NSTUB(0xFF13B924,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFA72C98 - RAM_OFFSET,  GetFirstChunkFromSuite)     // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA72670 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
-// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
 //NSTUB(0xFFA721A4 - RAM_OFFSET, GetNumberOfChunks)
 //NSTUB(0xFFA71D5C - RAM_OFFSET, GetRemainOfMemoryChunk)
 //NSTUB(0xFFA71D8C - RAM_OFFSET, GetSizeOfMemoryChunk)
 //NSTUB(0xFFA720C4 - RAM_OFFSET, GetSizeOfMemorySuite)
+// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x4C124,  mvr_config)
@@ -284,8 +285,8 @@ NSTUB(0xFFA758F0 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF334A98,  touch_cbr_canon)
 
 /** VRAM **/
-// NSTUB(    ???,  vram_get_number)                         /* present on 7D.203, 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
 //NSTUB(   0x8D330, vram_info)
+// NSTUB(    ???,  vram_get_number)                         /* present on 7D.203, 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
 
 /** Misc **/
 NSTUB(   0x3E46C,  sounddev)
@@ -304,6 +305,29 @@ NSTUB(0xFFAA7758 - RAM_OFFSET,  pre_isr_hook)
 NSTUB(0xFF133DC0,  send_audio)
 NSTUB(0xFF10CD40,  sounddev_task)
 NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
+//NSTUB(0xFF19991C, ENCODE_StartEncodeJpeg)
+//NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
+//NSTUB(0x35700, MREQ_ISR)
+//NSTUB(0xFF0E5808, MVR_NotifyLvFrameTiming)
+//NSTUB(0xFF32D348, MuteOff_0)
+//NSTUB(0xFF32D300, MuteOn_0)
+//NSTUB(0xFF101E04, PD_RemoteRelease)
+//NSTUB(0x35784, SIO3_ISR)
+//NSTUB(0xFF2BFAEC, SetNextASIFDACBuffer_1) // Int16 Direct Control
+//NSTUB(0xFF2BF578, StartASIFDMADAC_1)  //~ Direct
+//NSTUB(0xFF111D74, StartASIFDMADAC_2)  //~ SePlayStart
+//NSTUB(0xFF10AC98, StopASIFDMADAC_1)   //~ NormalStopAsif
+//NSTUB(0xFF2BF754, StopASIFDMADAC_2)   //~ ACTRL Direct
+//NSTUB(0xFF4743D0, StopASIFDMADAC_3)   //~ AsifStopCBR
+//NSTUB(0xFF133CA0, StopASIFDMADAC_4)   //~ StopPlayWavData
+//NSTUB(0xFF111EE4, StopASIFDMADAC_5)   //~ TouchSoundSePlayStop
+//NSTUB(0xFF111D10, StopASIFDMADAC_6)   //~ SeTerminate
+	//NSTUB(0xFF339938, StopASIFDMADAC_7)   //~ Call Play Stop
+//NSTUB(0xFF143C18, copy_malloc_info_maybe)
+//NSTUB(0xFF3463F8, i2c_read_bad)
+//NSTUB(0xFF3420F4, register_func)
+//NSTUB(0x8FE4, register_interrupt)
+		//NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
@@ -317,7 +341,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  CreateBinarySemaphore)                   /* present on 60D.111 */
 // NSTUB(    ???,  DeadViewLevelApp_handler)                /* present on 6D.113 */
 // NSTUB(    ???,  DebugMsg)                                /* present on 1100D.105 */
-//NSTUB(0xFF19991C, ENCODE_StartEncodeJpeg)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  EndMovieRecSequence)                     /* present on 50D.109 */
 // NSTUB(    ???,  EngDrvIn)                                /* present on 60D.111 */
@@ -338,7 +361,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  GuiEdLedOff)                             /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GuiEdLedOn)                              /* present on 7D.203, 500D.111, 50D.109, 5D2.212, 550D.109 */
 // NSTUB(    ???,  GuiSetAutoBrightness)                    /* present on 6D.113, 5D2.212 */
-//NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
 // NSTUB(    ???,  HideBottomInfoDisp_maybe)                /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  IvaParamMode)                            /* present on 6D.113 */
 // NSTUB(    ???,  LVCAF_LensDriveStart)                    /* present on 50D.109, 5D2.212, 550D.109 */
@@ -346,14 +368,9 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  LV_EX_Y)                                 /* present on 500D.111, 600D.102, 550D.109 */
 // NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
-//NSTUB(0x35700, MREQ_ISR)
-//NSTUB(0xFF0E5808, MVR_NotifyLvFrameTiming)
 // NSTUB(    ???,  MasterExecute)                           /* present on 7D.203 */
-//NSTUB(0xFF32D348, MuteOff_0)
-//NSTUB(0xFF32D300, MuteOn_0)
 // NSTUB(    ???,  OlcAFFrameApp_handler)                   /* present on 7D.203, 60D.111, 5D2.212 */
 // NSTUB(    ???,  PD_GetBatteryPower)                      /* present on 600D.102 */
-//NSTUB(0xFF101E04, PD_RemoteRelease)
 // NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  PROP_GetMulticastProperty)               /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  PlayQMenu_handler)                       /* present on 6D.113 */
@@ -366,7 +383,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RemoteRelease)                           /* present on 7D.203, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
-//NSTUB(0x35784, SIO3_ISR)
 // NSTUB(    ???,  SamplingParamInRate)                     /* present on 7D.203 */
 // NSTUB(    ???,  SelectMic)                               /* present on 6D.113 */
 // NSTUB(    ???,  SerialCommand_Send)                      /* present on 6D.113 */
@@ -374,7 +390,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  SetDisplayDlgLV)                         /* present on 6D.113 */
 // NSTUB(    ???,  SetFilterRec)                            /* present on 7D.203, 6D.113 */
 // NSTUB(    ???,  SetImagePass_x5)                         /* present on 550D.109 */
-//NSTUB(0xFF2BFAEC, SetNextASIFDACBuffer_1) // Int16 Direct Control
 // NSTUB(    ???,  SetOutputTypeByPressInfoToStorage)       /* present on 500D.111 */
 // NSTUB(    ???,  SetVolumeInVolume)                       /* present on 7D.203 */
 // NSTUB(    ???,  SetWindCutMode)                          /* present on 7D.203 */
@@ -383,20 +398,11 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  SoundDevStartIn)                         /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevStopIn)                          /* present on 7D.203, 6D.113, 650D.104 */
 // NSTUB(    ???,  SoundDevStopOut)                         /* present on 7D.203, 650D.104 */
-//NSTUB(0xFF2BF578, StartASIFDMADAC_1)  //~ Direct
-//NSTUB(0xFF111D74, StartASIFDMADAC_2)  //~ SePlayStart
 // NSTUB(    ???,  StartFactoryMenuApp)                     /* present on 50D.109, 5D2.212 */
 // NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  StartShootInfoApp)                       /* present on 550D.109 */
 // NSTUB(    ???,  StartShootOlcAFFrameApp)                 /* present on 60D.111 */
 // NSTUB(    ???,  StartShootOlcMeteringApp)                /* present on 60D.111 */
-//NSTUB(0xFF10AC98, StopASIFDMADAC_1)   //~ NormalStopAsif
-//NSTUB(0xFF2BF754, StopASIFDMADAC_2)   //~ ACTRL Direct
-//NSTUB(0xFF4743D0, StopASIFDMADAC_3)   //~ AsifStopCBR
-//NSTUB(0xFF133CA0, StopASIFDMADAC_4)   //~ StopPlayWavData
-//NSTUB(0xFF111EE4, StopASIFDMADAC_5)   //~ TouchSoundSePlayStop
-//NSTUB(0xFF111D10, StopASIFDMADAC_6)   //~ SeTerminate
-	//NSTUB(0xFF339938, StopASIFDMADAC_7)   //~ Call Play Stop
 // NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  StopShootInfoApp)                        /* present on 550D.109 */
 // NSTUB(    ???,  TH_asif_initialize)                      /* present on 50D.109 */
@@ -410,7 +416,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  asifAIntDmaDac)                          /* present on 6D.113 */
 // NSTUB(    ???,  asifAStopDmaAdc)                         /* present on 6D.113 */
 // NSTUB(    ???,  asifAStopDmaDac)                         /* present on 6D.113 */
-//NSTUB(0xFF143C18, copy_malloc_info_maybe)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  dialog_something_1)                      /* present on 550D.109 */
 // NSTUB(    ???,  dmstart)                                 /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
@@ -432,7 +437,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  hotplug_struct)                          /* present on 500D.111, 60D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  hotplug_task)                            /* present on 500D.111, 60D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  hotplug_usb_buf)                         /* present on 500D.111, 60D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
-//NSTUB(0xFF3463F8, i2c_read_bad)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
@@ -455,10 +459,7 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 // NSTUB(    ???,  ptpPropButtonSW1)                        /* present on 50D.109, 600D.102, 550D.109 */
 // NSTUB(    ???,  ptpPropButtonSW2)                        /* present on 50D.109, 600D.102, 550D.109 */
-//NSTUB(0xFF3420F4, register_func)
-//NSTUB(0x8FE4, register_interrupt)
 // NSTUB(    ???,  set_brightness_registers)                /* present on 7D.203 */
-		//NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 // NSTUB(    ???,  set_lv_stuff_to_win_system__maybe)       /* present on 500D.111 */
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  struct_1e774_0x40_something)             /* present on 550D.109 */

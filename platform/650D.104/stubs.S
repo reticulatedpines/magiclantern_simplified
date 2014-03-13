@@ -68,9 +68,9 @@ NSTUB(0xFF1BE180,  GUI_GetFirmVersion)
 NSTUB(0xFF1A98E0,  SetGUIRequestMode)                       // xref: SetGUIRequestMode(%d)
 NSTUB(0xFF0D7314,  gui_init_end)
 NSTUB(0xFF0D68CC,  gui_main_task)
-// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109 */
 //NSTUB(0xFF4B12F0, gui_task_create)
 //NSTUB(0xFF4B141C, gui_task_destroy)
+// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109 */
 
 /** ASIF **/
 NSTUB(0xFF133910,  PowerAudioOutput)
@@ -181,10 +181,10 @@ NSTUB(    0x88A0,  GetRemainOfMemoryChunk)
 NSTUB(0xFF13BC20,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13BBD4,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
 NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
-// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
 //NSTUB(0x00008CE8, GetNumberOfChunks)
 //NSTUB(0x000088D0, GetSizeOfMemoryChunk)
 //NSTUB(0x00008C08, GetSizeOfMemorySuite)
+// NSTUB(    ???,  AllocateMemoryResourceForSingleChunk)    /* present on 6D.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x31424,  mvr_config)
@@ -295,6 +295,9 @@ NSTUB(0xFF33E444,  register_func)
 NSTUB(0xFF1326EC,  send_audio)
 NSTUB(0xFF10AEBC,  sounddev_active_in)
 NSTUB(0xFF10A9D0,  sounddev_task)
+//NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
+//NSTUB(0xFF3B65D0, PlayMain_handler_bad) // Maybe used when touch disabled??
+//NSTUB(0xFF542BA0, PlayMovieGuideApp_handler_bad) // Maybe used when touch disabled??
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
@@ -313,7 +316,6 @@ NSTUB(0xFF10A9D0,  sounddev_task)
 // NSTUB(    ???,  EndMovieRecSequence)                     /* present on 50D.109 */
 // NSTUB(    ???,  EngDrvIn)                                /* present on 60D.111 */
 // NSTUB(    ???,  EngDrvOut)                               /* present on 7D_MASTER.203 */
-//NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
 // NSTUB(    ???,  GUI_CONTROL)                             /* present on 550D.109 */
 // NSTUB(    ???,  GUI_Control_Post)                        /* present on 60D.111 */
 // NSTUB(    ???,  GUI_GetCFnForTab4)                       /* present on 7D.203 */
@@ -347,8 +349,6 @@ NSTUB(0xFF10A9D0,  sounddev_task)
 // NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  PROP_GetMulticastProperty)               /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  PackMem_RegisterEDmacAbortCBRForMemorySuite)/* present on 7D.203, 6D.113, EOSM.202 */
-//NSTUB(0xFF3B65D0, PlayMain_handler_bad) // Maybe used when touch disabled??
-//NSTUB(0xFF542BA0, PlayMovieGuideApp_handler_bad) // Maybe used when touch disabled??
 // NSTUB(    ???,  PlayQMenu_handler)                       /* present on 6D.113 */
 // NSTUB(    ???,  PlayWaveData)                            /* present on 550D.109 */
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 7D.203, 6D.113, EOSM.202 */

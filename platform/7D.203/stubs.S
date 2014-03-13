@@ -198,8 +198,8 @@ NSTUB(   0x22938,  cf_device)
 NSTUB(0xFF44EBB0,  cfReadBlk)                               // might be good (dumps=1, score=6.1)  g3gg0: confirmed by debugmsg 'cfReadBlk'
 NSTUB(0xFF3D7798,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
 NSTUB(0xFF454540,  sdReadBlk)                               // g3gg0: confirmed by DebugMsg - but makes no sense on 7D
-// NSTUB(    ???,  sdWriteBlk)                              /* present on 700D.111 */
     //NSTUB(   0x208D8, sd_device)
+// NSTUB(    ???,  sdWriteBlk)                              /* present on 700D.111 */
 
 /** Memory allocation **/
 NSTUB(0xFF07CAC8,  GetMemoryInformation)

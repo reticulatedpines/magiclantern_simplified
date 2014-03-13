@@ -130,8 +130,8 @@ NSTUB(0xFF713774,  LiveViewShutterApp_handler)
 NSTUB(0xFF3A1970,  PlayMain_handler)
 NSTUB(0xFF558BC0,  PlayMovieGuideApp_handler)
 NSTUB(0xFF539BA8,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
-// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 //NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
+// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
 
 /** Display **/
@@ -327,6 +327,9 @@ NSTUB(0xFF14AD50,  register_func)
 NSTUB(0xFFCCC4C8 - RAM_OFFSET,  register_interrupt)
 NSTUB(0xFF11E24C,  sounddev_task)
 NSTUB(0xFFCFB688 - RAM_OFFSET,  vsnprintf)
+//NSTUB(0xFF11EA28,  SetAudioVolumeOut_idk1)                       // str:SetVolumeOut_Volume 1 Parameter
+//NSTUB(0xFF142B70,  SetAudioVolumeOut_idk2)                       // Keep Volume (%d->%d)
+//NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer_bad) //From ACTRL
 // NSTUB(    ???,  AJ_KerRLock_n_WindowSig)                 /* present on 550D.109 */
 // NSTUB(    ???,  AJ_UserLevel_task)                       /* present on 5D2.212, 550D.109 */
 // NSTUB(    ???,  AJ_Wait_Vsync)                           /* present on 5D2.212 */
@@ -376,10 +379,7 @@ NSTUB(0xFFCFB688 - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  RemoteRelease)                           /* present on 7D.203, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  SamplingParamInRate)                     /* present on 7D.203 */
-//NSTUB(0xFF11EA28,  SetAudioVolumeOut_idk1)                       // str:SetVolumeOut_Volume 1 Parameter
-//NSTUB(0xFF142B70,  SetAudioVolumeOut_idk2)                       // Keep Volume (%d->%d)
 // NSTUB(    ???,  SetImagePass_x5)                         /* present on 550D.109 */
-//NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer_bad) //From ACTRL
 // NSTUB(    ???,  SetOutputTypeByPressInfoToStorage)       /* present on 500D.111 */
 // NSTUB(    ???,  SetVolumeInVolume)                       /* present on 7D.203 */
 // NSTUB(    ???,  SetWindCutMode)                          /* present on 7D.203 */
