@@ -37,6 +37,8 @@ unsorted_categs = [
     "Unused Some Are OldFW",
 ]
 
+porting_notes_categ = "Unused stubs or porting notes"
+
 import os, sys, re
 from collections import defaultdict
 from copy import deepcopy
@@ -106,8 +108,11 @@ def parse_stub(inp_file):
             
             try: cam = os.path.split(inp_file)[0]
             except: cam = 0
+            
+            c = categ
+            if l.startswith("///"): c = porting_notes_categ
 
-            stub = Bunch(name=name, addr=addr, categ=categ, raw_line=l, camera=cam)
+            stub = Bunch(name=name, addr=addr, categ=c, raw_line=l, camera=cam)
             
             if name in names2stubs:
                 # abort on consistency errors, rather than screwing up the output
@@ -115,7 +120,7 @@ def parse_stub(inp_file):
                 raise SystemExit
             
             names2stubs[name] = stub
-            categ2stubs[categ].append(stub)
+            categ2stubs[c].append(stub)
         elif "Sort this file?" in l and "Generate it from the IDA map?" in l:
             # we just did this with this script :)
             continue
@@ -221,6 +226,9 @@ def print_stubs(stubs, file):
     categs.remove("Misc"); categs = categs + ["Misc"]
     
     try: categs.remove("Unused"); categs = categs + ["Unused"]
+    except: pass
+
+    try: categs.remove(porting_notes_categ); categs = categs + [porting_notes_categ]
     except: pass
 
     for categ in categs:

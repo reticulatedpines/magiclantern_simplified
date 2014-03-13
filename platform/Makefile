@@ -37,3 +37,6 @@ beautify-stubs:
 
 reorder-stubs:
 	python ../contrib/stub-format/stub-reorder.py all
+
+cleanup-stubs:
+	python ../contrib/stub-format/stub-cleanup.py all
