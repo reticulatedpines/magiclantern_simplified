@@ -234,11 +234,10 @@ NSTUB(0xFF20C498,  ptp_register_handler)
 
 /** Properties **/
 NSTUB(0xFF05993C, _prop_cleanup)
+NSTUB(0xFF059AA4, _prop_get_value)
 NSTUB(0xFF059988, _prop_request_change)
 NSTUB(0xFF0597E0,  prop_deliver)
-NSTUB(0xFF059AA4,  prop_get_value)
 NSTUB(0xFF059868,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"
-// NSTUB(    ???, _prop_get_value)                          /* present on 5D3.113 */
 
 /** Recursive locks **/
 NSTUB(0xFF1A0D44,  AcquireRecursiveLock)

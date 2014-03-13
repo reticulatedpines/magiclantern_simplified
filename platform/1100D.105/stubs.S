@@ -233,11 +233,10 @@ NSTUB(0xFF2A35D4,  ptp_register_handler)                    // might be good (du
 
 /** Properties **/
 NSTUB(0xFF05BBE4, _prop_cleanup)                            // might be good (dumps=1, score=42)
+NSTUB(0xFF05BC7C, _prop_get_value)                          // might be good (dumps=1, score=62)
 NSTUB(0xFF05B45C, _prop_request_change)                     // might be good (dumps=1, score=1.7e+02)
 NSTUB(0xFF05BA3C,  prop_deliver)                            // might be good (dumps=1, score=44)
-NSTUB(0xFF05BC7C,  prop_get_value)                          // might be good (dumps=1, score=62)
 NSTUB(0xFF05BAC4,  prop_register_slave)                     // might be good (dumps=1, score=39)
-// NSTUB(    ???, _prop_get_value)                          /* present on 5D3.113 */
 
 /** Recursive locks **/
 NSTUB(0xFF1E8B94,  AcquireRecursiveLock)                    // might be good (dumps=1, score=14)

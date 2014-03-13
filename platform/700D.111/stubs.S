@@ -236,11 +236,10 @@ NSTUB(0xFF5F317C,  PackMem_StartEDmac)
 
 /** Properties **/
 NSTUB(0xFF11FA44, _prop_cleanup)
+NSTUB(0xFF11FBA0, _prop_get_value)
 NSTUB(0xFF11F3BC, _prop_request_change)
 NSTUB(0xFF11F978,  prop_deliver)
-NSTUB(0xFF11FBA0,  prop_get_value)
 NSTUB(0xFF11F1C8,  prop_register_slave)
-// NSTUB(    ???, _prop_get_value)                          /* present on 5D3.113 */
 
 /** Recursive locks **/
 NSTUB(0xFFA700C8 - RAM_OFFSET,  AcquireRecursiveLock)

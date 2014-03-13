@@ -245,11 +245,10 @@ NSTUB(0xFF5FEF4C,  PackMem_StartEDmac)
 
 /** Properties **/
 NSTUB(0xFF12018C, _prop_cleanup)
+NSTUB(0xFF1202E8, _prop_get_value)
 NSTUB(0xFF11FB04, _prop_request_change)
 NSTUB(0xFF1200C0,  prop_deliver)
-NSTUB(0xFF1202E8,  prop_get_value)
 NSTUB(0xFF11F910,  prop_register_slave)
-// NSTUB(    ???, _prop_get_value)                          /* present on 5D3.113 */
 
 /** Recursive locks **/
 NSTUB(0xFFA87CB8 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c

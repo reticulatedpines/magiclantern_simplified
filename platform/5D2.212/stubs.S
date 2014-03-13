@@ -230,11 +230,10 @@ NSTUB(0xFFA0FED8,  ptp_register_handler)
 
 /** Properties **/
 NSTUB(0xFF85F1C4, _prop_cleanup)
+NSTUB(0xFF85F344, _prop_get_value)
 NSTUB(0xFF85F228, _prop_request_change)
 NSTUB(0xFF85F068,  prop_deliver)
-NSTUB(0xFF85F344,  prop_get_value)
 NSTUB(0xFF85F0F0,  prop_register_slave)
-// NSTUB(    ???, _prop_get_value)                          /* present on 5D3.113 */
 
 /** Recursive locks **/
 NSTUB(0xFF9B3E68,  AcquireRecursiveLock)
