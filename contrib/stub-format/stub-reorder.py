@@ -192,6 +192,8 @@ def stub_sort(stub):
 
     if stub.name in custom_keys:
         key = custom_keys[stub.name]    # forced ordering?
+    elif "???," in stub.raw_line:
+        key = "zz" + key                # force stubs present on other cameras at the end
     elif stub.raw_line.strip().startswith("//"):
         key = "z" + key                 # force unused addresses at the end
     elif "NSTUB(  " in stub.raw_line:
