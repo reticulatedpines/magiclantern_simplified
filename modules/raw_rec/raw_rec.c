@@ -292,10 +292,11 @@ static void update_resolution_params()
     /* make sure we don't get dead pixels from rounding */
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
-    int max = (right_margin - left_margin) & ~15;
+    int max = (right_margin - left_margin);
     
     /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
-    while (max % 32) max--;
+    max &= ~31;
+    
     max_res_x = max;
     
     /* max res Y */
