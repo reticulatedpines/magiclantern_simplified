@@ -113,8 +113,10 @@ static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 static uint32_t abort_test = 0;
 /**
- * resolution should be multiple of 16 horizontally
- * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
+ * furthermore, resolution (in bytes) should be multiple of 8 in order to use the fastest EDMAC flags ( http://magiclantern.wikia.com/wiki/Register_Map#EDMAC ),
+ * which copy 16 bytes at a time, but only check for overflows every 8 bytes (can be verified experimentally)
+ * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
 
@@ -523,8 +525,11 @@ static void update_resolution_params()
     /* make sure we don't get dead pixels from rounding */
     int32_t left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int32_t right_margin = (raw_info.active_area.x2) / 8 * 8;
-    int32_t max = (right_margin - left_margin) & ~15;
-    while (max % 16) max--;
+    int32_t max = (right_margin - left_margin);
+
+    /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
+    max &= ~31;
+    
     max_res_x = max;
 
     /* max res Y */
