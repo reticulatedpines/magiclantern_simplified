@@ -2736,10 +2736,6 @@ static void raw_writer_task(uint32_t writer)
 
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: next chunk handle received, file '%s'", writer, next_filename );
         }
-        else if(job->job_type == JOB_TYPE_CLOSE)
-        {
-            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: closing finished", writer);
-        }
         else
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
@@ -2806,12 +2802,6 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         }
     }
 
-    /* enqueue the next largest block */
-    write_job_t *queue_job = NULL;
-    msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
-    *queue_job = *write_job;
-    queue_job->job_type = JOB_TYPE_WRITE;
-
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
     {
@@ -2859,6 +2849,20 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         slots[slot].writer = writer;
     }
 
+    /* enqueue the configured block */
+    write_job_t *queue_job = NULL;
+    msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
+    
+    if(!queue_job)
+    {
+        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: queue_job is NULL");
+        return;
+    }
+    
+    *queue_job = *write_job;
+    queue_job->job_type = JOB_TYPE_WRITE;
+    queue_job->writer = writer;
+    
     msg_queue_post(mlv_writer_queues[writer], queue_job);
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
