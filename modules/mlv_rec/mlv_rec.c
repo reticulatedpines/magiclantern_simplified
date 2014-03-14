@@ -2940,6 +2940,79 @@ static void mlv_rec_wait_frames(uint32_t frames)
     }
 }
 
+static void mlv_rec_queue_blocks()
+{
+    if(mlv_update_lens && (mlv_metadata & MLV_METADATA_SPORADIC))
+    {
+        mlv_update_lens = 0;
+
+        mlv_expo_hdr_t old_expo = last_expo_hdr;
+        mlv_lens_hdr_t old_lens = last_lens_hdr;
+
+        mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
+        mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
+
+        /* update timestamp for comparing content changes */
+        old_expo.timestamp = last_expo_hdr.timestamp;
+        old_lens.timestamp = last_lens_hdr.timestamp;
+
+        /* write new state if something changed */
+        if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
+            memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+
+        /* write new state if something changed */
+        if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
+            memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+
+    if(mlv_update_styl && (mlv_metadata & MLV_METADATA_SPORADIC))
+    {
+        mlv_update_styl = 0;
+
+        mlv_styl_hdr_t old_hdr = last_styl_hdr;
+        mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
+
+        /* update timestamp for comparing content changes */
+        old_hdr.timestamp = last_styl_hdr.timestamp;
+
+        /* write new state if something changed */
+        if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
+            memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+
+    if(mlv_update_wbal && (mlv_metadata & MLV_METADATA_SPORADIC))
+    {
+        mlv_update_wbal = 0;
+
+        /* capture last state and get new one */
+        mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
+        mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
+
+        /* update timestamp for comparing content changes */
+        old_hdr.timestamp = last_wbal_hdr.timestamp;
+
+        /* write new state if something changed */
+        if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
+            memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+}
+
 static void raw_video_rec_task()
 {
     int test_loop = 0;
@@ -3319,76 +3392,8 @@ static void raw_video_rec_task()
             }
             //trace_write(raw_rec_trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
 
-            if(mlv_update_lens && (mlv_metadata & MLV_METADATA_SPORADIC))
-            {
-                mlv_update_lens = 0;
-
-                mlv_expo_hdr_t old_expo = last_expo_hdr;
-                mlv_lens_hdr_t old_lens = last_lens_hdr;
-
-                mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
-                mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
-
-                /* update timestamp for comparing content changes */
-                old_expo.timestamp = last_expo_hdr.timestamp;
-                old_lens.timestamp = last_lens_hdr.timestamp;
-
-                /* write new state if something changed */
-                if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
-                    memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-
-                /* write new state if something changed */
-                if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
-                    memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-            }
-
-            if(mlv_update_styl && (mlv_metadata & MLV_METADATA_SPORADIC))
-            {
-                mlv_update_styl = 0;
-
-                mlv_styl_hdr_t old_hdr = last_styl_hdr;
-                mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
-
-                /* update timestamp for comparing content changes */
-                old_hdr.timestamp = last_styl_hdr.timestamp;
-
-                /* write new state if something changed */
-                if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
-                    memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-            }
-
-            if(mlv_update_wbal && (mlv_metadata & MLV_METADATA_SPORADIC))
-            {
-                mlv_update_wbal = 0;
-
-                /* capture last state and get new one */
-                mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
-                mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
-
-                /* update timestamp for comparing content changes */
-                old_hdr.timestamp = last_wbal_hdr.timestamp;
-
-                /* write new state if something changed */
-                if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
-                    memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-            }
-
+            mlv_rec_queue_blocks();
+            
             if((raw_recording_state != RAW_RECORDING) && (show_graph))
             {
                 show_buffer_status();
