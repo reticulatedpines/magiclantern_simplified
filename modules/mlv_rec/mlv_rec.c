@@ -2126,9 +2126,11 @@ static int32_t FAST process_frame()
     {
         mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
         hdr->blockSize = ((uint32_t*) hdr)[sizeof(mlv_vidf_hdr_t)/4];
-        ASSERT(hdr->blockSize > 0);
     }
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+    
+    /* just to make sure there is no corruption */
+    ASSERT(hdr->blockSize >= (sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size));
 
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
