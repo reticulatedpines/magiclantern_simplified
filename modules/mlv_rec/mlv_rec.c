@@ -2563,7 +2563,12 @@ static void raw_writer_task(uint32_t writer)
             //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: message timed out %d times now", writer, ++timeouts);
             continue;
         }
-        job->writer = writer;
+        
+        if(!job)
+        {
+            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: job is NULL");
+            goto abort;
+        }
 
         if(job->job_type == JOB_TYPE_WRITE)
         {
@@ -2598,11 +2603,17 @@ static void raw_writer_task(uint32_t writer)
                         /* queue a close command */
                         close_job_t *close_job = NULL;
                         msg_queue_receive(mlv_job_alloc_queue, &close_job, 0);
+                        
+                        if(!close_job)
+                        {
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close_job is NULL", writer);
+                            goto abort;
+                        }
 
                         close_job->job_type = JOB_TYPE_CLOSE;
+                        close_job->writer = writer;
                         close_job->file_handle = f;
                         close_job->file_header = file_header;
-                        close_job->writer = writer;
                         strcpy(close_job->filename, chunk_filename[writer]);
 
                         msg_queue_post(mlv_mgr_queue, close_job);
@@ -2642,6 +2653,12 @@ static void raw_writer_task(uint32_t writer)
                         /* queue a preparation job */
                         handle_job_t *prepare_job = NULL;
                         msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
+                        
+                        if(!prepare_job)
+                        {
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
+                            goto abort;
+                        }
 
                         prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
                         prepare_job->writer = writer;
