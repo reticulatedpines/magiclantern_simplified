@@ -38,9 +38,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
-/* we use a recursive lock because both raw_update_params and raw_lv_request/release need exclusive access, 
- * but raw_update_params may also be called by raw_lv_request */
-static void* raw_lock = 0;
+static struct semaphore * raw_sem = 0;
 
 static int dirty = 0;
 
@@ -867,9 +865,9 @@ int raw_update_params()
     get_yuv422_vram();  /* refresh VRAM parameters */
     
     int ans = 0;
-    AcquireRecursiveLock(raw_lock, 0);
+    take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
-    ReleaseRecursiveLock(raw_lock);
+    give_semaphore(raw_sem);
     return ans;
 }
 
@@ -886,7 +884,7 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     preview_rect_h = h;
 
     /* note: this will call BMP_LOCK */
-    /* not exactly a good idea when we have already acquired raw_lock */
+    /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
@@ -1743,18 +1741,18 @@ void raw_lv_request()
     /* this one should be called only in LiveView */
     ASSERT(lv);
     
-    AcquireRecursiveLock(raw_lock, 0);
+    take_semaphore(raw_sem, 0);
     raw_lv_request_count++;
     raw_lv_update();
-    ReleaseRecursiveLock(raw_lock);
+    give_semaphore(raw_sem);
 }
 void raw_lv_release()
 {
-    AcquireRecursiveLock(raw_lock, 0);
+    take_semaphore(raw_sem, 0);
     raw_lv_request_count--;
     ASSERT(raw_lv_request_count >= 0);
     raw_lv_update();
-    ReleaseRecursiveLock(raw_lock);
+    give_semaphore(raw_sem);
 }
 #endif
 
@@ -1885,7 +1883,7 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
 
 static void raw_init()
 {
-    raw_lock = CreateRecursiveLock(0);
+    raw_sem = create_named_semaphore("raw_sem", 1);
 }
 
 INIT_FUNC("raw", raw_init);
