@@ -1644,6 +1644,10 @@ void FAST raw_preview_fast()
 
 static void raw_lv_enable()
 {
+    /* make sure LiveView is fully started before enabling the raw flag */
+    /* if enabled too early, right after the property is fired, the raw stream may not come up (race condition in Canon code?) */
+    wait_lv_frames(2);
+    
     lv_raw_enabled = 1;
 
 #ifndef CONFIG_EDMAC_RAW_SLURP
@@ -1729,6 +1733,9 @@ static void raw_lv_update()
 
 void raw_lv_request()
 {
+    /* this one should be called only in LiveView */
+    ASSERT(lv);
+    
     AcquireRecursiveLock(raw_lock, 0);
     raw_lv_request_count++;
     raw_lv_update();
