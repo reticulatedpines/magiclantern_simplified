@@ -125,7 +125,7 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
-static CONFIG_INT("raw.small.hacks", small_hacks, 0);
+static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
 /* Recording Status Indicator Options */
 #define INDICATOR_OFF        0
