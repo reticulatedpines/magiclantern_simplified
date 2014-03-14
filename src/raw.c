@@ -864,6 +864,8 @@ static int raw_update_params_work()
 
 int raw_update_params()
 {
+    get_yuv422_vram();  /* refresh VRAM parameters */
+    
     int ans = 0;
     AcquireRecursiveLock(raw_lock, 0);
     ans = raw_update_params_work();
@@ -1695,7 +1697,7 @@ static void raw_lv_update()
         
         for (int i = 0; i < 20; i++)
         {
-            if (raw_update_params())
+            if (raw_update_params_work())
                 break;
             msleep(50);
         }
@@ -1733,6 +1735,11 @@ static void raw_lv_update()
 
 void raw_lv_request()
 {
+    /* refresh VRAM parameters */
+    /* the BMP_LOCK is just to make sure this will not conflict with other locks */
+    /* (get_yuv422_vram will only call BMP_LOCK if it has to refresh something, that is, once in a blue moon) */
+    BMP_LOCK( get_yuv422_vram(); )
+
     /* this one should be called only in LiveView */
     ASSERT(lv);
     
@@ -1878,9 +1885,6 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
 
 static void raw_init()
 {
-    /* make sure we have a valid set of VRAM parameters (just in case, if we are starting with globaldraw off */
-    get_yuv422_vram();
-    
     raw_lock = CreateRecursiveLock(0);
 }
 
