@@ -1357,7 +1357,7 @@ static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (mlv_video_enabled && lv)  /* exception: EOS-M needs to record in photo mode */
+    if (mlv_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
