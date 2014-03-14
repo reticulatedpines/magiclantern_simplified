@@ -1331,11 +1331,6 @@ static void raw_video_enable()
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
 
-    if (cam_50d && !(hdmi_code == 5))
-    {
-        call("lv_af_fase_addr", 0); //Turn off face detection
-    }
-
     if(cam_eos_m && !is_movie_mode())
     {
         set_custom_movie_mode(1);
@@ -1681,6 +1676,12 @@ static void hack_liveview(int32_t unhack)
         call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
+
+        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        {
+            /* not sure how to unhack this one, and on 5D2 it crashes */
+            call("lv_af_fase_addr", 0); //Turn off face detection
+        }
 
         /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
