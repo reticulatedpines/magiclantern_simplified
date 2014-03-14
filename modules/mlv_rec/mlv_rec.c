@@ -2408,6 +2408,7 @@ retry_find:
                     job.block_start = block_start;
                     job.block_len = block_len;
                     job.block_size = block_size;
+                    job.block_ptr = slots[block_start].ptr;
                 }
             }
             else
@@ -2789,8 +2790,6 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     }
 
     /* enqueue the next largest block */
-    write_job->block_ptr = slots[write_job->block_start].ptr;
-
     write_job_t *queue_job = NULL;
     msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
     *queue_job = *write_job;
