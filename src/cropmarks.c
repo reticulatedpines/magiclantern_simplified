@@ -569,6 +569,10 @@ static void FAST default_movie_cropmarks()
 
 void set_movie_cropmarks(int x, int y, int w, int h)
 {
+    x = COERCE(x, os.x0+1, os.x_max-1);
+    y = COERCE(y, os.y0+1, os.y_max-1);
+    w = COERCE(w, 0, os.x_max-1 - x);
+    h = COERCE(h, 0, os.y_max-1 - y);
     cropmarks_x = (x << 16) | (x + w);
     cropmarks_y = (y << 16) | (y + h);
 }
