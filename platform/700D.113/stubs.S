@@ -266,7 +266,7 @@ NSTUB(0xFF4D9128,  NormalDisplay)
 NSTUB(0xFF4D90F8,  ReverseDisplay)
 NSTUB(0xFF4D90C8,  MirrorDisplay)
 NSTUB(0xFF3335C4,  touch_cbr_canon)
-NSTUB(0xFF5AB09C,  lvae_setdispgain)
+NSTUB(0xFF5AB0CC,  lvae_setdispgain)
 NSTUB(0xFF32B188,  dispcheck)
 
 /** Custom function numbers **/
