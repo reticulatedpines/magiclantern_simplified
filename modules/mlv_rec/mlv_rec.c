@@ -69,6 +69,7 @@
 #include <edmac.h>
 #include <edmac-memcpy.h>
 #include <cache_hacks.h>
+#include <string.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -1877,25 +1878,23 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
 
 
         /* copy VIDF header to new position and fix frameSpace */
-        memcpy(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
+        memmove(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
         new_vidf->blockSize -= new_vidf_offset;
         new_vidf->frameSpace -= new_vidf_offset;
 
         /* copy block to prepend */
-        memcpy((void*)((uint32_t)vidf + block_offset), block, block->blockSize);
+        memmove((void*)((uint32_t)vidf + block_offset), block, block->blockSize);
 
-        /* set old header to a skipped header format */
-        mlv_set_type((mlv_hdr_t *)vidf, "NULL");
-
-        /* backup old size into free space */
-        ((uint32_t*) vidf)[sizeof(mlv_vidf_hdr_t)/4] = vidf->blockSize;
-
-        /* then set the header to be totally skipped */
-        vidf->blockSize = sizeof(mlv_vidf_hdr_t) + 4;
+        /* backup old size into free space then set the header to be totally skipped */
+        mlv_bkup_hdr_t *backup_hdr = (mlv_bkup_hdr_t *)vidf;
+        backup_hdr->blockSizeOrig = vidf->blockSize;
+        vidf->blockSize = sizeof(mlv_bkup_hdr_t);
+        
+        mlv_set_type((mlv_hdr_t *)vidf, "BKUP");
 
         return 0;
     }
-    else if(!memcmp(vidf->blockType, "NULL", 4))
+    else if(!memcmp(vidf->blockType, "BKUP", 4))
     {
         /* there is already something injected, try to add a new block behind prepended */
         mlv_vidf_hdr_t *hdr = NULL;
@@ -1920,12 +1919,12 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
                 mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)hdr + block->blockSize);
 
                 /* copy VIDF header to new position and fix frameSpace */
-                memcpy(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
+                memmove(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
                 new_vidf->blockSize -= block->blockSize;
                 new_vidf->frameSpace -= block->blockSize;
 
                 /* copy block to prepend */
-                memcpy(hdr, block, block->blockSize);
+                memmove(hdr, block, block->blockSize);
 
                 return 0;
             }
@@ -1977,12 +1976,13 @@ static int32_t FAST process_frame()
         return 0;
     }
 
-    /* restore from NULL block used when prepending data */
+    /* restore from BKUP block used when prepending data */
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
-    if(!memcmp(hdr->blockType, "NULL", 4))
+    if(!memcmp(hdr->blockType, "BKUP", 4))
     {
+        mlv_bkup_hdr_t *backup = (mlv_bkup_hdr_t *)hdr;
+        hdr->blockSize = backup->blockSizeOrig;
         mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
-        hdr->blockSize = ((uint32_t*) hdr)[sizeof(mlv_vidf_hdr_t)/4];
     }
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     
