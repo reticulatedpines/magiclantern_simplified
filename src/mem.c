@@ -18,6 +18,8 @@
 #include "bmp.h"
 #include "beep.h"
 #include "menu.h"
+#include "edmac.h"
+#include "util.h"
 
 #ifdef MEM_DEBUG
 #define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
@@ -76,6 +78,10 @@ struct mem_allocator
     int mem_used;
     int num_blocks;
 };
+
+/* Canon stubs */
+extern int GetMemoryInformation(int* total, int* free);
+extern int GetSizeOfMaxRegion(int* max_region);
 
 int GetFreeMemForAllocateMemory()
 {
@@ -507,7 +513,7 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
     alloc_total_peak_with_memcheck = MAX(alloc_total_peak_with_memcheck, alloc_total_with_memcheck);
     history[history_index].timestamp = get_ms_clock_value();
     history[history_index].alloc_total = alloc_total_with_memcheck;
-    history_index = mod(history_index + 1, HISTORY_ENTRIES);
+    history_index = MOD(history_index + 1, HISTORY_ENTRIES);
     
     return (void*)(ptr + MEM_SEC_ZONE);
 }
@@ -534,7 +540,7 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
     alloc_total_with_memcheck -= (len + 2 * MEM_SEC_ZONE);
     history[history_index].timestamp = get_ms_clock_value();
     history[history_index].alloc_total = alloc_total_with_memcheck;
-    history_index = mod(history_index + 1, HISTORY_ENTRIES);
+    history_index = MOD(history_index + 1, HISTORY_ENTRIES);
 
     /* tell the backend to free this block */
     int requires_dma = flags & MEM_DMA;
@@ -1164,7 +1170,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
         
         int first_index = history_index + 1;
         while (history[first_index].timestamp == 0)
-            first_index = mod(first_index + 1, HISTORY_ENTRIES);
+            first_index = MOD(first_index + 1, HISTORY_ENTRIES);
         
         int t0 = history[first_index].timestamp;
         int t_end = get_ms_clock_value();
@@ -1178,7 +1184,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
             int next_i;
             for (int i = first_index; i != history_index; i = next_i)
             {
-                next_i = mod(i+1, HISTORY_ENTRIES);
+                next_i = MOD(i+1, HISTORY_ENTRIES);
                 int t = history[i].timestamp;
                 int t2 = (next_i != history_index) ? history[next_i].timestamp : t_end;
                 if (t2 < t) continue;

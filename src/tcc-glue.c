@@ -8,6 +8,7 @@
 
 #include "dryos.h"
 #include "libtcc.h"
+#include "console.h"
 
 void exit(int code) 
 {
@@ -42,7 +43,7 @@ int fputs(FILE* unused, const char * fmt)
 
 int putchar(int c)
 {
-    console_puts(&c);
+    console_puts((char*)&c);
     return c;
 }
 
@@ -77,7 +78,7 @@ int open(const char *pathname, int flags)
     handle->size = size;
     handle->pos = 0;
     
-    file = FIO_Open(pathname, flags);
+    file = FIO_OpenFile(pathname, flags);
     if(!file)
     {
         printf("Error loading '%s': File does not exist\n", pathname);
@@ -131,7 +132,7 @@ FILE* fopen(const char * filename, const char * modes)
 {
     console_printf("fopen('%s', '%s')\n", filename, modes);
     if (modes[0] == 'r')
-        return FIO_Open(filename, O_RDONLY | O_SYNC);
+        return FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     else if (modes[0] == 'w')
         return FIO_CreateFile(filename);
     else printf("fopen: %s n/a\n", modes);

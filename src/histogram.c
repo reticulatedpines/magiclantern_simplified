@@ -14,10 +14,12 @@
 #include "histogram.h"
 #include "module.h"
 
+#include "zebra.h"
+#include "falsecolor.h"
+
 
 #if defined(FEATURE_HISTOGRAM)
 
-extern unsigned int log_length(int x);
 extern int FAST get_y_skip_offset_for_overlays();
 extern int nondigic_zoom_overlay_enabled();
 

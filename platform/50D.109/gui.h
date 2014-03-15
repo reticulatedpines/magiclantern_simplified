@@ -60,4 +60,8 @@
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "FUNC"
 
+void GUI_SetLvMode(int);
+void GUI_SetMovieSize_a(int);
+void GUI_SetMovieSize_b(int);
+
 #endif

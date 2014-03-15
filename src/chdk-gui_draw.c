@@ -6,16 +6,14 @@
 #include "bmp.h"
 #include "math.h"
 
-#define coord int
-#define color uint8_t
-
 //-------------------------------------------------------------------
 #define swap(v1, v2)   {v1^=v2; v2^=v1; v1^=v2;}
 //-------------------------------------------------------------------
-void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
+void draw_line(int x1, int y1, int x2, int y2, int cl)
+{
      uint8_t* bvram = bmp_vram();
     
-     unsigned char steep = abs(y2 - y1) > abs(x2 - x1);
+     unsigned char steep = ABS(y2 - y1) > ABS(x2 - x1);
      if (steep) {
          swap(x1, y1);
          swap(x2, y2);
@@ -25,7 +23,7 @@ void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
          swap(y1, y2);
      }
      int deltax = x2 - x1;
-     int deltay = abs(y2 - y1);
+     int deltay = ABS(y2 - y1);
      int error = 0;
      int y = y1;
      int ystep = (y1 < y2)?1:-1;
@@ -42,7 +40,8 @@ void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
 }
 
 //-------------------------------------------------------------------
-void draw_circle(coord x, coord y, const unsigned int r, color cl) {
+void draw_circle(int x, int y, int r, int cl)
+{
     uint8_t* bvram = bmp_vram();
 
     int dx = 0;
@@ -70,8 +69,8 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
     } while (dx<=dy);
 }
 
-void fill_circle(coord x, coord y, const unsigned int r, color cl) {
-
+void fill_circle(int x, int y, int r, int cl)
+{
     int dx = 0;
     int dy = r;
     int p=(3-(r<<1));
@@ -93,7 +92,7 @@ void fill_circle(coord x, coord y, const unsigned int r, color cl) {
     } while (dx<=dy);
 }
 
-void draw_angled_line(int x, int y, int r, int ang, color cl)
+void draw_angled_line(int x, int y, int r, int ang, int cl)
 {
    #define MUL 16384
    #define PI_1800 0.00174532925

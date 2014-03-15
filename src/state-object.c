@@ -12,9 +12,21 @@
 #include "state-object.h"
 #include <platform/state-object.h>
 #include "property.h"
+#include "fps.h"
+
 #if defined(CONFIG_MODULES)
 #include "module.h"
 #endif
+
+/* to refactor with CBR */
+extern void lv_vsync_signal();
+extern void hdr_step();
+extern void raw_lv_vsync();
+extern int hdr_kill_flicker();
+extern void digic_zoom_overlay_step(int force_off);
+extern void vignetting_correction_apply_regs();
+extern void raw_buffer_intercept_from_stateobj();
+extern int display_filter_lv_vsync(int old_state, int x, int input, int z, int t);
 
 #ifdef CONFIG_STATE_OBJECT_HOOKS
 
@@ -90,7 +102,10 @@ static void FAST vsync_func() // called once per frame.. in theory :)
     #endif
     #endif
 
+    extern void digic_iso_step();
     digic_iso_step();
+    
+    extern void image_effects_step();
     image_effects_step();
 
     #ifdef FEATURE_DISPLAY_SHAKE

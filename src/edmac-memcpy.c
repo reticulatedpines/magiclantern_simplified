@@ -393,7 +393,7 @@ uint32_t raw_write_chan = 4;
 #endif
 
 
-static void edmac_slurp_complete_cbr (int ctx)
+static void edmac_slurp_complete_cbr (void* ctx)
 {
     /* set default CBRs again and stop both DMAs */
     /* idk what to do with those; if I uncomment them, the camera crashes at startup in movie mode with raw_rec enabled */

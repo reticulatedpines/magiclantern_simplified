@@ -14,6 +14,13 @@ int beep_playing = 0;
 
 #ifdef CONFIG_BEEP
 
+/* ASIF interface (private) */
+extern void StartASIFDMADAC(void* buf1, int N1, int buf2, int N2, void (*continue_cbr)(void*), void* cbr_arg_maybe);
+extern void StopASIFDMADAC(void (*stop_cbr)(void*), int cbr_arg_maybe);
+extern void SetSamplingRate(int sample_rate, int unknown);
+extern void PowerAudioOutput();
+extern void SetAudioVolumeOut(int volume);
+
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
 #define BEEP_WAV -2
@@ -220,7 +227,7 @@ static void wav_play(char* filename)
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
-    file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if( file == INVALID_PTR ) return;
 
     int s1 = FIO_ReadFile( file, buf1, WAV_BUF_SIZE );
@@ -350,12 +357,19 @@ static void audio_stop_recording()
 
 static int audio_stop_rec_or_play() // true if it stopped anything
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
+    int ans = 0;
+    if (beep_playing)
+    {
+        audio_stop_playback();
+        ans = 1;
+    }
+    #ifdef FEATURE_WAV_RECORDING
+    if (audio_recording)
+    {
+        audio_stop_recording();
+        ans = 1;
+    }
     #endif
-    int ans = beep_playing || audio_recording;
-    if (beep_playing) audio_stop_playback();
-    if (audio_recording) audio_stop_recording();
     return ans;
 }
 
@@ -774,7 +788,7 @@ static int find_wav(int * index, char* fn)
         *index = N-1;
     }
     
-    *index = mod(*index, N);
+    *index = MOD(*index, N);
 
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )

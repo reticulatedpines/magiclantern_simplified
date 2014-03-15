@@ -31,3 +31,12 @@ $(PLATFORM_CLEAN_ALL_TARGETS):
 # This rule is able to run make for specific model (defined in ALL_SUPPORTED_MODELS), for example for 60D
 $(ALL_SUPPORTED_MODELS):
 	$(call call_make_platform)
+
+beautify-stubs:
+	for f in */stubs.S ; do python ../contrib/stub-format/stub-format.py $$f $$f; done
+
+reorder-stubs:
+	python ../contrib/stub-format/stub-reorder.py all
+
+cleanup-stubs:
+	python ../contrib/stub-format/stub-cleanup.py all

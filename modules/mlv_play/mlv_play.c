@@ -399,7 +399,7 @@ static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        mlv_play_quality = mod(mlv_play_quality + 1, 2);
+        mlv_play_quality = MOD(mlv_play_quality + 1, 2);
     }
     
     if(msg)
@@ -439,7 +439,7 @@ static void mlv_play_osd_pause(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        mlv_play_paused = mod(mlv_play_paused + 1, 2);
+        mlv_play_paused = MOD(mlv_play_paused + 1, 2);
     }
     
     if(msg)
@@ -721,7 +721,7 @@ static void mlv_play_osd_task(void *priv)
                     if(key == MODULE_KEY_INFO)
                     {
                         clrscr();
-                        mlv_play_info = mod(mlv_play_info + 1, 2) ? 2 : 0;
+                        mlv_play_info = MOD(mlv_play_info + 1, 2) ? 2 : 0;
                     }
                     break;
                 }
@@ -802,7 +802,7 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
     strncpy(filename, base_filename, sizeof(filename));
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
-    in_file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    in_file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     
     if(in_file == INVALID_PTR)
     {
@@ -1169,7 +1169,7 @@ static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
     strncpy(filename, base_filename, sizeof(filename));
     FILE **files = malloc(sizeof(FILE*));
     
-    files[0] = FIO_Open(filename, O_RDONLY | O_SYNC);
+    files[0] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!files[0])
     {
         return NULL;
@@ -1190,13 +1190,13 @@ static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
 
         /* try to open from A: first*/
         filename[0] = 'A';
-        files[*entries] = FIO_Open(filename, O_RDONLY | O_SYNC);
+        files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         
         /* if failed, try B */
         if(files[*entries] == INVALID_PTR)
         {
             filename[0] = 'B';
-            files[*entries] = FIO_Open(filename, O_RDONLY | O_SYNC);
+            files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         }
         
         /* when succeeded, check for next chunk, else abort */
@@ -2083,7 +2083,7 @@ FILETYPE_HANDLER(mlv_play_filehandler)
     {
         case FILEMAN_CMD_INFO:
         {
-            FILE* f = FIO_Open( filename, O_RDONLY | O_SYNC );
+            FILE* f = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
             if( f == INVALID_PTR )
             {
                 return 0;

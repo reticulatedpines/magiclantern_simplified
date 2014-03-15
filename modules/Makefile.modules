@@ -6,7 +6,7 @@ include $(TOP_DIR)/Makefile.setup
 
 # should we define a platform for modules? for now use 'all' platform
 PLATFORM_INC=$(TOP_DIR)/platform/all
-CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) $(MODULE_CFLAGS) -I.
+CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) -DCONFIG_MAGICLANTERN $(MODULE_CFLAGS) -I.
 
 MODULE_SRC    = $(MODULE_NAME).c
 MODULE_OUTPUT = $(MODULE_NAME).mo

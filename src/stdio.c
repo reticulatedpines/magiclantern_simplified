@@ -43,10 +43,6 @@ streq( const char * a, const char * b )
     return *a == *b;
 }
 
-int abs(int num) {
-    return (num >= 0) ? num : -num;
-}
-
 int toupper(int c)
 {
     if(('a' <= c) && (c <= 'z'))

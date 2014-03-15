@@ -138,7 +138,7 @@ static void card_test(struct card_info * card)
 /** 
  * Called from debug_init_stuff
  */
-void card_tweaks()
+void _card_tweaks()
 {
 #ifdef CONFIG_5D3
     if (card_test_enabled)
@@ -185,7 +185,7 @@ static MENU_UPDATE_FUNC(card_test_update)
 static void startup_warning(char* msg)
 {
     /* note: this function is called before load_fonts, so in order to print something, we need to load them */
-    load_fonts();
+    _load_fonts();
     
     if (!DISPLAY_IS_ON)
     {
@@ -198,7 +198,7 @@ static void startup_warning(char* msg)
     redraw_after(5000);
 }
 
-void find_ml_card()
+void _find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
     int ml_sd = is_dir("B:/ML");
@@ -336,15 +336,15 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #undef IS_DRV_PATH
 }
 
-FILE* _FIO_Open(const char* filename, unsigned mode );
-FILE* FIO_Open(const char* filename, unsigned mode )
+FILE* _FIO_OpenFile(const char* filename, unsigned mode );
+FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
-    return _FIO_Open(new_filename, mode);
+    return _FIO_OpenFile(new_filename, mode);
 }
 
-//~ int _FIO_GetFileSize(const char * filename, unsigned * size);
+int _FIO_GetFileSize(const char * filename, uint32_t * size);
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[100];
@@ -402,7 +402,8 @@ static unsigned _GetFileSize(char* filename)
         return 0xFFFFFFFF;
     return size;
 }
-unsigned GetFileSize(char* filename)
+
+uint32_t FIO_GetFileSize_direct(const char* filename)
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
@@ -469,7 +470,7 @@ FILE* FIO_CreateFile(const char* name)
 FILE* _FIO_CreateFileOrAppend(const char* name)
 {
     /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
-    FILE * f = _FIO_Open(name, O_RDWR | O_SYNC);
+    FILE * f = _FIO_OpenFile(name, O_RDWR | O_SYNC);
     if (f == INVALID_PTR)
     {
         f = _FIO_CreateFile(name);
@@ -489,7 +490,7 @@ FILE* FIO_CreateFileOrAppend(const char* name)
 
 int _FIO_CopyFile(char *src,char *dst)
 {
-    FILE* f = _FIO_Open(src, O_RDONLY | O_SYNC);
+    FILE* f = _FIO_OpenFile(src, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return -1;
 
     FILE* g = _FIO_CreateFile(dst);
@@ -591,6 +592,53 @@ int get_numbered_file_name(const char* pattern, int nmax, char* filename, int ma
 
     snprintf(filename, maxlen, pattern, 0);
     return -1;
+}
+
+static FILE * g_aj_logfile = INVALID_PTR;
+static unsigned int aj_create_log_file( char * name)
+{
+   g_aj_logfile = FIO_CreateFile( name );
+   if ( g_aj_logfile == INVALID_PTR )
+   {
+      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
+      return( 0 );  // FAILURE
+   }
+   return( 1 );  // SUCCESS
+}
+
+static void aj_close_log_file( void )
+{
+   if (g_aj_logfile == INVALID_PTR)
+      return;
+   FIO_CloseFile( g_aj_logfile );
+   g_aj_logfile = INVALID_PTR;
+}
+
+void dump_seg(void* start, uint32_t size, char* filename)
+{
+    DEBUG();
+    aj_create_log_file(filename);
+    FIO_WriteFile( g_aj_logfile, start, size );
+    aj_close_log_file();
+    DEBUG();
+}
+
+void dump_big_seg(int k, char* filename)
+{
+    DEBUG();
+    aj_create_log_file(filename);
+    
+    int i;
+    for (i = 0; i < 16; i++)
+    {
+        DEBUG();
+        uint32_t start = (k << 28 | i << 24);
+        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
+        FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
+    }
+    
+    aj_close_log_file();
+    DEBUG();
 }
 
 #ifdef CONFIG_DUAL_SLOT

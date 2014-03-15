@@ -39,7 +39,7 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 
 /* MemorySuite routines */
 int AllocateMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
-int AllocateMemoryResourceForSingleChunk(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
+int AllocateContinuousMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
 int FreeMemoryResource(struct memSuite *hSuite, void (*cbr)(unsigned int), unsigned int ctx);
 
 int GetNumberOfChunks(struct memSuite * suite);

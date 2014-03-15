@@ -7,6 +7,9 @@
 #include <config.h>
 #include <property.h>
 #include <raw.h>
+#include <shoot.h>
+#include <zebra.h>
+#include <beep.h>
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
