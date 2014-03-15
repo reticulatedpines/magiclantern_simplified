@@ -32,12 +32,7 @@
 #include "../trace/trace.h"
 #include "../mlv_rec/mlv.h"
 
-#include "kiss_fft.h"
-
 #define MLV_SND_BUFFERS 4
-
-#define QUAD(x) ((x)*(x))
-#define FIX_TO_FLOAT(x) ((float)(x) / 32768.0f)
 
 static uint32_t trace_ctx = TRACE_ERROR;
 
@@ -188,35 +183,27 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
             trace_write(trace_ctx, "mlv_snd_flush_entries: msg_queue_receive(queue, ) failed");
             return;
         }
+    
+        trace_write(trace_ctx, "mlv_snd_flush_entries: entry is MLV slot");
+        mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)entry->mlv_slot_buffer;
         
-        if(entry->mlv_slot_buffer)
+        if(clear)
         {
-            trace_write(trace_ctx, "mlv_snd_flush_entries: entry is MLV slot");
-            mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)entry->mlv_slot_buffer;
-            
-            if(clear)
-            {
-                trace_write(trace_ctx, "mlv_snd_flush_entries: NULL slot %d entry", entry->mlv_slot_id);
-                mlv_set_type((mlv_hdr_t *)hdr, "NULL");
-            }
-            else
-            {
-                trace_write(trace_ctx, "mlv_snd_flush_entries: data %d entry for frame #%d", entry->mlv_slot_id, entry->frameNumber);
-                mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
-                hdr->frameNumber = entry->frameNumber;
-                mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
-            }
-            
-            if(entry->mlv_slot_end)
-            {
-                trace_write(trace_ctx, "mlv_snd_flush_entries: entry is MLV slot %d (last buffer, so release)", entry->mlv_slot_id);
-                mlv_rec_release_slot(entry->mlv_slot_id, 1);
-            }
+            trace_write(trace_ctx, "mlv_snd_flush_entries: NULL slot %d entry", entry->mlv_slot_id);
+            mlv_set_type((mlv_hdr_t *)hdr, "NULL");
         }
         else
         {
-            trace_write(trace_ctx, "mlv_snd_flush_entries: entry is allocated mem");
-            fio_free(entry->data);
+            trace_write(trace_ctx, "mlv_snd_flush_entries: data %d entry for frame #%d", entry->mlv_slot_id, entry->frameNumber);
+            mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
+            hdr->frameNumber = entry->frameNumber;
+            mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
+        }
+        
+        if(entry->mlv_slot_end)
+        {
+            trace_write(trace_ctx, "mlv_snd_flush_entries: entry is MLV slot %d (last buffer, so release)", entry->mlv_slot_id);
+            mlv_rec_release_slot(entry->mlv_slot_id, 1);
         }
         free(entry);
         
@@ -344,42 +331,15 @@ static void mlv_snd_prepare_audio()
 
 static void mlv_snd_alloc_buffers()
 {
-    /* when called from mlv_rec record start cbr, get slot from mlv_rec. else allocate on our own */
-    if(!mlv_snd_rec_active)
-    {
-        /* calculate buffer size */
-        int fps = 25;
-        mlv_snd_in_buffer_size = (mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels) / fps;
-        
-        /* prepare empty buffers */
-        for(uint32_t buf = 0; buf < mlv_snd_in_buffers; buf++)
-        {
-            audio_data_t *entry = malloc(sizeof(audio_data_t));
-            
-            entry->data = (uint16_t *)fio_malloc(mlv_snd_in_buffer_size);
-            entry->length = mlv_snd_in_buffer_size;
-            entry->timestamp = 0;
-            
-            /* there is no mlv_rec slot buffer behind, so just set this to invalid */
-            entry->mlv_slot_buffer = 0;
-            entry->mlv_slot_id = -1;
-            entry->mlv_slot_end = 0;
-            
-            msg_queue_post(mlv_snd_buffers_empty, entry);
-        }
-    }
-    else
-    {
-        /* calculate buffer size */
-        int fps = 5;
-        mlv_snd_in_buffer_size = (mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels) / fps;
-        
-        trace_write(trace_ctx, "mlv_snd_alloc_buffers: running in MLV mode, mlv_snd_in_buffer_size = %d", mlv_snd_in_buffer_size);
-        
-        mlv_snd_queue_slot();
-        mlv_snd_queue_slot();
-    }
+    /* calculate buffer size */
+    int fps = 5;
+
+    mlv_snd_in_buffer_size = (mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels) / fps;
+    trace_write(trace_ctx, "mlv_snd_alloc_buffers: mlv_snd_in_buffer_size = %d", mlv_snd_in_buffer_size);
     
+    mlv_snd_queue_slot();
+    mlv_snd_queue_slot();
+
     /* now everything is ready to fire - real output activation happens as soon mlv_snd_running is set to 1 and mlv_snd_vsync() gets called */
     mlv_snd_state = MLV_SND_STATE_READY;
 }
@@ -387,12 +347,7 @@ static void mlv_snd_alloc_buffers()
 static void mlv_snd_writer(int unused)
 {
     uint32_t done = 0;
-    uint32_t fft_size = 128;
-    
-    kiss_fft_cfg cfg = kiss_fft_alloc(fft_size, 0, 0 ,0);
-    kiss_fft_cpx *fft_in = malloc(fft_size * sizeof(kiss_fft_cpx));
-    kiss_fft_cpx *fft_out = malloc(fft_size * sizeof(kiss_fft_cpx));
-
+ 
     TASK_LOOP
     {
         audio_data_t *buffer = NULL;
@@ -427,77 +382,24 @@ static void mlv_snd_writer(int unused)
                     break;
                 }
                 
-                /* in case the slot was for MLV video, handle it */
-                if(buffer->mlv_slot_buffer)
+                /* the slot was for MLV video, handle it */
+                trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d, setting frame #%d", buffer->mlv_slot_id, buffer->frameNumber);
+                
+                mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
+                mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
+                
+                /* fill recording information */
+                hdr->frameNumber = buffer->frameNumber;
+                mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, buffer->timestamp);
+                
+                /* only queue for writing if the whole mlv_rec slot was filled */
+                if(buffer->mlv_slot_end)
                 {
-                    trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d, setting frame #%d", buffer->mlv_slot_id, buffer->frameNumber);
-                    
-                    mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)buffer->mlv_slot_buffer;
-                    mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
-                    
-                    /* fill recording information */
-                    hdr->frameNumber = buffer->frameNumber;
-                    mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, buffer->timestamp);
-                    
-                    /* only queue for writing if the whole mlv_rec slot was filled */
-                    if(buffer->mlv_slot_end)
-                    {
-                        trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d (last buffer, so release)", buffer->mlv_slot_id);
-                        mlv_rec_release_slot(buffer->mlv_slot_id, 1);
-                        mlv_snd_queue_slot();
-                    }
-                    free(buffer);
+                    trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d (last buffer, so release)", buffer->mlv_slot_id);
+                    mlv_rec_release_slot(buffer->mlv_slot_id, 1);
+                    mlv_snd_queue_slot();
                 }
-                else
-                {
-                    trace_write(trace_ctx, "   --> WRITER: entry is dma buffer");
-                    
-                    if(!gui_menu_shown() && liveview_display_idle())
-                    {
-                        /* pepare data for KISS FFT */
-                        for(uint32_t pos = 0; pos < fft_size; pos++)
-                        {
-                            fft_in[pos].r = buffer->data[2 * pos];
-                            fft_in[pos].i = 0;
-                        }
-                        
-                        kiss_fft(cfg, fft_in, fft_out);
-                        
-                        /* print FFT plot */
-                        int x_start = 20;
-                        int y_start = 420;
-                        int height = 200;
-                        int width = (720 - (2 * x_start));
-                        float bar_width = (float)width / ((float)fft_size / 2);
-                        
-                        for(uint32_t pos = 0; pos < fft_size / 2; pos++)
-                        {
-                            float val_r = FIX_TO_FLOAT(fft_out[pos].r) + FIX_TO_FLOAT(fft_out[fft_size - 1 - pos].r);
-                            float val_i = FIX_TO_FLOAT(fft_out[pos].i) + FIX_TO_FLOAT(fft_out[fft_size - 1 - pos].i);
-                            
-                            uint32_t ampl = (uint32_t)MIN(height, sqrtf(QUAD(val_r) + QUAD(val_i)) * height * 8);
-                            
-                            int x = x_start + pos * bar_width;
-                            int y = (y_start - height) + (height - ampl);
-                            
-                            if(1)
-                            {
-                                bmp_fill(COLOR_EMPTY, x, y_start - height, bar_width + 1, (height - ampl));
-                                bmp_fill(COLOR_RED, x, y, bar_width - 1, ampl);
-                            }
-                        }
-                        
-                        for(uint32_t freq = 0; freq < mlv_snd_in_sample_rate / 2; freq += 5000)
-                        {
-                            int x = x_start + (freq * width) / (mlv_snd_in_sample_rate / 2);
-                            draw_line(x, y_start - 30, x, y_start, COLOR_WHITE);
-                        }
-                        
-                        bmp_draw_rect(COLOR_WHITE, x_start - 2, y_start - height - 2, (720 - (2 * x_start)) + 4, height + 4);
-                    }
-                    
-                    msg_queue_post(mlv_snd_buffers_empty, buffer);
-                }
+                free(buffer);
                 break;
             
             default:
@@ -505,10 +407,6 @@ static void mlv_snd_writer(int unused)
                 break;
         }
     }
-    
-    free(cfg);
-    free(fft_in);
-    free(fft_out);
     
     mlv_snd_state = MLV_SND_STATE_SOUND_STOPPED;
 }
@@ -667,22 +565,6 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
     return 0;
 }
 
-
-static MENU_SELECT_FUNC(mlv_snd_test_select)
-{
-    switch(mlv_snd_state)
-    {
-        case MLV_SND_STATE_IDLE:
-            mlv_snd_start();
-            mlv_snd_alloc_buffers();
-            break;
-            
-        case MLV_SND_STATE_SOUND_RUNNING:
-            mlv_snd_stop();
-            break;
-    }
-}
-
 static struct menu_entry mlv_snd_menu[] =
 {
     {
@@ -694,9 +576,12 @@ static struct menu_entry mlv_snd_menu[] =
         .children = (struct menu_entry[])
         {
             {
-                .name = "Debug: Start/Stop FFT",
-                .select = &mlv_snd_test_select,
-                .help = "Start and stop FFT display.",
+                .name = "Sampling rate",
+                .priv = &mlv_snd_rate_sel,
+                .min = 0,
+                .max = COUNT(mlv_snd_rates)-1,
+                .choices = CHOICES(MLV_SND_RATE_TEXT),
+                .help = "Select your sampling rate.",
             },
             {
                 .name = "Trace output",
@@ -704,14 +589,6 @@ static struct menu_entry mlv_snd_menu[] =
                 .min = 0,
                 .max = 1,
                 .help = "Enable log file tracing. Needs camera restart.",
-            },
-            {
-                .name = "Sampling rate",
-                .priv = &mlv_snd_rate_sel,
-                .min = 0,
-                .max = COUNT(mlv_snd_rates)-1,
-                .choices = CHOICES(MLV_SND_RATE_TEXT),
-                .help = "Select your sampling rate.",
             },
             MENU_EOL,
         },

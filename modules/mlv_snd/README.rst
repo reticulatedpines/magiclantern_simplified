@@ -1,5 +1,5 @@
-mlv_snd
-========
+MLV Sound Support
+=================
 
 With this module, mlv_rec is extended by sound recording support.
 
