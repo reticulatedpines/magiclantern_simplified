@@ -2976,7 +2976,7 @@ static MENU_UPDATE_FUNC(bulb_display)
             format_time_hours_minutes_seconds(bulb_duration)
         );
 #ifdef FEATURE_INTERVALOMETER
-    if (bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    if (!bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
     {
         MENU_SET_VALUE(
             "OFF (%s)",
