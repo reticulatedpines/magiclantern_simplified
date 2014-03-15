@@ -238,7 +238,7 @@ void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp);
-
+void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp);
 
 /* randomize the 64 bits passed in parameter using LFSR */
 uint64_t mlv_prng_lfsr(uint64_t value);
