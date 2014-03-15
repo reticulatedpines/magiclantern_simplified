@@ -4557,6 +4557,11 @@ livev_hipriority_task( void* unused )
                 crop_set_dirty(10);
                 msleep(500);
             }
+            if (!zebra_should_run())
+            {
+                /* false alarm */
+                continue;
+            }
         }
         #if 0
         draw_cropmark_area(); // just for debugging
