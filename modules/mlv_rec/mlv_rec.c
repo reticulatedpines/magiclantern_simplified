@@ -1133,15 +1133,15 @@ static void show_buffer_status()
         }
 
         /* paint dots at current rate/level */
-        dot(x-16, y_fill-16, COLOR_GREEN1, 2);
+        fill_circle(x, y_fill, 2, COLOR_GREEN1);
 
         if(y_rate_0 != ymax)
         {
-            dot(x-16, y_rate_0-16, COLOR_RED, 2);
+            fill_circle(x, y_rate_0, 2, COLOR_RED);
         }
         if(card_spanning && y_rate_1 != ymax)
         {
-            dot(x-16, y_rate_1-16, COLOR_BLUE, 2);
+            fill_circle(x, y_rate_1, 2, COLOR_BLUE);
         }
 
         prev_x = x;
@@ -1153,10 +1153,10 @@ static void show_buffer_status()
         static int32_t prev_xp = 0;
         if(prev_xp)
         {
-            dot(prev_xp, ymin - 16, COLOR_EMPTY, 2);
+            fill_circle(prev_xp, ymin, COLOR_EMPTY, 2);
         }
         int32_t xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
-        dot(xp, ymin - 16, COLOR_RED, 2);
+        fill_circle(xp, ymin, 2, COLOR_RED);
         prev_xp = xp;
 
         bmp_draw_rect(COLOR_GRAY(20), 0, ymin, 720, ymax-ymin);
