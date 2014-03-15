@@ -389,7 +389,7 @@ static int install(void)
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
 
     y += 60;
-    gui_uilock(UILOCK_NONE);
+    gui_uilock(UILOCK_SHUTTER);
     
     for (int i = 30; i > 0; i--)
     {
@@ -468,15 +468,12 @@ void install_task()
     }
     
     /* finish uninstalling */
-    gui_uilock(UILOCK_NONE);
+    gui_uilock(UILOCK_SHUTTER);
     bmp_printf(FONT_CANON, 0, 430, "Please restart your camera.");
     print_bootflags();
 }
 
 void redraw() { clrscr(); }
-
-#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
-#define UILOCK_EVERYTHING 0x4100017f
 
 void gui_uilock(int x)
 {
