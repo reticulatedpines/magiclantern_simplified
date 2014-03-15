@@ -61,7 +61,7 @@ NSTUB(0xFF3452C8,  FIO_WriteFile)
 NSTUB(0xFF345378,  FIO_CloseFile)
 NSTUB(0xFF3454F4, _FIO_GetFileSize)
 NSTUB(0xFF345A0C, _FIO_RenameFile)
-NSTUB(0xFF345B4C, _FIO_CreateDirectory)
+NSTUB(0xFF345BD4, _FIO_CreateDirectory)
 NSTUB(0xFF34619C, _FIO_FindFirstEx)
 NSTUB(0xFF346290,  FIO_FindNextEx)
 NSTUB(0xFF346370,  FIO_FindClose)                           // FindClose
