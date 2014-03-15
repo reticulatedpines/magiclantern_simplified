@@ -36,11 +36,44 @@ void my_bzero( uint8_t * base, uint32_t size );
 int autoexec_ok; // true if autoexec.bin was found
 int old_shooting_mode; // to detect when mode dial changes
 int bootflag_written = 0;
+int get_ms_clock_value() { return 0; }
+char * get_task_name_from_id(int id) { return ""; }
+void beep() {} ;
+uint32_t ml_used_mem = 0;
+uint32_t ml_reserved_mem = 0;
+void menu_redraw() {} ;
+int should_run_polling_action(int period_ms, int* last_updated_time) { return 0; }
+void menu_add( const char * name, struct menu_entry * new_entry, int count ) {} 
+void menu_open_submenu() {} 
+void redraw_after(int time) {}
+uint32_t edmac_get_address(uint32_t channel) { return 0; }
+void EngDrvOut(uint32_t reg, uint32_t value) {}
 
+static void
+call_init_funcs()
+{
+    extern struct task_create _init_funcs_start[];
+    extern struct task_create _init_funcs_end[];
+    struct task_create * init_func = _init_funcs_start;
+
+    for( ; init_func < _init_funcs_end ; init_func++ )
+    {
+#if defined(POSITION_INDEPENDENT)
+        init_func->entry = PIC_RESOLVE(init_func->entry);
+        init_func->name = PIC_RESOLVE(init_func->name);
+#endif
+        DebugMsg( DM_MAGIC, 3,
+            "Calling init_func %s (%x)",
+            init_func->name,
+            (uint32_t) init_func->entry
+        );
+        thunk entry = (thunk) init_func->entry;
+        entry();
+    }
+}
 
 void NotifyBox(int timeout, char* fmt, ...)
 {
-    beep();
     static char notify_box_msg[100];
     va_list ap;
     va_start( ap, fmt );
@@ -90,10 +123,6 @@ void info_led_blink(int times, int delay_on, int delay_off)
         msleep(delay_off);
     }
 }
-
-
-
-
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
 #define NVRAM_BOOTFLAGS     ((void*) 0xF8000000)
@@ -427,7 +456,7 @@ static int compute_signature(int* start, int num)
 //~ Called from my_init_task
 void install_task()
 {
-    call_init_funcs(0);
+    call_init_funcs();
     
     msleep(500);
     
@@ -441,7 +470,6 @@ void install_task()
         info_led_blink(10, 90, 10);
         info_led_blink(10, 10, 90);
         info_led_blink(10, 90, 10);
-        beep();
         return; // display off, or liveview, won't install
     }
     msleep(500);
@@ -601,7 +629,6 @@ struct sfont font_small_shadow;
 struct sfont font_med_shadow;
 struct sfont font_large_shadow;
 void ml_assert_handler(char* msg, char* file, int line, const char* func) {};
-void bmp_mute_flag_reset(){};
 void afframe_set_dirty(){};
 int digic_zoom_overlay_enabled(){return 0;}
 void bvram_mirror_init(){};
@@ -609,7 +636,7 @@ void bvram_mirror_clear(){};
 int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
-int display_filter_enabled;
+int display_filter_enabled() {return 0;};
 
 PROP_INT( PROP_ICU_UILOCK, uilockprop);
 
@@ -625,34 +652,6 @@ void SW2(int v, int wait)
 {
     prop_request_change(PROP_REMOTE_SW2, &v, 2);
     msleep(wait);
-}
-
-void beep()
-{
-    call("StartPlayWaveData");
-    msleep(1000);
-    call("StopPlayWaveData");
-}
-
-void
-call_init_funcs( void * priv )
-{
-    // Call all of the init functions
-    extern struct task_create _init_funcs_start[];
-    extern struct task_create _init_funcs_end[];
-    struct task_create * init_func = _init_funcs_start;
-    
-    for( ; init_func < _init_funcs_end ; init_func++ )
-    {
-        DebugMsg( DM_MAGIC, 3,
-                 "Calling init_func %s (%x)",
-                 init_func->name,
-                 (unsigned) init_func->entry
-                 );
-        thunk entry = (thunk) init_func->entry;
-        entry();
-    }
-    
 }
 
 void fake_simple_button(int bgmt_code)
@@ -672,4 +671,4 @@ void gui_uilock(int x)
     msleep(200);
 }
 
-void draw_line(){}
+void draw_line(int x1, int y1, int x2, int y2, int cl){}

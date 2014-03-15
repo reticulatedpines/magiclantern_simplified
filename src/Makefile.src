@@ -76,6 +76,9 @@ ML_OBJS-y = \
 else ifeq ($(ML_SRC_PROFILE),installer)
 ML_INSTALLER_OBJS = \
 	magiclantern.lds \
+	mem.o \
+	exmem.o \
+	util.o \
 	$(ML_ENTRY_OBJ) \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
