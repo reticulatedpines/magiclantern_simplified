@@ -1202,7 +1202,7 @@ static void hack_liveview(int unhack)
             cam_650d ? 0xFF527E38 :
             cam_6d  ? 0xFF52BE94 :
             cam_eos_m ? 0xFF539C1C :
-            cam_700d ? 0xFF52B53C :
+            cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             /* ... */
