@@ -514,16 +514,15 @@ static void card_benchmark_task()
     bmp_printf(FONT_MONO_20, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
     #endif
 
-    card_benchmark_wr(2*1024*1024,  1, 9);
-    card_benchmark_wr(2000000,      2, 9);
-    card_benchmark_wr(3*1024*1024,  3, 9);
-    card_benchmark_wr(3000000,      4, 9);
-    card_benchmark_wr(4*1024*1024,  5, 9);
-    card_benchmark_wr(4000000,      6, 9);
-    card_benchmark_wr(16*1024*1024, 7, 9);
-    card_benchmark_wr(16000000,     8, 9);
-    card_benchmark_wr(128*1024,     9, 9);
-    call("dispcheck");
+    card_benchmark_wr(16*1024*1024, 1, 8);  /* warm-up test */
+    card_benchmark_wr(16*1024*1024, 2, 8);
+    card_benchmark_wr(16000000,     3, 8);
+    card_benchmark_wr(4*1024*1024,  4, 8);
+    card_benchmark_wr(4000000,      5, 8);
+    card_benchmark_wr(2*1024*1024,  6, 8);
+    card_benchmark_wr(2000000,      7, 8);
+    card_benchmark_wr(128*1024,     8, 8);
+    take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(0);
 }
