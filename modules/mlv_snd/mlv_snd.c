@@ -27,8 +27,10 @@
 #include <menu.h>
 #include <config.h>
 #include <bmp.h>
+#include <beep.h>
 #include <propvalues.h>
-#include "raw.h"
+#include <raw.h>
+
 #include "../trace/trace.h"
 #include "../mlv_rec/mlv.h"
 
@@ -51,9 +53,8 @@ extern WEAK_FUNC(ret_0) void audio_configure(int);
 extern WEAK_FUNC(ret_0) int SetAudioVolumeOut(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevActiveIn(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevShutDownIn();
+extern void SetSamplingRate(int sample_rate, int channels);
 extern uint64_t get_us_clock_value();
-
-
 
 extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 extern int32_t mlv_rec_get_free_slot();
@@ -71,10 +72,10 @@ static volatile uint32_t mlv_snd_in_buffer_size = 0;
 static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
 #define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
 
-static volatile uint32_t mlv_snd_rate_sel = 0;
-static volatile uint32_t mlv_snd_in_sample_rate = 0;
-static volatile uint32_t mlv_snd_in_channels = 2;
-static volatile uint32_t mlv_snd_in_bits_per_sample = 16;
+static uint32_t mlv_snd_rate_sel = 0;
+static uint32_t mlv_snd_in_sample_rate = 0;
+static uint32_t mlv_snd_in_channels = 2;
+static uint32_t mlv_snd_in_bits_per_sample = 16;
 
 typedef struct
 {
@@ -116,7 +117,7 @@ static void mlv_snd_asif_in_cbr()
     {
         mlv_snd_current_buffer->frameNumber = mlv_snd_frame_number;
         mlv_snd_frame_number++;
-        msg_queue_post(mlv_snd_buffers_done, mlv_snd_current_buffer);
+        msg_queue_post(mlv_snd_buffers_done, (uint32_t) mlv_snd_current_buffer);
     }
 
     /* the "next" buffer is the current one being filled */
@@ -301,7 +302,7 @@ static void mlv_snd_queue_slot()
             entry->mlv_slot_end = 1;
         }
         
-        msg_queue_post(mlv_snd_buffers_empty, entry);
+        msg_queue_post(mlv_snd_buffers_empty, (uint32_t) entry);
         queued++;
     }
     
