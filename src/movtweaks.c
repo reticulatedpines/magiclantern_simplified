@@ -702,6 +702,7 @@ void bv_disable()
     if (!lv) goto end;
     
     iso_auto_restore_hack();
+    set_photo_digital_iso_gain_for_bv(1024);
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
 
