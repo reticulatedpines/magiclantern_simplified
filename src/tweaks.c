@@ -476,36 +476,6 @@ static void print_set_maindial_hint(int set)
 }
 #endif
 
-#ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
-static CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
-
-static volatile int krzoom_running = 0;
-static void krzoom_task()
-{
-    krzoom_running = 1;
-    SetGUIRequestMode(0);
-    msleep(50);
-    if (lv)
-    {
-        SetGUIRequestMode(1);
-        msleep(50);
-    }
-    fake_simple_button(BGMT_PRESS_ZOOM_IN);
-    krzoom_running = 0;
-}
-
-int handle_krzoom(struct event * event)
-{
-    if (event->param == BGMT_PRESS_ZOOM_IN && ken_rockwell_zoom && QR_MODE && !krzoom_running)
-    {
-        krzoom_running = 1;
-        task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
-        return 0;
-    }
-    return 1;
-}
-#endif
-
 #ifdef FEATURE_SET_MAINDIAL
 static void set_maindial_cleanup()
 {
@@ -3705,7 +3675,7 @@ static struct menu_entry display_menus[] = {
 
 #ifndef CONFIG_5DC
 static struct menu_entry play_menus[] = {
-    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
+    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
     {
         .name = "Image review settings",
         .select = menu_open_submenu,
@@ -3760,14 +3730,6 @@ static struct menu_entry play_menus[] = {
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_DICE_OFF,
-            },
-            #endif
-            #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
-            {
-                .name = "QRZoom->Play",
-                .priv = &ken_rockwell_zoom, 
-                .max = 1,
-                .help = "When you press Zoom in QR mode, it goes to PLAY mode.",
             },
             #endif
             #ifdef FEATURE_REMEMBER_LAST_ZOOM_POS_5D3
