@@ -120,7 +120,6 @@
     #define DRIVE_SILENT 0x13
     #define DRIVE_SILENT_CONTINUOUS 0x14
 #elif defined(CONFIG_6D)
-    #define DRIVE_HISPEED_CONTINUOUS 1
     #define DRIVE_CONTINUOUS 1
     #define DRIVE_SILENT 0x13
     #define DRIVE_SILENT_CONTINUOUS 0x14
