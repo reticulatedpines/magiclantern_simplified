@@ -252,8 +252,8 @@ static void bsod()
     canon_gui_disable_front_buffer();
     gui_uilock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
-    int fnt = SHADOW_FONT(FONT_MED);
-    int h = font_med.height;
+    int fnt = SHADOW_FONT(FONT_MONO_20);
+    int h = 20;
     int y = 50;
     bmp_printf(fnt, 0, y+=h, "   A problem has been detected and Magic Lantern has been"   );
     bmp_printf(fnt, 0, y+=h, "   shut down to prevent damage to your camera."              );
@@ -432,7 +432,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         FIO_CloseFile(f);
         int t1 = get_ms_clock_value();
         int speed = filesize * 1000 * 10 / (t1 - t0);
-        bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+        bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
 
     msleep(2000);
@@ -453,11 +453,11 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             fio_free(buf);
             int t1 = get_ms_clock_value();
             int speed = filesize * 1000 * 10 / (t1 - t0);
-            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+            bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
         else
         {
-            bmp_printf(FONT_MED, x, y += font_med.height, "malloc error: buffer=%d\n", bufsize);
+            bmp_printf(FONT_MONO_20, x, y += 20, "malloc error: buffer=%d\n", bufsize);
         }
     }
 
@@ -467,7 +467,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
 
 static char* print_benchmark_header()
 {
-    bmp_printf(FONT_MED, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
+    bmp_printf(FONT_MONO_20, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
 
     static char mode[100];
     snprintf(mode, sizeof(mode), "Mode: ");
@@ -494,7 +494,7 @@ static char* print_benchmark_header()
 
     STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
 
-    bmp_printf(FONT_MED, 0, 60, mode);
+    bmp_printf(FONT_MONO_20, 0, 60, mode);
     return mode;
 }
 
@@ -511,7 +511,7 @@ static void card_benchmark_task()
     print_benchmark_header();
 
     #ifdef CARD_A_MAKER
-    bmp_printf(FONT_MED, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
+    bmp_printf(FONT_MONO_20, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
     #endif
 
     card_benchmark_wr(2*1024*1024,  1, 9);
@@ -555,7 +555,7 @@ static void twocard_write_task(char* filename)
         while (msg_queue_receive(twocard_mq, (struct event **) &msg, 1000) == 0)
         {
             uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
-            bmp_printf(FONT_MED, 0, cf*20, "[%s] Writing chunk %d [total=%d MB] (buf=%dK)... ", cf ? "CF" : "SD", msg, filesize, bufsize/1024);
+            bmp_printf(FONT_MONO_20, 0, cf*20, "[%s] Writing chunk %d [total=%d MB] (buf=%dK)... ", cf ? "CF" : "SD", msg, filesize, bufsize/1024);
             int r = FIO_WriteFile( f, (const void *) start, bufsize );
             if (r != bufsize) break; // card full?
             filesize += bufsize / 1024 / 1024;
@@ -564,7 +564,7 @@ static void twocard_write_task(char* filename)
         FIO_RemoveFile(filename);
         int t1 = get_ms_clock_value() - 1000;
         int speed = filesize * 1000 * 10 / (t1 - t0);
-        bmp_printf(FONT_MED, 0, 120+cf*20, "[%s] Write speed (buffer=%dk):\t %d.%d MB/s\n", cf ? "CF" : "SD", bufsize/1024, speed/10, speed % 10);
+        bmp_printf(FONT_MONO_20, 0, 120+cf*20, "[%s] Write speed (buffer=%dk):\t %d.%d MB/s\n", cf ? "CF" : "SD", bufsize/1024, speed/10, speed % 10);
     }
     twocard_done++;
 }
@@ -578,7 +578,7 @@ static void twocard_benchmark_task()
     print_benchmark_header();
 
     #ifdef CARD_A_MAKER
-    bmp_printf(FONT_MED, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
+    bmp_printf(FONT_MONO_20, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
     #endif
 
     uint32_t bufsize = 32*1024*1024;
@@ -649,7 +649,7 @@ static void card_bufsize_benchmark_task()
         FIO_CloseFile(f);
         int t1 = get_ms_clock_value();
         int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
-        bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+        bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         if (y > 450) y = 100;
 
         my_fprintf(log, "%d %d\n", bufsize, speed);
@@ -697,7 +697,7 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
     /* transform in MB/s x100 */
     speed = speed * 100 / 1024;
 
-    bmp_printf(FONT_MED, 0, *y += font_med.height, "%s :%4d.%02d MB/s", msg, speed/100, speed%100);
+    bmp_printf(FONT_MONO_20, 0, *y += 20, "%s :%4d.%02d MB/s", msg, speed/100, speed%100);
     msleep(10);
 }
 
@@ -3046,11 +3046,11 @@ static void dbg_draw_props(int changed)
         unsigned property = dbg_props[i];
         unsigned len = dbg_props_len[i];
 #ifdef CONFIG_VXWORKS
-        uint32_t fnt = FONT_MED;
-        unsigned y =  15 + i * font_med.height;
+        uint32_t fnt = FONT_MONO_20;
+        unsigned y =  15 + i * 20;
 #else
-        uint32_t fnt = FONT_SMALL;
-        int y =  15 + i * font_small.height;
+        uint32_t fnt = FONT_MONO_12;
+        int y =  15 + i * 12;
 #endif
         if (i == changed) fnt = FONT(fnt, 5, COLOR_BG);
         char msg[100];
@@ -3642,14 +3642,14 @@ void spy_event(struct event * event)
         static int kev = 0;
         static int y = 250;
         kev++;
-        bmp_printf(FONT_MED, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ",
+        bmp_printf(FONT_MONO_20, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ",
             kev,
             event->param,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
             event->arg);
-        y += font_med.height;
+        y += 20;
         if (y > 350) y = 250;
         if (draw_event == 2) msleep(300);
     }
