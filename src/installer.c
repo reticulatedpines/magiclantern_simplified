@@ -322,9 +322,7 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[3] = '\0';
 #endif
     
-    msleep(1000);
-    call("DisablePowerSave");
-    msleep(2000);
+    msleep(3000);
     
     task_create("install_task", 0x1b, 0x4000, install_task, 0);
     return ans;
@@ -403,6 +401,11 @@ static int install(void)
             "For removing the boot flag, please wait for %d seconds.  ", i
         );
         msleep(1000);
+        
+        if (!DISPLAY_IS_ON)
+        {
+            info_led_blink(1,50,0);
+        }
     }
     return 1;
 }
@@ -445,6 +448,7 @@ static int uninstall(void)
 
 void install_task()
 {
+    call("DisablePowerSave");
     call_init_funcs();
     vram_update_luts();
     _find_ml_card();
