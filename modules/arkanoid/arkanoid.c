@@ -72,17 +72,17 @@ static void arkanoid_redraw()
                 if(e->fade == -1) continue;
                 switch(e->type){
                     case ELEM_PAD:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 4);
-                        bmp_draw_rect_chamfer(e->color, (int)e->x + 1, (int)e->y + 1, e->w - 2, e->h - 2, 4);
+                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 4, 0);
+                        bmp_draw_rect_chamfer(e->color, (int)e->x + 1, (int)e->y + 1, e->w - 2, e->h - 2, 4, 0);
                         break;
                     case ELEM_BALL:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, (e->w + e->h) / 8 );
+                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, (e->w + e->h) / 8, 0);
                         break;
                     case ELEM_BRICK:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 2);
+                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 2, 0);
                         break;
                     case ELEM_FALL_BRICK:
-                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 2);
+                        bmp_draw_rect_chamfer(e->color, (int)e->x, (int)e->y, e->w, e->h, 2, 0);
                         bfnt_draw_char(e->c1, (int)e->x, (int)e->y, e->color, 0);
                         break;
                     case ELEM_ML:

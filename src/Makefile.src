@@ -112,6 +112,7 @@ ML_SRC_OBJS = \
 	rand.o \
 	posix.o \
 	util.o \
+	imath.o \
 	electronic_level.o \
 	cfn.o \
 	gui.o \

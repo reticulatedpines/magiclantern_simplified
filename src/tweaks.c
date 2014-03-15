@@ -1,7 +1,6 @@
 /** \file
  * Tweaks to default UI behavior
  */
-#include "zebra.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -15,6 +14,13 @@
 #include "math.h"
 #include "beep.h"
 #include "module.h"
+#include "shoot.h"
+#include "focus.h"
+#include "imgconv.h"
+#include "zebra.h"
+#include "cropmarks.h"
+#include "hdr.h"
+#include "lvinfo.h"
 
 static void lcd_adjust_position_step();
 static void arrow_key_step();
@@ -104,7 +110,7 @@ dofp_update()
 
 int get_expsim()
 {
-    //bmp_printf(FONT_MED, 50, 50, "mov: %d expsim:%d lv_mov: %d", is_movie_mode(), expsim, lv_movie_select);
+    //bmp_printf(FONT_MED, 50, 50, "mov: %d expsim:%d lv_mov: %d", is_movie_mode(), _expsim, lv_movie_select);
     
 #if defined(CONFIG_7D)
     /* 7D has expsim in video mode, but expsim is for photo mode only. so return 2 if in video mode */
@@ -113,8 +119,8 @@ int get_expsim()
         return 2;
     }
 #endif
-    if (expsim == 3) return 0; /* on 5D3, this means "off" and 0 means "when pressing DOF" */
-    return expsim;
+    if (_expsim == 3) return 0; /* on 5D3, this means "off" and 0 means "when pressing DOF" */
+    return _expsim;
 }
 #ifdef CONFIG_EXPSIM
 
@@ -143,7 +149,7 @@ static void
 expsim_toggle( void * priv, int delta)
 {
     #ifdef CONFIG_EXPSIM_MOVIE
-    int e = mod(get_expsim() + delta, 3);
+    int e = MOD(get_expsim() + delta, 3);
     #else
     if (is_movie_mode()) return;
     int e = !get_expsim();
@@ -180,7 +186,7 @@ static MENU_UPDATE_FUNC(expsim_display)
         MENU_SET_ICON(MNI_DICE, 0);
         #endif
     }
-    else if (expsim == 3)
+    else if (_expsim == 3)
     {
         MENU_SET_VALUE("OFF");
         MENU_SET_ICON(MNI_OFF, 0);
@@ -207,8 +213,8 @@ static MENU_UPDATE_FUNC(expsim_display)
 }
 #endif
 
-#else // no expsim, use some dummy stubs
-void set_expsim(){};
+#else // no _expsim, use some dummy stubs
+void set_expsim(int expsim){};
 #endif
 
 /*
@@ -993,6 +999,8 @@ static void
 tweak_task( void* unused)
 {
     //~ do_movie_mode_remap();
+    
+    extern void movtweak_task_init();
     movtweak_task_init();
     
     TASK_LOOP
@@ -1005,6 +1013,7 @@ tweak_task( void* unused)
         
         msleep(display_countdown || RECORDING || halfshutter_sticky || dofpreview_sticky ? 50 : 500);
         
+        extern void movtweak_step();
         movtweak_step();
 
         #ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
@@ -1204,13 +1213,13 @@ tweak_task( void* unused)
          * => we use heuristics like Canon bottom bar or popping up to detect these events */
         if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED)
         {
-            idle_wakeup_reset_counters();
+            idle_wakeup_reset_counters(0);
         }
         
         #ifdef ISO_ADJUSTMENT_ACTIVE
         if (ISO_ADJUSTMENT_ACTIVE)
         {
-            idle_wakeup_reset_counters();
+            idle_wakeup_reset_counters(0);
         }
         #endif
     }
@@ -1296,7 +1305,7 @@ void display_orientation_toggle(void* priv, int dir)
 {
     int o = DISPLAY_ORIENTATION;
     if (o < 0 || o > 2) return;
-    o = mod(o + dir, 3);
+    o = MOD(o + dir, 3);
     if (o == 0) NormalDisplay();
     else if (o == 1) ReverseDisplay();
     else MirrorDisplay();
@@ -1367,7 +1376,7 @@ static void arrow_key_mode_toggle()
     
     do
     {
-        arrow_keys_mode = mod(arrow_keys_mode + 1, 5);
+        arrow_keys_mode = MOD(arrow_keys_mode + 1, 5);
     }
     while (!is_arrow_mode_ok(arrow_keys_mode));
     NotifyBoxHide();
@@ -1549,7 +1558,7 @@ int handle_arrow_keys(struct event * event)
                 case 1: out_volume_up(); break;
                 #endif
                 #ifdef FEATURE_WHITE_BALANCE
-                case 2: kelvin_toggle(-1, 1); break;
+                case 2: kelvin_toggle((void*)-1, 1); break;
                 #endif
                 #ifdef FEATURE_EXPO_APERTURE
                 case 3: aperture_toggle((void*)-1, 1); break;
@@ -1569,7 +1578,7 @@ int handle_arrow_keys(struct event * event)
                 case 1: out_volume_down(); break;
                 #endif
                 #ifdef FEATURE_WHITE_BALANCE
-                case 2: kelvin_toggle(-1, -1); break;
+                case 2: kelvin_toggle((void*)-1, -1); break;
                 #endif
                 #ifdef FEATURE_EXPO_APERTURE
                 case 3: aperture_toggle((void*)-1, -1); break;
@@ -2254,7 +2263,7 @@ struct menu_entry expo_tweak_menus[] = {
         .max = 1,
         .help = "Exposure simulation.",
         #endif
-        .priv = &expsim,
+        .priv = &_expsim,
         .select = expsim_toggle,
         .update = expsim_display,
         .depends_on = DEP_LIVEVIEW,
@@ -2634,7 +2643,7 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
 #endif
 }
 
-void grayscale_menus_step()
+static void grayscale_menus_step()
 {
     /*
 #ifndef CONFIG_VXWORKS
@@ -2665,7 +2674,7 @@ void grayscale_menus_step()
     int guimode = CURRENT_DIALOG_MAYBE;
     int d = DISPLAY_IS_ON;
     int b = bmp_color_scheme;
-    int sig = get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();
+    int sig = (int)get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();
     int transition = (sig != prev_sig);
     
     if (ml_shutdown_requested) return;
@@ -3171,6 +3180,7 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         {
             MEM(0x44fc+0xBC) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            extern void EnableImagePhysicalScreenParameter();
             EnableImagePhysicalScreenParameter();
         }
     }
@@ -3192,6 +3202,7 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         {
             MEM(0x455c+0xA4) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            extern void EnableImagePhysicalScreenParameter();
             EnableImagePhysicalScreenParameter();
         }
     }
@@ -3213,6 +3224,7 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         {
             MEM(0x4430+0xE8) = 0;
             YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            extern void EnableImagePhysicalScreenParameter();
             EnableImagePhysicalScreenParameter();
         }
     }

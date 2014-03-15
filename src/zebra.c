@@ -36,10 +36,16 @@
 #include "math.h"
 #include "beep.h"
 #include "raw.h"
+#include "shoot.h"
+#include "focus.h"
+#include "lvinfo.h"
 
 #include "imgconv.h"
 #include "falsecolor.h"
 #include "histogram.h"
+
+/* todo: move battery stuff in battery.c */
+#include "battery.h"
 
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
 #define FEATURE_RAW_OVERLAYS
@@ -78,12 +84,10 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
 
 //~ static void defish_draw_play();
 
-extern unsigned int log_length(int x);
 extern void zoom_sharpen_step();
 extern void bv_auto_update();
 
 void lens_display_set_dirty();
-void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 //~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
@@ -140,12 +144,6 @@ int lv_luma_is_accurate()
 #ifdef FEATURE_SHOW_OVERLAY_FPS
 static int show_lv_fps = 0; // for debugging
 #endif
-
-static int _bmp_muted = false;
-static int _bmp_unmuted = false;
-int bmp_is_on() { return !_bmp_muted; }
-void bmp_on();
-void bmp_off();
 
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
@@ -258,6 +256,7 @@ int should_draw_zoom_overlay()
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+    extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz()) return 0;
     #endif
     
@@ -987,53 +986,6 @@ waveform_draw_image(
     }
 }
 #endif
-
-static FILE * g_aj_logfile = INVALID_PTR;
-static unsigned int aj_create_log_file( char * name)
-{
-   g_aj_logfile = FIO_CreateFile( name );
-   if ( g_aj_logfile == INVALID_PTR )
-   {
-      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
-      return( 0 );  // FAILURE
-   }
-   return( 1 );  // SUCCESS
-}
-
-static void aj_close_log_file( void )
-{
-   if (g_aj_logfile == INVALID_PTR)
-      return;
-   FIO_CloseFile( g_aj_logfile );
-   g_aj_logfile = INVALID_PTR;
-}
-
-void dump_seg(uint32_t start, uint32_t size, char* filename)
-{
-    DEBUG();
-    aj_create_log_file(filename);
-    FIO_WriteFile( g_aj_logfile, (const void *) start, size );
-    aj_close_log_file();
-    DEBUG();
-}
-
-void dump_big_seg(int k, char* filename)
-{
-    DEBUG();
-    aj_create_log_file(filename);
-    
-    int i;
-    for (i = 0; i < 16; i++)
-    {
-        DEBUG();
-        uint32_t start = (k << 28 | i << 24);
-        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
-        FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
-    }
-    
-    aj_close_log_file();
-    DEBUG();
-}
 
 static int fps_ticks = 0;
 
@@ -2153,6 +2105,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
     else if (hdmi_code == 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+    extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using display filters, go outside LiveView and back.");
     #endif
@@ -2748,7 +2701,7 @@ static void idle_timeout_toggle(void* priv, int sign)
 {
     int* t = (int*)priv;
     int i = current_timeout_index(*t);
-    i = mod(i + sign, COUNT(timeout_values));
+    i = MOD(i + sign, COUNT(timeout_values));
     *(int*)priv = timeout_values[i];
 }
 #endif
@@ -3367,55 +3320,6 @@ PROP_HANDLER(PROP_GUI_STATE)
 #endif
 }
 
-void palette_disable(uint32_t disabled)
-{
-    #ifdef CONFIG_VXWORKS
-    return; // see set_ml_palette
-    #endif
-
-    if(disabled)
-    {
-        for (int i = 0; i < 0x100; i++)
-        {
-            EngDrvOut(LCD_Palette[i*3], 0x00FF0000);
-            EngDrvOut(LCD_Palette[i*3+0x300], 0x00FF0000);
-        }
-    }
-    else
-    {
-        for (int i = 0; i < 0x100; i++)
-        {
-            EngDrvOut(LCD_Palette[i*3], LCD_Palette[i*3 + 2]);
-            EngDrvOut(LCD_Palette[i*3+0x300], LCD_Palette[i*3 + 2]);
-        }
-    }
-}
-//~ #endif
-
-void bmp_on()
-{
-    if (!_bmp_unmuted) 
-    {
-        palette_disable(0);
-        _bmp_muted = false; _bmp_unmuted = true;
-    }
-}
-
-void bmp_off()
-{
-    if (!_bmp_muted)
-    {
-        _bmp_muted = true; _bmp_unmuted = false;
-        palette_disable(1);
-    }
-}
-
-void bmp_mute_flag_reset()
-{
-    _bmp_muted = 0;
-    _bmp_unmuted = 0;
-}
-
 #ifdef FEATURE_MAGIC_ZOOM
 static void zoom_overlay_toggle()
 {
@@ -3614,7 +3518,7 @@ static void draw_zoom_overlay(int dirty)
         while(1)
         {
             int t1 = *(uint32_t*)0xC0242014;
-            int dt = mod(t1 - t0, 1048576);
+            int dt = MOD(t1 - t0, 1048576);
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;
             if (dt > timeout_us)
@@ -3872,7 +3776,11 @@ BMP_LOCK(
     #ifdef FEATURE_DEFISHING_PREVIEW
     extern int defish_preview;
     if (defish_preview)
+    {
+        /* to refactor with CBR + separate file */
+        extern void defish_draw_play();
         defish_draw_play();
+    }
     #endif
 
     #ifdef FEATURE_SPOTMETER
@@ -4296,8 +4204,10 @@ static void idle_kill_flicker()
         if (is_movie_mode())
         {
             black_bars_16x9();
-            if (RECORDING)
+            if (RECORDING) {
+                extern void dot(int x, int y, int color, int radius); /* menu.c */
                 dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
+            }
         }
     }
 }
@@ -4393,7 +4303,7 @@ clearscreen_loop:
             int i;
             for (i = 0; i < (int)clearscreen_delay/20; i++)
             {
-                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(); )
+                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(1,1); )
                 msleep(20);
                 if (!(get_halfshutter_pressed() || dofpreview))
                     goto clearscreen_loop;
@@ -4470,7 +4380,7 @@ CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
 // * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
-void redraw_do()
+void _redraw_do()
 {
     extern int ml_started;
     if (!ml_started) return;
@@ -4481,7 +4391,12 @@ BMP_LOCK (
 #ifdef CONFIG_VARIANGLE_DISPLAY
     if (display_dont_mirror && display_dont_mirror_dirty)
     {
-        if (lcd_position == 1) NormalDisplay();
+        if (lcd_position == 1)
+        {
+            /* Canon stub, usually available only on cameras with variable displays */
+            extern void NormalDisplay();
+            NormalDisplay();
+        }
         display_dont_mirror_dirty = 0;
     }
 #endif
@@ -4704,6 +4619,8 @@ livev_hipriority_task( void* unused )
             msleep(10);
 
             #ifdef CONFIG_DISPLAY_FILTERS
+            /* to refactor with CBR */
+            extern void display_filter_step(int frame_number);
             display_filter_step(k);
             #endif
             
@@ -4739,6 +4656,8 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef FEATURE_REC_NOTIFY
+        /* to refactor with CBR */
+        extern void rec_notify_continuous(int called_from_menu);
         if (k % 8 == 7) rec_notify_continuous(0);
         #endif
         
@@ -4911,7 +4830,7 @@ int toggle_disp_mode()
 {
     update_disp_mode_bits_from_params();
     idle_wakeup_reset_counters(-3);
-    disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
+    disp_mode = MOD(disp_mode + 1, disp_profiles_0 + 1);
     BMP_LOCK( do_disp_mode_change(); )
     //~ menu_set_dirty();
     return disp_mode == 0;
@@ -5102,7 +5021,7 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_Open("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
+    FILE* f = FIO_OpenFile("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);

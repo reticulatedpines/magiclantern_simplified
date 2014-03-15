@@ -32,6 +32,16 @@
 #include "version.h"
 #include "module.h"
 #include "raw.h"
+#include "zebra.h"
+#include "cropmarks.h"
+#include "battery.h"
+#include "lens.h"
+#include "shoot.h"
+#include "hdr.h"
+#include "fps.h"
+#include "picstyle.h"
+#include "focus.h"
+#include "lvinfo.h"
 
 // for movie logging
 static char* mvr_logfile_buffer = 0;
@@ -947,6 +957,10 @@ mvr_create_logfile(
         );
     #endif
 
+    /* todo: refactor these with callbacks (these calls are private) */
+    extern void fps_mvr_log(char* mvr_logfile_buffer);
+    extern void hdr_mvr_log(char* mvr_logfile_buffer);
+    extern void bitrate_mvr_log(char* mvr_logfile_buffer);
     fps_mvr_log(mvr_logfile_buffer);
     hdr_mvr_log(mvr_logfile_buffer);
     bitrate_mvr_log(mvr_logfile_buffer);
@@ -1247,7 +1261,7 @@ PROP_HANDLER(PROP_CUSTOM_WB)
 
 void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
 {
-#if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
+#if !defined(CONFIG_VXWORKS)
     // normalize: green gain should be always 1
     //~ gain_G = COERCE(gain_G, 4, 32000);
     //~ gain_R = COERCE(gain_R * 1024 / gain_G, 128, 32000);
@@ -1278,25 +1292,6 @@ int lens_get_##param() \
 { \
     return lens_info.param; \
 } 
-
-//~ LENS_GET(iso)
-//~ LENS_GET(shutter)
-//~ LENS_GET(aperture)
-LENS_GET(ae)
-//~ LENS_GET(kelvin)
-//~ LENS_GET(wbs_gm)
-//~ LENS_GET(wbs_ba)
-
-#define LENS_SET(param) \
-void lens_set_##param(int value) \
-{ \
-    int raw = VALUE2RAW(param,value); \
-    if (raw >= 0) lens_set_raw##param(raw); \
-}
-
-LENS_SET(iso)
-LENS_SET(shutter)
-LENS_SET(aperture)
 
 PROP_INT(PROP_WB_KELVIN_PH, wb_kelvin_ph);
 
@@ -1651,17 +1646,17 @@ static int prop_set_rawaperture_approx(unsigned new_av)
 
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!expo_value_rounding_ok(new_av)) // try to change it by a small amount, so Canon firmware will accept it
+    if (!expo_value_rounding_ok(new_av, 1)) // try to change it by a small amount, so Canon firmware will accept it
     {
         int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         
-        if (expo_value_rounding_ok(new_av_plus1)) new_av = new_av_plus1;
-        else if (expo_value_rounding_ok(new_av_minus1)) new_av = new_av_minus1;
-        else if (expo_value_rounding_ok(new_av_plus2)) new_av = new_av_plus2;
-        else if (expo_value_rounding_ok(new_av_minus2)) new_av = new_av_minus2;
+        if (expo_value_rounding_ok(new_av_plus1, 1)) new_av = new_av_plus1;
+        else if (expo_value_rounding_ok(new_av_minus1, 1)) new_av = new_av_minus1;
+        else if (expo_value_rounding_ok(new_av_plus2, 1)) new_av = new_av_plus2;
+        else if (expo_value_rounding_ok(new_av_minus2, 1)) new_av = new_av_minus2;
     }
     
     if (ABS((int)new_av - (int)lens_info.raw_aperture) <= 3) // nothing to do :)

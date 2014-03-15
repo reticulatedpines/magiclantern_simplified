@@ -13,9 +13,6 @@
 extern void * malloc( size_t len );
 extern void free( void * buf );
 
-/* in posix.c */
-extern void * realloc( void * buf, size_t newlen );
-
 /* not to be called directly (only via macros) */
 extern void * __mem_malloc( size_t len, unsigned int flags, const char *file, unsigned int line);
 extern void __mem_free( void * buf);
@@ -54,5 +51,60 @@ const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... *
 #define fio_free            free
 
 #endif
+
+
+
+
+/* general-purpose memory-related routines (not routed through the backend) */
+/* ======================================================================== */
+
+/* in posix.c */
+extern void * realloc( void * buf, size_t newlen );
+
+#define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
+
+#define INVALID_PTR             ((void *)0xFFFFFFFF)
+
+/** Check a pointer for error code */
+#define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
+
+/* read a uint32_t from memory */
+#define MEM(x) *(volatile uint32_t*)(x)
+
+/* read a ENGIO value from shadow memory */
+extern uint32_t shamem_read(uint32_t addr);
+
+/* read a uint32_t from memory or engio shadow memory */
+#define MEMX(x) ( \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0xC0000000UL) ? (uint32_t)shamem_read(x) : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0xE0000000UL) ? (uint32_t)0xDEADBEAF : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0x70000000UL) ? (uint32_t)0xDEADBEAF : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0x80000000UL) ? (uint32_t)0xDEADBEAF : \
+        *(volatile uint32_t *)(x) \
+)
+
+/* align a pointer at 16, 32 or 64 bits, with floor-like rounding */
+#define ALIGN16(x) ((__typeof__(x))(((uint32_t)(x)) & ~1))
+#define ALIGN32(x) ((__typeof__(x))(((uint32_t)(x)) & ~3))
+#define ALIGN64(x) ((__typeof__(x))(((uint32_t)(x)) & ~7))
+
+/* align a pointer at 16, 32 or 64 bits, with ceil-like rounding */
+#define ALIGN16SUP(x) ((__typeof__(x))(((uint32_t)(x) + 1) & ~1))
+#define ALIGN32SUP(x) ((__typeof__(x))(((uint32_t)(x) + 3) & ~3))
+#define ALIGN64SUP(x) ((__typeof__(x))(((uint32_t)(x) + 7) & ~7))
+
+/* memcpy/memset */
+extern void * memset ( void * ptr, int value, size_t num );
+extern void*  memcpy( void *, const void *, size_t );
+extern int memcmp( const void* s1, const void* s2,size_t n );
+extern void * memchr( const void *s, int c, size_t n );
+extern void* memset64(void* dest, int val, size_t n);
+extern void* memcpy64(void* dest, void* srce, size_t n);
+extern void* dma_memcpy(void* dest, void* srce, size_t n);
+extern void* edmac_memcpy(void* dest, void* srce, size_t n);
+
+/* free memory info */
+int GetFreeMemForAllocateMemory();
+static int GetFreeMemForMalloc();
 
 #endif

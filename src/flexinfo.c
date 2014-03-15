@@ -7,6 +7,10 @@
 #include <lens.h>
 #include <version.h>
 #include <flexinfo.h>
+#include <shoot.h>
+#include <battery.h>
+#include <fps.h>
+#include <focus.h>
 
 #ifdef FEATURE_FLEXINFO
 

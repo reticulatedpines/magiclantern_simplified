@@ -70,7 +70,7 @@ This notice must always be retained in any copy.
 #define FIO_WriteFile(f,data,len) fwrite(data, 1, len, f)
 #define FIO_ReadFile(f,data,len) fread(data, 1, len, f)
 #define FIO_CloseFile(x) fclose(f)
-#define FIO_Open(file,mode) fopen(file, "r")
+#define FIO_OpenFile(file,mode) fopen(file, "r")
 #define FIO_GetFileSize(f,ret) getFileSize(f,ret)
 
 #define INVALID_PTR 0
@@ -643,7 +643,7 @@ uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
         return 0;
     }
 
-    FILE* f = FIO_Open(file, O_RDONLY | O_SYNC);
+    FILE* f = FIO_OpenFile(file, O_RDONLY | O_SYNC);
     if(f == INVALID_PTR)
     {
         return 0;

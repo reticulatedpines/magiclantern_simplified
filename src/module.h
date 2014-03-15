@@ -288,6 +288,19 @@ struct config_var* module_config_var_lookup(int* ptr);
 /* lookup a config variable by name */
 struct config_var * module_get_config_var(const char * name);
 
+/* called from config backend */
+void module_save_configs();
+
+/* defined in config.c */
+unsigned int module_config_load(char *filename, module_entry_t *module);
+unsigned int module_config_save(char *filename, module_entry_t *module);
+
+int module_send_keypress(int module_key);
+
+/* display filter interface for modules */
+int module_display_filter_enabled();
+int module_display_filter_update();
+
 struct module_symbol_entry
 {
     const char * name;

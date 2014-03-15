@@ -67,6 +67,7 @@
 #include <lens.h>
 #include <math.h>
 #include <fileprefix.h>
+#include <raw.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
@@ -81,6 +82,8 @@ extern WEAK_FUNC(ret_0) int raw_hist_get_overexposure_percentage();
 extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
+
+int dual_iso_is_enabled();
 
 /* camera-specific constants */
 

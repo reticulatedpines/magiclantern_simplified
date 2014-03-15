@@ -15,6 +15,11 @@
 #include "asm.h"
 #include "beep.h"
 #include "screenshot.h"
+#include "console.h"
+#include "zebra.h"
+#include "shoot.h"
+#include "cropmarks.h"
+#include "fw-signature.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -59,7 +64,6 @@ static void HijackFormatDialogBox_main();
 void debug_menu_init();
 void display_on();
 void display_off();
-void EngDrvOut(int reg, int value);
 
 
 void fake_halfshutter_step();
@@ -71,12 +75,6 @@ void j_tp_intercept() { tp_intercept(); }
 
 #if CONFIG_DEBUGMSG
 static int draw_prop = 0;
-
-static void
-draw_prop_select( void * priv , int unused )
-{
-    draw_prop = !draw_prop;
-}
 
 static int dbg_propn = 0;
 static void
@@ -137,22 +135,6 @@ void info_led_blink(int times, int delay_on, int delay_off)
     }
 }
 
-
-
-#if CONFIG_DEBUGMSG
-
-static int vmax(int* x, int n)
-{
-    int i;
-    int m = -100000;
-    for (i = 0; i < n; i++)
-        if (x[i] > m)
-            m = x[i];
-    return m;
-}
-
-#endif
-
 static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
@@ -185,18 +167,6 @@ static void dump_rom(void* priv, int unused)
     task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
 }
 
-static void dump_logs_task(void* priv)
-{
-    msleep(200);
-    call("dumpf");
-}
-
-static void dump_logs(void* priv)
-{
-    //gui_stop_menu();
-    task_create("dump_logs_task", 0x1e, 0, dump_logs_task, 0);
-}
-
 #ifdef FEATURE_GUIMODE_TEST
 // beware, might be dangerous, some gui modes will give errors
 void guimode_test()
@@ -209,7 +179,7 @@ void guimode_test()
         char fn[50];
         snprintf(fn, sizeof(fn), "VRAM%d.BMP", i);
 
-        if (GetFileSize(fn) != 0xFFFFFFFF) // this gui mode was already tested?
+        if (FIO_GetFileSize_direct(fn) != 0xFFFFFFFF) // this gui mode was already tested?
             continue;
 
         NotifyBox(500, "Trying GUI mode %d...", i);
@@ -441,7 +411,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         void* buf = fio_malloc(bufsize);
         if (buf)
         {
-            FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
+            FILE* f = FIO_OpenFile(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
             int t0 = get_ms_clock_value();
             int i;
             for (i = 0; i < n; i++)
@@ -845,6 +815,14 @@ static void test_task() { test_task_created = 1; }
 
 static void stub_test_task(void* arg)
 {
+    /* this calls some private functions that should not be called from user code */
+    extern void* _malloc(size_t size);
+    extern void _free(void* ptr);
+    extern void* _AllocateMemory(size_t size);
+    extern void _FreeMemory(void* ptr);
+    extern void* _alloc_dma_memory(size_t size);
+    extern void _free_dma_memory(void* ptr);
+
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
     msleep(1000);
@@ -905,7 +883,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC(t0 = *(uint32_t*)0xC0242014);
         TEST_TRY_VOID(msleep(250));
         TEST_TRY_FUNC(t1 = *(uint32_t*)0xC0242014);
-        TEST_TRY_FUNC_CHECK(ABS(mod(t1-t0, 1048576)/1000 - 250), < 30);
+        TEST_TRY_FUNC_CHECK(ABS(MOD(t1-t0, 1048576)/1000 - 250), < 30);
 
         // calendar
         struct tm now;
@@ -926,8 +904,8 @@ static void stub_test_task(void* arg)
         TEST_TRY_VOID(msleep(1500));
         TEST_TRY_VOID(LoadCalendarFromRTC( &now ));
         TEST_TRY_FUNC(s1 = now.tm_sec);
-        TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), >= 1);
-        TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
+        TEST_TRY_FUNC_CHECK(MOD(s1-s0, 60), >= 1);
+        TEST_TRY_FUNC_CHECK(MOD(s1-s0, 60), <= 2);
 
         // mallocs
         // bypass the memory backend and use low-level calls only for these tests
@@ -1134,7 +1112,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         void* p;
         TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != (int)INVALID_PTR);
-        TEST_TRY_FUNC_CHECK(f = FIO_Open("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
+        TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
         TEST_TRY_VOID(FIO_CloseFile(f));
         TEST_TRY_VOID(_free_dma_memory(p));
@@ -1291,7 +1269,7 @@ static void stress_test_task(void* unused)
             case 5: fake_simple_button(BGMT_MENU); break;
             //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
         }
-        dir = mod(dir + rand()%3 - 1, 7);
+        dir = MOD(dir + rand()%3 - 1, 7);
         msleep(MIN_MSLEEP);
     }
     gui_stop_menu();
@@ -1306,7 +1284,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: image compare: %d", i);
         playback_compare_images_task(1);
     }
-    get_out_of_play_mode();
+    get_out_of_play_mode(500);
     msleep(2000);
 #endif
 
@@ -1317,7 +1295,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: exposure fusion: %d", i);
         expfuse_preview_update_task(1);
     }
-    get_out_of_play_mode();
+    get_out_of_play_mode(500);
     msleep(2000);
 #endif
 
@@ -1335,7 +1313,7 @@ static void stress_test_task(void* unused)
         msleep(200);
     }
     timelapse_playback = 0;
-    get_out_of_play_mode();
+    get_out_of_play_mode(500);
 
     msleep(2000);
 
@@ -1524,7 +1502,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "ISO: raw %d  ", i);
         lens_set_rawiso(i); msleep(200);
     }
-    lens_set_iso(88);
+    lens_set_rawiso(ISO_400);
 
     stress_test_picture(2, 2000);
 
@@ -1753,167 +1731,6 @@ extern void menu_self_test();
 #endif // CONFIG_STRESS_TEST
 
 #if CONFIG_DEBUGMSG
-
-int mem_spy = 0;
-
-int mem_spy_start = 0; // start from here
-int mem_spy_bool = 0;           // only display booleans (0,1,-1)
-int mem_spy_fixed_addresses = 0; // only look from a list of fixed addresses
-const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc00011cf, 0xc02000a8, 0xc02000ac, 0xc0201004, 0xc0201010, 0xc0201100, 0xc0201104, 0xc0201200, 0xc0203000, 0xc020301c, 0xc0203028, 0xc0203030, 0xc0203034, 0xc020303c, 0xc0203044, 0xc0203048, 0xc0210200, 0xc0210208, 0xc022001c, 0xc0220028, 0xc0220034, 0xc0220070, 0xc02200a4, 0xc02200d0, 0xc02200d4, 0xc02200d8, 0xc02200e8, 0xc02200ec, 0xc0220100, 0xc0220104, 0xc022010c, 0xc0220118, 0xc0220130, 0xc0220134, 0xc0220138, 0xc0222000, 0xc0222004, 0xc0222008, 0xc022200c, 0xc0223000, 0xc0223010, 0xc0223060, 0xc0223064, 0xc0223068, 0xc0224100, 0xc0224104, 0xc022d000, 0xc022d02c, 0xc022d074, 0xc022d1ec, 0xc022d1f0, 0xc022d1f4, 0xc022d1f8, 0xc022d1fc, 0xc022dd14, 0xc022f000, 0xc022f004, 0xc022f200, 0xc022f210, 0xc022f214, 0xc022f340, 0xc022f344, 0xc022f430, 0xc022f434, 0xc0238060, 0xc0238064, 0xc0238080, 0xc0238084, 0xc0238098, 0xc0242010, 0xc0300000, 0xc0300100, 0xc0300104, 0xc0300108, 0xc0300204, 0xc0400004, 0xc0400008, 0xc0400018, 0xc040002c, 0xc0400080, 0xc0400084, 0xc040008c, 0xc04000b4, 0xc04000c0, 0xc04000c4, 0xc04000cc, 0xc0410000, 0xc0410008, 0xc0500080, 0xc0500088, 0xc0500090, 0xc0500094, 0xc05000a0, 0xc05000a8, 0xc05000b0, 0xc05000b4, 0xc05000c0, 0xc05000c4, 0xc05000c8, 0xc05000cc, 0xc05000d0, 0xc05000d4, 0xc05000d8, 0xc0520000, 0xc0520004, 0xc0520008, 0xc052000c, 0xc0520014, 0xc0520018, 0xc0720000, 0xc0720004, 0xc0720008, 0xc072000c, 0xc0720014, 0xc0720024, 0xc07200ec, 0xc07200f0, 0xc0720100, 0xc0720104, 0xc0720108, 0xc072010c, 0xc0720110, 0xc0720114, 0xc0720118, 0xc072011c, 0xc07201c8, 0xc0720200, 0xc0720204, 0xc0720208, 0xc072020c, 0xc0720210, 0xc0800008, 0xc0800014, 0xc0800018, 0xc0820000, 0xc0820304, 0xc0820308, 0xc082030c, 0xc0820310, 0xc0820318, 0xc0920000, 0xc0920004, 0xc0920008, 0xc092000c, 0xc0920010, 0xc0920100, 0xc0920118, 0xc092011c, 0xc0920120, 0xc0920124, 0xc0920204, 0xc0920208, 0xc092020c, 0xc0920210, 0xc0920220, 0xc0920224, 0xc0920238, 0xc0920320, 0xc0920344, 0xc0920348, 0xc0920354, 0xc0920358, 0xc0a00000, 0xc0a00008, 0xc0a0000c, 0xc0a00014, 0xc0a00018, 0xc0a0001c, 0xc0a00020, 0xc0a00024, 0xc0a00044, 0xc0a10008 };
-int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
-//~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
-
-int mem_spy_count_lo = 5; // how many times is a value allowed to change
-int mem_spy_count_hi = 50; // (limits)
-int mem_spy_freq_lo =  0;
-int mem_spy_freq_hi =  0;  // or check frequecy between 2 limits (0 = disable)
-int mem_spy_value_lo = 0;
-int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
-int mem_spy_start_time = 30;  // ignore values changing early (these are noise)
-
-
-static int* dbg_memmirror = 0;
-static int* dbg_memchanges = 0;
-
-static int dbg_memspy_get_addr(int i)
-{
-    if (mem_spy_fixed_addresses)
-        return mem_spy_addresses[i];
-    else
-        return mem_spy_start + i*4;
-}
-
-static void
-mem_spy_select( void * priv, int unused)
-{
-    mem_spy = !mem_spy;
-}
-
-// for debugging purpises only
-int _t = 0;
-static int _get_timestamp(struct tm * t)
-{
-    return t->tm_sec + t->tm_min * 60 + t->tm_hour * 3600 + t->tm_mday * 3600 * 24;
-}
-static void _tic()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    _t = _get_timestamp(&now);
-}
-static int _toc()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    return _get_timestamp(&now) - _t;
-}
-
-static void dbg_memspy_init() // initial state of the analyzed memory
-{
-    bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
-    //~ msleep(2000);
-    //mem_spy_len is number of int32's
-    if (!dbg_memmirror) dbg_memmirror = malloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
-    if (!dbg_memmirror) return;
-    if (!dbg_memchanges) dbg_memchanges = malloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
-    if (!dbg_memchanges) return;
-    int i;
-    //~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
-    int crc = 0;
-    for (i = 0; i < mem_spy_len; i++)
-    {
-        uint32_t addr = dbg_memspy_get_addr(i);
-        dbg_memmirror[i] = (int) MEMX(addr);
-        dbg_memchanges[i] = 0;
-        crc += dbg_memmirror[i];
-        //~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
-        //~ msleep(1000);
-    }
-    bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
-    _tic();
-}
-
-static void dbg_memspy_update()
-{
-    static int init_done = 0;
-    if (!init_done) dbg_memspy_init();
-    init_done = 1;
-
-    if (!dbg_memmirror) return;
-    if (!dbg_memchanges) return;
-
-    int elapsed_time = _toc();
-    bmp_printf(FONT_MED, 50, 400, "%d ", elapsed_time);
-
-    int i;
-    int k=0;
-    for (i = 0; i < mem_spy_len; i++)
-    {
-#ifdef CONFIG_VXWORKS
-        uint32_t fnt = FONT_MED;
-#else
-        uint32_t fnt = FONT_SMALL;
-#endif
-        uint32_t addr = dbg_memspy_get_addr(i);
-        int oldval = dbg_memmirror[i];
-        int newval = (int) MEMX(addr);
-        if (oldval != newval)
-        {
-            //~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
-            dbg_memmirror[i] = newval;
-            if (dbg_memchanges[i] < 1000000) dbg_memchanges[i]++;
-#ifdef CONFIG_VXWORKS
-            fnt = FONT(FONT_MED, COLOR_BLUE, COLOR_BG);
-#else
-            fnt = FONT(FONT_SMALL, 5, COLOR_BG);
-#endif
-            if (elapsed_time < mem_spy_start_time) dbg_memchanges[i] = 1000000; // so it will be ignored
-        }
-        //~ else continue;
-
-        if (mem_spy_bool && newval != 0 && newval != 1 && newval != -1) continue;
-
-        if (mem_spy_value_lo && newval < mem_spy_value_lo) continue;
-        if (mem_spy_value_hi && newval > mem_spy_value_hi) continue;
-
-        if (mem_spy_count_lo && dbg_memchanges[i] < mem_spy_count_lo) continue;
-        if (mem_spy_count_hi && dbg_memchanges[i] > mem_spy_count_hi) continue;
-
-        int freq = dbg_memchanges[i] / elapsed_time;
-        if (mem_spy_freq_lo && freq < mem_spy_freq_lo) continue;
-        if (mem_spy_freq_hi && freq > mem_spy_freq_hi) continue;
-
-#ifdef CONFIG_VXWORKS
-        int x =  10 + 16 * 22 * (k % 2);
-        int y =  10 + 20 * (k / 2);
-        bmp_printf(FONT_MED, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
-        k = (k + 1) % 30;
-#else
-        int x =  10 + 8 * 22 * (k % 4);
-        int y =  10 + 12 * (k / 4);
-        bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
-        k = (k + 1) % 120;
-#endif
-    }
-
-    for (i = 0; i < 10; i++)
-    {
-#ifdef CONFIG_VXWORKS
-        int x =  10 + 16 * 22 * (k % 2);
-        int y =  10 + 20 * (k / 2);
-        bmp_printf(FONT_MED, x, y, "                    ");
-        k = (k + 1) % 30;
-#else
-        int x =  10 + 8 * 22 * (k % 4);
-        int y =  10 + 12 * (k / 4);
-        bmp_printf(FONT_SMALL, x, y, "                    ");
-        k = (k + 1) % 120;
-#endif
-    }
-}
-#endif
-
-#if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
 
@@ -2100,14 +1917,14 @@ static void crash_log_step()
     if (core_dump_requested)
     {
         NotifyBox(100000, "Saving core dump, please wait...\n");
-        dump_seg(core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
+        dump_seg((void*)core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
         NotifyBox(10000, "Pls send COREDUMP.DAT to ML devs.\n");
         core_dump_requested = 0;
     }
 
     //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
     extern thunk ErrForCamera_handler;
-    if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+    if (get_current_dialog_handler() == &ErrForCamera_handler)
     {
         if (!dmlog_saved)
         {
@@ -2152,11 +1969,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         if (draw_prop)
         {
             dbg_draw_props(dbg_last_changed_propindex);
-            continue;
-        }
-        else if (mem_spy)
-        {
-            dbg_memspy_update();
             continue;
         }
         #endif
@@ -2213,55 +2025,6 @@ static void screenshot_start(void* priv, int delta)
 */
 
 static int draw_event = 0;
-
-#if CONFIG_DEBUGMSG
-static void
-spy_print(
-          void *            priv,
-          int            x,
-          int            y,
-          int            selected
-          )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Spy %s/%s (s/q)",
-               draw_prop ? "PROP" : "prop",
-               mem_spy ? "MEM" : "mem"
-               );
-    menu_draw_icon(x, y, MNI_BOOL(draw_prop || draw_event || mem_spy), 0);
-}
-
-static void
-lvbuf_display(
-              void *            priv,
-              int            x,
-              int            y,
-              int            selected
-              )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Dump Live View Buffers"
-               );
-}
-
-static void lvbuf_select()
-{
-    if (lv)
-    {
-        call("lv_vram_dump");
-        call("lv_ssdev_dump");
-        //~ call("lv_yuv_dump");
-        //~ call("lv_raw_dump2");
-        //~ call("lv_faceyuv_dump");
-    }
-    else
-        NotifyBox(5000, "Only Works In Live View!!!");
-}
-#endif
 
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
 static MENU_UPDATE_FUNC(image_buf_display)
@@ -2395,8 +2158,8 @@ void prop_dump()
 }
 
 static void prop_toggle_i(void* priv, int unused) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
-static void prop_toggle_j(void* priv, int unused) {prop_j = mod(prop_j + 1, 0x10); }
-static void prop_toggle_k(void* priv, int dir) {if (dir < 0) prop_toggle_j(priv, dir); prop_k = mod(prop_k + 1, 0x51); }
+static void prop_toggle_j(void* priv, int unused) {prop_j = MOD(prop_j + 1, 0x10); }
+static void prop_toggle_k(void* priv, int dir) {if (dir < 0) prop_toggle_j(priv, dir); prop_k = MOD(prop_k + 1, 0x51); }
 #endif
 
 #ifdef CONFIG_KILL_FLICKER
@@ -2672,11 +2435,10 @@ static struct menu_entry debug_menus[] = {
     },
     #endif
     {
-        .name = "Spy prop/evt/mem",
-        .select        = draw_prop_select,
-        .select_Q = mem_spy_select,
-        //~.display    = spy_print,
-        .help = "Spy properties / events / memory addresses which change."
+        .name = "Spy properties",
+        .priv = &draw_prop,
+        .max = 1,
+        .help = "Show properties as they change."
     },
 /*    {
         .name        = "Dialog test",
@@ -2689,13 +2451,6 @@ static struct menu_entry debug_menus[] = {
         .select        = dump_rom,
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     },
-#ifdef CONFIG_40D
-    {
-        .name        = "Dump camera logs",
-        .select      = dump_logs,
-        .help = "Dump camera logs to card."
-    },
-#endif
 #ifdef FEATURE_DONT_CLICK_ME
     {
         .name        = "Don't click me!",
@@ -2994,14 +2749,6 @@ static struct menu_entry debug_menus[] = {
         .help = "Raw property display (read-only)",
     },
 #endif
-#if CONFIG_DEBUGMSG
-    {
-        .name = "Dump LV Buffers",
-        //~.display = lvbuf_display,
-        .select = lvbuf_select,
-        .help = "Dump .422 files containing LV/HD buf addrs in filenames.",
-    },
-#endif
 };
 
 #if CONFIG_DEBUGMSG
@@ -3215,11 +2962,15 @@ debug_init_stuff( void )
     //~ set_pic_quality(PICQ_RAW);
 
     #ifdef CONFIG_WB_WORKAROUND
-    if (is_movie_mode()) restore_kelvin_wb();
+    if (is_movie_mode())
+    {
+        extern void restore_kelvin_wb(); /* movtweaks.c */
+        restore_kelvin_wb();
+    }
     #endif
 
     #ifdef CONFIG_5D3
-    card_tweaks();
+    _card_tweaks();
     #endif
 }
 
@@ -3293,18 +3044,6 @@ PROP_HANDLER(PROP_ISO)
 }
 
 #endif
-
-static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
-{
-    int size = GetFileSize(filename);
-    if (!size) return 0;
-
-    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 0;
-    int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
-    FIO_CloseFile(f);
-    return r;
-}
 
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
@@ -3440,12 +3179,12 @@ static void TmpMem_AddFile(char* filename)
     if (!tmp_buffer) return;
     if (!tmp_buffer_ptr) return;
 
-    int filesize = GetFileSize(filename);
+    int filesize = FIO_GetFileSize_direct(filename);
     if (filesize == -1) return;
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
 
-    ReadFileToBuffer(filename, tmp_buffer_ptr, filesize);
+    read_file(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
     tmp_files[tmp_file_index].buf = tmp_buffer_ptr;
     tmp_files[tmp_file_index].size = filesize;
@@ -3516,7 +3255,7 @@ static void CopyMLFilesToRAM_BeforeFormat()
 // check if autoexec.bin is present on the card
 static int check_autoexec()
 {
-    FILE * f = FIO_Open("AUTOEXEC.BIN", 0);
+    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -3529,7 +3268,7 @@ static int check_autoexec()
 // check if magic.fir is present on the card
 static int check_fir()
 {
-    FILE * f = FIO_Open("MAGIC.FIR", 0);
+    FILE * f = FIO_OpenFile("MAGIC.FIR", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -3567,6 +3306,8 @@ static void CopyMLFilesBack_AfterFormat()
     if(check_autoexec())
     {
         HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        
+        extern void bootflag_write_bootblock(void);
         bootflag_write_bootblock();
     }
 
@@ -3723,11 +3464,11 @@ int handle_tricky_canon_calls(struct event * event)
             #endif
             break;
         case MLEV_REDRAW:
-            redraw_do();
+            _redraw_do();   /* todo: move in gui-common.c */
             break;
         case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
             #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event);
+            handle_livev_playback(event); /* todo: move back to zebra.c */
             #endif
             break;
     }
@@ -3746,194 +3487,9 @@ void display_off()
 
 
 // engio functions may fail and lock the camera
-void EngDrvOut(int reg, int value)
+void EngDrvOut(uint32_t reg, uint32_t value)
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
     _EngDrvOut(reg, value);
 }
-
-#if 0 // moved to module mrc_dump?
-
-/* snprintf(buf,max_len,"%30s : %08x <8 groups of 4 bits 1/0>",header,data,data)*/
-static uint32_t dump_data(char* buf, uint32_t max_len, char* header, uint32_t data) {
-        if (!buf || !header) return 0;
-#define SPACE10 "          "
-        //Note: %30s does not work
-        uint32_t len1 = snprintf(buf, max_len, SPACE10 SPACE10 SPACE10 " : %08X ", data);
-        for (uint32_t i = 0; i <= len1 && header[i]; i++) buf[i] = header[i];
-        buf += len1;
-        uint32_t len2 = snprintf(buf,max_len-len1,"XXXX,XXXX XXXX,XXXX XXXX,XXXX XXXX,XXXX\n");
-    for (int i = MIN(39-1,len2); i >= 0; i--) {
-        *(buf+i) = ((data & 0x1) != 0) ? '1' : '0';
-        data >>= 1;
-        if (((i)%5) == 0) i--;
-    }
-    return len1 + len2;
-}
-
-/* Dumps PSRs and coprocessor 15 to buf*/
-static uint32_t dump_cache(char* buf, uint32_t max_len) {
-        if (!buf) return 0;
-    uint32_t old_int;
-        uint32_t data;
-    asm __volatile__ (
-            "MRS %0, CPSR\n"
-            "ORR r1, %0, #0xC0\n" // set I flag to disable IRQ
-            "MSR CPSR_c, r1\n"
-            : "=r"(data) : : "r1"
-        );
-    old_int = data & 0xC0; // keep just the I flag
-        uint32_t len = 0;
-        // 20000013 - Supervisor mode. Thumb mode.
-    len += dump_data(buf+len, max_len-len, "CPSR", data);
-    asm __volatile__ ("MRS %0, SPSR" : "=r"(data));
-    // 00000093 - Supervisor mode. Thumb mode. IRQ disabled.
-    len += dump_data(buf+len, max_len-len, "SPSR", data);
-
-#define dump_MRC(op1, cIdx, cIdx2, op2, name) \
-                {asm volatile ("MRC p15, "#op1", %0, c"#cIdx", c"#cIdx2", "#op2 : "=r"(data)); \
-                len += dump_data(buf+len, max_len-len, #op1":c"#cIdx",c"#cIdx2":"#op2" "name, data);}
-
-        // Cache = I/D Cache
-        // TCM = Tightly Coupled Memory (small on-board memory)
-        // BIST = Built In Self Test
-        // Write Buffer != Cache.
-        // Values are read from a 550D
-/* General */
-        // 41059461 - ARM946. Rev 1. 5TE architecture.
-        dump_MRC(0,0,0,0, "ID");
-        // 0F112112 - Cache type: 4 way set associative. 8KB I/D Cache. 8 words / line
-        dump_MRC(0,0,0,1, "Cache Type");
-        // 000C00C0 - I/D TCM preset. 4KB each.
-        dump_MRC(0,0,0,2, "TCM Size");
-        // 0005107D - I/D TCM Enabled. I/D TCM Load mode Disabled.
-        // Load mode: At the same address: Reads from underlying memory. Writes to TCM.
-        // [15] Thumb state entry enabled from data loaded in to bit 0 of PC register.
-        // [14] Pseudo random cache replacement used.
-        // [13] Base address for exception vectors @ 0x00000000
-        // [12] ICache enable
-        // [7]  Little endian
-        // [2]  DCache enable
-        // [0]  Protection unit enabled
-        dump_MRC(0,1,0,0, "Control");
-
-/* Cache */
-        // 00000070 - I/D Cachable bit set for areas 4,5,6
-        dump_MRC(0,2,0,0, "DCache Cfg");
-        dump_MRC(0,2,0,1, "ICache Cfg");
-
-        // 00000070 - Write buffer enabled for areas 4,5,6
-        dump_MRC(0,3,0,0, "Wr Buf Ctl");
-        // Write Buffer is a 16 entry buffer (addr + [data chunks])
-        // Write back: (Cachable + Write Bufferable)
-        // Self modifying code in enabled areas should flush the write buffer
-        // Writes mark the cacheline as dirty but do not clean it
-        // Cleans use the write buffer
-        // Linefills cause the buffer to drain
-
-        // Write only. Read = 00000000
-        dump_MRC(0,7,5,0, "IC  Flush");
-        dump_MRC(0,7,5,1, "IC1 Flush");
-        dump_MRC(0,7,13,1,"IC Preftch");
-        dump_MRC(0,7,6,0, "DC  Flush");
-        dump_MRC(0,7,6,1, "DC1 Flush");
-        dump_MRC(0,7,10,1,"DC  Clean");
-        dump_MRC(0,7,14,1,"DC1 C/F");
-        dump_MRC(0,7,10,2,"DC1 Clean");
-        dump_MRC(0,7,14,2,"DC1 C/F");
-        dump_MRC(0,7,10,4,"Drain");
-        dump_MRC(0,7,0,4, "Sleep");
-        dump_MRC(0,15,8,2,"SleepOld");
-
-        dump_MRC(0,9,0,0, "DC Lock"); // 00000000 - Unused
-        dump_MRC(0,9,0,1, "IC Lock"); // 00000000 - Unused
-
-        // 00000000 - I/D cache streaming and linefill enabled
-        dump_MRC(0,15,0,0,"Test State");
-
-        // [31:30] Segment. [29:5] Zeros+Idx. [4:2] Word. [1:0] Zeros.
-        dump_MRC(3,15,0,0,"C Dbg Idx");
-        // [31:5] Tag+Idx. [4] Valid. [3:2] Dirty. [1:0] Set.
-        dump_MRC(3,15,1,0,"I TAG");
-        dump_MRC(3,15,2,0,"D TAG");
-        dump_MRC(3,15,3,0,"I Cache");
-        dump_MRC(3,15,4,0,"D Cache");
-
-/* TCM - Tightly Coupled Memory */
-        // 40000006 - D TCM located at 40000000 with a size of 4KB (no aliasing)
-        dump_MRC(0,9,1,0, "DTCM");
-        // 40000000 - I TCM located at 00000000 with a size of 4KB (no aliasing)
-        dump_MRC(0,9,1,1, "ITCM");
-
-/* Protection unit */
-        // I/D (Privileged + User) Read/Write Access for areas 0 to 6.
-        // No access for area 7.
-        // Protection check failure results in branch to Data Abort or Prefetch Abort.
-        dump_MRC(0,5,0,0, "AccPerm D");  // 00003FFF
-        dump_MRC(0,5,0,1, "AccPerm I");  // 00003FFF
-        dump_MRC(0,5,0,2, "AccPerm Dx"); // 03333333
-        dump_MRC(0,5,0,3, "AccPerm Ix"); // 03333333
-
-/* Memory Areas */
-        // Definition of areas 0 to 7. Base address, Size.
-        // Areas can overlap. Area 7 has the highest priority. Area 0 lowest.
-        dump_MRC(0,6,0,0, "Area 0"); // 0000003F - 00000000 - 4GB
-        dump_MRC(0,6,1,0, "Area 1"); // 0000003D - 00000000 - 2GB
-        dump_MRC(0,6,2,0, "Area 2"); // E0000039 - E0000000 - 512MB
-        dump_MRC(0,6,3,0, "Area 3"); // C0000039 - C0000000 - 512MB
-        dump_MRC(0,6,4,0, "Area 4"); // FF00002F - FF000000 - 16MB
-        dump_MRC(0,6,5,0, "Area 5"); // 00000039 - 00000000 - 512MB
-        dump_MRC(0,6,6,0, "Area 6"); // F780002D - F7800000 - 8MB
-        dump_MRC(0,6,7,0, "Area 7"); // 00000000 - Disabled
-
-/*BIST - Built In Self Test */
-        // 00100010 - BIST complete. (Invalid) size of 0.
-        dump_MRC(0,15,0,1,"TAG B Ctl");
-        // 00000000 - No BIST. (Invalid) size of 0.
-        dump_MRC(1,15,1,1,"TCM B Ctl");
-        // 00000000 - Cache RAM(CRM). No BIST. (Invalid) size of 0.
-        dump_MRC(2,15,1,1,"CRM B Ctl");
-        // (R)ead and (W)rite to control BIST operation.
-        // Operation depends on BIST Pause. 0 or 1.
-        // Address register:
-        //   R0+1: Fail addr. W0: Start addr. W1: peek/poke addr.
-        // General register:
-        //   R0: Fail data. R1: Peek data. W0: Seed data. W1: Poke data.
-        dump_MRC(0,15,0,2,"ITAG B Add"); // 00000000
-        dump_MRC(0,15,0,3,"ITAG B Gen"); // 00000000
-        dump_MRC(0,15,0,6,"DTAG B Add"); // 00000000
-        dump_MRC(0,15,0,7,"DTAG B Gen"); // 00000000
-        dump_MRC(1,15,0,2,"ITCM B Add"); // 00000000
-        dump_MRC(1,15,0,3,"ITCM B Gen"); // 00000000
-        dump_MRC(1,15,0,6,"DTCM B Add"); // 00000000
-        dump_MRC(1,15,0,7,"DTCM B Gen"); // 00000000
-        dump_MRC(2,15,0,2,"ICRM B Add"); // 00000000
-        dump_MRC(2,15,0,3,"ICRM B Gen"); // 00000000
-        dump_MRC(2,15,0,6,"DCRM B Add"); // 00000000
-        dump_MRC(2,15,0,7,"DCRM B Gen"); // 00000000
-
-/* Misc */
-        // 00000000 - Process ID - Unused
-        dump_MRC(0,13,0,1,"PID");
-        dump_MRC(0,13,1,1,"PID Old"); // alias
-
-        // 00000000 - nFIQ and nIRQ are not masked by a hardware trace.
-        dump_MRC(1,15,1,0,"Trace Ctrl");
-
-/* Debug communication channel - coprocessor 14*/
-/*#undef dump_MR
-#define dump_MRC(cIdx, name) \
-                {asm volatile ("MRC p14, 0, %0, c"#cIdx", c0" : "=r"(data)); \
-                len += dump_data(buf+len, max_len-len, "c"#cIdx" "name, data);}
-        // These cause a lock on my 550D
-        dump_MRC(0,"Dbg C Status");
-        dump_MRC(1,"Dbg C Read");
-        dump_MRC(2,"Dbg C Write"); // write only...
-        dump_MRC(3,"Dbg Status"); // bit 4 = debug from Thumb ? */
-
-#undef dump_MRC
-    sei(old_int);
-        return len;
-}
-#endif

@@ -398,15 +398,14 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
 {
-  find_ml_card();
+  _find_ml_card();
 
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
-  uint32_t len;
-  load_fonts();
+  _load_fonts();
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    len = compute_signature(ROMBASEADDR, 0x10000);
+    uint32_t len = compute_signature(ROMBASEADDR, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
@@ -444,7 +443,7 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
-    load_fonts();
+    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();
@@ -571,7 +570,7 @@ static void my_big_init_task()
 }*/
 
 /** Blocks execution until config is read */
-void hold_your_horses(int showlogo)
+void hold_your_horses()
 {
     while (_hold_your_horses)
     {

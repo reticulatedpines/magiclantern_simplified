@@ -31,6 +31,12 @@
 #include "font.h"
 #include "menu.h"
 #include "beep.h"
+#include "zebra.h"
+#include "focus.h"
+#include "menuhelp.h"
+#include "console.h"
+#include "debug.h"
+#include "lvinfo.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
@@ -560,34 +566,6 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
     set_config_var_ptr(val, v);
 }
 
-/* TODO: move these to a math library */
-int powi(int base, int power)
-{
-    int result = 1;
-    while (power)
-    {
-        if (power & 1)
-            result *= base;
-        power >>= 1;
-        base *= base;
-    }
-    return result;
-}
-
-int log2i(int x)
-{
-    int result = 0;
-    while (x >>= 1) result++;
-    return result;
-}
-
-int log10i(int x)
-{
-    int result = 0;
-    while(x /= 10) result++;
-    return result;
-}
-
 /* for editing with caret */
 static int get_delta(struct menu_entry * entry, int sign)
 {
@@ -617,8 +595,8 @@ static int uses_caret_editing(struct menu_entry * entry)
 
 static void caret_move(struct menu_entry * entry, int delta)
 {
-    int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(abs(entry->max),abs(entry->min)))/4 :
-              (entry->unit == UNIT_DEC)  ? log10i(MAX(abs(entry->max),abs(entry->min))/2)  :
+    int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(ABS(entry->max),ABS(entry->min)))/4 :
+              (entry->unit == UNIT_DEC)  ? log10i(MAX(ABS(entry->max),ABS(entry->min))/2)  :
               (entry->unit == UNIT_TIME) ? 7 : 0;
 
     menu_numeric_toggle(&caret_position, delta, 0, max);
@@ -634,7 +612,7 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     ASSERT(IS_ML_PTR(val));
 
-    set_config_var_ptr(val, mod(*val - min + delta, max - min + 1) + min);
+    set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
 }
 
 void menu_numeric_toggle_time(int * val, int delta, int min, int max)
@@ -671,7 +649,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     }
     else
     {
-        set_config_var_ptr(val, mod(*val - min + delta, max - min + 1) + min);
+        set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
     }
     
     prev_delta = t - prev_t;
@@ -4093,7 +4071,7 @@ menu_redraw_do()
                 */
                 
                 if (hist_countdown == 0 && !should_draw_zoom_overlay())
-                    draw_histogram_and_waveform(); // too slow
+                    draw_histogram_and_waveform(0); // too slow
                 else
                     hist_countdown--;
             }
@@ -4788,7 +4766,7 @@ static void piggyback_canon_menu()
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
     if (new_gui_mode) start_redraw_flood();
-    if (new_gui_mode != CURRENT_DIALOG_MAYBE) 
+    if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
     { 
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
@@ -4895,6 +4873,7 @@ menu_task( void* unused )
 {
     extern int ml_started;
     while (!ml_started) msleep(100);
+    
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
@@ -5183,7 +5162,7 @@ menu_help_go_to_selected_entry(
 
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
-    menu_help_go_to_label(entry->name);
+    menu_help_go_to_label((char*) entry->name, 0);
     give_semaphore(menu_sem);
 }
 

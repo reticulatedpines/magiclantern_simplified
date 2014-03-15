@@ -33,6 +33,7 @@
 #include <lens.h>
 #include <config-defines.h>
 #include <boot-hack.h>
+#include <menu.h>
 
 /**
  * Supported cameras [E] Means it's enabled

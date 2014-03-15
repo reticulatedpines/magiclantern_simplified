@@ -8,6 +8,8 @@
 #include "propvalues.h"
 #include "bmp.h"
 #include "menu.h"
+#include "shoot.h"
+#include "zebra.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 
@@ -48,8 +50,6 @@ ________________________________________________________________________________
 |_______________BMy510_|___________________________________________________________________________|______________________|
 
 */
-
-void update_vram_params();
 
 // cached LUTs for BM2LV-like macros
 

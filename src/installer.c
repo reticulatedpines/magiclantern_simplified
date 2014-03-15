@@ -217,7 +217,7 @@ copy_and_restart( int offset )
 // check if autoexec.bin is present on the card
 int check_autoexec()
 {
-    FILE * f = FIO_Open("AUTOEXEC.BIN", 0);
+    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);

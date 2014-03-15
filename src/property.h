@@ -541,13 +541,6 @@ prop_register_slave(
         void            (*token_handler)( void * token )
 );
 
-
-extern void *
-prop_cleanup(
-        void *          token,
-        unsigned        property
-);
-
 // prop
 void prop_request_change( unsigned property, const void* addr, size_t len );
 /** Get the current value of a property.
@@ -630,11 +623,6 @@ PROP_HANDLER(id) { \
 }
 
 #endif
-
-
-
-/**for reading simple integer properties */
-int get_prop(int prop);
 
 #include "propvalues.h"
 

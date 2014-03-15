@@ -28,7 +28,7 @@ static int script_load_symbols(void* tcc, void* script_state, char *filename)
         return -1;
     }
 
-    file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
@@ -378,7 +378,7 @@ static MENU_UPDATE_FUNC(script_print)
 
 /*static void script_select(void* priv, int delta)
 {
-    script_selected = mod(script_selected + delta, script_cnt);
+    script_selected = MOD(script_selected + delta, script_cnt);
 }*/
 
 static void run_script(const char *script)

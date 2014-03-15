@@ -170,7 +170,7 @@ static int rbf_font_load(char *file, font* f, int maxchar)
     }
 
     // open file (can't use fopen here due to potential conflict FsIoNotify crash)
-    FILE *fd = FIO_Open(file, O_RDONLY | O_SYNC);
+    FILE *fd = FIO_OpenFile(file, O_RDONLY | O_SYNC);
     if( fd == INVALID_PTR )
     {
         return 0;
@@ -560,7 +560,7 @@ struct font font_large;
 struct font font_canon;
 
 /* must be called before menu_init, otherwise it can't measure strings */
-void load_fonts()
+void _load_fonts()
 {
     /* tolerate multiple calls, but only run the first */
     static int fonts_loaded = 0;
