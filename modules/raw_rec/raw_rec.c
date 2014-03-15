@@ -88,8 +88,10 @@ static int cam_700d = 0;
 static int cam_60d = 0;
 
 /**
- * resolution should be multiple of 16 horizontally
- * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
+ * furthermore, resolution (in bytes) should be multiple of 8 in order to use the fastest EDMAC flags ( http://magiclantern.wikia.com/wiki/Register_Map#EDMAC ),
+ * which copy 16 bytes at a time, but only check for overflows every 8 bytes (can be verified experimentally)
+ * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
 
@@ -123,7 +125,7 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
-static CONFIG_INT("raw.small.hacks", small_hacks, 0);
+static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
 /* Recording Status Indicator Options */
 #define INDICATOR_OFF        0
@@ -290,8 +292,11 @@ static void update_resolution_params()
     /* make sure we don't get dead pixels from rounding */
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
-    int max = (right_margin - left_margin) & ~15;
-    while (max % 16) max--;
+    int max = (right_margin - left_margin);
+    
+    /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
+    max &= ~31;
+    
     max_res_x = max;
     
     /* max res Y */
@@ -1192,9 +1197,12 @@ static void hack_liveview(int unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
-            cam_550d ? 0xFF2FE5E4 :            
+            cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
-            cam_650d ? 0xFF527E38 :            
+            cam_650d ? 0xFF527E38 :
+            cam_6d  ? 0xFF52BE94 :
+            cam_eos_m ? 0xFF539C1C :
+            cam_700d ? 0xFF52B53C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             /* ... */

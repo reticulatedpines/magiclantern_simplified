@@ -65,8 +65,8 @@
 #define MLV_DUMMY_FILENAME "mlv_rec.tmp"
 
 
-#include <dryos.h>
 #include <module.h>
+#include <dryos.h>
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
@@ -113,8 +113,10 @@ static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 static uint32_t abort_test = 0;
 /**
- * resolution should be multiple of 16 horizontally
- * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
+ * furthermore, resolution (in bytes) should be multiple of 8 in order to use the fastest EDMAC flags ( http://magiclantern.wikia.com/wiki/Register_Map#EDMAC ),
+ * which copy 16 bytes at a time, but only check for overflows every 8 bytes (can be verified experimentally)
+ * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
 
@@ -523,8 +525,11 @@ static void update_resolution_params()
     /* make sure we don't get dead pixels from rounding */
     int32_t left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int32_t right_margin = (raw_info.active_area.x2) / 8 * 8;
-    int32_t max = (right_margin - left_margin) & ~15;
-    while (max % 16) max--;
+    int32_t max = (right_margin - left_margin);
+
+    /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
+    max &= ~31;
+    
     max_res_x = max;
 
     /* max res Y */
@@ -1326,11 +1331,6 @@ static void raw_video_enable()
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
 
-    if (cam_50d && !(hdmi_code == 5))
-    {
-        call("lv_af_fase_addr", 0); //Turn off face detection
-    }
-
     if(cam_eos_m && !is_movie_mode())
     {
         set_custom_movie_mode(1);
@@ -1352,7 +1352,7 @@ static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (mlv_video_enabled && lv)  /* exception: EOS-M needs to record in photo mode */
+    if (mlv_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
@@ -1676,6 +1676,12 @@ static void hack_liveview(int32_t unhack)
         call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
+
+        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        {
+            /* not sure how to unhack this one, and on 5D2 it crashes */
+            call("lv_af_fase_addr", 0); //Turn off face detection
+        }
 
         /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
@@ -2117,14 +2123,12 @@ static int32_t FAST process_frame()
 
     /* restore from NULL block used when prepending data */
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
-
-    /* restore data */
     if(!memcmp(hdr->blockType, "NULL", 4))
     {
         mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
-        mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
         hdr->blockSize = ((uint32_t*) hdr)[sizeof(mlv_vidf_hdr_t)/4];
     }
+    mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     
     /* just to make sure there is no corruption */
     ASSERT(hdr->blockSize >= (sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size));
@@ -2560,13 +2564,13 @@ static void raw_writer_task(uint32_t writer)
             //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: message timed out %d times now", writer, ++timeouts);
             continue;
         }
-
+        
         if(!job)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: job is NULL");
             goto abort;
         }
-        
+
         if(job->job_type == JOB_TYPE_WRITE)
         {
             /* decrease number of queued writes */
@@ -2600,7 +2604,7 @@ static void raw_writer_task(uint32_t writer)
                         /* queue a close command */
                         close_job_t *close_job = NULL;
                         msg_queue_receive(mlv_job_alloc_queue, &close_job, 0);
-
+                        
                         if(!close_job)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close_job is NULL", writer);
@@ -2650,13 +2654,13 @@ static void raw_writer_task(uint32_t writer)
                         /* queue a preparation job */
                         handle_job_t *prepare_job = NULL;
                         msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
-
+                        
                         if(!prepare_job)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
                             goto abort;
                         }
-        
+
                         prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
                         prepare_job->writer = writer;
                         prepare_job->file_handle = NULL;
@@ -2798,7 +2802,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
             }
         }
     }
-    
+
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
     {
@@ -2859,7 +2863,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     *queue_job = *write_job;
     queue_job->job_type = JOB_TYPE_WRITE;
     queue_job->writer = writer;
-
+    
     msg_queue_post(mlv_writer_queues[writer], queue_job);
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
@@ -3390,7 +3394,7 @@ static void raw_video_rec_task()
             //trace_write(raw_rec_trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
 
             mlv_rec_queue_blocks();
-
+            
             if((raw_recording_state != RAW_RECORDING) && (show_graph))
             {
                 show_buffer_status();
