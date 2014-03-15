@@ -129,7 +129,8 @@ bootflag_write_bootblock( void )
 #elif defined(CONFIG_5D3)
     /* dual card slot */
     int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
-    struct cf_device * const dev = (struct cf_device *) (ml_on_cf ? MEM(MEM(0x36184) + 0x10) : (uint32_t)sd_device[1]);
+    extern struct cf_device ** cf_device_ptr[];
+    struct cf_device *  dev = (struct cf_device *) (ml_on_cf ? cf_device_ptr[0][4] : sd_device[1]);
 #else
     struct cf_device * const dev = (struct cf_device *) sd_device[1];
 #endif
