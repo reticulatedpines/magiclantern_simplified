@@ -63,6 +63,7 @@ CFLAGS +=\
 	-Wextra \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
+	-Werror-implicit-function-declaration \
 	-Wno-missing-field-initializers \
 	-Wno-format \
 	-Wdouble-promotion \
