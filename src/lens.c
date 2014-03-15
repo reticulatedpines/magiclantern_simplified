@@ -751,14 +751,11 @@ lens_take_picture(
     #if defined(CONFIG_7D)
     /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up when exposure time is >1.x seconds.
      * This causes the camera not to shut down when the card door is opened.
-     * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
+     * There is a workaround: Just wait until shooting is possible again and then reset SW1.
      * Then the camera will shut down clean.
      */
     lens_wait_readytotakepic(64);
-    SW1(1,50);
-    SW1(0,50);
-    SW1(1,50);
-    SW1(0,50);
+    SW1(0,0);
     #endif
 
 end:
