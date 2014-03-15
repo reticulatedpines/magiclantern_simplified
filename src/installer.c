@@ -322,9 +322,7 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[3] = '\0';
 #endif
     
-    msleep(1000);
-    call("DisablePowerSave");
-    msleep(2000);
+    msleep(3000);
     
     task_create("install_task", 0x1b, 0x4000, install_task, 0);
     return ans;
@@ -389,7 +387,7 @@ static int install(void)
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
 
     y += 60;
-    gui_uilock(UILOCK_NONE);
+    gui_uilock(UILOCK_SHUTTER);
     
     for (int i = 30; i > 0; i--)
     {
@@ -403,6 +401,11 @@ static int install(void)
             "For removing the boot flag, please wait for %d seconds.  ", i
         );
         msleep(1000);
+        
+        if (!DISPLAY_IS_ON)
+        {
+            info_led_blink(1,50,0);
+        }
     }
     return 1;
 }
@@ -445,6 +448,7 @@ static int uninstall(void)
 
 void install_task()
 {
+    call("DisablePowerSave");
     call_init_funcs();
     vram_update_luts();
     _find_ml_card();
@@ -461,22 +465,18 @@ void install_task()
     if (ok)
     {
         /* install successful, user waited for 30 seconds => uninstall */
-        SetGUIRequestMode(0);
-        msleep(1000);
+        info_led_on();
         hook_on_canon_menu();
         uninstall();
     }
     
     /* finish uninstalling */
-    gui_uilock(UILOCK_NONE);
+    gui_uilock(UILOCK_SHUTTER);
     bmp_printf(FONT_CANON, 0, 430, "Please restart your camera.");
     print_bootflags();
 }
 
 void redraw() { clrscr(); }
-
-#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
-#define UILOCK_EVERYTHING 0x4100017f
 
 void gui_uilock(int x)
 {
