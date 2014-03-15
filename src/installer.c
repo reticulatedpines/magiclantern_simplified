@@ -36,18 +36,6 @@ void my_bzero( uint8_t * base, uint32_t size );
 int autoexec_ok; // true if autoexec.bin was found
 int old_shooting_mode; // to detect when mode dial changes
 int bootflag_written = 0;
-int get_ms_clock_value() { return 0; }
-char * get_task_name_from_id(int id) { return ""; }
-void beep() {} ;
-uint32_t ml_used_mem = 0;
-uint32_t ml_reserved_mem = 0;
-void menu_redraw() {} ;
-int should_run_polling_action(int period_ms, int* last_updated_time) { return 0; }
-void menu_add( const char * name, struct menu_entry * new_entry, int count ) {} 
-void menu_open_submenu() {} 
-void redraw_after(int time) {}
-uint32_t edmac_get_address(uint32_t channel) { return 0; }
-void EngDrvOut(uint32_t reg, uint32_t value) {}
 
 static void
 call_init_funcs()
@@ -153,9 +141,6 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-/** Was this an autoboot or firmware file load? */
-int autoboot_loaded;
-
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
 
@@ -167,15 +152,11 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
-
 void
 __attribute__((noreturn,noinline,naked))
 copy_and_restart( int offset )
 {
     zero_bss();
-
-    // Set the flag if this was an autoboot load
-    autoboot_loaded = (offset == 0);
 
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
@@ -456,6 +437,11 @@ static int compute_signature(int* start, int num)
 //~ Called from my_init_task
 void install_task()
 {
+    while(1)
+    {
+        info_led_blink(1,1000,1000);
+    }
+    
     call_init_funcs();
     
     msleep(500);
@@ -521,20 +507,6 @@ int my_init_task(int a, int b, int c, int d)
 {
     // Call their init task
     int ans = init_task(a,b,c,d);
-    
-    // Overwrite the PTPCOM message
-    dm_names[ DM_MAGIC ] = "[MAGIC] ";
-    //~ dmstart(); // already called by firmware?
-    
-    DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
-             build_version,
-             build_id
-             );
-    
-    DebugMsg( DM_MAGIC, 3, "Built on %s by %s",
-             build_date,
-             build_user
-             );
     
 #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
     // Re-write the version string.
@@ -616,41 +588,19 @@ initial_install(void)
     msleep(1000);
 }
 
-
-
-/** Dummies **/
-int lv;
-int sensor_cleaning;
-int shooting_mode;
-struct font font_small;
-struct font font_med;
-struct font font_large;
-struct sfont font_small_shadow;
-struct sfont font_med_shadow;
-struct sfont font_large_shadow;
-void ml_assert_handler(char* msg, char* file, int line, const char* func) {};
-void afframe_set_dirty(){};
-int digic_zoom_overlay_enabled(){return 0;}
-void bvram_mirror_init(){};
-void bvram_mirror_clear(){};
-int display_is_on_550D = 0;
-int get_display_is_on_550D() { return display_is_on_550D; }
-void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
-int display_filter_enabled() {return 0;};
-
 PROP_INT( PROP_ICU_UILOCK, uilockprop);
 
 void redraw() { clrscr(); }
 
 void SW1(int v, int wait)
 {
-    prop_request_change(PROP_REMOTE_SW1, &v, 2);
+    _prop_request_change(PROP_REMOTE_SW1, &v, 2);
     msleep(wait);
 }
 
 void SW2(int v, int wait)
 {
-    prop_request_change(PROP_REMOTE_SW2, &v, 2);
+    _prop_request_change(PROP_REMOTE_SW2, &v, 2);
     msleep(wait);
 }
 
@@ -665,10 +615,33 @@ void fake_simple_button(int bgmt_code)
 void gui_uilock(int x)
 {
     int unlocked = 0x41000000;
-    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
+    _prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(200);
-    prop_request_change(PROP_ICU_UILOCK, &x, 4);
+    _prop_request_change(PROP_ICU_UILOCK, &x, 4);
     msleep(200);
 }
 
+/** Dummies **/
+int lv;
+int sensor_cleaning;
+int shooting_mode;
+void ml_assert_handler(char* msg, char* file, int line, const char* func) {};
+void bvram_mirror_init(){};
+int display_is_on_550D = 0;
+int get_display_is_on_550D() { return display_is_on_550D; }
+void config_save(){};
+int get_ms_clock_value() { return 0; }
+char * get_task_name_from_id(int id) { return ""; }
+void beep() {} ;
+uint32_t ml_used_mem = 0;
+uint32_t ml_reserved_mem = 0;
+void menu_redraw() {} ;
+int should_run_polling_action(int period_ms, int* last_updated_time) { return 0; }
+void menu_add( const char * name, struct menu_entry * new_entry, int count ) {} 
+void menu_open_submenu() {} 
+void redraw_after(int time) {}
+uint32_t edmac_get_address(uint32_t channel) { return 0; }
+void EngDrvOut(uint32_t reg, uint32_t value) {}
+int hdmi_code = 0;
+void update_vram_params(){};
 void draw_line(int x1, int y1, int x2, int y2, int cl){}

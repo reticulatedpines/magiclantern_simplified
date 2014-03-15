@@ -181,7 +181,7 @@ extern int bm2lv_x_cache[];
 
 extern int y_times_BMPPITCH_cache[];
 
-#ifdef CONFIG_VXWORKS
+#if defined(CONFIG_VXWORKS) || defined(CONFIG_INSTALLER)
 #define BM(x,y) (((x) >> 1) * 1 + ((y) >> 1) * BMPPITCH     )
 #else
 #define BM(x,y) ((x) * 1 + y_times_BMPPITCH_cache[y - BMP_H_MINUS])
