@@ -135,22 +135,6 @@ void info_led_blink(int times, int delay_on, int delay_off)
     }
 }
 
-
-
-#if CONFIG_DEBUGMSG
-
-static int vmax(int* x, int n)
-{
-    int i;
-    int m = -100000;
-    for (i = 0; i < n; i++)
-        if (x[i] > m)
-            m = x[i];
-    return m;
-}
-
-#endif
-
 static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
@@ -181,18 +165,6 @@ static void dump_rom(void* priv, int unused)
 {
     gui_stop_menu();
     task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
-}
-
-static void dump_logs_task(void* priv)
-{
-    msleep(200);
-    call("dumpf");
-}
-
-static void dump_logs(void* priv)
-{
-    //gui_stop_menu();
-    task_create("dump_logs_task", 0x1e, 0, dump_logs_task, 0);
 }
 
 #ifdef FEATURE_GUIMODE_TEST
@@ -2055,37 +2027,6 @@ static void screenshot_start(void* priv, int delta)
 
 static int draw_event = 0;
 
-#if CONFIG_DEBUGMSG
-static void
-lvbuf_display(
-              void *            priv,
-              int            x,
-              int            y,
-              int            selected
-              )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Dump Live View Buffers"
-               );
-}
-
-static void lvbuf_select()
-{
-    if (lv)
-    {
-        call("lv_vram_dump");
-        call("lv_ssdev_dump");
-        //~ call("lv_yuv_dump");
-        //~ call("lv_raw_dump2");
-        //~ call("lv_faceyuv_dump");
-    }
-    else
-        NotifyBox(5000, "Only Works In Live View!!!");
-}
-#endif
-
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
 static MENU_UPDATE_FUNC(image_buf_display)
 {
@@ -2511,13 +2452,6 @@ static struct menu_entry debug_menus[] = {
         .select        = dump_rom,
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     },
-#ifdef CONFIG_40D
-    {
-        .name        = "Dump camera logs",
-        .select      = dump_logs,
-        .help = "Dump camera logs to card."
-    },
-#endif
 #ifdef FEATURE_DONT_CLICK_ME
     {
         .name        = "Don't click me!",
@@ -2814,14 +2748,6 @@ static struct menu_entry debug_menus[] = {
         // .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
-    },
-#endif
-#if CONFIG_DEBUGMSG
-    {
-        .name = "Dump LV Buffers",
-        //~.display = lvbuf_display,
-        .select = lvbuf_select,
-        .help = "Dump .422 files containing LV/HD buf addrs in filenames.",
     },
 #endif
 };
