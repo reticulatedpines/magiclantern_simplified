@@ -461,8 +461,11 @@ void install_task()
     if (ok)
     {
         /* install successful, user waited for 30 seconds => uninstall */
+        info_led_on();
         SetGUIRequestMode(0);
+        info_led_on();
         msleep(1000);
+        info_led_on();
         hook_on_canon_menu();
         uninstall();
     }
