@@ -47,6 +47,9 @@ global_property_handler(
     unsigned        len
 )
 {
+    /* Canon stub */
+    extern void* _prop_cleanup(void* token, int property);
+    
 #ifdef CONFIG_5DC
     if (property == 0x80010001) return (void*)_prop_cleanup(global_token, property);
 #endif
@@ -341,9 +344,12 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
         return;
     }
 
-    ok:
+ok:
+    (void)0;
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
 
+    /* call Canon stub */
+    extern void _prop_request_change(unsigned property, const void* addr, size_t len);
     _prop_request_change(property, addr, len);
 #endif
 }

@@ -14,6 +14,9 @@
 
 #ifdef CONFIG_ELECTRONIC_LEVEL
 
+/* Canon stub */
+extern void GUI_SetRollingPitchingLevelStatus(int request);
+
 struct rolling_pitching
 {
     uint8_t status;

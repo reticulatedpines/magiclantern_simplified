@@ -12,6 +12,9 @@
 #endif
 #include <version.h>
 
+#include <flexinfo.h>
+#include <shoot.h>
+
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
     #define AUDIO_REM_SHOT_POS_X 20
     #define AUDIO_REM_SHOT_POS_Y 40

@@ -51,7 +51,7 @@
 
 
 //#define CONFIG_CONSOLE
-#define TRACE_DISABLED
+//#define TRACE_DISABLED
 
 #define DEBUG_REDRAW_INTERVAL      100
 #define MLV_RTCI_BLOCK_INTERVAL   2000
@@ -73,6 +73,7 @@
 #include <config.h>
 #include <math.h>
 #include <cropmarks.h>
+#include <screenshot.h>
 #include "edmac.h"
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -112,8 +113,10 @@ static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 static uint32_t abort_test = 0;
 /**
- * resolution should be multiple of 16 horizontally
- * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
+ * furthermore, resolution (in bytes) should be multiple of 8 in order to use the fastest EDMAC flags ( http://magiclantern.wikia.com/wiki/Register_Map#EDMAC ),
+ * which copy 16 bytes at a time, but only check for overflows every 8 bytes (can be verified experimentally)
+ * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
 
@@ -232,7 +235,7 @@ struct frame_slot_group
     int32_t size;
 };
 
-/*  */
+/* this job type is Manager -> Writer for telling which blocks to write */
 typedef struct
 {
     uint32_t job_type;
@@ -249,7 +252,7 @@ typedef struct
     int64_t last_time_after;
 } write_job_t;
 
-/*  */
+/* if a file reaches the 4GiB border, writer will queue a file close command for the manager */
 typedef struct
 {
     uint32_t job_type;
@@ -305,7 +308,7 @@ static int32_t frame_count = 0;                       /* how many frames we have
 static int32_t frame_skips = 0;                       /* how many frames were dropped/skipped */
 char* mlv_movie_filename = NULL;                  /* file name for current (or last) movie */
 
-static uint32_t threads_running;
+static uint32_t mlv_rec_threads;
 
 /* per-thread data */
 static char chunk_filename[MAX_WRITER_THREADS][MAX_PATH];                  /* file name for current movie chunk */
@@ -386,7 +389,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
         FIO_RemoveFile(filename);
     }
     
-    FILE *dummy_file = FIO_CreateFileEx(filename);
+    FILE *dummy_file = FIO_CreateFile(filename);
     if(dummy_file == INVALID_PTR)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
@@ -522,8 +525,11 @@ static void update_resolution_params()
     /* make sure we don't get dead pixels from rounding */
     int32_t left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int32_t right_margin = (raw_info.active_area.x2) / 8 * 8;
-    int32_t max = (right_margin - left_margin) & ~15;
-    while (max % 16) max--;
+    int32_t max = (right_margin - left_margin);
+
+    /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
+    max &= ~31;
+    
     max_res_x = max;
 
     /* max res Y */
@@ -1176,21 +1182,13 @@ static int32_t get_free_slots()
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
-
-    char buffer_str[256];
-    int buffer_str_pos = 0;
-
+    
     int32_t scale = MAX(1, (300 / slot_count + 1) & ~1);
     int32_t x = 30;
     int32_t y = 50;
 
     for (int32_t group = 0; group < slot_group_count; group++)
     {
-        if(enable_tracing)
-        {
-            buffer_str[buffer_str_pos++] = '[';
-        }
-
         for (int32_t slot = slot_groups[group].slot; slot < (slot_groups[group].slot + slot_groups[group].len); slot++)
         {
             int32_t color = COLOR_BLACK;
@@ -1198,53 +1196,29 @@ static void show_buffer_status()
             switch(slots[slot].status)
             {
                 case SLOT_FREE:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = ' ';
-                    }
                     color = COLOR_GRAY(10);
                     break;
 
                 case SLOT_WRITING:
                     if(slots[slot].writer == 0)
                     {
-                        if(enable_tracing)
-                        {
-                            buffer_str[buffer_str_pos++] = '0';
-                        }
                         color = COLOR_GREEN1;
                     }
                     else
                     {
-                        if(enable_tracing)
-                        {
-                            buffer_str[buffer_str_pos++] = '1';
-                        }
                         color = COLOR_YELLOW;
                     }
                     break;
 
                 case SLOT_FULL:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = 'F';
-                    }
                     color = COLOR_LIGHT_BLUE;
                     break;
 
                 case SLOT_LOCKED:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = 'L';
-                    }
                     color = COLOR_RED;
                     break;
 
                 default:
-                    if(enable_tracing)
-                    {
-                        buffer_str[buffer_str_pos++] = '?';
-                    }
                     color = COLOR_BLACK;
                     break;
             }
@@ -1261,17 +1235,6 @@ static void show_buffer_status()
             }
         }
         x += MAX(2, scale);
-
-        if(enable_tracing)
-        {
-            buffer_str[buffer_str_pos++] = ']';
-        }
-    }
-
-    if(enable_tracing)
-    {
-        buffer_str[buffer_str_pos++] = '\000';
-        //trace_write(raw_rec_trace_ctx, buffer_str);
     }
 
     if (DISPLAY_REC_INFO_DEBUG && frame_skips > 0)
@@ -1368,11 +1331,6 @@ static void raw_video_enable()
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
 
-    if (cam_50d && !(hdmi_code == 5))
-    {
-        call("lv_af_fase_addr", 0); //Turn off face detection
-    }
-
     if(cam_eos_m && !is_movie_mode())
     {
         set_custom_movie_mode(1);
@@ -1394,7 +1352,7 @@ static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (mlv_video_enabled && lv)  /* exception: EOS-M needs to record in photo mode */
+    if (mlv_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
     {
         if (!raw_lv_requested)
         {
@@ -1718,6 +1676,12 @@ static void hack_liveview(int32_t unhack)
         call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
+
+        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        {
+            /* not sure how to unhack this one, and on 5D2 it crashes */
+            call("lv_af_fase_addr", 0); //Turn off face detection
+        }
 
         /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
@@ -2163,9 +2127,11 @@ static int32_t FAST process_frame()
     {
         mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
         hdr->blockSize = ((uint32_t*) hdr)[sizeof(mlv_vidf_hdr_t)/4];
-        ASSERT(hdr->blockSize > 0);
     }
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+    
+    /* just to make sure there is no corruption */
+    ASSERT(hdr->blockSize >= (sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size));
 
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
@@ -2443,6 +2409,7 @@ retry_find:
                     job.block_start = block_start;
                     job.block_len = block_len;
                     job.block_size = block_size;
+                    job.block_ptr = slots[block_start].ptr;
                 }
             }
             else
@@ -2579,7 +2546,7 @@ static void raw_writer_task(uint32_t writer)
 
     written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
     
-    util_atomic_inc(&threads_running);
+    util_atomic_inc(&mlv_rec_threads);
     while(raw_recording_state == RAW_PREPARING)
     {
         msleep(20);
@@ -2588,31 +2555,36 @@ static void raw_writer_task(uint32_t writer)
     /* main recording loop */
     TASK_LOOP
     {
-        write_job_t *tmp_job = NULL;
+        write_job_t *job = NULL;
 
         /* receive write job from dispatcher */
-        if(msg_queue_receive(queue, &tmp_job, 1000))
+        if(msg_queue_receive(queue, &job, 1000))
         {
             //static uint32_t timeouts = 0;
             //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: message timed out %d times now", writer, ++timeouts);
             continue;
         }
-        tmp_job->writer = writer;
+        
+        if(!job)
+        {
+            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: job is NULL");
+            goto abort;
+        }
 
-        if(tmp_job->job_type == JOB_TYPE_WRITE)
+        if(job->job_type == JOB_TYPE_WRITE)
         {
             /* decrease number of queued writes */
             util_atomic_dec(&writer_job_count[writer]);
 
             /* this is an "abort" job */
-            if(tmp_job->block_len == 0)
+            if(job->block_len == 0)
             {
-                msg_queue_post(mlv_job_alloc_queue, tmp_job);
+                msg_queue_post(mlv_job_alloc_queue, job);
                 trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: expected to terminate", writer);
                 break;
             }
 
-            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB, addr 0x%08X, size 0x%08X)", writer, tmp_job->block_len, tmp_job->block_start, tmp_job->block_size/1024, tmp_job->block_ptr, tmp_job->block_size);
+            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write %d slots from %d (%dKiB, addr 0x%08X, size 0x%08X)", writer, job->block_len, job->block_start, job->block_size/1024, job->block_ptr, job->block_size);
 
             /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
             if(1)
@@ -2622,7 +2594,7 @@ static void raw_writer_task(uint32_t writer)
                     /* check if we will reach the 4GiB boundary with this write */
                     uint32_t free_space = mlv_max_filesize - written_chunk;
 
-                    if(free_space < tmp_job->block_size)
+                    if(free_space < job->block_size)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close of '%s'", writer, chunk_filename[writer]);
 
@@ -2632,11 +2604,17 @@ static void raw_writer_task(uint32_t writer)
                         /* queue a close command */
                         close_job_t *close_job = NULL;
                         msg_queue_receive(mlv_job_alloc_queue, &close_job, 0);
+                        
+                        if(!close_job)
+                        {
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close_job is NULL", writer);
+                            goto abort;
+                        }
 
                         close_job->job_type = JOB_TYPE_CLOSE;
+                        close_job->writer = writer;
                         close_job->file_handle = f;
                         close_job->file_header = file_header;
-                        close_job->writer = writer;
                         strcpy(close_job->filename, chunk_filename[writer]);
 
                         msg_queue_post(mlv_mgr_queue, close_job);
@@ -2668,7 +2646,7 @@ static void raw_writer_task(uint32_t writer)
 
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s'", writer, chunk_filename[writer]);
                     }
-                    else if((free_space < 8 * tmp_job->block_size) && !handle_requested)
+                    else if((free_space < 8 * job->block_size) && !handle_requested)
                     {
                         /* we will reach the 4GiB boundary soon */
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB, request another chunk", writer);
@@ -2676,6 +2654,12 @@ static void raw_writer_task(uint32_t writer)
                         /* queue a preparation job */
                         handle_job_t *prepare_job = NULL;
                         msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
+                        
+                        if(!prepare_job)
+                        {
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
+                            goto abort;
+                        }
 
                         prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
                         prepare_job->writer = writer;
@@ -2690,15 +2674,15 @@ static void raw_writer_task(uint32_t writer)
                 }
 
                 /* start write and measure times */
-                tmp_job->last_time_after = last_time_after;
-                tmp_job->time_before = get_us_clock_value();
-                int32_t written = FIO_WriteFile(f, tmp_job->block_ptr, tmp_job->block_size);
-                tmp_job->time_after = get_us_clock_value();
+                job->last_time_after = last_time_after;
+                job->time_before = get_us_clock_value();
+                int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
+                job->time_after = get_us_clock_value();
 
-                last_time_after = tmp_job->time_after;
+                last_time_after = job->time_after;
 
                 /* handle disk full cases */
-                if(written != (int32_t)tmp_job->block_size) /* 4GB limit or card full? */
+                if(written != (int32_t)job->block_size) /* 4GB limit or card full? */
                 {
                     trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: %d", writer, written);
 
@@ -2713,7 +2697,7 @@ static void raw_writer_task(uint32_t writer)
                     }
                     else
                     {
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, tmp_job->block_size);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, job->block_size);
                     }
 
                     /* okay, writing failed. now try to save what we have by reelasing the dummy file */
@@ -2726,8 +2710,8 @@ static void raw_writer_task(uint32_t writer)
                     }
                     
                     /* now try to write the remaining buffer content */
-                    written = FIO_WriteFile(f, &((char *)tmp_job->block_ptr)[written], tmp_job->block_size - written);
-                    if (written != (int32_t)(tmp_job->block_size - written)) /* 4GB limit or card full? */
+                    written = FIO_WriteFile(f, &((char *)job->block_ptr)[written], job->block_size - written);
+                    if (written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: Even writing after removing dummy file failed. No idea what to do now.", writer);
                     }
@@ -2736,31 +2720,27 @@ static void raw_writer_task(uint32_t writer)
                 }
 
                 /* all fine */
-                written_chunk += tmp_job->block_size;
-                frames_written += tmp_job->block_len;
+                written_chunk += job->block_size;
+                frames_written += job->block_len;
             }
 
             /* send job back and wake up manager */
-            msg_queue_post(mlv_mgr_queue, tmp_job);
-            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: returned job 0x%08X", writer, tmp_job);
+            msg_queue_post(mlv_mgr_queue, job);
+            //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: returned job 0x%08X", writer, job);
         }
-        else if(tmp_job->job_type == JOB_TYPE_NEXT_HANDLE)
+        else if(job->job_type == JOB_TYPE_NEXT_HANDLE)
         {
-            handle_job_t *prepare_job = (handle_job_t *)tmp_job;
+            handle_job_t *prepare_job = (handle_job_t *)job;
             next_file_handle = prepare_job->file_handle;
             next_file_num = prepare_job->file_header.fileNum;
             strcpy(next_filename, prepare_job->filename);
 
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: next chunk handle received, file '%s'", writer, next_filename );
         }
-        else if(tmp_job->job_type == JOB_TYPE_CLOSE)
-        {
-            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: closing finished", writer);
-        }
         else
         {
-            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: unhandled job 0x%08X", writer, tmp_job->job_type);
-            bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 300, "WRITER#%d: unhandled job 0x%08X", writer, tmp_job->job_type);
+            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
+            bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 300, "WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
             goto abort;
         }
 
@@ -2791,7 +2771,7 @@ abort:
         FIO_RemoveFile(chunk_filename[writer]);
     }
 
-    util_atomic_dec(&threads_running);
+    util_atomic_dec(&mlv_rec_threads);
 }
 
 static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
@@ -2822,14 +2802,6 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
             }
         }
     }
-
-    /* enqueue the next largest block */
-    write_job->block_ptr = slots[write_job->block_start].ptr;
-
-    write_job_t *queue_job = NULL;
-    msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
-    *queue_job = *write_job;
-    queue_job->job_type = JOB_TYPE_WRITE;
 
     /* mark slots to be written */
     for(uint32_t slot = write_job->block_start; slot < (write_job->block_start + write_job->block_len); slot++)
@@ -2878,6 +2850,20 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         slots[slot].writer = writer;
     }
 
+    /* enqueue the configured block */
+    write_job_t *queue_job = NULL;
+    msg_queue_receive(mlv_job_alloc_queue, &queue_job, 0);
+    
+    if(!queue_job)
+    {
+        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: queue_job is NULL");
+        return;
+    }
+    
+    *queue_job = *write_job;
+    queue_job->job_type = JOB_TYPE_WRITE;
+    queue_job->writer = writer;
+    
     msg_queue_post(mlv_writer_queues[writer], queue_job);
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
@@ -2927,14 +2913,14 @@ static void mlv_rec_precreate_files(char *base_filename, uint32_t count)
         FILE *handle = NULL;
         
         get_next_chunk_file_name(base_filename, filename, pos, 0);
-        handle = FIO_CreateFileEx(filename);
+        handle = FIO_CreateFile(filename);
         FIO_CloseFile(handle);
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         
         if(card_spanning)
         {
             get_next_chunk_file_name(base_filename, filename, pos, 1);
-            handle = FIO_CreateFileEx(filename);
+            handle = FIO_CreateFile(filename);
             FIO_CloseFile(handle);
             trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         }
@@ -2951,6 +2937,79 @@ static void mlv_rec_wait_frames(uint32_t frames)
         if(frame_countdown == 0)
         {
             break;
+        }
+    }
+}
+
+static void mlv_rec_queue_blocks()
+{
+    if(mlv_update_lens && (mlv_metadata & MLV_METADATA_SPORADIC))
+    {
+        mlv_update_lens = 0;
+
+        mlv_expo_hdr_t old_expo = last_expo_hdr;
+        mlv_lens_hdr_t old_lens = last_lens_hdr;
+
+        mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
+        mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
+
+        /* update timestamp for comparing content changes */
+        old_expo.timestamp = last_expo_hdr.timestamp;
+        old_lens.timestamp = last_lens_hdr.timestamp;
+
+        /* write new state if something changed */
+        if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
+            memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+
+        /* write new state if something changed */
+        if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
+            memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+
+    if(mlv_update_styl && (mlv_metadata & MLV_METADATA_SPORADIC))
+    {
+        mlv_update_styl = 0;
+
+        mlv_styl_hdr_t old_hdr = last_styl_hdr;
+        mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
+
+        /* update timestamp for comparing content changes */
+        old_hdr.timestamp = last_styl_hdr.timestamp;
+
+        /* write new state if something changed */
+        if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
+            memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
+        }
+    }
+
+    if(mlv_update_wbal && (mlv_metadata & MLV_METADATA_SPORADIC))
+    {
+        mlv_update_wbal = 0;
+
+        /* capture last state and get new one */
+        mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
+        mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
+
+        /* update timestamp for comparing content changes */
+        old_hdr.timestamp = last_wbal_hdr.timestamp;
+
+        /* write new state if something changed */
+        if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
+        {
+            mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
+            memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
+            msg_queue_post(mlv_block_queue, hdr);
         }
     }
 }
@@ -3083,12 +3142,12 @@ static void raw_video_rec_task()
 
             get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], writer, writer);
             trace_write(raw_rec_trace_ctx, "Filename (Thread #%d): '%s'", writer, chunk_filename[writer]);
-            mlv_handles[writer] = FIO_CreateFileEx(chunk_filename[writer]);
+            mlv_handles[writer] = FIO_CreateFile(chunk_filename[writer]);
 
             /* failed to open? */
             if(mlv_handles[writer] == INVALID_PTR)
             {
-                trace_write(raw_rec_trace_ctx, "FIO_CreateFileEx(#%d): FAILED", writer);
+                trace_write(raw_rec_trace_ctx, "FIO_CreateFile(#%d): FAILED", writer);
                 NotifyBox(5000, "Failed to create file. Card full?");
                 beep_times(2);
                 return;
@@ -3109,7 +3168,7 @@ static void raw_video_rec_task()
 
         /* wait a bit to make sure threads are running */
         uint32_t thread_wait = 10;
-        while(threads_running != mlv_writer_threads)
+        while(mlv_rec_threads != mlv_writer_threads)
         {
             thread_wait--;
             if(!thread_wait)
@@ -3135,7 +3194,7 @@ static void raw_video_rec_task()
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
             /* on shutdown or writers that aborted, abort even if there are unwritten slots */
-            if(ml_shutdown_requested || !threads_running)
+            if(ml_shutdown_requested || !mlv_rec_threads)
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
@@ -3278,7 +3337,7 @@ static void raw_video_rec_task()
                     /* create the file */
                     get_next_chunk_file_name(mlv_movie_filename, handle->filename, handle->file_header.fileNum, handle->writer);
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, handle->filename);
-                    handle->file_handle = FIO_CreateFileEx(handle->filename);
+                    handle->file_handle = FIO_CreateFile(handle->filename);
 
                     /* failed to open? */
                     if(handle->file_handle == INVALID_PTR)
@@ -3334,76 +3393,8 @@ static void raw_video_rec_task()
             }
             //trace_write(raw_rec_trace_ctx, "Slots used: %d, writing: %d", used_slots, writing_slots);
 
-            if(mlv_update_lens && (mlv_metadata & MLV_METADATA_SPORADIC))
-            {
-                mlv_update_lens = 0;
-
-                mlv_expo_hdr_t old_expo = last_expo_hdr;
-                mlv_lens_hdr_t old_lens = last_lens_hdr;
-
-                mlv_fill_expo(&last_expo_hdr, mlv_start_timestamp);
-                mlv_fill_lens(&last_lens_hdr, mlv_start_timestamp);
-
-                /* update timestamp for comparing content changes */
-                old_expo.timestamp = last_expo_hdr.timestamp;
-                old_lens.timestamp = last_lens_hdr.timestamp;
-
-                /* write new state if something changed */
-                if(memcmp(&last_expo_hdr, &old_expo, sizeof(mlv_expo_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
-                    memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-
-                /* write new state if something changed */
-                if(memcmp(&last_lens_hdr, &old_lens, sizeof(mlv_lens_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
-                    memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-            }
-
-            if(mlv_update_styl && (mlv_metadata & MLV_METADATA_SPORADIC))
-            {
-                mlv_update_styl = 0;
-
-                mlv_styl_hdr_t old_hdr = last_styl_hdr;
-                mlv_fill_styl(&last_styl_hdr, mlv_start_timestamp);
-
-                /* update timestamp for comparing content changes */
-                old_hdr.timestamp = last_styl_hdr.timestamp;
-
-                /* write new state if something changed */
-                if(memcmp(&last_styl_hdr, &old_hdr, sizeof(mlv_styl_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
-                    memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-            }
-
-            if(mlv_update_wbal && (mlv_metadata & MLV_METADATA_SPORADIC))
-            {
-                mlv_update_wbal = 0;
-
-                /* capture last state and get new one */
-                mlv_wbal_hdr_t old_hdr = last_wbal_hdr;
-                mlv_fill_wbal(&last_wbal_hdr, mlv_start_timestamp);
-
-                /* update timestamp for comparing content changes */
-                old_hdr.timestamp = last_wbal_hdr.timestamp;
-
-                /* write new state if something changed */
-                if(memcmp(&last_wbal_hdr, &old_hdr, sizeof(mlv_wbal_hdr_t)))
-                {
-                    mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
-                    memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
-                    msg_queue_post(mlv_block_queue, hdr);
-                }
-            }
-
+            mlv_rec_queue_blocks();
+            
             if((raw_recording_state != RAW_RECORDING) && (show_graph))
             {
                 show_buffer_status();
@@ -3448,7 +3439,7 @@ static void raw_video_rec_task()
         do
         {
             /* on shutdown exit immediately */
-            if(ml_shutdown_requested || !threads_running)
+            if(ml_shutdown_requested || !mlv_rec_threads)
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
@@ -3476,7 +3467,7 @@ static void raw_video_rec_task()
                 trace_write(raw_rec_trace_ctx, "<-- still have data to write...");
             }
             msleep(200);
-        } while(has_data && threads_running);
+        } while(has_data && mlv_rec_threads);
 
         /* done, this will stop the vsync CBR and the copying task */
         raw_recording_state = RAW_FINISHING;
@@ -3563,7 +3554,7 @@ cleanup:
     
     if(show_graph)
     {
-        take_screenshot(0);
+        take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
     }
     trace_flush(raw_rec_trace_ctx);
 
@@ -4178,7 +4169,7 @@ static unsigned int raw_rec_init()
         NotifyBox(100000, "Card warming up...");
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
-        FILE* f = FIO_CreateFileEx(warmup_filename);
+        FILE* f = FIO_CreateFile(warmup_filename);
         if(f != INVALID_PTR)
         {
             FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));

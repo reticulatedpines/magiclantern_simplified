@@ -69,18 +69,18 @@ static int module_load_symbols(TCCState *s, char *filename)
         console_printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
-    buf = alloc_dma_memory(size);
+    buf = fio_malloc(size);
     if(!buf)
     {
         console_printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
-    file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
-        free_dma_memory(buf);
+        fio_free(buf);
         return -1;
     }
     FIO_ReadFile(file, buf, size);
@@ -124,7 +124,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         count++;
     }
     
-    free_dma_memory(buf);
+    fio_free(buf);
     return 0;
 }
 
@@ -820,6 +820,18 @@ int FAST module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
+#if !defined(BGMT_TOUCH_1_FINGER)
+#define BGMT_TOUCH_1_FINGER -1
+#endif
+#if !defined(BGMT_UNTOUCH_1_FINGER)
+#define BGMT_UNTOUCH_1_FINGER -1
+#endif
+#if !defined(BGMT_TOUCH_2_FINGER)
+#define BGMT_TOUCH_2_FINGER -1
+#endif
+#if !defined(BGMT_UNTOUCH_2_FINGER)
+#define BGMT_UNTOUCH_2_FINGER -1
+#endif
 int module_translate_key(int key, int dest)
 {
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             , dest);
@@ -838,7 +850,6 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_REC                  , MODULE_KEY_REC                  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         , dest);
     MODULE_TRANSLATE_KEY(BGMT_LV                   , MODULE_KEY_LV                   , dest);
-    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
     MODULE_TRANSLATE_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             , dest);
     MODULE_TRANSLATE_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             , dest);
@@ -854,6 +865,11 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    , dest);
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TOUCH_1_FINGER       , MODULE_KEY_TOUCH_1_FINGER       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_1_FINGER     , MODULE_KEY_UNTOUCH_1_FINGER     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TOUCH_2_FINGER       , MODULE_KEY_TOUCH_2_FINGER       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_2_FINGER     , MODULE_KEY_UNTOUCH_2_FINGER     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
     /* these are not simple key codes, so they will not work with MODULE_TRANSLATE_KEY */
     //~ MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
     //~ MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
@@ -1574,7 +1590,8 @@ static void module_load_offline_strings(int mod_number)
         char* fn = module_list[mod_number].long_filename;
         
         /* we should free this one after we are done with it */
-        module_strpair_t * strings = (void*) tcc_load_offline_section(fn, ".module_strings");
+        extern void* tcc_load_offline_section(char* filename, char* section_name);
+        module_strpair_t * strings = tcc_load_offline_section(fn, ".module_strings");
  
         if (strings)
         {
@@ -1609,7 +1626,7 @@ static void module_unload_offline_strings(int mod_number)
 {
     if (module_list[mod_number].strings)
     {
-        FreeMemory(module_list[mod_number].strings);
+        free(module_list[mod_number].strings);
         module_list[mod_number].strings = 0;
     }
 }
@@ -1629,7 +1646,7 @@ static void module_load_task(void* unused)
         }
         else
         {
-            FILE *handle = FIO_CreateFileEx(module_lockfile);
+            FILE *handle = FIO_CreateFile(module_lockfile);
             FIO_WriteFile(handle, lockstr, strlen(lockstr));
             FIO_CloseFile(handle);
             

@@ -11,6 +11,8 @@
 #include "gui.h"
 #include "lens.h"
 #include "mvr.h"
+#include "zebra.h"
+#include "lvinfo.h"
 
 //----------------begin qscale-----------------
 static CONFIG_INT( "h264.qscale", qscale_neg, 8 );
@@ -87,7 +89,7 @@ static void cbr_init()
 {
 #if defined(CONFIG_7D)
     /* we must do all transfers via uncached memory. prepare that buffer */
-    bulk_transfer_buf = alloc_dma_memory(0x1000);
+    bulk_transfer_buf = fio_malloc(0x1000);
     /* now load master's mvr_config into local */
     bitrate_read_mvr_config();
 #endif
@@ -303,9 +305,9 @@ bitrate_factor_toggle(void* priv, int delta)
     if (RECORDING_H264) return;
  
 #if defined(FEATURE_VIDEO_HACKS)
-    bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
+    bitrate_factor = MOD(bitrate_factor + delta - 1, 200) + 1;
 #else
-    bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
+    bitrate_factor = MOD(bitrate_factor + delta - 1, 30) + 1;
 #endif
 }
 

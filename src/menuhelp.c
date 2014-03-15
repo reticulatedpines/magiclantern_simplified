@@ -129,7 +129,7 @@ void menu_help_show_page(int page)
             extern int _bmp_draw_should_stop;
             if (!_bmp_draw_should_stop) save_vram(rpath);
             #endif
-            FreeMemory(doc);
+            free(doc);
         }
         else
         {
@@ -146,13 +146,13 @@ void menu_help_redraw()
 
 void menu_help_next_page()
 {
-    current_page = mod(current_page, help_pages) + 1;
+    current_page = MOD(current_page, help_pages) + 1;
     menu_help_active = 1;
 }
 
 void menu_help_prev_page()
 {
-    current_page = mod(current_page - 2, help_pages) + 1;
+    current_page = MOD(current_page - 2, help_pages) + 1;
     menu_help_active = 1;
 }
 
@@ -205,7 +205,7 @@ void menu_help_go_to_label(void* label, int delta)
         }
     }
 
-    free_dma_memory(buf);
+    fio_free(buf);
     
     current_page = page;
     menu_help_active = 1;

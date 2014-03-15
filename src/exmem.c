@@ -4,6 +4,7 @@
 #include "bmp.h"
 
 extern void* _malloc(size_t size);
+extern void _free(void* ptr);
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
@@ -74,7 +75,7 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
 {
     unsigned int written = 0;
     
-    FILE *f = FIO_CreateFileEx(file);
+    FILE *f = FIO_CreateFile(file);
     if (f != (void*) -1)
     {
         struct memChunk *currentChunk;

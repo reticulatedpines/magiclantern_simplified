@@ -263,26 +263,28 @@ bmp_printf(
 }
 
 // for very large strings only
-void
+int
 big_bmp_printf(
-               unsigned        fontspec,
+               uint32_t        fontspec,
                int        x,
                int        y,
                const char *        fmt,
                ...
                )
 {
+    int ans = 0;
     BMP_LOCK(
-             va_list            ap;
+        va_list            ap;
 
-             static char bmp_printf_buf[1024];
+        static char bmp_printf_buf[1024];
 
-             va_start( ap, fmt );
-             vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
-             va_end( ap );
+        va_start( ap, fmt );
+        vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
+        va_end( ap );
 
-             bmp_puts( fontspec, &x, &y, bmp_printf_buf );
-             )
+        ans = bmp_puts( fontspec, &x, &y, bmp_printf_buf );
+    )
+    return ans;
 }
 
 int bmp_string_width(int fontspec, const char* str)
@@ -483,7 +485,7 @@ read_file(
     size_t            size
 )
 {
-    FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if( file == INVALID_PTR )
         return -1;
     unsigned rc = FIO_ReadFile( file, buf, size );
@@ -493,9 +495,6 @@ read_file(
 
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
-
-#define BmpAlloc malloc
-#define BmpFree free
 
 struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compression)
 {
@@ -531,7 +530,7 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
     // and release the uncacheable space.
 
     if (compression==bmp->compression) {
-        uint8_t * fast_buf = BmpAlloc( size + 32);
+        uint8_t * fast_buf = malloc( size + 32);
         if( !fast_buf )
             goto fail_buf_copy;
         memcpy(fast_buf, buf, size);
@@ -558,7 +557,7 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
             size_needed += 2; //0000 EOL
         }
         size_needed += 2; //0001 EOF
-        fast_buf = BmpAlloc( size_needed );
+        fast_buf = malloc( size_needed );
         if( !fast_buf ) goto fail_buf_copy;
         memcpy(fast_buf, buf, sizeof(struct bmp_file_t));
         gpos = fast_buf + sizeof(struct bmp_file_t);
@@ -635,11 +634,6 @@ malloc_fail:
 getfilesize_fail:
     DebugMsg( DM_MAGIC, 3, "bmp_load failed");
     return NULL;
-}
-
-void bmp_free(struct bmp_file_t * bmp)
-{
-    if (bmp) BmpFree(bmp);
 }
 
 uint8_t* read_entire_file(const char * filename, int* buf_size)
@@ -725,42 +719,6 @@ void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, in
     }
 }
 #endif
-/*
-void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax)
-{
-    if (!bmp) return;
-
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-
-    int x,y; // those sweep the original bmp
-    int xs,ys; // those sweep the BMP VRAM (and are scaled)
-
-    #ifdef USE_LUT
-    // we better don't use AllocateMemory for LUT (Err 70)
-    static int16_t lut[960];
-    for (xs = x0; xs < (x0 + xmax); xs++)
-    {
-        lut[xs] = (xs-x0) * bmp->width/xmax;
-    }
-    #endif
-
-    for( ys = y0 ; ys < (y0 + ymax); ys++ )
-    {
-        y = (ys-y0)*bmp->height/ymax;
-        uint8_t * const b_row = bvram + ys * BMPPITCH;
-        for (xs = x0; xs < (x0 + xmax); xs++)
-        {
-#ifdef USE_LUT
-            x = lut[xs];
-#else
-            x = (xs-x0)*bmp->width/xmax;
-#endif
-            uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-            b_row[ xs ] = pix;
-        }
-    }
-}*/
 
 // this is slow, but is good for a small number of pixels :)
 uint8_t bmp_getpixel(int x, int y)
@@ -790,7 +748,8 @@ void bmp_putpixel(int x, int y, uint8_t color)
 
     bmp_putpixel_fast(bvram, x, y, color);
 }
-void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
+
+void bmp_draw_rect(int color, int x0, int y0, int w, int h)
 {
     // this should match bmp_fill
     w--;
@@ -804,7 +763,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
     draw_line(x0,   y0,     x0, y0+h, color);
 }
 
-void bmp_draw_rect_chamfer(uint8_t color, int x0, int y0, int w, int h, int a, int thick_corners)
+void bmp_draw_rect_chamfer(int color, int x0, int y0, int w, int h, int a, int thick_corners)
 {
     // this should match bmp_fill
     w--;
@@ -830,9 +789,6 @@ void bmp_draw_rect_chamfer(uint8_t color, int x0, int y0, int w, int h, int a, i
         draw_line(x0+1,   y0+a,   x0+a,   y0+1,   color);
     }
 }
-
-static int _bmp_draw_should_stop = 0;
-void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
 #ifdef CONFIG_VXWORKS
 
@@ -876,7 +832,7 @@ void set_ml_palette()
     {      // if you change RGB palette, run this first to get the PB equivalent (comment out BmpDDev semaphores first)
         NotifyBox(10000, "%x ", PB_Palette);
         SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
-        FILE* f = FIO_CreateFileEx("pb.log");
+        FILE* f = FIO_CreateFile("pb.log");
         for (int i = 0; i < 16; i++)
             my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
         FIO_CloseFile(f);
@@ -994,6 +950,8 @@ int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,79)]; }
 
 #endif
 
+static int _bmp_draw_should_stop = 0;
+void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, uint8_t* const mirror)
 {
@@ -1016,7 +974,6 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 
     if (bmp->compression == 0) {
 #ifdef USE_LUT
-        // we better don't use AllocateMemory for LUT (Err 70)
         static int16_t lut[960];
         for (xs = x0; xs < (x0 + w); xs++)
         {
@@ -1527,6 +1484,93 @@ int load_vram(const char * filename)
 }
 #endif
 
+
+static void palette_disable(uint32_t disabled)
+{
+    #ifdef CONFIG_VXWORKS
+    return; // see set_ml_palette
+    #endif
+
+    if(disabled)
+    {
+        for (int i = 0; i < 0x100; i++)
+        {
+            EngDrvOut(LCD_Palette[i*3], 0x00FF0000);
+            EngDrvOut(LCD_Palette[i*3+0x300], 0x00FF0000);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 0x100; i++)
+        {
+            EngDrvOut(LCD_Palette[i*3], LCD_Palette[i*3 + 2]);
+            EngDrvOut(LCD_Palette[i*3+0x300], LCD_Palette[i*3 + 2]);
+        }
+    }
+}
+//~ #endif
+
+
+static int _bmp_muted = false;
+static int _bmp_unmuted = false;
+int bmp_is_on() { return !_bmp_muted; }
+
+void bmp_on()
+{
+    if (!_bmp_unmuted) 
+    {
+        palette_disable(0);
+        _bmp_muted = false; _bmp_unmuted = true;
+    }
+}
+
+void bmp_off()
+{
+    if (!_bmp_muted)
+    {
+        _bmp_muted = true; _bmp_unmuted = false;
+        palette_disable(1);
+    }
+}
+
+void bmp_mute_flag_reset()
+{
+    _bmp_muted = 0;
+    _bmp_unmuted = 0;
+}
+
+/* for menu: scale the BMP overlay by 128/denx and 128/deny */
+void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
+{
+    ASSERT(src);
+    ASSERT(dst);
+    if (!dst) return;
+    int i,j;
+    
+    // only used for menu => 720x480
+    static int16_t js_cache[720];
+    
+    for (j = 0; j < 720; j++)
+        js_cache[j] = (j - x0) * denx / 128 + x0;
+    
+    for (i = 0; i < 480; i++)
+    {
+        int is = (i - y0) * deny / 128 + y0;
+        uint8_t* dst_r = &dst[BM(0,i)];
+        uint8_t* src_r = &src[BM(0,is)];
+        
+        if (is >= 0 && is < 480)
+        {
+            for (j = 0; j < 720; j++)
+            {
+                int js = js_cache[j];
+                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
+            }
+        }
+        else
+            bzero32(dst_r, 720);
+    }
+}
 
 void * bmp_lock = 0;
 

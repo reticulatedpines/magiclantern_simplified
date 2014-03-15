@@ -2,6 +2,7 @@
 #include "lvinfo.h"
 #include "module.h"
 #include "raw.h"
+#include "zebra.h"
 
 int sound_recording_enabled_canon()
 {
@@ -45,9 +46,6 @@ static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
-#ifdef FEATURE_HEADPHONE_MONITORING
-static void audio_monitoring_update();
-#endif
 static void audio_input_toggle( void * priv, int delta );
 
 #ifdef CONFIG_600D
@@ -847,7 +845,7 @@ audio_reg_dump_once()
             if (size == 0) break;
         }
     
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
 
 	unsigned i;
 	for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
@@ -996,14 +994,16 @@ void audio_monitoring_display_headphones_connected_or_not()
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
+#ifdef FEATURE_HEADPHONE_MONITORING
+static void audio_monitoring_update();
 
 static void
 audio_monitoring_toggle( void * priv, int delta )
 {
     audio_monitoring = !audio_monitoring;
     audio_monitoring_update(); //call audio_monitoring_force_display()
-
 }
+#endif
 
 static void
 enable_recording(int mode)

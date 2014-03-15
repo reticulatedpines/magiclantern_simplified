@@ -10,13 +10,17 @@
 #include "lens.h"
 #include "propvalues.h"
 #include "config.h"
+#include "hdr.h"
+#include "fps.h"
+#include "shoot.h" /* for functions that should be moved */
 
 #if defined(CONFIG_MODULES)
 #include "module.h"
 #endif
 
 #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
-#define FEATURE_HDR_EXTENDED
+/* todo: refactor it with a menu that actually makes sense */
+//~ #define FEATURE_HDR_EXTENDED
 #endif
 
 #ifdef FEATURE_HDR_EXTENDED
@@ -112,7 +116,7 @@ static MENU_SELECT_FUNC (hdrv_extended_iso_toggle)
     
     do
     {
-        new_iso = mod(new_iso - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;      
+        new_iso = MOD(new_iso - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;      
     }
     while (!is_hdr_valid_iso(raw2iso(new_iso))); 
     
@@ -170,7 +174,7 @@ static void hdr_iso_toggle(void* priv, int delta)
     int* v = (int*)priv;
     do
     {
-        *v = mod(*v - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;
+        *v = MOD(*v - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;
     }
     while (!is_hdr_valid_iso(raw2iso(*v)));
 }
@@ -188,6 +192,8 @@ void hdr_step()
 #endif
     
 #ifdef FEATURE_SHUTTER_FINE_TUNING
+    /* todo: refactor with CBR */
+    extern void shutter_finetune_step();
     shutter_finetune_step();
 #endif
 
@@ -195,6 +201,8 @@ void hdr_step()
     if (!hdrv_enabled)
     {
         #ifdef FEATURE_GRADUAL_EXPOSURE
+        /* todo: refactor with CBR */
+        extern void smooth_iso_step();
         smooth_iso_step();
         #endif
         return;
@@ -340,11 +348,11 @@ int get_effective_hdr_iso_for_display(int raw_iso)
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
     // on recent cameras, HDR video can only alter the analog part of the ISO (and keep the digital one unchanged)
-    int ha,hd;
+    unsigned int ha; int hd;
     split_iso(raw_iso, &ha, &hd);
     
     int raw_current_iso = lens_info.raw_iso;
-    int ca,cd;
+    unsigned int ca; int cd;
     split_iso(raw_current_iso, &ca, &cd);
     
     int actual_iso = ha + cd;

@@ -109,7 +109,7 @@ static void reload_cropmark()
     {
         void* old_crop = cropmarks;
         cropmarks = 0;
-        bmp_free(old_crop);
+        free(old_crop);
     }
 
     cropmark_clear_cache();
@@ -125,7 +125,7 @@ static void reload_cropmark()
 static void
 crop_toggle( void* priv, int sign )
 {
-    crop_index = mod(crop_index + sign, num_cropmarks);
+    crop_index = MOD(crop_index + sign, num_cropmarks);
     //~ reload_cropmark(crop_index);
     crop_set_dirty(10);
 }
@@ -569,6 +569,10 @@ static void FAST default_movie_cropmarks()
 
 void set_movie_cropmarks(int x, int y, int w, int h)
 {
+    x = COERCE(x, os.x0+1, os.x_max-1);
+    y = COERCE(y, os.y0+1, os.y_max-1);
+    w = COERCE(w, 0, os.x_max-1 - x);
+    h = COERCE(h, 0, os.y_max-1 - y);
     cropmarks_x = (x << 16) | (x + w);
     cropmarks_y = (y << 16) | (y + h);
 }

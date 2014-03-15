@@ -63,7 +63,7 @@ endif
 ifeq ($(ML_ENTRY_OBJ), n)
 ML_ENTRY_OBJ =
 else ifndef ML_ENTRY_OBJ
-ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
+ML_ENTRY_OBJ = entry.o
 endif
 
 ifeq ($(ML_SRC_PROFILE),minimal)
@@ -112,6 +112,7 @@ ML_SRC_OBJS = \
 	rand.o \
 	posix.o \
 	util.o \
+	imath.o \
 	electronic_level.o \
 	cfn.o \
 	gui.o \
@@ -158,6 +159,7 @@ ML_SRC_OBJS = \
 	crop-mode-hack.o \
 	ph_info_disp.o \
 	flexinfo.o \
+	screenshot.o \
 	fileprefix.o \
 	lvinfo.o \
 	ml-cbr.o 
@@ -240,6 +242,7 @@ DIET_OBJ = \
 	strncmp.o \
 	strcpy.o \
 	strcmp.o \
+	strcasecmp.o \
 	errno.o \
 	errno_location.o \
 	strtoull.o \

@@ -343,10 +343,4 @@ unsigned int aj_log_length( unsigned int val )
 
 }  /* end of aj_log_length() */     
  
-#else
-unsigned int log_length(int v)
-{
-    if (!v) return 0;
-    return (unsigned int)(log2f(v) * 100);
-}
 #endif

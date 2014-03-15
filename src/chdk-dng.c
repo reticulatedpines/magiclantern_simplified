@@ -33,8 +33,8 @@
 #include "property.h"
 #include "math.h"
 #include "string.h"
-#define umalloc alloc_dma_memory
-#define ufree free_dma_memory
+#define umalloc fio_malloc
+#define ufree fio_free
 #define pow powf
 
 static int get_tick_count() { return get_ms_clock_value_fast(); }
@@ -51,7 +51,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define umalloc malloc
 #define ufree free
 
-#define FIO_CreateFileEx(name) fopen(name, "wb")
+#define FIO_CreateFile(name) fopen(name, "wb")
 #define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
 #define FIO_CloseFile(f) fclose(f)
 
@@ -260,7 +260,7 @@ static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
 #else
     exit(1);
 #endif
-    __builtin_unreachable();
+    while(1);
     return -1;
 }
 
@@ -750,7 +750,7 @@ int save_dng(char* filename, struct raw_info * raw_info)
     raw_info->jpeg.height = raw_info->height;
     #endif
     
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if (!f) return 0;
     write_dng(f, raw_info);
     FIO_CloseFile(f);

@@ -208,14 +208,17 @@ int raw_set_pixel(int x, int y, int value)
 static int stripes_coeffs[8] = {0};
 static int stripes_correction_needed = 0;
 
+/* do not use typeof in macros, use __typeof__ instead.
+   see: http://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Alternate-Keywords.html#Alternate-Keywords
+*/
 #define MIN(a,b) \
-   ({ typeof ((a)+(b)) _a = (a); \
-      typeof ((a)+(b)) _b = (b); \
+   ({ __typeof__ ((a)+(b)) _a = (a); \
+      __typeof__ ((a)+(b)) _b = (b); \
      _a < _b ? _a : _b; })
 
 #define MAX(a,b) \
-   ({ typeof ((a)+(b)) _a = (a); \
-       typeof ((a)+(b)) _b = (b); \
+   ({ __typeof__ ((a)+(b)) _a = (a); \
+       __typeof__ ((a)+(b)) _b = (b); \
      _a > _b ? _a : _b; })
 
 #define ABS(a) \

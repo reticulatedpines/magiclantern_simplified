@@ -26,6 +26,8 @@
 #include "dryos.h"
 #include "bmp.h"
 #include <property.h>
+#include <boot-hack.h>
+#include <menu.h>
 
 struct semaphore * gui_sem;
 
@@ -163,7 +165,13 @@ my_gui_main_task( void )
 				goto event_loop_bottom;
 		}
 
-		if (IS_FAKE(event)) event->arg = 0;
+        if (IS_FAKE(event)) {
+           event->arg = 0;      /* do not pass the "fake" flag to Canon code */
+        }
+
+        if (event->type == 0 && event->param < 0) {
+            continue;           /* do not pass internal ML events to Canon code */
+        }
 
 		switch( event->type )
 		{

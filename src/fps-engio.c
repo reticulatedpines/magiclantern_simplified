@@ -39,6 +39,8 @@
 #include "config.h"
 #include "math.h"
 #include "raw.h"
+#include "fps.h"
+#include "shoot.h"
 
 #if defined(CONFIG_7D)
 #include "ml_rpc.h"
@@ -320,7 +322,7 @@ static uint16_t sensor_timing_table_patched[175*2];
 
 static int calc_tg_freq(int timerA)
 {
-    int f = (TG_FREQ_BASE / timerA) * 1000 + mod(TG_FREQ_BASE, timerA) * 1000 / timerA;
+    int f = (TG_FREQ_BASE / timerA) * 1000 + MOD(TG_FREQ_BASE, timerA) * 1000 / timerA;
     return f;
 }
 
@@ -485,6 +487,7 @@ int get_current_shutter_reciprocal_x1000()
     int timer = FRAME_SHUTTER_TIMER;
 
     #ifdef FEATURE_SHUTTER_FINE_TUNING
+    extern int shutter_finetune_get_adjusted_timer(); /* lv-img-engio.c, to be cleaned up somehow */
     timer = shutter_finetune_get_adjusted_timer();
     #endif
     
@@ -792,7 +795,7 @@ static MENU_UPDATE_FUNC(fps_print)
         
         /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
-        if (sound_recording_enabled_canon() && is_movie_mode() && t > last_inactive + 1000)
+        if (sound_recording_enabled_canon() && is_movie_mode() && !raw_lv_is_enabled() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
 
 #ifndef CONFIG_FRAME_ISO_OVERRIDE
@@ -905,9 +908,9 @@ void flip_zoom()
 
 static void fps_unpatch_table(int refresh)
 {
-    if (SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_original)
+    if (SENSOR_TIMING_TABLE == (uintptr_t) sensor_timing_table_original)
         return;
-    SENSOR_TIMING_TABLE = (intptr_t) sensor_timing_table_original;
+    SENSOR_TIMING_TABLE = (uintptr_t) sensor_timing_table_original;
     
     if (refresh)
     {
@@ -953,7 +956,7 @@ static void fps_reset()
 
 static void fps_change_value(void* priv, int delta)
 {
-    fps_override_index = mod(fps_override_index + delta, COUNT(fps_values_x1000));
+    fps_override_index = MOD(fps_override_index + delta, COUNT(fps_values_x1000));
     desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
     if (fps_override) fps_needs_updating = 1;
@@ -1062,7 +1065,7 @@ static int fps_try_to_get_exact_freq(int fps_x1000)
         int tb = calc_tg_freq(t) / fps_x1000;
         if (tb < FPS_TIMER_B_MIN || tb > FPS_TIMER_B_MAX) continue;
         int actual_fps = calc_fps_x1000(t, tb);
-        int e = abs(fps_x1000 - actual_fps);
+        int e = ABS(fps_x1000 - actual_fps);
         if (e < min_err)
         {
             min_err = e;
@@ -1231,7 +1234,7 @@ static void fps_criteria_change(void* priv, int delta)
 {
     desired_fps_timer_a_offset = 1000;
     desired_fps_timer_b_offset = 1000;
-    fps_criteria = mod(fps_criteria + delta, 4);
+    fps_criteria = MOD(fps_criteria + delta, 4);
     if (fps_override) fps_needs_updating = 1;
 }
 
@@ -1445,6 +1448,9 @@ static void fps_read_current_timer_values()
     prev_b = fps_timer_b;
     return changed;    
 }*/
+
+static int get_fps_video_mode();
+static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize);
 
 static void fps_read_default_timer_values()
 {
@@ -1742,7 +1748,7 @@ int handle_fps_events(struct event * event)
     
     #if defined(NEW_FPS_METHOD)
     // we won't be able to change/restore FPS on the fly with table patching method :(
-    && SENSOR_TIMING_TABLE != (intptr_t) sensor_timing_table_patched
+    && SENSOR_TIMING_TABLE != (uintptr_t) sensor_timing_table_patched
     #endif
     )
     {
@@ -1839,7 +1845,7 @@ void fps_expo_iso_step()
 
 #ifdef NEW_FPS_METHOD
 
-int get_fps_video_mode()
+static int get_fps_video_mode()
 {
     int mode =
         lv_dispsize > 1 || get_expsim()!=2 ? 2 :
@@ -1851,7 +1857,7 @@ int get_fps_video_mode()
     return mode;
 }
 
-int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
+static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int type, int dispsize)
 {
     unsigned short ret[2];   
     
@@ -1907,7 +1913,7 @@ static void fps_patch_timerB(int timer_value)
     int mode = get_fps_video_mode();   
     int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
 
-    if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
+    if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (uintptr_t) sensor_timing_table_patched)
         return;
 
     // at this point we are in previous FPS mode (maybe with timer A altered)
@@ -1962,6 +1968,10 @@ void set_frame_iso(int iso)
 
 int can_set_frame_iso()
 {
+    #ifdef CONFIG_EOSM
+    if (!RECORDING_H264) return 0;  /* EOS-M is stubborn, http://www.magiclantern.fm/forum/index.php?topic=5200.msg104816#msg104816 */
+    #endif
+    
     #ifdef CONFIG_FRAME_ISO_OVERRIDE
     return 1;
     #else
@@ -1995,12 +2005,17 @@ void set_frame_shutter(int shutter_reciprocal)
     int ntsc = is_current_mode_ntsc();
     int zoom = lv_dispsize > 1 ? 1 : 0;
     int crop = video_mode_crop;
+    (void)zoom; (void)crop; (void)ntsc;
     
     set_frame_shutter_timer(TG_FREQ_SHUTTER / shutter_reciprocal / 1000);
 }
 
 int can_set_frame_shutter_timer()
 {
+    #ifdef CONFIG_EOSM
+    if (!RECORDING_H264) return 0;  /* EOS-M is stubborn, http://www.magiclantern.fm/forum/index.php?topic=5200.msg104816#msg104816 */
+    #endif
+
     #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
     return 1;
     #else

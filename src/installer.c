@@ -34,7 +34,6 @@ int my_init_task(int a, int b, int c, int d);
 void my_bzero( uint8_t * base, uint32_t size );
 
 int autoexec_ok; // true if autoexec.bin was found
-int fonts_ok; // true if fonts.dat was found
 int old_shooting_mode; // to detect when mode dial changes
 int bootflag_written = 0;
 
@@ -215,24 +214,10 @@ copy_and_restart( int offset )
         ;
 }
 
-
-
-// check if fonts.dat is present on the card
-int check_fonts()
-{
-    FILE * f = FIO_Open("ML/DATA/FONTS.DAT", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
 // check if autoexec.bin is present on the card
 int check_autoexec()
 {
-    FILE * f = FIO_Open("AUTOEXEC.BIN", 0);
+    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
     {
         FIO_CloseFile(f);
@@ -290,49 +275,26 @@ void check_install()
     {
         if (autoexec_ok)
         {
-            if (fonts_ok)
-            {
-                big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, BG_COLOR), 0, 0,
-                               " ********************************** \n"
-                               " *            SUCCESS!            * \n"
-                               " ********************************** \n"
-                               "                                    \n"
-                               " BOOTDISK flag is ENABLED.          \n"
-                               " AUTOEXEC.BIN found.                \n"
-                               "                                    \n"
-                               " Magic Lantern is installed.        \n"
-                               " You may now restart your camera.   \n"
-                               "%s"
-                               "                                    \n"
-                               " To disable the BOOTDISK flag,      \n"
-                               " change the shooting mode from the  \n"
-                               " mode dial (P/Tv/Av/M).             \n"
-                               "                                    \n",
-                               bootflag_written ?
-                               "                                    \n" :
-                               " DON'T FORGET to make card bootable!\n"
-                               );
-            }
-            else
-            {
-                big_bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, BG_COLOR), 0, 0,
-                               "                                    \n"
-                               " BOOTDISK flag is ENABLED.          \n"
-                               " AUTOEXEC.BIN found.                \n"
-                               "                                    \n"
-                               "     !!! ML/DATA/FONTS.DAT !!!      \n"
-                               "         !!! NOT FOUND !!!          \n"
-                               "                                    \n"
-                               " Please copy ALL ML files on your   \n"
-                               " SD card. They only take a few MB.  \n"
-                               "                                    \n"
-                               " You may now turn off your camera.  \n"
-                               " To disable the BOOTDISK flag,      \n"
-                               " change the shooting mode from the  \n"
-                               " mode dial (P/Tv/Av/M).             \n"
-                               "                                    \n"
-                               );
-            }
+            big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, BG_COLOR), 0, 0,
+                            " ********************************** \n"
+                            " *            SUCCESS!            * \n"
+                            " ********************************** \n"
+                            "                                    \n"
+                            " BOOTDISK flag is ENABLED.          \n"
+                            " AUTOEXEC.BIN found.                \n"
+                            "                                    \n"
+                            " Magic Lantern is installed.        \n"
+                            " You may now restart your camera.   \n"
+                            "%s"
+                            "                                    \n"
+                            " To disable the BOOTDISK flag,      \n"
+                            " change the shooting mode from the  \n"
+                            " mode dial (P/Tv/Av/M).             \n"
+                            "                                    \n",
+                            bootflag_written ?
+                            "                                    \n" :
+                            " DON'T FORGET to make card bootable!\n"
+                            );
         }
         else
         {
@@ -491,7 +453,6 @@ void install_task()
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
     
     autoexec_ok = check_autoexec();
-    fonts_ok = check_fonts();
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Autoexec & fonts checked");
     
@@ -596,13 +557,6 @@ initial_install(void)
         return;
     }
 
-    if (!fonts_ok)
-    {
-        big_bmp_printf(FONT_LARGE, 0, y+=30, "FONTS.DAT not found!");
-        msleep(5000);
-        return;
-    }
-
     if (!boot_flags->bootdisk )
     {
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
@@ -656,11 +610,6 @@ int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
 int display_filter_enabled;
-
-//~ doesn't use _AllocateMemory()
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_DIGIC_V)
-void *AllocateMemory(size_t size){return 0;}
-#endif
 
 PROP_INT( PROP_ICU_UILOCK, uilockprop);
 

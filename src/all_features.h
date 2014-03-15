@@ -291,6 +291,7 @@
 
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
+    /* to be refactored with the lvinfo engine */
     #define FEATURE_FLEXINFO
 
 /** Debug menu **/
@@ -298,7 +299,6 @@
     //~ #define FEATURE_SHOW_OVERLAY_FPS
 
     #define FEATURE_SCREENSHOT
-    #define FEATURE_SCREENSHOT_422
 
     #define FEATURE_DONT_CLICK_ME
 

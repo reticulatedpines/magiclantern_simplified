@@ -79,7 +79,7 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
     char sidecar[100];
     snprintf(sidecar, sizeof(sidecar), "%s/%s.%s", dir, basename, type ? "UFR" : "XMP");
 
-    FILE* f = FIO_CreateFileEx(sidecar);
+    FILE* f = FIO_CreateFile(sidecar);
     if (f == INVALID_PTR) return;
     if (type == 0)
     {

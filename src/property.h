@@ -111,18 +111,21 @@
 #endif
 #define DRIVE_SELFTIMER_CONTINUOUS 7
 
-#ifdef CONFIG_60D
+#if defined(CONFIG_60D) || defined(CONFIG_7D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
+#elif defined(CONFIG_5D3)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-    #define DRIVE_SILENT 19
-    #define DRIVE_SILENT_CONTINUOUS 20
+    #define DRIVE_SILENT 0x13
+    #define DRIVE_SILENT_CONTINUOUS 0x14
+#elif defined(CONFIG_6D)
+    #define DRIVE_CONTINUOUS 1
+    #define DRIVE_SILENT 0x13
+    #define DRIVE_SILENT_CONTINUOUS 0x14
 #else
     #define DRIVE_CONTINUOUS 1
 #endif
-
 #define PROP_SHUTTER            0x80000005
 #define PROP_SHUTTER_ALSO       0x8000002c
 #define PROP_SHUTTER_RANGE		0x80000035 // Len=4, 6D:100098 30" & 1/4k
@@ -538,13 +541,6 @@ prop_register_slave(
         void            (*token_handler)( void * token )
 );
 
-
-extern void *
-prop_cleanup(
-        void *          token,
-        unsigned        property
-);
-
 // prop
 void prop_request_change( unsigned property, const void* addr, size_t len );
 /** Get the current value of a property.
@@ -627,11 +623,6 @@ PROP_HANDLER(id) { \
 }
 
 #endif
-
-
-
-/**for reading simple integer properties */
-int get_prop(int prop);
 
 #include "propvalues.h"
 
