@@ -254,7 +254,7 @@ NSTUB(0xFF2C16B0,  mvrSetDefQScale)
 NSTUB(0xFF746320,  cfReadBlk)
 NSTUB(0xFF74C870,  sdReadBlk)
 NSTUB(0xFF74C58C,  sdWriteBlk)
-NSTUB(   0x48FFC,  sd_device)
+NSTUB(   0x49000,  sd_device)
 NSTUB(0xFF62FFD4,  fsuDecodePartitionTable)
 
 /** Bootdisk **/
