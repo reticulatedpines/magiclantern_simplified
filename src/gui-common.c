@@ -493,7 +493,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_livev_playback(event) == 0) return 0;
     #endif
 
-    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3)
+    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE)
     if (handle_set_wheel_play(event) == 0) return 0;
     #endif
 
@@ -516,10 +516,6 @@ int handle_common_events_by_feature(struct event * event)
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     if (handle_zoom_x5_x10(event) == 0) return 0;
-    #endif
-    
-    #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
-    if (handle_krzoom(event) == 0) return 0;
     #endif
     
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_6D)

@@ -267,7 +267,6 @@ int handle_follow_focus(struct event * event);
 int handle_follow_focus_save_restore(struct event * event);
 int handle_zoom_overlay(struct event * event);
 int handle_zoom_x5_x10(struct event * event);
-int handle_krzoom(struct event * event);
 int handle_quick_access_menu_items(struct event * event);
 int handle_fps_events(struct event * event);
 int handle_expo_preset(struct event * event);

@@ -287,8 +287,6 @@
 
     //~ #define FEATURE_EYEFI_TRICKS  // EyeFi tricks confirmed working only on 600D-60D
 
-    //~ #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
-
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
     /* to be refactored with the lvinfo engine */
