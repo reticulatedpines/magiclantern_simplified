@@ -76,12 +76,6 @@ void j_tp_intercept() { tp_intercept(); }
 #if CONFIG_DEBUGMSG
 static int draw_prop = 0;
 
-static void
-draw_prop_select( void * priv , int unused )
-{
-    draw_prop = !draw_prop;
-}
-
 static int dbg_propn = 0;
 static void
 draw_prop_reset( void * priv )
@@ -2502,8 +2496,8 @@ static struct menu_entry debug_menus[] = {
     #endif
     {
         .name = "Spy properties",
-        .select        = draw_prop_select,
-        //~.display    = spy_print,
+        .priv = &draw_prop,
+        .max = 1,
         .help = "Show properties as they change."
     },
 /*    {
