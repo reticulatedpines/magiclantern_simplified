@@ -69,12 +69,12 @@ NSTUB(0xFF024500,  GUI_Control)
 NSTUB(0xFF0A4040,  SetGUIRequestMode)
 NSTUB(0xFF024B5C,  gui_init_end)                            // EndGuiInit
 NSTUB(0xFF024144,  gui_main_task)                           // uses a 8 functions table (FF53DA40) like 550d. found only by Alex tool!
-// NSTUB(    ???,  GUI_ChangeMode)                          /* present on 7D.203, 500D.111, 6D.113, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  GUI_ChangeMode)                          /* present on 7D.203, 500D.111, 6D.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 // NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
-// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 700D.113 */
 
 /** ASIF **/
 NSTUB(0xFF0686F4,  PowerAudioOutput)
@@ -86,8 +86,8 @@ NSTUB(0xFF055328,  StartASIFDMAADC)
 NSTUB(0xFF0554DC,  StartASIFDMADAC)
 NSTUB(0xFF0555B0,  StopASIFDMADAC)
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
-// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
@@ -112,7 +112,7 @@ NSTUB(0xFF51BDB8,  SetCFnData)
 NSTUB(0xC0220000,  camera_engine)
 
 /** DMA **/
-// NSTUB(    ???,  dma_memcpy)                              /* present on 7D.203, 6D.113, 50D.109, 700D.111, 600D.102, 650D.104, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  dma_memcpy)                              /* present on 7D.203, 6D.113, 50D.109, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 
 /** Debug messages **/
 NSTUB(    0x2D1C,  dm_names)                                // in DebugMsg, before the 1st loop target
@@ -134,7 +134,7 @@ NSTUB(0xFF363A54,  PlayMain_handler)
 NSTUB(0xFF451514,  PlayMovieGuideApp_handler)
 NSTUB(0xFF381860,  ShootOlcApp_handler)
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
-// NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
 // NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
 // NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
@@ -170,10 +170,10 @@ NSTUB(0xFF1C5594,  shamem_read)
 NSTUB(0xFF06C7A4,  call)
 
 /** Events **/
-// NSTUB(    ???,  TryPostEvent)                            /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  TryPostEvent_end)                        /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  TryPostStageEvent)                       /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  TryPostEvent)                            /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  TryPostEvent_end)                        /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  TryPostStageEvent)                       /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
 NSTUB(0xFF073AF4,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
@@ -182,8 +182,8 @@ NSTUB(0xFF073C0C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF0710A8,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF070AF0,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF071840,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 
 /** GUI for old cameras **/
 NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Post.
@@ -210,7 +210,7 @@ NSTUB(0xFF1ADBCC,  mvrSetDefQScale)
 // NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** LCD Sensor **/
-// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
 // NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
 
 /** Making the card bootable **/
@@ -237,7 +237,7 @@ NSTUB(0xFF1D6AEC,  msg_queue_receive)
 
 /** PTP **/
 NSTUB(0xFF29352C,  ptp_register_handler)
-// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
+// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
 NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)

@@ -83,6 +83,10 @@ def parse_stub(inp_file):
             categ = m.groups()[0].strip(" \t*")
             continue
         
+        # skip ??? entries (rebuild them from scratch)
+        if l.startswith("///") and "???," in l:
+            continue
+        
         # empty lines are separators (a category ends there)
         if l.strip() == "":
             categ = "Misc"

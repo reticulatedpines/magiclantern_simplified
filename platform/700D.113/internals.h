@@ -1,5 +1,5 @@
 /**
- * Camera internals for 700D 1.1.1
+ * Camera internals for 700D 1.1.3
  */
 
 /** Camera **/
@@ -12,7 +12,7 @@
 #define CONFIG_PROP_REQUEST_CHANGE //WARNING : CAN CAUSE DAMAGE
 #define CONFIG_NO_ADDITIONAL_VERSION
 #define CONFIG_EDMAC_MEMCPY
-//~#define CONFIG_RESTORE_AFTER_FORMAT  //Freezes at end of format, not stable.
+#define CONFIG_RESTORE_AFTER_FORMAT
 #define CONFIG_BULB
 #define CONFIG_MOVIE_AE_WARNING
 

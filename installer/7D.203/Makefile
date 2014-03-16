@@ -1,0 +1,5 @@
+MODEL=7D
+include ../Makefile.installer
+
+RESTARTSTART = 0x88000
+ROMBASEADDR  = 0xFF010000

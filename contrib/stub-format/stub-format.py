@@ -20,6 +20,8 @@ data_structs = [
     "mvr_config",
     "sounddev", 
     "vram_info",
+    "task_dispatch_hook",
+    "gui_task_list",
 ]
 
 try: inp = sys.argv[1];

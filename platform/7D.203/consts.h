@@ -27,16 +27,23 @@
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF011064
 #endif
 
+#if defined(CONFIG_INSTALLER)
+/* classic boot process */
+#define HIJACK_INSTR_BL_CSTART 0xff010158
+#define HIJACK_INSTR_BSS_END 0xff011058
+#define HIJACK_FIXBR_BZERO32 0xff010fc0
+#define HIJACK_FIXBR_CREATE_ITASK 0xff011048
+#define HIJACK_INSTR_MY_ITASK 0xff011064
+#endif
+
+// thanks Indy
+#define HIJACK_TASK_ADDR 0x1A1C
 
 /* these are used in bitrate.c for video bitrate hacks */
 #define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF05A6DC
 #define CACHE_HACK_FLUSH_RATE_MASTER 0xFF88BCB4
 #define CACHE_HACK_GOP_SIZE_MASTER   0xFF8C7C18
 
-
-
-// thanks Indy
-#define HIJACK_TASK_ADDR 0x1A1C
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x240d4 // in AJ_armlib_setup_related3
 
