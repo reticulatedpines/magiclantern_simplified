@@ -142,7 +142,7 @@ ML_SRC_OBJS = \
 	$(ML_BOOTFLAGS_OBJ) \
 	dialog_test.o \
 	vram.o \
-	aj_port.o \
+	greenscreen.o \
 	fps-engio.o \
 	shoot.o \
 	hdr.o \
