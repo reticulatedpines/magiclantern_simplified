@@ -1207,7 +1207,7 @@ static void hack_liveview(int unhack)
             cam_650d ? 0xFF527E38 :
             cam_6d  ? 0xFF52BE94 :
             cam_eos_m ? 0xFF539C1C :
-            cam_700d ? 0xFF52B53C :
+            cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             /* ... */
@@ -2062,7 +2062,11 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* keys are only hooked in LiveView */
     if (!liveview_display_idle())
         return 1;
-    
+
+    /* if you somehow managed to start recording H.264, let it stop */
+    if (RECORDING_H264)
+        return 1;
+
     /* start/stop recording with the LiveView key */
     int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
     
@@ -2220,7 +2224,7 @@ static unsigned int raw_rec_init()
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.1");
+    cam_700d  = is_camera("700D", "1.1.3");
     cam_60d   = is_camera("60D",  "1.1.1");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)

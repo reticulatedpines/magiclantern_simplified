@@ -4205,8 +4205,7 @@ static void idle_kill_flicker()
         {
             black_bars_16x9();
             if (RECORDING) {
-                extern void dot(int x, int y, int color, int radius); /* menu.c */
-                dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
+                fill_circle(os.x_max - 12, os.y0 + 28, 10, COLOR_RED);
             }
         }
     }
@@ -4557,6 +4556,11 @@ livev_hipriority_task( void* unused )
                 zoom_overlay_triggered_by_focus_ring_countdown = 0;
                 crop_set_dirty(10);
                 msleep(500);
+            }
+            if (!zebra_should_run())
+            {
+                /* false alarm */
+                continue;
             }
         }
         #if 0

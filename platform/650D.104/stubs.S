@@ -42,7 +42,7 @@ NSTUB(0xFF0C1C10,  cstart)
 NSTUB(   0x1C45C,  bzero32)
 NSTUB(    0x2EB8,  create_init_task)
 NSTUB(0xFF0C5430,  init_task)
-// NSTUB(    ???,  additional_version)                      /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+// NSTUB(    ???,  additional_version)                      /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105, 700D.113 */
 
 /** File I/O **/
 NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
@@ -71,7 +71,7 @@ NSTUB(0xFF0D68CC,  gui_main_task)
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 // NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
-// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 700D.113 */
 
 /** ASIF **/
 NSTUB(0xFF133910,  PowerAudioOutput)

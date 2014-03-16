@@ -296,7 +296,7 @@ static volatile int init_funcs_done;
 
 /** Call all of the init functions  */
 static void
-call_init_funcs( void * priv )
+call_init_funcs()
 {
     extern struct task_create _init_funcs_start[];
     extern struct task_create _init_funcs_end[];
@@ -447,7 +447,7 @@ static void my_big_init_task()
     _ml_cbr_init();
     menu_init();
     debug_init();
-    call_init_funcs( 0 );
+    call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
     #ifdef CONFIG_BATTERY_TEST

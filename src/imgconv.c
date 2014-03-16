@@ -88,21 +88,43 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 }
 
 /**
- * http://www.martinreddy.net/gfx/faqs/colorconv.faq
- * 
  * BT.709:
- * Y'= 0.2215*R' + 0.7154*G' + 0.0721*B'
- * Cb=-0.1145*R' - 0.3855*G' + 0.5000*B'
- * Cr= 0.5016*R' - 0.4556*G' - 0.0459*B'
+ * Y'= 0.2126*R' + 0.7152*G' + 0.0722*B'
+ * Cb=-0.1146*R' - 0.3854*G' + 0.5000*B'
+ * Cr= 0.5000*R' - 0.4541*G' - 0.0458*B'
+ *
+ * BT.601:
+ * Y'= 0.2990*R' + 0.5870*G' + 0.1140*B'
+ * Cb=-0.2990*R' - 0.5870*G' + 0.8860*B'
+ * Cr= 0.7010*R' - 0.5870*G' - 0.1140*B'
  * 
- * todo: BT.601 and code optimization
+ * see:
+ *   http://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.709-5-200204-I!!PDF-E.pdf
+ *   http://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.601-7-201103-I!!PDF-E.pdf
  */
+uint32_t rgb2yuv422_rec709(int R, int G, int B)
+{
+    int Y = COERCE(((217) * R + (732) * G + (73) * B) / 1024, 0, 255);
+    int U = COERCE(((-117) * R + (-394) * G + (512) * B) / 1024, -128, 127);
+    int V = COERCE(((512) * R + (-465) * G + (-46) * B) / 1024, -128, 127);
+    return UYVY_PACK(U,Y,V,Y);
+}
+
+uint32_t rgb2yuv422_rec601(int R, int G, int B)
+{
+    int Y = COERCE(((306) * R + (601) * G + (116) * B) / 1024, 0, 255);
+    int U = COERCE(((-172) * R + (-337) * G + (509) * B) / 1024, -128, 127);
+    int V = COERCE(((509) * R + (-427) * G + (-82) * B) / 1024, -128, 127);
+    return UYVY_PACK(U,Y,V,Y);
+}
+
 uint32_t rgb2yuv422(int R, int G, int B)
 {
-    int Y = COERCE(( 227*R + 733*G +  74*B) / 1024, 0, 255);
-    int U = COERCE((-117*R - 395*G + 512*B) / 1024, -128, 127);
-    int V = COERCE(( 514*R - 467*G -  47*B) / 1024, -128, 127);
-    return UYVY_PACK(U,Y,V,Y);
+#if defined(CONFIG_REC709)
+    return rgb2yuv422_rec709(R, G, B);
+#else
+    return rgb2yuv422_rec601(R, G, B);
+#endif
 }
 
 void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)

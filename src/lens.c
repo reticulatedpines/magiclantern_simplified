@@ -1859,10 +1859,10 @@ static void bv_expsim_shift()
         if (is_bulb_mode()) // try to perform expsim in bulb mode, based on bulb timer setting
         {
             int tv = get_bulb_shutter_raw_equiv() + tv_fps_shift;
-            if (tv < 96)
+            if (tv < SHUTTER_1_30)
             {
-                int delta = 96 - tv;
-                bv_apply_tv(96);
+                int delta = SHUTTER_1_30 - tv;
+                bv_apply_tv(SHUTTER_1_30);
                 bv_expsim_shift_try_iso(bv_iso + delta);
                 return;
             }
@@ -1877,10 +1877,10 @@ static void bv_expsim_shift()
         {
             bv_apply_tv(bv_tv);
 
-            if (bv_tv < 96) // shutter speeds slower than 1/31 -> can't be obtained, raise ISO or open up aperture instead
+            if (bv_tv < SHUTTER_1_30) // shutter speeds slower than 1/30 -> can't be obtained, raise ISO or open up aperture instead
             {
-                int delta = 96 - bv_tv - tv_fps_shift;
-                bv_apply_tv(96);
+                int delta = SHUTTER_1_30 - bv_tv - tv_fps_shift;
+                bv_apply_tv(SHUTTER_1_30);
                 bv_expsim_shift_try_iso(bv_iso + delta);
                 return;
             }

@@ -44,7 +44,7 @@ NSTUB(0xFF0C1BA8,  cstart)
 NSTUB(0xFFD2F2F8 - RAM_OFFSET,  bzero32)
 NSTUB(0xFFCC664C - RAM_OFFSET,  create_init_task)
 NSTUB(0xFF0C5438,  init_task)
-// NSTUB(    ???,  additional_version)                      /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+// NSTUB(    ???,  additional_version)                      /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105, 700D.113 */
 
 /** File I/O **/
 NSTUB(0xFF332990,  FIO_CloseFile)
@@ -63,17 +63,17 @@ NSTUB(0xFF333024, _FIO_RenameFile)
 
 /** GUI **/
 NSTUB(   0x74F10,  gui_main_struct)
+NSTUB(   0x8295C,  gui_task_list)
 NSTUB(0xFF0DFB2C,  GUI_ChangeMode)
 NSTUB(0xFF0DF970,  GUI_Control)
 NSTUB(0xFF19B448,  Gui_SetSoundRecord)
 NSTUB(0xFF18DFE8,  SetGUIRequestMode)
 NSTUB(0xFF0DFFE4,  gui_init_end)
 NSTUB(0xFF0DF59C,  gui_main_task)
-NSTUB(0xFFD45E40 - RAM_OFFSET,  gui_task_list)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
-// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 550D.109 */
+// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 700D.113 */
 
 /** ASIF **/
 NSTUB(0xFF142D68,  PowerAudioOutput)                        // sub_FF142D54 Same Actions
@@ -87,7 +87,7 @@ NSTUB(0xFF11C5D0,  StartASIFDMAADC)                         // warning: looks di
 NSTUB(0xFF11C9A4,  StartASIFDMADAC)                         // warning: looks different
 NSTUB(0xFF11C87C,  StopASIFDMAADC)                          // warning: looks different
 NSTUB(0xFF11CC24,  StopASIFDMADAC)                          // warning: looks different
-// NSTUB(    ???,  SetAudioVolumeOut)                       /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  SetAudioVolumeOut)                       /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Audio **/
 NSTUB(   0x752E0,  sounddev)                                // Maybe 0x752e0 or 0x753f4
@@ -95,7 +95,7 @@ NSTUB(0xFF1424F4, _audio_ic_read)                           // Correct
 NSTUB(0xFF1422B0, _audio_ic_write)                          // SerialCommanSend(int *array)
 NSTUB(0xFF9D031C,  audio_thresholds)
 NSTUB(0xFF11E24C,  sounddev_task)
-// NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** Bitmap **/
 NSTUB(   0x9A478,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -134,15 +134,15 @@ NSTUB(0xFF3A1970,  PlayMain_handler)
 NSTUB(0xFF558BC0,  PlayMovieGuideApp_handler)
 NSTUB(0xFF539BA8,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 //NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
-// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
 // NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
 
 /** Display **/
-// NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
 NSTUB(0xFFCF7710 - RAM_OFFSET,  ConnectReadEDmac)
@@ -197,8 +197,8 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)
-// NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
-// NSTUB(    ???,  mvrSetDefQScale)                         /* present on 7D.203, 500D.111, 60D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  mvrSetDefQScale)                         /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  mvrSetFullHDOptSize)                     /* present on 500D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
@@ -209,7 +209,7 @@ NSTUB(0xFFD37FB4 - RAM_OFFSET,  pre_isr_hook)
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
 /** LCD Sensor **/
-// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
 // NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
 
 /** Making the card bootable **/
@@ -236,7 +236,7 @@ NSTUB(0xFFCF9D14 - RAM_OFFSET,  msg_queue_receive)
 
 /** PTP **/
 NSTUB(0xFF292A24,  ptp_register_handler)
-// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
+// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
 NSTUB(0xFF1319CC,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
@@ -277,8 +277,8 @@ NSTUB(0xFFD0EFA0 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampolin
 NSTUB(0xFFCCCB6C - RAM_OFFSET,  msleep)
 
 /** Tasks **/
+NSTUB(   0x74ACC,  task_dispatch_hook)
 NSTUB(0xFFCCCC20 - RAM_OFFSET,  task_create)
-NSTUB(0xFFD37FB0 - RAM_OFFSET,  task_dispatch_hook)
 NSTUB(0xFFCD1F44 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */

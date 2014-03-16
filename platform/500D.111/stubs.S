@@ -57,7 +57,7 @@ NSTUB(0xFF197378, _FIO_FindFirstEx)
 NSTUB(0xFF196A88, _FIO_GetFileSize)
 NSTUB(0xFF196338, _FIO_OpenFile)
 NSTUB(0xFF196608, _FIO_RemoveFile)
-// NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
+// NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI **/
 NSTUB(    0x1C70,  gui_main_struct)                         // in gui_main_task
@@ -83,8 +83,8 @@ NSTUB(0xFF053614,  StartASIFDMAADC)
 NSTUB(0xFF0537B0,  StartASIFDMADAC)
 NSTUB(0xFF053880,  StopASIFDMADAC)
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
-// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
@@ -109,7 +109,7 @@ NSTUB(0xFF359A0C,  SetCFnData)
 NSTUB(0xC0220000,  camera_engine)                           /** Camera interface? */
 
 /** DMA **/
-// NSTUB(    ???,  dma_memcpy)                              /* present on 7D.203, 6D.113, 50D.109, 700D.111, 600D.102, 650D.104, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  dma_memcpy)                              /* present on 7D.203, 6D.113, 50D.109, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 
 /** Debug messages **/
 NSTUB(    0x2D18,  dm_names)                                // in DebugMsg, before the 1st loop target
@@ -127,20 +127,20 @@ NSTUB(0xFF2AE79C,  LiveViewApp_handler)
 NSTUB(0xFF2BE2F4,  PlayMain_handler)
 NSTUB(0xFF3C0638,  PlayMovieGuideApp_handler)
 NSTUB(0xFF2C5D1C,  ShootOlcApp_handler)
-// NSTUB(    ???,  HideUnaviFeedBack_maybe)                 /* present on 60D.111, 6D.113, 5D3.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
-// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  HideUnaviFeedBack_maybe)                 /* present on 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
-// NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
 // NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
 // NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
 
 /** Display **/
-// NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
 NSTUB(0xFF18FB90,  ConnectReadEDmac)
@@ -155,7 +155,7 @@ NSTUB(0xFF18FD74,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFF18FE74,  UnregisterEDmacPopCBR)
 
 /** Electronic Level **/
-// NSTUB(    ???,  GUI_SetRollingPitchingLevelStatus)       /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 700D.111, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  GUI_SetRollingPitchingLevelStatus)       /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 700D.113 */
 
 /** Engio **/
 NSTUB(0xFF190B84, _EngDrvOut)
@@ -167,10 +167,10 @@ NSTUB(0xFF190BE8,  shamem_read)
 NSTUB(0xFF067828,  call)
 
 /** Events **/
-// NSTUB(    ???,  TryPostEvent)                            /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  TryPostEvent_end)                        /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  TryPostStageEvent)                       /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  TryPostEvent)                            /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  TryPostEvent_end)                        /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  TryPostStageEvent)                       /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
 NSTUB(0xFF06EECC,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
@@ -179,8 +179,8 @@ NSTUB(0xFF06EFDC,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF06C494,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF06BE78,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF06CC4C,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 
 /** GUI for old cameras **/
 NSTUB(    0x3B90,  gui_timer_struct)                        // in GUI_Control_Post
@@ -230,11 +230,11 @@ NSTUB(0xFF018F70, _malloc)                                  // maybe it's better
 NSTUB(0xFF0693C0,  msg_queue_create)
 NSTUB(0xFF0696BC,  msg_queue_post)
 NSTUB(0xFF0694D0,  msg_queue_receive)
-// NSTUB(    ???,  msg_queue_count)                         /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  msg_queue_count)                         /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** PTP **/
 NSTUB(0xFF20C498,  ptp_register_handler)
-// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
+// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
 NSTUB(0xFF05993C, _prop_cleanup)
@@ -256,9 +256,9 @@ NSTUB(0xFF06DEC0,  CreateRecursiveLock)
 NSTUB(0xFF1A0E58,  ReleaseRecursiveLock)                    // not sure, these are not called anywhere
 
 /** ResLock **/
-// NSTUB(    ???,  CreateResLockEntry)                      /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 700D.111, 650D.104, 1100D.105, EOSM.202 */
-// NSTUB(    ???,  LockEngineResources)                     /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 700D.111, 650D.104, 1100D.105, EOSM.202 */
-// NSTUB(    ???,  UnLockEngineResources)                   /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 700D.111, 650D.104, 1100D.105, EOSM.202 */
+// NSTUB(    ???,  CreateResLockEntry)                      /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  LockEngineResources)                     /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  UnLockEngineResources)                   /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 
 /** Semaphores **/
 NSTUB(0xFF069770,  create_named_semaphore)

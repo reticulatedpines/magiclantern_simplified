@@ -10,15 +10,6 @@ installer:: build_fir
 
 install:: install_fir
 
-updater: reboot-ins.o
-	$(call build,LD,$(LD) \
-		-o $@ \
-		-nostdlib \
-		-e _start \
-		-Ttext 0x800000 \
-		$^ \
-	);
-
 clean::
 	$(call rm_files, updater*)
 

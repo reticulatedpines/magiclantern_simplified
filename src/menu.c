@@ -1305,7 +1305,7 @@ menu_remove(
     }
 }
 
-void dot(int x, int y, int color, int radius)
+static void dot(int x, int y, int color, int radius)
 {
     fill_circle(x+16, y+16, radius, color);
 }
