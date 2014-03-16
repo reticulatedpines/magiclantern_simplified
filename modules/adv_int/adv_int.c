@@ -15,6 +15,8 @@
 #include <lens.h>
 #include <math.h>
 #include <shoot.h>
+#include <focus.h>
+#include <beep.h>
 
 #define TRUE  1
 #define FALSE 0
@@ -315,7 +317,7 @@ static MENU_SELECT_FUNC(adv_int_load)
     
     snprintf(filename,MAX_PATH,"%sSEQ.TXT",get_config_dir());
     
-    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+    FILE* f = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(f != INVALID_PTR)
     {
         char* buffer = fio_malloc(FILE_BUF_SIZE);
