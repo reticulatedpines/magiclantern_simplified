@@ -456,6 +456,8 @@ static MENU_SELECT_FUNC(new_keyframe_menu_select)
 static MENU_UPDATE_FUNC(shutter_menu_update)
 {
     MENU_SET_RINFO("%s", lens_format_shutter(lens_info.raw_shutter));
+    if(shooting_mode == SHOOTMODE_BULB)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature does not work in BULB mode (use Bulb Duration)");
 }
 
 static MENU_UPDATE_FUNC(aperture_menu_update)
@@ -620,6 +622,12 @@ static MENU_UPDATE_FUNC(loop_after_menu_update)
         MENU_SET_ENABLED(TRUE);
     }
     
+}
+
+static MENU_UPDATE_FUNC(bulb_duration_update)
+{
+    if(shooting_mode != SHOOTMODE_BULB)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature only works in BULB mode");
 }
 
 static void step_focus(int mf_steps)
@@ -958,6 +966,7 @@ static struct menu_entry adv_int_menu[] =
                     {
                         .name = "Bulb Duration",
                         .priv = &keyframe_bulb_duration,
+                        .update = bulb_duration_update,
                         .min = 0,
                         .max = 28800,
                         .unit = UNIT_TIME,
