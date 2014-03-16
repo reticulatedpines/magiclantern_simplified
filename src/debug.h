@@ -110,7 +110,12 @@ debug_init( void );
 
 void debug_init_stuff( void );
 
+extern void debug_menu_init();
+
+/* crash handling */
 void request_crash_log(int type);
+void request_core_dump();
+void ml_crash_message(char* msg);
 
 char* get_config_preset_name(void);
 
@@ -121,5 +126,8 @@ dmstart(); msleep(100); DryosDebugMsg(DM_MAGIC, 25, ">>>>>>>>>>>>>>"); \
 x; \
 DryosDebugMsg(DM_MAGIC, 26, "<<<<<<<<<<<<<<<"); \
 msleep(100); dmstop(); call("dumpf"); }
+
+/* return the message from last ASSERT call */
+const char* get_assert_msg();
 
 #endif

@@ -1,5 +1,5 @@
 /**
- * Camera internals for 700D 1.1.1
+ * Camera internals for 700D 1.1.3
  */
 
 /** Camera **/

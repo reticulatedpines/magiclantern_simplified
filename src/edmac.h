@@ -74,4 +74,12 @@ struct LockEntry *CreateResLockEntry(uint32_t *resIds, uint32_t resIdCount);
 unsigned int LockEngineResources(struct LockEntry *lockEntry);
 unsigned int UnLockEngineResources(struct LockEntry *lockEntry);
 
+void RegisterEDmacCompleteCBR(int channel, void (*cbr)(void*), void* cbr_ctx);
+void RegisterEDmacAbortCBR(int channel, void (*cbr)(void*), void* cbr_ctx);
+void RegisterEDmacPopCBR(int channel, void (*cbr)(void*), void* cbr_ctx);
+
+void UnregisterEDmacCompleteCBR(int channel);
+void UnregisterEDmacAbortCBR(int channel);
+void UnregisterEDmacPopCBR(int channel);
+
 #endif

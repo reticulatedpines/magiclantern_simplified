@@ -37,10 +37,6 @@ cameras.sort()
 # what symbols does this module need?
 deps = read_dep(os.path.join(module, module + ".dep"))
 
-# hack: some symbols are not in the sym file, they are added manually in module.c (why?)
-forced_deps = ["msleep", "longjmp", "strcpy", "setjmp", "alloc_dma_memory", "free_dma_memory", "vsnprintf", "strlen", "memcpy", "console_printf", "task_create"]
-deps = list(set(deps) - set(forced_deps))
-
 # other modules exporting these symbols?
 module_deps = []
 for m in modules:

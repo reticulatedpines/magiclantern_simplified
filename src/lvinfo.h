@@ -106,4 +106,14 @@ or:
 void lvinfo_add_items(struct lvinfo_item * items, int count);
 void lvinfo_add_item(struct lvinfo_item * item);
 
+/* called from backend */
+void lvinfo_display(int top, int bottom);
+
+/* in lens.c, to be moved */
+extern int get_ml_topbar_pos();
+extern int get_ml_bottombar_pos();
+extern void update_lens_display(int top, int bottom);   /* refactor with CBR */
+
+/* force a faster redraw of LiveView info bars */
+void lens_display_set_dirty();
 #endif

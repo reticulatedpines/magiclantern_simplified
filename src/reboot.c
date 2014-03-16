@@ -133,7 +133,7 @@ cstart( void )
     #endif
 
     #ifdef CONFIG_700D
-    if (s != (int)SIG_700D_111)
+    if (s != (int)SIG_700D_113)
         fail();
     #endif
 

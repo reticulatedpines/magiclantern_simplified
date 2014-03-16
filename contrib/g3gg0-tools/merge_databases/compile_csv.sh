@@ -3,7 +3,7 @@
 ##############################################################
 # configuration
 
-dump_all=no;
+dump_all=yes;
 mode=stubs;
 #mode=idc;
 
@@ -32,7 +32,7 @@ do
         ;;
       *)
       # Should not occur
-        echo "Unknown error while processing options" 1>&2;
+        echo "Unknown error while processing options ($optname)" 1>&2;
         ;;
     esac
 done
@@ -109,12 +109,16 @@ for line_string in `cat "$src" | sed "s/\t/;/g;s/ /:/g;s/;:/;/g;s/;;/;:;/g;s/::/
                         fi
                         echo "NSTUB($addr, $name)";
                     elif [ "x$mode" == "xidc" ]; then
-                        echo "    MakeCode($addr);";
-                        if [ "x${name:0:4}" != "xsub_" -a "x${name:0:7}" != "xnullsub" ]; then
-                            echo "    MakeNameEx($addr, \"$name\", SN_NOCHECK);";
-                        fi
-                        if [ "x$proto" != "x" ]; then
-                            echo "    SetType($addr, \"$proto\");";
+                        if [ "x${addr:0:2}" != "x0x" ]; then
+                            echo "//  no address, skipping:  $addr $name;";
+                        else
+                            echo "    MakeCode($addr);";
+                            if [ "x${name:0:4}" != "xsub_" -a "x${name:0:7}" != "xnullsub" ]; then
+                                echo "    MakeNameEx($addr, \"$name\", SN_NOCHECK);";
+                            fi
+                            if [ "x$proto" != "x" ]; then
+                                echo "    SetType($addr, \"$proto\");";
+                            fi
                         fi
                     elif  [ "x$mode" == "xcsv" ]; then
                         echo "$addr;$name;$proto;";

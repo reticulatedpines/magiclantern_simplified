@@ -8,6 +8,8 @@
 #include "propvalues.h"
 #include "bmp.h"
 #include "menu.h"
+#include "shoot.h"
+#include "zebra.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 
@@ -48,8 +50,6 @@ ________________________________________________________________________________
 |_______________BMy510_|___________________________________________________________________________|______________________|
 
 */
-
-void update_vram_params();
 
 // cached LUTs for BM2LV-like macros
 
@@ -410,42 +410,6 @@ void update_vram_params()
         );
         msleep(300);
     }
-}*/
-
-/*
-int* lut_bm2lv_x = 0;
-int* lut_lv2bm_x = 0;
-
-int* lut_lv2hd_x = 0;
-int* lut_hd2lv_x = 0;
-
-int* lut_bm2hd_x = 0;
-int* lut_hd2bm_x = 0;
-
-int* lut_bm2lv_y = 0;
-int* lut_lv2bm_y = 0;
-
-int* lut_lv2hd_y = 0;
-int* lut_hd2lv_y = 0;
-
-int* lut_bm2hd_y = 0;
-int* lut_hd2bm_y = 0;
-
-void lut_realloc(int** buf, int size)
-{
-    if (*buf) FreeMemory(*buf);
-    *buf = AllocateMemory(size);
-}
-
-void lut_init()
-{
-    lut_realloc(&lut_bm2lv_x, SL.BM.W);
-    lut_realloc(&lut_bm2lv_y, SL.BM.H);
-
-    lut_realloc(&lut_lv2bm_x, SL.LV.W);
-    lut_realloc(&lut_lv2bm_y, SL.LV.H);
-
-    lut_realloc(&lut_lv2bm);
 }*/
 
 #include "bmp.h"

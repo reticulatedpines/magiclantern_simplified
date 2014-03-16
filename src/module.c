@@ -34,7 +34,6 @@ static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_disabled, 0);
-#define module_autoload_enabled (!module_autoload_disabled)
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
@@ -70,18 +69,18 @@ static int module_load_symbols(TCCState *s, char *filename)
         console_printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
-    buf = alloc_dma_memory(size);
+    buf = fio_malloc(size);
     if(!buf)
     {
         console_printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
-    file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
-        free_dma_memory(buf);
+        fio_free(buf);
         return -1;
     }
     FIO_ReadFile(file, buf, size);
@@ -124,36 +123,26 @@ static int module_load_symbols(TCCState *s, char *filename)
         tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;
     }
-    //console_printf("Added %d Magic Lantern symbols\n", count);
-
-
-    /* these are just to make the code compile */
-    void longjmp();
-    void setjmp();
-
-    /* ToDo: parse the old plugin sections as all needed OS stubs are already described there */
-    tcc_add_symbol(s, "msleep", &msleep);
-    tcc_add_symbol(s, "longjmp", &longjmp);
-    tcc_add_symbol(s, "strcpy", &strcpy);
-    tcc_add_symbol(s, "setjmp", &setjmp);
-    //~ tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
-    //~ tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
-    tcc_add_symbol(s, "vsnprintf", &vsnprintf);
-    tcc_add_symbol(s, "strlen", &strlen);
-    tcc_add_symbol(s, "memcpy", &memcpy);
-    tcc_add_symbol(s, "console_printf", &console_printf);
-    tcc_add_symbol(s, "task_create", &task_create);
-
-    free_dma_memory(buf);
+    
+    fio_free(buf);
     return 0;
 }
 
 /* this is not perfect, as .Mo and .mO aren't detected. important? */
 static int module_valid_filename(char* filename)
 {
-    int n = strlen(filename);
-    if ((n > 3) && (streq(filename + n - 3, ".MO") || streq(filename + n - 3, ".mo")) && (filename[0] != '.') && (filename[0] != '_'))
+    int len = strlen(filename);
+    
+    if((len < 3) || (filename[0] == '.') || (filename[0] == '_'))
+    {
+        return 0;
+    }
+    
+    if(!strcmp(&filename[len - 3], ".MO") || !strcmp(&filename[len - 3], ".mo") )
+    {
         return 1;
+    }
+    
     return 0;
 }
 
@@ -354,10 +343,6 @@ static void _module_load_all(uint32_t list_only)
         void* buf = (void*) malloc(size);
         
         reloc_status = tcc_relocate(state, buf);
-
-        /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
-        clean_d_cache();
-
         module_code = buf;
     }
     if(size < 0 || reloc_status < 0)
@@ -451,6 +436,9 @@ static void _module_load_all(uint32_t list_only)
             module_config_load(filename, &module_list[mod]);
         }
     }
+    
+    /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
+    sync_caches();
     
     /* go through all modules and initialize them */
     console_printf("Init modules...\n");
@@ -832,6 +820,18 @@ int FAST module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
+#if !defined(BGMT_TOUCH_1_FINGER)
+#define BGMT_TOUCH_1_FINGER -1
+#endif
+#if !defined(BGMT_UNTOUCH_1_FINGER)
+#define BGMT_UNTOUCH_1_FINGER -1
+#endif
+#if !defined(BGMT_TOUCH_2_FINGER)
+#define BGMT_TOUCH_2_FINGER -1
+#endif
+#if !defined(BGMT_UNTOUCH_2_FINGER)
+#define BGMT_UNTOUCH_2_FINGER -1
+#endif
 int module_translate_key(int key, int dest)
 {
     MODULE_TRANSLATE_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             , dest);
@@ -850,7 +850,6 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_REC                  , MODULE_KEY_REC                  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         , dest);
     MODULE_TRANSLATE_KEY(BGMT_LV                   , MODULE_KEY_LV                   , dest);
-    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
     MODULE_TRANSLATE_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             , dest);
     MODULE_TRANSLATE_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             , dest);
@@ -866,6 +865,11 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    , dest);
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TOUCH_1_FINGER       , MODULE_KEY_TOUCH_1_FINGER       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_1_FINGER     , MODULE_KEY_UNTOUCH_1_FINGER     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TOUCH_2_FINGER       , MODULE_KEY_TOUCH_2_FINGER       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_2_FINGER     , MODULE_KEY_UNTOUCH_2_FINGER     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
     /* these are not simple key codes, so they will not work with MODULE_TRANSLATE_KEY */
     //~ MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
     //~ MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
@@ -1586,7 +1590,8 @@ static void module_load_offline_strings(int mod_number)
         char* fn = module_list[mod_number].long_filename;
         
         /* we should free this one after we are done with it */
-        module_strpair_t * strings = (void*) tcc_load_offline_section(fn, ".module_strings");
+        extern void* tcc_load_offline_section(char* filename, char* section_name);
+        module_strpair_t * strings = tcc_load_offline_section(fn, ".module_strings");
  
         if (strings)
         {
@@ -1621,7 +1626,7 @@ static void module_unload_offline_strings(int mod_number)
 {
     if (module_list[mod_number].strings)
     {
-        FreeMemory(module_list[mod_number].strings);
+        free(module_list[mod_number].strings);
         module_list[mod_number].strings = 0;
     }
 }
@@ -1630,7 +1635,7 @@ static void module_load_task(void* unused)
 {
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
 
-    if(module_autoload_enabled)
+    if(!module_autoload_disabled)
     {
         uint32_t size;
         if(!module_ignore_crashes && FIO_GetFileSize( module_lockfile, &size ) == 0 )
@@ -1641,7 +1646,7 @@ static void module_load_task(void* unused)
         }
         else
         {
-            FILE *handle = FIO_CreateFileEx(module_lockfile);
+            FILE *handle = FIO_CreateFile(module_lockfile);
             FIO_WriteFile(handle, lockstr, strlen(lockstr));
             FIO_CloseFile(handle);
             
@@ -1724,7 +1729,7 @@ int module_shutdown()
 {
     _module_unload_all();
     
-    if(module_autoload_enabled)
+    if(!module_autoload_disabled)
     {
         /* remove lockfile */
         FIO_RemoveFile(module_lockfile);

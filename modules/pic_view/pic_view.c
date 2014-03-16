@@ -7,6 +7,7 @@
 #include <menu.h>
 #include "../file_man/file_man.h"
 #include "raw.h"
+#include "imgconv.h"
 
 #define T_BYTE      1
 #define T_ASCII     2
@@ -100,7 +101,7 @@ static int dng_show(char* filename)
 {
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
-    char* buf = shoot_malloc(size);
+    char* buf = fio_malloc(size);
     if (!buf) return 0;
 
     size_t rc = read_file( filename, buf, size );
@@ -129,14 +130,14 @@ static int dng_show(char* filename)
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
     vram_clear_lv();
-    raw_preview_fast_ex(-1, -1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
-    shoot_free(buf);
+    raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
+    fio_free(buf);
     raw_set_dirty();
     
     bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.jpeg.width, raw_info.jpeg.height);
     return 1;
 err:
-    shoot_free(buf);
+    fio_free(buf);
     raw_set_dirty();
     return 0;
 }
@@ -146,7 +147,7 @@ static int bmp_show(char* file)
     void* bmp = bmp_load(file, 1);
     if (!bmp) return 0;
     bmp_draw_scaled_ex(bmp, 0, 0, 720, 480, 0);
-    bmp_free(bmp);
+    free(bmp);
     return 1;
 }
 
@@ -154,9 +155,10 @@ static int yuv422_show(char* filename)
 {
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
-    uint32_t * buf = shoot_malloc(size);
+    uint32_t * buf = fio_malloc(size);
     if (!buf) return 0;
     struct vram_info * vram = get_yuv422_vram();
+    if (!vram->vram) goto err;
 
     clrscr();
     bmp_printf(FONT_MED, 600, 460, "%d", size);
@@ -201,11 +203,54 @@ static int yuv422_show(char* filename)
     size_t rc = read_file( filename, buf, size );
     if( rc != size ) goto err;
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
-    shoot_free(buf);
+    fio_free(buf);
     return 1;
 
 err:
-    shoot_free(buf);
+    fio_free(buf);
+    return 0;
+}
+
+static int ppm_show(char* filename)
+{
+    uint32_t size;
+    if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
+    char * buf = fio_malloc(size);
+
+    size_t rc = read_file( filename, buf, size );
+    if( rc != size ) goto err;
+
+    struct vram_info * vram = get_yuv422_vram();
+    uint32_t * lvram = (uint32_t *)vram->vram;
+    if (!lvram) goto err;
+
+    /* only ML screenshots are supported for now, to keep things simple */
+    char* ml_header = "P6\n720 480\n255\n";
+    if (strncmp(buf, ml_header, strlen(ml_header)))
+        goto err;
+    
+    char* rgb = buf + strlen(ml_header);
+    for (int y = 0; y < 480; y++)
+    {
+        for (int x = 0; x < 720; x++)
+        {
+            int R = rgb[(y*720 + x)*3    ];
+            int G = rgb[(y*720 + x)*3 + 1];
+            int B = rgb[(y*720 + x)*3 + 2];
+            uint32_t uyvy = rgb2yuv422(R, G, B);
+
+            int pixoff_dst = LV(x,y) / 2;
+            uint32_t* dst = &lvram[pixoff_dst / 2];
+            uint32_t mask = (pixoff_dst % 2 ? 0xffFF00FF : 0x00FFffFF);
+            *(dst) = (uyvy & mask) | (*(dst) & ~mask);
+        }
+    }
+
+    fio_free(buf);
+    return 1;
+
+err:
+    fio_free(buf);
     return 0;
 }
 
@@ -245,12 +290,25 @@ FILETYPE_HANDLER(dng_filehandler)
     return 0;
 }
 
+FILETYPE_HANDLER(ppm_filehandler)
+{
+    extern int gui_state;
+    switch(cmd)
+    {
+        case FILEMAN_CMD_VIEW_IN_MENU:
+            if (!menu_request_image_backend()) return 2;
+            if (gui_state != GUISTATE_PLAYMENU) return 2;
+            return ppm_show(filename) ? 1 : -1;
+    }
+    return 0;
+}
 
 static unsigned int pic_view_init()
 {
     fileman_register_type("BMP", "Bitmap image", bmp_filehandler);
     fileman_register_type("422", "YUV422 image", yuv422_filehandler);
     fileman_register_type("DNG", "DNG image", dng_filehandler);
+    fileman_register_type("PPM", "PPM image", ppm_filehandler);
     return 0;
 }
 

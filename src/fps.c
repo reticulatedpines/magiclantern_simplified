@@ -402,7 +402,7 @@ shutter_override_print(
 
 void shutter_override_toggle(void* priv, int delta)
 {
-    shutter_override_mode = mod(shutter_override_mode + delta, 13);
+    shutter_override_mode = MOD(shutter_override_mode + delta, 13);
 }
 
 static void fps_change_mode(int mode, int fps, int crop, int dispsize)

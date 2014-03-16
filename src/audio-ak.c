@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "gui.h"
 #include "audio-common.c"
+#include "boot-hack.h"
 
 static int dgain_update(struct config_var* var, int old_value, int new_value);
 static int mgain_update(struct config_var* var, int old_value, int new_value);
@@ -600,7 +601,7 @@ my_sounddev_task()
     msleep( 1500 );
     if (magic_is_off()) { sounddev_task(); return; }
     
-    hold_your_horses(1);
+    hold_your_horses();
     
     DebugMsg( DM_AUDIO, 3,
               "!!!!! %s started sem=%x",
@@ -625,7 +626,7 @@ my_sounddev_task()
     
 #ifdef CONFIG_AUDIO_REG_LOG
     // Create the logging file
-    reg_file = FIO_CreateFileEx("ML/audioreg.txt" );
+    reg_file = FIO_CreateFile("ML/audioreg.txt" );
 #endif
     
     msleep(500);

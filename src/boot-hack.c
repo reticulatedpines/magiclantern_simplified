@@ -296,7 +296,7 @@ static volatile int init_funcs_done;
 
 /** Call all of the init functions  */
 static void
-call_init_funcs( void * priv )
+call_init_funcs()
 {
     extern struct task_create _init_funcs_start[];
     extern struct task_create _init_funcs_end[];
@@ -353,7 +353,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     }
     
     /* no, create file and store data */
-    handle = FIO_CreateFileEx(file);
+    handle = FIO_CreateFile(file);
     if (handle != INVALID_PTR)
     {
       while(pos < length)
@@ -398,15 +398,14 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
 {
-  find_ml_card();
+  _find_ml_card();
 
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
-  uint32_t len;
-  load_fonts();
+  _load_fonts();
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    len = compute_signature(ROMBASEADDR, 0x10000);
+    uint32_t len = compute_signature(ROMBASEADDR, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
@@ -431,7 +430,7 @@ static void my_big_init_task()
     call("EnableBootDisk");
     
     msleep(500);
-    FILE* f = FIO_CreateFileEx("ROM.DAT");
+    FILE* f = FIO_CreateFile("ROM.DAT");
     if (f != INVALID_PTR) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
@@ -444,11 +443,11 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
-    load_fonts();
+    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();
-    call_init_funcs( 0 );
+    call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
     #ifdef CONFIG_BATTERY_TEST
@@ -571,7 +570,7 @@ static void my_big_init_task()
 }*/
 
 /** Blocks execution until config is read */
-void hold_your_horses(int showlogo)
+void hold_your_horses()
 {
     while (_hold_your_horses)
     {
@@ -905,6 +904,7 @@ my_init_task(int a, int b, int c, int d)
             msleep(100);
         }
         bmp_printf(FONT_CANON, 0, 0, "Magic OFF");
+        info_led_off();
     #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';

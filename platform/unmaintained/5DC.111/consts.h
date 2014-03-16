@@ -27,7 +27,7 @@
 //~ #define DISPLAY_SENSOR_POWERED 0
 
 #define LV_BOTTOM_BAR_DISPLAYED 0
-#define ISO_ADJUSTMENT_ACTIVE 0
+//~ #define ISO_ADJUSTMENT_ACTIVE 0
 
 // from a screenshot
 #define COLOR_FG_NONLV 1

@@ -63,11 +63,17 @@
 #include <config.h>
 #include <math.h>
 #include <cropmarks.h>
+#include <screenshot.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
+#include "edmac-memcpy.h"
 #include "../file_man/file_man.h"
 #include "cache_hacks.h"
 #include "lvinfo.h"
+#include "beep.h"
+#include "raw.h"
+#include "zebra.h"
+#include "fps.h"
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -87,8 +93,10 @@ static int cam_700d = 0;
 static int cam_60d = 0;
 
 /**
- * resolution should be multiple of 16 horizontally
- * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
+ * furthermore, resolution (in bytes) should be multiple of 8 in order to use the fastest EDMAC flags ( http://magiclantern.wikia.com/wiki/Register_Map#EDMAC ),
+ * which copy 16 bytes at a time, but only check for overflows every 8 bytes (can be verified experimentally)
+ * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
 
@@ -122,7 +130,7 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
-static CONFIG_INT("raw.small.hacks", small_hacks, 0);
+static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
 /* Recording Status Indicator Options */
 #define INDICATOR_OFF        0
@@ -289,8 +297,11 @@ static void update_resolution_params()
     /* make sure we don't get dead pixels from rounding */
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
-    int max = (right_margin - left_margin) & ~15;
-    while (max % 16) max--;
+    int max = (right_margin - left_margin);
+    
+    /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
+    max &= ~31;
+    
     max_res_x = max;
     
     /* max res Y */
@@ -614,7 +625,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
     }
     
     /* check if the footer is in the right format */
-    if(strncmp(footer.magic, "RAWM", 4))
+    if(strncmp((char*)footer.magic, "RAWM", 4))
     {
         bmp_printf(FONT_MED, 30, 190, "Footer format mismatch");
         beep();
@@ -1191,11 +1202,13 @@ static void hack_liveview(int unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
-            cam_550d ? 0xFF2FE5E4 :            
+            cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
-            cam_650d ? 0xFF527E38 :            
+            cam_650d ? 0xFF527E38 :
+            cam_6d  ? 0xFF52BE94 :
+            cam_eos_m ? 0xFF539C1C :
+            cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
-            cam_700d ? 0xFF52B53C :
             cam_60d ? 0xff36fa3c :
             /* ... */
             0;
@@ -1342,7 +1355,7 @@ static int FAST process_frame()
         /* send it for saving, even if it isn't done yet */
         /* it's quite unlikely that FIO DMA will be faster than EDMAC */
         writing_queue[writing_queue_tail] = capture_slot;
-        writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
+        writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
     }
     else
     {
@@ -1366,7 +1379,7 @@ static int FAST process_frame()
 
     //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
-    int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
+    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
@@ -1478,7 +1491,7 @@ static void raw_video_rec_task()
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
     snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
-    FILE* bf = FIO_CreateFileEx(backup_filename);
+    FILE* bf = FIO_CreateFile(backup_filename);
     if (bf == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -1492,7 +1505,7 @@ static void raw_video_rec_task()
     int chunk = 0;
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
-    f = FIO_CreateFileEx(raw_movie_filename);
+    f = FIO_CreateFile(raw_movie_filename);
     if (f == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -1590,10 +1603,10 @@ static void raw_video_rec_task()
         /* group items from the queue in a contiguous block - as many as we can */
         int last_grouped = w_head;
         
-        for (int i = w_head; i != w_tail; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != w_tail; i = MOD(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
-            int group_pos = mod(i - w_head, COUNT(writing_queue));
+            int group_pos = MOD(i - w_head, COUNT(writing_queue));
 
             /* TBH, I don't care if these are part of the same group or not,
              * as long as pointers are ordered correctly */
@@ -1604,7 +1617,7 @@ static void raw_video_rec_task()
         }
         
         /* grouped frames from w_head to last_grouped (including both ends) */
-        int num_frames = mod(last_grouped - w_head + 1, COUNT(writing_queue));
+        int num_frames = MOD(last_grouped - w_head + 1, COUNT(writing_queue));
         
         int free_slots = get_free_slots();
         
@@ -1624,7 +1637,7 @@ static void raw_video_rec_task()
             }
         }
         
-        int after_last_grouped = mod(w_head + num_frames, COUNT(writing_queue));
+        int after_last_grouped = MOD(w_head + num_frames, COUNT(writing_queue));
 
         /* write queue empty? better search for a new larger buffer */
         if (after_last_grouped == writing_queue_tail)
@@ -1636,7 +1649,7 @@ static void raw_video_rec_task()
         int size_used = frame_size * num_frames;
 
         /* mark these frames as "writing" */
-        for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
             if (slots[slot_index].status != SLOT_FULL)
@@ -1685,7 +1698,7 @@ static void raw_video_rec_task()
                 
                 /* try to create a new chunk */
                 chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-                FILE* g = FIO_CreateFileEx(chunk_filename);
+                FILE* g = FIO_CreateFile(chunk_filename);
                 if (g == INVALID_PTR) goto abort;
                 
                 /* write the remaining data in the new chunk */
@@ -1718,10 +1731,10 @@ static void raw_video_rec_task()
         }
 
         /* for detecting early stops */
-        last_block_size = mod(after_last_grouped - w_head, COUNT(writing_queue));
+        last_block_size = MOD(after_last_grouped - w_head, COUNT(writing_queue));
 
         /* mark these frames as "free" so they can be reused */
-        for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
         {
             if (i == writing_queue_tail)
             {
@@ -1803,7 +1816,7 @@ abort_and_check_early_stop:
     }
 
     /* write remaining frames */
-    for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
+    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(slots)))
     {
         int slot_index = writing_queue[writing_queue_head];
 
@@ -1843,7 +1856,7 @@ abort_and_check_early_stop:
             /* try to save footer in a new chunk */
             FIO_CloseFile(f); f = 0;
             chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-            FILE* g = FIO_CreateFileEx(chunk_filename);
+            FILE* g = FIO_CreateFile(chunk_filename);
             if (g != INVALID_PTR)
             {
                 footer_ok = lv_rec_save_footer(g);
@@ -1877,7 +1890,7 @@ cleanup:
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
-    take_screenshot(0);
+    take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
     #endif
     hack_liveview(1);
     redraw();
@@ -2049,7 +2062,11 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* keys are only hooked in LiveView */
     if (!liveview_display_idle())
         return 1;
-    
+
+    /* if you somehow managed to start recording H.264, let it stop */
+    if (RECORDING_H264)
+        return 1;
+
     /* start/stop recording with the LiveView key */
     int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
     
@@ -2207,7 +2224,7 @@ static unsigned int raw_rec_init()
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.1");
+    cam_700d  = is_camera("700D", "1.1.3");
     cam_60d   = is_camera("60D",  "1.1.1");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
@@ -2244,7 +2261,7 @@ static unsigned int raw_rec_init()
         NotifyBox(100000, "Card warming up...");
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
-        FILE* f = FIO_CreateFileEx(warmup_filename);
+        FILE* f = FIO_CreateFile(warmup_filename);
         FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
         FIO_CloseFile(f);
         FIO_RemoveFile(warmup_filename);

@@ -73,6 +73,7 @@ int get_free_space_32k(const struct card_info* card)
 static CONFIG_INT("card.test", card_test_enabled, 1);
 static CONFIG_INT("card.force_type", card_force_type, 0);
 
+#ifndef CONFIG_INSTALLER
 #ifdef CONFIG_5D3
 static void card_test(struct card_info * card)
 {
@@ -95,7 +96,7 @@ static void card_test(struct card_info * card)
     {
         char testFile[] = "X:/test.dat";
         snprintf(testFile, sizeof(testFile), "%s:/test.dat", card->drive_letter);
-        FILE* f = FIO_CreateFileEx(testFile);
+        FILE* f = FIO_CreateFile(testFile);
         int fail = 0;
         for (int i = 0; i < 100; i++)
         {
@@ -138,7 +139,7 @@ static void card_test(struct card_info * card)
 /** 
  * Called from debug_init_stuff
  */
-void card_tweaks()
+void _card_tweaks()
 {
 #ifdef CONFIG_5D3
     if (card_test_enabled)
@@ -167,6 +168,7 @@ void card_tweaks()
     }
 #endif
 }
+#endif  /* CONFIG_INSTALLER */
 
 #ifdef CONFIG_5D3
 static MENU_SELECT_FUNC(card_test_toggle)
@@ -185,7 +187,7 @@ static MENU_UPDATE_FUNC(card_test_update)
 static void startup_warning(char* msg)
 {
     /* note: this function is called before load_fonts, so in order to print something, we need to load them */
-    load_fonts();
+    _load_fonts();
     
     if (!DISPLAY_IS_ON)
     {
@@ -198,11 +200,20 @@ static void startup_warning(char* msg)
     redraw_after(5000);
 }
 
-void find_ml_card()
+void _find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
     int ml_sd = is_dir("B:/ML");
+
+    if (ml_cf && ml_sd)
+    {
+        /* ambiguity? let's look for autoexec.bin */
+        ml_cf = is_file("A:/AUTOEXEC.BIN");
+        ml_sd = is_file("B:/AUTOEXEC.BIN");
+    }
     
+    /* maybe todo: if both cards have autoexec, check which one is bootable? important? */
+
     if (ml_cf && !ml_sd)
     {
         ML_CARD = &available_cards[CARD_A];
@@ -213,7 +224,8 @@ void find_ml_card()
     }
     else if (ml_cf && ml_sd)
     {
-        /* autoexec.bin gets loaded from the SD card first */
+        /* still ambiguity? */
+        /* we know Canon loads autoexec.bin from the SD card first */
         ML_CARD = &available_cards[CARD_B];
         startup_warning("ML on both cards, loading from SD.");
     }
@@ -326,23 +338,15 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #undef IS_DRV_PATH
 }
 
-FILE* _FIO_Open(const char* filename, unsigned mode );
-FILE* FIO_Open(const char* filename, unsigned mode )
+FILE* _FIO_OpenFile(const char* filename, unsigned mode );
+FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
-    return _FIO_Open(new_filename, mode);
+    return _FIO_OpenFile(new_filename, mode);
 }
 
-FILE* _FIO_CreateFile(const char* filename );
-FILE* FIO_CreateFile(const char* filename )
-{
-    char new_filename[100];
-    fixup_filename(new_filename, filename, 100);
-    return _FIO_CreateFile(new_filename);
-}
-
-//~ int _FIO_GetFileSize(const char * filename, unsigned * size);
+int _FIO_GetFileSize(const char * filename, uint32_t * size);
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[100];
@@ -400,7 +404,8 @@ static unsigned _GetFileSize(char* filename)
         return 0xFFFFFFFF;
     return size;
 }
-unsigned GetFileSize(char* filename)
+
+uint32_t FIO_GetFileSize_direct(const char* filename)
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
@@ -429,6 +434,8 @@ static void _FIO_CreateDir_recursive(char* path)
     _FIO_CreateDirectory(path);
 }
 
+FILE* _FIO_CreateFile(const char* filename );
+
 // a wrapper that also creates missing dirs and removes existing file
 static FILE* _FIO_CreateFileEx(const char* name)
 {
@@ -455,7 +462,7 @@ static FILE* _FIO_CreateFileEx(const char* name)
         
     return f;
 }
-FILE* FIO_CreateFileEx(const char* name)
+FILE* FIO_CreateFile(const char* name)
 {
     char new_name[100];
     fixup_filename(new_name, name, 100);
@@ -465,10 +472,10 @@ FILE* FIO_CreateFileEx(const char* name)
 FILE* _FIO_CreateFileOrAppend(const char* name)
 {
     /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
-    FILE * f = _FIO_Open(name, O_RDWR | O_SYNC);
+    FILE * f = _FIO_OpenFile(name, O_RDWR | O_SYNC);
     if (f == INVALID_PTR)
     {
-        f = _FIO_CreateFileEx(name);
+        f = _FIO_CreateFile(name);
     }
     else
     {
@@ -485,16 +492,15 @@ FILE* FIO_CreateFileOrAppend(const char* name)
 
 int _FIO_CopyFile(char *src,char *dst)
 {
-    const int bufsize = MIN(_GetFileSize(src), 128*1024);
-    
-    void* buf = alloc_dma_memory(bufsize);
-    if (!buf) return -1;
-
-    FILE* f = _FIO_Open(src, O_RDONLY | O_SYNC);
+    FILE* f = _FIO_OpenFile(src, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return -1;
 
-    FILE* g = _FIO_CreateFileEx(dst);
+    FILE* g = _FIO_CreateFile(dst);
     if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
+
+    const int bufsize = MIN(_GetFileSize(src), 128*1024);
+    void* buf = fio_malloc(bufsize);
+    if (!buf) return -1;
 
     int err = 0;
     int r = 0;
@@ -511,7 +517,7 @@ int _FIO_CopyFile(char *src,char *dst)
 
     FIO_CloseFile(f);
     FIO_CloseFile(g);
-    free_dma_memory(buf);
+    fio_free(buf);
     
     if (err)
     {
@@ -553,6 +559,88 @@ int FIO_MoveFile(char *src, char *dst)
     fixup_filename(newSrc, src, 255);
     fixup_filename(newDst, dst, 255);
     return _FIO_MoveFile(newSrc, newDst);
+}
+
+int is_file(char* path)
+{
+    uint32_t file_size = 0;
+    return !FIO_GetFileSize(path, &file_size);
+}
+
+int is_dir(char* path)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if( IS_ERROR(dirent) )
+    {
+        return 0; // this dir does not exist
+    }
+    else 
+    {
+        FIO_FindClose(dirent);
+        return 1; // dir found
+    }
+}
+
+int get_numbered_file_name(const char* pattern, int nmax, char* filename, int maxlen)
+{
+    for (int num = 0; num <= nmax; num++)
+    {
+        snprintf(filename, maxlen, pattern, num);
+        uint32_t size;
+        if( FIO_GetFileSize( filename, &size ) != 0 ) return num;
+        if (size == 0) return num;
+    }
+
+    snprintf(filename, maxlen, pattern, 0);
+    return -1;
+}
+
+static FILE * g_aj_logfile = INVALID_PTR;
+static unsigned int aj_create_log_file( char * name)
+{
+   g_aj_logfile = FIO_CreateFile( name );
+   if ( g_aj_logfile == INVALID_PTR )
+   {
+      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
+      return( 0 );  // FAILURE
+   }
+   return( 1 );  // SUCCESS
+}
+
+static void aj_close_log_file( void )
+{
+   if (g_aj_logfile == INVALID_PTR)
+      return;
+   FIO_CloseFile( g_aj_logfile );
+   g_aj_logfile = INVALID_PTR;
+}
+
+void dump_seg(void* start, uint32_t size, char* filename)
+{
+    DEBUG();
+    aj_create_log_file(filename);
+    FIO_WriteFile( g_aj_logfile, start, size );
+    aj_close_log_file();
+    DEBUG();
+}
+
+void dump_big_seg(int k, char* filename)
+{
+    DEBUG();
+    aj_create_log_file(filename);
+    
+    int i;
+    for (i = 0; i < 16; i++)
+    {
+        DEBUG();
+        uint32_t start = (k << 28 | i << 24);
+        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
+        FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
+    }
+    
+    aj_close_log_file();
+    DEBUG();
 }
 
 #ifdef CONFIG_DUAL_SLOT
