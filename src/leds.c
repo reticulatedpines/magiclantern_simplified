@@ -1,5 +1,4 @@
-#include <leds.h>
-#include <dryos.h>
+#include "dryos.h"
 
 #if defined(CONFIG_7D) // pel: Checked. That's how it works in the 7D firmware
 static void _card_led_on()  //See sub_FF32B410 -> sub_FF0800A4
