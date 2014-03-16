@@ -673,7 +673,16 @@ getfilesize_fail:
 
 void clrscr()
 {
-    BMP_LOCK( bmp_fill( 0x0, BMP_W_MINUS, BMP_H_MINUS, BMP_TOTAL_WIDTH, BMP_TOTAL_HEIGHT ); )
+    BMP_LOCK(
+        /* 5D3-123 quirk: YUV422 RAM is not initialized until going to LiveView or Playback mode
+         * (and even there, you need a valid image first)
+         * Workaround: if YUV422 was not yet initialized by Canon, fill with black, otherwise use transparent color
+         * 
+         * The code is generic, shouldn't cause harm on other cameras.
+         */
+        int color = (get_yuv422_vram()->vram) ?  0 : COLOR_BLACK;
+        bmp_fill( color, BMP_W_MINUS, BMP_H_MINUS, BMP_TOTAL_WIDTH, BMP_TOTAL_HEIGHT );
+    )
 }
 
 #if 0
