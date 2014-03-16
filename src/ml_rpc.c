@@ -321,7 +321,12 @@ uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
         }
 #endif
     }
-    free_dma_memory(buffer);
+    
+    #ifndef CONFIG_7D_MASTER
+    /* I don't understand how this works, but how can the master free some memory allocated from slave? */
+    free(buffer);
+    #endif
+    
     return 0;
 }
 

@@ -24,9 +24,8 @@
  */
 
 #include "shoot.h"
-#include "config-defines.h"
-
 #include "dryos.h"
+#include "util.h"
 #include "bmp.h"
 #include "version.h"
 #include "config.h"
@@ -39,6 +38,17 @@
 #include "histogram.h"
 #include "fileprefix.h"
 #include "beep.h"
+#include "zebra.h"
+#include "cropmarks.h"
+#include "focus.h"
+#include "picstyle.h"
+#include "imgconv.h"
+#include "fps.h"
+#include "lvinfo.h"
+
+/* only included for clock CBRs (to be removed after refactoring) */
+#include "battery.h"
+#include "tskmon.h"
 
 #if defined(CONFIG_MODULES)
 #include "module.h"
@@ -49,8 +59,6 @@ static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
 
 void move_lv_afframe(int dx, int dy);
-void movie_start();
-void movie_end();
 void display_trap_focus_info();
 #ifdef FEATURE_LCD_SENSOR_REMOTE
 void display_lcd_remote_icon(int x0, int y0);
@@ -149,9 +157,12 @@ static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
 static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
 static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
-static CONFIG_INT( "bulb.timer", bulb_timer, 0);
-static CONFIG_INT( "bulb.duration", bulb_duration, 5);
-static CONFIG_INT( "bulb.display.mode", bulb_display_mode, 0);
+
+static int bulb_duration_change(struct config_var * var, int old_value, int new_value);
+static CONFIG_INT       ( "bulb.timer", bulb_timer, 0);
+static CONFIG_INT_UPDATE( "bulb.duration", bulb_duration, 5, bulb_duration_change);
+static CONFIG_INT       ( "bulb.display.mode", bulb_display_mode, 0);
+
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 
@@ -324,6 +335,7 @@ static void do_this_every_second() // called every second
     #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (RECORDING_H264)
     {
+        extern void measure_bitrate();
         measure_bitrate();
         lens_display_set_dirty();
     }
@@ -382,19 +394,6 @@ seconds_clock_task( void* unused )
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
 
-
-typedef int (*CritFunc)(int);
-// crit returns negative if the tested value is too high, positive if too low, 0 if perfect
-int bin_search(int lo, int hi, CritFunc crit)
-{
-    ASSERT(crit);
-    if (lo >= hi-1) return lo;
-    int m = (lo+hi)/2;
-    int c = crit(m);
-    if (c == 0) return m;
-    if (c > 0) return bin_search(m, hi, crit);
-    return bin_search(lo, m, crit);
-}
 
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
@@ -1061,7 +1060,7 @@ void center_lv_afframe_do()
             emin = e;
         }
     }
-    int next = mod(current + 1, n);
+    int next = MOD(current + 1, n);
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d %d %d %d ", Xc, Yc, pos_x[0], pos_y[0]);
     move_lv_afframe(pos_x[next] - Xc, pos_y[next] - Yc);
@@ -1545,7 +1544,7 @@ static void
 analog_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
-    int a, d;
+    unsigned int a; int d;
     split_iso(r, &a, &d);
     a = COERCE(a + sign * 8, MIN_ISO, MAX_ANALOG_ISO);
     lens_set_rawiso(a + d);
@@ -1555,7 +1554,7 @@ static void
 digital_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
-    int a, d;
+    unsigned int a; int d;
     split_iso(r, &a, &d);
     d = COERCE(d + sign, -3, (a == MAX_ANALOG_ISO ? 16 : 4));
     while (d > 8 && d < 16) d += sign;
@@ -1589,18 +1588,20 @@ iso_toggle( void * priv, int sign )
     int k;
     for (k = 0; k < 10; k++)
     {
-        i = mod(i + sign, COUNT(codes_iso));
+        i = MOD(i + sign, COUNT(codes_iso));
         
-
         while (!iso_checker(values_iso[i]))
-            i = mod(i + sign, COUNT(codes_iso));
+            i = MOD(i + sign, COUNT(codes_iso));
         
         if (priv == (void*)-1 && SGN(i - i0) != sign) // wrapped around
             break;
         
-        if (priv == (void*)-1 && i == 0) break; // no auto iso allowed from shortcuts
+        if (priv == (void*)-1 && i == 0)
+            break; // no auto iso allowed from shortcuts
         
-        if (lens_set_rawiso(codes_iso[i])) break;
+        // did Canon accept our ISO? stop here
+        if (lens_set_rawiso(codes_iso[i]) && lens_info.raw_iso == codes_iso[i])
+            break;
     }
 }
 
@@ -1667,7 +1668,7 @@ shutter_toggle(void* priv, int sign)
     for (k = 0; k < 15; k++)
     {
         int new_i = i;
-        new_i = mod(new_i + sign, COUNT(codes_shutter));
+        new_i = MOD(new_i + sign, COUNT(codes_shutter));
 
         //~ bmp_printf(FONT_MED, 100, 300, "%d -> %d ", codes_shutter[i0], codes_shutter[new_i]);
         
@@ -1754,8 +1755,7 @@ aperture_toggle( void* priv, int sign)
 
 #ifdef FEATURE_WHITE_BALANCE
 
-void
-kelvin_toggle( void* priv, int sign )
+void kelvin_toggle( void* priv, int sign )
 {
     int k;
     switch (lens_info.wb_mode)
@@ -1777,7 +1777,7 @@ kelvin_toggle( void* priv, int sign )
     if (priv == (void*)-1) // no wrap around
         k = COERCE(k + sign * step, KELVIN_MIN, KELVIN_MAX);
     else // allow wrap around
-        k = KELVIN_MIN + mod(k - KELVIN_MIN + sign * step, KELVIN_MAX - KELVIN_MIN + step);
+        k = KELVIN_MIN + MOD(k - KELVIN_MIN + sign * step, KELVIN_MAX - KELVIN_MIN + step);
     
     lens_set_kelvin(k);
 }
@@ -1981,7 +1981,7 @@ static void
 wbs_gm_toggle( void * priv, int sign )
 {
     int gm = lens_info.wbs_gm;
-    int newgm = mod((gm + 9 - sign), 19) - 9;
+    int newgm = MOD((gm + 9 - sign), 19) - 9;
     newgm = newgm & 0xFF;
     prop_request_change(PROP_WBS_GM, &newgm, 4);
 }
@@ -2004,7 +2004,7 @@ static void
 wbs_ba_toggle( void * priv, int sign )
 {
     int ba = lens_info.wbs_ba;
-    int newba = mod((ba + 9 + sign), 19) - 9;
+    int newba = MOD((ba + 9 + sign), 19) - 9;
     newba = newba & 0xFF;
     prop_request_change(PROP_WBS_BA, &newba, 4);
 }
@@ -2018,7 +2018,7 @@ contrast_toggle( void * priv, int sign )
 {
     int c = lens_get_contrast();
     if (c < -4 || c > 4) return;
-    int newc = mod((c + 4 + sign), 9) - 4;
+    int newc = MOD((c + 4 + sign), 9) - 4;
     lens_set_contrast(newc);
 }
 
@@ -2038,7 +2038,7 @@ sharpness_toggle( void * priv, int sign )
 {
     int c = lens_get_sharpness();
     if (c < 0 || c > 7) return;
-    int newc = mod(c + sign, 8);
+    int newc = MOD(c + sign, 8);
     lens_set_sharpness(newc);
 }
 
@@ -2057,7 +2057,7 @@ saturation_toggle( void * priv, int sign )
 {
     int c = lens_get_saturation();
     if (c < -4 || c > 4) return;
-    int newc = mod((c + 4 + sign), 9) - 4;
+    int newc = MOD((c + 4 + sign), 9) - 4;
     lens_set_saturation(newc);
 }
 
@@ -2081,7 +2081,7 @@ color_tone_toggle( void * priv, int sign )
 {
     int c = lens_get_color_tone();
     if (c < -4 || c > 4) return;
-    int newc = mod((c + 4 + sign), 9) - 4;
+    int newc = MOD((c + 4 + sign), 9) - 4;
     lens_set_color_tone(newc);
 }
 
@@ -2225,7 +2225,7 @@ picstyle_toggle(void* priv, int sign )
 {
     if (RECORDING) return;
     int p = lens_info.picstyle;
-    p = mod(p + sign - 1, NUM_PICSTYLES) + 1;
+    p = MOD(p + sign - 1, NUM_PICSTYLES) + 1;
     if (p)
     {
         p = get_prop_picstyle_from_index(p);
@@ -2260,7 +2260,7 @@ static void
 picstyle_rec_sub_toggle( void * priv, int delta )
 {
     if (RECORDING) return;
-    picstyle_rec = mod(picstyle_rec+ delta, NUM_PICSTYLES+1);
+    picstyle_rec = MOD(picstyle_rec+ delta, NUM_PICSTYLES+1);
 }
 
 static void rec_picstyle_change(int rec)
@@ -2296,17 +2296,8 @@ static void rec_picstyle_change(int rec)
 #endif // REC pic style
 #endif // pic style
 
-
-static void redraw_after_task(int msec)
-{
-    msleep(msec);
-    redraw();
-}
-
-void redraw_after(int msec)
-{
-    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
-}
+/* to be refactored with CBR */
+extern void rec_notify_trigger(int rec);
 
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
@@ -2322,6 +2313,7 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
     #endif
     
     #ifdef CONFIG_MOVIE_RECORDING_50D_SHUTTER_HACK
+    extern void shutter_btn_rec_do(int rec); /* movtweaks.c */
     shutter_btn_rec_do(rec);
     #endif
 }
@@ -2962,11 +2954,16 @@ bulb_take_pic(int duration)
 }
 
 #ifdef FEATURE_BULB_TIMER
-static void bulb_toggle(void* priv, int delta)
+
+static int bulb_duration_change(struct config_var * var, int old_value, int new_value)
 {
     #ifdef FEATURE_EXPO_OVERRIDE
+    /* refresh bulb ExpSim */
+    *(var->value) = new_value;
     bv_auto_update();
     #endif
+
+    return 1;
 }
 
 static MENU_UPDATE_FUNC(bulb_display)
@@ -2976,7 +2973,7 @@ static MENU_UPDATE_FUNC(bulb_display)
             format_time_hours_minutes_seconds(bulb_duration)
         );
 #ifdef FEATURE_INTERVALOMETER
-    if (bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    if (!bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
     {
         MENU_SET_VALUE(
             "OFF (%s)",
@@ -3024,7 +3021,7 @@ static void
 mlu_toggle_mode( void * priv, int delta )
 {
     #ifdef FEATURE_MLU_HANDHELD
-    mlu_mode = mod(mlu_mode + delta, 3);
+    mlu_mode = MOD(mlu_mode + delta, 3);
     #else
     mlu_mode = !mlu_mode;
     #endif
@@ -3310,7 +3307,9 @@ static void expo_lock_step()
     
     if (shooting_mode != SHOOTMODE_M) return;
     if (!lens_info.raw_iso) return;
-    if (ISO_ADJUSTMENT_ACTIVE) return;
+    #ifdef ISO_ADJUSTMENT_ACTIVE
+    if (ISO_ADJUSTMENT_ACTIVE) return;  /* careful with disabling this one: does expo lock work when changing ISO from Canon menu? (try both ISO->Tv and ISO->Av, movie/photo, LV or outside LV) */
+    #endif
     if (is_hdr_bracketing_enabled()) return;
     
     int max_auto_iso = auto_iso_range & 0xFF;
@@ -4458,7 +4457,7 @@ void hdr_flag_picture_was_taken()
 
 int hdr_script_get_first_file_number(int skip0)
 {
-    return mod(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
+    return MOD(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
 }
 
 // create a post script for HDR bracketing or focus stacking,
@@ -4471,38 +4470,38 @@ void hdr_create_script(int f0, int focus_stack)
     if (snap_sim) return; // no script for virtual shots
     #endif
     
-    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
+    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
 
     char name[100];
     snprintf(name, sizeof(name), "%s/%s_%04d.%s", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0, hdr_scripts == 3 ? "txt" : "sh");
 
-    FILE * f = FIO_CreateFileEx(name);
+    FILE * f = FIO_CreateFile(name);
     if ( f == INVALID_PTR )
     {
-        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
+        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFile: error for %s", name );
         return;
     }
     
     if (hdr_scripts == 1)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "%s%04d.JPG ", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.JPG ", get_file_prefix(), MOD(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
     }
     else if (hdr_scripts == 2)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
         my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), MOD(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
@@ -4512,12 +4511,12 @@ void hdr_create_script(int f0, int focus_stack)
     {
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), MOD(f0 + i, 10000));
         }
     }
     
     FIO_CloseFile(f);
-    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), mod(f0 + steps - 1, 10000));
+    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
 
@@ -4529,7 +4528,7 @@ void interval_create_script(int f0)
 {
     if (!interval_scripts) return;
     
-    int steps = mod(get_shooting_card()->file_number - f0 + 1, 10000);
+    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 10000);
     if (steps <= 1) return;
     
     char name[100];
@@ -4568,7 +4567,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\nmkdir INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), MOD(f0 + i, 10000), f0);
         }
     }
     else if (interval_scripts == 2)
@@ -4576,7 +4575,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\nMD INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), mod(f0 + i, 10000), f0);
+            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), MOD(f0 + i, 10000), f0);
         }
     }
     else if(interval_scripts == 3)
@@ -4584,7 +4583,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\n*** New Sequence ***\n");
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), mod(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), MOD(f0 + i, 10000));
         }
     }
     
@@ -4726,7 +4725,7 @@ static int hdr_shutter_release(int ev_x8)
     if (!manual) // auto modes
     {
         hdr_iso_shift(ev_x8); // don't change the EV value
-        int ae0 = lens_get_ae();
+        int ae0 = lens_info.ae;
         ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
         take_a_pic(AF_DONT_CHANGE);
         hdr_set_ae(ae0);
@@ -5362,7 +5361,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
-        interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
+        interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
         //~ display_on();
     }
 #endif
@@ -5472,7 +5471,7 @@ int take_fast_pictures( int number )
         int f0 = get_shooting_card()->file_number;
         SW1(1,100);
         SW2(1,100);
-        while (mod(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
+        while (MOD(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
             msleep(10);
         }
         SW2(0,100);
@@ -5481,12 +5480,11 @@ int take_fast_pictures( int number )
         #if defined(CONFIG_7D)
         /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
          * This causes the camera not to shut down when the card door is opened.
-         * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
+         * There is a workaround: Just wait until shooting is possible again and then reset SW1.
          * Then the camera will shut down clean.
          */
         lens_wait_readytotakepic(64);
-        SW1(1,50);
-        SW1(0,50);
+        SW1(0,0);
         #endif
 
         lens_cleanup_af();
@@ -5543,6 +5541,10 @@ static void misc_shooting_info()
 {
     if (!DISPLAY_IS_ON) return;
     
+    /* from ph_info_disp.c */
+    extern void display_shortcut_key_hints_lv();
+    extern void display_shooting_info();
+
     display_shortcut_key_hints_lv();
 
     if (get_global_draw())
@@ -6315,7 +6317,7 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             if (intervalometer_pictures_taken)
             {
-                interval_create_script(mod(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
+                interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
             }
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 1);

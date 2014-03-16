@@ -62,7 +62,7 @@ void debug_intercept()
 {
     if (!buf) // first call, intercept debug messages
     {
-        buf = alloc_dma_memory(BUF_SIZE);
+        buf = fio_malloc(BUF_SIZE);
         
         #if defined(CONFIG_DIGIC_V)
         uint32_t d = (uint32_t)&DryosDebugMsg;

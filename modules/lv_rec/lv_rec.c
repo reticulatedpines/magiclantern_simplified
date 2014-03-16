@@ -649,7 +649,7 @@ void lv_rec_start()
                     {
                         snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%07d.%s", save_data.filePrefix, start_number, save_data.fileSuffix);
                         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving to '%s'", save_data.fileName);
-                        save_data.handle = FIO_CreateFileEx(save_data.fileName);
+                        save_data.handle = FIO_CreateFile(save_data.fileName);
                         save_data.handleWritten = 0;
                     }
 
@@ -683,7 +683,7 @@ void lv_rec_start()
                     {
                         snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%07d.%s", save_data.filePrefix, start_number + (data.savedFrames / data.options.frameSkip), save_data.fileSuffix);
                         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", save_data.fileName);
-                        save_data.handle = FIO_CreateFileEx(save_data.fileName);
+                        save_data.handle = FIO_CreateFile(save_data.fileName);
                         save_data.handleWritten = 0;
 
                         if(save_data.handle)

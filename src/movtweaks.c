@@ -12,6 +12,10 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "shoot.h"
+#include "zebra.h"
+#include "fps.h"
+#include "beep.h"
 
 #ifdef FEATURE_REC_NOTIFY
 
@@ -160,7 +164,7 @@ static void movie_cliplen_toggle(void* priv, int sign)
 {
     int* t = (int*)priv;
     int i = current_cliplen_index(*t);
-    i = mod(i + sign, COUNT(movie_cliplen_values));
+    i = MOD(i + sign, COUNT(movie_cliplen_values));
     *(int*)priv = movie_cliplen_values[i];
 }
 
@@ -702,6 +706,7 @@ void bv_disable()
     if (!lv) goto end;
     
     iso_auto_restore_hack();
+    set_photo_digital_iso_gain_for_bv(1024);
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
 

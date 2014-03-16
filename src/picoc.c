@@ -220,7 +220,7 @@ static MENU_UPDATE_FUNC(script_print)
 
 /*static void script_select(void* priv, int delta)
 {
-    script_selected = mod(script_selected + delta, script_cnt);
+    script_selected = MOD(script_selected + delta, script_cnt);
 }*/
 
 /*

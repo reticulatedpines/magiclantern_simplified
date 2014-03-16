@@ -24,5 +24,11 @@ void util_atomic_inc(uint32_t *value);
   extern const unsigned char _binary_ ## NAME ## _end[]
 #define LDVAR(NAME) _binary_ ## NAME ## _start
 #define LDLEN(NAME) ((_binary_ ## NAME ## _end) - (_binary_ ## NAME ## _start))
+
+
+/* simple binary search */
+/* crit returns negative if the tested value is too high, positive if too low, 0 if perfect */
+typedef int (*CritFunc)(int);
+int bin_search(int lo, int hi, CritFunc crit);
   
 #endif

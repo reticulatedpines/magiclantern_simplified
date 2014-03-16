@@ -131,7 +131,16 @@ uint8_t* bmp_vram_idle();
 #define BMP_TOTAL_WIDTH (BMP_W_PLUS - BMP_W_MINUS)
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
 
+/* draw to front-end buffer (default) or to Canon's back buffer (idle) ? */
+void bmp_draw_to_idle(int value);
 
+/* copy bitmap overlay between Canon's front buffer and back buffer (idle) */
+/* 0 = copy BMP to idle */
+/* 1 = copy idle to BMP */
+/* fullsize is useful for HDMI monitors, where the BMP area is larger */
+void bmp_idle_copy(int direction, int fullsize);
+
+void bmp_putpixel(int x, int y, uint8_t color);
 void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 
@@ -233,6 +242,7 @@ fontspec_width(uint32_t fontspec)
 }
 
 int bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... );    /* returns width in pixels */
+int big_bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... ); /* this one accepts larger strings */
 int bmp_string_width(int fontspec, const char* str);                  /* string width in pixels, with a given font */
 int bmp_strlen_clipped(int fontspec, const char* str, int maxlen);    /* string len (in chars), if you want to clip at maxlen pix */
 
@@ -279,6 +289,9 @@ bmp_fill(
         int w,
         int h
 );
+
+void bmp_draw_rect(int color, int x0, int y0, int w, int h);
+void bmp_draw_rect_chamfer(int color, int x0, int y0, int w, int h, int a, int thick_corners);
 
 
 /** Some selected colors */
@@ -383,6 +396,7 @@ void clrscr();
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear);
 void bmp_draw_scaled(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax);
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int ymax, uint8_t* const mirror);
+void bmp_draw_request_stop();
 uint8_t bmp_getpixel(int x, int y);
 
 #define TOPBAR_BGCOLOR (bmp_getpixel(os.x0,os.y0))
@@ -440,6 +454,12 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
  0xA596EE   =   "transfer" arrows (arrows pointing left/right) icon
  0xA496EE   =   RAW icon
  */
+
+/* print a character with Canon's built-in font (useful for non-ASCII characters) */
+int bfnt_draw_char(int c, int px, int py, int fg, int bg);
+
+/* return the width of a Canon built-in character */
+int bfnt_char_get_width(int c);
 
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
@@ -538,8 +558,6 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define SYM_DR          "\x9E"
 #define SYM_ETTR        "\x9F"
 
-void bfnt_test();
-
 #ifndef CONFIG_VXWORKS
 /* DryOS bitmap palette (engio register configuration) */
 /* todo: define a structure */
@@ -547,5 +565,32 @@ void bfnt_test();
 /* the DIGIC (ENGIO) register where this is written is i*3 */
 extern uint32_t LCD_Palette[];
 #endif
+
+/* turn on/off the BMP overlay by making the palette transparent and restoring it */
+void bmp_off();
+void bmp_on();
+int bmp_is_on();
+void bmp_mute_flag_reset();  /* reset the BMP on/off state (to be called when changing video modes) */
+
+/* change colors in a palette entry, by modifying some other color */
+/* todo: move to palette.c/h? */
+void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor, int chroma_scale_factor);
+
+/* for menu: scale the BMP overlay by 128/denx and 128/deny */
+void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny);
+
+/* from CHDK GUI */
+void draw_line(int x1, int y1, int x2, int y2, int cl);
+void fill_circle(int x, int y, int r, int cl);
+void draw_circle(int x, int y, int r, int cl);
+void draw_angled_line(int x, int y, int r, int ang, int cl); /* ang is degrees x10 */
+
+/* zebra.c, to be moved to bmp.c */
+void bvram_mirror_init();
+uint8_t* get_bvram_mirror();
+
+/* tweaks.c, for making overlays match anamorphic preview */
+/* todo: remove it and refactor display filters so zebra overlays read directly from filtered buffer */
+extern int anamorphic_squeeze_bmp_y(int y);
 
 #endif //#ifndef _bmp_h_

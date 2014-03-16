@@ -399,7 +399,7 @@ static MENU_SELECT_FUNC(hibr_wav_record_select){
 static void in_vol_toggle(void * priv, int delta)
 {   if (!hibr_should_record_wav()) return; //Yes it will work but cannon may overwrite.
 	int *input_volume = (int *)priv;
-	*input_volume = mod(*input_volume + delta, 64);
+	*input_volume = MOD(*input_volume + delta, 64);
 	SetAudioVolumeIn(0, *input_volume , *input_volume);
 }
 MENU_UPDATE_FUNC(input_vol_up)
@@ -652,4 +652,5 @@ int is_mvr_buffer_almost_full() { return 0; }
 void movie_indicators_show() {}
 void time_indicator_show() {}
 void bitrate_mvr_log(char* mvr_logfile_buffer) {}
+void measure_bitrate() {}
 #endif

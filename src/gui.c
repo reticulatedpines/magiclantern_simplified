@@ -33,6 +33,7 @@
 #include <lens.h>
 #include <config-defines.h>
 #include <boot-hack.h>
+#include <menu.h>
 
 /**
  * Supported cameras [E] Means it's enabled
@@ -209,7 +210,11 @@ void ml_gui_main_task()
         }
 
         if (IS_FAKE(event)) {
-           event->arg = 0;
+           event->arg = 0;      /* do not pass the "fake" flag to Canon code */
+        }
+
+        if (event->type == 0 && event->param < 0) {
+            continue;           /* do not pass internal ML events to Canon code */
         }
 
         if ((index >= GMT_NFUNCS) || (index < 0)) {

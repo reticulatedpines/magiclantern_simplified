@@ -22,14 +22,14 @@ my_fprintf(
 {
     va_list         ap;
 
-    char* buf = alloc_dma_memory(4096);
+    char* buf = fio_malloc(4096);
 
     va_start( ap, fmt );
     int len = vsnprintf( buf, 4095, fmt, ap );
     va_end( ap );
 
     FIO_WriteFile( file, buf, len );
-    free_dma_memory(buf);
+    fio_free(buf);
     return len;
 }
 
@@ -41,10 +41,6 @@ streq( const char * a, const char * b )
         if( *a++ != *b++ )
             return 0;
     return *a == *b;
-}
-
-int abs(int num) {
-    return (num >= 0) ? num : -num;
 }
 
 int toupper(int c)

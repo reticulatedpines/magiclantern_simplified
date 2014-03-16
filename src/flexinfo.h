@@ -255,5 +255,8 @@ void info_free_item(info_elem_t *item);
 /* look up an element by its name */
 info_elem_t *info_get_by_name(info_elem_t *config, char *name);
 
+/* to be called by backend in order to display the info screen */
+uint32_t info_print_screen();
+
 #endif
 #endif

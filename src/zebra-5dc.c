@@ -356,7 +356,7 @@ vectorscope_init()
 {
     if(vectorscope == NULL)
     {
-        vectorscope = AllocateMemory(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
+        vectorscope = malloc(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
         vectorscope_clear();
     }
 }
@@ -784,7 +784,7 @@ waveform_draw_image(
 static FILE * g_aj_logfile = INVALID_PTR;
 unsigned int aj_create_log_file( char * name)
 {
-   g_aj_logfile = FIO_CreateFileEx( name );
+   g_aj_logfile = FIO_CreateFile( name );
    if ( g_aj_logfile == INVALID_PTR )
    {
       bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
@@ -848,7 +848,7 @@ int fps_ticks = 0;
 static void waveform_init()
 {
     if (!waveform)
-        waveform = AllocateMemory(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+        waveform = malloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
 }
 
@@ -862,12 +862,7 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        // shoot_malloc is not that stable
-        //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
-        //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
-        //~ #else
-        bvram_mirror_start = (void*)UNCACHEABLE(AllocateMemory(BMP_VRAM_SIZE));
-        //~ #endif
+        bvram_mirror_start = (void*)UNCACHEABLE(malloc(BMP_VRAM_SIZE));
         if (!bvram_mirror_start) 
         {   
             while(1)

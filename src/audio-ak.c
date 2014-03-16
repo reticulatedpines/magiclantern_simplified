@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "gui.h"
 #include "audio-common.c"
+#include "boot-hack.h"
 
 static CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 static CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
@@ -374,7 +375,7 @@ audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
-    *ptr = mod((*ptr + delta), 10);
+    *ptr = MOD((*ptr + delta), 10);
 #else
     *ptr = (*ptr + delta) & 0x7;
 #endif
@@ -611,7 +612,7 @@ my_sounddev_task()
     msleep( 1500 );
     if (magic_is_off()) { sounddev_task(); return; }
     
-    hold_your_horses(1);
+    hold_your_horses();
     
     DebugMsg( DM_AUDIO, 3,
               "!!!!! %s started sem=%x",
@@ -636,7 +637,7 @@ my_sounddev_task()
     
 #ifdef CONFIG_AUDIO_REG_LOG
     // Create the logging file
-    reg_file = FIO_CreateFileEx("ML/audioreg.txt" );
+    reg_file = FIO_CreateFile("ML/audioreg.txt" );
 #endif
     
     msleep(500);

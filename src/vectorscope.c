@@ -93,7 +93,7 @@ vectorscope_init()
 {
     if(vectorscope == NULL)
     {
-        vectorscope = SmallAlloc(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
+        vectorscope = malloc(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
         vectorscope_clear();
     }
 }

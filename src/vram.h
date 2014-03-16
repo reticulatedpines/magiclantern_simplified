@@ -73,11 +73,17 @@ struct vram_info
 #define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
 #endif
 
-void redraw();
+void update_vram_params();
+void vram_params_set_dirty();
+
+/* to be removed (new-lv-buffer-detection branch) */
+void guess_fastrefresh_direction();
+void* get_fastrefresh_422_buf();
 
 struct vram_info * get_yuv422_vram();
 struct vram_info * get_yuv422_hd_vram();
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
+int display_filter_enabled();
 void vram_clear_lv();
 
 /* Coordinate transformations between different VRAMs */
@@ -175,7 +181,7 @@ extern int bm2lv_x_cache[];
 
 extern int y_times_BMPPITCH_cache[];
 
-#ifdef CONFIG_VXWORKS
+#if defined(CONFIG_VXWORKS)
 #define BM(x,y) (((x) >> 1) * 1 + ((y) >> 1) * BMPPITCH     )
 #else
 #define BM(x,y) ((x) * 1 + y_times_BMPPITCH_cache[y - BMP_H_MINUS])
@@ -285,6 +291,12 @@ extern int y_times_BMPPITCH_cache[];
 
 #define RAW2HD_R(y) (RAW2HD_Y(y) * vram_hd.pitch)
 #define HD2RAW_R(y) (HD2RAW_Y(y) * raw_info.pitch)
+
+
+/** Screen layouts for LiveView (especially useful on external monitors) */
+
+int get_screen_layout();
+int* get_screen_layout_ptr();
 
 #ifdef CONFIG_4_3_SCREEN
 #define SCREENLAYOUT_3_2 100

@@ -67,6 +67,7 @@
 #include <lens.h>
 #include <math.h>
 #include <fileprefix.h>
+#include <raw.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
@@ -81,6 +82,8 @@ extern WEAK_FUNC(ret_0) int raw_hist_get_overexposure_percentage();
 extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
+
+int dual_iso_is_enabled();
 
 /* camera-specific constants */
 
@@ -680,7 +683,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
         
-        local_buf = alloc_dma_memory(PHOTO_CMOS_ISO_COUNT * PHOTO_CMOS_ISO_SIZE + 4);
+        local_buf = fio_malloc(PHOTO_CMOS_ISO_COUNT * PHOTO_CMOS_ISO_SIZE + 4);
     }
     else if (is_camera("5D2", "2.1.2"))
     {
@@ -812,7 +815,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
     }
-    else if (is_camera("700D", "1.1.1"))
+    else if (is_camera("700D", "1.1.3"))
     {
         is_700d = 1;    
 

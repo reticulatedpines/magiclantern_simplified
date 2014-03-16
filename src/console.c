@@ -6,6 +6,8 @@
 #include "gui.h"
 #include "property.h"
 #include "config.h"
+#include "zebra.h"
+#include "shoot.h"
 
 #ifndef CONFIG_CONSOLE
 #error Something went wrong CONFIg_CONSOLE should be defined
@@ -24,7 +26,7 @@ int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
 static char console_buffer[BUFSIZE];
 static int console_buffer_index = 0;
-#define CONSOLE_BUFFER(i) console_buffer[mod((i), BUFSIZE)]
+#define CONSOLE_BUFFER(i) console_buffer[MOD((i), BUFSIZE)]
 
 int console_visible = 0;
 
@@ -124,27 +126,27 @@ void console_puts(const char* str) // don't DebugMsg from here!
     {
         if (*c == '\n')
         {
-            if (mod(console_buffer_index, CONSOLE_W) == 0)
+            if (MOD(console_buffer_index, CONSOLE_W) == 0)
                 NEW_CHAR(' ');
-            while (mod(console_buffer_index, CONSOLE_W) != 0)
+            while (MOD(console_buffer_index, CONSOLE_W) != 0)
                 NEW_CHAR(' ');
         }
         else if (*c == '\t')
         {
             NEW_CHAR(' ');
-            while (mod(mod(console_buffer_index, CONSOLE_W), 4) != 0)
+            while (MOD(MOD(console_buffer_index, CONSOLE_W), 4) != 0)
                 NEW_CHAR(' ');
         }
         else if (*c == 8)
         {
-            console_buffer_index = mod(console_buffer_index - 1, BUFSIZE);
+            console_buffer_index = MOD(console_buffer_index - 1, BUFSIZE);
             console_buffer[console_buffer_index] = ' ';
         }
         else
             NEW_CHAR(*c);
         c++;
     }
-    console_buffer_index = mod(console_buffer_index, BUFSIZE);
+    console_buffer_index = MOD(console_buffer_index, BUFSIZE);
 }
 
 int console_printf(const char* fmt, ...) // don't DebugMsg from here!
@@ -176,7 +178,7 @@ void console_show_status()
 
 static void console_draw(int tiny)
 {
-    int cbpos0 = mod((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W, BUFSIZE);
+    int cbpos0 = MOD((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W, BUFSIZE);
     
     /* display last two lines that actually contain something (don't display the cursor-only line) */
     if (tiny && console_buffer_index % CONSOLE_W == 0)
@@ -269,7 +271,7 @@ static void console_draw(int tiny)
         for (int j = 0; j < CONSOLE_W; j++)
         {
             // last character should be on last line => this ensures proper scrolling
-            if (mod(cbpos+j, BUFSIZE) == mod(console_buffer_index, BUFSIZE)) // end of data
+            if (MOD(cbpos+j, BUFSIZE) == MOD(console_buffer_index, BUFSIZE)) // end of data
             {
                 if (!found_cursor)
                 {

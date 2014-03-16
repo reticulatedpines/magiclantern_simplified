@@ -84,11 +84,11 @@ void tp_intercept()
 {
     if (!tp_buf) // first call, intercept debug messages
     {
-	tp_buf = alloc_dma_memory(BUFF_SIZE);
+	tp_buf = fio_malloc(BUFF_SIZE);
 	tp_len = 0;
 
-    	if (!reloc_tp_buf) reloc_tp_buf = (uintptr_t) AllocateMemory(reloc_tp_len + 64);
-        if (!reloc_tp_buf2) reloc_tp_buf2 = (uintptr_t) AllocateMemory(reloc_tp_len2 + 64);
+    	if (!reloc_tp_buf) reloc_tp_buf = (uintptr_t) malloc(reloc_tp_len + 64);
+        if (!reloc_tp_buf2) reloc_tp_buf2 = (uintptr_t) malloc(reloc_tp_len2 + 64);
 
         new_TryPostEvent = (void *)reloc(
             0,      // we have physical memory
