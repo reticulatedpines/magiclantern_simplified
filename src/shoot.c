@@ -1587,16 +1587,18 @@ iso_toggle( void * priv, int sign )
     {
         i = MOD(i + sign, COUNT(codes_iso));
         
-
         while (!iso_checker(values_iso[i]))
             i = MOD(i + sign, COUNT(codes_iso));
         
         if (priv == (void*)-1 && SGN(i - i0) != sign) // wrapped around
             break;
         
-        if (priv == (void*)-1 && i == 0) break; // no auto iso allowed from shortcuts
+        if (priv == (void*)-1 && i == 0)
+            break; // no auto iso allowed from shortcuts
         
-        if (lens_set_rawiso(codes_iso[i])) break;
+        // did Canon accept our ISO? stop here
+        if (lens_set_rawiso(codes_iso[i]) && lens_info.raw_iso == codes_iso[i])
+            break;
     }
 }
 
