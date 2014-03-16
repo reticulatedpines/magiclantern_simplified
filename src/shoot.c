@@ -2913,10 +2913,10 @@ bulb_take_pic(int duration)
         
         // turn off the LED - no light pollution, please :)
         // but blink it quickly every 10 seconds to have some feedback
-        if (s % 10 == 1) { info_led_blink(1, 10, 0); }
+        if (s % 10 == 1) { _card_led_on(); msleep(10); _card_led_off(); }
 
         // blink twice every minute, and beep as many times as elapsed minutes
-        if (s % 60 == 1) { msleep(200); info_led_blink(1, 10, 0); if (s/60) beep_times(s/60); }
+        if (s % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (s/60) beep_times(s/60); }
         
         // exposure was canceled earlier by user
         if (job_state_ready_to_take_pic()) 
@@ -4590,11 +4590,11 @@ int take_a_pic(int should_af)
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
         beep();
-        info_led_on();
+        _card_led_on();
         display_off();
         msleep(250);
         display_on();
-        info_led_off();
+        _card_led_off();
         msleep(100);
         return canceled;
     }

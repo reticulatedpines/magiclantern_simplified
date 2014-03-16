@@ -90,7 +90,6 @@ ML_INSTALLER_OBJS = \
 	mem.o \
 	exmem.o \
 	util.o \
-	leds.o \
 
 ML_OBJS-y += $(ML_INSTALLER_OBJS)
 
@@ -165,7 +164,6 @@ ML_SRC_OBJS = \
 	screenshot.o \
 	fileprefix.o \
 	lvinfo.o \
-	leds.o \
 	ml-cbr.o 
 
 ML_OBJS-y += $(ML_SRC_OBJS)
