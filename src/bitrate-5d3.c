@@ -15,7 +15,7 @@
 int hibr_should_record_wav() { return 0; }
 
 static CONFIG_INT("h264.bitrate", bitrate, 3);
-CONFIG_INT( "rec_indicator", rec_indicator, 1);
+CONFIG_INT( "rec_indicator", rec_indicator, 0);
 
 static int time_indic_warning = 120;
 
