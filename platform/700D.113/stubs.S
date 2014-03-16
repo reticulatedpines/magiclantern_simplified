@@ -54,19 +54,19 @@ NSTUB(0xFF345BD4, _FIO_CreateDirectory)
 NSTUB(0xFF344FD4, _FIO_CreateFile)
 NSTUB(0xFF34619C, _FIO_FindFirstEx)
 NSTUB(0xFF3454F4, _FIO_GetFileSize)
+NSTUB(0xFF344F18, _FIO_OpenFile)
 NSTUB(0xFF345080, _FIO_RemoveFile)
 NSTUB(0xFF345A0C, _FIO_RenameFile)
-NSTUB(0xFF344F18, _FIO_OpenFile)
 
 /** GUI **/
 NSTUB(   0x236B0,  gui_main_struct)
+NSTUB(   0x3D8A0,  gui_task_list)
 NSTUB(0xFF0D6FF0,  GUI_ChangeMode)
 NSTUB(0xFF0D6E34,  GUI_Control)
 NSTUB(0xFF1AB808,  SetGUIRequestMode)
 NSTUB(0xFF0D74A8,  gui_init_end)
 NSTUB(0xFF0D6A60,  gui_main_task)
 NSTUB(0xFF1C7190,  gui_massive_event_loop)
-NSTUB(   0x3D8A0,  gui_task_list)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
@@ -274,8 +274,8 @@ NSTUB(0xFFA767CC - RAM_OFFSET,  is_taskid_valid)
 NSTUB(0xFFA63654 - RAM_OFFSET,  msleep)
 
 /** Tasks **/
-NSTUB(0xFFA63708 - RAM_OFFSET,  task_create)
 NSTUB(   0x232C4,  task_dispatch_hook)
+NSTUB(0xFFA63708 - RAM_OFFSET,  task_create)
 NSTUB(0xFFA68A20 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */

@@ -67,11 +67,11 @@ NSTUB(0xFF346F88, _FIO_RenameFile)
 
 /** GUI **/
 NSTUB(   0x3E154,  gui_main_struct)
+NSTUB(   0x58DA0,  gui_task_list)
 NSTUB(0xFF0D7674,  GUI_Control)
 NSTUB(0xFF1A805C,  SetGUIRequestMode)
 NSTUB(0xFF0D7D18,  gui_init_end)
 NSTUB(0xFF0D72A0,  gui_main_task)
-NSTUB(   0x58DA0,  gui_task_list)
 //NSTUB(0xFF0D783C, GUI_ChangeMode)
 //NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
 	//NSTUB(0xff1a4fc8, gui_massive_event_loop)
@@ -99,7 +99,7 @@ NSTUB(0xFF339ADC, _audio_ic_read)                           // Good Candidate i2
 NSTUB(0xFF339490, _audio_ic_write)                          // str:i2c(int *array)
 NSTUB(0xFF7FBBDC,  audio_thresholds)
 NSTUB(0xFF10CD40,  sounddev_task)
-// NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** Bitmap **/
 NSTUB(   0x6BAB4,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -137,16 +137,16 @@ NSTUB(0xFF5540E4,  PlayMovieGuideApp_handler)
 NSTUB(0xFF541BD4,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 	//NSTUB(0xff658aa8, LiveViewLevelApp_handler)
 	//NSTUB(0xFF623240, LiveViewWbApp_handler)
-// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 // NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
 // NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
 
 /** Display **/
-// NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
-// NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 700D.111, 600D.102, 650D.104, 550D.109, 1100D.105 */
+// NSTUB(    ???,  MirrorDisplay)                           /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  NormalDisplay)                           /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
 NSTUB(0xFFA85CFC - RAM_OFFSET,  ConnectReadEDmac)
@@ -213,7 +213,7 @@ NSTUB(0xFFAA7758 - RAM_OFFSET,  pre_isr_hook)
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
 /** LCD Sensor **/
-// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109 */
+// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
 // NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
 
 /** Making the card bootable **/
@@ -281,8 +281,8 @@ NSTUB(0xFFA96530 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampolin
 NSTUB(0xFFA70524 - RAM_OFFSET,  msleep)                     // 6F94
 
 /** Tasks **/
-NSTUB(0xFFA705D8 - RAM_OFFSET,  task_create)
 NSTUB(   0x3DD60,  task_dispatch_hook)
+NSTUB(0xFFA705D8 - RAM_OFFSET,  task_create)
 NSTUB(0xFFA758F0 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
