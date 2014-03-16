@@ -29,27 +29,27 @@
 #include "gui.h"
 #include "audio-common.c"
 
-static int override_audio_update(struct config_var* var, int old_value, int new_value);
-static int analog_gain_update(struct config_var* var, int old_value, int new_value);
-static int analog_boost_update(struct config_var* var, int old_value, int new_value);
-static int audio_filter_update(struct config_var* var, int old_value, int new_value);
-static int filter_hpf2config_update(struct config_var* var, int old_value, int new_value);
-static int recdgain_update(struct config_var* var, int old_value, int new_value);
-static int dgain_update(struct config_var* var, int old_value, int new_value);
-static int effect_mode_update(struct config_var* var, int old_value, int new_value);
+static int override_audio_on_change(struct config_var* var, int old_value, int new_value);
+static int analog_gain_on_change(struct config_var* var, int old_value, int new_value);
+static int analog_boost_on_change(struct config_var* var, int old_value, int new_value);
+static int audio_filter_on_change(struct config_var* var, int old_value, int new_value);
+static int filter_hpf2config_on_change(struct config_var* var, int old_value, int new_value);
+static int recdgain_on_change(struct config_var* var, int old_value, int new_value);
+static int dgain_on_change(struct config_var* var, int old_value, int new_value);
+static int effect_mode_on_change(struct config_var* var, int old_value, int new_value);
 
 // Set defaults
-CONFIG_INT_EX( "audio.override_audio", cfg_override_audio,   0, override_audio_update );
-CONFIG_INT_EX( "audio.analog_gain",    cfg_analog_gain,      0, analog_gain_update );
-CONFIG_INT_EX( "audio.analog_boost",   cfg_analog_boost,     0, analog_boost_update ); //test
-CONFIG_INT_EX( "audio.enable_dc",      cfg_filter_dc,        1, audio_filter_update );
-CONFIG_INT_EX( "audio.enable_hpf2",    cfg_filter_hpf2,      0, audio_filter_update );
-CONFIG_INT_EX( "audio.hpf2config",     cfg_filter_hpf2config,7, filter_hpf2config_update );
+CONFIG_INT_EX( "audio.override_audio", cfg_override_audio,   0, override_audio_on_change );
+CONFIG_INT_EX( "audio.analog_gain",    cfg_analog_gain,      0, analog_gain_on_change );
+CONFIG_INT_EX( "audio.analog_boost",   cfg_analog_boost,     0, analog_boost_on_change ); //test
+CONFIG_INT_EX( "audio.enable_dc",      cfg_filter_dc,        1, audio_filter_on_change );
+CONFIG_INT_EX( "audio.enable_hpf2",    cfg_filter_hpf2,      0, audio_filter_on_change );
+CONFIG_INT_EX( "audio.hpf2config",     cfg_filter_hpf2config,7, filter_hpf2config_on_change );
 
-CONFIG_INT_EX( "audio.dgain",          cfg_recdgain,         0, recdgain_update );
-CONFIG_INT_EX( "audio.dgain.l",        dgain_l,              8, dgain_update );
-CONFIG_INT_EX( "audio.dgain.r",        dgain_r,              8, dgain_update );
-CONFIG_INT_EX( "audio.effect.mode",    cfg_effect_mode,      0, effect_mode_update );
+CONFIG_INT_EX( "audio.dgain",          cfg_recdgain,         0, recdgain_on_change );
+CONFIG_INT_EX( "audio.dgain.l",        dgain_l,              8, dgain_on_change );
+CONFIG_INT_EX( "audio.dgain.r",        dgain_r,              8, dgain_on_change );
+CONFIG_INT_EX( "audio.effect.mode",    cfg_effect_mode,      0, effect_mode_on_change );
 
 
 int audio_meters_are_drawn()
@@ -418,69 +418,69 @@ get_dgain_val(int isL){
     return 0;
 }
 
-static int override_audio_update(struct config_var* var, int old_value, int new_value)
+static int override_audio_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 1);
     audio_configure(2);
     return 1;
 }
 
-static int analog_gain_update(struct config_var* var, int old_value, int new_value)
+static int analog_gain_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 5);
     audio_ic_set_analog_gain();
     return 1;
 }
 
-static int analog_boost_update(struct config_var* var, int old_value, int new_value)
+static int analog_boost_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 6);
     audio_ic_set_micboost();
     return 1;
 }
 
-static int effect_mode_update(struct config_var* var, int old_value, int new_value)
+static int effect_mode_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 5);
     audio_ic_set_effect_mode();
     return 1;
 }
 
-static int audio_filter_update(struct config_var* var, int old_value, int new_value)
+static int audio_filter_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 1);
     audio_ic_set_filters(OP_STANDALONE);
     return 1;
 }
 
-static int filter_hpf2config_update(struct config_var* var, int old_value, int new_value)
+static int filter_hpf2config_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 7);
     audio_ic_set_filters(OP_STANDALONE);
     return 1;
 }
 
-static int recdgain_update(struct config_var* var, int old_value, int new_value)
+static int recdgain_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 126);
     audio_ic_set_recdgain();
     return 1;
 }
-static int dgain_update(struct config_var* var, int old_value, int new_value)
+static int dgain_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = COERCE(new_value, 0, 15);
     audio_ic_set_RecLRbalance();
     return 1;
 }
 
-static int alc_enable_update(struct config_var* var, int old_value, int new_value)
+static int alc_enable_on_change(struct config_var* var, int old_value, int new_value)
 {
     *(var->value) = new_value;
     audio_ic_set_agc();
     return 1;
 }
 
-static int input_choice_update(struct config_var* var, int old_value, int new_value)
+static int input_choice_on_change(struct config_var* var, int old_value, int new_value)
 {
     if(new_value == 3) return 0; //temporarily disabled Ext:balanced. We can't find it.
     *(var->value) = new_value;

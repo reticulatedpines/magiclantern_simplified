@@ -30,14 +30,14 @@
 #include "audio-common.c"
 #include "boot-hack.h"
 
-static int dgain_update(struct config_var* var, int old_value, int new_value);
-static int mgain_update(struct config_var* var, int old_value, int new_value);
-static int mic_power_update(struct config_var* var, int old_value, int new_value);
+static int dgain_on_change(struct config_var* var, int old_value, int new_value);
+static int mgain_on_change(struct config_var* var, int old_value, int new_value);
+static int mic_power_on_change(struct config_var* var, int old_value, int new_value);
 
-static CONFIG_INT_EX( "audio.dgain.l",    dgain_l,        0, dgain_update );
-static CONFIG_INT_EX( "audio.dgain.r",    dgain_r,        0, dgain_update );
-static CONFIG_INT_EX( "audio.mgain",      mgain,          4, mgain_update );
-static CONFIG_INT_EX( "audio.mic-power",  mic_power,      1, mic_power_update );
+static CONFIG_INT_EX( "audio.dgain.l",    dgain_l,        0, dgain_on_change );
+static CONFIG_INT_EX( "audio.dgain.r",    dgain_r,        0, dgain_on_change );
+static CONFIG_INT_EX( "audio.mgain",      mgain,          4, mgain_on_change );
+static CONFIG_INT_EX( "audio.mic-power",  mic_power,      1, mic_power_on_change );
 static CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 
 int audio_meters_are_drawn()
@@ -357,7 +357,7 @@ audio_gain_to_cmd(
 }
 
 
-static int mgain_update(struct config_var* var, int old_value, int new_value)
+static int mgain_on_change(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_ANALOG_GAIN
 #ifdef CONFIG_500D
@@ -372,7 +372,7 @@ static int mgain_update(struct config_var* var, int old_value, int new_value)
 #endif
 }
 
-static int alc_enable_update(struct config_var* var, int old_value, int new_value)
+static int alc_enable_on_change(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_AGC_TOGGLE
     *(var->value) = new_value;
@@ -383,7 +383,7 @@ static int alc_enable_update(struct config_var* var, int old_value, int new_valu
 #endif
 }
 
-static int input_choice_update(struct config_var* var, int old_value, int new_value)
+static int input_choice_on_change(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_INPUT_SOURCE
     *(var->value) = new_value;
@@ -394,7 +394,7 @@ static int input_choice_update(struct config_var* var, int old_value, int new_va
 #endif
 }
 
-static int mic_power_update(struct config_var* var, int old_value, int new_value)
+static int mic_power_on_change(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_MIC_POWER
     *(var->value) = new_value;
@@ -405,7 +405,7 @@ static int mic_power_update(struct config_var* var, int old_value, int new_value
 #endif
 }
 
-static int dgain_update(struct config_var* var, int old_value, int new_value)
+static int dgain_on_change(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_DIGITAL_GAIN
     *(var->value) = COERCE(new_value, 0, 36);
