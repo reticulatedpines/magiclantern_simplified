@@ -344,7 +344,6 @@ void ml_shutdown()
     ml_shutdown_requested = 1;
     
     info_led_on();
-    _card_led_on();
     restore_af_button_assignment_at_shutdown();
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
@@ -353,7 +352,6 @@ void ml_shutdown()
     module_shutdown();
 #endif
     info_led_on();
-    _card_led_on();
 }
 
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)

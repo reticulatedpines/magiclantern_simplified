@@ -29,6 +29,7 @@
 #include "property.h"
 #include "consts.h"
 #include "gui.h"
+#include "leds.h"
 
 #define ARM_CPSR_FLAG_FIQ_MASKED  (0x00000040)
 #define ARM_CPSR_FLAG_IRQ_MASKED  (0x00000080)
@@ -95,48 +96,6 @@ call_init_funcs()
     {
         thunk entry = (thunk) init_func->entry;
         entry();
-    }
-}
-
-#if defined(CONFIG_7D)
-void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
-void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400; } //TODO: Check if this is correct, because reboot.c said 0x838C00
-#elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
-void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
-void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); }
-#else
-void _card_led_on()  { return; }
-void _card_led_off() { return; }
-#endif
-
-void info_led_on()
-{
-#ifdef CONFIG_VXWORKS
-    LEDBLUE = LEDON;
-#elif defined(CONFIG_BLUE_LED)
-    call("EdLedOn");
-#else
-    _card_led_on();
-#endif
-}
-void info_led_off()
-{
-#ifdef CONFIG_VXWORKS
-    LEDBLUE = LEDOFF;
-#elif defined(CONFIG_BLUE_LED)
-    call("EdLedOff");
-#else
-    _card_led_off();
-#endif
-}
-void info_led_blink(int times, int delay_on, int delay_off)
-{
-    for (int i = 0; i < times; i++)
-    {
-        info_led_on();
-        msleep(delay_on);
-        info_led_off();
-        msleep(delay_off);
     }
 }
 

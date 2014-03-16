@@ -226,13 +226,6 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_PER_LENS_WIDE 0x102
 #define AFMA_MODE_PER_LENS_TELE 0x202
 
-/** LED blinking */
-void info_led_on();
-void info_led_off();
-void info_led_blink(int times, int delay_on, int delay_off);
-void _card_led_on();
-void _card_led_off();
-
 /** timing */
 /* todo: move to a separate file */
 int get_seconds_clock();
