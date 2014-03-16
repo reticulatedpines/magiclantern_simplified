@@ -120,7 +120,7 @@ uint32_t rgb2yuv422_rec601(int R, int G, int B)
 
 uint32_t rgb2yuv422(int R, int G, int B)
 {
-#if defined(CONFIG_DIGIC_V)
+#if defined(CONFIG_REC709)
     return rgb2yuv422_rec709(R, G, B);
 #else
     return rgb2yuv422_rec601(R, G, B);
