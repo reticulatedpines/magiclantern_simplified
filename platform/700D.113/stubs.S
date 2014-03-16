@@ -66,7 +66,7 @@ NSTUB(0xFF1AB808,  SetGUIRequestMode)
 NSTUB(0xFF0D74A8,  gui_init_end)
 NSTUB(0xFF0D6A60,  gui_main_task)
 NSTUB(0xFF1C7190,  gui_massive_event_loop)
-NSTUB(0xFFA9A740 - RAM_OFFSET,  gui_task_list)
+NSTUB(   0x3D8A0,  gui_task_list)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
@@ -275,7 +275,7 @@ NSTUB(0xFFA63654 - RAM_OFFSET,  msleep)
 
 /** Tasks **/
 NSTUB(0xFFA63708 - RAM_OFFSET,  task_create)
-NSTUB(0xFFA80164 - RAM_OFFSET,  task_dispatch_hook)
+NSTUB(   0x232C4,  task_dispatch_hook)
 NSTUB(0xFFA68A20 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */

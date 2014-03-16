@@ -13,11 +13,14 @@ data_structs = [
     "dm_names",
     "LCD_Palette",
     "sd_device",
+    "cf_device",
     "task_max",
     "gui_main_struct",
     "mvr_config",
     "sounddev", 
     "vram_info",
+    "task_dispatch_hook",
+    "gui_task_list",
 ]
 
 try: inp = sys.argv[1];

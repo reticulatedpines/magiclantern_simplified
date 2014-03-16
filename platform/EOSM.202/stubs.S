@@ -71,7 +71,7 @@ NSTUB(0xFF0D7674,  GUI_Control)
 NSTUB(0xFF1A805C,  SetGUIRequestMode)
 NSTUB(0xFF0D7D18,  gui_init_end)
 NSTUB(0xFF0D72A0,  gui_main_task)
-NSTUB(0xFFAC2330 - RAM_OFFSET,  gui_task_list)
+NSTUB(   0x58DA0,  gui_task_list)
 //NSTUB(0xFF0D783C, GUI_ChangeMode)
 //NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
 	//NSTUB(0xff1a4fc8, gui_massive_event_loop)
@@ -282,7 +282,7 @@ NSTUB(0xFFA70524 - RAM_OFFSET,  msleep)                     // 6F94
 
 /** Tasks **/
 NSTUB(0xFFA705D8 - RAM_OFFSET,  task_create)
-NSTUB(0xFFAA72F0 - RAM_OFFSET,  task_dispatch_hook)
+NSTUB(   0x3DD60,  task_dispatch_hook)
 NSTUB(0xFFA758F0 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
