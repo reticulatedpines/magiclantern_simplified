@@ -2959,6 +2959,7 @@ static int bulb_duration_change(struct config_var * var, int old_value, int new_
 {
     #ifdef FEATURE_EXPO_OVERRIDE
     /* refresh bulb ExpSim */
+    *(var->value) = new_value;
     bv_auto_update();
     #endif
 
