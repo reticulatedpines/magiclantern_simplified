@@ -128,7 +128,7 @@ NSTUB(0xFF1C0118,  GUI_GetFirmVersion)
 
 /** Dialog API **/
 NSTUB(0xFF4B6E5C,  CreateDialogBox)
-NSTUB(0xFF4B55D8,  DeleteDialogBox)
+NSTUB(0xFF4B5E24,  DeleteDialogBox)
 NSTUB(0xFF4B7B98,  dialog_redraw)
 NSTUB(0xFF5241D0,  dialog_set_property_str)
 NSTUB(0xFF4D75D4,  RedrawDisplay)
