@@ -56,7 +56,7 @@ NSTUB(0xFF34619C, _FIO_FindFirstEx)
 NSTUB(0xFF3454F4, _FIO_GetFileSize)
 NSTUB(0xFF345080, _FIO_RemoveFile)
 NSTUB(0xFF345A0C, _FIO_RenameFile)
-// NSTUB(    ???, _FIO_OpenFile)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
+NSTUB(0xFF344F18, _FIO_OpenFile)
 
 /** GUI **/
 NSTUB(   0x236B0,  gui_main_struct)
@@ -308,7 +308,6 @@ NSTUB(0xFFA71D84 - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF4D75D4,  RedrawDisplay)
 ///NSTUB(0xFF129384,  SetBitmapVramAddress)
 ///NSTUB(0xFF10B99C,  SoundDevActiveOut)
-///NSTUB(0xFF344F18, _FIO_Open)
 ///NSTUB(0xFF1387A8,  bootdisk_disable)
 ///NSTUB(0xFF13879C,  bootdisk_enable)
 ///NSTUB(0xFF746320,  cfReadBlk)
