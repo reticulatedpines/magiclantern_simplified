@@ -2,8 +2,7 @@
 #define _big_gui_h_
 
 #include "dialog.h"
-
-#include "dialog.h"
+#include "menu.h"
 
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)

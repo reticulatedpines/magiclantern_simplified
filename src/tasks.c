@@ -45,9 +45,15 @@ return "?";
 
 #ifndef CONFIG_VXWORKS
 #ifdef CONFIG_TSKMON
+#if defined(FEATURE_SHOW_CPU_USAGE) || defined(FEATURE_SHOW_TASKS)
 static taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
+#endif
+#ifdef FEATURE_SHOW_CPU_USAGE
 int show_cpu_usage_flag = 0;
+#endif
+#ifdef FEATURE_SHOW_TASKS
 static int task_load_update_request = 0;
+#endif
 #endif
 
 void task_update_loads() // called every second from clock_task
