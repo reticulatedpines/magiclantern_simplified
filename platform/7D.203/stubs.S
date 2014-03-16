@@ -67,7 +67,7 @@ NSTUB(0xFF0A9384,  gui_massive_event_loop)
 NSTUB(0xFF237724,  GUI_SetLvMode)                         
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
-NSTUB(0xFF237858,  Gui_SetSoundRecord)                      /* WRONG NAME: it should be Gui_SetSoundRec
+NSTUB(0xFF237858,  Gui_SetSoundRecord)                      // WRONG NAME: it should be Gui_SetSoundRec
 
 /** ASIF **/
 NSTUB(0xFF07365C,  PowerAudioOutput)
@@ -81,7 +81,7 @@ NSTUB(0xFF061A88,  StartASIFDMAADC)
 NSTUB(0xFF061C44,  StartASIFDMADAC)
 NSTUB(0xFF061C08,  StopASIFDMAADC)                          // Called by SoundDevStopIn
 NSTUB(0xFF061D20,  StopASIFDMADAC)
-NSTUB(0xFF237A90,  SetAudioVolumeIn)                        /* WRONG NAME: it should be SetAudioVolume
+NSTUB(0xFF237A90,  SetAudioVolumeIn)                        // WRONG NAME: it should be SetAudioVolume
 
 /** Audio **/
 NSTUB(    0x1F54,  sounddev)
