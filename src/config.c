@@ -372,10 +372,10 @@ static int set_config_var_struct(struct config_var * var, int new_value)
     if(var && var->value)
     {
         //check if the callback routine exists
-        if(var->update)
+        if(var->on_change)
         {
             //run the callback routine
-            int cbr_result = var->update(var, *(var->value), new_value);
+            int cbr_result = var->on_change(var, *(var->value), new_value);
             //if the cbr returns false, it means we are not allowed to change the value
             if(cbr_result)
             {

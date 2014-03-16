@@ -39,17 +39,17 @@ static int dgain_update(struct config_var* var, int old_value, int new_value);
 static int effect_mode_update(struct config_var* var, int old_value, int new_value);
 
 // Set defaults
-CONFIG_INT_UPDATE( "audio.override_audio", cfg_override_audio,   0, override_audio_update );
-CONFIG_INT_UPDATE( "audio.analog_gain",    cfg_analog_gain,      0, analog_gain_update );
-CONFIG_INT_UPDATE( "audio.analog_boost",   cfg_analog_boost,     0, analog_boost_update ); //test
-CONFIG_INT_UPDATE( "audio.enable_dc",      cfg_filter_dc,        1, audio_filter_update );
-CONFIG_INT_UPDATE( "audio.enable_hpf2",    cfg_filter_hpf2,      0, audio_filter_update );
-CONFIG_INT_UPDATE( "audio.hpf2config",     cfg_filter_hpf2config,7, filter_hpf2config_update );
+CONFIG_INT_EX( "audio.override_audio", cfg_override_audio,   0, override_audio_update );
+CONFIG_INT_EX( "audio.analog_gain",    cfg_analog_gain,      0, analog_gain_update );
+CONFIG_INT_EX( "audio.analog_boost",   cfg_analog_boost,     0, analog_boost_update ); //test
+CONFIG_INT_EX( "audio.enable_dc",      cfg_filter_dc,        1, audio_filter_update );
+CONFIG_INT_EX( "audio.enable_hpf2",    cfg_filter_hpf2,      0, audio_filter_update );
+CONFIG_INT_EX( "audio.hpf2config",     cfg_filter_hpf2config,7, filter_hpf2config_update );
 
-CONFIG_INT_UPDATE( "audio.dgain",          cfg_recdgain,         0, recdgain_update );
-CONFIG_INT_UPDATE( "audio.dgain.l",        dgain_l,              8, dgain_update );
-CONFIG_INT_UPDATE( "audio.dgain.r",        dgain_r,              8, dgain_update );
-CONFIG_INT_UPDATE( "audio.effect.mode",    cfg_effect_mode,      0, effect_mode_update );
+CONFIG_INT_EX( "audio.dgain",          cfg_recdgain,         0, recdgain_update );
+CONFIG_INT_EX( "audio.dgain.l",        dgain_l,              8, dgain_update );
+CONFIG_INT_EX( "audio.dgain.r",        dgain_r,              8, dgain_update );
+CONFIG_INT_EX( "audio.effect.mode",    cfg_effect_mode,      0, effect_mode_update );
 
 
 int audio_meters_are_drawn()

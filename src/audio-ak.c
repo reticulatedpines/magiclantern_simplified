@@ -34,10 +34,10 @@ static int dgain_update(struct config_var* var, int old_value, int new_value);
 static int mgain_update(struct config_var* var, int old_value, int new_value);
 static int mic_power_update(struct config_var* var, int old_value, int new_value);
 
-static CONFIG_INT_UPDATE( "audio.dgain.l",    dgain_l,        0, dgain_update );
-static CONFIG_INT_UPDATE( "audio.dgain.r",    dgain_r,        0, dgain_update );
-static CONFIG_INT_UPDATE( "audio.mgain",      mgain,          4, mgain_update );
-static CONFIG_INT_UPDATE( "audio.mic-power",  mic_power,      1, mic_power_update );
+static CONFIG_INT_EX( "audio.dgain.l",    dgain_l,        0, dgain_update );
+static CONFIG_INT_EX( "audio.dgain.r",    dgain_r,        0, dgain_update );
+static CONFIG_INT_EX( "audio.mgain",      mgain,          4, mgain_update );
+static CONFIG_INT_EX( "audio.mic-power",  mic_power,      1, mic_power_update );
 static CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 
 int audio_meters_are_drawn()

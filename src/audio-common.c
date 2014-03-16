@@ -113,13 +113,13 @@ static int enable_filters_update(struct config_var* var, int old_value, int new_
 static int alc_enable_update(struct config_var* var, int old_value, int new_value);
 static int input_choice_update(struct config_var* var, int old_value, int new_value);
 
-static CONFIG_INT_UPDATE("audio.lovl",         lovl,             0, lovl_update );
-static CONFIG_INT_UPDATE("audio.alc-enable",   alc_enable,       0, alc_enable_update );
+static CONFIG_INT_EX("audio.lovl",         lovl,             0, lovl_update );
+static CONFIG_INT_EX("audio.alc-enable",   alc_enable,       0, alc_enable_update );
 static int loopback = 1;
-static CONFIG_INT_UPDATE("audio.input-choice", input_choice,     4, input_choice_update ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-static CONFIG_INT_UPDATE("audio.filters",      enable_filters,   0, enable_filters_update ); //disable the HPF, LPF and pre-emphasis filters
+static CONFIG_INT_EX("audio.input-choice", input_choice,     4, input_choice_update ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+static CONFIG_INT_EX("audio.filters",      enable_filters,   0, enable_filters_update ); //disable the HPF, LPF and pre-emphasis filters
 #define cfg_draw_meters 1
-static CONFIG_INT_UPDATE("audio.monitoring",   audio_monitoring, 1, audio_monitoring_var_update );
+static CONFIG_INT_EX("audio.monitoring",   audio_monitoring, 1, audio_monitoring_var_update );
 static int do_draw_meters = 0;
 
 static struct audio_level audio_levels[2];

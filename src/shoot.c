@@ -160,7 +160,7 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
 
 static int bulb_duration_change(struct config_var * var, int old_value, int new_value);
 static CONFIG_INT       ( "bulb.timer", bulb_timer, 0);
-static CONFIG_INT_UPDATE( "bulb.duration", bulb_duration, 5, bulb_duration_change);
+static CONFIG_INT_EX( "bulb.duration", bulb_duration, 5, bulb_duration_change);
 static CONFIG_INT       ( "bulb.display.mode", bulb_display_mode, 0);
 
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
