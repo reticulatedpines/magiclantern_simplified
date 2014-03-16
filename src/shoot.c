@@ -1112,17 +1112,6 @@ void move_lv_afframe(int dx, int dy)
 #endif
 }
 
-int compute_signature(int* start, int num)
-{
-    int c = 0;
-    int* p;
-    for (p = start; p < start + num; p++)
-    {
-        c += *p;
-    }
-    return c;
-}
-
 static struct semaphore * set_maindial_sem = 0;
 
 #ifdef FEATURE_PLAY_EXPOSURE_FUSION

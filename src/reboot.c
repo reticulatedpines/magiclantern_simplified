@@ -62,7 +62,6 @@ asm(
 );
 #endif /* __ARM__ */
 
-#if SHOULD_CHECK_SIG
 static void busy_wait(int n)
 {
     int i,j;
@@ -90,55 +89,14 @@ static void fail()
     blink(50);
 }
 
-#endif
-
-extern int compute_signature(int* start, int num);
-
 void
 __attribute__((noreturn))
 cstart( void )
 {
-#if SHOULD_CHECK_SIG
-
-    int s = compute_signature((int*)SIG_START, SIG_LEN);
-
-    #ifdef CONFIG_5D3
-    if (s != (int)SIG_5D3_113)
+    if(!check_signature())
+    {
         fail();
-    #endif
-
-    #ifdef CONFIG_EOSM
-    if (s != (int)SIG_EOSM_202)
-        fail();
-    #endif
-
-    #if defined(CONFIG_7D)
-    if (s != (int)SIG_7D_203)
-        fail();
-    #endif
-
-    #if defined(CONFIG_7D_MASTER)
-    if (s != (int)SIG_7D_MASTER_203)
-        fail();
-    #endif
-
-    #ifdef CONFIG_6D
-    if (s != (int)SIG_6D_113)
-        fail();
-    #endif
-
-    #ifdef CONFIG_650D
-    if (s != (int)SIG_650D_104)
-        fail();
-    #endif
-
-    #ifdef CONFIG_700D
-    if (s != (int)SIG_700D_113)
-        fail();
-    #endif
-
-    //TODO: Add CONFIG_100D signature check
-#endif
+    }
 
 #ifdef __ARM__
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */

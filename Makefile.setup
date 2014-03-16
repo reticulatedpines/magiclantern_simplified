@@ -51,12 +51,6 @@ ifeq ($(TARGET_COMPILER), arm-gcc)
 				-D__ARM__
 endif
 
-#
-# ToDo: remove 
-#	-Wno-implicit-function-declaration
-#
-# Reason: these warnings make sense! potential crash situations.
-#
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
