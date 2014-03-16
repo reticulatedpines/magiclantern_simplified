@@ -393,11 +393,11 @@ static void my_big_init_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    int len = compute_signature(SIG_START, 0x10000);
+    int sig = compute_signature(SIG_START, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
+        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", sig);
         info_led_blink(1, 500, 500);
     }
 #endif
