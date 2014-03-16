@@ -48,42 +48,37 @@
  * 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
-
+ 
 
 //#define CONFIG_CONSOLE
 //#define TRACE_DISABLED
-
-#define DEBUG_REDRAW_INTERVAL      100
-#define MLV_RTCI_BLOCK_INTERVAL   2000
-#define MLV_INFO_BLOCK_INTERVAL  60000
-#define MAX_PATH                   100
-
-#define MLV_ICON_X 500
-#define MLV_ICON_Y 40
-
-
-#define MLV_DUMMY_FILENAME "mlv_rec.tmp"
-
 
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
+#include <fps.h>
+#include <zebra.h>
+#include <beep.h>
 #include <menu.h>
 #include <config.h>
 #include <math.h>
 #include <cropmarks.h>
 #include <screenshot.h>
-#include "edmac.h"
+#include <util.h>
+#include <edmac.h>
+#include <edmac-memcpy.h>
+#include <cache_hacks.h>
+#include <string.h>
+
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
 #include "../ime_base/ime_base.h"
 #include "../trace/trace.h"
-#include "cache_hacks.h"
-#include "mlv.h"
 
-/* this replaces msg_queue_* functions with handcoded smaller ones. hopefully faster, if that is some bottleneck at all. */
-//#include "fast_queue.h"
+#include "mlv.h"
+#include "mlv_rec.h"
+
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -99,19 +94,16 @@ static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
 
-#define MAX_WRITER_THREADS 2
-
-/* pre-create that number of files befroe recording starts so that file catalog doesnt have to get updated while recording */
-#define MAX_PRECREATE_FILES 10
-
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
 
 static uint32_t mlv_rec_dma_active = 0;
 static uint32_t mlv_writer_threads = 2;
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
-uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 static uint32_t abort_test = 0;
+
+uint32_t raw_rec_trace_ctx = TRACE_ERROR;
+
 /**
  * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
  * furthermore, resolution (in bytes) should be multiple of 8 in order to use the fastest EDMAC flags ( http://magiclantern.wikia.com/wiki/Register_Map#EDMAC ),
@@ -119,8 +111,6 @@ static uint32_t abort_test = 0;
  * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
-
-
 static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
 #define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
 
@@ -137,7 +127,6 @@ static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 3);
 static CONFIG_INT("mlv.video.test_mode", test_mode, 0);
 static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
-
 static CONFIG_INT("mlv.res.x", resolution_index_x, 12);
 static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write.speed", measured_write_speed, 0);
@@ -148,27 +137,12 @@ static CONFIG_INT("mlv.killgd", kill_gd, 1);
 static CONFIG_INT("mlv.reckey", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
-
-
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
-#define FRAMING_CENTER (dolly_mode == 0)
-#define FRAMING_PANNING (dolly_mode == 1)
-
 static CONFIG_INT("mlv.preview", preview_mode, 0);
-#define PREVIEW_AUTO (preview_mode == 0)
-#define PREVIEW_CANON (preview_mode == 1)
-#define PREVIEW_ML (preview_mode == 2)
-#define PREVIEW_HACKED (preview_mode == 3)
-#define PREVIEW_NOT (preview_mode == 4)
-
 static CONFIG_INT("mlv.warm.up", warm_up, 0);
 static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
 static CONFIG_INT("mlv.small.hacks", small_hacks, 1);
-
 static CONFIG_INT("mlv.video.display_rec_info", display_rec_info, 1);
-#define DISPLAY_REC_INFO_NONE (display_rec_info == 0)
-#define DISPLAY_REC_INFO_ICON (display_rec_info == 1)
-#define DISPLAY_REC_INFO_DEBUG (display_rec_info == 2)
 
 static int start_delay = 0;
 
@@ -181,31 +155,12 @@ static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
 static int32_t skip_y = 0;
-
 static int32_t frame_offset_x = 0;
 static int32_t frame_offset_y = 0;
 static int32_t frame_offset_delta_x = 0;
 static int32_t frame_offset_delta_y = 0;
-
-#define RAW_IDLE      0
-#define RAW_PREPARING 1
-#define RAW_RECORDING 2
-#define RAW_FINISHING 3
-
 static int32_t raw_recording_state = RAW_IDLE;
 static int32_t raw_previewing = 0;
-
-#define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
-#define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
-#define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
-#define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
-
-
-#define MLV_METADATA_INITIAL  1
-#define MLV_METADATA_SPORADIC 2
-#define MLV_METADATA_CYCLIC   4
-#define MLV_METADATA_ALL      0xFF
-
 static uint32_t mlv_metadata = MLV_METADATA_ALL;
 
 /* if these get set, on the next frame the according blocks get queued */
@@ -217,74 +172,6 @@ static mlv_expo_hdr_t last_expo_hdr;
 static mlv_lens_hdr_t last_lens_hdr;
 static mlv_wbal_hdr_t last_wbal_hdr;
 static mlv_styl_hdr_t last_styl_hdr;
-
-/* one video frame */
-struct frame_slot
-{
-    void *ptr;
-    int32_t frame_number;   /* from 0 to n */
-    int32_t size;
-    int32_t writer;
-    enum {SLOT_FREE, SLOT_FULL, SLOT_LOCKED, SLOT_WRITING} status;
-};
-
-struct frame_slot_group
-{
-    int32_t slot;
-    int32_t len;
-    int32_t size;
-};
-
-/* this job type is Manager -> Writer for telling which blocks to write */
-typedef struct
-{
-    uint32_t job_type;
-    uint32_t writer;
-
-    uint32_t block_len;
-    uint32_t block_start;
-    uint32_t block_size;
-    void *block_ptr;
-
-    /* filled by writer */
-    int64_t time_before;
-    int64_t time_after;
-    int64_t last_time_after;
-} write_job_t;
-
-/* if a file reaches the 4GiB border, writer will queue a file close command for the manager */
-typedef struct
-{
-    uint32_t job_type;
-    uint32_t writer;
-
-    char filename[MAX_PATH];
-    mlv_file_hdr_t file_header;
-    FILE *file_handle;
-} close_job_t;
-
-/*  */
-typedef struct
-{
-    uint32_t job_type;
-    uint32_t writer;
-
-    char filename[MAX_PATH];
-    mlv_file_hdr_t file_header;
-    FILE *file_handle;
-} handle_job_t;
-
-typedef union
-{
-    handle_job_t handle;
-    close_job_t close;
-    write_job_t write;
-} largest_job_t;
-
-#define JOB_TYPE_WRITE        1
-#define JOB_TYPE_NEXT_HANDLE  2
-#define JOB_TYPE_CLOSE        3
-
 
 
 /* for debugging */
@@ -341,31 +228,6 @@ static char test_results[100][100];
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
 
-/* interface to other modules:
- *
- *    uint32_t raw_rec_skip_frame(unsigned char *frame_data)
- *      This function is called on every single raw frame that is received from sensor with a pointer to frame data as parameter.
- *      If the return value is zero, the frame will get save into the saving buffers, else it is skipped
- *      Default: Do not skip frame (0)
- *
- *    uint32_t raw_rec_save_buffer(uint32_t used, uint32_t buffer_count)
- *      This function is called whenever the writing loop is checking if it has data to save to card.
- *      The parameters are the number of used buffers and the total buffer count
- *      Default: Save buffer (1)
- *
- *    uint32_t raw_rec_skip_buffer(uint32_t buffer_index, uint32_t buffer_count);
- *      Whenever the buffers are full, this function is called with the buffer index that is subject to being dropped, the number of frames in this buffer and the total buffer count.
- *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
- *      Default: Do not throw away buffer, but throw away incoming frame (0)
- */
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_starting();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_started();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_stopping();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_stopped();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr);
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_frame(unsigned char *frame_data);
-extern WEAK_FUNC(ret_1) uint32_t raw_rec_cbr_save_buffer(uint32_t used, uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_buffer(uint32_t buffer_index, uint32_t frame_count, uint32_t buffer_count);
 
 /* helpers for reserving disc space */
 static uint32_t mlv_rec_alloc_dummy(uint32_t size)
@@ -426,8 +288,6 @@ static uint32_t calc_padding(uint32_t address, uint32_t alignment)
 
     return padding;
 }
-
-static uint32_t raw_rec_should_preview(uint32_t ctx);
 
 static void refresh_cropmarks()
 {
@@ -696,7 +556,7 @@ static void refresh_raw_settings(int32_t force)
     if (RAW_IS_IDLE && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
-        static int32_t aux = INT_MIN;
+        static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
             if (raw_update_params())
@@ -1274,15 +1134,15 @@ static void show_buffer_status()
         }
 
         /* paint dots at current rate/level */
-        dot(x-16, y_fill-16, COLOR_GREEN1, 2);
+        fill_circle(x, y_fill, 2, COLOR_GREEN1);
 
         if(y_rate_0 != ymax)
         {
-            dot(x-16, y_rate_0-16, COLOR_RED, 2);
+            fill_circle(x, y_rate_0, 2, COLOR_RED);
         }
         if(card_spanning && y_rate_1 != ymax)
         {
-            dot(x-16, y_rate_1-16, COLOR_BLUE, 2);
+            fill_circle(x, y_rate_1, 2, COLOR_BLUE);
         }
 
         prev_x = x;
@@ -1294,10 +1154,10 @@ static void show_buffer_status()
         static int32_t prev_xp = 0;
         if(prev_xp)
         {
-            dot(prev_xp, ymin - 16, COLOR_EMPTY, 2);
+            fill_circle(prev_xp, ymin, COLOR_EMPTY, 2);
         }
         int32_t xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
-        dot(xp, ymin - 16, COLOR_RED, 2);
+        fill_circle(xp, ymin, 2, COLOR_RED);
         prev_xp = xp;
 
         bmp_draw_rect(COLOR_GRAY(20), 0, ymin, 720, ymax-ymin);
@@ -1392,9 +1252,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
 
     /* update status messages */
-    static int32_t auxrec = INT_MIN;
-    static int32_t block_queueing = INT_MIN;
-    static int32_t rtci_queueing = INT_MIN;
+    static int auxrec = INT_MIN;
+    static int block_queueing = INT_MIN;
+    static int rtci_queueing = INT_MIN;
 
     if (RAW_IS_RECORDING)
     {
@@ -1404,7 +1264,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             trace_write(raw_rec_trace_ctx, "[polling_cbr] queueing RTCI");
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
             mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
-            msg_queue_post(mlv_block_queue, rtci_hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) rtci_hdr);
         }
 
         if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing) && (mlv_metadata & MLV_METADATA_CYCLIC))
@@ -1418,9 +1278,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             mlv_fill_lens(lens_hdr, mlv_start_timestamp);
             mlv_fill_wbal(wbal_hdr, mlv_start_timestamp);
 
-            msg_queue_post(mlv_block_queue, expo_hdr);
-            msg_queue_post(mlv_block_queue, lens_hdr);
-            msg_queue_post(mlv_block_queue, wbal_hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) expo_hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) lens_hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) wbal_hdr);
         }
 
         if(!DISPLAY_REC_INFO_NONE && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
@@ -1531,9 +1391,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
     return 0;
 }
-
-
-static void unhack_liveview_vsync(int32_t unused);
 
 static void hack_liveview_vsync()
 {
@@ -1725,7 +1582,7 @@ static void hack_liveview(int32_t unhack)
 
 void mlv_rec_queue_block(mlv_hdr_t *hdr)
 {
-    msg_queue_post(mlv_block_queue, hdr);
+    msg_queue_post(mlv_block_queue, (uint32_t) hdr);
 }
 
 void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp)
@@ -2021,25 +1878,23 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
 
 
         /* copy VIDF header to new position and fix frameSpace */
-        memcpy(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
+        memmove(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
         new_vidf->blockSize -= new_vidf_offset;
         new_vidf->frameSpace -= new_vidf_offset;
 
         /* copy block to prepend */
-        memcpy((void*)((uint32_t)vidf + block_offset), block, block->blockSize);
+        memmove((void*)((uint32_t)vidf + block_offset), block, block->blockSize);
 
-        /* set old header to a skipped header format */
-        mlv_set_type((mlv_hdr_t *)vidf, "NULL");
-
-        /* backup old size into free space */
-        ((uint32_t*) vidf)[sizeof(mlv_vidf_hdr_t)/4] = vidf->blockSize;
-
-        /* then set the header to be totally skipped */
-        vidf->blockSize = sizeof(mlv_vidf_hdr_t) + 4;
+        /* backup old size into free space then set the header to be totally skipped */
+        mlv_bkup_hdr_t *backup_hdr = (mlv_bkup_hdr_t *)vidf;
+        backup_hdr->blockSizeOrig = vidf->blockSize;
+        vidf->blockSize = sizeof(mlv_bkup_hdr_t);
+        
+        mlv_set_type((mlv_hdr_t *)vidf, "BKUP");
 
         return 0;
     }
-    else if(!memcmp(vidf->blockType, "NULL", 4))
+    else if(!memcmp(vidf->blockType, "BKUP", 4))
     {
         /* there is already something injected, try to add a new block behind prepended */
         mlv_vidf_hdr_t *hdr = NULL;
@@ -2064,12 +1919,12 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
                 mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)hdr + block->blockSize);
 
                 /* copy VIDF header to new position and fix frameSpace */
-                memcpy(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
+                memmove(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
                 new_vidf->blockSize -= block->blockSize;
                 new_vidf->frameSpace -= block->blockSize;
 
                 /* copy block to prepend */
-                memcpy(hdr, block, block->blockSize);
+                memmove(hdr, block, block->blockSize);
 
                 return 0;
             }
@@ -2121,12 +1976,13 @@ static int32_t FAST process_frame()
         return 0;
     }
 
-    /* restore from NULL block used when prepending data */
+    /* restore from BKUP block used when prepending data */
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
-    if(!memcmp(hdr->blockType, "NULL", 4))
+    if(!memcmp(hdr->blockType, "BKUP", 4))
     {
+        mlv_bkup_hdr_t *backup = (mlv_bkup_hdr_t *)hdr;
+        hdr->blockSize = backup->blockSizeOrig;
         mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
-        hdr->blockSize = ((uint32_t*) hdr)[sizeof(mlv_vidf_hdr_t)/4];
     }
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     
@@ -2579,7 +2435,7 @@ static void raw_writer_task(uint32_t writer)
             /* this is an "abort" job */
             if(job->block_len == 0)
             {
-                msg_queue_post(mlv_job_alloc_queue, job);
+                msg_queue_post(mlv_job_alloc_queue, (uint32_t) job);
                 trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: expected to terminate", writer);
                 break;
             }
@@ -2617,7 +2473,7 @@ static void raw_writer_task(uint32_t writer)
                         close_job->file_header = file_header;
                         strcpy(close_job->filename, chunk_filename[writer]);
 
-                        msg_queue_post(mlv_mgr_queue, close_job);
+                        msg_queue_post(mlv_mgr_queue, (uint32_t) close_job);
 
                         /* this should never happen, as the main queue handler should take care of us */
                         if(!next_file_handle)
@@ -2667,7 +2523,7 @@ static void raw_writer_task(uint32_t writer)
                         prepare_job->file_header = file_header;
                         prepare_job->filename[0] = '\000';
 
-                        msg_queue_post(mlv_mgr_queue, prepare_job);
+                        msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
 
                         handle_requested = 1;
                     }
@@ -2725,7 +2581,7 @@ static void raw_writer_task(uint32_t writer)
             }
 
             /* send job back and wake up manager */
-            msg_queue_post(mlv_mgr_queue, job);
+            msg_queue_post(mlv_mgr_queue, (uint32_t) job);
             //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: returned job 0x%08X", writer, job);
         }
         else if(job->job_type == JOB_TYPE_NEXT_HANDLE)
@@ -2840,7 +2696,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
                 else
                 {
                     failed++;
-                    msg_queue_post(mlv_block_queue, block);
+                    msg_queue_post(mlv_block_queue, (uint32_t) block);
                     bmp_printf(FONT_MED, 0, 430, "FAILED. queued: %d failed: %d (requeued)", queued, failed);
                     break;
                 }
@@ -2864,7 +2720,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
     queue_job->job_type = JOB_TYPE_WRITE;
     queue_job->writer = writer;
     
-    msg_queue_post(mlv_writer_queues[writer], queue_job);
+    msg_queue_post(mlv_writer_queues[writer], (uint32_t) queue_job);
     //trace_write(raw_rec_trace_ctx, "<-- POST: group with %d entries at %d (%dKiB) for slow card", write_job->block_len, write_job->block_start, write_job->block_size/1024);
 }
 
@@ -2962,7 +2818,7 @@ static void mlv_rec_queue_blocks()
         {
             mlv_hdr_t *hdr = malloc(sizeof(mlv_expo_hdr_t));
             memcpy(hdr, &last_expo_hdr, sizeof(mlv_expo_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) hdr);
         }
 
         /* write new state if something changed */
@@ -2970,7 +2826,7 @@ static void mlv_rec_queue_blocks()
         {
             mlv_hdr_t *hdr = malloc(sizeof(mlv_lens_hdr_t));
             memcpy(hdr, &last_lens_hdr, sizeof(mlv_lens_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) hdr);
         }
     }
 
@@ -2989,7 +2845,7 @@ static void mlv_rec_queue_blocks()
         {
             mlv_hdr_t *hdr = malloc(sizeof(mlv_styl_hdr_t));
             memcpy(hdr, &last_styl_hdr, sizeof(mlv_styl_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) hdr);
         }
     }
 
@@ -3009,7 +2865,7 @@ static void mlv_rec_queue_blocks()
         {
             mlv_hdr_t *hdr = malloc(sizeof(mlv_wbal_hdr_t));
             memcpy(hdr, &last_wbal_hdr, sizeof(mlv_wbal_hdr_t));
-            msg_queue_post(mlv_block_queue, hdr);
+            msg_queue_post(mlv_block_queue, (uint32_t) hdr);
         }
     }
 }
@@ -3321,7 +3177,7 @@ static void raw_video_rec_task()
                     written[returned_job->writer] += returned_job->block_size / 1024;
                     frames_written[returned_job->writer] += returned_job->block_len;
 
-                    msg_queue_post(mlv_job_alloc_queue, returned_job);
+                    msg_queue_post(mlv_job_alloc_queue, (uint32_t) returned_job);
                 }
                 else if(returned_job->job_type == JOB_TYPE_NEXT_HANDLE)
                 {
@@ -3350,7 +3206,7 @@ static void raw_video_rec_task()
                     raw_prepare_chunk(handle->file_handle, &handle->file_header);
 
                     /* requeue job again, the writer will care for it */
-                    msg_queue_post(mlv_writer_queues[handle->writer], handle);
+                    msg_queue_post(mlv_writer_queues[handle->writer], (uint32_t) handle);
                 }
                 else if(returned_job->job_type == JOB_TYPE_CLOSE)
                 {
@@ -3369,7 +3225,7 @@ static void raw_video_rec_task()
                     }
 
                     /* "free" that job buffer again */
-                    msg_queue_post(mlv_job_alloc_queue, handle);
+                    msg_queue_post(mlv_job_alloc_queue, (uint32_t) handle);
                 }
 
                 returned_job = NULL;
@@ -3427,7 +3283,7 @@ static void raw_video_rec_task()
                 }
 
                 /* "free" that job buffer again */
-                msg_queue_post(mlv_job_alloc_queue, handle);
+                msg_queue_post(mlv_job_alloc_queue, (uint32_t) handle);
             }
         }
         
@@ -3477,12 +3333,12 @@ static void raw_video_rec_task()
         msg_queue_receive(mlv_job_alloc_queue, &write_job, 0);
         write_job->job_type = JOB_TYPE_WRITE;
         write_job->block_len = 0;
-        msg_queue_post(mlv_writer_queues[0], write_job);
+        msg_queue_post(mlv_writer_queues[0], (uint32_t) write_job);
 
         msg_queue_receive(mlv_job_alloc_queue, &write_job, 0);
         write_job->job_type = JOB_TYPE_WRITE;
         write_job->block_len = 0;
-        msg_queue_post(mlv_writer_queues[1], write_job);
+        msg_queue_post(mlv_writer_queues[1], (uint32_t) write_job);
 
         /* flush queues */
         msleep(250);
@@ -3587,7 +3443,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
-IME_DONE_FUNC(raw_tag_str_done)
+static IME_DONE_FUNC(raw_tag_str_done)
 {
     if(status == IME_OK)
     {
@@ -3595,16 +3451,6 @@ IME_DONE_FUNC(raw_tag_str_done)
     }
     return IME_OK;
 }
-
-struct rolling_pitching
-{
-    uint8_t status;
-    uint8_t cameraposture;
-    uint8_t roll_hi;
-    uint8_t roll_lo;
-    uint8_t pitch_hi;
-    uint8_t pitch_lo;
-};
 
 /* LENS changes */
 PROP_HANDLER( PROP_LV_LENS_STABILIZE )
@@ -3713,7 +3559,7 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
         hdr->pitch = orientation->pitch_hi * 256 + orientation->pitch_lo;
 
         /* put into block queue */
-        msg_queue_post(mlv_block_queue, hdr);
+        msg_queue_post(mlv_block_queue, (uint32_t) hdr);
     }
 }
 
@@ -3931,6 +3777,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     if (!liveview_display_idle())
         return 1;
 
+    /* if you somehow managed to start recording H.264, let it stop */
+    if (RECORDING_H264)
+        return 1;
+
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
 
@@ -4014,7 +3864,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         hdr->blockSize = sizeof(mlv_mark_hdr_t);
         hdr->type = key;
 
-        msg_queue_post(mlv_block_queue, hdr);
+        msg_queue_post(mlv_block_queue, (uint32_t) hdr);
     }
 
     return 1;
@@ -4101,7 +3951,7 @@ static unsigned int raw_rec_init()
 
     for(int num = 0; num < 50; num++)
     {
-        msg_queue_post(mlv_job_alloc_queue, malloc(sizeof(largest_job_t)));
+        msg_queue_post(mlv_job_alloc_queue, (uint32_t) malloc(sizeof(largest_job_t)));
     }
 
     /* default free text string is empty */
