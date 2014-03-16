@@ -157,9 +157,12 @@ static CONFIG_INT( "zoom.sharpen", zoom_sharpen, 0);
 static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
 static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
-static CONFIG_INT( "bulb.timer", bulb_timer, 0);
-static CONFIG_INT( "bulb.duration", bulb_duration, 5);
-static CONFIG_INT( "bulb.display.mode", bulb_display_mode, 0);
+
+static int bulb_duration_change(struct config_var * var, int old_value, int new_value);
+static CONFIG_INT       ( "bulb.timer", bulb_timer, 0);
+static CONFIG_INT_UPDATE( "bulb.duration", bulb_duration, 5, bulb_duration_change);
+static CONFIG_INT       ( "bulb.display.mode", bulb_display_mode, 0);
+
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 
@@ -2951,11 +2954,15 @@ bulb_take_pic(int duration)
 }
 
 #ifdef FEATURE_BULB_TIMER
-static void bulb_toggle(void* priv, int delta)
+
+static int bulb_duration_change(struct config_var * var, int old_value, int new_value)
 {
     #ifdef FEATURE_EXPO_OVERRIDE
+    /* refresh bulb ExpSim */
     bv_auto_update();
     #endif
+
+    return 1;
 }
 
 static MENU_UPDATE_FUNC(bulb_display)
