@@ -3777,6 +3777,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     if (!liveview_display_idle())
         return 1;
 
+    /* if you somehow managed to start recording H.264, let it stop */
+    if (RECORDING_H264)
+        return 1;
+
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
 
