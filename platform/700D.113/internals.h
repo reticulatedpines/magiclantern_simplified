@@ -24,16 +24,16 @@
 /** We only have a single red LED **/
 //~ #define CONFIG_BLUE_LED
 
-/** There is no LCD sensor that turns the display off **/
+/** There is a LCD sensor that turns the display off **/
 #define CONFIG_LCD_SENSOR
 
 /** This camera has a mirror lockup feature **/
 #define CONFIG_MLU
 
-/** This camera reports focus info in LiveView **/
+/** This camera diesn't report focus info in LiveView **/
 //~ #define CONFIG_LV_FOCUS_INFO
 
-/** Reports roll and pitch angle **/
+/** This camera doesn't report roll and pitch angle **/
 //~ #define CONFIG_ELECTRONIC_LEVEL
 
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
@@ -43,22 +43,22 @@
 /** But it's a bit different from the other cameras, so let's say it doesn't have **/
 //~ #define CONFIG_Q_MENU_PLAYBACK
 
-/** No flip-out display **/
+/** This camera has a flip-out display **/
 #define CONFIG_VARIANGLE_DISPLAY
 
-/** It has a 5D2-like battery which reports exact percentage **/
+/** It doesn't have a 5D2-like battery which reports exact percentage **/
 //~ #define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures **/
 #define CONFIG_BULB
 
-/** There is a separate bulb mode on the mode dial (other cameras have BULB = M + shutter speed beyond 30s) **/
+/** There is not a separate bulb mode on the mode dial **/
 //~ #define CONFIG_SEPARATE_BULB_MODE
 
-/** We can't control audio settings from ML **/
+/** We can't control audio settings from ML, YET! **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** Zoom button can be used while recording (for Magic Zoom) **/
+/** Zoom button can't be used while recording (for Magic Zoom) **/
 #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
@@ -80,13 +80,13 @@
 /** We can change ExpSim from ML **/
 #define CONFIG_EXPSIM
 
-/** We can playback sounds via ASIF DMA **/
+/** We can't playback sounds via ASIF DMA **/
 //~ #define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
 
-/** We can't restore ML files after formatting the card in the camera **/
+/** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We know how to use DMA_MEMCPY, though I don't see any reason for doing so **/
@@ -100,7 +100,7 @@
 /** We know how to use engine resource locks */
 #define CONFIG_ENGINE_RESLOCK
 
-/** We shouldn't warn the user if movie exposure is Auto **/
+/** We do warn the user if movie exposure is Auto **/
 #define CONFIG_MOVIE_AE_WARNING
 
 /** We can display some extra info in photo mode (not LiveView) **/
@@ -121,11 +121,11 @@
 /** We can adjust AFMA (AF microadjustment) */
 //~ #define CONFIG_AFMA
 
-/** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
+/** The camera doesn't accept extended AFMA values (default range: -20...20; extended: -100...100) */
 /** This can be dangerous, as the values are outside Canon limits */
 //~ #define CONFIG_AFMA_EXTENDED
 
-/** You can configure separate AFMA values for both wide and tele ends */
+/** You can't configure separate AFMA values for both wide and tele ends */
 //~ #define CONFIG_AFMA_WIDE_TELE
 
 /** File I/O **/
@@ -134,7 +134,7 @@
 /** FPS override: change timers from EVF state (both methods are OK on 5D3) */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
+/** This camera uses Rec.601 */
 //~ #define CONFIG_REC709
 
 /** We have access to raw data in both photo mode and in LiveView */
