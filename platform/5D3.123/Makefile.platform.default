@@ -10,5 +10,8 @@ ROMBASEADDR	= 0xFF0C0000
 #
 RESTARTSTART	= 0x00069500
 
+# must have 8.3 characters for 64GB EXFAT cards
+UPDATE_NAME_FIR=ML5D3123.FIR
+
 #End of FW_VERSION == 123
 endif
