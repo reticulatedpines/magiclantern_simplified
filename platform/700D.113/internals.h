@@ -30,7 +30,7 @@
 /** This camera has a mirror lockup feature **/
 #define CONFIG_MLU
 
-/** This camera diesn't report focus info in LiveView **/
+/** This camera doesn't report focus info in LiveView **/
 //~ #define CONFIG_LV_FOCUS_INFO
 
 /** This camera doesn't report roll and pitch angle **/
