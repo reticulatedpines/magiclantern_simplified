@@ -301,6 +301,7 @@
 #endif
 
 #ifdef CONFIG_6D //May work for others.
+#define PROP_GPS 0x8004004c // 0 - Off 1 - External 2 - Internal
 #define PROP_HI_ISO_NR 0x80000049 //Len 4, 4 is multishot
 #define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
