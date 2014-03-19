@@ -13,6 +13,9 @@ dummy-master: dummy-master.o
 		$^ \
 	);
 
+clean:: 
+	$(call rm_files, autoexec.fir dummy-master.bin dummy-master.fir dummy-master)
+
 build_fir: dummy-master.bin
 	dd if=autoexec.bin of=autoexec.fir bs=288 skip=1 >/dev/null 2>&1
 	dd if=dummy-master.bin of=dummy-master.fir bs=288 skip=1 >/dev/null 2>&1
