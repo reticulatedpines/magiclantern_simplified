@@ -337,6 +337,10 @@ MENU_UPDATE_FUNC(tasks_print)
 }
 #endif
 
+#ifdef CONFIG_6D
+PROP_INT(PROP_GPS, GPS);
+#endif
+
 void ml_shutdown()
 {
     check_pre_shutdown_flag();
@@ -346,6 +350,13 @@ void ml_shutdown()
     info_led_on();
     _card_led_on();
     restore_af_button_assignment_at_shutdown();
+#ifdef CONFIG_6D
+	if (GPS != 0)
+    {
+       int new_GPS = 0;
+       prop_request_change(PROP_GPS, &new_GPS, 4);
+    }
+#endif
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
     /* to refactor with CBR */
