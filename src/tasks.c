@@ -337,7 +337,7 @@ MENU_UPDATE_FUNC(tasks_print)
 }
 #endif
 
-#ifdef CONFIG_6D
+#ifdef CONFIG_GPS
 PROP_INT(PROP_GPS, gps);
 #endif
 
@@ -350,7 +350,7 @@ void ml_shutdown()
     info_led_on();
     _card_led_on();
     restore_af_button_assignment_at_shutdown();
-#ifdef CONFIG_6D
+#ifdef CONFIG_GPS
 	if (gps != 0)
     {
        int new_gps = 0;
