@@ -50,24 +50,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /*********************** Camera-specific constants ****************************/
 
-/**
- * LiveView raw buffer address
- * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
- **/
-
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
-#define RAW_LV_EDMAC 0xC0F04508
-#endif
-
-#if defined(CONFIG_500D) || defined(CONFIG_550D) || defined(CONFIG_7D)
-#define RAW_LV_EDMAC 0xC0F26008
-#endif
-
-#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
-/* probably all new cameras use this address */
-#define RAW_LV_EDMAC 0xC0F26208
-#endif
-
 #ifdef CONFIG_EDMAC_RAW_SLURP
 /* undefine so we don't use it by mistake */
 #undef RAW_LV_EDMAC
@@ -94,10 +76,26 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 //~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
 #endif
 
-#else
 
-/* with Canon lv_save_raw, just read it from EDMAC */
-#define DEFAULT_RAW_BUFFER shamem_read(RAW_LV_EDMAC)
+#else // "Traditional" RAW LV buffer detection
+
+/**
+ * LiveView raw buffer address
+ * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
+ **/
+
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#define RAW_LV_EDMAC 0xC0F04508
+#endif
+
+#if defined(CONFIG_500D) || defined(CONFIG_550D) || defined(CONFIG_7D)
+#define RAW_LV_EDMAC 0xC0F26008
+#endif
+
+#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
+/* probably all new cameras use this address */
+#define RAW_LV_EDMAC 0xC0F26208
+#endif
 
 #endif
 
@@ -372,6 +370,19 @@ static int compute_dynamic_range(int black_mean, int black_stdev, int white_leve
 static int autodetect_white_level(int initial_guess);
 
 #ifdef CONFIG_RAW_LIVEVIEW
+#if defined(CONFIG_BROKEN_RAW_LV_BUFFER)
+static void* raw_allocated_lv_buffer = 0;
+#endif
+static void* raw_get_default_lv_buffer()
+{
+#if defined(DEFAULT_RAW_BUFFER)
+    return (void*) DEFAULT_RAW_BUFFER;
+#elif defined(CONFIG_BROKEN_RAW_LV_BUFFER)
+    return raw_allocated_lv_buffer;
+#else
+    return (void*) shamem_read(RAW_LV_EDMAC);
+#endif
+}
 /* returns 1 on success */
 static int raw_lv_get_resolution(int* width, int* height)
 {
@@ -379,37 +390,34 @@ static int raw_lv_get_resolution(int* width, int* height)
 
     /* params useful for hardcoding buffer sizes, according to video mode */
     int mv = is_movie_mode();
+    int mv640 = mv && video_mode_resolution == 2;
     int mv720 = mv && video_mode_resolution == 1;
     int mv1080 = mv && video_mode_resolution == 0;
-    int mv640 = mv && video_mode_resolution == 2;
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
     int zoom = lv_dispsize > 1;
 
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3)
     /* don't know how to get the resolution without relying on Canon's lv_save_raw */
     *width  = zoom ? 3744 : mv720 ? 2080 : 2080;
     *height = zoom ? 1380 : mv720 ?  692 : 1318;    /* height must be exact! copy it from Debug->EDMAC */
-    return 1;
-    #endif
 
-    #ifdef CONFIG_60D
+    #elif defined(CONFIG_60D)
     *width  = zoom ? 2520 : mv640crop ? 920 : mv720 || mv640 ? 1888 : 1888;
     *height = zoom ? 1106 : mv640crop ? 624 : mv720 || mv640 ?  720 : 1182;
-    return 1;
-    #endif
 
-    #ifdef CONFIG_600D
+    #elif defined(CONFIG_600D)
     *width  = zoom ? 2520 : mv1080crop ? 1952 : mv720  ? 1888 : 1888;
     *height = zoom ? 1106 : mv1080crop ? 1048 : mv720  ?  720 : 1182;
-    return 1;
+
+    #else
+    #error CONFIG_EDMAC_RAW_SLURP enabled but RAW LV buffer dimensions not configured!
     #endif
 
-    /* unknown camera? */
-    return 0;
+    return 1;
 
 #else
     /* autodetect raw size from EDMAC */
@@ -445,15 +453,15 @@ static int raw_update_params_work()
     
     /* params useful for hardcoding buffer sizes, according to video mode */
     int mv = is_movie_mode();
+    int mv640 = mv && video_mode_resolution == 2;
     int mv720 = mv && video_mode_resolution == 1;
     int mv1080 = mv && video_mode_resolution == 0;
-    int mv640 = mv && video_mode_resolution == 2;
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
     int zoom = lv_dispsize > 1;
     
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     if (lv)
     {
@@ -464,7 +472,7 @@ static int raw_update_params_work()
             return 0;
         }
         
-        raw_info.buffer = (void*) DEFAULT_RAW_BUFFER;
+        raw_info.buffer = raw_get_default_lv_buffer();
         
         if (!raw_info.buffer)
         {
@@ -1393,7 +1401,7 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 void FAST raw_lv_vsync()
 {
     /* where should we save the raw data? */
-    void* buf = redirected_raw_buffer ? redirected_raw_buffer : (void*) DEFAULT_RAW_BUFFER;
+    void* buf = redirected_raw_buffer ? redirected_raw_buffer : raw_get_default_lv_buffer();
     
     if (buf && lv_raw_enabled)
     {
@@ -1667,6 +1675,11 @@ static void raw_lv_enable()
     old_raw_type = MEM(RAW_TYPE_ADDRESS);
     MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
     #endif
+#elif defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
+    if(!raw_allocated_lv_buffer) 
+    {
+        raw_allocated_lv_buffer = malloc(RAW_LV_BUFFER_ALLOC_SIZE);
+    }
 #endif
 }
 
@@ -1685,6 +1698,11 @@ static void raw_lv_disable()
         old_raw_type = -1;
     }
     #endif
+#elif defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
+    if(raw_allocated_lv_buffer) {
+        free(raw_allocated_lv_buffer);
+        raw_allocated_lv_buffer = 0;
+    }
 #endif
 }
 
