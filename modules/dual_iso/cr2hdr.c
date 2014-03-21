@@ -55,6 +55,24 @@ static int is_bright[4];
 #include "module_strings.h"
 
 
+/* http://www.developpez.net/forums/d544518/c-cpp/c/equivalent-randn-matlab-c/#post3241904 */
+
+#define TWOPI (6.2831853071795864769252867665590057683943387987502) /* 2 * pi */
+ 
+/* 
+   RAND is a macro which returns a pseudo-random numbers from a uniform
+   distribution on the interval [0 1]
+*/
+#define RAND (rand())/((double) RAND_MAX)
+ 
+/* 
+   RANDN is a macro which returns a pseudo-random numbers from a normal
+   distribution with mean zero and standard deviation one. This macro uses Box
+   Muller's algorithm
+*/
+#define RANDN (sqrt(-2.0*log(RAND))*cos(TWOPI*RAND))
+
+
 /** Command-line interface */
 
 int interp_method = 0;          /* 0:amaze-edge, 1:mean23 */
@@ -473,6 +491,12 @@ int raw_get_pixel_20to16(int x, int y) {
 
 void raw_set_pixel_20to16(int x, int y, int value) {
     raw_set_pixel16(x, y, value >> 4);
+}
+
+void raw_set_pixel_20to16_rand(int x, int y, int value) {
+    /* To avoid posterization, it's a good idea to add some noise before rounding */
+    /* The sweet spot seems to be with Gaussian noise of stdev=0.4, http://www.magiclantern.fm/forum/index.php?topic=10895.msg107972#msg107972 */
+    raw_set_pixel16(x, y, round(value / 16.0 + RANDN * 0.4));
 }
 
 static void reverse_bytes_order(void* buf, int count)
@@ -1567,7 +1591,7 @@ static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_w
     double raw_baked = (raw - in_black) * wb / max_wb + in_black;
     double raw_soft = soft_film(raw_baked, exposure * max_wb, in_black, in_white, out_black, out_white);
     double raw_adjusted = (raw_soft - out_black) / wb + out_black;
-    return raw_adjusted;
+    return round(raw_adjusted + RANDN * 0.4);
 }
 
 static int hdr_interpolate()
@@ -2851,7 +2875,7 @@ static int hdr_interpolate()
 
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++)
-            raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
+            raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
 
     if (soft_film_ev > 0)
     {
