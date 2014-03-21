@@ -171,7 +171,6 @@ feature_links = {
     'FEATURE_LCD_SENSOR_REMOTE'         :  'http://wiki.magiclantern.fm/userguide#lcdsensor_remote',
     'FEATURE_MLU'                       :  'http://wiki.magiclantern.fm/userguide#mirror_lockup',
     'FEATURE_MOTION_DETECT'             :  'http://wiki.magiclantern.fm/userguide#motion_detect',
-    'FEATURE_POST_DEFLICKER'            :  'http://www.magiclantern.fm/forum/index.php?topic=5705',
     'FEATURE_SILENT_PIC'                :  'http://wiki.magiclantern.fm/userguide#silent_pictures',
     'FEATURE_AFMA_TUNING'               :  'http://www.magiclantern.fm/forum/index.php?topic=4648.0',
     'FEATURE_FOCUS_STACKING'            :  'http://wiki.magiclantern.fm/userguide#stack_focus',
