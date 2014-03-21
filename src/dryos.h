@@ -254,4 +254,8 @@ void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-onl
 extern int get_display_is_on_550D();
 #endif
 
+#ifdef CONFIG_LCD_SENSOR
+void DispSensorStart();
+#endif
+
 #endif

@@ -46,6 +46,11 @@
 #include "fps.h"
 #include "lvinfo.h"
 
+#ifdef FEATURE_LCD_SENSOR_REMOTE
+#include "lcdsensor.h"
+#endif
+
+
 /* only included for clock CBRs (to be removed after refactoring) */
 #include "battery.h"
 #include "tskmon.h"

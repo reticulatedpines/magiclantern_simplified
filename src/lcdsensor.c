@@ -23,6 +23,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include<lcdsensor.h>
+
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
@@ -31,6 +33,9 @@
 #include "property.h"
 #include "lens.h"
 #include "gui.h"
+#include "focus.h"
+#include "zebra.h"
+#include "shoot.h"
 
 #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
 CONFIG_INT("lcdsensor.shortcuts", lcd_sensor_shortcuts, 0);
@@ -49,7 +54,6 @@ int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts==1 || (lcd_sensor_s
 #endif
 
 #ifdef FEATURE_LCD_SENSOR_REMOTE
-void display_lcd_remote_icon(int x0, int y0);
 
 MENU_UPDATE_FUNC(lcd_release_display)
 {
@@ -101,7 +105,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
         if (lcd_release_running == 3 && RECORDING) schedule_movie_end(); // wave mode is allowed to stop movies
         else if (RECORDING && is_rack_focus_enabled())
         {
-            rack_focus_start_now(0);
+            rack_focus_start_now(0,0);
         }
         else
         {
