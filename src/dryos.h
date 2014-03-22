@@ -266,4 +266,6 @@ void Gui_SetSoundRecord( int );
 void GUI_SetLvMode( int );
 #endif
 
+void SoundDevActiveIn( int );
+
 #endif

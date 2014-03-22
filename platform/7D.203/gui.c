@@ -29,6 +29,7 @@
 #include <config.h>
 #include <consts.h>
 #include <lens.h>
+#include <boot-hack.h>
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
