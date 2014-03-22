@@ -46,7 +46,7 @@ int compute_signature(int* start, int len)
 int check_signature()
 {
     int sig = compute_signature((int*)SIG_START, SIG_LEN);
-    if(sig == CAMERA_SIGNATURE)
+    if(sig == (int) CAMERA_SIGNATURE)
     {
         return 1;
     }
