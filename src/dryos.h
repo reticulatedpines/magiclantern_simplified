@@ -258,4 +258,12 @@ extern int get_display_is_on_550D();
 void DispSensorStart();
 #endif
 
+#ifdef CONFIG_5D2
+void StartPlayProtectGuideApp();
+void StopPlayProtectGuideApp();
+void PtpDps_remote_release_SW1_SW2_worker();
+void Gui_SetSoundRecord( int );
+void GUI_SetLvMode( int );
+#endif
+
 #endif
