@@ -36,3 +36,48 @@ unsigned int get_model_id(const char* filename)
     return tag & 0xFFF;
 }
 
+// Red balance is the ratio G/R for a neutral color (typically > 1)
+// Blue balance is the ratio G/B for a neutral color (typically > 1)
+void read_white_balance(const char* filename, float* red_balance, float* blue_balance)
+{
+    char exif_cmd[1000];
+    int error = 0;
+    int mode;
+    int r, g1, g2, b;
+
+    //Determine WB mode (0 means Auto)
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -WhiteBalance -b \"%s\"", filename);
+    FILE* exif_file = popen(exif_cmd, "r");
+    if (exif_file)
+    {
+        if (fscanf(exif_file, "%d", &mode) != 1) error = 1;
+        pclose(exif_file);
+    }
+    else error = 1;
+
+    //If WB mode is Auto, read the Measured values, otherwise read the As Shot values
+    //Measured values are used rather than Auto values, which may have adjusted temperatures
+    if (!error && (mode == 0))
+    {
+        snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -WB_RGGBLevelsMeasured -b \"%s\"", filename);
+    }
+    else
+    {
+        snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -WB_RGGBLevelsAsShot -b \"%s\"", filename);
+    }
+    exif_file = popen(exif_cmd, "r");
+    if (!error && exif_file)
+    {
+        if (fscanf(exif_file, "%d %d %d %d", &r, &g1, &g2, &b) != 4) error = 1;
+        else
+        {
+            *red_balance = ((float)r)/g1;
+            *blue_balance = ((float)b)/g2;
+        }
+        pclose(exif_file);
+    }
+    else error = 1;
+
+    if (error) printf("**WARNING** could not understand white balance information\n");
+}
+
