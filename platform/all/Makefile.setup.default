@@ -1,4 +1,4 @@
 
-ML_SRC_REBOOT_OBJ = reboot-all.o
+ML_SRC_REBOOT_OBJ = fw-signature.o reboot-all.o
 
 CONFIG_MODULES=n

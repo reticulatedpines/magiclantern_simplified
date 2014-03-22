@@ -27,6 +27,8 @@
 #define CAMERA_SIGNATURE (SIG_650D_104)
 #elif defined(CONFIG_700D)
 #define CAMERA_SIGNATURE (SIG_700D_113)
+#elif defined(CONFIG_UNIFIED)
+#warning This platform only supports runtime-checking of the firmware signature during boot
 #else
 #error Unsupported platform, please edit fw-signature.c accordingly.
 #endif
@@ -42,7 +44,7 @@ int compute_signature(int* start, int len)
     return c;
 }
 
-
+#if !defined(CONFIG_UNIFIED)
 int check_signature()
 {
     int sig = compute_signature((int*)SIG_START, SIG_LEN);
@@ -55,3 +57,4 @@ int check_signature()
         return 0;
     }
 }
+#endif

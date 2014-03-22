@@ -36,6 +36,8 @@
 //TODO: Fix CONFIG_100D
 
 int compute_signature(int * start, int len);
+#if !defined(CONFIG_UNIFIED)
 int check_signature();
+#endif
 
 #endif //_fw_signature_h_
