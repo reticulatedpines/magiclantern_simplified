@@ -98,6 +98,7 @@ static void FAST vsync_func() // called once per frame.. in theory :)
 
     #ifdef FEATURE_FPS_OVERRIDE
     #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+    extern void fps_update_timers_from_evfstate();
     fps_update_timers_from_evfstate();
     #endif
     #endif

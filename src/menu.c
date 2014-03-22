@@ -4325,6 +4325,27 @@ void keyrepeat_ack(int button_code) // also for arrow shortcuts
     keyrep_ack = (button_code == keyrepeat);
 }
 
+#ifdef CONFIG_TOUCHSCREEN
+int handle_ml_menu_touch(struct event * event)
+{
+    int button_code = event->param;
+    switch (button_code) {
+        case BGMT_TOUCH_1_FINGER:
+            fake_simple_button(BGMT_Q);
+            return 0;
+        case BGMT_TOUCH_2_FINGER:
+            fake_simple_button(BGMT_TRASH);
+            return 0;
+        case BGMT_UNTOUCH_1_FINGER:
+        case BGMT_UNTOUCH_2_FINGER:
+            return 0;
+        default:
+            return 1;
+    }
+    return 1;
+}
+#endif
+
 int
 handle_ml_menu_keys(struct event * event) 
 {
@@ -4628,26 +4649,6 @@ handle_ml_menu_keys(struct event * event)
     return 0;
 }
 
-#ifdef CONFIG_TOUCHSCREEN
-int handle_ml_menu_touch(struct event * event)
-{
-    int button_code = event->param;
-    switch (button_code) {
-        case BGMT_TOUCH_1_FINGER:
-            fake_simple_button(BGMT_Q);
-            return 0;
-        case BGMT_TOUCH_2_FINGER:
-            fake_simple_button(BGMT_TRASH);
-            return 0;
-        case BGMT_UNTOUCH_1_FINGER:
-        case BGMT_UNTOUCH_2_FINGER:
-            return 0;
-        default:
-            return 1;
-    }
-    return 1;
-}
-#endif
 
 
 void
