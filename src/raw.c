@@ -370,14 +370,14 @@ static int compute_dynamic_range(int black_mean, int black_stdev, int white_leve
 static int autodetect_white_level(int initial_guess);
 
 #ifdef CONFIG_RAW_LIVEVIEW
-#if defined(CONFIG_BROKEN_RAW_LV_BUFFER)
+#if defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
 static void* raw_allocated_lv_buffer = 0;
 #endif
 static void* raw_get_default_lv_buffer()
 {
 #if defined(DEFAULT_RAW_BUFFER)
     return (void*) DEFAULT_RAW_BUFFER;
-#elif defined(CONFIG_BROKEN_RAW_LV_BUFFER)
+#elif defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
     return raw_allocated_lv_buffer;
 #else
     return (void*) shamem_read(RAW_LV_EDMAC);
