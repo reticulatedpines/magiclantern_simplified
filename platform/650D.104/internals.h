@@ -83,8 +83,8 @@
 /** We can also override shutter on a per-frame basis */
 #define CONFIG_FRAME_SHUTTER_OVERRIDE
 
-/** We can't change ExpSim from ML :( **/
-//~ #define CONFIG_EXPSIM
+/** We can change ExpSim from ML **/
+#define CONFIG_EXPSIM
 
 /** We can playback sounds via ASIF DMA **/
 //#define CONFIG_BEEP  //works, but causes module menu not to load
