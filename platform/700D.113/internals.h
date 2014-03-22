@@ -52,7 +52,7 @@
 /** We can do bulb exposures **/
 #define CONFIG_BULB
 
-/** There is not a separate bulb mode on the mode dial **/
+/** Bulb mode is done by going to M mode and setting shutter speed beyond 30s **/
 //~ #define CONFIG_SEPARATE_BULB_MODE
 
 /** We can't control audio settings from ML, YET! **/
@@ -100,7 +100,7 @@
 /** We know how to use engine resource locks */
 #define CONFIG_ENGINE_RESLOCK
 
-/** We do warn the user if movie exposure is Auto **/
+/** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
 
 /** We can display some extra info in photo mode (not LiveView) **/
@@ -118,24 +118,11 @@
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
 
-/** We can adjust AFMA (AF microadjustment) */
-//~ #define CONFIG_AFMA
-
-/** The camera doesn't accept extended AFMA values (default range: -20...20; extended: -100...100) */
-/** This can be dangerous, as the values are outside Canon limits */
-//~ #define CONFIG_AFMA_EXTENDED
-
-/** You can't configure separate AFMA values for both wide and tele ends */
-//~ #define CONFIG_AFMA_WIDE_TELE
-
-/** File I/O **/
+/** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
 
 /** FPS override: change timers from EVF state (both methods are OK on 5D3) */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
-
-/** This camera uses Rec.601 */
-//~ #define CONFIG_REC709
 
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO

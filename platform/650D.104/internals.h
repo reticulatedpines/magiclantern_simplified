@@ -11,14 +11,8 @@
  */
 #define CONFIG_STATE_OBJECT_HOOKS
 
-/** This camera runs DryOS **/
-//~ #define CONFIG_VXWORKS
-
 /** This camera has a DIGIC V chip */
 #define CONFIG_DIGIC_V
-
-/** This camera has an APS-C sensor */
-//~ #define CONFIG_FULLFRAME
 
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW
@@ -30,7 +24,7 @@
 /** We only have a single red LED **/
 //~ #define CONFIG_BLUE_LED
 
-/** There's a display sensor **/
+/** There is a LCD sensor that turns the display off **/
 #define CONFIG_LCD_SENSOR
 
 /** This camera has a mirror lockup feature **/
@@ -64,7 +58,7 @@
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** No zoom button while recording **/
+/** Zoom button can't be used while recording (for Magic Zoom) **/
 #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
@@ -127,6 +121,6 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** We have access to Raw data */
-#define CONFIG_RAW_LIVEVIEW
+/** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW
