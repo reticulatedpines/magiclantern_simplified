@@ -124,7 +124,6 @@ CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
 static CONFIG_INT("mlv.video.buffer_fill_method", buffer_fill_method, 4);
 static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 3);
-static CONFIG_INT("mlv.video.test_mode", test_mode, 0);
 static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.res.x", resolution_index_x, 12);
@@ -222,9 +221,6 @@ static char raw_tag_str_tmp[1024];
 static int32_t raw_tag_take = 0;
 
 static int32_t mlv_file_count = 0;
-
-/* string buffer for test loops */
-static char test_results[100][100];
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
 
@@ -2624,11 +2620,6 @@ abort:
         FIO_CloseFile(f);
     }
 
-    if(test_mode)
-    {
-        FIO_RemoveFile(chunk_filename[writer]);
-    }
-
     util_atomic_dec(&mlv_rec_threads);
 }
 
@@ -2878,9 +2869,6 @@ static void mlv_rec_queue_blocks()
 
 static void raw_video_rec_task()
 {
-    int test_loop = 0;
-    int test_case_loop = 0;
-
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
 
@@ -2928,11 +2916,6 @@ static void raw_video_rec_task()
 
     hack_liveview(0);
 
-    if(test_mode)
-    {
-        buffer_fill_method = 0;
-        abort_test = 0;
-    }
 
     do
     {
@@ -2973,24 +2956,6 @@ static void raw_video_rec_task()
         /* create all possible files with an reference header */
         mlv_rec_precreate_files(mlv_movie_filename, MAX_PRECREATE_FILES, mlv_file_hdr);
         
-        if(test_mode)
-        {
-            uint32_t test_loop_entry = test_loop % COUNT(test_results);
-
-            snprintf(test_results[test_loop_entry], sizeof(test_results[test_loop_entry]), "[Test #%03d] M: %d B: %d", test_loop + 1, buffer_fill_method, fast_card_buffers);
-
-            /* print old test results */
-            for(uint32_t pos = 0; pos < test_loop_entry; pos++)
-            {
-                uint32_t ypos = 210 + ((pos % 13) * font_med.height);
-                bmp_printf(FONT(FONT_MED, COLOR_GRAY(10), COLOR_BLACK), 30, ypos, test_results[pos]);
-            }
-
-            /* current result which is not complete yet */
-            uint32_t ypos = 210 + ((test_loop_entry % 13) * font_med.height);
-            bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 30, ypos, test_results[test_loop_entry]);
-        }
-
         /* open files for writers */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
@@ -3080,13 +3045,6 @@ static void raw_video_rec_task()
             {
                 NotifyBox(5000, "Frame skipped. Stopping");
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
-                raw_recording_state = RAW_FINISHING;
-                raw_rec_cbr_stopping();
-            }
-
-            if(test_mode && (frames_written[0] + frames_written[1] > 4000))
-            {
-                trace_write(raw_rec_trace_ctx, "<-- stopped test mode, reached 4000 frames");
                 raw_recording_state = RAW_FINISHING;
                 raw_rec_cbr_stopping();
             }
@@ -3214,12 +3172,6 @@ static void raw_video_rec_task()
                     mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                     FIO_CloseFile(handle->file_handle);
 
-                    /* in test mode remove all files after closing */
-                    if(test_mode)
-                    {
-                        FIO_RemoveFile(handle->filename);
-                    }
-
                     /* "free" that job buffer again */
                     msg_queue_post(mlv_job_alloc_queue, (uint32_t) handle);
                 }
@@ -3271,12 +3223,6 @@ static void raw_video_rec_task()
                 FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
                 mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                 FIO_CloseFile(handle->file_handle);
-
-                /* in test mode remove all files after closing */
-                if(test_mode)
-                {
-                    FIO_RemoveFile(handle->filename);
-                }
 
                 /* "free" that job buffer again */
                 msg_queue_post(mlv_job_alloc_queue, (uint32_t) handle);
@@ -3355,43 +3301,8 @@ static void raw_video_rec_task()
 
         set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
-        if(test_mode)
-        {
-            int written_kbytes = written[0] + written[1];
-            int written_frames = frames_written[0] + frames_written[1];
-            char msg[100];
-            snprintf(msg, sizeof(msg), "%d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
-
-            trace_write(raw_rec_trace_ctx, "[Test #%03d] M: %d, B: %d, W: %d KiB, F: %d, Rate: %s", test_loop + 1, buffer_fill_method, fast_card_buffers, written_kbytes, written_frames, msg);
-
-
-            uint32_t ypos = 210 + ((test_loop % 13) * font_med.height);
-            uint32_t test_loop_entry = test_loop % COUNT(test_results);
-            snprintf(test_results[test_loop_entry], sizeof(test_results[test_loop_entry]), "[Test #%03d] M: %d B: %d W: %5d MiB F: %4d (%s)   ", test_loop + 1, buffer_fill_method, fast_card_buffers, written_kbytes / 1024, written_frames, msg);
-            bmp_printf(FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK), 30, ypos, test_results[test_loop_entry]);
-
-            test_loop++;
-        }
-
-        test_case_loop++;
-        test_case_loop %= 4;
-
-        if(test_case_loop == 0)
-        {
-            buffer_fill_method++;
-            buffer_fill_method %= 5;
-
-            /*
-            if(!buffer_fill_method)
-            {
-                fast_card_buffers++;
-                fast_card_buffers %= MIN((slot_count - 1), 5);
-            }
-            */
-        }
-
         trace_flush(raw_rec_trace_ctx);
-    } while(test_mode && !abort_test);
+    } while(false);
 
 cleanup:
     /* signal that we are stopping */
@@ -3708,12 +3619,6 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &show_graph,
                 .max = 1,
                 .help = "Displays a graph of the current buffer usage and expected frames",
-            },
-            {
-                .name = "Test mode",
-                .priv = &test_mode,
-                .max = 1,
-                .help = "Record repeatedly, changing buffering methods etc",
             },
             {
                 .name = "Buffer fill method",
@@ -4093,7 +3998,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(buffer_fill_method)
     MODULE_CONFIG(fast_card_buffers)
     MODULE_CONFIG(enable_tracing)
-    MODULE_CONFIG(test_mode)
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
