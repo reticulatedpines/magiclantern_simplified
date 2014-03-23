@@ -2316,8 +2316,8 @@ static uint32_t raw_get_next_filenum()
     uint32_t fileNum = 0;
 
     uint32_t old_int = cli();
-    fileNum = mlv_file_hdr.fileCount;
     mlv_file_hdr.fileCount++;
+    fileNum = mlv_file_hdr.fileCount;
     sei(old_int);
 
     return fileNum;
@@ -2491,6 +2491,7 @@ static void raw_writer_task(uint32_t writer)
                         strcpy(next_filename, "");
 
                         frames_written = 0;
+                        FIO_SeekFile(f, 0, SEEK_END);
                         written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
 
                         /* write next header */
@@ -2505,7 +2506,7 @@ static void raw_writer_task(uint32_t writer)
                     else if((free_space < 8 * job->block_size) && !handle_requested)
                     {
                         /* we will reach the 4GiB boundary soon */
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB, request another chunk", writer);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB (0x%08x), request another chunk", writer, free_space);
 
                         /* queue a preparation job */
                         handle_job_t *prepare_job = NULL;
@@ -2532,6 +2533,7 @@ static void raw_writer_task(uint32_t writer)
                 /* start write and measure times */
                 job->last_time_after = last_time_after;
                 job->time_before = get_us_clock_value();
+                job->file_offset = FIO_SeekFile(f, 0, SEEK_CUR);
                 int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
                 job->time_after = get_us_clock_value();
 
@@ -2761,15 +2763,18 @@ static void mlv_rec_precreate_cleanup(char *base_filename, uint32_t count)
     }
 }
 
-static void mlv_rec_precreate_files(char *base_filename, uint32_t count)
+static void mlv_rec_precreate_files(char *base_filename, uint32_t count, mlv_file_hdr_t main_hdr)
 {
     for(uint32_t pos = 0; pos < count; pos++)
     {
         char filename[64];
         FILE *handle = NULL;
+        mlv_file_hdr_t hdr = main_hdr;
+        hdr.fileNum = pos;
         
         get_next_chunk_file_name(base_filename, filename, pos, 0);
         handle = FIO_CreateFile(filename);
+        raw_prepare_chunk(handle, &hdr);
         FIO_CloseFile(handle);
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         
@@ -2777,6 +2782,7 @@ static void mlv_rec_precreate_files(char *base_filename, uint32_t count)
         {
             get_next_chunk_file_name(base_filename, filename, pos, 1);
             handle = FIO_CreateFile(filename);
+            raw_prepare_chunk(handle, &hdr);
             FIO_CloseFile(handle);
             trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         }
@@ -2964,7 +2970,8 @@ static void raw_video_rec_task()
             mlv_writer_threads = 1;
         }
 
-        mlv_rec_precreate_files(mlv_movie_filename, MAX_PRECREATE_FILES);
+        /* create all possible files with an reference header */
+        mlv_rec_precreate_files(mlv_movie_filename, MAX_PRECREATE_FILES, mlv_file_hdr);
         
         if(test_mode)
         {
@@ -2984,11 +2991,9 @@ static void raw_video_rec_task()
             bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 30, ypos, test_results[test_loop_entry]);
         }
 
-        /* create files for writers */
+        /* open files for writers */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            int file_num = raw_get_next_filenum();
-
             written[writer] = 0;
             frames_written[writer] = 0;
             writing_time[writer] = 0;
@@ -2998,8 +3003,8 @@ static void raw_video_rec_task()
 
             get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], writer, writer);
             trace_write(raw_rec_trace_ctx, "Filename (Thread #%d): '%s'", writer, chunk_filename[writer]);
-            mlv_handles[writer] = FIO_CreateFile(chunk_filename[writer]);
-
+            mlv_handles[writer] = FIO_OpenFile(chunk_filename[writer], O_RDWR | O_SYNC);
+            
             /* failed to open? */
             if(mlv_handles[writer] == INVALID_PTR)
             {
@@ -3008,11 +3013,8 @@ static void raw_video_rec_task()
                 beep_times(2);
                 return;
             }
-            
-            /* throw in a MLVI header */
-            mlv_file_hdr_t hdr = mlv_file_hdr;
-            hdr.fileNum = file_num;
-            raw_prepare_chunk(mlv_handles[writer], &hdr);
+
+            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
         }
 
         /* create writer threads with decreasing priority */
@@ -3168,8 +3170,8 @@ static void raw_video_rec_task()
                     /* hack working for one writer only */
                     current_write_speed[returned_job->writer] = rate*100/1024;
 
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d µs",
-                        returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time);
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d µs, offset 0x%08X",
+                        returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time, returned_job->file_offset);
 
                     /* update statistics */
                     writing_time[returned_job->writer] += write_time / 1000;
@@ -3183,28 +3185,22 @@ static void raw_video_rec_task()
                 {
                     handle_job_t *handle = (handle_job_t*)returned_job;
 
-                    /* allocate next chunk number */
-                    handle->file_header.fileNum = raw_get_next_filenum();
-                    handle->file_header.videoFrameCount = 0;
-                    handle->file_header.audioFrameCount = 0;
-                    handle->file_handle = NULL;
-                    strcpy(handle->filename, "");
-
-                    /* create the file */
-                    get_next_chunk_file_name(mlv_movie_filename, handle->filename, handle->file_header.fileNum, handle->writer);
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, handle->filename);
-                    handle->file_handle = FIO_CreateFile(handle->filename);
+                    /* open the next file */
+                    int32_t filenum = raw_get_next_filenum();
+                    get_next_chunk_file_name(mlv_movie_filename, handle->filename, filenum, handle->writer);
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file #%d: '%s'", handle->writer, filenum, handle->filename);
+                    handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
                     if(handle->file_handle == INVALID_PTR)
                     {
-                        NotifyBox(5000, "Failed to create file. Card full?");
+                        NotifyBox(5000, "Failed to open file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
                         break;
                     }
-                    
-                    raw_prepare_chunk(handle->file_handle, &handle->file_header);
 
+                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
+            
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], (uint32_t) handle);
                 }

@@ -88,6 +88,8 @@ typedef struct
     uint32_t job_type;
     uint32_t writer;
 
+    uint32_t file_offset;
+    
     uint32_t block_len;
     uint32_t block_start;
     uint32_t block_size;
@@ -221,7 +223,7 @@ static void raw_writer_task(uint32_t writer);
 static void enqueue_buffer(uint32_t writer, write_job_t *write_job);
 static uint32_t mlv_rec_precreate_del_empty(char *filename);
 static void mlv_rec_precreate_cleanup(char *base_filename, uint32_t count);
-static void mlv_rec_precreate_files(char *base_filename, uint32_t count);
+static void mlv_rec_precreate_files(char *base_filename, uint32_t count, mlv_file_hdr_t hdr);
 static void mlv_rec_wait_frames(uint32_t frames);
 static void mlv_rec_queue_blocks();
 static void raw_video_rec_task();
