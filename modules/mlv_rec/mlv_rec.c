@@ -2124,7 +2124,7 @@ static char *get_next_raw_movie_file_name()
 static int32_t get_next_chunk_file_name(char* base_name, char* filename, int32_t chunk, uint32_t writer)
 {
     /* change file extension, according to chunk number: MLV, M00, M01 and so on */
-    strcpy(filename, base_name);
+    strncpy(filename, base_name, MAX_PATH);
 
     if(chunk > 0)
     {
@@ -2471,7 +2471,7 @@ static void raw_writer_task(uint32_t writer)
                         close_job->writer = writer;
                         close_job->file_handle = f;
                         close_job->file_header = file_header;
-                        strcpy(close_job->filename, chunk_filename[writer]);
+                        strncpy(close_job->filename, chunk_filename[writer], MAX_PATH);
 
                         msg_queue_post(mlv_mgr_queue, (uint32_t) close_job);
 
@@ -2487,8 +2487,8 @@ static void raw_writer_task(uint32_t writer)
                         next_file_handle = NULL;
 
                         /* also update filename */
-                        strcpy(chunk_filename[writer], next_filename);
-                        strcpy(next_filename, "");
+                        strncpy(chunk_filename[writer], next_filename, MAX_PATH);
+                        strncpy(next_filename, "", MAX_PATH);
 
                         frames_written = 0;
                         FIO_SeekFile(f, 0, SEEK_END);
@@ -2591,7 +2591,7 @@ static void raw_writer_task(uint32_t writer)
             handle_job_t *prepare_job = (handle_job_t *)job;
             next_file_handle = prepare_job->file_handle;
             next_file_num = prepare_job->file_header.fileNum;
-            strcpy(next_filename, prepare_job->filename);
+            strncpy(next_filename, prepare_job->filename, MAX_PATH);
 
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: next chunk handle received, file '%s'", writer, next_filename );
         }
@@ -2750,7 +2750,7 @@ static void mlv_rec_precreate_cleanup(char *base_filename, uint32_t count)
 {
     for(uint32_t pos = 0; pos < count; pos++)
     {
-        char filename[64];
+        char filename[MAX_PATH];
         
         get_next_chunk_file_name(base_filename, filename, pos, 0);
         mlv_rec_precreate_del_empty(filename);
@@ -2767,7 +2767,7 @@ static void mlv_rec_precreate_files(char *base_filename, uint32_t count, mlv_fil
 {
     for(uint32_t pos = 0; pos < count; pos++)
     {
-        char filename[64];
+        char filename[MAX_PATH];
         FILE *handle = NULL;
         mlv_file_hdr_t hdr = main_hdr;
         hdr.fileNum = pos;
