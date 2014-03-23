@@ -337,8 +337,8 @@ MENU_UPDATE_FUNC(tasks_print)
 }
 #endif
 
-#ifdef CONFIG_GPS
-PROP_INT(PROP_GPS, gps);
+#ifdef FEATURE_GPS_TWEAKS
+#include "gps.h"
 #endif
 
 void ml_shutdown()
@@ -350,13 +350,9 @@ void ml_shutdown()
     info_led_on();
     _card_led_on();
     restore_af_button_assignment_at_shutdown();
-#ifdef CONFIG_GPS
-	if (gps != 0)
-    {
-       int new_gps = 0;
-       prop_request_change(PROP_GPS, &new_gps, 4);
-    }
-#endif
+#ifdef FEATURE_GPS_TWEAKS
+    gps_tweaks_shutdown_hook();
+#endif    
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
     /* to refactor with CBR */

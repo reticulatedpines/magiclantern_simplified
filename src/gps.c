@@ -14,7 +14,6 @@ static CONFIG_INT("gps.restore.value", gps_restore_value, 0);
 
 
 #ifdef CONFIG_GPS
-#define FEATURE_GPS_TWEAKS
 static PROP_INT(PROP_GPS, gps_state);
 
 uint32_t gps_get_state()
