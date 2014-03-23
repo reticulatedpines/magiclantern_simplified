@@ -55,9 +55,10 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
     }
     else error = 1;
 
-    //If WB mode is Auto, read the Measured values, otherwise read the As Shot values
-    //Measured values are used rather than Auto values, which may have adjusted temperatures
-    if (!error && (mode == 0))
+    //If WB mode is Auto, read the WB_RGGBLevelsMeasured values, otherwise read the WB_RGGBLevelsAsShot values
+    //WB_RGGBLevelsAuto values are avoided because they may contain (incorrect) adjustments by Canon
+    //If WB_RGGBLevels* is missing, fall back on MeasuredRGGB values
+    if (mode == 0)
     {
         snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -WB_RGGBLevelsMeasured -b \"%s\"", filename);
     }
@@ -66,11 +67,27 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
         snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -WB_RGGBLevelsAsShot -b \"%s\"", filename);
     }
     exif_file = popen(exif_cmd, "r");
-    if (!error && exif_file)
+    if (exif_file)
     {
-        if (fscanf(exif_file, "%d %d %d %d", &r, &g1, &g2, &b) != 4) error = 1;
+        if (fscanf(exif_file, "%d %d %d %d", &r, &g1, &g2, &b) != 4) //failed to read WB_RGGBLevels*
+        {
+            snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -MeasuredRGGB -b \"%s\"", filename);
+            FILE* exif_file2 = popen(exif_cmd, "r");
+            if (exif_file2)
+            {
+                if (fscanf(exif_file2, "%d %d %d %d", &r, &g1, &g2, &b) != 4) error = 1; //failed to read MeasuredRGGB
+                else
+                {
+                    //MeasuredRGGB values are proportional to the values of a neutral color
+                    *red_balance = ((float)g1)/r;
+                    *blue_balance = ((float)g2)/b;
+                }
+                pclose(exif_file2);
+            }
+        }
         else
         {
+            //WB_RGGBLevels* values are multipliers, so there is an implied inverse
             *red_balance = ((float)r)/g1;
             *blue_balance = ((float)b)/g2;
         }
