@@ -1154,7 +1154,7 @@ static void show_buffer_status()
         static int32_t prev_xp = 0;
         if(prev_xp)
         {
-            fill_circle(prev_xp, ymin, COLOR_EMPTY, 2);
+            fill_circle(prev_xp, ymin, 2, COLOR_EMPTY);
         }
         int32_t xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
         fill_circle(xp, ymin, 2, COLOR_RED);
