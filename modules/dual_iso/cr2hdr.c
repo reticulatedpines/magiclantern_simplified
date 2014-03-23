@@ -522,6 +522,10 @@ int main(int argc, char** argv)
                     dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
                     printf("AsShotNeutral   : %f 1 %f\n", 1/red_balance, 1/blue_balance);
                 }
+                else
+                {
+                    printf("AsShotNeutral   : (using default values)\n");
+                }
 
                 printf("Output file     : %s\n", out_filename);
                 save_dng(out_filename);
