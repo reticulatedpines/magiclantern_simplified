@@ -1269,24 +1269,25 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     }
     avg_bright /= avg_bright_num;
     //~ printf("avg_bright %f\n", avg_bright);
+    printf("Trying ISO      :     "); fflush(stdout);
 
     int avg_delta = 0;
     int match_test(int gain)
     {
-        //~ printf("Trying %d\n", gain);
-        
+        printf("\b\b\b\b%4d", gain); fflush(stdout);
         /* split the data set in two: dark pixels and bright pixels */
         /* the gain is right when the median residual is the same in both groups */
-        int n = w * h;
+        int n = w * h / 9;
         int * buf_left = malloc(n * sizeof(buf_left[0]));
         int * buf_right = malloc(n * sizeof(buf_right[0]));
         int kl = 0;
         int kr = 0;
         int y0 = raw_info.active_area.y1;
 
-        for (y = y0; y < h-2; y++)
+        /* downsample for speed */
+        for (y = y0; y < h-2; y += 3)
         {
-            for (x = 0; x < w; x++)
+            for (x = 0; x < w; x += 3)
             {
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
@@ -1316,6 +1317,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int off = -avg_delta;
     double a = 100.0 / gain;
     double b = off;
+    printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
 
     if (plot_iso_curve)
     {
