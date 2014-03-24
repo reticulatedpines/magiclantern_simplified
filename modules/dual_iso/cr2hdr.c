@@ -1208,122 +1208,147 @@ static int identify_bright_and_dark_fields(int rggb)
     return 1;
 }
 
-static int match_histograms(double* corr_ev, int* white_darkened)
+typedef int (*CritFunc)(int);
+// crit returns negative if the tested value is too high, positive if too low, 0 if perfect
+
+static int bin_search(int lo, int hi, CritFunc crit)
+{
+    if (lo >= hi-1) return lo;
+    int m = (lo+hi)/2;
+    int c = crit(m);
+    if (c == 0) return m;
+    if (c > 0) return bin_search(m, hi, crit);
+    return bin_search(lo, m, crit);
+}
+
+static int mean2(int a, int b, int white, int* err);
+
+static int match_exposures(double* corr_ev, int* white_darkened)
 {
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
     int black20 = raw_info.black_level;
     int white20 = MIN(raw_info.white_level, *white_darkened);
     int black = black20/16;
     int white = white20/16;
+    int clip = white - black;
 
     int w = raw_info.width;
     int h = raw_info.height;
+    int x, y;
 
-    int x,y;
-    int i;
+    /* quick interpolation for matching */
+    int* dark   = malloc(w * h * sizeof(dark[0]));
+    int* bright = malloc(w * h * sizeof(bright[0]));
+    memset(dark, 0, w * h * sizeof(dark[0]));
+    memset(bright, 0, w * h * sizeof(bright[0]));
     
-    /* build two histograms */
-    int hist_size = 65536 * sizeof(int);
-    int* hist_lo = malloc(hist_size);
-    int* hist_hi = malloc(hist_size);
-    memset(hist_lo, 0, hist_size);
-    memset(hist_hi, 0, hist_size);
-    
-    int y0 = MAX(0, raw_info.active_area.y1 - 8) & ~3; /* gibberish above */
-    
-    /* to simplify things, analyze an identical number of bright and dark lines */
-    for (y = y0; y < h/4*4; y++)
+    /* also average the bright exposure (we will need a rough threshold to split the data set in two) */
+    double avg_bright = 0;
+    int avg_bright_num = 0;
+    for (y = 2; y < h-2; y++)
     {
-        if (BRIGHT_ROW)
-        {
-            for (x = 0; x < w; x++)
-                hist_hi[raw_get_pixel_20to16(x,y)]++;
-        }
-        else
-        {
-            for (x = 0; x < w; x++)
-                hist_lo[raw_get_pixel_20to16(x,y)]++;
-        }
-    }
-    
-    /* compare the two histograms and plot the curve between the two exposures (dark as a function of bright) */
-    const int min_pix = 100;                                /* extract a data point every N image pixels */
-    int data_size = (w * h / min_pix + 1);                  /* max number of data points */
-    int* data_x = malloc(data_size * sizeof(data_x[0]));
-    int* data_y = malloc(data_size * sizeof(data_y[0]));
-    double* data_w = malloc(data_size * sizeof(data_w[0]));
-    int data_num = 0;
-    
-    int acc_lo = 0;
-    int acc_hi = 0;
-    int raw_lo = 0;
-    int raw_hi = 0;
-    int prev_acc_hi = 0;
-    
-    int hist_total = 0;
-    for (i = 0; i < 65536; i++)
-        hist_total += hist_hi[i];
-    
-    for (raw_hi = 0; raw_hi < white; raw_hi++)
-    {
-        acc_hi += hist_hi[raw_hi];
+        int* native = BRIGHT_ROW ? bright : dark;
+        int* interp = BRIGHT_ROW ? dark : bright;
 
-        while (acc_lo < acc_hi)
+        for (x = 0; x < w; x++)
         {
-            acc_lo += hist_lo[raw_lo];
-            raw_lo++;
-        }
-        
-        if (raw_lo >= white)
-            break;
-        
-        if (acc_hi - prev_acc_hi > min_pix)
-        {
-            if (acc_hi > hist_total * 1 / 100 && acc_hi < hist_total * 99.99 / 100)    /* throw away outliers */
+            int pa = raw_get_pixel_20to16(x, y-2) - black;
+            int pb = raw_get_pixel_20to16(x, y+2) - black;
+            int pi = (pa + pb) / 2;
+            if (pa >= clip || pb >= clip) pi = clip;
+            interp[x + y * w] = pi;
+            int pn = raw_get_pixel_20to16(x, y) - black;
+            native[x + y * w] = pn;
+            
+            if (BRIGHT_ROW)
             {
-                data_x[data_num] = raw_hi - black;
-                data_y[data_num] = raw_lo - black;
-                data_w[data_num] = (MAX(0, raw_hi - black + 100));    /* points from higher brightness are cleaner */
-                data_num++;
-                prev_acc_hi = acc_hi;
+                avg_bright += pn;
+                avg_bright_num++;
             }
         }
     }
+    avg_bright /= avg_bright_num;
+    //~ printf("avg_bright %f\n", avg_bright);
 
-    /**
-     * plain least squares
-     * y = ax + b
-     * a = (mean(xy) - mean(x)mean(y)) / (mean(x^2) - mean(x)^2)
-     * b = mean(y) - a mean(x)
-     */
-    
-    double mx = 0, my = 0, mxy = 0, mx2 = 0;
-    double weight = 0;
-    for (i = 0; i < data_num; i++)
+    int avg_delta = 0;
+    int match_test(int gain)
     {
-        mx += data_x[i] * data_w[i];
-        my += data_y[i] * data_w[i];
-        mxy += (double)data_x[i] * data_y[i] * data_w[i];
-        mx2 += (double)data_x[i] * data_x[i] * data_w[i];
-        weight += data_w[i];
+        //~ printf("Trying %d\n", gain);
+        
+        /* split the data set in two: dark pixels and bright pixels */
+        /* the gain is right when the median residual is the same in both groups */
+        int n = w * h;
+        int * buf_left = malloc(n * sizeof(buf_left[0]));
+        int * buf_right = malloc(n * sizeof(buf_right[0]));
+        int kl = 0;
+        int kr = 0;
+        int y0 = raw_info.active_area.y1;
+
+        for (y = y0; y < h-2; y++)
+        {
+            for (x = 0; x < w; x++)
+            {
+                int d = dark[x + y*w];
+                int b = bright[x + y*w];
+                if (b >= clip) continue;
+                
+                int delta = b * 100 / gain - d;
+                if (b < avg_bright)
+                {
+                    buf_left[kl++] = delta;
+                }
+                else
+                {
+                    buf_right[kr++] = delta;
+                }
+            }
+        }
+
+        int delta_left = median_int_wirth(buf_left, kl);
+        int delta_right = median_int_wirth(buf_right, kr);
+        //~ printf("Deltas: %d %d\n", delta_left, delta_right);
+        free(buf_left);
+        free(buf_right);
+        avg_delta = (delta_right + delta_left) / 2;
+        return delta_right - delta_left;
     }
-    mx /= weight;
-    my /= weight;
-    mxy /= weight;
-    mx2 /= weight;
-    double a = (mxy - mx*my) / (mx2 - mx*mx);
-    double b = my - a * mx;
+    int gain = bin_search(100, 6400, match_test);
+    int off = -avg_delta;
+    double a = 100.0 / gain;
+    double b = off;
 
-    #define BLACK_DELTA_THR 1000
-
-    if (ABS(b) > BLACK_DELTA_THR)
+    if (plot_iso_curve)
     {
-        /* sum ting wong */
-        b = 0;
-        a = (double) my / mx;
-        printf("Black delta looks bad, skipping correction\n");
-        goto after_black_correction;
+        printf("Least squares   : y = %f*x + %f\n", a, b);
+        FILE* f = fopen("iso-curve.m", "w");
+        fprintf(f, "a = %g\n", a);
+        fprintf(f, "b = %g\n", b);
+        fprintf(f, "clip = %d\n", clip);
+        fprintf(f, "data = [\n");
+        int y0 = raw_info.active_area.y1;
+        for (y = y0; y < h-2; y++)
+        {
+            for (x = 0; x < w; x++)
+            {
+                int d = dark[x + y*w];
+                int b = bright[x + y*w];
+                if (b >= clip) continue;
+                if (rand()%100 > 1) continue;
+                int delta = b * 100 / gain - d;
+
+                fprintf(f, "    %d %d %d;\n", b, d, delta);
+            }
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "bright = data(:,1);\n");
+        fprintf(f, "dark = data(:,2);\n");
+        fprintf(f, "plot(bright, dark, '.', bright, a*bright+b, '.r');\n");
+        fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
+        fclose(f);
+        if(system("octave --persist iso-curve.m"));
     }
+    free(dark);
+    free(bright);
 
     /* apply the correction */
     double b20 = b * 16;
@@ -1351,51 +1376,6 @@ static int match_histograms(double* corr_ev, int* white_darkened)
         }
     }
     *white_darkened = (white20 - black20 + b20) * a + black20;
-
-after_black_correction:
-    
-    if (plot_iso_curve)
-    {
-        printf("Least squares   : y = %f*x + %f\n", a, b);
-        FILE* f = fopen("iso-curve.m", "w");
-
-        fprintf(f, "x = [");
-        for (i = 0; i < data_num; i++)
-            fprintf(f, "%d ", data_x[i]);
-        fprintf(f, "];\n");
-        
-        fprintf(f, "y = [");
-        for (i = 0; i < data_num; i++)
-            fprintf(f, "%d ",data_y[i]);
-        fprintf(f, "];\n");
-
-        fprintf(f, "hl = [");
-        for (i = 0; i < 65536; i++)
-            fprintf(f, "%d ", hist_lo[i]);
-        fprintf(f, "];\n");
-        
-        fprintf(f, "hh = [");
-        for (i = 0; i < 65536; i++)
-            fprintf(f, "%d ",hist_hi[i]);
-        fprintf(f, "];\n");
-
-        fprintf(f, "a = %f;\n", a);
-        fprintf(f, "b = %f;\n", b);
-
-        fprintf(f, "plot(x, y); hold on;\n");
-        fprintf(f, "plot(x, y - b, 'g');\n");
-        fprintf(f, "plot(x, a * x, 'r');\n");
-        fprintf(f, "print -dpng iso-curve.png\n");
-        fclose(f);
-        
-        if(system("octave --persist iso-curve.m"));
-    }
-
-    free(hist_lo);
-    free(hist_hi);
-    free(data_x);
-    free(data_y);
-    free(data_w);
 
     double factor = 1/a;
     if (factor < 1.2 || !isfinite(factor))
@@ -1809,11 +1789,11 @@ static int hdr_interpolate()
         if(system("octave --persist fullres-curve.m"));
     }
 
-    //~ printf("Histogram matching...\n");
+    //~ printf("Exposure matching...\n");
     /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
     int white_darkened = white_bright;
-    int ok = match_histograms(&corr_ev, &white_darkened);
+    int ok = match_exposures(&corr_ev, &white_darkened);
     if (!ok) goto err;
 
     /* estimate dynamic range */
