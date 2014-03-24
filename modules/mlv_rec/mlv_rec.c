@@ -2118,7 +2118,7 @@ static char *get_next_raw_movie_file_name()
     return filename;
 }
 
-static int32_t get_next_chunk_file_name(char* base_name, char* filename, int32_t chunk, uint32_t writer)
+static int32_t mlv_rec_get_chunk_filename(char* base_name, char* filename, int32_t chunk, uint32_t writer)
 {
     /* change file extension, according to chunk number: MLV, M00, M01 and so on */
     strncpy(filename, base_name, MAX_PATH);
@@ -2746,16 +2746,20 @@ static uint32_t mlv_rec_precreate_del_empty(char *filename)
 
 static void mlv_rec_precreate_cleanup(char *base_filename, uint32_t count)
 {
+    trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_cleanup: check '%s'", base_filename);
+
     for(uint32_t pos = 0; pos < count; pos++)
     {
         char filename[MAX_PATH];
         
-        get_next_chunk_file_name(base_filename, filename, pos, 0);
+        mlv_rec_get_chunk_filename(base_filename, filename, pos, 0);
+        trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_cleanup:   --> '%s'", filename);
         mlv_rec_precreate_del_empty(filename);
         
         if(card_spanning)
         {
-            get_next_chunk_file_name(base_filename, filename, pos, 1);
+            mlv_rec_get_chunk_filename(base_filename, filename, pos, 1);
+            trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_cleanup:   --> '%s'", filename);
             mlv_rec_precreate_del_empty(filename);
         }
     }
@@ -2770,15 +2774,16 @@ static void mlv_rec_precreate_files(char *base_filename, uint32_t count, mlv_fil
         mlv_file_hdr_t hdr = main_hdr;
         hdr.fileNum = pos;
         
-        get_next_chunk_file_name(base_filename, filename, pos, 0);
+        mlv_rec_get_chunk_filename(base_filename, filename, pos, 0);
         handle = FIO_CreateFile(filename);
         raw_prepare_chunk(handle, &hdr);
         FIO_CloseFile(handle);
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         
-        if(card_spanning)
+        /* dont create the .mlv on the second card */
+        if(card_spanning && pos > 0)
         {
-            get_next_chunk_file_name(base_filename, filename, pos, 1);
+            mlv_rec_get_chunk_filename(base_filename, filename, pos, 1);
             handle = FIO_CreateFile(filename);
             raw_prepare_chunk(handle, &hdr);
             FIO_CloseFile(handle);
@@ -2973,7 +2978,7 @@ static void raw_video_rec_task()
             writer_job_count[writer] = 0;
             mlv_handles[writer] = NULL;
 
-            get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], writer, writer);
+            mlv_rec_get_chunk_filename(mlv_movie_filename, chunk_filename[writer], writer, writer);
             trace_write(raw_rec_trace_ctx, "Filename (Thread #%d): '%s'", writer, chunk_filename[writer]);
             mlv_handles[writer] = FIO_OpenFile(chunk_filename[writer], O_RDWR | O_SYNC);
             
@@ -3152,7 +3157,7 @@ static void raw_video_rec_task()
 
                     /* open the next file */
                     int32_t filenum = raw_get_next_filenum();
-                    get_next_chunk_file_name(mlv_movie_filename, handle->filename, filenum, handle->writer);
+                    mlv_rec_get_chunk_filename(mlv_movie_filename, handle->filename, filenum, handle->writer);
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file #%d: '%s'", handle->writer, filenum, handle->filename);
                     handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
