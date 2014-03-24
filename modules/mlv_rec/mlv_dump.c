@@ -1634,7 +1634,7 @@ read_headers:
         else
         {
             /* in xref mode, use every block and get its timestamp etc */
-            if(xref_mode && memcmp(buf.blockType, "NULL", 4))
+            if(xref_mode && memcmp(buf.blockType, "NULL", 4) && memcmp(buf.blockType, "BKUP", 4))
             {
                 xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
 
@@ -1659,7 +1659,7 @@ read_headers:
                 print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
 
                 /* NULL blocks don't have timestamps */
-                if(memcmp(buf.blockType, "NULL", 4))
+                if(memcmp(buf.blockType, "NULL", 4)|| memcmp(buf.blockType, "BKUP", 4))
                 {
                     print_msg(MSG_INFO, "    Time: %f ms\n", (double)buf.timestamp / 1000.0f);
                 }
@@ -1683,34 +1683,44 @@ read_headers:
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
 
-                /* skip frame space */
-                file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-
-                int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
-                void *buf = malloc(frame_size);
-
-                if(fread(buf, frame_size, 1, in_file) != 1)
+                uint32_t skip_block = 0;
+                
+                if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
                 {
+                    print_msg(MSG_ERROR, "Frame space is larger than block size. Skipping\n");
+                    skip_block = 1;
+                }
+
+                if(!skip_block)
+                {
+                    /* skip frame space */
+                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
+
+                    int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
+                    void *buf = malloc(frame_size);
+
+                    if(fread(buf, frame_size, 1, in_file) != 1)
+                    {
+                        free(buf);
+                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        goto abort;
+                    }
+
+                    if(!wavi_info.timestamp)
+                    {
+                        print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
+                    }
+
+                    /* only write WAV if the WAVI header created a file */
+                    if(out_file_wav)
+                    {
+                        /* assume block size is uniform, this allows random access */
+                        file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
+                        fwrite(buf, frame_size, 1, out_file_wav);
+                        wav_file_size += frame_size;
+                    }
                     free(buf);
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
                 }
-
-                if(!wavi_info.timestamp)
-                {
-                    print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
-                }
-
-                /* only write WAV if the WAVI header created a file */
-                if(out_file_wav)
-                {
-                    /* assume block size is uniform, this allows random access */
-                    file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
-                    fwrite(buf, frame_size, 1, out_file_wav);
-                    wav_file_size += frame_size;
-                }
-                free(buf);
-
                 audf_frames_processed++;
             }
             else if(!memcmp(buf.blockType, "VIDF", 4))
@@ -1736,8 +1746,16 @@ read_headers:
                     print_msg(MSG_INFO, "     Pan: %dx%d\n", block_hdr.panPosX, block_hdr.panPosY);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
+                
+                uint32_t skip_block = 0;
+                
+                if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
+                {
+                    print_msg(MSG_ERROR, "Frame space is larger than block size. Skipping\n");
+                    skip_block = 1;
+                }
 
-                if(raw_output || mlv_output || dng_output || lua_state)
+                if((raw_output || mlv_output || dng_output || lua_state) && !skip_block)
                 {
                     /* if already compressed, we have to decompress it first */
                     int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
@@ -2691,6 +2709,10 @@ read_headers:
                 }
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
+            {
+                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+            }
+            else if(!memcmp(buf.blockType, "BKUP", 4))
             {
                 file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
             }
