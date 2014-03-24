@@ -36,10 +36,16 @@ unsigned int get_model_id(const char* filename)
     return tag & 0xFFF;
 }
 
-// Red balance is the ratio G/R for a neutral color (typically > 1)
-// Blue balance is the ratio G/B for a neutral color (typically > 1)
+/*
+This function uses EXIF information to calculate the following two ratios:
+  Red balance is the ratio G/R for a neutral color (typically > 1)
+  Blue balance is the ratio G/B for a neutral color (typically > 1)
+Use only on dual ISO shots!
+*/
 void read_white_balance(const char* filename, float* red_balance, float* blue_balance)
 {
+    //Assume that the RedBalance and BlueBalance values are not trustworthy
+
     char exif_cmd[1000];
     int error = 0;
     int mode;
