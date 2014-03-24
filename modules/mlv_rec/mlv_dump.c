@@ -917,6 +917,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "Parameters:\n");
     print_msg(MSG_INFO, " -o output_file      set the filename to write into\n");
     print_msg(MSG_INFO, " -v                  verbose output\n");
+    print_msg(MSG_INFO, " --black-fix         set black level to 2048 (fix green cast)\n");
     print_msg(MSG_INFO, " --batch             output message suitable for batch processing\n");
 
     print_msg(MSG_INFO, "\n");
@@ -1007,12 +1008,14 @@ int main (int argc, char *argv[])
 
     /* long options */
     int chroma_smooth_method = 0;
+    int black_fix = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 0;
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
+        {"black-fix",  no_argument, &black_fix,  1 },
         {"batch",  no_argument, &batch_mode,  1 },
         {"dump-xrefs",   no_argument, &dump_xrefs,  1 },
         {"dng",    no_argument, &dng_output,  1 },
@@ -2552,7 +2555,12 @@ read_headers:
 
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-
+                
+                if(black_fix)
+                {
+                    block_hdr.raw_info.black_level = 2048;
+                }
+                
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 video_xRes = block_hdr.xRes;
