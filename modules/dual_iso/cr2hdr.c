@@ -1313,7 +1313,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         avg_delta = (delta_right + delta_left) / 2;
         return delta_right - delta_left;
     }
-    int gain = bin_search(100, 6400, match_test);
+    int gain = bin_search(100, 9000, match_test);
     int off = -avg_delta;
     double a = 100.0 / gain;
     double b = off;
