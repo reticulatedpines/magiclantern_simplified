@@ -1260,7 +1260,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
             int pn = raw_get_pixel_20to16(x, y) - black;
             native[x + y * w] = pn;
             
-            if (BRIGHT_ROW)
+            if (BRIGHT_ROW && pn < clip)    /* only average bright pixels that will be used for matching */
             {
                 avg_bright += pn;
                 avg_bright_num++;
