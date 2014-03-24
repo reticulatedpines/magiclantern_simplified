@@ -123,7 +123,7 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
 static CONFIG_INT("mlv.video.buffer_fill_method", buffer_fill_method, 4);
-static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 3);
+static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.black_fix", black_fix, 1);
 static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
