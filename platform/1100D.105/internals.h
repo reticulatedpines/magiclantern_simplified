@@ -127,9 +127,11 @@
 /** This camera uses the exposure comp button to open ML menu */
 #define CONFIG_MENU_WITH_AV
 
-/** We don't have access to Raw data (yet) */
-//~ #define CONFIG_RAW_LIVEVIEW
+/** We have access to Raw data */
 #define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW
+#define CONFIG_EDMAC_RAW_SLURP
+#define CONFIG_ALLOCATE_RAW_LV_BUFFER
 
 /** There are no manual exposure controls in movie mode => we need expo override */
 #define CONFIG_NO_MANUAL_EXPOSURE_MOVIE

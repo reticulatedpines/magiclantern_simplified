@@ -387,7 +387,7 @@ uint32_t raw_write_chan = 4;
 uint32_t raw_write_chan = 1;
 #endif
 
-#ifdef CONFIG_600D 
+#if defined(CONFIG_600D) || defined(CONFIG_1100D)
 // write-index 1, 4, 6, 8, 10, 11, 13
 uint32_t raw_write_chan = 4;
 #endif

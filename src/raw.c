@@ -76,6 +76,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 //~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
 #endif
 
+#ifdef CONFIG_1100D
+#define RAW_LV_BUFFER_ALLOC_SIZE (3906*766)
+#endif
+
 
 #else // "Traditional" RAW LV buffer detection
 
@@ -412,6 +416,11 @@ static int raw_lv_get_resolution(int* width, int* height)
     #elif defined(CONFIG_600D)
     *width  = zoom ? 2520 : mv1080crop ? 1952 : mv720  ? 1888 : 1888;
     *height = zoom ? 1106 : mv1080crop ? 1048 : mv720  ?  720 : 1182;
+
+    #elif defined(CONFIG_1100D)
+    /* RAW LV crashes if we use lv_save_raw but we can delay it overriding FPS to 1 */
+    *width  = zoom ? 2232 : 1496;
+    *height = zoom ? 968  :  766;
 
     #else
     #error CONFIG_EDMAC_RAW_SLURP enabled but RAW LV buffer dimensions not configured!
