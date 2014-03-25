@@ -77,7 +77,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #endif
 
 #ifdef CONFIG_1100D
-#define RAW_LV_BUFFER_ALLOC_SIZE (3906*766)
+#define RAW_LV_BUFFER_ALLOC_SIZE (3906*968)
 #endif
 
 
