@@ -2223,7 +2223,14 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     /* sometimes black level is a bit off. fix that if enabled. ToDo: do all models have 2048? */
     if(black_fix)
     {
-        rawi.raw_info.black_level = 2048;
+        if(cam_50d || cam_5d2)
+        {
+            rawi.raw_info.black_level = 1024;
+        }
+        else
+        {
+            rawi.raw_info.black_level = 2048;
+        }
     }
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
