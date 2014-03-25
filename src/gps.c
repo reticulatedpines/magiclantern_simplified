@@ -7,7 +7,6 @@
 #include "gps.h"
 
 #ifdef FEATURE_GPS_TWEAKS
-static CONFIG_INT("gps.restore.enabled", gps_restore_enabled, 0);
 static CONFIG_INT("gps.restore.value", gps_restore_value, 0);
 
 #endif
@@ -45,16 +44,16 @@ void gps_enable(int type)
 
 void gps_tweaks_shutdown_hook()
 {
-    if(gps_restore_enabled)
+    if(gps_restore_value)
     {
         gps_disable();
-	}
+    }
 }
 
 void gps_tweaks_startup_hook()
 {
-    COERCE(gps_restore_value, 0, 2);
-    if(gps_restore_enabled)
+    COERCE(gps_restore_value, 0, 3);
+    if(gps_restore_value)
     {
         gps_set(gps_restore_value);
     }
@@ -63,18 +62,12 @@ void gps_tweaks_startup_hook()
 
 static struct menu_entry gps_menus[] = {
     {
-        .name = "GPS Power Save",
-        .max = 1,
-        .priv = &gps_restore_enabled,
-        .help   = "Enables/Disables GPS at power off",
-    },
-    {
         .name = "GPS Restore",
         .min = 0,
-        .max = 2,
-        .choices = (const char *[]) {"OFF", "External", "Internal"},
+        .max = 3,
+        .choices = (const char *[]) {"OFF", "Disable" "External", "Internal"},
         .priv = &gps_restore_value,
-        .help   = "Enables/Disables GPS at power off",
+        .help   = "Restore/Disable GPS at startup/shutdown",
     },
 
 
