@@ -404,10 +404,20 @@ static int raw_lv_get_resolution(int* width, int* height)
     /* silence warnings; not all cameras have all these modes */
     (void)mv640; (void)mv720; (void)mv1080; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
+    /*
+     * How to find buffer dimensions for CONFIG_EDMAC_RAW_SLURP:
+     * - Go to LV and use lv_save_raw
+     * - Check the RAW_LV_EDMAC debug info
+     *   - Suppose it reports W: 0xA3A H: 0x3C7 (taken from 1100D in LV mode)
+     * - EDMAC W is the number of bytes per line
+     *   - The W resolutions is computed as: W * 8 / 14 (raw buffer is 14 bits per pixel)
+     *   - Thus 0xA3A  8 / 14 -> 1496 pixels
+     * - EDMAC H is the number of "jumps"
+     *   - The H resolutions is H + 1 -> 0x3C8 -> 968 pixels
+     */
     #if defined(CONFIG_5D3)
-    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
     *width  = zoom ? 3744 : mv720 ? 2080 : 2080;
-    *height = zoom ? 1380 : mv720 ?  692 : 1318;    /* height must be exact! copy it from Debug->EDMAC */
+    *height = zoom ? 1380 : mv720 ?  692 : 1318;
 
     #elif defined(CONFIG_60D)
     *width  = zoom ? 2520 : mv640crop ? 920 : mv720 || mv640 ? 1888 : 1888;
