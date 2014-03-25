@@ -14,6 +14,11 @@
 #include <lens.h>
 #include <math.h>
 #include <zebra.h>
+#include <shoot.h>
+#include <fps.h>
+#include <focus.h>
+#include <beep.h>
+#include <histogram.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
@@ -38,13 +43,18 @@ static int show_metered_areas = 0;
 #define AUTO_ETTR_TRIGGER_BY_SET (auto_ettr_trigger == 2)
 #define AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK (auto_ettr_trigger == 3)
 
+#define IS_EOS_M (camera_model_id == MODEL_EOS_M)
+
 /* status codes */
+#define ETTR_EXPO_PRECOND_TIMEOUT -2
 #define ETTR_EXPO_LIMITS_REACHED -1
 #define ETTR_NEED_MORE_SHOTS 0
 #define ETTR_SETTLED 1
 
-extern int hdr_enabled;
-#define HDR_ENABLED hdr_enabled
+/** Some cameras do not have raw liveview **/
+extern WEAK_FUNC(ret_0) void raw_lv_request();
+extern WEAK_FUNC(ret_0) void raw_lv_release();
+extern WEAK_FUNC(ret_0) int  raw_lv_is_enabled();
 
 static char* get_current_exposure_settings()
 {
@@ -617,16 +627,34 @@ static char prev_exposure_settings[50];
 
 static int auto_ettr_work(int corr)
 {
+    /* will we call auto_ettr_work_m or auto_ettr_work_auto? */
+    int manual_mode = 
+        expo_override_active() || /* consider this one as a fake manual mode */
+        !(shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P);  /* auto ETTR only supports these auto modes */
+    
+    if (manual_mode)
+    {
+        /* in M mode, wait until shutter speed is reported by Canon firmware */
+        int waited = 0;
+        while (lens_info.raw_shutter == 0)
+        {
+            if (waited > 2000)
+            {
+                return ETTR_EXPO_PRECOND_TIMEOUT;
+            }
+            msleep(50);
+            waited += 50;
+        }
+    }
+
     /* save initial exposure settings so we can print them */
     char* expo_settings = get_current_exposure_settings();
     snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
     
-    if (expo_override_active())
+    if (manual_mode)
         return auto_ettr_work_m(corr);
-    else if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
-        return auto_ettr_work_auto(corr);
     else
-        return auto_ettr_work_m(corr);
+        return auto_ettr_work_auto(corr);
 }
 
 static volatile int auto_ettr_running = 0;
@@ -668,6 +696,13 @@ static void auto_ettr_step_task(int corr)
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
+    else if (status == ETTR_EXPO_PRECOND_TIMEOUT)
+    {
+        beep_times(3);
+        ettr_pics_took = 0;
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "ETTR: timeout while waiting for preconditions\n");
+    }
     else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
     {
         /* take another pic */
@@ -696,9 +731,15 @@ static void auto_ettr_step()
     if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE) return;
     int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
     if (lens_info.raw_iso == 0 && is_m) return;
-    if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
-    if (HDR_ENABLED) return;
+    if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET) return;
+
+    if (!raw_update_params())
+    {
+        NotifyBox(5000, "Raw error");
+        return;
+    }
+
     int corr = auto_ettr_get_correction();
     if (corr != INT_MIN)
     {
@@ -715,14 +756,14 @@ static int auto_ettr_check_pre_lv()
     int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
     if (lens_info.raw_iso == 0 && is_m) return 0;
     if (lens_info.raw_shutter == 0 && is_m) return 0;
-    if (HDR_ENABLED) return 0;
+    if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET) return 0;
     int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
     return raw;
 }
 
 static int auto_ettr_check_in_lv()
 {
-    if (AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim) return 0;
+    if (AUTO_ETTR_TRIGGER_ALWAYS_ON && !get_expsim()) return 0;
     if (AUTO_ETTR_TRIGGER_ALWAYS_ON && lv_dispsize != 1) return 0;
     if (LV_PAUSED) return 0;
     if (!liveview_display_idle()) return 0;
@@ -841,7 +882,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
             if (!auto_ettr_wait_lv_frames(10)) return 0;
         }
 
-        /* temporarily enable expsim while metering */
+        /* temporarily enable get_expsim() while metering */
         if (force_expsim_and_zoom)
         {
             if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])
@@ -856,10 +897,10 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
                     if (!auto_ettr_wait_lv_frames(10)) return 0;
                 }
             }
-            else if (!expsim)
+            else if (!get_expsim())
             {
                 /* ExpSim should work well */
-                old_expsim = expsim;
+                old_expsim = get_expsim();
                 set_expsim(1);
                 if (!auto_ettr_wait_lv_frames(10)) return 0;
             }
@@ -945,7 +986,13 @@ static void auto_ettr_on_request_task_fast()
 
     NotifyBox(100000, "ETTR...");
     raw_lv_request(); raw_requested = 1;
-    
+
+    if (!raw_update_params())
+    {
+        err_msg = "Raw error";
+        goto err;
+    }
+
     for (int i = 0; i < 5; i++)
     {
         NotifyBox(100000, "ETTR (%d)...", i+1);
@@ -1041,6 +1088,13 @@ static void auto_ettr_step_lv_fast()
         goto end;
     
     raw_lv_request();
+
+    if (!raw_update_params())
+    {
+        NotifyBox(5000, "Raw error");
+        goto skip;
+    }
+
     int corr = auto_ettr_get_correction();
     
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
@@ -1079,6 +1133,8 @@ static void auto_ettr_step_lv_fast()
 
         auto_ettr_wait_lv_frames(15);
     }
+
+skip:
     raw_lv_release();
     
 end:
@@ -1106,6 +1162,13 @@ static void auto_ettr_on_request_task_slow()
         msleep(500);
         
         raw_lv_request();
+
+        if (!raw_update_params())
+        {
+            err_msg = "Raw error";
+            goto err;
+        }
+
         int corr = auto_ettr_get_correction();
         raw_lv_release();
 
@@ -1199,7 +1262,8 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
     if (lv && !auto_ettr_check_in_lv()) return 1;
     
     if (
-            (AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
+            (IS_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && detect_double_click(key, MODULE_KEY_TOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER)) ||
+            (!IS_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
             (AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && detect_double_click(key, MODULE_KEY_PRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER)) ||
        0)
     {
@@ -1215,6 +1279,10 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
 
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
+    if (lv && ((void*)&raw_lv_request == (void*)&ret_0))
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR Does not work in LV on this camera.");
+    }
     if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M, Av, Tv, P and RAW MOVIE modes.");
 
@@ -1230,10 +1298,10 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
 
-    if (HDR_ENABLED)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+    if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing. Use trigger mode SET.");
 
-    if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !expsim)
+    if (lv && AUTO_ETTR_TRIGGER_ALWAYS_ON && !get_expsim())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
     
     if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)
@@ -1244,7 +1312,8 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_VALUE(
             AUTO_ETTR_TRIGGER_ALWAYS_ON ? "Always ON" : 
             AUTO_ETTR_TRIGGER_AUTO_SNAP ? "Auto Snap" : 
-            AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" : 
+            AUTO_ETTR_TRIGGER_BY_SET && IS_EOS_M ? "Screen DblTap" :
+            AUTO_ETTR_TRIGGER_BY_SET && !IS_EOS_M ? "Press SET" :
             AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK ? "HalfS DBC" : "err"
         );
     }
@@ -1280,7 +1349,7 @@ static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
 static MENU_SELECT_FUNC(auto_ettr_max_shutter_toggle)
 {
     if (auto_ettr_adjust_mode == 0)
-        auto_ettr_max_shutter = mod(auto_ettr_max_shutter/4*4 - 16 + delta * 4, 152 - 16 + 4) + 16;
+        auto_ettr_max_shutter = MOD(auto_ettr_max_shutter/4*4 - 16 + delta * 4, 152 - 16 + 4) + 16;
 }
 
 PROP_HANDLER(PROP_GUI_STATE)
@@ -1316,7 +1385,7 @@ void auto_ettr_intervalometer_wait()
 
 static unsigned int auto_ettr_polling_cbr()
 {
-    if (lv && !recording)
+    if (lv && NOT_RECORDING && ((void*)&raw_lv_request != (void*)&ret_0))
         auto_ettr_step_lv();
     return 0;
 }
@@ -1334,13 +1403,12 @@ static struct menu_entry ettr_menu[] =
             {
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
-                .max = 3,
-                .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
+                .max = 3, // NOTE: Modifed by the module init task to disable ETTR in LV if not supported
+                // choices is set in module init because it is dynamic now
+                //~ .choices =
                 .help  = "When should the exposure be adjusted for ETTR:",
-                .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
-                         "Auto Snap: after u take a pic,trigger another pic if needed\n"
-                         "Press SET: meter for ETTR when you press SET (LiveView)\n"
-                         "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
+                // help2 is set in module init because it is dynamic now
+                //~ .help2 =
             },
             {
                 .name = "Slowest shutter",
@@ -1434,9 +1502,43 @@ static struct menu_entry ettr_menu[] =
     },
 };
 
+static const char * trigger_choices_eosm[] = {"Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick"};
+static const char * trigger_choices_others[] = {"Always ON", "Auto Snap", "Press SET", "HalfS DblClick"};
+
+static const char * trigger_help_eosm = 
+    "Always ON: when you take a pic, or continuously in LiveView\n"
+    "Auto Snap: after u take a pic,trigger another pic if needed\n"
+    "Screen DblTap: meter for ETTR when you tap the screen twice\n"
+    "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
+
+static const char * trigger_help_others = 
+    "Always ON: when you take a pic, or continuously in LiveView\n"
+    "Auto Snap: after u take a pic,trigger another pic if needed\n"
+    "Press SET: meter for ETTR when you press SET (LiveView)\n"
+    "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
+
 static unsigned int ettr_init()
 {
+    if ((void*)&raw_lv_request == (void*)&ret_0)
+    {
+        auto_ettr_trigger  = auto_ettr_trigger > 1 ? 0 : auto_ettr_trigger;
+        ettr_menu[0].children[0].max = 1;
+    }
+
+    // Modify menu for the EOS M
+    if (IS_EOS_M)
+    {
+        ettr_menu[0].children[0].choices = trigger_choices_eosm;
+        ettr_menu[0].children[0].help2 = trigger_help_eosm;
+    }
+    else
+    {
+        ettr_menu[0].children[0].choices = trigger_choices_others;
+        ettr_menu[0].children[0].help2 = trigger_help_others;
+    }
+
     menu_add("Expo", ettr_menu, COUNT(ettr_menu));
+
     return 0;
 }
 

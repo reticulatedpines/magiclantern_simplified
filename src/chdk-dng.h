@@ -14,5 +14,6 @@ void dng_set_lensmodel(char *str);
 void dng_set_focal(int nom, int denom);
 void dng_set_iso(int value);
 void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g_d, float gain_b_n, float gain_b_d);
+void dng_set_datetime(char *datetime, char *subsectime);
 
 #endif // __CHDK_DNG_H_

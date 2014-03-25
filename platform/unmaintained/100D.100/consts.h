@@ -4,7 +4,6 @@
  *  NOTHING FOUND YET
  */
 
-#define CARD_DRIVE ""
 #define CARD_LED_ADDRESS 0xC022C1FC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x93D800
 #define LEDOFF 0x83DC00
@@ -131,7 +130,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 86 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 86 : 2)
 
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 435

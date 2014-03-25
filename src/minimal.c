@@ -112,7 +112,7 @@ copy_and_restart( int offset )
 
 static void run_test()
 {
-    FILE * f = FIO_CreateFile(CARD_DRIVE "FF000000.BIN");
+    FILE * f = FIO_CreateFile("FF000000.BIN");
     if (f != (void*) -1)
     {
         FIO_WriteFile(f, (void*) 0xFF000000, 0x1000000);

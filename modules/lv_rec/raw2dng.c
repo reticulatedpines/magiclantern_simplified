@@ -28,6 +28,7 @@
 #include <chdk-dng.h>
 #include "qsort.h"  /* much faster than standard C qsort */
 #include "../dual_iso/optmed.h"
+#include "../dual_iso/wirth.h"
 
 /* useful to clean pink dots, may also help with color aliasing, but it's best turned off if you don't have these problems */
 //~ #define CHROMA_SMOOTH
@@ -39,7 +40,10 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
+void find_and_fix_cold_pixels(int fix, int framenumber);
 void chroma_smooth();
+
+int fix_cold_pixels = 1; //1=fix cold pixels, 0=disable
 
 #define EV_RESOLUTION 32768
 
@@ -112,15 +116,15 @@ int main(int argc, char** argv)
         raw_info.jpeg.y = 0;
         raw_info.jpeg.height = raw_info.height;
     }
-    
+
     raw_info.frame_size = lv_rec_footer.frameSize;
     
     char* prefix = argc > 2 ? argv[2] : "";
 
-    int i;
-    for (i = 0; i < lv_rec_footer.frameCount; i++)
+    int framenumber;
+    for (framenumber = 0; framenumber < lv_rec_footer.frameCount; framenumber++)
     {
-        printf("\rProcessing frame %d of %d...", i+1, lv_rec_footer.frameCount);
+        printf("\rProcessing frame %d of %d...", framenumber+1, lv_rec_footer.frameCount);
         fflush(stdout);
         int r = fread(raw, 1, lv_rec_footer.frameSize, fi);
         CHECK(r == lv_rec_footer.frameSize, "fread");
@@ -130,11 +134,15 @@ int main(int argc, char** argv)
         //~ reverse_bytes_order(raw, lv_rec_footer.frameSize);
         
         char fn[100];
-        snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
+        snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, framenumber);
+
         fix_vertical_stripes();
+        find_and_fix_cold_pixels(fix_cold_pixels, framenumber);
+
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
         #endif
+
         dng_set_framerate(lv_rec_footer.sourceFpsx1000);
         save_dng(fn, &raw_info);
     }
@@ -200,14 +208,17 @@ int raw_set_pixel(int x, int y, int value)
 static int stripes_coeffs[8] = {0};
 static int stripes_correction_needed = 0;
 
+/* do not use typeof in macros, use __typeof__ instead.
+   see: http://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Alternate-Keywords.html#Alternate-Keywords
+*/
 #define MIN(a,b) \
-   ({ typeof ((a)+(b)) _a = (a); \
-      typeof ((a)+(b)) _b = (b); \
+   ({ __typeof__ ((a)+(b)) _a = (a); \
+      __typeof__ ((a)+(b)) _b = (b); \
      _a < _b ? _a : _b; })
 
 #define MAX(a,b) \
-   ({ typeof ((a)+(b)) _a = (a); \
-       typeof ((a)+(b)) _b = (b); \
+   ({ __typeof__ ((a)+(b)) _a = (a); \
+       __typeof__ ((a)+(b)) _b = (b); \
      _a > _b ? _a : _b; })
 
 #define ABS(a) \
@@ -513,6 +524,97 @@ void fix_vertical_stripes()
     {
         apply_vertical_stripes_correction();
     }
+}
+
+static inline int FC(int row, int col)
+{
+    if ((row%2) == 0 && (col%2) == 0)
+    {
+        return 0;  /* red */
+    }
+    else if ((row%2) == 1 && (col%2) == 1)
+    {
+        return 2;  /* blue */
+    }
+    else
+    {
+        return 1;  /* green */
+    }
+}
+
+
+void find_and_fix_cold_pixels(int fix, int framenumber)
+{
+    #define MAX_COLD_PIXELS 5000
+  
+    struct xy { int x; int y; };
+    
+    static struct xy cold_pixel_list[MAX_COLD_PIXELS];
+    static int cold_pixels = 0;
+    
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int bad_frame;
+    int x,y;
+    
+    if ( !fix )
+    {
+        return;
+    }
+    
+    if ( framenumber == 0 ) /*only on the very first frame*/
+    {
+        cold_pixels = 0;
+
+        for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
+        {
+            for (x = 6; x < w-6; x ++)
+            {
+                int p = raw_get_pixel(x, y);
+                int is_cold = (p == 0);
+
+                if (is_cold && cold_pixels < MAX_COLD_PIXELS) /*generate a list containing the cold pixels*/
+                {
+                    cold_pixel_list[cold_pixels].x = x;
+                    cold_pixel_list[cold_pixels].y = y;
+                    cold_pixels++; /*number of the detected cold pixels*/
+                }
+            }
+        }
+        printf("\rCold pixels : %d                             \n", (cold_pixels));
+    }  
+
+    for (bad_frame = 0; bad_frame < cold_pixels; bad_frame++) /*repair the cold pixels*/
+    {
+        x = cold_pixel_list[bad_frame].x;
+        y = cold_pixel_list[bad_frame].y;
+      
+        int neighbours[100];
+        int i,j;
+        int k = 0;
+        int fc0 = FC(x, y);
+
+        for (i = -4; i <= 4; i++) /*examine the neighbours of the cold pixel*/
+        {
+            for (j = -4; j <= 4; j++)
+            {
+                if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
+                {
+                    continue;
+                }
+                        
+                if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
+                {
+                    continue;
+                }
+
+                int p = raw_get_pixel(x+j, y+i);
+                neighbours[k++] = -p;
+                }
+        }
+        raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
+    }
+    
 }
 
 #ifdef CHROMA_SMOOTH

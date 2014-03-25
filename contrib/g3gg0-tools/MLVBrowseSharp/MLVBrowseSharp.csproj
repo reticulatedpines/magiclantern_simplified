@@ -71,6 +71,25 @@
     <Compile Include="BrowseForm.Designer.cs">
       <DependentUpon>BrowseForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="ConversionProgressItem.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ConversionProgressItem.Designer.cs">
+      <DependentUpon>ConversionProgressItem.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ConversionProgressWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ConversionProgressWindow.Designer.cs">
+      <DependentUpon>ConversionProgressWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MessageWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MessageWindow.Designer.cs">
+      <DependentUpon>MessageWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ShellProgramHelper.cs" />
     <Compile Include="MLVFileIcon.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -87,6 +106,18 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="BrowseForm.resx">
       <DependentUpon>BrowseForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ConversionProgressItem.resx">
+      <DependentUpon>ConversionProgressItem.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ConversionProgressWindow.resx">
+      <DependentUpon>ConversionProgressWindow.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MessageWindow.resx">
+      <DependentUpon>MessageWindow.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="MLVFileIcon.resx">
       <DependentUpon>MLVFileIcon.cs</DependentUpon>
@@ -115,6 +146,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="ShellContextMenu.cs" />
+    <Compile Include="ShellProgramCall.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MLVViewSharp\MLVViewSharp.csproj">

@@ -6,6 +6,8 @@
 #include "gui.h"
 #include "property.h"
 #include "config.h"
+#include "zebra.h"
+#include "shoot.h"
 
 #ifndef CONFIG_CONSOLE
 #error Something went wrong CONFIg_CONSOLE should be defined
@@ -24,13 +26,9 @@ int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
 static char console_buffer[BUFSIZE];
 static int console_buffer_index = 0;
-#define CONSOLE_BUFFER(i) console_buffer[mod((i), BUFSIZE)]
+#define CONSOLE_BUFFER(i) console_buffer[MOD((i), BUFSIZE)]
 
 int console_visible = 0;
-
-#ifdef CONSOLE_DEBUG
-static FILE* console_log_file = 0;
-#endif
 
 static char console_help_text[40];
 static char console_status_text[40];
@@ -45,11 +43,6 @@ void console_hide()
     console_visible = 0;
     msleep(100);
     canon_gui_enable_front_buffer(1);
-
-    #ifdef CONSOLE_DEBUG
-    FIO_CloseFile(console_log_file);
-    console_log_file = 0;
-    #endif
 }
 
 void console_toggle()
@@ -107,12 +100,7 @@ static void console_init()
 
     #ifdef CONSOLE_DEBUG
     menu_add( "Debug", script_menu, COUNT(script_menu) );
-
-	msleep(500);
-
-	if (!console_log_file) {
-	    console_log_file = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/console.log");
-	}
+    FIO_RemoveFile("ML/LOGS/console.log");
     #endif
 }
 
@@ -127,8 +115,10 @@ void console_puts(const char* str) // don't DebugMsg from here!
     #ifdef CONSOLE_DEBUG
     bmp_printf(FONT_MED, 0, 0, "%s ", str);
 
-    if (console_log_file)
-        my_fprintf( console_log_file, "%s", str );
+    FILE* f = FIO_CreateFileOrAppend("ML/LOGS/console.log");
+    FIO_WriteFile( f, str, strlen(str) );
+    FIO_CloseFile(f);
+    //~ msleep(100);         /* uncomment this to troubleshoot things that lockup the camera - to make sure FIO tasks actually flushed everything */
     #endif
 
     const char* c = str;
@@ -136,27 +126,27 @@ void console_puts(const char* str) // don't DebugMsg from here!
     {
         if (*c == '\n')
         {
-            if (mod(console_buffer_index, CONSOLE_W) == 0)
+            if (MOD(console_buffer_index, CONSOLE_W) == 0)
                 NEW_CHAR(' ');
-            while (mod(console_buffer_index, CONSOLE_W) != 0)
+            while (MOD(console_buffer_index, CONSOLE_W) != 0)
                 NEW_CHAR(' ');
         }
         else if (*c == '\t')
         {
             NEW_CHAR(' ');
-            while (mod(mod(console_buffer_index, CONSOLE_W), 4) != 0)
+            while (MOD(MOD(console_buffer_index, CONSOLE_W), 4) != 0)
                 NEW_CHAR(' ');
         }
         else if (*c == 8)
         {
-            console_buffer_index = mod(console_buffer_index - 1, BUFSIZE);
+            console_buffer_index = MOD(console_buffer_index - 1, BUFSIZE);
             console_buffer[console_buffer_index] = ' ';
         }
         else
             NEW_CHAR(*c);
         c++;
     }
-    console_buffer_index = mod(console_buffer_index, BUFSIZE);
+    console_buffer_index = MOD(console_buffer_index, BUFSIZE);
 }
 
 int console_printf(const char* fmt, ...) // don't DebugMsg from here!
@@ -188,7 +178,7 @@ void console_show_status()
 
 static void console_draw(int tiny)
 {
-    int cbpos0 = mod((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W, BUFSIZE);
+    int cbpos0 = MOD((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W, BUFSIZE);
     
     /* display last two lines that actually contain something (don't display the cursor-only line) */
     if (tiny && console_buffer_index % CONSOLE_W == 0)
@@ -281,7 +271,7 @@ static void console_draw(int tiny)
         for (int j = 0; j < CONSOLE_W; j++)
         {
             // last character should be on last line => this ensures proper scrolling
-            if (mod(cbpos+j, BUFSIZE) == mod(console_buffer_index, BUFSIZE)) // end of data
+            if (MOD(cbpos+j, BUFSIZE) == MOD(console_buffer_index, BUFSIZE)) // end of data
             {
                 if (!found_cursor)
                 {
@@ -308,6 +298,9 @@ static void
 console_task( void* unused )
 {
     console_init();
+    #ifdef CONSOLE_DEBUG
+    console_show();
+    #endif
     int dirty = 0;
     TASK_LOOP
     {

@@ -70,7 +70,7 @@ static void sort_cropmarks()
 static void find_cropmarks()
 {
     struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/CROPMKS/", &file );
+    struct fio_dirent * dirent = FIO_FindFirstEx( "ML/CROPMKS/", &file );
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "ML/CROPMKS dir missing\n"
@@ -109,7 +109,7 @@ static void reload_cropmark()
     {
         void* old_crop = cropmarks;
         cropmarks = 0;
-        bmp_free(old_crop);
+        free(old_crop);
     }
 
     cropmark_clear_cache();
@@ -117,7 +117,7 @@ static void reload_cropmark()
     if (!num_cropmarks) return;
     i = COERCE(i, 0, num_cropmarks-1);
     char bmpname[100];
-    snprintf(bmpname, sizeof(bmpname), CARD_DRIVE "ML/CROPMKS/%s", cropmark_names[i]);
+    snprintf(bmpname, sizeof(bmpname), "ML/CROPMKS/%s", cropmark_names[i]);
     cropmarks = bmp_load(bmpname,1);
     if (!cropmarks) bmp_printf(FONT_LARGE, 0, 50, "LOAD ERROR %d:%s   ", i, bmpname);
 }
@@ -125,7 +125,7 @@ static void reload_cropmark()
 static void
 crop_toggle( void* priv, int sign )
 {
-    crop_index = mod(crop_index + sign, num_cropmarks);
+    crop_index = MOD(crop_index + sign, num_cropmarks);
     //~ reload_cropmark(crop_index);
     crop_set_dirty(10);
 }
@@ -569,6 +569,10 @@ static void FAST default_movie_cropmarks()
 
 void set_movie_cropmarks(int x, int y, int w, int h)
 {
+    x = COERCE(x, os.x0+1, os.x_max-1);
+    y = COERCE(y, os.y0+1, os.y_max-1);
+    w = COERCE(w, 0, os.x_max-1 - x);
+    h = COERCE(h, 0, os.y_max-1 - y);
     cropmarks_x = (x << 16) | (x + w);
     cropmarks_y = (y << 16) | (y + h);
 }
@@ -602,7 +606,7 @@ static void cropmark_step()
     /* cropmark frame changed and nobody asked for update? force an update now (once per second) */
     /* food for thought: could this replace the entire crop_set_dirty thingie? */
     static int aux = 0;
-    if (!crop_dirty && should_run_polling_action(recording ? 500 : 100, &aux) && cropmarks_frame_changed())
+    if (!crop_dirty && should_run_polling_action(RECORDING ? 500 : 100, &aux) && cropmarks_frame_changed())
     {
         crop_dirty = 1;
     }

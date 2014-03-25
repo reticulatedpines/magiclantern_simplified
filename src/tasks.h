@@ -83,7 +83,7 @@ struct task_attr_str {
 }; // size = 0x28
 
 /** Return the head of the running task list */
-extern struct task *
+extern int
 get_current_task(void);
 
 /** Official initial task.
@@ -168,5 +168,8 @@ extern int ml_shutdown_requested;
 
 
 char * get_task_name_from_id(int id);
+
+/* to refactor with CBR */
+void task_update_loads(); // called every second from clock_task
 
 #endif

@@ -12,6 +12,10 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "shoot.h"
+#include "zebra.h"
+#include "fps.h"
+#include "beep.h"
 
 #ifdef FEATURE_REC_NOTIFY
 
@@ -135,7 +139,9 @@ static CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.cliplen", movie_cliplen,0);
 #endif
 
-//~ CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+#ifdef FEATURE_REMAP
+static CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+#endif
 static CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 static CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
 static CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
@@ -158,7 +164,7 @@ static void movie_cliplen_toggle(void* priv, int sign)
 {
     int* t = (int*)priv;
     int i = current_cliplen_index(*t);
-    i = mod(i + sign, COUNT(movie_cliplen_values));
+    i = MOD(i + sign, COUNT(movie_cliplen_values));
     *(int*)priv = movie_cliplen_values[i];
 }
 
@@ -195,13 +201,13 @@ static void movie_rec_halfshutter_step()
         }
         
         while (HALFSHUTTER_PRESSED) msleep(50);
-        if (!recording && ALLOW_MOVIE_START) schedule_movie_start();
+        if (NOT_RECORDING && ALLOW_MOVIE_START) schedule_movie_start();
         else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }
 }
 #endif
 
-#if 0 // unstable
+#ifdef FEATURE_REMAP // unstable
 void do_movie_mode_remap()
 {
     if (gui_state == GUISTATE_PLAYMENU) return;
@@ -261,7 +267,7 @@ void close_liveview()
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);
-static CONFIG_UNSIGNED("shutter.lock.value", shutter_lock_value, 0);
+static CONFIG_INT("shutter.lock.value", shutter_lock_value, 0);
 
 #ifdef FEATURE_SHUTTER_LOCK
 static void
@@ -284,7 +290,7 @@ static void shutter_lock_step()
 {
     if (is_movie_mode()) // no effect in photo mode
     {
-        unsigned shutter = lens_info.raw_shutter;
+        int shutter = lens_info.raw_shutter;
         if (shutter_lock_value == 0) shutter_lock_value = shutter; // make sure it's some valid value
         if (!gui_menu_shown()) // lock shutter
         {
@@ -310,8 +316,8 @@ void shutter_btn_rec_do(int rec)
 {
     if (shutter_btn_rec == 1)
     {
-        if (rec) ui_lock(UILOCK_SHUTTER);
-        else ui_lock(UILOCK_NONE);
+        if (rec) gui_uilock(UILOCK_SHUTTER);
+        else gui_uilock(UILOCK_NONE);
     }
     else if (shutter_btn_rec == 2)
     {
@@ -345,9 +351,12 @@ movtweak_task_init()
 static int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 {
     extern thunk ErrCardForLVApp_handler;
-    for (int i = 0; i <= wait/20; i++)
+    for(int i = 0; i <= wait/20; i++)
     {
-        if ((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler) return 1;
+        if((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler)
+        {
+            return 1;
+        }
         msleep(20);
     }
     return 0;
@@ -361,10 +370,11 @@ void movtweak_step()
 
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
+        
         #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
-        if (recording == 0 && recording_prev > 0 && !movie_was_stopped_by_set) // see also gui.c
+        if(!RECORDING_H264 && recording_prev && !movie_was_stopped_by_set) // see also gui.c
         #else
-        if (recording == 0 && recording_prev > 0 && wait_for_lv_err_msg(0))
+        if(!RECORDING_H264 && recording_prev && wait_for_lv_err_msg(0))
         #endif
         {
             if (movie_restart)
@@ -373,13 +383,16 @@ void movtweak_step()
                 movie_start();
             }
         }
-        recording_prev = recording;
+        recording_prev = RECORDING_H264;
 
-        if (!recording) movie_was_stopped_by_set = 0;
+        if(!RECORDING_H264)
+        {
+            movie_was_stopped_by_set = 0;
+        }
     #endif
 
         #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-        if (!recording) movie_autostop_running = 0;
+        if (NOT_RECORDING) movie_autostop_running = 0;
         #endif
         
         if (is_movie_mode())
@@ -393,7 +406,7 @@ void movtweak_step()
             #endif
             
             #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-            if (recording && movie_cliplen) {
+            if (RECORDING && movie_cliplen) {
                 if (!movie_autostop_running) {
                     movie_autostop_running = get_seconds_clock();
                 } else {
@@ -429,13 +442,13 @@ void movtweak_step()
             if (hdmi_code == 5)
             {
                 msleep(1000);
-                ui_lock(UILOCK_EVERYTHING);
+                gui_uilock(UILOCK_EVERYTHING);
                 BMP_LOCK(
                     ChangeHDMIOutputSizeToVGA();
                     msleep(300);
                 )
                 msleep(2000);
-                ui_lock(UILOCK_NONE);
+                gui_uilock(UILOCK_NONE);
                 msleep(5000);
             }
         }
@@ -533,7 +546,7 @@ void rec_notify_continuous(int called_from_menu)
         k++;
         if (k % 10 == 0) // edled may take a while to process, don't try it often
         {
-            if (recording) info_led_on();
+            if (RECORDING) info_led_on();
         }
     }
 
@@ -546,7 +559,7 @@ void rec_notify_continuous(int called_from_menu)
     
     if (rec_notify == 1)
     {
-        if (!recording)
+        if (NOT_RECORDING)
         {
             int xc = os.x0 + os.x_ex/2;
             int yc = os.y0 + os.y_ex/2;
@@ -565,14 +578,14 @@ void rec_notify_continuous(int called_from_menu)
     }
     else if (rec_notify == 2)
     {
-        if (recording)
+        if (RECORDING)
             bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "REC");
         else
             bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
     }
     
-    if (prev != recording) redraw();
-    prev = recording;
+    if (prev != RECORDING_STATE) redraw();
+    prev = RECORDING_STATE;
 }
 
 void rec_notify_trigger(int rec)
@@ -693,6 +706,7 @@ void bv_disable()
     if (!lv) goto end;
     
     iso_auto_restore_hack();
+    set_photo_digital_iso_gain_for_bv(1024);
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
 
@@ -930,7 +944,7 @@ static struct menu_entry mov_menus[] = {
                 .choices = CHOICES("Start/Stop", "Start only", "Stop only"),
                 .help = "Select actions for half-shutter.",
             },
-            MENU_EOL
+            MENU_EOL,
         },
     },
     #endif
@@ -986,12 +1000,18 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif
-                #if 0
+                #ifdef FEATURE_REMAP
                 {
                     .name = "MovieModeRemap",
                     .priv = &movie_mode_remap,
                     .update    = mode_remap_print,
-                    .select     = menu_ternary_toggle,
+                    .min = 0,
+                    #ifdef CONFIG_50D
+                    .max = 1,
+                    #else
+                    .max = 2,
+                    #endif
+                    .choices = CHOICES("OFF", "A-DEP", "CA"),
                     .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
                 },
                 #endif

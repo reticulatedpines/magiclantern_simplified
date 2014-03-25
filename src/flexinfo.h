@@ -3,7 +3,7 @@
 
 #ifdef FEATURE_FLEXINFO
 
-#define FLEXINFO_DEFAULT_FILENAME CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML"
+#define FLEXINFO_DEFAULT_FILENAME "ML/SETTINGS/FLEXINFO.XML"
 
 #define FLEXINFO_DYNAMIC_ENTRIES 64
 
@@ -254,6 +254,9 @@ info_elem_t *info_add_item();
 void info_free_item(info_elem_t *item);
 /* look up an element by its name */
 info_elem_t *info_get_by_name(info_elem_t *config, char *name);
+
+/* to be called by backend in order to display the info screen */
+uint32_t info_print_screen();
 
 #endif
 #endif

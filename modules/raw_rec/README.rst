@@ -1,7 +1,9 @@
-Raw recording
-=============
+Raw recording v1.0
+==================
 
-Records 14-bit RAW video.
+Records 14-bit RAW video. Minimalist, no metadata.
+
+You may want to load mlv_play for reviewing clips.
 
 For details, please see the "Raw Video" section on the Magic Lantern forum.
 

@@ -1,7 +1,7 @@
 #ifndef _module_h_
 #define _module_h_
 
-#define MODULE_PATH                   CARD_DRIVE"ML/MODULES/"
+#define MODULE_PATH                   "ML/MODULES/"
 
 /* module info structures */
 #define MODULE_INFO_PREFIX            __module_info_
@@ -49,7 +49,6 @@
 #define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
 #define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
 #define CBR_VSYNC_SETPARAM            9 /* called from every LiveView frame; can change FRAME_ISO, FRAME_SHUTTER_TIMER, just like for HDR video */
-#define CBR_VSYNC_DISPLAY            10 /* can redirect display buffer */
 
 #define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
 #define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
@@ -94,6 +93,10 @@
 #define MODULE_KEY_UNPRESS_FLASH_MOVIE     (32)
 #define MODULE_KEY_PRESS_DP                (33)
 #define MODULE_KEY_UNPRESS_DP              (34)
+#define MODULE_KEY_TOUCH_1_FINGER          (35)
+#define MODULE_KEY_UNTOUCH_1_FINGER        (36)
+#define MODULE_KEY_TOUCH_2_FINGER          (37)
+#define MODULE_KEY_UNTOUCH_2_FINGER        (38)
 
 
 #define MODULE_KEY_CANON     0
@@ -101,7 +104,7 @@
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 4
+#define MODULE_MAJOR 5
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
 #define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
@@ -247,8 +250,6 @@ typedef struct
                                                                 };
 
 #if defined(MODULE)
-extern char *module_card_drive;
-#define MODULE_CARD_DRIVE                                       module_card_drive
 #define PROP_HANDLER(id)                                        MODULE_PROP_ENTRY_(MODULE_PROPHANDLER_PREFIX,MODULE_NAME, id, #id)
 #define MODULE_PROP_ENTRY_(prefix,modname,id,idstr)             MODULE_PROP_ENTRY__(prefix,modname,id,idstr)
 #define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, void *, unsigned int);\
@@ -286,6 +287,22 @@ int module_unset_config_cbr();
 /* lookup a pointer in the list of config variables */
 struct config_var* module_config_var_lookup(int* ptr);
 
+/* lookup a config variable by name */
+struct config_var * module_get_config_var(const char * name);
+
+/* called from config backend */
+void module_save_configs();
+
+/* defined in config.c */
+unsigned int module_config_load(char *filename, module_entry_t *module);
+unsigned int module_config_save(char *filename, module_entry_t *module);
+
+int module_send_keypress(int module_key);
+
+/* display filter interface for modules */
+int module_display_filter_enabled();
+int module_display_filter_update();
+
 struct module_symbol_entry
 {
     const char * name;
@@ -315,6 +332,11 @@ module_symbol_##NAME = { \
 }     //.default_address = DEFAULT_ADDRESS, /* not used; can be useful for module unloading */
 
 #define MODULE_FUNCTION(name) MODULE_SYMBOL(name, ret_0)
+
+/* for camera-specific tricks in modules */
+/* e.g. if (is_camera("5D3", "1.2.3")) { adtg_write_addr = 0x1234 } */
+/* see propvalues.c */
+extern int is_camera(const char * model, const char * firmware);
 
 #ifdef MODULE
 #include "module_strings.h"

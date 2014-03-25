@@ -34,10 +34,6 @@
 #define MVR_LOG_BUF_SIZE 8192
 #define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
 
-int get_htp();
-int get_bv(); //APEX units
-int get_ae_value();
-
 struct lens_info
 {
         void *                  token;
@@ -199,14 +195,37 @@ extern int lens_set_rawaperture( int aperture);
 extern int lens_set_rawiso( int iso );
 extern int lens_set_rawshutter( int shutter );
 extern int lens_set_ae( int ae );
+extern int lens_set_flash_ae( int ae );
 extern void lens_set_drivemode( int dm );
 extern void lens_set_wbs_gm(int value);
 extern void lens_set_wbs_ba(int value);
 
-extern void bv_update();
+extern int expo_override_active();
 extern int bv_set_rawshutter(unsigned shutter);
 extern int bv_set_rawaperture(unsigned aperture);
 extern int bv_set_rawiso(unsigned iso);
+
+/* private, to be refactored */
+extern void bv_update();
+extern void bv_toggle(void* priv, int delta);
+extern void bv_enable();
+extern void bv_disable();
+extern void iso_auto_restore_hack();
+extern void bv_apply_av();
+extern void bv_apply_tv();
+extern void bv_apply_iso();
+extern void bv_update_lensinfo();
+extern void bv_auto_update();
+
+/* these will retry until exposure change is confirmed 
+ * (used for hdr bracketing; to be renamed, since they are also useful for other purposes)
+ * they return true on success
+ */
+extern int hdr_set_rawshutter(int shutter);
+extern int hdr_set_rawiso(int iso);
+extern int hdr_set_rawaperture(int aperture);
+extern int hdr_set_ae(int ae);
+extern int hdr_set_flash_ae(int ae);
 
 int lens_take_picture( int wait, int allow_af );
 int lens_take_pictures( int wait, int allow_af, int duration );
@@ -226,9 +245,18 @@ lens_format_dist(
         unsigned                mm
 );
 
+/** Pretty prints the shutter speed given the raw shutter value as input */
+char* lens_format_shutter(int tv);
+
+/** Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input */
+char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000);
+
 #define KELVIN_MIN 1500
 #define KELVIN_MAX 15000
 #define KELVIN_STEP 100
+void lens_set_kelvin(int k);
+void lens_set_kelvin_value_only(int k);
+void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B);
 
 // exact ISO values would break the feature of coloring ISO's :)
 // sprintf("%d,", round(12800 ./ 2.^([56:-1:0]./8)))
@@ -279,6 +307,10 @@ int raw2iso(int raw_iso);
 int shutterf_to_raw_noflicker(float shutterf);
 int round_noflicker(float value);
 
+int raw2index_iso(int raw_iso);
+int raw2index_aperture(int raw_aperture);
+int raw2index_shutter(int shutter);
+
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
 void draw_ml_topbar();
@@ -290,6 +322,7 @@ void SW2(int v, int wait);
 void iso_toggle( void * priv, int sign );
 void shutter_toggle(void* priv, int sign);
 void aperture_toggle( void* priv, int sign);
+void kelvin_toggle( void* priv, int sign );
 
 #define MIN_ISO (get_htp() ? 80 : 72)
 #define MAX_ISO 128 // may be better to fine-tune this for each camera
@@ -314,11 +347,46 @@ void aperture_toggle( void* priv, int sign);
 #define MAX_ANALOG_ISO 112 // iso 3200
 #endif
 
+/* split ISO into analog and "digital" components */
+/* (further research showed they are not actually digital, just analog amplification very late in the chain, without improving noise ) */
+void split_iso(int raw_iso, unsigned int* analog_iso, int* digital_gain);
+
+/* to be renamed, because "native" is not well defined (more like "useful" iso) */
+int is_native_iso(int iso);
+
+/* to be renamed to is_fullstop_iso (also check exceptions) */
+int is_round_iso(int iso);
+
+/* don't rely on this one yet */
+int get_max_analog_iso();
+
+/* auto expo interface (Canon metering) */
+int get_max_ae_ev();
+int get_ae_value();
+int get_bv();   // APEX units
+int get_ae_state();
+
 #define AF_ENABLE 1
 #define AF_DISABLE 0
 #define AF_DONT_CHANGE -1
 
-#endif
+/* change AF settings (CFN AF button) so a software-triggered picture will autofocus or not */
+/* returns 1 if it changed anything */
+int lens_setup_af(int should_af);
+
+/* undo changes made by lens_setup_af (setup the user preference back) */
+/* note: if you take the battery out between these two calls, you may end up with misconfigured AF button */
+/* => my camera doesn't autofocus!!! */
+void lens_cleanup_af();
+
+/* todo: move to cfn.h? */
+extern int cfn_get_af_button_assignment();
+void cfn_set_af_button(int value);
+void restore_af_button_assignment_at_shutdown();
+
+int get_alo();
+int get_htp();
+void set_htp(int value);
 
 // misc macros for avoiding numeric ev values
 #define EXPO_1_3_STOP 3
@@ -403,3 +471,9 @@ void aperture_toggle( void* priv, int sign);
 #define APERTURE_22 80
 #define APERTURE_27 84
 #define APERTURE_32 88
+
+/* camera ready to take a picture or change shooting settings? */
+int job_state_ready_to_take_pic();
+void lens_wait_readytotakepic();
+
+#endif /* _lens_h_ */

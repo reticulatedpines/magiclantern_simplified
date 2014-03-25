@@ -69,6 +69,10 @@ config_save_file(
         const char *            filename
 );
 
+struct config_var;
+
+//return false in this cbr to block the value from being changed
+typedef int (*config_var_update_func)(struct config_var *, int old_value, int new_value);
 
 /** Create an auto-parsed config variable */
 struct config_var
@@ -77,6 +81,7 @@ struct config_var
         //int        type;   //!< 0 == int, 1 == char *
         int *        value;
         int          default_value;
+        config_var_update_func update;
 };
 
 #ifdef MODULE
@@ -85,7 +90,7 @@ struct config_var
 #define CONFIG_VAR_ATTR
 #endif
 
-#define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE ) \
+#define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE, UPDATE_CBR ) \
 TYPE VAR = VALUE; \
 CONFIG_VAR_ATTR struct config_var \
 __attribute__((section(".config_vars"))) \
@@ -95,14 +100,14 @@ __config_##VAR = \
 /*        .type           = TYPE_ENUM, */ \
         .value          = (int*) &VAR, \
         .default_value  = (int) VALUE, \
+        .update         = UPDATE_CBR, \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 0, int, VAR, VALUE )
+        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, NULL )
 
-#define CONFIG_UNSIGNED( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 0, unsigned int, VAR, VALUE )
-
+#define CONFIG_INT_UPDATE( NAME, VAR, VALUE, UPDATE_CBR ) \
+        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, UPDATE_CBR )
 
 #define _CONFIG_ARRAY_ELEMENT( NAME, TYPE_ENUM, VAR, INDEX, VALUE ) \
 struct config_var \
@@ -121,7 +126,28 @@ __config_##VAR##INDEX = \
 struct config_var* get_config_vars_start ();
 struct config_var* get_config_vars_end ();
 
+/* set a config var by name (returns true if change was successful) */
+int set_config_var(const char * name, int new_value);
+
+/* set a config var by pointer (for menu backend) */
+int set_config_var_ptr(int* ptr, int new_value);
+
+/* lookup a config var by name */
+int get_config_var(const char * name);
+
 /* return the current settings directory (usually ML/SETTINGS, but not if you use a custom preset) */
 extern char* get_config_dir();
+
+/* return true if the specified config variable (identified by a pointer to its current value)
+ * is no longer at its default value */
+int config_var_was_changed(int* ptr);
+
+void config_save();
+void config_save_at_shutdown(); /* CBR */
+void config_load();
+
+/* simple boolean settings that live outside of config files (just by presence of a file) */
+int config_flag_file_setting_load(char* file);
+void config_flag_file_setting_save(char* file, int setting);
 
 #endif

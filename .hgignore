@@ -83,6 +83,8 @@ doxygen-doc/*
 modules/*/*.dep
 modules/*/*.mo
 modules/*/*.sym
+modules/*/*.rsc
+modules/*/hgstamp
 modules/*/module_strings.h
 modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe
@@ -90,5 +92,7 @@ tcc/localsyms
 src/menuindexentries.h
 modules/dual_iso/cr2hdr*
 modules/*/module_strings.h
+modules/mlv_rec/mlv_dump
+modules/mlv_rec/raw2dng
 
 syntax: regexp

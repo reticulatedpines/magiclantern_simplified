@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using pixelType = System.Byte;
 using MLVViewSharp;
 
 namespace mlv_view_sharp
@@ -19,7 +18,7 @@ namespace mlv_view_sharp
             InitMatrices();
         }
 
-        public void Process(ushort[,] pixelData, pixelType[, ,] rgbData)
+        public void Process(ushort[,] pixelData, float[, ,] rgbData)
         {
             if (LookupTablesDirty)
             {
@@ -58,7 +57,7 @@ namespace mlv_view_sharp
                                     value /= 2;
                                 }
 
-                                pixelType data = ToPixelValue(255 * value);
+                                float data = value;
 
                                 rgbData[posY + 0, posX + 0, channel] = data;
                                 rgbData[posY + 0, posX + 1, channel] = data;

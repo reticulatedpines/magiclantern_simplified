@@ -1,22 +1,22 @@
 /*
  * Copyright (C) 2013 Magic Lantern Team
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
- */ 
+ */
 
 #ifndef _mlv_h_
 #define _mlv_h_
@@ -77,6 +77,20 @@ typedef struct {
     uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
  /* uint8_t     frameData[variable] */;
 } PACKED mlv_vidf_hdr_t;
+
+typedef struct {
+    uint8_t     blockType[4];    /* this block contains one frame of video data */
+    uint32_t    blockSize;    /* total frame size */
+    uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
+    uint32_t    frameNumber;    /* unique video frame number */
+    uint16_t    cropPosX;    /* specifies from which sensor row/col the video frame was copied (8x2 blocks) */
+    uint16_t    cropPosY;    /* (can be used to process dead/hot pixels) */
+    uint16_t    panPosX;    /* specifies the panning offset which is cropPos, but with higher resolution (1x1 blocks) */
+    uint16_t    panPosY;    /* (it's the frame area from sensor the user wants to see) */
+    uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
+    uint32_t    blockSizeOrig;    /* saved frame size */
+ /* uint8_t     frameData[variable] */;
+} PACKED mlv_bkup_hdr_t;
 
 typedef struct {
     uint8_t     blockType[4];    /* this block contains audio data */
@@ -140,10 +154,10 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint16_t    tm_sec;    /* seconds (0-59) */
     uint16_t    tm_min;    /* minute (0-59) */
-    uint16_t    tm_hour;    /* hour (0-24) */
+    uint16_t    tm_hour;    /* hour (0-23) */
     uint16_t    tm_mday;    /* day of month (1-31) */
-    uint16_t    tm_mon;    /* month (1-12) */
-    uint16_t    tm_year;    /* year */
+    uint16_t    tm_mon;    /* month (0-11) */
+    uint16_t    tm_year;    /* year since 1900 */
     uint16_t    tm_wday;    /* day of week */
     uint16_t    tm_yday;    /* day of year */
     uint16_t    tm_isdst;    /* daylight saving */
@@ -201,26 +215,26 @@ typedef struct {
     uint8_t     blockType[4];
     uint32_t    blockSize;
     uint64_t    timestamp;
-    uint32_t    picStyleId; 
-    int32_t     contrast; 
-    int32_t     sharpness; 
-    int32_t     saturation; 
-    int32_t     colortone; 
+    uint32_t    picStyleId;
+    int32_t     contrast;
+    int32_t     sharpness;
+    int32_t     saturation;
+    int32_t     colortone;
     uint8_t     picStyleName[16];
 } PACKED mlv_styl_hdr_t;
 
-typedef struct {            
+typedef struct {
     uint8_t     blockType[4];    /* Electronic level (orientation) data */
-    uint32_t    blockSize;    
-    uint64_t    timestamp;    
+    uint32_t    blockSize;
+    uint64_t    timestamp;
     uint32_t    roll;    /* degrees x100 (here, 45.00 degrees) */
     uint32_t    pitch;    /* 10.00 degrees */
 } PACKED mlv_elvl_hdr_t;
 
-typedef struct {            
+typedef struct {
     uint8_t     blockType[4];    /* White balance info */
-    uint32_t    blockSize;    
-    uint64_t    timestamp;    
+    uint32_t    blockSize;
+    uint64_t    timestamp;
     uint32_t    wb_mode;    /* WB_AUTO 0, WB_SUNNY 1, WB_SHADE 8, WB_CLOUDY 2, WB_TUNGSTEN 3, WB_FLUORESCENT 4, WB_FLASH 5, WB_CUSTOM 6, WB_KELVIN 9 */
     uint32_t    kelvin;    /* only when wb_mode is WB_KELVIN */
     uint32_t    wbgain_r;    /* only when wb_mode is WB_CUSTOM */
@@ -228,7 +242,7 @@ typedef struct {
     uint32_t    wbgain_b;    /* note: it's 1/canon_gain (uses dcraw convention) */
     uint32_t    wbs_gm;    /* WBShift (no idea how to use these in post) */
     uint32_t    wbs_ba;    /* range: -9...9 */
-} PACKED mlv_wbal_hdr_t;            
+} PACKED mlv_wbal_hdr_t;
 
 #pragma pack(pop)
 
@@ -238,7 +252,7 @@ void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp);
-
+void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp);
 
 /* randomize the 64 bits passed in parameter using LFSR */
 uint64_t mlv_prng_lfsr(uint64_t value);

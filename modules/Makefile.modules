@@ -6,7 +6,7 @@ include $(TOP_DIR)/Makefile.setup
 
 # should we define a platform for modules? for now use 'all' platform
 PLATFORM_INC=$(TOP_DIR)/platform/all
-CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) $(MODULE_CFLAGS) -I.
+CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME) -DCONFIG_MAGICLANTERN $(MODULE_CFLAGS) -I.
 
 MODULE_SRC    = $(MODULE_NAME).c
 MODULE_OUTPUT = $(MODULE_NAME).mo
@@ -16,8 +16,8 @@ MODULE_DEPS   = $(MODULE_NAME).d
 
 MODULE_STRINGS   = module_strings.h
 
-all:: rebuild_hgstamp $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
-nodep:: rebuild_hgstamp $(MODULE_OUTPUT) $(MODULE_SYM)
+all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
+nodep:: $(MODULE_OUTPUT) $(MODULE_SYM)
 delete_if_failed:
 	@echo ""
 	@echo "Building module $(MODULE_NAME)..."
@@ -33,13 +33,13 @@ delete_if_failed:
 -include $(MODULE_DEPS)
 
 clean::
-	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.bmp *.dep *.sym hgstamp)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.dep *.sym hgstamp)
 
 module_strings.h: README.rst hgstamp
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
 
 README.rst:
-	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
+	$(call build,README,echo "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
 
 $(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS) hginfo.tmp hgdiff.tmp
 	$(call build,MODULE,$(LD) -r -o $@ $(MODULE_OBJS))
@@ -72,7 +72,7 @@ include $(TOP_DIR)/Makefile.filerules
 # http://mercurial.selenic.com/wiki/VersioningWithMake
 # the original trick didn't work, it rebuilds every time, figure out why
 HGVERSION:= $(shell hg parents --template 'hgid: {node|short}')
-.PHONY: rebuild_hgstamp
-rebuild_hgstamp:
-	@[ -f $hgstamp ] || touch $hgstamp
-	@echo $(HGVERSION) | cmp -s hgstamp - || echo $(HGVERSION) > hgstamp
+hgstamp:
+	@[ -f $@ ] || touch $@
+	@echo $(HGVERSION) | cmp -s $@ - || echo $(HGVERSION) > $@
+	@echo "REBUILDING"

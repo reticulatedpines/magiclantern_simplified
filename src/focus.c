@@ -7,11 +7,15 @@
  * is safe to send another one.
  */
 #include "dryos.h"
+#include "focus.h"
 #include "menu.h"
 #include "bmp.h"
 #include "lens.h"
 #include "config.h"
 #include "ptp.h"
+#include "beep.h"
+#include "zebra.h"
+#include "shoot.h"
 
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
@@ -408,7 +412,7 @@ static MENU_UPDATE_FUNC(rack_focus_print)
 {
 #ifdef FEATURE_LCD_SENSOR_REMOTE
     extern int lcd_release_running;
-    if (lcd_release_running && lcd_release_running < 3 && recording)
+    if (lcd_release_running && lcd_release_running < 3 && RECORDING)
         MENU_APPEND_VALUE(" (also w. LCD sensor)");
 #endif
     MENU_SET_ENABLED(0);
@@ -595,7 +599,7 @@ focus_task( void* unused )
                 gui_stop_menu();
                 NotifyBox(2000, "Rack Focus: REC Start");
                 ensure_movie_mode();
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     movie_started_by_ml = 1;
                     movie_start();
@@ -745,7 +749,6 @@ int get_focus_confirmation()
 int is_manual_focus()
 {
     return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
-;
 }
 
 #ifdef FEATURE_MOVIE_AF
@@ -1314,7 +1317,7 @@ int handle_follow_focus_save_restore(struct event * event)
     if (!lv) return 1;
     if (is_manual_focus()) return 1;
 
-    if (recording && !gui_menu_shown())
+    if (RECORDING && !gui_menu_shown())
     {
         if (event->param == BGMT_PLAY) // this should be good as rack focus trigger key too
         {

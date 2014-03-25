@@ -2,7 +2,6 @@
  *  40D 1.1.1 consts
  */
 
-#define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200E0 // http://magiclantern.wikia.com/wiki/Led_addresses
 
 #define LEDBLUE     *(volatile int*)0xC02200E8
@@ -43,7 +42,7 @@
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2C10) // dec create_idleHandler_task
 
     #define LV_BOTTOM_BAR_DISPLAYED 0
-    #define ISO_ADJUSTMENT_ACTIVE 0
+    //~ #define ISO_ADJUSTMENT_ACTIVE 0
 
 // from a screenshot
 #define COLOR_FG_NONLV 1
@@ -87,7 +86,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 15 or 7
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(7, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 49 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 49 : 2)
 // outside LiveView, Canon menu is a good choice
 
     // position for displaying clock outside LV

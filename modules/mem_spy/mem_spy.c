@@ -102,15 +102,15 @@ static int _toc()
 static int init_mem() // initial state of the analyzed memory
 {
     // local copy of mem area analyzed
-    if (!mem_mirror) mem_mirror = shoot_malloc(var_count * var_length + 100);
+    if (!mem_mirror) mem_mirror = tmp_malloc(var_count * var_length + 100);
     if (!mem_mirror) return 0;
     
     // store changes
-    if (!mem_changes) mem_changes = shoot_malloc(var_count * var_length + 100);
+    if (!mem_changes) mem_changes = tmp_malloc(var_count * var_length + 100);
     if (!mem_changes) return 0;
     
     // store position
-    if (!mem_position) mem_position = shoot_malloc(var_count * var_length + 100);
+    if (!mem_position) mem_position = tmp_malloc(var_count * var_length + 100);
     if (!mem_position) return 0;
     
     int i;
@@ -163,7 +163,7 @@ static void mem_spy_task()
         
         if (!init_done) {
             if(!init_mem()) {
-                NotifyBox(1000, "shoot_malloc failed");
+                NotifyBox(1000, "tmp_malloc failed");
                 break;
             }
             init_done = 1;

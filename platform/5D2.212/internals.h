@@ -2,6 +2,9 @@
  * Camera internals for 5D2 2.1.2
  */
 
+/** This camera has a CF slot */
+#define CONFIG_CF_SLOT
+
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 5D2 port is pretty stable, so I think we can enable properties safely. **/
 #define CONFIG_PROP_REQUEST_CHANGE

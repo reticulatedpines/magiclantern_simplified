@@ -33,17 +33,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 }
 #endif
 
-int ivaparam, patched_errors=0, flush_errors=0;
-int time_indic_x =  720 - 160; // 160
-int time_indic_y = 0;
-int time_indic_width = 160;
-int time_indic_height = 20;
-int time_indic_warning = 120;
+extern int fps_override;
+static int ivaparam, patched_errors=0;
 
-int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
-int measured_bitrate = 0; // mbps
-int movie_bytes_written_32k = 0;
-int set =0;
+static int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
+static int measured_bitrate = 0; // mbps
+static int movie_bytes_written_32k = 0;
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
 int hibr_should_record_wav() { return cfg_hibr_wav_record; }
@@ -72,71 +67,6 @@ int hibr_should_record_wav() { return 0; }
 #define config_loaded (ivaparam == 1)
 #define config_disabled (ivaparam == 2)
 
-/*
-static void patch_flush_errors()
-{
-	 //FF0EB0C8:     eb3c5a0c        bl      assert__ram
-     //at ./MovieRecorder/MovWriter.c:980, task MovieRecorder
-     cache_fake(0xFF1F1244 , 0xE1A00000, TYPE_ICACHE);
-	//Still 112 	
-	//FF1F5074 bl	assert__ram
-	//at ./MovieRecorder/MovRecResource.c:584, task MovieRecorder
-	//Patching this causes the sig error.
-	//~ cache_fake(0xFF1F5074 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF250 , 0xE1A00000, TYPE_ICACHE);
-	
-	//~ cache_fake(0xFF1DF288 , 0xE1A00000, TYPE_ICACHE);
-
-
-	//~ cache_fake(0xFF1DF1D0 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF21C , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF250 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF2D4 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1DF308 , 0xE1A00000, TYPE_ICACHE); //Freeze STRT
-
-
-
-	
-	//pHeader->pcsSignature == m_pcsSignature
-	//~ cache_fake(0xFF1F4C2C , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1F4D00 , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1F4C1C , 0x000050E1, TYPE_ICACHE);
-
-	//FF1F4C7C - FF1F4C10
-	//~ cache_fake(0xFF1F4C7C , 0xE1A00000, TYPE_ICACHE);
-	//~ cache_fake(0xFF1F4C7C , 0xE1A00000, TYPE_ICACHE);
-*/
-	// Calls to Check pheader... Assert 0 Returns
-/*	cache_fake(0xFF1E1650 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1E1804 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F2F58 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1F2F74 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F4E78 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F5008 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1F2F90 , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1E02C4 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1E02D0 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1E02DC , 0xE1A00000, TYPE_ICACHE);
-	
-	cache_fake(0xFF1D3218 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D3234 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D3250 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D326C , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D3288 , 0xE1A00000, TYPE_ICACHE);
-	cache_fake(0xFF1D32A4 , 0xE1A00000, TYPE_ICACHE);
-*/
-/*
-
-  flush_errors = 1;
-
-	
-}
-*/
 static void patch_errors()
 { 
 	#ifdef CONFIG_6D
@@ -184,30 +114,30 @@ static void patch_errors()
 static void load_h264_ini()
 {
     gui_stop_menu();
-	ui_lock(UILOCK_EVERYTHING);
+	gui_uilock(UILOCK_EVERYTHING);
 	if (h2config == 1)
 		{   call("IVAParamMode", "B:/ML/cbr.ini");
-		    //~ call("IVAParamMode", CARD_DRIVE "ML/cbr.ini");
+		    //~ call("IVAParamMode", "ML/cbr.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else if (h2config == 2)
 		 {   call("IVAParamMode", "B:/ML/vbr.ini");
-		   //~ call("IVAParamMode", CARD_DRIVE "ML/vbr.ini");
+		   //~ call("IVAParamMode", "ML/vbr.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else if (h2config == 3)
 		{   call("IVAParamMode", "B:/ML/rc.ini");
-		    //~ call("IVAParamMode", CARD_DRIVE "ML/rc.ini");
+		    //~ call("IVAParamMode", "ML/rc.ini");
 			NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 		}
 	else 
 	{	
-    	//~ call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
+    	//~ call("IVAParamMode", "ML/H264.ini");
     	call("IVAParamMode", "B:/ML/H264.ini");
 		NotifyBox(2000, "%s", l_ivastring); //0xaa4f4 78838
 	}
 	msleep(1000);
-	ui_lock(UILOCK_NONE);
+	gui_uilock(UILOCK_NONE);
 }	
 
 
@@ -236,10 +166,10 @@ static void buffer_warning_level_toggle(void* priv, int step)
 int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
-    if (recording == 0) return 0;
-    if (recording == 1) return 1;
+    if (NOT_RECORDING) return 0;
+    if (RECORDING_H264_STARTING) return 1;
 
-    int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
+    int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
     if (ans) warning = 1;
     return warning;
 }
@@ -248,7 +178,7 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (recording && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (RECORDING_H264 && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
 }
 int8_t* ivaparamstatus = (int8_t*)(l_EncoMode);
 uint8_t oldh2config;
@@ -283,7 +213,7 @@ void bitrate_set()
     if (!is_movie_mode()) return;
     if (raw_lv_is_enabled())return; 
     //~ if (gui_menu_shown()) return;
-    if (recording) return; 
+    if (RECORDING) return;
 	if (!config_disabled) ivaparam= *ivaparamstatus;	
 	if (patched_errors == 0) patch_errors();
 	//~ if (flush_errors == 0) patch_flush_errors(); // Otherwise Err70 on Play
@@ -370,24 +300,24 @@ void bitrate_set()
 
 }
 
-void measure_bitrate() // called once / second
+void measure_bitrate() // called from every second task
 {
     static uint32_t prev_bytes_written = 0;
     uint32_t bytes_written = MVR_BYTES_WRITTEN;
     int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
+    if (bytes_delta < 0)
+    {
+        // We're either just starting a recording or we're wrapping over 4GB.
+        // either way, don't try to calculate the bitrate this time around.
+        prev_bytes_written = 0;
+        movie_bytes_written_32k = 0;
+        measured_bitrate = 0;
+        return;
+    }
     prev_bytes_written = bytes_written;
     movie_bytes_written_32k = bytes_written >> 15;
-    measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
+    measured_bitrate = (bytes_delta / 1024) * 8 / 1024;
 }
-
-#ifdef CONFIG_6D
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#else //5D3
-PROP_INT(PROP_CLUSTER_SIZE_A, cluster_size);
-PROP_INT(PROP_FREE_SPACE_A, free_space_raw);
-#endif
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 void bitrate_mvr_log(char* mvr_logfile_buffer)
 {
@@ -405,7 +335,7 @@ void time_indicator_show()
 {
     if (!get_global_draw()) return;
 
-    if (!recording || raw_lv_is_enabled()) 
+    if (!RECORDING_H264)
     {
         //~ free_space_show();
         return;
@@ -413,7 +343,7 @@ void time_indicator_show()
     
     // time until filling the card
     // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
-    int time_cardfill = movie_elapsed_time_01s * free_space_32k / movie_bytes_written_32k / 10;
+    int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card())  / movie_bytes_written_32k / 10;
     
     // time until 4 GB
     int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
@@ -452,9 +382,9 @@ void time_indicator_show()
     }
 }
 #ifdef FEATURE_NITRATE_WAV_RECORD
-static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
+static MENU_SELECT_FUNC(hibr_wav_record_select){
     menu_numeric_toggle(priv, 1, 0, 1);
-    if (recording) return;
+    if (RECORDING) return;
     int *onoff = (int *)priv;
     if(*onoff == 1){
         if (sound_recording_mode != 1){
@@ -469,7 +399,7 @@ static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
 static void in_vol_toggle(void * priv, int delta)
 {   if (!hibr_should_record_wav()) return; //Yes it will work but cannon may overwrite.
 	int *input_volume = (int *)priv;
-	*input_volume = mod(*input_volume + delta, 64);
+	*input_volume = MOD(*input_volume + delta, 64);
 	SetAudioVolumeIn(0, *input_volume , *input_volume);
 }
 MENU_UPDATE_FUNC(input_vol_up)
@@ -666,7 +596,7 @@ INIT_FUNC(__FILE__, bitrate_init);
 
 void movie_indicators_show()
 {
-    if (recording && !raw_lv_is_enabled())
+    if (RECORDING_H264 && !gui_menu_shown())
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -679,22 +609,22 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 
-        if (recording && !raw_lv_is_enabled())
+        if (RECORDING_H264)
         {
             /* uses a bit of CPU, but it's precise */
             wait_till_next_second();
             movie_elapsed_time_01s += 10;
-            measure_bitrate();
             
             BMP_LOCK( show_mvr_buffer_status(); )
             movie_indicators_show();
             
 			if ( (movie_elapsed_time_01s<200) && (movie_elapsed_time_01s>100) && 		
-					(measured_bitrate == 0) && (movie_bytes_written_32k == 0) )
+					(measured_bitrate == 0) && (movie_bytes_written_32k == 0) && (!fps_override) )
 					//~ && (!fps_override) && (bitrate_flushing_rate == 3) )
 						{// ASSERT (0);
 							//call ("SHUTDOWN");
 							//~ call ("dumpf");
+					gui_uilock(UILOCK_NONE);
 					NotifyBox(2000,"Not writing! Check settings, reboot!");
 					msleep(1000);					
 					//~ prop_request_change(PROP_REBOOT_MAYBE, 0, 4);
@@ -717,11 +647,10 @@ TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
 
 #else /* dummy stubs, just to compile */
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
 int hibr_should_record_wav() { return 0; }
 int is_mvr_buffer_almost_full() { return 0; }
 void movie_indicators_show() {}
 void time_indicator_show() {}
 void bitrate_mvr_log(char* mvr_logfile_buffer) {}
+void measure_bitrate() {}
 #endif

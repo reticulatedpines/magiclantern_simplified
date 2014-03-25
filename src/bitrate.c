@@ -11,6 +11,8 @@
 #include "gui.h"
 #include "lens.h"
 #include "mvr.h"
+#include "zebra.h"
+#include "lvinfo.h"
 
 //----------------begin qscale-----------------
 static CONFIG_INT( "h264.qscale", qscale_neg, 8 );
@@ -87,7 +89,7 @@ static void cbr_init()
 {
 #if defined(CONFIG_7D)
     /* we must do all transfers via uncached memory. prepare that buffer */
-    bulk_transfer_buf = alloc_dma_memory(0x1000);
+    bulk_transfer_buf = fio_malloc(0x1000);
     /* now load master's mvr_config into local */
     bitrate_read_mvr_config();
 #endif
@@ -99,7 +101,7 @@ static void vbr_fix(uint16_t param)
 {
     if (!lv) return;
     if (!is_movie_mode()) return; 
-    if (recording) return; // err70 if you do this while recording
+    if (RECORDING) return; // err70 if you do this while recording
 
 #if defined(CONFIG_7D)
     bitrate_read_mvr_config();
@@ -194,7 +196,7 @@ static void bitrate_set()
     if (!lv) return;
     if (!is_movie_mode()) return; 
     if (gui_menu_shown()) return;
-    if (recording) return; 
+    if (RECORDING_H264) return;
     
     if (bitrate_mode == 0)
     {
@@ -248,7 +250,7 @@ static MENU_UPDATE_FUNC(bitrate_print)
             MENU_SET_ENABLED(0);
         }
         
-        if (bitrate_factor > 14 && SOUND_RECORDING_ENABLED)
+        if (bitrate_factor > 14 && sound_recording_enabled_canon())
             MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, high bitrates and sound recording don't mix.");
         else if (bitrate_factor > 10) 
             MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, recording may stop.");
@@ -300,26 +302,26 @@ static MENU_UPDATE_FUNC(qscale_display)
 static void 
 bitrate_factor_toggle(void* priv, int delta)
 {
-    if (recording) return;
+    if (RECORDING_H264) return;
  
 #if defined(FEATURE_VIDEO_HACKS)
-    bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
+    bitrate_factor = MOD(bitrate_factor + delta - 1, 200) + 1;
 #else
-    bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
+    bitrate_factor = MOD(bitrate_factor + delta - 1, 30) + 1;
 #endif
 }
 
 static void 
 bitrate_qscale_toggle(void* priv, int delta)
 {
-    if (recording) return;
+    if (RECORDING_H264) return;
     menu_numeric_toggle(&qscale_neg, delta, -16, 16);
 }
 
 static void 
 bitrate_toggle_mode(void* priv, int delta)
 {
-    if (recording) return;
+    if (RECORDING_H264) return;
     menu_numeric_toggle(priv, delta, 0, 2);
 }
 
@@ -333,10 +335,6 @@ bitrate_toggle(void* priv, int delta)
 
 static int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-
 void time_indicator_show()
 {
     if (!get_global_draw()) return;
@@ -347,7 +345,7 @@ void time_indicator_show()
 
     // time until filling the card
     // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
-    int time_cardfill = movie_elapsed_time_01s * free_space_32k / movie_bytes_written_32k / 10;
+    int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card()) / movie_bytes_written_32k / 10;
     
     // time until 4 GB
     int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
@@ -432,11 +430,11 @@ static CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 static int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
-    if (recording == 0) return 0;
-    if (recording == 1) return 1;
+    if (NOT_RECORDING) return 0;
+    if (RECORDING_H264_STARTING) return 1;
     // 2
     
-    int ans = MVR_BUFFER_USAGE > (int)buffer_warning_level;
+    int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
     if (ans) warning = 1;
     return warning;
 }
@@ -445,20 +443,23 @@ void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
     if (warning) warning--;
-    if (recording && get_global_draw() && !gui_menu_shown() && !raw_lv_is_enabled()) bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    if (RECORDING_H264 && get_global_draw() && !gui_menu_shown())
+    {
+        bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+    }
 }
 
 static void load_h264_ini()
 {
     gui_stop_menu();
-    call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
+    call("IVAParamMode", "ML/H264.ini");
     NotifyBox(2000, "%s", 0x4da10);
 }
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
-static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
+static MENU_SELECT_FUNC(hibr_wav_record_select){
     menu_numeric_toggle(priv, 1, 0, 1);
-    if (recording) return;
+    if (RECORDING_H264) return;
     int *onoff = (int *)priv;
     if(*onoff == 1){
         if (sound_recording_mode != 1){
@@ -474,7 +475,7 @@ static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
 void movie_indicators_show()
 {
     #ifdef FEATURE_REC_INDICATOR
-    if (recording)
+    if (RECORDING_H264 && !gui_menu_shown() )
     {
         BMP_LOCK( time_indicator_show(); )
     }
@@ -537,7 +538,12 @@ static struct menu_entry mov_menus[] = {
                 .unit = UNIT_PERCENT,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
+            MENU_EOL
+        },
+    },
+};
 #ifdef FEATURE_NITRATE_WAV_RECORD
+static struct menu_entry wav_menus[] = {
             {
                 .name = "Sound Record",
                 .priv = &cfg_hibr_wav_record,
@@ -546,11 +552,8 @@ static struct menu_entry mov_menus[] = {
                 .choices = (const char *[]) {"Normal", "Separate WAV"},
                 .help = "You may get higher bitrates if you record sound separately.",
             },
-#endif
-            MENU_EOL
-        },
-    },
 };
+#endif
 
 static struct menu_entry mov_tweak_menus[] = {
 #ifdef FEATURE_REC_INDICATOR
@@ -569,6 +572,9 @@ static void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );
+	#ifdef FEATURE_NITRATE_WAV_RECORD
+	menu_add( "Audio", wav_menus, COUNT(wav_menus) );
+	#endif
 }
 
 INIT_FUNC(__FILE__, bitrate_init);
@@ -581,13 +587,16 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 
-        if (recording)
+        if (RECORDING_H264)
         {
             /* uses a bit of CPU, but it's precise */
             wait_till_next_second();
             movie_elapsed_time_01s += 10;
             measure_bitrate();
             BMP_LOCK( show_mvr_buffer_status(); )
+            #ifdef FEATURE_REC_INDICATOR
+            movie_indicators_show();
+            #endif
         }
         else
         {

@@ -9,7 +9,8 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Drawing.Imaging;
 
-using pixelType = System.Byte;
+using MLVViewSharp;
+using NAudio.Wave;
 
 namespace mlv_view_sharp
 {
@@ -19,6 +20,14 @@ namespace mlv_view_sharp
         private LockBitmap LockBitmap = null;
         public bool FrameUpdated = false; 
         internal float _ExposureCorrection = 0.0f;
+        internal Lut3D ColorLut = null;
+
+        public int RawFixOffset = 0;
+        public bool VideoEnabled = true;
+        public bool AudioEnabled = true;
+
+        private WaveOut DriverOut;
+        private BufferedWaveProvider WaveProvider;
 
 
         public MLVTypes.mlv_rawi_hdr_t RawiHeader;
@@ -37,7 +46,7 @@ namespace mlv_view_sharp
         private BitUnpack Bitunpack = new BitUnpackCanon();
 
         private ushort[,] PixelData = new ushort[0, 0];
-        private pixelType[, ,] RGBData = new pixelType[0, 0, 0];
+        private float[, ,] RGBData = new float[0, 0, 0];
 
 
         float[] camMatrix = new float[] { 0.6722f, -0.0635f, -0.0963f, -0.4287f, 1.2460f, 0.2028f, -0.0908f, 0.2162f, 0.5668f };
@@ -86,6 +95,30 @@ namespace mlv_view_sharp
             InfoString = Encoding.ASCII.GetString(raw_data, raw_pos, raw_length);
         }
 
+        public void HandleBlock(string type, MLVTypes.mlv_wavi_hdr_t header, byte[] raw_data, int raw_pos, int raw_length)
+        {
+            if (DriverOut != null)
+            {
+                DriverOut.Stop();
+            }
+            try
+            {
+                DriverOut = new WaveOut();
+                DriverOut.DesiredLatency = 100;
+
+                WaveFormat fmt = new WaveFormat((int)header.samplingRate, header.bitsPerSample, header.channels);
+                WaveProvider = new BufferedWaveProvider(fmt);
+                WaveProvider.BufferLength = 256 * 1024;
+
+                DriverOut.Init(WaveProvider);
+                DriverOut.Play();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("No audio support on this platform (" + ex.ToString() + ")");
+            }
+        }
+
         public void HandleBlock(string type, MLVTypes.mlv_rawi_hdr_t header, byte[] raw_data, int raw_pos, int raw_length)
         {
             RawiHeader = header;
@@ -116,7 +149,7 @@ namespace mlv_view_sharp
             }
 
             PixelData = new ushort[header.yRes, header.xRes];
-            RGBData = new pixelType[header.yRes, header.xRes, 3];
+            RGBData = new float[header.yRes, header.xRes, 3];
 
             CurrentFrame = new System.Drawing.Bitmap(RawiHeader.xRes, RawiHeader.yRes, PixelFormat.Format24bppRgb);
             LockBitmap = new LockBitmap(CurrentFrame);
@@ -130,6 +163,18 @@ namespace mlv_view_sharp
             int raw_pos = (int)parm[2];
         }
 
+        public void HandleBlock(string type, MLVTypes.mlv_audf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
+        {
+            if (WaveProvider != null)
+            {
+                while (WaveProvider.BufferedBytes + (int)(rawLength - header.frameSpace) > WaveProvider.BufferLength)
+                {
+                    Thread.Sleep(100);
+                }
+                WaveProvider.AddSamples(rawData, (int)(rawPos + header.frameSpace), (int)(rawLength - header.frameSpace));
+            }
+        }
+
         public void HandleBlock(string type, MLVTypes.mlv_vidf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
         {
             VidfHeader = header;
@@ -139,9 +184,14 @@ namespace mlv_view_sharp
                 return;
             }
 
+            if (!VideoEnabled)
+            {
+                return;
+            }
+
             lock (this)
             {
-                int startPos = rawPos + (int)header.frameSpace;
+                int startPos = rawPos + (int)Math.Max(header.frameSpace - RawFixOffset, 0);
 
                 /* first extract the raw channel values */
                 Bitunpack.Process(rawData, startPos, rawLength, PixelData);
@@ -159,21 +209,28 @@ namespace mlv_view_sharp
                 {
                     for (int x = 0; x < RawiHeader.xRes; x++)
                     {
-                        for (int channel = 0; channel < 3; channel++)
+                        float r = RGBData[y, x, 0];
+                        float g = RGBData[y, x, 1];
+                        float b = RGBData[y, x, 2];
+
+                        if (ColorLut != null)
                         {
-                            /* reverse colors to BGR for the bitmap in memory */
-                            int value = RGBData[y, x, 2 - channel];
-
-                            average[channel] += (uint)value;
-
-                            /* now scale to TV black/white levels */
-                            value *= (235 - 16);
-                            value /= 256;
-                            value += 16;
-
-                            /* limit RGB values */
-                            LockBitmap.Pixels[pos++] = (byte)Math.Max(0, Math.Min(255, value));
+                            ColorLut.Lookup(r, g, b, out r, out g, out b);
                         }
+
+                        /* now scale to TV black/white levels */
+                        ScaleLevels(ref r);
+                        ScaleLevels(ref g);
+                        ScaleLevels(ref b);
+
+                        average[0] += (uint)g;
+                        average[1] += (uint)b;
+                        average[2] += (uint)r;
+
+                        /* limit RGB values */
+                        LockBitmap.Pixels[pos++] = (byte)b;
+                        LockBitmap.Pixels[pos++] = (byte)g;
+                        LockBitmap.Pixels[pos++] = (byte)r;
                     }
                 }
                 LockBitmap.UnlockBits();
@@ -202,6 +259,13 @@ namespace mlv_view_sharp
             }
         }
 
+        private void ScaleLevels(ref float value)
+        {
+            value *= (235 - 16);
+            value += 16;
+            value = Math.Max(0, Math.Min(255, value));
+        }
+
         public void BlockHandler(string type, object header, byte[] raw_data, int raw_pos, int raw_length)
         {
             FrameUpdated = false;
@@ -215,11 +279,13 @@ namespace mlv_view_sharp
                     HandleBlock(type, (MLVTypes.mlv_vidf_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "AUDF":
+                    HandleBlock(type, (MLVTypes.mlv_audf_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "RAWI":
                     HandleBlock(type, (MLVTypes.mlv_rawi_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "WAVI":
+                    HandleBlock(type, (MLVTypes.mlv_wavi_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
                 case "EXPO":
                     HandleBlock(type, (MLVTypes.mlv_expo_hdr_t)header, raw_data, raw_pos, raw_length);
@@ -345,6 +411,11 @@ namespace mlv_view_sharp
             {
                 Debayer.HighlightRecovery = value;
             }
+        }
+
+        internal void SetLut(Lut3D lut)
+        {
+            ColorLut = lut;
         }
     }
 }

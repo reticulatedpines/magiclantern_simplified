@@ -88,21 +88,43 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 }
 
 /**
- * http://www.martinreddy.net/gfx/faqs/colorconv.faq
- * 
  * BT.709:
- * Y'= 0.2215*R' + 0.7154*G' + 0.0721*B'
- * Cb=-0.1145*R' - 0.3855*G' + 0.5000*B'
- * Cr= 0.5016*R' - 0.4556*G' - 0.0459*B'
+ * Y'= 0.2126*R' + 0.7152*G' + 0.0722*B'
+ * Cb=-0.1146*R' - 0.3854*G' + 0.5000*B'
+ * Cr= 0.5000*R' - 0.4541*G' - 0.0458*B'
+ *
+ * BT.601:
+ * Y'= 0.2990*R' + 0.5870*G' + 0.1140*B'
+ * Cb=-0.2990*R' - 0.5870*G' + 0.8860*B'
+ * Cr= 0.7010*R' - 0.5870*G' - 0.1140*B'
  * 
- * todo: BT.601 and code optimization
+ * see:
+ *   http://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.709-5-200204-I!!PDF-E.pdf
+ *   http://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.601-7-201103-I!!PDF-E.pdf
  */
+uint32_t rgb2yuv422_rec709(int R, int G, int B)
+{
+    int Y = COERCE(((217) * R + (732) * G + (73) * B) / 1024, 0, 255);
+    int U = COERCE(((-117) * R + (-394) * G + (512) * B) / 1024, -128, 127);
+    int V = COERCE(((512) * R + (-465) * G + (-46) * B) / 1024, -128, 127);
+    return UYVY_PACK(U,Y,V,Y);
+}
+
+uint32_t rgb2yuv422_rec601(int R, int G, int B)
+{
+    int Y = COERCE(((306) * R + (601) * G + (116) * B) / 1024, 0, 255);
+    int U = COERCE(((-172) * R + (-337) * G + (509) * B) / 1024, -128, 127);
+    int V = COERCE(((509) * R + (-427) * G + (-82) * B) / 1024, -128, 127);
+    return UYVY_PACK(U,Y,V,Y);
+}
+
 uint32_t rgb2yuv422(int R, int G, int B)
 {
-    int Y = ( 227*R + 733*G +  74*B) / 1024;
-    int U = (-117*R - 395*G + 512*B) / 1024;
-    int V = ( 514*R - 467*G -  47*B) / 1024;
-    return UYVY_PACK(U,Y,V,Y);
+#if defined(CONFIG_REC709)
+    return rgb2yuv422_rec709(R, G, B);
+#else
+    return rgb2yuv422_rec601(R, G, B);
+#endif
 }
 
 void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
@@ -245,39 +267,6 @@ void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
     *B = COERCE(y + yuv2rgb_BU[U], 0, 255);
 }
 
-
-void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
-{
-    ASSERT(src);
-    ASSERT(dst);
-    if (!dst) return;
-    int i,j;
-    
-    // only used for menu => 720x480
-    static int16_t js_cache[720];
-    
-    for (j = 0; j < 720; j++)
-        js_cache[j] = (j - x0) * denx / 128 + x0;
-    
-    for (i = 0; i < 480; i++)
-    {
-        int is = (i - y0) * deny / 128 + y0;
-        uint8_t* dst_r = &dst[BM(0,i)];
-        uint8_t* src_r = &src[BM(0,is)];
-        
-        if (is >= 0 && is < 480)
-        {
-            for (j = 0; j < 720; j++)
-            {
-                int js = js_cache[j];
-                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
-            }
-        }
-        else
-            bzero32(dst_r, 720);
-    }
-}
-
 static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
     dst = ALIGN32(dst);
@@ -312,7 +301,7 @@ static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
     }
 }
 
-void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
+void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X)
 {
     dst = ALIGN32(dst);
     src = ALIGN32(src);
@@ -345,4 +334,15 @@ void little_cleanup(void* BP, void* MP)
     if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
     bp++; mp++;
     if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
+}
+
+uint32_t yuv422_get_pixel(uint32_t* buf, int pixoff)
+{
+    uint32_t* src = &buf[pixoff / 2];
+    
+    uint32_t chroma = (*src)  & 0x00FF00FF;
+    uint32_t luma1 = (*src >>  8) & 0xFF;
+    uint32_t luma2 = (*src >> 24) & 0xFF;
+    uint32_t luma = pixoff % 2 ? luma2 : luma1;
+    return (chroma | (luma << 8) | (luma << 24));
 }

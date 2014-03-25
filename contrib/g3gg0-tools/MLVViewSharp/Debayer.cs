@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using pixelType = System.Byte;
 
 namespace mlv_view_sharp
 {
@@ -22,6 +21,6 @@ namespace mlv_view_sharp
         bool UseCorrectionMatrices { get; set; }
         bool HighlightRecovery { get; set; }
 
-        void Process(ushort[,] pixelData, pixelType[, ,] rgbData);
+        void Process(ushort[,] pixelData, float[, ,] rgbData);
     }
 }

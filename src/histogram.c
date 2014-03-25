@@ -14,10 +14,12 @@
 #include "histogram.h"
 #include "module.h"
 
+#include "zebra.h"
+#include "falsecolor.h"
+
 
 #if defined(FEATURE_HISTOGRAM)
 
-extern unsigned int log_length(int x);
 extern int FAST get_y_skip_offset_for_overlays();
 extern int nondigic_zoom_overlay_enabled();
 
@@ -425,7 +427,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
 
-    int* hist = SmallAlloc(16384*4);
+    int* hist = malloc(16384*4);
     if (!hist) return -1;
     memset(hist, 0, 16384*4);
 
@@ -524,7 +526,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
         output_raw_values[k] = ans;
     }
 
-    SmallFree(hist);
+    free(hist);
     return 1;
 }
 
@@ -641,9 +643,10 @@ static void histobar_refresh()
 
 static LVINFO_UPDATE_FUNC(histobar_update)
 {
+#ifdef FEATURE_RAW_HISTOGRAM
     if (!HISTOBAR_ENABLED)
         return;
-    
+#endif    
     if (!lv_luma_is_accurate())
         return;
     
@@ -705,9 +708,10 @@ static LVINFO_UPDATE_FUNC(histobar_indic_update)
     if (!hist_meter)
         return;
     
+#ifdef FEATURE_RAW_HISTOGRAM
     if (!HISTOBAR_ENABLED)
         return;
-    
+#endif
     if (!lv_luma_is_accurate())
         return;
     

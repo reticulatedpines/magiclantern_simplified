@@ -90,7 +90,7 @@ void ml_big_init_task()
 
     msleep(200); // leave some time for property handlers to run
 
-    config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    config_parse_file( "ML/SETTINGS/magic.cfg" );
     debug_init_stuff();
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job

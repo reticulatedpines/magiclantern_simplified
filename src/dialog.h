@@ -26,7 +26,7 @@
 
 #include "compiler.h"
 
-typedef uint32_t gui_event_t; // not used
+typedef uint32_t gui_event_t;
 
 /** Windowing system elements */
 struct winsys_struct
@@ -289,5 +289,12 @@ dialog_label_item(
 extern void
 dialog_handler( void );
 
+/* returns Canon's dialog handler used right now */
+void* get_current_dialog_handler();
+
+/* Canon stub */
+void dialog_redraw(struct dialog * dialog);
+
+void dialog_set_property_str(struct dialog * dialog, int string_id, char* msg);
 
 #endif

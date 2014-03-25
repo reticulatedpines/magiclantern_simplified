@@ -7,6 +7,10 @@
 #include <lens.h>
 #include <version.h>
 #include <flexinfo.h>
+#include <shoot.h>
+#include <battery.h>
+#include <fps.h>
+#include <focus.h>
 
 #ifdef FEATURE_FLEXINFO
 
@@ -28,16 +32,6 @@
 // those are not camera-specific LP-E6
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
-
-/* e.g. 5D3 has different free space calculation, decide it by property availability, maybe there are others too */
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
-#ifdef PROP_CLUSTER_SIZE
-static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-static PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#else
-extern int cluster_size;
-extern int free_space_raw;
-#endif
 
 /* copied from lens.c to get crop information */
 #ifdef CONFIG_FULLFRAME
@@ -875,7 +869,7 @@ uint32_t info_load_config(char *filename)
         return 1;
 	}
 
-	char *xml_config = alloc_dma_memory(size + 1);
+	char *xml_config = fio_malloc(size + 1);
     xml_config[size] = '\0';
 	if (!xml_config)
 	{
@@ -884,21 +878,21 @@ uint32_t info_load_config(char *filename)
 
 	if ((unsigned)read_file(filename, xml_config, size)!=size)
 	{
-        free_dma_memory(xml_config);
+        fio_free(xml_config);
         return 1;
 	}
 
     /* read first xml token */
     if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
     {
-        free_dma_memory(xml_config);
+        fio_free(xml_config);
         return 1;
     }
 
     /* should be a flexinfo */
     if(strncmp(xml_element, "flexinfo", 8))
     {
-        free_dma_memory(xml_config);
+        fio_free(xml_config);
         return 1;
     }
 
@@ -909,7 +903,7 @@ uint32_t info_load_config(char *filename)
     }
 
     /* allocate the new config */
-    info_elem_t *new_config = (info_elem_t *)alloc_dma_memory(allocated_elements*sizeof(info_elem_t));
+    info_elem_t *new_config = (info_elem_t *)fio_malloc(allocated_elements*sizeof(info_elem_t));
     memset(new_config, 0, allocated_elements*sizeof(info_elem_t));
 
     /* first is config header */
@@ -931,8 +925,8 @@ uint32_t info_load_config(char *filename)
         /* read next element */
         if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
         {
-            free_dma_memory(new_config);
-            free_dma_memory(xml_config);
+            fio_free(new_config);
+            fio_free(xml_config);
             return 1;
         }
 
@@ -970,15 +964,15 @@ uint32_t info_load_config(char *filename)
         config_element_pos++;
         if(ret || allocated_elements < config_element_pos)
         {
-            free_dma_memory(new_config);
-            free_dma_memory(xml_config);
+            fio_free(new_config);
+            fio_free(xml_config);
             return ret;
         }
 
     } while (!done);
 
-    free_dma_memory(xml_config);
-    free_dma_memory(new_config);
+    fio_free(xml_config);
+    fio_free(new_config);
     memcpy(info_config, new_config, config_element_pos * sizeof(info_elem_t));
     return 0;
 }
@@ -993,7 +987,7 @@ uint32_t info_save_config(info_elem_t *config, char *file)
         elements++;
     }
 
-    FILE* f = FIO_CreateFileEx(file);
+    FILE* f = FIO_CreateFile(file);
     if(!f)
     {
         return 1;
@@ -1251,6 +1245,7 @@ char *info_get_cardlabel(char drv)
 uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 {
     strcpy(buffer, "");
+    int free_space_32k = get_free_space_32k(get_shooting_card());
 
     switch(string_type)
     {
@@ -1558,8 +1553,8 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_HDR:
 #ifdef FEATURE_HDR_BRACKETING
         {
-            extern int hdr_enabled, hdr_steps, hdr_stepsize;
-            if (!hdr_enabled)
+            extern int hdr_steps, hdr_stepsize;
+            if (!is_hdr_bracketing_enabled())
             {
                 return 1;
             }
@@ -1606,8 +1601,10 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
         case INFO_STRING_TEMPERATURE:
         {
+	    #ifdef EFIC_CELSIUS
             snprintf(buffer, maxsize, "%d", EFIC_CELSIUS);
             break;
+	    #endif
         }
         case INFO_STRING_WBMODE:
         {
@@ -2484,12 +2481,12 @@ uint32_t info_print_screen()
 
     BMP_LOCK
     (
-        bmp_idle_copy(0,1);
-        bmp_draw_to_idle(1);
+        //~ bmp_idle_copy(0,1);
+        //~ bmp_draw_to_idle(1);
         info_print_config(info_config);
         info_print_config(info_config_dynamic);
-        bmp_draw_to_idle(0);
-        bmp_idle_copy(1,0);
+        //~ bmp_draw_to_idle(0);
+        //~ bmp_idle_copy(1,0);
     )
     give_semaphore(info_sem);
     

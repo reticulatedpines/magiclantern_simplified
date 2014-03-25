@@ -110,15 +110,15 @@ void menu_help_show_page(int page)
 
 #ifdef CONFIG_HELP_CACHE
     char rpath[30];
-    snprintf(rpath, sizeof(rpath), CARD_DRIVE "ML/doc/page-%03d.vrm", page);
+    snprintf(rpath, sizeof(rpath), "ML/doc/page-%03d.vrm", page);
     if (load_vram(rpath)==-1)
 #endif
     {
-        snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
+        snprintf(path, sizeof(path), "ML/doc/page-%03d.bmh", page);
         doc = bmp_load(path, 1);
         if (!doc)
         {
-            snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmp", page);
+            snprintf(path, sizeof(path), "ML/doc/page-%03d.bmp", page);
             doc = bmp_load(path, 1);
         }
 
@@ -129,7 +129,7 @@ void menu_help_show_page(int page)
             extern int _bmp_draw_should_stop;
             if (!_bmp_draw_should_stop) save_vram(rpath);
             #endif
-            FreeMemory(doc);
+            free(doc);
         }
         else
         {
@@ -146,13 +146,13 @@ void menu_help_redraw()
 
 void menu_help_next_page()
 {
-    current_page = mod(current_page, help_pages) + 1;
+    current_page = MOD(current_page, help_pages) + 1;
     menu_help_active = 1;
 }
 
 void menu_help_prev_page()
 {
-    current_page = mod(current_page - 2, help_pages) + 1;
+    current_page = MOD(current_page - 2, help_pages) + 1;
     menu_help_active = 1;
 }
 
@@ -173,7 +173,7 @@ void menu_help_go_to_label(void* label, int delta)
     if (is_menu_selected("Help")) page = 1; // don't show the 404 page in Help menu :P
     
     int size = 0;
-    char* buf = (void*)read_entire_file(CARD_DRIVE "ML/doc/menuidx.dat", &size);
+    char* buf = (void*)read_entire_file("ML/doc/menuidx.dat", &size);
     if (!buf || !size) page = -1; // show "help not found" warning
     
     // trim spaces
@@ -205,7 +205,7 @@ void menu_help_go_to_label(void* label, int delta)
         }
     }
 
-    free_dma_memory(buf);
+    fio_free(buf);
     
     current_page = page;
     menu_help_active = 1;

@@ -136,7 +136,7 @@ unsigned int trace_start(char *name, char *file_name)
     
     /* create trace file */
     FIO_RemoveFile(ctx->file_name);
-    ctx->file_handle = FIO_CreateFileEx(ctx->file_name);
+    ctx->file_handle = FIO_CreateFile(ctx->file_name);
     if(ctx->file_handle == INVALID_PTR)
     {
         ctx->used = 0;
@@ -319,7 +319,7 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     
     /* build timestamp string */
     int max_len = TRACE_MAX_LINE_LENGTH;
-    char *linebuffer = malloc(max_len);
+    char *linebuffer = malloc(max_len + 1);
     linebuffer[linebuffer_pos] = 0;
     
     if(ctx->format & TRACE_FMT_COMMENT)

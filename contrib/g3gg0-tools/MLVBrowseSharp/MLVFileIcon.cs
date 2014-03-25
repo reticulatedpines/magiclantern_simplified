@@ -19,6 +19,8 @@ namespace MLVBrowseSharp
         public FileInfo FileInfo = null;
         private MLVFileList ParentList = null;
         private bool _Selected = false;
+        private bool _Processing = false;
+        
         internal bool Paused = false;
         internal bool SingleStep = true;
         private bool SeekMode = false;
@@ -161,7 +163,7 @@ namespace MLVBrowseSharp
                                     }
                                     catch (Exception e)
                                     {
-                                        SetText(e.GetType().ToString());
+                                        SetText(e);
                                     }
                                 }));
                             }
@@ -218,12 +220,12 @@ namespace MLVBrowseSharp
             }
             catch (IOException ex)
             {
-                SetText(ex.GetType().ToString());
+                SetText(ex);
                 return;
             }
             catch (Exception ex)
             {
-                SetText(ex.GetType().ToString());
+                SetText(ex);
                 return;
             }
         }
@@ -286,8 +288,15 @@ namespace MLVBrowseSharp
 
                 if (tm_year > 1900 && tm_mon > 0 && tm_mday > 0)
                 {
-                    DateTime date = new DateTime(tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
-                    SetMetadata("Time: Date/Time", date.ToLongDateString() + " " + date.ToLongTimeString());
+                    try
+                    {
+                        DateTime date = new DateTime(tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
+                        SetMetadata("Time: Date/Time", date.ToLongDateString() + " " + date.ToLongTimeString());
+                    }
+                    catch (Exception e)
+                    {
+                        SetMetadata("Time: Date/Time (failed to parse)", tm_year.ToString() + "/" + tm_mon + "/" + tm_mday + " " + tm_hour + ":" + tm_min + ":" + tm_sec);
+                    }
                 }
                 else
                 {
@@ -307,7 +316,19 @@ namespace MLVBrowseSharp
             }
         }
 
-        private void SetText(string text)
+
+        private void SetText(Exception e)
+        {
+            SetText("Ex: " + e.Message, new Font("Courier New", 7));
+            SetMetadata("[ERROR] Exception occurred", Environment.NewLine + e.Message + Environment.NewLine + e.StackTrace);
+        }
+
+        public void SetText(string text)
+        {
+            SetText(text, new Font("Courier New", 10));
+        }
+
+        public void SetText(string text, Font font)
         {
             try
             {
@@ -318,7 +339,7 @@ namespace MLVBrowseSharp
                         Bitmap bmp = new Bitmap(pictureBox.Width, pictureBox.Height);
                         Graphics graph = Graphics.FromImage(bmp);
                         pictureBox.Image = bmp;
-                        graph.DrawString(text, new Font("Courier New", 10), new SolidBrush(Color.Black), new PointF(0, pictureBox.Height/2));
+                        graph.DrawString(text, font, new SolidBrush(Color.Black), new PointF(0, pictureBox.Height / 2));
                     }
                     catch (Exception)
                     {
@@ -343,7 +364,7 @@ namespace MLVBrowseSharp
 
                 if (arg.Button == MouseButtons.Left)
                 {
-                    if (Form.ModifierKeys != Keys.Control)
+                    if (Form.ModifierKeys != Keys.Control && Form.ModifierKeys != Keys.Shift)
                     {
                         ParentList.UnselectAll();
                     }
@@ -363,6 +384,27 @@ namespace MLVBrowseSharp
                     ParentList.RightClick(new Point(arg.X, arg.Y));
                 }
                 ParentList.UpdateAnimationStatus();
+            }
+        }
+
+        public bool Processing
+        {
+            get
+            {
+                return _Processing;
+            }
+            set
+            {
+                _Processing = value;
+
+                Selected = Selected;
+
+                if (_Processing)
+                {
+                    BackColor = Color.GreenYellow;
+                    textLabel.BackColor = Color.GreenYellow;
+                    splitContainer1.BackColor = Color.GreenYellow;
+                }
             }
         }
 

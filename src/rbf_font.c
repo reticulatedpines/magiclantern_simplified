@@ -1,6 +1,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "beep.h"
 #include "rbf_font.h"
 
 /* here some macros to wrap the CHDK functions for ML code */
@@ -18,9 +19,6 @@ static inline int rbf_char_width(font *rbf_font, int ch);
 static int RBF_HDR_MAGIC1 = 0x0DF00EE0;
 static int RBF_HDR_MAGIC2 = 0x00000003;
 
-
-static unsigned char *ubuffer = 0;                  // uncached memory buffer for reading font data from SD card
-
 struct font font_dynamic[MAX_DYN_FONTS+1];
 static char *dyn_font_name[MAX_DYN_FONTS+1];
 uint32_t dyn_fonts = 0;
@@ -29,7 +27,7 @@ uint32_t dyn_fonts = 0;
 
 static font *new_font() {
     // allocate font from cached memory
-    font *f = AllocateMemory(sizeof(font));
+    font *f = malloc(sizeof(font));
     if (f) {
         memset(f,0,sizeof(font));      // wipe memory
         // return address in cached memory
@@ -62,7 +60,7 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     
     /* was not loaded, try to load */
     char filename[128];
-    snprintf(filename, sizeof(filename), CARD_DRIVE "ML/FONTS/%s.RBF", file);
+    snprintf(filename, sizeof(filename), "ML/FONTS/%s.RBF", file);
     
     uint32_t size;
     if((FIO_GetFileSize( filename, &size ) != 0) || (size == 0))
@@ -79,12 +77,12 @@ uint32_t font_by_name(char *file, uint32_t fg_color, uint32_t bg_color)
     if(!rbf_font_load(filename, font, 0))
     {
         bmp_printf(FONT_CANON, 0, 0, "%s not loaded", file);
-        FreeMemory(font);
+        free(font);
         return FONT_CANON;
     }
 
     /* now updated cached font name (not filename) */
-    dyn_font_name[dyn_fonts] = AllocateMemory(strlen(filename) + 1);
+    dyn_font_name[dyn_fonts] = malloc(strlen(filename) + 1);
     strcpy(dyn_font_name[dyn_fonts], file);
     
     /* and measure font sizes */
@@ -109,9 +107,9 @@ static void alloc_cTable(font *f) {
 
     // If existing data has been allocated then we are re-using the font data
     // See if it the existing cTable data is large enough to hold the new font data
-    // If not FreeMemory it so new memory will be allocated
+    // If not free it so new memory will be allocated
     if ((f->cTable != 0) && (f->cTableSizeMax < (f->charCount*f->hdr.charSize))) {
-        FreeMemory(f->cTable);              // free the memory
+        free(f->cTable);              // free the memory
         f->cTable = 0;                // clear pointer so new memory is allocated
         f->cTableSizeMax = 0;
     }
@@ -120,7 +118,7 @@ static void alloc_cTable(font *f) {
     if (f->cTable == 0) {
         // Allocate memory from cached pool
         int size = f->charCount*f->hdr.charSize;
-        f->cTable = AllocateMemory(size);
+        f->cTable = malloc(size);
 
         // save size
         f->cTableSize = f->charCount*f->hdr.charSize;
@@ -147,28 +145,14 @@ static int font_read(FILE* fd, unsigned char *dest, int len)
     // Return actual bytes read
     int bytes_read = 0;
 
-    if(!ubuffer)
-    {
-        ubuffer = alloc_dma_memory(UBUFFER_SIZE);
-    }
+    unsigned char *ubuffer = fio_malloc(len);
     
     if (ubuffer)
     {
-        // Read file in UBUFFER_SIZE blocks
-        while (len)
-        {
-            // Calc size of next block to read = min(UBUFFER_SIZE, len)
-            int to_read = UBUFFER_SIZE;
-            if (to_read > len) to_read = len;
-
-            // Read block and copy to dest
-            bytes_read += FIO_ReadFile(fd, ubuffer, to_read);
-            memcpy(dest, ubuffer, to_read);
-
-            // Increment dest pointer, decrement len left to read
-            dest += to_read;
-            len -= to_read;
-        }
+        // Read block and copy to dest
+        bytes_read += FIO_ReadFile(fd, ubuffer, len);
+        memcpy(dest, ubuffer, len);
+        fio_free(ubuffer);
     }
 
     return bytes_read;
@@ -186,7 +170,7 @@ static int rbf_font_load(char *file, font* f, int maxchar)
     }
 
     // open file (can't use fopen here due to potential conflict FsIoNotify crash)
-    FILE *fd = FIO_Open(file, O_RDONLY | O_SYNC);
+    FILE *fd = FIO_OpenFile(file, O_RDONLY | O_SYNC);
     if( fd == INVALID_PTR )
     {
         return 0;
@@ -286,6 +270,10 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     {
         for (yy=0; yy<height; ++yy)
         {
+            if (y+yy <= BMP_H_MINUS || y+yy >= BMP_H_PLUS)
+            {
+                break;
+            }
             for (xx=0; xx<pixel_width; ++xx)
             {
                 bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg);
@@ -305,6 +293,10 @@ static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata
     {
         for (yy=0; yy<height; ++yy)
         {
+            if (y+yy <= BMP_H_MINUS || y+yy >= BMP_H_PLUS)
+            {
+                break;
+            }
             for (xx=0; xx<pixel_width; ++xx)
             {
                 int px = (cdata[yy*width/8+xx/8] & (1<<(xx%8)));
@@ -568,8 +560,13 @@ struct font font_large;
 struct font font_canon;
 
 /* must be called before menu_init, otherwise it can't measure strings */
-void load_fonts()
+void _load_fonts()
 {
+    /* tolerate multiple calls, but only run the first */
+    static int fonts_loaded = 0;
+    if (fonts_loaded) return;
+    fonts_loaded = 1;
+    
     /* fake font for Canon font backend, with the same metrics */
     font * canon_font = new_font();
     canon_font->hdr.height = 40;

@@ -62,7 +62,7 @@ void debug_intercept()
 {
     if (!buf) // first call, intercept debug messages
     {
-        buf = alloc_dma_memory(BUF_SIZE);
+        buf = fio_malloc(BUF_SIZE);
         
         #if defined(CONFIG_DIGIC_V)
         uint32_t d = (uint32_t)&DryosDebugMsg;
@@ -75,7 +75,7 @@ void debug_intercept()
     else // subsequent call, save log to file
     {
         buf[len] = 0;
-        dump_seg(buf, len, CARD_DRIVE"dm.log");
+        dump_seg(buf, len, "dm.log");
         NotifyBox(2000, "Saved %d bytes.", len);
         len = 0;
     }

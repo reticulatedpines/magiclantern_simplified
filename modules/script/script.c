@@ -21,18 +21,18 @@ static int script_load_symbols(void* tcc, void* script_state, char *filename)
         console_printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
-    buf = alloc_dma_memory(size);
+    buf = fio_malloc(size);
     if(!buf)
     {
         console_printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
-    file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
-        free_dma_memory(buf);
+        fio_free(buf);
         return -1;
     }
     FIO_ReadFile(file, buf, size);
@@ -79,7 +79,7 @@ static int script_load_symbols(void* tcc, void* script_state, char *filename)
     module_exec(tcc, "tcc_add_symbol", 3, script_state, "strcpy", &strcpy);
     module_exec(tcc, "tcc_add_symbol", 3, script_state, "strlen", &strlen);
 
-    free_dma_memory(buf);
+    fio_free(buf);
     return 0;
 }
 
@@ -155,7 +155,7 @@ static int tcc_compile_and_run(char* filename)
     console_printf("Running script %s...\n", filename);
 
     /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
-    clean_d_cache();
+    sync_caches();
 
     script_main();
 
@@ -198,7 +198,7 @@ static void script_reset_params();
 static char* get_script_path(int script_index)
 {
     static char path[50];
-    snprintf(path, sizeof(path), "%sML/SCRIPTS/%s", MODULE_CARD_DRIVE, script_list[script_index]);
+    snprintf(path, sizeof(path), "ML/SCRIPTS/%s", script_list[script_index]);
     return path;
 }
 
@@ -360,7 +360,7 @@ static MENU_UPDATE_FUNC(script_print)
         if (f)
         {
             script_copy_window(script_preview, sizeof(script_preview), f, 0, 0, 20, 60);
-            free_dma_memory(f);
+            fio_free(f);
         }
         else
         {
@@ -378,7 +378,7 @@ static MENU_UPDATE_FUNC(script_print)
 
 /*static void script_select(void* priv, int delta)
 {
-    script_selected = mod(script_selected + delta, script_cnt);
+    script_selected = MOD(script_selected + delta, script_cnt);
 }*/
 
 static void run_script(const char *script)

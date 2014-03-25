@@ -3,7 +3,6 @@
  */
 
 
-#define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -160,7 +159,7 @@
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
 // * does not interfere with recording
 //~ #define GUIMODE_ML_MENU guimode_ml_menu
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 45 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 45 : 2)
 // outside LiveView, Canon menu is a good choice
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
@@ -258,11 +257,6 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x27c28
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
-
-// measured by Андрей Басов
-// http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
-// not sure, exiftool says x-128
-//~ #define EFIC_CELSIUS (efic_temp * 3/2 - 202)
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5

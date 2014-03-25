@@ -20,8 +20,19 @@ namespace mlv_view_sharp
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct lv_rec_file_footer_t
     {
-        [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 4)]
-        public string magic;
+        [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4)]
+        public byte[] blockTypeData;
+        public string magic
+        {
+            get
+            {
+                return Encoding.ASCII.GetString(blockTypeData);
+            }
+            set
+            {
+                blockTypeData = Encoding.ASCII.GetBytes(value);
+            }
+        }
         public int16_t xRes;
         public int16_t yRes;
         public int32_t frameSize;

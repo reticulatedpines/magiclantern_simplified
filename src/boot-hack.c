@@ -209,6 +209,10 @@ null_task( void )
     return;
 }
 
+static int _hold_your_horses = 1; // 0 after config is read
+int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+
 /**
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
@@ -224,6 +228,12 @@ my_task_dispatch_hook(
     #ifdef CONFIG_TSKMON
     tskmon_task_dispatch();
     #endif
+    
+    if (ml_started)
+    {
+        /* all task overrides should be done by now */
+        return;
+    }
 
     // Do nothing unless a new task is starting via the trampoile
     if( (*context)->pc != (uint32_t) task_trampoline )
@@ -286,7 +296,7 @@ static volatile int init_funcs_done;
 
 /** Call all of the init functions  */
 static void
-call_init_funcs( void * priv )
+call_init_funcs()
 {
     extern struct task_create _init_funcs_start[];
     extern struct task_create _init_funcs_end[];
@@ -343,7 +353,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     }
     
     /* no, create file and store data */
-    handle = FIO_CreateFileEx(file);
+    handle = FIO_CreateFile(file);
     if (handle != INVALID_PTR)
     {
       while(pos < length)
@@ -367,14 +377,10 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
 
 static void backup_task()
 {
-    backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
-    backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+    backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
-
-static int _hold_your_horses = 1; // 0 after config is read
-int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 static int compute_signature(int* start, int num)
 {
@@ -392,17 +398,14 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
 {
-  #ifdef CONFIG_5D3
-  find_ml_card();
-  #endif
+  _find_ml_card();
 
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
-  uint32_t len;
-  load_fonts();
+  _load_fonts();
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    len = compute_signature(ROMBASEADDR, 0x10000);
+    uint32_t len = compute_signature(ROMBASEADDR, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
@@ -427,7 +430,7 @@ static void my_big_init_task()
     call("EnableBootDisk");
     
     msleep(500);
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ROM.DAT");
+    FILE* f = FIO_CreateFile("ROM.DAT");
     if (f != INVALID_PTR) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
@@ -440,11 +443,11 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
-    load_fonts();
+    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();
-    call_init_funcs( 0 );
+    call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
     #ifdef CONFIG_BATTERY_TEST
@@ -471,10 +474,8 @@ static void my_big_init_task()
     task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
     #endif
 
-    #ifdef CONFIG_CONFIG_FILE
-    // Read ML config
+    /* Read ML config. if feature disabled, nothing happens */
     config_load();
-    #endif
     
     debug_init_stuff();
 
@@ -569,7 +570,7 @@ static void my_big_init_task()
 }*/
 
 /** Blocks execution until config is read */
-void hold_your_horses(int showlogo)
+void hold_your_horses()
 {
     while (_hold_your_horses)
     {
@@ -592,7 +593,7 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
         "at %s:%d, task %s\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, get_task_name_from_id((unsigned int)get_current_task()), 
+        file, line, get_task_name_from_id(get_current_task()), 
         lv, shooting_mode
     );
     request_crash_log(1);
@@ -606,7 +607,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
         "at %s:%d (%s), task %s\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, func, get_task_name_from_id((unsigned int)get_current_task()), 
+        file, line, func, get_task_name_from_id(get_current_task()), 
         lv, shooting_mode
     );
     request_crash_log(2);
@@ -671,7 +672,7 @@ int init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
-    #ifdef CONFIG_550D
+    #if defined(CONFIG_550D)
     // change end limit to 0xc60000 => reserve 640K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
     ml_reserved_mem = 640 * 1024;
@@ -715,7 +716,7 @@ my_init_task(int a, int b, int c, int d)
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
     unsigned int backup_data = 0;
-    unsigned int task_id = (unsigned int)get_current_task();
+    unsigned int task_id = get_current_task();
 
     if(task_id > 0x68 && task_id < 0xFFFFFFFF)
     {
@@ -903,6 +904,7 @@ my_init_task(int a, int b, int c, int d)
             msleep(100);
         }
         bmp_printf(FONT_CANON, 0, 0, "Magic OFF");
+        info_led_off();
     #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';

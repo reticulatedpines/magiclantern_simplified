@@ -5,6 +5,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "property.h"
+#include "lens.h"
 
 static char file_prefix[8] = "IMG_";
 static char old_prefix[8] = "IMG_";

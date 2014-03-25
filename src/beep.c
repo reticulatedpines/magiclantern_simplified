@@ -14,6 +14,13 @@ int beep_playing = 0;
 
 #ifdef CONFIG_BEEP
 
+/* ASIF interface (private) */
+extern void StartASIFDMADAC(void* buf1, int N1, int buf2, int N2, void (*continue_cbr)(void*), void* cbr_arg_maybe);
+extern void StopASIFDMADAC(void (*stop_cbr)(void*), int cbr_arg_maybe);
+extern void SetSamplingRate(int sample_rate, int unknown);
+extern void PowerAudioOutput();
+extern void SetAudioVolumeOut(int volume);
+
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
 #define BEEP_WAV -2
@@ -27,6 +34,9 @@ static char* record_filename = 0;
 static int beep_custom_duration;
 static int beep_custom_frequency;
 
+static int audio_recording = 0;
+static int audio_recording_start_time = 0;
+
 CONFIG_INT("beep.enabled", beep_enabled, 1);
 static CONFIG_INT("beep.volume", beep_volume, 3);
 static CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
@@ -35,6 +45,33 @@ static CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noi
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
 static void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype);
+
+static int is_safe_to_beep()
+{
+    if (audio_recording)
+    {
+        /* do not beep while recording WAV */
+        return 0;
+    }
+    
+    if (RECORDING && sound_recording_enabled())
+    {
+        /* do not beep while recording any kind of video with sound */
+        return 0;
+    }
+    
+    #ifndef CONFIG_AUDIO_CONTROLS
+    if (lv && is_movie_mode() && sound_recording_enabled())
+    {
+        /* do not beep in movie mode LiveView => breaks Canon audio */
+        /* cameras with ML audio controls should be able to restore audio functionality */
+        return 0;
+    }
+    #endif
+    
+    /* no restrictions */
+    return 1;
+}
 
 static void asif_stopped_cbr()
 {
@@ -151,7 +188,7 @@ static void wav_playsmall(char* filename)
     info_led_off();
     
 end:
-    free_dma_memory(buf);
+    fio_free(buf);
 }
 
 
@@ -190,7 +227,7 @@ static void wav_play(char* filename)
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
-    file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if( file == INVALID_PTR ) return;
 
     int s1 = FIO_ReadFile( file, buf1, WAV_BUF_SIZE );
@@ -238,8 +275,6 @@ wav_cleanup:
     file = INVALID_PTR;
 }
 
-static int audio_recording = 0;
-static int audio_recording_start_time = 0;
 static void asif_rec_stop_cbr()
 {
     audio_recording = 0;
@@ -258,7 +293,7 @@ static void record_show_progress()
 static void wav_recordsmall(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
-    uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
+    uint8_t* wav_buf = fio_malloc(sizeof(wav_header) + N);
     if (!wav_buf) 
     {
         NotifyBox(2000, "WAV: not enough memory");
@@ -286,10 +321,10 @@ static void wav_recordsmall(char* filename, int duration, int show_progress)
     info_led_off();
     msleep(1000);
        
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
     FIO_CloseFile(f);
-    free_dma_memory(wav_buf);
+    fio_free(wav_buf);
 }
 
 #endif
@@ -322,12 +357,19 @@ static void audio_stop_recording()
 
 static int audio_stop_rec_or_play() // true if it stopped anything
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
+    int ans = 0;
+    if (beep_playing)
+    {
+        audio_stop_playback();
+        ans = 1;
+    }
+    #ifdef FEATURE_WAV_RECORDING
+    if (audio_recording)
+    {
+        audio_stop_recording();
+        ans = 1;
+    }
     #endif
-    int ans = beep_playing || audio_recording;
-    if (beep_playing) audio_stop_playback();
-    if (audio_recording) audio_stop_recording();
     return ans;
 }
 
@@ -358,15 +400,15 @@ static void add_write_q(void *buf){
 
     if(tmpq->multiplex < QBUF_SIZE){
         if(!tmpq->buf){
-            tmpq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
+            tmpq->buf = fio_malloc(WAV_BUF_SIZE*QBUF_SIZE);
         }
         int offset = WAV_BUF_SIZE * tmpq->multiplex;
         memcpy(tmpq->buf + offset,buf,WAV_BUF_SIZE);
         tmpq->multiplex++;
     }else{
-        newq = SmallAlloc(sizeof(WRITE_Q));
+        newq = malloc(sizeof(WRITE_Q));
         memset(newq,0,sizeof(WRITE_Q));
-        newq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
+        newq->buf = fio_malloc(WAV_BUF_SIZE*QBUF_SIZE);
         memcpy(newq->buf ,buf,WAV_BUF_SIZE);
         newq->multiplex++;
         tmpq->next = newq;
@@ -381,9 +423,9 @@ static void write_q_dump(){
         prevq = tmpq;
         tmpq = tmpq->next;
         FIO_WriteFile(file, UNCACHEABLE(tmpq->buf), WAV_BUF_SIZE * tmpq->multiplex);
-        free_dma_memory(tmpq->buf);
+        fio_free(tmpq->buf);
         prevq->next = tmpq->next;
-        SmallFree(tmpq);
+        free(tmpq);
         tmpq = prevq;
     }
 }
@@ -421,7 +463,7 @@ static void wav_record(char* filename, int show_progress)
     if (!buf2) return;
 
     if( file != INVALID_PTR ) return;
-    file = FIO_CreateFileEx(filename);
+    file = FIO_CreateFile(filename);
     if( file == INVALID_PTR ) return;
     FIO_WriteFile(file, UNCACHEABLE(wav_header), sizeof(wav_header));
     
@@ -513,13 +555,16 @@ static struct semaphore * beep_sem;
 
 static void play_test_tone()
 {
+    if (!is_safe_to_beep()) return;
     if (audio_stop_rec_or_play()) return;
+
 #ifdef CONFIG_600D
     if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
         NotifyBox(2000,"600D does not support\nPlay and monitoring together");
         return;
     }
 #endif
+
     beep_type = BEEP_LONG;
     give_semaphore(beep_sem);
 }
@@ -550,11 +595,7 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
-    #endif
-
-    if (!beep_enabled || recording > 0 || audio_recording)
+    if (!beep_enabled || !is_safe_to_beep())
     {
         info_led_blink(times,50,50); // silent warning
         return;
@@ -572,21 +613,15 @@ void beep_times(int times)
 
 void beep()
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
-    #endif
-
-    if (recording <= 0 && !audio_recording) // breaks audio
-        unsafe_beep();
+    if (!is_safe_to_beep())
+        return;
+    
+    unsafe_beep();
 }
 
 void beep_custom(int duration, int frequency, int wait)
 {
-    #ifndef FEATURE_WAV_RECORDING
-    int audio_recording = 0;
-    #endif
-
-    if (!beep_enabled || recording > 0 || audio_recording)
+    if (!beep_enabled || !is_safe_to_beep())
     {
         info_led_blink(1, duration, 10); // silent warning
         return;
@@ -663,41 +698,41 @@ static void beep_task()
         {
             info_led_on();
             int N = 48000*5;
-            int16_t* beep_buf = SmallAlloc(N*2);
-            if (!beep_buf) { N = 48000; beep_buf = SmallAlloc(N*2); } // not enough RAM, try a shorter tone
-            if (!beep_buf) { N = 10000; beep_buf = SmallAlloc(N*2); } // even shorter
+            int16_t* beep_buf = malloc(N*2);
+            if (!beep_buf) { N = 48000; beep_buf = malloc(N*2); } // not enough RAM, try a shorter tone
+            if (!beep_buf) { N = 10000; beep_buf = malloc(N*2); } // even shorter
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, N);
             while (beep_playing) msleep(100);
-            SmallFree(beep_buf);
+            free(beep_buf);
             info_led_off();
         }
         else if (beep_type == BEEP_SHORT)
         {
             int N = 5000;
-            int16_t* beep_buf = SmallAlloc(N*2);
+            int16_t* beep_buf = malloc(N*2);
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, 5000, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, 5000);
             while (beep_playing) msleep(20);
-            SmallFree(beep_buf);
+            free(beep_buf);
         }
         else if (beep_type == BEEP_CUSTOM_LEN_FREQ)
         {
             int N = beep_custom_duration * 48;
-            int16_t* beep_buf = SmallAlloc(N*2);
+            int16_t* beep_buf = malloc(N*2);
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, N, beep_custom_frequency, 0);
             play_beep(beep_buf, N);
             while (beep_playing) msleep(20);
-            SmallFree(beep_buf);
+            free(beep_buf);
         }
         else if (beep_type > 0) // N beeps
         {
             int times = beep_type;
             int N = 10000;
-            int16_t* beep_buf = SmallAlloc(N*2);
+            int16_t* beep_buf = malloc(N*2);
             if (!beep_buf) continue;
             generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
             
@@ -714,7 +749,7 @@ static void beep_task()
                 msleep(120);
             }
             
-            SmallFree(beep_buf);
+            free(beep_buf);
         }
         msleep(100);
         audio_configure(1);
@@ -753,7 +788,7 @@ static int find_wav(int * index, char* fn)
         *index = N-1;
     }
     
-    *index = mod(*index, N);
+    *index = MOD(*index, N);
 
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
@@ -866,7 +901,7 @@ static void wav_record_do()
     int q = QR_MODE;
     char* fn = wav_get_new_filename();
     snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
-    if (recording) wav_notify_filename();
+    if (RECORDING) wav_notify_filename();
     else msleep(100); // to avoid the noise from shortcut key
     wav_record(fn, q);
     if (q)
@@ -880,7 +915,7 @@ static void record_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
 
-    if (recording > 0 && sound_recording_mode != 1)
+    if (RECORDING_H264 && sound_recording_mode != 1)
     {
         NotifyBox(2000, 
             "Cannot record WAV sound \n"
@@ -955,6 +990,11 @@ PROP_HANDLER( PROP_MVR_REC_START )
 static MENU_UPDATE_FUNC(beep_update)
 {
     MENU_SET_ENABLED(beep_enabled);
+    
+    if (!is_safe_to_beep())
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Beeps disabled to prevent interference with audio recording.");
+    }
 }
 
 static struct menu_entry beep_menus[] = {
@@ -1009,7 +1049,7 @@ static struct menu_entry beep_menus[] = {
                 .name = "Test beep sound",
                 //~ .update = play_test_tone_print,
                 .icon_type = IT_ACTION,
-                .select = unsafe_beep,
+                .select = beep,
                 .help = "Play a short beep which will be used for ML events.",
             },
             MENU_EOL,
@@ -1071,19 +1111,11 @@ void Load_ASIFDMAADC(){
 
 static void beep_init()
 {
-#ifdef CONFIG_6D
-    cache_fake(HIJACK_ASIF_DAC_TIMEOUT, NOP_INSTR, TYPE_ICACHE);    //~ FF11CD44 Assert This. Does it not stop properly?
-    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT, NOP_INSTR, TYPE_ICACHE);    //~ Kill Wait for Semaphore
-    cache_fake(HIJACK_ASIF_ADC_TIMEOUT, NOP_INSTR, TYPE_ICACHE);    //~ FF11C99C ADC ASSERT
-    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT2, NOP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Semaphore
-    cache_fake(HIJACK_ASIF_CONT_JUMP_ADDR, HIJACK_ASIF_CONT_JUMP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Continue Jump Assert, change BEQ to B
-#endif
-
 #ifdef FEATURE_WAV_RECORDING
-    wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
-    wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
+    wav_buf[0] = fio_malloc(WAV_BUF_SIZE);
+    wav_buf[1] = fio_malloc(WAV_BUF_SIZE);
     
-    rootq = SmallAlloc(sizeof(WRITE_Q));
+    rootq = malloc(sizeof(WRITE_Q));
     memset(rootq,0,sizeof(WRITE_Q));
     rootq->multiplex=100;
 #endif
@@ -1098,6 +1130,8 @@ static void beep_init()
 //~ #ifdef CONFIG_600D
     //~ Load_ASIFDMAADC();
 //~ #endif
+
+    (void)audio_recording_start_time;
 }
 
 INIT_FUNC("beep.init", beep_init);

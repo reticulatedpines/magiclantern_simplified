@@ -75,6 +75,10 @@
     #define FEATURE_FOCUS_PEAK
     //~ #define FEATURE_FOCUS_PEAK_DISP_FILTER // too slow
     #define FEATURE_MAGIC_ZOOM
+#ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    #define FEATURE_MAGIC_ZOOM_FULL_SCREEN
+#endif
+
     #define FEATURE_CROPMARKS
     #define FEATURE_GHOST_IMAGE
     #define FEATURE_SPOTMETER
@@ -182,11 +186,6 @@
 
     #define FEATURE_SNAP_SIM
 
-
-#ifdef CONFIG_RAW_PHOTO
-    #define FEATURE_POST_DEFLICKER
-#endif
-
 /** Focus menu **/
     #define FEATURE_TRAP_FOCUS
 
@@ -271,6 +270,7 @@
 
 #endif
     //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
+    //~ #define FEATURE_SWAP_INFO_PLAY // useful for 6D only
 
     #define FEATURE_WARNINGS_FOR_BAD_SETTINGS
 
@@ -286,6 +286,7 @@
 
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
+    /* to be refactored with the lvinfo engine */
     #define FEATURE_FLEXINFO
 
 /** Debug menu **/
@@ -293,7 +294,6 @@
     //~ #define FEATURE_SHOW_OVERLAY_FPS
 
     #define FEATURE_SCREENSHOT
-    #define FEATURE_SCREENSHOT_422
 
     #define FEATURE_DONT_CLICK_ME
 

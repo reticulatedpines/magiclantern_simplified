@@ -10,6 +10,7 @@
 #include "menu.h"
 #include "config.h"
 #include "math.h"
+#include "fps.h"
 
 //~ #define EngDrvOutLV(reg, value) *(int*)(reg) = value
 
@@ -83,7 +84,7 @@ MENU_UPDATE_FUNC(digic_iso_print_movie)
     int G = 0;
     G = gain_to_ev_scaled(DIGIC_ISO_GAIN_MOVIE, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    int GA = ABS(G);
     
     MENU_SET_VALUE(
         "%s%d.%d EV",
@@ -100,7 +101,7 @@ MENU_UPDATE_FUNC(display_gain_print)
 {
     int G = gain_to_ev_scaled(DIGIC_ISO_GAIN_PHOTO, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    int GA = ABS(G);
     display_gain_menu_index = GA/10;
 }
 
@@ -151,7 +152,7 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
         if (digic_iso_presets[i] >= *priv) break;
     
     do {
-        i = mod(i + delta, COUNT(digic_iso_presets));
+        i = MOD(i + delta, COUNT(digic_iso_presets));
     } while ((!mv && digic_iso_presets[i] < 1024)
     #ifdef CONFIG_DIGIC_V
     || (mv && digic_iso_presets[i] > 2048) // high display gains not working
@@ -398,13 +399,13 @@ void digic_dump()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
-        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "digic%02d.LOG", log_number);
-        unsigned size;
+        snprintf(log_filename, sizeof(log_filename), "digic%02d.LOG", log_number);
+        uint32_t size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
     }
 
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {
@@ -421,7 +422,7 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/h264.log");
+    FILE* f = FIO_CreateFile("ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {
@@ -550,7 +551,7 @@ void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 void vignetting_correction_apply_regs()
 {
     if (!is_movie_mode()) return;
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!lv) return;
     if (lv_paused) return;
     
@@ -595,7 +596,7 @@ static void vignetting_coeff_toggle(void* priv, int delta)
 
     vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
 
-#ifdef CONFIG_7D
+#if defined(CONFIG_7D)
     if (vignetting_correction_enable)
         ml_rpc_send_vignetting(vignetting_data_prep, sizeof(vignetting_data_prep));
 #endif
@@ -757,7 +758,7 @@ static MENU_UPDATE_FUNC(shutter_finetune_display)
 
 void image_effects_step()
 {
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!lv) return;
     if (lv_paused) return;
 
@@ -808,7 +809,7 @@ void image_effects_step()
 void digic_iso_step()
 {
 #if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN) || defined(FEATURE_SHUTTER_FINE_TUNING)
-    if (!DISPLAY_IS_ON && !recording) return;
+    if (!DISPLAY_IS_ON && NOT_RECORDING) return;
     if (!lv) return;
     if (lv_paused) return;
     int mv = is_movie_mode();

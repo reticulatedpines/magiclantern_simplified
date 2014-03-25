@@ -181,4 +181,7 @@ state_object_dispatchc(
 
 #define STATE_FUNC(stateobj,input,state) stateobj->state_matrix[(state) + (input) * stateobj->max_states].state_transition_function
 
+/* waits for N LiveView frames (using state object vsync) */
+int wait_lv_frames(int num_frames);
+
 #endif

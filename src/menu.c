@@ -30,6 +30,13 @@
 #include "lens.h"
 #include "font.h"
 #include "menu.h"
+#include "beep.h"
+#include "zebra.h"
+#include "focus.h"
+#include "menuhelp.h"
+#include "console.h"
+#include "debug.h"
+#include "lvinfo.h"
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
@@ -101,12 +108,13 @@ int menu_help_active = 0; // also used in menuhelp.c
 int menu_redraw_blocked = 0; // also used in flexinfo
 static int menu_redraw_cancel = 0;
 
-static int submenu_mode = 0;
+static int submenu_level = 0;
 static int edit_mode = 0;
 static int customize_mode = 0;
 static int advanced_mode = 0;       /* cached value; only for submenus for now */
+static int caret_position = 0;
 
-#define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
+#define SUBMENU_OR_EDIT (submenu_level || edit_mode)
 
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
 //~ static CONFIG_INT("menu.set", set_action, 2);
@@ -522,7 +530,7 @@ static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
         v = COERCE(round_to_R20(v), min, max);
     }
     
-    *val = v;
+    set_config_var_ptr(val, v);
 }
 
 static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
@@ -555,17 +563,74 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
         }
     }
     
-    *val = v;
+    set_config_var_ptr(val, v);
+}
+
+/* for editing with caret */
+static int get_delta(struct menu_entry * entry, int sign)
+{
+    if(!edit_mode)
+        return sign;
+    else if(entry->unit == UNIT_DEC)
+        return sign * powi(10, caret_position);
+    else if(entry->unit == UNIT_HEX)
+        return sign * powi(16, caret_position);
+    else if(entry->unit == UNIT_TIME)
+    {
+        if(caret_position == 2) return sign * 10;
+        else if(caret_position == 4) return sign * 60;
+        else if(caret_position == 5) return sign * 600;
+        else if(caret_position == 7) return sign * 3600;
+        else if(caret_position == 8) return sign * 36000;
+    }
+    return sign;
+}
+
+static int uses_caret_editing(struct menu_entry * entry)
+{
+    return 
+        entry->select == 0 &&   /* caret editing requires its own toggle logic */
+        (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME);  /* only these caret edit modes are supported */
+}
+
+static void caret_move(struct menu_entry * entry, int delta)
+{
+    int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(ABS(entry->max),ABS(entry->min)))/4 :
+              (entry->unit == UNIT_DEC)  ? log10i(MAX(ABS(entry->max),ABS(entry->min))/2)  :
+              (entry->unit == UNIT_TIME) ? 7 : 0;
+
+    menu_numeric_toggle(&caret_position, delta, 0, max);
+
+    /* skip "h", "m" and "s" positions for time fields */
+    if(entry->unit == UNIT_TIME && (caret_position == 0 || caret_position == 3 || caret_position == 6))
+    {
+        menu_numeric_toggle(&caret_position, delta, 0, max);
+    }
 }
 
 void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     ASSERT(IS_ML_PTR(val));
 
-    *val = mod(*val - min + delta, max - min + 1) + min;
+    set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
 }
 
-static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
+void menu_numeric_toggle_time(int * val, int delta, int min, int max)
+{
+    int deltas[] = {1,5,15,30,60,300,900,1800,3600};
+    int i = 0;
+    for(i = COUNT(deltas) - 1; i > 0; i--)
+        if(deltas[i] * 4 <= (delta < 0 ? *val - 1 : *val)) break;
+    delta *= deltas[i];
+    
+    int new_val = (*val + delta) / delta * delta;
+    if(new_val > max) new_val = min;
+    if(new_val < min) new_val = max;
+    
+    set_config_var_ptr(val, new_val);
+}
+
+static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time)
 {
     ASSERT(IS_ML_PTR(val));
     
@@ -573,7 +638,9 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
     static int prev_delta = 1000;
     int t = get_ms_clock_value();
     
-    if (max - min > 20)
+    if(is_time)
+        menu_numeric_toggle_time(val, delta, min, max);
+    else if (max - min > 20)
     {
         if (t - prev_t < 200 && prev_delta < 200)
             menu_numeric_toggle_R20(val, delta, min, max);
@@ -582,7 +649,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
     }
     else
     {
-        *val = mod(*val - min + delta, max - min + 1) + min;
+        set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
     }
     
     prev_delta = t - prev_t;
@@ -645,13 +712,13 @@ static int guess_submenu_enabled(struct menu_entry * entry)
     else 
     {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
         struct menu_entry * e = entry->children;
-        
-        while (e->prev) e = e->prev;
 
         for( ; e ; e = e->next )
         {
             if (MENU_INT(e) && can_be_turned_off(e))
+            {
                 return 1;
+            }
         }
 
         return 0;
@@ -684,8 +751,6 @@ static void entry_draw_icon(
     int         warn
 )
 {
-    entry_guess_icon_type(entry);
-    
     switch (entry->icon_type)
     {
         case IT_BOOL:
@@ -846,7 +911,7 @@ menu_find_by_name(
     }
 
     // Not found; create it
-    struct menu * new_menu = SmallAlloc( sizeof(*new_menu) );
+    struct menu * new_menu = malloc( sizeof(*new_menu) );
     if( !new_menu )
     {
         give_semaphore( menu_sem );
@@ -1064,10 +1129,11 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
 }
 
 void
-menu_add(
+menu_add_base(
     const char *        name,
     struct menu_entry * new_entry,
-    int         count
+    int         count,
+    bool update_placeholders
 )
 {
 #if defined(POSITION_INDEPENDENT)
@@ -1093,13 +1159,14 @@ menu_add(
     if( !head )
     {
         // First one -- insert it as the selected item
-        head = menu->children   = new_entry;
+        head = menu->children = new_entry;
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
+        entry_guess_icon_type(new_entry);
         new_entry++;
         count--;
     }
@@ -1111,13 +1178,14 @@ menu_add(
     for (int i = 0; i < count; i++)
     {
         new_entry->selected = 0;
-        new_entry->next     = head->next;
+        new_entry->next     = NULL;
         new_entry->prev     = head;
         new_entry->parent_menu = menu;
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
-        menu_update_placeholder(menu, new_entry);
+        entry_guess_icon_type(new_entry);
+        if (update_placeholders) menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
     
@@ -1145,10 +1213,25 @@ menu_add(
                 menu_add(entry->name, entry->children, count);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
+            
+            /* ensure the "children" field always points to the very first item in the submenu */
+            /* (important when merging 2 submenus) */
+            while (entry->children->prev) entry->children = entry->children->prev;
         }
         entry = entry->prev;
         if (!entry) break;
     }
+}
+
+void
+menu_add(
+    const char *        name,
+    struct menu_entry * new_entry,
+    int         count
+)
+{
+    // Update placeholders
+    menu_add_base(name, new_entry, count, true);
 }
 
 static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
@@ -1209,16 +1292,20 @@ menu_remove(
     
     menu_flags_load_dirty = 1;
 
-    for(struct menu_entry * entry = menu->children; entry; entry = entry->next)
-    {
+    int removed = 0;
+
+    struct menu_entry * entry = menu->children;
+    while(entry && removed < count) {
         if (entry >= old_entry && entry < old_entry + count)
         {
             menu_remove_entry(menu, entry);
+            removed++;
         }
+        entry = entry->next;
     }
 }
 
-void dot(int x, int y, int color, int radius)
+static void dot(int x, int y, int color, int radius)
 {
     fill_circle(x+16, y+16, radius, color);
 }
@@ -1922,12 +2009,12 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires Manual (M) mode.");
     else if (DEPENDS_ON(DEP_MANUAL_ISO) && !lens_info.raw_iso)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual ISO.");
-    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, (was_sound_recording_disabled_by_fps_override() && !fps_should_record_wav()) ? 
             "Sound recording was disabled by FPS override." :
             "Sound recording is disabled. Enable it from Canon menu."
         );
-    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Disable sound recording from Canon menu!");
     
     if (warning[0]) 
@@ -1963,9 +2050,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in Manual (M) mode.");
         else if (WORKS_BEST_IN(DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual ISO.");
-        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
-        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
         if (warning[0]) 
@@ -2009,7 +2096,6 @@ entry_default_display_info(
     info->icon = 0;
     info->icon_arg = 0;
 
-    entry_guess_icon_type(entry);
     info->enabled = entry_guess_enabled(entry);
     info->warning_level = check_default_warnings(entry, warning);
     
@@ -2062,10 +2148,56 @@ entry_default_display_info(
                     else { STR_APPEND(value, "%d", raw2iso(MEM(entry->priv))); }
                     break;
                 }
+                case UNIT_DEC:
+                {
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "%s%d", (zero_pad + COERCE(8-(caret_position - log10i(MEM(entry->priv))),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        STR_APPEND(value, "%d", MEM(entry->priv));
+                    }
+                    break;
+                }
                 case UNIT_HEX:
                 {
-                    STR_APPEND(value, "0x%x", MEM(entry->priv));
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "0x%s%x", (zero_pad + COERCE(8-(caret_position - log2i(MEM(entry->priv))/4),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        STR_APPEND(value, "0x%x", MEM(entry->priv));
+                    }
                     break;
+                }
+                case UNIT_TIME:
+                {
+                    if(MEM(entry->priv) / 3600 > 0 || (entry->selected && caret_position > 5))
+                    {
+                        STR_APPEND(value,"%dh%02dm%02ds", MEM(entry->priv) / 3600, MEM(entry->priv) / 60 % 60, MEM(entry->priv) % 60);
+                    }
+                    else if((entry->selected && caret_position > 4))
+                    {
+                        STR_APPEND(value,"%02dm%02ds", MEM(entry->priv) / 60, MEM(entry->priv) % 60);
+                    }
+                    else if(MEM(entry->priv) / 60 > 0 || (entry->selected && caret_position > 2))
+                    {
+                        STR_APPEND(value,"%dm%02ds", MEM(entry->priv) / 60, MEM(entry->priv) % 60);
+                    }
+                    else if((entry->selected && caret_position > 1))
+                    {
+                        STR_APPEND(value,"%02ds", MEM(entry->priv) % 60);
+                    }
+                    else
+                    {
+                        STR_APPEND(value,"%ds", MEM(entry->priv));
+                    }
+                    break;
+                    
                 }
                 default:
                 {
@@ -2111,7 +2243,7 @@ entry_print(
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
         fnt = MENU_FONT_GRAY;
     
-    if (submenu_mode && !in_submenu)
+    if (submenu_level && !in_submenu)
         fnt = MENU_FONT_GRAY;
     
     int use_small_font = 0;
@@ -2120,7 +2252,7 @@ entry_print(
     
     int not_at_home = 
             !entry->parent_menu->selected &&     /* is it in some dynamic menu? (not in its original place) */
-            !submenu_mode &&                     /* hack: submenus are not marked as "selected", so we can't have dynamic submenus for now */
+            !submenu_level &&                     /* hack: submenus are not marked as "selected", so we can't have dynamic submenus for now */
             1;
     
     /* do not show right-side info in dynamic menus (looks a little tidier) */
@@ -2211,7 +2343,8 @@ skip_name:
         w += 2 * char_width;
     
     // value string too big? move it to the left
-    int end = w + bmp_string_width(fnt, info->value);
+    int val_width = bmp_string_width(fnt, info->value);
+    int end = w + val_width;
     int wmax = x_end - x;
 
     // right-justified info field?
@@ -2229,6 +2362,15 @@ skip_name:
         w -= (end - wmax);
     
     int xval = x + w;
+    
+    if (edit_mode && 
+        entry->selected && 
+        uses_caret_editing(entry) && 
+        caret_position >= (int)strlen(info->value))
+    {
+        bmp_fill(COLOR_WHITE, xval, y + fontspec_font(fnt)->height - 4, char_width, 2);
+        xval += char_width * (caret_position - strlen(info->value) + 1);
+    }
 
     // print value field
     bmp_printf(
@@ -2237,6 +2379,17 @@ skip_name:
         "%s",
         info->value
     );
+    
+    if(edit_mode &&
+       entry->selected &&
+       uses_caret_editing(entry) &&
+       caret_position < (int)strlen(info->value) &&
+       strlen(info->value) > 0)
+    {
+        int w1 = bmp_string_width(fnt, (info->value + strlen(info->value) - caret_position));
+        int w2 = bmp_string_width(fnt, (info->value + strlen(info->value) - caret_position - 1));
+        bmp_fill(COLOR_WHITE, xval + val_width - w2, y + fontspec_font(fnt)->height - 4, w2 - w1, 2);
+    }
 
     // print right-justified info, if any
     if (info->rinfo[0])
@@ -2392,7 +2545,7 @@ static void
 menu_post_display()
 {
     char* cfg_preset = get_config_preset_name();
-    if (cfg_preset && !submenu_mode)
+    if (cfg_preset && !submenu_level)
     {
         bmp_printf(
             SHADOW_FONT(FONT(FONT_MED, COLOR_GRAY(40), COLOR_BLACK)) | FONT_ALIGN_RIGHT,
@@ -2448,7 +2601,17 @@ menu_entry_process(
     {
         // should we override some things?
         if (entry->update)
+        {
+            /* in edit mode with caret, we will not allow the update function to override the entry value */
+            char default_value[MENU_MAX_VALUE_LEN];
+            if (edit_mode && uses_caret_editing(entry))
+                snprintf(default_value, MENU_MAX_VALUE_LEN, "%s", info.value);
+            
             entry->update(entry, &info);
+            
+            if (edit_mode && uses_caret_editing(entry))
+                snprintf(info.value, MENU_MAX_VALUE_LEN, "%s", default_value);
+        }
 
         // menu->update asked to draw the entire screen by itself? stop drawing right now
         if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
@@ -2645,6 +2808,7 @@ menu_display(
     int pos = get_menu_selected_pos(menu);
     int num_visible = get_menu_visible_count(menu);
     int target_height = 370;
+    if (is_menu_active("Help")) target_height -= 20;
     int natural_height = num_visible * font_large.height;
 
     /* if the menu items does not exceed max count by too much (e.g. 12 instead of 11),
@@ -2656,8 +2820,8 @@ menu_display(
         num_visible = MENU_LEN;
         natural_height = num_visible * font_large.height;
         /* leave some space for the scroll indicators */
-        target_height -= submenu_mode ? 16 : 12;
-        y += submenu_mode ? 4 : 2;
+        target_height -= submenu_level ? 16 : 12;
+        y += submenu_level ? 4 : 2;
     }
     else /* we can fit everything */
     {
@@ -3199,11 +3363,11 @@ show_vscroll(struct menu * parent){
     
     if(max > menu_len + 1){
         int y_lo = 44;
-        int h = submenu_mode ? 378 : 385;
+        int h = submenu_level ? 378 : 385;
         int size = (h - y_lo) * menu_len / max;
         int y = y_lo + ((h - size) * (pos-1) / (max-1));
         int x = MIN(360 + g_submenu_width/2, 720-3);
-        if (submenu_mode) x -= 6;
+        if (submenu_level) x -= 6;
         
         bmp_fill(COLOR_BLACK, x-2, y_lo, 6, h);
         bmp_fill(MENU_BAR_COLOR, x, y, 3, size);
@@ -3226,7 +3390,7 @@ menus_display(
         mod_menu_rebuild();
 
     struct menu * submenu = 0;
-    if (submenu_mode)
+    if (submenu_level)
         submenu = get_current_submenu();
     
     advanced_mode = submenu ? submenu->advanced : 1;
@@ -3558,33 +3722,52 @@ menu_entry_select(
     if( !entry )
     {
         /* empty submenu? go back */
-        menu_lv_transparent_mode = edit_mode = submenu_mode = 0;
+        menu_lv_transparent_mode = edit_mode = 0;
+        submenu_level = MAX(submenu_level - 1, 0);
         return;
     }
     
     // don't perform actions on empty items (can happen on empty submenus)
     if (!is_visible(entry))
     {
-        submenu_mode = edit_mode = 0;
+        edit_mode = 0;
+        submenu_level = MAX(submenu_level - 1, 0);
         menu_lv_transparent_mode = 0;
         return;
     }
 
     if(mode == 1) // decrement
     {
-        if (entry->select) entry->select( entry->priv, -1);
-        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
+        if (entry->select)
+        {
+            /* custom select function? use it */
+            entry->select( entry->priv, -1);
+        }
+        else if IS_ML_PTR(entry->priv)
+        {
+            /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
+            /* exception: hex fields are never fast-toggled */
+            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+                menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
+            else
+                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        }
     }
     else if (mode == 2) // Q
     {
+        bool promotable_to_pickbox = HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children);
+
         if (menu_lv_transparent_mode) { menu_lv_transparent_mode = 0; }
-        else if (edit_mode) { edit_mode = submenu_mode = 0; }
-        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
+        else if (edit_mode)
+        {
+            edit_mode = 0;
+            submenu_level = MAX(submenu_level - 1, 0);
+        }
+        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1); // caution: entry may now be a dangling pointer
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
-        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry) && SHOULD_USE_EDIT_MODE(entry->children))
+        if (submenu_level && promotable_to_pickbox)
             edit_mode = 1;
     }
     else if (mode == 3) // SET
@@ -3604,7 +3787,11 @@ menu_entry_select(
         }
         else */
         {
-            if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
+            if (submenu_level && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry))
+            {
+                edit_mode = 0;
+                submenu_level = MAX(submenu_level - 1, 0);
+            }
             else if (edit_mode) edit_mode = 0;
             else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
             else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
@@ -3612,15 +3799,25 @@ menu_entry_select(
             else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if (entry->select) entry->select( entry->priv, 1);
-            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
         }
     }
-    else // increment
+    else // increment (same logic as decrement)
     {
-        if( entry->select ) entry->select( entry->priv, 1);
-        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+        if( entry->select )
+        {
+            entry->select( entry->priv, 1);
+        }
+        else if (IS_ML_PTR(entry->priv))
+        {
+            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+                menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
+            else
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+        }
     }
+    
+    if(entry->unit == UNIT_TIME && edit_mode && caret_position == 0) caret_position = 1;
     
     config_dirty = 1;
     mod_menu_dirty = 1;
@@ -3739,6 +3936,10 @@ menu_entry_move(
 
     // Select the new one, which might be the same as the old one
     entry->selected = 1;
+    
+    //reset caret_position
+    caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    
     give_semaphore( menu_sem );
 
     if (junkie_mode && menu->selected)
@@ -3754,7 +3955,7 @@ menu_entry_move(
 static void menu_make_sure_selection_is_valid()
 {
     struct menu * menu = get_selected_menu();
-    if (submenu_mode)
+    if (submenu_level)
     {
         struct menu * main_menu = menu;
         menu = get_current_submenu();
@@ -3764,7 +3965,7 @@ static void menu_make_sure_selection_is_valid()
     // current menu has any valid items in current mode?
     if (!menu_has_visible_items(menu))
     {
-        if (submenu_mode) return; // empty submenu
+        if (submenu_level) return; // empty submenu
         menu_move(menu, -1); menu = get_selected_menu();
         menu_move(menu, 1); menu = get_selected_menu();
     }
@@ -3833,7 +4034,7 @@ menu_redraw_do()
         
         if (menu_help_active)
         {
-            BMP_LOCK( menu_help_redraw(); )
+            menu_help_redraw();
             menu_damage = 0;
         }
         else
@@ -3841,106 +4042,103 @@ menu_redraw_do()
             if (!lv) menu_lv_transparent_mode = 0;
             if (menu_lv_transparent_mode && edit_mode) edit_mode = 0;
 
-            //~ menu_damage = 0;
-            BMP_LOCK (
-                if (DOUBLE_BUFFERING)
-                {
-                    // draw to mirror buffer to avoid flicker
-                    //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
-                    bmp_draw_to_idle(1);
-                }
+            if (DOUBLE_BUFFERING)
+            {
+                // draw to mirror buffer to avoid flicker
+                //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
+                bmp_draw_to_idle(1);
+            }
+            
+            /*
+            int z = zebra_should_run();
+            if (menu_zebras_mirror_dirty && !z)
+            {
+                clear_zebras_from_mirror();
+                menu_zebras_mirror_dirty = 0;
+            }*/
+
+            if (menu_lv_transparent_mode)
+            {
+                bmp_fill( 0, 0, 0, 720, 480 );
                 
                 /*
-                int z = zebra_should_run();
-                if (menu_zebras_mirror_dirty && !z)
+                if (z)
                 {
-                    clear_zebras_from_mirror();
-                    menu_zebras_mirror_dirty = 0;
-                }*/
+                    if (prev_z) copy_zebras_from_mirror();
+                    else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
+                    menu_zebras_mirror_dirty = 1;
+                }
+                */
+                
+                if (hist_countdown == 0 && !should_draw_zoom_overlay())
+                    draw_histogram_and_waveform(0); // too slow
+                else
+                    hist_countdown--;
+            }
+            else
+            {
+                bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
+            }
+            //~ prev_z = z;
 
-                if (menu_lv_transparent_mode)
+            menu_make_sure_selection_is_valid();
+            
+            menus_display( menus, 0, 0 ); 
+
+            if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
+            {
+                if (is_menu_active("Help")) menu_show_version();
+                if (is_menu_active("Focus")) display_lens_hyperfocal();
+            }
+            
+            if (menu_lv_transparent_mode) 
+            {
+                draw_ml_topbar();
+                draw_ml_bottombar();
+                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
+            }
+
+            if (beta_should_warn()) draw_beta_warning();
+            
+            #ifdef CONFIG_CONSOLE
+            console_draw_from_menu();
+            #endif
+
+            if (DOUBLE_BUFFERING)
+            {
+                // copy image to main buffer
+                bmp_draw_to_idle(0);
+
+                if (menu_redraw_cancel)
                 {
-                    bmp_fill( 0, 0, 0, 720, 480 );
-                    
-                    /*
-                    if (z)
-                    {
-                        if (prev_z) copy_zebras_from_mirror();
-                        else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
-                        menu_zebras_mirror_dirty = 1;
-                    }
-                    */
-                    
-                    if (hist_countdown == 0 && !should_draw_zoom_overlay())
-                        draw_histogram_and_waveform(); // too slow
-                    else
-                        hist_countdown--;
+                    /* maybe next time */
+                    menu_redraw_cancel = 0;
                 }
                 else
                 {
-                    bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
-                }
-                //~ prev_z = z;
-
-                menu_make_sure_selection_is_valid();
-                
-                menus_display( menus, 0, 0 ); 
-
-                if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
-                {
-                    if (is_menu_active("Help")) menu_show_version();
-                    if (is_menu_active("Focus")) display_lens_hyperfocal();
-                }
-                
-                if (menu_lv_transparent_mode) 
-                {
-                    draw_ml_topbar();
-                    draw_ml_bottombar();
-                    bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
-                }
-
-                if (beta_should_warn()) draw_beta_warning();
-                
-                #ifdef CONFIG_CONSOLE
-                console_draw_from_menu();
-                #endif
-
-                if (DOUBLE_BUFFERING)
-                {
-                    // copy image to main buffer
-                    bmp_draw_to_idle(0);
-
-                    if (menu_redraw_cancel)
+                    int screen_layout = get_screen_layout();
+                    if (hdmi_code == 2) // copy at a smaller scale to fit the screen
                     {
-                        /* maybe next time */
-                        menu_redraw_cancel = 0;
-                    }
-                    else
-                    {
-                        int screen_layout = get_screen_layout();
-                        if (hdmi_code == 2) // copy at a smaller scale to fit the screen
-                        {
-                            if (screen_layout == SCREENLAYOUT_16_10)
-                                bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
-                            else if (screen_layout == SCREENLAYOUT_16_9)
-                                bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
-                            else
-                            {
-                                if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
-                                else bmp_idle_copy(1,0);
-                            }
-                        }
-                        else if (EXT_MONITOR_RCA)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
+                        if (screen_layout == SCREENLAYOUT_16_10)
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
+                        else if (screen_layout == SCREENLAYOUT_16_9)
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
                         else
                         {
                             if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
                             else bmp_idle_copy(1,0);
                         }
                     }
-                    //~ bmp_idle_clear();
+                    else if (EXT_MONITOR_RCA)
+                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
+                    else
+                    {
+                        if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
+                        else bmp_idle_copy(1,0);
+                    }
                 }
-            )
+                //~ bmp_idle_clear();
+            }
             //~ update_stuff();
             lens_display_set_dirty();
         }
@@ -3960,7 +4158,7 @@ menu_redraw_do()
         alter_bitmap_palette_entry(COLOR_DARK_CYAN2_MOD,   COLOR_CYAN, 128, 128);
         // alter_bitmap_palette_entry(COLOR_DARK_YELLOW_MOD,   COLOR_YELLOW, 128, 128);
 
-        if (recording)
+        if (RECORDING)
             alter_bitmap_palette_entry(COLOR_BLACK, COLOR_BG, 256, 256);
     }
 #endif
@@ -4012,7 +4210,7 @@ menu_redraw_task()
     }
 }
 
-TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x2000 );
+TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x8000 );
 
 void
 menu_redraw()
@@ -4062,19 +4260,29 @@ static struct menu * get_current_submenu()
 {
     struct menu_entry * entry = get_selected_entry(0);
     if (!entry) return 0;
+    
+    for(int level = submenu_level; level > 1; level--)
+    {
+        for(entry = entry->children ; entry ; entry = entry->next )
+        {
+            if( entry->selected )
+                break;
+        }
+        if(!entry) break;
+    }
 
-    if (entry->children)
+    if (entry && entry->children)
         return menu_find_by_name(entry->name, 0);
 
     // no submenu, fall back to edit mode
-    submenu_mode = 0;
+    submenu_level--;
     edit_mode = 1;
     return 0;
 }
 
 static int keyrepeat = 0;
 static int keyrep_countdown = 4;
-static int keyrep_ack = 1;
+static int keyrep_ack = 0;
 int handle_ml_menu_keyrepeat(struct event * event)
 {
     //~ if (menu_shown || arrow_keys_shortcuts_active())
@@ -4105,6 +4313,7 @@ int handle_ml_menu_keyrepeat(struct event * event)
             #endif
                 keyrepeat = 0;
                 keyrep_countdown = 4;
+                keyrep_ack = 0;
                 break;
         }
     }
@@ -4113,7 +4322,7 @@ int handle_ml_menu_keyrepeat(struct event * event)
 
 void keyrepeat_ack(int button_code) // also for arrow shortcuts
 {
-    if (button_code == keyrepeat) keyrep_ack = 1;
+    keyrep_ack = (button_code == keyrepeat);
 }
 
 int
@@ -4162,7 +4371,7 @@ handle_ml_menu_keys(struct event * event)
     struct menu * menu = get_selected_menu();
 
     struct menu * main_menu = menu;
-    if (submenu_mode)
+    if (submenu_level)
     {
         main_menu = menu;
         menu = get_current_submenu();
@@ -4171,7 +4380,7 @@ handle_ml_menu_keys(struct event * event)
     
     int button_code = event->param;
 #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
-    if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
+    if (button_code == BGMT_INFO && RECORDING) button_code = BGMT_Q;
 #endif
 
     int menu_needs_full_redraw = 0; // if true, do not allow quick redraws
@@ -4182,7 +4391,7 @@ handle_ml_menu_keys(struct event * event)
     {
         if (SUBMENU_OR_EDIT || menu_lv_transparent_mode || menu_help_active)
         {
-            submenu_mode = 0;
+            submenu_level = 0;
             edit_mode = 0;
             menu_lv_transparent_mode = 0;
             menu_help_active = 0;
@@ -4228,6 +4437,15 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_UP:
+        if (edit_mode && !menu_lv_transparent_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                menu_entry_select( menu, 0 );
+                break;
+            }
+        }
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
 
@@ -4242,6 +4460,15 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_DOWN:
+        if (edit_mode && !menu_lv_transparent_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                menu_entry_select( menu, 1 );
+                break;
+            }
+        }
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         
@@ -4256,6 +4483,16 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_RIGHT:
+        if(edit_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                caret_move(entry, -1);
+                menu_damage = 1;
+                break;
+            }
+        }
     case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
@@ -4265,6 +4502,16 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_LEFT:
+        if(edit_mode)
+        {
+            struct menu_entry * entry = get_selected_entry(menu);
+            if(entry && uses_caret_editing(entry))
+            {
+                caret_move(entry, 1);
+                menu_damage = 1;
+                break;
+            }
+        }
     case BGMT_WHEEL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
@@ -4315,10 +4562,10 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_hidden_should_display_help = 0;
         break;
 #ifdef CONFIG_TOUCHSCREEN
-    case TOUCH_1_FINGER:
-    case TOUCH_2_FINGER:
-    case UNTOUCH_1_FINGER:
-    case UNTOUCH_2_FINGER:
+    case BGMT_TOUCH_1_FINGER:
+    case BGMT_TOUCH_2_FINGER:
+    case BGMT_UNTOUCH_1_FINGER:
+    case BGMT_UNTOUCH_2_FINGER:
         return handle_ml_menu_touch(event);
 #endif
 #ifdef BGMT_RATE
@@ -4370,7 +4617,7 @@ handle_ml_menu_keys(struct event * event)
     
     // if submenu mode was changed, force a full redraw
     static int prev_menu_mode = 0;
-    int menu_mode = submenu_mode | edit_mode*2 | menu_lv_transparent_mode*4 | customize_mode*8 | junkie_mode*16;
+    int menu_mode = submenu_level | edit_mode*2 | menu_lv_transparent_mode*4 | customize_mode*8 | junkie_mode*16;
     if (menu_mode != prev_menu_mode) menu_needs_full_redraw = 1;
     prev_menu_mode = menu_mode;
     
@@ -4386,12 +4633,14 @@ int handle_ml_menu_touch(struct event * event)
 {
     int button_code = event->param;
     switch (button_code) {
-        case TOUCH_1_FINGER:
+        case BGMT_TOUCH_1_FINGER:
             fake_simple_button(BGMT_Q);
             return 0;
-        case TOUCH_2_FINGER:
-        case UNTOUCH_1_FINGER:
-        case UNTOUCH_2_FINGER:
+        case BGMT_TOUCH_2_FINGER:
+            fake_simple_button(BGMT_TRASH);
+            return 0;
+        case BGMT_UNTOUCH_1_FINGER:
+        case BGMT_UNTOUCH_2_FINGER:
             return 0;
         default:
             return 1;
@@ -4510,14 +4759,14 @@ static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
     #if !defined(CONFIG_EOSM) // EOS M won't open otherwise
-    if (recording) return;
+    if (RECORDING) return;
     #endif
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
     if (new_gui_mode) start_redraw_flood();
-    if (new_gui_mode != CURRENT_DIALOG_MAYBE) 
+    if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
     { 
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
@@ -4529,7 +4778,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (recording) return;
+    if (RECORDING) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4567,7 +4816,7 @@ static void menu_open()
 #endif
     
     menu_lv_transparent_mode = 0;
-    submenu_mode = 0;
+    submenu_level = 0;
     edit_mode = 0;
     customize_mode = 0;
     menu_help_active = 0;
@@ -4594,7 +4843,7 @@ static void menu_close()
     
     close_canon_menu();
 	#ifdef CONFIG_EOSM
-	if (recording > 0)
+	if (RECORDING_H264)
 	SetGUIRequestMode(0);
 	#endif
     canon_gui_enable_front_buffer(0);
@@ -4624,6 +4873,7 @@ menu_task( void* unused )
 {
     extern int ml_started;
     while (!ml_started) msleep(100);
+    
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
@@ -4640,8 +4890,13 @@ menu_task( void* unused )
         {
             if (keyrepeat && menu_or_shortcut_menu_shown)
             {
-                keyrep_countdown--;
-                if (keyrep_countdown <= 0 && keyrep_ack) { keyrep_ack = 0; fake_simple_button(keyrepeat); }
+                if (keyrep_ack) {
+                    keyrep_countdown--;
+                    if (keyrep_countdown <= 0) {
+                        keyrep_ack = 0;
+                        fake_simple_button(keyrepeat);
+                    }
+                }
                 continue;
             }
 
@@ -4656,9 +4911,9 @@ menu_task( void* unused )
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && (config_dirty || menu_flags_save_dirty) && !recording && !ml_shutdown_requested)
+                if (config_autosave && (config_dirty || menu_flags_save_dirty) && NOT_RECORDING && !ml_shutdown_requested)
                 {
-                    save_config(0);
+                    config_save();
                     config_dirty = 0;
                     menu_flags_save_dirty = 0;
                 }
@@ -4691,7 +4946,7 @@ menu_task( void* unused )
             continue;
         }
         
-        if (recording && !lv) continue;
+        if (RECORDING && !lv) continue;
         
         // Set this flag a bit earlier in order to pause LiveView tasks.
         // Otherwise, high priority tasks such as focus peaking might delay the menu a bit.
@@ -4907,7 +5162,7 @@ menu_help_go_to_selected_entry(
 
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
-    menu_help_go_to_label(entry->name);
+    menu_help_go_to_label((char*) entry->name, 0);
     give_semaphore(menu_sem);
 }
 
@@ -4929,7 +5184,11 @@ int handle_ml_menu_erase(struct event * event)
 {
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
+#ifdef CONFIG_TOUCHSCREEN
+    if (event->param == BGMT_TRASH || event->param == BGMT_TOUCH_2_FINGER)
+#else
     if (event->param == BGMT_TRASH)
+#endif
     {
         if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
         {
@@ -4951,22 +5210,27 @@ static void menu_stop()
 
 void menu_open_submenu(struct menu_entry * entry)
 {
-    submenu_mode = 1;
+    submenu_level++;
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
 
 void menu_close_submenu()
 {
-    submenu_mode = 0;
+    submenu_level = MAX(submenu_level - 1, 0); //make sure we don't go negative
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
 
 void menu_toggle_submenu()
 {
-    if (!edit_mode || submenu_mode)
-        submenu_mode = !submenu_mode;
+    if (!edit_mode || submenu_level)
+    {
+        if(submenu_level == 0)
+            submenu_level++;
+        else
+            submenu_level--;
+    }
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
@@ -4981,17 +5245,21 @@ int handle_quick_access_menu_items(struct event * event)
     if (event->param == BGMT_Q && !gui_menu_shown())
     #endif
     {
+        #ifdef ISO_ADJUSTMENT_ACTIVE
         if (ISO_ADJUSTMENT_ACTIVE)
+        #else
+        if (0)
+        #endif
         {
             select_menu("Expo", 0);
             give_semaphore( gui_sem ); 
             return 0;
         }
-#ifdef CURRENT_DIALOG_MAYBE_2
+        #ifdef CURRENT_DIALOG_MAYBE_2
         else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
-#else
+        #else
         else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
-#endif
+        #endif
         {
             select_menu("Focus", 0);
             give_semaphore( gui_sem ); 
@@ -5022,7 +5290,7 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
 
 static void menu_save_flags(char* filename)
 {
-    char* cfg = alloc_dma_memory(CFG_SIZE);
+    char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
     int lastlen = 0;
@@ -5049,7 +5317,7 @@ static void menu_save_flags(char* filename)
         }
     }
     
-    FILE * file = FIO_CreateFileEx(filename);
+    FILE * file = FIO_CreateFile(filename);
     if( file == INVALID_PTR )
         goto end;
     
@@ -5058,7 +5326,7 @@ static void menu_save_flags(char* filename)
     FIO_CloseFile( file );
 
 end:
-    free_dma_memory(cfg);
+    fio_free(cfg);
 }
 
 static void menu_load_flags(char* filename)
@@ -5089,7 +5357,7 @@ static void menu_load_flags(char* filename)
             prev = i;
         }
     }
-    free_dma_memory(buf);
+    fio_free(buf);
 }
 
 
@@ -5112,7 +5380,7 @@ void config_menu_save_flags()
 
 /*void menu_save_all_items_dbg()
 {
-    char* cfg = alloc_dma_memory(CFG_SIZE);
+    char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
 
     int unnamed = 0;
@@ -5129,7 +5397,7 @@ void config_menu_save_flags()
         }
     }
     
-    FILE * file = FIO_CreateFileEx( CARD_DRIVE "ML/LOGS/MENUS.LOG" );
+    FILE * file = FIO_CreateFile( "ML/LOGS/MENUS.LOG" );
     if( file == INVALID_PTR )
         return;
     
@@ -5139,7 +5407,7 @@ void config_menu_save_flags()
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 end:
-    free_dma_memory(cfg);
+    fio_free(cfg);
 }*/
 
 int menu_get_value_from_script(const char* name, const char* entry_name)
@@ -5249,7 +5517,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
 
-    char* cfg = alloc_dma_memory(CFG_SIZE);
+    char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
     int lastlen = 0;
@@ -5330,7 +5598,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     
     //~ ASSERT(cfglen == strlen(cfg)); // seems OK
     
-    FILE * file = FIO_CreateFileEx(filename);
+    FILE * file = FIO_CreateFile(filename);
     if( file == INVALID_PTR )
         goto end;
     
@@ -5339,7 +5607,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     FIO_CloseFile( file );
 
 end:
-    free_dma_memory(cfg);
+    fio_free(cfg);
     give_semaphore(menu_sem);
 }
 
@@ -5460,15 +5728,33 @@ void menu_self_test()
 #endif // CONFIG_STRESS_TEST
 #endif // CONFIG_PICOC
 
+/* returns 1 if the backend is ready to use, 0 if caller should call this one again to re-check */
 int menu_request_image_backend()
 {
+    static int last_guimode_request = 0;
+    int t = get_ms_clock_value();
+    
     if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
     {
-        SetGUIRequestMode(DLG_PLAY);
+        if (t > last_guimode_request + 1000)
+        {
+            SetGUIRequestMode(DLG_PLAY);
+            last_guimode_request = t;
+        }
+        
+        /* not ready, please retry */
         return 0;
     }
-    clrscr();
-    return 1;
+
+    if (t > last_guimode_request + 500 && DISPLAY_IS_ON && get_yuv422_vram()->vram)
+    {
+        /* ready to draw on the YUV buffer! */
+        clrscr();
+        return 1;
+    }
+    
+    /* not yet ready, please retry */
+    return 0;
 }
 
 
@@ -5476,7 +5762,7 @@ MENU_SELECT_FUNC(menu_advanced_toggle)
 {
     struct menu * menu = get_selected_menu();
     struct menu * main_menu = menu;
-    if (submenu_mode)
+    if (submenu_level)
     {
         main_menu = menu;
         menu = get_current_submenu();

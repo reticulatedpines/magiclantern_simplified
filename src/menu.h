@@ -222,6 +222,8 @@ struct menu_entry
 #define UNIT_PERCENT_x10 4
 #define UNIT_ISO 5
 #define UNIT_HEX 6
+#define UNIT_DEC 7
+#define UNIT_TIME 8
 
 #define DEPENDS_ON(foo) (entry->depends_on & (foo))
 #define WORKS_BEST_IN(foo) (entry->works_best_in & (foo))
@@ -243,7 +245,6 @@ struct menu_entry
 
 #define DEP_SOUND_RECORDING (1<<14)
 #define DEP_NOT_SOUND_RECORDING (1<<15)
-#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1)
 
 struct menu
 {
@@ -280,6 +281,7 @@ extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 extern void run_in_separate_task(void (*priv)(void), int delta);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
+extern void menu_add_base( const char * name, struct menu_entry * new_entry, int count, bool update_placeholders );
 
 extern void menu_remove(const char * name, struct menu_entry * old_entry, int count);
 
@@ -337,5 +339,45 @@ extern MENU_UPDATE_FUNC(menu_advanced_update);
 //~ #define MENU_WARNING_COLOR 254
 //~ #endif
 
+/* post a redraw event to menu task */
+void menu_redraw();
+
+/* should be obsolete, need to double-check */
+void menu_set_dirty();
+
+/* returns true if the specified tab is selected in menu (but menu itself may not be visible) */
+int is_menu_selected(char* menu_name);
+
+/* lookup a menu entry and tell whether it's selected or not (but menu itself may not be visible) */
+int is_menu_entry_selected(char* menu_name, char* entry_name);
+
+/* returns true if menu is visible and it shows the specified tab (without any help windows open or stuff like that) */
+int is_menu_active(char* name);
+
+/* returns true if the menu is showing LiveView behind it (transparent mode); to be renamed */
+int menu_active_but_hidden();
+
+/* true if the menu active in regular mode (without LiveView behind it) */
+int menu_active_and_not_hidden();
+
+/* set menu to show LiveView behind it (this name sounds better) */
+void menu_enable_lv_transparent_mode();
+void menu_disable_lv_transparent_mode();
+
+/* private stuff, to be cleaned up somehow */
+extern void crop_factor_menu_init();
+extern void customize_menu_init();
+extern void mem_menu_init();
+extern void movie_tweak_menu_init();
+extern void afp_menu_init();
+extern int is_submenu_or_edit_mode_active();    /* used in joypress stuff, which should be moved to menu.c */
+extern void config_menu_save_flags();
+
+/* call this to confirm the processing of a key-repeated event (when keeping arrow keys pressed in menu) */
+void keyrepeat_ack(int button_code);
+
+void menu_open_submenu();
+void menu_close_submenu();
+void menu_toggle_submenu();
 
 #endif

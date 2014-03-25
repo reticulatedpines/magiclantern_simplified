@@ -98,7 +98,7 @@ static int handle_buttons(struct event * event)
 	if (event->param == BGMT_LV)// && !IS_FAKE(event))
 		lv_stopped_by_user = 1;
 
-	if (event->param == BGMT_PRESS_SET && recording)
+	if (event->param == BGMT_PRESS_SET && RECORDING)
 	{
 		extern int movie_was_stopped_by_set;
 		movie_was_stopped_by_set = 1;
@@ -183,7 +183,13 @@ my_gui_main_task( void )
 				goto event_loop_bottom;
 		}
 
-		if (IS_FAKE(event)) event->arg = 0;
+        if (IS_FAKE(event)) {
+           event->arg = 0;      /* do not pass the "fake" flag to Canon code */
+        }
+
+        if (event->type == 0 && event->param < 0) {
+            continue;           /* do not pass internal ML events to Canon code */
+        }
 
 		switch( event->type )
 		{

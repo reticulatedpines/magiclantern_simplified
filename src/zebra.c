@@ -23,6 +23,8 @@
  */
 
 #include "zebra.h"
+#include "vectorscope.h"
+#include "electronic_level.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
@@ -32,11 +34,18 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "beep.h"
 #include "raw.h"
+#include "shoot.h"
+#include "focus.h"
+#include "lvinfo.h"
 
 #include "imgconv.h"
 #include "falsecolor.h"
 #include "histogram.h"
+
+/* todo: move battery stuff in battery.c */
+#include "battery.h"
 
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
 #define FEATURE_RAW_OVERLAYS
@@ -75,12 +84,10 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
 
 //~ static void defish_draw_play();
 
-extern unsigned int log_length(int x);
 extern void zoom_sharpen_step();
 extern void bv_auto_update();
 
 void lens_display_set_dirty();
-void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 //~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
@@ -120,9 +127,7 @@ static int is_zoom_mode_so_no_zebras()
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
-    #ifdef FEATURE_RAW_OVERLAYS
     if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
-    #endif
     
     return 1;
 }
@@ -139,12 +144,6 @@ int lv_luma_is_accurate()
 #ifdef FEATURE_SHOW_OVERLAY_FPS
 static int show_lv_fps = 0; // for debugging
 #endif
-
-static int _bmp_muted = false;
-static int _bmp_unmuted = false;
-int bmp_is_on() { return !_bmp_muted; }
-void bmp_on();
-void bmp_off();
 
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
@@ -175,7 +174,11 @@ static CONFIG_INT( "global.draw",   global_draw, 3 );
 #define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
 
 static CONFIG_INT( "zebra.draw",    zebra_draw, 1 );
+#ifdef FEATURE_ZEBRA_FAST
 static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lumafast
+#else
+static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   0 );// luma/rgb/lumafast
+#endif
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
 static CONFIG_INT( "zebra.rec", zebra_rec,  1 );
@@ -252,7 +255,8 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+    extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz()) return 0;
     #endif
     
@@ -265,7 +269,7 @@ int should_draw_zoom_overlay()
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
     int zm = get_zoom_overlay_trigger_mode();
-    if (zt && (zm==1 || zm==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
+    if (zt && (zm==1 || zm==2) && NOT_RECORDING) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
     if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #endif
 #endif
@@ -274,8 +278,12 @@ int should_draw_zoom_overlay()
 
 int digic_zoom_overlay_enabled()
 {
+    #ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN
     return zoom_overlay_size == 3 &&
         should_draw_zoom_overlay();
+    #else
+    return 0;
+    #endif
 }
 
 int nondigic_zoom_overlay_enabled()
@@ -319,13 +327,15 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 
 int histogram_or_small_waveform_enabled()
 {
-    return (
-        (
+    return 
+    (
         #ifdef FEATURE_HISTOGRAM
-        (hist_draw)
-        #ifdef FEATURE_RAW_OVERLAYS
-        && !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu())
-        #endif
+        (
+            (hist_draw) &&
+            #ifdef FEATURE_RAW_OVERLAYS
+            !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu()) &&
+            #endif
+            1
         )
         ||
         #endif
@@ -333,17 +343,6 @@ int histogram_or_small_waveform_enabled()
     )
     && get_expsim(); 
 }
-
-static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
-static CONFIG_INT( "vectorscope.gain", vectorscope_gain, 0);
-
-/* runtime-configurable size */
-#define vectorscope_width 256
-#define vectorscope_height 256
-/* 128 is also a good choice, but 256 is max. U and V are using that resolution */
-#define VECTORSCOPE_WIDTH_MAX 256
-#define VECTORSCOPE_HEIGHT_MAX 256
-
 
        CONFIG_INT( "clear.preview", clearscreen, 0);
 static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
@@ -407,12 +406,10 @@ int get_global_draw() // menu setting, or off if
 {
 #ifdef FEATURE_GLOBAL_DRAW
     
-    //~ PROP_HOUTPUT_TYPE handler only fires when Canon overlays are hidden, not restored.
-    //~ So we update lv_disp_mode here instead.
-    #ifdef CONFIG_EOSM
-        lv_disp_mode = (MEM(0x8A01C + 0x7C) != 3);
+    #ifdef LV_DISP_MODE
+        lv_disp_mode = LV_DISP_MODE;
     #endif
-    
+
     extern int ml_started;
     if (!ml_started) return 0;
     if (!global_draw) return 0;
@@ -431,7 +428,7 @@ int get_global_draw() // menu setting, or off if
             !idle_globaldraw_disable && 
             bmp_is_on() &&
             DISPLAY_IS_ON && 
-            recording != 1 && 
+            !RECORDING_H264_STARTING &&
             #ifdef CONFIG_KILL_FLICKER
             !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
             #endif
@@ -461,245 +458,6 @@ int get_global_draw_setting() // whatever is set in menu
 static uint8_t* waveform = 0;
 #define WAVEFORM_UNSAFE(x,y) (waveform[(x) + (y) * WAVEFORM_WIDTH])
 #define WAVEFORM(x,y) (waveform[COERCE((x), 0, WAVEFORM_WIDTH-1) + COERCE((y), 0, WAVEFORM_HEIGHT-1) * WAVEFORM_WIDTH])
-
-#ifdef FEATURE_VECTORSCOPE
-
-static uint8_t *vectorscope = NULL;
-
-/* helper to draw <count> pixels at given position. no wrap checks when <count> is greater 1 */
-static void 
-vectorscope_putpixels(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint8_t count)
-{
-    int pos = x_pos + y_pos * vectorscope_width;
-
-    while(count--)
-    {
-        bmp_buf[pos++] = 255 - color;
-    }
-}
-
-/* another helper that draws a color dot at given position.
-   <xc> and <yc> specify the center of our scope graphic.
-   <frac_x> and <frac_y> are in 1/2048th units and specify the relative dot position.
- */
-static void 
-vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t frac_x, int32_t frac_y)
-{
-    int x_pos = xc + (((int32_t)vectorscope_width * frac_x) >> 12);
-    int y_pos = yc + ((-(int32_t)vectorscope_height * frac_y) >> 12);
-
-    vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
-    vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
-
-    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos - 3, color, 7);
-    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos - 2, color, 7);
-    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos - 1, color, 7);
-    vectorscope_putpixels(bmp_buf, x_pos - 4, y_pos + 0, color, 9);
-    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos + 1, color, 7);
-    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos + 2, color, 7);
-    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos + 3, color, 7);
-}
-
-/* draws the overlay: circle with color dots. */
-static void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
-{    
-    //int r = vectorscope_height/2 - 1;
-    int xc = x_origin + (vectorscope_width >> 1);
-    int yc = y_origin + (vectorscope_height >> 1);
-
-    /* red block at U=-14.7% V=61.5% => U=-304/2048th V=1259/2048th */
-    vectorscope_putblock(bmp_buf, xc, yc, 8, -302, 1259);
-    /* green block */
-    vectorscope_putblock(bmp_buf, xc, yc, 7, -593, -1055);
-    /* blue block */
-    vectorscope_putblock(bmp_buf, xc, yc, 9, 895, -204);
-    /* cyan block */
-    vectorscope_putblock(bmp_buf, xc, yc, 5, 301, -1259);
-    /* magenta block */
-    vectorscope_putblock(bmp_buf, xc, yc, 14, 592, 1055);
-    /* yellow block */
-    vectorscope_putblock(bmp_buf, xc, yc, 15, -893, 204);
-}
-
-static void
-vectorscope_clear()
-{
-    if(vectorscope != NULL)
-    {
-        bzero32(vectorscope, vectorscope_width * vectorscope_height * sizeof(uint8_t));
-    }
-}
-
-static void
-vectorscope_init()
-{
-    if(vectorscope == NULL)
-    {
-        vectorscope = SmallAlloc(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
-        vectorscope_clear();
-    }
-}
-
-static int vectorscope_coord_uv_to_pos(int U, int V)
-{
-    /* convert YUV to vectorscope position */
-    V *= vectorscope_height;
-    V >>= 8;
-    V += vectorscope_height >> 1;
-
-    U *= vectorscope_width;
-    U >>= 8;
-    U += vectorscope_width >> 1;
-
-    int pos = U + V * vectorscope_width;
-    
-    return pos;
-}
-
-static void
-vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
-{
-    if(vectorscope == NULL)
-    {
-        return;
-    }
-    
-    int V = -v << vectorscope_gain;
-    int U = u << vectorscope_gain;
-    
-    int r = U*U + V*V;
-    const int r_sqrt = (int)sqrtf(r);
-    if (r > 124*124)
-    {
-        /* almost out of circle, mark it with red */
-        for (int R = 124; R < 128; R++)
-        {
-            int c = U * R / r_sqrt;
-            int s = V * R / r_sqrt;
-            int pos = vectorscope_coord_uv_to_pos(c, s);
-            vectorscope[pos] = 255 - COLOR_RED;
-        }
-    }
-    else
-    {
-        if (vectorscope_gain)
-        {
-            /* simulate better resolution */
-            U += rand()%2;
-            V += rand()%2;
-        }
-        
-        int pos = vectorscope_coord_uv_to_pos(U, V);
-        
-        /* increase luminance at this position. when reaching 4*0x2A, we are at maximum. */
-        if(vectorscope[pos] < (0x2A << 2))
-        {
-            vectorscope[pos]++;
-        }
-    }
-}
-
-/* memcpy the second part of vectorscope buffer. uses only few resources */
-static void
-vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
-{    
-    if(vectorscope == NULL)
-    {
-        return;
-    }
-
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram)
-    {
-        return;
-    }
-
-    vectorscope_paint(vectorscope, 0, 0);
-
-    const uint32_t vsh2 = vectorscope_height >> 1;
-    const int r = vsh2 - 1;
-    const int r_plus1_square = (r+1)*(r+1);
-    const int r_minus1_square = (r-1)*(r-1);
-
-    for(uint32_t y = 0; y < vectorscope_height; y++)
-    {
-        #ifdef CONFIG_4_3_SCREEN
-        uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin + (EXT_MONITOR_CONNECTED ? y : y*8/9))]);
-        #else
-        uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin+y)]);
-        #endif
-
-        const int yc = y - vsh2;
-        const int yc_square = yc * yc;
-        const int yc_663div1024 = (yc * 663) >> 10;
-
-        for(uint32_t x = 0; x < vectorscope_width; x++)
-        {
-            uint8_t brightness = vectorscope[x + y*vectorscope_width];
-
-            int xc = x - vsh2;
-            int xc_square = xc * xc;
-            int xc_plus_yc_square = xc_square + yc_square;
-            int inside_circle = xc_plus_yc_square < r_minus1_square;
-            int on_circle = !inside_circle && xc_plus_yc_square <= r_plus1_square;
-            // kdenlive vectorscope:
-            // center: 175,180
-            // I: 83,38   => dx=-92, dy=142
-            // Q: 320,87  => dx=145, dy=93
-            // let's say 660/1024 is a good approximation of the slope
-
-            // wikipedia image:
-            // center: 318, 294
-            // I: 171, 68  => 147,226
-            // Q: 545, 147 => 227,147
-            // => 663/1024 is a better approximation
-
-            int on_axis = (x==vectorscope_width/2) || (y==vsh2) || (inside_circle && (xc==yc_663div1024 || -xc*663/1024==yc));
-
-            if (on_circle || (on_axis && brightness==0))
-            {
-                //#ifdef CONFIG_4_3_SCREEN
-                bmp_buf[x] = 60;
-                //#else
-                //bmp_buf[x] = COLOR_BLACK;
-                //#endif
-            }
-            else if (inside_circle)
-            {
-                /* paint (semi)transparent when no pixels in this color range */
-                if (brightness == 0)
-                {
-                    //#ifdef CONFIG_4_3_SCREEN
-                    bmp_buf[x] = COLOR_WHITE; // semitransparent looks bad
-                    //#else
-                    //bmp_buf[x] = (x+y)%2 ? COLOR_WHITE : 0;
-                    //#endif
-                }
-                else if (brightness > (0x2A << 2))
-                {
-                    /* some fake fixed color, for overlays */
-                    bmp_buf[x] = 255 - brightness;
-                }
-                else if (brightness <= (0x29 << 2))
-                {
-                    /* 0x26 is the palette color for black plus max 0x29 until white */
-                    bmp_buf[x] = 0x26 + (brightness >> 2);
-                }
-                else
-                {   /* overflow */
-                    bmp_buf[x] = COLOR_YELLOW;
-                }
-            }
-        }
-    }
-}
-
-static MENU_UPDATE_FUNC(vectorscope_update)
-{
-    if (vectorscope_draw && vectorscope_gain)
-        MENU_SET_VALUE("ON, 2x");
-}
-#endif
 
 /** Generate the histogram data from the YUV frame buffer.
  *
@@ -734,11 +492,7 @@ hist_build()
     #endif
     
     #ifdef FEATURE_VECTORSCOPE
-    if (vectorscope_draw)
-    {
-        vectorscope_init();
-        vectorscope_clear();
-    }
+    vectorscope_start();
     #endif
     
     int mz = nondigic_zoom_overlay_enabled();
@@ -801,12 +555,9 @@ hist_build()
             #endif
             
             #ifdef FEATURE_VECTORSCOPE
-            if (vectorscope_draw)
-            {
-                int8_t U = (pixel >>  0) & 0xFF;
-                int8_t V = (pixel >> 16) & 0xFF;
-                vectorscope_addpixel(Y, U, V);
-            }
+            int8_t U = (pixel >>  0) & 0xFF;
+            int8_t V = (pixel >> 16) & 0xFF;
+            vectorscope_pixel_step(Y, U, V);
             #endif
         }
     }
@@ -832,7 +583,7 @@ static void FAST draw_zebras_raw()
     
     int zoom0 = (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
-    for (int i = os.y0+20; i < os.y_max; i ++)
+    for (int i = os.y0; i < os.y_max; i ++)
     {
         int y = BM2RAW_Y(i);
 
@@ -1236,60 +987,13 @@ waveform_draw_image(
 }
 #endif
 
-static FILE * g_aj_logfile = INVALID_PTR;
-static unsigned int aj_create_log_file( char * name)
-{
-   g_aj_logfile = FIO_CreateFileEx( name );
-   if ( g_aj_logfile == INVALID_PTR )
-   {
-      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
-      return( 0 );  // FAILURE
-   }
-   return( 1 );  // SUCCESS
-}
-
-static void aj_close_log_file( void )
-{
-   if (g_aj_logfile == INVALID_PTR)
-      return;
-   FIO_CloseFile( g_aj_logfile );
-   g_aj_logfile = INVALID_PTR;
-}
-
-void dump_seg(uint32_t start, uint32_t size, char* filename)
-{
-    DEBUG();
-    aj_create_log_file(filename);
-    FIO_WriteFile( g_aj_logfile, (const void *) start, size );
-    aj_close_log_file();
-    DEBUG();
-}
-
-void dump_big_seg(int k, char* filename)
-{
-    DEBUG();
-    aj_create_log_file(filename);
-    
-    int i;
-    for (i = 0; i < 16; i++)
-    {
-        DEBUG();
-        uint32_t start = (k << 28 | i << 24);
-        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
-        FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
-    }
-    
-    aj_close_log_file();
-    DEBUG();
-}
-
 static int fps_ticks = 0;
 
 static void waveform_init()
 {
 #ifdef FEATURE_WAVEFORM
     if (!waveform)
-        waveform = SmallAlloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+        waveform = malloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
 #endif
 }
@@ -1304,19 +1008,14 @@ void bvram_mirror_init()
 {
     if (!bvram_mirror_start)
     {
-        // shoot_malloc is not that stable
-        //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
-        //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
-        //~ #else
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
         #elif defined(CONFIG_EOSM)
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
-        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
+        bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE);
         #endif
-        //~ #endif
         if (!bvram_mirror_start) 
         {   
             while(1)
@@ -1434,7 +1133,7 @@ static int zebra_digic_dirty = 0;
 static void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
-    int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
+    int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
@@ -1448,12 +1147,12 @@ static void draw_zebras( int Z )
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
+        #ifdef FEATURE_ZEBRA_FAST
         int only_over  = (zebra_level_hi <= 100 && zebra_level_lo ==   0);
         int only_under = (zebra_level_lo  >   0 && zebra_level_hi  > 100);
         int only_one = only_over || only_under;
 
         // fast zebras
-        #ifdef FEATURE_ZEBRA_FAST
         /*
             C0F140cc configurable "zebra" (actually solid color)
             -------- -------- -------- --------
@@ -2016,9 +1715,9 @@ draw_zebra_and_focus( int Z, int F )
     if (F && focus_peaking)
     {
         // clear previously written pixels
-        if (unlikely(!dirty_pixels)) dirty_pixels = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixels)) dirty_pixels = malloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixels)) return -1;
-        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = malloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixel_values)) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)
@@ -2405,9 +2104,10 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+    extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using display filters, go outside LiveView and back.");
     #endif
     #if !defined(CONFIG_6D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM)
     else if (is_movie_mode() && video_mode_fps > 30)
@@ -2869,6 +2569,7 @@ fallback_from_raw:
 #endif
 
 #ifdef FEATURE_GHOST_IMAGE
+
 static MENU_UPDATE_FUNC(transparent_overlay_display)
 {
     if (transparent_overlay && (transparent_overlay_offx || transparent_overlay_offy))
@@ -3000,7 +2701,7 @@ static void idle_timeout_toggle(void* priv, int sign)
 {
     int* t = (int*)priv;
     int i = current_timeout_index(*t);
-    i = mod(i + sign, COUNT(timeout_values));
+    i = MOD(i + sign, COUNT(timeout_values));
     *(int*)priv = timeout_values[i];
 }
 #endif
@@ -3199,12 +2900,12 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Size", 
                 .priv = &zoom_overlay_size,
-                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // old cameras - simple zoom box
-                .max = 2,
-                .help = "Size of zoom box (small / medium / large).",
-                #else // new cameras can do fullscreen too :)
+                #ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN // most new cameras can do fullscreen :)
                 .max = 3,
                 .help = "Size of zoom box (small / medium / large / full screen).",
+                #else // old cameras - simple zoom box
+                .max = 2,
+                .help = "Size of zoom box (small / medium / large).",
                 #endif
                 .choices = (const char *[]) {"Small", "Medium", "Large", "FullScreen"},
                 .icon_type = IT_SIZE,
@@ -3366,7 +3067,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Use RAW histogram",
                 .priv = &raw_histogram_enable,
                 .max = 2,
-                .choices = CHOICES("OFF", "ON", "Simplified HistoBar"),
+                .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
                 .update = raw_histo_update,
                 .help = "Use RAW histogram whenever possible.",
             },
@@ -3408,26 +3109,7 @@ struct menu_entry zebra_menus[] = {
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
     #endif
-    #ifdef FEATURE_VECTORSCOPE
-    {
-        .name = "Vectorscope",
-        .priv       = &vectorscope_draw,
-        .max = 1,
-        .update = vectorscope_update,
-        .help = "Shows color distribution as U-V plot. For grading & WB.",
-        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "UV scaling",
-                .priv = &vectorscope_gain, 
-                .max = 1,
-                .choices = (const char *[]) {"OFF", "2x", "4x"},
-                .help = "Scaling for input signal (useful with flat picture styles).",
-            },
-            MENU_EOL
-        },
-    },
-    #endif
+    MENU_PLACEHOLDER("Vectorscope"),
 };
 
 static struct menu_entry level_indic_menus[] = {
@@ -3615,10 +3297,7 @@ void clear_zebras_from_mirror()
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 static void trigger_zebras_for_qr()
 {
-    fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
-    #ifdef CONFIG_600D
-    if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
-    #endif
+    fake_simple_button(MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK);
 }
 #endif
 
@@ -3639,57 +3318,6 @@ PROP_HANDLER(PROP_GUI_STATE)
         fake_simple_button(BGMT_LV); // update ghost image
     }
 #endif
-}
-
-extern uint32_t LCD_Palette[];
-
-void palette_disable(uint32_t disabled)
-{
-    #ifdef CONFIG_VXWORKS
-    return; // see set_ml_palette
-    #endif
-
-    if(disabled)
-    {
-        for (int i = 0; i < 0x100; i++)
-        {
-            EngDrvOut(0xC0F14400 + i*4, 0x00FF0000);
-            EngDrvOut(0xC0F14800 + i*4, 0x00FF0000);
-        }
-    }
-    else
-    {
-        for (int i = 0; i < 0x100; i++)
-        {
-            EngDrvOut(0xC0F14400 + i*4, LCD_Palette[i*3 + 2]);
-            EngDrvOut(0xC0F14800 + i*4, LCD_Palette[i*3 + 2]);
-        }
-    }
-}
-//~ #endif
-
-void bmp_on()
-{
-    if (!_bmp_unmuted) 
-    {
-        palette_disable(0);
-        _bmp_muted = false; _bmp_unmuted = true;
-    }
-}
-
-void bmp_off()
-{
-    if (!_bmp_muted)
-    {
-        _bmp_muted = true; _bmp_unmuted = false;
-        palette_disable(1);
-    }
-}
-
-void bmp_mute_flag_reset()
-{
-    _bmp_muted = 0;
-    _bmp_unmuted = 0;
 }
 
 #ifdef FEATURE_MAGIC_ZOOM
@@ -3719,7 +3347,7 @@ int handle_zoom_overlay(struct event * event)
 #else
 
     // zoom in when recording => enable Magic Zoom 
-    if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 10 && event->param == 
+    if (get_zoom_overlay_trigger_mode() && RECORDING_H264_STARTED && MVR_FRAME_NUMBER > 10 && event->param ==
         #if defined(CONFIG_5D3) || defined(CONFIG_6D)
         BGMT_PRESS_ZOOMIN_MAYBE
         #else
@@ -3760,8 +3388,16 @@ int handle_zoom_overlay(struct event * event)
     }
 #endif
 
-    // move AF frame when recording
-    if (recording && liveview_display_idle() && is_manual_focus())
+    /* allow moving AF frame (focus box) when Canon blocks it */
+    /* most cameras will block the focus box keys in Manual Focus mode while recording */
+    /* 6D seems to block them always in MF, https://bitbucket.org/hudson/magic-lantern/issue/1816/cant-move-focus-box-on-6d */
+    if (
+        #if !defined(CONFIG_6D) /* others? */
+        RECORDING_H264 &&
+        #endif
+        liveview_display_idle() &&
+        is_manual_focus() &&
+    1)
     {
         if (event->param == BGMT_PRESS_LEFT)
             { move_lv_afframe(-300, 0); return 0; }
@@ -3789,7 +3425,10 @@ void zoom_overlay_set_countdown(int x)
 
 void digic_zoom_overlay_step(int force_off)
 {
-#if !defined(CONFIG_VXWORKS)
+#ifdef FEATURE_MAGIC_ZOOM_FULL_SCREEN
+    #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+    #error This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
+    #endif
     static int prev = 0;
     if (digic_zoom_overlay_enabled() && !force_off)
     {
@@ -3852,7 +3491,7 @@ static void draw_zoom_overlay(int dirty)
     if (!bmp_is_on()) return;
     if (lv_dispsize != 1) return;
     //~ if (get_halfshutter_pressed() && clearscreen != 2) return;
-    if (recording == 1) return;
+    if (RECORDING_H264_STARTING) return;
     
     #ifndef CONFIG_LV_FOCUS_INFO
     zoom_overlay_split = 0; // 50D doesn't report focus
@@ -3879,7 +3518,7 @@ static void draw_zoom_overlay(int dirty)
         while(1)
         {
             int t1 = *(uint32_t*)0xC0242014;
-            int dt = mod(t1 - t0, 1048576);
+            int dt = MOD(t1 - t0, 1048576);
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;
             if (dt > timeout_us)
@@ -3890,7 +3529,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
-    #if defined(CONFIG_DIGIC_V)
+    #if defined(CONFIG_DIGIC_V) && ! defined(CONFIG_EOSM)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else
@@ -4014,7 +3653,7 @@ static void draw_zoom_overlay(int dirty)
         if(y%2 == 0) // The 1100D has half-height LCD res so we line-skip one from the sensor
         #endif
         {
-            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X, 0 /*zoom_overlay_lut*/);
+            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X);
             d += lv->width;
         }
         if (y%X==0) s += hd->width;
@@ -4137,7 +3776,11 @@ BMP_LOCK(
     #ifdef FEATURE_DEFISHING_PREVIEW
     extern int defish_preview;
     if (defish_preview)
+    {
+        /* to refactor with CBR + separate file */
+        extern void defish_draw_play();
         defish_draw_play();
+    }
     #endif
 
     #ifdef FEATURE_SPOTMETER
@@ -4187,7 +3830,13 @@ void draw_histogram_and_waveform(int allow_play)
     get_yuv422_vram();
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
-    if (hist_draw || waveform_draw || vectorscope_draw)
+    if (0
+        || hist_draw
+        || waveform_draw
+#if defined(FEATURE_VECTORSCOPE)
+        || vectorscope_should_draw()
+#endif
+        )
     {
         hist_build(); /* also updates waveform and vectorscope */
         #ifdef FEATURE_RAW_HISTOGRAM
@@ -4249,11 +3898,7 @@ void draw_histogram_and_waveform(int allow_play)
 #endif
 
 #ifdef FEATURE_VECTORSCOPE
-    if(vectorscope_draw)
-    {
-        /* make sure memory address of bvram will be 4 byte aligned */
-        BMP_LOCK( vectorscope_draw_image(os.x0 + 32, 64); )
-    }
+    vectorscope_redraw();
 #endif
 }
 
@@ -4473,7 +4118,7 @@ int ResumeLiveView()
 static void idle_display_off_show_warning()
 {
     extern int motion_detect;
-    if (motion_detect || recording)
+    if (motion_detect || RECORDING)
     {
         NotifyBox(3000, "DISPLAY OFF...");
     }
@@ -4485,11 +4130,11 @@ static void idle_display_off_show_warning()
 static void idle_display_off()
 {
     extern int motion_detect;
-    if (!(motion_detect || recording)) PauseLiveView();
+    if (!(motion_detect || RECORDING)) PauseLiveView();
     display_off();
     msleep(300);
     idle_countdown_display_off = 0;
-    ASSERT(!(recording && LV_PAUSED));
+    ASSERT(!(RECORDING && LV_PAUSED));
     ASSERT(!DISPLAY_IS_ON);
 }
 static void idle_display_on()
@@ -4559,8 +4204,9 @@ static void idle_kill_flicker()
         if (is_movie_mode())
         {
             black_bars_16x9();
-            if (recording)
-                dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
+            if (RECORDING) {
+                fill_circle(os.x_max - 12, os.y0 + 28, 10, COLOR_RED);
+            }
         }
     }
 }
@@ -4594,7 +4240,7 @@ clearscreen_loop:
         // then they already _know_ that their camera is still on, so
         // let's only do it if the camera's buttons have been idle for at
         // least 30 seconds.
-        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording && !get_halfshutter_pressed() && !is_intervalometer_running() && idle_blink)
+        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && NOT_RECORDING && !get_halfshutter_pressed() && !is_intervalometer_running() && idle_blink)
             if ((get_seconds_clock() - get_last_time_active()) > 30)
                 info_led_blink(1, 10, 10);
 
@@ -4639,7 +4285,7 @@ clearscreen_loop:
         
         if (clearscreen == 4)
         {
-            if (recording)
+            if (RECORDING)
             {
                 bmp_off();
             }
@@ -4656,7 +4302,7 @@ clearscreen_loop:
             int i;
             for (i = 0; i < (int)clearscreen_delay/20; i++)
             {
-                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(); )
+                if (i % 10 == 0 && liveview_display_idle()) BMP_LOCK( update_lens_display(1,1); )
                 msleep(20);
                 if (!(get_halfshutter_pressed() || dofpreview))
                     goto clearscreen_loop;
@@ -4672,10 +4318,10 @@ clearscreen_loop:
         }
         #endif
 
-        if (recording && idle_rec == 0) // don't go to powersave when recording
+        if (RECORDING && idle_rec == 0) // don't go to powersave when recording
             idle_wakeup_reset_counters(-2345);
 
-        if (!recording && idle_rec == 1) // don't go to powersave when not recording
+        if (NOT_RECORDING && idle_rec == 1) // don't go to powersave when not recording
             idle_wakeup_reset_counters(-2345);
         
         if (logical_connect)
@@ -4733,7 +4379,7 @@ CONFIG_INT("display.dont.mirror", display_dont_mirror, 1);
 // this should be synchronized with
 // * graphics code (like zebra); otherwise zebras will remain frozen on screen
 // * gui_main_task (to make sure Canon won't call redraw in parallel => crash)
-void redraw_do()
+void _redraw_do()
 {
     extern int ml_started;
     if (!ml_started) return;
@@ -4744,7 +4390,12 @@ BMP_LOCK (
 #ifdef CONFIG_VARIANGLE_DISPLAY
     if (display_dont_mirror && display_dont_mirror_dirty)
     {
-        if (lcd_position == 1) NormalDisplay();
+        if (lcd_position == 1)
+        {
+            /* Canon stub, usually available only on cameras with variable displays */
+            extern void NormalDisplay();
+            NormalDisplay();
+        }
         display_dont_mirror_dirty = 0;
     }
 #endif
@@ -4871,10 +4522,9 @@ livev_hipriority_task( void* unused )
         {
             msleep(100);
         }
-        
-        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
 
         #ifdef FEATURE_ZEBRA_FAST
+        int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
@@ -4885,7 +4535,7 @@ livev_hipriority_task( void* unused )
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
-            while (recording == 1) msleep(100);
+            while (RECORDING_H264_STARTING) msleep(100);
             if (!zebra_should_run())
             {
 #ifdef FEATURE_ZEBRA_FAST
@@ -4907,6 +4557,11 @@ livev_hipriority_task( void* unused )
                 crop_set_dirty(10);
                 msleep(500);
             }
+            if (!zebra_should_run())
+            {
+                /* false alarm */
+                continue;
+            }
         }
         #if 0
         draw_cropmark_area(); // just for debugging
@@ -4916,24 +4571,27 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef CONFIG_RAW_LIVEVIEW
-        if (!raw_flag && !is_movie_mode())
+        int raw_needed = 0;
+
+        /* if picture quality is raw, switch the LiveView to raw mode (photo, zoom 1x) */
+        int raw = pic_quality & 0x60000;
+        if (raw && lv_dispsize == 1 && !is_movie_mode())
         {
-            /* if picture quality is raw, switch the LiveView to raw mode */
-            int raw = pic_quality & 0x60000;
-            /* only histogram and spotmeter are working in LV raw mode */
-            if (raw && lv_dispsize == 1
-                && (
-#ifdef FEATURE_HISTOGRAM
-                    hist_draw ||
-#endif
-                    spotmeter_draw))
-            {
-                raw_lv_request();
-                raw_flag = 1;
-            }
+            /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
+            if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
+            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
-        if (raw_flag && lv_dispsize > 1)
+
+        if (!raw_flag && raw_needed)
         {
+            /* do we need any raw overlays? enable LV raw mode if we don't already have it */
+            raw_lv_request();
+            raw_flag = 1;
+        }
+        if (raw_flag && !raw_needed)
+        {
+            /* if we no longer need raw overlays, keep LiveView in normal mode (it does less stuff) */
             raw_lv_release();
             raw_flag = 0;
         }
@@ -4965,6 +4623,8 @@ livev_hipriority_task( void* unused )
             msleep(10);
 
             #ifdef CONFIG_DISPLAY_FILTERS
+            /* to refactor with CBR */
+            extern void display_filter_step(int frame_number);
             display_filter_step(k);
             #endif
             
@@ -4980,7 +4640,7 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK(
                     if (lv)
                         draw_zebra_and_focus(
-                            k % ((focus_peaking ? 5 : 3) * (recording ? 5 : 1)) == 0, /* should redraw zebras? */
+                            k % ((focus_peaking ? 5 : 3) * (RECORDING ? 5 : 1)) == 0, /* should redraw zebras? */
                             k % 2 == 1  /* should redraw focus peaking? */
                         ); 
                 )
@@ -5000,6 +4660,8 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef FEATURE_REC_NOTIFY
+        /* to refactor with CBR */
+        extern void rec_notify_continuous(int called_from_menu);
         if (k % 8 == 7) rec_notify_continuous(0);
         #endif
         
@@ -5017,7 +4679,7 @@ livev_hipriority_task( void* unused )
         int kmm = k % m;
         if (!gui_menu_shown()) // don't update everything in one step, to reduce magic zoom flicker
         {
-            #if defined(CONFIG_550D) || defined(CONFIG_5D2)
+            #if defined(CONFIG_550D) || defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
             if (kmm == 0)
                 BMP_LOCK( if (lv) black_bars(); )
             #endif
@@ -5061,7 +4723,7 @@ livev_lopriority_task( void* unused )
         #endif
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
+        if (crop_enabled && cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
         {
             msleep(500);
             if (PLAY_MODE && DISPLAY_IS_ON && ((int32_t)(int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)) // double-check
@@ -5117,7 +4779,11 @@ void update_disp_mode_bits_from_params()
         (transparent_overlay  ? 1<<10: 0) |
         //~ (electronic_level     ? 1<<11: 0) |
         //~ (defish_preview       ? 1<<12: 0) |
-        (vectorscope_draw     ? 1<<13: 0) |
+#ifdef FEATURE_VECTORSCOPE
+        (vectorscope_should_draw() ? 1<<13: 0) |
+#else
+        0 |
+#endif
         0;
         
     if (disp_mode == 1) disp_mode_a = bits;
@@ -5149,7 +4815,9 @@ void update_disp_mode_params_from_bits()
     transparent_overlay  = bits & (1<<10)? 1 : 0;
     //~ electronic_level     = bits & (1<<11)? 1 : 0;
     //~ defish_preview       = bits & (1<<12)? 1 : 0;
-    vectorscope_draw     = bits & (1<<13)? 1 : 0;
+#ifdef FEATURE_VECTORSCOPE
+    vectorscope_request_draw(bits & (1<<13)? 1 : 0);
+#endif
     global_draw = global_draw_0 + global_draw_1 * 2;
 //~ end:
 //~ )
@@ -5166,7 +4834,7 @@ int toggle_disp_mode()
 {
     update_disp_mode_bits_from_params();
     idle_wakeup_reset_counters(-3);
-    disp_mode = mod(disp_mode + 1, disp_profiles_0 + 1);
+    disp_mode = MOD(disp_mode + 1, disp_profiles_0 + 1);
     BMP_LOCK( do_disp_mode_change(); )
     //~ menu_set_dirty();
     return disp_mode == 0;
@@ -5249,103 +4917,25 @@ static void livev_playback_reset()
     livev_playback = 0;
 }
 
-static void livev_playback_refresh()
+int handle_livev_playback(struct event * event)
 {
-    while (livev_for_playback_running) msleep(20);
-    livev_playback_toggle();
-    if (!livev_playback) livev_playback_toggle();
-}
-
-int handle_livev_playback(struct event * event, int button)
-{
-    // move spotmeter in QR or playback mode
-
-    #define CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
-    #ifdef CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
-    if ((QR_MODE && ZEBRAS_IN_QUICKREVIEW) || (PLAY_MODE && livev_playback))
-    {
-        switch (event->param)
-        {
-            case BGMT_PRESS_LEFT:
-                spotmeter_playback_offset_x -= 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_RIGHT:
-                spotmeter_playback_offset_x += 50;
-                livev_playback_refresh();
-                return 0;
-            
-            case BGMT_PRESS_UP:
-                spotmeter_playback_offset_y -= 50;
-                livev_playback_refresh();
-                return 0;
-            
-            case BGMT_PRESS_DOWN:
-                spotmeter_playback_offset_y += 50;
-                livev_playback_refresh();
-                return 0;
-
-            #ifdef BGMT_PRESS_UP_LEFT
-            case BGMT_PRESS_UP_LEFT:
-                spotmeter_playback_offset_x -= 50;
-                spotmeter_playback_offset_y -= 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_DOWN_RIGHT:
-                spotmeter_playback_offset_x += 50;
-                spotmeter_playback_offset_y += 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_UP_RIGHT:
-                spotmeter_playback_offset_x += 50;
-                spotmeter_playback_offset_y -= 50;
-                livev_playback_refresh();
-                return 0;
-
-            case BGMT_PRESS_DOWN_LEFT:
-                spotmeter_playback_offset_x -= 50;
-                spotmeter_playback_offset_y += 50;
-                livev_playback_refresh();
-                return 0;
-            #endif
-
-            #ifdef BGMT_JOY_CENTER
-            case BGMT_JOY_CENTER:
-            #else
-            case BGMT_PRESS_SET:
-            #endif
-                if (QR_MODE && event->param == BGMT_PRESS_SET)  /* conflicts with voice tags */
-                    return 1;
-                spotmeter_playback_offset_x = spotmeter_playback_offset_y = 0;
-                livev_playback_refresh();
-                return 0;
-            
-            #ifdef BGMT_UNPRESS_UDLR
-            case BGMT_UNPRESS_UDLR:
-            #else
-            case BGMT_UNPRESS_LEFT:
-            case BGMT_UNPRESS_RIGHT:
-            case BGMT_UNPRESS_UP:
-            case BGMT_UNPRESS_DOWN:
-            #endif
-                return 0;
-        }
-    }
-    #endif
-
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
     {
-        if (event->param == button)
+        switch(event->param)
         {
-            livev_playback_toggle();
-            return 0;
+#if defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
+            case BTN_ZEBRAS_FOR_PLAYBACK:
+                livev_playback_toggle();
+                return 0;
+#endif
+            case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
+                livev_playback_reset(); // Soft reset if triggered by HS
+                livev_playback_toggle();
+                return 0;
         }
         
-        else if (event->param == GMT_OLC_INFO_CHANGED)
+        if (event->param == GMT_OLC_INFO_CHANGED)
             return 1;
 
         #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
@@ -5377,8 +4967,6 @@ static void zebra_init()
 }
 
 INIT_FUNC(__FILE__, zebra_init);
-
-
 
 
 static void make_overlay()
@@ -5417,7 +5005,7 @@ static void make_overlay()
             *bp = *mp = ((*lvp) * 41 >> 16) + 38;
         }
     }
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/DATA/overlay.dat");
+    FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
     FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
     FIO_CloseFile(f);
     bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
@@ -5437,7 +5025,7 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_Open(CARD_DRIVE "ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
+    FILE* f = FIO_OpenFile("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);

@@ -643,4 +643,30 @@ struct audio_level *get_audio_levels(void);
 //horiz shift of audio meters to allow for label and numerical dB readout
 #define AUDIO_METER_OFFSET 20
 
+/* returns true when sound is enabled in Canon menu */
+int sound_recording_enabled_canon();
+
+/* returns true when sound is enabled in either Canon or ML menus */
+int sound_recording_enabled();
+
+/* true if audio meters are displayed */
+int audio_meters_are_drawn();
+
+/* sound-related tricks from fps-engio.c */
+int was_sound_recording_disabled_by_fps_override();
+int fps_should_record_wav();
+
+/* refresh audio settings (to be refactored and at least made thread safe) */
+void audio_configure(int force);
+
+/* for shortcuts */
+void input_toggle();
+void volume_up();
+void volume_down();
+void out_volume_up();
+void out_volume_down();
+
+/* conversion (for audio remote shot) */
+int audio_level_to_db(int raw_level);
+
 #endif /* _audio_h_ */

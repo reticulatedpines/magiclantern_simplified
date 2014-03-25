@@ -8,6 +8,8 @@
 #include "propvalues.h"
 #include "bmp.h"
 #include "menu.h"
+#include "shoot.h"
+#include "zebra.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 
@@ -48,8 +50,6 @@ ________________________________________________________________________________
 |_______________BMy510_|___________________________________________________________________________|______________________|
 
 */
-
-void update_vram_params();
 
 // cached LUTs for BM2LV-like macros
 
@@ -364,8 +364,8 @@ void update_vram_params()
     int bar_x = 0;
     int bar_y = 0;
     #else
-    int bar_x = recording && video_mode_resolution >= 2 ? os.off_43 : 0;
-    int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
+    int bar_x = RECORDING && video_mode_resolution >= 2 ? os.off_43 : 0;
+    int bar_y = RECORDING && video_mode_resolution <= 1 ? os.off_169 : 0;
     #endif
 
     vram_update_luts();
@@ -410,42 +410,6 @@ void update_vram_params()
         );
         msleep(300);
     }
-}*/
-
-/*
-int* lut_bm2lv_x = 0;
-int* lut_lv2bm_x = 0;
-
-int* lut_lv2hd_x = 0;
-int* lut_hd2lv_x = 0;
-
-int* lut_bm2hd_x = 0;
-int* lut_hd2bm_x = 0;
-
-int* lut_bm2lv_y = 0;
-int* lut_lv2bm_y = 0;
-
-int* lut_lv2hd_y = 0;
-int* lut_hd2lv_y = 0;
-
-int* lut_bm2hd_y = 0;
-int* lut_hd2bm_y = 0;
-
-void lut_realloc(int** buf, int size)
-{
-    if (*buf) FreeMemory(*buf);
-    *buf = AllocateMemory(size);
-}
-
-void lut_init()
-{
-    lut_realloc(&lut_bm2lv_x, SL.BM.W);
-    lut_realloc(&lut_bm2lv_y, SL.BM.H);
-
-    lut_realloc(&lut_lv2bm_x, SL.LV.W);
-    lut_realloc(&lut_lv2bm_y, SL.LV.H);
-
-    lut_realloc(&lut_lv2bm);
 }*/
 
 #include "bmp.h"
@@ -572,16 +536,6 @@ void vram_clear_lv()
 {
     struct vram_info * lv_vram = get_yuv422_vram();
     memset(lv_vram->vram, 0, lv_vram->height * lv_vram->pitch);
-}
-
-int vram_redirect_lv_buffer(void* new_address)
-{
-    #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-    YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t)new_address;
-    return 1;
-    #else
-    return 0;
-    #endif
 }
 
 // those properties may signal a screen layout change

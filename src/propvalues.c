@@ -8,14 +8,19 @@
 #define _propvalues_h_
 #include "property.h"
 
-char camera_model_short[8] = CAMERA_MODEL;
+char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
 
+int is_camera(const char * model, const char * firmware)
+{
+    return streq(__camera_model_short, model) && streq(firmware_version, firmware);
+}
+
 PROP_HANDLER(PROP_CAM_MODEL)
 {
-    memcpy((char *)&camera_model_id, (uint32_t)buf + 32, 4);
+    memcpy((char *)&camera_model_id, (void*)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
 }
 
@@ -25,18 +30,13 @@ PROP_HANDLER(PROP_FIRMWARE_VER)
 }
 
 volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
+volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, _expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_METERING_MODE, metering_mode);
-#ifndef CONFIG_5D3
-volatile PROP_INT(PROP_FILE_NUMBER, file_number);
-volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
-#endif
-//volatile PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
 volatile PROP_INT(PROP_DRIVE, drive_mode);
 volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
@@ -157,12 +157,12 @@ volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
 volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
 
 #ifdef CONFIG_50D
-int recording = 0;
+int __recording = 0;
 int shooting_type = 0;
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
     shooting_type = buf[0];
-    recording = (shooting_type == 4 ? 2 : 0);
+    __recording = (shooting_type == 4 ? 2 : 0);
 }
 
 PROP_HANDLER(PROP_MOVIE_SIZE_50D)
@@ -171,9 +171,15 @@ PROP_HANDLER(PROP_MOVIE_SIZE_50D)
     video_mode_fps = 30;
 }
 #else
-volatile PROP_INT(PROP_MVR_REC_START, recording);
+volatile PROP_INT(PROP_MVR_REC_START, __recording);
 volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 #endif
+int __recording_custom = 0;
+
+void set_recording_custom(int state)
+{
+    __recording_custom = state;
+}
 
 int lv_disp_mode;
 

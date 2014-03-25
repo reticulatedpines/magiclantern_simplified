@@ -32,8 +32,9 @@
 #include "dryos.h"
 #include "property.h"
 #include "math.h"
-#define umalloc alloc_dma_memory
-#define ufree free_dma_memory
+#include "string.h"
+#define umalloc fio_malloc
+#define ufree fio_free
 #define pow powf
 
 static int get_tick_count() { return get_ms_clock_value_fast(); }
@@ -50,7 +51,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define umalloc malloc
 #define ufree free
 
-#define FIO_CreateFileEx(name) fopen(name, "wb")
+#define FIO_CreateFile(name) fopen(name, "wb")
 #define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
 #define FIO_CloseFile(f) fclose(f)
 
@@ -71,7 +72,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define raw_size frame_size
 #define write FIO_WriteFile
 
-static void FAST reverse_bytes_order(char* buf, int count)
+void FAST reverse_bytes_order(char* buf, int count)
 {
 #ifdef __ARM__
     /* optimized swap from g3gg0 */
@@ -254,7 +255,13 @@ static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
             return i;
     
     /* should be unreachable */
+#ifdef CONFIG_MAGICLANTERN
+    ASSERT(0);
+#else
     exit(1);
+#endif
+    while(1);
+    return -1;
 }
 
 // Index of specific entries in ifd0 below.
@@ -389,6 +396,12 @@ void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g
     cam_AsShotNeutral[5] = gain_b_d;
 }
 
+void dng_set_datetime(char *datetime, char *subsectime)
+{
+    strncpy(cam_datetime, datetime, sizeof(cam_datetime));
+    strncpy(cam_subsectime, subsectime, sizeof(cam_subsectime));
+}
+
 
 static void create_dng_header(struct raw_info * raw_info){
     int i,j;
@@ -430,8 +443,8 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
         {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
         {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
-        {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
-        {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
+        {0xC65A, T_SHORT,      1, 21},                                 // CalibrationIlluminant1 D65
+        {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65 (change this if ColorMatrix2 is added)
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
     };
 
@@ -737,7 +750,7 @@ int save_dng(char* filename, struct raw_info * raw_info)
     raw_info->jpeg.height = raw_info->height;
     #endif
     
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if (!f) return 0;
     write_dng(f, raw_info);
     FIO_CloseFile(f);

@@ -22,17 +22,18 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
+#include <beep.h>
 #include <menu.h>
 #include <config.h>
 #include <cropmarks.h>
 #include <edmac.h>
 #include <raw.h>
+#include <zebra.h>
+#include <util.h>
 
 #include "../ime_base/ime_base.h"
 #include "../trace/trace.h"
@@ -41,6 +42,10 @@
 #include "../lv_rec/lv_rec.h"
 
 #define MAX_PATH                 100
+
+/* declare the video.bmp we have added */
+/* icon from: http://www.softicons.com/free-icons/system-icons/touch-of-gold-icons-by-skingcito/video-black-icon */
+EXTLD(video_bmp);
 
 char *strncpy(char *dest, const char *src, size_t n);
 
@@ -168,18 +173,6 @@ static char *strcat(char *dest, const char *src)
     return strcpy(&dest[strlen(dest)], src);
 }
 
-static void *realloc(void *ptr, uint32_t size)
-{
-    void *new_ptr = malloc(size);
-    
-    /* yeah, this will read beyond the end, but that won't cause any trouble, just leaves garbage behind our data */
-    memcpy(new_ptr, ptr, size);
-    
-    free(ptr);
-    
-    return new_ptr;
-}
-
 static void mlv_play_next()
 {
     playlist_entry_t current;
@@ -216,6 +209,7 @@ static void mlv_play_prev()
 
 static void mlv_play_progressbar(int pct, char *msg)
 {
+    static int last_pct = -1;
     int border = 4;
     int height = 40;
     int width = 720 - 100;
@@ -228,10 +222,46 @@ static void mlv_play_progressbar(int pct, char *msg)
         bmp_fill(COLOR_BLACK, x, y - font_med.height - border, width, font_med.height);
         bmp_fill(COLOR_WHITE, x, y, width, height);
         bmp_fill(COLOR_BLACK, x + border - 1, y + border - 1, width - 2 * (border - 1), height - 2 * (border - 1));
+        last_pct = -1;
     }
-    bmp_fill(COLOR_BLUE, x + border, y + border, ((width - 2 * border) * pct) / 100, height - 2 * border);
     
-    bmp_printf(FONT_MED, x, y - font_med.height - border, msg);
+    if(last_pct != pct)
+    {
+        bmp_fill(COLOR_BLUE, x + border, y + border, ((width - 2 * border) * pct) / 100, height - 2 * border);
+        bmp_printf(FONT_MED, x, y - font_med.height - border, msg);
+        last_pct = pct;
+    }
+}
+
+static void mlv_play_show_dlg(uint32_t duration, char *string)
+{
+    uint32_t width = 500;
+    uint32_t height = 128 + 20;
+    uint32_t pos_y = (480 - height) / 2;
+    uint32_t pos_x = (720 - width) / 2;
+    struct bmp_file_t *icon = NULL;
+    
+    icon = bmp_load_ram((uint8_t *)LDVAR(video_bmp), LDLEN(video_bmp), 0);
+    
+    bmp_fill(COLOR_BG, pos_x, pos_y, width, height);
+    
+    /* redraw 4 times in case it gets overdrawn */
+    for(int loop = 0; loop < 4; loop++)
+    {
+        if(icon)
+        {
+            bmp_draw_scaled_ex(icon, pos_x + 10, pos_y + 10, 128, 128, 0);
+        }
+        else
+        {
+            bmp_printf(FONT_CANON, pos_x + 10, pos_y + 10 - font_med.height / 2, "[X]");
+        }
+        
+        bmp_printf(FONT_CANON, pos_x + 128 + 20, pos_y + (128 / 2) - 16, string);
+        msleep(duration / 10);
+    }
+    
+    bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
 }
 
 static void mlv_del_task(char *parm)
@@ -362,13 +392,14 @@ static void mlv_play_delete()
     char *msg = strdup(current.fullPath);
     
     task_create("mlv_del_task", 0x1e, 0x800, mlv_del_task, (void*)msg);
+    mlv_play_show_dlg(1000, "Deleting...");
 }
 
 static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        mlv_play_quality = mod(mlv_play_quality + 1, 2);
+        mlv_play_quality = MOD(mlv_play_quality + 1, 2);
     }
     
     if(msg)
@@ -408,7 +439,7 @@ static void mlv_play_osd_pause(char *msg, uint32_t msg_len, uint32_t selected)
 {
     if(selected)
     {
-        mlv_play_paused = mod(mlv_play_paused + 1, 2);
+        mlv_play_paused = MOD(mlv_play_paused + 1, 2);
     }
     
     if(msg)
@@ -540,8 +571,9 @@ static uint32_t mlv_play_osd_draw()
         
         case MLV_PLAY_MENU_FADEIN:
         {
-            mlv_play_osd_y -= border;
-            if(mlv_play_osd_y <= (int32_t)(os.y_max - font_large.height - y_offset))
+            int y_top = os.y_max - font_large.height - y_offset;
+            mlv_play_osd_y = MAX(mlv_play_osd_y - border, y_top);
+            if(mlv_play_osd_y <= y_top)
             {
                 mlv_play_osd_state = MLV_PLAY_MENU_SHOWN;
             }
@@ -551,8 +583,9 @@ static uint32_t mlv_play_osd_draw()
         
         case MLV_PLAY_MENU_FADEOUT:
         {
-            mlv_play_osd_y += border;
-            if(mlv_play_osd_y >= (int32_t)(os.y_max + border))
+            int y_bottom = os.y_max + 1;
+            mlv_play_osd_y = MIN(mlv_play_osd_y + border, y_bottom);
+            if(mlv_play_osd_y >= y_bottom)
             {
                 mlv_play_osd_state = MLV_PLAY_MENU_HIDDEN;
             }
@@ -688,7 +721,7 @@ static void mlv_play_osd_task(void *priv)
                     if(key == MODULE_KEY_INFO)
                     {
                         clrscr();
-                        mlv_play_info = mod(mlv_play_info + 1, 2) ? 2 : 0;
+                        mlv_play_info = MOD(mlv_play_info + 1, 2) ? 2 : 0;
                     }
                     break;
                 }
@@ -769,7 +802,7 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
     strncpy(filename, base_filename, sizeof(filename));
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
-    in_file = FIO_Open(filename, O_RDONLY | O_SYNC);
+    in_file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     
     if(in_file == INVALID_PTR)
     {
@@ -829,7 +862,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     strncpy(filename, base_filename, sizeof(filename));
     strcpy(&filename[strlen(filename) - 3], "IDX");
     
-    out_file = FIO_CreateFileEx(filename);
+    out_file = FIO_CreateFile(filename);
     
     if(out_file == INVALID_PTR)
     {
@@ -874,7 +907,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
         {
             char msg[100];
             
-            snprintf(msg, sizeof(msg), "Saving index...");
+            snprintf(msg, sizeof(msg), "Saving index (%d entries)...", entries);
             mlv_play_progressbar(pct, msg);
             last_pct = pct;
         }
@@ -897,7 +930,6 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
 {
     frame_xref_t *frame_xref_table = NULL;
     uint32_t frame_xref_entries = 0;
-    uint32_t blocks = 0;
     uint32_t frame_xref_allocated = 0;
     mlv_file_hdr_t main_header;
     
@@ -917,6 +949,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
             }
             
             mlv_hdr_t buf;
+            uint64_t timestamp = 0;
             uint32_t position = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_CUR);
             
             uint32_t pct = ((position / 10) / (size / 1000));
@@ -947,12 +980,21 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 }
             }
             
+            /* unexpected block header size? */
+            if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 10 * 1024 * 1024)
+            {
+                bmp_printf(FONT_MED, 30, 190, "Invalid header size: %d bytes at 0x%08X", buf.blockSize, position);
+                beep();
+                msleep(1000);
+                break;
+            }
+
             /* file header */
             if(!memcmp(buf.blockType, "MLVI", 4))
             {
                 mlv_file_hdr_t file_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
-
+                
                 FIO_SeekFileWrapper(chunk_files[chunk], position, SEEK_SET);
                 
                 /* read the whole header block, but limit size to either our local type size or the written block size */
@@ -982,22 +1024,31 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 }
                 
                 /* emulate timestamp zero (will overwrite version string) */
-                buf.timestamp = 0;
+                timestamp = 0;
+            }
+            else
+            {
+                /* all other blocks have a timestamp */
+                timestamp = buf.timestamp;
             }
             
-            xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
-            
-            /* add xref data */
-            frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
-            frame_xref_table[frame_xref_entries].frameOffset = position;
-            frame_xref_table[frame_xref_entries].fileNumber = chunk;
-            
-            frame_xref_entries++;
+            /* dont index NULL blocks */
+            if(memcmp(buf.blockType, "NULL", 4))
+            {
+                xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+                
+                /* add xref data */
+                frame_xref_table[frame_xref_entries].frameTime = timestamp;
+                frame_xref_table[frame_xref_entries].frameOffset = position;
+                frame_xref_table[frame_xref_entries].fileNumber = chunk;
+                
+                frame_xref_entries++;
+            }
             
             FIO_SeekFileWrapper(chunk_files[chunk], position + buf.blockSize, SEEK_SET);
-            blocks++;
         }
     }
+    
     xref_sort(frame_xref_table, frame_xref_entries);
     save_index(filename, &main_header, chunk_count, frame_xref_table, frame_xref_entries);
 }
@@ -1012,7 +1063,8 @@ static mlv_xref_hdr_t *mlv_play_get_index(char *filename, FILE **chunk_files, ui
         return table;
     }
     
-    bmp_printf(FONT_LARGE, 30, 100, "Please wait");
+    bmp_printf(FONT_LARGE, 30, 100, "Preparing:", filename);
+    bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
     build_index(filename, chunk_files, chunk_count);
     
     return load_index(filename);
@@ -1035,7 +1087,7 @@ static unsigned int mlv_play_is_raw(FILE *f)
     }
     
     /* check if the footer is in the right format */
-    if(strncmp(footer.magic, "RAWM", 4))
+    if(strncmp((char *)footer.magic, "RAWM", 4))
     {
         return 0;
     }
@@ -1060,7 +1112,7 @@ static unsigned int mlv_play_is_mlv(FILE *f)
     }
     
     /* check if the footer is in the right format */
-    if(strncmp(header.fileMagic, "MLVI", 4))
+    if(strncmp((char *)header.fileMagic, "MLVI", 4))
     {
         return 0;
     }
@@ -1087,7 +1139,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
     }
     
     /* check if the footer is in the right format */
-    if(strncmp(footer.magic, "RAWM", 4))
+    if(strncmp((char *)footer.magic, "RAWM", 4))
     {
         bmp_printf(FONT_MED, 30, 190, "Footer format mismatch");
         beep();
@@ -1117,7 +1169,7 @@ static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
     strncpy(filename, base_filename, sizeof(filename));
     FILE **files = malloc(sizeof(FILE*));
     
-    files[0] = FIO_Open(filename, O_RDONLY | O_SYNC);
+    files[0] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!files[0])
     {
         return NULL;
@@ -1138,13 +1190,13 @@ static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
 
         /* try to open from A: first*/
         filename[0] = 'A';
-        files[*entries] = FIO_Open(filename, O_RDONLY | O_SYNC);
+        files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         
         /* if failed, try B */
         if(files[*entries] == INVALID_PTR)
         {
             filename[0] = 'B';
-            files[*entries] = FIO_Open(filename, O_RDONLY | O_SYNC);
+            files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         }
         
         /* when succeeded, check for next chunk, else abort */
@@ -1259,7 +1311,7 @@ static void mlv_play_render_task(uint32_t priv)
         }
         
         /* finished displaying, requeue frame buffer for refilling */
-        msg_queue_post(mlv_play_queue_empty, buffer);
+        msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
     }
     
     mlv_play_rendering = 0;
@@ -1301,7 +1353,7 @@ static void mlv_play_clear_screen()
     clrscr();
     
     /* update OSD */
-    msg_queue_post(mlv_play_queue_osd, 0);
+    msg_queue_post(mlv_play_queue_osd, (uint32_t) 0);
     
     /* force redraw of info lines */
     mlv_play_info = mlv_play_info ? 2 : 0;
@@ -1326,9 +1378,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     /* read footer information and update global variables, will seek automatically */
     if(chunk_count < 1 || !mlv_play_is_mlv(chunk_files[0]))
     {
-        bmp_printf(FONT_MED, 30, 190, "no valid .MLV file");
-        beep();
-        msleep(1000);
+        bmp_printf(FONT_LARGE, 30, 100, "Invalid MLV:", filename);
+        bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
         return;
     }
     
@@ -1465,11 +1516,11 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 /* the first few queued dont have anything allocated, so don't free */
                 if(buffer->frameBuffer)
                 {
-                    shoot_free(buffer->frameBuffer);
+                    fio_free(buffer->frameBuffer);
                 }
                 
                 buffer->frameSize = frame_size;
-                buffer->frameBuffer = shoot_malloc(buffer->frameSize);
+                buffer->frameBuffer = fio_malloc(buffer->frameSize);
                 
                 if(!buffer->frameBuffer)
                 {
@@ -1543,7 +1594,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             
             /* requeue frame buffer for rendering */
-            msg_queue_post(mlv_play_queue_render, buffer);
+            msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
         }
     }
     
@@ -1557,15 +1608,14 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
     /* read footer information and update global variables, will seek automatically */
     if(chunk_count < 1 || !mlv_play_is_raw(chunk_files[chunk_count-1]))
     {
-        bmp_printf(FONT_MED, 30, 190, "no valid .RAW file");
-        beep();
-        msleep(1000);
+        bmp_printf(FONT_LARGE, 30, 100, "Invalid RAW:", filename);
+        bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
         return;
     }
     lv_rec_read_footer(chunk_files[chunk_count-1]);
     
     /* update OSD */
-    msg_queue_post(mlv_play_queue_osd, 0);
+    msg_queue_post(mlv_play_queue_osd, (uint32_t) 0);
     
     for (int i = 0; i < frame_count-1; i++)
     {
@@ -1666,7 +1716,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         buffer->bitDepth = 14;
         
         /* requeue frame buffer for rendering */
-        msg_queue_post(mlv_play_queue_render, buffer);
+        msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
     }
 }
 
@@ -1730,7 +1780,7 @@ static void mlv_build_playlist_path(char *directory)
         {
             strcat(full_path, "/");
             
-            msg_queue_post(mlv_playlist_scan_queue, strdup(full_path));
+            msg_queue_post(mlv_playlist_scan_queue, (uint32_t) strdup(full_path));
         }
         else
         {
@@ -1745,7 +1795,7 @@ static void mlv_build_playlist_path(char *directory)
                 entry->timestamp = file.timestamp;
                 
                 /* update playlist */
-                msg_queue_post(mlv_playlist_queue, entry);
+                msg_queue_post(mlv_playlist_queue, (uint32_t) entry);
             }
         }
     }
@@ -1785,8 +1835,8 @@ static void mlv_build_playlist(uint32_t priv)
     mlv_free_playlist();
     
     /* set up initial directories to scan. try to not recurse, but use scan and result queues */
-    msg_queue_post(mlv_playlist_scan_queue, strdup("A:/"));
-    msg_queue_post(mlv_playlist_scan_queue, strdup("B:/"));
+    msg_queue_post(mlv_playlist_scan_queue, (uint32_t) strdup("A:/"));
+    msg_queue_post(mlv_playlist_scan_queue, (uint32_t) strdup("B:/"));
     
     char *directory = NULL;
     while(!msg_queue_receive(mlv_playlist_scan_queue, &directory, 50))
@@ -1889,7 +1939,7 @@ static void mlv_leave_playback()
         /* free allocated buffers */
         if(buffer->frameBuffer)
         {
-            shoot_free(buffer->frameBuffer);
+            fio_free(buffer->frameBuffer);
         }
         
         free(buffer);
@@ -1918,7 +1968,7 @@ static void mlv_enter_playback()
         buffer->frameSize = 0;
         buffer->frameBuffer = NULL;
         
-        msg_queue_post(mlv_play_queue_empty, buffer);
+        msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
     }
     
     /* clear anything on screen */
@@ -1951,6 +2001,7 @@ static void mlv_play_task(void *priv)
         
         if(mlv_playlist_entries <= 0)
         {
+            mlv_play_show_dlg(2000, "No videos found");
             return;
         }
         
@@ -1959,6 +2010,15 @@ static void mlv_play_task(void *priv)
     }
     else
     {
+        uint32_t size = 0;
+        /* is this file still available? if not, show dialog and return */
+        
+        if(FIO_GetFileSize(filename, &size))
+        {
+            mlv_play_show_dlg(2000, "No videos found");
+            return;
+        }
+        
         strcpy(mlv_play_current_filename, filename);
     }
     
@@ -2023,7 +2083,7 @@ FILETYPE_HANDLER(mlv_play_filehandler)
     {
         case FILEMAN_CMD_INFO:
         {
-            FILE* f = FIO_Open( filename, O_RDONLY | O_SYNC );
+            FILE* f = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
             if( f == INVALID_PTR )
             {
                 return 0;
@@ -2091,7 +2151,7 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
             case MODULE_KEY_MENU:
             case MODULE_KEY_PRESS_ZOOMIN:
             {
-                msg_queue_post(mlv_play_queue_osd, key);
+                msg_queue_post(mlv_play_queue_osd, (uint32_t) key);
                 return 0;
             }
 

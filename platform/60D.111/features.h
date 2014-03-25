@@ -8,3 +8,5 @@
 #undef FEATURE_LV_ZOOM_AUTO_EXPOSURE // not working well anyway
 
 #undef FLEXINFO_DEVELOPER_MENU
+
+#undef FEATURE_WIND_FILTER // problems with external mic

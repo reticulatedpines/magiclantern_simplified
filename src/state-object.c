@@ -8,12 +8,25 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "beep.h"
 #include "state-object.h"
 #include <platform/state-object.h>
 #include "property.h"
+#include "fps.h"
+
 #if defined(CONFIG_MODULES)
 #include "module.h"
 #endif
+
+/* to refactor with CBR */
+extern void lv_vsync_signal();
+extern void hdr_step();
+extern void raw_lv_vsync();
+extern int hdr_kill_flicker();
+extern void digic_zoom_overlay_step(int force_off);
+extern void vignetting_correction_apply_regs();
+extern void raw_buffer_intercept_from_stateobj();
+extern int display_filter_lv_vsync(int old_state, int x, int input, int z, int t);
 
 #ifdef CONFIG_STATE_OBJECT_HOOKS
 
@@ -21,7 +34,7 @@
 static void stateobj_matrix_copy_for_patching(struct state_object * stateobj)
 {
     int size = stateobj->max_inputs * stateobj->max_states * sizeof(struct state_transition);
-    struct state_transition * new_matrix = (struct state_transition *)AllocateMemory(size);
+    struct state_transition * new_matrix = (struct state_transition *)malloc(size);
     memcpy(new_matrix, stateobj->state_matrix, size);
     stateobj->state_matrix = new_matrix;
 }
@@ -34,10 +47,44 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
+static volatile int vsync_counter = 0;
+#ifndef CONFIG_7D_MASTER
+/* waits for N LiveView frames */
+int wait_lv_frames(int num_frames)
+{
+    vsync_counter = 0;
+    int count = 0;
+    int frame_duration = 1000000 / fps_get_current_x1000();
+    while (vsync_counter < num_frames)
+    {
+        /* handle FPS override changes during the wait */
+        frame_duration = MAX(frame_duration, 1000000 / fps_get_current_x1000());
+        msleep(20);
+        count++;
+        if (count > num_frames * frame_duration * 2 / 20)
+        {
+            /* timeout */
+            return 0;
+        }
+        if (!lv)
+        {
+            /* LiveView closed */
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif
 static void FAST vsync_func() // called once per frame.. in theory :)
 {
+    vsync_counter++;
+
     #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
+    #endif
+    
+    #ifdef CONFIG_EDMAC_RAW_SLURP
+    raw_lv_vsync();
     #endif
 
     #if !defined(CONFIG_EVF_STATE_SYNC)
@@ -55,7 +102,10 @@ static void FAST vsync_func() // called once per frame.. in theory :)
     #endif
     #endif
 
+    extern void digic_iso_step();
     digic_iso_step();
+    
+    extern void image_effects_step();
     image_effects_step();
 
     #ifdef FEATURE_DISPLAY_SHAKE
@@ -98,7 +148,6 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
-
 #elif defined(CONFIG_5D2)
     if (self == LV_STATE)//&& old_state == 4)
     {
@@ -127,23 +176,22 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #ifdef CONFIG_MODULES
-        if (module_exec_cbr(CBR_VSYNC_DISPLAY) == CBR_RET_CONTINUE)
-        #endif
         #ifdef FEATURE_HDR_VIDEO
         if (hdr_kill_flicker() == CBR_RET_CONTINUE)
         #endif
         #ifdef CONFIG_DISPLAY_FILTERS
         if (display_filter_lv_vsync(old_state, x, input, z, t) == CBR_RET_CONTINUE)
-        #endif
-        #ifdef FEATURE_MAGIC_ZOOM
-        digic_zoom_overlay_step(0);
+        {
+            #ifdef FEATURE_MAGIC_ZOOM
+            digic_zoom_overlay_step(0);
+            #endif
+        }
         #endif
     }
     #endif
     #endif
     
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (self == LV_STATE && old_state == 2 && input == 2) // lvVdInterrupt
     {
         display_filter_lv_vsync(old_state, x, input, z, t);
@@ -179,10 +227,12 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #endif
     
     #if !defined(CONFIG_7D_MASTER) && defined(CONFIG_7D)
-    if (self == LV_STATE && input==5 && old_state == 5)
+    if (self == LV_STATE && input==5 && old_state == 5)       
+    { 
+        display_filter_lv_vsync(old_state, x, input, z, t);
         vsync_func();
+    }
     #endif
-
     #ifdef EVF_STATE
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
     {
@@ -246,19 +296,22 @@ static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int 
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
 	
-    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_7D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
     // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
     // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
     if (old_state == 0 && input == 3 && new_state == 1)
+	{
         raw_buffer_intercept_from_stateobj();
-        
+    }   
     #elif defined(CONFIG_50D)
     //~ FrontState - There are only 2
     //~ * FF882F00 - Mem1toJpeg
     //~ * FF882C5C - Mem1 to raw
     //~ * 9 -> Raw (3) -> 10 -> Jpeg(3) -> 8
     if (old_state == 9 && input == 3 && new_state == 10)
+    {
         raw_buffer_intercept_from_stateobj();
+    }
 	#endif
 
     return ans;
@@ -325,7 +378,7 @@ INIT_FUNC("state_init", state_init);
 void update_state_fps() {
     NotifyBox(1000,"Logging");
     FILE* state_log_file = 0;
-    state_log_file = FIO_CreateFileEx(CARD_DRIVE "state.log");
+    state_log_file = FIO_CreateFile("state.log");
     if(state_log_file) {
         for(int i=0;i<num_states;++i) {
             for(int j=0;j<num_inputs;++j) {

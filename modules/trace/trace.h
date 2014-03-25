@@ -68,6 +68,23 @@ typedef struct
     unsigned int task;
 } trace_entry_t;
 
+
+#if defined(TRACE_DISABLED)
+
+#define trace_available()                            (void)0
+#define trace_start(name, file_name)                 0
+#define trace_stop(trace, wait)                      (void)0
+#define trace_format(context, format, separator)     (void)0
+#define trace_set_flushrate(context, timeout)        (void)0
+#define trace_flush(context)                         (void)0
+#define trace_write(context, string, ...)            (void)0
+#define trace_write_tsc(context, tsc, string, ...)   (void)0
+#define trace_vwrite(context, tsc, string, ap)       (void)0
+#define trace_write_binary(context, buffer, length)  (void)0
+
+#else
+
+#if defined(MODULE)
 /* check if the module is available */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_available();
 /* create a new trace with given short name and filename */
@@ -84,6 +101,20 @@ unsigned int EXT_WEAK_FUNC(ret_0) trace_write_tsc(unsigned int context, tsc_t ts
 unsigned int EXT_WEAK_FUNC(ret_0) trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list ap);
 /* write some binary data into specified trace with an variable length field in front */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length);
+#else
+static unsigned int (*trace_available)() = MODULE_FUNCTION(trace_available);
+static unsigned int (*trace_start)(char *name, char *file_name) = MODULE_FUNCTION(trace_start);
+static unsigned int (*trace_stop)(unsigned int trace, int wait) = MODULE_FUNCTION(trace_stop);
+static unsigned int (*trace_format)(unsigned int context, unsigned int format, unsigned char separator) = MODULE_FUNCTION(trace_format);
+static unsigned int (*trace_set_flushrate)(unsigned int context, unsigned int timeout) = MODULE_FUNCTION(trace_set_flushrate);
+static unsigned int (*trace_flush)(unsigned int context) = MODULE_FUNCTION(trace_flush);
+static unsigned int (*trace_write)(unsigned int context, char *string, ...) = MODULE_FUNCTION(trace_write);
+static unsigned int (*trace_write_tsc)(unsigned int context, uint64_t tsc, char *string, ...) = MODULE_FUNCTION(trace_write_tsc);
+static unsigned int (*trace_vwrite)(unsigned int context, tsc_t tsc, char *string, va_list ap) = MODULE_FUNCTION(trace_vwrite);
+static unsigned int (*trace_write_binary)(unsigned int context, unsigned char *buffer, unsigned int length) = MODULE_FUNCTION(trace_write_binary);
+
+#endif
+#endif
 
 /* internal */
 static unsigned int trace_write_varlength(unsigned int context, unsigned int length);

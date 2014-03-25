@@ -111,18 +111,21 @@
 #endif
 #define DRIVE_SELFTIMER_CONTINUOUS 7
 
-#ifdef CONFIG_60D
+#if defined(CONFIG_60D) || defined(CONFIG_7D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
+#elif defined(CONFIG_5D3)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-    #define DRIVE_SILENT 19
-    #define DRIVE_SILENT_CONTINUOUS 20
+    #define DRIVE_SILENT 0x13
+    #define DRIVE_SILENT_CONTINUOUS 0x14
+#elif defined(CONFIG_6D)
+    #define DRIVE_CONTINUOUS 1
+    #define DRIVE_SILENT 0x13
+    #define DRIVE_SILENT_CONTINUOUS 0x14
 #else
     #define DRIVE_CONTINUOUS 1
 #endif
-
 #define PROP_SHUTTER            0x80000005
 #define PROP_SHUTTER_ALSO       0x8000002c
 #define PROP_SHUTTER_RANGE		0x80000035 // Len=4, 6D:100098 30" & 1/4k
@@ -381,45 +384,37 @@
 
 
 
-#if defined(CONFIG_5DC) || defined(CONFIG_40D) // not sure, it might be like 5D2
+#if defined(CONFIG_VXWORKS)
     #define PROP_FOLDER_NUMBER     0x2010000
     #define PROP_FILE_NUMBER       0x2010002
     #define PROP_CARD_RECORD       0x8003000B
     #define PROP_CLUSTER_SIZE      0x2010004
     #define PROP_FREE_SPACE        0x2010006
-#elif defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
-    #define PROP_CLUSTER_SIZE      0x02010006
-    #define PROP_FREE_SPACE        0x02010009
-    //#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-    #define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
-    #define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
-    #define PROP_CARD_RECORD       0x8003000b // set when writing on the card
-#elif defined(CONFIG_5D3) // two card slots
+#else // DryOS
     
     #define PROP_CARD_SELECT         0x80040002 //  1=CF, 2=SD
 
     // CF card
+    #define PROP_FOLDER_NUMBER_A     0x02010000
+    #define PROP_FILE_NUMBER_A       0x02010003
     #define PROP_CLUSTER_SIZE_A      0x02010006
     #define PROP_FREE_SPACE_A        0x02010009
-    #define PROP_FILE_NUMBER_A       0x02010003
-    #define PROP_FOLDER_NUMBER_A     0x02010000
     #define PROP_CARD_RECORD_A       0x8003000b
 
     // SD card
+    #define PROP_FOLDER_NUMBER_B     0x02010001
+    #define PROP_FILE_NUMBER_B       0x02010004
     #define PROP_CLUSTER_SIZE_B      0x02010007
     #define PROP_FREE_SPACE_B        0x0201000a
-    #define PROP_FILE_NUMBER_B       0x02010004
-    #define PROP_FOLDER_NUMBER_B     0x02010001
     #define PROP_CARD_RECORD_B       0x8003000c
-#else
-    #define PROP_CLUSTER_SIZE      0x02010007
-    #define PROP_FREE_SPACE        0x0201000a // in clusters
-    //#define PROP_FILE_NUMBER       0x02040008 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
-    #define PROP_FILE_NUMBER       0x02010004 // seems to mirror the previous one, but it's increased earlier
-    #define PROP_FOLDER_NUMBER     0x02010001 // 100, 101...
-    #define PROP_CARD_RECORD       0x8003000c // set when writing on the card
+    
+    // WFT drive
+    #define PROP_FOLDER_NUMBER_C     0x02010002
+    #define PROP_FILE_NUMBER_C       0x02010005
+    #define PROP_CLUSTER_SIZE_C      0x02010008
+    #define PROP_FREE_SPACE_C        0x0201000b
+    #define PROP_CARD_RECORD_C       0x8003000d
 #endif
-
 
 #define PROP_USER_FILE_PREFIX  0x02050004
 #define PROP_SELECTED_FILE_PREFIX  0x02050008
@@ -546,13 +541,6 @@ prop_register_slave(
         void            (*token_handler)( void * token )
 );
 
-
-extern void *
-prop_cleanup(
-        void *          token,
-        unsigned        property
-);
-
 // prop
 void prop_request_change( unsigned property, const void* addr, size_t len );
 /** Get the current value of a property.
@@ -587,9 +575,6 @@ struct prop_handler
                 void *                  addr,
                 unsigned                len
         );
-
-        void *          token; // must be before token_handler
-        uint32_t        token_handler[2]; // function goes here!
 };
 
 
@@ -638,11 +623,6 @@ PROP_HANDLER(id) { \
 }
 
 #endif
-
-
-
-/**for reading simple integer properties */
-int get_prop(int prop);
 
 #include "propvalues.h"
 

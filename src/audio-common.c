@@ -1,11 +1,43 @@
-
 #include "dryos.h"
 #include "lvinfo.h"
+#include "module.h"
+#include "raw.h"
+#include "zebra.h"
 
+int sound_recording_enabled_canon()
+{
+    /* 1 means disabled */
+    return (sound_recording_mode != 1);
+}
 
-#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
+static int (*mlv_snd_is_enabled)() = MODULE_FUNCTION(mlv_snd_is_enabled);
 
-#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
+/* TODO: may need check for conditions like raw modules loaded and so on */
+int sound_recording_enabled()
+{
+    if (fps_should_record_wav())
+    {
+        /* this is supposed to work with sound turned off from Canon menu */
+        return 1;
+    }
+    
+    if (mlv_snd_is_enabled())
+    {
+        /* check for mlv_snd (it may or may not depend on Canon menu setting - g3gg0? ) */
+        return 1;
+    }
+    
+    if (is_movie_mode() && raw_lv_is_enabled())
+    {
+        /* no sound option found for raw video */
+        return 0;
+    }
+    
+    /* only H.264 is left => check the setting from Canon menu */
+    return sound_recording_enabled_canon();
+}
+
+#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_100D)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
@@ -14,9 +46,6 @@ static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
-#ifdef FEATURE_HEADPHONE_MONITORING
-static void audio_monitoring_update();
-#endif
 static void audio_input_toggle( void * priv, int delta );
 
 #ifdef CONFIG_600D
@@ -51,7 +80,7 @@ static CONFIG_INT( "audio.lovl",       lovl,           0 );
 static CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 static int loopback = 1;
 static CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-static CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
+static CONFIG_INT( "audio.filters",    enable_filters,        0 ); //disable the HPF, LPF and pre-emphasis filters
 #define cfg_draw_meters 1
 static CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 static int do_draw_meters = 0;
@@ -269,16 +298,9 @@ static int audio_meter_width = INT_MIN;
 static int audio_meters_are_drawn_common()
 {
 #ifdef FEATURE_AUDIO_METERS
-    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
+    if (!sound_recording_enabled())
         return 0;
         
-#if defined(CONFIG_7D)
-    if(!recording)
-    {
-        return 0;
-    }
-#endif
-
     if (gui_menu_shown())
     {
         return is_menu_active("Audio");
@@ -420,34 +442,49 @@ compute_audio_levels(
 static void
 meter_task( void* unused )
 {
+    /* some models require the audio to be enabled using audio_configure() */
+    int reconfig_audio = 1;
 
-#ifdef CONFIG_600D
-    //initialize audio config for 600D
-    audio_configure(1);    
-#endif
-        
     TASK_LOOP
-        {
-            msleep(DISPLAY_IS_ON ? 50 : 500);
-            
-            if (audio_meters_are_drawn())
-            {
-                if (!is_mvr_buffer_almost_full())
-                    BMP_LOCK( draw_meters(); )
-            }
+    {
+        msleep(DISPLAY_IS_ON ? 50 : 500);
         
-            if (audio_monitoring)
-                {
-                    static int hp = 0;
-                    int h = AUDIO_MONITORING_HEADPHONES_CONNECTED;
-                        
-                    if (h != hp)
-                        {
-                            audio_monitoring_display_headphones_connected_or_not();
-                        }
-                    hp = h;
-                }
+        if(audio_meters_are_drawn())
+        {
+            if(!is_mvr_buffer_almost_full())
+            {
+                BMP_LOCK( draw_meters(); )
+            }
+            
+            if(RECORDING)
+            {
+                reconfig_audio = 0;
+            }
+            else if(!reconfig_audio)
+            {
+#if defined(CONFIG_600D) || defined(CONFIG_7D)
+                audio_configure(1);
+#endif
+                reconfig_audio = 1;
+            }
         }
+        else if(PLAY_OR_QR_MODE || MENU_MODE)
+        {
+            reconfig_audio = 0;
+        }
+        
+        if(audio_monitoring)
+        {
+            static int hp = 0;
+            int h = AUDIO_MONITORING_HEADPHONES_CONNECTED;
+                
+            if (h != hp)
+            {
+                audio_monitoring_display_headphones_connected_or_not();
+            }
+            hp = h;
+        }
+    }
 }
 
 
@@ -802,13 +839,13 @@ audio_reg_dump_once()
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
         {
-            snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "ML/audio%02d.LOG", log_number);
+            snprintf(log_filename, sizeof(log_filename), "ML/audio%02d.LOG", log_number);
             unsigned size;
             if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
             if (size == 0) break;
         }
     
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
 
 	unsigned i;
 	for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
@@ -844,7 +881,6 @@ PROP_HANDLER( PROP_MIC_INSERTED )
 #else
     audio_configure( 1 );
 #endif
-    //~ menu_set_dirty();
 }
 
 static int get_input_source()
@@ -958,14 +994,16 @@ void audio_monitoring_display_headphones_connected_or_not()
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
+#ifdef FEATURE_HEADPHONE_MONITORING
+static void audio_monitoring_update();
 
 static void
 audio_monitoring_toggle( void * priv, int delta )
 {
     audio_monitoring = !audio_monitoring;
     audio_monitoring_update(); //call audio_monitoring_force_display()
-
 }
+#endif
 
 static void
 enable_recording(int mode)
@@ -976,7 +1014,7 @@ enable_recording(int mode)
             // Movie recording stopped;  (fallthrough)
         case 2:
             // Movie recording started
-            #ifdef CONFIG_600D
+            #if defined(CONFIG_600D) || defined(CONFIG_7D)
             audio_configure(1);
             #else
             give_semaphore( gain.sem );

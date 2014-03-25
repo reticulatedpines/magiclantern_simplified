@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using mlv_view_sharp;
 
-using pixelType = System.Byte;
-
 namespace MLVViewSharp
 {
     public abstract class DebayerBase
@@ -97,17 +95,6 @@ namespace MLVViewSharp
             return xyz;
         }
 
-        protected pixelType ToPixelValue(float value)
-        {
-            /* quick check, hopefully faster than Math functions (?) */
-            if (value >= 0 && value <= 255)
-            {
-                return (pixelType)value;
-            }
-
-            return (pixelType)Math.Max(0, Math.Min(255, value));
-        }
-
         /* found on the web: http://www.johndcook.com/csharp_erf.html (public domain) */
         protected static float Erf(float x)
         {
@@ -146,7 +133,8 @@ namespace MLVViewSharp
 
             /* get the XYZ --> cone reference whites for requested temperatures */
             Matrix dst = coneDomain * KelvinToXYZ(ColorTemperature);
-            Matrix src = coneDomain * KelvinToXYZ(5000);
+            /* verify: do all our matrices that came from dcraw really convert raw to D65? */
+            Matrix src = coneDomain * KelvinToXYZ(6500);
 
             /* scale coordinates in cone color space */
             Matrix xyzScale = new Matrix(3, 3);

@@ -28,14 +28,15 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BrowseForm));
             this.treeView = new System.Windows.Forms.TreeView();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.chkAnimation = new System.Windows.Forms.CheckBox();
-            this.label2 = new System.Windows.Forms.Label();
             this.trackSize = new System.Windows.Forms.TrackBar();
             this.label1 = new System.Windows.Forms.Label();
             this.cmbGrouping = new System.Windows.Forms.ComboBox();
+            this.chkPreview = new System.Windows.Forms.CheckBox();
             this.mlvFileList = new MLVBrowseSharp.MLVFileList();
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
@@ -73,7 +74,7 @@
             // splitContainer2.Panel2
             // 
             this.splitContainer2.Panel2.Controls.Add(this.splitContainer1);
-            this.splitContainer2.Size = new System.Drawing.Size(784, 610);
+            this.splitContainer2.Size = new System.Drawing.Size(925, 610);
             this.splitContainer2.SplitterDistance = 261;
             this.splitContainer2.TabIndex = 0;
             // 
@@ -88,8 +89,8 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.chkPreview);
             this.splitContainer1.Panel1.Controls.Add(this.chkAnimation);
-            this.splitContainer1.Panel1.Controls.Add(this.label2);
             this.splitContainer1.Panel1.Controls.Add(this.trackSize);
             this.splitContainer1.Panel1.Controls.Add(this.label1);
             this.splitContainer1.Panel1.Controls.Add(this.cmbGrouping);
@@ -97,14 +98,14 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.mlvFileList);
-            this.splitContainer1.Size = new System.Drawing.Size(519, 610);
+            this.splitContainer1.Size = new System.Drawing.Size(660, 610);
             this.splitContainer1.SplitterDistance = 34;
             this.splitContainer1.TabIndex = 1;
             // 
             // chkAnimation
             // 
             this.chkAnimation.AutoSize = true;
-            this.chkAnimation.Location = new System.Drawing.Point(427, 8);
+            this.chkAnimation.Location = new System.Drawing.Point(442, 7);
             this.chkAnimation.Name = "chkAnimation";
             this.chkAnimation.Size = new System.Drawing.Size(64, 17);
             this.chkAnimation.TabIndex = 4;
@@ -112,19 +113,10 @@
             this.chkAnimation.UseVisualStyleBackColor = true;
             this.chkAnimation.CheckedChanged += new System.EventHandler(this.chkAnimation_CheckedChanged);
             // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(220, 8);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(69, 13);
-            this.label2.TabIndex = 3;
-            this.label2.Text = "Preview size:";
-            // 
             // trackSize
             // 
             this.trackSize.LargeChange = 50;
-            this.trackSize.Location = new System.Drawing.Point(295, 3);
+            this.trackSize.Location = new System.Drawing.Point(310, 2);
             this.trackSize.Maximum = 400;
             this.trackSize.Minimum = 20;
             this.trackSize.Name = "trackSize";
@@ -153,21 +145,34 @@
             this.cmbGrouping.TabIndex = 2;
             this.cmbGrouping.TextChanged += new System.EventHandler(this.cmbGrouping_TextChanged);
             // 
+            // chkPreview
+            // 
+            this.chkPreview.AutoSize = true;
+            this.chkPreview.Checked = true;
+            this.chkPreview.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkPreview.Location = new System.Drawing.Point(219, 7);
+            this.chkPreview.Name = "chkPreview";
+            this.chkPreview.Size = new System.Drawing.Size(88, 17);
+            this.chkPreview.TabIndex = 5;
+            this.chkPreview.Text = "Preview size:";
+            this.chkPreview.UseVisualStyleBackColor = true;
+            this.chkPreview.CheckedChanged += new System.EventHandler(this.chkPreview_CheckedChanged);
+            // 
             // mlvFileList
             // 
             this.mlvFileList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mlvFileList.Location = new System.Drawing.Point(0, 0);
             this.mlvFileList.Name = "mlvFileList";
-            this.mlvFileList.Size = new System.Drawing.Size(519, 572);
+            this.mlvFileList.Size = new System.Drawing.Size(660, 572);
             this.mlvFileList.TabIndex = 1;
             // 
             // BrowseForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(784, 610);
+            this.ClientSize = new System.Drawing.Size(925, 610);
             this.Controls.Add(this.splitContainer2);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "BrowseForm";
             this.Text = "MLV Browser";
             this.splitContainer2.Panel1.ResumeLayout(false);
@@ -190,9 +195,9 @@
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox cmbGrouping;
-        private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TrackBar trackSize;
         private System.Windows.Forms.CheckBox chkAnimation;
+        private System.Windows.Forms.CheckBox chkPreview;
     }
 }
 

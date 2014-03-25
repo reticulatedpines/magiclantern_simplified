@@ -1,7 +1,7 @@
 #ifndef _propvalues_h_
 #define _propvalues_h_
 
-extern char camera_model_short[8];
+extern char __camera_model_short[8];
 extern char camera_model[32];
 extern uint32_t camera_model_id;
 extern char firmware_version[32];
@@ -38,7 +38,7 @@ extern int lv_paused; // only valid if lv is true
 #define LV_NON_PAUSED (lv && !lv_paused)
 
 extern int lv_dispsize; // 1 / 5 / A
-extern int expsim;
+extern int _expsim; /* private, use get_expsim instead */
 extern int shooting_mode;        /* C3M => M */
 extern int shooting_mode_custom; /* C3M => C3 */
 extern int shooting_type;
@@ -48,7 +48,23 @@ extern int auto_iso_range;
 extern int pic_quality;
 //~ extern int burst_count;
 extern int avail_shot;
-extern int recording;
+extern int __recording;
+extern int __recording_custom;
+#define NOT_RECORDING (__recording == 0 && __recording_custom == 0)
+#define RECORDING (__recording || __recording_custom)
+#define RECORDING_H264 (__recording > 0)
+#define RECORDING_H264_STARTING (__recording == 1) // 1 is preparing for recording
+#define RECORDING_H264_STARTED (__recording == 2) //2 is actually recording
+#define RECORDING_RAW (__recording_custom ==  CUSTOM_RECORDING_RAW)
+#define RECORDING_MJPEG (__recording_custom == CUSTOM_RECORDING_MJPEG) // not implemented, except for some proof of concept code
+#define RECORDING_CUSTOM (__recording_custom > 0) // anything that is not H.264
+#define RECORDING_STATE (__recording | (__recording_custom << 2))
+
+#define CUSTOM_RECORDING_NOT_RECORDING   0
+#define CUSTOM_RECORDING_RAW             1
+#define CUSTOM_RECORDING_MJPEG           2
+void set_recording_custom(int state);
+
 extern int af_mode;
 extern int metering_mode;
 extern int dofpreview;
@@ -88,11 +104,16 @@ extern int auto_power_off_time;
 extern struct bmp_ov_loc_size os;
 
 bool is_movie_mode();
+bool is_native_movie_mode();
+bool is_custom_movie_mode();
+void set_custom_movie_mode();
 
 #ifndef _beep_c_
 extern int beep_enabled;
 #endif
 
-#define EFIC_CELSIUS ((int)efic_temp - 128)
+/* in tweaks.c */
+int get_expsim();
+void set_expsim(int expsim);
 
 #endif

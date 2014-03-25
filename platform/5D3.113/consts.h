@@ -2,7 +2,6 @@
  *  5D3 1.1.3 consts
  */
 
-#define CARD_DRIVE ""
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
@@ -130,7 +129,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 86 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 86 : 2)
 
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 435
@@ -256,3 +255,7 @@
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)

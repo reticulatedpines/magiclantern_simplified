@@ -1,0 +1,16 @@
+#Makefile.setup.platform for EOS M
+
+ifeq ($(FW_VERSION),202)
+CANON_NAME_FIR=EOSM1202.FIR
+
+ROMBASEADDR		= 0xFF0C0000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+#RESTARTSTART	= 0x0009E300
+#RESTARTSTART	= 0x00CEC100
+RESTARTSTART	= 0x00CCC100
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
+endif

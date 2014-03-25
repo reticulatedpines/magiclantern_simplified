@@ -50,5 +50,6 @@ void tskmon_task_dispatch();
 void tskmon_init();
 void tskmon_stack_check(uint32_t task_id);
 void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free);
+void tskmon_stack_check_all();
 
 #endif

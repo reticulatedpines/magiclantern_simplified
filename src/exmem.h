@@ -31,10 +31,6 @@ void shoot_free_suite(struct memSuite * hSuite);
 /* this returns a memory suite with a single contiguous block, but may fail because of memory fragmentation */
 struct memSuite * shoot_malloc_suite_contig(size_t size);
 
-/* these behave just like malloc/free, but may fail because of memory fragmentation */
-void * _shoot_malloc( size_t len );
-void _shoot_free( void * buf );
-
 /* dump the contents of a memsuite */
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
 
@@ -43,7 +39,7 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 
 /* MemorySuite routines */
 int AllocateMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
-int AllocateMemoryResourceForSingleChunk(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
+int AllocateContinuousMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
 int FreeMemoryResource(struct memSuite *hSuite, void (*cbr)(unsigned int), unsigned int ctx);
 
 int GetNumberOfChunks(struct memSuite * suite);
@@ -54,4 +50,12 @@ int GetSizeOfMemoryChunk(struct memChunk * chunk);
 void* GetMemoryAddressOfMemoryChunk(struct memChunk * chunk);
 
 struct memSuite * CreateMemorySuite(void* src, size_t length, int idk);
+
+/* internal routines called from mem.c */
+struct memSuite *_shoot_malloc_suite(size_t size);
+void _shoot_free_suite(struct memSuite * hSuite);
+struct memSuite * _shoot_malloc_suite_contig(size_t size);
+void * _shoot_malloc( size_t len );
+void _shoot_free( void * buf );
+
 #endif

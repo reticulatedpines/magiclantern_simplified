@@ -16,7 +16,7 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 
 unsigned int is_crop_hack_supported() 
 {
-    if(recording || video_mode_resolution != 0) 
+    if(RECORDING || video_mode_resolution != 0)
     {
          return 0;
     }
@@ -64,7 +64,7 @@ static void movie_crop_hack_toggle(void* priv, int sign)
 
 static MENU_UPDATE_FUNC(movie_crop_hack_display)
 {
-    if(recording) 
+    if(RECORDING)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You can't change crop mode while recording");
     }

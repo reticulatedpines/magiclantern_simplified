@@ -6,6 +6,7 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include <beep.h>
 #include "file_man.h"
 
 
@@ -14,11 +15,10 @@
 struct file_entry
 {
     struct file_entry * next;
-    struct menu_entry menu_entry;
+    struct menu_entry * menu_entry;
     char name[MAX_PATH_LEN];
     unsigned int size;
     unsigned int type: 2;
-    unsigned int added: 1;
     unsigned int timestamp;
 };
 
@@ -116,7 +116,7 @@ static struct filetype_handler *fileman_find_filetype(char *extension)
 {
     for(int pos = 0; pos < fileman_filetype_registered; pos++)
     {
-        if(!strcmp(extension, fileman_filetypes[pos].extension))
+        if(!strcasecmp(extension, fileman_filetypes[pos].extension))
         {
             return &fileman_filetypes[pos];
         }
@@ -139,90 +139,168 @@ static struct menu_entry fileman_menu[] =
 
 static void clear_file_menu()
 {
+    if (!file_entries) return;
+
+    //Assumes that build_file_menu has been called, so the menu_entry data is compacted
+    struct menu_entry * compacted = file_entries->menu_entry;
+
     while (file_entries)
     {
         struct file_entry * next = file_entries->next;
-        menu_remove("File Manager", &(file_entries->menu_entry), 1);
-        console_printf("%s\n", file_entries->name);
-        FreeMemory(file_entries);
+        menu_remove("File Manager", file_entries->menu_entry, 1);
+        //console_printf("%s\n", file_entries->name);
+        free(file_entries);
         file_entries = next;
     }
+    free(compacted);
 }
 
 static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
 {
-    struct file_entry * fe = AllocateMemory(sizeof(struct file_entry));
+    struct file_entry * fe = malloc(sizeof(struct file_entry));
     if (!fe) return 0;
     memset(fe, 0, sizeof(struct file_entry));
+    fe->menu_entry = malloc(sizeof(struct menu_entry));
+    if (!fe->menu_entry) {
+        free(fe);
+        return 0;
+    }
+    memset(fe->menu_entry, 0, sizeof(struct menu_entry));
     snprintf(fe->name, sizeof(fe->name), "%s", txt);
     fe->size = size;
     fe->timestamp = timestamp;
 
-    fe->menu_entry.name = fe->name;
-    fe->menu_entry.priv = fe;
+    fe->menu_entry->name = fe->name;
+    fe->menu_entry->priv = fe;
 
     fe->type = type;
-    fe->menu_entry.select_Q = BrowseUpMenu;
+    fe->menu_entry->select_Q = BrowseUpMenu;
     if (fe->type == TYPE_DIR)
     {
-        fe->menu_entry.select = select_dir;
-        fe->menu_entry.update = update_dir;
+        fe->menu_entry->select = select_dir;
+        fe->menu_entry->update = update_dir;
     }
     else if (fe->type == TYPE_FILE)
     {
-        fe->menu_entry.select = select_file;
-        fe->menu_entry.update = update_file;
+        fe->menu_entry->select = select_file;
+        fe->menu_entry->update = update_file;
     }
     else if (fe->type == TYPE_ACTION)
     {
-        fe->menu_entry.select = default_select_action;
-        fe->menu_entry.update = update_action;
-        fe->menu_entry.icon_type = IT_ACTION;
+        fe->menu_entry->select = default_select_action;
+        fe->menu_entry->update = update_action;
+        fe->menu_entry->icon_type = IT_ACTION;
     }
     fe->next = file_entries;
     file_entries = fe;
     return fe;
 }
 
+// Comparison used for the Mergesort on the filenames
+// Returns true if a should be ordered before b
+static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
+{
+    // If either file type is an action, don't change the order
+    if (a->type == TYPE_ACTION || b->type == TYPE_ACTION) return true;
+
+    // Directories are grouped before files
+    if (a->type != b->type) return a->type < b->type;
+
+    // If the file types are the same, order alphabetically
+    int result = strcmp(a->name, b->name);
+    return (result < 0) || (result == 0 && strlen(a->name) <= strlen(b->name));
+}
+
 static void build_file_menu()
 {
-    /* HaCKeD Sort */
-    int done = 0;
     int start_time = get_ms_clock_value();
-    while (!done)
-    {
-        done = 1;
 
-        for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        {
-            if (!fe->added)
-            {
-                /* are there any entries that should be before "fe" ? */
-                /* if yes, skip "fe", add those entries, and try again */
-                int should_skip = 0;
+    // Mergesort on a linked list
+    // e.g., http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
 
-                /* todo: use a O(n log n) sorting algorithm */
-                if (get_ms_clock_value() - start_time < 1000)
-                {
-                    for (struct file_entry * e = file_entries; e; e = e->next)
-                    {
-                        if (!e->added && e != fe && fe->type != TYPE_ACTION && e->type != TYPE_ACTION)
-                        {
-                            if (e->type < fe->type) { should_skip = 1; break; }
-                            if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
-                        }
-                    }
-                }
+    struct file_entry *list = file_entries;
+    struct file_entry *p, *q, *smallest, *tail;
 
-                if (!should_skip)
-                {
-                    menu_add("File Manager", &(fe->menu_entry), 1);
-                    fe->added = 1;
-                }
-                else done = 0;
+    int count = 0; // counts the total number of items in the menu
+    int length = 1;
+    int nmerges, psize, qsize, i;
+
+    do {
+        p = list;
+        list = NULL; // points to the first element in the list of sorted 2*length chunks
+        tail = NULL; // points to the last element in the list of sorted 2*length chunks
+
+        nmerges = 0; // counts the number of merges in this pass
+
+        while (p) { // if some of the list has not yet been chunked...
+            nmerges++;
+
+            // p points to the first chunk of (up to) length elements
+            // q points to the following chunk of (up to) length elements, if it exists
+            q = p;
+            psize = 0;
+            for (i = 0; i < length; i++) {
+                psize++;
+                if (length == 1) count++; // count up items only on the first pass
+                q = q->next;
+                if (q == NULL) break;
+                if (length == 1) count++; // count up items only on the first pass
             }
+            qsize = length; // q may be shorted than qsize, so checking for NULL will be necessary
+
+            while (psize > 0 || (qsize > 0 && q)) {
+                // determine the smallest unsorted element
+                if (psize == 0) { // p is empty
+                    smallest = q;
+                    q = q->next;
+                    qsize--;
+                } else if (qsize == 0 || q == NULL) { // q is empty
+                    smallest = p;
+                    p = p->next;
+                    psize--;
+                } else if (ordered_file_entries(p,q)) { // first element of p is lower than (or the same as) the first element of q
+                    smallest = p;
+                    p = p->next;
+                    psize--;
+                } else { // first element of q is lower than first element of p
+                    smallest = q;
+                    q = q->next;
+                    qsize--;
+                }
+
+                // adds the smallest unsorted element to the end of the sorted list
+                if (tail) {
+                    tail->next = smallest;
+                } else {
+                    list = smallest;
+                }
+                tail = smallest;
+            }
+
+            // move the pointer past the end of the sorted chunks
+            p = q;
         }
+
+        tail->next = NULL;
+
+        length *= 2;
+
+    } while ((nmerges > 1) && (get_ms_clock_value() - start_time < 3000)); // Allows 3 seconds for the Mergesort
+
+    file_entries = list;
+
+    // Compacts all the independently allocated menu_entry structures into a single array
+    struct menu_entry * compacted = malloc(count*sizeof(struct menu_entry));
+    struct menu_entry * ptr = compacted;
+
+    for (struct file_entry * fe = file_entries; fe; fe = fe->next) {
+        memcpy(ptr, fe->menu_entry, sizeof(struct menu_entry));
+        free(fe->menu_entry);
+        fe->menu_entry = ptr;
+        ptr++;
     }
+
+    menu_add_base("File Manager", compacted, count, false); // do not update placeholders
 }
 
 static struct semaphore * scandir_sem = 0;
@@ -258,6 +336,7 @@ static void ScanDir(char *path)
     int n = 0;
     do
     {
+        if (file.name[0] == 0) continue;        /* on ExFat it may return empty entries */ 
         if (file.name[0] == '.') continue;
         n++;
         if (file.mode & ATTR_DIRECTORY)
@@ -298,17 +377,17 @@ static void ScanDir(char *path)
             /* need to add these in reverse order */
 
             e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0, 0);
-            if (e) e->menu_entry.select = FileOpCancel;
+            if (e) e->menu_entry->select = FileOpCancel;
 
             switch (op_mode)
             {
                 case FILE_OP_COPY:
                     e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0, 0);
-                    if (e) e->menu_entry.select = FileCopyStart;
+                    if (e) e->menu_entry->select = FileCopyStart;
                     break;
                 case FILE_OP_MOVE:
                     e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0, 0);
-                    if (e) e->menu_entry.select = FileMoveStart;
+                    if (e) e->menu_entry->select = FileMoveStart;
                     break;
             }
     }
@@ -337,9 +416,9 @@ static void restore_menu_selection(char* old_dir)
     {
         if (streq(fe->name, old_dir))
         {
-            fe->menu_entry.selected = 1;
+            fe->menu_entry->selected = 1;
             for (struct file_entry * e = file_entries; e; e = e->next)
-                if (e != fe) e->menu_entry.selected = 0;
+                if (e != fe) e->menu_entry->selected = 0;
             break;
         }
     }
@@ -541,21 +620,31 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", month, day, year);
     else  
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
-	
-    if ( size > 1024*1024*1024 )
+
+    if ( size >= 1000*1024*1024-512*1024/10 ) // transition from "999.9MB" to " 0.98GB"
     {
-        int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dGB", datestr, size_gb/10, size_gb%10);
+        int size_gb = (size/1024/1024 * 100 + 512)  / 1024;
+        snprintf( str, sizeof(str), "%s %s%2d.%02dGB", datestr, FMT_FIXEDPOINT2(size_gb));
     }
-    else if ( size > 1024*1024 )
+    else if ( size >= 10*1024*1024-512*1024/100 ) // transition from " 9.99MB" to " 10.0MB"
     {
-        int size_mb = (size * 10 + 5) / 1024 / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dMB", datestr, size_mb/10, size_mb%10);
+        int size_mb = (size/1024 * 10 + 512) / 1024;
+        snprintf( str, sizeof(str), "%s %s%3d.%01dMB", datestr, FMT_FIXEDPOINT1(size_mb));
     }
-    else if ( size > 1024 )
+    else if ( size >= 1000*1024-512/10 ) // transition from "999.9kB" to " 0.98MB"
     {
-        int size_kb = (size * 10 + 5) / 1024;
-        snprintf( str, sizeof(str), "%s %3d.%dkB", datestr, size_kb/10, size_kb%10);
+        int size_mb = (size/1024 * 100 + 512) / 1024;
+        snprintf( str, sizeof(str), "%s %s%2d.%02dMB", datestr, FMT_FIXEDPOINT2(size_mb));
+    }
+    else if ( size >= 10*1024-512/100 ) // transition from " 9.99kB" to " 10.0kB"
+    {
+        int size_kb = (size * 10 + 512) / 1024;
+        snprintf( str, sizeof(str), "%s %s%3d.%01dkB", datestr, FMT_FIXEDPOINT1(size_kb));
+    }
+    else if ( size >= 1000 ) // transition from "  999 B" to " 0.98kB"
+    {
+        int size_kb = (size * 100 + 512) / 1024;
+        snprintf( str, sizeof(str), "%s %s%2d.%02dkB", datestr, FMT_FIXEDPOINT2(size_kb));
     }
     else
     {
@@ -609,10 +698,10 @@ FILETYPE_HANDLER(text_handler)
     if (cmd != FILEMAN_CMD_VIEW_IN_MENU)
         return 0; /* this handler only knows to show things in menu */
     
-    char* buf = alloc_dma_memory(1025);
+    char* buf = fio_malloc(1025);
     if (!buf) return 0;
     
-    FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
     if (file != INVALID_PTR)
     {
         int r = FIO_ReadFile(file, buf, 1024);
@@ -621,12 +710,12 @@ FILETYPE_HANDLER(text_handler)
         for (int i = 0; i < r; i++)
             if (buf[i] == 0) buf[i] = ' ';
         big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
-        free_dma_memory(buf);
+        fio_free(buf);
         return 1;
     }
     else
     {
-        free_dma_memory(buf);
+        fio_free(buf);
         return 0;
     }
 }
@@ -743,7 +832,7 @@ mfile_find_remove(char* path)
         if(!strcmp(mf->name,path))
         { //match
             prevmf->next = mf->next;
-            FreeMemory((void *)mf);
+            free((void *)mf);
             return 1;
         }
     }
@@ -758,7 +847,7 @@ mfile_add_tail(char* path)
     while(mf->next)
         mf = mf->next;
 
-    newmf = AllocateMemory(sizeof(FILES_LIST));
+    newmf = malloc(sizeof(FILES_LIST));
     memset(newmf,0,sizeof(FILES_LIST));
     strcpy(newmf->name, path);
     newmf->next = NULL;
@@ -777,7 +866,7 @@ mfile_clean_all()
         prevmf = mf;
         mf = mf->next;
         prevmf->next = mf->next;
-        FreeMemory((void *)mf);
+        free((void *)mf);
         mf = prevmf;
     }
     return 0;
@@ -929,8 +1018,8 @@ static MENU_SELECT_FUNC(file_menu)
             e = add_file_entry(msg, TYPE_ACTION, 0, 0);
             if (e)
             {
-                e->menu_entry.select = select_by_extension;
-                e->menu_entry.help = "Press PLAY to select individual files.";
+                e->menu_entry->select = select_by_extension;
+                e->menu_entry->help = "Press PLAY to select individual files.";
             }
         }
     }
@@ -938,28 +1027,28 @@ static MENU_SELECT_FUNC(file_menu)
     if (sel)
     {
         e = add_file_entry("Clear selection", TYPE_ACTION, 0, 0);
-        if (e) e->menu_entry.select = mfile_clear_all_selected_menu;
+        if (e) e->menu_entry->select = mfile_clear_all_selected_menu;
     }
 
     e = add_file_entry("Delete", TYPE_ACTION, 0, 0);
     if (e)
     {
-        e->menu_entry.select = delete_file;
-        e->menu_entry.update = delete_confirm;
+        e->menu_entry->select = delete_file;
+        e->menu_entry->update = delete_confirm;
     }
 
     e = add_file_entry("Move", TYPE_ACTION, 0, 0);
     if (e)
     {
-        e->menu_entry.select = MoveFile;
-        //e->menu_entry.update = MoveFileProgress;
+        e->menu_entry->select = MoveFile;
+        //e->menu_entry->update = MoveFileProgress;
     }
 
     e = add_file_entry("Copy", TYPE_ACTION, 0, 0);
     if (e)
     {
-        e->menu_entry.select = CopyFile;
-        //e->menu_entry.update = CopyFileProgress;
+        e->menu_entry->select = CopyFile;
+        //e->menu_entry->update = CopyFileProgress;
     }
 
     if (!sel)
@@ -967,8 +1056,8 @@ static MENU_SELECT_FUNC(file_menu)
         e = add_file_entry("View", TYPE_ACTION, 0, 0);
         if (e)
         {
-            e->menu_entry.select = viewfile_toggle;
-            e->menu_entry.update = viewfile_update;
+            e->menu_entry->select = viewfile_toggle;
+            e->menu_entry->update = viewfile_update;
         }
     }
 
@@ -977,8 +1066,8 @@ static MENU_SELECT_FUNC(file_menu)
         e = add_file_entry(name, TYPE_FILE, size, timestamp);
         if (e)
         {
-            e->menu_entry.select = BrowseUpMenu;
-            e->menu_entry.priv = e;
+            e->menu_entry->select = BrowseUpMenu;
+            e->menu_entry->priv = e;
         }
     }
     else
@@ -992,9 +1081,9 @@ static MENU_SELECT_FUNC(file_menu)
         e = add_file_entry(msg, TYPE_ACTION, 0, 0);
         if (e)
         {
-            e->menu_entry.icon_type = IT_BOOL,
-            e->menu_entry.select = BrowseUpMenu;
-            e->menu_entry.priv = e;
+            e->menu_entry->icon_type = IT_BOOL,
+            e->menu_entry->select = BrowseUpMenu;
+            e->menu_entry->priv = e;
         }
     }
 
@@ -1098,7 +1187,7 @@ static MENU_UPDATE_FUNC(update_file)
             if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
             
             /* error? */
-            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", gPath, filetype->type);
+            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", filename, filetype->type);
             else bmp_printf(FONT_MED, 0, 460, "%s", filename);
             
             if (status != 1) dirty = 1;
@@ -1152,7 +1241,7 @@ static unsigned int fileman_init()
     mfile_sem = create_named_semaphore("mfile", 1);
     menu_add("Debug", fileman_menu, COUNT(fileman_menu));
     op_mode = FILE_OP_NONE;
-    mfile_root = AllocateMemory(sizeof(FILES_LIST));
+    mfile_root = malloc(sizeof(FILES_LIST));
     memset(mfile_root,0,sizeof(FILES_LIST));
     mfile_root->next = NULL;
     InitRootDir();
@@ -1168,7 +1257,7 @@ static unsigned int fileman_deinit()
     //FUTURE TODO: release semaphore here.
     clear_file_menu();
     mfile_clean_all();
-    FreeMemory(mfile_root);
+    free(mfile_root);
     menu_remove("Debug", fileman_menu, COUNT(fileman_menu));
     return 0;
 }

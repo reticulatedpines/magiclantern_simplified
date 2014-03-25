@@ -12,3 +12,4 @@ Keys:
 :License: GPL
 :Summary: Play MLV/RAW
 :Authors: g3gg0, a1ex
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=9062.0

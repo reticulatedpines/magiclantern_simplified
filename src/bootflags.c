@@ -3,8 +3,6 @@
  */
 #include "dryos.h"
 #include "bmp.h"
-#include "menu.h"
-#include "config.h"
 
 /* CF/SD device structure. we have two types which have different parameter order and little differences in behavior */
 #if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D)
@@ -75,37 +73,6 @@ struct boot_flags
 static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;;
 
 
-
-/** Write the auto-boot flags to the CF card and to the flash memory */
-static void
-bootflag_toggle( void * priv )
-{
-    if( boot_flags->bootdisk )
-        call( "DisableBootDisk" );
-    else
-        call( "EnableBootDisk" );
-}
-
-
-#if 0
-void
-bootflag_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        //23456789012
-        "Autoboot (!!!) : %s",
-        boot_flags->bootdisk != 0 ? "ON " : "OFF"
-    );
-}
-#endif
-
 extern struct cf_device * const cf_device[];
 extern struct cf_device * const sd_device[];
 
@@ -163,13 +130,14 @@ bootflag_write_bootblock( void )
     struct cf_device * const dev = (struct cf_device *)sd_device[1];
 #endif
 
-    uint8_t *block = alloc_dma_memory( 512 );
+    uint8_t *block = fio_malloc( 512 );
     int i;
     for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
     
     dev->read_block( dev, block, 0, 1 );
 
     struct partition_table p;
+    extern void fsuDecodePartitionTable(void* partition_address_on_card, struct partition_table * ptable);
     fsuDecodePartitionTable(block + 446, &p);
 
     //~ NotifyBox(1000, "decoded => %x,%x,%x", p.type, p.sectors_before_partition, p.sectors_in_partition);
@@ -192,7 +160,7 @@ bootflag_write_bootblock( void )
     }
     else if (p.type == 7) // ExFAT
     {
-        uint8_t* buffer = alloc_dma_memory(512*24);
+        uint8_t* buffer = fio_malloc(512*24);
         dev->read_block( dev, buffer, p.sectors_before_partition, 24 );
 
         int off1 = 130;
@@ -205,15 +173,15 @@ bootflag_write_bootblock( void )
         exfat_sum((uint32_t*)(buffer+512*12));
 
         dev->write_block( dev, buffer, p.sectors_before_partition, 24 );
-        free_dma_memory( buffer );
+        fio_free( buffer );
     }
     else
     {
-        free_dma_memory( block );
+        fio_free( block );
         NotifyBox(2000, "Unknown partition: %d", p.type); msleep(2000);
         return 0;
     }
-    free_dma_memory( block );
+    fio_free( block );
     return 1; // success!
 }
 
@@ -230,7 +198,7 @@ bootflag_write_bootblock( void )
     struct cf_device * const dev = cf_device[5];
 #endif
     
-    uint8_t *block = alloc_dma_memory( 512 );
+    uint8_t *block = fio_malloc( 512 );
     
     int i;
     for(i=0; i<512; i++) block[i] = 0xAA;
@@ -256,7 +224,7 @@ bootflag_write_bootblock( void )
     }
     else if( strncmp((const char*) block + 0x3, "EXFAT", 5) == 0 ) //check if this card is EXFAT
     {
-        uint8_t* buffer = alloc_dma_memory(512*24);
+        uint8_t* buffer = fio_malloc(512*24);
         dev->read_block( dev, 0, 24, buffer );
         int off1 = 130;
         int off2 = 122;
@@ -267,7 +235,7 @@ bootflag_write_bootblock( void )
         exfat_sum((uint32_t*)(buffer));
         exfat_sum((uint32_t*)(buffer+512*12));
         dev->write_block( dev, 0, 24, buffer );
-        free_dma_memory( buffer );
+        fio_free( buffer );
     }
     else // if it's not FAT16 neither FAT32, don't do anything.
     {
@@ -275,158 +243,7 @@ bootflag_write_bootblock( void )
         return 0;
     }
     
-    free_dma_memory( block );
+    fio_free( block );
     return 1;
 }
 #endif
-
-
-/** Perform an initial install and configuration */
-static void
-initial_install(void)
-{
-    bmp_fill(COLOR_BG, 0, 0, 720, 480);
-    bmp_printf(FONT_LARGE, 0, 30, "Magic Lantern install");
-
-    FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
-        FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
-        FIO_CloseFile(f);
-    }
-
-    f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM1.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
-        FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
-        FIO_CloseFile(f);
-    }
-
-    bmp_printf(FONT_LARGE, 0, 90, "Setting boot flag");
-    bootdisk_enable();
-
-    //bmp_printf(FONT_LARGE, 0, 120, "Writing boot block");
-    //bootflag_write_bootblock();
-
-    bmp_printf(FONT_LARGE, 0, 150, "Writing boot log");
-    dumpf();
-
-    bmp_printf(FONT_LARGE, 0, 180, "Done!");
-}
-
-
-
-#if 0
-void
-bootflag_display_all(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf( FONT_MED,
-        x,
-        y,
-        "Firmware    %d\n"
-        "Bootdisk    %d\n"
-        "RAM_EXE     %d\n"
-        "Update      %d\n",
-        boot_flags->firmware,
-        boot_flags->bootdisk,
-        boot_flags->ram_exe,
-        boot_flags->update
-    );
-}
-#endif
-
-/*
-CONFIG_INT( "disable-powersave", disable_powersave, 0 );
-
-static void
-powersave_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x,
-        y,
-        //23456789012
-        "Powersave   %s\n",
-        !disable_powersave ? "ON " : "OFF"
-    );
-}
-
-
-static void
-powersave_toggle( void )
-{
-    disable_powersave = !disable_powersave;
-
-    prop_request_icu_auto_poweroff(
-        disable_powersave ? EM_PROHIBIT : EM_ALLOW
-    );
-}
-*/
-
-#if 0
-
-struct menu_entry boot_menus[] = {
-    {
-        .display    = menu_print,
-        .priv       = "Write MBR",
-        .select     = bootflag_write_bootblock,
-    },
-
-    /*{
-        .display    = bootflag_display,
-        .select     = bootflag_toggle,
-    },*/
-    {
-        .display = bootflag_display_all,
-        .help = "Boot flags (read-only)"
-    }
-/*
-    {
-        .display    = powersave_display,
-        .select     = powersave_toggle,
-    }, */
-
-#if 0
-    {
-        .display    = bootflag_display_all,
-    },
-#endif
-};
-#endif
-
-#if 0
-static void
-bootflags_init( void )
-{
-    if( autoboot_loaded == 0 )
-        initial_install();
-
-    //~ menu_add( "Play", boot_menus, COUNT(boot_menus) );
-
-    /*if( disable_powersave )
-    {
-        DebugMsg( DM_MAGIC, 3,
-            "%s: Disabling powersave",
-            __func__
-        );
-
-        prop_request_icu_auto_poweroff( EM_PROHIBIT );
-    }*/
-
-}
-#endif
-
-
-//~ INIT_FUNC( __FILE__, bootflags_init );

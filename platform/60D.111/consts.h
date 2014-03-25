@@ -2,7 +2,6 @@
  *  60D 1.1.1 consts
  */
 
-#define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -272,7 +271,7 @@
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME (recording ? "INFO" : "[Q]")
+#define Q_BTN_NAME (RECORDING ? "INFO" : "[Q]")
 #define ARROW_MODE_TOGGLE_KEY "METERING btn"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x2508)
@@ -290,3 +289,7 @@
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp - 128)

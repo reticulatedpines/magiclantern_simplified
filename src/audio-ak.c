@@ -28,13 +28,13 @@
 #include "menu.h"
 #include "gui.h"
 #include "audio-common.c"
+#include "boot-hack.h"
 
 static CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 static CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
 static CONFIG_INT( "audio.mgain",      mgain,          4 );
 static CONFIG_INT( "audio.mic-power",  mic_power,      1 );
 static CONFIG_INT( "audio.o2gain",     o2gain,         0 );
-//CONFIG_INT( "audio.mic-in",   mic_in,         0 ); // not used any more?
 
 int audio_meters_are_drawn()
 {
@@ -294,8 +294,10 @@ audio_configure( int force )
     // nothing here yet.
 #else
 
-#ifndef CONFIG_550D // no sound with external mic?!
+#ifdef FEATURE_WIND_FILTER // no sound with external mic?!
     audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
+#else //Turn it off
+    audio_ic_write( AUDIO_IC_FIL1 | 0);
 #endif
         
     // Enable loop mode and output digital volume2
@@ -373,7 +375,7 @@ audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
-    *ptr = mod((*ptr + delta), 10);
+    *ptr = MOD((*ptr + delta), 10);
 #else
     *ptr = (*ptr + delta) & 0x7;
 #endif
@@ -595,7 +597,7 @@ static struct menu_entry audio_menus[] = {
     #endif
 };
 
-#ifdef CONFIG_AUDIO_CONTROLS
+#if defined(CONFIG_AUDIO_CONTROLS) && !defined(CONFIG_7D)
 
 void sounddev_task();
 
@@ -610,7 +612,7 @@ my_sounddev_task()
     msleep( 1500 );
     if (magic_is_off()) { sounddev_task(); return; }
     
-    hold_your_horses(1);
+    hold_your_horses();
     
     DebugMsg( DM_AUDIO, 3,
               "!!!!! %s started sem=%x",
@@ -635,7 +637,7 @@ my_sounddev_task()
     
 #ifdef CONFIG_AUDIO_REG_LOG
     // Create the logging file
-    reg_file = FIO_CreateFileEx(CARD_DRIVE "ML/audioreg.txt" );
+    reg_file = FIO_CreateFile("ML/audioreg.txt" );
 #endif
     
     msleep(500);
@@ -646,7 +648,7 @@ my_sounddev_task()
     while(1)
         {
             // will be unlocked by the property handler
-            int rc = take_semaphore( gain.sem, recording && MVR_FRAME_NUMBER < 30 ? 100 : 1000 );
+            int rc = take_semaphore( gain.sem, RECORDING_H264 && MVR_FRAME_NUMBER < 30 ? 100 : 1000 );
             if(gui_state != GUISTATE_PLAYMENU || (audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED)) {
                 audio_configure( rc == 0 ); // force it if we got the semaphore
             }
@@ -654,6 +656,7 @@ my_sounddev_task()
 }
 
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
+
 #endif
 
 static void volume_display()

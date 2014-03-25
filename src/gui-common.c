@@ -6,12 +6,17 @@
 #include <bmp.h>
 #include <property.h>
 #include <boot-hack.h>
+#include <fps.h>
+#include <zebra.h>
+#include <lens.h>
+#include <config.h>
+#include <lvinfo.h>
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#elif defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
 #define CONFIG_LVAPP_HACK_DEBUGMSG
-#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
+#elif defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME)
 #define CONFIG_LVAPP_HACK_FBUFF
 #endif
 
@@ -24,6 +29,9 @@ static int last_time_active = 0;
 
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
+
+
+PROP_INT(PROP_ICU_UILOCK, uilock);
 
 // disable Canon bottom bar
 
@@ -45,7 +53,7 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     #elif defined(CONFIG_6D)
         MEM(0x841C0) = 0;
     #elif defined(CONFIG_EOSM)
-        MEM(0x5D88C) = 0;
+        MEM(0x5D43C) = 0;
     #endif
 
     #ifdef CONFIG_5D3
@@ -61,7 +69,7 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     
 #ifdef CONFIG_5D3
     extern int rec_led_off;
-    if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
+    if ((class == 34 || class == 35) && level == 1 && rec_led_off && RECORDING) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
 #endif
 
@@ -116,6 +124,7 @@ int handle_other_events(struct event * event)
         if(should_hide)
         {
             #ifdef CONFIG_LVAPP_HACK_RELOC
+            extern void reloc_liveviewapp_install();  /* liveview.c */
             reloc_liveviewapp_install();
             #endif
             
@@ -138,6 +147,8 @@ int handle_other_events(struct event * event)
             #else
             if (UNAVI_FEEDBACK_TIMER_ACTIVE)
             {
+                /* Canon stub */
+                extern void HideUnaviFeedBack_maybe();
                 HideUnaviFeedBack_maybe();
                 bottom_bar_dirty = 0;
             }
@@ -147,6 +158,7 @@ int handle_other_events(struct event * event)
         else
         {
             #ifdef CONFIG_LVAPP_HACK_RELOC
+            extern void reloc_liveviewapp_uninstall();  /* liveview.c */
             reloc_liveviewapp_uninstall();
             #endif
 
@@ -176,7 +188,11 @@ int handle_common_events_startup(struct event * event)
 
     extern int ml_started;
     if (!ml_started)    {
+#ifdef CONFIG_EOSM // EOSM has a combined Q/SET button, SET button event is not sent properly
+        if (event->param == BGMT_INFO) { _disable_ml_startup(); return 0;} // don't load ML
+#else
         if (event->param == BGMT_PRESS_SET) { _disable_ml_startup(); return 0;} // don't load ML
+#endif
         
         if (handle_select_config_file_by_key_at_startup(event) == 0) return 0;
 
@@ -198,8 +214,6 @@ int handle_common_events_startup(struct event * event)
     }
     return 1;
 }
-
-extern int ResumeLiveView();
 
 static int pre_shutdown_requested = 0; // used for preventing wakeup from paused LiveView at shutdown (causes race condition with Canon code and crashes)
 
@@ -343,7 +357,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         {
             if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     video_mode[0] = 0xc;
                     video_mode[4] = 2;
@@ -356,7 +370,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         {
             if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     int x = 300;
                     prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
@@ -366,7 +380,7 @@ int handle_digital_zoom_shortcut(struct event * event)
             }
             if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
             {
-                if (!recording)
+                if (NOT_RECORDING)
                 {
                     video_mode[0] = 0;
                     video_mode[4] = 0;
@@ -440,6 +454,10 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_swap_menu_erase(event) == 0) return 0;
     #endif
 
+    #ifdef FEATURE_SWAP_INFO_PLAY
+    if (handle_swap_info_play(event) == 0) return 0;
+    #endif
+
     if (handle_ml_menu_keys(event) == 0) return 0;
     
     #ifdef CONFIG_DIGIC_POKE
@@ -452,7 +470,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_mlu_handheld(event) == 0) return 0;
     #endif
     
-    if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
+    if (RECORDING && event->param == BGMT_MENU) redraw(); // MENU while RECORDING => force a redraw
     
     if (handle_buttons_being_held(event) == 0) return 0;
     //~ if (handle_morse_keys(event) == 0) return 0;
@@ -471,8 +489,8 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
     #endif
     
-    #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-    if (handle_livev_playback(event, BTN_ZEBRAS_FOR_PLAYBACK) == 0) return 0;
+    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE) && defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
+    if (handle_livev_playback(event) == 0) return 0;
     #endif
 
     #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3)
@@ -608,3 +626,36 @@ int detect_double_click(int key, int pressed_code, int unpressed_code)
 }
 
 char* get_info_button_name() { return INFO_BTN_NAME; }
+
+void gui_uilock(int what)
+{
+    int unlocked = UILOCK_NONE;
+    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
+    msleep(50);
+    prop_request_change(PROP_ICU_UILOCK, &what, 4);
+    msleep(50);
+}
+
+void ui_lock(int what)
+{
+    gui_uilock(what);
+}
+
+void fake_simple_button(int bgmt_code)
+{
+    if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
+
+    if (ml_shutdown_requested) return;
+    GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
+}
+
+static void redraw_after_task(int msec)
+{
+    msleep(msec);
+    redraw();
+}
+
+void redraw_after(int msec)
+{
+    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
+}
