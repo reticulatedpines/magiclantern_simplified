@@ -1330,7 +1330,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 }
                     bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5+font_med.height, "%s", msg);
                 }
-			}
+            }
             else if(DISPLAY_REC_INFO_DEBUG)
             {
                 int32_t fps = fps_get_current_x1000();
