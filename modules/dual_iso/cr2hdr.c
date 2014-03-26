@@ -946,7 +946,7 @@ static int black_subtract(int left_margin, int top_margin)
     }
 
     /* subtract the dark frame, keeping the average black level */
-    for (y = 0; y < h; y++)
+    for (y = ymin; y < h; y++)
     {
         for (x = 0; x < w; x++)
         {
