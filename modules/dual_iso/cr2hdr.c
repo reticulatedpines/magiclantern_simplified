@@ -1344,7 +1344,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         fprintf(f, "];\n");
         fprintf(f, "bright = data(:,1);\n");
         fprintf(f, "dark = data(:,2);\n");
-        fprintf(f, "plot(bright, dark, '.', bright, a*bright+b, '.r');\n");
+        fprintf(f, "plot(bright, dark, 'o', 'markersize', 1, bright, a*bright+b, 'or', 'markersize', 1);\n");
         fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
         fclose(f);
         if(system("octave --persist iso-curve.m"));
