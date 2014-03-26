@@ -83,7 +83,7 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
         {
             if ((mode !=0) || (wb_g1-wb_g2 > wb_g2/2) || (wb_g2-wb_g1 > wb_g1/2))
             {
-                printf("White balance determined from %s\n", mode != 0 ? "WB_RGGBLevelsAsShot" : "WB_RGGBLevelsMeasured");
+                printf("White balance   : from %s\n", mode != 0 ? "WB_RGGBLevelsAsShot" : "WB_RGGBLevelsMeasured");
                 //WB_RGGBLevels* values are multipliers, so there is an implied inverse
                 *red_balance = ((float)wb_r)/wb_g1;
                 *blue_balance = ((float)wb_b)/wb_g2;
@@ -97,7 +97,7 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
                     if (fscanf(exif_file2, "%d %d %d %d", &raw_r, &raw_g1, &raw_g2, &raw_b) != 4) error = 1;
                     else
                     {
-                        printf("White balance determined from RawMeasuredRGGB\n");
+                        printf("White balance   : from RawMeasuredRGGB\n");
                         //RawMeasuredRGGB values are proportional to the values of a neutral color
                         *red_balance = ((float)raw_g1)/raw_r;
                         *blue_balance = ((float)raw_g2)/raw_b;
