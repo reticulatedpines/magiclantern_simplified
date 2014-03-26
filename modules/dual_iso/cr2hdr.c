@@ -809,7 +809,7 @@ static int black_subtract(int left_margin, int top_margin)
 
     /* estimate vertical correction for each line */
     int x,y;
-    for (y = 0; y < h; y++)
+    for (y = ymin; y < h; y++)
     {
         int avg = 0;
         int num = 0;
@@ -822,7 +822,7 @@ static int black_subtract(int left_margin, int top_margin)
     }
     
     /* perform some slight filtering (averaging) so we don't add noise to the image */
-    for (y = 0; y < h; y++)
+    for (y = ymin; y < h; y++)
     {
         int y2;
         int avg = 0;
@@ -846,11 +846,20 @@ static int black_subtract(int left_margin, int top_margin)
     }
     
     memcpy(vblack, aux, h * sizeof(vblack[0]));
+    
+    double avg_black = 0;
 
-    /* update the dark frame */
-    for (y = 0; y < h; y++)
+    /* update the dark frame and compute the average black level */
+    for (y = ymin; y < h; y++)
+    {
         for (x = 0; x < w; x++)
+        {
             blackframe[x + y*w] = vblack[y];
+        }
+        avg_black += vblack[y];
+    }
+    avg_black /= (h - ymin);
+    
     
     /* estimate horizontal drift for each channel */
     int k;
@@ -937,16 +946,6 @@ static int black_subtract(int left_margin, int top_margin)
     }
 
     /* subtract the dark frame, keeping the average black level */
-    double avg_black = 0;
-    for (y = top_margin; y < h; y++)
-    {
-        for (x = left_margin; x < w; x++)
-        {
-            avg_black += blackframe[x + y*w];
-        }
-    }
-    avg_black /= (w * h);
-
     for (y = 0; y < h; y++)
     {
         for (x = 0; x < w; x++)
