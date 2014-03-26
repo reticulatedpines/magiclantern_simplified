@@ -1230,7 +1230,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int white20 = MIN(raw_info.white_level, *white_darkened);
     int black = black20/16;
     int white = white20/16;
-    int clip = white - black;
+    int clip = (white - black) * 0.9;
 
     int w = raw_info.width;
     int h = raw_info.height;
