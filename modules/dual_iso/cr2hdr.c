@@ -697,7 +697,7 @@ int main(int argc, char** argv)
                 if ((red_balance > 0) && (blue_balance > 0))
                 {
                     dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
-                    printf("AsShotNeutral   : %f 1 %f\n", 1/red_balance, 1/blue_balance);
+                    printf("AsShotNeutral   : %.2f 1 %.2f\n", 1/red_balance, 1/blue_balance);
                 }
                 else
                 {
