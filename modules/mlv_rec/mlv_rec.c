@@ -1315,7 +1315,22 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 {
                     bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%d skipped", frame_skips);
                 }
-            }
+
+				/* Write speed, main thread only */
+			    int32_t speed = current_write_speed[0];
+                int32_t idle_percent = idle_time[0] * 100 / (writing_time[0] + idle_time[0]);
+                speed /= 10;
+                if(writing_time[0] || idle_time[0])
+                {
+                    char msg[50];
+                    snprintf(msg, sizeof(msg), "%d.%01dMB/s", speed/10, speed%10);
+                    if (idle_time[0])
+                {
+                    if (idle_percent) { STR_APPEND(msg, "\n%d%% idle", idle_percent); }
+                }
+                    bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5+font_med.height, "%s", msg);
+                }
+			}
             else if(DISPLAY_REC_INFO_DEBUG)
             {
                 int32_t fps = fps_get_current_x1000();
