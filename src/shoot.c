@@ -6328,15 +6328,13 @@ shoot_task( void* unused )
                 
                 if(audio_release_running)
                 {   
-					#ifdef CONFIG_7D
-                    SoundDevActiveIn(0);
-                    #else //Enable Audio IC In Photo Mode if off
-						{   if (!is_movie_mode())
-							{	void SoundDevActiveIn();
-								SoundDevActiveIn(0);
-							}
-						} 
-					#endif
+					#ifndef CONFIG_7D
+                    //Enable Audio IC In Photo Mode if off
+                    if (!is_movie_mode())
+                    #endif
+                    {
+                        SoundDevActiveIn(0);
+                    }
                 }
             }
 #endif
