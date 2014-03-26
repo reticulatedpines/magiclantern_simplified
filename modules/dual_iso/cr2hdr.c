@@ -804,7 +804,8 @@ static int black_subtract(int left_margin, int top_margin)
     uint16_t * blackframe = malloc(w * h * sizeof(uint16_t));
 
     /* data above this may be gibberish */
-    int ymin = (top_margin-8-4) & ~3;
+    /* tight fit, any similar trouble would require changing the algorithm */
+    int ymin = (top_margin-8-3) & ~3;
     int ymax = ymin + 8;
 
     /* estimate vertical correction for each line */
