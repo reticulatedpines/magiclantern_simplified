@@ -737,49 +737,47 @@ static void white_detect(int* white_dark, int* white_bright)
     /* caveat: bright and dark exposure may have different white levels, so we'll take the minimum value */
     /* side effect: if the image is not overexposed, it may get brightened a little; shouldn't hurt */
     
-    /* ignore hot pixels when finding white level (at least 50 pixels should confirm it) */
+    int whites[2]         = {  0,    0};
+    int discard_pixels[2] = { 10,  100}; /* discard the brightest N pixels */
+    int safety_margins[2] = {100, 1500}; /* use a higher safety margin for the higher ISO */
+    /* note: with the high-ISO WL underestimated by 1500, you would lose around 0.15 EV of non-aliased detail */
     
-    int white = 10000;
-    int whites[2] = {0, 0};
-    int maxies[2] = {white, white};
+    int* pixels[2];
+    int max_pix = raw_info.width * raw_info.height / 2;
+    pixels[0] = malloc(max_pix * sizeof(pixels[0][0]));
+    pixels[1] = malloc(max_pix * sizeof(pixels[0][0]));
     int counts[2] = {0, 0};
-    int safety_margins[2] = {100, 2000}; /* use a higher safety margin for the higher ISO */
 
+    /* collect all the pixels and find the k-th max, thus ignoring hot pixels */
+    /* change the sign in order to use kth_smallest_int */
     int x,y;
     for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
     {
         for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
         {
             int pix = raw_get_pixel16(x, y);
+            
             #define BIN_IDX is_bright[y%4]
-            if (pix > maxies[BIN_IDX])
-            {
-                maxies[BIN_IDX] = pix;
-                counts[BIN_IDX] = 1;
-            }
-            else if (pix == maxies[BIN_IDX])
-            {
-                counts[BIN_IDX]++;
-                if (counts[BIN_IDX] > 50)
-                {
-                    whites[BIN_IDX] = maxies[BIN_IDX] - safety_margins[BIN_IDX];
-                }
-            }
+            pixels[BIN_IDX][MIN(counts[BIN_IDX], max_pix-1)] = -pix;
+            counts[BIN_IDX]++;
             #undef BIN_IDX
         }
     }
-
-    /* no confirmed max? use unconfirmed ones */
-    if (whites[0] == 0) whites[0] = maxies[0] - safety_margins[0];
-    if (whites[1] == 0) whites[1] = maxies[1] - safety_margins[1];
+    
+    whites[0] = -kth_smallest_int(pixels[0], counts[0], discard_pixels[0]) - safety_margins[0];
+    whites[1] = -kth_smallest_int(pixels[1], counts[1], discard_pixels[1]) - safety_margins[1];
 
     //~ printf("%8d %8d\n", whites[0], whites[1]);
     //~ printf("%8d %8d\n", counts[0], counts[1]);
     
-    *white_dark = whites[0];
-    *white_bright = whites[1];
+    /* we assume 14-bit input data; out-of-range white levels may cause crash */
+    *white_dark = COERCE(whites[0], 5000, 16383);
+    *white_bright = COERCE(whites[1], 5000, 16383);
     
     printf("White levels    : %d %d\n", *white_dark, *white_bright);
+
+    free(pixels[0]);
+    free(pixels[1]);
 }
 
 static int black_subtract(int left_margin, int top_margin)
@@ -1230,7 +1228,8 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int white20 = MIN(raw_info.white_level, *white_darkened);
     int black = black20/16;
     int white = white20/16;
-    int clip = (white - black) * 0.9;
+    int clip0 = white - black;
+    int clip  = clip0 * 0.9;    /* there may be nonlinear response in very bright areas */
 
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1334,7 +1333,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
             {
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
-                if (b >= clip) continue;
+                if (b >= clip0) continue;       /* also included discarded highlights in the graph */
                 if (rand()%100 > 1) continue;
                 int delta = b * 100 / gain - d;
 
