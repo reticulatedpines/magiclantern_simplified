@@ -62,12 +62,12 @@ void gps_tweaks_startup_hook()
 
 static struct menu_entry gps_menus[] = {
     {
-        .name = "GPS Restore",
+        .name = "GPS Power Save",
         .min = 0,
         .max = 3,
-        .choices = (const char *[]) {"OFF", "Disable" "External", "Internal"},
+        .choices = (const char *[]) {"OFF", "GPS Disable" "External", "Internal"},
         .priv = &gps_restore_value,
-        .help   = "Restore/Disable GPS at startup/shutdown",
+        .help   = "Restore GPS state at startup. Disable at power off",
     },
 
 
