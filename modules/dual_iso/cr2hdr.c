@@ -1980,7 +1980,9 @@ static int hdr_interpolate()
 
         uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
         int d0 = COUNT(edge_directions)/2;
-        memset(edge_direction, d0, w * h * sizeof(edge_direction[0]));
+        for (y = 0; y < h; y ++)
+            for (x = 0; x < w; x ++)
+                edge_direction[x + y*w] = d0;
 
         //~ printf("Cross-correlation...\n");
         int semi_overexposed = 0;
@@ -2136,7 +2138,7 @@ static int hdr_interpolate()
         
         //~ printf("Actual interpolation...\n");
 
-        for (y = 3; y < h-3; y ++)
+        for (y = 2; y < h-2; y ++)
         {
             uint32_t* native = BRIGHT_ROW ? bright : dark;
             uint32_t* interp = BRIGHT_ROW ? dark : bright;
@@ -2160,23 +2162,11 @@ static int hdr_interpolate()
                         
                         int dxa = edge_directions[dir].a.x;
                         int dya = edge_directions[dir].a.y * s;
-                        //~ int dxa2 = edge_directions[dir].ack.x;
-                        //~ int dya2 = edge_directions[dir].ack.y * s;
                         int pa = COERCE((int)plane[squeezed[y+dya]][x+dxa], 0, 0xFFFFF);
-                        //~ int pa2 = COERCE((int)plane[squeezed[y+dya2]][x+dxa2], 0, 0xFFFFF);
                         int dxb = edge_directions[dir].b.x;
                         int dyb = edge_directions[dir].b.y * s;
-                        //~ int dxb2 = edge_directions[dir].bck.x;
-                        //~ int dyb2 = edge_directions[dir].bck.y * s;
                         int pb = COERCE((int)plane[squeezed[y+dyb]][x+dxb], 0, 0xFFFFF);
-                        //~ int pb2 = COERCE((int)plane[squeezed[y+dyb2]][x+dxb2], 0, 0xFFFFF);
-                        /* pixel order: pa2, pa, interpolated, unused, pb, pb2 */
-                        /* it may be a good idea to weight the known edge pixels according to the distance from the interpolated one */
-                        /* or it may be not, feel free to try different versions */
                         int pi = (raw2ev[pa] * 2 + raw2ev[pb]) / 3;
-                        //~ int pi = (raw2ev[pa2] * 2 + raw2ev[pa] * 2 + raw2ev[pb] + raw2ev[pb2]) / 6;
-                        //~ int pi = (raw2ev[pa2] * 2 + raw2ev[pa] * 4 + raw2ev[pb] * 2 + raw2ev[pb2]) / 9;
-                        //~ int pi = (raw2ev[pa2] + raw2ev[pa] + raw2ev[pb] + raw2ev[pb2]) / 4;
                         
                         return pi;
                     }
