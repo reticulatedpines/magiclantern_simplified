@@ -986,9 +986,9 @@ static int black_subtract_simple(int left_margin, int top_margin)
     int x,y;
     long long avg = 0;
     int num = 0;
-    for (y = 0; y < h; y++)
+    for (y = top_margin + 20; y < h - 20; y++)
     {
-        for (x = 2; x < left_margin - 8; x++)
+        for (x = 16; x < left_margin - 16; x++)
         {
             int p = raw_get_pixel20(x, y);
             if (p > 0)
