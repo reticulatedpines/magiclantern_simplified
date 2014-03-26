@@ -52,7 +52,7 @@ void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half);
 
 void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny);
 
-void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut);
+void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X);
 
 int yuv411_to_422(uint32_t addr);
 

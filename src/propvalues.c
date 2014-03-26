@@ -30,7 +30,7 @@ PROP_HANDLER(PROP_FIRMWARE_VER)
 }
 
 volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
+volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, _expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);

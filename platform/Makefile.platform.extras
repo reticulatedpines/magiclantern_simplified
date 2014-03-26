@@ -1,8 +1,4 @@
-ifeq ($(ML_SRC_PROFILE),installer)
-	ML_BUILD_FIR_PLATFORM_FILE = updater.bin
-else
-	ML_BUILD_FIR_PLATFORM_FILE = autoexec-fir.bin
-endif
+ML_BUILD_FIR_PLATFORM_FILE = autoexec-fir.bin
 
 build_fir: $(ML_BUILD_FIR_PLATFORM_FILE)
 ifndef ML_BUILD_FIR_DIR

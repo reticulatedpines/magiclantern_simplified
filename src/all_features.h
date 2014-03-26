@@ -186,11 +186,6 @@
 
     #define FEATURE_SNAP_SIM
 
-
-#ifdef CONFIG_RAW_PHOTO
-    #define FEATURE_POST_DEFLICKER
-#endif
-
 /** Focus menu **/
     #define FEATURE_TRAP_FOCUS
 
@@ -291,6 +286,7 @@
 
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
+    /* to be refactored with the lvinfo engine */
     #define FEATURE_FLEXINFO
 
 /** Debug menu **/

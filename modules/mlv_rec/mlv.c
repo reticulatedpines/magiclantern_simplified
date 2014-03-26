@@ -22,7 +22,10 @@
 #include <stdint.h>
 #include <lens.h>
 #include <property.h>
-#include "raw.h"
+#include <picstyle.h>
+#include <raw.h>
+#include <fps.h>
+
 #include "mlv.h"
 #include "../trace/trace.h"
 

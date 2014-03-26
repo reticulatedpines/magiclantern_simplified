@@ -56,16 +56,113 @@
 typedef void lua_State;
 #endif
 
+/* helper macros */
+#define MAX(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+
+#define MIN(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+#define ABS(a) \
+   ({ __typeof__ (a) _a = (a); \
+     _a > 0 ? _a : -_a; })
+
+#define SGN(a) \
+   ((a) > 0 ? 1 : -1 )
+
+#define COERCE(val,min,max) MIN(MAX((val),(min)),(max))
+#define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
+
+#define MSG_INFO     0
+#define MSG_ERROR    1
+#define MSG_PROGRESS 2
+
+
+/* some compile warning, why? */
+char *strdup(const char *s);
+
+#ifdef MLV_USE_LZMA
+#include <LzmaLib.h>
+#endif
+
+/* project includes */
+#include "../lv_rec/lv_rec.h"
+#include "../../src/raw.h"
+#include "mlv.h"
+
+
+int batch_mode = 0;
+
+void print_msg(uint32_t type, const char* format, ... )
+{
+    va_list args;
+    va_start( args, format );
+    char *fmt_str = malloc(strlen(format) + 32);
+
+    switch(type)
+    {
+        case MSG_INFO:
+            if(!batch_mode)
+            {
+                vfprintf(stdout, format, args);
+            }
+            else
+            {
+                strcpy(fmt_str, "[I] ");
+                strcat(fmt_str, format);
+                vfprintf(stdout, fmt_str, args);
+            }
+            break;
+
+        case MSG_ERROR:
+            if(!batch_mode)
+            {
+                strcpy(fmt_str, "[ERROR] ");
+                strcat(fmt_str, format);
+                vfprintf(stderr, fmt_str, args);
+            }
+            else
+            {
+                strcpy(fmt_str, "[E] ");
+                strcat(fmt_str, format);
+                vfprintf(stdout, fmt_str, args);
+                fflush(stdout);
+            }
+            break;
+
+        case MSG_PROGRESS:
+            if(!batch_mode)
+            {
+            }
+            else
+            {
+                strcpy(fmt_str, "[P] ");
+                strcat(fmt_str, format);
+                vfprintf(stdout, fmt_str, args);
+            }
+            break;
+    }
+
+    free(fmt_str);
+    va_end( args );
+}
+
+
 /* based on http://www.lua.org/pil/25.3.html */
 int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
 {
     va_list vl;
-    int narg, nres;  /* number of arguments and results */
-    int verbose = 0;
 
     va_start(vl, sig);
-
 #if defined(USE_LUA)
+    int narg, nres;  /* number of arguments and results */
+    int verbose = 0;
+    
     lua_getglobal(L, func);  /* get function */
 
     /* push arguments */
@@ -204,6 +301,9 @@ int32_t lua_call_va(lua_State *L, const char *func, const char *sig, ...)
         nres++;
     }
 #else
+    (void)L;
+    (void)func;
+    (void)sig;
 
     /* consume all vararg arguments */
     while (*sig)
@@ -276,8 +376,14 @@ int32_t lua_handle_hdr_suffix(lua_State *lua_state, uint8_t *type, char *suffix,
     {
         print_msg(MSG_INFO, "LUA: Error while calling '%s': Returned data size mismatch - %d instead of %d\n", func, ret_data_len, data_len);
     }
-
-
+#else
+    (void)lua_state;
+    (void)type;
+    (void)suffix;
+    (void)hdr;
+    (void)hdr_len;
+    (void)data;
+    (void)data_len;
 #endif
     return 0;
 }
@@ -290,102 +396,6 @@ int32_t lua_handle_hdr(lua_State *lua_state, uint8_t *type, void *hdr, int hdr_l
 int32_t lua_handle_hdr_data(lua_State *lua_state, uint8_t *type, char *suffix, void *hdr, int hdr_len, void *data, int data_len)
 {
     return lua_handle_hdr_suffix(lua_state, type, suffix, hdr, hdr_len, data, data_len);
-}
-
-/* some compile warning, why? */
-char *strdup(const char *s);
-
-//#define MLV_USE_LZMA
-
-#ifdef MLV_USE_LZMA
-#include <LzmaLib.h>
-#endif
-
-/* project includes */
-#include "../lv_rec/lv_rec.h"
-#include "../../src/raw.h"
-#include "mlv.h"
-
-/* helper macros */
-#define MAX(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-
-#define MIN(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
-
-#define ABS(a) \
-   ({ __typeof__ (a) _a = (a); \
-     _a > 0 ? _a : -_a; })
-
-#define SGN(a) \
-   ((a) > 0 ? 1 : -1 )
-
-#define COERCE(val,min,max) MIN(MAX((val),(min)),(max))
-#define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
-
-#define MSG_INFO     0
-#define MSG_ERROR    1
-#define MSG_PROGRESS 2
-
-int batch_mode = 0;
-
-void print_msg(uint32_t type, const char* format, ... )
-{
-    va_list args;
-    va_start( args, format );
-    char *fmt_str = malloc(strlen(format) + 32);
-
-    switch(type)
-    {
-        case MSG_INFO:
-            if(!batch_mode)
-            {
-                vfprintf(stdout, format, args);
-            }
-            else
-            {
-                strcpy(fmt_str, "[I] ");
-                strcat(fmt_str, format);
-                vfprintf(stdout, fmt_str, args);
-            }
-            break;
-
-        case MSG_ERROR:
-            if(!batch_mode)
-            {
-                strcpy(fmt_str, "[ERROR] ");
-                strcat(fmt_str, format);
-                vfprintf(stderr, fmt_str, args);
-            }
-            else
-            {
-                strcpy(fmt_str, "[E] ");
-                strcat(fmt_str, format);
-                vfprintf(stdout, fmt_str, args);
-                fflush(stdout);
-            }
-            break;
-
-        case MSG_PROGRESS:
-            if(!batch_mode)
-            {
-            }
-            else
-            {
-                strcpy(fmt_str, "[P] ");
-                strcat(fmt_str, format);
-                vfprintf(stdout, fmt_str, args);
-            }
-            break;
-    }
-
-    free(fmt_str);
-    va_end( args );
 }
 
 /* platform/target specific fseek/ftell functions go here */
@@ -425,7 +435,7 @@ void xref_resize(frame_xref_t **table, int entries, int *allocated)
     }
 
     /* only resize if the buffer is too small */
-    if(entries * sizeof(frame_xref_t) > *allocated)
+    if(entries * sizeof(frame_xref_t) > (uint32_t)(*allocated))
     {
         *allocated += (entries + 1) * sizeof(frame_xref_t);
         *table = realloc(*table, *allocated);
@@ -436,7 +446,7 @@ void xref_dump(mlv_xref_hdr_t *xref)
 {
     mlv_xref_t *xrefs = (mlv_xref_t*)&(((unsigned char *)xref)[sizeof(mlv_xref_hdr_t)]);
 
-    for(int pos = 0; pos < xref->entryCount; pos++)
+    for(uint32_t pos = 0; pos < xref->entryCount; pos++)
     {
         print_msg(MSG_INFO, "Entry %d/%d\n", pos, xref->entryCount);
         print_msg(MSG_INFO, "    File   #%d\n", xrefs[pos].fileNumber);
@@ -529,7 +539,7 @@ uint16_t bitextract(uint16_t *src, int position, int depth)
     return value;
 }
 
-int load_frame(char *filename, int frame_number, uint8_t *frame_buffer)
+int load_frame(char *filename, uint8_t *frame_buffer)
 {
     FILE *in_file = NULL;
     int ret = 0;
@@ -907,6 +917,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "Parameters:\n");
     print_msg(MSG_INFO, " -o output_file      set the filename to write into\n");
     print_msg(MSG_INFO, " -v                  verbose output\n");
+    print_msg(MSG_INFO, " --black-fix         set black level to 2048 (fix green cast)\n");
     print_msg(MSG_INFO, " --batch             output message suitable for batch processing\n");
 
     print_msg(MSG_INFO, "\n");
@@ -956,11 +967,11 @@ int main (int argc, char *argv[])
     char *lut_filename = NULL;
     int blocks_processed = 0;
 
-    int frame_start = 0;
-    int frame_end = 0;
-    int audf_frames_processed = 0;
-    int vidf_frames_processed = 0;
-    int vidf_max_number = 0;
+    uint32_t frame_start = 0;
+    uint32_t frame_end = 0;
+    uint32_t audf_frames_processed = 0;
+    uint32_t vidf_frames_processed = 0;
+    uint32_t vidf_max_number = 0;
 
     int delta_encode_mode = 0;
     int xref_mode = 0;
@@ -997,12 +1008,14 @@ int main (int argc, char *argv[])
 
     /* long options */
     int chroma_smooth_method = 0;
+    int black_fix = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 0;
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
+        {"black-fix",  no_argument, &black_fix,  1 },
         {"batch",  no_argument, &batch_mode,  1 },
         {"dump-xrefs",   no_argument, &dump_xrefs,  1 },
         {"dng",    no_argument, &dng_output,  1 },
@@ -1337,7 +1350,7 @@ int main (int argc, char *argv[])
     /* this table contains the XREF chunk read from idx file, if existing */
     mlv_xref_hdr_t *block_xref = NULL;
     mlv_xref_t *xrefs = NULL;
-    int block_xref_pos = 0;
+    uint32_t block_xref_pos = 0;
 
     uint32_t frame_buffer_size = 32*1024*1024;
 
@@ -1414,7 +1427,7 @@ int main (int argc, char *argv[])
 
     if(subtract_mode)
     {
-        int ret = load_frame(subtract_filename, 0, (uint8_t*)frame_arith_buffer);
+        int ret = load_frame(subtract_filename, (uint8_t*)frame_arith_buffer);
 
         if(ret)
         {
@@ -1621,7 +1634,7 @@ read_headers:
         else
         {
             /* in xref mode, use every block and get its timestamp etc */
-            if(xref_mode && memcmp(buf.blockType, "NULL", 4))
+            if(xref_mode && memcmp(buf.blockType, "NULL", 4) && memcmp(buf.blockType, "BKUP", 4))
             {
                 xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
 
@@ -1646,7 +1659,7 @@ read_headers:
                 print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
 
                 /* NULL blocks don't have timestamps */
-                if(memcmp(buf.blockType, "NULL", 4))
+                if(memcmp(buf.blockType, "NULL", 4)|| memcmp(buf.blockType, "BKUP", 4))
                 {
                     print_msg(MSG_INFO, "    Time: %f ms\n", (double)buf.timestamp / 1000.0f);
                 }
@@ -1670,34 +1683,44 @@ read_headers:
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
 
-                /* skip frame space */
-                file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-
-                int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
-                void *buf = malloc(frame_size);
-
-                if(fread(buf, frame_size, 1, in_file) != 1)
+                uint32_t skip_block = 0;
+                
+                if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
                 {
+                    print_msg(MSG_ERROR, "Frame space is larger than block size. Skipping\n");
+                    skip_block = 1;
+                }
+
+                if(!skip_block)
+                {
+                    /* skip frame space */
+                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
+
+                    int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
+                    void *buf = malloc(frame_size);
+
+                    if(fread(buf, frame_size, 1, in_file) != 1)
+                    {
+                        free(buf);
+                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        goto abort;
+                    }
+
+                    if(!wavi_info.timestamp)
+                    {
+                        print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
+                    }
+
+                    /* only write WAV if the WAVI header created a file */
+                    if(out_file_wav)
+                    {
+                        /* assume block size is uniform, this allows random access */
+                        file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
+                        fwrite(buf, frame_size, 1, out_file_wav);
+                        wav_file_size += frame_size;
+                    }
                     free(buf);
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
                 }
-
-                if(!wavi_info.timestamp)
-                {
-                    print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
-                }
-
-                /* only write WAV if the WAVI header created a file */
-                if(out_file_wav)
-                {
-                    /* assume block size is uniform, this allows random access */
-                    file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
-                    fwrite(buf, frame_size, 1, out_file_wav);
-                    wav_file_size += frame_size;
-                }
-                free(buf);
-
                 audf_frames_processed++;
             }
             else if(!memcmp(buf.blockType, "VIDF", 4))
@@ -1723,8 +1746,16 @@ read_headers:
                     print_msg(MSG_INFO, "     Pan: %dx%d\n", block_hdr.panPosX, block_hdr.panPosY);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
+                
+                uint32_t skip_block = 0;
+                
+                if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
+                {
+                    print_msg(MSG_ERROR, "Frame space is larger than block size. Skipping\n");
+                    skip_block = 1;
+                }
 
-                if(raw_output || mlv_output || dng_output || lua_state)
+                if((raw_output || mlv_output || dng_output || lua_state) && !skip_block)
                 {
                     /* if already compressed, we have to decompress it first */
                     int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
@@ -2542,7 +2573,12 @@ read_headers:
 
                 /* skip remaining data, if there is any */
                 file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-
+                
+                if(black_fix)
+                {
+                    block_hdr.raw_info.black_level = 2048;
+                }
+                
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 video_xRes = block_hdr.xRes;
@@ -2673,6 +2709,10 @@ read_headers:
                 }
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
+            {
+                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+            }
+            else if(!memcmp(buf.blockType, "BKUP", 4))
             {
                 file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
             }

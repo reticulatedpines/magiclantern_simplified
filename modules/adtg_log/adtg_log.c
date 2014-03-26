@@ -184,7 +184,7 @@ static void cmos16_log(breakpoint_t *bkpt)
 void adtg_log_task()
 {
     adtg_buf_pos_max = 128 * 1024;
-    adtg_buf = shoot_malloc(adtg_buf_pos_max * 4 + 0x100);
+    adtg_buf = fio_malloc(adtg_buf_pos_max * 4 + 0x100);
     
     if(!adtg_buf)
     {   
@@ -246,14 +246,14 @@ void adtg_log_task()
     /* dump all stuff */
     char filename[100];
     snprintf(filename, sizeof(filename), "%s/adtg.bin", get_dcim_dir());
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     FIO_WriteFile(f, adtg_buf, adtg_buf_pos * 4); 
     FIO_CloseFile(f);
     
     /* free buffer */
     void *buf = adtg_buf;
     adtg_buf = NULL;
-    shoot_free(buf);
+    fio_free(buf);
 }
 
 static MENU_SELECT_FUNC(adtg_log_toggle)

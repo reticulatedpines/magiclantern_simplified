@@ -1,5 +1,5 @@
 /*
- *  700D 1.1.1 consts
+ *  700D 1.1.3 consts
  */
 
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
@@ -10,9 +10,9 @@
 #define FORMAT_BTN "[Q]"
 #define STR_LOC 11
 
-    // RESTARTSTART 0x7e100
+    // RESTARTSTART 0x7EC00
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D90
-#define HIJACK_INSTR_BSS_END 0xFF0C1CCC //BSS_END is 0x7EB60
+#define HIJACK_INSTR_BSS_END 0xFF0C1CCC //BSS_END is 0x7EB68
 #define HIJACK_FIXBR_BZERO32 0xFF0C1C30
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1CBC
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1CD8
@@ -56,7 +56,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF7FA094 //dec gui_main_task
+#define GMT_FUNCTABLE 0xFF7FA714 //dec gui_main_task
 
     #define SENSOR_RES_X 5184
     #define SENSOR_RES_Y 3456
@@ -187,8 +187,8 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x369A4) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-#define IMGPLAY_ZOOM_POS_X MEM(0x6EE34) // CentrePos
-#define IMGPLAY_ZOOM_POS_Y MEM(0x6EE34+0x4)
+#define IMGPLAY_ZOOM_POS_X MEM(0x6EE38) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x6EE38+0x4)
     #define IMGPLAY_ZOOM_POS_X_CENTER 0x144
     #define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
     #define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
@@ -201,7 +201,7 @@
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x3DA14+0x2C)
 
 // manual exposure overrides
-#define LVAE_STRUCT 0x7846C
+#define LVAE_STRUCT 0x78474
 #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
 #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
 #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))

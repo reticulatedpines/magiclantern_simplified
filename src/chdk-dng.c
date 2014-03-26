@@ -33,8 +33,8 @@
 #include "property.h"
 #include "math.h"
 #include "string.h"
-#define umalloc alloc_dma_memory
-#define ufree free_dma_memory
+#define umalloc fio_malloc
+#define ufree fio_free
 #define pow powf
 
 static int get_tick_count() { return get_ms_clock_value_fast(); }
@@ -51,7 +51,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define umalloc malloc
 #define ufree free
 
-#define FIO_CreateFileEx(name) fopen(name, "wb")
+#define FIO_CreateFile(name) fopen(name, "wb")
 #define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
 #define FIO_CloseFile(f) fclose(f)
 
@@ -260,7 +260,7 @@ static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
 #else
     exit(1);
 #endif
-    __builtin_unreachable();
+    while(1);
     return -1;
 }
 
@@ -386,7 +386,7 @@ void dng_set_iso(int value)
     exif_data.iso = value;
 }
 
-void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g_d, float gain_b_n, float gain_b_d)
+void dng_set_wbgain(int gain_r_n, int gain_r_d, int gain_g_n, int gain_g_d, int gain_b_n, int gain_b_d)
 {
     cam_AsShotNeutral[0] = gain_r_n;
     cam_AsShotNeutral[1] = gain_r_d;
@@ -750,7 +750,7 @@ int save_dng(char* filename, struct raw_info * raw_info)
     raw_info->jpeg.height = raw_info->height;
     #endif
     
-    FILE* f = FIO_CreateFileEx(filename);
+    FILE* f = FIO_CreateFile(filename);
     if (!f) return 0;
     write_dng(f, raw_info);
     FIO_CloseFile(f);

@@ -32,6 +32,16 @@
 #include "version.h"
 #include "module.h"
 #include "raw.h"
+#include "zebra.h"
+#include "cropmarks.h"
+#include "battery.h"
+#include "lens.h"
+#include "shoot.h"
+#include "hdr.h"
+#include "fps.h"
+#include "picstyle.h"
+#include "focus.h"
+#include "lvinfo.h"
 
 // for movie logging
 static char* mvr_logfile_buffer = 0;
@@ -312,88 +322,6 @@ int raw2iso(int raw_iso)
     else if (iso > 5)
         iso = iso&~1;
     return iso;
-}
-
-//~ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
-
-static void double_buffering_start(int ytop, int height)
-{
-    #ifdef CONFIG_500D // err70
-    return;
-    #endif
-    // use double buffering to avoid flicker
-    bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_H_PLUS - height);
-    memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
-    bmp_draw_to_idle(1);
-}
-
-static void double_buffering_end(int ytop, int height)
-{
-    #ifdef CONFIG_500D // err70
-    return;
-    #endif
-    // done drawing, copy image to main BMP buffer
-    bmp_draw_to_idle(0);
-    bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_H_PLUS - height);
-    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
-    bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
-}
-
-static void ml_bar_clear(int ytop, int height)
-{
-    uint8_t* B = bmp_vram();
-    uint8_t* M = (uint8_t *)get_bvram_mirror();
-    if (!B) return;
-    if (!M) return;
-    int menu = gui_menu_shown();
-    int ymax = MIN(ytop + height, BMP_H_PLUS);
-   
-    for (int y = ytop; y < ymax; y++)
-    {
-        for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x+=4)
-        {
-            uint32_t p = *(uint32_t*)&B[BM(x,y)];
-            uint32_t m = *(uint32_t*)&M[BM(x,y)];
-            uint32_t target = 0;
-           
-            if (RECORDING && y < 100)
-            {
-                for(int byte_pos = 0; byte_pos < 4; byte_pos++)
-                {
-                    uint8_t val = (p >> (8*byte_pos));
-                   
-                    /* is that one red? */
-                    if((val & 0xFF) == COLOR_RED)
-                    {
-                        /* mask out cropmark */
-                        m &= ~(0x80<<(8*byte_pos));
-                    }
-                }
-            }
-           
-            if (menu)
-            {
-                target = (COLOR_BLACK<<24) | (COLOR_BLACK<<16) | (COLOR_BLACK<<8) | (COLOR_BLACK<<0);
-            }
-            else
-            {
-                for(int byte_pos = 0; byte_pos < 4; byte_pos++)
-                {
-                    uint8_t val = (m >> (8*byte_pos));
-                   
-                    /* is that one to draw? */
-                    if(val & 0x80)
-                    {
-                        val &= 0x7F;
-                        target |= (val<<(8*byte_pos));
-                    }
-                }
-            }
-            *(uint32_t*)&B[BM(x,y)] = target;
-        }
-    }
 }
 
 char* get_shootmode_name(int shooting_mode)
@@ -833,14 +761,11 @@ lens_take_picture(
     #if defined(CONFIG_7D)
     /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up when exposure time is >1.x seconds.
      * This causes the camera not to shut down when the card door is opened.
-     * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
+     * There is a workaround: Just wait until shooting is possible again and then reset SW1.
      * Then the camera will shut down clean.
      */
     lens_wait_readytotakepic(64);
-    SW1(1,50);
-    SW1(0,50);
-    SW1(1,50);
-    SW1(0,50);
+    SW1(0,0);
     #endif
 
 end:
@@ -942,7 +867,7 @@ mvr_create_logfile(
         char name[100];
         snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), get_shooting_card()->file_number);
 
-        FILE * mvr_logfile = mvr_logfile = FIO_CreateFileEx( name );
+        FILE * mvr_logfile = mvr_logfile = FIO_CreateFile( name );
         if( mvr_logfile == INVALID_PTR )
         {
             bmp_printf( FONT_MED, 0, 40,
@@ -957,7 +882,7 @@ mvr_create_logfile(
 
         FIO_CloseFile( mvr_logfile );
         
-        free_dma_memory(mvr_logfile_buffer);
+        fio_free(mvr_logfile_buffer);
         mvr_logfile_buffer = 0;
         return;
     }
@@ -966,7 +891,7 @@ mvr_create_logfile(
         return;
 
     // Movie starting
-    mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
+    mvr_logfile_buffer = fio_malloc(MVR_LOG_BUF_SIZE);
 
     snprintf( mvr_logfile_buffer, MVR_LOG_BUF_SIZE,
         "# Magic Lantern %s\n\n",
@@ -1032,6 +957,10 @@ mvr_create_logfile(
         );
     #endif
 
+    /* todo: refactor these with callbacks (these calls are private) */
+    extern void fps_mvr_log(char* mvr_logfile_buffer);
+    extern void hdr_mvr_log(char* mvr_logfile_buffer);
+    extern void bitrate_mvr_log(char* mvr_logfile_buffer);
     fps_mvr_log(mvr_logfile_buffer);
     hdr_mvr_log(mvr_logfile_buffer);
     bitrate_mvr_log(mvr_logfile_buffer);
@@ -1163,12 +1092,17 @@ PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
-    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE
-        #ifdef CONFIG_500D
-        && !is_movie_mode()
-        #endif
-    )
+    else if 
+        (
+            buf[0] && !gui_menu_shown()
+            #if defined(ISO_ADJUSTMENT_ACTIVE) || defined(CONFIG_NO_MANUAL_EXPOSURE_MOVIE)
+            && ISO_ADJUSTMENT_ACTIVE
+            #endif
+        )
     {
+        /* when you adjust ISO from Canon menu, sync expo override too */
+        /* this should work even on cameras without manual exposure control, since it's safeguarded by ISO_ADJUSTMENT_ACTIVE */
+        /* (that's why ISO_ADJUSTMENT_ACTIVE is mandatory for cameras with CONFIG_NO_MANUAL_EXPOSURE_MOVIE, and optional on others) */
         bv_set_rawiso(buf[0]);
     }
     bv_auto_update();
@@ -1225,10 +1159,10 @@ PROP_HANDLER( PROP_SHUTTER )
             && (ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
 
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
-      	#ifdef CONFIG_6D
+        #ifdef CONFIG_6D
         && !(buf[0] == FASTEST_SHUTTER_SPEED_RAW )
         #endif
 
@@ -1248,7 +1182,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
-        #ifdef CONFIG_500D
+        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
         && !is_movie_mode()
         #endif
     )
@@ -1327,7 +1261,7 @@ PROP_HANDLER(PROP_CUSTOM_WB)
 
 void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
 {
-#if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
+#if !defined(CONFIG_VXWORKS)
     // normalize: green gain should be always 1
     //~ gain_G = COERCE(gain_G, 4, 32000);
     //~ gain_R = COERCE(gain_R * 1024 / gain_G, 128, 32000);
@@ -1358,25 +1292,6 @@ int lens_get_##param() \
 { \
     return lens_info.param; \
 } 
-
-//~ LENS_GET(iso)
-//~ LENS_GET(shutter)
-//~ LENS_GET(aperture)
-LENS_GET(ae)
-//~ LENS_GET(kelvin)
-//~ LENS_GET(wbs_gm)
-//~ LENS_GET(wbs_ba)
-
-#define LENS_SET(param) \
-void lens_set_##param(int value) \
-{ \
-    int raw = VALUE2RAW(param,value); \
-    if (raw >= 0) lens_set_raw##param(raw); \
-}
-
-LENS_SET(iso)
-LENS_SET(shutter)
-LENS_SET(aperture)
 
 PROP_INT(PROP_WB_KELVIN_PH, wb_kelvin_ph);
 
@@ -1731,17 +1646,17 @@ static int prop_set_rawaperture_approx(unsigned new_av)
 
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!expo_value_rounding_ok(new_av)) // try to change it by a small amount, so Canon firmware will accept it
+    if (!expo_value_rounding_ok(new_av, 1)) // try to change it by a small amount, so Canon firmware will accept it
     {
         int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
         
-        if (expo_value_rounding_ok(new_av_plus1)) new_av = new_av_plus1;
-        else if (expo_value_rounding_ok(new_av_minus1)) new_av = new_av_minus1;
-        else if (expo_value_rounding_ok(new_av_plus2)) new_av = new_av_plus2;
-        else if (expo_value_rounding_ok(new_av_minus2)) new_av = new_av_minus2;
+        if (expo_value_rounding_ok(new_av_plus1, 1)) new_av = new_av_plus1;
+        else if (expo_value_rounding_ok(new_av_minus1, 1)) new_av = new_av_minus1;
+        else if (expo_value_rounding_ok(new_av_plus2, 1)) new_av = new_av_plus2;
+        else if (expo_value_rounding_ok(new_av_minus2, 1)) new_av = new_av_minus2;
     }
     
     if (ABS((int)new_av - (int)lens_info.raw_aperture) <= 3) // nothing to do :)
@@ -1944,10 +1859,10 @@ static void bv_expsim_shift()
         if (is_bulb_mode()) // try to perform expsim in bulb mode, based on bulb timer setting
         {
             int tv = get_bulb_shutter_raw_equiv() + tv_fps_shift;
-            if (tv < 96)
+            if (tv < SHUTTER_1_30)
             {
-                int delta = 96 - tv;
-                bv_apply_tv(96);
+                int delta = SHUTTER_1_30 - tv;
+                bv_apply_tv(SHUTTER_1_30);
                 bv_expsim_shift_try_iso(bv_iso + delta);
                 return;
             }
@@ -1962,10 +1877,10 @@ static void bv_expsim_shift()
         {
             bv_apply_tv(bv_tv);
 
-            if (bv_tv < 96) // shutter speeds slower than 1/31 -> can't be obtained, raise ISO or open up aperture instead
+            if (bv_tv < SHUTTER_1_30) // shutter speeds slower than 1/30 -> can't be obtained, raise ISO or open up aperture instead
             {
-                int delta = 96 - bv_tv - tv_fps_shift;
-                bv_apply_tv(96);
+                int delta = SHUTTER_1_30 - bv_tv - tv_fps_shift;
+                bv_apply_tv(SHUTTER_1_30);
                 bv_expsim_shift_try_iso(bv_iso + delta);
                 return;
             }
@@ -2475,11 +2390,14 @@ static LVINFO_UPDATE_FUNC(iso_update)
         STR_APPEND(buffer, "D+");
     }
 
+    #ifdef ISO_ADJUSTMENT_ACTIVE
     if (ISO_ADJUSTMENT_ACTIVE)
     {
         item->color_bg = COLOR_LIGHT_BLUE;
     }
-    else if (CONTROL_BV)
+    else
+    #endif
+    if (CONTROL_BV)
     {
         /* mark the "exposure override" mode */
         item->color_bg = 18;

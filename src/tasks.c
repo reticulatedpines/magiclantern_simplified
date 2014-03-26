@@ -11,6 +11,10 @@
 #include "tskmon.h"
 #include "menu.h"
 
+/* for CBRs */
+#include "config.h"
+#include "lens.h"
+
 extern int is_taskid_valid(int, int, void*);
 extern int get_obj_attr(void*, unsigned char*, int, int);
 
@@ -344,6 +348,8 @@ void ml_shutdown()
     restore_af_button_assignment_at_shutdown();
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
+    /* to refactor with CBR */
+    extern int module_shutdown();
     module_shutdown();
 #endif
     info_led_on();

@@ -26,6 +26,8 @@
 #include "lens.h"
 #include "module.h"
 #include "menu.h"
+#include "edmac-memcpy.h"
+#include "imgconv.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -38,9 +40,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
-/* we use a recursive lock because both raw_update_params and raw_lv_request/release need exclusive access, 
- * but raw_update_params may also be called by raw_lv_request */
-static void* raw_lock = 0;
+static struct semaphore * raw_sem = 0;
 
 static int dirty = 0;
 
@@ -541,12 +541,19 @@ static int raw_update_params_work()
         skip_bottom = 0;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
         #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
         skip_bottom = 6;
+        #endif
+
+        #ifdef CONFIG_700D
+        skip_top    = 28;
+        skip_left   = 72;
+        skip_right  = 0;
+        skip_bottom = zoom ? 0 : mv1080crop ? 0 : 4;
         #endif
 
         #ifdef CONFIG_7D
@@ -864,10 +871,12 @@ static int raw_update_params_work()
 
 int raw_update_params()
 {
+    get_yuv422_vram();  /* refresh VRAM parameters */
+    
     int ans = 0;
-    AcquireRecursiveLock(raw_lock, 0);
+    take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
-    ReleaseRecursiveLock(raw_lock);
+    give_semaphore(raw_sem);
     return ans;
 }
 
@@ -884,7 +893,7 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     preview_rect_h = h;
 
     /* note: this will call BMP_LOCK */
-    /* not exactly a good idea when we have already acquired raw_lock */
+    /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
@@ -1471,7 +1480,7 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
     
-    int* lv2rx = SmallAlloc(x2 * 4);
+    int* lv2rx = malloc(x2 * 4);
     if (!lv2rx) return;
     for (int x = x1; x < x2; x++)
         lv2rx[x] = LV2RAW_X(x) & ~1;
@@ -1534,7 +1543,7 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
             lv32[LV(x,y)/4] = yuv;
         }
     }
-    SmallFree(lv2rx);
+    free(lv2rx);
 }
 
 static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
@@ -1563,7 +1572,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
     
-    int* lv2rx = SmallAlloc(x2 * 4);
+    int* lv2rx = malloc(x2 * 4);
     if (!lv2rx) return;
     for (int x = x1; x < x2; x++)
         lv2rx[x] = LV2RAW_X(x) & ~1;
@@ -1596,7 +1605,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
             lv64[idx + vram_lv.pitch/8] = Y;
         }
     }
-    SmallFree(lv2rx);
+    free(lv2rx);
 }
 
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
@@ -1644,6 +1653,10 @@ void FAST raw_preview_fast()
 
 static void raw_lv_enable()
 {
+    /* make sure LiveView is fully started before enabling the raw flag */
+    /* if enabled too early, right after the property is fired, the raw stream may not come up (race condition in Canon code?) */
+    wait_lv_frames(2);
+    
     lv_raw_enabled = 1;
 
 #ifndef CONFIG_EDMAC_RAW_SLURP
@@ -1691,7 +1704,7 @@ static void raw_lv_update()
         
         for (int i = 0; i < 20; i++)
         {
-            if (raw_update_params())
+            if (raw_update_params_work())
                 break;
             msleep(50);
         }
@@ -1729,18 +1742,26 @@ static void raw_lv_update()
 
 void raw_lv_request()
 {
-    AcquireRecursiveLock(raw_lock, 0);
+    /* refresh VRAM parameters */
+    /* the BMP_LOCK is just to make sure this will not conflict with other locks */
+    /* (get_yuv422_vram will only call BMP_LOCK if it has to refresh something, that is, once in a blue moon) */
+    BMP_LOCK( get_yuv422_vram(); )
+
+    /* this one should be called only in LiveView */
+    ASSERT(lv);
+    
+    take_semaphore(raw_sem, 0);
     raw_lv_request_count++;
     raw_lv_update();
-    ReleaseRecursiveLock(raw_lock);
+    give_semaphore(raw_sem);
 }
 void raw_lv_release()
 {
-    AcquireRecursiveLock(raw_lock, 0);
+    take_semaphore(raw_sem, 0);
     raw_lv_request_count--;
     ASSERT(raw_lv_request_count >= 0);
     raw_lv_update();
-    ReleaseRecursiveLock(raw_lock);
+    give_semaphore(raw_sem);
 }
 #endif
 
@@ -1871,10 +1892,7 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
 
 static void raw_init()
 {
-    /* make sure we have a valid set of VRAM parameters (just in case, if we are starting with globaldraw off */
-    get_yuv422_vram();
-    
-    raw_lock = CreateRecursiveLock(0);
+    raw_sem = create_named_semaphore("raw_sem", 1);
 }
 
 INIT_FUNC("raw", raw_init);

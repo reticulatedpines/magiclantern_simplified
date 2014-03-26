@@ -9,7 +9,6 @@
 
 //-------------------------------------------------------------------
 #define RBF_MAX_NAME        64
-#define UBUFFER_SIZE        256 // Amount of uncached memory to allocate for file reading
 
 //-------------------------------------------------------------------
 // Format of header block for each character in the 'font_data' array
@@ -66,5 +65,9 @@ extern int rbf_str_clipped_width(font *rbf_font, const char *str, int maxlen);
 extern int rbf_strlen_clipped(font *rbf_font, const char *str, int maxlen);
 extern int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int cl);
 //-------------------------------------------------------------------
+
+/* to be called at startup, before init funcs */
+void _load_fonts();
+
 #endif
 

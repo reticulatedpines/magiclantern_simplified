@@ -6,6 +6,11 @@
 #include <bmp.h>
 #include <property.h>
 #include <boot-hack.h>
+#include <fps.h>
+#include <zebra.h>
+#include <lens.h>
+#include <config.h>
+#include <lvinfo.h>
 
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
@@ -119,6 +124,7 @@ int handle_other_events(struct event * event)
         if(should_hide)
         {
             #ifdef CONFIG_LVAPP_HACK_RELOC
+            extern void reloc_liveviewapp_install();  /* liveview.c */
             reloc_liveviewapp_install();
             #endif
             
@@ -141,6 +147,8 @@ int handle_other_events(struct event * event)
             #else
             if (UNAVI_FEEDBACK_TIMER_ACTIVE)
             {
+                /* Canon stub */
+                extern void HideUnaviFeedBack_maybe();
                 HideUnaviFeedBack_maybe();
                 bottom_bar_dirty = 0;
             }
@@ -150,6 +158,7 @@ int handle_other_events(struct event * event)
         else
         {
             #ifdef CONFIG_LVAPP_HACK_RELOC
+            extern void reloc_liveviewapp_uninstall();  /* liveview.c */
             reloc_liveviewapp_uninstall();
             #endif
 
@@ -179,7 +188,11 @@ int handle_common_events_startup(struct event * event)
 
     extern int ml_started;
     if (!ml_started)    {
+#ifdef CONFIG_EOSM // EOSM has a combined Q/SET button, SET button event is not sent properly
+        if (event->param == BGMT_INFO) { _disable_ml_startup(); return 0;} // don't load ML
+#else
         if (event->param == BGMT_PRESS_SET) { _disable_ml_startup(); return 0;} // don't load ML
+#endif
         
         if (handle_select_config_file_by_key_at_startup(event) == 0) return 0;
 
@@ -201,8 +214,6 @@ int handle_common_events_startup(struct event * event)
     }
     return 1;
 }
-
-extern int ResumeLiveView();
 
 static int pre_shutdown_requested = 0; // used for preventing wakeup from paused LiveView at shutdown (causes race condition with Canon code and crashes)
 
@@ -638,3 +649,13 @@ void fake_simple_button(int bgmt_code)
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
+static void redraw_after_task(int msec)
+{
+    msleep(msec);
+    redraw();
+}
+
+void redraw_after(int msec)
+{
+    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
+}

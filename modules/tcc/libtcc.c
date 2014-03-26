@@ -196,14 +196,6 @@ PUB_FUNC char *tcc_fileextension (const char *name)
 #undef malloc
 #undef realloc
 
-/*
-#define malloc(len)         memcheck_malloc(len,__FILE__,__LINE__,1)
-#define free(buf)           memcheck_free(buf,1)
-
-#define AllocateMemory(len) memcheck_malloc(len,__FILE__,__LINE__,0)
-#define FreeMemory(buf)     memcheck_free(buf,0)
-*/
-
 #ifdef MEM_DEBUG
 ST_DATA int mem_cur_size;
 ST_DATA int mem_max_size;
@@ -216,14 +208,14 @@ PUB_FUNC void tcc_free(void *ptr)
     mem_cur_size -= malloc_usable_size(ptr);
 #endif
     //~ printf("tcc_free %x\n ", ptr);
-    if (ptr) free_dma_memory(ptr);
+    if (ptr) tmp_free(ptr);
 }
 
 PUB_FUNC void *tcc_malloc(unsigned long size)
 {
     void *ptr;
     //~ printf("tcc_malloc %d\n ", size);
-    ptr = alloc_dma_memory(size);
+    ptr = tmp_malloc(size);
     if (!ptr && size)
         tcc_error("memory full");
 #ifdef MEM_DEBUG

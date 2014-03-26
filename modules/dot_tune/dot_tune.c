@@ -9,6 +9,22 @@
 #include "bmp.h"
 #include "lens.h"
 #include "module.h"
+#include "focus.h"
+#include "shoot.h"
+#include "beep.h"
+#include "zebra.h"
+
+/* afma.c */
+extern void set_afma_mode(int mode);
+extern int get_afma_mode();
+extern int get_afma_max();
+
+/* lens.c */
+extern void restore_af_button_assignment();
+extern void assign_af_button_to_halfshutter();
+
+/* state-object.c */
+extern int display_is_on();
 
 static int AFMA_MAX = 0;
 
@@ -465,9 +481,15 @@ static void afma_auto_tune()
     if (afma_scan_range_index == 0)    { afma_auto_tune_automatic(); }
     else switch( afma_scan_range_index )
     {
-        case 1:    afma_auto_tune_linear(1); // -20 .. +20
-        case 2:    afma_auto_tune_linear(2); // -40 .. +40
-        case 3:    afma_auto_tune_linear(5); // -100 .. +100
+        case 1:
+            afma_auto_tune_linear(1); // -20 .. +20
+            break;
+        case 2:
+            afma_auto_tune_linear(2); // -40 .. +40
+            break;
+        case 3:
+            afma_auto_tune_linear(5); // -100 .. +100
+            break;
     }
 }
 

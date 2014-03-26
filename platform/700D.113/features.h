@@ -1,11 +1,6 @@
-/*
- * Just a copy of the 650D stuff. Indented = WRONG
- */
-
 #include "all_features.h"
 
-//#define FEATURE_LV_3RD_PARTY_FLASH // requires props
-#define FEATURE_EYEFI_TRICKS
+//~ #define FEATURE_LV_3RD_PARTY_FLASH // requires props
 
 // Disable all audio stuff
 #undef FEATURE_WAV_RECORDING
@@ -17,27 +12,18 @@
 // Audio features that work
 #define FEATURE_AUDIO_REMOTE_SHOT
 
-#define FEATURE_ARROW_SHORTCUTS
-
 // Not working :(
 #undef FEATURE_IMAGE_EFFECTS
-#undef FEATURE_DEFISHING_PREVIEW
-#undef FEATURE_ANAMORPHIC_PREVIEW
-
 #undef FEATURE_LV_BUTTON_PROTECT
 #undef FEATURE_LV_BUTTON_RATE
-
 #undef FEATURE_TRAP_FOCUS
-//#undef FEATURE_FLEXINFO
 
 // Glitchy
 #undef FEATURE_STICKY_DOF
 #undef FEATURE_STICKY_HALFSHUTTER
-//~ #undef FLEXINFO_DEVELOPER_MENU - disable from flexinfo.h
 
+// Works
 #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
-//~ #define FEATURE_SHOW_SIGNATURE
-//~ #define FEATURE_SHOW_STATE_FPS
 #define FEATURE_FOCUS_PEAK_DISP_FILTER
-
 #define FEATURE_CROP_MODE_HACK
+#define FEATURE_EYEFI_TRICKS

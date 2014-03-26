@@ -14,4 +14,9 @@ void set_movie_cropmarks(int x, int y, int w, int h);
  * @brief Reset LiveView movie cropmarks
  */
 void reset_movie_cropmarks();
+
+void crop_set_dirty(int redraw_timeout);
+
+int is_valid_cropmark_filename(char* filename);
+
 #endif

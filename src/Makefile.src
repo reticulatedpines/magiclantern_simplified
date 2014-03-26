@@ -78,20 +78,22 @@ ML_INSTALLER_OBJS = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
 	$(PLATFORM_DIR)/stubs.o \
+	installer.o \
 	version.o \
 	fio-ml.o \
-	installer.o \
 	ico.o \
 	bmp.o \
 	rbf_font.o \
 	stdio.o \
-	property.o \
-	propvalues.o \
 	dialog_test.o \
 	bootflags.o \
-	vram.o
+	mem.o \
+	exmem.o \
+	util.o \
 
 ML_OBJS-y += $(ML_INSTALLER_OBJS)
+
+CFLAGS += -DCONFIG_INSTALLER
 
 else ifeq ($(ML_SRC_PROFILE),generic)
 
@@ -112,6 +114,7 @@ ML_SRC_OBJS = \
 	rand.o \
 	posix.o \
 	util.o \
+	imath.o \
 	electronic_level.o \
 	cfn.o \
 	gui.o \
@@ -249,6 +252,7 @@ DIET_OBJ = \
 	strtoul.o \
 	strchr.o \
 	memcmp.o \
+	memmove.o \
 	atoi.o \
 	atol.o \
 

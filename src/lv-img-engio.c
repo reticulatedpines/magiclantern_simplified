@@ -10,6 +10,7 @@
 #include "menu.h"
 #include "config.h"
 #include "math.h"
+#include "fps.h"
 
 //~ #define EngDrvOutLV(reg, value) *(int*)(reg) = value
 
@@ -83,7 +84,7 @@ MENU_UPDATE_FUNC(digic_iso_print_movie)
     int G = 0;
     G = gain_to_ev_scaled(DIGIC_ISO_GAIN_MOVIE, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    int GA = ABS(G);
     
     MENU_SET_VALUE(
         "%s%d.%d EV",
@@ -100,7 +101,7 @@ MENU_UPDATE_FUNC(display_gain_print)
 {
     int G = gain_to_ev_scaled(DIGIC_ISO_GAIN_PHOTO, 8) - 80;
     G = G * 10/8;
-    int GA = abs(G);
+    int GA = ABS(G);
     display_gain_menu_index = GA/10;
 }
 
@@ -151,7 +152,7 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
         if (digic_iso_presets[i] >= *priv) break;
     
     do {
-        i = mod(i + delta, COUNT(digic_iso_presets));
+        i = MOD(i + delta, COUNT(digic_iso_presets));
     } while ((!mv && digic_iso_presets[i] < 1024)
     #ifdef CONFIG_DIGIC_V
     || (mv && digic_iso_presets[i] > 2048) // high display gains not working
@@ -404,7 +405,7 @@ void digic_dump()
         if (size == 0) break;
     }
 
-    FILE* f = FIO_CreateFileEx(log_filename);
+    FILE* f = FIO_CreateFile(log_filename);
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {
@@ -421,7 +422,7 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FILE* f = FIO_CreateFileEx("ML/LOGS/h264.log");
+    FILE* f = FIO_CreateFile("ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {

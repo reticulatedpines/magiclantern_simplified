@@ -625,7 +625,7 @@ static void
 audio_mgain_toggle( void * priv ) //toggle forward for analog gain.
 {
 	unsigned * ptr = priv;
-	*ptr = mod((*ptr + 1), 10);
+	*ptr = MOD((*ptr + 1), 10);
 	audio_configure( 1 );
 }
 
@@ -633,7 +633,7 @@ static void
 audio_mgain_toggle_reverse( void * priv ) //toggle reverse for analog gain.
 {
 	unsigned * ptr = priv;
-	*ptr = mod((*ptr - 1), 10);
+	*ptr = MOD((*ptr - 1), 10);
 	audio_configure( 1 );
 }
 
