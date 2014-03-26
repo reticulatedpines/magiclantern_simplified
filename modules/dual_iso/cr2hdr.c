@@ -1755,7 +1755,7 @@ static int hdr_interpolate()
     static double fullres_curve[1<<20];
     
     const double fullres_start = 4;
-    const double fullres_transition = 3;
+    const double fullres_transition = 4;
     const double fullres_thr = 0.8;
     
     for (i = 0; i < (1<<20); i++)
