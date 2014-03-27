@@ -12,6 +12,10 @@
 #include <config.h>
 #include <lvinfo.h>
 
+#if defined(FEATURE_AF_PATTERNS)
+#include <af_patterns.h>
+#endif
+
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
 #elif defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)

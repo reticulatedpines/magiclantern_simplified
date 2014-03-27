@@ -272,7 +272,6 @@ int handle_fps_events(struct event * event);
 int handle_expo_preset(struct event * event);
 int handle_disp_preset_key(struct event * event);
 int handle_fast_zoom_box(struct event * event);
-int handle_af_patterns(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
