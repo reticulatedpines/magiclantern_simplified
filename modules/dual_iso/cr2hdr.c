@@ -2568,7 +2568,7 @@ static int hdr_interpolate()
 
 
     /* trial and error - too high = aliasing, too low = noisy */
-    int ALIAS_MAP_MAX = 15000;
+    int ALIAS_MAP_MAX = 5000;
     
     if (use_alias_map)
     {
