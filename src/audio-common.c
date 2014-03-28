@@ -439,6 +439,11 @@ compute_audio_levels(
  * \todo Check that we have live-view enabled and the TFT is on
  * before drawing.
  */
+
+#if defined(CONFIG_650D) || defined(CONFIG_700D)
+static int setonce = 0;                         
+#endif
+
 static void
 meter_task( void* unused )
 {
@@ -454,12 +459,26 @@ meter_task( void* unused )
             if(!is_mvr_buffer_almost_full())
             {
                 BMP_LOCK( draw_meters(); )
+                #if defined(CONFIG_650D) || defined(CONFIG_700D)
+                    if (NOT_RECORDING && !setonce)
+                    SoundDevShutDownIn(0);
+                    MEM(0xC092011C) = 6;
+                    SoundDevActiveIn(0);
+                    setonce = 1;
+                    }
+                #endif
             }
-            
+
             if(RECORDING)
+               #if defined(CONFIG_650D) || defined(CONFIG_700D)
             {
-                reconfig_audio = 0;
+                 setonce = 0;
             }
+               #else
+               {
+                 reconfig_audio = 0;
+            }
+               #endif
             else if(!reconfig_audio)
             {
 #if defined(CONFIG_600D) || defined(CONFIG_7D)
@@ -470,7 +489,11 @@ meter_task( void* unused )
         }
         else if(PLAY_OR_QR_MODE || MENU_MODE)
         {
-            reconfig_audio = 0;
+            #if defined(CONFIG_650D) || defined(CONFIG_700D)
+                setonce = 0;
+            #else
+                reconfig_audio = 0;
+            #endif
         }
         
         if(audio_monitoring)
