@@ -349,16 +349,11 @@ void plot_graph_update(plot_coll_t *coll, plot_graph_t *plot)
         {
             uint32_t size = plot->dot_size;
             
-            /* try to limit the circle size so it wont paint outside the plot canvas */
-#if THIS_IS_IMPORTANT_FOR_YOU
-            uint32_t dist_top = y - plot->y;
-            uint32_t dist_bot = plot->y + plot->h - y;
-            uint32_t dist_left = x - plot->x;
-            uint32_t dist_right = plot->x + plot->w - x;
-            int32_t dist_border = MIN(MIN(dist_top, dist_bot), MIN(dist_left, dist_right));
-            size = MIN(dist_border, size);
-#endif
-            fill_circle(x, y, size, plot->color_dots);
+            if( (x - plot->dot_size > plot->x) && (x + plot->dot_size < plot->x + plot->w) && 
+                (y - plot->dot_size > plot->y) && (y + plot->dot_size < plot->y + plot->h))
+            {
+                fill_circle(x, y, size, plot->color_dots);
+            }
         }
 
         plot->last_dot_x = x;
