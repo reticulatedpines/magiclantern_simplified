@@ -29,18 +29,23 @@
 #define COERCE_ABS(i, min, max) if(i < min) { i = (min) - (i - (min)); } if(i > max){ i = (max) - (i - (max)); }
 #define EXCLUDE_RANGE(i, min, max) if(i > min && i < max) { if(i > ((max) - (min)) / 2) i = max; else i = min;}
 
-#define ARK_IDLE 0
+#define ARK_IDLE 0  // reset
 #define ARK_INRO 1
 #define ARK_LOGO 2
 #define ARK_NEW_GAME 3
-#define ARK_GAME_PLAYING 4
+#define ARK_PLAY 4
 
+// is arkanoid active?
 static bool arkanoid_running = 0;
-static bool game_quit;  //semaphore
-static int arkanoid_state = ARK_IDLE;
-static int arkanoid_next_state = ARK_INRO;
-static int cur_elem = 0;
+// should be read only
+static int arkanoid_state = -1;
+// set to whatever you want
+static int arkanoid_next_state = ARK_IDLE;
+// last key pressed
 static int last_key;
+
+
+static int cur_elem = 0;
 static int brick_count;
 static int ball_count;
 static element elem[MAX_ELEMS+1];
@@ -448,7 +453,7 @@ static void ball_ef(element* e){
         
         if (e->y > 460) break;
         
-        if(arkanoid_state == ARK_GAME_PLAYING) {        
+        if(arkanoid_state == ARK_PLAY) {        
             x = (int)e->x;
             y = (int)e->y;
             if(ABS(x - last_x) > e->w || ABS(y - last_y) > e->h) {
@@ -459,7 +464,7 @@ static void ball_ef(element* e){
         }
     }
     
-    if(arkanoid_state == ARK_GAME_PLAYING && e->y > 460) {
+    if(arkanoid_state == ARK_PLAY && e->y > 460) {
         e->deleted = 1;
         if(--ball_count == 0) {
             reset_elems();
@@ -489,24 +494,27 @@ static void arkanoid_task()
     arkanoid_running = 1;
     menu_redraw_blocked = 1;
     last_key = 0;
-    game_quit = 0;
     
     elem[MAX_ELEMS].type = ELEM_END;
     
     TASK_LOOP
     {
-        if(!gui_menu_shown() || game_quit)
-        {
-            break;
-        }
+        // if menu is not shown OR if halfshutter is pressed > quit
+        if(!gui_menu_shown() || last_key == MODULE_KEY_PRESS_HALFSHUTTER) goto quit;
         
+        // pause
+        if(last_key == MODULE_KEY_TRASH) goto frame_skip;
+        
+        // change the state
         if (arkanoid_next_state != arkanoid_state)
         {
-            /* change state */
             switch (arkanoid_next_state)
             {
+                case ARK_IDLE:
                 case ARK_INRO:
                     arkanoid_intro();
+                    // rewrite the AKR_IDLE
+                    arkanoid_next_state = ARK_INRO;
                     break;
                 case ARK_LOGO:
                     arkanoid_logo();
@@ -514,7 +522,7 @@ static void arkanoid_task()
                 case ARK_NEW_GAME:
                     arkanoid_game_init();
                     break;
-                case ARK_GAME_PLAYING:
+                case ARK_PLAY:
                     arkanoid_game_start();
                     break;
             }
@@ -525,8 +533,6 @@ static void arkanoid_task()
         ELEM_LOOP
         (
             handle_fades(e);
-            
-            if((arkanoid_state == ARK_NEW_GAME) || last_key == MODULE_KEY_TRASH) continue;
             
             switch (e->type) {
                 case ELEM_ML: ml_ef(e); break;
@@ -562,9 +568,14 @@ static void arkanoid_task()
             sound_event = 0;
         }
         
+        
+        frame_skip:
+        
         arkanoid_redraw();
         msleep(40);
     }
+    
+    quit:
     
     arkanoid_running = 0;
     menu_redraw_blocked = 0;
@@ -578,10 +589,8 @@ static MENU_SELECT_FUNC(level_select) {
     level += delta;
     level = COERCE(level, 1, 10);
     
-    if (arkanoid_state != ARK_IDLE)
-    {
-        arkanoid_next_state = ARK_LOGO;
-    }
+    // if we are playing reset the game
+    if (arkanoid_state == ARK_PLAY) arkanoid_next_state = ARK_LOGO;
 }
 
 static struct menu_entry arkanoid_menu[] =
@@ -621,25 +630,33 @@ static unsigned int arkanoid_deinit()
 
 static unsigned int arkanoid_keypress(unsigned int key)
 {
-    if(arkanoid_running)
-    {
-        last_key = key;
-        int direction_key_pressed = last_delta();
-        
-        if(last_key == MODULE_KEY_PRESS_HALFSHUTTER)
-        {
-            game_quit = 1;
-        }
-        
-        
-        if (key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
-        {
+    // if arakanoid is not running do nothing
+    if(!arkanoid_running) return 1;
+    
+    // save last key to decide later what we should do
+    last_key = key;
+    
+    switch(key) {
+        // Q and PicStyle reset the game
+        case MODULE_KEY_Q:
+        case MODULE_KEY_PICSTYLE:
             arkanoid_next_state = ARK_IDLE;
-        }
-        else if (direction_key_pressed)
-        {
-            switch (arkanoid_state)
-            {
+            break;
+        
+        // trash pauses the game
+        case MODULE_KEY_TRASH:
+            // implemented in arkanoid_task
+            break;
+        
+        // halfshutter quits the game
+        case MODULE_KEY_PRESS_HALFSHUTTER:
+            // implemented in arkanoid_task
+            break;
+        
+        // arrows control the rest
+        case MODULE_KEY_PRESS_LEFT:
+        case MODULE_KEY_PRESS_RIGHT:        
+            switch(arkanoid_state) {
                 case ARK_INRO:
                     arkanoid_next_state = ARK_LOGO;
                     break;
@@ -647,17 +664,17 @@ static unsigned int arkanoid_keypress(unsigned int key)
                     arkanoid_next_state = ARK_NEW_GAME;
                     break;
                 case ARK_NEW_GAME:
-                    arkanoid_next_state = ARK_GAME_PLAYING;
+                    arkanoid_next_state = ARK_PLAY;
                     break;
-                case ARK_GAME_PLAYING:
+                case ARK_PLAY:
                     /* nothing to do, just keep playing */
                     break;
             }
-        }
-        
-        return 0;
+            break;
     }
-    return 1;
+    
+    return 0;
+    
 }
 
 MODULE_INFO_START()
