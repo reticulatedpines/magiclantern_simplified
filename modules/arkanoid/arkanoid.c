@@ -13,14 +13,14 @@
 #define MAX_ELEMS 512
 #define MAX_Z 1
 
-#define ELEM_END 0
-#define ELEM_NULL 1
-#define ELEM_PAD 2
-#define ELEM_BALL 3
-#define ELEM_BRICK 4
-#define ELEM_FALL_BRICK 5
-#define ELEM_ML 6
-#define ELEM_PRESENT 7
+#define ELEM_END -1
+#define ELEM_NULL 0
+#define ELEM_PAD 1
+#define ELEM_BALL 2
+#define ELEM_BRICK 3
+#define ELEM_FALL_BRICK 4
+#define ELEM_ML 5
+#define ELEM_PRESENT 6
 
 
 #define ELEM_LOOP(code) for(int elem_i = 0; elem[elem_i].type != ELEM_END; elem_i++) { element *e = &elem[elem_i]; code; };
@@ -269,6 +269,7 @@ static void arkanoid_game_init() {
         e->speed = 0;
         set_direction(e, -90);
     }
+    
     generate_level();
 }
 
