@@ -1110,8 +1110,8 @@ static int identify_bright_and_dark_fields(int rggb)
             8  RG RG RG RG  RG RG RG RG            8  rg rg rg rg  rg rg rg rg
     */
 
-    int white = raw_info.white_level/4; /* fixme: we work on 14 bits, but white level is the one for 16 bits here */
-    if (white > 16383) return 0;        /* should be unreachable */
+    /* white level is not yet known, just use a rough guess */
+    int white = 10000;
     
     int w = raw_info.width;
     int h = raw_info.height;
