@@ -545,24 +545,22 @@ static void arkanoid_task()
         
         if (sound)
         {
-            /* play the most important event */
+            // play the most important event
             if (sound_event & SOUND_EVENT_ALL_BALLS_LOST)
             {
                 info_led_on();
-                beep_custom(0, 0, 1);       /* dummy call to wait until last sound was played */
-                beep_custom(1000, 200, 0);  /* but play this sound in background */
+                beep_custom(1000, 200, 0);
                 info_led_off();
             }
             else if (sound_event & SOUND_EVENT_BALL_LOST)
             {
                 info_led_on();
-                beep_custom(0, 0, 1);       /* dummy call to wait until last sound was played */
-                beep_custom(300, 200, 0);   /* but play this sound in background */
+                beep_custom(300, 200, 0);
                 info_led_off();
             }
             else if (sound_event & SOUND_EVENT_COLLISION)
             {
-                /* regular collision; don't mind if it skips a beep */
+                // regular collision
                 beep_custom(20, 750 + rand()%500, 0);
             }
             sound_event = 0;
