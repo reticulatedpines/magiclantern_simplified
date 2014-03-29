@@ -180,7 +180,7 @@ static void generate_level() {
             x += e->w + 5;
         }
         
-        if((rand() % (level * 100)) < 95)y+=22;
+        if((rand() % (level * 100)) < 95) y += 22;
     }
 }
 
@@ -329,18 +329,16 @@ static void hit_test(element *a){
 
 // state transition, to be called only from arkanoid task
 static void arkanoid_logo() {
-    // hide all leave balls
+    // hide all leave balls and count balls
+    int bals = 0;
     ELEM_LOOP(
-        if(e->type != ELEM_BALL) e->fade_delta = -5;
+        if(e->type != ELEM_BALL) e->fade_delta = -2;
+        else bals++;
     )
     
     // add new balls
-    int i = 0;
-    ELEM_LOOP(
-        if(e->type == ELEM_BALL) i++;
-    )
-    i -= LOGO_ARR_LEN + 50;
-    while(i++ < 0){
+    bals -= LOGO_ARR_LEN + 50;
+    while(bals++ < 0){
         element* e = new_ball();
         fade(e, 5);
     }
@@ -352,7 +350,7 @@ static void arkanoid_logo() {
     )
     
     element* closest = &elem[0];
-    for(i = 0; i != LOGO_ARR_LEN; i++){
+    for(int i = 0; i != LOGO_ARR_LEN; i++){
         int dist = INT_MAX;
         ELEM_LOOP
         (
