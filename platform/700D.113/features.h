@@ -10,7 +10,6 @@
 
 // Audio features that work
 #define FEATURE_AUDIO_REMOTE_SHOT
-//#undef FEATURE_AUDIO_METERS //works, but still needs Audio Chip coded
 
 // Not working :(
 #undef FEATURE_IMAGE_EFFECTS
