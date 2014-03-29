@@ -1285,7 +1285,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             if(DISPLAY_REC_INFO_ICON)
             {
                 int32_t fps = fps_get_current_x1000();
-                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t t = ((frame_count + frame_skips) * 1000 + fps/2) / fps;
                 int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
                 /* print the Recording Icon */
                 int rl_color;
@@ -1308,13 +1308,10 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, COLOR_BG_DARK);
                 
                 /* Display the Status */
-                if(!frame_skips)
+                bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
+                if(frame_skips)
                 {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
-                }
-                else
-                {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%d skipped", frame_skips);
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+30, "%d skipped", frame_skips);
                 }
             }
             else if(DISPLAY_REC_INFO_DEBUG)
