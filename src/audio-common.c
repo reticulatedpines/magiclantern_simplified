@@ -461,10 +461,13 @@ meter_task( void* unused )
                 BMP_LOCK( draw_meters(); )
                 #if defined(CONFIG_650D) || defined(CONFIG_700D)
                     if (NOT_RECORDING && !setonce)
-                    SoundDevShutDownIn(0);
-                    MEM(0xC092011C) = 6;
-                    SoundDevActiveIn(0);
-                    setonce = 1;
+                    }
+                     void SoundDevShutDownIn();
+                     SoundDevShutDownIn(0);
+                     MEM(0xC092011C) = 6;
+                     void SoundDevActiveIn (uint32_t);
+                     SoundDevActiveIn(0);
+                     setonce = 1;
                     }
                 #endif
             }
