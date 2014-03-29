@@ -11,7 +11,6 @@
 
 // Audio features working
 #define FEATURE_AUDIO_REMOTE_SHOT // generic enabled until AudioIC is programmed
-//#undef FEATURE_AUDIO_METERS //works, but still needs Audio Chip coded
 
 //~ #undef FEATURE_ARROW_SHORTCUTS
 
