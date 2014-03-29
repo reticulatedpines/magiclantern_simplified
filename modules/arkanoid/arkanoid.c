@@ -247,7 +247,7 @@ static void reset_elems() {
     cur_elem = 0;
 }
 
-/* state transition, to be called only from arkanoid task */
+// state transition, to be called only from arkanoid task
 static void arkanoid_game_init(){
     brick_count = ball_count = 0;
     
@@ -274,7 +274,7 @@ static void arkanoid_game_init(){
     generate_level();
 }
 
-/* state transition, to be called only from arkanoid task */
+// state transition, to be called only from arkanoid task
 static void arkanoid_game_start() {
     ELEM_LOOP (
         if(elem_i == 0) continue;
@@ -326,7 +326,7 @@ static void hit_test(element *a){
     )
 }
 
-/* state transition, to be called only from arkanoid task */
+// state transition, to be called only from arkanoid task
 static void arkanoid_logo() {
     //hide text or pad
     elem[0].fade_delta = -5;
@@ -371,7 +371,7 @@ static void arkanoid_logo() {
     }
 }
 
-/* state transition, to be called only from arkanoid task */
+// state transition, to be called only from arkanoid task
 static void arkanoid_intro(){
     reset_elems();
     
