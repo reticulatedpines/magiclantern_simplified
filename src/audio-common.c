@@ -439,16 +439,15 @@ compute_audio_levels(
  * \todo Check that we have live-view enabled and the TFT is on
  * before drawing.
  */
-
-#if defined(CONFIG_650D) || defined(CONFIG_700D)
-static int setonce = 0;                         
-#endif
-
 static void
 meter_task( void* unused )
 {
     /* some models require the audio to be enabled using audio_configure() */
+    #if defined(CONFIG_650D) || defined(CONFIG_700D)
+    int reconfig_audio = 0;
+    #else
     int reconfig_audio = 1;
+    #endif
 
     TASK_LOOP
     {
@@ -459,42 +458,29 @@ meter_task( void* unused )
             if(!is_mvr_buffer_almost_full())
             {
                 BMP_LOCK( draw_meters(); );
-                #if defined(CONFIG_650D) || defined(CONFIG_700D)
-                if (NOT_RECORDING && !setonce)
-                {
-                    void SoundDevShutDownIn();
-                    SoundDevShutDownIn(0);
-                    MEM(0xC092011C) = 6;
-                    void SoundDevActiveIn (uint32_t);
-                    SoundDevActiveIn(0);
-                    setonce = 1;
-                }
-                #endif
             }
 
             if(RECORDING)
             {
-                #if defined(CONFIG_650D) || defined(CONFIG_700D)
-                setonce = 0;
-                #else
                 reconfig_audio = 0;
-                #endif
             }
             else if(!reconfig_audio)
             {
                 #if defined(CONFIG_600D) || defined(CONFIG_7D)
                 audio_configure(1);
+                #elif defined(CONFIG_650D) || defined(CONFIG_700D)
+                void SoundDevShutDownIn();
+                SoundDevShutDownIn(0);
+                MEM(0xC092011C) = 6;
+                void SoundDevActiveIn (uint32_t);
+                SoundDevActiveIn(0);
                 #endif
                 reconfig_audio = 1;
             }
         }
         else if(PLAY_OR_QR_MODE || MENU_MODE)
         {
-            #if defined(CONFIG_650D) || defined(CONFIG_700D)
-            setonce = 0;
-            #else
             reconfig_audio = 0;
-            #endif
         }
         
         if(audio_monitoring)
