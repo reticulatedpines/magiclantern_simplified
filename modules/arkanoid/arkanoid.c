@@ -94,39 +94,39 @@ static void arkanoid_draw_elem(element * e, int x, int y, int z, int color)
 }
 static void arkanoid_redraw()
 {
-        int z;
+    int z;
 
-        /* erase elements that changed their position (to minimize flicker) */
-        for(z = 0; z <= MAX_Z; z++) {
-            ELEM_LOOP
-            (
-                if (e->old_x != e->x || e->old_y != e->y)
-                {
-                    arkanoid_draw_elem(e, e->old_x, e->old_y, z, 0);
-                }
-            )
-        }
+    /* erase elements that changed their position (to minimize flicker) */
+    for(z = 0; z <= MAX_Z; z++) {
+        ELEM_LOOP
+        (
+            if (e->old_x != e->x || e->old_y != e->y)
+            {
+                arkanoid_draw_elem(e, e->old_x, e->old_y, z, 0);
+            }
+        )
+    }
 
-        for(z = 0; z <= MAX_Z; z++) {
-            ELEM_LOOP
-            (
-                if (e->deleted)
-                {
-                    /* remove deleted elements from simulation */
-                    e->type = ELEM_NULL;
-                    e->deleted = 0;
-                    continue;
-                }
-                
-                /* draw each element */
-                arkanoid_draw_elem(e, e->x, e->y, z, e->color);
-                
-                /* keep track of old position */
-                e->old_x = e->x;
-                e->old_y = e->y;
-            )
-        }
-        //bmp_printf(FONT_LARGE, 0, 0, "%d", cur_elem);
+    for(z = 0; z <= MAX_Z; z++) {
+        ELEM_LOOP
+        (
+            if (e->deleted)
+            {
+                /* remove deleted elements from simulation */
+                e->type = ELEM_NULL;
+                e->deleted = 0;
+                continue;
+            }
+            
+            /* draw each element */
+            arkanoid_draw_elem(e, e->x, e->y, z, e->color);
+            
+            /* keep track of old position */
+            e->old_x = e->x;
+            e->old_y = e->y;
+        )
+    }
+    //bmp_printf(FONT_LARGE, 0, 0, "%d", cur_elem);
 }
 
 
