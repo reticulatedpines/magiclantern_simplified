@@ -92,6 +92,7 @@ static void arkanoid_draw_elem(element * e, int x, int y, int z, int color)
     }
     //bmp_printf(FONT_MED, (int)e->x, (int)e->y, "%d", e->c1);
 }
+
 static void arkanoid_redraw()
 {
     int z;
@@ -130,7 +131,8 @@ static void arkanoid_redraw()
 }
 
 
-static  element* new_elem(int type){
+static element* new_elem(int type){
+    // well this is not the best
     cur_elem = COERCE(cur_elem, 0, MAX_ELEMS-1);
     memset(&elem[cur_elem], 0, sizeof(element));
     elem[cur_elem].type = type;
@@ -172,8 +174,6 @@ static void generate_level() {
             e->h = 40;
             e->c1 = i;
             fade(e, 1 + (rand() % 5));
-            
-            if(cur_elem == MAX_ELEMS)return;
             
             x += e->w + 5;
         }
@@ -241,14 +241,12 @@ static void handle_fades(element *e) {
 }
 
 static void reset_elems() {
-    ELEM_LOOP(
-        e->type = e->fade_delta = e->fade = 0;
-    )
+    memset(elem, 0, sizeof(elem));
     cur_elem = 0;
 }
 
 // state transition, to be called only from arkanoid task
-static void arkanoid_game_init(){
+static void arkanoid_game_init() {
     brick_count = ball_count = 0;
     
     reset_elems();
@@ -328,18 +326,15 @@ static void hit_test(element *a){
 
 // state transition, to be called only from arkanoid task
 static void arkanoid_logo() {
-    // hide text or pad
-    elem[0].fade_delta = -5;
-    
-    // hide bricks
+    // hide all leave balls
     ELEM_LOOP(
-        if(e->type == ELEM_BRICK) e->fade_delta = -10;
+        if(e->type != ELEM_BALL) e->fade_delta = -5;
     )
     
     // add new balls
     int i = 0;
     ELEM_LOOP(
-        if(e->type == ELEM_BALL)i++;
+        if(e->type == ELEM_BALL) i++;
     )
     i -= LOGO_ARR_LEN + 50;
     while(i++ < 0){
