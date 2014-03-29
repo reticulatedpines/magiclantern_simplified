@@ -134,7 +134,7 @@ static  element* new_elem(int type){
     cur_elem = COERCE(cur_elem, 0, MAX_ELEMS-1);
     memset(&elem[cur_elem], 0, sizeof(element));
     elem[cur_elem].type = type;
-    elem[cur_elem+1].type = ELEM_END;
+    elem[cur_elem + 1].type = ELEM_END;
     return &elem[cur_elem++];
 }
 
@@ -328,15 +328,15 @@ static void hit_test(element *a){
 
 // state transition, to be called only from arkanoid task
 static void arkanoid_logo() {
-    //hide text or pad
+    // hide text or pad
     elem[0].fade_delta = -5;
     
-    //hide bricks
+    // hide bricks
     ELEM_LOOP(
-        if(e->type == ELEM_BRICK)e->fade_delta = -10;
+        if(e->type == ELEM_BRICK) e->fade_delta = -10;
     )
     
-    //add new balls
+    // add new balls
     int i = 0;
     ELEM_LOOP(
         if(e->type == ELEM_BALL)i++;
@@ -347,7 +347,7 @@ static void arkanoid_logo() {
         fade(e, 5);
     }
     
-    //logo assoc
+    // logo assoc
     ELEM_LOOP(
         if(e->type != ELEM_BALL)continue;
         e->c1 = -1;
