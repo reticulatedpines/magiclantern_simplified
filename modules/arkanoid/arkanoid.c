@@ -390,26 +390,27 @@ static void arkanoid_intro(){
 
 
 static void ml_ef(element* e){
-    if(arkanoid_state != ARK_INRO)return;
+    if(arkanoid_state != ARK_INRO) return;
     
     element* b = new_ball();
     fade(b, 2);
     
-    if(e->fade == 100)e->fade_delta*=-1;
+    if(e->fade == 100) e->fade_delta *= -1;
     
-    if(e->fade == -1){
+    if(e->fade == -1) {
         e->type = ELEM_PRESENT;
         fade(e, 4);
     }
 }
 
 static void present_ef(element* e){
-    if(arkanoid_state != ARK_INRO)return;
+    if(arkanoid_state != ARK_INRO) return;
     
     element* b = new_ball();
     fade(b, 2);
 
-    if(e->fade == 100)e->fade_delta*=-1;
+    if(e->fade == 100) e->fade_delta *= -1;
+    
     if(e->fade == -1) arkanoid_next_state = ARK_LOGO;
 }
 
