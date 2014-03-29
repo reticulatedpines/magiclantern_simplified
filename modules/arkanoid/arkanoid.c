@@ -175,6 +175,8 @@ static void generate_level() {
             e->c1 = i;
             fade(e, 1 + (rand() % 5));
             
+            if(cur_elem == MAX_ELEMS) return;
+            
             x += e->w + 5;
         }
         
