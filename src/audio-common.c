@@ -444,7 +444,7 @@ meter_task( void* unused )
 {
     /* some models require the audio to be enabled using audio_configure() */
     #if defined(CONFIG_650D) || defined(CONFIG_700D)
-    int reconfig_audio = 0;
+    int reconfig_audio = 0; // Needed to turn on Audio IC at boot, maybe neeed for EOSM and 100D
     #else
     int reconfig_audio = 1;
     #endif
