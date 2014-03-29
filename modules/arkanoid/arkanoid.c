@@ -345,7 +345,7 @@ static void arkanoid_logo() {
     
     // logo assoc
     ELEM_LOOP(
-        if(e->type != ELEM_BALL)continue;
+        if(e->type != ELEM_BALL) continue;
         e->c1 = -1;
     )
     
@@ -427,15 +427,15 @@ static void ball_ef(element* e){
         plusY = logo_arr[e->c1][1] - e->y;
         e->x += plusX * 0.1;
         e->y += plusY * 0.1;
-        if(!(rand()%10))set_direction(e, rand() % 360);
+        if(!(rand()%10)) set_direction(e, rand() % 360);
     }
     
-    //collisions and speed
+    // collisions and speed
     int i = 0;
     int x, y;
     int last_x = INT_MAX;
     int last_y = INT_MAX;
-    while(++i){
+    while(++i) {
         if(i >= e->speed) {
             i--; //add decimals
             e->x += e->deltaX * (e->speed - i);
@@ -447,8 +447,6 @@ static void ball_ef(element* e){
         e->x += e->deltaX;
         e->y += e->deltaY;
         ball_coerce(e);
-        
-        if (e->y > 460) break;
         
         if(arkanoid_state == ARK_PLAY) {        
             x = (int)e->x;
