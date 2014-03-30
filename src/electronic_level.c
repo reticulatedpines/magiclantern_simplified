@@ -42,9 +42,9 @@ static void draw_electronic_level(int angle, int prev_angle, int force_redraw)
     int y0 = os.y0 + os.y_ex/2;
     int r = 200;
     draw_angled_line(x0, y0, r, prev_angle, 0);
-    draw_angled_line(x0+1, y0+1, r, prev_angle, 0);
+    draw_angled_line(x0, y0+1, r, prev_angle, 0);
     draw_angled_line(x0, y0, r, angle, (angle % 900) ? COLOR_BLACK : COLOR_GREEN1);
-    draw_angled_line(x0+1, y0+1, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
+    draw_angled_line(x0, y0+1, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
 }
 
 void disable_electronic_level()
