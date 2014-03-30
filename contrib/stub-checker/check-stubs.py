@@ -3,7 +3,6 @@
 import argparse
 import re
 import sys
-from termcolor import colored
 
 def isStub(string):
     string = string.strip()
@@ -67,6 +66,12 @@ def __get_args():
     return parser.parse_args()
 
 if __name__ == '__main__':
+    forceNoColor = False
+    try:
+        from termcolor import colored
+    except ImportError:
+        print("Module termcolor missing, no color support will be available")
+        forceNoColor = True
     
     args = __get_args()
 
@@ -107,7 +112,7 @@ if __name__ == '__main__':
             message = ""
 
         if(warning):
-            if(args.no_colors):
+            if(args.no_colors or forceNoColor):
                 print(message + " [!!!]")
             else:
                 print(colored(message, 'yellow', attrs=['reverse']))

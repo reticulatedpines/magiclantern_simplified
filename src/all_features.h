@@ -186,11 +186,6 @@
 
     #define FEATURE_SNAP_SIM
 
-
-#ifdef CONFIG_RAW_PHOTO
-    #define FEATURE_POST_DEFLICKER
-#endif
-
 /** Focus menu **/
     #define FEATURE_TRAP_FOCUS
 
