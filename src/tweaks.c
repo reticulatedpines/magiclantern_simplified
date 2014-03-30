@@ -965,10 +965,14 @@ static void play_zoom_center_pos_update()
 
 #endif // FEATURE_QUICK_ZOOM
 
+static int joke_mode = 0;
+
 static void
 tweak_task( void* unused)
 {
-    //~ do_movie_mode_remap();
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    joke_mode = (now.tm_mday == 1 && now.tm_mon == 3);
     
     extern void movtweak_task_init();
     movtweak_task_init();
@@ -2293,8 +2297,6 @@ static int is_adjusting_wb()
     return 0;
 }
 #endif
-
-int joke_mode = 0;
 
 static void preview_contrast_n_saturation_step()
 {
