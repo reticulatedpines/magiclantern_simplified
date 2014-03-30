@@ -58,6 +58,9 @@
 
         if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c8) // SD mode 1
             return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c8);
+            
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c0) // SD 700D
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c0);
 
         // something else - new camera? return it unchanged (failsafe)
         ASSERT(0);

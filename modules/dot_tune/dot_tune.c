@@ -481,9 +481,15 @@ static void afma_auto_tune()
     if (afma_scan_range_index == 0)    { afma_auto_tune_automatic(); }
     else switch( afma_scan_range_index )
     {
-        case 1:    afma_auto_tune_linear(1); // -20 .. +20
-        case 2:    afma_auto_tune_linear(2); // -40 .. +40
-        case 3:    afma_auto_tune_linear(5); // -100 .. +100
+        case 1:
+            afma_auto_tune_linear(1); // -20 .. +20
+            break;
+        case 2:
+            afma_auto_tune_linear(2); // -40 .. +40
+            break;
+        case 3:
+            afma_auto_tune_linear(5); // -100 .. +100
+            break;
     }
 }
 

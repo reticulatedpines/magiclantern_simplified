@@ -571,7 +571,7 @@ void find_and_fix_cold_pixels(int fix, int framenumber)
             for (x = 6; x < w-6; x ++)
             {
                 int p = raw_get_pixel(x, y);
-                int is_cold = (p == 0);
+                int is_cold = (p < raw_info.black_level - 500);
 
                 if (is_cold && cold_pixels < MAX_COLD_PIXELS) /*generate a list containing the cold pixels*/
                 {

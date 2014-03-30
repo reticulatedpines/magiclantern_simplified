@@ -16,3 +16,5 @@
 /* Audio Features */
 #define FEATURE_HEADPHONE_MONITORING
 #define FEATURE_AUDIO_METERS
+
+#define FEATURE_GPS_TWEAKS

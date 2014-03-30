@@ -53,7 +53,7 @@ NSTUB(0xFF1FD2B8, _FIO_FindFirstEx)
 NSTUB(0xFF1FC800, _FIO_GetFileSize)
 NSTUB(0xFF1FC224, _FIO_OpenFile)
 NSTUB(0xFF1FC38C, _FIO_RemoveFile)
-// NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(0xFF0455B4, _FIO_RenameFile)   // not sure it is ceresFIORename   /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI **/
 NSTUB(    0x1BF4,  gui_main_struct)
@@ -64,10 +64,10 @@ NSTUB(0xFF0A8738,  SetGUIRequestMode)
 NSTUB(0xFF022680,  gui_init_end)
 NSTUB(0xFF021B44,  gui_main_task)
 NSTUB(0xFF0A9384,  gui_massive_event_loop)
-// NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
+NSTUB(0xFF237724,  GUI_SetLvMode)                         
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
-// NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
+NSTUB(0xFF237858,  Gui_SetSoundRecord)                      // WRONG NAME: it should be Gui_SetSoundRec
 
 /** ASIF **/
 NSTUB(0xFF07365C,  PowerAudioOutput)
@@ -81,7 +81,7 @@ NSTUB(0xFF061A88,  StartASIFDMAADC)
 NSTUB(0xFF061C44,  StartASIFDMADAC)
 NSTUB(0xFF061C08,  StopASIFDMAADC)                          // Called by SoundDevStopIn
 NSTUB(0xFF061D20,  StopASIFDMADAC)
-// NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
+NSTUB(0xFF237A90,  SetAudioVolumeIn)                        // WRONG NAME: it should be SetAudioVolume
 
 /** Audio **/
 NSTUB(    0x1F54,  sounddev)
@@ -127,8 +127,8 @@ NSTUB(0xFF35DF58,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER
 NSTUB(0xFF41E17C,  StartPlayProtectGuideApp)
 NSTUB(0xFF41DDE0,  StopPlayProtectGuideApp)
 // NSTUB(    ???,  HideUnaviFeedBack_maybe)                 /* present on 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
-// NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+NSTUB(0xFF347E6C,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
+NSTUB(0xFF348D94,  LiveViewApp_handler_end)                 
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
 // NSTUB(    ???,  LiveViewShutterApp_handler)              /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  LiveViewWifiApp_handler)                 /* present on 6D.113 */
@@ -187,14 +187,14 @@ NSTUB(0xFF0AC000,  gui_init_event)
 NSTUB(0xFF0AB1C0,  gui_local_post)
 NSTUB(0xFF0AB5DC,  gui_other_post)
 NSTUB(0xFF07B708,  gui_timer_something)
-// NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
+NSTUB(0xFF0AB858,  gui_post_10000085)                      
 
 /** H264 Encoder **/
 NSTUB(    0xA39C,  mvr_config)
 NSTUB(0xFF1E0E04,  mvrFixQScale)
 NSTUB(0xFF1E08E0,  mvrSetDefQScale)
-// NSTUB(    ???,  mvrSetFullHDOptSize)                     /* present on 500D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
-// NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
+NSTUB(0xFF1E0918,  mvrSetFullHDOptSize)     
+NSTUB(0xFF1E0B08,  mvrSetGopOptSizeFULLHD)              
 
 /** Interrupts **/
 NSTUB(    0x1940,  post_isr_hook)
@@ -204,7 +204,7 @@ NSTUB(    0x193C,  pre_isr_hook)
 
 /** LCD Sensor **/
 NSTUB(0xFF202814,  LightMeasure_n_Callback_r0)
-// NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
+NSTUB(0xFF08E350,  DispSensorStart)                       
 
 /** Making the card bootable **/
 NSTUB(   0x22938,  cf_device)
@@ -230,7 +230,7 @@ NSTUB(0xFF205C70,  msg_queue_receive)
 
 /** PTP **/
 NSTUB(0xFF2885CC,  ptp_register_handler)
-// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
+NSTUB(0xFF15FC84,  ptpPropSetUILock)                       
 
 /** Properties **/
 NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
@@ -282,7 +282,7 @@ NSTUB(0xFF06E8B0,  EnableImagePhysicalScreenParameter)
 NSTUB(0xFF075210,  LoadCalendarFromRTC)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF209670,  vsnprintf)
-// NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
+NSTUB(0xFF5517B0,  lv_path_struct)                         
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
