@@ -8,7 +8,6 @@
 #undef FEATURE_FPS_WAV_RECORD
 #undef FEATURE_VOICE_TAGS
 #undef FEATURE_BEEP //works, but messes up module menu
-#undef FEATURE_AUDIO_METERS // works, but cam not stable yet
 
 // Audio features working
 #define FEATURE_AUDIO_REMOTE_SHOT // generic enabled until AudioIC is programmed
