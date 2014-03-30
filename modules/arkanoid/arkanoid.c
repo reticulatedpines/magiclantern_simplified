@@ -234,7 +234,7 @@ static element* new_ball(){
 }
 
 static void handle_fades(element *e) {
-    if(!e->fade_delta)return;
+    if(!e->fade_delta) return;
     
     e->color = COLOR_GRAY(e->fade);
     e->fade += e->fade_delta;
@@ -245,6 +245,7 @@ static void handle_fades(element *e) {
 static void reset_elems() {
     memset(elem, 0, sizeof(elem));
     cur_elem = 0;
+    elem[cur_elem].type = ELEM_END;
 }
 
 // state transition, to be called only from arkanoid task
@@ -279,7 +280,7 @@ static void arkanoid_game_init() {
 static void arkanoid_game_start() {
     ELEM_LOOP (
         if(elem_i == 0) continue;
-        if(e->type!=ELEM_BALL)break;
+        if(e->type != ELEM_BALL) break;
         e->speed = 5 + (level * 5);
     )
 }
