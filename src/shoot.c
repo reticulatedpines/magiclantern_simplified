@@ -2394,7 +2394,7 @@ static void zoom_halfshutter_step()
         if (hs && lv_dispsize == 1 && display_idle())
         {
             #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
-            msleep(200);
+            msleep(500);
             #else
             msleep(50);
             #endif
