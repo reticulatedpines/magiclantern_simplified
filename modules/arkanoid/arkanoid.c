@@ -147,7 +147,12 @@ static int last_delta(){
 }
 
 static void fade(element *e, int fade_delta){
-    e->fade = e->fade_delta = fade_delta;
+    e->fade_delta = fade_delta;
+}
+
+static void fade_set(element *e, int fade_delta, int start){
+    e->fade_delta = fade_delta;
+    e->fade = start;
 }
 
 static void generate_level() {
@@ -234,12 +239,13 @@ static element* new_ball(){
 }
 
 static void handle_fades(element *e) {
-    if(!e->fade_delta) return;
+    if(e->fade_delta == 0) return;
     
-    e->color = COLOR_GRAY(e->fade);
     e->fade += e->fade_delta;
-    if(e->fade < 0 || e->fade > 100)e->fade_delta = 0;
-    e->fade = COERCE(e->fade, -1, 100);
+    e->fade = COERCE(e->fade, 0, 100);
+    e->color = COLOR_GRAY(e->fade);
+    
+    if(e->fade == 0 || e->fade == 100) e->fade_delta = 0;
 }
 
 static void reset_elems() {
@@ -333,7 +339,7 @@ static void arkanoid_logo() {
     // hide all leave balls and count balls
     int bals = 0;
     ELEM_LOOP(
-        if(e->type != ELEM_BALL) e->fade_delta = -2;
+        if(e->type != ELEM_BALL) fade(e, -10);
         else bals++;
     )
     
@@ -392,9 +398,9 @@ static void ml_ef(element* e){
     element* b = new_ball();
     fade(b, 2);
     
-    if(e->fade == 100) e->fade_delta *= -1;
+    if(e->fade == 100) fade(e, -2);
     
-    if(e->fade == -1) {
+    if(e->fade == 0) {
         e->type = ELEM_PRESENT;
         fade(e, 4);
     }
@@ -404,11 +410,11 @@ static void present_ef(element* e){
     if(arkanoid_state != ARK_INRO) return;
     
     element* b = new_ball();
-    fade(b, 2);
+    fade(b, 3);
 
-    if(e->fade == 100) e->fade_delta *= -1;
+    if(e->fade == 100) fade(e, -3);
     
-    if(e->fade == -1) arkanoid_next_state = ARK_LOGO;
+    if(e->fade == 0) arkanoid_next_state = ARK_LOGO;
 }
 
 static void ball_coerce(element* e){
