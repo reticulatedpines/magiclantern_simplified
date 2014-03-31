@@ -469,11 +469,8 @@ meter_task( void* unused )
                 #if defined(CONFIG_600D) || defined(CONFIG_7D)
                 audio_configure(1);
                 #elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
-                void SoundDevShutDownIn();
-                SoundDevShutDownIn(0);
-                MEM(0xC092011C) = 6;
-                void SoundDevActiveIn (uint32_t);
-                SoundDevActiveIn(0);
+                void PowerMicAmp();
+                PowerMicAmp(0);
                 #endif
                 reconfig_audio = 1;
             }
