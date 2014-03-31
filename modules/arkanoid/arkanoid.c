@@ -479,6 +479,7 @@ static void ball_ef(element* e){
 }
 
 static void pad_ef(element* e){
+    if(arkanoid_state != ARK_PLAY) return;
     e->x = COERCE(e->x + last_delta() * e->speed, 0, 720 - e->w);
 }
 
