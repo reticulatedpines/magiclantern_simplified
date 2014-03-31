@@ -285,8 +285,7 @@ static void arkanoid_game_init() {
 // state transition, to be called only from arkanoid task
 static void arkanoid_game_start() {
     ELEM_LOOP (
-        if(elem_i == 0) continue;
-        if(e->type != ELEM_BALL) break;
+        if(e->type != ELEM_BALL) continue;
         e->speed = 5 + (level * 5);
     )
 }
