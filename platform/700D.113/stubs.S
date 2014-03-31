@@ -74,6 +74,7 @@ NSTUB(0xFF1C7190,  gui_massive_event_loop)
 
 /** ASIF **/
 NSTUB(0xFF134430,  PowerAudioOutput)
+NSTUB(0xFF134024,  PowerMicAmp)
 NSTUB(0xFF132598,  SetAudioVolumeOut)                       // keep volume
 NSTUB(0xFF109720,  SetNextASIFADCBuffer)
 NSTUB(0xFF1097D4,  SetNextASIFDACBuffer)
