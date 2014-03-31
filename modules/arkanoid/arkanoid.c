@@ -423,54 +423,53 @@ static void ball_ef(element* e){
     float plusX;
     float plusY;
     
+    // logo assoc
     if(arkanoid_state == ARK_LOGO && e->c1 != -1) {
         plusX = logo_arr[e->c1][0] - e->x;
         plusY = logo_arr[e->c1][1] - e->y;
         e->x += plusX * 0.1;
         e->y += plusY * 0.1;
-        if(!(rand()%10)) set_direction(e, rand() % 360);
+        if(!( rand() % 2)) set_direction(e, rand() % 360);
     }
     
-    // collisions and speed
-    int i = 0;
+    // movement is computed as deltaX/Y (sin cos (-1, +1) ) * number of steps (speed)
+    float step = (float)e->speed;
     int x, y;
     int last_x = INT_MAX;
     int last_y = INT_MAX;
-    while(++i) {
-        if(i >= e->speed) {
-            i--; //add decimals
-            e->x += e->deltaX * (e->speed - i);
-            e->y += e->deltaY * (e->speed - i);
-            ball_coerce(e);
-            break;
-        }
+    while(step-- > 0) {
         
-        e->x += e->deltaX;
-        e->y += e->deltaY;
+        float cur_step = step < 1 ? step : 1;
+        
+        e->x += e->deltaX * cur_step;
+        e->y += e->deltaY * cur_step;
+        
         ball_coerce(e);
         
-        if(arkanoid_state == ARK_PLAY) {        
+        // collision only and ball lose in gameplay
+        if(arkanoid_state == ARK_PLAY) {
             x = (int)e->x;
             y = (int)e->y;
+            
             if(ABS(x - last_x) > e->w || ABS(y - last_y) > e->h) {
                 hit_test(e);
                 last_y = y;
                 last_x = x;
             }
+            
+            if(e->y > 460) {
+                e->deleted = 1;
+                if(--ball_count == 0) {
+                    arkanoid_next_state = ARK_LOGO;
+                    sound_event |= SOUND_EVENT_ALL_BALLS_LOST;
+                }
+                else
+                {
+                    sound_event |= SOUND_EVENT_BALL_LOST;
+                }
+                break;
+            }
         }
-    }
-    
-    if(arkanoid_state == ARK_PLAY && e->y > 460) {
-        e->deleted = 1;
-        if(--ball_count == 0) {
-            reset_elems();
-            arkanoid_next_state = ARK_LOGO;
-            sound_event |= SOUND_EVENT_ALL_BALLS_LOST;
-       }
-       else
-       {
-            sound_event |= SOUND_EVENT_BALL_LOST;
-       }
     }
 }
 
