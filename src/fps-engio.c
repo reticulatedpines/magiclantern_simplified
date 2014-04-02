@@ -637,9 +637,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
     restore_sound_recording();
 }
-#ifdef CONFIG_7D
-static int stopping=0;
-#endif
+
 PROP_HANDLER(PROP_MVR_REC_START)
 {
     if (!buf[0] && !lv)
@@ -651,11 +649,10 @@ PROP_HANDLER(PROP_MVR_REC_START)
 #endif
 #ifdef CONFIG_7D
 #ifdef FEATURE_FPS_OVERRIDE
-	if (buf[0] == 0 && stopping == 1)
+	if (buf[0] == 0)
     {
         msleep(500);
         fps_override = 1;
-        stopping = 0;
     }
 #endif
 #endif
