@@ -1553,7 +1553,7 @@ static void fps_task()
     TASK_LOOP
     {
         #ifdef CONFIG_7D
-        buf = _alloc_dma_memory(sizeof(uint32_t));
+        buf = fio_malloc(sizeof(uint32_t));
         #endif
         #ifdef FEATURE_FPS_RAMPING
         if (FPS_RAMP) 
