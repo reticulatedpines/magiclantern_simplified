@@ -42,9 +42,6 @@
 #include "fps.h"
 #include "shoot.h"
 
-#if defined(CONFIG_7D)
-#include "ml_rpc.h"
-#endif
 
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
@@ -649,7 +646,14 @@ PROP_HANDLER(PROP_MVR_REC_START)
 #endif
 #ifdef CONFIG_7D
 #ifdef FEATURE_FPS_OVERRIDE
-	if (buf[0] == 0)
+    if (RECORDING_H264)
+    {
+        if(fps_override)
+        {
+            NotifyBox(1000, "No FPS override in H264");
+            fps_override = 0;
+        }
+    } else if (buf[0] == 0)
     {
         msleep(500);
         fps_override = 1;
