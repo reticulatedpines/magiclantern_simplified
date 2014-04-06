@@ -34,10 +34,17 @@
 #define SIG_700D_111 0x645D8FD5
 #define SIG_700D_113 0x5AE36B51
 //TODO: Fix CONFIG_100D
+    #define SIG_100D_101 0xDEADBEEF
 
-int compute_signature(int * start, int len);
-#if !defined(CONFIG_UNIFIED)
-int check_signature();
-#endif
+static int compute_signature(int* start, int num)
+{
+    int c = 0;
+    int* p;
+    for (p = start; p < start + num; p++)
+    {
+        c += *p;
+    }
+    return c;
+}
 
 #endif //_fw_signature_h_

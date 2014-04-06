@@ -12,7 +12,7 @@ reboot-all.o : prepare-all
 autoexec.bin: autoexec-all.bin
 	$(call build,CP,$(CP) autoexec-all.bin autoexec.bin)
 
-autoexec-all: fw-signature.o reboot-all.o
+autoexec-all: reboot-all.o
 	$(call build,LD,$(LD) \
 		-o autoexec-all \
 		-nostdlib \

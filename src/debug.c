@@ -27,10 +27,6 @@
 #include "tp-spy.h"
 #endif
 
-#ifdef FEATURE_SHOW_SIGNATURE
-#include "fw-signature.h"
-#endif
-
 #ifdef CONFIG_MODULES
 #include "module.h"
 #endif

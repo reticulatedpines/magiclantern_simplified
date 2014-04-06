@@ -15,7 +15,8 @@ CFLAGS += \
 	-DVERSION=\"$(VERSION)\" \
 	-DCAMERA_MODEL=\"$(MODEL)\" \
 	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
-	-DCONFIG_FW_VERSION=$(FW_VERSION)
+	-DCONFIG_FW_VERSION=$(FW_VERSION) \
+	-DCURRENT_CAMERA_SIGNATURE=SIG_$(MODEL)_$(FW_VERSION)
 
 ifeq ($(ML_BOOT_HACK_OBJ), n)
 ML_BOOT_HACK_OBJ =
@@ -105,7 +106,6 @@ ML_OBJS-y += \
 
 ML_SRC_OBJS = \
 	$(ML_BOOT_HACK_OBJ) \
-	fw-signature.o \
 	fio-ml.o \
 	mem.o \
 	ico.o \
@@ -198,7 +198,7 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 ifndef ML_SRC_REBOOT_OBJ
-ML_SRC_REBOOT_OBJ = reboot.o fw-signature.o
+ML_SRC_REBOOT_OBJ = reboot.o
 endif
 
 clean::

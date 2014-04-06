@@ -393,6 +393,7 @@ static void my_big_init_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
+    #include "fw-signature.h"
     int sig = compute_signature(SIG_START, 0x10000);
     while(1)
     {
