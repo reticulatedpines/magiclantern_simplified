@@ -69,7 +69,7 @@ static int logo_arr[LOGO_ARR_LEN+1][2] = {{268,48}, {147,57}, {229,46}, {269,72}
 
 static element* new_elem(int type) {
     // allocate new elem
-    element *new = (element*)malloc(sizeof(element));
+    element *new = malloc(sizeof(element));
     if(!new) return NULL;
     memset(new, 0, sizeof(element));
     new->type = type;
@@ -136,16 +136,14 @@ static void arkanoid_draw_elem(element * e, int x, int y, int color)
 
 static void arkanoid_redraw()
 {
-    // erase elements that changed their position (to minimize flicker)
-    ELEM_LOOP (
+    ELEM_LOOP
+    (
+        // erase elements that changed their position (to minimize flicker)
         if (e->old_x != e->x || e->old_y != e->y)
         {
             arkanoid_draw_elem(e, e->old_x, e->old_y, 0);
         }
-    )
-    
-    ELEM_LOOP
-    (
+        
         // remove deleted elements from simulation
         if (e->deleted)
         {
@@ -154,9 +152,11 @@ static void arkanoid_redraw()
                 arkanoid_draw_elem(e, e->x, e->y, 0);
             }
             delete_elem(e);
-            continue;
         }
-        
+    )
+    
+    ELEM_LOOP
+    (
         // draw the rest
         arkanoid_draw_elem(e, e->x, e->y, e->color);
         
@@ -226,7 +226,7 @@ static void generate_level() {
     }
 }
 
-static int hit_test_test(element *a, element *b) {
+static int FAST hit_test_test(element *a, element *b) {
     if (
             a->x + a->w >= b->x &&
             a->x <= b->x + b->w &&
@@ -327,7 +327,7 @@ static void arkanoid_game_start() {
     )
 }
 
-static void hit_test(element *a) {
+static void FAST hit_test(element *a) {
     ELEM_LOOP
     (
         if(e->type != ELEM_PAD && e->type != ELEM_BRICK) continue;
@@ -358,8 +358,7 @@ static void hit_test(element *a) {
             else a->deltaY *= -1;
             
             e->type = ELEM_FALL_BRICK;
-            e->z = 1;
-            e->color = COLOR_GRAY(30);
+            fade_set(e, -4, 50);
             e->speed = 5 + rand()%5;
             
             if(--brick_count == 0) {
@@ -463,7 +462,7 @@ static void ball_coerce(element* e) {
     COERCE_ABS(e->y, 0, 480 - e->h);
 }
 
-static void ball_ef(element* e) {
+static void FAST ball_ef(element* e) {
     float plusX;
     float plusY;
     
@@ -524,7 +523,6 @@ static void pad_ef(element* e) {
 
 static void fall_brick_ef(element* e) {
     e->y += e->speed;
-    if(e->y > 480) e->deleted = 1;
 }
 
 static void arkanoid_task()

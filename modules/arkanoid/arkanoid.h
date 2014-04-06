@@ -9,7 +9,6 @@ typedef struct element
     float old_x;
     float y;
     float old_y;
-    int z;
     
     int w;
     int h;
