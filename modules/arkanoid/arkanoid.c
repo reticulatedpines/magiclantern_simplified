@@ -11,9 +11,9 @@
 #define M_PI 3.1415926536897932384626f
 
 // start elem
-static element elem = {0};
+static element *head = NULL;
 // basic elem loop
-#define ELEM_LOOP(code) { element *temp; element *e; for(temp = e = &elem; temp; temp = e = temp->next) { code; } }
+#define ELEM_LOOP(code) { element *temp; element *e; for(temp = e = head; temp; temp = e = temp->next) { code; } }
 
 // elem calculations
 #define COERCE_ABS(i, min, max) if(i < min) { i = (min) - (i - (min)); } if(i > max) { i = (max) - (i - (max)); }
@@ -70,35 +70,41 @@ static int logo_arr[LOGO_ARR_LEN+1][2] = {{268,48}, {147,57}, {229,46}, {269,72}
 static element* new_elem(int type) {
     // allocate new elem
     element *new = (element*)malloc(sizeof(element));
+    if(!new) return NULL;
     memset(new, 0, sizeof(element));
     new->type = type;
     
-    // add next reference at the end of elems
-    element *end = &elem;
-    while(end->next) end = end->next;
-    end->next = new;
-    
-    // add previous reference
-    new->prev = end;
+    // no items => head is new
+    if(!head)
+    {
+        head = new;
+    }
+    // otherwise append at the end
+    else
+    {
+        // add next reference at the end of elems
+        element *end = head;
+        while(end->next) end = end->next;
+        end->next = new;
+        
+        // add previous reference
+        new->prev = end;
+    }
     
     return new;
 }
 
 static void delete_elem(element *e) {
-    e->prev->next = e->next;
     e->next->prev = e->prev;
+    e->prev->next = e->next;
+    // if e was head => head is now the next on the right
+    if(e == head) head = e->next;
     free(e);
 }
 
 static void reset_elems() {
-    element *e = (&elem)->next;
-    element *temp;
-    while(e) {
-        temp = e;
-        e = e->next;
-        free(temp);
-    }
-    elem.next = 0;
+    ELEM_LOOP ( delete_elem(e) )
+    head = NULL;
 }
 
 static void arkanoid_draw_elem(element * e, int x, int y, int color)
@@ -137,13 +143,16 @@ static void arkanoid_redraw()
             arkanoid_draw_elem(e, e->old_x, e->old_y, 0);
         }
     )
-
+    
     ELEM_LOOP
     (
         // remove deleted elements from simulation
         if (e->deleted)
         {
-            arkanoid_draw_elem(e, e->x, e->y, 0);
+            // we cannot erase text because of bmp.c:186
+            if(e->type != ELEM_ML && e->type != ELEM_PRESENT) {
+                arkanoid_draw_elem(e, e->x, e->y, 0);
+            }
             delete_elem(e);
             continue;
         }
@@ -155,6 +164,12 @@ static void arkanoid_redraw()
         e->old_x = e->x;
         e->old_y = e->y;
     )
+    
+    /*
+    int i = 0;
+    ELEM_LOOP(i++);
+    bmp_printf(FONT_LARGE, 0, 0, "%d %dKB       ", i, sizeof(element) * i / 1024);
+    */
 }
 
 static int last_delta() {
@@ -164,6 +179,7 @@ static int last_delta() {
 }
 
 static void fade(element *e, int fade_delta) {
+    if(!e) return;
     e->fade_delta = fade_delta;
 }
 
@@ -187,6 +203,7 @@ static void generate_level() {
             }
             
             element *e = new_elem(ELEM_BRICK);
+            if(!e) continue;
             brick_count++; 
             
             while(i++<100)
@@ -244,6 +261,7 @@ static void set_direction(element *e, int angle) {
 
 static element* new_ball() {
     element *e = new_elem(ELEM_BALL);
+    if(!e) return NULL;
     
     e->w = 10;
     e->h = 10;
@@ -276,6 +294,7 @@ static void arkanoid_game_init() {
     reset_elems();
     
     element *p = new_elem(ELEM_PAD);
+    if(!p) return;
     p->w = MIN(60 * level, 720);
     p->h = 20;
     p->x = 720 / 2 - p->w / 2;
@@ -288,6 +307,7 @@ static void arkanoid_game_init() {
     while(i++ <= level)
     {
         element *e = new_ball();
+        if(!e) continue;
         ball_count++;
         e->x = (720 / 2) - (level * (e->w + 5) / 2) + (i * (e->w + 5));
         e->y = p->y - e->h;
@@ -364,6 +384,7 @@ static void arkanoid_logo() {
     bals -= LOGO_ARR_LEN + 50;
     while(bals++ < 0) {
         element* e = new_ball();
+        if(!e) continue;
         fade(e, 5);
     }
     
@@ -374,7 +395,7 @@ static void arkanoid_logo() {
         e->c1 = -1;
     )
     
-    element* closest = &elem;
+    element* closest = head;
     for(int i = 0; i != LOGO_ARR_LEN; i++) {
         int dist = INT_MAX;
         ELEM_LOOP
@@ -416,7 +437,7 @@ static void ml_ef(element* e) {
     if(arkanoid_state != ARK_INRO) return;
     
     element* b = new_ball();
-    fade(b, 2);
+    if(b) fade(b, 2);
     
     if(e->fade == 100) fade(e, -2);
     
@@ -427,7 +448,7 @@ static void present_ef(element* e) {
     if(arkanoid_state != ARK_PRESENT) return;
     
     element* b = new_ball();
-    fade(b, 3);
+    if(b) fade(b, 3);
 
     if(e->fade == 100) fade(e, -3);
     
