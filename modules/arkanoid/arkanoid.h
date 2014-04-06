@@ -26,8 +26,8 @@ typedef struct element
     int c1;
     int deleted;
 	
-	struct element * next;
-	struct element * prev;
+    struct element * next;
+    struct element * prev;
 } element;
 
 #endif
