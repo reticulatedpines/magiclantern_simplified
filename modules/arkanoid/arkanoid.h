@@ -1,13 +1,13 @@
 #ifndef _arkanoid_h_
 #define _arkanoid_h_
 
-typedef struct element
+typedef struct
 {
     int type;
     
     float x;
-    float old_x;
     float y;
+    float old_x;
     float old_y;
     int z;
     
@@ -25,9 +25,6 @@ typedef struct element
     
     int c1;
     int deleted;
-	
-	struct element * next;
-	struct element * prev;
 } element;
 
 #endif
