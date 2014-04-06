@@ -313,6 +313,7 @@ static void arkanoid_game_init() {
         e->y = p->y - e->h;
         e->speed = 0;
         set_direction(e, -90);
+        if(ball_count == 5) break;
     }
     
     generate_level();
@@ -358,7 +359,7 @@ static void FAST hit_test(element *a) {
             else a->deltaY *= -1;
             
             e->type = ELEM_FALL_BRICK;
-            fade_set(e, -4, 50);
+            fade_set(e, -4, 70);
             e->speed = 5 + rand()%5;
             
             if(--brick_count == 0) {
