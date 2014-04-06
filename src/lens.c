@@ -1969,7 +1969,7 @@ int lens_set_rawshutter( int shutter )
 int lens_set_ae( int ae )
 {
     ae_ack = 12345;
-    ae = COERCE(ae, -MAX_AE_EV * 8, MAX_AE_EV * 8);
+    ae = round_expo_comp(ae);
     prop_request_change( PROP_AE, &ae, 4 );
     for (int i = 0; i < 10; i++) { if (ae_ack != 12345) break; msleep(20); }
     return ae_ack == ae;
