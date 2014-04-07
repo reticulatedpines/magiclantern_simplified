@@ -2319,10 +2319,15 @@ static int hdr_interpolate()
             /* compute median difference */
             int med_delta = median_int_wirth(delta, delta_num);
 
+            if (ABS(med_delta) > 200*16)
+            {
+                continue;
+            }
+
             /* shift the dark lines */
             for (x = 0; x < w; x ++)
             {
-                dark[x + y*w] += med_delta;
+                dark[x + y*w] = COERCE(dark[x + y*w] + med_delta, 0, 0xFFFFF);
             }
         }
         free(delta);
