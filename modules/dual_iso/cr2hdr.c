@@ -2299,93 +2299,33 @@ static int hdr_interpolate()
     if (use_stripe_fix)
     {
         printf("Horizontal stripe fix...\n");
-        int * delta[14];
-        int delta_num[14];
-        for (i = 0; i < 14; i++)
-        {
-            delta[i] = malloc(w * sizeof(delta[0]));
-        }
+        int* delta = malloc(w * sizeof(delta[0]));
 
         /* adjust dark lines to match the bright ones */
         for (y = 0; y < h; y ++)
         {
-            for (i = 0; i < 14; i++)
-            {
-                delta_num[i] = 0;
-            }
-
-            /* apply a constant offset to each stop (except overexposed areas) */
+            /* apply a constant offset (estimated from unclipped areas) */
+            int delta_num = 0;
             for (x = 0; x < w; x ++)
             {
                 int b = bright[x + y*w];
                 int d = dark[x + y*w];
                 if (b < white_darkened && d < white)
                 {
-                    int stop = COERCE(raw2ev[b] / EV_RESOLUTION, 0, 13);
-                    delta[stop][delta_num[stop]++] = b - d;
+                    delta[delta_num++] = b - d;
                 }
             }
 
-            /* compute median difference for each stop */
-            int med_delta[14];
-            for (i = 0; i < 14; i++)
-            {
-                if (delta_num[i] > 0)
-                {
-                    /* enough data points? */
-                    med_delta[i] = median_int_wirth(delta[i], delta_num[i]);
-                    
-                    /* avoid large corrections (they are probably outliers) */
-                    if (ABS(med_delta[i]) > 200*16) med_delta[i] = 0;
-                }
-                else
-                {
-                    /* not enough data points; will extrapolate from neighbours */
-                    med_delta[i] = delta_num[i] = 0;
-                }
-            }
+            /* compute median difference */
+            int med_delta = median_int_wirth(delta, delta_num);
 
-            /* extrapolate the measurements to neighbour stops */
-            for (i = 0; i < 14; i++)
-            {
-                if (delta_num[i] == 0)
-                {
-                    int acc = 0;
-                    int num = 0;
-                    if (i < 13 && delta_num[i+1]) { acc += med_delta[i+1]; num++; }
-                    if (i > 0 && delta_num[i-1]) { acc += med_delta[i-1]; num++; }
-                    if (num) med_delta[i] = acc / num;
-                }
-                
-                //~ printf("%d(%d) ", med_delta[i], delta_num[i]);
-            }
-            //~ printf("\n");
-            
+            /* shift the dark lines */
             for (x = 0; x < w; x ++)
             {
-                int b = bright[x + y*w];
-                int d = dark[x + y*w];
-
-                if (b < white_darkened && d < white)
-                {
-                    /* linear interpolation */
-                    int b = bright[x + y*w];
-                    double stop = COERCE((double)(raw2ev[b] - EV_RESOLUTION/2) / EV_RESOLUTION, 0.01, 13-0.01);
-                    int stop1 = floor(stop);
-                    int stop2 = ceil(stop);
-                    double k = stop - stop1;
-                    //~ int stop = COERCE(raw2ev[b] / EV_RESOLUTION, 0, 13);
-                    dark[x + y*w] += med_delta[stop1] * (1-k) + med_delta[stop2] * k;
-                    
-                    //~ if (y == raw_info.active_area.y1 + 2986)
-                        //~ printf("%d %d %d %f\n", b, stop1, stop2, k);
-                }
+                dark[x + y*w] += med_delta;
             }
         }
-        for (i = 0; i < 14; i++)
-        {
-            free(delta[i]);
-        }
+        free(delta);
     }
 
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
