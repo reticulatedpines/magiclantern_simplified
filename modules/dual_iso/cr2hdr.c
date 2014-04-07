@@ -50,6 +50,7 @@ static int is_bright[4];
 #include "exiftool-bridge.h"
 #include "adobedng-bridge.h"
 #include "dither.h"
+#include "timing.h"
 
 #include "../../src/module.h"
 #undef MODULE_STRINGS_SECTION
