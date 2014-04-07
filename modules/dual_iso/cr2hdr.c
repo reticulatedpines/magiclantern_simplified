@@ -1487,15 +1487,16 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                 int i,j;
                 int fc0 = FC(x, y);
                 int b0 = is_bright[y%4];
+                int max = 0;
                 for (i = -4; i <= 4; i++)
                 {
+                    /* only look at pixels of the same brightness */
+                    if (is_bright[(y+i)%4] != b0)
+                        continue;
+
                     for (j = -4; j <= 4; j++)
                     {
                         if (i == 0 && j == 0)
-                            continue;
-
-                        /* only look at pixels of the same brightness */
-                        if (is_bright[(y+i)%4] != b0)
                             continue;
                         
                         /* only look at pixels of the same color */
@@ -1504,10 +1505,15 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                         
                         int p = raw_get_pixel20(x+j, y+i);
                         neighbours[k++] = -p;
+                        max = MAX(max, p);
                     }
+                    
+                    /* this difference will only get lower, so if it's already too low (see below), stop scanning */
+                    /* (don't stop scanning if the pixel is cold, since we'll need this info to interpolate it) */
+                    if (raw2ev[p] - raw2ev[max] <= EV_RESOLUTION && !is_cold)
+                        break;
                 }
                 
-                int max = -kth_smallest_int(neighbours, k, 0);
                 is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
                 
                 if (fix_bad_pixels == 2)    /* aggressive */
