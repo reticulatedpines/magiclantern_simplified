@@ -38,6 +38,7 @@ static int is_bright[4];
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+
 #include "../../src/raw.h"
 #include "../../src/chdk-dng.h"
 #include "qsort.h"  /* much faster than standard C qsort */
@@ -48,30 +49,12 @@ static int is_bright[4];
 #include "dcraw-bridge.h"
 #include "exiftool-bridge.h"
 #include "adobedng-bridge.h"
+#include "dither.h"
 
 #include "../../src/module.h"
 #undef MODULE_STRINGS_SECTION
 #define MODULE_STRINGS_SECTION
 #include "module_strings.h"
-
-
-/* http://www.developpez.net/forums/d544518/c-cpp/c/equivalent-randn-matlab-c/#post3241904 */
-
-#define TWOPI (6.2831853071795864769252867665590057683943387987502) /* 2 * pi */
- 
-/* 
-   RAND is a macro which returns a pseudo-random numbers from a uniform
-   distribution on the interval [0 1]
-*/
-#define RAND (rand())/((double) RAND_MAX)
- 
-/* 
-   RANDN is a macro which returns a pseudo-random numbers from a normal
-   distribution with mean zero and standard deviation one. This macro uses Box
-   Muller's algorithm
-*/
-#define RANDN (sqrt(-2.0*log(RAND))*cos(TWOPI*RAND))
-
 
 /** Command-line interface */
 
@@ -495,8 +478,8 @@ void raw_set_pixel_20to16(int x, int y, int value) {
 
 void raw_set_pixel_20to16_rand(int x, int y, int value) {
     /* To avoid posterization, it's a good idea to add some noise before rounding */
-    /* The sweet spot seems to be with Gaussian noise of stdev=0.4, http://www.magiclantern.fm/forum/index.php?topic=10895.msg107972#msg107972 */
-    raw_set_pixel16(x, y, round(value / 16.0 + RANDN * 0.4));
+    /* The sweet spot seems to be with Gaussian noise of stdev=0.5, http://www.magiclantern.fm/forum/index.php?topic=10895.msg107972#msg107972 */
+    raw_set_pixel16(x, y, round(value / 16.0 + fast_randn05()));
 }
 
 static void reverse_bytes_order(void* buf, int count)
@@ -545,7 +528,9 @@ int main(int argc, char** argv)
 {
     printf("cr2hdr: a post processing tool for Dual ISO images\n\n");
     printf("Last update: %s\n", module_get_string("Last update"));
-    
+
+    fast_randn_init();
+
     if (argc == 1)
     {
         printf("No input files.\n\n");
@@ -1584,7 +1569,7 @@ static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_w
     double raw_baked = (raw - in_black) * wb / max_wb + in_black;
     double raw_soft = soft_film(raw_baked, exposure * max_wb, in_black, in_white, out_black, out_white);
     double raw_adjusted = (raw_soft - out_black) / wb + out_black;
-    return round(raw_adjusted + RANDN * 0.4);
+    return round(raw_adjusted + fast_randn05());
 }
 
 static int hdr_interpolate()
@@ -2827,7 +2812,7 @@ static int hdr_interpolate()
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++)
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
-
+    
     if (soft_film_ev > 0)
     {
         /* Soft film curve from ufraw */
