@@ -7,7 +7,9 @@
 //
 // incorporating ideas of Luis Sanz Rodrigues and Paul Lee
 //
-// code dated: May 27, 2010
+// original code dated: May 27, 2010, last update 4b77ef6013ae (Jan 16, 2014)
+// https://code.google.com/p/rawtherapee/source/browse/rtengine/amaze_demosaic_RT.cc
+// modified by a1ex for integration with cr2hdr 
 //
 //	amaze_interpolate_RT.cc is free software: you can redistribute it and/or modify
 //	it under the terms of the GNU General Public License as published by
@@ -24,17 +26,86 @@
 //
 ////////////////////////////////////////////////////////////////
 
-#include "rtengine.h"
-#include "rawimagesource.h"
-#include "rt_math.h"
-#include "../rtgui/multilangmgr.h"
-#include "procparams.h"
-#include "sleef.c"
-#include "opthelper.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
 
-namespace rtengine {
+#define initialGain 1.0 /* IDK */
 
-SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw, int winh) {
+/* assume RGGB */
+/* see RT rawimage.h */
+static inline int FC(int row, int col)
+{
+    if ((row%2) == 0 && (col%2) == 0)
+        return 0;  /* red */
+    else if ((row%2) == 1 && (col%2) == 1)
+        return 2;  /* blue */
+    else
+        return 1;  /* green */
+}
+
+#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
+
+#define MIN(a,b) \
+   ({ typeof ((a)+(b)) _a = (a); \
+      typeof ((a)+(b)) _b = (b); \
+     _a < _b ? _a : _b; })
+
+#define MAX(a,b) \
+   ({ typeof ((a)+(b)) _a = (a); \
+       typeof ((a)+(b)) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define SQR(a) \
+   ({ typeof (a) _a = (a); \
+     _a * _a; })
+
+#define min MIN
+
+/* from RT sleef.c */
+__inline float xmul2f(float d) {
+	if (*(int*)&d & 0x7FFFFFFF) { // if f==0 do nothing
+		*(int*)&d += 1 << 23; // add 1 to the exponent
+		}
+	return d;
+}
+
+__inline float xdiv2f(float d) {
+	if (*(int*)&d & 0x7FFFFFFF) { // if f==0 do nothing
+		*(int*)&d -= 1 << 23; // sub 1 from the exponent
+		}
+	return d;
+}
+
+__inline float xdivf( float d, int n){
+	if (*(int*)&d & 0x7FFFFFFF) { // if f==0 do nothing
+		*(int*)&d -= n << 23; // add n to the exponent
+		}
+	return d;
+}	
+
+/* adapted from rt_math.h */
+#define LIM COERCE
+#define ULIM(a, b, c) (((b) < (c)) ? LIM(a,b,c) : LIM(a,c,b))
+
+#define bool int
+
+void amaze_demosaic_RT(
+    float** rawData,    /* holds preprocessed pixel values, rawData[i][j] corresponds to the ith row and jth column */
+    float** red,        /* the interpolated red plane */
+    float** green,      /* the interpolated green plane */
+    float** blue,       /* the interpolated blue plane */
+    int winx, int winy, /* crop window for demosaicing */
+    int winw, int winh
+)
+{
+    printf ("AMaZE interpolation ...\n");
+
+    clock_t	t1,t2;
+    t1 = clock();
 
 #define HCLIP(x) x //is this still necessary???
 	//min(clip_pt,x)
@@ -76,24 +147,19 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 	//guassian on quincunx grid
 	static const float gquinc[4] = {0.169917f, 0.108947f, 0.069855f, 0.0287182f};
 
-	volatile double progress = 0.0;
+	//~ volatile double progress = 0.0;
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 // Issue 1676
 // Moved from inside the parallel section
-	if (plistener) {
-		plistener->setProgressStr (Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"), RAWParams::methodstring[RAWParams::amaze]));
-		plistener->setProgress (0.0);
-	}
 	struct s_hv {
 		float h;
 		float v;
 	};
 
-#pragma omp parallel
+//~ #pragma omp parallel
 {
-	int progresscounter=0;
 	//position of top/left corner of the tile
 	int top, left;
 	// beginning of storage block for tile
@@ -129,7 +195,7 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 	// diagonal interpolation of R+B
 	float (*rbint);
 	// horizontal and vertical curvature of interpolated G (used to refine interpolation in Nyquist texture regions)
-	s_hv  (*Dgrb2);
+	struct s_hv  (*Dgrb2);
 	// difference between up/down interpolations of G
 	float (*dgintv);
 	// difference between left/right interpolations of G
@@ -140,7 +206,7 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 //	float (*Dgrbm1);
 	float (*Dgrbsq1m);
 	float (*Dgrbsq1p);
-//	s_mp  (*Dgrbsq1);
+//	struct s_mp  (*Dgrbsq1);
 	// square of diagonal color difference
 //	float (*Dgrbpsq1);
 	// square of diagonal color difference
@@ -160,7 +226,7 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 	// assign working space
 	buffer = (char *) calloc(22*sizeof(float)*TS*TS + sizeof(char)*TS*TSH+23*CLF*64 + 63, 1);
 	char 	*data;
-	data = (char*)( ( uintptr_t(buffer) + uintptr_t(63)) / 64 * 64);
+	data = (char*)( ( (uintptr_t)buffer + (uintptr_t)63) / 64 * 64);
 
 	//merror(buffer,"amaze_interpolate()");
 	rgbgreen   = (float (*))         data; //pointers to array
@@ -177,7 +243,7 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 	delp       = (float (*))         ((char*)Dgrb + sizeof(float)*TS*TS + CLF*64);
 	delm       = (float (*))         ((char*)delp + sizeof(float)*TS*TSH + CLF*64);
 	rbint      = (float (*))         ((char*)delm + sizeof(float)*TS*TSH + CLF*64);
-	Dgrb2      = (s_hv  (*))         ((char*)rbint + sizeof(float)*TS*TSH + CLF*64);
+	Dgrb2      = (struct s_hv  (*))         ((char*)rbint + sizeof(float)*TS*TSH + CLF*64);
 	dgintv     = (float (*))         ((char*)Dgrb2 + sizeof(float)*TS*TS + CLF*64);
 	dginth     = (float (*))         ((char*)dgintv + sizeof(float)*TS*TS + CLF*64);
 	Dgrbsq1m   = (float (*))         ((char*)dginth + sizeof(float)*TS*TS + CLF*64);
@@ -205,7 +271,7 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 
 // Issue 1676
 // use collapse(2) to collapse the 2 loops to one large loop, so there is better scaling
-#pragma omp for schedule(dynamic) collapse(2) nowait
+//~ #pragma omp for schedule(dynamic) collapse(2) nowait
 	for (top=winy-16; top < winy+height; top += TS-32)
 		for (left=winx-16; left < winx+width; left += TS-32) {
 			memset(nyquist, 0, sizeof(char)*TS*TSH);
@@ -244,7 +310,7 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 			//G interpolated in vert/hor directions using Hamilton-Adams method
 			float guha, gdha, glha, grha;
 			//interpolated G from fusing left/right or up/down
-			float Ginthar, Ginthha, Gintvar, Gintvha;
+			float Ginthha, Gintvha;
 			//color difference (G-R or G-B) variance in up/down/left/right directions
 			float Dgrbvvaru, Dgrbvvard, Dgrbhvarl, Dgrbhvarr;
 			
@@ -1384,21 +1450,6 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 #endif
 			}
 			//end of main loop
-
-			if(plistener) {
-				progresscounter++;
-				if(progresscounter % 4 == 0) {
-#pragma omp critical
-{
-					progress+=(double)4*((TS-32)*(TS-32))/(height*width);
-					if (progress>1.0)
-					{
-						progress=1.0;
-					}
-					plistener->setProgress(progress);
-}
-				}
-			}
 		}
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1408,13 +1459,12 @@ SSEFUNCTION void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw,
 	// clean up
 	free(buffer);
 }
-	if(plistener)
-		plistener->setProgress(1.0);
-
 
 	// done
 
 #undef TS
 
-}
+t2 = clock() - t1;
+printf("Amaze took %.2f s\n", (double)t2 / CLOCKS_PER_SEC);
+
 }
