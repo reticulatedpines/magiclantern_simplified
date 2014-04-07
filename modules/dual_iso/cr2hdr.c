@@ -1819,11 +1819,12 @@ static int hdr_interpolate()
         
         for (i = 0; i < h; i++)
         {
-            rawData[i] =   malloc(w * sizeof(rawData[0][0]));
-            memset(rawData[i], 0, w * sizeof(rawData[0][0]));
-            red[i]     = malloc(w * sizeof(red[0][0]));
-            green[i]   = malloc(w * sizeof(green[0][0]));
-            blue[i]    = malloc(w * sizeof(blue[0][0]));
+            int wx = w + 16;
+            rawData[i] =   malloc(wx * sizeof(rawData[0][0]));
+            memset(rawData[i], 0, wx * sizeof(rawData[0][0]));
+            red[i]     = malloc(wx * sizeof(red[0][0]));
+            green[i]   = malloc(wx * sizeof(green[0][0]));
+            blue[i]    = malloc(wx * sizeof(blue[0][0]));
         }
         
         /* squeeze the dark image by deleting fields from the bright exposure */
