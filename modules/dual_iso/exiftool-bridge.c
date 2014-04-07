@@ -61,6 +61,8 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
         pclose(exif_file);
     }
     else error = 1;
+    
+    if (error) goto err;
 
     //If WB mode is not Auto, use WB_RGGBLevelsAsShot values
     //If WB mode is Auto, read WB_RGGBLevelsMeasured values
@@ -110,6 +112,7 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
     }
     else error = 1;
 
+err:
     if (error) printf("**WARNING** could not extract white balance information, exiftool may need to be updated\n");
 }
 
