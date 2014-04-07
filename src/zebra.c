@@ -60,9 +60,9 @@
 #define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
-#define MZ_WHITE 0xFA12FA34 
+#define MZ_WHITE 0xFE12FE34
 #define MZ_BLACK 0x00120034
-#define MZ_GREEN 0x80808080
+#define MZ_GREEN 0xB68DB69E
 
 #ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
@@ -3668,8 +3668,14 @@ static void draw_zoom_overlay(int dirty)
     #endif
     memset64(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     memset64(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset64(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset64(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    if (!rawoff) {
+        memset64(lvr + x0c + COERCE(-2  + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+        memset64(lvr + x0c + COERCE(-1  + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+        memset64(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+        memset64(lvr + x0c + COERCE(H+1 + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+    }
+    memset64(lvr + x0c + COERCE(H-2 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     #ifdef CONFIG_1100D
     H *= 2; // Undo it
     #endif

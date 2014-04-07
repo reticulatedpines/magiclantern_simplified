@@ -26,6 +26,7 @@ endif
 # add target architecture for OSX
 ifdef FOR_OSX
     MLV_CFLAGS += -arch i386 -mmacosx-version-min=10.6
+    MLV_LFLAGS += -arch i386 -mmacosx-version-min=10.6
 endif
 
 # LZMA library flags

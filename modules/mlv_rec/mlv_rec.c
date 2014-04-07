@@ -123,9 +123,9 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
 static CONFIG_INT("mlv.video.buffer_fill_method", buffer_fill_method, 4);
-static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 3);
-static CONFIG_INT("mlv.video.test_mode", test_mode, 0);
+static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
+static CONFIG_INT("mlv.black_fix", black_fix, 1);
 static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.res.x", resolution_index_x, 12);
 static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
@@ -222,9 +222,6 @@ static char raw_tag_str_tmp[1024];
 static int32_t raw_tag_take = 0;
 
 static int32_t mlv_file_count = 0;
-
-/* string buffer for test loops */
-static char test_results[100][100];
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
 
@@ -1154,7 +1151,7 @@ static void show_buffer_status()
         static int32_t prev_xp = 0;
         if(prev_xp)
         {
-            fill_circle(prev_xp, ymin, COLOR_EMPTY, 2);
+            fill_circle(prev_xp, ymin, 2, COLOR_EMPTY);
         }
         int32_t xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
         fill_circle(xp, ymin, 2, COLOR_RED);
@@ -1288,7 +1285,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             if(DISPLAY_REC_INFO_ICON)
             {
                 int32_t fps = fps_get_current_x1000();
-                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t t = ((frame_count + frame_skips) * 1000 + fps/2) / fps;
                 int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
                 /* print the Recording Icon */
                 int rl_color;
@@ -1311,13 +1308,10 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, COLOR_BG_DARK);
                 
                 /* Display the Status */
-                if(!frame_skips)
+                bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
+                if(frame_skips)
                 {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
-                }
-                else
-                {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%d skipped", frame_skips);
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+30, "%d skipped", frame_skips);
                 }
             }
             else if(DISPLAY_REC_INFO_DEBUG)
@@ -2121,10 +2115,10 @@ static char *get_next_raw_movie_file_name()
     return filename;
 }
 
-static int32_t get_next_chunk_file_name(char* base_name, char* filename, int32_t chunk, uint32_t writer)
+static int32_t mlv_rec_get_chunk_filename(char* base_name, char* filename, int32_t chunk, uint32_t writer)
 {
     /* change file extension, according to chunk number: MLV, M00, M01 and so on */
-    strcpy(filename, base_name);
+    strncpy(filename, base_name, MAX_PATH);
 
     if(chunk > 0)
     {
@@ -2222,6 +2216,19 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
+    
+    /* sometimes black level is a bit off. fix that if enabled. ToDo: do all models have 2048? */
+    if(black_fix)
+    {
+        if(cam_50d || cam_5d2)
+        {
+            rawi.raw_info.black_level = 1024;
+        }
+        else
+        {
+            rawi.raw_info.black_level = 2048;
+        }
+    }
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
@@ -2316,8 +2323,8 @@ static uint32_t raw_get_next_filenum()
     uint32_t fileNum = 0;
 
     uint32_t old_int = cli();
-    fileNum = mlv_file_hdr.fileCount;
     mlv_file_hdr.fileCount++;
+    fileNum = mlv_file_hdr.fileCount;
     sei(old_int);
 
     return fileNum;
@@ -2375,6 +2382,8 @@ static void raw_writer_task(uint32_t writer)
 
     struct msg_queue *queue = mlv_writer_queues[writer];
 
+    char *error_message = "Huh? Which error?";
+    
     /* keep it local to make sure it is getting optimized */
     FILE* f = mlv_handles[writer];
     FILE* next_file_handle = NULL;
@@ -2424,6 +2433,7 @@ static void raw_writer_task(uint32_t writer)
         if(!job)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: job is NULL");
+            error_message = "Internal error #1";
             goto abort;
         }
 
@@ -2449,7 +2459,10 @@ static void raw_writer_task(uint32_t writer)
                 {
                     /* check if we will reach the 4GiB boundary with this write */
                     uint32_t free_space = mlv_max_filesize - written_chunk;
+                    uint32_t limit = 8 * job->block_size;
 
+                    //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: free: 0x%08x limit: 0x%08x", writer, free_space, limit);
+                    
                     if(free_space < job->block_size)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close of '%s'", writer, chunk_filename[writer]);
@@ -2464,6 +2477,7 @@ static void raw_writer_task(uint32_t writer)
                         if(!close_job)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close_job is NULL", writer);
+                            error_message = "Internal error #2";
                             goto abort;
                         }
 
@@ -2471,7 +2485,7 @@ static void raw_writer_task(uint32_t writer)
                         close_job->writer = writer;
                         close_job->file_handle = f;
                         close_job->file_header = file_header;
-                        strcpy(close_job->filename, chunk_filename[writer]);
+                        strncpy(close_job->filename, chunk_filename[writer], MAX_PATH);
 
                         msg_queue_post(mlv_mgr_queue, (uint32_t) close_job);
 
@@ -2479,6 +2493,7 @@ static void raw_writer_task(uint32_t writer)
                         if(!next_file_handle)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: no chunk prepared", writer);
+                            error_message = "Internal error #3";
                             goto abort;
                         }
 
@@ -2487,10 +2502,11 @@ static void raw_writer_task(uint32_t writer)
                         next_file_handle = NULL;
 
                         /* also update filename */
-                        strcpy(chunk_filename[writer], next_filename);
-                        strcpy(next_filename, "");
+                        strncpy(chunk_filename[writer], next_filename, MAX_PATH);
+                        strncpy(next_filename, "", MAX_PATH);
 
                         frames_written = 0;
+                        FIO_SeekFile(f, 0, SEEK_END);
                         written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
 
                         /* write next header */
@@ -2500,38 +2516,47 @@ static void raw_writer_task(uint32_t writer)
 
                         handle_requested = 0;
 
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s'", writer, chunk_filename[writer]);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s', %d", writer, chunk_filename[writer], f);
                     }
-                    else if((free_space < 8 * job->block_size) && !handle_requested)
+                    else if(free_space < limit)
                     {
-                        /* we will reach the 4GiB boundary soon */
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB, request another chunk", writer);
-
-                        /* queue a preparation job */
-                        handle_job_t *prepare_job = NULL;
-                        msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
-                        
-                        if(!prepare_job)
+                        if(!handle_requested)
                         {
-                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
-                            goto abort;
+                            /* we will reach the 4GiB boundary soon */
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB (0x%08x), request another chunk", writer, free_space);
+
+                            /* queue a preparation job */
+                            handle_job_t *prepare_job = NULL;
+                            msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
+                            
+                            if(!prepare_job)
+                            {
+                                trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
+                                error_message = "Internal error #4";
+                                goto abort;
+                            }
+
+                            prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
+                            prepare_job->writer = writer;
+                            prepare_job->file_handle = NULL;
+                            prepare_job->file_header = file_header;
+                            prepare_job->filename[0] = '\000';
+
+                            msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
+
+                            handle_requested = 1;
                         }
-
-                        prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
-                        prepare_job->writer = writer;
-                        prepare_job->file_handle = NULL;
-                        prepare_job->file_header = file_header;
-                        prepare_job->filename[0] = '\000';
-
-                        msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
-
-                        handle_requested = 1;
+                        else
+                        {
+                            /* recheck? no dont think thats necessary */
+                        }
                     }
                 }
 
                 /* start write and measure times */
                 job->last_time_after = last_time_after;
                 job->time_before = get_us_clock_value();
+                job->file_offset = FIO_SeekFile(f, 0, SEEK_CUR);
                 int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
                 job->time_after = get_us_clock_value();
 
@@ -2567,9 +2592,21 @@ static void raw_writer_task(uint32_t writer)
                     
                     /* now try to write the remaining buffer content */
                     written = FIO_WriteFile(f, &((char *)job->block_ptr)[written], job->block_size - written);
-                    if (written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
+                    if(written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: Even writing after removing dummy file failed. No idea what to do now.", writer);
+                        if(large_file_support)
+                        {
+                            error_message = "Card/camera really exFAT?";
+                        }
+                        else
+                        {
+                            error_message = "Card/Filesystem error?";
+                        }
+                    }
+                    else
+                    {
+                        error_message = "Card seems to be full";
                     }
                     
                     goto abort;
@@ -2589,7 +2626,7 @@ static void raw_writer_task(uint32_t writer)
             handle_job_t *prepare_job = (handle_job_t *)job;
             next_file_handle = prepare_job->file_handle;
             next_file_num = prepare_job->file_header.fileNum;
-            strcpy(next_filename, prepare_job->filename);
+            strncpy(next_filename, prepare_job->filename, MAX_PATH);
 
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: next chunk handle received, file '%s'", writer, next_filename );
         }
@@ -2597,6 +2634,7 @@ static void raw_writer_task(uint32_t writer)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
             bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 300, "WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
+            error_message = "Internal error ";
             goto abort;
         }
 
@@ -2606,7 +2644,7 @@ static void raw_writer_task(uint32_t writer)
 abort:
             raw_recording_state = RAW_FINISHING;
             raw_rec_cbr_stopping();
-            bmp_printf( FONT_MED, 30, 90, "Movie recording stopped automagically     ");
+            NotifyBox(5000, "Recording stopped:\n '%s'", error_message);
             /* this is error beep, not audio sync beep */
             beep_times(2);
             break;
@@ -2620,11 +2658,6 @@ abort:
         FIO_SeekFile(f, 0, SEEK_SET);
         mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
         FIO_CloseFile(f);
-    }
-
-    if(test_mode)
-    {
-        FIO_RemoveFile(chunk_filename[writer]);
     }
 
     util_atomic_dec(&mlv_rec_threads);
@@ -2746,37 +2779,46 @@ static uint32_t mlv_rec_precreate_del_empty(char *filename)
 
 static void mlv_rec_precreate_cleanup(char *base_filename, uint32_t count)
 {
+    trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_cleanup: check '%s'", base_filename);
+
     for(uint32_t pos = 0; pos < count; pos++)
     {
-        char filename[64];
+        char filename[MAX_PATH];
         
-        get_next_chunk_file_name(base_filename, filename, pos, 0);
+        mlv_rec_get_chunk_filename(base_filename, filename, pos, 0);
+        trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_cleanup:   --> '%s'", filename);
         mlv_rec_precreate_del_empty(filename);
         
         if(card_spanning)
         {
-            get_next_chunk_file_name(base_filename, filename, pos, 1);
+            mlv_rec_get_chunk_filename(base_filename, filename, pos, 1);
+            trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_cleanup:   --> '%s'", filename);
             mlv_rec_precreate_del_empty(filename);
         }
     }
 }
 
-static void mlv_rec_precreate_files(char *base_filename, uint32_t count)
+static void mlv_rec_precreate_files(char *base_filename, uint32_t count, mlv_file_hdr_t main_hdr)
 {
     for(uint32_t pos = 0; pos < count; pos++)
     {
-        char filename[64];
+        char filename[MAX_PATH];
         FILE *handle = NULL;
+        mlv_file_hdr_t hdr = main_hdr;
+        hdr.fileNum = pos;
         
-        get_next_chunk_file_name(base_filename, filename, pos, 0);
+        mlv_rec_get_chunk_filename(base_filename, filename, pos, 0);
         handle = FIO_CreateFile(filename);
+        raw_prepare_chunk(handle, &hdr);
         FIO_CloseFile(handle);
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         
-        if(card_spanning)
+        /* dont create the .mlv on the second card */
+        if(card_spanning && pos > 0)
         {
-            get_next_chunk_file_name(base_filename, filename, pos, 1);
+            mlv_rec_get_chunk_filename(base_filename, filename, pos, 1);
             handle = FIO_CreateFile(filename);
+            raw_prepare_chunk(handle, &hdr);
             FIO_CloseFile(handle);
             trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_files: '%s' created", filename);
         }
@@ -2872,9 +2914,6 @@ static void mlv_rec_queue_blocks()
 
 static void raw_video_rec_task()
 {
-    int test_loop = 0;
-    int test_case_loop = 0;
-
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
 
@@ -2922,11 +2961,6 @@ static void raw_video_rec_task()
 
     hack_liveview(0);
 
-    if(test_mode)
-    {
-        buffer_fill_method = 0;
-        abort_test = 0;
-    }
 
     do
     {
@@ -2964,31 +2998,12 @@ static void raw_video_rec_task()
             mlv_writer_threads = 1;
         }
 
-        mlv_rec_precreate_files(mlv_movie_filename, MAX_PRECREATE_FILES);
+        /* create all possible files with an reference header */
+        mlv_rec_precreate_files(mlv_movie_filename, MAX_PRECREATE_FILES, mlv_file_hdr);
         
-        if(test_mode)
-        {
-            uint32_t test_loop_entry = test_loop % COUNT(test_results);
-
-            snprintf(test_results[test_loop_entry], sizeof(test_results[test_loop_entry]), "[Test #%03d] M: %d B: %d", test_loop + 1, buffer_fill_method, fast_card_buffers);
-
-            /* print old test results */
-            for(uint32_t pos = 0; pos < test_loop_entry; pos++)
-            {
-                uint32_t ypos = 210 + ((pos % 13) * font_med.height);
-                bmp_printf(FONT(FONT_MED, COLOR_GRAY(10), COLOR_BLACK), 30, ypos, test_results[pos]);
-            }
-
-            /* current result which is not complete yet */
-            uint32_t ypos = 210 + ((test_loop_entry % 13) * font_med.height);
-            bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 30, ypos, test_results[test_loop_entry]);
-        }
-
-        /* create files for writers */
+        /* open files for writers */
         for(uint32_t writer = 0; writer < mlv_writer_threads; writer++)
         {
-            int file_num = raw_get_next_filenum();
-
             written[writer] = 0;
             frames_written[writer] = 0;
             writing_time[writer] = 0;
@@ -2996,10 +3011,10 @@ static void raw_video_rec_task()
             writer_job_count[writer] = 0;
             mlv_handles[writer] = NULL;
 
-            get_next_chunk_file_name(mlv_movie_filename, chunk_filename[writer], writer, writer);
+            mlv_rec_get_chunk_filename(mlv_movie_filename, chunk_filename[writer], writer, writer);
             trace_write(raw_rec_trace_ctx, "Filename (Thread #%d): '%s'", writer, chunk_filename[writer]);
-            mlv_handles[writer] = FIO_CreateFile(chunk_filename[writer]);
-
+            mlv_handles[writer] = FIO_OpenFile(chunk_filename[writer], O_RDWR | O_SYNC);
+            
             /* failed to open? */
             if(mlv_handles[writer] == INVALID_PTR)
             {
@@ -3008,11 +3023,8 @@ static void raw_video_rec_task()
                 beep_times(2);
                 return;
             }
-            
-            /* throw in a MLVI header */
-            mlv_file_hdr_t hdr = mlv_file_hdr;
-            hdr.fileNum = file_num;
-            raw_prepare_chunk(mlv_handles[writer], &hdr);
+
+            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
         }
 
         /* create writer threads with decreasing priority */
@@ -3078,13 +3090,6 @@ static void raw_video_rec_task()
             {
                 NotifyBox(5000, "Frame skipped. Stopping");
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
-                raw_recording_state = RAW_FINISHING;
-                raw_rec_cbr_stopping();
-            }
-
-            if(test_mode && (frames_written[0] + frames_written[1] > 4000))
-            {
-                trace_write(raw_rec_trace_ctx, "<-- stopped test mode, reached 4000 frames");
                 raw_recording_state = RAW_FINISHING;
                 raw_rec_cbr_stopping();
             }
@@ -3168,8 +3173,8 @@ static void raw_video_rec_task()
                     /* hack working for one writer only */
                     current_write_speed[returned_job->writer] = rate*100/1024;
 
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d µs",
-                        returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time);
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d µs, offset 0x%08X",
+                        returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time, returned_job->file_offset);
 
                     /* update statistics */
                     writing_time[returned_job->writer] += write_time / 1000;
@@ -3183,28 +3188,22 @@ static void raw_video_rec_task()
                 {
                     handle_job_t *handle = (handle_job_t*)returned_job;
 
-                    /* allocate next chunk number */
-                    handle->file_header.fileNum = raw_get_next_filenum();
-                    handle->file_header.videoFrameCount = 0;
-                    handle->file_header.audioFrameCount = 0;
-                    handle->file_handle = NULL;
-                    strcpy(handle->filename, "");
-
-                    /* create the file */
-                    get_next_chunk_file_name(mlv_movie_filename, handle->filename, handle->file_header.fileNum, handle->writer);
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'", handle->writer, handle->filename);
-                    handle->file_handle = FIO_CreateFile(handle->filename);
+                    /* open the next file */
+                    int32_t filenum = raw_get_next_filenum();
+                    mlv_rec_get_chunk_filename(mlv_movie_filename, handle->filename, filenum, handle->writer);
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file #%d: '%s'", handle->writer, filenum, handle->filename);
+                    handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
                     if(handle->file_handle == INVALID_PTR)
                     {
-                        NotifyBox(5000, "Failed to create file. Card full?");
+                        NotifyBox(5000, "Failed to open file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
                         break;
                     }
-                    
-                    raw_prepare_chunk(handle->file_handle, &handle->file_header);
 
+                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
+            
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], (uint32_t) handle);
                 }
@@ -3217,12 +3216,6 @@ static void raw_video_rec_task()
                     FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
                     mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                     FIO_CloseFile(handle->file_handle);
-
-                    /* in test mode remove all files after closing */
-                    if(test_mode)
-                    {
-                        FIO_RemoveFile(handle->filename);
-                    }
 
                     /* "free" that job buffer again */
                     msg_queue_post(mlv_job_alloc_queue, (uint32_t) handle);
@@ -3275,12 +3268,6 @@ static void raw_video_rec_task()
                 FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
                 mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                 FIO_CloseFile(handle->file_handle);
-
-                /* in test mode remove all files after closing */
-                if(test_mode)
-                {
-                    FIO_RemoveFile(handle->filename);
-                }
 
                 /* "free" that job buffer again */
                 msg_queue_post(mlv_job_alloc_queue, (uint32_t) handle);
@@ -3359,43 +3346,8 @@ static void raw_video_rec_task()
 
         set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
-        if(test_mode)
-        {
-            int written_kbytes = written[0] + written[1];
-            int written_frames = frames_written[0] + frames_written[1];
-            char msg[100];
-            snprintf(msg, sizeof(msg), "%d.%d MB/s", measured_write_speed/100, (measured_write_speed/10)%10);
-
-            trace_write(raw_rec_trace_ctx, "[Test #%03d] M: %d, B: %d, W: %d KiB, F: %d, Rate: %s", test_loop + 1, buffer_fill_method, fast_card_buffers, written_kbytes, written_frames, msg);
-
-
-            uint32_t ypos = 210 + ((test_loop % 13) * font_med.height);
-            uint32_t test_loop_entry = test_loop % COUNT(test_results);
-            snprintf(test_results[test_loop_entry], sizeof(test_results[test_loop_entry]), "[Test #%03d] M: %d B: %d W: %5d MiB F: %4d (%s)   ", test_loop + 1, buffer_fill_method, fast_card_buffers, written_kbytes / 1024, written_frames, msg);
-            bmp_printf(FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK), 30, ypos, test_results[test_loop_entry]);
-
-            test_loop++;
-        }
-
-        test_case_loop++;
-        test_case_loop %= 4;
-
-        if(test_case_loop == 0)
-        {
-            buffer_fill_method++;
-            buffer_fill_method %= 5;
-
-            /*
-            if(!buffer_fill_method)
-            {
-                fast_card_buffers++;
-                fast_card_buffers %= MIN((slot_count - 1), 5);
-            }
-            */
-        }
-
         trace_flush(raw_rec_trace_ctx);
-    } while(test_mode && !abort_test);
+    } while(false);
 
 cleanup:
     /* signal that we are stopping */
@@ -3701,6 +3653,12 @@ static struct menu_entry raw_video_menu[] =
                 .help  = "Slow down Canon GUI, Lock digital expo while recording...",
             },
             {
+                .name = "Fix black level",
+                .priv = &black_fix,
+                .max = 1,
+                .help  = "Forces the black level to 2048 to fix green cast",
+            },
+            {
                 .name = "Debug trace",
                 .priv = &enable_tracing,
                 .max = 1,
@@ -3712,12 +3670,6 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &show_graph,
                 .max = 1,
                 .help = "Displays a graph of the current buffer usage and expected frames",
-            },
-            {
-                .name = "Test mode",
-                .priv = &test_mode,
-                .max = 1,
-                .help = "Record repeatedly, changing buffering methods etc",
             },
             {
                 .name = "Buffer fill method",
@@ -4097,8 +4049,8 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(buffer_fill_method)
     MODULE_CONFIG(fast_card_buffers)
     MODULE_CONFIG(enable_tracing)
-    MODULE_CONFIG(test_mode)
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
+    MODULE_CONFIG(black_fix)
 MODULE_CONFIGS_END()

@@ -443,7 +443,11 @@ static void
 meter_task( void* unused )
 {
     /* some models require the audio to be enabled using audio_configure() */
+    #if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+    int reconfig_audio = 0; // Needed to turn on Audio IC at boot, maybe neeed for 100D
+    #else
     int reconfig_audio = 1;
+    #endif
 
     TASK_LOOP
     {
@@ -453,18 +457,21 @@ meter_task( void* unused )
         {
             if(!is_mvr_buffer_almost_full())
             {
-                BMP_LOCK( draw_meters(); )
+                BMP_LOCK( draw_meters(); );
             }
-            
+
             if(RECORDING)
             {
                 reconfig_audio = 0;
             }
             else if(!reconfig_audio)
             {
-#if defined(CONFIG_600D) || defined(CONFIG_7D)
+                #if defined(CONFIG_600D) || defined(CONFIG_7D)
                 audio_configure(1);
-#endif
+                #elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+                void PowerMicAmp();
+                PowerMicAmp(0);
+                #endif
                 reconfig_audio = 1;
             }
         }

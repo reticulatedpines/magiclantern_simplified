@@ -41,10 +41,14 @@ static void draw_electronic_level(int angle, int prev_angle, int force_redraw)
     int x0 = os.x0 + os.x_ex/2;
     int y0 = os.y0 + os.y_ex/2;
     int r = 200;
+    int prev_dx = (prev_angle % 1800 >= 450 && prev_angle % 1800 < 1350);
+    int prev_dy = 1 - prev_dx;
+    int dx = (angle % 1800 >= 450 && angle % 1800 < 1350);
+    int dy = 1 - dx;
     draw_angled_line(x0, y0, r, prev_angle, 0);
-    draw_angled_line(x0+1, y0+1, r, prev_angle, 0);
+    draw_angled_line(x0 + prev_dx, y0 + prev_dy, r, prev_angle, 0);
     draw_angled_line(x0, y0, r, angle, (angle % 900) ? COLOR_BLACK : COLOR_GREEN1);
-    draw_angled_line(x0+1, y0+1, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
+    draw_angled_line(x0 + dx, y0 + dy, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
 }
 
 void disable_electronic_level()

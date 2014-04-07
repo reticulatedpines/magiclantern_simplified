@@ -7,7 +7,6 @@
 #undef FEATURE_FPS_WAV_RECORD
 #undef FEATURE_VOICE_TAGS
 #undef FEATURE_BEEP // works, but cam unstable as of now
-#undef FEATURE_AUDIO_METERS //works, but cam is unstable as of now
 
 // Audio features that work
 #define FEATURE_AUDIO_REMOTE_SHOT

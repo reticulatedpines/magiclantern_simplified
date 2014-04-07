@@ -74,6 +74,8 @@ NSTUB(0xFF1C7190,  gui_massive_event_loop)
 
 /** ASIF **/
 NSTUB(0xFF134430,  PowerAudioOutput)
+NSTUB(0xFF134024,  PowerMicAmp)
+NSTUB(0xFF10C618,  SetAudioVolumeIn)                        /* present on 6D.113 */
 NSTUB(0xFF132598,  SetAudioVolumeOut)                       // keep volume
 NSTUB(0xFF109720,  SetNextASIFADCBuffer)
 NSTUB(0xFF1097D4,  SetNextASIFDACBuffer)
@@ -83,7 +85,6 @@ NSTUB(0xFF10B95C,  SoundDevShutDownIn)
 NSTUB(0xFF108FEC,  StartASIFDMAADC)
 NSTUB(0xFF1091A4,  StartASIFDMADAC)
 NSTUB(0xFF10927C,  StopASIFDMADAC)
-// NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
