@@ -1507,14 +1507,14 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                     }
                 }
                 
-                int max = -kth_smallest_int(neighbours, k, 1);
+                int max = -kth_smallest_int(neighbours, k, 0);
                 is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
                 
                 if (fix_bad_pixels == 2)    /* aggressive */
                 {
-                    int second_max = -kth_smallest_int(neighbours, k, 2);
+                    int third_max = -kth_smallest_int(neighbours, k, 2);
                     is_hot = ((raw2ev[p] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
-                          || (raw2ev[p] - raw2ev[second_max] > EV_RESOLUTION/2);
+                          || (raw2ev[p] - raw2ev[third_max] > EV_RESOLUTION/2);
                 }
 
                 if (is_hot)
