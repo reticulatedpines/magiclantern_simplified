@@ -724,12 +724,12 @@ static void white_detect(int* white_dark, int* white_bright)
     /* side effect: if the image is not overexposed, it may get brightened a little; shouldn't hurt */
     
     int whites[2]         = {  0,    0};
-    int discard_pixels[2] = { 10,  100}; /* discard the brightest N pixels */
+    int discard_pixels[2] = { 10,   50}; /* discard the brightest N pixels */
     int safety_margins[2] = {100, 1500}; /* use a higher safety margin for the higher ISO */
     /* note: with the high-ISO WL underestimated by 1500, you would lose around 0.15 EV of non-aliased detail */
     
     int* pixels[2];
-    int max_pix = raw_info.width * raw_info.height / 2;
+    int max_pix = raw_info.width * raw_info.height / 2 / 9;
     pixels[0] = malloc(max_pix * sizeof(pixels[0][0]));
     pixels[1] = malloc(max_pix * sizeof(pixels[0][0]));
     int counts[2] = {0, 0};
@@ -737,9 +737,9 @@ static void white_detect(int* white_dark, int* white_bright)
     /* collect all the pixels and find the k-th max, thus ignoring hot pixels */
     /* change the sign in order to use kth_smallest_int */
     int x,y;
-    for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
+    for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y += 3)
     {
-        for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
+        for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x += 3)
         {
             int pix = raw_get_pixel16(x, y);
             
