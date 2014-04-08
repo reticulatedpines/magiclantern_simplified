@@ -733,7 +733,7 @@ int main(int argc, char** argv)
         free(buf);
     }
     
-    if (same_levels)
+    if (same_levels && num_files > 1)
     {
         /* Equalize white-black for all shots.
          * 
@@ -742,7 +742,7 @@ int main(int argc, char** argv)
          * 
          * However, for this to work, all the files must be passed in the same command line.
          * 
-         * We will use something close maximum range among all files (with outlier filter).
+         * We will use something close to maximum range among all files (with outlier filter).
          * 
          * This should work even if the black level is not the same in all shots.
          */
