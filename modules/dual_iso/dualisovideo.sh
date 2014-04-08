@@ -7,7 +7,7 @@
 mkdir tmp
 rm tmp/*
 raw2dng $1 tmp/
-cr2hdr tmp/*.dng
+cr2hdr tmp/*.dng --same-levels
 ufraw-batch --out-type=jpg tmp/*.DNG --exposure=4 --clip=film
 rm video.avi
 ffmpeg -i tmp/%6d.jpg -vcodec mjpeg -qscale 1 video.avi
