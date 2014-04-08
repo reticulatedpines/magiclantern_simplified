@@ -757,7 +757,7 @@ static void white_detect(int* white_dark, int* white_bright)
     //~ printf("%8d %8d\n", counts[0], counts[1]);
     
     /* we assume 14-bit input data; out-of-range white levels may cause crash */
-    *white_dark = COERCE(whites[0], 5000, 16383);
+    *white_dark = COERCE(whites[0], 10000, 16383);
     *white_bright = COERCE(whites[1], 5000, 16383);
     
     printf("White levels    : %d %d\n", *white_dark, *white_bright);
