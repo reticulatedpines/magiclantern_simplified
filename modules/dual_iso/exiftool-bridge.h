@@ -12,4 +12,6 @@ Use only on dual ISO shots!
 */
 void read_white_balance(const char* filename, float* red_balance, float* blue_balance);
 
+void set_white_level(const char* file, int level);
+
 #endif

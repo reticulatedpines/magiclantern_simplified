@@ -116,3 +116,13 @@ err:
     if (error) printf("**WARNING** could not extract white balance information, exiftool may need to be updated\n");
 }
 
+void set_white_level(const char* file, int level)
+{
+    char exif_cmd[1000];
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"%s\" -WhiteLevel=%d -overwrite_original -q", file, level);
+    int r = system(exif_cmd);
+    if(r!=0)
+    {
+        printf("**WARNING** exiftool couldn't update white level\n");
+    }
+}

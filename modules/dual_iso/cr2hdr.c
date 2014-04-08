@@ -81,6 +81,8 @@ int plot_fullres_curve = 0;
 
 int compress = 0;
 
+int same_levels = 0;
+
 int shortcut_fast = 0;
 
 void check_shortcuts()
@@ -163,6 +165,15 @@ struct cmd_group options[] = {
             { &use_alias_map,   1, "--alias-map",        NULL},
             { &use_stripe_fix,  0, "--no-stripe-fix",    "disable horizontal stripe fix" },
             { &use_stripe_fix,  1, "--stripe-fix",       NULL},
+            OPTION_EOL
+        },
+    },
+    {
+        "Flicker handling", (struct cmd_option[]) {
+            { (int*)&same_levels,    1, "--same-levels",       "Adjust output white levels to keep the same overall exposure\n"
+                                            "                  for all frames passed in a single command line\n"
+                                            "                  (useful to avoid flicker - for video or panoramas)" },
+            /* todo: deflicker, percentiles... */
             OPTION_EOL
         },
     },
@@ -548,6 +559,13 @@ int main(int argc, char** argv)
     solve_commandline_deps();
     show_active_options();
     
+    /* keep track of black and white levels (useful for deflicker) */
+    /* (we will not have more than "argc" files) */
+    int* file_indices = malloc(argc * sizeof(file_indices[0]));
+    int* blacks = malloc(argc * sizeof(blacks[0]));
+    int* whites = malloc(argc * sizeof(whites[0]));
+    int num_files = 0;
+    
     /* all other arguments are input files */
     for (int k = 1; k < argc; k++)
     {
@@ -695,6 +713,12 @@ int main(int argc, char** argv)
                 {
                     dng_compress(out_filename, compress-1);
                 }
+                
+                /* record black and white levels */
+                file_indices[num_files] = k;
+                blacks[num_files] = raw_info.black_level;
+                whites[num_files] = raw_info.white_level;
+                num_files++;
             }
             else
             {
@@ -705,9 +729,55 @@ int main(int argc, char** argv)
         {
             printf("Doesn't look like interlaced ISO\n");
         }
-        
+
         free(buf);
     }
+    
+    if (same_levels)
+    {
+        /* Equalize white-black for all shots.
+         * 
+         * Assuming all the pictures were shot at the same exposure settings,
+         * this step will make sure they are all rendered identically (without flicker).
+         * 
+         * However, for this to work, all the files must be passed in the same command line.
+         * 
+         * We will use something close maximum range among all files (with outlier filter).
+         * 
+         * This should work even if the black level is not the same in all shots.
+         */
+        
+        printf("\nEqualizing levels...\n");
+        
+        int* ranges = malloc(num_files * sizeof(ranges[0]));
+        for (int i = 0; i < num_files; i++)
+        {
+            ranges[i] = whites[i] - blacks[i];
+        }
+        int new_range = kth_smallest_int(ranges, num_files, num_files * 8 / 9 - 1);
+
+        for (int i = 0; i < num_files; i++)
+        {
+            char* input_file = argv[file_indices[i]];
+
+            /* fixme: duplicate code */
+            char out_filename[1000];
+            snprintf(out_filename, sizeof(out_filename), "%s", input_file);
+            int len = strlen(out_filename);
+            out_filename[len-3] = 'D';
+            out_filename[len-2] = 'N';
+            out_filename[len-1] = 'G';
+
+            int new_white = blacks[i] + new_range;
+            printf("%-16s: %d ... %d\n", out_filename, blacks[i], new_white);
+            set_white_level(out_filename, new_white);
+        }
+        
+        free(ranges);
+    }
+    
+    free(whites);
+    free(blacks);
     
     return 0;
 }
