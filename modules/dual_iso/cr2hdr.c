@@ -1184,7 +1184,7 @@ static int identify_bright_and_dark_fields(int rggb)
     int acc[4] = {0};
     int raw[4] = {0};
     int ref;
-    for (ref = 0; ref < hist_total - 10; ref++)
+    for (ref = 0; ref < hist_total - 500; ref++)
     {
         for (int i = 0; i < 4; i++)
         {
