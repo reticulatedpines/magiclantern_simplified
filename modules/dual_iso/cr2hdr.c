@@ -400,6 +400,11 @@ static void* malloc_or_die(size_t size)
 #define SGN(a) \
    ((a) > 0 ? 1 : -1 )
 
+/* conversion from linear to EV space and back, with range checking */
+/* when no range checking is needed, just access the array directly */
+#define EV2RAW(x) ev2raw[COERCE(x, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]
+#define RAW2EV(x) raw2ev[COERCE(x, 0, 0xFFFFF)]
+
 struct raw_info raw_info = {
     .api_version = 1,
     .bits_per_pixel = 16,
@@ -2540,7 +2545,7 @@ static int hdr_interpolate()
         {
             for (y = 3; y < h-2; y ++)
                 for (x = 2; x < w-2; x ++)
-                    raw_set_pixel_20to16(x, y, ev2raw[COERCE(alias_map[x + y*w] * 1024, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]);
+                    raw_set_pixel_20to16(x, y, EV2RAW(alias_map[x + y*w] * 1024));
             save_debug_dng("alias.dng");
         }
 
@@ -2592,7 +2597,7 @@ static int hdr_interpolate()
         {
             for (y = 3; y < h-2; y ++)
                 for (x = 2; x < w-2; x ++)
-                    raw_set_pixel_20to16(x, y, ev2raw[COERCE(alias_aux[x + y*w] * 1024, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]);
+                    raw_set_pixel_20to16(x, y, EV2RAW(alias_aux[x + y*w] * 1024));
             save_debug_dng("alias-dilated.dng");
         }
 
@@ -2653,7 +2658,7 @@ static int hdr_interpolate()
         {
             for (y = 3; y < h-2; y ++)
                 for (x = 2; x < w-2; x ++)
-                    raw_set_pixel_20to16(x, y, ev2raw[COERCE(alias_map[x + y*w] * 128, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1)]);
+                    raw_set_pixel_20to16(x, y, EV2RAW(alias_map[x + y*w] * 128));
             save_debug_dng("alias-smooth.dng");
         }
 
