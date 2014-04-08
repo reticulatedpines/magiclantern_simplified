@@ -241,9 +241,8 @@ err:
 static void print_sscanf_option(char* format, void* ptr, int num_vars, char* help)
 {
     int i = 0;
-    char* p;
     int len = 0;
-    for (p = format; *p && i < num_vars; p++)
+    for (char* p = format; *p && i < num_vars; p++)
     {
         if (*p != '%')
         {
@@ -273,11 +272,10 @@ static void print_sscanf_option(char* format, void* ptr, int num_vars, char* hel
 
 static void parse_commandline_option(char* option)
 {
-    struct cmd_group * g;
-    for (g = options; g->name; g++)
+    
+    for (struct cmd_group * g = options; g->name; g++)
     {
-        struct cmd_option * o;
-        for (o = g->options; o->option; o++)
+        for (struct cmd_option * o = g->options; o->option; o++)
         {
             if (strchr(o->option, '%'))
             {
@@ -312,12 +310,10 @@ static void parse_commandline_option(char* option)
 static void show_commandline_help(char* progname)
 {
     printf("Command-line usage: %s [OPTIONS] [FILES]\n\n", progname);
-    struct cmd_group * g;
-    for (g = options; g->name; g++)
+    for (struct cmd_group * g = options; g->name; g++)
     {
         printf("%s:\n", g->name);
-        struct cmd_option * o;
-        for (o = g->options; o->option; o++)
+        for (struct cmd_option * o = g->options; o->option; o++)
         {
             if (o->help)
             {
@@ -338,11 +334,9 @@ static void show_active_options()
 {
     printf("Active options:\n");
 
-    struct cmd_group * g;
-    for (g = options; g->name; g++)
+    for (struct cmd_group * g = options; g->name; g++)
     {
-        struct cmd_option * o;
-        for (o = g->options; o->option; o++)
+        for (struct cmd_option * o = g->options; o->option; o++)
         {
             if (strchr(o->option, '%'))
             {
@@ -492,8 +486,7 @@ static void reverse_bytes_order(void* buf, int count)
 {
     char* buf8 = (char*) buf;
     uint16_t* buf16 = (uint16_t*) buf;
-    int i;
-    for (i = 0; i < count/2; i++)
+    for (int i = 0; i < count/2; i++)
     {
         uint16_t x = buf16[i];
         buf8[2*i+1] = x;
@@ -545,11 +538,10 @@ int main(int argc, char** argv)
         return 0;
     }
     
-    int k;
     int r;
 
     /* parse all command-line options */
-    for (k = 1; k < argc; k++)
+    for (int k = 1; k < argc; k++)
         if (argv[k][0] == '-')
             parse_commandline_option(argv[k]);
     
@@ -557,7 +549,7 @@ int main(int argc, char** argv)
     show_active_options();
     
     /* all other arguments are input files */
-    for (k = 1; k < argc; k++)
+    for (int k = 1; k < argc; k++)
     {
         if (argv[k][0] == '-')
             continue;
@@ -643,8 +635,7 @@ int main(int argc, char** argv)
         raw_info.buffer = buf;
         
         /* did we read the PGM correctly? (right byte order etc) */
-        //~ int i;
-        //~ for (i = 0; i < 10; i++)
+        //~ for (int i = 0; i < 10; i++)
             //~ printf("%d ", raw_get_pixel16(i, 0));
         //~ printf("\n");
         
@@ -741,10 +732,9 @@ static void white_detect(int* white_dark, int* white_bright)
 
     /* collect all the pixels and find the k-th max, thus ignoring hot pixels */
     /* change the sign in order to use kth_smallest_int */
-    int x,y;
-    for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y += 3)
+    for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y += 3)
     {
-        for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x += 3)
+        for (int x = raw_info.active_area.x1; x < raw_info.active_area.x2; x += 3)
         {
             int pix = raw_get_pixel16(x, y);
             
@@ -800,12 +790,11 @@ static int black_subtract(int left_margin, int top_margin)
     int ymax = ymin + 8;
 
     /* estimate vertical correction for each line */
-    int x,y;
-    for (y = ymin; y < h; y++)
+    for (int y = ymin; y < h; y++)
     {
         int avg = 0;
         int num = 0;
-        for (x = 2; x < left_margin - 8; x++)
+        for (int x = 2; x < left_margin - 8; x++)
         {
             avg += raw_get_pixel16(x, y);
             num++;
@@ -814,12 +803,11 @@ static int black_subtract(int left_margin, int top_margin)
     }
     
     /* perform some slight filtering (averaging) so we don't add noise to the image */
-    for (y = ymin; y < h; y++)
+    for (int y = ymin; y < h; y++)
     {
-        int y2;
         int avg = 0;
         int num = 0;
-        for (y2 = y - 10*4; y2 < y + 10*4; y2 += 4)
+        for (int y2 = y - 10*4; y2 < y + 10*4; y2 += 4)
         {
             if (y2 < ymin) continue;
             if (y2 >= h) continue;
@@ -842,9 +830,9 @@ static int black_subtract(int left_margin, int top_margin)
     double avg_black = 0;
 
     /* update the dark frame and compute the average black level */
-    for (y = ymin; y < h; y++)
+    for (int y = ymin; y < h; y++)
     {
-        for (x = 0; x < w; x++)
+        for (int x = 0; x < w; x++)
         {
             blackframe[x + y*w] = vblack[y];
         }
@@ -854,14 +842,13 @@ static int black_subtract(int left_margin, int top_margin)
     
     
     /* estimate horizontal drift for each channel */
-    int k;
-    for (k = 0; k < 4; k++)
+    for (int k = 0; k < 4; k++)
     {
         int y0 = ymin + k;
         int offset = 0;
         {
             int num = 0;
-            for (y = y0; y < ymax; y += 4)
+            for (int y = y0; y < ymax; y += 4)
             {
                 offset += blackframe[y*w];
                 num++;
@@ -870,14 +857,13 @@ static int black_subtract(int left_margin, int top_margin)
         }
         
         /* try to fix banding that repeats every 8 pixels */
-        int xg;
-        for (xg = 0; xg < 8; xg++)
+        for (int xg = 0; xg < 8; xg++)
         {
-            for (x = xg; x < w; x += 8)
+            for (int x = xg; x < w; x += 8)
             {
                 int num = 0;
                 int avg = 0;
-                for (y = y0; y < ymax; y += 4)
+                for (int y = y0; y < ymax; y += 4)
                 {
                     avg += raw_get_pixel16(x, y) - offset;
                     num++;
@@ -887,12 +873,11 @@ static int black_subtract(int left_margin, int top_margin)
             
             /* perform some stronger filtering (averaging), since this data is a lot noisier */
             /* if we don't do that, we will add some strong FPN to the image */
-            for (x = xg; x < w; x += 8)
+            for (int x = xg; x < w; x += 8)
             {
-                int x2;
                 int avg = 0;
                 int num = 0;
-                for (x2 = x - 1024; x2 < x + 1024; x2 += 8)
+                for (int x2 = x - 1024; x2 < x + 1024; x2 += 8)
                 {
                     if (x2 < 0) continue;
                     if (x2 >= w) continue;
@@ -905,8 +890,8 @@ static int black_subtract(int left_margin, int top_margin)
             memcpy(hblack, aux, w * sizeof(hblack[0]));
 
             /* update the dark frame */
-            for (y = y0; y < h; y += 4)
-                for (x = xg; x < w; x += 8)
+            for (int y = y0; y < h; y += 4)
+                for (int x = xg; x < w; x += 8)
                     blackframe[x + y*w] += hblack[x];
         }
     }
@@ -916,9 +901,9 @@ static int black_subtract(int left_margin, int top_margin)
         /* change black and white levels to see the black frame when developing the DNG */
         int black_black = INT_MAX;
         int black_white = 0;
-        for (y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
+        for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
         {
-            for (x = raw_info.active_area.x1; x < raw_info.active_area.x2; x++)
+            for (int x = raw_info.active_area.x1; x < raw_info.active_area.x2; x++)
             {
                 black_black = MIN(black_black, blackframe[x + y*w]);
                 black_white = MAX(black_white, blackframe[x + y*w]);
@@ -938,9 +923,9 @@ static int black_subtract(int left_margin, int top_margin)
     }
 
     /* subtract the dark frame, keeping the average black level */
-    for (y = ymin; y < h; y++)
+    for (int y = ymin; y < h; y++)
     {
-        for (x = 0; x < w; x++)
+        for (int x = 0; x < w; x++)
         {
             int p = raw_get_pixel16(x, y);
             int black_delta = avg_black - blackframe[x + y*w];
@@ -974,12 +959,11 @@ static int black_subtract_simple(int left_margin, int top_margin)
     int h = raw_info.height;
 
     /* average left bar */
-    int x,y;
     long long avg = 0;
     int num = 0;
-    for (y = top_margin + 20; y < h - 20; y++)
+    for (int y = top_margin + 20; y < h - 20; y++)
     {
-        for (x = 16; x < left_margin - 16; x++)
+        for (int x = 16; x < left_margin - 16; x++)
         {
             int p = raw_get_pixel20(x, y);
             if (p > 0)
@@ -1006,10 +990,9 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
     long long black = 0;
     int num = 0;
     /* compute average level */
-    int x, y;
-    for (y = y1; y < y2; y += dy)
+    for (int y = y1; y < y2; y += dy)
     {
-        for (x = x1; x < x2; x += dx)
+        for (int x = x1; x < x2; x += dx)
         {
             black += raw_get_pixel(x, y);
             num++;
@@ -1020,9 +1003,9 @@ static void compute_black_noise(int x1, int x2, int y1, int y2, int dx, int dy, 
 
     /* compute standard deviation */
     double stdev = 0;
-    for (y = y1; y < y2; y += dy)
+    for (int y = y1; y < y2; y += dy)
     {
-        for (x = x1; x < x2; x += dx)
+        for (int x = x1; x < x2; x += dx)
         {
             double dif = raw_get_pixel(x, y) - mean;
             stdev += dif * dif;
@@ -1052,16 +1035,14 @@ static int hdr_check()
 
     static double raw2ev[16384];
     
-    int i;
-    for (i = 0; i < 16384; i++)
+    for (int i = 0; i < 16384; i++)
         raw2ev[i] = log2(MAX(1, i - black));
 
-    int x, y;
     double avg_ev = 0;
     int num = 0;
-    for (y = 2; y < h-2; y ++)
+    for (int y = 2; y < h-2; y ++)
     {
-        for (x = 2; x < w-2; x ++)
+        for (int x = 2; x < w-2; x ++)
         {
             int p = raw_get_pixel16(x, y);
             int p2 = raw_get_pixel16(x, y+2);
@@ -1106,14 +1087,11 @@ static int identify_bright_and_dark_fields(int rggb)
     
     int w = raw_info.width;
     int h = raw_info.height;
-
-    int x,y;
-    int i;
     
     /* build 4 little histograms */
     int hist_size = 16384 * sizeof(int);
     int* hist[4];
-    for (i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
     {
         hist[i] = malloc(hist_size);
         memset(hist[i], 0, hist_size);
@@ -1122,14 +1100,14 @@ static int identify_bright_and_dark_fields(int rggb)
     int y0 = (raw_info.active_area.y1 + 3) & ~3;
     
     /* to simplify things, analyze an identical number of bright and dark lines */
-    for (y = y0; y < h/4*4; y++)
+    for (int y = y0; y < h/4*4; y++)
     {
-        for (x = 0; x < w; x++)
+        for (int x = 0; x < w; x++)
             hist[y%4][raw_get_pixel16(x,y) & 16383]++;
     }
     
     int hist_total = 0;
-    for (i = 0; i < 16384; i++)
+    for (int i = 0; i < 16384; i++)
         hist_total += hist[0][i];
 
     /* choose the highest percentile that is not overexposed */
@@ -1138,7 +1116,7 @@ static int identify_bright_and_dark_fields(int rggb)
     int ref;
     for (ref = 0; ref < hist_total - 10; ref++)
     {
-        for (i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             while (acc[i] < ref)
             {
@@ -1153,7 +1131,7 @@ static int identify_bright_and_dark_fields(int rggb)
         if (raw[3] >= white) break;
     }
 
-    for (i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
     {
         free(hist[i]); hist[i] = 0;
     }
@@ -1162,10 +1140,9 @@ static int identify_bright_and_dark_fields(int rggb)
     int sorted_bright[4];
     memcpy(sorted_bright, raw, sizeof(sorted_bright));
     {
-        int i,j;
-        for (i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
-            for (j = i+1; j < 4; j++)
+            for (int j = i+1; j < 4; j++)
             {
                 if (sorted_bright[i] > sorted_bright[j])
                 {
@@ -1178,7 +1155,7 @@ static int identify_bright_and_dark_fields(int rggb)
     }
     double median_bright = (sorted_bright[1] + sorted_bright[2]) / 2;
 
-    for (i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
         is_bright[i] = raw[i] > median_bright;
 
     printf("ISO pattern     : %c%c%c%c %s\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd', rggb ? "RGGB" : "GBRG");
@@ -1224,7 +1201,6 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     int w = raw_info.width;
     int h = raw_info.height;
-    int x, y;
 
     /* quick interpolation for matching */
     int* dark   = malloc(w * h * sizeof(dark[0]));
@@ -1235,12 +1211,12 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     /* also average the bright exposure (we will need a rough threshold to split the data set in two) */
     double avg_bright = 0;
     int avg_bright_num = 0;
-    for (y = 2; y < h-2; y++)
+    for (int y = 2; y < h-2; y++)
     {
         int* native = BRIGHT_ROW ? bright : dark;
         int* interp = BRIGHT_ROW ? dark : bright;
 
-        for (x = 0; x < w; x++)
+        for (int x = 0; x < w; x++)
         {
             int pa = raw_get_pixel_20to16(x, y-2) - black;
             int pb = raw_get_pixel_20to16(x, y+2) - black;
@@ -1275,9 +1251,9 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         int y0 = raw_info.active_area.y1;
 
         /* downsample for speed */
-        for (y = y0; y < h-2; y += 3)
+        for (int y = y0; y < h-2; y += 3)
         {
-            for (x = 0; x < w; x += 3)
+            for (int x = 0; x < w; x += 3)
             {
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
@@ -1318,9 +1294,9 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         fprintf(f, "clip = %d\n", clip);
         fprintf(f, "data = [\n");
         int y0 = raw_info.active_area.y1;
-        for (y = y0; y < h-2; y++)
+        for (int y = y0; y < h-2; y++)
         {
-            for (x = 0; x < w; x++)
+            for (int x = 0; x < w; x++)
             {
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
@@ -1344,9 +1320,9 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     /* apply the correction */
     double b20 = b * 16;
-    for (y = 0; y < h-1; y ++)
+    for (int y = 0; y < h-1; y ++)
     {
-        for (x = 0; x < w; x ++)
+        for (int x = 0; x < w; x ++)
         {
             int p = raw_get_pixel32(x, y);
             if (p == 0) continue;
@@ -1469,10 +1445,9 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
 
     int hot_pixels = 0;
     int cold_pixels = 0;
-    int x,y;
-    for (y = 6; y < h-6; y ++)
+    for (int y = 6; y < h-6; y ++)
     {
-        for (x = 6; x < w-6; x ++)
+        for (int x = 6; x < w-6; x ++)
         {
             int p = raw_get_pixel20(x, y);
             
@@ -1489,17 +1464,16 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                 /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
                 int neighbours[100];
                 int k = 0;
-                int i,j;
                 int fc0 = FC(x, y);
                 int b0 = is_bright[y%4];
                 int max = 0;
-                for (i = -4; i <= 4; i++)
+                for (int i = -4; i <= 4; i++)
                 {
                     /* only look at pixels of the same brightness */
                     if (is_bright[(y+i)%4] != b0)
                         continue;
 
-                    for (j = -4; j <= 4; j++)
+                    for (int j = -4; j <= 4; j++)
                     {
                         if (i == 0 && j == 0)
                             continue;
@@ -1544,8 +1518,8 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
     }
 
     /* apply the correction */
-    for (y = 0; y < h; y ++)
-        for (x = 0; x < w; x ++)
+    for (int y = 0; y < h; y ++)
+        for (int x = 0; x < w; x ++)
             if (hotpixel[x + y*w])
                 raw_set_pixel20(x, y, debug_bad_pixels ? black : hotpixel[x + y*w]);
 
@@ -1586,16 +1560,15 @@ static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_w
 
 static int hdr_interpolate()
 {
-    int x, y;
     int w = raw_info.width;
     int h = raw_info.height;
 
     /* RGGB or GBRG? */
     double rggb_err = 0;
     double gbrg_err = 0;
-    for (y = 2; y < h-2; y += 2)
+    for (int y = 2; y < h-2; y += 2)
     {
-        for (x = 2; x < w-2; x += 2)
+        for (int x = 2; x < w-2; x += 2)
         {
             int tl = raw_get_pixel16(x, y);
             int tr = raw_get_pixel16(x+1, y);
@@ -1652,8 +1625,7 @@ static int hdr_interpolate()
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
 
-    int i;
-    for (i = 0; i < 1<<20; i++)
+    for (int i = 0; i < 1<<20; i++)
     {
         double signal = MAX(i/64.0 - black/64.0, -1023);
         if (signal > 0)
@@ -1662,12 +1634,12 @@ static int hdr_interpolate()
             raw2ev[i] = -(int)round(log2(1-signal) * EV_RESOLUTION);
     }
 
-    for (i = -10*EV_RESOLUTION; i < 0; i++)
+    for (int i = -10*EV_RESOLUTION; i < 0; i++)
     {
         ev2raw[i] = COERCE(black+64 - round(64*pow(2, ((double)-i/EV_RESOLUTION))), 0, black);
     }
 
-    for (i = 0; i < 14*EV_RESOLUTION; i++)
+    for (int i = 0; i < 14*EV_RESOLUTION; i++)
     {
         ev2raw[i] = COERCE(black-64 + round(64*pow(2, ((double)i/EV_RESOLUTION))), black, (1<<20)-1);
         
@@ -1687,7 +1659,7 @@ static int hdr_interpolate()
 
     double noise_std[4];
     double noise_avg;
-    for (y = 0; y < 4; y++)
+    for (int y = 0; y < 4; y++)
         compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y], raw_get_pixel16);
 
     printf("Noise levels    : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
@@ -1700,8 +1672,8 @@ static int hdr_interpolate()
     {
         /* dump the bright image without interpolation */
         /* (well, use nearest neighbour, which is an interpolation in the same way as black and white are colors) */
-        for (y = 0; y < h; y ++)
-            for (x = 0; x < w; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 raw_set_pixel16(x, y, raw_get_pixel_14to16(x, !BRIGHT_ROW ? y : y+2));
         raw_info.black_level /= 16;
         raw_info.white_level /= 16;
@@ -1712,13 +1684,13 @@ static int hdr_interpolate()
     void* raw_buffer_16 = raw_info.buffer;
     uint32_t * raw_buffer_32 = malloc(w * h * sizeof(raw_buffer_32[0]));
     
-    for (y = 0; y < h; y ++)
-        for (x = 0; x < w; x ++)
+    for (int y = 0; y < h; y ++)
+        for (int x = 0; x < w; x ++)
             raw_buffer_32[x + y*w] = raw_get_pixel_14to20(x, y);
 
     raw_info.buffer = raw_buffer_32;
-    for (y = 0; y < h; y ++)
-        for (x = 0; x < w; x ++)
+    for (int y = 0; y < h; y ++)
+        for (int x = 0; x < w; x ++)
             raw_set_pixel32(x, y, raw_buffer_32[x + y*w]);
 
     /* we have now switched to 20-bit, update noise numbers */
@@ -1756,7 +1728,7 @@ static int hdr_interpolate()
     const double fullres_transition = 4;
     const double fullres_thr = 0.8;
     
-    for (i = 0; i < (1<<20); i++)
+    for (int i = 0; i < (1<<20); i++)
     {
         double ev2 = log2(MAX(i/64.0 - black/64.0, 1));
         double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
@@ -1771,12 +1743,12 @@ static int hdr_interpolate()
         fprintf(f, "x = 0:65535; \n");
 
         fprintf(f, "ev = [");
-        for (i = 0; i < 65536; i++)
+        for (int i = 0; i < 65536; i++)
             fprintf(f, "%f ", log2(MAX(i/4.0 - black/64.0, 1)));
         fprintf(f, "];\n");
 
         fprintf(f, "f = [");
-        for (i = 0; i < 65536; i++)
+        for (int i = 0; i < 65536; i++)
             fprintf(f, "%f ", fullres_curve[i*16]);
         fprintf(f, "];\n");
         
@@ -1822,7 +1794,7 @@ static int hdr_interpolate()
         float** green   = malloc(h * sizeof(green[0]));
         float** blue    = malloc(h * sizeof(blue[0]));
         
-        for (i = 0; i < h; i++)
+        for (int i = 0; i < h; i++)
         {
             int wx = w + 16;
             rawData[i] =   malloc(wx * sizeof(rawData[0][0]));
@@ -1834,7 +1806,7 @@ static int hdr_interpolate()
         
         /* squeeze the dark image by deleting fields from the bright exposure */
         int yh = -1;
-        for (y = 0; y < h; y ++)
+        for (int y = 0; y < h; y ++)
         {
             if (BRIGHT_ROW)
                 continue;
@@ -1842,7 +1814,7 @@ static int hdr_interpolate()
             if (yh < 0) /* make sure we start at the same parity (RGGB cell) */
                 yh = y;
             
-            for (x = 0; x < w; x++)
+            for (int x = 0; x < w; x++)
             {
                 int p = raw_get_pixel32(x, y);
                 
@@ -1859,7 +1831,7 @@ static int hdr_interpolate()
 
         /* now the same for the bright exposure */
         yh = -1;
-        for (y = 0; y < h; y ++)
+        for (int y = 0; y < h; y ++)
         {
             if (!BRIGHT_ROW)
                 continue;
@@ -1867,7 +1839,7 @@ static int hdr_interpolate()
             if (yh < 0) /* make sure we start with the same parity (RGGB cell) */
                 yh = h/4*2 + y;
             
-            for (x = 0; x < w; x++)
+            for (int x = 0; x < w; x++)
             {
                 int p = raw_get_pixel32(x, y);
                 
@@ -1885,8 +1857,8 @@ static int hdr_interpolate()
 
         if (debug_amaze)
         {
-            for (y = 0; y < h; y ++)
-                for (x = 0; x < w; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 0; x < w; x ++)
                     raw_set_pixel_20to16(x, y, rawData[y][x]);
             save_debug_dng("amaze-input.dng");
         }
@@ -1903,9 +1875,9 @@ static int hdr_interpolate()
         amaze_demosaic_RT(rawData, red, green, blue, 0, 0, w, h);
 
         /* undo green channel scaling and clamp the other channels */
-        for (y = 0; y < h; y ++)
+        for (int y = 0; y < h; y ++)
         {
-            for (x = 0; x < w; x ++)
+            for (int x = 0; x < w; x ++)
             {
                 green[y][x] = COERCE((green[y][x] - black) * 2 + black, 0, 0xFFFFF);
                 red[y][x] = COERCE(red[y][x], 0, 0xFFFFF);
@@ -1915,18 +1887,18 @@ static int hdr_interpolate()
 
         if (debug_amaze)
         {
-            for (y = 0; y < h; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, red[y][x]);
             save_debug_dng("amaze-red.dng");
 
-            for (y = 0; y < h; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, green[y][x]);
             save_debug_dng("amaze-green.dng");
 
-            for (y = 0; y < h; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, blue[y][x]);
             save_debug_dng("amaze-blue.dng");
             
@@ -1940,13 +1912,13 @@ static int hdr_interpolate()
         //~ printf("Grayscale...\n");
         /* convert to grayscale and de-squeeze for easier processing */
         uint32_t * gray = malloc(w * h * sizeof(gray[0]));
-        for (y = 0; y < h; y ++)
-            for (x = 0; x < w; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
 
         #if 0
-        for (y = 0; y < h; y ++)
-            for (x = 2; x < w-2; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 2; x < w-2; x ++)
                 raw_set_pixel_20to16(x, y, gray[x + y*w]);
         save_debug_dng("edge-gray.dng");
         exit(1);
@@ -1979,8 +1951,8 @@ static int hdr_interpolate()
 
         uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
         int d0 = COUNT(edge_directions)/2;
-        for (y = 0; y < h; y ++)
-            for (x = 0; x < w; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 edge_direction[x + y*w] = d0;
 
         //~ printf("Cross-correlation...\n");
@@ -1989,12 +1961,11 @@ static int hdr_interpolate()
         int deep_shadow = 0;
         int not_shadow = 0;
         
-        for (y = 5; y < h-5; y ++)
+        for (int y = 5; y < h-5; y ++)
         {
             int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
-            for (x = 5; x < w-5; x ++)
+            for (int x = 5; x < w-5; x ++)
             {
-                int d;
                 int e_best = INT_MAX;
                 int d_best = d0;
                 int dmin = 0;
@@ -2037,11 +2008,10 @@ static int hdr_interpolate()
                 }
                 else
                 {
-                    for (d = dmin; d <= dmax; d++)
+                    for (int d = dmin; d <= dmax; d++)
                     {
                         int e = 0;
-                        int j;
-                        for (j = -search_area; j <= search_area; j++)
+                        for (int j = -search_area; j <= search_area; j++)
                         {
                             int dx1 = edge_directions[d].ack.x + j;
                             int dy1 = edge_directions[d].ack.y * s;
@@ -2083,13 +2053,13 @@ static int hdr_interpolate()
         /* burn the interpolation directions into a test image */
         if (debug_edge)
         {
-            for (y = 4; y < h-4; y += 10)
+            for (int y = 4; y < h-4; y += 10)
             {
                 /* only show bright rows (interpolated from dark ones) */
                 while (!BRIGHT_ROW) y++;
                 
                 int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
-                for (x = 4; x < w-4; x += 10)
+                for (int x = 4; x < w-4; x += 10)
                 {
                     gray[x + y*w] = black;
 
@@ -2113,16 +2083,16 @@ static int hdr_interpolate()
                 }
             }
 
-            for (y = 0; y < h; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, gray[x + y*w]);
             save_debug_dng("edges.dng");
             if(system("dcraw -d -r 1 1 1 1 edges.dng"));
             /* best viewed at 400% with nearest neighbour interpolation (no filtering) */
 
-            for (y = 0; y < h; y ++)
+            for (int y = 0; y < h; y ++)
             {
-                for (x = 2; x < w-2; x ++)
+                for (int x = 2; x < w-2; x ++)
                 {
                     int dir = edge_direction[x + y*w];
                     if (y%2) dir = COUNT(edge_directions)-1-dir;
@@ -2137,7 +2107,7 @@ static int hdr_interpolate()
         
         //~ printf("Actual interpolation...\n");
 
-        for (y = 2; y < h-2; y ++)
+        for (int y = 2; y < h-2; y ++)
         {
             uint32_t* native = BRIGHT_ROW ? bright : dark;
             uint32_t* interp = BRIGHT_ROW ? dark : bright;
@@ -2146,17 +2116,16 @@ static int hdr_interpolate()
 
             //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
             
-            for (x = 2; x < w-2; x += 2)
+            for (int x = 2; x < w-2; x += 2)
             {
-                int k;
-                for (k = 0; k < 2; k++, x++)
+                for (int k = 0; k < 2; k++, x++)
                 {
                     float** plane = is_rg ? (x%2 == 0 ? red   : green)
                                           : (x%2 == 0 ? green : blue );
 
                     int dir = edge_direction[x + y*w];
                     
-                    int edge_interp(dir)
+                    int edge_interp(int dir)
                     {
                         
                         int dxa = edge_directions[dir].a.x;
@@ -2182,7 +2151,7 @@ static int hdr_interpolate()
             }
         }
 
-        for (i = 0; i < h; i++)
+        for (int i = 0; i < h; i++)
         {
             free(rawData[i]);
             free(red[i]);
@@ -2201,14 +2170,14 @@ static int hdr_interpolate()
     else /* mean23 */
     {
         printf("Interpolation   : mean23\n");
-        for (y = 2; y < h-2; y ++)
+        for (int y = 2; y < h-2; y ++)
         {
             uint32_t* native = BRIGHT_ROW ? bright : dark;
             uint32_t* interp = BRIGHT_ROW ? dark : bright;
             int is_rg = (y % 2 == 0); /* RG or GB? */
             int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
             
-            for (x = 2; x < w-3; x += 2)
+            for (int x = 2; x < w-3; x += 2)
             {
             
                 /* red/blue: interpolate from (x,y+2) and (x,y-2) */
@@ -2252,42 +2221,42 @@ static int hdr_interpolate()
     }
 
     /* border interpolation */
-    for (y = 0; y < 3; y ++)
+    for (int y = 0; y < 3; y ++)
     {
         uint32_t* native = BRIGHT_ROW ? bright : dark;
         uint32_t* interp = BRIGHT_ROW ? dark : bright;
         
-        for (x = 0; x < w; x ++)
+        for (int x = 0; x < w; x ++)
         {
             interp[x + y * w] = raw_get_pixel32(x, y+2);
             native[x + y * w] = raw_get_pixel32(x, y);
         }
     }
 
-    for (y = h-2; y < h; y ++)
+    for (int y = h-2; y < h; y ++)
     {
         uint32_t* native = BRIGHT_ROW ? bright : dark;
         uint32_t* interp = BRIGHT_ROW ? dark : bright;
         
-        for (x = 0; x < w; x ++)
+        for (int x = 0; x < w; x ++)
         {
             interp[x + y * w] = raw_get_pixel32(x, y-2);
             native[x + y * w] = raw_get_pixel32(x, y);
         }
     }
 
-    for (y = 2; y < h; y ++)
+    for (int y = 2; y < h; y ++)
     {
         uint32_t* native = BRIGHT_ROW ? bright : dark;
         uint32_t* interp = BRIGHT_ROW ? dark : bright;
         
-        for (x = 0; x < 2; x ++)
+        for (int x = 0; x < 2; x ++)
         {
             interp[x + y * w] = raw_get_pixel32(x, y-2);
             native[x + y * w] = raw_get_pixel32(x, y);
         }
 
-        for (x = w-3; x < w; x ++)
+        for (int x = w-3; x < w; x ++)
         {
             interp[x + y * w] = raw_get_pixel32(x-2, y-2);
             native[x + y * w] = raw_get_pixel32(x-2, y);
@@ -2300,11 +2269,11 @@ static int hdr_interpolate()
         int* delta = malloc(w * sizeof(delta[0]));
 
         /* adjust dark lines to match the bright ones */
-        for (y = 0; y < h; y ++)
+        for (int y = 0; y < h; y ++)
         {
             /* apply a constant offset (estimated from unclipped areas) */
             int delta_num = 0;
-            for (x = 0; x < w; x ++)
+            for (int x = 0; x < w; x ++)
             {
                 int b = bright[x + y*w];
                 int d = dark[x + y*w];
@@ -2323,7 +2292,7 @@ static int hdr_interpolate()
             }
 
             /* shift the dark lines */
-            for (x = 0; x < w; x ++)
+            for (int x = 0; x < w; x ++)
             {
                 dark[x + y*w] = COERCE(dark[x + y*w] + med_delta, 0, 0xFFFFF);
             }
@@ -2336,9 +2305,9 @@ static int hdr_interpolate()
     if (use_fullres)
     {
         printf("Full-res reconstruction...\n");
-        for (y = 0; y < h; y ++)
+        for (int y = 0; y < h; y ++)
         {
-            for (x = 0; x < w; x ++)
+            for (int x = 0; x < w; x ++)
             {
                 if (BRIGHT_ROW)
                 {
@@ -2390,7 +2359,7 @@ static int hdr_interpolate()
     double max_ev = log2(white/64 - black/64);
     static double mix_curve[1<<20];
     
-    for (i = 0; i < 1<<20; i++)
+    for (int i = 0; i < 1<<20; i++)
     {
         double ev = log2(MAX(i/64.0 - black/64.0, 1)) + corr_ev;
         double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
@@ -2404,12 +2373,12 @@ static int hdr_interpolate()
         fprintf(f, "x = 0:65535; \n");
 
         fprintf(f, "ev = [");
-        for (i = 0; i < 65536; i++)
+        for (int i = 0; i < 65536; i++)
             fprintf(f, "%f ", log2(MAX(i/4.0 - black/4.0, 1)));
         fprintf(f, "];\n");
         
         fprintf(f, "k = [");
-        for (i = 0; i < 65536; i++)
+        for (int i = 0; i < 65536; i++)
             fprintf(f, "%f ", mix_curve[i*16]);
         fprintf(f, "];\n");
         
@@ -2420,9 +2389,9 @@ static int hdr_interpolate()
         if(system("octave --persist mix-curve.m"));
     }
     
-    for (y = 0; y < h; y ++)
+    for (int y = 0; y < h; y ++)
     {
-        for (x = 0; x < w; x ++)
+        for (int x = 0; x < w; x ++)
         {
             /* bright and dark source pixels  */
             /* they may be real or interpolated */
@@ -2463,32 +2432,32 @@ static int hdr_interpolate()
     if (debug_blend)
     {
         raw_info.buffer = raw_buffer_16;
-        for (y = 3; y < h-2; y ++)
-            for (x = 2; x < w-2; x ++)
+        for (int y = 3; y < h-2; y ++)
+            for (int x = 2; x < w-2; x ++)
                 raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
         save_debug_dng("normal.dng");
         raw_info.buffer = raw_buffer_32;
 
-        for (y = 3; y < h-2; y ++)
-            for (x = 2; x < w-2; x ++)
+        for (int y = 3; y < h-2; y ++)
+            for (int x = 2; x < w-2; x ++)
                 raw_set_pixel_20to16(x, y, bright[x + y*w]);
         save_debug_dng("bright.dng");
 
-        for (y = 3; y < h-2; y ++)
-            for (x = 2; x < w-2; x ++)
+        for (int y = 3; y < h-2; y ++)
+            for (int x = 2; x < w-2; x ++)
                 raw_set_pixel_20to16(x, y, dark[x + y*w]);
         save_debug_dng("dark.dng");
 
         if (use_fullres)
         {
-            for (y = 3; y < h-2; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 3; y < h-2; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, fullres[x + y*w]);
             save_debug_dng("fullres.dng");
         }
 
-        for (y = 3; y < h-2; y ++)
-            for (x = 2; x < w-2; x ++)
+        for (int y = 3; y < h-2; y ++)
+            for (int x = 2; x < w-2; x ++)
                 raw_set_pixel_20to16(x, y, halfres[x + y*w]);
         save_debug_dng("halfres.dng");
 
@@ -2496,14 +2465,14 @@ static int hdr_interpolate()
         {
             if (use_fullres)
             {
-                for (y = 3; y < h-2; y ++)
-                    for (x = 2; x < w-2; x ++)
+                for (int y = 3; y < h-2; y ++)
+                    for (int x = 2; x < w-2; x ++)
                         raw_set_pixel_20to16(x, y, fullres_smooth[x + y*w]);
                 save_debug_dng("fullres_smooth.dng");
             }
 
-            for (y = 3; y < h-2; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 3; y < h-2; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, halfres_smooth[x + y*w]);
             save_debug_dng("halfres_smooth.dng");
         }
@@ -2522,9 +2491,9 @@ static int hdr_interpolate()
         /* build the aliasing maps (where it's likely to get aliasing) */
         /* do this by comparing fullres and halfres images */
         /* if the difference is small, we'll prefer halfres for less noise, otherwise fullres for less aliasing */
-        for (y = 0; y < h; y ++)
+        for (int y = 0; y < h; y ++)
         {
-            for (x = 0; x < w; x ++)
+            for (int x = 0; x < w; x ++)
             {
                 /* do not compute alias map where we'll use fullres detail anyway */
                 if (fullres_curve[bright[x + y*w]] > fullres_thr)
@@ -2543,8 +2512,8 @@ static int hdr_interpolate()
 
         if (debug_alias)
         {
-            for (y = 3; y < h-2; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 3; y < h-2; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, EV2RAW(alias_map[x + y*w] * 1024));
             save_debug_dng("alias.dng");
         }
@@ -2552,9 +2521,9 @@ static int hdr_interpolate()
         memcpy(alias_aux, alias_map, w * h * sizeof(uint16_t));
 
         printf("Filtering alias map...\n");
-        for (y = 6; y < h-6; y ++)
+        for (int y = 6; y < h-6; y ++)
         {
-            for (x = 6; x < w-6; x ++)
+            for (int x = 6; x < w-6; x ++)
             {
                 /* do not compute alias map where we'll use fullres detail anyway */
                 if (fullres_curve[bright[x + y*w]] > fullres_thr)
@@ -2576,10 +2545,9 @@ static int hdr_interpolate()
                 /*
                 int neighbours[50];
                 int k = 0;
-                int i,j;
-                for (i = -3; i <= 3; i++)
+                for (int i = -3; i <= 3; i++)
                 {
-                    for (j = -3; j <= 3; j++)
+                    for (int j = -3; j <= 3; j++)
                     {
                         //~ neighbours[k++] = -alias_map[x+j*2 + (y+i*2)*w];
                         printf("-alias_map[x%+d + (y%+d) * w], ", j*2, i*2);
@@ -2595,17 +2563,17 @@ static int hdr_interpolate()
 
         if (debug_alias)
         {
-            for (y = 3; y < h-2; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 3; y < h-2; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, EV2RAW(alias_aux[x + y*w] * 1024));
             save_debug_dng("alias-dilated.dng");
         }
 
         printf("Smoothing alias map...\n");
         /* gaussian blur */
-        for (y = 6; y < h-6; y ++)
+        for (int y = 6; y < h-6; y ++)
         {
-            for (x = 6; x < w-6; x ++)
+            for (int x = 6; x < w-6; x ++)
             {
                 /* do not compute alias map where we'll use fullres detail anyway */
                 if (fullres_curve[bright[x + y*w]] > fullres_thr)
@@ -2620,15 +2588,13 @@ static int hdr_interpolate()
                 };
                 const int blur_unique[] = {1024, 820, 657, 421, 337, 173, 139, 111, 57};
 
-                int k;
-                for (k = 0; k < COUNT(blur_unique); k++)
+                for (int k = 0; k < COUNT(blur_unique); k++)
                 {
-                    int dx, dy;
                     int c = 0;
                     printf("(");
-                    for (dy = -3; dy <= 3; dy++)
+                    for (int dy = -3; dy <= 3; dy++)
                     {
-                        for (dx = -3; dx <= 3; dx++)
+                        for (int dx = -3; dx <= 3; dx++)
                         {
                             c += alias_aux[x + dx + (y + dy) * w] * blur[ABS(dx)][ABS(dy)] / 1024;
                             if (blur[ABS(dx)][ABS(dy)] == blur_unique[k])
@@ -2656,16 +2622,16 @@ static int hdr_interpolate()
 
         if (debug_alias)
         {
-            for (y = 3; y < h-2; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 3; y < h-2; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, EV2RAW(alias_map[x + y*w] * 128));
             save_debug_dng("alias-smooth.dng");
         }
 
         /* make it grayscale */
-        for (y = 2; y < h-2; y += 2)
+        for (int y = 2; y < h-2; y += 2)
         {
-            for (x = 2; x < w-2; x += 2)
+            for (int x = 2; x < w-2; x += 2)
             {
                 int a = alias_map[x   +     y * w];
                 int b = alias_map[x+1 +     y * w];
@@ -2684,8 +2650,8 @@ static int hdr_interpolate()
 
         if (debug_alias)
         {
-            for (y = 3; y < h-2; y ++)
-                for (x = 2; x < w-2; x ++)
+            for (int y = 3; y < h-2; y ++)
+                for (int x = 2; x < w-2; x ++)
                     raw_set_pixel_20to16(x, y, ev2raw[(long long)alias_map[x + y*w] * 13*EV_RESOLUTION / ALIAS_MAP_MAX]);
             save_debug_dng("alias-filtered.dng");
         }
@@ -2697,9 +2663,9 @@ static int hdr_interpolate()
     overexposed = malloc(w * h * sizeof(uint16_t));
     memset(overexposed, 0, w * h * sizeof(uint16_t));
 
-    for (y = 0; y < h; y ++)
+    for (int y = 0; y < h; y ++)
     {
-        for (x = 0; x < w; x ++)
+        for (int x = 0; x < w; x ++)
         {
             overexposed[x + y * w] = bright[x + y * w] >= white_darkened || dark[x + y * w] >= white ? 100 : 0;
         }
@@ -2709,9 +2675,9 @@ static int hdr_interpolate()
     uint16_t* over_aux = malloc(w * h * sizeof(uint16_t));
     memcpy(over_aux, overexposed, w * h * sizeof(uint16_t));
 
-    for (y = 3; y < h-3; y ++)
+    for (int y = 3; y < h-3; y ++)
     {
-        for (x = 3; x < w-3; x ++)
+        for (int x = 3; x < w-3; x ++)
         {
             overexposed[x + y * w] = 
                 (over_aux[x+0 + (y+0) * w])+ 
@@ -2730,16 +2696,16 @@ static int hdr_interpolate()
     free(over_aux); over_aux = 0;
 
     /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
-    for (y = 3; y < h-2; y ++)
-        for (x = 2; x < w-2; x ++)
+    for (int y = 3; y < h-2; y ++)
+        for (int x = 2; x < w-2; x ++)
             raw_set_pixel32(x, y, bright[x + y*w]);
     compute_black_noise(8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0], raw_get_pixel32);
     double ideal_noise_std = noise_std[0];
 
     printf("Final blending...\n");
-    for (y = 0; y < h; y ++)
+    for (int y = 0; y < h; y ++)
     {
-        for (x = 0; x < w; x ++)
+        for (int x = 0; x < w; x ++)
         {
             /* high-iso image (for measuring signal level) */
             int b = bright[x + y*w];
@@ -2822,8 +2788,8 @@ static int hdr_interpolate()
     raw_info.black_level /= 16;
     raw_info.white_level /= 16;
 
-    for (y = 0; y < h; y++)
-        for (x = 0; x < w; x++)
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
     
     if (soft_film_ev > 0)
@@ -2843,13 +2809,12 @@ static int hdr_interpolate()
         if (0)
         {
             FILE* f = fopen("soft-film.m", "w");
-            int k;
-            for (k = 0; k < 3; k++)
+            for (int k = 0; k < 3; k++)
             {
                 double wb = baked_wb[k];
                 char* rgb = "rgb";
                 fprintf(f, "s%c = [", rgb[k]);
-                for (i = 0; i < 1<<20; i++)
+                for (int i = 0; i < 1<<20; i++)
                 {
                     int raw_compressed = soft_film_bakedwb(i, exposure, black, white, black/16, white/16, wb, max_wb);
                     fprintf(f, "%d ", raw_compressed);
@@ -2866,9 +2831,9 @@ static int hdr_interpolate()
             if(system("octave --persist soft-film.m"));
         }
 
-        for (y = 0; y < h; y++)
+        for (int y = 0; y < h; y++)
         {
-            for (x = 0; x < w; x++)
+            for (int x = 0; x < w; x++)
             {
                 double wb = baked_wb[FC(x,y)];
                 int raw_compressed = soft_film_bakedwb(raw_buffer_32[x + y*w], exposure, black, white, black/16, white/16, wb, max_wb);
