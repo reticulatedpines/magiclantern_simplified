@@ -1136,6 +1136,76 @@ static int hdr_check()
     
     return 0;
 }
+static int identify_rggb_or_gbrg()
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    
+    /* build 4 little histograms: one for red, one for blue and two for green */
+    /* we don't know yet which channels are which, but that's what we are trying to find out */
+    /* the ones with the smallest difference are likely the green channels */
+    int hist_size = 16384 * sizeof(int);
+    int* hist[4];
+    for (int i = 0; i < 4; i++)
+    {
+        hist[i] = malloc(hist_size);
+        memset(hist[i], 0, hist_size);
+    }
+    
+    int y0 = (raw_info.active_area.y1 + 3) & ~3;
+    
+    /* to simplify things, analyze an identical number of bright and dark lines */
+    for (int y = y0; y < h/4*4; y++)
+    {
+        for (int x = 0; x < w; x++)
+            hist[(y%2)*2 + (x%2)][raw_get_pixel16(x,y) & 16383]++;
+    }
+    
+    /* compute cdf */
+    for (int k = 0; k < 4; k++)
+    {
+        int acc = 0;
+        for (int i = 0; i < 16384; i++)
+        {
+            acc += hist[k][i];
+            hist[k][i] = acc;
+        }
+    }
+
+    /* dump the histograms */
+    if (0)
+    {
+        FILE* f = fopen("rggb.m", "w");
+        fprintf(f, "hists = [\n");
+        for (int i = 0; i < 16384; i++)
+        {
+            fprintf(f, "%d %d %d %d\n", hist[0][i], hist[1][i], hist[2][i], hist[3][i]);
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "plot(hists);\n");
+        fclose(f);
+        if(system("octave --persist rggb.m"));
+    }
+
+    /* compare cdf's */
+    /* for rggb, greens are at y%2 != x%2, that is, 1 and 2 */
+    /* for gbrg, greens are at y%2 == x%2, that is, 0 and 3 */
+    int diffs_rggb = 0;
+    int diffs_gbrg = 0;
+    for (int i = 0; i < 16384; i++)
+    {
+        diffs_rggb += ABS(hist[1][i] - hist[2][i]);
+        diffs_gbrg += ABS(hist[0][i] - hist[3][i]);
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        free(hist[i]); hist[i] = 0;
+    }
+    
+    /* which one is most likely? */
+    return diffs_rggb < diffs_gbrg;
+}
 
 static int identify_bright_and_dark_fields(int rggb)
 {
@@ -1639,30 +1709,7 @@ static int hdr_interpolate()
     int h = raw_info.height;
 
     /* RGGB or GBRG? */
-    double rggb_err = 0;
-    double gbrg_err = 0;
-    for (int y = 2; y < h-2; y += 2)
-    {
-        for (int x = 2; x < w-2; x += 2)
-        {
-            int tl = raw_get_pixel16(x, y);
-            int tr = raw_get_pixel16(x+1, y);
-            int bl = raw_get_pixel16(x, y+1);
-            int br = raw_get_pixel16(x+1, y+1);
-            int pl = raw_get_pixel16(x, y-1);
-            int pr = raw_get_pixel16(x+1, y-1);
-            if (MIN(pl,pr) < raw_info.black_level + 32)
-            {
-                /* too noisy, not relevant */
-                continue;
-            }
-            rggb_err += MIN(ABS(tr-bl), ABS(tr-pl));
-            gbrg_err += MIN(ABS(tl-br), ABS(tl-pr));
-        }
-    }
-
-    /* which one looks more likely? */
-    int rggb = (rggb_err < gbrg_err);
+    int rggb = identify_rggb_or_gbrg();
     
     if (!rggb) /* this code assumes RGGB, so we need to skip one line */
     {
@@ -1676,7 +1723,9 @@ static int hdr_interpolate()
     }
 
     if (!identify_bright_and_dark_fields(rggb))
+    {
         return 0;
+    }
 
     int ret = 1;
 
