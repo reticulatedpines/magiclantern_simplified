@@ -1195,8 +1195,8 @@ static int identify_rggb_or_gbrg()
     /* compare cdf's */
     /* for rggb, greens are at y%2 != x%2, that is, 1 and 2 */
     /* for gbrg, greens are at y%2 == x%2, that is, 0 and 3 */
-    int diffs_rggb = 0;
-    int diffs_gbrg = 0;
+    double diffs_rggb = 0;
+    double diffs_gbrg = 0;
     for (int i = 0; i < 16384; i++)
     {
         diffs_rggb += ABS(hist[1][i] - hist[2][i]);
@@ -1272,7 +1272,8 @@ static int identify_bright_and_dark_fields(int rggb)
     int acc[4] = {0};
     int raw[4] = {0};
     int ref;
-    for (ref = 0; ref < hist_total * 998/1000; ref++)
+    int ref_max = hist_total * 0.998;
+    for (ref = 0; ref < ref_max; ref++)
     {
         int changed = 0;
         for (int i = 0; i < 4; i++)
