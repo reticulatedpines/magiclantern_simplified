@@ -1264,10 +1264,11 @@ static int identify_bright_and_dark_fields(int rggb)
     }
 
     /* choose the highest percentile that is not overexposed */
+    /* but not higher than 99.8, to keep a tiny bit of robustness (specular highlights may play dirty tricks) */
     int acc[4] = {0};
     int raw[4] = {0};
     int ref;
-    for (ref = 0; ref < hist_total - 500; ref++)
+    for (ref = 0; ref < hist_total * 998/1000; ref++)
     {
         int changed = 0;
         for (int i = 0; i < 4; i++)
