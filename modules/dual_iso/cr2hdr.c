@@ -1253,7 +1253,13 @@ static int identify_bright_and_dark_fields(int rggb)
     for (int y = y0; y < h/4*4; y++)
     {
         for (int x = 0; x < w; x++)
-            hist[y%4][raw_get_pixel16(x,y) & 16383]++;
+        {
+            if ((x%2) != (y%2))
+            {
+                /* only check the green pixels */
+                hist[y%4][raw_get_pixel16(x,y) & 16383]++;
+            }
+        }
     }
     
     int hist_total = 0;
