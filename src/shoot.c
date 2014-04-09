@@ -3691,9 +3691,6 @@ MENU_PLACEHOLDER("Post Deflicker"),
         .max        = 1,
         .update     = audio_release_display,
         .help = "Clap your hands or pop a balloon to take a picture.",
-#if defined(CONFIG_650D) || defined(CONFIG_700D)
-        .depends_on = DEP_PHOTO_MODE, // photo mode only till AudioIC is coded
-#endif
         //.essential = FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
@@ -6338,11 +6335,12 @@ shoot_task( void* unused )
                     void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
                     SoundDevActiveIn(0);
                     #else //Enable Audio IC In Photo Mode if off
-						{   if (!is_movie_mode())
-							{	void SoundDevActiveIn();
-								SoundDevActiveIn(0);
-							}
-						} 
+                    {   
+                        if (!is_movie_mode())
+                        {	void SoundDevActiveIn();
+                            SoundDevActiveIn(0);
+                        }
+                    } 
 					#endif
                 }
             }

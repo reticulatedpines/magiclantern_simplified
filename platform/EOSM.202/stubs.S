@@ -81,6 +81,7 @@ NSTUB(0xFF0D72A0,  gui_main_task)
 
 /** ASIF **/
 NSTUB(0xFF1350F0,  PowerAudioOutput)                        // Look for actrlCpowerControl Case 1 Sub
+NSTUB(0xFF134CE4,  PowerMicAmp)
 NSTUB(0xFF1330A0,  SetAudioVolumeOut)
 NSTUB(0xFF10B190,  SetNextASIFADCBuffer)                    // Int16
 NSTUB(0xFF10B378,  SetNextASIFDACBuffer)                    // Int16 Regular

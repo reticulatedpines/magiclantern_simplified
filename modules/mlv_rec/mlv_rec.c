@@ -2382,6 +2382,8 @@ static void raw_writer_task(uint32_t writer)
 
     struct msg_queue *queue = mlv_writer_queues[writer];
 
+    char *error_message = "Huh? Which error?";
+    
     /* keep it local to make sure it is getting optimized */
     FILE* f = mlv_handles[writer];
     FILE* next_file_handle = NULL;
@@ -2431,6 +2433,7 @@ static void raw_writer_task(uint32_t writer)
         if(!job)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: job is NULL");
+            error_message = "Internal error #1";
             goto abort;
         }
 
@@ -2456,7 +2459,10 @@ static void raw_writer_task(uint32_t writer)
                 {
                     /* check if we will reach the 4GiB boundary with this write */
                     uint32_t free_space = mlv_max_filesize - written_chunk;
+                    uint32_t limit = 8 * job->block_size;
 
+                    //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: free: 0x%08x limit: 0x%08x", writer, free_space, limit);
+                    
                     if(free_space < job->block_size)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close of '%s'", writer, chunk_filename[writer]);
@@ -2471,6 +2477,7 @@ static void raw_writer_task(uint32_t writer)
                         if(!close_job)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close_job is NULL", writer);
+                            error_message = "Internal error #2";
                             goto abort;
                         }
 
@@ -2486,6 +2493,7 @@ static void raw_writer_task(uint32_t writer)
                         if(!next_file_handle)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: no chunk prepared", writer);
+                            error_message = "Internal error #3";
                             goto abort;
                         }
 
@@ -2508,32 +2516,40 @@ static void raw_writer_task(uint32_t writer)
 
                         handle_requested = 0;
 
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s'", writer, chunk_filename[writer]);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s', %d", writer, chunk_filename[writer], f);
                     }
-                    else if((free_space < 8 * job->block_size) && !handle_requested)
+                    else if(free_space < limit)
                     {
-                        /* we will reach the 4GiB boundary soon */
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB (0x%08x), request another chunk", writer, free_space);
-
-                        /* queue a preparation job */
-                        handle_job_t *prepare_job = NULL;
-                        msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
-                        
-                        if(!prepare_job)
+                        if(!handle_requested)
                         {
-                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
-                            goto abort;
+                            /* we will reach the 4GiB boundary soon */
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB (0x%08x), request another chunk", writer, free_space);
+
+                            /* queue a preparation job */
+                            handle_job_t *prepare_job = NULL;
+                            msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
+                            
+                            if(!prepare_job)
+                            {
+                                trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
+                                error_message = "Internal error #4";
+                                goto abort;
+                            }
+
+                            prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
+                            prepare_job->writer = writer;
+                            prepare_job->file_handle = NULL;
+                            prepare_job->file_header = file_header;
+                            prepare_job->filename[0] = '\000';
+
+                            msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
+
+                            handle_requested = 1;
                         }
-
-                        prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
-                        prepare_job->writer = writer;
-                        prepare_job->file_handle = NULL;
-                        prepare_job->file_header = file_header;
-                        prepare_job->filename[0] = '\000';
-
-                        msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
-
-                        handle_requested = 1;
+                        else
+                        {
+                            /* recheck? no dont think thats necessary */
+                        }
                     }
                 }
 
@@ -2576,9 +2592,21 @@ static void raw_writer_task(uint32_t writer)
                     
                     /* now try to write the remaining buffer content */
                     written = FIO_WriteFile(f, &((char *)job->block_ptr)[written], job->block_size - written);
-                    if (written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
+                    if(written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: Even writing after removing dummy file failed. No idea what to do now.", writer);
+                        if(large_file_support)
+                        {
+                            error_message = "Card/camera really exFAT?";
+                        }
+                        else
+                        {
+                            error_message = "Card/Filesystem error?";
+                        }
+                    }
+                    else
+                    {
+                        error_message = "Card seems to be full";
                     }
                     
                     goto abort;
@@ -2606,6 +2634,7 @@ static void raw_writer_task(uint32_t writer)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
             bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 300, "WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
+            error_message = "Internal error ";
             goto abort;
         }
 
@@ -2615,7 +2644,7 @@ static void raw_writer_task(uint32_t writer)
 abort:
             raw_recording_state = RAW_FINISHING;
             raw_rec_cbr_stopping();
-            bmp_printf( FONT_MED, 30, 90, "Movie recording stopped automagically     ");
+            NotifyBox(5000, "Recording stopped:\n '%s'", error_message);
             /* this is error beep, not audio sync beep */
             beep_times(2);
             break;

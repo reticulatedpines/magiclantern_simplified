@@ -443,8 +443,8 @@ static void
 meter_task( void* unused )
 {
     /* some models require the audio to be enabled using audio_configure() */
-    #if defined(CONFIG_650D) || defined(CONFIG_700D)
-    int reconfig_audio = 0; // Needed to turn on Audio IC at boot, maybe neeed for EOSM and 100D
+    #if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+    int reconfig_audio = 0; // Needed to turn on Audio IC at boot, maybe neeed for 100D
     #else
     int reconfig_audio = 1;
     #endif
@@ -468,12 +468,9 @@ meter_task( void* unused )
             {
                 #if defined(CONFIG_600D) || defined(CONFIG_7D)
                 audio_configure(1);
-                #elif defined(CONFIG_650D) || defined(CONFIG_700D)
-                void SoundDevShutDownIn();
-                SoundDevShutDownIn(0);
-                MEM(0xC092011C) = 6;
-                void SoundDevActiveIn (uint32_t);
-                SoundDevActiveIn(0);
+                #elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+                void PowerMicAmp();
+                PowerMicAmp(0);
                 #endif
                 reconfig_audio = 1;
             }

@@ -1,7 +1,7 @@
 # extract module strings from README.rst
 
 import sys, re
-import commands
+import subprocess
 from datetime import datetime
 
 from align_string_proportional import word_wrap
@@ -9,7 +9,18 @@ from rbf_read import extent_func, rbf_init_font
 rbf_init_font("../../data/fonts/argnor23.rbf")
 
 def run(cmd):
-    return commands.getstatusoutput(cmd)[1]
+    try:
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = p.communicate()
+        if p.returncode or out[1]:
+            print >> sys.stderr, cmd
+            print >> sys.stderr, out[0]
+            print >> sys.stderr, out[1]
+            exit(1)
+        return out[0]
+    except:
+        print >> sys.stderr, sys.exc_info()
+        exit(1)
 
 # see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37506 for how to place some strings in a custom section
 # (you must declare all strings as variables, not only the pointers)
