@@ -75,6 +75,8 @@ int debug_amaze = 0;
 int debug_edge = 0;
 int debug_alias = 0;
 int debug_bad_pixels = 0;
+int debug_rggb = 0;
+int debug_bddb = 0;
 int plot_iso_curve = 0;
 int plot_mix_curve = 0;
 int plot_fullres_curve = 0;
@@ -197,6 +199,8 @@ struct cmd_group options[] = {
             { &debug_amaze,    1, "--debug-amaze",      "save AMaZE input and output" },
             { &debug_edge,     1, "--debug-edge",       "save debug info from edge-directed interpolation" },
             { &debug_alias,    1, "--debug-alias",      "save debug info about the alias map" },
+            { &debug_rggb,     1, "--debug-rggb",       "plot debug info for RGGB/BGGR autodetection (requires octave)" },
+            { &debug_bddb,     1, "--debug-bddb",       "plot debug info for bright/dark autodetection (requires octave)" },
             { &plot_iso_curve, 1, "--iso-curve",        "plot the curve fitting results for ISO and black offset (requires octave)" },
             { &plot_mix_curve, 1, "--mix-curve",        "plot the curve used for half-res blending (requires octave)" },
             { &plot_fullres_curve, 1, "--fullres-curve","plot the curve used for full-res blending (requires octave)" },
@@ -1173,7 +1177,7 @@ static int identify_rggb_or_gbrg()
     }
 
     /* dump the histograms */
-    if (0)
+    if (debug_rggb)
     {
         FILE* f = fopen("rggb.m", "w");
         fprintf(f, "hists = [\n");
@@ -1182,7 +1186,8 @@ static int identify_rggb_or_gbrg()
             fprintf(f, "%d %d %d %d\n", hist[0][i], hist[1][i], hist[2][i], hist[3][i]);
         }
         fprintf(f, "];\n");
-        fprintf(f, "plot(hists);\n");
+        fprintf(f, "hold on; for i = 1:4, for j = i+1:4, plot(hists(:,i), hists(:,j), 'color', [0.5 0.5 0.5]); end; end;\n");
+        fprintf(f, "plot(hists(:,2), hists(:,3), 'r', hists(:,1), hists(:,4), 'g');\n");
         fclose(f);
         if(system("octave --persist rggb.m"));
     }
@@ -1255,7 +1260,6 @@ static int identify_bright_and_dark_fields(int rggb)
     for (int i = 0; i < 16384; i++)
         hist_total += hist[0][i];
 
-    int debug_bddb = 0;
     FILE* f = 0;
     if (debug_bddb)
     {
