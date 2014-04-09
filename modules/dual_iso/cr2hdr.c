@@ -80,7 +80,7 @@ int plot_mix_curve = 0;
 int plot_fullres_curve = 0;
 
 int compress = 0;
-
+int exif_wb = 0;
 int same_levels = 0;
 
 int shortcut_fast = 0;
@@ -200,6 +200,7 @@ struct cmd_group options[] = {
             { &plot_iso_curve, 1, "--iso-curve",        "plot the curve fitting results for ISO and black offset (requires octave)" },
             { &plot_mix_curve, 1, "--mix-curve",        "plot the curve used for half-res blending (requires octave)" },
             { &plot_fullres_curve, 1, "--fullres-curve","plot the curve used for full-res blending (requires octave)" },
+            { &exif_wb,        1, "--exif-wb",          "attempt to set AsShotNeutral from EXIF WB (not exactly working)" },
             OPTION_EOL
         },
     },
@@ -692,16 +693,20 @@ int main(int argc, char** argv)
 
                 reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
-                float red_balance = -1, blue_balance = -1;
-                read_white_balance(filename, &red_balance, &blue_balance);
-                if ((red_balance > 0) && (blue_balance > 0))
+                /* This option doesn't really work, since Canon WB is broken with Dual ISO. */
+                if (exif_wb)
                 {
-                    dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
-                    printf("AsShotNeutral   : %.2f 1 %.2f\n", 1/red_balance, 1/blue_balance);
-                }
-                else
-                {
-                    printf("AsShotNeutral   : (using default values)\n");
+                    float red_balance = -1, blue_balance = -1;
+                    read_white_balance(filename, &red_balance, &blue_balance);
+                    if ((red_balance > 0) && (blue_balance > 0))
+                    {
+                        dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
+                        printf("AsShotNeutral   : %.2f 1 %.2f\n", 1/red_balance, 1/blue_balance);
+                    }
+                    else
+                    {
+                        printf("AsShotNeutral   : (using default values)\n");
+                    }
                 }
 
                 printf("Output file     : %s\n", out_filename);
