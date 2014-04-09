@@ -1255,19 +1255,34 @@ static int identify_bright_and_dark_fields(int rggb)
     for (int i = 0; i < 16384; i++)
         hist_total += hist[0][i];
 
+    int debug_bddb = 0;
+    FILE* f = 0;
+    if (debug_bddb)
+    {
+        f = fopen("bddb.m", "w");
+        fprintf(f, "levels = [\n");
+    }
+
     /* choose the highest percentile that is not overexposed */
     int acc[4] = {0};
     int raw[4] = {0};
     int ref;
     for (ref = 0; ref < hist_total - 500; ref++)
     {
+        int changed = 0;
         for (int i = 0; i < 4; i++)
         {
             while (acc[i] < ref)
             {
                 acc[i] += hist[i][raw[i]];
                 raw[i]++;
+                changed = 1;
             }
+        }
+        
+        if (debug_bddb && changed)
+        {
+            fprintf(f, "%d %d %d %d %d\n", ref, raw[0], raw[1], raw[2], raw[3]);
         }
 
         if (raw[0] >= white) break;
@@ -1276,6 +1291,16 @@ static int identify_bright_and_dark_fields(int rggb)
         if (raw[3] >= white) break;
     }
 
+    if (debug_bddb)
+    {
+        fprintf(f, "];\n");
+        fprintf(f, "ref = levels(:,1);\n");
+        fprintf(f, "plot(ref, levels(:,2), ref, levels(:,3), ref, levels(:,4), ref, levels(:,5));\n");
+        fprintf(f, "legend('0', '1', '2', '3');\n");
+        fclose(f);
+        if(system("octave --persist bddb.m"));
+    }
+    
     for (int i = 0; i < 4; i++)
     {
         free(hist[i]); hist[i] = 0;
