@@ -1277,8 +1277,10 @@ static int identify_bright_and_dark_fields(int rggb)
     /* but not higher than 99.8, to keep a tiny bit of robustness (specular highlights may play dirty tricks) */
     int acc[4] = {0};
     int raw[4] = {0};
+    int off[4] = {0};
     int ref;
     int ref_max = hist_total * 0.998;
+    int ref_off = hist_total * 0.05;
     for (ref = 0; ref < ref_max; ref++)
     {
         int changed = 0;
@@ -1294,7 +1296,16 @@ static int identify_bright_and_dark_fields(int rggb)
         
         if (debug_bddb && changed)
         {
-            fprintf(f, "%d %d %d %d %d\n", ref, raw[0], raw[1], raw[2], raw[3]);
+            fprintf(f, "%d %d %d %d %d\n", raw[0], raw[1], raw[2], raw[3], ref);
+        }
+        
+        if (ref < ref_off)
+        {
+            /* try to remove the black offset by estimating it from relatively dark pixels */
+            off[0] = raw[0];
+            off[1] = raw[1];
+            off[2] = raw[2];
+            off[3] = raw[3];
         }
 
         if (raw[0] >= white) break;
@@ -1306,8 +1317,9 @@ static int identify_bright_and_dark_fields(int rggb)
     if (debug_bddb)
     {
         fprintf(f, "];\n");
-        fprintf(f, "ref = levels(:,1);\n");
-        fprintf(f, "plot(ref, levels(:,2), ref, levels(:,3), ref, levels(:,4), ref, levels(:,5));\n");
+        fprintf(f, "off = [%d %d %d %d]\n", off[0], off[1], off[2], off[3]);
+        fprintf(f, "ref = levels(:,end);\n");
+        fprintf(f, "plot(ref, levels(:,1) - off(1), ref, levels(:,2) - off(2), ref, levels(:,3) - off(3), ref, levels(:,4) - off(4));\n");
         fprintf(f, "legend('0', '1', '2', '3');\n");
         fclose(f);
         if(system("octave --persist bddb.m"));
@@ -1317,6 +1329,12 @@ static int identify_bright_and_dark_fields(int rggb)
     {
         free(hist[i]); hist[i] = 0;
     }
+
+    /* remove black offsets */
+    raw[0] -= off[0];
+    raw[1] -= off[1];
+    raw[2] -= off[2];
+    raw[3] -= off[3];
 
     /* very crude way to compute median */
     int sorted_bright[4];
