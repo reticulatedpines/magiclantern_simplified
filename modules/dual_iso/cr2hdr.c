@@ -67,7 +67,11 @@ int use_fullres = 1;
 int use_alias_map = 1;
 int use_stripe_fix = 1;
 float soft_film_ev = 0;
-float soft_film_wb[3] = {2, 1, 2};
+
+int exif_wb = 0;
+int gray_wb = 0;
+float custom_wb[3] = {2, 1, 2};
+int debug_wb = 0;
 
 int debug_black = 0;
 int debug_blend = 0;
@@ -82,7 +86,6 @@ int plot_mix_curve = 0;
 int plot_fullres_curve = 0;
 
 int compress = 0;
-int exif_wb = 0;
 int same_levels = 0;
 
 int shortcut_fast = 0;
@@ -154,8 +157,16 @@ struct cmd_group options[] = {
     },
     {
         "Highlight/shadow handling", (struct cmd_option[]) {
-            { (int*)&soft_film_ev,    1, "--soft-film=%f",  "bake a soft-film curve to compress highlights and raise shadows by X EV" },
-            { (int*)&soft_film_wb[0], 3, "--wb=%f,%f,%f",   "use these RGB multipliers when baking the soft-film curve (default 2,1,2)" },
+            { (int*)&soft_film_ev,    1, "--soft-film=%f",  "bake a soft-film curve to compress highlights and raise shadows by X EV\n"
+                                          "                  (if you use this option, you should also specify the white balance)"},
+            OPTION_EOL
+        },
+    },
+    {
+        "White balance", (struct cmd_option[]) {
+            { &gray_wb,               1, "--wb=graymax",    "set AsShotNeutral by maximizing the number of gray pixels" },
+            { &exif_wb,               1, "--wb=exif",       "set AsShotNeutral from EXIF WB (not exactly working)" },
+            { (int*)&custom_wb[0],    3, "--wb=%f,%f,%f",   "use custom RGB multipliers (default 2,1,2)" },
             OPTION_EOL
         },
     },
@@ -201,10 +212,10 @@ struct cmd_group options[] = {
             { &debug_alias,    1, "--debug-alias",      "save debug info about the alias map" },
             { &debug_rggb,     1, "--debug-rggb",       "plot debug info for RGGB/BGGR autodetection (requires octave)" },
             { &debug_bddb,     1, "--debug-bddb",       "plot debug info for bright/dark autodetection (requires octave)" },
+            { &debug_wb,       1, "--debug-wb",         "show the vectorscope used for white balance (requires octave)" },
             { &plot_iso_curve, 1, "--iso-curve",        "plot the curve fitting results for ISO and black offset (requires octave)" },
             { &plot_mix_curve, 1, "--mix-curve",        "plot the curve used for half-res blending (requires octave)" },
             { &plot_fullres_curve, 1, "--fullres-curve","plot the curve used for full-res blending (requires octave)" },
-            { &exif_wb,        1, "--exif-wb",          "attempt to set AsShotNeutral from EXIF WB (not exactly working)" },
             OPTION_EOL
         },
     },
@@ -429,6 +440,7 @@ static int hdr_interpolate();
 static int black_subtract(int left_margin, int top_margin);
 static int black_subtract_simple(int left_margin, int top_margin);
 static void white_detect(int* white_dark, int* white_bright);
+static void white_balance_gray_max(float* red_balance, float* blue_balance);
 
 static inline int raw_get_pixel16(int x, int y)
 {
@@ -2970,16 +2982,38 @@ static int hdr_interpolate()
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
-    
+
+    if (gray_wb)
+    {
+        float red_balance = -1, blue_balance = -1;
+        white_balance_gray_max(&red_balance, &blue_balance);
+        dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
+        printf("AsShotNeutral   : %.2f 1 %.2f (gray max)\n", 1/red_balance, 1/blue_balance);
+        custom_wb[0] = red_balance;
+        custom_wb[1] = 1;
+        custom_wb[2] = blue_balance;
+    }
+    else if (exif_wb)
+    {
+        printf("AsShotNeutral   : fixme\n");
+    }
+    else
+    {
+        float red_balance = custom_wb[0]/custom_wb[1];
+        float blue_balance = custom_wb[2]/custom_wb[1];
+        dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
+        printf("AsShotNeutral   : %.2f 1 %.2f (custom)\n", 1/red_balance, 1/blue_balance);
+    }
+
     if (soft_film_ev > 0)
     {
         /* Soft film curve from ufraw */
         double exposure = pow(2, soft_film_ev);
 
         double baked_wb[3] = {
-            soft_film_wb[0]/soft_film_wb[1],
+            custom_wb[0]/custom_wb[1],
             1,
-            soft_film_wb[2]/soft_film_wb[1],
+            custom_wb[2]/custom_wb[1],
         };
         
         double max_wb = MAX(baked_wb[0], baked_wb[2]);
@@ -3053,4 +3087,237 @@ cleanup:
     if (fullres_smooth && fullres_smooth != fullres) free(fullres_smooth);
     if (halfres_smooth && halfres_smooth != halfres) free(halfres_smooth);
     return ret;
+}
+
+/* filters a monochrome image */
+/* kernel: a square with size = 2*radius+1 */
+/* complexity: O(w * h * radius) */
+static void box_blur(int* img, int* out, int w, int h, int radius)
+{
+    int area = (2*radius+1) * (2*radius+1);
+    
+    /* for each row */
+    for (int y = radius; y < h-radius; y++)
+    {
+        int acc = 0;
+        int x0 = radius;
+        
+        /* initial accumulator value for this row */
+        for (int dy = -radius; dy <= radius; dy++)
+            for (int dx = -radius; dx <= radius; dx++)
+                acc += img[x0+dx + (y+dy)*w];
+        
+        /* scan this row */
+        for (int x = radius; x < w-radius-1; x++)
+        {
+            /* output value for this pixel */
+            out[x + y*w] = acc / area;
+
+            /* update accumulator for next pixel, in O(radius) */
+            for (int dy = -radius; dy <= radius; dy++)
+                acc += img[x + radius + 1 + (y+dy)*w] - img[x - radius + (y+dy)*w];
+        }
+    }
+}
+
+static void white_balance_gray_max(float* red_balance, float* blue_balance)
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int x0 = raw_info.active_area.x1;
+    int y0 = raw_info.active_area.y1;
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+
+    /* build a 2D histogram of R-G and B-G, from -3 to +3 EV in 0.02 EV increments */
+    #define WB_RANGE 300
+    #define WB_EV 50
+    #define WB_ORIGIN 150
+    
+    /* downsample by 16 to get rid of noise and demosaic to make things easier */
+    #define WB_DOWN 16
+    float* lores[3];
+    int wl = w/WB_DOWN;
+    int hl = h/WB_DOWN;
+    int losize = wl * hl * sizeof(float);
+    lores[0] = malloc(losize);
+    lores[1] = malloc(losize);
+    lores[2] = malloc(losize);
+    
+    for (int yl = y0/WB_DOWN; yl < hl; yl ++)
+    {
+        for (int xl = x0/WB_DOWN; xl < wl; xl ++)
+        {
+            int x = xl * WB_DOWN;
+            int y = yl * WB_DOWN;
+            int sum[3] = {0, 0, 0};
+            int num[3] = {0, 0, 0};
+            for (int yy = y; yy < y + WB_DOWN; yy++)
+            {
+                for (int xx = x; xx < x + WB_DOWN; xx++)
+                {
+                    int c = FC(yy,xx);
+                    sum[c] += raw_get_pixel16(xx, yy) - black;
+                    num[c] ++;
+                }
+            }
+            lores[0][xl + yl*wl] = (float) sum[0] / (float) num[0];
+            lores[1][xl + yl*wl] = (float) sum[1] / (float) num[1];
+            lores[2][xl + yl*wl] = (float) sum[2] / (float) num[2];
+        }
+    }
+    
+    int size = WB_RANGE * WB_RANGE * sizeof(int);
+    int* hist = malloc(size);
+    memset(hist, 0, size);
+    
+    for (int yl = y0/WB_DOWN; yl < hl; yl ++)
+    {
+        for (int xl = x0/WB_DOWN; xl < wl; xl ++)
+        {
+            float r  = lores[0][xl + yl*wl];
+            float g  = lores[1][xl + yl*wl];
+            float b  = lores[2][xl + yl*wl];
+
+            if (r <= 4 || r >= white-black) continue;
+            if (g <= 4 || g >= white-black) continue;
+            if (b <= 4 || b >= white-black) continue;
+            
+            int R = roundf(log2f(r) * WB_EV);
+            int G = roundf(log2f(g) * WB_EV);
+            int B = roundf(log2f(b) * WB_EV);
+            int RG = R - G;
+            int BG = B - G;
+            
+            if (RG < -WB_ORIGIN || RG >= WB_ORIGIN) continue;
+            if (BG < -WB_ORIGIN || BG >= WB_ORIGIN) continue;
+            
+            hist[(RG + WB_ORIGIN) + (BG + WB_ORIGIN) * WB_RANGE] += 1000;
+        }
+    }
+    
+    /* scan for the WB value that maximizes the number of gray pixels, within a given color tolerance */
+    int tol = 2;
+
+    int* histblur = malloc(size);
+    memset(histblur, 0, size);
+    for (int k = 0; k < 3; k++)
+    {
+        box_blur(hist, histblur, WB_RANGE, WB_RANGE, tol);
+        memcpy(hist, histblur, size);
+    }
+
+    if (1)
+    {
+        /* prefer daylight WB */
+        for (int b = 0; b < WB_RANGE; b++)
+        {
+            for (int r = 0; r < WB_RANGE; r++)
+            {
+                int dr = r - (WB_ORIGIN - WB_EV);
+                int db = b - (WB_ORIGIN - WB_EV*2/3);
+                float d = sqrt(dr*dr + db*db) / (WB_EV * WB_EV);
+                float weight = 1000 * exp(-(d*d)*500);
+                histblur[r + b*WB_RANGE] = log2(1 + histblur[r + b*WB_RANGE]) * weight;
+            }
+        }
+    }
+
+    int max = 0;
+    int rbest = WB_ORIGIN - WB_EV;
+    int bbest = WB_ORIGIN - WB_EV;
+    for (int b = tol; b < WB_RANGE-tol; b++)
+    {
+        for (int r = tol; r < WB_RANGE-tol; r++)
+        {
+            if (histblur[r + b*WB_RANGE] > max)
+            {
+                max = histblur[r + b*WB_RANGE];
+                rbest = r;
+                bbest = b;
+            }
+        }
+    }
+
+    if (debug_wb)
+    {
+        FILE* f = fopen("wb.m", "w");
+        for (int k = 0; k < 3; k++)
+        {
+            fprintf(f, "lores(:,:,%d) = [\n", k+1);
+            for (int yl = 0; yl < hl; yl++)
+            {
+                for (int xl = 0; xl < wl; xl++)
+                {
+                    fprintf(f, "%f ", lores[k][xl + yl*wl]);
+                }
+                fprintf(f, "\n");
+            }
+            fprintf(f, "];\n");
+        }
+
+        fprintf(f, "histblur = [\n");
+        for (int b = 0; b < WB_RANGE; b++)
+        {
+            for (int r = 0; r < WB_RANGE; r++)
+            {
+                fprintf(f, "%d ", histblur[r + b*WB_RANGE]);
+            }
+            fprintf(f, "\n");
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "histblur(:,%d) = max(histblur(:))/2; histblur(%d,:) = max(histblur(:))/2;\n", WB_ORIGIN, WB_ORIGIN);
+        fprintf(f, "histblur(:,%d) = max(histblur(:))/2; histblur(%d,:) = max(histblur(:))/2;\n", WB_ORIGIN - WB_EV, WB_ORIGIN - WB_EV);
+        fprintf(f, "histblur(:,%d) = max(histblur(:))/2; histblur(%d,:) = max(histblur(:))/2;\n", WB_ORIGIN + WB_EV, WB_ORIGIN + WB_EV);
+        fprintf(f, "histblur(:,%d) = max(histblur(:)); histblur(%d,:) = max(histblur(:));\n", WB_ORIGIN - WB_EV, WB_ORIGIN - WB_EV*2/3);
+        fprintf(f, "imshow(histblur,[]); colormap jet; hold on;\n");
+        fprintf(f, "plot(%d,%d,'xg')\n", rbest+1, bbest+1);
+        fprintf(f, "xlabel('red balance (-3..3 EV)'); ylabel('blue balance (-3..3 EV)')\n");
+        fprintf(f, "set(gca,'position',[0 0.04 1 0.96])\n");
+        fprintf(f, "print -dpng wb.png\n");
+        fclose(f);
+        if(system("octave wb.m"));
+
+        if (0)
+        {
+            for (int y = y0; y < h; y += 2)
+            {
+                for (int x = x0; x < w; x += 2)
+                {
+                    int r  = raw_get_pixel16(x, y);
+                    int g1 = raw_get_pixel16(x+1, y);
+                    int g2 = raw_get_pixel16(x, y+1);
+                    int b  = raw_get_pixel16(x+1, y+1);
+                    int g = (g1 + g2) / 2;
+
+                    if (r <= black || r >= white) continue;
+                    if (g <= black || g >= white) continue;
+                    if (b <= black || b >= white) continue;
+                    
+                    int R = roundf(log2f(r - black) * WB_EV);
+                    int G = roundf(log2f(g - black) * WB_EV);
+                    int B = roundf(log2f(b - black) * WB_EV);
+                    int RG = R - G;
+                    int BG = B - G;
+                    
+                    if (ABS(RG + WB_ORIGIN - rbest) < tol && ABS(BG + WB_ORIGIN - bbest) < tol)
+                    {
+                        raw_set_pixel16(x, y, white);
+                        raw_set_pixel16(x+1, y+1, white);
+                        raw_set_pixel16(x+1, y, black);
+                        raw_set_pixel16(x, y+1, black);
+                    }
+                }
+            }
+        }
+    }
+    
+    *red_balance = powf(2, (float) -(rbest - WB_ORIGIN) / WB_EV);
+    *blue_balance = powf(2, (float) -(bbest - WB_ORIGIN) / WB_EV);
+    
+    free(lores[0]);
+    free(lores[1]);
+    free(lores[2]);
+    free(histblur);
+    free(hist);
 }
