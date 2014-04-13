@@ -1015,8 +1015,6 @@ void bvram_mirror_init()
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
-        #elif defined(CONFIG_EOSM)
-        bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE);
         #endif
