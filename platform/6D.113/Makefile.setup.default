@@ -3,7 +3,6 @@
 ML_BITRATE_OBJ = bitrate-6d.o
 
 ML_SRC_EXTRA_OBJS = \
-	misc.o \
 	afma.o \
 	raw.o \
 	chdk-dng.o \

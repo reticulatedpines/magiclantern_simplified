@@ -46,6 +46,11 @@
 #include "fps.h"
 #include "lvinfo.h"
 
+#ifdef FEATURE_LCD_SENSOR_REMOTE
+#include "lcdsensor.h"
+#endif
+
+
 /* only included for clock CBRs (to be removed after refactoring) */
 #include "battery.h"
 #include "tskmon.h"
@@ -1110,17 +1115,6 @@ void move_lv_afframe(int dx, int dy)
     }
     
 #endif
-}
-
-int compute_signature(int* start, int num)
-{
-    int c = 0;
-    int* p;
-    for (p = start; p < start + num; p++)
-    {
-        c += *p;
-    }
-    return c;
 }
 
 static struct semaphore * set_maindial_sem = 0;
@@ -6331,17 +6325,13 @@ shoot_task( void* unused )
                 
                 if(audio_release_running)
                 {   
-					#ifdef CONFIG_7D
-                    void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
-                    SoundDevActiveIn(0);
-                    #else //Enable Audio IC In Photo Mode if off
-                    {   
-                        if (!is_movie_mode())
-                        {	void SoundDevActiveIn();
-                            SoundDevActiveIn(0);
-                        }
-                    } 
-					#endif
+                    #ifndef CONFIG_7D
+                    //Enable Audio IC In Photo Mode if off
+                    if (!is_movie_mode())
+                    #endif
+                    {
+                        SoundDevActiveIn(0);
+                    }
                 }
             }
 #endif

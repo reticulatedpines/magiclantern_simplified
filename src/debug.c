@@ -20,14 +20,11 @@
 #include "shoot.h"
 #include "cropmarks.h"
 #include "fw-signature.h"
+#include "lvinfo.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
 #include "tp-spy.h"
-#endif
-
-#ifdef FEATURE_SHOW_SIGNATURE
-#include "fw-signature.h"
 #endif
 
 #ifdef CONFIG_MODULES

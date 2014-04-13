@@ -254,4 +254,18 @@ void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-onl
 extern int get_display_is_on_550D();
 #endif
 
+#ifdef CONFIG_LCD_SENSOR
+void DispSensorStart();
+#endif
+
+#ifdef CONFIG_5D2
+void StartPlayProtectGuideApp();
+void StopPlayProtectGuideApp();
+void PtpDps_remote_release_SW1_SW2_worker();
+void Gui_SetSoundRecord( int );
+void GUI_SetLvMode( int );
+#endif
+
+int SoundDevActiveIn( uint32_t );
+
 #endif

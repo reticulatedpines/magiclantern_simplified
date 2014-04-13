@@ -22,6 +22,10 @@
 #include "hdr.h"
 #include "lvinfo.h"
 
+#ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+#include "lcdsensor.h"
+#endif
+
 static void lcd_adjust_position_step();
 static void arrow_key_step();
 static void preview_contrast_n_saturation_step();
