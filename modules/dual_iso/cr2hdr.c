@@ -3223,12 +3223,15 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
     if (1)
     {
         /* prefer daylight WB */
+        double gains[3];
+        ufraw_kelvin_green_to_multipliers(5000, 1, gains);
+
         for (int b = 0; b < WB_RANGE; b++)
         {
             for (int r = 0; r < WB_RANGE; r++)
             {
-                int dr = r - (WB_ORIGIN - WB_EV);
-                int db = b - (WB_ORIGIN - WB_EV*2/3);
+                int dr = r - (WB_ORIGIN - log2(gains[0]) * WB_EV);
+                int db = b - (WB_ORIGIN - log2(gains[2]) * WB_EV);
                 float d = sqrt(dr*dr + db*db) / (WB_EV * WB_EV);
                 float weight = 1000 * exp(-(d*d)*500);
                 histblur[r + b*WB_RANGE] = log2(1 + histblur[r + b*WB_RANGE]) * weight;
