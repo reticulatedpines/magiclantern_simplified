@@ -51,6 +51,7 @@ static int is_bright[4];
 #include "adobedng-bridge.h"
 #include "dither.h"
 #include "timing.h"
+#include "kelvin.h"
 
 #include "../../src/module.h"
 #undef MODULE_STRINGS_SECTION
@@ -2983,26 +2984,38 @@ static int hdr_interpolate()
         for (int x = 0; x < w; x++)
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
 
+    char* AsShotNeutral_method = "default";
     if (gray_wb)
     {
         float red_balance = -1, blue_balance = -1;
         white_balance_gray_max(&red_balance, &blue_balance);
         dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
-        printf("AsShotNeutral   : %.2f 1 %.2f (gray max)\n", 1/red_balance, 1/blue_balance);
         custom_wb[0] = red_balance;
         custom_wb[1] = 1;
         custom_wb[2] = blue_balance;
+        AsShotNeutral_method = "gray max";
     }
     else if (exif_wb)
     {
-        printf("AsShotNeutral   : fixme\n");
+        AsShotNeutral_method = "fixme";
     }
     else
     {
         float red_balance = custom_wb[0]/custom_wb[1];
         float blue_balance = custom_wb[2]/custom_wb[1];
         dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
-        printf("AsShotNeutral   : %.2f 1 %.2f (custom)\n", 1/red_balance, 1/blue_balance);
+        AsShotNeutral_method = "custom";
+    }
+    
+    custom_wb[0] /= custom_wb[1];
+    custom_wb[2] /= custom_wb[1];
+    custom_wb[1] = 1;
+    
+    {
+        double multipliers[3] = {custom_wb[0], custom_wb[1], custom_wb[2]};
+        double temperature, green;
+        ufraw_multipliers_to_kelvin_green(multipliers, &temperature, &green);
+        printf("AsShotNeutral   : %.2f 1 %.2f, %dK/g=%.2f (%s)\n", 1/custom_wb[0], 1/custom_wb[2], (int)temperature, green, AsShotNeutral_method);
     }
 
     if (soft_film_ev > 0)
@@ -3266,13 +3279,75 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
             fprintf(f, "\n");
         }
         fprintf(f, "];\n");
-        fprintf(f, "histblur(:,%d) = max(histblur(:))/2; histblur(%d,:) = max(histblur(:))/2;\n", WB_ORIGIN, WB_ORIGIN);
-        fprintf(f, "histblur(:,%d) = max(histblur(:))/2; histblur(%d,:) = max(histblur(:))/2;\n", WB_ORIGIN - WB_EV, WB_ORIGIN - WB_EV);
-        fprintf(f, "histblur(:,%d) = max(histblur(:))/2; histblur(%d,:) = max(histblur(:))/2;\n", WB_ORIGIN + WB_EV, WB_ORIGIN + WB_EV);
-        fprintf(f, "histblur(:,%d) = max(histblur(:)); histblur(%d,:) = max(histblur(:));\n", WB_ORIGIN - WB_EV, WB_ORIGIN - WB_EV*2/3);
+        fprintf(f, "kelvin = [");
+        for (int k = 1000; k <= 20000; k += 100)
+        {
+            double gains[3];
+            ufraw_kelvin_green_to_multipliers(k, 1, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(k, 2, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(k, 0.5, gains);
+            fprintf(f, "%f %f\n", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "gm = [");
+        for (float g = -5; g <= 5; g += 0.1)
+        {
+            double glin = powf(2, g);
+            double gains[3];
+            ufraw_kelvin_green_to_multipliers(1000, glin, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(2000, glin, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(3000, glin, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(5000, glin, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(7000, glin, gains);
+            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+            ufraw_kelvin_green_to_multipliers(20000, glin, gains);
+            fprintf(f, "%f %f\n", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
+        }
+        fprintf(f, "];\n");
         fprintf(f, "imshow(histblur,[]); colormap jet; hold on;\n");
-        fprintf(f, "plot(%d,%d,'xg')\n", rbest+1, bbest+1);
-        fprintf(f, "xlabel('red balance (-3..3 EV)'); ylabel('blue balance (-3..3 EV)')\n");
+        fprintf(f, "rbest = %d; bbest = %d;\n", rbest+1, bbest+1);
+        fprintf(f, "plot(rbest, bbest, '.w')\n");
+        fprintf(f, "plot([-3.01, 3.01]*%d+%d, [bbest, bbest], 'color', 'white')\n", WB_EV, WB_ORIGIN);
+        fprintf(f, "plot([rbest, rbest], [-3, 3]*%d+%d,'color', 'white')\n", WB_EV, WB_ORIGIN);
+
+        fprintf(f, "kred = kelvin(:,1); kblue = kelvin(:,2);\n");
+        fprintf(f, "kredg = kelvin(:,3); kblueg = kelvin(:,4);\n");
+        fprintf(f, "kredm = kelvin(:,5); kbluem = kelvin(:,6);\n");
+        fprintf(f, "plot(kred, kblue, 'w', 'linewidth', 4)\n");
+        fprintf(f, "plot(kred(1:10:end), kblue(1:10:end), '.w')\n");
+        fprintf(f, "plot(kredg, kblueg, 'm', 'linewidth', 2)\n");
+        fprintf(f, "plot(kredg(1:10:end), kblueg(1:10:end), '.m')\n");
+        fprintf(f, "plot(kredm, kbluem, 'g', 'linewidth', 2)\n");
+        fprintf(f, "plot(kredm(1:10:end), kbluem(1:10:end), '.g')\n");
+        fprintf(f, "gred1k = gm(:,1); gblue1k = gm(:,2);\n");
+        fprintf(f, "gred2k = gm(:,3); gblue2k = gm(:,4);\n");
+        fprintf(f, "gred3k = gm(:,5); gblue3k = gm(:,6);\n");
+        fprintf(f, "gred5k = gm(:,7); gblue5k = gm(:,8);\n");
+        fprintf(f, "gred7k = gm(:,9); gblue7k = gm(:,10);\n");
+        fprintf(f, "gred20k = gm(:,11); gblue20k = gm(:,12);\n");
+        fprintf(f, "plot(gred1k, gblue1k, 'r')\n");
+        fprintf(f, "plot(gred2k, gblue2k, 'r', 'linewidth', 2)\n");
+        fprintf(f, "plot(gred3k, gblue3k, 'y', 'linewidth', 2)\n");
+        fprintf(f, "plot(gred5k, gblue5k, 'w', 'linewidth', 4)\n");
+        fprintf(f, "plot(gred7k, gblue7k, 'b', 'linewidth', 2)\n");
+        fprintf(f, "plot(gred20k, gblue20k, 'b')\n");
+        fprintf(f, "text(gred1k(end)+1, gblue1k(end)-2, '1000K', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(gred2k(end)+1, gblue2k(end)-2, '2000K', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(gred3k(end)+1, gblue3k(end)-2, '3000K', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(gred5k(end)+1, gblue5k(end)+3, '5000K', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(gred7k(end)+1, gblue7k(end)+2, '7000K', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(gred20k(end)+1, gblue20k(end)+2, '20000K', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(kredg(end)-5, kblueg(end)+5, 'g=2', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(kred(end)-5, kblue(end)+5, 'g=1', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "text(kredm(end)-10, kbluem(end)+5, 'g=0.5', 'color', 'white', 'fontweight', 'bold')\n");
+        fprintf(f, "xlabel('red balance (-3..3 EV)'); ylabel('blue balance (3..-3 EV)')\n");
+
         fprintf(f, "set(gca,'position',[0 0.04 1 0.96])\n");
         fprintf(f, "print -dpng wb.png\n");
         fclose(f);

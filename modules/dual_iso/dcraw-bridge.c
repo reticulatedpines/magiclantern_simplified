@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "../../src/raw.h"
 #include "dcraw-bridge.h"
+#include "kelvin.h"
 
 /** Compute the number of entries in a static array */
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -141,11 +142,13 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
     if(model == NULL)
     {
         printf("No camera model found with id 0x%x\n", model_id);
+        adobe_coeff("Canon", "EOS");
         return -1;
     }
     else
     {
         printf("Camera          : Canon %s\n", model);
+        adobe_coeff("Canon", model);
     }
 
     for(i=0; i<COUNT(table); ++i)
