@@ -89,7 +89,6 @@ typedef struct {
     uint16_t    panPosY;    /* (it's the frame area from sensor the user wants to see) */
     uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
     uint32_t    blockSizeOrig;    /* saved frame size */
- /* uint8_t     frameData[variable] */;
 } PACKED mlv_bkup_hdr_t;
 
 typedef struct {
