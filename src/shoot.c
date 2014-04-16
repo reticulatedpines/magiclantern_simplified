@@ -5670,9 +5670,13 @@ shoot_task( void* unused )
     
     
 #ifdef FEATURE_INTERVALOMETER
-    /* at startup, wait for at least 15 seconds before firing the intervalometer
-     * (to give the user a chance to turn it off) */
-    intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 15);
+    if (interval_enabled && interval_trigger == 0)
+    {
+        /* auto-start intervalometer, but wait for at least 15 seconds */
+        /* (to give the user a chance to turn it off) */
+        intervalometer_running = 1;
+        intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 15);
+    }
 #endif
     
     /*int loops = 0;
