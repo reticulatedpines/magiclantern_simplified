@@ -1958,13 +1958,12 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
     {
         /* there is already something injected, try to add a new block behind prepended */
         mlv_bkup_hdr_t *backup_hdr = (mlv_bkup_hdr_t *)vidf;
-        mlv_hdr_t *hdr = (mlv_hdr_t *)backup_hdr;
-        uint32_t offset = vidf->blockSize;
 
         /* now skip until the VIDF is reached */
+        uint32_t offset = 0;
         while(offset < backup_hdr->frameSpace)
         {
-            hdr = (mlv_hdr_t *)((uint32_t)hdr + offset);
+            mlv_hdr_t *hdr = (mlv_hdr_t *)((uint32_t)backup_hdr + offset);
             
             ASSERT(hdr->blockSize > 0);
 
