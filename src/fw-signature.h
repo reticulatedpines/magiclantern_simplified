@@ -35,7 +35,6 @@
 #define SIG_700D_113 0x5AE36B51
 //TODO: Fix CONFIG_100D
     #define SIG_100D_101 0xDEADBEEF
-#define SHOULD_CHECK_SIG ((!defined(CONFIG_QEMU)) && (defined(CONFIG_DIGIC_V) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)))
 
 static int compute_signature(int* start, int num)
 {

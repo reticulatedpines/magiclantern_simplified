@@ -386,18 +386,6 @@ static void backup_task()
 }
 #endif
 
-static int compute_signature(int* start, int num)
-{
-        int c = 0;
-        int* p;
-        for (p = start; p < start + num; p++)
-        {
-                c += *p;
-        }
-        return c;
-}
-
-
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
@@ -409,11 +397,12 @@ static void my_big_init_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    uint32_t len = compute_signature(ROMBASEADDR, 0x10000);
+    #include "fw-signature.h"
+    int sig = compute_signature(SIG_START, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
+        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", sig);
         info_led_blink(1, 500, 500);
     }
 #endif

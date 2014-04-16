@@ -7,9 +7,6 @@
 #include <consts.h>
 #include <lens.h>
 
-// some dummy stubs
-int new_LiveViewApp_handler = 0xff123456;
-
 // 50D does not have audio
 int sound_recording_enabled_canon() { return 0; }
 int sound_recording_enabled() { return 0; }

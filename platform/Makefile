@@ -8,6 +8,8 @@ MAKE_SUPPORTED_MODELS:=$(call make_platform_dirs, $(SUPPORTED_MODELS))
 
 all:: all-supported-models all-model
 
+all-supported-unified-models: $(SUPPORTED_UNIFIED_MODELS)
+
 all-supported-models: $(SUPPORTED_MODELS)
 
 clean-supported-models:

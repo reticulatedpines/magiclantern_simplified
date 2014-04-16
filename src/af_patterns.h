@@ -181,5 +181,6 @@ static void afp_top ();
 static void afp_bottom ();
 static void afp_left ();
 static void afp_right ();
+int handle_af_patterns(struct event * event);
 
 #endif /* AF_PATTERNS_H_ */

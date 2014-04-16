@@ -21,9 +21,6 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
 #define HIJACK_TASK_ADDR 0x233D8
 
-/*
- * Most of the stuff that follows is taken directly from the EOSM or 5D3
- */
 // no idea if it's overflowing, need to check experimentally 
 #define ARMLIB_OVERFLOWING_BUFFER 0x4A824 // in AJ_armlib_setup_related3
 

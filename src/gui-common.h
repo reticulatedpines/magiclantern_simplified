@@ -2,8 +2,7 @@
 #define _big_gui_h_
 
 #include "dialog.h"
-
-#include "dialog.h"
+#include "menu.h"
 
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
@@ -272,7 +271,6 @@ int handle_fps_events(struct event * event);
 int handle_expo_preset(struct event * event);
 int handle_disp_preset_key(struct event * event);
 int handle_fast_zoom_box(struct event * event);
-int handle_af_patterns(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
@@ -284,6 +282,8 @@ void check_pre_shutdown_flag();
 void reset_pre_shutdown_flag_step();
 
 char* get_info_button_name();
+
+int get_disp_pressed();
 
 /* to be moved from debug.c */
 int get_zoom_out_pressed();

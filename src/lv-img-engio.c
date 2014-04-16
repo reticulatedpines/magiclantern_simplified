@@ -12,6 +12,10 @@
 #include "math.h"
 #include "fps.h"
 
+#if defined(CONFIG_7D)
+#include "ml_rpc.h"
+#endif
+
 //~ #define EngDrvOutLV(reg, value) *(int*)(reg) = value
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics

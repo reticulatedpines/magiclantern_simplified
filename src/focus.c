@@ -17,6 +17,10 @@
 #include "zebra.h"
 #include "shoot.h"
 
+#ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+#include "lcdsensor.h"
+#endif
+
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 

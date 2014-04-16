@@ -46,6 +46,11 @@
 #include "fps.h"
 #include "lvinfo.h"
 
+#ifdef FEATURE_LCD_SENSOR_REMOTE
+#include "lcdsensor.h"
+#endif
+
+
 /* only included for clock CBRs (to be removed after refactoring) */
 #include "battery.h"
 #include "tskmon.h"
@@ -129,6 +134,10 @@ static CONFIG_INT( "interval.start.time", interval_start_time, 3 );
 static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 static CONFIG_INT( "interval.scripts", interval_scripts, 0); //1 bash, 2 ms-dos, 3 text
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
+
+#define INTERVAL_TRIGGER_LEAVE_MENU 0
+#define INTERVAL_TRIGGER_HALF_SHUTTER 1
+#define INTERVAL_TRIGGER_TAKE_PIC 2
 
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
@@ -442,7 +451,7 @@ static MENU_UPDATE_FUNC(interval_start_after_display)
     if (auto_power_off_time && auto_power_off_time <= interval_start_time)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
     
-    if(interval_trigger == 3)
+    if(interval_trigger == INTERVAL_TRIGGER_TAKE_PIC)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Has no effect when trigger is set to take a pic");
 }
 
@@ -460,23 +469,12 @@ static MENU_UPDATE_FUNC(interval_stop_after_display)
     timelapse_calc_display(entry, info);
 }
 
-static MENU_SELECT_FUNC(interval_trigger_toggle)
-{
-    menu_numeric_toggle(priv, delta, 0, 3);
-    if(interval_enabled)
-        intervalometer_running = !interval_trigger;
-}
-
 static MENU_UPDATE_FUNC(interval_trigger_update)
 {
-    if(!interval_trigger)
-        MENU_SET_HELP("Starts intervalometer when you exit ML menu, or at camera startup");
-    if(interval_trigger == 1)
-        MENU_SET_HELP("Starts intervalometer on half shutter press");
-    if(interval_trigger == 2)
-        MENU_SET_HELP("Starts intervalometer on half shutter hold");
-    if(interval_trigger == 3)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Also useful to trigger off of motion or trap focus");
+    if(interval_trigger == INTERVAL_TRIGGER_TAKE_PIC)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Also useful to trigger off of motion or trap focus");
+    }
 }
 
 /* interface with ETTR module */
@@ -486,10 +484,7 @@ static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_in
 
 static MENU_UPDATE_FUNC(intervalometer_display)
 {
-    int p = CURRENT_VALUE;
-    if(!interval_trigger)
-        intervalometer_running = p;
-    if (p)
+    if (CURRENT_VALUE)
     {
         int d = get_interval_time();
         MENU_SET_VALUE("ON, %s",
@@ -1110,17 +1105,6 @@ void move_lv_afframe(int dx, int dy)
     }
     
 #endif
-}
-
-int compute_signature(int* start, int num)
-{
-    int c = 0;
-    int* p;
-    for (p = start; p < start + num; p++)
-    {
-        c += *p;
-    }
-    return c;
 }
 
 static struct semaphore * set_maindial_sem = 0;
@@ -3595,11 +3579,14 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Start trigger",
                 .priv = &interval_trigger,
-                .select = interval_trigger_toggle,
                 .update = interval_trigger_update,
-                .max = 3,
-                .choices = CHOICES("Leave Menu", "Half Shutter", "Hold Half Shutter", "Take a Pic"),
-                .help = "How to trigger the intervalometer start."
+                .max = 2,
+                .choices = CHOICES("Leave Menu", "Half Shutter", "Take a Pic"),
+                .help  = "How to trigger the intervalometer start:",
+                .help2 = "When you exit ML menu, or at camera startup.\n"
+                         "On half-shutter press.\n"
+                         "After you take the first picture.",
+
             },
             {
                 .name = "Start after",
@@ -5364,6 +5351,57 @@ void intervalometer_stop()
 #endif
 }
 
+static void intervalometer_check_trigger()
+{
+    if (interval_enabled)
+    {
+        if (gui_menu_shown()) /* in ML menu */
+        {
+            /* if we use the Leave Menu option, just trigger it (will start running as soon as we are leaving the menu) */
+            /* if we use some other trigger, disable it and require a re-trigger (maybe we changed some setting) */
+            intervalometer_running = (interval_trigger == INTERVAL_TRIGGER_LEAVE_MENU);
+        }
+        else /* outside menu */
+        {
+            if (!intervalometer_running)
+            {
+                /* intervalometer expecting some kind of trigger? say so */
+                if (interval_trigger != INTERVAL_TRIGGER_LEAVE_MENU)
+                {
+                    bmp_printf(FONT_LARGE, 50, 310, 
+                        " Intervalometer: waiting for %s...\n",
+                            interval_trigger == INTERVAL_TRIGGER_HALF_SHUTTER ? "half-shutter" : "first picture"
+                    );
+                }
+                
+                if (interval_trigger == INTERVAL_TRIGGER_HALF_SHUTTER)
+                {
+                    /* trigger intervalometer start on half shutter */
+                    if (get_halfshutter_pressed())
+                    {
+                        /* require a somewhat long press to avoid trigger on menu close */
+                        msleep(500);
+                        if (get_halfshutter_pressed())
+                        {
+                            beep();
+                            redraw();
+                            intervalometer_running = 1;
+                            while (get_halfshutter_pressed()) msleep(100);
+                        }
+                    }
+                }
+                
+                /* INTERVAL_TRIGGER_TAKE_PIC was already handled in the HDR bracketing trigger */
+            }
+        }
+    }
+    else
+    {
+        /* if intervalometer is disabled from menu, make sure it's not running */
+        intervalometer_running = 0;
+    }
+}
+
 int handle_intervalometer(struct event * event)
 {
 #ifdef FEATURE_INTERVALOMETER
@@ -5632,12 +5670,9 @@ shoot_task( void* unused )
     
     
 #ifdef FEATURE_INTERVALOMETER
-    if (interval_enabled && interval_trigger == 0)
-    {
-        /* auto-start intervalometer, but wait for at least 10 seconds */
-        intervalometer_running = 1;
-        intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 10);
-   }
+    /* at startup, wait for at least 15 seconds before firing the intervalometer
+     * (to give the user a chance to turn it off) */
+    intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 15);
 #endif
     
     /*int loops = 0;
@@ -5768,17 +5803,8 @@ shoot_task( void* unused )
         }
         #endif
         
-        int check_for_halfshutter_hold = 0;
         #ifdef FEATURE_BULB_TIMER
-        check_for_halfshutter_hold = bulb_timer && is_bulb_mode();
-        #endif
-        #ifdef FEATURE_INTERVALOMETER
-        check_for_halfshutter_hold &= !(interval_trigger == 1 && interval_enabled);
-        check_for_halfshutter_hold |= interval_trigger == 2 && interval_enabled;
-        #endif
-        
-        int halfshutter_held = 0;
-        if(check_for_halfshutter_hold && !gui_menu_shown())
+        if (bulb_timer && is_bulb_mode() && !gui_menu_shown())
         {
             // look for a transition of half-shutter during idle state
             static int was_idle_not_pressed = 0;
@@ -5798,21 +5824,7 @@ shoot_task( void* unused )
                 if (!get_halfshutter_pressed() || !job_state_ready_to_take_pic()) { info_led_off(); continue; }
                 
                 beep();
-                info_led_blink(1,50,50); // short blink so you know hold half shutter was triggered
-                
-                halfshutter_held = 1;
-            }
-        }
-    
-        #ifdef FEATURE_BULB_TIMER
-        if (bulb_timer && is_bulb_mode() && !gui_menu_shown()
-        #ifdef FEATURE_INTERVALOMETER
-            && !((interval_trigger == 1 || interval_trigger == 2) && interval_enabled)
-        #endif
-            )
-        {
-            if (halfshutter_held)
-            {
+                info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
                 info_led_on();
                 
                 int d = bulb_duration;
@@ -5860,7 +5872,7 @@ shoot_task( void* unused )
                 }
                 #endif
                 #ifdef FEATURE_INTERVALOMETER
-                if(interval_enabled && interval_trigger == 3 && !intervalometer_running)
+                if(interval_enabled && interval_trigger == INTERVAL_TRIGGER_TAKE_PIC && !intervalometer_running)
                 {
                     intervalometer_running = 1;
                     intervalometer_pictures_taken = 1;
@@ -6195,14 +6207,9 @@ shoot_task( void* unused )
         #ifdef FEATURE_INTERVALOMETER        
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
-        //trigger intervalometer start on half shutter or half shutter hold
-        if(interval_enabled &&
-           (interval_trigger == 1 || (interval_trigger == 2 && halfshutter_held)) &&
-           !gui_menu_shown() &&
-           get_halfshutter_pressed())
-        {
-            intervalometer_running = 1;
-        }
+        
+        intervalometer_check_trigger();
+        
         if (intervalometer_running)
         {
             int seconds_clock_0 = seconds_clock;
@@ -6214,6 +6221,7 @@ shoot_task( void* unused )
                 int dt = get_interval_time();
                 msleep(dt < 5 ? 20 : 300);
 
+                intervalometer_check_trigger();
                 if (!intervalometer_running) break; // from inner loop only
                 
                 if (gui_menu_shown() || get_halfshutter_pressed())
@@ -6331,17 +6339,13 @@ shoot_task( void* unused )
                 
                 if(audio_release_running)
                 {   
-					#ifdef CONFIG_7D
-                    void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
-                    SoundDevActiveIn(0);
-                    #else //Enable Audio IC In Photo Mode if off
-                    {   
-                        if (!is_movie_mode())
-                        {	void SoundDevActiveIn();
-                            SoundDevActiveIn(0);
-                        }
-                    } 
-					#endif
+                    #ifndef CONFIG_7D
+                    //Enable Audio IC In Photo Mode if off
+                    if (!is_movie_mode())
+                    #endif
+                    {
+                        SoundDevActiveIn(0);
+                    }
                 }
             }
 #endif

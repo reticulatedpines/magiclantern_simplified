@@ -20,14 +20,11 @@
 #include "shoot.h"
 #include "cropmarks.h"
 #include "fw-signature.h"
+#include "lvinfo.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
 #include "tp-spy.h"
-#endif
-
-#ifdef FEATURE_SHOW_SIGNATURE
-#include "fw-signature.h"
 #endif
 
 #ifdef CONFIG_MODULES
@@ -492,6 +489,8 @@ static void card_benchmark_task()
     card_benchmark_wr(2*1024*1024,  6, 8);
     card_benchmark_wr(2000000,      7, 8);
     card_benchmark_wr(128*1024,     8, 8);
+    bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
+    bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
     take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(0);
