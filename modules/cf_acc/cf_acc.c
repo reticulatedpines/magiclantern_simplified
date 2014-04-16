@@ -14,8 +14,8 @@
 #define CF_REG_FEATURE       0x2001
 #define CF_REG_SEC_COUNT     0x2002
 #define CF_REG_SEC_NUM       0x2003
-#define CF_REG_CYL_HI        0x2004
-#define CF_REG_CYL_LO        0x2005
+#define CF_REG_CYL_LO        0x2004
+#define CF_REG_CYL_HI        0x2005
 #define CF_REG_CDH           0x2006
 #define CF_REG_COMMAND       0x2007
 
@@ -89,7 +89,7 @@ uint32_t cf_acc_write_sector(uint32_t sector, uint8_t *data)
     CF_REG_D(CF_REG_CTRL_INT_B) = 0;
     CF_REG_D(CF_REG_CTRL_INT_A) = 0;
     
-    /* issue READ_SECTOR command */
+    /* issue WRITE_SECTOR command */
     CF_REG_B(CF_REG_CDH) = 0xE0 | ((sector >> 24) & 0x0F);
     CF_REG_B(CF_REG_CYL_HI) = (sector >> 16) & 0xFF;
     CF_REG_B(CF_REG_CYL_LO) = (sector >> 8) & 0xFF;
