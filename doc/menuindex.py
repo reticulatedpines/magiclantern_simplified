@@ -1,7 +1,7 @@
 import os,sys,string
 
 try:
-    f = open("menuindex.txt").readlines()
+    f = open("menuindex.txt","rU").readlines()
 except:
     print "Could not open menuindex.txt, will not rewrite help index files"
     raise SystemExit

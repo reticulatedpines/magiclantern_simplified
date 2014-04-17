@@ -1,4 +1,4 @@
-TOP_DIR?=../..
+    TOP_DIR?=../..
 ML_SETUP_DISABLE_USER_CONFIGS=y
 ML_SETUP_EXTENSION=modules
 
@@ -50,9 +50,9 @@ dump_asm: all
 	$(OBJDUMP) -d -M reg-names-raw --section=.dump_asm $(MODULE_OBJS)
 
 %.sym: %.mo
-	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) '{print $$2 " " $$8;}' | sort > $@ && cat $@)
+	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
 %.dep: %.mo
-	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) '{print $$8;}' | sort > $@ && cd $(MODULES_DIR) && $(PYTHON) checkdep.py $(MODULE_NAME))
+	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) "{print \$$8;}" | sort > $@ && cd $(MODULES_DIR) && $(PYTHON) checkdep.py $(MODULE_NAME))
 
 install:: all
 	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/
