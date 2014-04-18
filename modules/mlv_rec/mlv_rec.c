@@ -122,27 +122,28 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
-static CONFIG_INT("mlv.video.buffer_fill_method", buffer_fill_method, 4);
-static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 1);
-static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
+static CONFIG_INT("mlv.buffer_fill_method", buffer_fill_method, 4);
+static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
+static CONFIG_INT("mlv.tracing", enable_tracing, 0);
+static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
+static CONFIG_INT("mlv.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.black_fix", black_fix, 1);
-static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.res.x", resolution_index_x, 12);
-static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
-static CONFIG_INT("mlv.write.speed", measured_write_speed, 0);
-static CONFIG_INT("mlv.skip.frames", allow_frame_skip, 0);
-static CONFIG_INT("mlv.skip.card_spanning", card_spanning, 0);
+static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
+static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
+static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
+static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
+static CONFIG_INT("mlv.card_spanning", card_spanning, 0);
 static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
-static CONFIG_INT("mlv.reckey", rec_key, 0);
+static CONFIG_INT("mlv.rec_key", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 static CONFIG_INT("mlv.preview", preview_mode, 0);
-static CONFIG_INT("mlv.warm.up", warm_up, 0);
-static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
-static CONFIG_INT("mlv.small.hacks", small_hacks, 1);
-static CONFIG_INT("mlv.video.display_rec_info", display_rec_info, 1);
+static CONFIG_INT("mlv.warm_up", warm_up, 0);
+static CONFIG_INT("mlv.memory_hack", memory_hack, 0);
+static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
+static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
 
 static int start_delay = 0;
 
@@ -2192,7 +2193,9 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
 static char *get_next_raw_movie_file_name()
 {
-    static char filename[100];
+    static char filename[48];
+    static char videoname[48];
+    static char dirname[48];
     struct tm now;
 
     LoadCalendarFromRTC(&now);
@@ -2203,7 +2206,18 @@ static char *get_next_raw_movie_file_name()
          * Get unique file names from the current date/time
          * last field gets incremented if there's another video with the same name
          */
-        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        snprintf(videoname, sizeof(videoname), "M%02d-%02d%02d", now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+         
+        if(create_dirs)
+        {
+            snprintf(dirname, sizeof(dirname), "%s/%s", get_dcim_dir(), videoname);
+            snprintf(filename, sizeof(filename), "%s/%s.MLV", dirname, videoname);
+            FIO_CreateDirectory(dirname);
+        }
+        else
+        {
+            snprintf(filename, sizeof(filename), "%s/%s.MLV", get_dcim_dir(), videoname);
+        }
 
         /* when card spanning is enabled, primary writer is for CF, regardless which card is preferred */
         if(card_spanning)
@@ -3718,6 +3732,12 @@ static struct menu_entry raw_video_menu[] =
                 .choices = aspect_ratio_choices,
             },
             {
+                .name = "Create directory",
+                .priv = &create_dirs,
+                .max = 1,
+                .help = "Save video chunks in separate folders",
+            },
+            {
                 .name = "Global Draw",
                 .priv = &kill_gd,
                 .max = 1,
@@ -4200,4 +4220,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
     MODULE_CONFIG(black_fix)
+    MODULE_CONFIG(create_dirs)
 MODULE_CONFIGS_END()
