@@ -1982,8 +1982,8 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
 
                 /* copy VIDF header to new position and fix frameSpace */
                 memmove(new_vidf, old_vidf, sizeof(mlv_vidf_hdr_t));
-                new_vidf->blockSize -= block->blockSize;
-                new_vidf->frameSpace -= block->blockSize;
+                new_vidf->blockSize -= blockSize;
+                new_vidf->frameSpace -= blockSize;
 
                 /* copy block to prepend */
                 memmove(hdr, block, block->blockSize);
