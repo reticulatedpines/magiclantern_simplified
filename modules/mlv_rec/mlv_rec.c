@@ -776,6 +776,8 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         slots[slot_count].ptr = (void*)(ptr + pre_align);
         slots[slot_count].status = SLOT_FREE;
         slots[slot_count].size = vidf_hdr->blockSize + write_size_align;
+        slots[slot_count].blockSize = vidf_hdr->blockSize;
+        slots[slot_count].frameSpace = vidf_hdr->frameSpace;
 
         trace_write(raw_rec_trace_ctx, "  slot %3d: base 0x%08X, end 0x%08X, aligned 0x%08X, data 0x%08X, size 0x%X (pre 0x%08X, edmac 0x%04X, write 0x%04X)",
             slot_count, ptr, (slots[slot_count].ptr + slots[slot_count].size), slots[slot_count].ptr, dataStart + vidf_hdr->frameSpace, slots[slot_count].size, pre_align, edmac_size_align, write_size_align);
@@ -1906,38 +1908,36 @@ retry_find:
 }
 
 /* this function uses the frameSpace area in a VIDF that was meant for padding to insert some other block before */
-static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
+static int32_t mlv_prepend_block(uint32_t slot, mlv_hdr_t *block)
 {
+    mlv_vidf_hdr_t *hdr = slots[slot].ptr;
     uint32_t blockSize = block->blockSize;
     
     /* make sure that the block size of the block to insert is aligned */
     blockSize += ((0x10 - (blockSize % 0x10)) % 0x10);
     
-    if(!memcmp(vidf->blockType, "VIDF", 4))
+    if(!memcmp(hdr->blockType, "VIDF", 4))
     {
         /* it's a VIDF block that should get shrinked and data prepended.
            new layout:
-            BKUP   (with the old VIDF header content plus a backup of the original blockSize)
             BLOCK  (the block being inserted)
             VIDF   (original VIDF, just shrinked frameSpace)
         */
-        if(vidf->frameSpace < (blockSize + sizeof(mlv_bkup_hdr_t)))
+        if(hdr->frameSpace < blockSize)
         {
             /* there is not enough room */
             return 1;
         }
 
         /* calculate start address of repositioned VIDF block */
-        uint32_t block_offset = sizeof(mlv_bkup_hdr_t);
-        uint32_t new_vidf_offset = block_offset + blockSize;
+        uint32_t new_vidf_offset = blockSize;
 
         /* create pointers to all blocks used */
-        mlv_bkup_hdr_t *backup_hdr = (mlv_bkup_hdr_t *)vidf;
-        mlv_hdr_t *inserted_block = (mlv_hdr_t *)((uint32_t)vidf + block_offset);
-        mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)vidf + new_vidf_offset);
+        mlv_hdr_t *inserted_block = (mlv_hdr_t *)hdr;
+        mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)hdr + new_vidf_offset);
 
         /* copy VIDF header to new position and fix frameSpace */
-        memmove(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
+        memmove(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
         new_vidf->blockSize -= new_vidf_offset;
         new_vidf->frameSpace -= new_vidf_offset;
 
@@ -1947,30 +1947,21 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
         /* and set the correctly aligned blocksize */
         inserted_block->blockSize = blockSize;
 
-        /* backup old size into free space then set the header to be totally skipped */
-        backup_hdr->blockSizeOrig = backup_hdr->blockSize;
-        backup_hdr->blockSize = sizeof(mlv_bkup_hdr_t);
-        
-        mlv_set_type((mlv_hdr_t *)vidf, "BKUP");
-
         return 0;
     }
-    else if(!memcmp(vidf->blockType, "BKUP", 4))
+    else
     {
-        /* there is already something injected, try to add a new block behind prepended */
-        mlv_bkup_hdr_t *backup_hdr = (mlv_bkup_hdr_t *)vidf;
-
         /* now skip until the VIDF is reached */
         uint32_t offset = 0;
-        while(offset < backup_hdr->frameSpace)
+        while(offset < slots[slot].frameSpace)
         {
-            mlv_hdr_t *hdr = (mlv_hdr_t *)((uint32_t)backup_hdr + offset);
+            mlv_hdr_t *current_hdr = (mlv_hdr_t *)((uint32_t)hdr + offset);
             
-            ASSERT(hdr->blockSize > 0);
+            ASSERT((current_hdr->blockSize > 0) && (current_hdr->blockSize < 0x20000000));
 
-            if(!memcmp(hdr->blockType, "VIDF", 4))
+            if(!memcmp(current_hdr->blockType, "VIDF", 4))
             {
-                mlv_vidf_hdr_t *old_vidf = (mlv_vidf_hdr_t *)hdr;
+                mlv_vidf_hdr_t *old_vidf = (mlv_vidf_hdr_t *)current_hdr;
                 
                 if(old_vidf->frameSpace < blockSize)
                 {
@@ -1987,16 +1978,17 @@ static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
                 new_vidf->frameSpace -= blockSize;
 
                 /* copy block to prepend */
-                memmove(hdr, block, block->blockSize);
+                memmove(current_hdr, block, block->blockSize);
+                
                 /* and set the correctly aligned blocksize */
-                hdr->blockSize = blockSize;
+                current_hdr->blockSize = blockSize;
 
                 return 0;
             }
             else
             {
                 /* skip to next block */
-                offset += hdr->blockSize;
+                offset += current_hdr->blockSize;
             }
         }
 
@@ -2024,8 +2016,6 @@ static void mlv_rec_dma_cbr_w(void *ctx)
 
 static int32_t FAST process_frame()
 {
-    uint32_t block_bkup_size = 0;
-    
     /* skip the first frame, it will be gibberish */
     if(frame_count == 0)
     {
@@ -2043,60 +2033,13 @@ static int32_t FAST process_frame()
         return 0;
     }
 
-    /* restore from BKUP block used when prepending data */
+    /* restore VIDF header */
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
-    if(!memcmp(hdr->blockType, "BKUP", 4))
-    {
-        mlv_bkup_hdr_t *backup = (mlv_bkup_hdr_t *)hdr;
-        block_bkup_size = hdr->blockSize;
-        hdr->blockSize = backup->blockSizeOrig;
-        mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
-    }
+    mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     
-    /* just to make sure there is no corruption */
-    if(hdr->blockSize < (sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size))
-    {
-        mlv_rec_err_printf("ERROR: hdr->blockSize < (sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size)\n");
-        mlv_rec_err_printf("\n");
-        mlv_rec_err_printf("Block was a '%s'\n", block_bkup_size?"BKUP":"VIDF");
-        mlv_rec_err_printf("    hdr:                    0x%08X\n", hdr);
-        mlv_rec_err_printf("    hdr->blockSize:         0x%08X < 0x%08X\n", hdr->blockSize, sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size);
-        mlv_rec_err_printf("    hdr->blockSize (old):   0x%08X\n", block_bkup_size);
-        mlv_rec_err_printf("    hdr->frameSpace:        0x%08X\n", hdr->frameSpace);
-        mlv_rec_err_printf("    sizeof(mlv_vidf_hdr_t): 0x%08X\n", sizeof(mlv_vidf_hdr_t));
-        mlv_rec_err_printf("    frame_size:             0x%08X\n", frame_size);
-        mlv_rec_err_printf("\n");
-        mlv_rec_err_printf("Resolution:  %dx%d\n", res_x, res_y);
-        mlv_rec_err_printf("    api_version      0x%08X\n", raw_info.api_version);
-        mlv_rec_err_printf("    height           %d\n", raw_info.height);
-        mlv_rec_err_printf("    width            %d\n", raw_info.width);
-        mlv_rec_err_printf("    pitch            %d\n", raw_info.pitch);
-        mlv_rec_err_printf("    frame_size       0x%08X\n", raw_info.frame_size);
-        mlv_rec_err_printf("    bits_per_pixel   %d\n", raw_info.bits_per_pixel);
-        mlv_rec_err_printf("    black_level      %d\n", raw_info.black_level);
-        mlv_rec_err_printf("    white_level      %d\n", raw_info.white_level);
-        mlv_rec_err_printf("    active_area.y1   %d\n", raw_info.active_area.y1);
-        mlv_rec_err_printf("    active_area.x1   %d\n", raw_info.active_area.x1);
-        mlv_rec_err_printf("    active_area.y2   %d\n", raw_info.active_area.y2);
-        mlv_rec_err_printf("    active_area.x2   %d\n", raw_info.active_area.x2);
-        mlv_rec_err_printf("    exposure_bias    %d, %d\n", raw_info.exposure_bias[0], raw_info.exposure_bias[1]);
-        mlv_rec_err_printf("    cfa_pattern      0x%08X\n", raw_info.cfa_pattern);
-        mlv_rec_err_printf("    calibration_ill  %d\n", raw_info.calibration_illuminant1);
-        mlv_rec_err_printf("\n");
-        mlv_rec_err_printf("Additional Information:\n");
-        mlv_rec_err_printf("    Frame: %d\n", frame_count);
-        mlv_rec_err_printf("    Skips: %d\n", frame_skips);
-        mlv_rec_err_printf("\n");
-        mlv_rec_err_printf("Slot dump:\n");
-        mlv_rec_err_printf("    Slot:  %d\n", capture_slot);
-        mlv_rec_err_printf("    Slot addr: 0x%08X\n", slots[capture_slot].ptr);
-        mlv_rec_err_printf("    Slot size: 0x%08X\n", slots[capture_slot].size);
-        mlv_rec_err_printf("\n");
-        
-        mlv_rec_err_addbin(slots[capture_slot].ptr, 8192);
-    }
-
+    hdr->blockSize = slots[capture_slot].blockSize;
+    hdr->frameSpace = slots[capture_slot].frameSpace;
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
     hdr->cropPosX = (skip_x + 7) & ~7;
@@ -2827,8 +2770,6 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         static int32_t failed = 0;
         uint32_t msg_count = 0;
 
-        mlv_vidf_hdr_t *hdr = slots[slot].ptr;
-
         /* check if there is a block that should get embedded */
         msg_queue_count(mlv_block_queue, &msg_count);
 
@@ -2847,7 +2788,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
                 raw_rec_cbr_mlv_block(block);
 
                 /* prepend the given block if possible or requeue it in case of error */
-                int32_t ret = mlv_prepend_block(hdr, block);
+                int32_t ret = mlv_prepend_block(slot, block);
                 if(!ret)
                 {
                     queued++;
