@@ -860,7 +860,7 @@ static unsigned int isoless_init()
 		/*   00 08B7 405025C0 */
 
 
-        FRAME_CMOS_ISO_START = 0x40502516;
+        FRAME_CMOS_ISO_START = 0x40482516;
         FRAME_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         FRAME_CMOS_ISO_SIZE  =         34;
 
@@ -874,7 +874,7 @@ static unsigned int isoless_init()
         00 08B7 4050129C
         */
 
-        PHOTO_CMOS_ISO_START = 0x4050124C;
+        PHOTO_CMOS_ISO_START = 0x4048124C;
         PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         PHOTO_CMOS_ISO_SIZE  =         16;
 
