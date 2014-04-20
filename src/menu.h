@@ -380,4 +380,9 @@ void menu_open_submenu();
 void menu_close_submenu();
 void menu_toggle_submenu();
 
+int menu_get_value_from_script(const char* name, const char* entry_name);
+char* menu_get_str_value_from_script(const char* name, const char* entry_name);
+int menu_set_value_from_script(const char* name, const char* entry_name, int value);
+int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int);
+
 #endif
