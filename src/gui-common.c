@@ -663,3 +663,8 @@ void redraw_after(int msec)
 {
     task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
 }
+
+int display_is_on()
+{
+    return DISPLAY_IS_ON;
+}

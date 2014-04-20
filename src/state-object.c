@@ -119,10 +119,6 @@ int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 #endif
 
-#ifndef CONFIG_7D_MASTER
-int display_is_on() { return DISPLAY_IS_ON; }
-#endif
-
 #ifdef FEATURE_SHOW_STATE_FPS
 #define num_states 4
 #define num_inputs 32
