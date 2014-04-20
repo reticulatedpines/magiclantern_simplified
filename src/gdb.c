@@ -9,6 +9,7 @@
 #include "dryos.h"
 #include "gdb.h"
 #include "cache_hacks.h"
+#include "patch.h"
 #include "bmp.h"
 
 
@@ -882,7 +883,7 @@ uint32_t gdb_setup()
         gdb_breakpoints[pos].flags = 0;
     }
 
-    icache_lock();
+    cache_lock_request("GDB hooks");
 
 #if defined(CONFIG_GDBSTUB)
     gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);

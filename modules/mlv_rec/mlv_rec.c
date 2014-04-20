@@ -68,7 +68,7 @@
 #include <util.h>
 #include <edmac.h>
 #include <edmac-memcpy.h>
-#include <cache_hacks.h>
+#include <patch.h>
 #include <string.h>
 
 #include "../lv_rec/lv_rec.h"
@@ -1612,23 +1612,24 @@ static void hack_liveview(int32_t unhack)
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
         uint32_t dialog_refresh_timer_new_instr  = 0xe3a00a02; /* change to mov r0, #8192 */
 
-        if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
-        {
-            /* something's wrong */
-            NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
-            beep_custom(1000, 2000, 1);
-            dialog_refresh_timer_addr = 0;
-        }
-
         if (dialog_refresh_timer_addr)
         {
             if (!unhack) /* hack */
             {
-                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_new_instr, TYPE_ICACHE);
+                int err = patch_memory(
+                    dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, dialog_refresh_timer_new_instr, 
+                    "mlv_rec: slow down Canon dialog refresh timer"
+                );
+                
+                if (err)
+                {
+                    NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
+                    beep_custom(1000, 2000, 1);
+                }
             }
             else /* unhack */
             {
-                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, TYPE_ICACHE);
+                unpatch_memory(dialog_refresh_timer_addr);
             }
         }
     }

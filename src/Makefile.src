@@ -165,7 +165,8 @@ ML_SRC_OBJS = \
 	screenshot.o \
 	fileprefix.o \
 	lvinfo.o \
-	ml-cbr.o 
+	ml-cbr.o \
+	patch.o \
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 

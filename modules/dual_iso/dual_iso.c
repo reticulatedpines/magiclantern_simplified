@@ -68,6 +68,7 @@
 #include <math.h>
 #include <fileprefix.h>
 #include <raw.h>
+#include <patch.h>
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
@@ -175,7 +176,7 @@ static void bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
     *parm = 0;
 }
 
-static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* backup)
+static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* backup)
 {
         /* for 7D */
         int start_addr_0 = start_addr;
@@ -187,13 +188,16 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             while(wait) msleep(20);
             start_addr = (uint32_t) local_buf + 2; /* our numbers are aligned at 16 bits, but not at 32 */
         }
+        
+        /* dummy call to get Canon values */
+        patch_memory_array(start_addr, count, size, 0, 0, 0, 0, 0, backup, "dual_iso: CMOS[0] gains");
+        unpatch_memory(start_addr);
     
         /* sanity check first */
-        
         int prev_iso = 0;
         for (int i = 0; i < count; i++)
         {
-            uint16_t raw = *(uint16_t*)(start_addr + i * size);
+            uint16_t raw = backup[i];
             uint32_t flag = raw & CMOS_FLAG_MASK;
             int iso1 = (raw >> CMOS_FLAG_BITS) & CMOS_ISO_MASK;
             int iso2 = (raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
@@ -216,44 +220,32 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             
             prev_iso = iso1;
         }
-        
-        /* backup old values */
-        for (int i = 0; i < count; i++)
+
+        int my_raw = backup[COERCE(isoless_recovery_iso_index(), 0, count-1)];
+
+        /* take one of the ISO fields from recovery index */
+        uint32_t patch_mask = ((1 << CMOS_ISO_BITS) - 1) << CMOS_FLAG_BITS;
+        uint32_t patch_value = my_raw & patch_mask;
+
+        if (is_5d2)
         {
-            uint16_t raw = *(uint16_t*)(start_addr + i * size);
-            backup[i] = raw;
+            /* iso2 is 0 by default, let's just patch that one */
+            patch_mask = ((1 << CMOS_ISO_BITS) - 1) << (CMOS_FLAG_BITS + CMOS_ISO_BITS);
+            patch_value = (my_raw << CMOS_ISO_BITS) & patch_mask;
+            
+            /* enable the dual ISO flag */
+            patch_mask  |= 1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS + CMOS_ISO_BITS);
+            patch_value |= 1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS + CMOS_ISO_BITS);
         }
+
+        if (is_eosm || is_650d || is_700d) //TODO: This hack is probably needed on EOSM and 100D
+        {
+            /* Clear the MSB to fix line-skipping. 1 -> 8 lines, 0 -> 4 lines */
+            patch_mask |= 0x800;
+        }  
         
         /* apply our custom amplifier gains */
-        for (int i = 0; i < count; i++)
-        {
-            uint16_t raw = *(uint16_t*)(start_addr + i * size);
-            int my_raw = backup[COERCE(isoless_recovery_iso_index(), 0, count-1)];
-            
-            if (is_5d2)
-            {
-                /* iso2 is 0 by default, but our algorithm expects two identical values => let's mangle them */
-                int iso1 = (raw >> CMOS_FLAG_BITS) & CMOS_ISO_MASK;
-                int my_iso1 = (my_raw >> CMOS_FLAG_BITS) & CMOS_ISO_MASK;
-                raw |= (iso1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
-                my_raw |= (my_iso1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
-                
-                /* enable the dual ISO flag */
-                raw |= 1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS + CMOS_ISO_BITS);
-            }
-
-
-            int my_iso2 = (my_raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
-            raw &= ~(CMOS_ISO_MASK << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
-            raw |= (my_iso2 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
-
-            if (is_eosm || is_650d || is_700d) //TODO: This hack is probably needed on EOSM and 100D
-            {
-                raw &= 0x7FF; // Clear the MSB to fix line-skipping. 1 -> 8 lines, 0 -> 4 lines
-            }  
-
-            *(uint16_t*)(start_addr + i * size) = raw;
-        }
+        patch_memory_array(start_addr, count, size, 0, 0, patch_mask, 0, patch_value, backup, "dual_iso: CMOS[0] gains");
 
         if (is_7d) /* commit the changes on master */
         {
@@ -266,7 +258,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
         return 0;
 }
 
-static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* backup)
+static int isoless_disable(uint32_t start_addr, int size, int count, uint32_t* backup)
 {
     /* for 7D */
     int start_addr_0 = start_addr;
@@ -279,12 +271,9 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* b
         start_addr = (uint32_t) local_buf + 2;
     }
 
-    /* just restore saved values */
-    for (int i = 0; i < count; i++)
-    {
-        *(uint16_t*)(start_addr + i * size) = backup[i];
-    }
-
+    /* just undo our patch */
+    unpatch_memory(start_addr);
+    
     if (is_7d) /* commit the changes on master */
     {
         volatile uint32_t wait = 1;
@@ -312,8 +301,8 @@ static unsigned int isoless_refresh(unsigned int ctx)
 
     take_semaphore(isoless_sem, 0);
 
-    static uint16_t backup_lv[20];
-    static uint16_t backup_ph[20];
+    static uint32_t backup_lv[20];
+    static uint32_t backup_ph[20];
     int mv = is_movie_mode() ? 1 : 0;
     int lvi = lv ? 1 : 0;
     int raw_mv = mv && lv && raw_lv_is_enabled();
