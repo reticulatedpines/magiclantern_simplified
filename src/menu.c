@@ -115,6 +115,7 @@ static int advanced_mode = 0;       /* cached value; only for submenus for now *
 static int caret_position = 0;
 
 #define SUBMENU_OR_EDIT (submenu_level || edit_mode)
+#define EDIT_OR_TRANSPARENT (edit_mode || menu_lv_transparent_mode)
 
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
 //~ static CONFIG_INT("menu.set", set_action, 2);
@@ -569,7 +570,7 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
 /* for editing with caret */
 static int get_delta(struct menu_entry * entry, int sign)
 {
-    if(!edit_mode)
+    if(!EDIT_OR_TRANSPARENT)
         return sign;
     else if(entry->unit == UNIT_DEC)
         return sign * powi(10, caret_position);
@@ -591,6 +592,11 @@ static int uses_caret_editing(struct menu_entry * entry)
     return 
         entry->select == 0 &&   /* caret editing requires its own toggle logic */
         (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME);  /* only these caret edit modes are supported */
+}
+
+static int editing_with_caret(struct menu_entry * entry)
+{
+    return EDIT_OR_TRANSPARENT && uses_caret_editing(entry);
 }
 
 static void caret_move(struct menu_entry * entry, int delta)
@@ -2363,9 +2369,8 @@ skip_name:
     
     int xval = x + w;
     
-    if (edit_mode && 
-        entry->selected && 
-        uses_caret_editing(entry) && 
+    if (entry->selected && 
+        editing_with_caret(entry) && 
         caret_position >= (int)strlen(info->value))
     {
         bmp_fill(COLOR_WHITE, xval, y + fontspec_font(fnt)->height - 4, char_width, 2);
@@ -2380,9 +2385,8 @@ skip_name:
         info->value
     );
     
-    if(edit_mode &&
-       entry->selected &&
-       uses_caret_editing(entry) &&
+    if(entry->selected &&
+       editing_with_caret(entry) &&
        caret_position < (int)strlen(info->value) &&
        strlen(info->value) > 0)
     {
@@ -2604,12 +2608,12 @@ menu_entry_process(
         {
             /* in edit mode with caret, we will not allow the update function to override the entry value */
             char default_value[MENU_MAX_VALUE_LEN];
-            if (edit_mode && uses_caret_editing(entry))
+            if (editing_with_caret(entry))
                 snprintf(default_value, MENU_MAX_VALUE_LEN, "%s", info.value);
             
             entry->update(entry, &info);
             
-            if (edit_mode && uses_caret_editing(entry))
+            if (editing_with_caret(entry))
                 snprintf(info.value, MENU_MAX_VALUE_LEN, "%s", default_value);
         }
 
@@ -3747,7 +3751,7 @@ menu_entry_select(
         {
             /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
             /* exception: hex fields are never fast-toggled */
-            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+            if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
@@ -3810,7 +3814,7 @@ menu_entry_select(
         }
         else if (IS_ML_PTR(entry->priv))
         {
-            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+            if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
@@ -3937,8 +3941,12 @@ menu_entry_move(
     // Select the new one, which might be the same as the old one
     entry->selected = 1;
     
-    //reset caret_position
-    caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    if (!menu_lv_transparent_mode)
+    {
+        /* reset caret_position */
+        /* don't reset it when LV is behind our menu, since in this case we usually want to edit many similar fields */
+        caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    }
     
     give_semaphore( menu_sem );
 
@@ -4504,7 +4512,7 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_RIGHT:
-        if(edit_mode)
+        if(EDIT_OR_TRANSPARENT)
         {
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && uses_caret_editing(entry))
@@ -4523,7 +4531,7 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_LEFT:
-        if(edit_mode)
+        if(EDIT_OR_TRANSPARENT)
         {
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && uses_caret_editing(entry))
