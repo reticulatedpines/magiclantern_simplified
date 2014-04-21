@@ -91,7 +91,7 @@ NSTUB(0xFF10927C,  StopASIFDMADAC)
 /** Audio **/
 NSTUB(   0x239F4,  sounddev)
 NSTUB(0xFF3383A4, _audio_ic_read)
-NSTUB(0xFF337D5C, _audio_ic_write)
+NSTUB(0xFF337D5C, _audio_ic_write_bulk)
 NSTUB(0xFF7FD080,  audio_thresholds)
 NSTUB(0xFF10B740,  sounddev_active_in)
 NSTUB(0xFF10B258,  sounddev_task)
