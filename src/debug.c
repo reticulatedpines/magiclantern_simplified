@@ -2049,7 +2049,9 @@ static MENU_UPDATE_FUNC(shuttercount_display)
     else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING)
         MENU_SET_WARNING(MENU_WARN_INFO, "Actuations > warranty (%d).", CANON_SHUTTER_RATING);
     else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING/2)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Actuations >half of spec (%d)", CANON_SHUTTER_RATING);
+        MENU_SET_WARNING(MENU_WARN_INFO, "Actuations >half of spec (%d).", CANON_SHUTTER_RATING);
+    else
+        MENU_SET_WARNING(MENU_WARN_INFO, "Fyi: Your camera is rated for %d.", CANON_SHUTTER_RATING);
 }
 #endif
 
