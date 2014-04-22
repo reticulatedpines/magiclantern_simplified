@@ -2,6 +2,8 @@
  *  5D3 1.1.3 consts
  */
 
+#define CANON_SHUTTER_RATING 150000
+
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
