@@ -2045,9 +2045,11 @@ static MENU_UPDATE_FUNC(shuttercount_display)
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
     if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING*2)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Shutter count >double of rating.");
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Actuations >2x rating (%d).", CANON_SHUTTER_RATING);
     else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Shutter count outside warranty.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Actuations > warranty (%d).", CANON_SHUTTER_RATING);
+    else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING/2)
+        MENU_SET_WARNING(MENU_WARN_INFO, "Actuations >half of spec (%d)", CANON_SHUTTER_RATING);
 }
 #endif
 
