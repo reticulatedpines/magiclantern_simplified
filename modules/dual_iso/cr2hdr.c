@@ -508,7 +508,7 @@ void raw_set_pixel_20to16(int x, int y, int value) {
 void raw_set_pixel_20to16_rand(int x, int y, int value) {
     /* To avoid posterization, it's a good idea to add some noise before rounding */
     /* The sweet spot seems to be with Gaussian noise of stdev=0.5, http://www.magiclantern.fm/forum/index.php?topic=10895.msg107972#msg107972 */
-    raw_set_pixel16(x, y, round(value / 16.0 + fast_randn05()));
+    raw_set_pixel16(x, y, (int)(value / 16.0 + fast_randn05() + 0.5));
 }
 
 static void reverse_bytes_order(void* buf, int count)
@@ -871,9 +871,9 @@ static int black_subtract(int left_margin, int top_margin)
     int w = raw_info.width;
     int h = raw_info.height;
     
-    int* vblack = malloc(h * sizeof(int));
+    int* vblack = malloc(h * sizeof(int) * 2);
     int* hblack = malloc(w * sizeof(int));
-    int* aux = malloc(MAX(w,h) * sizeof(int));
+    int* aux = malloc(MAX(w, h * 2) * sizeof(int));
     uint16_t * blackframe = malloc(w * h * sizeof(uint16_t));
 
     /* data above this may be gibberish */
@@ -882,55 +882,66 @@ static int black_subtract(int left_margin, int top_margin)
     int ymax = ymin + 8;
 
     /* estimate vertical correction for each line */
-    for (int y = ymin; y < h; y++)
+    for (int k = 0; k < 2; k++)
     {
-        int avg = 0;
-        int num = 0;
-        for (int x = 2; x < left_margin - 8; x++)
-        {
-            avg += raw_get_pixel16(x, y);
-            num++;
-        }
-        vblack[y] = avg / num;
+       for (int y = ymin; y < h; y++)
+       {
+           int avg = 0;
+           int num = 0;
+           for (int x = 2 + k; x < left_margin - 8; x+=2)
+           {
+               avg += raw_get_pixel16(x, y);
+               num++;
+           }
+           vblack[y * 2 + k] = avg / num;
+       }
     }
-    
     /* perform some slight filtering (averaging) so we don't add noise to the image */
     for (int y = ymin; y < h; y++)
     {
-        int avg = 0;
+        int avg0 = 0;
+        int avg1 = 0;
         int num = 0;
-        for (int y2 = y - 10*4; y2 < y + 10*4; y2 += 4)
+        int y2 = MAX(y - 10*4, ymin + y % 4 - ymin % 4);
+        if (y2 < ymin) y2 += 4; // for the case when (y % 4) < (ymin % 4)
+        for (; y2 < y + 10*4; y2 += 4)
         {
-            if (y2 < ymin) continue;
-            if (y2 >= h) continue;
-            avg += vblack[y2];
+            if (y2 >= h) break;
+            avg0 += vblack[y2 * 2];
+            avg1 += vblack[y2 * 2 + 1];
             num++;
         }
         if (num > 0)
         {
-            avg /= num;
-            aux[y] = avg;
+            avg0 /= num;
+            avg1 /= num;
+            aux[y * 2] = avg0;
+            aux[y * 2 + 1] = avg1;
         }
         else
         {
-            aux[y] = vblack[y];
+            aux[y * 2] = vblack[y * 2];
+            aux[y * 2 + 1] = vblack[y * 2 + 1];
         }
     }
     
-    memcpy(vblack, aux, h * sizeof(vblack[0]));
+    memcpy(vblack, aux, h * sizeof(vblack[0]) * 2);
     
     double avg_black = 0;
 
     /* update the dark frame and compute the average black level */
     for (int y = ymin; y < h; y++)
     {
-        for (int x = 0; x < w; x++)
+        for (int k = 0; k < 2; k++)
         {
-            blackframe[x + y*w] = vblack[y];
+           for (int x = k; x < w; x+=2)
+           {
+              blackframe[x + y*w] = vblack[y * 2 + k];
+           }
+           avg_black += vblack[y * 2 + k];
         }
-        avg_black += vblack[y];
     }
-    avg_black /= (h - ymin);
+    avg_black /= 2 * (h - ymin);
     
     
     /* estimate horizontal drift for each channel */
@@ -969,10 +980,12 @@ static int black_subtract(int left_margin, int top_margin)
             {
                 int avg = 0;
                 int num = 0;
-                for (int x2 = x - 1024; x2 < x + 1024; x2 += 8)
+                /* there is no need to start the next loop at the lowest value */
+                /* let us simply skip all them at once using MAX */
+                int x2 = MAX(x - 1024, x % 8);
+                for (; x2 < x + 1024; x2 += 8)
                 {
-                    if (x2 < 0) continue;
-                    if (x2 >= w) continue;
+                    if (x2 >= w) break;
                     avg += hblack[x2];
                     num++;
                 }
@@ -1027,7 +1040,7 @@ static int black_subtract(int left_margin, int top_margin)
         }
     }
 
-    raw_info.black_level = round(avg_black);
+    raw_info.black_level = (int) avg_black;
     printf("Black level     : %d\n", raw_info.black_level);
 
     if (debug_black)
