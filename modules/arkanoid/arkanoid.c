@@ -536,11 +536,9 @@ static void arkanoid_task()
     
     TASK_LOOP
     {
-        // if menu is not shown OR if halfshutter is pressed > quit
-        if(!gui_menu_shown() || last_key == MODULE_KEY_PRESS_HALFSHUTTER) goto quit;
-        
-        // pause
-        if(last_key == MODULE_KEY_TRASH) goto frame_skip;
+        // if menu is not shown > quit
+        if (!gui_menu_shown())
+            goto quit;
         
         // change the state
         if (arkanoid_next_state != arkanoid_state)
@@ -606,15 +604,11 @@ static void arkanoid_task()
             sound_event = 0;
         }
         
-        
-        frame_skip:
-        
         arkanoid_redraw();
         msleep(40);
     }
     
-    quit:
-    
+quit:
     clrscr();
     arkanoid_running = 0;
     menu_redraw_blocked = 0;
@@ -682,16 +676,6 @@ static unsigned int arkanoid_keypress(unsigned int key)
             arkanoid_next_state = ARK_IDLE;
             break;
         
-        // trash pauses the game
-        case MODULE_KEY_TRASH:
-            // implemented in arkanoid_task
-            break;
-        
-        // halfshutter quits the game
-        case MODULE_KEY_PRESS_HALFSHUTTER:
-            // implemented in arkanoid_task
-            break;
-        
         // arrows control the rest
         case MODULE_KEY_PRESS_LEFT:
         case MODULE_KEY_PRESS_RIGHT:        
@@ -710,10 +694,38 @@ static unsigned int arkanoid_keypress(unsigned int key)
                     break;
             }
             break;
+        
+        /* block these keys to avoid side effects in menu */
+        /* don't block delete and half-shutter, so the game will pause when you close the menu */
+        
+        /* todo: provide proper backend support for things to run on top of the menu (the IME modules likely have the same issue) */
+        case MODULE_KEY_WHEEL_UP:
+        case MODULE_KEY_WHEEL_DOWN:
+        case MODULE_KEY_WHEEL_LEFT:
+        case MODULE_KEY_WHEEL_RIGHT:
+        case MODULE_KEY_PRESS_SET:
+        case MODULE_KEY_UNPRESS_SET:
+        case MODULE_KEY_JOY_CENTER:
+        case MODULE_KEY_PRESS_UP:
+        case MODULE_KEY_PRESS_UP_RIGHT:
+        case MODULE_KEY_PRESS_UP_LEFT:
+        //~ case MODULE_KEY_PRESS_RIGHT:
+        //~ case MODULE_KEY_PRESS_LEFT:
+        case MODULE_KEY_PRESS_DOWN_RIGHT:
+        case MODULE_KEY_PRESS_DOWN_LEFT:
+        case MODULE_KEY_PRESS_DOWN:
+        case MODULE_KEY_UNPRESS_UDLR:
+        case MODULE_KEY_MENU:
+        case MODULE_KEY_INFO:
+            break;
+        
+        /* be nice and don't block all GUI events */
+        default:
+            return 1;
     }
     
+    /* block events that were handled */
     return 0;
-    
 }
 
 MODULE_INFO_START()
