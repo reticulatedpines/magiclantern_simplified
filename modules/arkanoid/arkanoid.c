@@ -57,7 +57,7 @@ static int ball_count;
 
 // configs
 static CONFIG_INT("games.arkanoid.level", level, 1);
-static CONFIG_INT("games.arkanoid.sound", sound, 0);
+static CONFIG_INT("games.arkanoid.sound", sound, 1);
 
 // extern
 extern int menu_redraw_blocked;
