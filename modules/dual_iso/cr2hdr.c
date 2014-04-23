@@ -1400,6 +1400,7 @@ static int identify_bright_and_dark_fields(int rggb)
     return 1;
 }
 
+#if 0
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
 
@@ -1412,6 +1413,7 @@ static int bin_search(int lo, int hi, CritFunc crit)
     if (c > 0) return bin_search(m, hi, crit);
     return bin_search(lo, m, crit);
 }
+#endif
 
 static int mean2(int a, int b, int white, int* err);
 
@@ -1434,9 +1436,6 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     memset(dark, 0, w * h * sizeof(dark[0]));
     memset(bright, 0, w * h * sizeof(bright[0]));
     
-    /* also average the bright exposure (we will need a rough threshold to split the data set in two) */
-    double avg_bright = 0;
-    int avg_bright_num = 0;
     for (int y = 2; y < h-2; y++)
     {
         int* native = BRIGHT_ROW ? bright : dark;
@@ -1451,65 +1450,103 @@ static int match_exposures(double* corr_ev, int* white_darkened)
             interp[x + y * w] = pi;
             int pn = raw_get_pixel_20to16(x, y) - black;
             native[x + y * w] = pn;
-            
-            if (BRIGHT_ROW && pn < clip)    /* only average bright pixels that will be used for matching */
-            {
-                avg_bright += pn;
-                avg_bright_num++;
-            }
         }
     }
-    avg_bright /= avg_bright_num;
-    //~ printf("avg_bright %f\n", avg_bright);
-    printf("Trying ISO      :     "); fflush(stdout);
-
-    int avg_delta = 0;
-    int match_test(int gain)
+    
+    /* 
+     * Robust line fit (match unclipped data):
+     * - use (median_bright, median_dark) as origin
+     * - minimize error median between 99 and 99.9th percentile to find the slope (ISO)
+     * 
+     * Rationale:
+     * - exposure matching is important to be correct in bright_highlights (which are combined with dark_midtones)
+     * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
+     * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
+     */
+    int y0 = raw_info.active_area.y1;
+    int nmax = (w+2) * (h+2) / 9;   /* downsample by 3x3 for speed */
+    int * tmp = malloc(nmax * sizeof(tmp[0]));
+    
+    /* median_bright */
+    int n = 0;
+    for (int y = y0; y < h; y += 3)
     {
-        printf("\b\b\b\b%4d", gain); fflush(stdout);
-        /* split the data set in two: dark pixels and bright pixels */
-        /* the gain is right when the median residual is the same in both groups */
-        int n = w * h / 9;
-        int * buf_left = malloc(n * sizeof(buf_left[0]));
-        int * buf_right = malloc(n * sizeof(buf_right[0]));
-        int kl = 0;
-        int kr = 0;
-        int y0 = raw_info.active_area.y1;
+        for (int x = 0; x < w; x += 3)
+        {
+             int b = bright[x + y*w];
+             if (b >= clip) continue;
+             tmp[n++] = b;
+        }
+    }
+    int bmed = median_int_wirth(tmp, n);
+    //~ int bmed = kth_smallest_int(tmp, n, n/4);
 
-        /* downsample for speed */
-        for (int y = y0; y < h-2; y += 3)
+    /* also compute the range for bright pixels (used to find the slope) */
+    int b_lo = kth_smallest_int(tmp, n, n*98/100);
+    int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
+
+    /* median_dark */
+    n = 0;
+    for (int y = y0; y < h; y += 3)
+    {
+        for (int x = 0; x < w; x += 3)
+        {
+             int d = dark[x + y*w];
+             int b = bright[x + y*w];
+             if (b >= clip) continue;
+             tmp[n++] = d;
+        }
+    }
+    int dmed = median_int_wirth(tmp, n);
+    //~ int dmed = kth_smallest_int(tmp, n, n/4);
+
+    /* bright median from bright exposure */
+    n = 0;
+    for (int y = y0; y < h; y += 3)
+    {
+        for (int x = 0; x < w; x += 3)
+        {
+             int b = bright[x + y*w];
+             if (b >= b_hi) continue;
+             if (b <= b_lo) continue;
+             tmp[n++] = b;
+        }
+    }
+    int bmax = median_int_wirth(tmp, n);
+
+    int dmax = 0;
+    double a = 0;
+    double b = 0;
+
+    /* bright median from dark - corrected_bright (minimize the error iteratively) */
+    for (int k = 0; k < 50; k++)
+    {
+        n = 0;
+        for (int y = y0; y < h; y += 3)
         {
             for (int x = 0; x < w; x += 3)
             {
-                int d = dark[x + y*w];
-                int b = bright[x + y*w];
-                if (b >= clip) continue;
-                
-                int delta = b * 100 / gain - d;
-                if (b < avg_bright)
-                {
-                    buf_left[kl++] = delta;
-                }
-                else
-                {
-                    buf_right[kr++] = delta;
-                }
+                 int da = dark[x + y*w];
+                 int br = bright[x + y*w];
+                 if (br >= b_hi) continue;
+                 if (br <= b_lo) continue;
+                 int e = da - (br*a + b);
+                 if (k > 0 && ABS(e) > 200) continue;   /* ignore outliers when fine-tuning */
+                 tmp[n++] = e;
             }
         }
+        int emed = median_int_wirth(tmp, n);
+        dmax += emed;
 
-        int delta_left = median_int_wirth(buf_left, kl);
-        int delta_right = median_int_wirth(buf_right, kr);
-        //~ printf("Deltas: %d %d\n", delta_left, delta_right);
-        free(buf_left);
-        free(buf_right);
-        avg_delta = (delta_right + delta_left) / 2;
-        return delta_right - delta_left;
+        a = (double) (dmax - dmed) / (bmax - bmed);
+        b = dmed - bmed * a;
+        
+        //~ printf("%d %f %f\n", emed, a, b);
+        
+        if (emed == 0) break;
     }
-    int gain = bin_search(100, 9000, match_test);
-    int off = -avg_delta;
-    double a = 100.0 / gain;
-    double b = off;
-    printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
+
+    free(tmp); tmp = 0;
 
     if (plot_iso_curve)
     {
@@ -1527,17 +1564,20 @@ static int match_exposures(double* corr_ev, int* white_darkened)
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
                 if (b >= clip0) continue;       /* also included discarded highlights in the graph */
-                if (rand()%100 > 1) continue;
-                int delta = b * 100 / gain - d;
+                if (rand()%200 > 1) continue;
 
-                fprintf(f, "    %d %d %d;\n", b, d, delta);
+                fprintf(f, "    %d %d;\n", b, d);
             }
         }
         fprintf(f, "];\n");
         fprintf(f, "bright = data(:,1);\n");
         fprintf(f, "dark = data(:,2);\n");
-        fprintf(f, "plot(bright, dark, 'o', 'markersize', 1, bright, a*bright+b, 'or', 'markersize', 1);\n");
+        fprintf(f, "hi = bright > %d & bright < %d;\n", b_lo, b_hi);
+        fprintf(f, "median(dark(hi) - bright(hi)*a - b)\n");
+        fprintf(f, "plot(bright, dark, 'o', 'markersize', 1, bright(hi), dark(hi), 'og', 'markersize', 1, bright, a*bright+b, 'or', 'markersize', 1);\n");
         fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
+        fprintf(f, "hold on, plot([%d %d], [%d %d], '*r', 'linewidth', 2);\n", bmed, bmax, dmed, dmax);
+        fprintf(f, "print -dpng iso-curve.png\n");
         fclose(f);
         if(system("octave --persist iso-curve.m"));
     }
