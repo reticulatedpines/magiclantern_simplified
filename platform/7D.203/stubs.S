@@ -68,6 +68,8 @@ NSTUB(0xFF237724,  GUI_SetLvMode)
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 NSTUB(0xFF237858,  Gui_SetSoundRecord)                      // WRONG NAME: it should be Gui_SetSoundRec
+NSTUB(0xFF34E5B0,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
+ 
 
 /** ASIF **/
 NSTUB(0xFF07365C,  PowerAudioOutput)
