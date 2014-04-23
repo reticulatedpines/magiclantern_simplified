@@ -50,6 +50,8 @@ static int sound_event;
 
 // last key pressed
 static int last_key;
+// big step for front and rear wheel
+static int big_step;
 // count bricks
 static int brick_count;
 // count bals
@@ -173,8 +175,20 @@ static void arkanoid_redraw()
 }
 
 static int last_delta() {
-    if(last_key == MODULE_KEY_PRESS_LEFT) return -1;
-    if(last_key == MODULE_KEY_PRESS_RIGHT) return 1;
+    switch(last_key) {
+        case MODULE_KEY_PRESS_LEFT:
+            return -1;
+        case MODULE_KEY_WHEEL_UP:
+        case MODULE_KEY_WHEEL_LEFT:
+            if(!big_step--) last_key = 0;
+            return -1;
+        case MODULE_KEY_PRESS_RIGHT:
+            return 1;
+        case MODULE_KEY_WHEEL_RIGHT:
+        case MODULE_KEY_WHEEL_DOWN:
+            if(!big_step--) last_key = 0;
+            return 1;
+    }
     return 0;
 }
 
@@ -693,6 +707,12 @@ static unsigned int arkanoid_keypress(unsigned int key)
             break;
         
         // arrows control the rest
+        case MODULE_KEY_WHEEL_LEFT:
+        case MODULE_KEY_WHEEL_RIGHT:
+        case MODULE_KEY_WHEEL_UP:
+        case MODULE_KEY_WHEEL_DOWN:
+            if(key == MODULE_KEY_WHEEL_LEFT || key == MODULE_KEY_WHEEL_RIGHT) big_step = 3;
+            else big_step = 1;
         case MODULE_KEY_PRESS_LEFT:
         case MODULE_KEY_PRESS_RIGHT:        
             switch(arkanoid_state) {
@@ -715,10 +735,6 @@ static unsigned int arkanoid_keypress(unsigned int key)
         // don't block delete and half-shutter, so the game will pause when you close the menu
         
         // todo: provide proper backend support for things to run on top of the menu (the IME modules likely have the same issue)
-        case MODULE_KEY_WHEEL_UP:
-        case MODULE_KEY_WHEEL_DOWN:
-        case MODULE_KEY_WHEEL_LEFT:
-        case MODULE_KEY_WHEEL_RIGHT:
         case MODULE_KEY_JOY_CENTER:
         case MODULE_KEY_PRESS_UP:
         case MODULE_KEY_PRESS_UP_RIGHT:
