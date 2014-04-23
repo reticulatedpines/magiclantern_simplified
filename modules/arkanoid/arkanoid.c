@@ -537,8 +537,7 @@ static void arkanoid_task()
     TASK_LOOP
     {
         // if menu is not shown > quit
-        if (!gui_menu_shown())
-            goto quit;
+        if (!gui_menu_shown()) goto quit;
         
         // change the state
         if (arkanoid_next_state != arkanoid_state)
@@ -690,15 +689,15 @@ static unsigned int arkanoid_keypress(unsigned int key)
                     arkanoid_next_state = ARK_PLAY;
                     break;
                 case ARK_PLAY:
-                    /* nothing to do, just keep playing */
+                    // nothing to do, just keep playing
                     break;
             }
             break;
         
-        /* block these keys to avoid side effects in menu */
-        /* don't block delete and half-shutter, so the game will pause when you close the menu */
+        // block these keys to avoid side effects in menu 
+        // don't block delete and half-shutter, so the game will pause when you close the menu
         
-        /* todo: provide proper backend support for things to run on top of the menu (the IME modules likely have the same issue) */
+        // todo: provide proper backend support for things to run on top of the menu (the IME modules likely have the same issue)
         case MODULE_KEY_WHEEL_UP:
         case MODULE_KEY_WHEEL_DOWN:
         case MODULE_KEY_WHEEL_LEFT:
@@ -719,12 +718,12 @@ static unsigned int arkanoid_keypress(unsigned int key)
         case MODULE_KEY_INFO:
             break;
         
-        /* be nice and don't block all GUI events */
+        // be nice and don't block all GUI events
         default:
             return 1;
     }
     
-    /* block events that were handled */
+    // block events that were handled
     return 0;
 }
 
