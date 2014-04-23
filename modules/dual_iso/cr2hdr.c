@@ -2522,7 +2522,7 @@ static int hdr_interpolate()
             {
                 int b = bright[x + y*w];
                 int d = dark[x + y*w];
-                if (b < white_darkened && d < white)
+                if (MAX(b,d) < black + 64 * 64)
                 {
                     delta[delta_num++] = b - d;
                 }
