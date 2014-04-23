@@ -302,14 +302,15 @@ static void arkanoid_game_init() {
     p->speed = 15;
     p->color = COLOR_WHITE;
     
-    
-    int i = 1;
-    while(i++ <= level)
+    int i = 0;
+    while(i++ < level)
     {
         element *e = new_ball();
         if(!e) continue;
         ball_count++;
-        e->x = (720 / 2) - (level * (e->w + 5) / 2) + (i * (e->w + 5));
+        
+        int start = (720 / 2) - ( level * e->w + (level - 1) * e->w ) / 2;
+        e->x = start + ( i - 1 ) * ( e->w + e->w );
         e->y = p->y - e->h;
         e->speed = 0;
         set_direction(e, -90);
@@ -629,8 +630,10 @@ static MENU_SELECT_FUNC(level_select) {
     level += delta;
     level = COERCE(level, 1, 10);
     
-    // if we are playing reset the game
-    if (arkanoid_state == ARK_PLAY) arkanoid_next_state = ARK_LOGO;
+    // if we are in game > reset
+    if (arkanoid_state == ARK_PLAY || arkanoid_state == ARK_NEW_GAME) {
+        arkanoid_next_state = ARK_LOGO;
+    }
 }
 
 static struct menu_entry arkanoid_menu[] =
