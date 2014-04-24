@@ -712,8 +712,9 @@ static unsigned int arkanoid_keypress(unsigned int key)
         case MODULE_KEY_WHEEL_RIGHT:
         case MODULE_KEY_WHEEL_UP:
         case MODULE_KEY_WHEEL_DOWN:
-            if(key == MODULE_KEY_WHEEL_LEFT || key == MODULE_KEY_WHEEL_RIGHT) big_step = 3;
-            else big_step = 1;
+            big_step = (key == MODULE_KEY_WHEEL_LEFT || key == MODULE_KEY_WHEEL_RIGHT) ? 3 : 1;
+            // fall through
+        
         case MODULE_KEY_PRESS_LEFT:
         case MODULE_KEY_PRESS_RIGHT:
         
