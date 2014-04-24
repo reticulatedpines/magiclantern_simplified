@@ -16,6 +16,7 @@
 /**
  * A timer callback function.
  * It gets executed in the timer interrupt context
+ * The first argument is possibly the global timestamp expressed in ms
  * The second arguments is the one passed to Set* functions
  */
 typedef void(*timerCbr_t)(int, void*);
@@ -25,11 +26,11 @@ typedef void(*timerCbr_t)(int, void*);
  *
  * Hypotesis: 
  * ----------
- * SetTimerWhen  -> Run exactly when timer reaches 0
- * SetTimerAfter -> Guaranteed to run after or when timer reaches 0
+ * SetTimerWhen  -> Run when (timestampMs - get_current_time_in_ms()) reaches 0
+ * SetTimerAfter -> Run after delayMs has passed
  *
  */
-extern int SetTimerAfter(int delayMs, timerCbr_t delayed_cbr, timerCbr_t overrun_cbr, void* priv);
+extern int SetTimerAfter(int timestampMs, timerCbr_t delayed_cbr, timerCbr_t overrun_cbr, void* priv);
 extern int SetTimerWhen(int delayMs, timerCbr_t delayed_cbr, timerCbr_t overrun_cbr, void* priv);
 extern void TimerCancel(int timerId);
 
