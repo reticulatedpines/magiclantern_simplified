@@ -277,3 +277,5 @@
 // temperature conversion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+
+#define CANON_SHUTTER_RATING 150000
