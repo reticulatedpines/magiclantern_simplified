@@ -791,7 +791,7 @@ cleanup:
 
 static void stress_test_picture(int n, int delay)
 {
-    if (shutter_count > 50000) { beep(); return; }
+    if (shutter_count > CANON_SHUTTER_RATING) { beep(); return; }
     msleep(delay);
     for (int i = 0; i < n; i++)
     {
@@ -2044,8 +2044,23 @@ static MENU_UPDATE_FUNC(shuttercount_display)
         (shutter_count_plus_lv_actuations + 500) / 1000,
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
-    if (shutter_count_plus_lv_actuations > 50000)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Too many shutter actuations.");
+
+    if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING*2)
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Actuations >2x rating (%d).", CANON_SHUTTER_RATING);
+    }
+    else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Actuations > rating (%d).", CANON_SHUTTER_RATING);
+    }
+    else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING/2)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Actuations @1/2 warranty (%d).", CANON_SHUTTER_RATING);
+    }
+    else
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Fyi: warranty is %d.", CANON_SHUTTER_RATING);
+    }
 }
 #endif
 
