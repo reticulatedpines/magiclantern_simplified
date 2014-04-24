@@ -917,7 +917,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "Parameters:\n");
     print_msg(MSG_INFO, " -o output_file      set the filename to write into\n");
     print_msg(MSG_INFO, " -v                  verbose output\n");
-    print_msg(MSG_INFO, " --black-fix         set black level to 2048 (fix green cast)\n");
+    print_msg(MSG_INFO, " --black-fix=value   set black level to <value> (fix green/magenta cast)\n");
     print_msg(MSG_INFO, " --batch             output message suitable for batch processing\n");
 
     print_msg(MSG_INFO, "\n");
@@ -1015,7 +1015,7 @@ int main (int argc, char *argv[])
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
-        {"black-fix",  no_argument, &black_fix,  1 },
+        {"black-fix",  optional_argument, NULL,  'B' },
         {"batch",  no_argument, &batch_mode,  1 },
         {"dump-xrefs",   no_argument, &dump_xrefs,  1 },
         {"dng",    no_argument, &dng_output,  1 },
@@ -1038,10 +1038,21 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "B:L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
+            case 'B':
+                if(!optarg)
+                {
+                    black_fix = 2048;
+                }
+                else
+                {
+                    black_fix = MIN(16384, MAX(1, atoi(optarg)));
+                }
+                break;
+                
             case 'L':
 #ifdef USE_LUA
                 if(!optarg)
@@ -1226,6 +1237,11 @@ int main (int argc, char *argv[])
     if(verbose)
     {
         print_msg(MSG_INFO, "   - Verbose messages\n");
+    }
+    
+    if(black_fix)
+    {
+        print_msg(MSG_INFO, "   - Setting black level to %d\n", black_fix);
     }
 
     /* special case - splitting into frames doesnt require a specific output file */
