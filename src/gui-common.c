@@ -418,7 +418,7 @@ int handle_common_events_by_feature(struct event * event)
         return 1;
     }
 
-    if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
+    if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED && event->param >= 0) 
     { 
         int ans = (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning);
         idle_wakeup_reset_counters(event->param);
@@ -427,8 +427,11 @@ int handle_common_events_by_feature(struct event * event)
     }
 #endif
 
-    if (event->param != GMT_OLC_INFO_CHANGED)
+    if (event->param != GMT_OLC_INFO_CHANGED && event->param >= 0)
+    {
+        /* powersave: ignore internal Canon events and ML events, but wake up on any other key press */
         idle_wakeup_reset_counters(event->param);
+    }
     
     // If we're here, we're dealing with a button press.  Record the timestamp
     // as a record of when the user was last actively pushing buttons.
