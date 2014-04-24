@@ -82,6 +82,7 @@ NSTUB(0xFFA22988 - RAM_OFFSET,  gui_task_list)
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 // NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
+NSTUB(0xFF4AEDDC,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 
 /** ASIF **/
 NSTUB(0xFF1379D0,  PowerAudioOutput)
