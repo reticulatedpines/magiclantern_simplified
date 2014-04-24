@@ -79,19 +79,6 @@ typedef struct {
 } PACKED mlv_vidf_hdr_t;
 
 typedef struct {
-    uint8_t     blockType[4];    /* this block contains one frame of video data */
-    uint32_t    blockSize;    /* total frame size */
-    uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
-    uint32_t    frameNumber;    /* unique video frame number */
-    uint16_t    cropPosX;    /* specifies from which sensor row/col the video frame was copied (8x2 blocks) */
-    uint16_t    cropPosY;    /* (can be used to process dead/hot pixels) */
-    uint16_t    panPosX;    /* specifies the panning offset which is cropPos, but with higher resolution (1x1 blocks) */
-    uint16_t    panPosY;    /* (it's the frame area from sensor the user wants to see) */
-    uint32_t    frameSpace;    /* size of dummy data before frameData starts, necessary for EDMAC alignment */
-    uint32_t    blockSizeOrig;    /* saved frame size */
-} PACKED mlv_bkup_hdr_t;
-
-typedef struct {
     uint8_t     blockType[4];    /* this block contains audio data */
     uint32_t    blockSize;    /* total frame size */
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */

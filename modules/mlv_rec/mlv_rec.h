@@ -73,6 +73,8 @@ struct frame_slot
     int32_t size;
     int32_t writer;
     enum {SLOT_FREE, SLOT_FULL, SLOT_LOCKED, SLOT_WRITING} status;
+    uint32_t blockSize;
+    uint32_t frameSpace;
 };
 
 struct frame_slot_group
@@ -205,7 +207,7 @@ int32_t mlv_rec_get_free_slot();
 void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 void mlv_rec_release_slot(int32_t slot, uint32_t write);
 static int32_t FAST choose_next_capture_slot();
-static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block);
+static int32_t mlv_prepend_block(uint32_t slot, mlv_hdr_t *block);
 static void mlv_rec_dma_cbr_r(void *ctx);
 static void mlv_rec_dma_cbr_w(void *ctx);
 static int32_t FAST process_frame();

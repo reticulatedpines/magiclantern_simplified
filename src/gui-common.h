@@ -288,4 +288,6 @@ int get_disp_pressed();
 /* to be moved from debug.c */
 int get_zoom_out_pressed();
 
+int display_is_on();
+
 #endif

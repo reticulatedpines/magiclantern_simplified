@@ -4,6 +4,8 @@
  *  NOTHING FOUND YET
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC022C1FC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x93D800
 #define LEDOFF 0x83DC00
