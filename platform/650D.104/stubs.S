@@ -282,6 +282,13 @@ NSTUB(    0xBB80,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 
+/** Timers **/
+NSTUB(0xB4D8, SetTimerAfter) 
+NSTUB(0xB558, SetTimerWhen)
+NSTUB(0xB6D8, TimerCancel)
+NSTUB(0x4E54, SetHPTimerAfterTimeout)
+NSTUB(0x4FD8, SetHPTimerAfterNow)
+
 /** Misc **/
 NSTUB(   0x14EE4,  vsnprintf)                               // not sure it gets called from RAM
 NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by exceptionhandlercbr
