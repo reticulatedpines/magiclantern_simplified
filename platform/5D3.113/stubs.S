@@ -63,7 +63,6 @@ NSTUB(0xFF188C88,  SetGUIRequestMode)
 NSTUB(0xFF0DF2E4,  gui_init_end)
 NSTUB(0xFF0DE8BC,  gui_main_task)
 NSTUB(0xFF1A4FC8,  gui_massive_event_loop)
-NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 // NSTUB(0xFF0DEE48, GUI_ChangeMode)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
@@ -79,6 +78,7 @@ NSTUB(0xFF1379A4,  SetSamplingRate)
 NSTUB(0xFF10EAA0,  StartASIFDMAADC)
 NSTUB(0xFF10EC58,  StartASIFDMADAC)
 NSTUB(0xFF10ED30,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -189,6 +189,11 @@ NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+
+/** GUI timers **/
+NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 // NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */

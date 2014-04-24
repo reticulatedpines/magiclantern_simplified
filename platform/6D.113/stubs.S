@@ -70,7 +70,6 @@ NSTUB(0xFF19B448,  Gui_SetSoundRecord)
 NSTUB(0xFF18DFE8,  SetGUIRequestMode)
 NSTUB(0xFF0DFFE4,  gui_init_end)
 NSTUB(0xFF0DF59C,  gui_main_task)
-NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
@@ -195,6 +194,11 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+
+/** GUI timers **/
+NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)

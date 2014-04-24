@@ -82,6 +82,7 @@ NSTUB(0xFF056584,  SetSamplingRate)
 NSTUB(0xFF053614,  StartASIFDMAADC)
 NSTUB(0xFF0537B0,  StartASIFDMADAC)
 NSTUB(0xFF053880,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -192,6 +193,11 @@ NSTUB(0xFF091114,  gui_local_post)
 NSTUB(0xFF0915F0,  gui_other_post)
 NSTUB(0xFF091720,  gui_post_10000085)                       // should be called post 100000a5 no ? <-- not sure what this means..
 NSTUB(0xFF1A09AC,  gui_timer_something)
+
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x8684,  mvr_config)
