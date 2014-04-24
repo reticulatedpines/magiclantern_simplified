@@ -63,6 +63,7 @@ NSTUB(0xFF188C88,  SetGUIRequestMode)
 NSTUB(0xFF0DF2E4,  gui_init_end)
 NSTUB(0xFF0DE8BC,  gui_main_task)
 NSTUB(0xFF1A4FC8,  gui_massive_event_loop)
+NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 // NSTUB(0xFF0DEE48, GUI_ChangeMode)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
