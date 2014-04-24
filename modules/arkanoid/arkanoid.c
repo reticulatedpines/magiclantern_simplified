@@ -56,6 +56,8 @@ static int big_step;
 static int brick_count;
 // count bals
 static int ball_count;
+// game paused?
+static int game_paused;
 
 // configs
 static CONFIG_INT("games.arkanoid.level", level, 1);
@@ -552,7 +554,7 @@ static void arkanoid_task()
     TASK_LOOP
     {
         // pause
-        if(last_key == MODULE_KEY_PRESS_SET || last_key == MODULE_KEY_UNPRESS_SET) {
+        if (game_paused) {
             goto frame_skip;
         }
         
@@ -702,8 +704,7 @@ static unsigned int arkanoid_keypress(unsigned int key)
         
         // set pauses the game
         case MODULE_KEY_PRESS_SET:
-        case MODULE_KEY_UNPRESS_SET:
-            // implemented in arkanoid_task
+            game_paused = !game_paused;
             break;
         
         // arrows control the rest
@@ -714,7 +715,11 @@ static unsigned int arkanoid_keypress(unsigned int key)
             if(key == MODULE_KEY_WHEEL_LEFT || key == MODULE_KEY_WHEEL_RIGHT) big_step = 3;
             else big_step = 1;
         case MODULE_KEY_PRESS_LEFT:
-        case MODULE_KEY_PRESS_RIGHT:        
+        case MODULE_KEY_PRESS_RIGHT:
+        
+            // if the game is paused, any of the playing keys will resume it
+            game_paused = 0;
+            
             switch(arkanoid_state) {
                 case ARK_INRO:
                     arkanoid_next_state = ARK_LOGO;
@@ -743,6 +748,7 @@ static unsigned int arkanoid_keypress(unsigned int key)
         case MODULE_KEY_PRESS_DOWN_LEFT:
         case MODULE_KEY_PRESS_DOWN:
         case MODULE_KEY_UNPRESS_UDLR:
+        case MODULE_KEY_UNPRESS_SET:
         case MODULE_KEY_MENU:
         case MODULE_KEY_INFO:
             break;
