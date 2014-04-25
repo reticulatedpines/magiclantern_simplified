@@ -95,6 +95,18 @@ char *strdup(const char *s);
 #include "../../src/raw.h"
 #include "mlv.h"
 
+enum bug_id
+{
+    BUG_ID_NONE = 0,
+    /* 
+        this bug results in wrong block sizes in a VIDF, even with unaligned lenghs. 
+        when this fix is enabled and an unknown block is encountered, scan the area 
+        for a NULL block which should follow right after the VIDF.
+        introduced: 9058cbc13fa4 
+        fixed in  : 2da80f3de3d1 
+        */
+    BUG_ID_BLOCKSIZE_WRONG = 1
+};
 
 int batch_mode = 0;
 
@@ -917,9 +929,8 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "Parameters:\n");
     print_msg(MSG_INFO, " -o output_file      set the filename to write into\n");
     print_msg(MSG_INFO, " -v                  verbose output\n");
-    print_msg(MSG_INFO, " --black-fix=value   set black level to <value> (fix green/magenta cast)\n");
     print_msg(MSG_INFO, " --batch             output message suitable for batch processing\n");
-
+    
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- DNG output --\n");
     print_msg(MSG_INFO, " --dng               output frames into separate .dng files. set prefix with -o\n");
@@ -956,6 +967,11 @@ void show_usage(char *executable)
 #else
     print_msg(MSG_INFO, " -c, -d, -l          NOT AVAILABLE: compression support was not compiled into this release\n");
 #endif
+    print_msg(MSG_INFO, "\n");
+
+    print_msg(MSG_INFO, "-- bugfixes --\n");
+    print_msg(MSG_INFO, " --black-fix=value   set black level to <value> (fix green/magenta cast)\n");
+    print_msg(MSG_INFO, " --fix-bug=id        fix some special bugs. *only* to be used if given instruction by developers.\n");
     print_msg(MSG_INFO, "\n");
 }
 
@@ -1009,6 +1025,7 @@ int main (int argc, char *argv[])
     /* long options */
     int chroma_smooth_method = 0;
     int black_fix = 0;
+    enum bug_id fix_bug = BUG_ID_NONE;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 0;
@@ -1016,6 +1033,7 @@ int main (int argc, char *argv[])
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
         {"black-fix",  optional_argument, NULL,  'B' },
+        {"fix-bug",  fix_bug, NULL,  'F' },
         {"batch",  no_argument, &batch_mode,  1 },
         {"dump-xrefs",   no_argument, &dump_xrefs,  1 },
         {"dng",    no_argument, &dng_output,  1 },
@@ -1038,10 +1056,23 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "B:L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "F:B:L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
+            case 'F':
+                if(!optarg)
+                {
+                    print_msg(MSG_ERROR, "Error: Missing bug ID\n");
+                    print_msg(MSG_ERROR, "    #1 - fix invalid block sizes (+4)\n");
+                    return ERR_PARAM;
+                }
+                else
+                {
+                    fix_bug = MIN(16384, MAX(1, atoi(optarg)));
+                }
+                break;
+              
             case 'B':
                 if(!optarg)
                 {
@@ -1538,8 +1569,11 @@ read_headers:
         /* unexpected block header size? */
         if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
         {
-            print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
-            goto abort;
+            if(!fix_bug)
+            {
+                print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
+                goto abort;
+            }
         }
 
         /* file header */
@@ -2735,9 +2769,46 @@ read_headers:
             else
             {
                 print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+                
+                if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
+                {
+                    char type[5];
+                    uint32_t range = 0x40;
+                    
+                    type[4] = '\000';
+                    print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Invalid block at 0x%08" PRIx64 ", trying to fix it\n", position);
+                    position += range / 2;
+                    
+                    for(uint32_t offset = 0; offset < range; offset++)
+                    {
+                        position--;
+                        file_set_pos(in_file, position, SEEK_SET);
+                        
+                        if(fread(&type, 4, 1, in_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "BUG_ID_BLOCKSIZE_WRONG: Failed to read from source file\n");
+                            goto abort;
+                        }
+                        
+                        if(!memcmp(type, "NULL", 4))
+                        {
+                            print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Success, offset: %d bytes.\n", offset - range/2);
+                            file_set_pos(in_file, position, SEEK_SET);
+                            break;
+                        }
+                    }
+                    if(memcmp(type, "NULL", 4))
+                    {
+                        print_msg(MSG_ERROR, "BUG_ID_BLOCKSIZE_WRONG: Failed to fix\n");
+                        goto abort;
+                    }
+                }
+                else
+                {
+                    file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
 
-                lua_handle_hdr(lua_state, buf.blockType, "", 0);
+                    lua_handle_hdr(lua_state, buf.blockType, "", 0);
+                }
             }
         }
 
