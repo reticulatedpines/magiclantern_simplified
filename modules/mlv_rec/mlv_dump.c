@@ -1026,6 +1026,7 @@ int main (int argc, char *argv[])
     int chroma_smooth_method = 0;
     int black_fix = 0;
     enum bug_id fix_bug = BUG_ID_NONE;
+    int fix_bug_1_offset = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 0;
@@ -1515,6 +1516,7 @@ int main (int argc, char *argv[])
     }
 
     print_msg(MSG_INFO, "Processing...\n");
+    uint64_t position_previous = 0;
     do
     {
         mlv_hdr_t buf;
@@ -1815,6 +1817,13 @@ read_headers:
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     int prev_frame_size = frame_size;
 
+                    /* we can correct that frame by fixing frame space */
+                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
+                    {
+                        block_hdr.frameSpace -= fix_bug_1_offset;
+                        fix_bug_1_offset = 0;
+                    }
+                    
                     file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                     if(fread(frame_buffer, frame_size, 1, in_file) != 1)
                     {
@@ -2781,7 +2790,6 @@ read_headers:
                     
                     for(uint32_t offset = 0; offset < range; offset++)
                     {
-                        position--;
                         file_set_pos(in_file, position, SEEK_SET);
                         
                         if(fread(&type, 4, 1, in_file) != 1)
@@ -2792,10 +2800,13 @@ read_headers:
                         
                         if(!memcmp(type, "NULL", 4))
                         {
-                            print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Success, offset: %d bytes.\n", offset - range/2);
-                            file_set_pos(in_file, position, SEEK_SET);
+                            fix_bug_1_offset = offset - range / 2;
+                            print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Success, offset: %d bytes.\n", fix_bug_1_offset);
+                            file_set_pos(in_file, position_previous, SEEK_SET);
+                            position = position_previous;
                             break;
                         }
+                        position--;
                     }
                     if(memcmp(type, "NULL", 4))
                     {
@@ -2825,6 +2836,8 @@ read_headers:
                 break;
             }
         }
+        
+        position_previous = position;
     }
     while(!feof(in_file));
 
