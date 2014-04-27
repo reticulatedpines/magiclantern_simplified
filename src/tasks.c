@@ -19,27 +19,68 @@
 extern int is_taskid_valid(int, int, void*);
 extern int get_obj_attr(void*, unsigned char*, int, int);
 
+/* id_x2 is get_current_task() * 2 */
+/* returns 0 on success and puts the output in *task_name_ptr */
+extern int GetTaskName(int id_x2, char** task_name_ptr);
+
 int ml_shutdown_requested = 0;
+
+char* get_current_task_name()
+{
+    /* DryOS: right after current_task we have a flag
+     * set to 1 when handling an interrupt */
+    uint32_t interrupt_active = MEM((uintptr_t)&current_task + 4);
+    
+    if (!interrupt_active)
+    {
+        return current_task->name;
+    }
+    else
+    {
+    #ifdef CURRENT_INTERRUPT_ADDR
+        static char isr[] = "**INT-00h**";
+        int i = MEM(CURRENT_INTERRUPT_ADDR) >> 2;
+        int i0 = (i & 0xF);
+        int i1 = (i >> 4) & 0xF;
+        int i2 = (i >> 8) & 0xF;
+        isr[5] = i2 ? '0' + i2 : '-';
+        isr[6] = i1 < 10 ? '0' + i1 : 'A' + i1 - 10;
+        isr[7] = i0 < 10 ? '0' + i0 : 'A' + i0 - 10;
+        return isr;
+    #else
+        return "**INTERRUPT**";
+    #endif
+    }
+}
 
 char* get_task_name_from_id(int id)
 {
 #if defined(CONFIG_VXWORKS)
 return "?";
 #endif
+
+    if (id == -1)
+    {
+        return "**INTERRUPT**";
+    }
+
+    static char unknown_task[20];
+    char* name = unknown_task;
+    int c = id & 0xFF;
+
+    snprintf(unknown_task, sizeof(unknown_task), "Task#%d", id);
+    
     if(id < 0)
     {
-        return "?";
+        return unknown_task;
     }
-    
-    char* name = "?";
-    int c = id & 0xFF;
 
     struct task_attr_str task_attr;
     int r = is_taskid_valid(1, c, &task_attr); // ok
     if (r==0) {
       //~ r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
       if (task_attr.name!=0) name=task_attr.name;
-      else name="?";
+      else name=unknown_task;
     }
     return name;
 }

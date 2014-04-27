@@ -251,3 +251,7 @@
 
 // look for "JudgeBottomInfoDispTimerState(%d)"
 #define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x3334C
+
+/* look in TCM code, from address 0x18, where the data from C0201004 is stored */
+/* reading that register again will lock up the camera */
+#define CURRENT_INTERRUPT_ADDR 0x674

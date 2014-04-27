@@ -718,7 +718,7 @@ my_init_task(int a, int b, int c, int d)
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
     unsigned int backup_data = 0;
-    unsigned int task_id = get_current_task();
+    unsigned int task_id = current_task->taskId;
 
     if(task_id > 0x68 && task_id < 0xFFFFFFFF)
     {
