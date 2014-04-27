@@ -426,7 +426,7 @@ static char func_holding_bmp_lock[50] = "";
 
 int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
 {
-    char* task_name = get_task_name_from_id((int)get_current_task());
+    char* task_name = get_current_task_name();
     
     // just a warning, sometimes we can't get without it (e.g. at redraw), but it's best to avoid
     /*
@@ -454,7 +454,7 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
     while ((r = (int)AcquireRecursiveLock(lock, wait)))
     {
         char msg[100];
-        snprintf(msg, sizeof(msg), "%s:%s:%d:\nRLock held by %s:%s:%d  ", get_task_name_from_id((int)get_current_task()), func, line, get_task_name_from_id(task_holding_bmp_lock), func_holding_bmp_lock, line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
+        snprintf(msg, sizeof(msg), "%s:%s:%d:\nRLock held by %s:%s:%d  ", get_current_task_name(), func, line, get_task_name_from_id(task_holding_bmp_lock), func_holding_bmp_lock, line_holding_bmp_lock);//, get_task_name_from_id(task_holding_bmp_lock));
         int x = 100;
         bmp_puts(FONT_MED, (unsigned int *)&x, (unsigned int *)&x, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
