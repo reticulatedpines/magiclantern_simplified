@@ -38,8 +38,6 @@
 // use memspy
 #define HALFSHUTTER_PRESSED 0
 
-#define DISPLAY_SENSOR_POWERED 0
-
 // for gui_main_task
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2C10) // dec create_idleHandler_task
 

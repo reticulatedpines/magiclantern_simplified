@@ -71,8 +71,6 @@
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 //~ #define AF_BUTTON_PRESSED_LV 0
 
-#define DISPLAY_SENSOR_POWERED 0
-
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF53D848 // dec gui_main_task

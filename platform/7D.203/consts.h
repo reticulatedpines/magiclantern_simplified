@@ -81,8 +81,6 @@
 // See also "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x1B70)
 
-#define DISPLAY_SENSOR_POWERED 0
-
 // for gui_main_task
 #define GMT_NFUNCS 8
 #define GMT_FUNCTABLE 0xff51193c
