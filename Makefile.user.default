@@ -145,3 +145,6 @@ CONFIG_TINYPY       = n
 # Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
 # so, for now, we'll just hack the source code to work around the limitations of the emulator
 CONFIG_QEMU         = n
+
+# Work in progress - load ML as position-independent code (PIC)
+CONFIG_PIC          = n
