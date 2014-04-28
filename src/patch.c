@@ -47,7 +47,6 @@ struct patch_info
 
 static struct patch_info patches[MAX_PATCHES] = {{0}};
 static int num_patches = 0;
-static struct semaphore * patch_sem = 0;
 
 static char last_error[70];
 
@@ -73,7 +72,7 @@ static void cache_require(int lock)
 int cache_lock_request(const char* description)
 {
     int err = E_PATCH_OK;
-    take_semaphore(patch_sem, 0);
+    uint32_t old_int = cli();
 
     /* is this address already patched? refuse to patch it twice */
     for (int i = 0; i < num_patches; i++)
@@ -90,7 +89,7 @@ int cache_lock_request(const char* description)
     num_patches++;
     cache_require(1);
 end:
-    give_semaphore(patch_sem);
+    sei(old_int);
     return err;
 }
 
@@ -98,7 +97,7 @@ int cache_lock_release(const char* description)
 {
     int err = E_UNPATCH_OK;
 
-    take_semaphore(patch_sem, 0);
+    uint32_t old_int = cli();
 
     int p = -1;
     for (int i = 0; i < num_patches; i++)
@@ -126,7 +125,7 @@ int cache_lock_release(const char* description)
     check_cache_lock_still_needed();
 
 end:
-    give_semaphore(patch_sem);
+    sei(old_int);
     return err;
 }
 
@@ -276,7 +275,7 @@ int patch_memory_matrix(
     int err = E_PATCH_OK;
     
     /* ensure thread safety */
-    take_semaphore(patch_sem, 0);
+    uint32_t old_int = cli();
     
     /* is this address already patched? refuse to patch it twice */
     for (int i = 0; i < num_patches; i++)
@@ -343,7 +342,7 @@ end:
     {
         snprintf(last_error, sizeof(last_error), "Patch error at %x (err %x)", addr, err);
     }
-    give_semaphore(patch_sem);
+    sei(old_int);
     return err;
 }
 
@@ -386,7 +385,7 @@ int unpatch_memory(uintptr_t _addr)
 {
     uint32_t* addr = (uint32_t*) _addr;
     int err = E_UNPATCH_OK;
-    take_semaphore(patch_sem, 0);
+    uint32_t old_int = cli();
 
     int p = -1;
     for (int i = 0; i < num_patches; i++)
@@ -441,7 +440,7 @@ end:
     {
         snprintf(last_error, sizeof(last_error), "Unpatch error at %x (err %x)", addr, err);
     }
-    give_semaphore(patch_sem);
+    sei(old_int);
     return err;
 }
 
@@ -728,7 +727,6 @@ static struct menu_entry patch_menu[] =
 
 static void patch_init()
 {
-    patch_sem = create_named_semaphore("patch_sem", 1);
     menu_add("Debug", patch_menu, COUNT(patch_menu));
 }
 
