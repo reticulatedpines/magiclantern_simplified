@@ -69,66 +69,6 @@ static void cache_require(int lock)
     }
 }
 
-int cache_lock_request(const char* description)
-{
-    int err = E_PATCH_OK;
-    uint32_t old_int = cli();
-
-    /* is this address already patched? refuse to patch it twice */
-    for (int i = 0; i < num_patches; i++)
-    {
-        if (patches[i].description == description)
-        {
-            err = E_PATCH_ALREADY_PATCHED;
-            goto end;
-        }
-    }
-
-    patches[num_patches].addr = (void*) 0xFFFFFFFF;  /* custom ROM patch */
-    patches[num_patches].description = description;
-    num_patches++;
-    cache_require(1);
-end:
-    sei(old_int);
-    return err;
-}
-
-int cache_lock_release(const char* description)
-{
-    int err = E_UNPATCH_OK;
-
-    uint32_t old_int = cli();
-
-    int p = -1;
-    for (int i = 0; i < num_patches; i++)
-    {
-        if (patches[i].description == description)
-        {
-            p = i;
-            break;
-        }
-    }
-    
-    if (p < 0)
-    {
-        err = E_UNPATCH_FAILED;
-        goto end;
-    }
-
-    /* remove from our data structure (shift the other array items) */
-    for (int i = p + 1; i < num_patches; i++)
-    {
-        patches[i-1] = patches[i];
-    }
-    num_patches--;
-
-    check_cache_lock_still_needed();
-
-end:
-    sei(old_int);
-    return err;
-}
-
 /* low-level routines */
 static uint32_t read_value(uint32_t* addr)
 {
@@ -545,11 +485,6 @@ static MENU_UPDATE_FUNC(patch_update)
 
     /* ROM patches are considered invasive, display them with red icon */
     MENU_SET_ICON(IS_ROM_PTR(patches[p].addr) ? MNI_RECORD : MNI_ON, 0);
-    if (patches[p].addr == (void*) 0xFFFFFFFF)
-    {
-        MENU_SET_NAME("Custom");
-        return;
-    }
 
     char name[20];
     snprintf(name, sizeof(name), "%X", patches[p].addr);

@@ -103,10 +103,4 @@ int unpatch_memory(uintptr_t addr);
 int patch_engio_list(uint32_t * engio_list, uint32_t patched_register, uint32_t patched_value, const char * description);
 int unpatch_engio_list(uint32_t * engio_list, uint32_t patched_register);
 
-/* for special things that require a lot of patching calls (e.g. GDB watchpoints): */
-/* simply request access to cache lock, and release it when you are done with it */
-/* pass the same string pointer for both request and release (that's how your request is identified) */
-int cache_lock_request(const char* description);
-int cache_lock_release(const char* description);
-
 #endif
