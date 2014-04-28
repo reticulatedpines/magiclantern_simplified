@@ -46,8 +46,8 @@ typedef struct
     uint32_t flags;
     uint32_t hitcount;
     
-    /* original opcode will be saved, required for RAM breakpoints */
-    uint32_t origOpcode;
+    /* user info about this breakpoint */
+    uint32_t user_data;
     
     /* original task context at breakpoint */
     uint32_t ctx[17];
