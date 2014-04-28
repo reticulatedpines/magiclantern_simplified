@@ -1,7 +1,6 @@
 #Makefile for 5DC
 
 CONFIG_RELOC = y
-CONFIG_STATIC_FONTS=y
 
 ML_ZEBRA_OBJ = zebra-5dc.o
 ML_ENTRY_OBJ = local_entry.o
