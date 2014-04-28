@@ -553,6 +553,7 @@ static MENU_UPDATE_FUNC(patches_update)
 {
     int ram_patches = 0;
     int rom_patches = 0;
+    int errors = 0;
 
     for (int i = 0; i < MAX_PATCHES; i++)
     {
@@ -571,6 +572,7 @@ static MENU_UPDATE_FUNC(patches_update)
             if (!is_patch_still_applied(i))
             {
                 snprintf(last_error, sizeof(last_error), "Patch %x overwritten, probably by Maxwell's demon.");
+                errors++;
             }
         }
         else
@@ -587,8 +589,9 @@ static MENU_UPDATE_FUNC(patches_update)
     else
     {
         MENU_SET_ICON(MNI_SUBMENU, 1);
-        if (rom_patches) MENU_SET_RINFO("%d ROM", rom_patches);
-        if (ram_patches) MENU_APPEND_RINFO("%s%d RAM", rom_patches ? ", " : "", ram_patches);
+        if (errors) MENU_SET_RINFO("%d ERR", errors);
+        if (rom_patches) MENU_APPEND_RINFO("%s%d ROM", info->rinfo[0] ? ", " : "", rom_patches);
+        if (ram_patches) MENU_APPEND_RINFO("%s%d RAM", info->rinfo[0] ? ", " : "", ram_patches);
     }
     
     if (cache_locked())
