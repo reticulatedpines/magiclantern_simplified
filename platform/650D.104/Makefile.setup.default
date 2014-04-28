@@ -1,6 +1,5 @@
 #Makefile for EOS 650D
 
-# compile position independent (experimental)
 
 ML_SRC_EXTRA_OBJS = \
 	raw.o \

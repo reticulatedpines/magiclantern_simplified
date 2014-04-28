@@ -1,5 +1,4 @@
 
-# compile position independent (experimental)
 
 ML_BITRATE_OBJ = bitrate-5d3.o
 ML_AF_PATTERNS_OBJ = n
