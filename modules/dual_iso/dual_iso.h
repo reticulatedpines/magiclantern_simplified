@@ -1,5 +1,7 @@
 /* Dual ISO interface */
 
+extern WEAK_FUNC(ret_0) int dual_iso_set_enabled(bool enabled);
+
 extern WEAK_FUNC(ret_0) int dual_iso_is_enabled();
 
 extern WEAK_FUNC(ret_0) int dual_iso_is_active();

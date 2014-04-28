@@ -83,6 +83,7 @@ extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
+int dual_iso_set_enabled(bool enabled);
 int dual_iso_is_enabled();
 int dual_iso_is_active();
 
@@ -388,6 +389,16 @@ static unsigned int isoless_refresh(unsigned int ctx)
 end:
     give_semaphore(isoless_sem);
     return 0;
+}
+
+int dual_iso_set_enabled(bool enabled)
+{
+    if (enabled)
+        isoless_hdr = 1; 
+    else
+        isoless_hdr = 0;
+
+    return 1; // module is loaded & responded != ret_0
 }
 
 int dual_iso_is_enabled()
