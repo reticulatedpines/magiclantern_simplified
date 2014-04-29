@@ -132,6 +132,11 @@ static int isoless_recovery_iso_index()
     
     /* relative mode */
 
+    /* don't exceed max auto ISO from Canon menu */
+    int max_auto_iso = auto_iso_range & 0xFF;
+    int max_auto_iso_index = (max_auto_iso - ISO_100) / EXPO_FULL_STOP;
+    max_index = MIN(max_index, max_auto_iso_index);
+
     /* auto ISO? idk, fall back to 100 */
     if (lens_info.raw_iso == 0)
         return 0;
