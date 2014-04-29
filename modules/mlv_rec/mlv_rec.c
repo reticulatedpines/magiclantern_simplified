@@ -458,6 +458,28 @@ static void update_resolution_params()
     update_cropping_offsets();
 }
 
+static int mlv_rec_update_raw()
+{
+    int loops = 1000;
+    
+    /* this call may fail a few times due to black level being determined or anything else */
+    while (!raw_update_params())
+    {
+        msleep(20);
+        
+        loops--;
+        if(!loops)
+        {
+            return 0;
+        }
+    }
+    
+    /* update interal parameters res_x, res_y, frame_size, squeeze_factor and crop offsets  */
+    update_resolution_params();
+    
+    return 1;
+}
+
 static char* guess_aspect_ratio(int32_t res_x, int32_t res_y)
 {
     static char msg[20];
@@ -596,10 +618,7 @@ static void refresh_raw_settings(int32_t force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            if (raw_update_params())
-            {
-                update_resolution_params();
-            }
+            mlv_rec_update_raw();
         }
     }
 }
@@ -864,6 +883,8 @@ static void free_buffers()
     mem_suite = 0;
 }
 
+
+
 static int32_t setup_buffers()
 {
     uint32_t total_size = 0;
@@ -888,11 +909,11 @@ static int32_t setup_buffers()
     {
         ResumeLiveView();
         msleep(500);
-        while (!raw_update_params())
+        
+        if(!mlv_rec_update_raw())
         {
-            msleep(100);
+            return 0;
         }
-        refresh_raw_settings(1);
     }
 
     if(!mem_suite)
@@ -3003,13 +3024,11 @@ static void raw_video_rec_task()
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
-    if (!raw_update_params())
+    if (!mlv_rec_update_raw())
     {
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
         goto cleanup;
     }
-
-    update_resolution_params();
 
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
 
