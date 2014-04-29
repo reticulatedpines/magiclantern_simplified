@@ -127,7 +127,6 @@ static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.black_fix", black_fix, 1);
 static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
@@ -2307,19 +2306,6 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
-    
-    /* sometimes black level is a bit off. fix that if enabled. ToDo: do all models have 2048? */
-    if(black_fix)
-    {
-        if(cam_50d || cam_5d2)
-        {
-            rawi.raw_info.black_level = 1024;
-        }
-        else
-        {
-            rawi.raw_info.black_level = 2048;
-        }
-    }
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
@@ -3780,12 +3766,6 @@ static struct menu_entry raw_video_menu[] =
                 .help  = "Slow down Canon GUI, Lock digital expo while recording...",
             },
             {
-                .name = "Fix black level",
-                .priv = &black_fix,
-                .max = 1,
-                .help  = "Forces the black level to 2048 to fix green cast",
-            },
-            {
                 .name = "Debug trace",
                 .priv = &enable_tracing,
                 .max = 1,
@@ -4179,6 +4159,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
-    MODULE_CONFIG(black_fix)
     MODULE_CONFIG(create_dirs)
 MODULE_CONFIGS_END()
