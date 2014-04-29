@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "edmac-memcpy.h"
 #include "imgconv.h"
+#include "../modules/plot/plot.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -293,6 +294,9 @@ void raw_buffer_intercept_from_stateobj()
     -3876, 10000,    11761, 10000,    2396, 10000, \
      -593, 10000,     1772, 10000,    6198, 10000
 #endif
+
+plot_coll_t *raw_plot_data = NULL;
+plot_graph_t *raw_plot_graph = NULL;
 
 struct raw_info raw_info = {
     .api_version = 1,
@@ -790,7 +794,54 @@ static int raw_update_params_work()
 
     int black_mean, black_stdev_x100;
     raw_info.white_level = WHITE_LEVEL;
-    raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev_x100);
+    
+    static int black_avg = 0;
+    int black_new = autodetect_black_level(&black_mean, &black_stdev_x100);
+    
+    if(!raw_plot_data)
+    {
+        raw_plot_data = plot_alloc_data(1);
+        raw_plot_graph = plot_alloc_graph(50, 50, 620, 200);
+        
+        if(raw_plot_data)
+        {
+            plot_set_range(raw_plot_graph, 0, 100, 0, 3000);
+        }
+    }
+    
+    if(raw_plot_data)
+    {
+        plot_add(raw_plot_data, (float)black_new);
+        plot_graph_draw(raw_plot_data, raw_plot_graph);
+    }
+    
+    
+    /* first measurement is just a starting point and (on top to that) most likely not correct */
+    if(black_avg == 0)
+    {
+        /* blindly use the measurement as current average */
+        black_avg = black_new;
+        return 0;
+    }
+    
+    /* try to converge to new value very quickly */
+    black_avg = (black_avg + 3 * black_new) / 4;
+    
+    /* either if the new black level is close to the average */
+    if(ABS(black_avg - black_new) < 5)
+    {
+        /* black level converged */
+        raw_info.black_level = black_avg;
+    }
+    else
+    {
+        /* test: new value is being taken as new reference - or should we really wait for converging? */
+        black_avg = black_new;
+        
+        /* raw backend is not ready yet, we are trying to figure out new black level */
+        return 0;
+    }
+    
 
     if (!lv)
     {
