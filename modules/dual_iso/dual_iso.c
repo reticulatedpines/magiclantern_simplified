@@ -69,12 +69,16 @@
 #include <fileprefix.h>
 #include <raw.h>
 #include <patch.h>
+#include <beep.h>
+#include <zebra.h>
 
 static CONFIG_INT("dual_iso.enabled", dual_iso_enabled, 0);
 static CONFIG_INT("dual_iso.iso", dual_iso_recovery_iso, 3);
 static CONFIG_INT("dual_iso.alt", dual_iso_alternate, 0);
 static CONFIG_INT("dual_iso.prefix", dual_iso_file_prefix, 0);
 static CONFIG_INT("dual_iso.threshold", dual_iso_ev_threshold, 0);
+
+#define AUTO_EXPOSURE_FOR_RECOVERY_ISO -1
 
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
@@ -123,9 +127,188 @@ static uint32_t CMOS_EXPECTED_FLAG = 0;
 #define CTX_SHOOT_TASK 0
 #define CTX_SET_RECOVERY_ISO 1
 
+static int dual_iso_relative_delta_ev_auto()
+{
+    int ec;
+    
+    if (shooting_mode == SHOOTMODE_M)
+    {
+        /* M mode - decide from Canon meter */
+        int ae_state = get_ae_state();
+        static int last_metered = 0;
+        if (ae_state) last_metered = get_ae_value();
+        ec = last_metered;
+    }
+    else
+    {
+        /* Auto modes => decide from user-dialed EC */
+        ec = lens_info.ae;
+    }
+
+    if (ABS(ec) < 1)
+    {
+        return 0;
+    }
+    else
+    {
+        /* 2*ec rounded to full stops */
+        return - SGN(ec) * (ABS(ec) * 2 + EXPO_1_3_STOP) / EXPO_FULL_STOP;
+    }
+}
+
 static int dual_iso_relative_delta_ev()
 {
-    return dual_iso_recovery_iso < -3 ? dual_iso_recovery_iso + 2 : dual_iso_recovery_iso + 5;
+    if (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    {
+        /* Auto choice, based on Canon meter */
+        return dual_iso_relative_delta_ev_auto();
+    }
+    else
+    {
+        /* Fixed delta, relative to Canon ISO (should match the menu) */
+        return dual_iso_recovery_iso < -3 ? dual_iso_recovery_iso + 3 : dual_iso_recovery_iso + 6;
+    }
+}
+
+static int dual_iso_max_index_auto()
+{
+    int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
+    
+    /* don't exceed max auto ISO from Canon menu */
+    int max_auto_iso = auto_iso_range & 0xFF;
+    int max_auto_iso_index = (max_auto_iso - ISO_100) / EXPO_FULL_STOP;
+    max_index = MIN(max_index, max_auto_iso_index);
+
+    return max_index;
+}
+
+static int dual_iso_get_canon_iso_index()
+{
+    int raw_iso = lens_info.iso_analog_raw;
+    
+    /* auto ISO? try using it */
+    if (raw_iso == 0) raw_iso = (lens_info.raw_iso_auto+3)/8*8;
+
+    /* still unknown ISO? idk, assume it's 200 */
+    if (raw_iso == 0) raw_iso = ISO_200;
+    
+    int canon_iso_index = (raw_iso - ISO_100) / EXPO_FULL_STOP;
+    return canon_iso_index;
+}
+
+static void dual_iso_auto_expo_shift()
+{
+    if (!dual_iso_is_enabled())
+    {
+        return;
+    }
+    
+    if (dual_iso_recovery_iso != AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    {
+        /* this only works for auto recovery iso */
+        return;
+    }
+    
+    if (!lens_info.raw_iso)
+    {
+        /* can't shift auto ISO */
+        return;
+    }
+    
+    if (shooting_mode == SHOOTMODE_M && !get_ae_state())
+    {
+        /* don't operate without a valid AE metering */
+        return;
+    }
+    
+    if (!display_idle())
+    {
+        /* don't operate on top of other Canon menus */
+        return;
+    }
+
+    int required_delta = dual_iso_relative_delta_ev_auto();
+    
+    int max_index = dual_iso_max_index_auto();
+    int canon_iso_index = dual_iso_get_canon_iso_index();
+    
+    int required_expo_shift = 0;
+    
+    /* If we can get closer to required_delta by shifting the exposure, do so.
+     * For example, ISO 100 1/100, required_delta is -2 EV (overexposed, need to recover the highlights)
+     * => shift to ISO 400 1/400 and set recovery ISO to 100.
+     * 
+     * Or, ISO 1600 1/100, required_delta is +2 EV (underexposed, need to recover the shadows)
+     * => shift to ISO 400 1/25 and set recovery ISO to 1600.
+     */
+    if (canon_iso_index + required_delta < 0)
+    {
+        required_expo_shift = -(canon_iso_index + required_delta);
+        
+        /* canon_iso_index + required_expo_shift should be <= max_index */
+        required_expo_shift = MIN(required_expo_shift, max_index - canon_iso_index);
+    }
+    else if (canon_iso_index + required_delta > max_index)
+    {
+        required_expo_shift = -(canon_iso_index + required_delta - max_index);
+
+        /* canon_iso_index + required_expo_shift should be >= 0 */
+        required_expo_shift = MAX(required_expo_shift, -canon_iso_index);
+    }
+
+    if (required_expo_shift)
+    {
+        int iso = lens_info.raw_iso;
+        int tv = lens_info.raw_shutter;
+        
+        int new_iso = iso + required_expo_shift * EXPO_FULL_STOP;
+        int new_tv = tv + required_expo_shift * EXPO_FULL_STOP;
+        
+        /* what ISO will be used for recovery? */
+        int lim_index = required_delta > 0 ? max_index : 0;
+        int lim_iso = ISO_100 + lim_index * EXPO_FULL_STOP;
+        
+        /* what improvement do we expect? */
+        int dual_iso_calc_dr_improvement(int iso1, int iso2);
+        int dr_boost = dual_iso_calc_dr_improvement(new_iso, lim_iso);
+        
+        if (dr_boost < dual_iso_ev_threshold * 50)
+        {
+            /* improvement too small, don't bother */
+            return;
+        }
+
+        if (shooting_mode == SHOOTMODE_M)
+        {
+            
+            int ok_tv = hdr_set_rawshutter(new_tv);
+            if (ok_tv)
+            {
+                int ok_iso = hdr_set_rawiso(new_iso);
+                if (!ok_iso)
+                {
+                    /* CTRL-Z, CTRL-Z! */
+                    hdr_set_rawiso(iso);
+                    hdr_set_rawshutter(tv);
+                }
+            }
+            else
+            {
+                /* just in case, undo */
+                hdr_set_rawshutter(tv);
+            }
+        }
+        else
+        {
+            /* in Auto modes, we only need to change ISO as needed */
+            int ok_iso = hdr_set_rawiso(new_iso);
+            if (!ok_iso)
+            {
+                /* just in case, undo */
+                hdr_set_rawiso(iso);
+            }
+        }
+    }
 }
 
 static int dual_iso_recovery_iso_index()
@@ -139,22 +322,10 @@ static int dual_iso_recovery_iso_index()
         return COERCE(dual_iso_recovery_iso, 0, max_index);
     
     /* relative mode */
-
-    /* don't exceed max auto ISO from Canon menu */
-    int max_auto_iso = auto_iso_range & 0xFF;
-    int max_auto_iso_index = (max_auto_iso - ISO_100) / EXPO_FULL_STOP;
-    max_index = MIN(max_index, max_auto_iso_index);
-    
-    int raw_iso = lens_info.iso_analog_raw;
-    
-    /* auto ISO? try using it */
-    if (raw_iso == 0) raw_iso = (lens_info.raw_iso_auto+3)/8*8;
-
-    /* still unknown ISO? idk, assume it's 200 */
-    if (raw_iso == 0) raw_iso = ISO_200;
-    
+    max_index = dual_iso_max_index_auto();
+    int canon_iso_index = dual_iso_get_canon_iso_index();
     int delta = dual_iso_relative_delta_ev();
-    int canon_iso_index = (raw_iso - ISO_100) / EXPO_FULL_STOP;
+
     return COERCE(canon_iso_index + delta, 0, max_index);
 }
 
@@ -338,7 +509,8 @@ static unsigned int dual_iso_refresh(unsigned int ctx)
         (dual_iso_enabled << 24) + (dual_iso_alternate << 25) + 
         (dual_iso_file_prefix << 26) + 
         (dual_iso_alternate ? get_shooting_card()->file_number : 0) +
-        lens_info.raw_iso * 1234 + lens_info.raw_iso_auto * 1234;
+        lens_info.raw_iso * 1234 + lens_info.raw_iso_auto * 1234 + 
+        (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO ? lens_info.ae + get_ae_value() + get_ae_state() : 0);
     
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
@@ -371,6 +543,13 @@ static unsigned int dual_iso_refresh(unsigned int ctx)
 
     if (setting_changed)
     {
+        if (ctx == CTX_SHOOT_TASK)
+        {
+            /* if it could get a better combination by shifting the exposure, do so */
+            /* (if it will shift anything, this routine will be re-triggered) */
+            dual_iso_auto_expo_shift();
+        }
+
         /* hack: this may be executed when file_number is updated;
          * if so, it will rename the previous picture, captured with the old setting,
          * so it will mis-label the pics */
@@ -589,22 +768,35 @@ static MENU_UPDATE_FUNC(dual_iso_check)
 static char* format_dual_iso_setting()
 {
     static char msg[50];
+    msg[0] = 0;
+    
+    if (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    {
+        if (shooting_mode == SHOOTMODE_M)
+        {
+            snprintf(msg, sizeof(msg), "EM:");
+        }
+        else
+        {
+            snprintf(msg, sizeof(msg), "EC:");
+        }
+    }
     
     int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
     int iso2 = lens_info.iso_analog_raw;
-
+    
     if (iso2)
     {
-        snprintf(msg, sizeof(msg), "%d/%d", raw2iso(iso2), raw2iso(iso1));
+        STR_APPEND(msg, "%d/%d", raw2iso(iso2), raw2iso(iso1));
     }
     else if (dual_iso_recovery_iso >= 0)
     {
-        snprintf(msg, sizeof(msg), "Auto/%d", raw2iso(iso1));
+        STR_APPEND(msg, "Auto/%d", raw2iso(iso1));
     }
     else
     {
         int delta = dual_iso_relative_delta_ev();
-        snprintf(msg, sizeof(msg), "Auto/%+d EV", delta);
+        STR_APPEND(msg, "Auto/%+d EV", delta);
     }
     
     return msg;
@@ -612,11 +804,22 @@ static char* format_dual_iso_setting()
 
 static MENU_UPDATE_FUNC(dual_iso_recovery_update)
 {
-    dual_iso_check(entry, info);
-
     MENU_SET_RINFO("%s", format_dual_iso_setting());
 
-    if (dual_iso_recovery_iso < 0)
+    if (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "%s%s",
+            (shooting_mode == SHOOTMODE_M) ? "From Canon exposure meter (-2"SYM_TIMES"EM). " :
+                                             "From exposure compensation (-2"SYM_TIMES"EC). ",
+            (lens_info.raw_iso)            ? "Will shift Tv/ISO as needed." : ""
+        );
+        
+        if (!lens_info.raw_iso)
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Canon Auto ISO is enabled. May not play nice, try disabling it.");
+        }
+    }
+    else if (dual_iso_recovery_iso < 0)
     {
         int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
         int max_auto_iso = auto_iso_range & 0xFF;
@@ -626,6 +829,8 @@ static MENU_UPDATE_FUNC(dual_iso_recovery_update)
             MENU_SET_WARNING(MENU_WARN_INFO, "Recovery ISO will not exceed max auto ISO (%d).", raw2iso(max_auto_iso));
         }
     }
+
+    dual_iso_check(entry, info);
 }
 
 static MENU_UPDATE_FUNC(dual_iso_dr_update)
@@ -714,10 +919,11 @@ static struct menu_entry dual_iso_menu[] =
                 .name = "Recovery ISO",
                 .priv = &dual_iso_recovery_iso,
                 .update = dual_iso_recovery_update,
-                .min = -6,
+                .min = -7,
                 .max = 6,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "+2 EV", "+3 EV", "+4 EV", "100", "200", "400", "800", "1600", "3200", "6400"),
+                .icon_type = IT_DICE,
+                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "+2 EV", "+3 EV", "+4 EV", "Auto", "100", "200", "400", "800", "1600", "3200", "6400"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
