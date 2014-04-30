@@ -2,7 +2,7 @@
  * Dual ISO trick
  * Codenames: ISO-less mode, Nikon mode.
  * 
- * Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf
+ * Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/dual_iso/dual_iso.pdf
  * 
  * 5D3 and 7D only.
  * Requires a camera with two analog amplifiers (cameras with 8-channel readout seem to have this).
@@ -70,11 +70,11 @@
 #include <raw.h>
 #include <patch.h>
 
-static CONFIG_INT("isoless.enabled", isoless_enabled, 0);
-static CONFIG_INT("isoless.iso", isoless_recovery_iso, 3);
-static CONFIG_INT("isoless.alt", isoless_alternate, 0);
-static CONFIG_INT("isoless.prefix", isoless_file_prefix, 0);
-static CONFIG_INT("isoless.threshold", isoless_ev_threshold, 0);
+static CONFIG_INT("dual_iso.enabled", dual_iso_enabled, 0);
+static CONFIG_INT("dual_iso.iso", dual_iso_recovery_iso, 3);
+static CONFIG_INT("dual_iso.alt", dual_iso_alternate, 0);
+static CONFIG_INT("dual_iso.prefix", dual_iso_file_prefix, 0);
+static CONFIG_INT("dual_iso.threshold", dual_iso_ev_threshold, 0);
 
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
@@ -123,20 +123,20 @@ static uint32_t CMOS_EXPECTED_FLAG = 0;
 #define CTX_SHOOT_TASK 0
 #define CTX_SET_RECOVERY_ISO 1
 
-static int isoless_relative_delta_ev()
+static int dual_iso_relative_delta_ev()
 {
-    return isoless_recovery_iso < -3 ? isoless_recovery_iso + 2 : isoless_recovery_iso + 5;
+    return dual_iso_recovery_iso < -3 ? dual_iso_recovery_iso + 2 : dual_iso_recovery_iso + 5;
 }
 
-static int isoless_recovery_iso_index()
+static int dual_iso_recovery_iso_index()
 {
     /* CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800") */
 
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
     
     /* absolute mode */
-    if (isoless_recovery_iso >= 0)
-        return COERCE(isoless_recovery_iso, 0, max_index);
+    if (dual_iso_recovery_iso >= 0)
+        return COERCE(dual_iso_recovery_iso, 0, max_index);
     
     /* relative mode */
 
@@ -153,7 +153,7 @@ static int isoless_recovery_iso_index()
     /* still unknown ISO? idk, assume it's 200 */
     if (raw_iso == 0) raw_iso = ISO_200;
     
-    int delta = isoless_relative_delta_ev();
+    int delta = dual_iso_relative_delta_ev();
     int canon_iso_index = (raw_iso - ISO_100) / EXPO_FULL_STOP;
     return COERCE(canon_iso_index + delta, 0, max_index);
 }
@@ -174,7 +174,7 @@ int dual_iso_calc_dr_improvement(int iso1, int iso2)
 
 int dual_iso_get_dr_improvement()
 {
-    int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+    int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
     int iso2 = lens_info.iso_analog_raw;
     return dual_iso_calc_dr_improvement(iso1, iso2);
 }
@@ -190,7 +190,7 @@ static void bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
     *parm = 0;
 }
 
-static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* backup)
+static int dual_iso_enable(uint32_t start_addr, int size, int count, uint32_t* backup)
 {
         /* for 7D */
         int start_addr_0 = start_addr;
@@ -235,7 +235,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
             prev_iso = iso1;
         }
 
-        int my_raw = backup[COERCE(isoless_recovery_iso_index(), 0, count-1)];
+        int my_raw = backup[COERCE(dual_iso_recovery_iso_index(), 0, count-1)];
 
         /* take one of the ISO fields from recovery index */
         uint32_t patch_mask = ((1 << CMOS_ISO_BITS) - 1) << CMOS_FLAG_BITS;
@@ -272,7 +272,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
         return 0;
 }
 
-static int isoless_disable(uint32_t start_addr, int size, int count, uint32_t* backup)
+static int dual_iso_disable(uint32_t start_addr, int size, int count, uint32_t* backup)
 {
     /* for 7D */
     int start_addr_0 = start_addr;
@@ -299,7 +299,7 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint32_t* b
     return 0;
 }
 
-static struct semaphore * isoless_sem = 0;
+static struct semaphore * dual_iso_sem = 0;
 
 /* Photo mode: always enable */
 /* LiveView: only enable in movie mode */
@@ -309,16 +309,16 @@ static int enabled_ph = 0;
 
 static int dual_iso_is_sufficient()
 {
-    return (dual_iso_get_dr_improvement() >= isoless_ev_threshold * 50);
+    return (dual_iso_get_dr_improvement() >= dual_iso_ev_threshold * 50);
 }
 
 /* thread safe */
-static unsigned int isoless_refresh(unsigned int ctx)
+static unsigned int dual_iso_refresh(unsigned int ctx)
 {
     if (!job_state_ready_to_take_pic())
         return 0;
 
-    take_semaphore(isoless_sem, 0);
+    take_semaphore(dual_iso_sem, 0);
 
     static uint32_t backup_lv[20];
     static uint32_t backup_ph[20];
@@ -332,12 +332,12 @@ static unsigned int isoless_refresh(unsigned int ctx)
     
     static int prev_sig = 0;
     int sig = 
-        isoless_recovery_iso + 
-        isoless_ev_threshold + 
+        dual_iso_recovery_iso + 
+        dual_iso_ev_threshold + 
         (lvi << 16) + (raw_mv << 17) + (raw_ph << 18) + 
-        (isoless_enabled << 24) + (isoless_alternate << 25) + 
-        (isoless_file_prefix << 26) + 
-        (isoless_alternate ? get_shooting_card()->file_number : 0) +
+        (dual_iso_enabled << 24) + (dual_iso_alternate << 25) + 
+        (dual_iso_file_prefix << 26) + 
+        (dual_iso_alternate ? get_shooting_card()->file_number : 0) +
         lens_info.raw_iso * 1234 + lens_info.raw_iso_auto * 1234;
     
     int setting_changed = (sig != prev_sig);
@@ -345,28 +345,28 @@ static unsigned int isoless_refresh(unsigned int ctx)
     
     if (enabled_lv && setting_changed)
     {
-        isoless_disable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
+        dual_iso_disable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
         enabled_lv = 0;
     }
     
     if (enabled_ph && setting_changed)
     {
-        isoless_disable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
+        dual_iso_disable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
         enabled_ph = 0;
     }
 
-    if (isoless_enabled && dual_iso_is_sufficient() && raw_ph && !enabled_ph && PHOTO_CMOS_ISO_START && ((get_shooting_card()->file_number % 2) || !isoless_alternate))
+    if (dual_iso_enabled && dual_iso_is_sufficient() && raw_ph && !enabled_ph && PHOTO_CMOS_ISO_START && ((get_shooting_card()->file_number % 2) || !dual_iso_alternate))
     {
         enabled_ph = 1;
-        int err = isoless_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
-        if (err) { NotifyBox(10000, "ISOless PH err(%d)", err); enabled_ph = 0; }
+        int err = dual_iso_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
+        if (err) { NotifyBox(10000, "dual_iso PH err(%d)", err); enabled_ph = 0; }
     }
     
-    if (isoless_enabled && dual_iso_is_sufficient() && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START)
+    if (dual_iso_enabled && dual_iso_is_sufficient() && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START)
     {
         enabled_lv = 1;
-        int err = isoless_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
-        if (err) { NotifyBox(10000, "ISOless LV err(%d)", err); enabled_lv = 0; }
+        int err = dual_iso_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
+        if (err) { NotifyBox(10000, "dual_iso LV err(%d)", err); enabled_lv = 0; }
     }
 
     if (setting_changed)
@@ -376,11 +376,11 @@ static unsigned int isoless_refresh(unsigned int ctx)
          * so it will mis-label the pics */
         int file_prefix_needs_delay = (ctx == CTX_SHOOT_TASK && lens_info.job_state);
 
-        int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+        int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
         int iso2 = lens_info.iso_analog_raw;
 
         static int prefix_key = 0;
-        if (isoless_file_prefix && enabled_ph && iso1 != iso2) 
+        if (dual_iso_file_prefix && enabled_ph && iso1 != iso2) 
         {
             if (!prefix_key)
             {
@@ -401,23 +401,23 @@ static unsigned int isoless_refresh(unsigned int ctx)
     }
 
 end:
-    give_semaphore(isoless_sem);
+    give_semaphore(dual_iso_sem);
     return 0;
 }
 
 int dual_iso_set_enabled(bool enabled)
 {
     if (enabled)
-        isoless_enabled = 1; 
+        dual_iso_enabled = 1; 
     else
-        isoless_enabled = 0;
+        dual_iso_enabled = 0;
 
     return 1; // module is loaded & responded != ret_0
 }
 
 int dual_iso_is_enabled()
 {
-    return isoless_enabled;
+    return dual_iso_enabled;
 }
 
 int dual_iso_is_active()
@@ -430,7 +430,7 @@ int dual_iso_get_recovery_iso()
     if (!dual_iso_is_active())
         return 0;
     
-    return ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+    return ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
 }
 
 int dual_iso_set_recovery_iso(int iso)
@@ -439,19 +439,19 @@ int dual_iso_set_recovery_iso(int iso)
         return 0;
     
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
-    isoless_recovery_iso = COERCE((iso - ISO_100)/EXPO_FULL_STOP, 0, max_index);
+    dual_iso_recovery_iso = COERCE((iso - ISO_100)/EXPO_FULL_STOP, 0, max_index);
 
     /* apply the new settings right now */
-    isoless_refresh(CTX_SET_RECOVERY_ISO);
+    dual_iso_refresh(CTX_SET_RECOVERY_ISO);
     return 1;
 }
 
-static unsigned int isoless_playback_fix(unsigned int ctx)
+static unsigned int dual_iso_playback_fix(unsigned int ctx)
 {
     if (is_7d || is_1100d)
         return 0; /* seems to cause problems, figure out why */
     
-    if (!isoless_enabled) return 0;
+    if (!dual_iso_enabled) return 0;
     if (!is_play_or_qr_mode()) return 0;
     
     static int aux = INT_MIN;
@@ -548,9 +548,9 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
     return 0;
 }
 
-static MENU_UPDATE_FUNC(isoless_check)
+static MENU_UPDATE_FUNC(dual_iso_check)
 {
-    int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+    int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
     int iso2 = lens_info.iso_analog_raw;
     
     if (!iso2)
@@ -568,14 +568,14 @@ static MENU_UPDATE_FUNC(isoless_check)
     if (!dual_iso_is_sufficient())
     {
         int dr_improvement = dual_iso_get_dr_improvement() / 10;
-        int dr_threshold = isoless_ev_threshold * 5;
+        int dr_threshold = dual_iso_ev_threshold * 5;
         MENU_SET_WARNING(MENU_WARN_INFO, "Dynamic range improvement is too small (%d.%dEV < %d.%dEV). Disabling.", dr_improvement/10, dr_improvement%10, dr_threshold/10, dr_threshold%10);
     }
 
     if (!get_dxo_dynamic_range(ISO_100))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
 
-    if (isoless_alternate && !is_movie_mode())
+    if (dual_iso_alternate && !is_movie_mode())
         MENU_SET_WARNING(MENU_WARN_INFO, "Alternate frames: Dual ISO will %sbe used for next image.", get_shooting_card()->file_number % 2 ? "" : "not ");
 
     int mvi = is_movie_mode();
@@ -590,35 +590,35 @@ static char* format_dual_iso_setting()
 {
     static char msg[50];
     
-    int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+    int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
     int iso2 = lens_info.iso_analog_raw;
 
     if (iso2)
     {
         snprintf(msg, sizeof(msg), "%d/%d", raw2iso(iso2), raw2iso(iso1));
     }
-    else if (isoless_recovery_iso >= 0)
+    else if (dual_iso_recovery_iso >= 0)
     {
         snprintf(msg, sizeof(msg), "Auto/%d", raw2iso(iso1));
     }
     else
     {
-        int delta = isoless_relative_delta_ev();
+        int delta = dual_iso_relative_delta_ev();
         snprintf(msg, sizeof(msg), "Auto/%+d EV", delta);
     }
     
     return msg;
 }
 
-static MENU_UPDATE_FUNC(isoless_recovery_update)
+static MENU_UPDATE_FUNC(dual_iso_recovery_update)
 {
-    isoless_check(entry, info);
+    dual_iso_check(entry, info);
 
     MENU_SET_RINFO("%s", format_dual_iso_setting());
 
-    if (isoless_recovery_iso < 0)
+    if (dual_iso_recovery_iso < 0)
     {
-        int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+        int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
         int max_auto_iso = auto_iso_range & 0xFF;
         
         if (iso1 == max_auto_iso)
@@ -628,9 +628,9 @@ static MENU_UPDATE_FUNC(isoless_recovery_update)
     }
 }
 
-static MENU_UPDATE_FUNC(isoless_dr_update)
+static MENU_UPDATE_FUNC(dual_iso_dr_update)
 {
-    isoless_check(entry, info);
+    dual_iso_check(entry, info);
     if (info->warning_level >= MENU_WARN_ADVICE)
     {
         MENU_SET_VALUE("N/A");
@@ -647,15 +647,15 @@ static MENU_UPDATE_FUNC(isoless_dr_update)
     }
 }
 
-static MENU_UPDATE_FUNC(isoless_overlap_update)
+static MENU_UPDATE_FUNC(dual_iso_overlap_update)
 {
-    int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+    int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
     int iso2 = (lens_info.iso_analog_raw)/8*8;
 
     int iso_hi = MAX(iso1, iso2);
     int iso_lo = MIN(iso1, iso2);
     
-    isoless_check(entry, info);
+    dual_iso_check(entry, info);
     if (info->warning_level >= MENU_WARN_ADVICE)
     {
         MENU_SET_VALUE("N/A");
@@ -674,14 +674,14 @@ static MENU_UPDATE_FUNC(isoless_overlap_update)
     }
 }
 
-static MENU_UPDATE_FUNC(isoless_update)
+static MENU_UPDATE_FUNC(dual_iso_update)
 {
-    if (!isoless_enabled)
+    if (!dual_iso_enabled)
         return;
 
     MENU_SET_VALUE("%s", format_dual_iso_setting());
 
-    isoless_check(entry, info);
+    dual_iso_check(entry, info);
     if (info->warning_level >= MENU_WARN_ADVICE)
         return;
     
@@ -699,12 +699,12 @@ static MENU_UPDATE_FUNC(isoless_update)
     }
 }
 
-static struct menu_entry isoless_menu[] =
+static struct menu_entry dual_iso_menu[] =
 {
     {
         .name = "Dual ISO",
-        .priv = &isoless_enabled,
-        .update = isoless_update,
+        .priv = &dual_iso_enabled,
+        .update = dual_iso_update,
         .max = 1,
         .help  = "Alternate ISO for every 2 sensor scan lines.",
         .help2 = "With some clever post, you get less shadow noise (more DR).",
@@ -712,8 +712,8 @@ static struct menu_entry isoless_menu[] =
         .children =  (struct menu_entry[]) {
             {
                 .name = "Recovery ISO",
-                .priv = &isoless_recovery_iso,
-                .update = isoless_recovery_update,
+                .priv = &dual_iso_recovery_iso,
+                .update = dual_iso_recovery_update,
                 .min = -6,
                 .max = 6,
                 .unit = UNIT_ISO,
@@ -723,22 +723,22 @@ static struct menu_entry isoless_menu[] =
             },
             {
                 .name = "Dynamic range gained",
-                .update = isoless_dr_update,
+                .update = dual_iso_dr_update,
                 .icon_type = IT_ALWAYS_ON,
                 .help  = "[READ-ONLY] How much more DR you get with current settings",
                 .help2 = "(upper theoretical limit, estimated from DxO measurements)",
             },
             {
                 .name = "Midtone overlapping",
-                .update = isoless_overlap_update,
+                .update = dual_iso_overlap_update,
                 .icon_type = IT_ALWAYS_ON,
                 .help  = "[READ-ONLY] How much of midtones will get full resolution",
                 .help2 = "Highlights/shadows will be half res, with aliasing/moire.",
             },
             {
                 .name = "Min. DR improvement",
-                .priv = &isoless_ev_threshold,
-                .update = isoless_check,
+                .priv = &dual_iso_ev_threshold,
+                .update = dual_iso_check,
                 .max = 4,
                 .choices = CHOICES("OFF", "0.5 EV", "1 EV", "1.5 EV", "2 EV"),
                 .help  = "Minimum dynamic range you want to gain, for enabling Dual ISO.",
@@ -746,15 +746,15 @@ static struct menu_entry isoless_menu[] =
             },
             {
                 .name = "Alternate frames only",
-                .priv = &isoless_alternate,
-                .update = isoless_check,
+                .priv = &dual_iso_alternate,
+                .update = dual_iso_check,
                 .max = 1,
                 .help = "Shoot one image with the hack, one without.",
             },
             {
                 .name = "Custom file prefix",
-                .priv = &isoless_file_prefix,
-                .update = isoless_check,
+                .priv = &dual_iso_file_prefix,
+                .update = dual_iso_check,
                 .max = 1,
                 .choices = CHOICES("OFF", "DUAL (unreliable!)"),
                 .help  = "Change file prefix for dual ISO photos (e.g. DUAL0001.CR2).",
@@ -765,7 +765,7 @@ static struct menu_entry isoless_menu[] =
     },
 };
 
-static unsigned int isoless_init()
+static unsigned int dual_iso_init()
 {
     if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
     {
@@ -1018,35 +1018,35 @@ static unsigned int isoless_init()
 
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
     {
-        menu_add("Expo", isoless_menu, COUNT(isoless_menu));
+        menu_add("Expo", dual_iso_menu, COUNT(dual_iso_menu));
     }
     else
     {
-        isoless_enabled = 0;
+        dual_iso_enabled = 0;
         return 1;
     }
     return 0;
 }
 
-static unsigned int isoless_deinit()
+static unsigned int dual_iso_deinit()
 {
     return 0;
 }
 
 MODULE_INFO_START()
-    MODULE_INIT(isoless_init)
-    MODULE_DEINIT(isoless_deinit)
+    MODULE_INIT(dual_iso_init)
+    MODULE_DEINIT(dual_iso_deinit)
 MODULE_INFO_END()
 
 MODULE_CBRS_START()
-    MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, CTX_SHOOT_TASK)
-    MODULE_CBR(CBR_SHOOT_TASK, isoless_playback_fix, CTX_SHOOT_TASK)
+    MODULE_CBR(CBR_SHOOT_TASK, dual_iso_refresh, CTX_SHOOT_TASK)
+    MODULE_CBR(CBR_SHOOT_TASK, dual_iso_playback_fix, CTX_SHOOT_TASK)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(isoless_enabled)
-    MODULE_CONFIG(isoless_recovery_iso)
-    MODULE_CONFIG(isoless_alternate)
-    MODULE_CONFIG(isoless_file_prefix)
-    MODULE_CONFIG(isoless_ev_threshold)
+    MODULE_CONFIG(dual_iso_enabled)
+    MODULE_CONFIG(dual_iso_recovery_iso)
+    MODULE_CONFIG(dual_iso_alternate)
+    MODULE_CONFIG(dual_iso_file_prefix)
+    MODULE_CONFIG(dual_iso_ev_threshold)
 MODULE_CONFIGS_END()
