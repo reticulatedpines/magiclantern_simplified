@@ -139,13 +139,17 @@ static int isoless_recovery_iso_index()
     int max_auto_iso = auto_iso_range & 0xFF;
     int max_auto_iso_index = (max_auto_iso - ISO_100) / EXPO_FULL_STOP;
     max_index = MIN(max_index, max_auto_iso_index);
+    
+    int raw_iso = lens_info.iso_analog_raw;
+    
+    /* auto ISO? try using it */
+    if (raw_iso == 0) raw_iso = (lens_info.raw_iso_auto+3)/8*8;
 
-    /* auto ISO? idk, fall back to 100 */
-    if (lens_info.raw_iso == 0)
-        return 0;
+    /* still unknown ISO? idk, assume it's 200 */
+    if (raw_iso == 0) raw_iso = ISO_200;
     
     int delta = isoless_recovery_iso < -6 ? isoless_recovery_iso + 6 : isoless_recovery_iso + 7;
-    int canon_iso_index = (lens_info.iso_analog_raw - ISO_100) / EXPO_FULL_STOP;
+    int canon_iso_index = (raw_iso - ISO_100) / EXPO_FULL_STOP;
     return COERCE(canon_iso_index + delta, 0, max_index);
 }
 
@@ -322,7 +326,15 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) goto end;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + isoless_ev_threshold + (lvi << 16) + (raw_mv << 17) + (raw_ph << 18) + (isoless_enabled << 24) + (isoless_alternate << 25) + (isoless_file_prefix << 26) + get_shooting_card()->file_number * isoless_alternate + lens_info.raw_iso * 1234;
+    int sig = 
+        isoless_recovery_iso + 
+        isoless_ev_threshold + 
+        (lvi << 16) + (raw_mv << 17) + (raw_ph << 18) + 
+        (isoless_enabled << 24) + (isoless_alternate << 25) + 
+        (isoless_file_prefix << 26) + 
+        (isoless_alternate ? get_shooting_card()->file_number : 0) +
+        lens_info.raw_iso * 1234 + lens_info.raw_iso_auto * 1234;
+    
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -363,7 +375,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
         int iso2 = lens_info.iso_analog_raw;
 
         static int prefix_key = 0;
-        if (isoless_file_prefix && enabled_ph && iso1 != iso2 && dual_iso_is_sufficient()) 
+        if (isoless_file_prefix && enabled_ph && iso1 != iso2) 
         {
             if (!prefix_key)
             {
