@@ -123,6 +123,11 @@ static uint32_t CMOS_EXPECTED_FLAG = 0;
 #define CTX_SHOOT_TASK 0
 #define CTX_SET_RECOVERY_ISO 1
 
+static int isoless_relative_delta_ev()
+{
+    return isoless_recovery_iso < -3 ? isoless_recovery_iso + 2 : isoless_recovery_iso + 5;
+}
+
 static int isoless_recovery_iso_index()
 {
     /* CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800") */
@@ -148,7 +153,7 @@ static int isoless_recovery_iso_index()
     /* still unknown ISO? idk, assume it's 200 */
     if (raw_iso == 0) raw_iso = ISO_200;
     
-    int delta = isoless_recovery_iso < -6 ? isoless_recovery_iso + 6 : isoless_recovery_iso + 7;
+    int delta = isoless_relative_delta_ev();
     int canon_iso_index = (raw_iso - ISO_100) / EXPO_FULL_STOP;
     return COERCE(canon_iso_index + delta, 0, max_index);
 }
@@ -598,8 +603,7 @@ static char* format_dual_iso_setting()
     }
     else
     {
-        /* delta should match the one from isoless_recovery_iso_index */
-        int delta = isoless_recovery_iso < -6 ? isoless_recovery_iso + 6 : isoless_recovery_iso + 7;
+        int delta = isoless_relative_delta_ev();
         snprintf(msg, sizeof(msg), "Auto/%+d EV", delta);
     }
     
@@ -710,10 +714,10 @@ static struct menu_entry isoless_menu[] =
                 .name = "Recovery ISO",
                 .priv = &isoless_recovery_iso,
                 .update = isoless_recovery_update,
-                .min = -12,
+                .min = -6,
                 .max = 6,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400"),
+                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "+2 EV", "+3 EV", "+4 EV", "100", "200", "400", "800", "1600", "3200", "6400"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
