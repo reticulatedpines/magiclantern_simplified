@@ -300,8 +300,7 @@ static int enabled_ph = 0;
 
 static int dual_iso_is_sufficient()
 {
-    if (!isoless_ev_threshold || isoless_ev_threshold+14 <= dual_iso_get_dr_improvement()/10) return 1;
-    return 0;
+    return (dual_iso_get_dr_improvement() >= isoless_ev_threshold * 50);
 }
 
 /* thread safe */
@@ -544,16 +543,23 @@ static MENU_UPDATE_FUNC(isoless_check)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ISO => cannot use relative recovery ISO.");
     
     if (iso1 == iso2)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Both ISOs are identical, nothing to do.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Both ISOs are identical, nothing to do.");
     
     if (iso1 && iso2 && ABS(iso1 - iso2) > 8 * (is_movie_mode() ? MIN(FRAME_CMOS_ISO_COUNT-2, 3) : MIN(PHOTO_CMOS_ISO_COUNT-2, 4)))
         MENU_SET_WARNING(MENU_WARN_INFO, "Consider using a less aggressive setting (e.g. 100/800).");
 
     if (!dual_iso_is_sufficient())
-        MENU_SET_WARNING(MENU_WARN_INFO, "Auto-disabled because actual gain is smaller than requested.");
+    {
+        int dr_improvement = dual_iso_get_dr_improvement() / 10;
+        int dr_threshold = isoless_ev_threshold * 5;
+        MENU_SET_WARNING(MENU_WARN_INFO, "Dynamic range improvement is too small (%d.%dEV < %d.%dEV). Disabling.", dr_improvement/10, dr_improvement%10, dr_threshold/10, dr_threshold%10);
+    }
 
     if (!get_dxo_dynamic_range(ISO_100))
         MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
+
+    if (isoless_alternate && !is_movie_mode())
+        MENU_SET_WARNING(MENU_WARN_INFO, "Alternate frames: Dual ISO will %sbe used for next image.", get_shooting_card()->file_number % 2 ? "" : "not ");
 
     int mvi = is_movie_mode();
 
@@ -563,10 +569,72 @@ static MENU_UPDATE_FUNC(isoless_check)
         menu_set_warning_raw(entry, info);
 }
 
-static MENU_UPDATE_FUNC(isoless_info_update)
+static char* format_dual_iso_setting()
+{
+    static char msg[50];
+    
+    int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+    int iso2 = lens_info.iso_analog_raw;
+
+    if (iso2)
+    {
+        snprintf(msg, sizeof(msg), "%d/%d", raw2iso(iso2), raw2iso(iso1));
+    }
+    else if (isoless_recovery_iso >= 0)
+    {
+        snprintf(msg, sizeof(msg), "Auto/%d", raw2iso(iso1));
+    }
+    else
+    {
+        /* delta should match the one from isoless_recovery_iso_index */
+        int delta = isoless_recovery_iso < -6 ? isoless_recovery_iso + 6 : isoless_recovery_iso + 7;
+        snprintf(msg, sizeof(msg), "Auto/%+d EV", delta);
+    }
+    
+    return msg;
+}
+
+static MENU_UPDATE_FUNC(isoless_recovery_update)
+{
+    isoless_check(entry, info);
+
+    MENU_SET_RINFO("%s", format_dual_iso_setting());
+
+    if (isoless_recovery_iso < 0)
+    {
+        int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
+        int max_auto_iso = auto_iso_range & 0xFF;
+        
+        if (iso1 == max_auto_iso)
+        {
+            MENU_SET_WARNING(MENU_WARN_INFO, "Recovery ISO will not exceed max auto ISO (%d).", raw2iso(max_auto_iso));
+        }
+    }
+}
+
+static MENU_UPDATE_FUNC(isoless_dr_update)
+{
+    isoless_check(entry, info);
+    if (info->warning_level >= MENU_WARN_ADVICE)
+    {
+        MENU_SET_VALUE("N/A");
+        return;
+    }
+    
+    int dr_improvement = dual_iso_get_dr_improvement() / 10;
+    
+    MENU_SET_VALUE("%d.%d EV", dr_improvement/10, dr_improvement%10);
+    
+    if (!dual_iso_is_sufficient())
+    {
+        MENU_SET_RINFO("Too small");
+    }
+}
+
+static MENU_UPDATE_FUNC(isoless_overlap_update)
 {
     int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
-    int iso2 = (lens_info.iso_analog_raw);
+    int iso2 = (lens_info.iso_analog_raw)/8*8;
 
     int iso_hi = MAX(iso1, iso2);
     int iso_lo = MIN(iso1, iso2);
@@ -578,12 +646,16 @@ static MENU_UPDATE_FUNC(isoless_info_update)
         return;
     }
     
-    int iso_diff = (iso_hi - iso_lo) * 10/ EXPO_FULL_STOP;
+    int iso_diff = (iso_hi - iso_lo) * 10/ 8;
     int dr_lo = (get_dxo_dynamic_range(iso_lo)+5)/10;
     int overlap = dr_lo - iso_diff;
-    int dr_improvement = dual_iso_get_dr_improvement() / 10;
     
-    MENU_SET_VALUE("%d.%d EV [%d.%d EV]", dr_improvement/10, dr_improvement%10, overlap/10, overlap%10);
+    MENU_SET_VALUE("%d.%d EV", overlap/10, overlap%10);
+    
+    if (overlap <= 65)
+    {
+        MENU_SET_RINFO(overlap <= 55 ? "Too small" : "Small");
+    }
 }
 
 static MENU_UPDATE_FUNC(isoless_update)
@@ -591,10 +663,7 @@ static MENU_UPDATE_FUNC(isoless_update)
     if (!isoless_enabled)
         return;
 
-    int iso1 = ISO_100 + isoless_recovery_iso_index() * EXPO_FULL_STOP;
-    int iso2 = (lens_info.iso_analog_raw);
-
-    MENU_SET_VALUE("%d/%d", raw2iso(iso2), raw2iso(iso1));
+    MENU_SET_VALUE("%s", format_dual_iso_setting());
 
     isoless_check(entry, info);
     if (info->warning_level >= MENU_WARN_ADVICE)
@@ -602,10 +671,16 @@ static MENU_UPDATE_FUNC(isoless_update)
     
     int dr_improvement = dual_iso_get_dr_improvement() / 10;
     
-    if (dual_iso_is_active())
+    if (dual_iso_is_active() && dr_improvement > 0)
+    {
         MENU_SET_RINFO("DR+%d.%d", dr_improvement/10, dr_improvement%10);
+    }
     else
-        MENU_SET_RINFO("Orig. DR");
+    {
+        /* gray out the value text, but keep the icon green */
+        MENU_SET_ENABLED(0);
+        MENU_SET_ICON(MNI_ON, 0);
+    }
 }
 
 static struct menu_entry isoless_menu[] =
@@ -622,7 +697,7 @@ static struct menu_entry isoless_menu[] =
             {
                 .name = "Recovery ISO",
                 .priv = &isoless_recovery_iso,
-                .update = isoless_check,
+                .update = isoless_recovery_update,
                 .min = -12,
                 .max = 6,
                 .unit = UNIT_ISO,
@@ -631,30 +706,39 @@ static struct menu_entry isoless_menu[] =
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
             {
-                .name = "Min. DR to be gained",
-                .priv = &isoless_ev_threshold,
-                .max = 16,
-                .unit = UNIT_ISO,
-                .choices = CHOICES("Any", "1.0 EV", "1.1 EV", "1.2 EV", "1.3 EV", "1.4 EV", "1.5 EV", "1.6 EV", "1.7 EV", "1.8 EV", "1.9 EV", "2.0 EV", "2.1 EV", "2.2 EV", "2.3 EV", "2.4 EV", "2.5 EV"),
-                .help  = "Min. amount of dynamic range you want to gain to use dual_iso.",
+                .name = "Dynamic range gained",
+                .update = isoless_dr_update,
+                .icon_type = IT_ALWAYS_ON,
+                .help  = "[READ-ONLY] How much more DR you get with current settings",
                 .help2 = "(upper theoretical limit, estimated from DxO measurements)",
             },
             {
-                .name = "DR gained & midtone overlap",
-                .update = isoless_info_update,
-                .icon_type = IT_DISABLE_SOME_FEATURE,
-                .help  = "[READ-ONLY] DR extended, only midtones get better resolution",
+                .name = "Midtone overlapping",
+                .update = isoless_overlap_update,
+                .icon_type = IT_ALWAYS_ON,
+                .help  = "[READ-ONLY] How much of midtones will get full resolution",
                 .help2 = "Highlights/shadows will be half res, with aliasing/moire.",
+            },
+            {
+                .name = "Min. DR improvement",
+                .priv = &isoless_ev_threshold,
+                .update = isoless_check,
+                .max = 4,
+                .choices = CHOICES("OFF", "0.5 EV", "1 EV", "1.5 EV", "2 EV"),
+                .help  = "Minimum dynamic range you want to gain, for enabling Dual ISO.",
+                .help2 = "(if the improvement is smaller than that, Dual ISO will be disabled)",
             },
             {
                 .name = "Alternate frames only",
                 .priv = &isoless_alternate,
+                .update = isoless_check,
                 .max = 1,
                 .help = "Shoot one image with the hack, one without.",
             },
             {
                 .name = "Custom file prefix",
                 .priv = &isoless_file_prefix,
+                .update = isoless_check,
                 .max = 1,
                 .choices = CHOICES("OFF", "DUAL (unreliable!)"),
                 .help  = "Change file prefix for dual ISO photos (e.g. DUAL0001.CR2).",
