@@ -78,6 +78,7 @@ static CONFIG_INT("dual_iso.iso", dual_iso_recovery_iso, 3);
 static CONFIG_INT("dual_iso.alt", dual_iso_alternate, 0);
 static CONFIG_INT("dual_iso.prefix", dual_iso_file_prefix, 0);
 static CONFIG_INT("dual_iso.threshold", dual_iso_ev_threshold, 0);
+static CONFIG_INT("dual_iso.ae_pref_iso", preferred_iso, 0);
 
 #define AUTO_EXPOSURE_FOR_RECOVERY_ISO -1
 
@@ -95,6 +96,7 @@ int dual_iso_is_enabled();
 int dual_iso_is_active();
 
 static char* format_dual_iso_setting();
+static int dual_iso_recovery_iso_index();
 
 /* camera-specific constants */
 
@@ -237,6 +239,26 @@ static void dual_iso_auto_expo_shift()
     
     int required_expo_shift = 0;
     
+    static int last_iso = -1;
+    if (last_iso < 0 && preferred_iso > 0)
+    {
+        /* first iteration: use the preferred ISO from config file */
+        last_iso = lens_info.raw_iso;
+    }
+    
+    if (lens_info.raw_iso && last_iso != lens_info.raw_iso)
+    {
+        /* user dialed iso */
+        preferred_iso = lens_info.raw_iso;
+    }
+    
+    if (preferred_iso)
+    {
+        /* if there are no other constraints, go back to preferred ISO */
+        int preferred_iso_index = (preferred_iso - ISO_100) / EXPO_FULL_STOP;
+        required_expo_shift = preferred_iso_index - canon_iso_index;
+    }
+    
     /* If we can get closer to required_delta by shifting the exposure, do so.
      * For example, ISO 100 1/100, required_delta is -2 EV (overexposed, need to recover the highlights)
      * => shift to ISO 400 1/400 and set recovery ISO to 100.
@@ -244,16 +266,16 @@ static void dual_iso_auto_expo_shift()
      * Or, ISO 1600 1/100, required_delta is +2 EV (underexposed, need to recover the shadows)
      * => shift to ISO 400 1/25 and set recovery ISO to 1600.
      */
-    if (canon_iso_index + required_delta < 0)
+    if (canon_iso_index + required_expo_shift + required_delta < 0)
     {
-        required_expo_shift = -(canon_iso_index + required_delta);
+        required_expo_shift = MAX(required_expo_shift, -(canon_iso_index + required_delta));
         
         /* canon_iso_index + required_expo_shift should be <= max_index */
         required_expo_shift = MIN(required_expo_shift, max_index - canon_iso_index);
     }
-    else if (canon_iso_index + required_delta > max_index)
+    else if (canon_iso_index + required_expo_shift + required_delta > max_index)
     {
-        required_expo_shift = -(canon_iso_index + required_delta - max_index);
+        required_expo_shift = MIN(required_expo_shift, -(canon_iso_index + required_delta - max_index));
 
         /* canon_iso_index + required_expo_shift should be >= 0 */
         required_expo_shift = MAX(required_expo_shift, -canon_iso_index);
@@ -264,11 +286,18 @@ static void dual_iso_auto_expo_shift()
         int meter = get_ae_value() * 10/8;
         bmp_printf(FONT_MED, 0, 0, 
                "meter %d.%d EV  ",
-               meter/10, meter%10
+               meter/10, ABS(meter)%10
         );
 
+        int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
+        int iso2 = lens_info.iso_analog_raw;
+        
         bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 720, 0, 
-               "   %s", format_dual_iso_setting()
+               "   %d/%d", raw2iso(iso2), dual_iso_is_active() ? raw2iso(iso1) : 0
+        );
+
+        bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 0, 
+               "   pref %d   ", raw2iso(preferred_iso)
         );
     }
 
@@ -288,10 +317,10 @@ static void dual_iso_auto_expo_shift()
         int dual_iso_calc_dr_improvement(int iso1, int iso2);
         int dr_boost = dual_iso_calc_dr_improvement(new_iso, lim_iso);
         
-        if (dr_boost < dual_iso_ev_threshold * 50)
+        if (dr_boost < dual_iso_ev_threshold * 50 && new_iso != preferred_iso)
         {
             /* improvement too small, don't bother */
-            return;
+            goto end;
         }
 
         if (shooting_mode == SHOOTMODE_M)
@@ -328,6 +357,9 @@ static void dual_iso_auto_expo_shift()
     
     /* don't let expo lock undo our changes */
     expo_lock_update_value();
+
+end:
+    last_iso = lens_info.raw_iso;
 }
 
 static int dual_iso_recovery_iso_index()
@@ -1274,4 +1306,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dual_iso_alternate)
     MODULE_CONFIG(dual_iso_file_prefix)
     MODULE_CONFIG(dual_iso_ev_threshold)
+    MODULE_CONFIG(preferred_iso)
 MODULE_CONFIGS_END()
