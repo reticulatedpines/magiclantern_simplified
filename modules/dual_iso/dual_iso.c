@@ -71,6 +71,7 @@
 #include <patch.h>
 #include <beep.h>
 #include <zebra.h>
+#include <shoot.h>
 
 static CONFIG_INT("dual_iso.enabled", dual_iso_enabled, 0);
 static CONFIG_INT("dual_iso.iso", dual_iso_recovery_iso, 3);
@@ -92,6 +93,8 @@ extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 int dual_iso_set_enabled(bool enabled);
 int dual_iso_is_enabled();
 int dual_iso_is_active();
+
+static char* format_dual_iso_setting();
 
 /* camera-specific constants */
 
@@ -256,6 +259,19 @@ static void dual_iso_auto_expo_shift()
         required_expo_shift = MAX(required_expo_shift, -canon_iso_index);
     }
 
+    if (1)
+    {
+        int meter = get_ae_value() * 10/8;
+        bmp_printf(FONT_MED, 0, 0, 
+               "meter %d.%d EV  ",
+               meter/10, meter%10
+        );
+
+        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 720, 0, 
+               "   %s", format_dual_iso_setting()
+        );
+    }
+
     if (required_expo_shift)
     {
         int iso = lens_info.raw_iso;
@@ -309,6 +325,9 @@ static void dual_iso_auto_expo_shift()
             }
         }
     }
+    
+    /* don't let expo lock undo our changes */
+    expo_lock_update_value();
 }
 
 static int dual_iso_recovery_iso_index()
