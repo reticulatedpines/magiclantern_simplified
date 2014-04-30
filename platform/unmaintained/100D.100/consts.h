@@ -4,6 +4,8 @@
  *  NOTHING FOUND YET
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC022C1FC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x93D800
 #define LEDOFF 0x83DC00
@@ -63,8 +65,6 @@
 
 // See "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x251D4)
-
-#define DISPLAY_SENSOR_POWERED 0
 
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 

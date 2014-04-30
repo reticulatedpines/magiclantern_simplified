@@ -95,14 +95,15 @@ void
 __attribute__((noreturn))
 cstart( void )
 {
-    int s = compute_signature((int*)SIG_START, SIG_LEN);
-    #ifndef CURRENT_CAMERA_SIGNATURE
-    #error Please add the signature for you camera! Format is SIG_MODEL_VERSION
-    #endif
-    int _signature = (int)CURRENT_CAMERA_SIGNATURE;
 
+    #if !(CURRENT_CAMERA_SIGNATURE)
+    #warning Signature Checking bypassed!! Please use a proper signature
+    #else
+    int s = compute_signature((int*)SIG_START, SIG_LEN);
+    int _signature = (int)CURRENT_CAMERA_SIGNATURE;
     if (s != _signature)
         fail();
+    #endif
 
 #ifdef __ARM__
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */

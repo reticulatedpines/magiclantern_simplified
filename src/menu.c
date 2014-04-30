@@ -123,6 +123,8 @@ static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
 
+extern WEAK_FUNC(ret_0) void CancelDateTimer();
+
 #define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (((entry)->max - (entry)->min < 15) || (entry)->choices) && IS_ML_PTR((entry)->priv))
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && IS_ML_PTR((entry)->priv))
 #define IS_BOOL(entry) (((entry)->max - (entry)->min == 1 && IS_ML_PTR((entry)->priv)) || (entry->icon_type == IT_BOOL))
@@ -4837,6 +4839,9 @@ static void menu_open()
     piggyback_canon_menu();
     canon_gui_disable_front_buffer(0);
     if (lv && EXT_MONITOR_CONNECTED) clrscr();
+
+    CancelDateTimer();
+
     menu_redraw_full();
 }
 static void menu_close() 

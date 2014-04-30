@@ -84,7 +84,9 @@ extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
+int dual_iso_set_enabled(bool enabled);
 int dual_iso_is_enabled();
+int dual_iso_is_active();
 
 /* camera-specific constants */
 
@@ -162,7 +164,7 @@ int dual_iso_calc_dr_improvement(int iso1, int iso2)
 
 int dual_iso_get_dr_improvement()
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
@@ -383,14 +385,29 @@ end:
     return 0;
 }
 
+int dual_iso_set_enabled(bool enabled)
+{
+    if (enabled)
+        isoless_hdr = 1; 
+    else
+        isoless_hdr = 0;
+
+    return 1; // module is loaded & responded != ret_0
+}
+
 int dual_iso_is_enabled()
+{
+    return isoless_hdr;
+}
+
+int dual_iso_is_active()
 {
     return is_movie_mode() ? enabled_lv : enabled_ph;
 }
 
 int dual_iso_get_recovery_iso()
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     return 72 + isoless_recovery_iso_index() * 8;
@@ -398,7 +415,7 @@ int dual_iso_get_recovery_iso()
 
 int dual_iso_set_recovery_iso(int iso)
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;

@@ -3999,7 +3999,11 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
     //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
     
     // when sensor is covered, timeout changes to 3 seconds
+    #ifdef CONFIG_LCD_SENSOR
     int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
+    #else
+    int sensor_status = 0;
+    #endif
 
     // those are for powersaving
     idle_countdown_display_off = sensor_status ? 25 : idle_display_turn_off_after * 10;
@@ -4034,7 +4038,11 @@ static void update_idle_countdown(int* countdown)
         idle_wakeup_reset_counters(-100); // will reset all idle countdowns
     }
     
+    #ifdef CONFIG_LCD_SENSOR
     int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
+    #else
+    int sensor_status = 0;
+    #endif
     static int prev_sensor_status = 0;
 
     if (sensor_status != prev_sensor_status)

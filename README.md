@@ -17,4 +17,4 @@ ML is being developed by photo and video enthusiasts, adding
 functionality such as: HDR images and video, timelapse, motion
 detection, focus assist tools, manual audio controls much more.
 
-For more details on Magic Lantern please see http://www.magiclantern.fm/
+For more details on Magic Lantern please see [http://www.magiclantern.fm/](http://www.magiclantern.fm/)

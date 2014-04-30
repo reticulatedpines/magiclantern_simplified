@@ -194,6 +194,14 @@ NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
+/** GUI timers **/
+NSTUB(    0xB4D8,  SetTimerAfter)
+NSTUB(    0xB6D8,  TimerCancel)
+//NSTUB(0x4FD8, SetHPTimerAfterNow)
+//NSTUB(0x4E54, SetHPTimerAfterTimeout)
+//NSTUB(0xB558, SetTimerWhen)
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+
 /** H264 Encoder **/
 NSTUB(   0x31424,  mvr_config)
 NSTUB(0xFF2BF710,  mvrFixQScale)                            // FIXME: use call()

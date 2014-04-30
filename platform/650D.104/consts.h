@@ -2,6 +2,8 @@
  *  650D 1.0.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 /* 
  * Initial constants as found by Indy 
  */

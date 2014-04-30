@@ -2,6 +2,8 @@
  *  40D 1.1.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC02200E0 // http://magiclantern.wikia.com/wiki/Led_addresses
 
 #define LEDBLUE     *(volatile int*)0xC02200E8
@@ -35,8 +37,6 @@
 
 // use memspy
 #define HALFSHUTTER_PRESSED 0
-
-#define DISPLAY_SENSOR_POWERED 0
 
 // for gui_main_task
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2C10) // dec create_idleHandler_task

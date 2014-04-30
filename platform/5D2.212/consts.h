@@ -2,6 +2,8 @@
  *  5D2 2.1.2 consts
  */
 
+#define CANON_SHUTTER_RATING 150000
+
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -50,8 +52,6 @@
 // To find it, go to MainCtrl task and take the number from the second line minus 4.
 // See also "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x1c10)
-
-#define DISPLAY_SENSOR_POWERED 0
 
 #define GMT_IDLEHANDLER_TASK (*(int*)0x134f4) // dec create_idleHandler_task
 

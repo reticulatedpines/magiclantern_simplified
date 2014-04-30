@@ -1,7 +1,5 @@
 #Makefile for 7D
 
-# compile position independent (experimental)
-CONFIG_PIC=n
 
 CONFIG_GDB=n
 

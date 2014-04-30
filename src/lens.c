@@ -2179,6 +2179,7 @@ static LVINFO_UPDATE_FUNC(alo_htp_update)
     );
 }
 
+#ifdef FEATURE_PICSTYLE
 static LVINFO_UPDATE_FUNC(picstyle_update)
 {
     LVINFO_BUFFER(12);
@@ -2201,6 +2202,8 @@ static LVINFO_UPDATE_FUNC(picstyle_update)
         (char*)get_picstyle_name(lens_info.raw_picstyle)
     );
 }
+#endif
+
 
 static LVINFO_UPDATE_FUNC(temp_update)
 {
@@ -2350,7 +2353,7 @@ static LVINFO_UPDATE_FUNC(tv_update)
     }
 }
 
-static int (*dual_iso_is_enabled)() = MODULE_FUNCTION(dual_iso_is_enabled);
+static int (*dual_iso_is_active)() = MODULE_FUNCTION(dual_iso_is_active);
 static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
 
 static LVINFO_UPDATE_FUNC(iso_update)
@@ -2365,7 +2368,7 @@ static LVINFO_UPDATE_FUNC(iso_update)
         iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
         snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", iso_low, iso_high);
     }
-    else if (dual_iso_is_enabled())
+    else if (dual_iso_is_active())
     {
         snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", 
             raw2iso(lens_info.iso_analog_raw),
@@ -2541,12 +2544,14 @@ static struct lvinfo_item info_items[] = {
         .update = alo_htp_update,
         .priority = -1,
     },
+    #ifdef FEATURE_PICSTYLE
     {
         .name = "Pic.Style",
         .which_bar = LV_TOP_BAR_ONLY,
         .update = picstyle_update,
         .priority = -1,
     },
+    #endif
     {
         .name = "Temperature",
         .which_bar = LV_TOP_BAR_ONLY,

@@ -1,6 +1,5 @@
 #Makefile for 60D
 
-# compile position independent (experimental)
 CONFIG_MEMCHECK=n
 
 CONFIG_RELOC = y

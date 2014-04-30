@@ -2,8 +2,6 @@
 
 ML_SRC_PROFILE=custom
 
-# compile position independent (experimental, not working completely yet)
-CONFIG_PIC=n
 
 # magiclantern.lds script MUST be first
 # entry.o MUST be second

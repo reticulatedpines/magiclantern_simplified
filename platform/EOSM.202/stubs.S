@@ -200,6 +200,11 @@ NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+
 /** H264 Encoder **/
 NSTUB(   0x4C124,  mvr_config)
 NSTUB(0xFF2C0944,  mvrFixQScale)
@@ -318,7 +323,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF5FEE38,  PackMem_SetEDmacForMemorySuite)
 ///NSTUB(0xFF5FEF4C,  PackMem_StartEDmac)
 ///NSTUB(0xFFA86038 - RAM_OFFSET,  PopEDmac)                   // From popedmacformemorysuite
-///NSTUB(0xFF134CE4,  PowerMicAmp)
 ///NSTUB(0xFF4E4338,  RedrawDisplay)
 ///NSTUB(0x35784, SIO3_ISR)
 ///NSTUB(0xFF1299C4, SetBitmapVramAddress)
