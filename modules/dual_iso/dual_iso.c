@@ -252,11 +252,13 @@ static void dual_iso_auto_expo_shift()
         preferred_iso = lens_info.raw_iso;
     }
     
+    int expo_shift_for_preferred_iso = 0;
+    
     if (preferred_iso)
     {
         /* if there are no other constraints, go back to preferred ISO */
         int preferred_iso_index = (preferred_iso - ISO_100) / EXPO_FULL_STOP;
-        required_expo_shift = preferred_iso_index - canon_iso_index;
+        required_expo_shift = expo_shift_for_preferred_iso = preferred_iso_index - canon_iso_index;
     }
     
     /* If we can get closer to required_delta by shifting the exposure, do so.
@@ -304,10 +306,7 @@ static void dual_iso_auto_expo_shift()
     if (required_expo_shift)
     {
         int iso = lens_info.raw_iso;
-        int tv = lens_info.raw_shutter;
-        
         int new_iso = iso + required_expo_shift * EXPO_FULL_STOP;
-        int new_tv = tv + required_expo_shift * EXPO_FULL_STOP;
         
         /* what ISO will be used for recovery? */
         int lim_index = required_delta > 0 ? max_index : 0;
@@ -317,11 +316,20 @@ static void dual_iso_auto_expo_shift()
         int dual_iso_calc_dr_improvement(int iso1, int iso2);
         int dr_boost = dual_iso_calc_dr_improvement(new_iso, lim_iso);
         
-        if (dr_boost < dual_iso_ev_threshold * 50 && new_iso != preferred_iso)
+        if (dr_boost < dual_iso_ev_threshold * 50)
         {
-            /* improvement too small, don't bother */
-            goto end;
+            /* improvement too small, better go back to preferred ISO */
+            required_expo_shift = expo_shift_for_preferred_iso;
         }
+    }
+    
+    if (required_expo_shift)
+    {
+        int iso = lens_info.raw_iso;
+        int tv = lens_info.raw_shutter;
+        
+        int new_iso = iso + required_expo_shift * EXPO_FULL_STOP;
+        int new_tv = tv + required_expo_shift * EXPO_FULL_STOP;
 
         if (shooting_mode == SHOOTMODE_M)
         {
@@ -358,7 +366,6 @@ static void dual_iso_auto_expo_shift()
     /* don't let expo lock undo our changes */
     expo_lock_update_value();
 
-end:
     last_iso = lens_info.raw_iso;
 }
 
