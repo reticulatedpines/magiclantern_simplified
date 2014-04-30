@@ -80,7 +80,10 @@ static CONFIG_INT("dual_iso.prefix", dual_iso_file_prefix, 0);
 static CONFIG_INT("dual_iso.threshold", dual_iso_ev_threshold, 0);
 static CONFIG_INT("dual_iso.ae_pref_iso", preferred_iso, 0);
 
-#define AUTO_EXPOSURE_FOR_RECOVERY_ISO -1
+#define AUTO_EXPO_TRIGGER_MINUS_2EV -3
+#define AUTO_EXPO_TRIGGER_NEGATIVE_EV -2
+#define AUTO_EXPO_SAFETY_SHIFT -1
+#define AUTO_EXPO_FOR_RECOVERY_ISO (dual_iso_recovery_iso >= -3 && dual_iso_recovery_iso <= -1)
 
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
@@ -150,20 +153,31 @@ static int dual_iso_relative_delta_ev_auto()
         ec = lens_info.ae;
     }
 
-    if (ABS(ec) < 1)
+    switch (dual_iso_recovery_iso)
     {
-        return 0;
-    }
-    else
-    {
-        /* 2*ec rounded to full stops */
-        return - SGN(ec) * (ABS(ec) * 2 + EXPO_1_3_STOP) / EXPO_FULL_STOP;
+        case AUTO_EXPO_SAFETY_SHIFT:
+            /* 2*ec rounded to full stops */
+            return -SGN(ec) * (ABS(ec) * 2 + EXPO_1_3_STOP) / EXPO_FULL_STOP;
+        
+        case AUTO_EXPO_TRIGGER_NEGATIVE_EV:
+            /* same as before, but only for negative EC */
+            return ec < 0 ? - (ABS(ec) * 2 + EXPO_1_3_STOP) / EXPO_FULL_STOP : 0;
+        
+        case AUTO_EXPO_TRIGGER_MINUS_2EV:
+            /* ISO 100/800 for -2 EV and 100/1600 for -3 */
+            return 
+                ec <= -3 * EXPO_FULL_STOP ? 4 :
+                ec <= -2 * EXPO_FULL_STOP ? 3 : 
+                0;
+
+        default:
+            return 0;
     }
 }
 
 static int dual_iso_relative_delta_ev()
 {
-    if (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    if (AUTO_EXPO_FOR_RECOVERY_ISO)
     {
         /* Auto choice, based on Canon meter */
         return dual_iso_relative_delta_ev_auto();
@@ -171,7 +185,7 @@ static int dual_iso_relative_delta_ev()
     else
     {
         /* Fixed delta, relative to Canon ISO (should match the menu) */
-        return dual_iso_recovery_iso < -3 ? dual_iso_recovery_iso + 3 : dual_iso_recovery_iso + 6;
+        return dual_iso_recovery_iso < -6 ? dual_iso_recovery_iso + 5 : dual_iso_recovery_iso + 8;
     }
 }
 
@@ -208,7 +222,7 @@ static void dual_iso_auto_expo_shift()
         return;
     }
     
-    if (dual_iso_recovery_iso != AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    if (!AUTO_EXPO_FOR_RECOVERY_ISO)
     {
         /* this only works for auto recovery iso */
         return;
@@ -568,7 +582,7 @@ static unsigned int dual_iso_refresh(unsigned int ctx)
         (dual_iso_file_prefix << 26) + 
         (dual_iso_alternate ? get_shooting_card()->file_number : 0) +
         lens_info.raw_iso * 1234 + lens_info.raw_iso_auto * 1234 + 
-        (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO ? lens_info.ae + get_ae_value() + get_ae_state() : 0);
+        (AUTO_EXPO_FOR_RECOVERY_ISO ? lens_info.ae + get_ae_value() + get_ae_state() : 0);
     
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
@@ -828,16 +842,9 @@ static char* format_dual_iso_setting()
     static char msg[50];
     msg[0] = 0;
     
-    if (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    if (AUTO_EXPO_FOR_RECOVERY_ISO)
     {
-        if (shooting_mode == SHOOTMODE_M)
-        {
-            snprintf(msg, sizeof(msg), "EM:");
-        }
-        else
-        {
-            snprintf(msg, sizeof(msg), "EC:");
-        }
+        snprintf(msg, sizeof(msg), "A:");
     }
     
     int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
@@ -862,14 +869,19 @@ static char* format_dual_iso_setting()
 
 static MENU_UPDATE_FUNC(dual_iso_recovery_update)
 {
-    MENU_SET_RINFO("%s", format_dual_iso_setting());
-
-    if (dual_iso_recovery_iso == AUTO_EXPOSURE_FOR_RECOVERY_ISO)
+    if (AUTO_EXPO_FOR_RECOVERY_ISO)
     {
-        MENU_SET_WARNING(MENU_WARN_INFO, "%s%s",
-            (shooting_mode == SHOOTMODE_M) ? "From Canon exposure meter (-2"SYM_TIMES"EM). " :
-                                             "From exposure compensation (-2"SYM_TIMES"EC). ",
-            (lens_info.raw_iso)            ? "Will shift Tv/ISO as needed." : ""
+        MENU_SET_WARNING(MENU_WARN_INFO,
+            dual_iso_recovery_iso == AUTO_EXPO_SAFETY_SHIFT ? (
+                (shooting_mode == SHOOTMODE_M) ? "From Canon exposure meter (-2"SYM_TIMES"EM). Will shift Tv/ISO as needed." :
+                                                 "From exposure compensation (-2"SYM_TIMES"EC). Will shift ISO as needed."
+            ) : dual_iso_recovery_iso == AUTO_EXPO_TRIGGER_NEGATIVE_EV ? (
+                (shooting_mode == SHOOTMODE_M) ? "Enable only when expo meter EM < 0. Will shift Tv/ISO." :
+                                                 "Enable only when expo compensation EC < 0. Will shift ISO."
+            ) : dual_iso_recovery_iso == AUTO_EXPO_TRIGGER_MINUS_2EV ? (
+                (shooting_mode == SHOOTMODE_M) ? "Trigger when EM <= -2EV, starting from +3EV (100/800). Shifts Tv/ISO." :
+                                                 "Trigger when EC <= -2EV, starting from +3EV (100/800). Shifts ISO."
+            ) : ""
         );
         
         if (!lens_info.raw_iso)
@@ -879,6 +891,8 @@ static MENU_UPDATE_FUNC(dual_iso_recovery_update)
     }
     else if (dual_iso_recovery_iso < 0)
     {
+        MENU_SET_RINFO("%s", format_dual_iso_setting());
+
         int iso1 = ISO_100 + dual_iso_recovery_iso_index() * EXPO_FULL_STOP;
         int max_auto_iso = auto_iso_range & 0xFF;
         
@@ -977,11 +991,11 @@ static struct menu_entry dual_iso_menu[] =
                 .name = "Recovery ISO",
                 .priv = &dual_iso_recovery_iso,
                 .update = dual_iso_recovery_update,
-                .min = -7,
+                .min = -9,
                 .max = 6,
                 .unit = UNIT_ISO,
                 .icon_type = IT_DICE,
-                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "+2 EV", "+3 EV", "+4 EV", "Auto", "100", "200", "400", "800", "1600", "3200", "6400"),
+                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "+2 EV", "+3 EV", "+4 EV", "Auto, when EC=-2", "Auto, when EC<0", "Auto safety shift", "100", "200", "400", "800", "1600", "3200", "6400"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
                 .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
