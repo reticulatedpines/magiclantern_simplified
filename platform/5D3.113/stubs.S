@@ -46,6 +46,7 @@ NSTUB(0xFF30AD30,  FIO_FindClose)                           // proper name: Find
 NSTUB(0xFF30AC50,  FIO_FindNextEx)
 NSTUB(0xFF309AE8,  FIO_ReadFile)
 NSTUB(0xFF309C68,  FIO_SeekFile)
+NSTUB(0xFF309B98,  FIO_SeekSkipFile)
 NSTUB(0xFF309C88,  FIO_WriteFile)
 NSTUB(0xFF30A594, _FIO_CreateDirectory)
 NSTUB(0xFF309994, _FIO_CreateFile)
