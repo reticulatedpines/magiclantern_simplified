@@ -62,6 +62,7 @@ const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... *
 extern void * realloc( void * buf, size_t newlen );
 
 #define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
+#define IS_ROM_PTR(val) ((uintptr_t)(val) > (uintptr_t)0xF0000000)
 
 #define INVALID_PTR             ((void *)0xFFFFFFFF)
 
