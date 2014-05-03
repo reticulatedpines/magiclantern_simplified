@@ -195,6 +195,9 @@ NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
 NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 // NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0xFF9E6160 - RAM_OFFSET, SetHPTimerAfterNow)
+NSTUB(0xFF9E5FDC - RAM_OFFSET, SetHPTimerAfterTimeout)
+NSTUB(0xFF9E6250 - RAM_OFFSET, SetHPTimerNextTick)
 
 /** H264 Encoder **/
 // NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
