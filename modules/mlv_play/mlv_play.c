@@ -34,6 +34,7 @@
 #include <raw.h>
 #include <zebra.h>
 #include <util.h>
+#include <timer.h>
 
 #include <string.h>
 
@@ -72,6 +73,7 @@ static volatile uint32_t mlv_play_rendering = 0;
 static volatile uint32_t mlv_play_stopfile = 0;
 
 static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVIEW_* in raw.h  */
+static CONFIG_INT("play.exact_fps", mlv_play_exact_fps, 0);
 
 
 /* OSD menu items */
@@ -92,6 +94,9 @@ static uint32_t mlv_play_osd_idle = 1000;
 static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
 static uint32_t mlv_play_info = 1;
+static uint32_t mlv_play_timer_stop = 1;
+static uint32_t mlv_play_fps_ticks = 0;
+static uint32_t mlv_play_frames_skipped = 0;
 
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
@@ -133,6 +138,7 @@ typedef struct
 static struct msg_queue *mlv_play_queue_empty;
 static struct msg_queue *mlv_play_queue_render;
 static struct msg_queue *mlv_play_queue_osd;
+static struct msg_queue *mlv_play_queue_fps;
 
 /* queue for playlist item submits by scanner tasks */
 static struct msg_queue *mlv_playlist_queue;
@@ -146,6 +152,23 @@ static playlist_entry_t mlv_playlist_next(playlist_entry_t current);
 static playlist_entry_t mlv_playlist_prev(playlist_entry_t current);
 static void mlv_playlist_delete(playlist_entry_t current);
 static void mlv_playlist_build(uint32_t priv);
+
+/* microsecond durations for one frame */
+static uint32_t mlv_play_frame_div_group = 0;
+static uint32_t mlv_play_frame_div_pos = 0;
+static const uint32_t mlv_play_frame_dividers[] =
+{
+    /*
+     fps  delay1 delay2 delay3 
+    */
+    23976, 41709, 41708, 41708,  /* 23.976 */
+    24000, 41667, 41667, 41666,  /* 24     */
+    25000, 40000, 40000, 40000,  /* 25     */
+    29970, 33367, 33367, 33366,  /* 29.970 */
+    30000, 33334, 33333, 33333,  /* 30     */
+    50000, 20000, 20000, 20000,  /* 50     */
+    59940, 16684, 16683, 16683,  /* 59.940 */
+};
 
 /* as soon all cameras provide FIO_SeekSkipFile, we can remove that temporary code */
 static uint64_t FIO_SeekSkipFile_emulate(FILE* stream, uint64_t position, int whence)
@@ -165,6 +188,19 @@ static uint64_t FIO_SeekSkipFile_emulate(FILE* stream, uint64_t position, int wh
         return FIO_SeekFile(stream, (uint32_t)position, SEEK_CUR);
     }
     return FIO_SeekFile(stream, (uint32_t)position, whence);
+}
+
+static void mlv_play_flush_queue(struct msg_queue *queue)
+{
+    uint32_t messages = 0;
+
+    msg_queue_count(queue, &messages);
+    while(messages > 0)
+    {
+        uint32_t tmp_buf = 0;
+        msg_queue_receive(queue, &tmp_buf, 0);
+        msg_queue_count(queue, &messages);
+    }
 }
 
 static void mlv_play_next()
@@ -402,6 +438,26 @@ static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
     }
 }
 
+static void mlv_play_osd_exact(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        mlv_play_exact_fps = MOD(mlv_play_exact_fps + 1, 2);
+    }
+    
+    if(msg)
+    {
+        /* any idea for a meaningful text here? feature description in long: 
+                if enabled: 
+                  play at exact fps with dropping if necessary
+                  grayscale might keep up with video rate, but color requires dropping for sure
+                if disabled:
+                  play frame by frame as fast as possible
+       */
+        snprintf(msg, msg_len, mlv_play_exact_fps?"exact":"all");
+    }
+}
+
 
 static void mlv_play_osd_prev(char *msg, uint32_t msg_len, uint32_t selected)
 {
@@ -493,7 +549,7 @@ static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
     }
 }
 
-static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_delete, &mlv_play_osd_quit };
+static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_exact, &mlv_play_osd_delete, &mlv_play_osd_quit };
 
 static uint32_t mlv_play_osd_handle(uint32_t msg)
 {
@@ -1239,14 +1295,9 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
+        /* user exited from playback */
         if(gui_state != GUISTATE_PLAYMENU)
         {
-            beep();
-            for(int count = 0; count < 20; count++)
-            {
-                bmp_printf(FONT_MED, 30, 400, "GUISTATE_PLAYMENU");
-                msleep(100);
-            }
             break;
         }
         
@@ -1357,19 +1408,83 @@ static void mlv_play_clear_screen()
     mlv_play_info = mlv_play_info ? 2 : 0;
 }
 
+static void mlv_play_fps_tick(int expiry_value, void *priv)
+{
+    uint32_t offset = mlv_play_frame_dividers[mlv_play_frame_div_group + mlv_play_frame_div_pos];
+    mlv_play_frame_div_pos = (mlv_play_frame_div_pos + 1) % 3;
+    
+    if(mlv_play_timer_stop)
+    {
+        mlv_play_timer_stop = 0;
+        return;
+    }
+    msg_queue_post(mlv_play_queue_fps, 0);
+    
+    mlv_play_fps_ticks++;
+    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+}
+
+static void mlv_play_stop_fps_timer()
+{
+    mlv_play_timer_stop = 1;
+    while(mlv_play_timer_stop)
+    {
+        msleep(20);
+    }
+}
+
+static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
+{
+    uint32_t fps = fps_nom * 1000 / fps_denom;
+    
+    mlv_play_frame_div_group = COUNT(mlv_play_frame_dividers);
+    
+    for(uint32_t pos = 0; pos < COUNT(mlv_play_frame_dividers); pos += 4)
+    {
+        /* assuming we always can get an exact match */
+        if(mlv_play_frame_dividers[pos] == fps)
+        {
+            mlv_play_frame_div_group = pos;
+        }
+    }
+    
+    /* did not find an exact match? */
+    if(mlv_play_frame_div_group >= COUNT(mlv_play_frame_dividers))
+    {
+        mlv_play_exact_fps = 0;
+        beep();
+        return;
+    }
+    
+    /* ensure the queue is empty */
+    mlv_play_flush_queue(mlv_play_queue_fps);
+    
+    /* reset counters */
+    mlv_play_frame_div_pos = 0;
+    mlv_play_fps_ticks = 0;
+    mlv_play_timer_stop = 0;
+    mlv_play_frames_skipped = 0;
+    
+    /* and finally start timer in 1 us */
+    SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+}
+
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
+    uint32_t fps_timer_started = 0;
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
     mlv_lens_hdr_t lens_block;
     mlv_rawi_hdr_t rawi_block;
+    mlv_rtci_hdr_t wavi_block;
     mlv_rtci_hdr_t rtci_block;
     mlv_file_hdr_t main_header;
     
     /* make sure there is no crap in stack variables */
     memset(&lens_block, 0x00, sizeof(mlv_lens_hdr_t));
     memset(&rawi_block, 0x00, sizeof(mlv_rawi_hdr_t));
+    memset(&wavi_block, 0x00, sizeof(mlv_rawi_hdr_t));
     memset(&rtci_block, 0x00, sizeof(mlv_rtci_hdr_t));
     memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
     
@@ -1446,7 +1561,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             else
             {
-                
                 /* no, its another chunk */
                 if(main_header.fileGuid != file_hdr.fileGuid)
                 {
@@ -1457,7 +1571,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 }
             }
         }
-        if(!memcmp(buf.blockType, "LENS", 4))
+        else if(!memcmp(buf.blockType, "LENS", 4))
         {
             if(FIO_ReadFile(in_file, &lens_block, sizeof(mlv_lens_hdr_t)) != sizeof(mlv_lens_hdr_t))
             {
@@ -1467,7 +1581,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
         }
-        if(!memcmp(buf.blockType, "RTCI", 4))
+        else if(!memcmp(buf.blockType, "RTCI", 4))
         {
             if(FIO_ReadFile(in_file, &rtci_block, sizeof(mlv_rtci_hdr_t)) != sizeof(mlv_rtci_hdr_t))
             {
@@ -1477,7 +1591,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
         }
-        if(!memcmp(buf.blockType, "RAWI", 4))
+        else if(!memcmp(buf.blockType, "RAWI", 4))
         {
             if(FIO_ReadFile(in_file, &rawi_block, sizeof(mlv_rawi_hdr_t)) != sizeof(mlv_rawi_hdr_t))
             {
@@ -1489,8 +1603,44 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             
             frame_size = rawi_block.xRes * rawi_block.yRes * rawi_block.raw_info.bits_per_pixel / 8;
         }
+        else if(!memcmp(buf.blockType, "WAVI", 4))
+        {
+            if(FIO_ReadFile(in_file, &wavi_block, sizeof(mlv_wavi_hdr_t)) != sizeof(mlv_wavi_hdr_t))
+            {
+                bmp_printf(FONT_MED, 30, 190, "File ends prematurely during WAVI");
+                beep();
+                msleep(1000);
+                break;
+            }
+        }
+        else if(!memcmp(buf.blockType, "AUDF", 4))
+        {
+            /* ToDo: new sound system calls here as soon its merged into unified */
+        }
         else if(!memcmp(buf.blockType, "VIDF", 4))
         {
+            /* check if we are too slow */
+            if(mlv_play_exact_fps)
+            {
+                uint32_t fps_events_pending = 0;
+                msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
+                
+                /* skip frame if we should play at exact fps and we already should be one frame farther */
+                if(fps_events_pending > 1)
+                {
+                    uint32_t temp = 0;
+                    msg_queue_receive(mlv_play_queue_fps, &temp, 50);
+                    
+                    mlv_play_frames_skipped++;
+                    continue;
+                }
+            }
+            else
+            {
+                /* if not, just keep the queue clean */
+                mlv_play_flush_queue(mlv_play_queue_fps);
+            }
+            
             frame_buf_t *buffer = NULL;
             mlv_vidf_hdr_t vidf_block;
             
@@ -1511,7 +1661,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             /* check if the queued buffer has the correct size */
             if(buffer->frameSize != frame_size)
             {
-                /* the first few queued dont have anything allocated, so don't free */
+                /* the first few queued don't have anything allocated, so don't free */
                 if(buffer->frameBuffer)
                 {
                     fio_free(buffer->frameBuffer);
@@ -1591,11 +1741,34 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             
-            /* requeue frame buffer for rendering */
+            if(!fps_timer_started)
+            {
+                fps_timer_started = 1;
+                mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+            }
+            
+            if(mlv_play_exact_fps)
+            {
+                /* wait till it is time to render */
+                uint32_t temp = 0;
+                while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                {
+                    if(mlv_play_should_stop())
+                    {
+                        break;
+                    }
+                }
+            }
+            
+            /* queue frame buffer for rendering */
             msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
         }
     }
     
+    if(fps_timer_started)
+    {
+        mlv_play_stop_fps_timer();
+    }
     free(block_xref);
 }
 
@@ -2203,6 +2376,7 @@ static unsigned int mlv_play_init()
     mlv_play_queue_empty = (struct msg_queue *) msg_queue_create("mlv_play_queue_empty", 10);
     mlv_play_queue_render = (struct msg_queue *) msg_queue_create("mlv_play_queue_render", 10);
     mlv_play_queue_osd = (struct msg_queue *) msg_queue_create("mlv_play_queue_osd", 10);
+    mlv_play_queue_fps = (struct msg_queue *) msg_queue_create("mlv_play_queue_fps", 100);
     
     mlv_playlist_queue = (struct msg_queue *) msg_queue_create("mlv_playlist_queue", 500);
     mlv_playlist_scan_queue = (struct msg_queue *) msg_queue_create("mlv_playlist_scan_queue", 500);
@@ -2232,4 +2406,5 @@ MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_play_quality)
+    MODULE_CONFIG(mlv_play_exact_fps)
 MODULE_CONFIGS_END()
