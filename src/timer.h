@@ -45,7 +45,7 @@ extern void TimerCancel(int timerId);
  */
 extern int SetHPTimerAfterTimeout(int timer_base, timerCbr_t cbr, void* priv);
 extern int SetHPTimerAfterNow(int delayUs, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void* priv);
-extern int SetHPTimerNextTick(int last_expiry, int offset, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void *priv)
+extern int SetHPTimerNextTick(int last_expiry, int offset, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void *priv);
 
 
 #endif //_timer_h
