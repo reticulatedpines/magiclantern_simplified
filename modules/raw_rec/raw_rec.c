@@ -68,7 +68,7 @@
 #include "edmac.h"
 #include "edmac-memcpy.h"
 #include "../file_man/file_man.h"
-#include "patch.h"
+#include "cache_hacks.h"
 #include "lvinfo.h"
 #include "beep.h"
 #include "raw.h"
@@ -1065,6 +1065,29 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
+
+/* todo: reference counting, like with raw_lv_request */
+static void cache_require(int lock)
+{
+    static int cache_was_unlocked = 0;
+    if (lock)
+    {
+        if (!cache_locked())
+        {
+            cache_was_unlocked = 1;
+            icache_lock();
+        }
+    }
+    else
+    {
+        if (cache_was_unlocked)
+        {
+            icache_unlock();
+            cache_was_unlocked = 0;
+        }
+    }
+}
+
 static void unhack_liveview_vsync(int unused);
 
 static void hack_liveview_vsync()
@@ -1192,24 +1215,25 @@ static void hack_liveview(int unhack)
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
         uint32_t dialog_refresh_timer_new_instr  = 0xe3a00a02; /* change to mov r0, #8192 */
 
+        if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
+        {
+            /* something's wrong */
+            NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
+            beep_custom(1000, 2000, 1);
+            dialog_refresh_timer_addr = 0;
+        }
+
         if (dialog_refresh_timer_addr)
         {
             if (!unhack) /* hack */
             {
-                int err = patch_memory(
-                    dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, dialog_refresh_timer_new_instr, 
-                    "raw_rec: slow down Canon dialog refresh timer"
-                );
-                
-                if (err)
-                {
-                    NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
-                    beep_custom(1000, 2000, 1);
-                }
+                cache_require(1);
+                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_new_instr, TYPE_ICACHE);
             }
             else /* unhack */
             {
-                unpatch_memory(dialog_refresh_timer_addr);
+                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, TYPE_ICACHE);
+                cache_require(0);
             }
         }
     }

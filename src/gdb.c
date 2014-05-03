@@ -8,7 +8,7 @@
 
 #include "dryos.h"
 #include "gdb.h"
-#include "patch.h"
+#include "cache_hacks.h"
 #include "bmp.h"
 
 
@@ -460,7 +460,16 @@ void gdb_unarm_bkpt(breakpoint_t *bkpt)
         return;
     }
     
-    unpatch_memory(bkpt->address);
+    /* decide between cached and uncached regions */
+    if(bkpt->isCached)
+    {
+        cache_fake(bkpt->address, bkpt->origOpcode, TYPE_ICACHE);
+    }
+    else
+    {
+        MEM(bkpt->address) = bkpt->origOpcode;
+        bkpt->origOpcode = 0x00000000;
+    }
     bkpt->flags &= ~GDB_BKPT_FLAG_ARMED;
 }
 
@@ -473,7 +482,16 @@ void gdb_arm_bkpt(breakpoint_t *bkpt)
         return;
     }
     
-    patch_memory(bkpt->address, MEM(bkpt->address), GDB_BKPT_OPCODE, "GDB hook");
+    /* decide between cached and uncached regions */
+    if(bkpt->isCached)
+    {
+        cache_fake(bkpt->address, GDB_BKPT_OPCODE, TYPE_ICACHE);
+    }
+    else
+    {
+        bkpt->origOpcode = MEM(bkpt->address);
+        MEM(bkpt->address) = GDB_BKPT_OPCODE;
+    }
     bkpt->flags |= GDB_BKPT_FLAG_ARMED;
 }
 
@@ -628,6 +646,7 @@ breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags)
             gdb_breakpoints[pos].taskState = 0;
             gdb_breakpoints[pos].unStall = 0;
             gdb_breakpoints[pos].callback = 0;
+            gdb_breakpoints[pos].origOpcode = MEM(address);
 
             if(flags & GDB_BKPT_FLAG_WATCHPOINT)
             {
@@ -862,6 +881,8 @@ uint32_t gdb_setup()
     {
         gdb_breakpoints[pos].flags = 0;
     }
+
+    icache_lock();
 
 #if defined(CONFIG_GDBSTUB)
     gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);

@@ -1725,22 +1725,6 @@ static void bmp_fill_test_task()
     }
 }
 
-static void random_expo_test_task()
-{
-    msleep(2000);
-    while(1)
-    {
-        /* 
-         * for some reason, had this sequence locking the camera 
-         * was repeatable, but disappeared after recompiling the core
-         * individual calls were fine, the lockup only happened when calling both
-         */
-        hdr_set_rawiso(ISO_100 + (rand() % 6) * 8);
-        hdr_set_rawshutter(SHUTTER_1_30 + (rand() % 6) * 8);
-        msleep(50);
-    }
-}
-
 extern void menu_self_test();
 
 #endif // CONFIG_STRESS_TEST
@@ -2562,12 +2546,6 @@ static struct menu_entry debug_menus[] = {
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = bmp_fill_test_task,
                 .help = "Stresses graphics bandwith. Run this while recording.",
-            },
-            {
-                .name = "Random exposure test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
-                .priv = random_expo_test_task,
-                .help = "Sets shutter and ISO to random values.",
             },
             MENU_EOL,
         }
