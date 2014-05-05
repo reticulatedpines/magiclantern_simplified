@@ -29,6 +29,7 @@
 #include "edmac-memcpy.h"
 #include "imgconv.h"
 #include "console.h"
+#include "fps.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -43,7 +44,24 @@
 
 static struct semaphore * raw_sem = 0;
 
+/* whether to recompute all the raw parameters (1), or just use cached values(0) */
 static int dirty = 0;
+ 
+/* if get_ms_clock_value() is less than this, assume the raw data is invalid */
+static int next_retry_lv = 0;
+
+/* mark the raw data dirty for the next few ms (raw_update_params will return failure, to allow the backend to settle) */
+static void raw_set_dirty_with_timeout(int timeout_ms)
+{
+    next_retry_lv = get_ms_clock_value() + timeout_ms;
+    dirty = 1;
+}
+
+/* call this to force an update of all raw parameters */
+void raw_set_dirty(void)
+{
+    dirty = 1;
+}
 
 /* dual ISO interface */
 static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
@@ -433,13 +451,12 @@ static int raw_lv_get_resolution(int* width, int* height)
 
 static int raw_update_params_work()
 {
-    //~ static int k = 0;
-    //~ bmp_printf(FONT_MED, 250, 100, "raw update %d called from %s ", k++, get_task_name_from_id(get_current_task()));
-
     #ifdef RAW_DEBUG
     console_show();
     #endif
-    
+
+    dbg_printf("raw update from %s\n", get_task_name_from_id(get_current_task()));
+
     int width = 0;
     int height = 0;
     int skip_left = 0;
@@ -465,6 +482,13 @@ static int raw_update_params_work()
         if (!raw_lv_is_enabled())
         {
             dbg_printf("LV raw disabled\n");
+            return 0;
+        }
+
+        if (get_ms_clock_value() < next_retry_lv)
+        {
+            /* LiveView raw data is invalid, wait a bit and request a retry */
+            dbg_printf("LV raw invalid\n");
             return 0;
         }
         
@@ -755,9 +779,16 @@ static int raw_update_params_work()
     {
         if (width != raw_info.width || height != raw_info.height)
         {
-            /* raw dimensions changed in LiveView? wait for a new frame to be captured */
+            /* raw dimensions changed in LiveView? return failure and wait for the next call */
             printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
-            wait_lv_frames(1);
+
+            /* next valid call can be after two frames (until then, return failure) */
+            int frame_duration = 1000000 / fps_get_current_x1000();
+            raw_set_dirty_with_timeout(frame_duration * 2);
+            
+            raw_info.width = width;
+            raw_info.height = height;
+            return 0;
         }
     }
 
@@ -1880,11 +1911,6 @@ void raw_force_aspect_ratio_1to1()
     }
 }
 
-void raw_set_dirty()
-{
-    dirty = 1;
-}
-
 int get_dxo_dynamic_range(int raw_iso)
 {
     int iso = raw_iso;
@@ -1990,6 +2016,12 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
     {
         menu_set_warning_raw(entry, info);
     }
+}
+
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+    /* when changing LV zoom, mark the raw data as invalid for the next 500ms */
+    raw_set_dirty_with_timeout(500);
 }
 
 static void raw_init()
