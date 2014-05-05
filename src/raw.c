@@ -745,14 +745,17 @@ static int raw_update_params_work()
         /* raw dimensions changed? force a full update, including preview window */
         dirty = 1;
     }
+
 #ifdef CONFIG_RAW_LIVEVIEW 
-    /* zoom mode changed? refresh params */
+
+    if (lv)
     {
-        static int prev_zoom = 0;
-        int zoom = lv_dispsize;
-        if (zoom != prev_zoom)
-            dirty = 1;
-        prev_zoom = zoom;
+        if (width != raw_info.width || height != raw_info.height)
+        {
+            /* raw dimensions changed in LiveView? wait for a new frame to be captured */
+            printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
+            wait_lv_frames(1);
+        }
     }
 
     /* in zoom mode: yuv position changed? force a refresh */
