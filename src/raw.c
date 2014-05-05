@@ -372,6 +372,9 @@ static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level(int initial_guess);
 
+/* for debugging, chdk-dng.c */
+extern void reverse_bytes_order(char* buf, int count);
+
 #ifdef CONFIG_RAW_LIVEVIEW
 /* returns 1 on success */
 static int raw_lv_get_resolution(int* width, int* height)
@@ -801,6 +804,14 @@ static int raw_update_params_work()
     {
         /* return failure, and make sure the black level is recomputed at next call */
         dirty = 1;
+
+        if (1)
+        {
+            /* for debugging: if black check fails, save the bad frame as DNG */
+            save_dng("bad.dng", &raw_info);
+            reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+        }
+
         return 0;
     }
 
