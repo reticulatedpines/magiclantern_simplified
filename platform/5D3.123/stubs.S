@@ -60,6 +60,7 @@ NSTUB(0xFF30F80C,  FIO_FindClose)                           // proper name: Find
 NSTUB(0xFF30F72C,  FIO_FindNextEx)
 NSTUB(0xFF30E5C4,  FIO_ReadFile)
 NSTUB(0xFF30E744,  FIO_SeekFile)
+NSTUB(0xFF30E674,  FIO_SeekSkipFile)
 NSTUB(0xFF30E764,  FIO_WriteFile)
 NSTUB(0xFF30F070, _FIO_CreateDirectory)
 NSTUB(0xFF30E470, _FIO_CreateFile)
@@ -83,7 +84,10 @@ NSTUB(0xFFA22988 - RAM_OFFSET,  gui_task_list)
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 // NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
 NSTUB(0xFF4AEDDC,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-
+NSTUB(0xFF9F79D8 - RAM_OFFSET, SetHPTimerAfterNow)
+NSTUB(0xFF9F7854 - RAM_OFFSET, SetHPTimerAfterTimeout)
+NSTUB(0xFF9F7AC8 - RAM_OFFSET, SetHPTimerNextTick)
+	
 /** ASIF **/
 NSTUB(0xFF1379D0,  PowerAudioOutput)
 NSTUB(0xFF137168,  SetAudioVolumeOut)
