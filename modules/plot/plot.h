@@ -114,15 +114,15 @@ void EXT_WEAK_FUNC(ret_0) plot_autorange(plot_coll_t *coll, plot_graph_t *plot);
 
 #else
 
-plot_coll_t *(*plot_alloc_data) (uint32_t fields) = MODULE_FUNCTION(plot_alloc_data);
-plot_graph_t *(*plot_alloc_graph) (uint32_t x, uint32_t y, uint32_t w, uint32_t h) = MODULE_FUNCTION(plot_alloc_graph);
-uint32_t (*plot_add) (plot_coll_t *coll, ...) = MODULE_FUNCTION(plot_add);
-void (*plot_clear) (plot_coll_t *coll) = MODULE_FUNCTION(plot_clear);
-void (*plot_set_range) (plot_graph_t *plot, plot_data_t x_min, plot_data_t x_max, plot_data_t y_min, plot_data_t y_max) = MODULE_FUNCTION(plot_set_range);
-void (*plot_graph_draw) (plot_coll_t *coll, plot_graph_t *desc) = MODULE_FUNCTION(plot_graph_draw);
-void (*plot_graph_update) (plot_coll_t *coll, plot_graph_t *plot) = MODULE_FUNCTION(plot_graph_update);
-void (*plot_graph_reset) (plot_graph_t *plot) = MODULE_FUNCTION(plot_graph_reset);
-void (*plot_autorange) (plot_coll_t *coll, plot_graph_t *plot) = MODULE_FUNCTION(plot_autorange);
+static plot_coll_t *(*plot_alloc_data) (uint32_t fields) = MODULE_FUNCTION(plot_alloc_data);
+static plot_graph_t *(*plot_alloc_graph) (uint32_t x, uint32_t y, uint32_t w, uint32_t h) = MODULE_FUNCTION(plot_alloc_graph);
+static uint32_t (*plot_add) (plot_coll_t *coll, ...) = MODULE_FUNCTION(plot_add);
+static void (*plot_clear) (plot_coll_t *coll) = MODULE_FUNCTION(plot_clear);
+static void (*plot_set_range) (plot_graph_t *plot, plot_data_t x_min, plot_data_t x_max, plot_data_t y_min, plot_data_t y_max) = MODULE_FUNCTION(plot_set_range);
+static void (*plot_graph_draw) (plot_coll_t *coll, plot_graph_t *desc) = MODULE_FUNCTION(plot_graph_draw);
+static void (*plot_graph_update) (plot_coll_t *coll, plot_graph_t *plot) = MODULE_FUNCTION(plot_graph_update);
+static void (*plot_graph_reset) (plot_graph_t *plot) = MODULE_FUNCTION(plot_graph_reset);
+static void (*plot_autorange) (plot_coll_t *coll, plot_graph_t *plot) = MODULE_FUNCTION(plot_autorange);
 
 #endif
 #endif
