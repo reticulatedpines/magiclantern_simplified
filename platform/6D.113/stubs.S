@@ -60,6 +60,7 @@ NSTUB(0xFF332B0C, _FIO_GetFileSize)
 NSTUB(0xFF332530, _FIO_OpenFile)
 NSTUB(0xFF332698, _FIO_RemoveFile)
 NSTUB(0xFF333024, _FIO_RenameFile)
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(   0x74F10,  gui_main_struct)
@@ -88,6 +89,7 @@ NSTUB(0xFF11C5D0,  StartASIFDMAADC)                         // warning: looks di
 NSTUB(0xFF11C9A4,  StartASIFDMADAC)                         // warning: looks different
 NSTUB(0xFF11C87C,  StopASIFDMAADC)                          // warning: looks different
 NSTUB(0xFF11CC24,  StopASIFDMADAC)                          // warning: looks different
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 
 /** Audio **/
 NSTUB(   0x752E0,  sounddev)                                // Maybe 0x752e0 or 0x753f4
@@ -197,8 +199,10 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 
 /** GUI timers **/
 NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)

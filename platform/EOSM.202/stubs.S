@@ -73,9 +73,6 @@ NSTUB(0xFF0D7674,  GUI_Control)
 NSTUB(0xFF1A805C,  SetGUIRequestMode)
 NSTUB(0xFF0D7D18,  gui_init_end)
 NSTUB(0xFF0D72A0,  gui_main_task)
-NSTUB(0xFFA6ECE0 - RAM_OFFSET, SetHPTimerAfterNow)
-NSTUB(0xFFA6EB5C - RAM_OFFSET, SetHPTimerAfterTimeout)
-NSTUB(0xFFA6EDD0 - RAM_OFFSET, SetHPTimerNextTick)
 //NSTUB(0xFF0D783C, GUI_ChangeMode)
 //NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
 	//NSTUB(0xff1a4fc8, gui_massive_event_loop)
@@ -96,6 +93,7 @@ NSTUB(0xFF10A674,  StartASIFDMAADC)                         // To Regular
 NSTUB(0xFF10AA48,  StartASIFDMADAC)                         // Needs Patches Or
 NSTUB(0xFF10A920,  StopASIFDMAADC)                          // Regular
 NSTUB(0xFF10ACC8,  StopASIFDMADAC)                          // NormalStopAsif
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 
 /** Audio **/
@@ -205,9 +203,11 @@ NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFFA6ECE0 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFA6EDD0 - RAM_OFFSET,  SetHPTimerNextTick)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x4C124,  mvr_config)
@@ -330,6 +330,7 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF4E4338,  RedrawDisplay)
 ///NSTUB(0x35784, SIO3_ISR)
 ///NSTUB(0xFF1299C4, SetBitmapVramAddress)
+///NSTUB(0xFFA6EB5C - RAM_OFFSET,  SetHPTimerAfterTimeout)
 ///NSTUB(0xFF2BFAEC, SetNextASIFDACBuffer_1) // Int16 Direct Control
 ///NSTUB(0xFF10D174,  SoundDevActiveOut)
 ///NSTUB(0xFF2BF578, StartASIFDMADAC_1)  //~ Direct

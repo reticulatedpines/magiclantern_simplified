@@ -63,6 +63,7 @@ NSTUB(0xFF1C6B68, _FIO_GetFileSize)
 NSTUB(0xFF1C658C, _FIO_OpenFile)
 NSTUB(0xFF1C66F4, _FIO_RemoveFile)
 NSTUB(0xFF1C7060, _FIO_RenameFile)                          // doesn't work; 600D has debug strings for this, match.py finds it
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1C04,  gui_main_struct)                         // in gui_main_task
@@ -87,6 +88,7 @@ NSTUB(0xFF051950,  StartASIFDMAADC)
 NSTUB(0xFF051AFC,  StartASIFDMADAC)
 NSTUB(0xFF051BD0,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SetNextASIFADCBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -201,8 +203,10 @@ NSTUB(0xFF095728,  gui_other_post)
 
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x67BC,  mvr_config)

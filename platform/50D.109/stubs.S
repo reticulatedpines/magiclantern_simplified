@@ -62,6 +62,7 @@ NSTUB(0xFF983474, _FIO_FindFirstEx)                         // d
 NSTUB(0xFF982B84, _FIO_GetFileSize)                         // d
 NSTUB(0xFF982434, _FIO_OpenFile)                            // d
 NSTUB(0xFF982704, _FIO_RemoveFile)                          // d
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 // NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI **/
@@ -85,6 +86,7 @@ NSTUB(0xFF855290,  SetSamplingRate)
 NSTUB(0xFF852494,  StartASIFDMADAC)
 NSTUB(0xFF852A80,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SetNextASIFADCBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetNextASIFDACBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -201,8 +203,10 @@ NSTUB(0xFF98A990,  gui_timer_something)                     // d
 
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x7674,  mvr_config)                              // d

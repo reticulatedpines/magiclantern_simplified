@@ -61,6 +61,7 @@ NSTUB(0xFF1CA578, _FIO_GetFileSize)
 NSTUB(0xFF1C9F9C, _FIO_OpenFile)
 NSTUB(0xFF1CA104, _FIO_RemoveFile)                          // after _FIO_CreateFile, before FIO_ReadFile
 NSTUB(0xFF1CAA70, _FIO_RenameFile)
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1CF8,  gui_main_struct)                         // in gui_main_task. LDR     R0, [R4,#0x30]  ; queue_handle
@@ -86,6 +87,7 @@ NSTUB(0xFF055328,  StartASIFDMAADC)
 NSTUB(0xFF0554DC,  StartASIFDMADAC)
 NSTUB(0xFF0555B0,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -199,8 +201,10 @@ NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Po
 
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x5DD0,  mvr_config)
