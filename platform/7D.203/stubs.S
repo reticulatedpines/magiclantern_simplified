@@ -194,6 +194,9 @@ NSTUB(0xFF07B708,  gui_timer_something)
 NSTUB(0xFF34E5B0,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 // NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0xFF078E6C, SetHPTimerAfterNow)
+NSTUB(0xFF078D2C, SetHPTimerAfterTimeout)
+NSTUB(0xFF078EEC, SetHPTimerNextTick)
 
 /** H264 Encoder **/
 NSTUB(    0xA39C,  mvr_config)

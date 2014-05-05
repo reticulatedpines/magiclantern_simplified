@@ -212,6 +212,9 @@ NSTUB(0xFF0AAB3C,  gui_other_post)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 // NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0xFF06FCE4, SetHPTimerAfterNow)
+NSTUB(0xFF06FB60, SetHPTimerAfterTimeout)
+NSTUB(0xFF06FDD8, SetHPTimerNextTick)
 
 /** H264 Encoder **/
 NSTUB(    0x6290,  mvr_config)
