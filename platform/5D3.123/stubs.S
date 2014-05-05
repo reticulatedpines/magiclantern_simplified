@@ -77,17 +77,20 @@ NSTUB(0xFF18B6CC,  SetGUIRequestMode)
 NSTUB(0xFF0DF384,  gui_init_end)
 NSTUB(0xFF0DE948,  gui_main_task)
 NSTUB(0xFF1A7BBC,  gui_massive_event_loop)
-NSTUB(0xFFA22988 - RAM_OFFSET,  gui_task_list)
+NSTUB(   0x321C8,  gui_task_list)
 // NSTUB(0xFF0DEED8, GUI_ChangeMode)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 // NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
+
+/** GUI timers **/
 NSTUB(0xFF4AEDDC,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-NSTUB(0xFF9F79D8 - RAM_OFFSET, SetHPTimerAfterNow)
-NSTUB(0xFF9F7854 - RAM_OFFSET, SetHPTimerAfterTimeout)
-NSTUB(0xFF9F7AC8 - RAM_OFFSET, SetHPTimerNextTick)
-	
+NSTUB(0xFF9FDF40 - RAM_OFFSET,  SetTimerAfter)
+NSTUB(0xFF9F79D8 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFF9F7AC8 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFF9FE140 - RAM_OFFSET,  CancelTimer)
+
 /** ASIF **/
 NSTUB(0xFF1379D0,  PowerAudioOutput)
 NSTUB(0xFF137168,  SetAudioVolumeOut)
@@ -292,7 +295,7 @@ NSTUB(0xFF9F921C - RAM_OFFSET,  msleep)
 
 /** Tasks **/
 NSTUB(0xFF9F92D0 - RAM_OFFSET,  task_create)
-NSTUB(0xFFA144C0 - RAM_OFFSET,  task_dispatch_hook)
+NSTUB(   0x23D00,  task_dispatch_hook)
 NSTUB(0xFF9FE5E8 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
