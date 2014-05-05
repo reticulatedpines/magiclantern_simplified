@@ -70,9 +70,12 @@ int use_stripe_fix = 1;
 float soft_film_ev = 0;
 
 int exif_wb = 0;
-int gray_wb = 0;
 float custom_wb[3] = {2, 1, 2};
 int debug_wb = 0;
+
+#define WB_GRAY_MED 1
+#define WB_GRAY_MAX 2
+int gray_wb = WB_GRAY_MAX;
 
 int debug_black = 0;
 int debug_blend = 0;
@@ -165,7 +168,8 @@ struct cmd_group options[] = {
     },
     {
         "White balance", (struct cmd_option[]) {
-            { &gray_wb,               1, "--wb=graymax",    "set AsShotNeutral by maximizing the number of gray pixels" },
+            { &gray_wb,     WB_GRAY_MAX, "--wb=graymax",    "set AsShotNeutral by maximizing the number of gray pixels (default)" },
+            { &gray_wb,     WB_GRAY_MED, "--wb=graymed",    "set AsShotNeutral from the median of R-G and B-G" },
             { &exif_wb,               1, "--wb=exif",       "set AsShotNeutral from EXIF WB (not exactly working)" },
             { (int*)&custom_wb[0],    3, "--wb=%f,%f,%f",   "use custom RGB multipliers (default 2,1,2)" },
             OPTION_EOL
@@ -441,7 +445,7 @@ static int hdr_interpolate();
 static int black_subtract(int left_margin, int top_margin);
 static int black_subtract_simple(int left_margin, int top_margin);
 static void white_detect(int* white_dark, int* white_bright);
-static void white_balance_gray_max(float* red_balance, float* blue_balance);
+static void white_balance_gray(float* red_balance, float* blue_balance, int method);
 
 static inline int raw_get_pixel16(int x, int y)
 {
@@ -3041,12 +3045,15 @@ static int hdr_interpolate()
     if (gray_wb)
     {
         float red_balance = -1, blue_balance = -1;
-        white_balance_gray_max(&red_balance, &blue_balance);
+        white_balance_gray(&red_balance, &blue_balance, gray_wb);
         dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
         custom_wb[0] = red_balance;
         custom_wb[1] = 1;
         custom_wb[2] = blue_balance;
-        AsShotNeutral_method = "gray max";
+        AsShotNeutral_method = 
+            gray_wb == WB_GRAY_MED ? "gray med" : 
+            gray_wb == WB_GRAY_MAX ? "gray max" :
+             "?"; 
     }
     else if (exif_wb)
     {
@@ -3186,7 +3193,7 @@ static void box_blur(int* img, int* out, int w, int h, int radius)
     }
 }
 
-static void white_balance_gray_max(float* red_balance, float* blue_balance)
+static void white_balance_gray(float* red_balance, float* blue_balance, int method)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -3195,10 +3202,10 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
     int black = raw_info.black_level;
     int white = raw_info.white_level;
 
-    /* build a 2D histogram of R-G and B-G, from -3 to +3 EV in 0.02 EV increments */
-    #define WB_RANGE 300
+    /* build a 2D histogram of R-G and B-G, from -5 to +5 EV in 0.02 EV increments */
+    #define WB_RANGE 500
     #define WB_EV 50
-    #define WB_ORIGIN 150
+    #define WB_ORIGIN 250
     
     /* downsample by 16 to get rid of noise and demosaic to make things easier */
     #define WB_DOWN 16
@@ -3261,49 +3268,93 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
             hist[(RG + WB_ORIGIN) + (BG + WB_ORIGIN) * WB_RANGE] += 1000;
         }
     }
-    
-    /* scan for the WB value that maximizes the number of gray pixels, within a given color tolerance */
-    int tol = 2;
+
+    int rbest = WB_ORIGIN - WB_EV;
+    int bbest = WB_ORIGIN - WB_EV;
 
     int* histblur = malloc(size);
-    memset(histblur, 0, size);
-    for (int k = 0; k < 3; k++)
-    {
-        box_blur(hist, histblur, WB_RANGE, WB_RANGE, tol);
-        memcpy(hist, histblur, size);
-    }
+    memcpy(histblur, hist, size);
 
-    if (1)
+    if (method == WB_GRAY_MED)
     {
-        /* prefer daylight WB */
-        double gains[3];
-        ufraw_kelvin_green_to_multipliers(5000, 1, gains);
-
+        /* use median values for R-G and B-G */
+        int total = 0;
         for (int b = 0; b < WB_RANGE; b++)
         {
             for (int r = 0; r < WB_RANGE; r++)
             {
-                int dr = r - (WB_ORIGIN - log2(gains[0]) * WB_EV);
-                int db = b - (WB_ORIGIN - log2(gains[2]) * WB_EV);
-                float d = sqrt(dr*dr + db*db) / (WB_EV * WB_EV);
-                float weight = 1000 * exp(-(d*d)*500);
-                histblur[r + b*WB_RANGE] = log2(1 + histblur[r + b*WB_RANGE]) * weight;
+                total += histblur[r + b*WB_RANGE];
+            }
+        }
+
+        int acc = 0;
+        for (int b = 0; b < WB_RANGE; b++)
+        {
+            for (int r = 0; r < WB_RANGE; r++)
+            {
+                acc += histblur[r + b*WB_RANGE];
+            }
+            if (acc > total/2)
+            {
+                bbest = b;
+                break;
+            }
+        }
+        
+        acc = 0;
+        for (int r = 0; r < WB_RANGE; r++)
+        {
+            for (int b = 0; b < WB_RANGE; b++)
+            {
+                acc += histblur[r + b*WB_RANGE];
+            }
+            if (acc > total/2)
+            {
+                rbest = r;
+                break;
             }
         }
     }
-
-    int max = 0;
-    int rbest = WB_ORIGIN - WB_EV;
-    int bbest = WB_ORIGIN - WB_EV;
-    for (int b = tol; b < WB_RANGE-tol; b++)
+    else if (method == WB_GRAY_MAX)
     {
-        for (int r = tol; r < WB_RANGE-tol; r++)
+        /* scan for the WB value that maximizes the number of gray pixels, within a given color tolerance */
+        int tol = 2;
+
+        for (int k = 0; k < 3; k++)
         {
-            if (histblur[r + b*WB_RANGE] > max)
+            box_blur(hist, histblur, WB_RANGE, WB_RANGE, tol);
+            memcpy(hist, histblur, size);
+        }
+
+        if (1)
+        {
+            /* prefer daylight WB */
+            double gains[3];
+            ufraw_kelvin_green_to_multipliers(5000, 1, gains);
+
+            for (int b = 0; b < WB_RANGE; b++)
             {
-                max = histblur[r + b*WB_RANGE];
-                rbest = r;
-                bbest = b;
+                for (int r = 0; r < WB_RANGE; r++)
+                {
+                    int dr = r - (WB_ORIGIN - log2(gains[0]) * WB_EV);
+                    int db = b - (WB_ORIGIN - log2(gains[2]) * WB_EV);
+                    float d = sqrt(dr*dr + db*db) / (WB_EV * WB_EV);
+                    float weight = 1000 * exp(-(d*d)*500);
+                    histblur[r + b*WB_RANGE] = log2(1 + histblur[r + b*WB_RANGE]) * weight;
+                }
+            }
+        }
+        int max = 0;
+        for (int b = tol; b < WB_RANGE-tol; b++)
+        {
+            for (int r = tol; r < WB_RANGE-tol; r++)
+            {
+                if (histblur[r + b*WB_RANGE] > max)
+                {
+                    max = histblur[r + b*WB_RANGE];
+                    rbest = r;
+                    bbest = b;
+                }
             }
         }
     }
@@ -3348,7 +3399,7 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
         }
         fprintf(f, "];\n");
         fprintf(f, "gm = [");
-        for (float g = -5; g <= 5; g += 0.1)
+        for (float g = -2; g <= 2; g += 0.1)
         {
             double glin = powf(2, g);
             double gains[3];
@@ -3369,8 +3420,8 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
         fprintf(f, "imshow(histblur,[]); colormap jet; hold on;\n");
         fprintf(f, "rbest = %d; bbest = %d;\n", rbest+1, bbest+1);
         fprintf(f, "plot(rbest, bbest, '.w')\n");
-        fprintf(f, "plot([-3.01, 3.01]*%d+%d, [bbest, bbest], 'color', 'white')\n", WB_EV, WB_ORIGIN);
-        fprintf(f, "plot([rbest, rbest], [-3, 3]*%d+%d,'color', 'white')\n", WB_EV, WB_ORIGIN);
+        fprintf(f, "plot([-5.01, 5.01]*%d+%d, [bbest, bbest], 'color', 'white')\n", WB_EV, WB_ORIGIN);
+        fprintf(f, "plot([rbest, rbest], [-5, 5]*%d+%d,'color', 'white')\n", WB_EV, WB_ORIGIN);
 
         fprintf(f, "kred = kelvin(:,1); kblue = kelvin(:,2);\n");
         fprintf(f, "kredg = kelvin(:,3); kblueg = kelvin(:,4);\n");
@@ -3408,39 +3459,6 @@ static void white_balance_gray_max(float* red_balance, float* blue_balance)
         fprintf(f, "print -dpng wb.png\n");
         fclose(f);
         if(system("octave wb.m"));
-
-        if (0)
-        {
-            for (int y = y0; y < h; y += 2)
-            {
-                for (int x = x0; x < w; x += 2)
-                {
-                    int r  = raw_get_pixel16(x, y);
-                    int g1 = raw_get_pixel16(x+1, y);
-                    int g2 = raw_get_pixel16(x, y+1);
-                    int b  = raw_get_pixel16(x+1, y+1);
-                    int g = (g1 + g2) / 2;
-
-                    if (r <= black || r >= white) continue;
-                    if (g <= black || g >= white) continue;
-                    if (b <= black || b >= white) continue;
-                    
-                    int R = roundf(log2f(r - black) * WB_EV);
-                    int G = roundf(log2f(g - black) * WB_EV);
-                    int B = roundf(log2f(b - black) * WB_EV);
-                    int RG = R - G;
-                    int BG = B - G;
-                    
-                    if (ABS(RG + WB_ORIGIN - rbest) < tol && ABS(BG + WB_ORIGIN - bbest) < tol)
-                    {
-                        raw_set_pixel16(x, y, white);
-                        raw_set_pixel16(x+1, y+1, white);
-                        raw_set_pixel16(x+1, y, black);
-                        raw_set_pixel16(x, y+1, black);
-                    }
-                }
-            }
-        }
     }
     
     *red_balance = powf(2, (float) -(rbest - WB_ORIGIN) / WB_EV);
