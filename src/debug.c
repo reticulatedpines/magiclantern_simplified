@@ -803,10 +803,10 @@ static void stress_test_picture(int n, int delay)
     msleep(delay);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) len += snprintf(buf + len, maxlen - len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
 #define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
 static int test_task_created = 0;
@@ -821,6 +821,13 @@ static void stub_test_task(void* arg)
     extern void _FreeMemory(void* ptr);
     extern void* _alloc_dma_memory(size_t size);
     extern void _free_dma_memory(void* ptr);
+    
+    int maxlen = 1024*1024;
+    int len = 0;
+    char* buf = fio_malloc(maxlen);
+    if (!buf) return;
+    
+    console_show();
 
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
@@ -829,13 +836,11 @@ static void stub_test_task(void* arg)
     int passed_tests = 0;
     int failed_tests = 0;
 
-    FILE* log = FIO_CreateFile( "stubtest.log" );
     int silence = 0;    // if 1, only failures are logged to file
     int ok = 1;
 
     for (int i=0; i < n; i++)
     {
-
         // strlen
         TEST_TRY_FUNC_CHECK(strlen("abc"), == 3);
         TEST_TRY_FUNC_CHECK(strlen("qwertyuiop"), == 10);
@@ -1135,10 +1140,17 @@ static void stub_test_task(void* arg)
 
         beep();
     }
+
+    FILE* log = FIO_CreateFile( "stubtest.log" );
+    FIO_WriteFile(log, buf, len);
     FIO_CloseFile(log);
+    fio_free(buf);
 
-
-    NotifyBox(10000, "Test complete.\n%d passed, %d failed.", passed_tests, failed_tests);
+    console_printf(
+        "=========================================================\n"
+        "Test complete, %d passed, %d failed.\n.",
+        passed_tests, failed_tests
+    );
 }
 
 #if defined(CONFIG_7D)
