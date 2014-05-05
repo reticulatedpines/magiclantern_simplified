@@ -28,7 +28,6 @@
 #include "menu.h"
 #include "edmac-memcpy.h"
 #include "imgconv.h"
-#include "../modules/plot/plot.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -294,9 +293,6 @@ void raw_buffer_intercept_from_stateobj()
     -3876, 10000,    11761, 10000,    2396, 10000, \
      -593, 10000,     1772, 10000,    6198, 10000
 #endif
-
-plot_coll_t *raw_plot_data = NULL;
-plot_graph_t *raw_plot_graph = NULL;
 
 struct raw_info raw_info = {
     .api_version = 1,
@@ -778,8 +774,7 @@ static int raw_update_params_work()
     /* black and white autodetection are time-consuming */
     /* only refresh once per second or if dirty, but never while recording */
     static int bw_aux = INT_MIN;
-    static int black_level_valid = 0;
-    int recompute_black_and_white = NOT_RECORDING && (dirty || !black_level_valid || should_run_polling_action(1000, &bw_aux));
+    int recompute_black_and_white = NOT_RECORDING && (dirty || should_run_polling_action(1000, &bw_aux));
 
     if (dirty)
     {
@@ -796,52 +791,18 @@ static int raw_update_params_work()
     int black_mean, black_stdev_x100;
     raw_info.white_level = WHITE_LEVEL;
     
-    static int black_avg = 0;
-    int black_new = autodetect_black_level(&black_mean, &black_stdev_x100);
+    int ok = autodetect_black_level(&black_mean, &black_stdev_x100);
     
-    /* first measurement is just a starting point and (on top to that) most likely not correct */
-    if(black_avg == 0)
+    if (!ok)
     {
-        /* blindly use the measurement as current average */
-        black_avg = black_new;
-        black_level_valid = 0;
+        /* return failure, and make sure the black level is recomputed at next call */
+        dirty = 1;
         return 0;
     }
-    
-    /* try to converge to new value very quickly */
-    black_avg = (black_avg + 3 * black_new) / 4;
-    
-    if(!raw_plot_data)
-    {
-        raw_plot_data = plot_alloc_data(1);
-        raw_plot_graph = plot_alloc_graph(50, 50, 620, 200);
-        
-        if(raw_plot_data)
-        {
-            plot_set_range(raw_plot_graph, 0, 100, 0, 3000);
-        }
-    }
-    
-    if(raw_plot_data)
-    {
-        plot_add(raw_plot_data, (float)black_avg);
-        plot_graph_draw(raw_plot_data, raw_plot_graph);
-    }
-    
-    /* either if the new black level is close to the average */
-    if(ABS(black_avg - black_new) < 5)
-    {
-        /* black level converged */
-        raw_info.black_level = black_avg;
-        black_level_valid = 1;
-    }
-    else
-    {
-        /* raw backend is not ready yet, we are trying to figure out new black level */
-        black_level_valid = 0;
-        return 0;
-    }
-    
+
+    /* black level looks alright, go ahead and use it */
+    raw_info.black_level = black_mean;
+    printf("Black level: %d\n", black_mean);
 
     if (!lv)
     {
@@ -1300,6 +1261,51 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     *out_stdev_x100 = stdev;
 }
 
+static int black_level_check_left(int ref_mean, int ref_stdev_x100, int y1, int y2)
+{
+    const int N = 5;
+    for (int i = 0; i < N; i++)
+    {
+        /* divide the optical black bar in N segments and check them against the global mean and stdev */
+        int ya = ( i ) * (y2 - y1) / N + y1;
+        int yb = (i+1) * (y2 - y1) / N + y1;
+
+        /* make sure ya % 4 == y1 % 4 (important for dual iso, to check the same exposure) */
+        ya = (ya & ~3) + (y1 & 3);
+        
+        int local_mean = 0;
+        int local_stdev_x100 = 0;
+        autodetect_black_level_calc(
+            16, raw_info.active_area.x1 - 16,
+            ya, yb, 
+            3, 16,
+            &local_mean, &local_stdev_x100
+        );
+
+        dbg_printf(
+            "Black check %d/%d: %d %d, ref %d %d, delta %d/%d\n",
+            i+1, N, local_mean, local_stdev_x100, ref_mean, ref_stdev_x100, local_mean - ref_mean, ref_stdev_x100/200
+        );
+
+        /* allow the local mean to be within ref_mean +/- 0.5 ref_sigma */
+        if (ABS(local_mean - ref_mean) > ref_stdev_x100/200)
+        {
+            printf("Black %d/%d: mean too different (%d, ref %d %d)\n", i+1, N, local_mean, ref_mean, ref_stdev_x100);
+            return 0;
+        }
+
+        /* allow the local sigma to be less than 3 * ref_sigma */
+        if (local_stdev_x100 > ref_stdev_x100 * 3)
+        {
+            printf("Black %d/%d: stdev too large (%d, ref %d)\n", i+1, N, local_stdev_x100, ref_stdev_x100);
+            return 0;
+        }
+        
+    }
+    return 1;
+}
+
+/* returns 1 on success, 0 on failure */
 static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
 {
     //~ static int k = 0;
@@ -1310,8 +1316,8 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
     int stdev1 = 0;
     int mean2 = 0;
     int stdev2 = 0;
-    
-    if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
+        
+    if (raw_info.active_area.x1 > 50) /* use the left black bar for black calibration */
     {
         autodetect_black_level_calc(
             16, raw_info.active_area.x1 - 16,
@@ -1325,6 +1331,19 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
             3, 16,
             &mean2, &stdev2
         );
+        
+        /* for dual iso: increase tolerance of the cleaner exposure (there is interference from the noisier one) */
+        int ref_stdev = MAX(stdev1, stdev2);
+        
+        if (!black_level_check_left(mean1, ref_stdev, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20))
+        {
+            return 0;
+        }
+
+        if (!black_level_check_left(mean2, ref_stdev, raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20))
+        {
+            return 0;
+        }
     }
     else /* use the top black bar for black calibration */
     {
@@ -1340,6 +1359,8 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
             16, 4,
             &mean2, &stdev2
         );
+        
+        /* todo: consistency check */
     }
     
     /* does it look like dual ISO? take the DR from the cleanest half */
