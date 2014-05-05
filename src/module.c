@@ -161,8 +161,18 @@ static void module_update_core_symbols(TCCState* state)
         void* new_address = (void*) tcc_get_symbol(state, (char*) module_symbol_entry->name);
         if (new_address)
         {
-            *(module_symbol_entry->address) = new_address;
-            console_printf("  [i] upd %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+            if (new_address != module_symbol_entry->address)
+            {
+                *(module_symbol_entry->address) = new_address;
+                console_printf("  [i] upd: %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+            }
+            else
+            {
+                /* you have declared a non-static MODULE_SYMBOL (or MODULE_FUNCTION), which got exported into the SYM file */
+                /* this will not work; fix it by declaring it as static */
+                console_show();
+                console_printf("  [E] wtf: %s (should be static)\n", module_symbol_entry->name);
+            }
         }
         else
         {
@@ -177,6 +187,15 @@ static void _module_load_all(uint32_t list_only)
     uint32_t module_cnt = 0;
     struct fio_file file;
     uint32_t update_properties = 0;
+
+    if(module_console_enabled)
+    {
+        console_show();
+    }
+    else
+    {
+        console_hide();
+    }
 
 #ifdef CONFIG_MODULE_UNLOAD
     /* ensure all modules are unloaded */
@@ -516,11 +535,6 @@ static void _module_load_all(uint32_t list_only)
     #endif
     
     console_printf("Modules loaded\n");
-    
-    if(!module_console_enabled)
-    {
-        console_hide();
-    }
 }
 
 static void _module_unload_all(void)
