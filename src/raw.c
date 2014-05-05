@@ -1910,7 +1910,15 @@ int can_use_raw_overlays_photo()
 int can_use_raw_overlays()
 {
     if (QR_MODE && can_use_raw_overlays_photo())
+    {
+        if (!raw_update_params())
+        {
+            /* XXX: probably not the best place for printing an error message */
+            bmp_printf(FONT_MED, 0, 480 - font_med.height, "Raw error, falling back to YUV overlays");
+            return 0;
+        }
         return 1;
+    }
     
 #ifdef CONFIG_RAW_LIVEVIEW
     if (lv && raw_lv_is_enabled())
