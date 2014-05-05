@@ -1473,7 +1473,13 @@ void FAST raw_lv_vsync()
     {
         //~ bmp_printf(FONT_MED, 50, 50, "%x %dx%d  ", buf,  raw_info.pitch, raw_info.height);
         /* pull the raw data into "buf" */
-        edmac_raw_slurp(CACHEABLE(buf), raw_info.pitch, raw_info.height);
+        int width, height;
+        int ok = raw_lv_get_resolution(&width, &height);
+        if (ok)
+        {
+            int pitch = width * 14/8;
+            edmac_raw_slurp(CACHEABLE(buf), pitch, height);
+        }
     }
     else
     {
