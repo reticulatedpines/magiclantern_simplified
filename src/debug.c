@@ -830,7 +830,7 @@ static void next_tick_cbr(int arg1, void* arg2)
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) len += snprintf(buf + len, maxlen - len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
 #define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
@@ -850,9 +850,9 @@ static void stub_test_task(void* arg)
     extern void _free_dma_memory(void* ptr);
     
     int maxlen = 1024*1024;
-    int len = 0;
-    char* buf = fio_malloc(maxlen);
-    if (!buf) return;
+    int log_len = 0;
+    char* log_buf = fio_malloc(maxlen);
+    if (!log_buf) return;
     
     console_show();
 
@@ -1253,9 +1253,9 @@ static void stub_test_task(void* arg)
     }
 
     FILE* log = FIO_CreateFile( "stubtest.log" );
-    FIO_WriteFile(log, buf, len);
+    FIO_WriteFile(log, log_buf, log_len);
     FIO_CloseFile(log);
-    fio_free(buf);
+    fio_free(log_buf);
 
     console_printf(
         "=========================================================\n"
