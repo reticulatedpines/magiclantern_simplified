@@ -193,8 +193,8 @@ NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
 
 /** GUI timers **/
 NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+NSTUB(0xFF9EC8C8 - RAM_OFFSET,  CancelTimer)                // called from CancelUnaviFeedBackTimer and many others
+NSTUB(0xFF9EC6C8 - RAM_OFFSET,  SetTimerAfter)              // called from StartUnaviFeedBackTimer and many others
 NSTUB(0xFF9E6160 - RAM_OFFSET, SetHPTimerAfterNow)
 //NSTUB(0xFF9E5FDC - RAM_OFFSET, SetHPTimerAfterTimeout)
 NSTUB(0xFF9E6250 - RAM_OFFSET, SetHPTimerNextTick)
