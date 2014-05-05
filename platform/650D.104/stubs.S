@@ -196,8 +196,8 @@ NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 
 /** GUI timers **/
 NSTUB(    0xB4D8,  SetTimerAfter)
-NSTUB(    0xB6D8,  TimerCancel)
-//NSTUB(0x4FD8, SetHPTimerAfterNow)
+NSTUB(    0xB6D8,  CancelTimer)
+NSTUB(0x4FD8, SetHPTimerAfterNow)
 //NSTUB(0x4E54, SetHPTimerAfterTimeout)
 //NSTUB(0xB558, SetTimerWhen)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */

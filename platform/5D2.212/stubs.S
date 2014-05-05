@@ -193,7 +193,7 @@ NSTUB(0xFF9B3AD0,  gui_timer_something)
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 // NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x86B0,  mvr_config)
