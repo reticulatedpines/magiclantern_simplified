@@ -1467,13 +1467,13 @@ static int match_exposures(double* corr_ev, int* white_darkened)
      * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
      * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
      */
-    int y0 = raw_info.active_area.y1;
+    int y0 = raw_info.active_area.y1 + 2;
     int nmax = (w+2) * (h+2) / 9;   /* downsample by 3x3 for speed */
     int * tmp = malloc(nmax * sizeof(tmp[0]));
     
     /* median_bright */
     int n = 0;
-    for (int y = y0; y < h; y += 3)
+    for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
@@ -1491,7 +1491,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     /* median_dark */
     n = 0;
-    for (int y = y0; y < h; y += 3)
+    for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
@@ -1506,7 +1506,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     /* bright median from bright exposure */
     n = 0;
-    for (int y = y0; y < h; y += 3)
+    for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
@@ -1526,7 +1526,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     for (int k = 0; k < 50; k++)
     {
         n = 0;
-        for (int y = y0; y < h; y += 3)
+        for (int y = y0; y < h-2; y += 3)
         {
             for (int x = 0; x < w; x += 3)
             {
