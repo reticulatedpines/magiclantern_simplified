@@ -91,6 +91,7 @@ int plot_fullres_curve = 0;
 
 int compress = 0;
 int same_levels = 0;
+int skip_existing = 0;
 
 int shortcut_fast = 0;
 
@@ -199,6 +200,13 @@ struct cmd_group options[] = {
         "DNG compression (requires Adobe DNG Converter)", (struct cmd_option[]) {
             { &compress,     1, "--compress",       "Lossless DNG compression" },
             { &compress,     2, "--compress-lossy", "Lossy DNG compression (be careful, may destroy shadow detail)" },
+            OPTION_EOL
+        },
+    },
+    {
+        "Misc settings", (struct cmd_option[]) {
+            { &skip_existing, 1, "--skip-existing",  "Skip the conversion if the output file already exists" },
+            /* Would it be better to use this as default behavior, and have an --overwrite switch? */
             OPTION_EOL
         },
     },
@@ -556,6 +564,20 @@ static void save_debug_dng(char* filename)
     raw_info.white_level = white20;
 }
 
+static int is_file(const char* filename)
+{
+    FILE* f = fopen(filename, "r");
+    if (f)
+    {
+        fclose(f);
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 int main(int argc, char** argv)
 {
     printf("cr2hdr: a post processing tool for Dual ISO images\n\n");
@@ -597,6 +619,19 @@ int main(int argc, char** argv)
         char* filename = argv[k];
 
         printf("\nInput file      : %s\n", filename);
+
+        char out_filename[1000];
+        snprintf(out_filename, sizeof(out_filename), "%s", filename);
+        int len = strlen(out_filename);
+        out_filename[len-3] = 'D';
+        out_filename[len-2] = 'N';
+        out_filename[len-1] = 'G';
+        
+        if (skip_existing && is_file(out_filename))
+        {
+            printf("Already exists  : %s (skipping)\n", out_filename);
+            continue;
+        }
 
         char dcraw_cmd[1000];
         snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\"", filename);
@@ -714,13 +749,6 @@ int main(int argc, char** argv)
 
             if (hdr_interpolate())
             {
-                char out_filename[1000];
-                snprintf(out_filename, sizeof(out_filename), "%s", filename);
-                int len = strlen(out_filename);
-                out_filename[len-3] = 'D';
-                out_filename[len-2] = 'N';
-                out_filename[len-1] = 'G';
-
                 reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
 
                 /* This option doesn't really work, since Canon WB is broken with Dual ISO. */
