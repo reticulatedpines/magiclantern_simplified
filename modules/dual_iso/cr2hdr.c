@@ -804,6 +804,7 @@ int main(int argc, char** argv)
     
     free(whites);
     free(blacks);
+    free(file_indices);
     
     return 0;
 }
@@ -835,7 +836,8 @@ static void white_detect(int* white_dark, int* white_bright)
             int pix = raw_get_pixel16(x, y);
             
             #define BIN_IDX is_bright[y%4]
-            pixels[BIN_IDX][MIN(counts[BIN_IDX], max_pix-1)] = -pix;
+            counts[BIN_IDX] = MIN(counts[BIN_IDX], max_pix-1);
+            pixels[BIN_IDX][counts[BIN_IDX]] = -pix;
             counts[BIN_IDX]++;
             #undef BIN_IDX
         }
