@@ -604,9 +604,7 @@ int main(int argc, char** argv)
         CHECK(t, "%s", filename);
         
         unsigned int model = get_model_id(filename);
-        int exit_code = get_raw_info(model, &raw_info);
-
-        CHECK(exit_code == 0, "RAW INFO INJECTION FAILED");
+        get_raw_info(model, &raw_info);
 
         int raw_width = 0, raw_height = 0;
         int out_width = 0, out_height = 0;
@@ -626,6 +624,12 @@ int main(int argc, char** argv)
             }
         }
         pclose(t);
+        
+        if (raw_width == 0)
+        {
+            printf("dcraw could not open this file\n");
+            continue;
+        }
 
         printf("Full size       : %d x %d\n", raw_width, raw_height);
         printf("Active area     : %d x %d\n", out_width, out_height);
@@ -657,7 +661,12 @@ int main(int argc, char** argv)
             }
           }
 
-        CHECK(!(error || nd < 3), "dcraw output is not a valid PGM file\n");
+        if (error || nd < 3)
+        {
+            pclose(fp);
+            printf("dcraw output is not a valid PGM file\n");
+            continue;
+        }
 
         int width = dim[0];
         int height = dim[1];
