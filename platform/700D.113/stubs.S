@@ -49,6 +49,7 @@ NSTUB(0xFF346370,  FIO_FindClose)                           // FindClose
 NSTUB(0xFF346290,  FIO_FindNextEx)
 NSTUB(0xFF345128,  FIO_ReadFile)
 NSTUB(0xFF3452A8,  FIO_SeekFile)
+NSTUB(0xFF3451D8,  FIO_SeekSkipFile)
 NSTUB(0xFF3452C8,  FIO_WriteFile)
 NSTUB(0xFF345BD4, _FIO_CreateDirectory)
 NSTUB(0xFF344FD4, _FIO_CreateFile)
@@ -57,7 +58,6 @@ NSTUB(0xFF3454F4, _FIO_GetFileSize)
 NSTUB(0xFF344F18, _FIO_OpenFile)
 NSTUB(0xFF345080, _FIO_RemoveFile)
 NSTUB(0xFF345A0C, _FIO_RenameFile)
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(   0x236B0,  gui_main_struct)
@@ -196,11 +196,11 @@ NSTUB(0xFFA66564 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFFA68578 - RAM_OFFSET,  CancelTimer)
+NSTUB(0xFFA61E78 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFA61F68 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFFA68378 - RAM_OFFSET,  SetTimerAfter)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
-// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x314F4,  mvr_config)
