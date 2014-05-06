@@ -2522,11 +2522,11 @@ static int hdr_interpolate()
         {
             /* apply a constant offset (estimated from unclipped areas) */
             int delta_num = 0;
-            for (int x = 0; x < w; x ++)
+            for (int x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
             {
                 int b = bright[x + y*w];
                 int d = dark[x + y*w];
-                if (MAX(b,d) < black + 64 * 64)
+                if (MAX(b,d) < black + 512 * 64)
                 {
                     delta[delta_num++] = b - d;
                 }
@@ -2534,6 +2534,11 @@ static int hdr_interpolate()
 
             /* compute median difference */
             int med_delta = median_int_wirth(delta, delta_num);
+            
+            if (delta_num < 500)
+            {
+                continue;
+            }
 
             if (ABS(med_delta) > 200*16)
             {
