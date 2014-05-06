@@ -311,7 +311,7 @@ void CLASS adobe_coeff (const char *make, const char *model)
       if (table[i].maximum) maximum = (ushort) table[i].maximum;
       if (table[i].trans[0]) {
         for (j=0; j < 12; j++)
-          cam_xyz[0][j] = table[i].trans[j] / 10000.0;
+          cam_xyz[j/3][j%3] = table[i].trans[j] / 10000.0;    /* original: cam_xyz[0][j] = table[i].trans[j] / 10000.0; */
         cam_xyz_coeff (cam_xyz);
       }
       break;
