@@ -8,7 +8,8 @@
 void copy_tags_from_source(const char* source, const char* dest)
 {
     char exif_cmd[1000];
-    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"-xmp:subject=Dual-ISO\" \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original", source, dest);
+    printf("%-16s: updating EXIF\n", dest);
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"-xmp:subject=Dual-ISO\" \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original -q", source, dest);
     int r = system(exif_cmd);
     if(r!=0)
     {
@@ -125,4 +126,54 @@ void set_white_level(const char* file, int level)
     {
         printf("**WARNING** exiftool couldn't update white level\n");
     }
+}
+
+void embed_original_raw(const char* dng_file, const char* raw_file)
+{
+    printf("%-16s: moving into %s\n", raw_file, dng_file);
+    char exif_cmd[1000];
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"%s\" \"-OriginalRawFileData<=%s\" \"-OriginalRawFileName=%s\" -overwrite_original -q", dng_file, raw_file, raw_file);
+    int r = system(exif_cmd);
+    if(r!=0)
+    {
+        printf("%-16s: could not extract original raw\n", dng_file);
+    }
+    else
+    {
+        unlink(raw_file);
+    }
+}
+
+int dng_has_original_raw(const char* dng_file)
+{
+    char exif_cmd[1000];
+
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -OriginalRawFileData \"%s\"", dng_file);
+    FILE* exif_file = popen(exif_cmd, "r");
+    if (exif_file)
+    {
+        char ch;
+        int has_original_raw = fscanf(exif_file, "%c", &ch) == 1;
+        pclose(exif_file);
+        return has_original_raw;
+    }
+
+    printf("%-16s: could not run exiftool\n", dng_file);
+    return 0;
+}
+
+/* returns 1 on success */
+int extract_original_raw(const char* dng_file, const char* raw_file)
+{
+    printf("%-16s: extracting from %s\n", raw_file, dng_file);
+
+    char exif_cmd[1000];
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"%s\" -OriginalRawFileData -b > \"%s\"", dng_file, raw_file);
+    int r = system(exif_cmd);
+    if(r!=0)
+    {
+        printf("%-16s: could not extract original raw\n", dng_file);
+        return 0;
+    }
+    return 1;
 }

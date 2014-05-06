@@ -92,6 +92,7 @@ int plot_fullres_curve = 0;
 int compress = 0;
 int same_levels = 0;
 int skip_existing = 0;
+int embed_original = 0;
 
 int shortcut_fast = 0;
 
@@ -205,8 +206,12 @@ struct cmd_group options[] = {
     },
     {
         "Misc settings", (struct cmd_option[]) {
-            { &skip_existing, 1, "--skip-existing",  "Skip the conversion if the output file already exists" },
             /* Would it be better to use this as default behavior, and have an --overwrite switch? */
+            { &skip_existing,  1, "--skip-existing",  "Skip the conversion if the output file already exists" },
+
+            { &embed_original, 1, "--embed-original", "Embed the original CR2 file in the output DNG, and delete the CR2\n"
+                                    "                  You will be able to re-process the DNG with a different version or different conversion settings.\n"
+                                    "                  To recover the original RAW: exiftool IMG_1234.DNG -OriginalRawFileData -b > IMG_1234.CR2" },
             OPTION_EOL
         },
     },
@@ -619,15 +624,49 @@ int main(int argc, char** argv)
         char* filename = argv[k];
 
         printf("\nInput file      : %s\n", filename);
+        int len = strlen(filename);
 
+        char orig_filename[1000]; orig_filename[0] = 0;
         char out_filename[1000];
+
+        if (strcmp(filename+len-4, ".DNG") == 0)
+        {
+            /* this DNG might have embedded CR2 data inside */
+            /* note: we only save uppercase .DNGs, so a case-sensitive extension check should be fine */
+
+            if (dng_has_original_raw(filename))
+            {
+                snprintf(orig_filename, sizeof(orig_filename), "%s", filename);
+                orig_filename[len-3] = 'C';
+                orig_filename[len-2] = 'R';
+                orig_filename[len-1] = '2';
+                
+                if (is_file(orig_filename))
+                {
+                    printf("Already exists  : %s (error)\n", orig_filename);
+                    continue;
+                }
+
+                if (extract_original_raw(filename, orig_filename))
+                {
+                    /* use the extracted CR2 as input */
+                    filename = orig_filename;
+                }
+                else
+                {
+                    /* error message was already printed, now just skip this file */
+                    continue;
+                }
+            }
+        }
+
         snprintf(out_filename, sizeof(out_filename), "%s", filename);
-        int len = strlen(out_filename);
         out_filename[len-3] = 'D';
         out_filename[len-2] = 'N';
         out_filename[len-1] = 'G';
         
-        if (skip_existing && is_file(out_filename))
+        /* note: skip_existing will be ignored if we are working on a DNG file with embedded RAW */
+        if (skip_existing && is_file(out_filename) && !orig_filename[0])
         {
             printf("Already exists  : %s (skipping)\n", out_filename);
             continue;
@@ -775,6 +814,12 @@ int main(int argc, char** argv)
                 if (compress)
                 {
                     dng_compress(out_filename, compress-1);
+                }
+                
+                if (embed_original || orig_filename[0])
+                {
+                    /* this will move the input file into the DNG (and delete the original) */
+                    embed_original_raw(out_filename, filename);
                 }
                 
                 /* record black and white levels */
