@@ -14,7 +14,7 @@ void read_white_balance(const char* filename, float* red_balance, float* blue_ba
 
 void set_white_level(const char* file, int level);
 
-void embed_original_raw(const char* dng_file, const char* raw_file);
+void embed_original_raw(const char* dng_file, const char* raw_file, int delete_original);
 
 int dng_has_original_raw(const char* dng_file);
 

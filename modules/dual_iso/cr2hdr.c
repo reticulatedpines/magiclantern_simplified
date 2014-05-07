@@ -206,12 +206,13 @@ struct cmd_group options[] = {
     },
     {
         "Misc settings", (struct cmd_option[]) {
-            /* Would it be better to use this as default behavior, and have an --overwrite switch? */
             { &skip_existing,  1, "--skip-existing",  "Skip the conversion if the output file already exists" },
 
-            { &embed_original, 1, "--embed-original", "Embed the original CR2 file in the output DNG, and delete the CR2\n"
+            { &embed_original, 1, "--embed-original", "Embed (move) the original CR2 file in the output DNG. The original will be deleted.\n"
                                     "                  You will be able to re-process the DNG with a different version or different conversion settings.\n"
-                                    "                  To recover the original RAW: exiftool IMG_1234.DNG -OriginalRawFileData -b > IMG_1234.CR2" },
+                                    "                  To recover the original: exiftool IMG_1234.DNG -OriginalRawFileData -b > IMG_1234.CR2" },
+            { &embed_original, 2, "--embed-original-copy",  "\n"
+                                    "                  Similar to --embed-original, but without deleting the original.\n" },
             OPTION_EOL
         },
     },
@@ -828,8 +829,9 @@ int main(int argc, char** argv)
                 
                 if (embed_original || orig_filename[0])
                 {
-                    /* this will move the input file into the DNG (and delete the original) */
-                    embed_original_raw(out_filename, filename);
+                    /* this will move the input file into the DNG (and maybe delete the original) */
+                    int delete_original = (embed_original != 2);
+                    embed_original_raw(out_filename, filename, delete_original);
                 }
                 
                 /* record black and white levels */

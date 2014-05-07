@@ -128,9 +128,9 @@ void set_white_level(const char* file, int level)
     }
 }
 
-void embed_original_raw(const char* dng_file, const char* raw_file)
+void embed_original_raw(const char* dng_file, const char* raw_file, int delete_original)
 {
-    printf("%-16s: moving into %s\n", raw_file, dng_file);
+    printf("%-16s: %s into %s\n", raw_file, delete_original ? "moving" : "copying", dng_file);
     char exif_cmd[1000];
     snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"%s\" \"-OriginalRawFileData<=%s\" \"-OriginalRawFileName=%s\" -overwrite_original -q", dng_file, raw_file, raw_file);
     int r = system(exif_cmd);
@@ -140,7 +140,10 @@ void embed_original_raw(const char* dng_file, const char* raw_file)
     }
     else
     {
-        unlink(raw_file);
+        if (delete_original)
+        {
+            unlink(raw_file);
+        }
     }
 }
 
