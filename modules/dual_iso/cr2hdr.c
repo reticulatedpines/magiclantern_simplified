@@ -805,11 +805,21 @@ int main(int argc, char** argv)
                         printf("AsShotNeutral   : (using default values)\n");
                     }
                 }
+                
+                if (orig_filename[0])
+                {
+                    dng_backup_metadata(out_filename);
+                }
 
                 printf("Output file     : %s\n", out_filename);
                 save_dng(out_filename);
 
                 copy_tags_from_source(filename, out_filename);
+
+                if (orig_filename[0])
+                {
+                    dng_restore_metadata(out_filename);
+                }
                 
                 if (compress)
                 {

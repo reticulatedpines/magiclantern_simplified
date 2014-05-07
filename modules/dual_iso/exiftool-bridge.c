@@ -8,7 +8,7 @@
 void copy_tags_from_source(const char* source, const char* dest)
 {
     char exif_cmd[1000];
-    printf("%-16s: updating EXIF\n", dest);
+    printf("%-16s: copying EXIF from %s\n", dest, source);
     snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" -all:all \"-xmp:subject=Dual-ISO\" \"-UniqueCameraModel<Model\" \"%s\" -overwrite_original -q", source, dest);
     int r = system(exif_cmd);
     if(r!=0)
@@ -176,4 +176,42 @@ int extract_original_raw(const char* dng_file, const char* raw_file)
         return 0;
     }
     return 1;
+}
+
+void dng_backup_metadata(const char* dng_file)
+{
+    printf("%-16s: backing up metadata\n", dng_file);
+    
+    /* only backup application-specific tags (exclude exif tags which are copied from CR2 or set from cr2hdr) */
+
+    char exif_cmd[1000];
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -j -G -q -w json \"%s\" --EXIF:all --File:all --Exiftool:all --MakerNotes:all --Composite:all ", dng_file);
+    int r = system(exif_cmd);
+    if(r!=0)
+    {
+        printf("%-16s: could not backup metadata\n", dng_file);
+    }
+}
+
+void dng_restore_metadata(const char* dng_file)
+{
+    printf("%-16s: restoring metadata\n", dng_file);
+
+    char json_file[1000];
+    int len = snprintf(json_file, sizeof(json_file), "%s", dng_file);
+    json_file[len-3] = 'j';
+    json_file[len-2] = 's';
+    json_file[len-1] = 'o';
+    json_file[len-0] = 'n';
+    json_file[len+1] = '\0';
+    
+    char exif_cmd[1000];
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"-json=%s\" \"%s\" -q", json_file, dng_file);
+    int r = system(exif_cmd);
+    if(r!=0)
+    {
+        printf("%-16s: could not restore metadata\n", dng_file);
+        return;
+    }
+    unlink(json_file);
 }

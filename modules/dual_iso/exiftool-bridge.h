@@ -20,5 +20,7 @@ int dng_has_original_raw(const char* dng_file);
 
 int extract_original_raw(const char* dng_file, const char* raw_file);
 
+void dng_backup_metadata(const char* dng_file);
+void dng_restore_metadata(const char* dng_file);
 
 #endif
