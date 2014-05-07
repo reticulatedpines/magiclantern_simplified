@@ -812,7 +812,7 @@ int main(int argc, char** argv)
                     dng_backup_metadata(out_filename);
                 }
 
-                printf("Output file     : %s\n", out_filename);
+                printf("Output file     : %s %s\n", out_filename, is_file(out_filename) ? "(already exists, overwriting)" : "");
                 save_dng(out_filename);
 
                 copy_tags_from_source(filename, out_filename);
