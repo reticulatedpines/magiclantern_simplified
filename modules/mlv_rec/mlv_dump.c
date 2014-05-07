@@ -2635,7 +2635,7 @@ read_headers:
                 
                 if(black_fix)
                 {
-                    block_hdr.raw_info.black_level = 2048;
+                    block_hdr.raw_info.black_level = black_fix;
                 }
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
