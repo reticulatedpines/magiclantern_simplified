@@ -132,8 +132,8 @@ void set_white_level(const char* file, int level)
 static int verify_raw_embedding(const char* dng_file, const char* raw_file)
 {
     int ans = 0;
-    FILE *fr, *fd;
-    char *bufr, *bufd;
+    FILE *fr=0, *fd=0;
+    char *bufr=0, *bufd=0;
     
     fr = fopen(raw_file, "rb");
     if (!fr) goto end;
