@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include "exiftool-bridge.h"
 
 #define DEFAULT_MODEL_ID 0x285
@@ -128,6 +129,65 @@ void set_white_level(const char* file, int level)
     }
 }
 
+static int verify_raw_embedding(const char* dng_file, const char* raw_file)
+{
+    int ans = 0;
+    FILE *fr, *fd;
+    char *bufr, *bufd;
+    
+    fr = fopen(raw_file, "rb");
+    if (!fr) goto end;
+
+    char exif_cmd[1000];
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"%s\" -OriginalRawFileData -b", dng_file);
+
+    fd = popen(exif_cmd, "r");
+    if (!fd) goto end;
+    
+    #ifdef _O_BINARY
+    _setmode(_fileno(fd), _O_BINARY);
+    #endif
+    
+    bufr = malloc(1024*1024);
+    if (!bufr) goto end;
+
+    bufd = malloc(1024*1024);
+    if (!bufd) goto end;
+    
+    int total = 0;
+    while (1)
+    {
+        int a = fread(bufr, 1, 1024*1024, fr);
+        int b = fread(bufd, 1, 1024*1024, fd);
+        
+        if (a != b)
+        {
+            break;
+        }
+        
+        if (memcmp(bufr, bufd, a))
+        {
+            break;
+        }
+        
+        if (a <= 0 && total > 0)
+        {
+            printf("%-16s: verified %s (%d bytes)\n", dng_file, raw_file, total);
+            ans = 1;
+            break;
+        }
+
+        total += a;
+    }
+
+end:
+    if (fr) fclose(fr);
+    if (fd) fclose(fd);
+    if (bufr) free(bufr);
+    if (bufd) free(bufd);
+    return ans;
+}
+
 void embed_original_raw(const char* dng_file, const char* raw_file, int delete_original)
 {
     printf("%-16s: %s into %s\n", raw_file, delete_original ? "moving" : "copying", dng_file);
@@ -137,13 +197,18 @@ void embed_original_raw(const char* dng_file, const char* raw_file, int delete_o
     if(r!=0)
     {
         printf("%-16s: could not extract original raw\n", dng_file);
+        return;
     }
-    else
+
+    if (!verify_raw_embedding(dng_file, raw_file))
     {
-        if (delete_original)
-        {
-            unlink(raw_file);
-        }
+        printf("%-16s: verification of %s failed\n", dng_file, raw_file);
+        return;
+    }
+
+    if (delete_original)
+    {
+        unlink(raw_file);
     }
 }
 
