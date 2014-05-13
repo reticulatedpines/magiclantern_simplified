@@ -3536,7 +3536,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Bracketing sequence order / type. Zero is always first.",
                 .help2 =
                     "Take darker images.\n"
-                    "Take darker then brigther images, in that order.\n"
+                    "Take dark, bright, even darker, even brigther images, in that order\n"
                     "Take brighter images.\n"
             },
             #ifndef CONFIG_5DC
