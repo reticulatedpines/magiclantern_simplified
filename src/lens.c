@@ -1120,7 +1120,7 @@ PROP_HANDLER( PROP_ISO_AUTO )
 {
     uint32_t raw = *(uint32_t *) buf;
 
-    #if defined(FRAME_ISO) && !defined(CONFIG_500D) // FRAME_ISO not known
+    #if defined(FRAME_ISO)
     if (lv && is_movie_mode()) raw = (uint8_t)FRAME_ISO;
     #endif
 
@@ -1130,7 +1130,7 @@ PROP_HANDLER( PROP_ISO_AUTO )
     update_stuff();
 }
 
-#if defined(FRAME_ISO) && !defined(CONFIG_500D) // FRAME_ISO not known
+#if defined(FRAME_ISO)
 PROP_HANDLER( PROP_BV ) // camera-specific
 {
     if (lv && is_movie_mode())
