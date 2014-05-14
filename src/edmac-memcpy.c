@@ -28,7 +28,7 @@ uint32_t edmac_write_chan = 0x13;
 #elif defined(CONFIG_60D)
 uint32_t edmac_read_chan = 0x19;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
 uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
-#elif defined(CONFIG_6D)
+#elif defined(CONFIG_6D) || defined(CONFIG_5D3)
 uint32_t edmac_read_chan = 0x19;  /* Read: 0 5 7 11 14 15 */
 uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
 #elif defined(CONFIG_7D)
@@ -39,8 +39,7 @@ uint32_t edmac_write_chan = 0x05;	/* Write 3 4 5 6 7 8 10 11 12 13 14 15 */
 uint32_t edmac_read_chan = 0x0D;
 uint32_t edmac_write_chan = 0x04;
 #else
-uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x11;
+#error Please find some free EDMAC channels for your camera.
 #endif
 
 /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
