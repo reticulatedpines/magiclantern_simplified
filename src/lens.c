@@ -2391,17 +2391,71 @@ static LVINFO_UPDATE_FUNC(iso_update)
             raw2iso(dual_iso_get_recovery_iso())
         );
     }
-    else if (lens_info.raw_iso)
+    else if (is_movie_mode())
     {
-        snprintf(buffer, sizeof(buffer), SYM_ISO"%d", raw2iso(lens_info.raw_iso));
+        snprintf(buffer, sizeof(buffer), SYM_ISO);
+        
+        if (!lens_info.raw_iso)
+        {
+            /* Auto ISO? */
+            STR_APPEND(buffer, "A");
+        }
+
+        /* this includes ML ISO digital gains, if any */
+        int iso_equiv_raw = lens_info.iso_equiv_raw;
+        
+        #ifdef FEATURE_FPS_OVERRIDE
+        iso_equiv_raw += fps_get_iso_correction_evx8();
+        #endif
+        
+        int digital_gain = iso_equiv_raw - lens_info.raw_iso;
+        
+        if (digital_gain > 1)
+        {
+            /* avoid ISO 125, 250... */
+            item->color_fg = COLOR_ORANGE;
+        }
+
+        int lv_iso = (FRAME_ISO & 0xFF) + (get_htp() ? 8 : 0);
+
+        if (ABS(lv_iso - lens_info.raw_iso) > 3)
+        {
+            /* for some reason, the ISO being used is different from the one reported in properties */
+            iso_equiv_raw += lv_iso - lens_info.raw_iso;
+        }
+
+        if (raw_lv_is_enabled())
+        {
+            /* the only ISOs used are the full-stop ones;
+             * digital gain is only applied to display, not recorded */
+            iso_equiv_raw = (lv_iso+3)/8*8;
+            item->color_fg = COLOR_WHITE;
+        }
+        
+        int iso = raw2iso(iso_equiv_raw);
+        
+        if (iso > 1600)
+        {
+            /* think twice before increasing ISO above this value */
+            item->color_fg = COLOR_ORANGE;
+        }
+        
+        STR_APPEND(buffer, "%d", iso);
     }
-    else if (lens_info.iso_auto)
+    else /* photo mode */
     {
-        snprintf(buffer, sizeof(buffer), SYM_ISO"A%d", raw2iso(lens_info.raw_iso_auto));
-    }
-    else
-    {
-        snprintf(buffer, sizeof(buffer), SYM_ISO"Auto");
+        if (lens_info.raw_iso)
+        {
+            snprintf(buffer, sizeof(buffer), SYM_ISO"%d", raw2iso(lens_info.raw_iso));
+        }
+        else if (lens_info.iso_auto)
+        {
+            snprintf(buffer, sizeof(buffer), SYM_ISO"A%d", raw2iso(lens_info.raw_iso_auto));
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), SYM_ISO"Auto");
+        }
     }
 
     if (get_htp())
