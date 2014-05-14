@@ -258,40 +258,6 @@ int shutterf_to_raw(float shutterf)
     return (int) roundf(56.0f - log2f(shutterf) * 8.0f);
 }
 
-// this one attempts to round in the same way as with previous call
-// !! NOT thread safe !!
-// !! ONLY call it once per iteration !!
-// for example:      [0.4 0.5 0.6 0.4 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.3 0.5] =>
-// flick-free round: [  0   0   0   0   1   1   1   1   1   1   0   0   0   0] => 2 transitions
-// normal rounding:  [  0   1   1   0   1   1   1   1   0   0   0   0   0   1] => 5 transitions 
-int round_noflicker(float value)
-{
-    static float rounding_correction = 0;
-
-    float roundedf = roundf(value + rounding_correction);
-    
-    // if previous rounded value was smaller than float value (like 0.4 => 0),
-    // then the rounding threshold should be moved at 0.8 => round(x - 0.3)
-    // otherwise, rounding threshold should be moved at 0.2 => round(x + 0.3)
-    
-    rounding_correction = (roundedf < value ? -0.3 : 0.3);
-    
-    return (int) roundedf;
-}
-
-/*
-void round_noflicker_test()
-{
-    float values[] = {0.4, 0.5, 0.6, 0.4, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.3, 0.5, 1, 2, 3, 3.5, 3.49, 3.51, 3.49, 3.51};
-    char msg[100] = "";
-    for (int i = 0; i < COUNT(values); i++)
-    {
-        int r = round_noflicker(values[i]);
-        STR_APPEND(msg, "%d", r);
-    }
-    NotifyBox(5000, msg);
-}*/
-
 float raw2shutterf(int raw_shutter)
 {
     if (!raw_shutter) return 0.0;
@@ -413,22 +379,47 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
 {
     static char shutter[32];
     if (shutter_reciprocal_x1000 == 0)
+    {
         snprintf(shutter, sizeof(shutter), "N/A");
+    }
     else if (shutter_reciprocal_x1000 >= 10000000)
+    {
         snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", (shutter_reciprocal_x1000+500000)/1000000);
-    else if (shutter_reciprocal_x1000 >= 1000000)
-        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+50000)/100000*100);
-    else if (shutter_reciprocal_x1000 >= 100000)
-        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+5000)/10000*10);
+    }
+    else if (shutter_reciprocal_x1000 == 33333 && is_movie_mode())
+    {
+        /* exception, to avoid flicker with artificial lights (don't round this one to preferred numbers) */
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"33");
+    }
+    else if (shutter_reciprocal_x1000 > 24000)
+    {
+        /* TODO: should use binary search, because the shutter speeds array is sorted */
+        int best_err = INT_MAX;
+        int best_shutter = 0;
+        for (int i = 0; i < COUNT(values_shutter); i++)
+        {
+            int tested_shutter = values_shutter[i] * 1000;
+            int err = ABS(tested_shutter - shutter_reciprocal_x1000);
+            if (err < best_err)
+            {
+                best_shutter = tested_shutter;
+                best_err = err;
+            }
+        }
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (best_shutter+500)/1000);
+    }
     else if (shutter_reciprocal_x1000 > 3000)
+    {
         snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (shutter_reciprocal_x1000+500)/1000);
-    else {
+    }
+    else
+    {
         int shutter_x10 = (100000/shutter_reciprocal_x1000+5)/10;
         if (shutter_x10 % 10 && shutter_x10 < 40)
             snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
         else
             snprintf(shutter, sizeof(shutter), "%d\"", (shutter_x10+5) / 10);
-    } 
+    }
     return shutter;
 }
 
