@@ -35,6 +35,9 @@ uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
 uint32_t edmac_read_chan = 0x19;  /*Read 1 2 3 4 5 7 8 9 10 11 12 13 14 15 */
 uint32_t edmac_write_chan = 0x05;	/* Write 3 4 5 6 7 8 10 11 12 13 14 15 */
 //5 zoom, 6 not
+#elif defined(CONFIG_500D)
+uint32_t edmac_read_chan = 0x0D;
+uint32_t edmac_write_chan = 0x04;
 #else
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x11;
