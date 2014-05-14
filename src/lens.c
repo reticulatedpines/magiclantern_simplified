@@ -1087,6 +1087,22 @@ static void lensinfo_set_aperture(int raw)
 
 extern int bv_auto;
 
+#if defined(CONFIG_NO_MANUAL_EXPOSURE_MOVIE) && !defined(CONFIG_NO_DEDICATED_MOVIE_MODE)
+    /*
+     * If we don't have manual exposure controls in movie mode, we need to use expo override (500D/1100D/50D).
+     * 
+     * In cameras with a dedicated movie mode (500D, 1100D), exposure properties are triggered
+     * by Canon's auto exposure algorithm. Therefore, we can't sync expo override from properties.
+     * 
+     * If there is no dedicated movie mode on the mode dial (50D), we can simply enable ExpSim,
+     * and this will not use any auto exposure algorithm from Canon.
+     * Therefore, we can safely sync expo override from properties, just like on cameras with manual exposure controls.
+     * 
+     */
+
+    #define CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
+#endif
+
 static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
 {
@@ -1095,7 +1111,7 @@ PROP_HANDLER( PROP_ISO )
     else if 
         (
             buf[0] && !gui_menu_shown()
-            #if defined(ISO_ADJUSTMENT_ACTIVE) || defined(CONFIG_NO_MANUAL_EXPOSURE_MOVIE)
+            #if defined(ISO_ADJUSTMENT_ACTIVE) || defined(CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS)
             && ISO_ADJUSTMENT_ACTIVE
             #endif
         )
@@ -1159,7 +1175,7 @@ PROP_HANDLER( PROP_SHUTTER )
             && (ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
 
-        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
+        #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
         && !is_movie_mode()
         #endif
         #ifdef CONFIG_6D
@@ -1182,7 +1198,7 @@ PROP_HANDLER( PROP_APERTURE2 )
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
-        #ifdef CONFIG_NO_MANUAL_EXPOSURE_MOVIE
+        #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
         && !is_movie_mode()
         #endif
     )
