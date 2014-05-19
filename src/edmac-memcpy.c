@@ -38,6 +38,9 @@ uint32_t edmac_write_chan = 0x05;	/* Write 3 4 5 6 7 8 10 11 12 13 14 15 */
 #elif defined(CONFIG_500D)
 uint32_t edmac_read_chan = 0x0D;
 uint32_t edmac_write_chan = 0x04;
+#elif defined(CONFIG_550D)
+uint32_t edmac_read_chan = 0x19;
+uint32_t edmac_write_chan = 0x05;
 #else
 #error Please find some free EDMAC channels for your camera.
 #endif
