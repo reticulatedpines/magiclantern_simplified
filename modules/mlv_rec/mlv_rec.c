@@ -459,7 +459,13 @@ static void update_resolution_params()
 
 static int mlv_rec_update_raw()
 {
-    int loops = 1000;
+    int loops = 50;
+    
+    /* we will fail if that is just a LV mode, but no movie mode */
+    if(!lv || (!is_movie_mode() && !cam_eos_m))
+    {
+        return 0;
+    }
     
     /* this call may fail a few times due to black level being determined or anything else */
     while (!raw_update_params())
