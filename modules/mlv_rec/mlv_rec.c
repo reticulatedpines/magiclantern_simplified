@@ -3011,7 +3011,7 @@ static void raw_video_rec_task()
     raw_set_dirty();
     if (!mlv_rec_update_raw(5))
     {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        NotifyBox(5000, "Raw detect error");
         goto cleanup;
     }
 
