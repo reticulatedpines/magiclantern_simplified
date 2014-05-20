@@ -64,8 +64,6 @@
 // See "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x251D4)
 
-#define DISPLAY_SENSOR_POWERED 0
-
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
 // for gui_main_task

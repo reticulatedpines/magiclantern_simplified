@@ -34,4 +34,6 @@ int get_frame_shutter_timer();
 void set_frame_shutter_timer(int timer);
 void set_frame_shutter(int shutter_reciprocal);
 
+int fps_get_iso_correction_evx8();
+
 #endif

@@ -127,7 +127,7 @@ static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.black_fix", black_fix, 1);
+static CONFIG_INT("mlv.black_fix", black_fix, 0);
 static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
@@ -3764,7 +3764,8 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Fix black level",
                 .priv = &black_fix,
                 .max = 1,
-                .help  = "Forces the black level to 2048 to fix green cast",
+                .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
+                .help2  = "Try this to fix green casts.",
             },
             {
                 .name = "Debug trace",

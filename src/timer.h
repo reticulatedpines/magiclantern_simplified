@@ -16,7 +16,7 @@
 /**
  * A timer callback function.
  * It gets executed in the timer interrupt context
- * The first argument is possibly the global timestamp expressed in ms
+ * The first argument is the timestamp in ms/us when the timer fired
  * The second arguments is the one passed to Set* functions
  */
 typedef void(*timerCbr_t)(int, void*);
@@ -30,8 +30,8 @@ typedef void(*timerCbr_t)(int, void*);
  * SetTimerAfter -> Run after delayMs has passed
  *
  */
-extern int SetTimerAfter(int timestampMs, timerCbr_t delayed_cbr, timerCbr_t overrun_cbr, void* priv);
-extern int SetTimerWhen(int delayMs, timerCbr_t delayed_cbr, timerCbr_t overrun_cbr, void* priv);
+extern int SetTimerAfter(int timestampMs, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void* priv);
+extern int SetTimerWhen(int delayMs, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void* priv);
 extern void TimerCancel(int timerId);
 
 /*
@@ -39,12 +39,13 @@ extern void TimerCancel(int timerId);
  *
  * Examples:
  * --------
- * SetHPTimerAfterNow(0xAA0, delayed_cbr, instant_cbr, 0); // Fire after 0xAA0 uS
+ * SetHPTimerAfterNow(0xAA0, timer_cbr, overrun_cbr, 0); // Fire after 0xAA0 uS
+ * SetHPTimerNextTick() is to be called e.g. from the cbr to setup the next timer
  * SetHPTimerAfterTimeout((getDigicTime() + delay) & 0xFFFFF, cbr, 0); // Fire after delay 'ticks' using getDigicTime() as base
  */
 extern int SetHPTimerAfterTimeout(int timer_base, timerCbr_t cbr, void* priv);
-extern int SetHPTimerAfterNow(int delayUs, timerCbr_t delayed_cbr, timerCbr_t overrun_cbr, void* priv);
-
+extern int SetHPTimerAfterNow(int delayUs, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void* priv);
+extern int SetHPTimerNextTick(int last_expiry, int offset, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void *priv);
 
 
 #endif //_timer_h

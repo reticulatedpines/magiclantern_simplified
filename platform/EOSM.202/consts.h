@@ -49,8 +49,6 @@
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x3F224)
 
-#define DISPLAY_SENSOR_POWERED 0
-
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7F9624 // dec gui_main_task

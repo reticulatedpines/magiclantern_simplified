@@ -348,7 +348,7 @@ static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 #endif
 
 #ifdef CONFIG_700D
-static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
 #endif
 
 #ifdef CONFIG_60D
@@ -360,7 +360,7 @@ static int dynamic_ranges[] = {1100, 1094, 1060, 1005, 919, 826, 726, 633};
 #endif
 
 #ifdef CONFIG_EOSM
-static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+static int dynamic_ranges[] = {1060, 1063, 1037, 982, 901, 831, 718, 622, 536};
 #endif
 
 #ifdef CONFIG_7D

@@ -167,10 +167,15 @@ static CONFIG_INT( "zoom.halfshutter", zoom_halfshutter, 0);
 static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 
+#ifdef FEATURE_BULB_TIMER
 static int bulb_duration_change(struct config_var * var, int old_value, int new_value);
-static CONFIG_INT       ( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT_UPDATE( "bulb.duration", bulb_duration, 5, bulb_duration_change);
+static CONFIG_INT       ( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT       ( "bulb.display.mode", bulb_display_mode, 0);
+#else
+static int bulb_duration = 0;
+static int bulb_display_mode = 0;
+#endif
 
 static CONFIG_INT( "mlu.auto", mlu_auto, 0);
 static CONFIG_INT( "mlu.mode", mlu_mode, 1);
@@ -2938,7 +2943,6 @@ bulb_take_pic(int duration)
 }
 
 #ifdef FEATURE_BULB_TIMER
-
 static int bulb_duration_change(struct config_var * var, int old_value, int new_value)
 {
     #ifdef FEATURE_EXPO_OVERRIDE
@@ -3527,9 +3531,13 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Sequence",
                 .priv       = &hdr_sequence,
                 .max = 2,
-                .help = "Bracketing sequence order / type. Zero is always first.",
                 .icon_type = IT_DICE,
                 .choices = CHOICES("0 - --", "0 - + -- ++", "0 + ++"),
+                .help = "Bracketing sequence order / type. Zero is always first.",
+                .help2 =
+                    "Take darker images.\n"
+                    "Take dark, bright, even darker, even brigther images, in that order\n"
+                    "Take brighter images.\n"
             },
             #ifndef CONFIG_5DC
             {

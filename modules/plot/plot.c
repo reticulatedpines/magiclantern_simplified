@@ -408,8 +408,8 @@ void plot_graph_update(plot_coll_t *coll, plot_graph_t *plot)
         {
             uint32_t size = plot->dot_size;
             
-            if( (x - plot->dot_size > plot->x) && (x + plot->dot_size < plot->x + plot->w) && 
-                (y - plot->dot_size > plot->y) && (y + plot->dot_size < plot->y + plot->h))
+            if( (x - size > plot->x) && (x + size < plot->x + plot->w) && 
+                (y - size > plot->y) && (y + size < plot->y + plot->h))
             {
                 fill_circle(x, y, size, plot->color_dots);
             }

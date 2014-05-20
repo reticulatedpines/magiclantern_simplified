@@ -26,7 +26,6 @@
 // idk
 #define FOCUS_CONFIRMATION 0
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
-//~ #define DISPLAY_SENSOR_POWERED 0
 
 #define LV_BOTTOM_BAR_DISPLAYED 0
 //~ #define ISO_ADJUSTMENT_ACTIVE 0
@@ -93,7 +92,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define CONTROL_BV 0
-#define DISPLAY_SENSOR_POWERED 0
 #define LVAE_DISP_GAIN 0
 #define MVR_FRAME_NUMBER 0
 

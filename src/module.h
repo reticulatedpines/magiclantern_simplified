@@ -307,7 +307,8 @@ struct module_symbol_entry
     void** address;
 };
 
-/* for module routines that may be called from core
+/* 
+ * For module routines that may be called from core:
  *
  * usage:
  * static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_intervalometer_wait);
@@ -317,6 +318,9 @@ struct module_symbol_entry
  * static void(*foobar)(int, int) = MODULE_SYMBOL(do_foobar, default_function)
  * 
  * All module symbols are updated after modules are loaded.
+ * 
+ * You **MUST** declare these symbols static.
+ * If you don't, the error will only be detected at runtime, if no modules are loaded.
  */
 
 #define MODULE_SYMBOL(NAME, DEFAULT_ADDRESS) \

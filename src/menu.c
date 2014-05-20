@@ -2003,7 +2003,7 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
     else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR && !is_manual_focus())
+    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
     else if (DEPENDS_ON(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
@@ -2046,7 +2046,7 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual focus.");
         else if (WORKS_BEST_IN(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR && !is_manual_focus())
+        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
         //~ else if (WORKS_BEST_IN(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");
@@ -2231,6 +2231,24 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
     // hidden marker
     else if (HAS_CURRENT_HIDDEN_FLAG(entry))
         batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
+}
+
+static void print_help_line(int color, int x, int y, char* msg)
+{
+    int fnt = FONT(FONT_MED, color, MENU_BG_COLOR_HEADER_FOOTER);
+    int len = bmp_string_width(fnt, msg);
+    
+    if (len > 720 - 2*x)
+    {
+        /* squeeze long lines (if the help text is just a bit too long) */
+        /* TODO: detect if squeezing fails and beep or print the help line in red; requires changes in the font backend */
+        fnt |= FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720 - 2*x);
+    }
+    
+    bmp_printf(
+        fnt, x, y,
+        "%s", msg
+    );
 }
 
 static void
@@ -2464,12 +2482,10 @@ skip_name:
         char* help1 = (char*)entry->help;
         if (!help1) help1 = info->help;
         
-        if (help1) bmp_printf(
-            FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
-             10,  MENU_HELP_Y_POS, 
-            "%s",
-            help1
-        );
+        if (help1)
+        {
+            print_help_line(help_color, 10, MENU_HELP_Y_POS, help1);
+        }
 
         char* help2 = 0;
         if (help1 != info->help) help2 = info->help;
@@ -2497,12 +2513,10 @@ skip_name:
         }
 
         // only show the second help line if there are no audio meters
-        if (!audio_meters_are_drawn()) bmp_printf(
-            FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
-             10,  MENU_HELP_Y_POS_2, 
-             "%s",
-             help2
-        );
+        if (!audio_meters_are_drawn())
+        {
+            print_help_line(help_color, 10, MENU_HELP_Y_POS_2, help2);
+        }
     }
 
     // if there's a warning message set, display it
@@ -2516,11 +2530,7 @@ skip_name:
         int warn_y = audio_meters_are_drawn() ? MENU_HELP_Y_POS : MENU_WARNING_Y_POS;
         
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, warn_y, 720, font_med.height);
-        bmp_printf(
-            FONT(FONT_MED, warn_color, MENU_BG_COLOR_HEADER_FOOTER),
-             10, warn_y, "%s",
-                info->warning
-        );
+        print_help_line(warn_color, 10, warn_y, info->warning);
     }
     
     /* from now on, we'll draw the icon only, which should be shifted */
