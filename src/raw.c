@@ -1861,11 +1861,11 @@ static void raw_lv_update()
     {
         raw_lv_enable();
         
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 5; i++)
         {
             if (raw_update_params_work())
                 break;
-            msleep(50);
+            wait_lv_frames(1);
         }
     }
     else if (!new_state && lv_raw_enabled)
