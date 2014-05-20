@@ -476,6 +476,7 @@ static void refresh_raw_settings(int force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
+            /* this one may be called from menu, so don't retry here, to keep the UI responsive */
             if (raw_update_params())
             {
                 update_resolution_params();
@@ -660,8 +661,11 @@ static int setup_buffers()
     {
         ResumeLiveView();
         msleep(500);
-        while (!raw_update_params())
-            msleep(100);
+        
+        if (!raw_update_params_retry_lv(5))
+        {
+            return 0;
+        }
         refresh_raw_settings(1);
     }
     

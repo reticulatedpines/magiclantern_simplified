@@ -457,26 +457,18 @@ static void update_resolution_params()
     update_cropping_offsets();
 }
 
-static int mlv_rec_update_raw()
+static int mlv_rec_update_raw(int retries)
 {
-    int loops = 50;
-    
     /* we will fail if that is just a LV mode, but no movie mode */
-    if(!lv || (!is_movie_mode() && !cam_eos_m))
+    if(!lv || !is_movie_mode())
     {
         return 0;
     }
     
-    /* this call may fail a few times due to black level being determined or anything else */
-    while (!raw_update_params())
+    /* this call will retry internally, and if it fails, we can assume it was indeed something bad */
+    if (!raw_update_params_retry_lv(retries))
     {
-        msleep(20);
-        
-        loops--;
-        if(!loops)
-        {
-            return 0;
-        }
+        return 0;
     }
     
     /* update interal parameters res_x, res_y, frame_size, squeeze_factor and crop offsets  */
@@ -623,7 +615,8 @@ static void refresh_raw_settings(int32_t force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            mlv_rec_update_raw();
+            /* this one may be called from menu, so don't retry here, to keep the UI responsive */
+            mlv_rec_update_raw(0);
         }
     }
 }
@@ -915,7 +908,7 @@ static int32_t setup_buffers()
         ResumeLiveView();
         msleep(500);
         
-        if(!mlv_rec_update_raw())
+        if(!mlv_rec_update_raw(5))
         {
             return 0;
         }
@@ -3016,7 +3009,7 @@ static void raw_video_rec_task()
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
-    if (!mlv_rec_update_raw())
+    if (!mlv_rec_update_raw(5))
     {
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
         goto cleanup;

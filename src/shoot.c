@@ -979,7 +979,8 @@ void center_lv_afframe_do()
         {
             /* center on the raw frame */
             raw_lv_request();
-            if (raw_update_params())
+            
+            if (raw_update_params_retry_lv(3))
             {
                 int delta_x, delta_y;
                 if (focus_box_get_raw_crop_offset(&delta_x, &delta_y))

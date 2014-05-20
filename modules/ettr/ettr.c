@@ -725,6 +725,7 @@ static void auto_ettr_step_task(int corr)
     auto_ettr_running = 0;
 }
 
+/* photo mode only, no LV */
 static void auto_ettr_step()
 {
     if (!auto_ettr) return;
@@ -987,7 +988,7 @@ static void auto_ettr_on_request_task_fast()
     NotifyBox(100000, "ETTR...");
     raw_lv_request(); raw_requested = 1;
 
-    if (!raw_update_params())
+    if (!raw_update_params_retry_lv(3))
     {
         err_msg = "Raw error";
         goto err;
@@ -1089,7 +1090,7 @@ static void auto_ettr_step_lv_fast()
     
     raw_lv_request();
 
-    if (!raw_update_params())
+    if (!raw_update_params_retry_lv(3))
     {
         NotifyBox(5000, "Raw error");
         goto skip;
@@ -1163,7 +1164,7 @@ static void auto_ettr_on_request_task_slow()
         
         raw_lv_request();
 
-        if (!raw_update_params())
+        if (!raw_update_params_retry_lv(3))
         {
             err_msg = "Raw error";
             goto err;
@@ -1220,8 +1221,14 @@ static void auto_ettr_step_lv_slow()
     if (!should_run_polling_action(1500, &aux))
         return;
     
+    int corr = INT_MIN;
     raw_lv_request();
-    int corr = auto_ettr_get_correction();
+    
+    if (raw_update_params_retry_lv(3))
+    {
+        corr = auto_ettr_get_correction();
+    }
+    
     raw_lv_release();
     
     if (corr == INT_MIN)

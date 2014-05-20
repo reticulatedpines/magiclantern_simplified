@@ -107,7 +107,7 @@ silent_pic_take_raw(int interactive)
     msleep(50);
 
     /* update raw geometry, autodetect black/white levels etc */
-    raw_update_params();
+    raw_update_params_retry_lv(3);
 
     /* save it to card */
     char* fn = silent_pic_get_name();
@@ -488,8 +488,10 @@ silent_pic_take_raw(int interactive)
     msleep(100);
  
     /* get image resolution, white level etc; retry if needed */
-    while (!raw_update_params())
-        msleep(50);
+    if (!raw_update_params_retry_lv(3))
+    {
+        return;
+    }
 
     /* allocate RAM */
     struct memSuite * hSuite = 0;
