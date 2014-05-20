@@ -2659,7 +2659,7 @@ static void grayscale_menus_step()
     prev_sig = sig;
 
     #ifdef CONFIG_5D3
-    if (get_yuv422_vram()->vram == 0)
+    if (get_yuv422_vram()->vram == 0 && !lv)
     {
         /* 5D3-123 quirk: YUV422 RAM is not initialized until going to LiveView or Playback mode
          * (and even there, you need a valid image first)
