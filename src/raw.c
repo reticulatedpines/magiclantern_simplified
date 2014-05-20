@@ -950,6 +950,29 @@ int raw_update_params()
     return ans;
 }
 
+int raw_update_params_retry_lv(int retries)
+{
+    int ans = raw_update_params();
+
+    /* in LiveView, retry a few times (there may be transient bad frames, resolution changes and so on) */
+    for (int tries = 0; tries < retries && lv && !ans && raw_lv_is_enabled(); tries++)
+    {
+        /* wait for the next LiveView frame */
+        wait_lv_frames(1);
+        
+        /* if LV raw settings are marked as "dirty", retrying without waiting will fail for sure */
+        while (get_ms_clock_value() < next_retry_lv)
+        {
+            msleep(10);
+        }
+        
+        /* let's try again */
+        ans = raw_update_params();
+    }
+    
+    return ans;
+}
+
 static int preview_rect_x;
 static int preview_rect_y;
 static int preview_rect_w;

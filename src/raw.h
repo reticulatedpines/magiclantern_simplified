@@ -77,6 +77,9 @@ struct raw_pixblock
 /* returns 1=success, 0=failed */
 int raw_update_params();
 
+/* in LiveView, this will retry as needed */
+int raw_update_params_retry_lv(int retries);
+
 /* get a red/green/blue pixel near the specified coords (approximate) */
 int raw_red_pixel(int x, int y);
 int raw_green_pixel(int x, int y);
