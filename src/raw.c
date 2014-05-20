@@ -839,7 +839,10 @@ static int raw_update_params_work()
         if (1)
         {
             /* for debugging: if black check fails, save the bad frame as DNG */
-            save_dng("bad.dng", &raw_info);
+            
+            char filename[50];
+            get_numbered_file_name("bad%02d.dng", 99, filename, sizeof(filename));
+            save_dng(filename, &raw_info);
             reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
         }
 
