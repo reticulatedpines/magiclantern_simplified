@@ -426,8 +426,29 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
 // Pretty prints the shutter speed given the raw shutter value as input
 char* lens_format_shutter(int tv)
 {
-    int shutter_reciprocal_x1000 = tv ? (int) roundf(4000000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
-    return lens_format_shutter_reciprocal(shutter_reciprocal_x1000);
+    static char shutter[32];
+    if(tv >= 70 && tv - 15 < COUNT(values_shutter))
+    {
+        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", values_shutter[tv-15]);
+    }
+    else if(tv >= 15 && tv < 70)
+    {
+        uint16_t value = values_shutter[tv-15];
+        if(value % 10 != 0)
+        {
+            snprintf(shutter, sizeof(shutter), "%d.%d\"", value / 10, value % 10);
+        }
+        else
+        {
+            snprintf(shutter, sizeof(shutter), "%d\"", value / 10);
+        }
+    }
+    else
+    {
+        //this should never happen, but if it does, just print the raw value
+        snprintf(shutter, sizeof(shutter), "RAW:%d", tv);
+    }
+    return shutter;
 }
 
 int FAST get_ml_topbar_pos()
