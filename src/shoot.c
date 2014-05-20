@@ -3531,9 +3531,13 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Sequence",
                 .priv       = &hdr_sequence,
                 .max = 2,
-                .help = "Bracketing sequence order / type. Zero is always first.",
                 .icon_type = IT_DICE,
                 .choices = CHOICES("0 - --", "0 - + -- ++", "0 + ++"),
+                .help = "Bracketing sequence order / type. Zero is always first.",
+                .help2 =
+                    "Take darker images.\n"
+                    "Take dark, bright, even darker, even brigther images, in that order\n"
+                    "Take brighter images.\n"
             },
             #ifndef CONFIG_5DC
             {

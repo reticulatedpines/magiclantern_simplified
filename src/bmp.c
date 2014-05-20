@@ -448,6 +448,26 @@ bmp_fill(
 #else
         memset(row, color, w);
 #endif
+
+     #ifdef CONFIG_500D // err70?!
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+     #endif
+
     }
 }
 

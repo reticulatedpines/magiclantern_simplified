@@ -1034,7 +1034,7 @@ int main (int argc, char *argv[])
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
         {"black-fix",  optional_argument, NULL,  'B' },
-        {"fix-bug",  fix_bug, NULL,  'F' },
+        {"fix-bug",  required_argument, NULL,  'F' },
         {"batch",  no_argument, &batch_mode,  1 },
         {"dump-xrefs",   no_argument, &dump_xrefs,  1 },
         {"dng",    no_argument, &dng_output,  1 },
@@ -1065,12 +1065,13 @@ int main (int argc, char *argv[])
                 if(!optarg)
                 {
                     print_msg(MSG_ERROR, "Error: Missing bug ID\n");
-                    print_msg(MSG_ERROR, "    #1 - fix invalid block sizes (+4)\n");
+                    print_msg(MSG_ERROR, "    #1 - fix invalid block sizes\n");
                     return ERR_PARAM;
                 }
                 else
                 {
                     fix_bug = MIN(16384, MAX(1, atoi(optarg)));
+                    print_msg(MSG_INFO, "FIX BUG #%d [active]\n", fix_bug);
                 }
                 break;
               
@@ -2635,7 +2636,7 @@ read_headers:
                 
                 if(black_fix)
                 {
-                    block_hdr.raw_info.black_level = 2048;
+                    block_hdr.raw_info.black_level = black_fix;
                 }
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));

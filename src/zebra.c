@@ -2995,6 +2995,11 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
+                .help2 =
+                    "Percentage of overall brightness level.\n"
+                    "8 bit RGB level.\n"
+                    "HTML like color codes.\n"
+                    "Negative value from clipping, in EV (RAW).\n"
             },
             {
                 .name = "Spot Position",
@@ -3063,6 +3068,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &hist_warn, 
                 .max = 1,
                 .help = "Display warning dots when one color channel is clipped.",
+                .help2 = "Numbers represent the percentage of pixels clipped.",
             },
             #ifdef FEATURE_RAW_HISTOGRAM
             {
@@ -3071,7 +3077,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 2,
                 .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
                 .update = raw_histo_update,
-                .help = "Use RAW histogram whenever possible.",
+                .help = "Use RAW based histogram.",
             },
             {
                 .name = "RAW EV indicator",

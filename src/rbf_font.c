@@ -384,7 +384,7 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
         int bins = 0;
         char* c = (char*) str;
         int indent = 1;
-        while (*c)
+        while (*c && *(c+1))    /* note: last char should not be stretched */
         {
             if (*c != ' ' && *c != '*') indent = 0;
             bins += indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;

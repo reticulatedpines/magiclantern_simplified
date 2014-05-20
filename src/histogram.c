@@ -119,8 +119,14 @@ MENU_UPDATE_FUNC(raw_histo_update)
 {
     menu_checkdep_raw(entry, info);
 
-    if (raw_histogram_enable)
+    if (HISTOBAR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use Histobar in LiveView, RAW histogram after taking a pic.");
+    }
+    else if (raw_histogram_enable)
+    {
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
+    }
 }
 #endif
 
