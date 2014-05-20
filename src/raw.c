@@ -840,10 +840,18 @@ static int raw_update_params_work()
         {
             /* for debugging: if black check fails, save the bad frame as DNG */
             
-            char filename[50];
-            get_numbered_file_name("bad%02d.dng", 99, filename, sizeof(filename));
-            save_dng(filename, &raw_info);
-            reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+            /* make a copy of the raw buffer, because it's being updated while we are saving it */
+            void* buf = malloc(raw_info.frame_size);
+            if (buf)
+            {
+                memcpy(buf, raw_info.buffer, raw_info.frame_size);
+                char filename[50];
+                get_numbered_file_name("bad%02d.dng", 99, filename, sizeof(filename));
+                struct raw_info local_raw_info = raw_info;
+                local_raw_info.buffer = buf;
+                save_dng(filename, &local_raw_info);
+                free(buf);
+            }
         }
 
         return 0;
