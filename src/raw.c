@@ -1333,8 +1333,8 @@ static int black_level_check_left(int ref_mean, int ref_stdev_x100, int y1, int 
             i+1, N, local_mean, local_stdev_x100, ref_mean, ref_stdev_x100, local_mean - ref_mean, ref_stdev_x100/200
         );
 
-        /* allow the local mean to be within ref_mean +/- 0.5 ref_sigma */
-        if (ABS(local_mean - ref_mean) > ref_stdev_x100/200)
+        /* allow the local mean to be within ref_mean +/- ref_sigma */
+        if (ABS(local_mean - ref_mean) > ref_stdev_x100/100)
         {
             printf("Black %d/%d: mean too different (%d, ref %d %d)\n", i+1, N, local_mean, ref_mean, ref_stdev_x100);
             return 0;
