@@ -2824,15 +2824,31 @@ bulb_take_pic(int duration)
     
     msleep(100);
     
-    int d0 = set_drive_single();
+    int d0 = -1;
+    int initial_delay = 300;
+    
+    switch (drive_mode)
+    {
+        case DRIVE_SELFTIMER_2SEC:
+            duration += 2000;
+            initial_delay = 2000;
+            break;
+        case DRIVE_SELFTIMER_REMOTE:
+            duration += 10000;
+            initial_delay = 10000;
+            break;
+        default:
+            d0 = set_drive_single();
+            mlu_lock_mirror_if_needed();
+    }
+    
     //~ NotifyBox(3000, "BulbStart (%d)", duration); msleep(1000);
-    mlu_lock_mirror_if_needed();
     
     SW1(1,300);
     
     int t_start = get_ms_clock_value();
     int t_end = t_start + duration;
-    SW2(1,300);
+    SW2(1, initial_delay);
     
 #ifdef FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC
     int display_forced_on = 0;
