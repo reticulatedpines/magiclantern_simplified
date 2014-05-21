@@ -443,6 +443,10 @@ char* lens_format_shutter(int tv)
             snprintf(shutter, sizeof(shutter), "%d\"", value / 10);
         }
     }
+    else if (tv == SHUTTER_BULB)
+    {
+        snprintf(shutter, sizeof(shutter), "BULB");
+    }
     else
     {
         //this should never happen, but if it does, just print the raw value

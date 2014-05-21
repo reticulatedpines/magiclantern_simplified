@@ -2770,7 +2770,7 @@ void ensure_bulb_mode()
     #else
         if (shooting_mode != SHOOTMODE_M)
             set_shooting_mode(SHOOTMODE_M);
-        int shutter = 12; // huh?!
+        int shutter = SHUTTER_BULB;
         prop_request_change( PROP_SHUTTER, &shutter, 4 );
         prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
     #endif
@@ -3430,7 +3430,7 @@ static void expo_preset_toggle()
     else
         beep();
     
-    if (pre_tv != 12) lens_set_rawshutter(pre_tv); else ensure_bulb_mode();
+    if (pre_tv != SHUTTER_BULB) lens_set_rawshutter(pre_tv); else ensure_bulb_mode();
     lens_set_rawiso(pre_iso);
     lens_set_rawaperture(pre_av);
     if (lens_info.wb_mode == WB_KELVIN)

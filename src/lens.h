@@ -417,6 +417,7 @@ void set_htp(int value);
 #define ISO_12800 128
 #define ISO_25600 136
 
+#define SHUTTER_BULB 12 /* special value for BULB mode */
 #define SHUTTER_MIN 16
 #define SHUTTER_30s 16
 #define SHUTTER_25s 19
