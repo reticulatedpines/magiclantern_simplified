@@ -55,6 +55,7 @@ NSTUB(0xFF9836A0,  FIO_FindClose)                           // called with ret_F
 NSTUB(0xFF9835A0,  FIO_FindNextEx)                          // d
 NSTUB(0xFF982820,  FIO_ReadFile)                            // d
 NSTUB(0xFF9829A0,  FIO_SeekFile)                            // mk11174 and Chucho  0xff9829b0
+NSTUB(0xFF9828D0,  FIO_SeekSkipFile)
 NSTUB(0xFF9829D0,  FIO_WriteFile)                           // d
 NSTUB(0xFF982DF4, _FIO_CreateDirectory)
 NSTUB(0xFF9824E8, _FIO_CreateFile)                          // d
@@ -203,6 +204,8 @@ NSTUB(0xFF98A990,  gui_timer_something)                     // d
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 // NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 // NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0XFF8652CC,  SetHPTimerAfterNow)
+NSTUB(0xFF86534C,  SetHPTimerNextTick)
 
 /** H264 Encoder **/
 NSTUB(    0x7674,  mvr_config)                              // d
