@@ -1639,7 +1639,7 @@ static MENU_UPDATE_FUNC(shutter_display)
 
     if (lens_info.raw_shutter)
     {
-        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
+        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_shutter - SHUTTER_MIN) * 100 / (SHUTTER_MAX - SHUTTER_MIN));
         MENU_SET_ENABLED(1);
     }
     else 
