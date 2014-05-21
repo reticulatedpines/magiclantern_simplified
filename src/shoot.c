@@ -1665,6 +1665,7 @@ shutter_toggle(void* priv, int sign)
             break;
         i = new_i;
         if (codes_shutter[i] == 0) continue;
+        if (is_movie_mode() && codes_shutter[i] < SHUTTER_1_25) { k--; continue; }  /* there are many values to skip */
         if (lens_set_rawshutter(codes_shutter[i])) break;
     }
 }
