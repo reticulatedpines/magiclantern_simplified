@@ -141,8 +141,8 @@ static CONFIG_INT("fps.override", fps_override, 0);
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 
 // 1000 = zero, more is positive, less is negative
-static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add this to default Canon value
-static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add this to computed value (for fine tuning)
+static CONFIG_INT("fps.timerA.off", desired_fps_timer_a_offset, 0); // add this to default Canon value
+static CONFIG_INT("fps.timerB.off", desired_fps_timer_b_offset, 0); // add this to computed value (for fine tuning)
 static CONFIG_INT("fps.preset", fps_criteria, 0);
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
@@ -355,13 +355,6 @@ int get_current_tg_freq()
 
 #define SHUTTER_x1000_TO_TIMER(s_x1000) (TG_FREQ_SHUTTER/(s_x1000))
 #define TIMER_TO_SHUTTER_x1000(t) (TG_FREQ_SHUTTER/(t))
-
-/*static void fps_change_timer_a(int new_value)
-{
-    int new_timer_a = COERCE(new_value, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX) & 0xFFFE;
-    new_timer_a |= (fps_timer_a_orig & 1);
-    desired_fps_timer_a_offset = new_timer_a - fps_timer_a_orig + 1000;
-}*/
 
 #ifndef FRAME_SHUTTER_BLANKING_WRITE
 
@@ -701,7 +694,7 @@ static void fps_setup_timerB(int fps_x1000)
     if (!fps_x1000) return;
 
     // now we can compute timer B
-    int timerB_off = ((int)desired_fps_timer_b_offset) - 1000;
+    int timerB_off = desired_fps_timer_b_offset;
     int timerB = 0;
     timerB = fps_get_timer(fps_x1000);
     
@@ -957,8 +950,8 @@ static void fps_reset()
 static void fps_change_value(void* priv, int delta)
 {
     fps_override_index = MOD(fps_override_index + delta, COUNT(fps_values_x1000));
-    desired_fps_timer_a_offset = 1000;
-    desired_fps_timer_b_offset = 1000;
+    desired_fps_timer_a_offset = 0;
+    desired_fps_timer_b_offset = 0;
     if (fps_override) fps_needs_updating = 1;
 }
 
@@ -1003,7 +996,7 @@ static MENU_UPDATE_FUNC(fps_timer_print)
     if (t0 == 0) t0 = 1;
     int t_min = A ? FPS_TIMER_A_MIN : FPS_TIMER_B_MIN;
     int t_max = A ? FPS_TIMER_A_MAX : FPS_TIMER_B_MAX;
-    int finetune_delta = ((int)(A ? desired_fps_timer_a_offset : desired_fps_timer_b_offset)) - 1000;
+    int finetune_delta = A ? desired_fps_timer_a_offset : desired_fps_timer_b_offset;
     int delta = t - t0;
     char dec[10] = "";
     if (!finetune_delta && ABS(delta) >= 100) 
@@ -1214,7 +1207,7 @@ static void fps_setup_timerA(int fps_x1000)
     timerA = COERCE(timerA, FPS_TIMER_A_MIN, timerA_max);
     
     // apply user fine tuning
-    int timerA_off = ((int)desired_fps_timer_a_offset) - 1000;
+    int timerA_off = desired_fps_timer_a_offset;
     timerA += timerA_off;
 
     // check hard limits again
@@ -1232,8 +1225,8 @@ static void fps_setup_timerA(int fps_x1000)
 
 static void fps_criteria_change(void* priv, int delta)
 {
-    desired_fps_timer_a_offset = 1000;
-    desired_fps_timer_b_offset = 1000;
+    desired_fps_timer_a_offset = 0;
+    desired_fps_timer_b_offset = 0;
     fps_criteria = MOD(fps_criteria + delta, 4);
     if (fps_override) fps_needs_updating = 1;
 }
