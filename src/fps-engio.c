@@ -890,11 +890,11 @@ static void flip_zoom_twostage(int stage)
     {
         zoom0 = lv_dispsize;
         int zoom1 = zoom0 == 5 ? 10 : 5;
-        set_lv_zoom(zoom1);
+        prop_request_change_wait(PROP_LV_DISPSIZE, &zoom1, 4, 100);
     }
     else if (stage == 2)
     {
-        set_lv_zoom(zoom0);
+        prop_request_change_wait(PROP_LV_DISPSIZE, &zoom0, 4, 1000);
     }
 }
 
