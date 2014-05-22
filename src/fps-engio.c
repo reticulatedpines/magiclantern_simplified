@@ -939,13 +939,18 @@ static void fps_reset()
 {
     //~ fps_override = 0;
     fps_needs_updating = 0;
-    fps_register_reset();
-    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
-    fps_disable_timers_evfstate();
-    #endif
 
     #ifdef NEW_FPS_METHOD
+    /* may be a little slower, but if we call it after fps_register_reset, 
+     * it would be like a short overcranking (with transient image artifacts)
+     * this happens because the powersave timers are optimized for the low FPS */
     fps_unpatch_table(1);
+    #endif
+    
+    fps_register_reset();
+    
+    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+    fps_disable_timers_evfstate();
     #endif
 
     restore_sound_recording();
@@ -1918,6 +1923,7 @@ static void fps_patch_timerB(int timer_value)
 
     fps_unpatch_table(0);
     fps_read_default_timer_values();
+    EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
     EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
 
     flip_zoom_twostage(1);
