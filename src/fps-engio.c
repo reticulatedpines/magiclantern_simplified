@@ -445,7 +445,12 @@ void fps_override_shutter_blanking()
 
     /* sensor duty cycle: range 0 ... timer B */
     int current_blanking = nrzi_decode(FRAME_SHUTTER_BLANKING_READ);
-    int current_exposure = fps_timer_b_orig - current_blanking;
+    int fps_timer_b_assumed_by_canon = fps_timer_b_method ? fps_timer_b : fps_timer_b_orig;
+    int current_exposure = fps_timer_b_assumed_by_canon - current_blanking;
+    
+    /* wrong assumptions? */
+    if (current_exposure < 0)
+        return;
 
     int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
     int current_fps = fps_get_current_x1000();
