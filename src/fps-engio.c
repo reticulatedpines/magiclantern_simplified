@@ -282,14 +282,12 @@ static void fps_read_current_timer_values();
     #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
-    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #elif defined(CONFIG_60D)
     #define NEW_FPS_METHOD 1
     #define SENSOR_TIMING_TABLE MEM(0x2a668)
     #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1420)
-    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #elif defined(CONFIG_1100D)
     #define NEW_FPS_METHOD 1
     #undef TG_FREQ_BASE
@@ -300,7 +298,6 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_B_MIN 1050
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
-    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #elif defined(CONFIG_5D3)
     #define NEW_FPS_METHOD 1
     #define SENSOR_TIMING_TABLE MEM(0x325ac)
@@ -311,7 +308,6 @@ static void fps_read_current_timer_values();
 
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN (ZOOM ? 1470 : MV720 ? 910 : raw_lv_is_enabled() ? 1500 : 1580)
-    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
 
 #ifdef NEW_FPS_METHOD
@@ -1464,7 +1460,7 @@ static void fps_read_default_timer_values()
     fps_reg_a_orig = FPS_REGISTER_A_DEFAULT_VALUE;
     #if defined(NEW_FPS_METHOD)
     int mode = get_fps_video_mode();
-    unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
+    unsigned int pos = get_table_pos(mode, video_mode_crop, 0, lv_dispsize);
     fps_reg_b_orig = sensor_timing_table_original[pos] - 1; // nobody will change it from here :)
     //bmp_printf(FONT_LARGE, 50, 50, "%08x %08x %08x", fps_reg_a_orig, bmp_vram_real(), bmp_vram_idle());
     #else
@@ -1852,10 +1848,10 @@ static int get_fps_video_mode()
 {
     int mode =
         lv_dispsize > 1 || get_expsim()!=2 ? 2 :
-        video_mode_fps == 60 ? 0 : 
-        video_mode_fps == 50 ? 1 : 
-        video_mode_fps == 30 ? 2 : 
-        video_mode_fps == 25 ? 3 : 
+        video_mode_fps == 60 ? 3 : 
+        video_mode_fps == 50 ? 6 : 
+        video_mode_fps == 30 ? 1 : 
+        video_mode_fps == 25 ? 5 : 
         video_mode_fps == 24 ? 4 : 0;
     return mode;
 }
@@ -1914,7 +1910,7 @@ static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned
 static void fps_patch_timerB(int timer_value)
 {
     int mode = get_fps_video_mode();   
-    int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
+    int pos = get_table_pos(mode, video_mode_crop, 0, lv_dispsize);
 
     if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (uintptr_t) sensor_timing_table_patched)
         return;
