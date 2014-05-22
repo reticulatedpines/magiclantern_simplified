@@ -129,7 +129,7 @@ static int fps_values_x1000[] = {
     28000, 29000, 29970, 30000, 31000, 32000, 33000, 33333, 34000, 35000
     // restrict max fps to 35 for 1100D, 5D2, 50D, 500D (others?)
     #if !defined(CONFIG_1100D) && !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
-    , 40000, 48000, 50000, 60000, 65000
+    , 37000, 38000, 39000, 40000, 41000, 42000, 43000, 44000, 45000, 48000, 50000, 60000, 65000
     #endif
 };
 
@@ -301,18 +301,18 @@ static void fps_read_current_timer_values();
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
-#endif
-
-/*
 #elif defined(CONFIG_5D3)
     #define NEW_FPS_METHOD 1
     #define SENSOR_TIMING_TABLE MEM(0x325ac)
     //~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
+
+    #undef FPS_TIMER_A_MIN
+    #define FPS_TIMER_A_MIN (ZOOM ? 510 : MV720 ? 410 : 398)
+
     #undef FPS_TIMER_B_MIN
-    #define FPS_TIMER_B_MIN 100
-    static const int mode_offset_map[] = { 4, 7, 2, 6, 5, 0, 2 };
+    #define FPS_TIMER_B_MIN (ZOOM ? 1470 : MV720 ? 910 : raw_lv_is_enabled() ? 1500 : 1580)
+    static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
 #endif
-*/
 
 #ifdef NEW_FPS_METHOD
 static int fps_timer_b_method = 0;
