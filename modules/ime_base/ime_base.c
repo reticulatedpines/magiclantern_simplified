@@ -11,6 +11,7 @@
 #include <bmp.h>
 #include <menu.h>
 #include <config.h>
+#include <string.h>
 
 #include "ime_base.h"
 
