@@ -1149,6 +1149,10 @@ static void fps_setup_timerA(int fps_x1000)
     /* try to limit vertical noise lines */
     timerA_max = timerA * 3/2;
     #endif
+
+    #ifdef NEW_FPS_METHOD
+    int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+    #endif
     
     // {"Low light", "Exact FPS", "180deg shutter", "Jello effect"},
     switch (fps_criteria)
@@ -1159,7 +1163,6 @@ static void fps_setup_timerA(int fps_x1000)
             // we get best low light capability and lowest amount of jello effect.
             timerA = fps_timer_a_orig;
             #ifdef NEW_FPS_METHOD
-            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
             fps_timer_b_method = fps_x1000 < default_fps ? 0 : 1;
             #endif
             break;
@@ -1192,8 +1195,19 @@ static void fps_setup_timerA(int fps_x1000)
     
     #ifdef NEW_FPS_METHOD
     // FPS ramping effect requires being able to change FPS on the fly
-    if (FPS_RAMP) 
+    if (FPS_RAMP)
+    {
         fps_timer_b_method = 0;
+    }
+    
+    #ifdef FRAME_SHUTTER_BLANKING_WRITE
+    /* if we can override shutter blanking, table patching will be only needed for overcranking */
+    /* otherwise, the classic method is preferred, because it does not require video mode switching */
+    if (fps_x1000 < default_fps + 500)
+    {
+        fps_timer_b_method = 0;
+    }
+    #endif
     #endif
 
     // we need to make sure the requested FPS is in range (we may need to change timer A)
