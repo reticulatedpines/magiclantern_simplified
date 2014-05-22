@@ -129,7 +129,7 @@ static int fps_values_x1000[] = {
     28000, 29000, 29970, 30000, 31000, 32000, 33000, 33333, 34000, 35000
     // restrict max fps to 35 for 1100D, 5D2, 50D, 500D (others?)
     #if !defined(CONFIG_1100D) && !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
-    , 37000, 38000, 39000, 40000, 41000, 42000, 43000, 44000, 45000, 48000, 50000, 60000, 65000
+    , 37000, 38000, 39000, 40000, 41000, 42000, 43000, 44000, 45000, 48000, 50000, 60000, 65000, 70000
     #endif
 };
 
@@ -307,7 +307,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN (ZOOM ? 510 : MV720 ? 410 : 398)
 
     #undef FPS_TIMER_B_MIN
-    #define FPS_TIMER_B_MIN (ZOOM ? 1470 : MV720 ? 910 : raw_lv_is_enabled() ? 1500 : 1580)
+    #define FPS_TIMER_B_MIN (ZOOM ? 1470 : MV720 ? 873 : raw_lv_is_enabled() ? 1500 : 1580)
 #endif
 
 #ifdef NEW_FPS_METHOD
