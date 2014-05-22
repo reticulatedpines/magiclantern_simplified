@@ -2,9 +2,9 @@
 #define _histogram_h_
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
-#define MZ_WHITE 0xFA12FA34 
+#define MZ_WHITE 0xFE12FE34
 #define MZ_BLACK 0x00120034
-#define MZ_GREEN 0x80808080
+#define MZ_GREEN 0xB68DB69E
 
 #define hist_height         54
 #define HIST_WIDTH          128

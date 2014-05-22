@@ -386,7 +386,7 @@ void dng_set_iso(int value)
     exif_data.iso = value;
 }
 
-void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g_d, float gain_b_n, float gain_b_d)
+void dng_set_wbgain(int gain_r_n, int gain_r_d, int gain_g_n, int gain_g_d, int gain_b_n, int gain_b_d)
 {
     cam_AsShotNeutral[0] = gain_r_n;
     cam_AsShotNeutral[1] = gain_r_d;

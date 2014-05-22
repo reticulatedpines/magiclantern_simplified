@@ -78,6 +78,7 @@ NSTUB(0xFF859D74,  SetSamplingRate)
 NSTUB(0xFF8580E8,  StartASIFDMAADC)
 NSTUB(0xFF85828C,  StartASIFDMADAC)
 NSTUB(0xFF858360,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -188,6 +189,11 @@ NSTUB(0xFF891BBC,  gui_local_post)
 NSTUB(0xFF891FB4,  gui_other_post)
 NSTUB(0xFF89220C,  gui_post_10000085)
 NSTUB(0xFF9B3AD0,  gui_timer_something)
+
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x86B0,  mvr_config)

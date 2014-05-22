@@ -55,6 +55,7 @@ NSTUB(0xFF1C7934,  FIO_FindClose)                           // called with ret_F
 NSTUB(0xFF1C7854,  FIO_FindNextEx)
 NSTUB(0xFF1C679C,  FIO_ReadFile)
 NSTUB(0xFF1C691C,  FIO_SeekFile)
+NSTUB(0xFF1C684C,  FIO_SeekSkipFile)
 NSTUB(0xFF1C693C,  FIO_WriteFile)
 NSTUB(0xFF1C71A0, _FIO_CreateDirectory)
 NSTUB(0xFF1C6648, _FIO_CreateFile)
@@ -81,13 +82,14 @@ NSTUB(0xFF093108,  gui_massive_event_loop)                  // GUI_Control_Post
 /** ASIF **/
 NSTUB(0xFF064114,  PowerAudioOutput)
 NSTUB(0xFF063EA8,  SetAudioVolumeOut)
+NSTUB(0xFF052088,  SetNextASIFADCBuffer)
 NSTUB(0xFF0521CC,  SetNextASIFDACBuffer)
 NSTUB(0xFF06419C,  SetSamplingRate)
 NSTUB(0xFF051950,  StartASIFDMAADC)
 NSTUB(0xFF051AFC,  StartASIFDMADAC)
 NSTUB(0xFF051BD0,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
-// NSTUB(    ???,  SetNextASIFADCBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
@@ -197,6 +199,13 @@ NSTUB(0xFF095728,  gui_other_post)
 // NSTUB(    ???,  gui_init_event)                          /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+
+/** GUI timers **/
+NSTUB(0xFF068BB8,  SetHPTimerAfterNow)
+NSTUB(0xFF068C38,  SetHPTimerNextTick)
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x67BC,  mvr_config)

@@ -14,6 +14,7 @@
 #include "histogram.h"
 #include "fileprefix.h"
 #include "module.h"
+#include "console.h"
 
 static CONFIG_INT("post.deflicker", post_deflicker, 0);
 static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);

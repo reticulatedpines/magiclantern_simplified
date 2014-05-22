@@ -79,6 +79,8 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
+int get_expsim();
+
 bool FAST is_native_movie_mode()
 {
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE

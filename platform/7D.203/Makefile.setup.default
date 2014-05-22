@@ -1,7 +1,5 @@
 #Makefile for 7D
 
-# compile position independent (experimental)
-CONFIG_PIC=n
 
 CONFIG_GDB=n
 
@@ -10,7 +8,6 @@ ML_PICSTYLE_AUTO=n
 ML_SRC_EXTRA_OBJS = \
 	ml_rpc.o \
 	video_hacks.o \
-	misc.o \
 	ptpbuf.o \
 	raw.o \
 	edmac-memcpy.o \

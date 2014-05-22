@@ -18,6 +18,9 @@ endif
 # Supported camera models
 SUPPORTED_MODELS:=50D 60D 550D 600D 500D 5D2 5D3 7D 650D 700D EOSM 1100D 6D
 
+# Supported camera models for "UNIFIED" builds (Digic IV only)
+SUPPORTED_UNIFIED_MODELS:=50D 60D 550D 600D 500D 5D2 1100D
+
 # GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 ARM_ABI=none-eabi
@@ -142,3 +145,6 @@ CONFIG_TINYPY       = n
 # Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
 # so, for now, we'll just hack the source code to work around the limitations of the emulator
 CONFIG_QEMU         = n
+
+# Work in progress - load ML as position-independent code (PIC)
+CONFIG_PIC          = n

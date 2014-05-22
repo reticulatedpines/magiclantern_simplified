@@ -7,6 +7,9 @@ int is_manual_focus();
 /* enqueue some focus steps in the focus task */
 void lens_focus_enqueue_step(int dir);
 
+/* Starts rack focusing in the given direction */
+void lens_focus_start(int dir);
+
 /* abort the current rack focus operation, if any */
 void lens_focus_stop( void );
 
@@ -33,4 +36,8 @@ int is_focus_stack_enabled();
 
 /* private stuff (focus stacking code tigtly coupled with HDR bracketing stuff */
 void focus_stack_run(int skip_frame);
+
+/* focus racking */
+void rack_focus_start_now( void * priv, int delta );
+int is_rack_focus_enabled();
 #endif

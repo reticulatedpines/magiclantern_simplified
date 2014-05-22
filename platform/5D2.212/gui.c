@@ -26,6 +26,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include <property.h>
+#include <boot-hack.h>
 
 struct semaphore * gui_sem;
 

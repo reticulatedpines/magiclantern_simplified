@@ -27,6 +27,7 @@
 #include "property.h"
 #include "menu.h"
 #include "gui.h"
+#include "console.h"
 #include "audio-common.c"
 
 // Set defaults

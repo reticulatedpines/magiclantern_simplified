@@ -2,6 +2,8 @@
  *  EOS M 2.0.2 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC022C188 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
@@ -10,51 +12,13 @@
 #define FORMAT_BTN "[Tap Screen]"
 #define STR_LOC 4
 
-#define HIJACK_CACHE_HACK
-#define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1CC8
-
-/* Installer */
-#ifdef CONFIG_INSTALLER
-#define HIJACK_INSTR_BL_CSTART  0xff0c0d80
-#define HIJACK_INSTR_BSS_END 0xff0c1cbc
-#define HIJACK_FIXBR_BZERO32 0xff0c1c20
-#define HIJACK_FIXBR_CREATE_ITASK 0xff0c1cac
+#define HIJACK_INSTR_BL_CSTART  0xFF0C0D80
+#define HIJACK_INSTR_BSS_END 0xFF0C1CBC
+#define HIJACK_FIXBR_BZERO32 0xFF0C1C20
+#define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1CAC
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
-#endif
 
 #define HIJACK_TASK_ADDR 0x3DE78
-
-// Doesn't resize memory..
-// load ML in the malloc pool //0xD16F8 - A0000 = 316F8
-//~ #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xff0c1cbc
-//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCCC000
-//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0x13E260 //Move Start Address Up
-
-//Patch Malloc End
-//~ #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C1CC0
-//~ #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xCF958 
-
-
-
-// load ML in the AllocateMemory pool 
-//0xD6C000 - 0x80000 = CEC000
-
-#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C31AC
-//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCEC000
-
-//0xA0000 - 640K Should Be enough for everyone
-#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCCC000
-
-
-//~ fixup start address of AllocateMemory pool
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C3058
-//~ #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE2410887 
-//0x7D0000
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE241087D 
-
-
-
-#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0E2C54
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x65CC4 // in AJ_armlib_setup_related3
 
@@ -84,8 +48,6 @@
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x3F224)
-
-#define DISPLAY_SENSOR_POWERED 0
 
 // for gui_main_task
 #define GMT_NFUNCS 7
@@ -224,10 +186,10 @@
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
-#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x40501B20) // ADTG register 805f
-#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x40501B24) // ADTG register 8061
+#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x40481B20) // ADTG register 805f
+#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x40481B24) // ADTG register 8061
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
-#define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
+//~ #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 #define LV_DISP_MODE (MEM(0x89BAC + 0x7C) != 3)
 
 // see "Malloc Information"

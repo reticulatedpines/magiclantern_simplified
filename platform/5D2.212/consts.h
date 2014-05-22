@@ -2,6 +2,8 @@
  *  5D2 2.1.2 consts
  */
 
+#define CANON_SHUTTER_RATING 150000
+
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -51,8 +53,6 @@
 // See also "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x1c10)
 
-#define DISPLAY_SENSOR_POWERED 0
-
 #define GMT_IDLEHANDLER_TASK (*(int*)0x134f4) // dec create_idleHandler_task
 
 #define SENSOR_RES_X 5792
@@ -98,6 +98,8 @@
 #define DLG_Q_UNAVI 0x18
 #define DLG_FLASH_AE 0x22
 #define DLG_PICQ 6
+
+int get_lv_stopped_by_user();
 
 #define _MOVIE_MODE_NON_LIVEVIEW (!lv && !lv_paused && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0 && !HALFSHUTTER_PRESSED)
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])

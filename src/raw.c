@@ -348,7 +348,7 @@ static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 #endif
 
 #ifdef CONFIG_700D
-static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
 #endif
 
 #ifdef CONFIG_60D
@@ -360,7 +360,7 @@ static int dynamic_ranges[] = {1100, 1094, 1060, 1005, 919, 826, 726, 633};
 #endif
 
 #ifdef CONFIG_EOSM
-static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+static int dynamic_ranges[] = {1060, 1063, 1037, 982, 901, 831, 718, 622, 536};
 #endif
 
 #ifdef CONFIG_7D
@@ -387,7 +387,7 @@ static int raw_lv_get_resolution(int* width, int* height)
     int zoom = lv_dispsize > 1;
 
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     #ifdef CONFIG_5D3
     /* don't know how to get the resolution without relying on Canon's lv_save_raw */
@@ -453,7 +453,7 @@ static int raw_update_params_work()
     int zoom = lv_dispsize > 1;
     
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     if (lv)
     {
@@ -541,12 +541,19 @@ static int raw_update_params_work()
         skip_bottom = 0;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
         #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
         skip_bottom = 6;
+        #endif
+
+        #ifdef CONFIG_700D
+        skip_top    = 28;
+        skip_left   = 72;
+        skip_right  = 0;
+        skip_bottom = zoom ? 0 : mv1080crop ? 0 : 4;
         #endif
 
         #ifdef CONFIG_7D
@@ -640,9 +647,10 @@ static int raw_update_params_work()
         width = 4832;
         height = 3204;
         skip_left = 62;
-        skip_bottom = 28;
+        skip_top = 26;
         /* also we have a 40-pixel border on the right that contains image data */
-        raw_info.buffer -= 40*14/8;
+        /* for some reason, we need to go back by 28 lines to find the top OB area */
+        raw_info.buffer -= 40*14/8 + 28*width*14/8;
         #endif
 
         #ifdef CONFIG_550D

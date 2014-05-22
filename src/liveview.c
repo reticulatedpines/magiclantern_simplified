@@ -20,7 +20,6 @@ extern thunk LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState;
 #define reloc_end   ((uintptr_t)&LiveViewApp_handler_end)
 #define reloc_len   (reloc_end - reloc_start)
 
-
 static uintptr_t reloc_buf = 0;
 
 /*

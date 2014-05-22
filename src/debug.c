@@ -20,14 +20,11 @@
 #include "shoot.h"
 #include "cropmarks.h"
 #include "fw-signature.h"
+#include "lvinfo.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
 #include "tp-spy.h"
-#endif
-
-#ifdef FEATURE_SHOW_SIGNATURE
-#include "fw-signature.h"
 #endif
 
 #ifdef CONFIG_MODULES
@@ -492,6 +489,8 @@ static void card_benchmark_task()
     card_benchmark_wr(2*1024*1024,  6, 8);
     card_benchmark_wr(2000000,      7, 8);
     card_benchmark_wr(128*1024,     8, 8);
+    bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
+    bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
     take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(0);
@@ -792,7 +791,7 @@ cleanup:
 
 static void stress_test_picture(int n, int delay)
 {
-    if (shutter_count > 50000) { beep(); return; }
+    if (shutter_count > CANON_SHUTTER_RATING) { beep(); return; }
     msleep(delay);
     for (int i = 0; i < n; i++)
     {
@@ -2045,8 +2044,23 @@ static MENU_UPDATE_FUNC(shuttercount_display)
         (shutter_count_plus_lv_actuations + 500) / 1000,
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
-    if (shutter_count_plus_lv_actuations > 50000)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Too many shutter actuations.");
+
+    if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING*2)
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Lets break Guiness World Records (rated lifespan %d).", CANON_SHUTTER_RATING);
+    }
+    else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Lifespans are for wimps (rated lifespan %d).", CANON_SHUTTER_RATING);
+    }
+    else if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING/2)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "I hope I get to rated lifespan (rated lifespan %d).", CANON_SHUTTER_RATING);
+    }
+    else
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "You may get around %d.", CANON_SHUTTER_RATING);
+    }
 }
 #endif
 

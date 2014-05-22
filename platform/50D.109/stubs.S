@@ -55,6 +55,7 @@ NSTUB(0xFF9836A0,  FIO_FindClose)                           // called with ret_F
 NSTUB(0xFF9835A0,  FIO_FindNextEx)                          // d
 NSTUB(0xFF982820,  FIO_ReadFile)                            // d
 NSTUB(0xFF9829A0,  FIO_SeekFile)                            // mk11174 and Chucho  0xff9829b0
+NSTUB(0xFF9828D0,  FIO_SeekSkipFile)
 NSTUB(0xFF9829D0,  FIO_WriteFile)                           // d
 NSTUB(0xFF982DF4, _FIO_CreateDirectory)
 NSTUB(0xFF9824E8, _FIO_CreateFile)                          // d
@@ -84,6 +85,7 @@ NSTUB(0xFF85460C,  SetAudioVolumeOut)
 NSTUB(0xFF855290,  SetSamplingRate)
 NSTUB(0xFF852494,  StartASIFDMADAC)
 NSTUB(0xFF852A80,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SetNextASIFADCBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetNextASIFDACBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -197,6 +199,13 @@ NSTUB(0xFF8898CC,  gui_local_post)                          // d
 NSTUB(0xFF889CA8,  gui_other_post)                          // d
 NSTUB(0xFF889DCC,  gui_post_10000085)                       // should be called post 100000a5 no ? <-- not sure what this means..							// d
 NSTUB(0xFF98A990,  gui_timer_something)                     // d
+
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0XFF8652CC,  SetHPTimerAfterNow)
+NSTUB(0xFF86534C,  SetHPTimerNextTick)
 
 /** H264 Encoder **/
 NSTUB(    0x7674,  mvr_config)                              // d

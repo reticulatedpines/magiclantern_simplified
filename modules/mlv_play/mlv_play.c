@@ -34,6 +34,9 @@
 #include <raw.h>
 #include <zebra.h>
 #include <util.h>
+#include <timer.h>
+
+#include <string.h>
 
 #include "../ime_base/ime_base.h"
 #include "../trace/trace.h"
@@ -47,7 +50,6 @@
 /* icon from: http://www.softicons.com/free-icons/system-icons/touch-of-gold-icons-by-skingcito/video-black-icon */
 EXTLD(video_bmp);
 
-char *strncpy(char *dest, const char *src, size_t n);
 
 /* only works if the raw_rec/mlv_rec module has its config variable non-static */
 static int video_enabled_dummy = 0;
@@ -71,6 +73,7 @@ static volatile uint32_t mlv_play_rendering = 0;
 static volatile uint32_t mlv_play_stopfile = 0;
 
 static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVIEW_* in raw.h  */
+static CONFIG_INT("play.exact_fps", mlv_play_exact_fps, 0);
 
 
 /* OSD menu items */
@@ -91,6 +94,9 @@ static uint32_t mlv_play_osd_idle = 1000;
 static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
 static uint32_t mlv_play_info = 1;
+static uint32_t mlv_play_timer_stop = 1;
+static uint32_t mlv_play_fps_ticks = 0;
+static uint32_t mlv_play_frames_skipped = 0;
 
 /* this structure is used to build the mlv_xref_t table */
 typedef struct 
@@ -132,6 +138,7 @@ typedef struct
 static struct msg_queue *mlv_play_queue_empty;
 static struct msg_queue *mlv_play_queue_render;
 static struct msg_queue *mlv_play_queue_osd;
+static struct msg_queue *mlv_play_queue_fps;
 
 /* queue for playlist item submits by scanner tasks */
 static struct msg_queue *mlv_playlist_queue;
@@ -144,33 +151,56 @@ static char mlv_play_current_filename[MAX_PATH];
 static playlist_entry_t mlv_playlist_next(playlist_entry_t current);
 static playlist_entry_t mlv_playlist_prev(playlist_entry_t current);
 static void mlv_playlist_delete(playlist_entry_t current);
-static void mlv_build_playlist(uint32_t priv);
+static void mlv_playlist_build(uint32_t priv);
 
-static uint32_t FIO_SeekFileWrapper(FILE* stream, size_t position, int whence)
+/* microsecond durations for one frame */
+static uint32_t mlv_play_frame_div_group = 0;
+static uint32_t mlv_play_frame_div_pos = 0;
+static const uint32_t mlv_play_frame_dividers[] =
 {
-    uint32_t maxOffset = 0x7FFFFFFF;
+    /*
+     fps  delay1 delay2 delay3 
+    */
+    23976, 41709, 41708, 41708,  /* 23.976 */
+    24000, 41667, 41667, 41666,  /* 24     */
+    25000, 40000, 40000, 40000,  /* 25     */
+    29970, 33367, 33367, 33366,  /* 29.970 */
+    30000, 33334, 33333, 33333,  /* 30     */
+    50000, 20000, 20000, 20000,  /* 50     */
+    59940, 16684, 16683, 16683,  /* 59.940 */
+};
+
+/* as soon all cameras provide FIO_SeekSkipFile, we can remove that temporary code */
+static uint64_t FIO_SeekSkipFile_emulate(FILE* stream, uint64_t position, int whence)
+{
+    const uint32_t maxOffset = 0x7FFFFFFF;
     
-    /* the OS routine only accepts signed integers as position, so work around to position absolutely up to 4 GiB */
+    /* the OS routine FIO_SeekFile only accepts signed integers as position, so work around to position absolutely */
     if(whence == SEEK_SET && position > maxOffset)
     {
-        uint32_t delta = (uint32_t)position - maxOffset;
-        FIO_SeekFile(stream, maxOffset, SEEK_SET);
-        return FIO_SeekFile(stream, delta, SEEK_CUR);
+        FIO_SeekFile(stream, 0, SEEK_SET);
+        
+        while(position > maxOffset)
+        {
+            FIO_SeekFile(stream, maxOffset, SEEK_CUR);
+            position -= maxOffset;
+        }
+        return FIO_SeekFile(stream, (uint32_t)position, SEEK_CUR);
     }
-    return FIO_SeekFile(stream, position, whence);
+    return FIO_SeekFile(stream, (uint32_t)position, whence);
 }
 
-static char *strdup(const char *s)
+static void mlv_play_flush_queue(struct msg_queue *queue)
 {
-    char *ret = malloc(strlen(s) + 1);
-    strcpy(ret, s);
-    
-    return ret;
-}
+    uint32_t messages = 0;
 
-static char *strcat(char *dest, const char *src)
-{
-    return strcpy(&dest[strlen(dest)], src);
+    msg_queue_count(queue, &messages);
+    while(messages > 0)
+    {
+        uint32_t tmp_buf = 0;
+        msg_queue_receive(queue, &tmp_buf, 0);
+        msg_queue_count(queue, &messages);
+    }
 }
 
 static void mlv_play_next()
@@ -264,7 +294,7 @@ static void mlv_play_show_dlg(uint32_t duration, char *string)
     bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
 }
 
-static void mlv_del_task(char *parm)
+static void mlv_play_del_task(char *parm)
 {
     uint32_t size = 0;
     uint32_t loops = 0;
@@ -391,7 +421,7 @@ static void mlv_play_delete()
     
     char *msg = strdup(current.fullPath);
     
-    task_create("mlv_del_task", 0x1e, 0x800, mlv_del_task, (void*)msg);
+    task_create("mlv_play_del_task", 0x1e, 0x800, mlv_play_del_task, (void*)msg);
     mlv_play_show_dlg(1000, "Deleting...");
 }
 
@@ -405,6 +435,26 @@ static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
     if(msg)
     {
         snprintf(msg, msg_len, mlv_play_quality?"fast":"color");
+    }
+}
+
+static void mlv_play_osd_exact(char *msg, uint32_t msg_len, uint32_t selected)
+{
+    if(selected)
+    {
+        mlv_play_exact_fps = MOD(mlv_play_exact_fps + 1, 2);
+    }
+    
+    if(msg)
+    {
+        /* any idea for a meaningful text here? feature description in long: 
+                if enabled: 
+                  play at exact fps with dropping if necessary
+                  grayscale might keep up with video rate, but color requires dropping for sure
+                if disabled:
+                  play frame by frame as fast as possible
+       */
+        snprintf(msg, msg_len, mlv_play_exact_fps?"exact":"all");
     }
 }
 
@@ -499,7 +549,7 @@ static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
     }
 }
 
-static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_delete, &mlv_play_osd_quit };
+static void(*mlv_play_osd_items[])(char *, uint32_t,  uint32_t) = { &mlv_play_osd_prev, &mlv_play_osd_pause, &mlv_play_osd_next, &mlv_play_osd_quality, &mlv_play_osd_exact, &mlv_play_osd_delete, &mlv_play_osd_quit };
 
 static uint32_t mlv_play_osd_handle(uint32_t msg)
 {
@@ -757,7 +807,7 @@ static void mlv_play_osd_task(void *priv)
 }
 
 
-static void xref_resize(frame_xref_t **table, uint32_t entries, uint32_t *allocated)
+static void mlv_play_xref_resize(frame_xref_t **table, uint32_t entries, uint32_t *allocated)
 {
     /* make sure there is no crappy pointer before using */
     if(*allocated == 0)
@@ -773,7 +823,7 @@ static void xref_resize(frame_xref_t **table, uint32_t entries, uint32_t *alloca
     }
 }
 
-static void xref_sort(frame_xref_t *table, uint32_t entries)
+static void mlv_play_xref_sort(frame_xref_t *table, uint32_t entries)
 {
     uint32_t n = entries;
     do
@@ -793,7 +843,7 @@ static void xref_sort(frame_xref_t *table, uint32_t entries)
     } while (n > 1);
 }
 
-static mlv_xref_hdr_t *load_index(char *base_filename)
+static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
 {
     mlv_xref_hdr_t *block_hdr = NULL;
     char filename[128];
@@ -814,7 +864,7 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
         mlv_hdr_t buf;
         uint32_t position = 0;
         
-        position = FIO_SeekFileWrapper(in_file, 0, SEEK_CUR);
+        position = FIO_SeekSkipFile_emulate(in_file, 0, SEEK_CUR);
         
         if(FIO_ReadFile(in_file, &buf, sizeof(mlv_hdr_t)) != sizeof(mlv_hdr_t))
         {
@@ -822,9 +872,9 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
         }
         
         /* jump back to the beginning of the block just read */
-        FIO_SeekFileWrapper(in_file, position, SEEK_SET);
+        FIO_SeekSkipFile_emulate(in_file, position, SEEK_SET);
 
-        position = FIO_SeekFileWrapper(in_file, 0, SEEK_CUR);
+        position = FIO_SeekSkipFile_emulate(in_file, 0, SEEK_CUR);
         
         /* we should check the MLVI header for matching UID value to make sure its the right index... */
         if(!memcmp(buf.blockType, "XREF", 4))
@@ -839,11 +889,11 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
         }
         else
         {
-            FIO_SeekFileWrapper(in_file, position + buf.blockSize, SEEK_SET);
+            FIO_SeekSkipFile_emulate(in_file, position + buf.blockSize, SEEK_SET);
         }
         
         /* we are at the same position as before, so abort */
-        if(position == FIO_SeekFileWrapper(in_file, 0, SEEK_CUR))
+        if(position == FIO_SeekSkipFile_emulate(in_file, 0, SEEK_CUR))
         {
             break;
         }
@@ -854,7 +904,7 @@ static mlv_xref_hdr_t *load_index(char *base_filename)
     return block_hdr;
 }
 
-static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount, frame_xref_t *index, int entries)
+static void mlv_play_save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount, frame_xref_t *index, int entries)
 {
     char filename[128];
     FILE *out_file = NULL;
@@ -926,7 +976,7 @@ static void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fi
     FIO_CloseFile(out_file);
 }
 
-static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count)
+static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     frame_xref_t *frame_xref_table = NULL;
     uint32_t frame_xref_entries = 0;
@@ -936,9 +986,13 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
     for(uint32_t chunk = 0; chunk < chunk_count; chunk++)
     {
         uint32_t last_pct = 0;
-        uint32_t size = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_END);
+        uint64_t size = 0;
+        uint64_t position = 0;
         
-        FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_SET);
+        FIO_SeekSkipFile_emulate(chunk_files[chunk], 0, SEEK_END);
+        size = FIO_SeekSkipFile_emulate(chunk_files[chunk], 0, SEEK_CUR);
+        FIO_SeekSkipFile_emulate(chunk_files[chunk], 0, SEEK_SET);
+        
         mlv_play_progressbar(0, "");
         
         while(1)
@@ -950,7 +1004,6 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
             
             mlv_hdr_t buf;
             uint64_t timestamp = 0;
-            uint32_t position = FIO_SeekFileWrapper(chunk_files[chunk], 0, SEEK_CUR);
             
             uint32_t pct = ((position / 10) / (size / 1000));
             
@@ -995,7 +1048,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 mlv_file_hdr_t file_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
                 
-                FIO_SeekFileWrapper(chunk_files[chunk], position, SEEK_SET);
+                FIO_SeekSkipFile_emulate(chunk_files[chunk], position, SEEK_SET);
                 
                 /* read the whole header block, but limit size to either our local type size or the written block size */
                 if(FIO_ReadFile(chunk_files[chunk], &file_hdr, hdr_size) != (int32_t)hdr_size)
@@ -1035,7 +1088,7 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
             /* dont index NULL blocks */
             if(memcmp(buf.blockType, "NULL", 4))
             {
-                xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
+                mlv_play_xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
                 
                 /* add xref data */
                 frame_xref_table[frame_xref_entries].frameTime = timestamp;
@@ -1045,19 +1098,20 @@ static void build_index(char *filename, FILE **chunk_files, uint32_t chunk_count
                 frame_xref_entries++;
             }
             
-            FIO_SeekFileWrapper(chunk_files[chunk], position + buf.blockSize, SEEK_SET);
+            position += buf.blockSize;
+            FIO_SeekSkipFile_emulate(chunk_files[chunk], position, SEEK_SET);
         }
     }
     
-    xref_sort(frame_xref_table, frame_xref_entries);
-    save_index(filename, &main_header, chunk_count, frame_xref_table, frame_xref_entries);
+    mlv_play_xref_sort(frame_xref_table, frame_xref_entries);
+    mlv_play_save_index(filename, &main_header, chunk_count, frame_xref_table, frame_xref_entries);
 }
 
 static mlv_xref_hdr_t *mlv_play_get_index(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     mlv_xref_hdr_t *table = NULL;
     
-    table = load_index(filename);
+    table = mlv_play_load_index(filename);
     if(table)
     {
         return table;
@@ -1065,9 +1119,9 @@ static mlv_xref_hdr_t *mlv_play_get_index(char *filename, FILE **chunk_files, ui
     
     bmp_printf(FONT_LARGE, 30, 100, "Preparing:", filename);
     bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
-    build_index(filename, chunk_files, chunk_count);
+    mlv_play_build_index(filename, chunk_files, chunk_count);
     
-    return load_index(filename);
+    return mlv_play_load_index(filename);
 }
 
 static unsigned int mlv_play_is_raw(FILE *f)
@@ -1075,10 +1129,10 @@ static unsigned int mlv_play_is_raw(FILE *f)
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekFileWrapper(f, 0, 1);
-    FIO_SeekFileWrapper(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
+    FIO_SeekSkipFile_emulate(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekFileWrapper(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
@@ -1100,10 +1154,10 @@ static unsigned int mlv_play_is_mlv(FILE *f)
     mlv_file_hdr_t header;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekFileWrapper(f, 0, 1);
-    FIO_SeekFileWrapper(f, 0, SEEK_SET);
+    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
+    FIO_SeekSkipFile_emulate(f, 0, SEEK_SET);
     int read = FIO_ReadFile(f, &header, sizeof(mlv_file_hdr_t));
-    FIO_SeekFileWrapper(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(mlv_file_hdr_t))
@@ -1120,15 +1174,15 @@ static unsigned int mlv_play_is_mlv(FILE *f)
     return 1;
 }
 
-static unsigned int lv_rec_read_footer(FILE *f)
+static unsigned int mlv_play_read_footer(FILE *f)
 {
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekFileWrapper(f, 0, 1);
-    FIO_SeekFileWrapper(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
+    FIO_SeekSkipFile_emulate(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekFileWrapper(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
@@ -1159,7 +1213,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
 }
 
 
-static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
+static FILE **mlv_play_load_chunks(char *base_filename, uint32_t *entries)
 {
     uint32_t seq_number = 0;
     char filename[128];
@@ -1212,11 +1266,11 @@ static FILE **load_all_chunks(char *base_filename, uint32_t *entries)
     return files;
 }
 
-static void close_all_chunks(FILE **chunk_files, uint32_t chunk_count)
+static void mlv_play_close_chunks(FILE **chunk_files, uint32_t chunk_count)
 {
     if(!chunk_files || !chunk_count || chunk_count > 100)
     {
-        bmp_printf(FONT_MED, 30, 400, "close_all_chunks(): faulty parameters");
+        bmp_printf(FONT_MED, 30, 400, "mlv_play_close_chunks(): faulty parameters");
         beep();
         return;
     }
@@ -1241,14 +1295,9 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
+        /* user exited from playback */
         if(gui_state != GUISTATE_PLAYMENU)
         {
-            beep();
-            for(int count = 0; count < 20; count++)
-            {
-                bmp_printf(FONT_MED, 30, 400, "GUISTATE_PLAYMENU");
-                msleep(100);
-            }
             break;
         }
         
@@ -1359,19 +1408,83 @@ static void mlv_play_clear_screen()
     mlv_play_info = mlv_play_info ? 2 : 0;
 }
 
+static void mlv_play_fps_tick(int expiry_value, void *priv)
+{
+    uint32_t offset = mlv_play_frame_dividers[mlv_play_frame_div_group + mlv_play_frame_div_pos];
+    mlv_play_frame_div_pos = (mlv_play_frame_div_pos + 1) % 3;
+    
+    if(mlv_play_timer_stop)
+    {
+        mlv_play_timer_stop = 0;
+        return;
+    }
+    msg_queue_post(mlv_play_queue_fps, 0);
+    
+    mlv_play_fps_ticks++;
+    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+}
+
+static void mlv_play_stop_fps_timer()
+{
+    mlv_play_timer_stop = 1;
+    while(mlv_play_timer_stop)
+    {
+        msleep(20);
+    }
+}
+
+static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
+{
+    uint32_t fps = fps_nom * 1000 / fps_denom;
+    
+    mlv_play_frame_div_group = COUNT(mlv_play_frame_dividers);
+    
+    for(uint32_t pos = 0; pos < COUNT(mlv_play_frame_dividers); pos += 4)
+    {
+        /* assuming we always can get an exact match */
+        if(mlv_play_frame_dividers[pos] == fps)
+        {
+            mlv_play_frame_div_group = pos;
+        }
+    }
+    
+    /* did not find an exact match? */
+    if(mlv_play_frame_div_group >= COUNT(mlv_play_frame_dividers))
+    {
+        mlv_play_exact_fps = 0;
+        beep();
+        return;
+    }
+    
+    /* ensure the queue is empty */
+    mlv_play_flush_queue(mlv_play_queue_fps);
+    
+    /* reset counters */
+    mlv_play_frame_div_pos = 0;
+    mlv_play_fps_ticks = 0;
+    mlv_play_timer_stop = 0;
+    mlv_play_frames_skipped = 0;
+    
+    /* and finally start timer in 1 us */
+    SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+}
+
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
+    uint32_t fps_timer_started = 0;
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
     mlv_lens_hdr_t lens_block;
     mlv_rawi_hdr_t rawi_block;
+    mlv_rtci_hdr_t wavi_block;
     mlv_rtci_hdr_t rtci_block;
     mlv_file_hdr_t main_header;
     
     /* make sure there is no crap in stack variables */
     memset(&lens_block, 0x00, sizeof(mlv_lens_hdr_t));
     memset(&rawi_block, 0x00, sizeof(mlv_rawi_hdr_t));
+    memset(&wavi_block, 0x00, sizeof(mlv_rawi_hdr_t));
     memset(&rtci_block, 0x00, sizeof(mlv_rtci_hdr_t));
     memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
     
@@ -1400,7 +1513,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         
         /* get the file and position of the next block */
         uint32_t in_file_num = xrefs[block_xref_pos].fileNumber;
-        uint32_t position = xrefs[block_xref_pos].frameOffset;
+        uint64_t position = xrefs[block_xref_pos].frameOffset;
         
         /* select file and seek to the right position */
         FILE *in_file = chunk_files[in_file_num];
@@ -1408,7 +1521,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         /* use the common header structure to get file size */
         mlv_hdr_t buf;
         
-        FIO_SeekFileWrapper(in_file, position, SEEK_SET);
+        FIO_SeekSkipFile_emulate(in_file, position, SEEK_SET);
         if(FIO_ReadFile(in_file, &buf, sizeof(mlv_hdr_t)) != sizeof(mlv_hdr_t))
         {
             bmp_printf(FONT_MED, 30, 190, "File ends prematurely during block header");
@@ -1416,7 +1529,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             msleep(1000);
             break;
         }
-        FIO_SeekFileWrapper(in_file, position, SEEK_SET);
+        FIO_SeekSkipFile_emulate(in_file, position, SEEK_SET);
         
         /* special case: if first block read, reset frame count as all MLVI blocks frame count will get accumulated */
         if(block_xref_pos == 0)
@@ -1448,7 +1561,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             else
             {
-                
                 /* no, its another chunk */
                 if(main_header.fileGuid != file_hdr.fileGuid)
                 {
@@ -1459,7 +1571,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 }
             }
         }
-        if(!memcmp(buf.blockType, "LENS", 4))
+        else if(!memcmp(buf.blockType, "LENS", 4))
         {
             if(FIO_ReadFile(in_file, &lens_block, sizeof(mlv_lens_hdr_t)) != sizeof(mlv_lens_hdr_t))
             {
@@ -1469,7 +1581,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
         }
-        if(!memcmp(buf.blockType, "RTCI", 4))
+        else if(!memcmp(buf.blockType, "RTCI", 4))
         {
             if(FIO_ReadFile(in_file, &rtci_block, sizeof(mlv_rtci_hdr_t)) != sizeof(mlv_rtci_hdr_t))
             {
@@ -1479,7 +1591,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
         }
-        if(!memcmp(buf.blockType, "RAWI", 4))
+        else if(!memcmp(buf.blockType, "RAWI", 4))
         {
             if(FIO_ReadFile(in_file, &rawi_block, sizeof(mlv_rawi_hdr_t)) != sizeof(mlv_rawi_hdr_t))
             {
@@ -1491,8 +1603,44 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             
             frame_size = rawi_block.xRes * rawi_block.yRes * rawi_block.raw_info.bits_per_pixel / 8;
         }
+        else if(!memcmp(buf.blockType, "WAVI", 4))
+        {
+            if(FIO_ReadFile(in_file, &wavi_block, sizeof(mlv_wavi_hdr_t)) != sizeof(mlv_wavi_hdr_t))
+            {
+                bmp_printf(FONT_MED, 30, 190, "File ends prematurely during WAVI");
+                beep();
+                msleep(1000);
+                break;
+            }
+        }
+        else if(!memcmp(buf.blockType, "AUDF", 4))
+        {
+            /* ToDo: new sound system calls here as soon its merged into unified */
+        }
         else if(!memcmp(buf.blockType, "VIDF", 4))
         {
+            /* check if we are too slow */
+            if(mlv_play_exact_fps)
+            {
+                uint32_t fps_events_pending = 0;
+                msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
+                
+                /* skip frame if we should play at exact fps and we already should be one frame farther */
+                if(fps_events_pending > 1)
+                {
+                    uint32_t temp = 0;
+                    msg_queue_receive(mlv_play_queue_fps, &temp, 50);
+                    
+                    mlv_play_frames_skipped++;
+                    continue;
+                }
+            }
+            else
+            {
+                /* if not, just keep the queue clean */
+                mlv_play_flush_queue(mlv_play_queue_fps);
+            }
+            
             frame_buf_t *buffer = NULL;
             mlv_vidf_hdr_t vidf_block;
             
@@ -1513,7 +1661,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             /* check if the queued buffer has the correct size */
             if(buffer->frameSize != frame_size)
             {
-                /* the first few queued dont have anything allocated, so don't free */
+                /* the first few queued don't have anything allocated, so don't free */
                 if(buffer->frameBuffer)
                 {
                     fio_free(buffer->frameBuffer);
@@ -1549,7 +1697,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             /* skip frame space */
-            FIO_SeekFileWrapper(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
+            FIO_SeekSkipFile_emulate(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
 
             /* finally read the raw data */
             if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != (int32_t)buffer->frameSize)
@@ -1593,11 +1741,34 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             
-            /* requeue frame buffer for rendering */
+            if(!fps_timer_started)
+            {
+                fps_timer_started = 1;
+                mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+            }
+            
+            if(mlv_play_exact_fps)
+            {
+                /* wait till it is time to render */
+                uint32_t temp = 0;
+                while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                {
+                    if(mlv_play_should_stop())
+                    {
+                        break;
+                    }
+                }
+            }
+            
+            /* queue frame buffer for rendering */
             msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
         }
     }
     
+    if(fps_timer_started)
+    {
+        mlv_play_stop_fps_timer();
+    }
     free(block_xref);
 }
 
@@ -1612,7 +1783,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
         return;
     }
-    lv_rec_read_footer(chunk_files[chunk_count-1]);
+    mlv_play_read_footer(chunk_files[chunk_count-1]);
     
     /* update OSD */
     msg_queue_post(mlv_play_queue_osd, (uint32_t) 0);
@@ -1753,7 +1924,7 @@ static void mlv_play_set_mode(int32_t mode)
 }
 
 
-static void mlv_build_playlist_path(char *directory)
+static void mlv_playlist_build_path(char *directory)
 {
     struct fio_file file;
     struct fio_dirent * dirent = NULL;
@@ -1805,7 +1976,7 @@ static void mlv_build_playlist_path(char *directory)
     free(full_path);
 }
 
-static void mlv_free_playlist()
+static void mlv_playlist_free()
 {
     /* clear the playlist */
     mlv_playlist_entries = 0;
@@ -1827,12 +1998,12 @@ static void mlv_free_playlist()
     }
 }
 
-static void mlv_build_playlist(uint32_t priv)
+static void mlv_playlist_build(uint32_t priv)
 {
     playlist_entry_t *entry = NULL;
     
     /* clear the playlist */
-    mlv_free_playlist();
+    mlv_playlist_free();
     
     /* set up initial directories to scan. try to not recurse, but use scan and result queues */
     msg_queue_post(mlv_playlist_scan_queue, (uint32_t) strdup("A:/"));
@@ -1841,7 +2012,7 @@ static void mlv_build_playlist(uint32_t priv)
     char *directory = NULL;
     while(!msg_queue_receive(mlv_playlist_scan_queue, &directory, 50))
     {
-        mlv_build_playlist_path(directory);
+        mlv_playlist_build_path(directory);
         free(directory);
     }
     
@@ -1917,7 +2088,7 @@ static playlist_entry_t mlv_playlist_prev(playlist_entry_t current)
     return ret;
 }
 
-static void mlv_leave_playback()
+static void mlv_play_leave_playback()
 {
     mlv_play_render_abort = 1;
     
@@ -1949,7 +2120,7 @@ static void mlv_leave_playback()
     mlv_play_set_mode(0);
 }
 
-static void mlv_enter_playback()
+static void mlv_play_enter_playback()
 {
     /* prepare display */
     mlv_play_set_mode(1);
@@ -1997,7 +2168,7 @@ static void mlv_play_task(void *priv)
     /* if called with NULL, play first file found when building playlist */
     if(!filename)
     {
-        mlv_build_playlist(0);
+        mlv_playlist_build(0);
         
         if(mlv_playlist_entries <= 0)
         {
@@ -2006,7 +2177,7 @@ static void mlv_play_task(void *priv)
         }
         
         strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
-        mlv_free_playlist();
+        mlv_playlist_free();
     }
     else
     {
@@ -2023,9 +2194,9 @@ static void mlv_play_task(void *priv)
     }
     
     /* create playlist in background to minimize delays */
-    task_create("mlv_build_playlist", 0x1e, 0x1000, mlv_build_playlist, NULL);
+    task_create("mlv_playlist_build", 0x1e, 0x1000, mlv_playlist_build, NULL);
     
-    mlv_enter_playback();
+    mlv_play_enter_playback();
     
     do
     {
@@ -2037,7 +2208,7 @@ static void mlv_play_task(void *priv)
         strcpy(mlv_play_next_filename, "");
         
         /* open all chunks of that movie file */
-        chunk_files = load_all_chunks(mlv_play_current_filename, &chunk_count);
+        chunk_files = mlv_play_load_chunks(mlv_play_current_filename, &chunk_count);
 
         if(!chunk_files || !chunk_count)
         {
@@ -2052,7 +2223,7 @@ static void mlv_play_task(void *priv)
         
         /* ok now start real playback routines */
         mlv_play(mlv_play_current_filename, chunk_files, chunk_count);
-        close_all_chunks(chunk_files, chunk_count);
+        mlv_play_close_chunks(chunk_files, chunk_count);
         
         /* playback finished. wait until... hmm.. something happens */
         while(!strlen(mlv_play_next_filename) && !mlv_play_should_stop())
@@ -2064,8 +2235,8 @@ static void mlv_play_task(void *priv)
     } while(1);
     
 cleanup:
-    mlv_free_playlist();
-    mlv_leave_playback();
+    mlv_playlist_free();
+    mlv_play_leave_playback();
 }
 
 
@@ -2205,6 +2376,7 @@ static unsigned int mlv_play_init()
     mlv_play_queue_empty = (struct msg_queue *) msg_queue_create("mlv_play_queue_empty", 10);
     mlv_play_queue_render = (struct msg_queue *) msg_queue_create("mlv_play_queue_render", 10);
     mlv_play_queue_osd = (struct msg_queue *) msg_queue_create("mlv_play_queue_osd", 10);
+    mlv_play_queue_fps = (struct msg_queue *) msg_queue_create("mlv_play_queue_fps", 100);
     
     mlv_playlist_queue = (struct msg_queue *) msg_queue_create("mlv_playlist_queue", 500);
     mlv_playlist_scan_queue = (struct msg_queue *) msg_queue_create("mlv_playlist_scan_queue", 500);
@@ -2234,4 +2406,5 @@ MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_play_quality)
+    MODULE_CONFIG(mlv_play_exact_fps)
 MODULE_CONFIGS_END()

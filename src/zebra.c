@@ -47,6 +47,10 @@
 /* todo: move battery stuff in battery.c */
 #include "battery.h"
 
+#ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+#include "lcdsensor.h"
+#endif
+
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
 #define FEATURE_RAW_OVERLAYS
 #endif
@@ -56,9 +60,9 @@
 #define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
-#define MZ_WHITE 0xFA12FA34 
+#define MZ_WHITE 0xFE12FE34
 #define MZ_BLACK 0x00120034
-#define MZ_GREEN 0x80808080
+#define MZ_GREEN 0xB68DB69E
 
 #ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
@@ -1011,8 +1015,6 @@ void bvram_mirror_init()
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = (uint8_t*) (RESTARTSTART + ml_reserved_mem);
-        #elif defined(CONFIG_EOSM)
-        bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
         bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE);
         #endif
@@ -2993,6 +2995,11 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
+                .help2 =
+                    "Percentage of overall brightness level.\n"
+                    "8 bit RGB level.\n"
+                    "HTML like color codes.\n"
+                    "Negative value from clipping, in EV (RAW).\n"
             },
             {
                 .name = "Spot Position",
@@ -3061,6 +3068,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &hist_warn, 
                 .max = 1,
                 .help = "Display warning dots when one color channel is clipped.",
+                .help2 = "Numbers represent the percentage of pixels clipped.",
             },
             #ifdef FEATURE_RAW_HISTOGRAM
             {
@@ -3069,7 +3077,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 2,
                 .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
                 .update = raw_histo_update,
-                .help = "Use RAW histogram whenever possible.",
+                .help = "Use RAW based histogram.",
             },
             {
                 .name = "RAW EV indicator",
@@ -3664,8 +3672,14 @@ static void draw_zoom_overlay(int dirty)
     #endif
     memset64(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     memset64(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset64(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset64(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    if (!rawoff) {
+        memset64(lvr + x0c + COERCE(-2  + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+        memset64(lvr + x0c + COERCE(-1  + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+        memset64(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+        memset64(lvr + x0c + COERCE(H+1 + y0c, 0, 720) * lv->width, MZ_GREEN, W<<1);
+    }
+    memset64(lvr + x0c + COERCE(H-2 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     #ifdef CONFIG_1100D
     H *= 2; // Undo it
     #endif
@@ -3683,7 +3697,6 @@ int liveview_display_idle()
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
-    extern uintptr_t new_LiveViewApp_handler;
 
     #if defined(CONFIG_5D3)
     extern thunk LiveViewLevelApp_handler;
@@ -3695,13 +3708,20 @@ int liveview_display_idle()
     extern thunk LiveViewWifiApp_handler;
     #endif
 
+    #if defined(CONFIG_RELOC)
+    extern uintptr_t new_LiveViewApp_handler;
+    #endif
+
     return
         LV_NON_PAUSED && 
         DISPLAY_IS_ON &&
         !menu_active_and_not_hidden() && 
         (// gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
-              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
+              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler 
+                  #if defined(CONFIG_RELOC)
+                  || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
+                  #endif
                   #if defined(CONFIG_5D3)
                   || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
                   #endif
@@ -3985,7 +4005,11 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
     //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
     
     // when sensor is covered, timeout changes to 3 seconds
+    #ifdef CONFIG_LCD_SENSOR
     int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
+    #else
+    int sensor_status = 0;
+    #endif
 
     // those are for powersaving
     idle_countdown_display_off = sensor_status ? 25 : idle_display_turn_off_after * 10;
@@ -4020,7 +4044,11 @@ static void update_idle_countdown(int* countdown)
         idle_wakeup_reset_counters(-100); // will reset all idle countdowns
     }
     
+    #ifdef CONFIG_LCD_SENSOR
     int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
+    #else
+    int sensor_status = 0;
+    #endif
     static int prev_sensor_status = 0;
 
     if (sensor_status != prev_sensor_status)

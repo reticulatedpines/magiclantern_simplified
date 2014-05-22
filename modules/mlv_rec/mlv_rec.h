@@ -73,6 +73,8 @@ struct frame_slot
     int32_t size;
     int32_t writer;
     enum {SLOT_FREE, SLOT_FULL, SLOT_LOCKED, SLOT_WRITING} status;
+    uint32_t blockSize;
+    uint32_t frameSpace;
 };
 
 struct frame_slot_group
@@ -88,6 +90,8 @@ typedef struct
     uint32_t job_type;
     uint32_t writer;
 
+    uint32_t file_offset;
+    
     uint32_t block_len;
     uint32_t block_start;
     uint32_t block_size;
@@ -203,7 +207,7 @@ int32_t mlv_rec_get_free_slot();
 void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 void mlv_rec_release_slot(int32_t slot, uint32_t write);
 static int32_t FAST choose_next_capture_slot();
-static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block);
+static int32_t mlv_prepend_block(uint32_t slot, mlv_hdr_t *block);
 static void mlv_rec_dma_cbr_r(void *ctx);
 static void mlv_rec_dma_cbr_w(void *ctx);
 static int32_t FAST process_frame();
@@ -221,7 +225,7 @@ static void raw_writer_task(uint32_t writer);
 static void enqueue_buffer(uint32_t writer, write_job_t *write_job);
 static uint32_t mlv_rec_precreate_del_empty(char *filename);
 static void mlv_rec_precreate_cleanup(char *base_filename, uint32_t count);
-static void mlv_rec_precreate_files(char *base_filename, uint32_t count);
+static void mlv_rec_precreate_files(char *base_filename, uint32_t count, mlv_file_hdr_t hdr);
 static void mlv_rec_wait_frames(uint32_t frames);
 static void mlv_rec_queue_blocks();
 static void raw_video_rec_task();

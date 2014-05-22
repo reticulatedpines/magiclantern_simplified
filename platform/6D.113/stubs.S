@@ -78,6 +78,7 @@ NSTUB(0xFF0DF59C,  gui_main_task)
 /** ASIF **/
 NSTUB(0xFF142D68,  PowerAudioOutput)                        // sub_FF142D54 Same Actions
 NSTUB(0xFF11E9F4,  SetAudioVolumeIn)                        // SetVolumeIn(alc, L, R)
+NSTUB(0xFF142B70,  SetAudioVolumeOut)                       // 1 <= int volume <= ASIF_MAX_VOL
 NSTUB(0xFF11D0EC,  SetNextASIFADCBuffer)
 NSTUB(0xFF11D2D4,  SetNextASIFDACBuffer)                    // From Event Generating Functions
 NSTUB(0xFF142DE4,  SetSamplingRate)                         // AudioIC.c_SetRate_hHPTimer Identical
@@ -87,7 +88,6 @@ NSTUB(0xFF11C5D0,  StartASIFDMAADC)                         // warning: looks di
 NSTUB(0xFF11C9A4,  StartASIFDMADAC)                         // warning: looks different
 NSTUB(0xFF11C87C,  StopASIFDMAADC)                          // warning: looks different
 NSTUB(0xFF11CC24,  StopASIFDMADAC)                          // warning: looks different
-// NSTUB(    ???,  SetAudioVolumeOut)                       /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Audio **/
 NSTUB(   0x752E0,  sounddev)                                // Maybe 0x752e0 or 0x753f4
@@ -194,6 +194,11 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+
+/** GUI timers **/
+NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)

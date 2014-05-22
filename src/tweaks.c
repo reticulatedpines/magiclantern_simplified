@@ -22,6 +22,10 @@
 #include "hdr.h"
 #include "lvinfo.h"
 
+#ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+#include "lcdsensor.h"
+#endif
+
 static void lcd_adjust_position_step();
 static void arrow_key_step();
 static void preview_contrast_n_saturation_step();
@@ -227,7 +231,6 @@ void set_pic_quality(int q)
 }
 */
 
-void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
 extern unsigned lcd_sensor_shortcuts;
 
 #ifdef FEATURE_ARROW_SHORTCUTS
@@ -1653,6 +1656,32 @@ static void arrow_key_step()
     #endif
 }
 
+static MENU_UPDATE_FUNC(arrow_key_check)
+{
+    #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+    
+    int lcd_sensor_mandatory = streq(ARROW_MODE_TOGGLE_KEY, "LCD sensor");
+    
+    if (!lcd_sensor_shortcuts)
+    {
+        if (lcd_sensor_mandatory)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "To use this feature, enable LCD Sensor Shortcuts in Misc Key Settings.");
+        }
+        else
+        {
+            MENU_SET_WARNING(MENU_WARN_INFO, "To use LCD sensor, enable LCD Sensor Shortcuts in Misc Key Settings.");
+        }
+    }
+    else if (!get_lcd_sensor_shortcuts())
+    {
+        MENU_SET_WARNING(lcd_sensor_mandatory ? MENU_WARN_NOT_WORKING : MENU_WARN_INFO,
+            "LCD Sensor Shortcuts are disabled in this mode (see Misc Key Settings)."
+        );
+    }
+    #endif
+}
+
 int arrow_keys_shortcuts_active() 
 { 
     return (arrow_keys_mode && arrow_keys_mode < 10 && is_arrow_mode_ok(arrow_keys_mode));
@@ -2007,6 +2036,7 @@ static struct menu_entry key_menus[] = {
     {
         .name       = "Arrow/SET shortcuts",
         .select = menu_open_submenu,
+        .update = arrow_key_check,
         .submenu_width = 650,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .depends_on = DEP_LIVEVIEW,

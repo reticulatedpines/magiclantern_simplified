@@ -12,6 +12,10 @@
 #include <config.h>
 #include <lvinfo.h>
 
+#if defined(FEATURE_AF_PATTERNS)
+#include <af_patterns.h>
+#endif
+
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 #define CONFIG_LVAPP_HACK_RELOC
 #elif defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
@@ -414,7 +418,7 @@ int handle_common_events_by_feature(struct event * event)
         return 1;
     }
 
-    if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
+    if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED && event->param >= 0) 
     { 
         int ans = (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning);
         idle_wakeup_reset_counters(event->param);
@@ -423,8 +427,11 @@ int handle_common_events_by_feature(struct event * event)
     }
 #endif
 
-    if (event->param != GMT_OLC_INFO_CHANGED)
+    if (event->param != GMT_OLC_INFO_CHANGED && event->param >= 0)
+    {
+        /* powersave: ignore internal Canon events and ML events, but wake up on any other key press */
         idle_wakeup_reset_counters(event->param);
+    }
     
     // If we're here, we're dealing with a button press.  Record the timestamp
     // as a record of when the user was last actively pushing buttons.
@@ -658,4 +665,9 @@ static void redraw_after_task(int msec)
 void redraw_after(int msec)
 {
     task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
+}
+
+int display_is_on()
+{
+    return DISPLAY_IS_ON;
 }

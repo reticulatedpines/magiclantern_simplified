@@ -56,6 +56,7 @@ NSTUB(0xFF3478EC,  FIO_FindClose)                           // proper name: Find
 NSTUB(0xFF34780C,  FIO_FindNextEx)
 NSTUB(0xFF3466A4,  FIO_ReadFile)
 NSTUB(0xFF346824,  FIO_SeekFile)
+NSTUB(0xFF346754,  FIO_SeekSkipFile)
 NSTUB(0xFF346844,  FIO_WriteFile)
 NSTUB(0xFF347150, _FIO_CreateDirectory)
 NSTUB(0xFF346550, _FIO_CreateFile)
@@ -72,6 +73,9 @@ NSTUB(0xFF0D7674,  GUI_Control)
 NSTUB(0xFF1A805C,  SetGUIRequestMode)
 NSTUB(0xFF0D7D18,  gui_init_end)
 NSTUB(0xFF0D72A0,  gui_main_task)
+NSTUB(0xFFA6ECE0 - RAM_OFFSET, SetHPTimerAfterNow)
+NSTUB(0xFFA6EB5C - RAM_OFFSET, SetHPTimerAfterTimeout)
+NSTUB(0xFFA6EDD0 - RAM_OFFSET, SetHPTimerNextTick)
 //NSTUB(0xFF0D783C, GUI_ChangeMode)
 //NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
 	//NSTUB(0xff1a4fc8, gui_massive_event_loop)
@@ -81,6 +85,7 @@ NSTUB(0xFF0D72A0,  gui_main_task)
 
 /** ASIF **/
 NSTUB(0xFF1350F0,  PowerAudioOutput)                        // Look for actrlCpowerControl Case 1 Sub
+NSTUB(0xFF134CE4,  PowerMicAmp)
 NSTUB(0xFF1330A0,  SetAudioVolumeOut)
 NSTUB(0xFF10B190,  SetNextASIFADCBuffer)                    // Int16
 NSTUB(0xFF10B378,  SetNextASIFDACBuffer)                    // Int16 Regular
@@ -198,6 +203,11 @@ NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x4C124,  mvr_config)
@@ -317,7 +327,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF5FEE38,  PackMem_SetEDmacForMemorySuite)
 ///NSTUB(0xFF5FEF4C,  PackMem_StartEDmac)
 ///NSTUB(0xFFA86038 - RAM_OFFSET,  PopEDmac)                   // From popedmacformemorysuite
-///NSTUB(0xFF134CE4,  PowerMicAmp)
 ///NSTUB(0xFF4E4338,  RedrawDisplay)
 ///NSTUB(0x35784, SIO3_ISR)
 ///NSTUB(0xFF1299C4, SetBitmapVramAddress)

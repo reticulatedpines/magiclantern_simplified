@@ -45,9 +45,15 @@ return "?";
 
 #ifndef CONFIG_VXWORKS
 #ifdef CONFIG_TSKMON
+#if defined(FEATURE_SHOW_CPU_USAGE) || defined(FEATURE_SHOW_TASKS)
 static taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
+#endif
+#ifdef FEATURE_SHOW_CPU_USAGE
 int show_cpu_usage_flag = 0;
+#endif
+#ifdef FEATURE_SHOW_TASKS
 static int task_load_update_request = 0;
+#endif
 #endif
 
 void task_update_loads() // called every second from clock_task
@@ -337,6 +343,10 @@ MENU_UPDATE_FUNC(tasks_print)
 }
 #endif
 
+#ifdef FEATURE_GPS_TWEAKS
+#include "gps.h"
+#endif
+
 void ml_shutdown()
 {
     check_pre_shutdown_flag();
@@ -346,6 +356,9 @@ void ml_shutdown()
     info_led_on();
     _card_led_on();
     restore_af_button_assignment_at_shutdown();
+#ifdef FEATURE_GPS_TWEAKS
+    gps_tweaks_shutdown_hook();
+#endif    
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
     /* to refactor with CBR */

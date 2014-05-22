@@ -160,7 +160,8 @@ extern void msleep( int amount );
 extern void call( const char* name, ... );
 
 // stdio
-int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
+extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
+extern int printf(const char* fmt, ... );
 
 extern size_t strlen( const char* str );
 extern int snprintf( char* str, size_t n, const char* fmt, ... );
@@ -253,5 +254,19 @@ void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-onl
 /** 550D hack for DISPLAY_IS_ON */
 extern int get_display_is_on_550D();
 #endif
+
+#ifdef CONFIG_LCD_SENSOR
+void DispSensorStart();
+#endif
+
+#ifdef CONFIG_5D2
+void StartPlayProtectGuideApp();
+void StopPlayProtectGuideApp();
+void PtpDps_remote_release_SW1_SW2_worker();
+void Gui_SetSoundRecord( int );
+void GUI_SetLvMode( int );
+#endif
+
+int SoundDevActiveIn( uint32_t );
 
 #endif
