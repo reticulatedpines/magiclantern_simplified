@@ -245,6 +245,7 @@ NSTUB(0xFF07A7D4,  BulkInIPCTransfer)
 NSTUB(0xFF07A704,  BulkOutIPCTransfer)
 NSTUB(0xFF07AED4,  RegisterRPCHandler)
 NSTUB(0xFF07AF84,  RequestRPC)
+NSTUB(0xFF07A954,  QuickOutIPCTransfer)        
 
 /** Recursive locks **/
 NSTUB(0xFF205FA8,  AcquireRecursiveLock)                    // AJ_KernelDry_KerRLock.c
@@ -283,7 +284,6 @@ NSTUB(0xFF075210,  LoadCalendarFromRTC)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF5517B0,  lv_path_struct)
 NSTUB(0xFF209670,  vsnprintf)
-NSTUB(0xFF07A954,  QuickOutIPCTransfer)        
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
@@ -312,7 +312,6 @@ NSTUB(0xFF07A954,  QuickOutIPCTransfer)
 ///NSTUB(0xFF3D2598,  PackMem_StartEDmac)
 ///NSTUB(0xFF1F5864,  PopEDmac)
 ///NSTUB(0xFF074410,  PowerMicAmp)
-///NSTUB(0xFF07A954,  QuickOutIPCTransfer)
 ///NSTUB(0xFF317EE8,  RedrawDisplay)
 ///NSTUB(0xFF15FD74,  RemoteRelease)
 ///NSTUB(0xFF064D80,  SamplingParamInRate)
