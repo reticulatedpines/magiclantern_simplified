@@ -71,7 +71,7 @@ void EngDrvOutLV(uint32_t reg, uint32_t val)
     if (ml_shutdown_requested) return;
 
 #if defined(CONFIG_7D)
-    if (reg == FPS_REGISTER_A || reg == FPS_REGISTER_B || reg == FPS_REGISTER_CONFIRM_CHANGES)
+    if (!RECORDING_H264 && (reg == FPS_REGISTER_A || reg == FPS_REGISTER_B || reg == FPS_REGISTER_CONFIRM_CHANGES))
     {
         volatile uint32_t wait = 1;
         memcpy(buf, &val, sizeof(uint32_t));
@@ -646,14 +646,7 @@ PROP_HANDLER(PROP_MVR_REC_START)
 #endif
 #ifdef CONFIG_7D
 #ifdef FEATURE_FPS_OVERRIDE
-    if (RECORDING_H264)
-    {
-        if(fps_override)
-        {
-            NotifyBox(1000, "No FPS override in H264");
-            fps_override = 0;
-        }
-    } else if (buf[0] == 0)
+    if (buf[0] == 0)
     {
         msleep(500);
         fps_override = 1;
