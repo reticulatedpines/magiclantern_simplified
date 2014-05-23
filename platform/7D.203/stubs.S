@@ -281,8 +281,8 @@ NSTUB(0xFF084CA4,  task_trampoline)
 NSTUB(0xFF06E8B0,  EnableImagePhysicalScreenParameter)
 NSTUB(0xFF075210,  LoadCalendarFromRTC)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
-NSTUB(0xFF209670,  vsnprintf)
 NSTUB(0xFF5517B0,  lv_path_struct)
+NSTUB(0xFF209670,  vsnprintf)
 NSTUB(0xFF07A954,  QuickOutIPCTransfer)        
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
