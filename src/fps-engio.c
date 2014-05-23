@@ -1897,6 +1897,12 @@ static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned
             table_offset = 0;
             break;
     }
+    
+    if (get_expsim() != 2)
+    {
+        /* no crop mode in photo LV */
+        crop_mode = 0;
+    }
 
     switch(crop_mode)
     {
