@@ -644,15 +644,6 @@ PROP_HANDLER(PROP_MVR_REC_START)
     if (buf[0] == 1)
         fps_ramp_up = !fps_ramp_up;
 #endif
-#ifdef CONFIG_7D
-#ifdef FEATURE_FPS_OVERRIDE
-    if (buf[0] == 0)
-    {
-        msleep(500);
-        fps_override = 1;
-    }
-#endif
-#endif
 }
 //--------------------------------------------------------
 
