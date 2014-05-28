@@ -35,10 +35,11 @@ FD = {}
 AF = []
 
 for c in cams:
-    cmd = "cpp -I../platform/%s -I../src ../src/config-defines.h -dM | grep FEATURE" % c
+    cmd = "cpp -I../platform/%s -I../src ../src/config-defines.h -dM | grep -E '(FEATURE_|CONFIG_)'" % c
     F = run(cmd)
     for f in F.split('\n'):
         f = f.replace("#define", "").strip()
+        f = f.replace("CONFIG_", "CONFIG__CONFIG_")
         #print c,f
         FD[c,f] = True
         AF.append(f)
@@ -93,10 +94,15 @@ for l in af.split("\n"):
         MN_DICT[f] = current_menu
 
 for f in AF:
+    if f.startswith("CONFIG__"):
+        MN_DICT[f[8:]] = "Internals" 
+
+for f in AF:
     mn = MN_DICT.get(f[8:], "Other")
     MN_COUNT[mn] = MN_COUNT.get(mn,0) + 1
 
 menus.append("Other")
+menus.append("Internals")
 
 porting_threads = {
     '5DC'       :  'http://www.magiclantern.fm/forum/index.php?topic=1010.0',
