@@ -776,17 +776,6 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
-        
-        /* ensure binary is not too large */
-        if(ml_used_mem > ml_reserved_mem)
-        {
-            while(1)
-            {
-                info_led_blink(3, 500, 500);
-                info_led_blink(3, 100, 500);
-                msleep(1000);
-            }
-        }
 #endif
         /* now patch init task and continue execution */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
@@ -813,6 +802,19 @@ my_init_task(int a, int b, int c, int d)
     cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
     #endif
 #endif // HIJACK_CACHE_HOOK
+
+#if defined(CONFIG_MEMPATCH_CHECK)
+    /* ensure binary is not too large */
+    if(ml_used_mem > ml_reserved_mem)
+    {
+        while(1)
+        {
+            info_led_blink(3, 500, 500);
+            info_led_blink(3, 100, 500);
+            msleep(1000);
+        }
+    }
+#endif
 
     // Call their init task
 #ifdef CONFIG_ALLOCATE_MEMORY_POOL
