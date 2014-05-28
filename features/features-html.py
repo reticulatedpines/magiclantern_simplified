@@ -39,7 +39,7 @@ for c in cams:
     F = run(cmd)
     for f in F.split('\n'):
         f = f.replace("#define", "").strip()
-        f = f.replace("CONFIG_", "CONFIG__CONFIG_")
+        if f.startswith("CONFIG_"): f = "CONFIG__" + f
         #print c,f
         FD[c,f] = True
         AF.append(f)
