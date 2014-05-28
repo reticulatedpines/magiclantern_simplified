@@ -97,7 +97,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-#define CONFIG_DMA_MEMCPY
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
