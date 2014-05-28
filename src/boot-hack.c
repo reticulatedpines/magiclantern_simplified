@@ -70,10 +70,8 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-//#if defined(CONFIG_MEMPATCH_CHECK)
 uint32_t ml_used_mem = 0;
 uint32_t ml_reserved_mem = 0;
-//#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -754,7 +752,6 @@ my_init_task(int a, int b, int c, int d)
     /* check for the correct mov instruction */
     if((orig_instr & 0xFFFFF000) == 0xE3A01000)
     {
-#if defined(CONFIG_MEMPATCH_CHECK)
         /* mask out the lowest bits for rotate and immed */
         uint32_t new_address = RESTARTSTART;
         
@@ -776,7 +773,7 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
-#endif
+
         /* now patch init task and continue execution */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
     }
@@ -803,7 +800,6 @@ my_init_task(int a, int b, int c, int d)
     #endif
 #endif // HIJACK_CACHE_HOOK
 
-#if defined(CONFIG_MEMPATCH_CHECK)
     /* ensure binary is not too large */
     if(ml_used_mem > ml_reserved_mem)
     {
@@ -814,7 +810,6 @@ my_init_task(int a, int b, int c, int d)
             msleep(1000);
         }
     }
-#endif
 
     // Call their init task
 #ifdef CONFIG_ALLOCATE_MEMORY_POOL
