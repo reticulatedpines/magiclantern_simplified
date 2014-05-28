@@ -812,20 +812,14 @@ my_init_task(int a, int b, int c, int d)
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
     cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
     #endif
-
-    int ans = init_task(a,b,c,d);
-    
-    /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
-    /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
-    //cache_unlock();
-#else
-    // Call their init task
-    #ifdef CONFIG_ALLOCATE_MEMORY_POOL
-    int ans = init_task_patched(a,b,c,d);
-    #else
-    int ans = init_task(a,b,c,d);
-    #endif // CONFIG_ALLOCATE_MEMORY_POOL
 #endif // HIJACK_CACHE_HOOK
+
+    // Call their init task
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL
+    int ans = init_task_patched(a,b,c,d);
+#else
+    int ans = init_task(a,b,c,d);
+#endif // CONFIG_ALLOCATE_MEMORY_POOL
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
