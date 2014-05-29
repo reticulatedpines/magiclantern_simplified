@@ -8,6 +8,7 @@ make -C $ML_PATH || exit
 make qemu-helper.bin -C $ML_PATH || exit
 cp $ML_PATH/autoexec.bin .
 cp $ML_PATH/qemu-helper.bin .
+cp $ML_PATH/magiclantern .
 
 rm -f vram*.txt
 rm -f vram*.png
