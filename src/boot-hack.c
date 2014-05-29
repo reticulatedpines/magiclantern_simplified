@@ -46,6 +46,10 @@
 #include "gps.h"
 #endif
 
+#ifdef CONFIG_QEMU
+#include "qemu-util.h"
+#endif
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);

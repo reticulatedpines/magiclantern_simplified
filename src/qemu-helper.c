@@ -23,18 +23,9 @@
 #define RAM_OFFSET 0
 #endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-#define AllocateMemory AllocateMemory_do
-#endif
-
-#ifdef CONFIG_5D3
-#define FIO_FindFirstEx _FIO_FindFirstEx
-#define FIO_GetFileSize _FIO_GetFileSize
-#define FIO_CreateFile _FIO_CreateFile
 extern thunk _FIO_FindFirstEx;
 extern thunk _FIO_GetFileSize;
 extern thunk _FIO_CreateFile;
-#endif
 
 #define BMP_VRAM_ADDR 0x003638100
 
@@ -144,7 +135,7 @@ void q_call(char* func)
     }
 }
 
-void* q_AllocateMemory(size_t size)
+void* q__AllocateMemory(size_t size)
 {
     // dumb alloc, no free
     qprintf("*** AllocateMemory(%x)", size);
@@ -156,12 +147,11 @@ void* q_AllocateMemory(size_t size)
     return ans;
 }
 
-void* q_AllocateMemory_do(void* pool, size_t size) { return q_AllocateMemory(size); }
-void* q_malloc(size_t size) { return q_AllocateMemory(size); }
-void* q_alloc_dma_memory(size_t size) { return q_AllocateMemory(size); }
-NULL_STUB_BODY_HEX(free);
-NULL_STUB_BODY_HEX(FreeMemory);
-NULL_STUB_BODY_HEX(free_dma_memory);
+void* q__malloc(size_t size) { return q__AllocateMemory(size); }
+void* q__alloc_dma_memory(size_t size) { return q__AllocateMemory(size); }
+NULL_STUB_BODY_HEX(_free);
+NULL_STUB_BODY_HEX(_FreeMemory);
+NULL_STUB_BODY_HEX(_free_dma_memory);
 
 void q_DryosDebugMsg(int class, int level, char* fmt, ...)
 {
@@ -174,20 +164,33 @@ void q_DryosDebugMsg(int class, int level, char* fmt, ...)
     qprintf("[DebugMsg] (%d,%d) %s\n", class, level, buf);
 }
 
-void * q_FIO_FindFirstEx(const char * dirname, struct fio_file * file)
+int q_GetMemoryInformation(int* total, int* free)
+{
+    /* just some dummy numbers */
+    *total = 10*1024*1024;
+    *free = 5*1024*1024;
+    return 0;
+}
+extern int q_GetSizeOfMaxRegion(int* max_region)
+{
+    *max_region = 2*1024*1024;
+    return 0;
+}
+
+void * q__FIO_FindFirstEx(const char * dirname, struct fio_file * file)
 {
     qprintf("*** FIO_FindFirstEx('%s', %x)\n", dirname, file);
     return (void*)1;
 }
 
-int q_FIO_GetFileSize(const char * filename, int* size)
+int q__FIO_GetFileSize(const char * filename, int* size)
 {
     qprintf("*** FIO_GetFileSize('%s')\n", filename);
     *size = 0;
     return 0;
 }
 
-int q_FIO_CreateFile(const char * filename)
+int q__FIO_CreateFile(const char * filename)
 {
     static int fd = 1;
     qprintf("*** FIO_CreateFile('%s') => %d\n", filename, fd);
@@ -231,26 +234,33 @@ void q_create_init_task(int unused, void (*init_task)(void*))
     launch(init_task);
 }
 
-extern thunk AllocateMemory_do;
-extern thunk msg_queue_create;
 extern thunk prop_register_slave;
 extern thunk is_taskid_valid;
-extern thunk GUI_Control;
 extern thunk CreateResLockEntry;
+extern thunk _alloc_dma_memory;
+extern thunk _free_dma_memory;
+extern thunk _AllocateMemory;
+extern thunk _FreeMemory;
+extern thunk _malloc;
+extern thunk _free;
+extern thunk GetMemoryInformation;
+extern thunk GetSizeOfMaxRegion;
 
 #define MAGIC (void*)0x12345678
 void*  stub_mappings[] = {
-    MAGIC, MAGIC, RAM_OFFSET,
+    MAGIC, MAGIC, (void*)RAM_OFFSET,
     STUB_MAP(create_init_task)
     STUB_MAP(init_task)
     STUB_MAP(task_create)
     STUB_MAP(msleep)
-    STUB_MAP(malloc)
-    STUB_MAP(free)
-    STUB_MAP(alloc_dma_memory)
-    STUB_MAP(free_dma_memory)
-    STUB_MAP(AllocateMemory)
-    STUB_MAP(FreeMemory)
+    STUB_MAP(_malloc)
+    STUB_MAP(_free)
+    STUB_MAP(_alloc_dma_memory)
+    STUB_MAP(_free_dma_memory)
+    STUB_MAP(_AllocateMemory)
+    STUB_MAP(_FreeMemory)
+    STUB_MAP(GetMemoryInformation)
+    STUB_MAP(GetSizeOfMaxRegion)
     STUB_MAP(DryosDebugMsg)
     STUB_MAP(call)
     STUB_MAP(create_named_semaphore)
@@ -258,9 +268,9 @@ void*  stub_mappings[] = {
     STUB_MAP(give_semaphore)
     STUB_MAP(msg_queue_create)
     STUB_MAP(CreateRecursiveLock)
-    STUB_MAP(FIO_FindFirstEx)
-    STUB_MAP(FIO_GetFileSize)
-    STUB_MAP(FIO_CreateFile)
+    STUB_MAP(_FIO_FindFirstEx)
+    STUB_MAP(_FIO_GetFileSize)
+    STUB_MAP(_FIO_CreateFile)
     STUB_MAP(FIO_WriteFile)
     STUB_MAP(FIO_CloseFile)
     
