@@ -366,6 +366,7 @@ ML_MACHINE(500D,  0xFF010000);
 ML_MACHINE(5D2,   0xFF810000);
 ML_MACHINE(5D3,   0xFF0C0000);
 ML_MACHINE(650D,  0xFF0C0000);
+ML_MACHINE(100D,  0xFF0C0000);
 
 EOS_MACHINE(50D,  0xFF010000);
 EOS_MACHINE(60D,  0xFF010000);
@@ -374,6 +375,7 @@ EOS_MACHINE(500D, 0xFF010000);
 EOS_MACHINE(5D2,  0xFF810000);
 EOS_MACHINE(5D3,  0xFF0C0000);
 EOS_MACHINE(650D, 0xFF0C0000);
+EOS_MACHINE(100D, 0xFF0C0000);
 
 static void eos_machine_init(void)
 {
@@ -384,6 +386,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_ml_5D2);
     qemu_register_machine(&canon_eos_machine_ml_5D3);
     qemu_register_machine(&canon_eos_machine_ml_650D);
+    qemu_register_machine(&canon_eos_machine_ml_100D);
     qemu_register_machine(&canon_eos_machine_50D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
@@ -391,6 +394,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_5D2);
     qemu_register_machine(&canon_eos_machine_5D3);
     qemu_register_machine(&canon_eos_machine_650D);
+    qemu_register_machine(&canon_eos_machine_100D);
 }
 
 machine_init(eos_machine_init);
@@ -1162,6 +1166,17 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int ad
                     }
                     else
                     {
+                        ret = 1;
+                    }
+                    break;
+                    
+                case 0x244:
+                    if(type & MODE_WRITE)
+                    {
+                    }
+                    else
+                    {
+                        /* idk, expected to be so in 5D3 123 */
                         ret = 1;
                     }
                     break;
