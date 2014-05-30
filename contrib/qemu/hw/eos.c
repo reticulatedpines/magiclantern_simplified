@@ -947,6 +947,11 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
     switch(parm)
     {
         case 0:
+            if((address & 0xFFF) == 0xB6C)
+            {
+                /* 5D3 expects this one to be 0x10 in bootloader */
+                ret = 0x10;
+            }
             if((address & 0xFFF) == 0x0DC)
             {
                 /* abort situation for FROMUTIL on 600D */
@@ -1443,6 +1448,16 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int ad
                     {
                         /* idk, expected to be so in 5D3 123 */
                         ret = 1;
+                    }
+                    break;
+                case 0x204:
+                    if(type & MODE_WRITE)
+                    {
+                    }
+                    else
+                    {
+                        /* idk, expected to be so in 5D3 bootloader */
+                        ret = 2;
                     }
                     break;
             }
