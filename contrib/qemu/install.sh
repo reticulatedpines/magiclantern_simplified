@@ -1,7 +1,7 @@
 #!/bin/bash
 
-QEMU_NAME=qemu-1.6.0
-ML=magic-lantern
+QEMU_NAME=${QEMU_NAME:=qemu-1.6.0}
+ML=${ML:=magic-lantern}
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."

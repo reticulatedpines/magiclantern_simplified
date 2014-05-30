@@ -1,7 +1,8 @@
 #!/bin/bash
 
-QEMU_PATH=qemu-1.6.0
-ML_PATH=../magic-lantern/platform/$1.$2
+QEMU_PATH=${QEMU_PATH:=qemu-1.6.0}
+ML=${ML:=magic-lantern}
+ML_PATH=../${ML}/platform/$1.$2
 
 make -C $QEMU_PATH || exit
 make -C $ML_PATH || exit
