@@ -135,7 +135,6 @@ snprintf(
 #define NULL_STUB_BODY_INT(name) int q_##name(int num) { qprintf("*** " #name "(%d)\n", num); return 0; }
 #define NULL_STUB_BODY_STR_INT(name) int q_##name(char* str, int num) { qprintf("*** " #name "('%s', %d)\n", str, num); return 0; }
 
-NULL_STUB_BODY(init_task)
 NULL_STUB_BODY_INT(cstart)
 NULL_STUB_BODY_STR_INT(msg_queue_create)
 NULL_STUB_BODY_HEX(CreateRecursiveLock)
@@ -395,6 +394,12 @@ void q_create_init_task(int unused, void (*init_task)(void*))
     launch(init_task);
 }
 
+void q_init_task()
+{
+    qprintf("*** init_task\n");
+    cam_init();
+}
+
 extern thunk prop_register_slave;
 extern thunk is_taskid_valid;
 extern thunk CreateResLockEntry;
@@ -415,10 +420,10 @@ extern thunk _FIO_OpenFile;
 #define MAGIC (void*)0x12345678
 void*  stub_mappings[] = {
     MAGIC, MAGIC, (void*)RAM_OFFSET,
-    STUB_MAP(create_init_task)
+    //~ STUB_MAP(create_init_task)
     STUB_MAP(init_task)
-    STUB_MAP(task_create)
-    STUB_MAP(msleep)
+    //~ STUB_MAP(task_create)
+    //~ STUB_MAP(msleep)
     STUB_MAP(_malloc)
     STUB_MAP(_free)
     STUB_MAP(_alloc_dma_memory)
@@ -429,11 +434,11 @@ void*  stub_mappings[] = {
     STUB_MAP(GetSizeOfMaxRegion)
     STUB_MAP(DryosDebugMsg)
     STUB_MAP(call)
-    STUB_MAP(create_named_semaphore)
-    STUB_MAP(take_semaphore)
-    STUB_MAP(give_semaphore)
-    STUB_MAP(msg_queue_create)
-    STUB_MAP(CreateRecursiveLock)
+    //~ STUB_MAP(create_named_semaphore)
+    //~ STUB_MAP(take_semaphore)
+    //~ STUB_MAP(give_semaphore)
+    //~ STUB_MAP(msg_queue_create)
+    //~ STUB_MAP(CreateRecursiveLock)
     STUB_MAP(_FIO_FindFirstEx)
     STUB_MAP(FIO_FindNextEx)
     STUB_MAP(FIO_FindClose)
@@ -447,13 +452,12 @@ void*  stub_mappings[] = {
     STUB_MAP(FIO_SeekSkipFile)
     
     STUB_MAP(prop_register_slave)
-    STUB_MAP(LoadCalendarFromRTC)
-    STUB_MAP(is_taskid_valid)
-    STUB_MAP(GUI_Control)
+    //~ STUB_MAP(LoadCalendarFromRTC)
+    //~ STUB_MAP(is_taskid_valid)
+    //~ STUB_MAP(GUI_Control)
     #ifdef CONFIG_ENGINE_RESLOCK
     STUB_MAP(CreateResLockEntry)
     #endif
-    
     MAGIC, MAGIC,
 };
 
