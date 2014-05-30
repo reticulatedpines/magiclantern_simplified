@@ -103,7 +103,7 @@ static void eos_dump_vram(uint32_t address)
     {
         for (j = 0; j < 720; j++)
         {
-            uint8_t* b = qemu_get_ram_ptr(address);
+            uint8_t* b = qemu_get_ram_ptr(address + TCM_SIZE);
             int c = b[BM(j,i)];
             fprintf(f, "%d,%d: (%d,%d,%d)\n", j, i, R[c], G[c], B[c]);
         }
