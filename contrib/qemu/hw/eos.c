@@ -32,7 +32,54 @@ EOSRegionHandler eos_handlers[] =
     { "DMA3",         0xC0A30000, 0xC0A300FF, eos_handle_dma, 3 },
     { "DMA4",         0xC0A40000, 0xC0A400FF, eos_handle_dma, 4 },
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
+    
+    { "ML helpers",   0xCF123000, 0xCF123FFF, eos_handle_ml_helpers, 0 },
 };
+
+/* io range access */
+static uint64_t eos_io_read(void *opaque, hwaddr addr, uint32_t size)
+{
+    addr += IO_MEM_START;
+
+    uint32_t type = MODE_READ;
+
+    switch(size)
+    {
+        case 1:
+            type |= WIDTH_BYTE;
+            break;
+        case 2:
+            type |= WIDTH_HALF;
+            break;
+        case 4:
+            type |= WIDTH_WORD;
+            break;
+    }
+
+    return eos_handler ( opaque, addr, type, 0 );
+}
+
+static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
+{
+    addr += IO_MEM_START;
+
+    uint32_t type = MODE_WRITE;
+
+    switch(size)
+    {
+        case 1:
+            type |= WIDTH_BYTE;
+            break;
+        case 2:
+            type |= WIDTH_HALF;
+            break;
+        case 4:
+            type |= WIDTH_WORD;
+            break;
+    }
+
+    eos_handler ( opaque, addr, type, val );
+}
 
 /* used to dump bmp vram */
 static int R[] = {254, 234, 0, 0, 163, 31, 0, 1, 234, 0, 185, 27, 200, 0, 201, 209, 232, 216, 0, 231, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 231, 9, 18, 27, 36, 41, 46, 50, 55, 59, 64, 69, 73, 82, 92, 101, 109, 117, 119, 124, 129, 133, 138, 142, 147, 152, 156, 161, 165, 170, 175, 179, 184, 188, 193, 198, 202, 207, 211, 216, 221, 225, 229, 220, 206, 193, 177, 162, 160, 156, 150, 140, 132, 125, 119, 106, 92, 76, 62, 49, 36, 22, 108, 101, 95, 89, 81, 72, 64, 55, 49, 42, 39, 233, 199, 192, 147, 102, 57, 16, 8, 6, 5, 6, 6, 3, 6, 3, 6, 4, 4, 2, 2, 1, 51, 48, 41, 39, 35, 31, 26, 26, 23, 18, 16, 14, 11, 221, 206, 196, 185, 173, 172, 163, 155, 146, 140, 133, 121, 108, 93, 80, 72, 60, 44, 30, 113, 108, 102, 94, 87, 78, 67, 56, 46, 37, 28, 233, 230, 222, 211, 198, 188, 174, 174, 168, 164, 152, 141, 130, 121, 109, 93, 80, 71, 62, 46, 28, 115, 106, 97, 83, 73, 62, 52, 45, 37, 24, 12, 232, 231, 192, 149, 102, 53, 8, 0, 0, 23, 24, 24, 24, 90, 72, 0, 24, 0, 0, 1, 0, 26, 23, 21, 20, 18, 17, 13, 10, 7, 4, 1, 1, 1, 25, 29, 29, 33, 35, 38, 40, 42, 43, 43, 45, 45, 54, 65, 79, 90};
@@ -62,71 +109,36 @@ static void eos_dump_vram(uint32_t address)
     fclose(f);
 }
 
-/* io range access */
-static uint64_t eos_io_read(void *opaque, hwaddr addr, uint32_t size)
+unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    addr += IO_MEM_START;
-
-    uint32_t type = MODE_READ;
-
-    switch(size)
+    if(type & MODE_WRITE)
     {
-        case 1:
-            type |= WIDTH_BYTE;
-            break;
-        case 2:
-            type |= WIDTH_HALF;
-            break;
-        case 4:
-            type |= WIDTH_WORD;
-            break;
-    }
+        switch (address)
+        {
+            case REG_PRINT_CHAR:
+                printf("%c", (uint8_t)value);
+                return 0;
 
-    return eos_handler ( opaque, addr, type, 0 );
+            case REG_PRINT_NUM:
+                printf("%x (%d)\n", (uint32_t)value, (uint32_t)value);
+                return 0;
+
+            case REG_DUMP_VRAM:
+                eos_dump_vram(value);
+                return 0;
+
+            case REG_SHUTDOWN:
+                printf("Goodbye!\n");
+                qemu_system_shutdown_request();
+                return 0;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+    return 0;
 }
-
-static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
-{
-    addr += IO_MEM_START;
-
-    switch (addr)
-    {
-        case REG_PRINT_CHAR:
-            printf("%c", (uint8_t)val);
-            return;
-
-        case REG_PRINT_NUM:
-            printf("%x (%d)\n", (uint32_t)val, (uint32_t)val);
-            return;
-
-        case REG_DUMP_VRAM:
-            eos_dump_vram(val);
-            return;
-
-        case REG_SHUTDOWN:
-            printf("Goodbye!\n");
-            qemu_system_shutdown_request();
-            return;
-    }
-
-    uint32_t type = MODE_WRITE;
-
-    switch(size)
-    {
-        case 1:
-            type |= WIDTH_BYTE;
-            break;
-        case 2:
-            type |= WIDTH_HALF;
-            break;
-        case 4:
-            type |= WIDTH_WORD;
-            break;
-    }
-
-    eos_handler ( opaque, addr, type, val );
-}
-
 
 static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr)
 {

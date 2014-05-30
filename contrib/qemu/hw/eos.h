@@ -149,6 +149,8 @@ unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int addr
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 
+unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
+
 void eos_set_mem_w ( EOSState *ws, uint32_t addr, uint32_t val );
 void eos_set_mem_h ( EOSState *ws, uint32_t addr, uint16_t val );
 void eos_set_mem_b ( EOSState *ws, uint32_t addr, uint8_t val );
