@@ -219,7 +219,7 @@ feature_links = {
     'FEATURE_RAW_SPOTMETER'             :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
     'FEATURE_RAW_HISTOGRAM'             :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
     'FEATURE_RAW_ZEBRAS'                :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
-    'SHUTTER_FINE_TUNING'               :  'http://www.magiclantern.fm/forum/index.php?topic=5123.0',
+    'FEATURE_SHUTTER_FINE_TUNING'       :  'http://www.magiclantern.fm/forum/index.php?topic=5123.0',
 }
 
 readme_links = {}
