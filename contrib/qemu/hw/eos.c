@@ -516,8 +516,6 @@ static void draw_line8_32(void *opaque,
     } while (-- width != 0);
 }
 
-static int eos_display_invalidate = 0;
-
 static void eos_update_display(void *parm)
 {
     EOSState *s = (EOSState *)parm;
@@ -528,7 +526,7 @@ static void eos_update_display(void *parm)
     {
         qemu_console_resize(s->con, 720, 480);
         surface = qemu_console_surface(s->con);
-        eos_display_invalidate = 1;
+        s->display_invalidate = 1;
     }
     
     int first, last;
@@ -541,7 +539,7 @@ static void eos_update_display(void *parm)
         s->system_mem,
         0x003638100,
         720, 480,
-        960, linesize, 0, eos_display_invalidate, 
+        960, linesize, 0, s->display_invalidate, 
         draw_line8_32, 0,
         &first, &last
     );
@@ -550,13 +548,13 @@ static void eos_update_display(void *parm)
         dpy_gfx_update(s->con, 0, first, 720, last - first + 1);
     }
     
-    eos_display_invalidate = 0;
+    s->display_invalidate = 0;
 }
 
 static void eos_invalidate_display(void *parm)
 {
     EOSState *s = (EOSState *)parm;
-    eos_display_invalidate = 1;
+    s->display_invalidate = 1;
 }
 
 static const GraphicHwOps eos_display_ops = {

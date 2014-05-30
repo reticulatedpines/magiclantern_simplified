@@ -120,7 +120,7 @@ typedef struct
     uint32_t irq_id;
     uint32_t flash_state_machine;
     QemuConsole *con;
-
+    int display_invalidate;
     RTCState rtc;
 } EOSState;
 
