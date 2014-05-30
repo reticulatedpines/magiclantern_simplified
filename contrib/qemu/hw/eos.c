@@ -33,6 +33,7 @@ EOSRegionHandler eos_handlers[] =
     { "DMA3",         0xC0A30000, 0xC0A300FF, eos_handle_dma, 3 },
     { "DMA4",         0xC0A40000, 0xC0A400FF, eos_handle_dma, 4 },
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
+    { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
     { "FIO wrapper",  0xCF123F00, 0xCF123FFF, eos_handle_ml_fio, 0 },
@@ -1528,6 +1529,21 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int ad
     return ret;
 }
 
+unsigned int eos_handle_asif ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+
+    if(type & MODE_WRITE)
+    {
+        printf("[ASIF] [0x%08X] -> [0x%08X]\r\n", value, address);
+    }
+    else
+    {
+        printf("[ASIF] [0x%08X] <- [0x%08X]\r\n", value, address);
+    }
+
+    return ret;
+}
 
 #define FLASH_STATE_READ      0
 #define FLASH_STATE_UNLOCK_2  1
