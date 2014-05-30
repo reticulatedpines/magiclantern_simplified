@@ -8,6 +8,9 @@
 #include "hw/sysbus.h"
 #include "qemu/thread.h"
 #include "dirent.h"
+#include "ui/console.h"
+#include "ui/pixel_ops.h"
+#include "hw/display/framebuffer.h"
 #include "eos.h"
 
 EOSRegionHandler eos_handlers[] =
@@ -495,6 +498,72 @@ static void *eos_interrupt_thread(void *parm)
     return NULL;
 }
 
+/* todo: supoort other bith depths */
+
+static void draw_line8_32(void *opaque,
+                uint8_t *d, const uint8_t *s, int width, int deststep)
+{
+    uint8_t v, r, g, b;
+
+    do {
+        v = ldub_raw((void *) s);
+        r = R[v];
+        g = G[v];
+        b = B[v];
+        ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        s ++;
+        d += 4;
+    } while (-- width != 0);
+}
+
+static int eos_display_invalidate = 0;
+
+static void eos_update_display(void *parm)
+{
+    EOSState *s = (EOSState *)parm;
+
+    DisplaySurface *surface = qemu_console_surface(s->con);
+
+    if (720 != surface_width(surface) || 480 != surface_height(surface))
+    {
+        qemu_console_resize(s->con, 720, 480);
+        surface = qemu_console_surface(s->con);
+        eos_display_invalidate = 1;
+    }
+    
+    int first, last;
+    int i;
+    
+    first = 0;
+    int linesize = surface_stride(surface);
+    framebuffer_update_display(
+        surface,
+        s->system_mem,
+        0x003638100,
+        720, 480,
+        960, linesize, 0, eos_display_invalidate, 
+        draw_line8_32, 0,
+        &first, &last
+    );
+    
+    if (first >= 0) {
+        dpy_gfx_update(s->con, 0, first, 720, last - first + 1);
+    }
+    
+    eos_display_invalidate = 0;
+}
+
+static void eos_invalidate_display(void *parm)
+{
+    EOSState *s = (EOSState *)parm;
+    eos_display_invalidate = 1;
+}
+
+static const GraphicHwOps eos_display_ops = {
+    .invalidate  = eos_invalidate_display,
+    .gfx_update  = eos_update_display,
+};
+
 static EOSState *eos_init_cpu(void)
 {
     EOSState *s = g_new(EOSState, 1);
@@ -573,6 +642,8 @@ static EOSState *eos_init_cpu(void)
     s->rtc.transfer_format = 0xFF;
 
     qemu_thread_create(&s->interrupt_thread_id, eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
+
+    s->con = graphic_console_init(NULL, &eos_display_ops, s);
 
     return s;
 }

@@ -119,6 +119,7 @@ typedef struct
     uint32_t irq_schedule[INT_ENTRIES];
     uint32_t irq_id;
     uint32_t flash_state_machine;
+    QemuConsole *con;
 
     RTCState rtc;
 } EOSState;
