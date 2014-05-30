@@ -28,6 +28,7 @@
 #define REG_SHUTDOWN   0xCF123004
 #define REG_DUMP_VRAM  0xCF123008
 #define REG_PRINT_NUM  0xCF12300C
+#define REG_GET_KEY    0xCF123010
 
 /*
  * FIO access to a local directory
@@ -121,6 +122,9 @@ typedef struct
     uint32_t flash_state_machine;
     QemuConsole *con;
     int display_invalidate;
+    int keybuf[16];
+    int key_index_r;
+    int key_index_w;
     RTCState rtc;
 } EOSState;
 

@@ -141,6 +141,22 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
     }
     else
     {
+        switch (address)
+        {
+            case REG_GET_KEY:
+            {
+                if (ws->key_index_r == ws->key_index_w)
+                {
+                    /* no key in queue */
+                    return 0;
+                }
+                else
+                {
+                    /* return a key from the circular buffer */
+                    return ws->keybuf[(ws->key_index_r++) & 15];
+                }
+            }
+        }
         return 0;
     }
     return 0;
@@ -562,6 +578,12 @@ static const GraphicHwOps eos_display_ops = {
     .gfx_update  = eos_update_display,
 };
 
+static void eos_key_event(void *parm, int keycode)
+{
+    EOSState *s = (EOSState *)parm;
+    s->keybuf[(s->key_index_w++) & 15] = keycode;
+}
+
 static EOSState *eos_init_cpu(void)
 {
     EOSState *s = g_new(EOSState, 1);
@@ -642,6 +664,8 @@ static EOSState *eos_init_cpu(void)
     qemu_thread_create(&s->interrupt_thread_id, eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
 
     s->con = graphic_console_init(NULL, &eos_display_ops, s);
+    
+    qemu_add_kbd_event_handler(eos_key_event, s);
 
     return s;
 }
