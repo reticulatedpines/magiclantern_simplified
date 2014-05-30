@@ -4,4 +4,6 @@
 int qprintf(const char * fmt, ...); // prints in the QEMU console
 
 void qemu_hello();
+void qemu_menu_screenshots();
+
 #endif
