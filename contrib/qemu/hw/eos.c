@@ -499,14 +499,12 @@ static EOSState *eos_init_cpu(void)
     memset(s->irq_schedule, 0x00, sizeof(s->irq_schedule));
     s->system_mem = get_system_memory();
 
-    //memory_region_init_ram(&s->tcm_code, "eos.tcm_code", TCM_SIZE);
-    //memory_region_add_subregion(s->system_mem, 0x00000000, &s->tcm_code);
-    //memory_region_init_ram(&s->tcm_data, "eos.tcm_data", TCM_SIZE);
-    //memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->tcm_data);
+    memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", TCM_SIZE);
+    memory_region_add_subregion(s->system_mem, 0x00000000, &s->tcm_code);
+    memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", TCM_SIZE);
+    memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->tcm_data);
 
     /* set up RAM, cached and uncached */
-    #undef TCM_SIZE
-    #define TCM_SIZE 0
     memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, TCM_SIZE, &s->ram);
     memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
