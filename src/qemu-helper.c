@@ -289,7 +289,7 @@ int q__FIO_GetFileSize(const char * filename, int* size)
     qfio_printf("%s", filename);
     *size = MEM(REG_FIO_GET_FILE_SIZE);
     qprintf("*** FIO_GetFileSize('%s') => %d\n", filename, *size);
-    return 0;
+    return *size >= 0 ? 0 : -1;
 }
 
 int q__FIO_CreateFile(const char * filename)

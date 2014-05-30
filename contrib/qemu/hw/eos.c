@@ -188,6 +188,7 @@ unsigned int eos_handle_ml_fio ( unsigned int parm, EOSState *ws, unsigned int a
     static char buffer[1000] = {0};
     static uint32_t  buffer_index = 0;
     
+    static char dirname[1000];
     static DIR * dir;
     static FILE* file;
     
@@ -329,6 +330,8 @@ unsigned int eos_handle_ml_fio ( unsigned int parm, EOSState *ws, unsigned int a
                     dir = opendir(path);
                     if (dir)
                     {
+                        int len = snprintf(dirname, sizeof(dirname), "%s", path);
+                        if (dirname[len-1] == '/') dirname[len-1] = 0;
                         printf("[FIO wrapper] opendir(%s)\n", path);
                         return 1;
                     }
@@ -372,8 +375,11 @@ unsigned int eos_handle_ml_fio ( unsigned int parm, EOSState *ws, unsigned int a
                     {
                         snprintf(buffer, sizeof(buffer), "%s", d->d_name);
 
+                        char fullpath[1000];
+                        snprintf(fullpath, sizeof(fullpath), "%s/%s", dirname, d->d_name);
+                        
                         struct stat sb;
-                        if (stat(d->d_name, &sb) != -1)
+                        if (stat(fullpath, &sb) != -1)
                         {
                             arg0 = sb.st_size;
                             arg1 = S_ISDIR(sb.st_mode) ? 0x10 : 0;
