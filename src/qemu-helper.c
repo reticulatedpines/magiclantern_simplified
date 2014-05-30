@@ -10,6 +10,25 @@
 #define REG_SHUTDOWN 0xCF123004
 #define REG_DUMP_VRAM 0xCF123008
 
+/*
+ * FIO access to a local directory
+ * A:/ mapped to cfcard/ and B:/ mapped to sdcard/
+ * Single-user, single-task for now (only one file open at a time)
+ */
+#define REG_FIO_NUMERIC_ARG0    0xCF123F00  // R/W
+#define REG_FIO_NUMERIC_ARG1    0xCF123F04  // R/W
+#define REG_FIO_NUMERIC_ARG2    0xCF123F08  // R/W
+#define REG_FIO_NUMERIC_ARG3    0xCF123F0C  // R/W
+#define REG_FIO_BUFFER          0xCF123F10  // R/W; buffer position auto-increments; used to pass filenames or to get data
+#define REG_FIO_BUFFER_SEEK     0xCF123F14  // MEM(REG_FIO_BUFFER_SEEK) = position;
+#define REG_FIO_GET_FILE_SIZE   0xCF123F20  // filename in buffer; size = MEM(REG_FIO_GET_FILE_SIZE);
+#define REG_FIO_OPENDIR         0xCF123F24  // path name in buffer; ok = MEM(REG_FIO_OPENDIR);
+#define REG_FIO_CLOSEDIR        0xCF123F28  // ok = MEM(REG_FIO_CLOSEDIR);
+#define REG_FIO_READDIR         0xCF123F2C  // ok = MEM(REG_FIO_READDIR); dir name in buffer; size, mode, time in arg0-arg2
+#define REG_FIO_OPENFILE        0xCF123F34  // file name in buffer; ok = MEM(REG_FIO_OPENFILE);
+#define REG_FIO_CLOSEFILE       0xCF123F38  // ok = MEM(REG_FIO_CLOSEFILE);
+#define REG_FIO_READFILE        0xCF123F3C  // size in arg0; pos in arg1; bytes_read = MEM(REG_FIO_READFILE); contents in buffer
+
 // all DIGIC V cameras require a RAM offset, take it from stubs.S
 #if defined(CONFIG_650D)
 #define RAM_OFFSET (0xFFA4DF58-0x1900)
@@ -23,10 +42,6 @@
 #define RAM_OFFSET 0
 #endif
 
-extern thunk _FIO_FindFirstEx;
-extern thunk _FIO_GetFileSize;
-extern thunk _FIO_CreateFile;
-
 #define BMP_VRAM_ADDR 0x003638100
 
 int qprintf(const char * fmt, ...) // prints in the QEMU console
@@ -38,9 +53,56 @@ int qprintf(const char * fmt, ...) // prints in the QEMU console
     va_end( ap );
     
     for (char* c = buf; *c; c++)
-        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
+        MEM(REG_PRINT_CHAR) = *c;
     
     return 0;
+}
+
+int qfio_printf(const char * fmt, ...) // sends data to QEMU FIO buffer (to pass filenames etc)
+{
+    va_list ap;
+    char buf[256];
+    va_start( ap, fmt );
+    vsnprintf( buf, sizeof(buf)-1, fmt, ap );
+    va_end( ap );
+    
+    MEM(REG_FIO_BUFFER_SEEK) = 0;
+    
+    for (char* c = buf; *c; c++)
+        MEM(REG_FIO_BUFFER) = *c;
+
+    MEM(REG_FIO_BUFFER) = 0;
+    
+    return 0;
+}
+
+char* qfio_read0() // read a null-terminated string from QEMU FIO buffer
+{
+    MEM(REG_FIO_BUFFER_SEEK) = 0;
+    
+    static char buf[1000];
+    
+    for (int i = 0; i < COUNT(buf); i++)
+    {
+        buf[i] = MEM(REG_FIO_BUFFER);
+        
+        if (!buf[i])
+        {
+            break;
+        }
+    }
+    
+    return buf;
+}
+
+void qfio_read(char* buf, int num) // read "num" bytes from QEMU FIO buffer, into "buf"
+{
+    MEM(REG_FIO_BUFFER_SEEK) = 0;
+    
+    for (int i = 0; i < num; i++)
+    {
+        buf[i] = MEM(REG_FIO_BUFFER);
+    }
 }
 
 int
@@ -177,16 +239,56 @@ extern int q_GetSizeOfMaxRegion(int* max_region)
     return 0;
 }
 
+void * q_readdir(struct fio_file * file)
+{
+    int ok = MEM(REG_FIO_READDIR);
+    if (ok)
+    {
+        snprintf(file->name, sizeof(file->name), qfio_read0());
+        file->size = MEM(REG_FIO_NUMERIC_ARG0);
+        file->mode = MEM(REG_FIO_NUMERIC_ARG1);
+        file->timestamp = MEM(REG_FIO_NUMERIC_ARG2);
+        return (void*) 0;
+    }
+    else
+    {
+        return (void*) 1;
+    }
+}
+
 void * q__FIO_FindFirstEx(const char * dirname, struct fio_file * file)
 {
     qprintf("*** FIO_FindFirstEx('%s', %x)\n", dirname, file);
-    return (void*)1;
+    qfio_printf("%s", dirname);
+    int ok = MEM(REG_FIO_OPENDIR);
+    if (ok)
+    {
+        return q_readdir(file);
+    }
+    else
+    {
+        return (void*) 1;
+    }
+}
+
+void * q_FIO_FindNextEx(struct fio_dirent * dirent, struct fio_file * file)
+{
+    qprintf("*** FIO_FindNextEx(%x, %x)\n", dirent, file);
+    return q_readdir(file);
+}
+
+int q_FIO_FindClose(struct fio_dirent * dirent)
+{
+    qprintf("*** FIO_FindClose(%x)\n", dirent);
+    int ok = MEM(REG_FIO_CLOSEDIR);
+    return ok;
 }
 
 int q__FIO_GetFileSize(const char * filename, int* size)
 {
-    qprintf("*** FIO_GetFileSize('%s')\n", filename);
-    *size = 0;
+    qfio_printf("%s", filename);
+    *size = MEM(REG_FIO_GET_FILE_SIZE);
+    qprintf("*** FIO_GetFileSize('%s') => %d\n", filename, *size);
     return 0;
 }
 
@@ -197,12 +299,6 @@ int q__FIO_CreateFile(const char * filename)
     return fd++;
 }
 
-int q_FIO_CloseFile(int fd)
-{
-    qprintf("*** FIO_CloseFile(%x)\n", fd);
-    return -1;
-}
-
 int q_FIO_WriteFile(int fd, char* buf, int size)
 {
     qprintf("*** FIO_WriteFile(%x, %d)\n{{{\n", fd, size);
@@ -210,6 +306,71 @@ int q_FIO_WriteFile(int fd, char* buf, int size)
         *(volatile uint32_t*)REG_PRINT_CHAR = buf[i];
     qprintf("\n}}}\n");
     return size;
+}
+
+static int fio_read_pos = 0;
+
+FILE* q__FIO_OpenFile( const char* filename, unsigned mode )
+{
+    qprintf("*** FIO_OpenFile(%s)\n", filename);
+    qfio_printf("%s", filename);
+    fio_read_pos = 0;
+    int ok = MEM(REG_FIO_OPENFILE);
+    return ok ? 0 : INVALID_PTR;
+}
+
+int q_FIO_ReadFile( FILE* stream, void* ptr, size_t count )
+{
+    qprintf("*** FIO_ReadFile(%x, %x, %d)\n", stream, ptr, count);
+    int total_bytes = 0;
+    while (total_bytes < count)
+    {
+        MEM(REG_FIO_NUMERIC_ARG0) = count;
+        MEM(REG_FIO_NUMERIC_ARG1) = fio_read_pos;
+        int bytes = MEM(REG_FIO_READFILE);
+        qfio_read(ptr, bytes);
+        ptr += bytes;
+        total_bytes += bytes;
+        fio_read_pos += bytes;
+        if (bytes == 0)
+        {
+            break;
+        }
+    }
+    return total_bytes;
+}
+
+uint64_t q_FIO_SeekFile( FILE* stream, size_t position, int whence )
+{
+    qprintf("*** FIO_SeekFile(%x, %x, %d)\n", stream, position, whence);
+
+    switch (whence)
+    {
+        case SEEK_SET:
+            fio_read_pos = position;
+            break;
+        case SEEK_CUR:
+            fio_read_pos += position;
+            break;
+        case SEEK_END:
+            fio_read_pos = -position;
+            break;
+    }
+
+    return 0;
+}
+
+uint64_t q_FIO_SeekSkipFile( FILE* stream, uint64_t position, int whence )
+{
+    qprintf("*** FIO_SeekFile(%x, %x, %d)\n", stream, (int)position, whence);
+    return q_FIO_SeekFile(stream, position, whence);
+}
+
+int q_FIO_CloseFile(int fd)
+{
+    qprintf("*** FIO_CloseFile(%x)\n", fd);
+    int ok = MEM(REG_FIO_CLOSEFILE);
+    return ok;
 }
 
 #define STUB_MAP(name) &name, &q_##name,
@@ -246,6 +407,11 @@ extern thunk _free;
 extern thunk GetMemoryInformation;
 extern thunk GetSizeOfMaxRegion;
 
+extern thunk _FIO_FindFirstEx;
+extern thunk _FIO_GetFileSize;
+extern thunk _FIO_CreateFile;
+extern thunk _FIO_OpenFile;
+
 #define MAGIC (void*)0x12345678
 void*  stub_mappings[] = {
     MAGIC, MAGIC, (void*)RAM_OFFSET,
@@ -269,10 +435,16 @@ void*  stub_mappings[] = {
     STUB_MAP(msg_queue_create)
     STUB_MAP(CreateRecursiveLock)
     STUB_MAP(_FIO_FindFirstEx)
+    STUB_MAP(FIO_FindNextEx)
+    STUB_MAP(FIO_FindClose)
     STUB_MAP(_FIO_GetFileSize)
     STUB_MAP(_FIO_CreateFile)
+    STUB_MAP(_FIO_OpenFile)
+    STUB_MAP(FIO_ReadFile)
     STUB_MAP(FIO_WriteFile)
     STUB_MAP(FIO_CloseFile)
+    STUB_MAP(FIO_SeekFile)
+    STUB_MAP(FIO_SeekSkipFile)
     
     STUB_MAP(prop_register_slave)
     STUB_MAP(LoadCalendarFromRTC)

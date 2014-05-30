@@ -61,7 +61,15 @@ echo "3) Enable CONFIG_QEMU=y in your Makefile.user"
 echo "   from magic-lantern directory, then run 'make clean' to make sure"
 echo "   you will rebuild ML from scratch."
 echo
-echo "4) Start emulation with:"
+echo "4) Create a subdirectory named 'sdcard' or 'cfcard' and copy ML files there."
+echo "   Make sure all ML files are UPPERCASE (just copy them from a FAT32 card)."
+echo "   You should get something like:"
+echo "   `pwd`/sdcard/ML/AUTOEXEC.BIN"
+echo "   `pwd`/sdcard/ML/FONTS/ARGNOR32.RBF"
+echo "   `pwd`/sdcard/ML/MODULES/ARKANOID.MO"
+echo "   and so on."
+echo
+echo "5) Start emulation with:"
 echo
 echo "   cd `pwd`/"
 echo "   ./run_ml_60D.sh"
