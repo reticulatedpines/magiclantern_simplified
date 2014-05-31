@@ -203,8 +203,8 @@ NSTUB(0xFF98A990,  gui_timer_something)                     // d
 
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFF86D6A0,  CancelTimer)
+NSTUB(0xFF86D4A0,  SetTimerAfter)
 NSTUB(0XFF8652CC,  SetHPTimerAfterNow)
 NSTUB(0xFF86534C,  SetHPTimerNextTick)
 
