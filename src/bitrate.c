@@ -83,7 +83,9 @@ void bitrate_write_mvr_config()
 
 #endif
 
+#ifdef FEATURE_NITRATE
 static struct mvr_config mvr_config_copy;
+#endif
 
 static void cbr_init()
 {
@@ -94,7 +96,9 @@ static void cbr_init()
     bitrate_read_mvr_config();
 #endif
 
+#ifdef FEATURE_NITRATE
     memcpy(&mvr_config_copy, &mvr_config, sizeof(mvr_config_copy));
+#endif
 }
 
 static void vbr_fix(uint16_t param)
@@ -161,6 +165,7 @@ static void opt_set(int num, int den)
     return;
 #endif
 
+#ifdef FEATURE_NITRATE
     int i, j;
     
 
@@ -189,6 +194,7 @@ static void opt_set(int num, int den)
             (*opt) = (*opt0) * num / den;
         }
     }
+#endif
 }
 
 static void bitrate_set()
