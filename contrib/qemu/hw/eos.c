@@ -1632,6 +1632,13 @@ unsigned int eos_handle_asif ( unsigned int parm, EOSState *ws, unsigned int add
     }
     else
     {
+        switch(address & 0xFFF)
+        {
+            case 0x110:
+            case 0x114:
+                /* audio meters; don't print messages, since it will flood the console */
+                return 0;
+        }
         printf("[ASIF] [0x%08X] <- [0x%08X]\r\n", value, address);
     }
 
