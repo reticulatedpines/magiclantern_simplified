@@ -386,6 +386,9 @@ static void backup_task()
 }
 #endif
 
+#ifdef CONFIG_HELLO_WORLD
+    #include "fw-signature.h"
+#endif
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
@@ -397,8 +400,7 @@ static void my_big_init_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    #include "fw-signature.h"
-    int sig = compute_signature(SIG_START, 0x10000);
+    int sig = compute_signature((int*)SIG_START, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
