@@ -387,6 +387,7 @@ void time_indicator_show()
             "B%3d ",
             measured_bitrate
         );
+#ifdef FEATURE_NITRATE
         int fnts = FONT(FONT_SMALL, COLOR_WHITE, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_BLACK);
         bmp_printf(fnts,
             680,
@@ -395,6 +396,7 @@ void time_indicator_show()
             mvr_config.actual_qscale_maybe < 0 ? "-" : "+",
             ABS(mvr_config.actual_qscale_maybe)
         );
+#endif
     }
     
     //~ if (flicker_being_killed()) // this also kills recording dot
