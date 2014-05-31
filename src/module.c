@@ -77,7 +77,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(!file)
+    if(file == INVALID_PTR)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
