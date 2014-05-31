@@ -194,9 +194,6 @@ void ml_gui_main_task()
 
             if (event->type == 0)
             {
-                #ifdef CONFIG_GUI_DEBUG
-                show_event_codes(event);
-                #endif
                 if (handle_buttons(event) == 0) { // ML button/event handler
                     continue;
                 }
