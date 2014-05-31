@@ -55,7 +55,7 @@ static int translate_scancode(int scancode)
         case 0xB9: return BGMT_UNPRESS_SET;
         case 0x2D: return BGMT_JOY_CENTER;              /* X */
         case 0xAD: return BGMT_UNPRESS_UDLR;
-        case 0x1A: return BGMT_WHEEL_LEFT;              /* or [ ] according to the spec */
+        case 0x1A: return BGMT_WHEEL_LEFT;              /* [ and ] */
         case 0x1B: return BGMT_WHEEL_RIGHT;
         case 0x19: return BGMT_PLAY;                    /* P */
         case 0x17: return BGMT_INFO;                    /* I */
@@ -93,6 +93,30 @@ static int translate_scancode(int scancode)
     return -1;
 }
 
+static void qemu_print_help()
+{
+    bmp_printf(FONT_LARGE, 50, 50, "Magic Lantern in QEMU");
+
+    big_bmp_printf(FONT_MONO_20 | FONT_ALIGN_FILL, 50, 100,
+        "DELETE       open ML menu\n"
+        "SPACE        SET\n"
+        "SHIFT        half-shutter\n"
+        "ENTER        full-shutter\n"
+        "Q            you know :)\n"
+        "M            MENU\n"
+        "P            PLAY\n"
+        "I            INFO\n"
+        "R            RATE\n"
+        "X            joystick center\n"
+        "Arrows       guess :)\n"
+        "PageUp/Dn    rear scrollwheel\n"
+        "[ and ]      top scrollwheel\n"
+        "+/-          zoom in/out\n"
+    );
+
+    bmp_printf(FONT_LARGE, 50, 400, "Have fun!");
+}
+
 static void qemu_key_poll()
 {
     TASK_LOOP
@@ -113,6 +137,11 @@ static void qemu_key_poll()
         else
         {
             msleep(50);
+        }
+        
+        if (!gui_menu_shown())
+        {
+            qemu_print_help();
         }
     }
 }
