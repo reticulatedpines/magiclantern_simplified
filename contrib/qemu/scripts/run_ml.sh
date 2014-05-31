@@ -18,6 +18,7 @@ make qemu-helper.bin -C $ML_PATH || exit
 cp $ML_PATH/autoexec.bin .
 cp $ML_PATH/qemu-helper.bin .
 cp $ML_PATH/magiclantern .
+cp $ML_PATH/${CAM}_${VER}.sym sdcard/ML/MODULES/${CAM}_${VER}.SYM
 
 rm -f vram*.txt
 rm -f vram*.png
