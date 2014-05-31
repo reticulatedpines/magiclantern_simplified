@@ -456,14 +456,6 @@ static void my_big_init_task()
     }
     return;
     #endif
-    
-    #ifdef CONFIG_QEMU
-        #ifdef CONFIG_QEMU_MENU_SCREENSHOTS
-        qemu_menu_screenshots();
-        #else
-        qemu_hello(); // see qemu-util.c
-        #endif
-    #endif
 
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
@@ -921,6 +913,11 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
+
+#ifdef CONFIG_QEMU  /* fixme: Canon GUI task is not started */
+    extern void ml_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
+#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT

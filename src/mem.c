@@ -155,7 +155,7 @@ static struct mem_allocator allocators[] = {
     },
 #endif
 
-#if 1
+#if !defined(CONFIG_QEMU)
     /* must be completely free when navigating Canon menus, so only use it as a last resort */
     {
         .name = "shoot_malloc",

@@ -38,6 +38,10 @@
 #include "debug.h"
 #include "lvinfo.h"
 
+#ifdef CONFIG_QEMU
+#define GUIMODE_ML_MENU 0
+#endif
+
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE

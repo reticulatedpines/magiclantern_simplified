@@ -172,7 +172,13 @@ void ml_gui_main_task()
     int index = 0;
     void* funcs[GMT_NFUNCS];
     memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
+    
+    #ifdef CONFIG_QEMU
+    gui_main_struct.msg_queue = msg_queue_create("gui", 100);
+    #else
     gui_init_end(); // no params?
+    #endif
+    
     while(1)
     {
         #if defined(CONFIG_550D) || defined(CONFIG_7D)

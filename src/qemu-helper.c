@@ -139,10 +139,16 @@ NULL_STUB_BODY_INT(cstart)
 NULL_STUB_BODY_STR_INT(msg_queue_create)
 NULL_STUB_BODY_HEX(CreateRecursiveLock)
 NULL_STUB_BODY_HEX(prop_register_slave)
+NULL_STUB_BODY_HEX(_prop_request_change)
 NULL_STUB_BODY_HEX(LoadCalendarFromRTC)
 NULL_STUB_BODY_HEX(is_taskid_valid)
 NULL_STUB_BODY_HEX(GUI_Control)
-NULL_STUB_BODY_INT(CreateResLockEntry)
+
+int q_CreateResLockEntry()
+{
+    qprintf("*** CreateResLockEntry()\n");
+    return 1;
+}
 
 void launch(void (*func)(void*))
 {
@@ -401,6 +407,7 @@ void q_init_task()
 }
 
 extern thunk prop_register_slave;
+extern thunk _prop_request_change;
 extern thunk is_taskid_valid;
 extern thunk CreateResLockEntry;
 extern thunk _alloc_dma_memory;
@@ -452,6 +459,7 @@ void*  stub_mappings[] = {
     STUB_MAP(FIO_SeekSkipFile)
     
     STUB_MAP(prop_register_slave)
+    STUB_MAP(_prop_request_change)
     //~ STUB_MAP(LoadCalendarFromRTC)
     //~ STUB_MAP(is_taskid_valid)
     //~ STUB_MAP(GUI_Control)
