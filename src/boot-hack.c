@@ -257,6 +257,18 @@ my_task_dispatch_hook(
     extern struct task_mapping _task_overrides_end[];
     struct task_mapping * mapping = _task_overrides_start;
 
+#ifdef CONFIG_QEMU
+    if (((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART)
+    {
+        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, get_task_name_from_id(get_current_task()));
+        task->entry = &ret_0;
+    }
+    else
+    {
+        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, get_task_name_from_id(get_current_task()));
+    }
+#endif
+
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
 #if defined(POSITION_INDEPENDENT)
@@ -875,6 +887,10 @@ my_init_task(int a, int b, int c, int d)
 #endif
 
 #ifndef CONFIG_EARLY_PORT
+
+#ifdef CONFIG_QEMU
+    qemu_cam_init();
+#endif
 
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);

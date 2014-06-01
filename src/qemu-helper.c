@@ -380,30 +380,16 @@ int q_FIO_CloseFile(int fd)
 
 #define STUB_MAP(name) &name, &q_##name,
 
-void cam_init()
-{
-    // set BMP VRAM
-    bmp_vram_info[1].vram2 = (void*) BMP_VRAM_ADDR;
-
-    // fake display on
-    #ifdef DISPLAY_STATEOBJ
-    DISPLAY_STATEOBJ->current_state = 1;
-    #else
-    DISPLAY_IS_ON = 1;
-    #endif
-}
-
 void q_create_init_task(int unused, void (*init_task)(void*))
 {
     qprintf("create_init_task(%x)\n", init_task);
-    cam_init();
     launch(init_task);
 }
 
 void q_init_task()
 {
     qprintf("*** init_task\n");
-    cam_init();
+    //~ cam_init();
 }
 
 extern thunk prop_register_slave;
@@ -428,19 +414,19 @@ extern thunk _FIO_OpenFile;
 void*  stub_mappings[] = {
     MAGIC, MAGIC, (void*)RAM_OFFSET,
     //~ STUB_MAP(create_init_task)
-    STUB_MAP(init_task)
+    //~ STUB_MAP(init_task)
     //~ STUB_MAP(task_create)
     //~ STUB_MAP(msleep)
-    STUB_MAP(_malloc)
-    STUB_MAP(_free)
-    STUB_MAP(_alloc_dma_memory)
-    STUB_MAP(_free_dma_memory)
-    STUB_MAP(_AllocateMemory)
-    STUB_MAP(_FreeMemory)
-    STUB_MAP(GetMemoryInformation)
-    STUB_MAP(GetSizeOfMaxRegion)
+    //~ STUB_MAP(_malloc)
+    //~ STUB_MAP(_free)
+    //~ STUB_MAP(_alloc_dma_memory)
+    //~ STUB_MAP(_free_dma_memory)
+    //~ STUB_MAP(_AllocateMemory)
+    //~ STUB_MAP(_FreeMemory)
+    //~ STUB_MAP(GetMemoryInformation)
+    //~ STUB_MAP(GetSizeOfMaxRegion)
     STUB_MAP(DryosDebugMsg)
-    STUB_MAP(call)
+    //~ STUB_MAP(call)
     //~ STUB_MAP(create_named_semaphore)
     //~ STUB_MAP(take_semaphore)
     //~ STUB_MAP(give_semaphore)
@@ -458,8 +444,8 @@ void*  stub_mappings[] = {
     STUB_MAP(FIO_SeekFile)
     STUB_MAP(FIO_SeekSkipFile)
     
-    STUB_MAP(prop_register_slave)
-    STUB_MAP(_prop_request_change)
+    //~ STUB_MAP(prop_register_slave)
+    //~ STUB_MAP(_prop_request_change)
     //~ STUB_MAP(LoadCalendarFromRTC)
     //~ STUB_MAP(is_taskid_valid)
     //~ STUB_MAP(GUI_Control)

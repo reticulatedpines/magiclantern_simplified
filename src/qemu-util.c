@@ -145,4 +145,24 @@ static void qemu_key_poll()
         }
     }
 }
+
 TASK_CREATE( "qemu_key_poll", qemu_key_poll, 0, 0x1a, 0x2000 );
+
+#define BMP_VRAM_ADDR 0x003638100
+
+void qemu_cam_init()
+{
+    // set BMP VRAM
+    bmp_vram_info[1].vram2 = (void*) BMP_VRAM_ADDR;
+
+    // fake display on
+    #ifdef DISPLAY_STATEOBJ
+    DISPLAY_STATEOBJ->current_state = 1;
+    #else
+    DISPLAY_IS_ON = 1;
+    #endif
+    
+    #ifdef CONFIG_5D3
+    MEM(0xff0cb304) = RET_INSTR;    /* fixme: hotplug task can't be blocked via task dispatch hook? */
+    #endif
+}
