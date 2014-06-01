@@ -55,7 +55,7 @@ NSTUB(0xFF1FC800, _FIO_GetFileSize)
 NSTUB(0xFF1FC224, _FIO_OpenFile)
 NSTUB(0xFF1FC38C, _FIO_RemoveFile)
 // NSTUB(0xFF0455B4, _FIO_RenameFile)   // not sure it is ceresFIORename   /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
+NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)                        
 
 /** GUI **/
 NSTUB(    0x1BF4,  gui_main_struct)
