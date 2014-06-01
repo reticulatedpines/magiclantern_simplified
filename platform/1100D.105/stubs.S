@@ -194,10 +194,10 @@ NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (du
 
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
-// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFF076470,  CancelTimer)
+NSTUB(0xFF06E260,  SetHPTimerAfterNow)
+NSTUB(0xFF06E354,  SetHPTimerNextTick)
+NSTUB(0xFF076270,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
