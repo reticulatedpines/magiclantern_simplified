@@ -258,14 +258,23 @@ my_task_dispatch_hook(
     struct task_mapping * mapping = _task_overrides_start;
 
 #ifdef CONFIG_QEMU
-    if (((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART)
+    char* task_name = get_task_name_from_id(get_current_task());
+    
+    if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
+        (   /* only start some whitelisted Canon tasks */
+            !streq(task_name, "Startup") &&
+            !streq(task_name, "TaskMain") &&
+            !streq(task_name, "PowerMgr") &&
+            !streq(task_name, "EventMgr") &&
+            //~ !streq(task_name, "PropMgr") &&
+        1))
     {
-        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, get_task_name_from_id(get_current_task()));
+        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, task_name);
         task->entry = &ret_0;
     }
     else
     {
-        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, get_task_name_from_id(get_current_task()));
+        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
     }
 #endif
 
