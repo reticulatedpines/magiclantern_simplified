@@ -196,11 +196,11 @@ NSTUB(0xFFA66564 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFFA68578 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA61E78 - RAM_OFFSET,  SetHPTimerAfterNow)
 NSTUB(0xFFA61F68 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFFA68378 - RAM_OFFSET,  SetTimerAfter)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(   0x314F4,  mvr_config)

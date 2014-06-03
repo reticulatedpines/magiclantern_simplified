@@ -21,6 +21,7 @@
 #include "cropmarks.h"
 #include "fw-signature.h"
 #include "lvinfo.h"
+#include "timer.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -803,10 +804,36 @@ static void stress_test_picture(int n, int delay)
     msleep(delay);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
+static volatile int timer_func = 0;
+static volatile int timer_arg = 0;
+static volatile int64_t timer_time = 0;
+
+static void timer_cbr(int arg1, void* arg2)
+{
+    timer_func = 1;
+    timer_arg = arg1;
+    timer_time = get_us_clock_value();
+}
+
+static void overrun_cbr(int arg1, void* arg2)
+{
+    timer_func = 2;
+    timer_arg = arg1;
+    timer_time = get_us_clock_value();
+}
+
+static void next_tick_cbr(int arg1, void* arg2)
+{
+    timer_func = 3;
+    timer_arg = arg1;
+    timer_time = get_us_clock_value();
+    SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
+}
+
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
 #define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
 static int test_task_created = 0;
@@ -821,6 +848,13 @@ static void stub_test_task(void* arg)
     extern void _FreeMemory(void* ptr);
     extern void* _alloc_dma_memory(size_t size);
     extern void _free_dma_memory(void* ptr);
+    
+    int maxlen = 1024*1024;
+    int log_len = 0;
+    char* log_buf = fio_malloc(maxlen);
+    if (!log_buf) return;
+    
+    console_show();
 
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
@@ -829,12 +863,94 @@ static void stub_test_task(void* arg)
     int passed_tests = 0;
     int failed_tests = 0;
 
-    FILE* log = FIO_CreateFile( "stubtest.log" );
     int silence = 0;    // if 1, only failures are logged to file
     int ok = 1;
 
     for (int i=0; i < n; i++)
     {
+        /* GUI timers */
+        
+        /* SetTimerAfter, CancelTimer */
+        {
+            int t0 = get_us_clock_value()/1000;
+            int ta0 = 0;
+
+            /* this one should overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetTimerAfter(0, timer_cbr, overrun_cbr, 0), == 0x15);
+            TEST_TRY_FUNC_CHECK(timer_func, == 2);
+            ta0 = timer_arg;
+
+            /* this one should not overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(900));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 +  900 => CBR should not be called yet */
+            TEST_TRY_VOID(msleep(200));
+            TEST_TRY_FUNC_CHECK(timer_func, == 1);  /* ta0 + 1100 => CBR should be called by now */
+            TEST_TRY_FUNC_CHECK(ABS((timer_time/1000 - t0) - 1000), <= 20);
+            TEST_TRY_FUNC_CHECK(ABS((timer_arg - ta0) - 1000), <= 20);
+            // current time: ta0+1100
+
+            /* this one should not call the CBR, because we'll cancel it */
+            timer_func = 0;
+            int timer;
+            TEST_TRY_FUNC_CHECK(timer = SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(400));
+            TEST_TRY_VOID(CancelTimer(timer));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 + 1500 => CBR should be not be called, and we'll cancel it early */
+            TEST_TRY_VOID(msleep(1500));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 + 3000 => CBR should be not be called, because it was canceled */
+        }
+        
+        /* microsecond timer wraps around at 1048576 */
+        int DeltaT(int a, int b)
+        {
+            return MOD(a - b, 1048576);
+        }
+
+        /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
+        {
+            int64_t t0 = get_us_clock_value();
+            int ta0 = 0;
+
+            /* this one should overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetHPTimerAfterNow(0, timer_cbr, overrun_cbr, 0), == 0x15);
+            TEST_TRY_FUNC_CHECK(timer_func, == 2);
+            ta0 = timer_arg;
+
+            /* this one should not overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetHPTimerAfterNow(100000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(90));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 +  90000 => CBR should not be called yet */
+            TEST_TRY_VOID(msleep(20));
+            TEST_TRY_FUNC_CHECK(timer_func, == 1);  /* ta0 + 110000 => CBR should be called by now */
+            
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 1000);
+
+            /* this one should call SetHPTimerNextTick in the CBR */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetHPTimerAfterNow(90000, next_tick_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(80));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 + 190000 => CBR should not be called yet */
+            TEST_TRY_VOID(msleep(20));
+            TEST_TRY_FUNC_CHECK(timer_func, == 3);  /* ta0 + 210000 => next_tick_cbr should be called by now */
+                                                    /* and it will setup timer_cbr via SetHPTimerNextTick */
+            TEST_TRY_VOID(msleep(80));
+            TEST_TRY_FUNC_CHECK(timer_func, == 3);  /* ta0 + 290000 => timer_cbr should not be called yet */
+            TEST_TRY_VOID(msleep(20));
+            TEST_TRY_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
+        }
+
+        /* uncomment to test only the timers */
+        //~ continue;
 
         // strlen
         TEST_TRY_FUNC_CHECK(strlen("abc"), == 3);
@@ -1135,10 +1251,17 @@ static void stub_test_task(void* arg)
 
         beep();
     }
+
+    FILE* log = FIO_CreateFile( "stubtest.log" );
+    FIO_WriteFile(log, log_buf, log_len);
     FIO_CloseFile(log);
+    fio_free(log_buf);
 
-
-    NotifyBox(10000, "Test complete.\n%d passed, %d failed.", passed_tests, failed_tests);
+    console_printf(
+        "=========================================================\n"
+        "Test complete, %d passed, %d failed.\n.",
+        passed_tests, failed_tests
+    );
 }
 
 #if defined(CONFIG_7D)
