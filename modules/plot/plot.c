@@ -10,6 +10,47 @@
 
 #include "plot.h"
 
+/* calculate an average over all sample values. might overflow target datatype range, so be warned. could be prevented with some coding effort  */
+plot_data_t plot_get_average(plot_coll_t *coll, uint32_t field)
+{
+    plot_data_t sum = 0.0f;
+    
+    if(!coll->used)
+    {
+        return 0.0f;
+    }
+    
+    for(uint32_t entry = 0; entry < coll->used; entry++)
+    {
+        sum += coll->entries[coll->fields * entry + field];
+    }
+    
+    return sum / coll->used;
+}
+
+/* caculate extreme values, ignoring outliers that are outside a given window */
+void plot_get_extremes(plot_coll_t *coll, uint32_t field, plot_data_t win_lo, plot_data_t win_hi, plot_data_t *ret_low, plot_data_t *ret_high)
+{
+    plot_data_t low = PLOT_MAX;
+    plot_data_t high = PLOT_MIN;
+    
+    for(uint32_t entry = 0; entry < coll->used; entry++)
+    {
+        plot_data_t value = coll->entries[coll->fields * entry + field];
+        
+        /* is it within given window? */
+        if(value >= win_lo && value <= win_hi)
+        {
+            /* if so update extreme values */
+            high = MAX(high, value);
+            low = MIN(low, value);
+        }
+    }
+    
+    *ret_high = high;
+    *ret_low = low;
+}
+
 /* reset the number of entries in a data collection. does not free any memory */
 void plot_clear(plot_coll_t *coll)
 {
@@ -52,7 +93,14 @@ plot_graph_t *plot_alloc_graph(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
     graph->color_axis = COLOR_WHITE;
     graph->color_range = COLOR_GRAY(60);
     graph->color_bg = COLOR_GRAY(20);
+    
     return graph;
+}
+
+/* free previously allocated graph */
+void plot_free_graph(plot_graph_t *graph)
+{
+    free(graph);
 }
 
 /* allocate an empty structure for data to plot. */
@@ -84,6 +132,17 @@ plot_coll_t *plot_alloc_data(uint32_t fields)
     coll->used = 0;
 
     return coll;
+}
+
+/* free previously allocated data */
+void plot_free_data(plot_coll_t *coll)
+{
+    if(coll->entries)
+    {
+        free(coll->entries);
+        coll->entries = NULL;
+    }
+    free(coll);
 }
 
 /* add one data "entry" consisting of "fields" whose amount were specified when calling plot_alloc_data() */

@@ -28,8 +28,8 @@
 /* the data type we use */
 typedef float plot_data_t;
 #define PLOT_NONZERO(x) ((x) > 0.00001 || (x) < -0.00001)
-#define PLOT_MAX FLT_MAX
-#define PLOT_MIN FLT_MIN
+#define PLOT_MAX (FLT_MAX)
+#define PLOT_MIN (-FLT_MAX)
 
 
 typedef struct
@@ -104,6 +104,9 @@ typedef struct
 
 plot_coll_t *EXT_WEAK_FUNC(ret_0) plot_alloc_data(uint32_t fields);
 plot_graph_t *EXT_WEAK_FUNC(ret_0) plot_alloc_graph(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+void EXT_WEAK_FUNC(ret_0) plot_free_data(plot_coll_t *);
+void EXT_WEAK_FUNC(ret_0) plot_free_graph(plot_graph_t *);
+
 uint32_t EXT_WEAK_FUNC(ret_0) plot_add(plot_coll_t *coll, ...);
 void EXT_WEAK_FUNC(ret_0) plot_clear(plot_coll_t *coll);
 void EXT_WEAK_FUNC(ret_0) plot_set_range(plot_graph_t *plot, plot_data_t x_min, plot_data_t x_max, plot_data_t y_min, plot_data_t y_max);
@@ -111,11 +114,16 @@ void EXT_WEAK_FUNC(ret_0) plot_graph_draw(plot_coll_t *coll, plot_graph_t *desc)
 void EXT_WEAK_FUNC(ret_0) plot_graph_update(plot_coll_t *coll, plot_graph_t *plot);
 void EXT_WEAK_FUNC(ret_0) plot_graph_reset(plot_graph_t *plot);
 void EXT_WEAK_FUNC(ret_0) plot_autorange(plot_coll_t *coll, plot_graph_t *plot);
+plot_data_t EXT_WEAK_FUNC(ret_0) plot_get_average(plot_coll_t *coll, uint32_t field);
+void EXT_WEAK_FUNC(ret_0) plot_get_extremes(plot_coll_t *coll, uint32_t field, plot_data_t win_lo, plot_data_t win_hi, plot_data_t *ret_low, plot_data_t *ret_high);
 
 #else
 
 static plot_coll_t *(*plot_alloc_data) (uint32_t fields) = MODULE_FUNCTION(plot_alloc_data);
 static plot_graph_t *(*plot_alloc_graph) (uint32_t x, uint32_t y, uint32_t w, uint32_t h) = MODULE_FUNCTION(plot_alloc_graph);
+void (*plot_free_data) (plot_coll_t *) = MODULE_FUNCTION(plot_free_data);
+void (*plot_free_graph) (plot_graph_t *) = MODULE_FUNCTION(plot_free_graph);
+
 static uint32_t (*plot_add) (plot_coll_t *coll, ...) = MODULE_FUNCTION(plot_add);
 static void (*plot_clear) (plot_coll_t *coll) = MODULE_FUNCTION(plot_clear);
 static void (*plot_set_range) (plot_graph_t *plot, plot_data_t x_min, plot_data_t x_max, plot_data_t y_min, plot_data_t y_max) = MODULE_FUNCTION(plot_set_range);
@@ -123,6 +131,8 @@ static void (*plot_graph_draw) (plot_coll_t *coll, plot_graph_t *desc) = MODULE_
 static void (*plot_graph_update) (plot_coll_t *coll, plot_graph_t *plot) = MODULE_FUNCTION(plot_graph_update);
 static void (*plot_graph_reset) (plot_graph_t *plot) = MODULE_FUNCTION(plot_graph_reset);
 static void (*plot_autorange) (plot_coll_t *coll, plot_graph_t *plot) = MODULE_FUNCTION(plot_autorange);
+static plot_data_t (*plot_get_average) (plot_coll_t *coll, uint32_t field) = MODULE_FUNCTION(plot_get_average);
+static void (*plot_get_extremes) (plot_coll_t *coll, uint32_t field, plot_data_t win_lo, plot_data_t win_hi, plot_data_t *ret_low, plot_data_t *ret_high) = MODULE_FUNCTION(plot_get_extremes);
 
 #endif
 #endif
