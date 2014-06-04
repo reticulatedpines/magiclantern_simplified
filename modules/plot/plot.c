@@ -15,7 +15,7 @@ plot_data_t plot_get_average(plot_coll_t *coll, uint32_t field)
 {
     plot_data_t sum = 0.0f;
     
-    if(!coll->used)
+    if(!coll || !coll->used)
     {
         return 0.0f;
     }
@@ -33,6 +33,11 @@ void plot_get_extremes(plot_coll_t *coll, uint32_t field, plot_data_t win_lo, pl
 {
     plot_data_t low = PLOT_MAX;
     plot_data_t high = PLOT_MIN;
+    
+    if(!coll || !coll->used)
+    {
+        return 0.0f;
+    }
     
     for(uint32_t entry = 0; entry < coll->used; entry++)
     {
