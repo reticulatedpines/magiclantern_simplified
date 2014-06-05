@@ -789,6 +789,12 @@ static MENU_UPDATE_FUNC(fps_print)
     
     if (fps_override)
     {
+        #if defined(CONFIG_7D)
+        if(!is_movie_mode() || !raw_lv_is_enabled()){
+            fps_override = 0;
+            return;
+        }
+        #endif
         int current_fps = fps_get_current_x1000();
         MENU_SET_VALUE("%d.%03d", 
             current_fps/1000, current_fps%1000
@@ -966,6 +972,12 @@ static void fps_change_value(void* priv, int delta)
 static void fps_enable_disable(void* priv, int delta)
 {
     #ifdef FEATURE_FPS_OVERRIDE
+    #if defined(CONFIG_7D)
+    if(!is_movie_mode() || !raw_lv_is_enabled())
+    {
+        return;
+    }
+    #endif
     fps_override = !fps_override;
     #endif
     if (fps_override) fps_needs_updating = 1;
