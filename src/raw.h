@@ -87,7 +87,7 @@ int raw_get_pixel(int x, int y);
 int raw_set_pixel(int x, int y, int value);
 
 /* get a pixel from a custom raw buffer (not from the main one) */
-int FAST raw_get_pixel_ex(void* raw_buffer, int x, int y);
+int raw_get_pixel_ex(void* raw_buffer, int x, int y);
 
 /* get a grayscale pixel according to some projection from RGB */
 int raw_get_gray_pixel(int x, int y, int gray_projection);
