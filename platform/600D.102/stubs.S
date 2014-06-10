@@ -72,7 +72,7 @@ NSTUB(0xFF1E6830, _FIO_GetFileSize)
 NSTUB(0xFF1E6254, _FIO_OpenFile)
 NSTUB(0xFF1E63BC, _FIO_RemoveFile)
 NSTUB(0xFF1E6D28, _FIO_RenameFile)
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
+NSTUB(0xFF1E6514   FIO_SeekSkipFile)
 
 /** GUI **/
 NSTUB(    0x1C38,  gui_main_struct)                         // in gui_main_task
@@ -214,8 +214,8 @@ NSTUB(0xFF0AAB3C,  gui_other_post)
 NSTUB(0xFF06FCE4,  SetHPTimerAfterNow)
 NSTUB(0xFF06FDD8,  SetHPTimerNextTick)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFF077EF4,  CancelTimer)
+NSTUB(0xFF077CF4,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x6290,  mvr_config)
