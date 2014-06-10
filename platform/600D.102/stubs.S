@@ -72,7 +72,7 @@ NSTUB(0xFF1E6830, _FIO_GetFileSize)
 NSTUB(0xFF1E6254, _FIO_OpenFile)
 NSTUB(0xFF1E63BC, _FIO_RemoveFile)
 NSTUB(0xFF1E6D28, _FIO_RenameFile)
-NSTUB(0xFF1E6514   FIO_SeekSkipFile)
+NSTUB(0xFF1E6514,  FIO_SeekSkipFile)
 
 /** GUI **/
 NSTUB(    0x1C38,  gui_main_struct)                         // in gui_main_task
