@@ -2337,10 +2337,6 @@ static void edmac_display_page(int i0, int x0, int y0)
         union edmac_size_t size = (union edmac_size_t) edmac_get_length(ch);
 
         int state = edmac_get_state(ch);
-        int color =
-            state == 0 ? COLOR_GRAY(50) :   // inactive?
-            state == 1 ? COLOR_GREEN1 :     // active?
-            COLOR_RED;                      // no idea
 
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
@@ -2351,15 +2347,48 @@ static void edmac_display_page(int i0, int x0, int y0)
             snprintf(msg, sizeof(msg), "[%2d] %8x: %x", ch, addr, size.raw);
         }
 
-        if (color == COLOR_RED)
+        if (state != 0 && state != 1)
             STR_APPEND(msg, " (%x)", state);
 
+        uint32_t dir     = edmac_get_dir(ch);
         uint32_t conn_w  = edmac_get_connection(ch, EDMAC_DIR_WRITE);
         uint32_t conn_r  = edmac_get_connection(ch, EDMAC_DIR_READ);
 
-        if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
-        else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
-        else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
+        if (conn_w != 0 && conn_r != 0xFF)
+        {
+            /* should be unreachable */
+            STR_APPEND(msg, " <%x,%x>", conn_w, conn_r);
+        }
+        else if (dir == EDMAC_DIR_WRITE)
+        {
+            if (conn_w == 0)
+            {
+                STR_APPEND(msg, " <w>");
+            }
+            else
+            {
+                STR_APPEND(msg, " <w%x>", conn_w);
+            }
+        }
+        else if (dir == EDMAC_DIR_READ)
+        {
+            if (conn_r == 0xFF)
+            {
+                STR_APPEND(msg, " <r>");
+            }
+            else
+            {
+                STR_APPEND(msg, " <r%x>", conn_r);
+            }
+        }
+
+        int color =
+            conn_r != 0xFF && dir != EDMAC_DIR_READ ? COLOR_RED      :   /* seems used for read, but dir is not read? */
+            conn_w != 0 && dir != EDMAC_DIR_WRITE   ? COLOR_RED      :   /* seems used for write, but dir is not write? */
+            dir == EDMAC_DIR_UNUSED                 ? COLOR_GRAY(20) :   /* unused? */
+            state == 0                              ? COLOR_GRAY(50) :   /* inactive? */
+            state == 1                              ? COLOR_GREEN1   :   /* active? */
+                                                      COLOR_RED      ;   /* no idea */
 
         bmp_printf(
             FONT(FONT_MONO_20, color, COLOR_BLACK),
@@ -2406,6 +2435,12 @@ static void edmac_display_detailed(int channel)
     uint32_t off2a = shamem_read(base + 0x24);
     uint32_t off3  = shamem_read(base + 0x28);
 
+    uint32_t dir     = edmac_get_dir(channel);
+    char* dir_s      = 
+        dir == EDMAC_DIR_READ  ? "read"  :
+        dir == EDMAC_DIR_WRITE ? "write" :
+                                 "unused?";
+    
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
     
@@ -2425,7 +2460,7 @@ static void edmac_display_detailed(int channel)
     bmp_printf(FONT_MONO_20, 50, y += fh, "off2b      : %8x ", off2b);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off3       : %8x ", off3);
     y += fh;
-    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x dir=%s", conn_w, conn_r, dir_s);
 
     #if defined(CONFIG_5D3)
     /**
