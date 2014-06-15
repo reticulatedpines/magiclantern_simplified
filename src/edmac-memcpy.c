@@ -64,21 +64,10 @@ static void edmac_memcpy_init()
     edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", 0);
 
 #ifdef CONFIG_ENGINE_RESLOCK
-    /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
-    uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
-    uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
     
     /* lookup the edmac channel indices for reslock */
-    int read_edmac_index = -1;
-    int write_edmac_index = -1;
-    
-    for (int i = 0; i < COUNT(read_edmacs); i++)
-        if (read_edmacs[i] == edmac_read_chan)
-            read_edmac_index = i;
-
-    for (int i = 0; i < COUNT(write_edmacs); i++)
-        if (write_edmacs[i] == edmac_write_chan)
-            write_edmac_index = i;
+    int read_edmac_index = edmac_channel_to_index(edmac_read_chan, EDMAC_DIR_READ);
+    int write_edmac_index = edmac_channel_to_index(edmac_write_chan, EDMAC_DIR_WRITE);
 
     if (read_edmac_index >= 0 && write_edmac_index >= 0)
     {

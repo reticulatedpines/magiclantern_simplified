@@ -61,6 +61,8 @@ void ConnectWriteEDmac(unsigned int channel, unsigned int where);
 void ConnectReadEDmac(unsigned int channel, unsigned int where);
 unsigned int GetEdmacAddress(unsigned int channel);
 
+uint32_t edmac_channel_to_index(uint32_t channel, uint32_t direction);
+uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction);
 
 uint32_t edmac_get_flags(uint32_t channel);
 uint32_t edmac_get_state(uint32_t channel);
