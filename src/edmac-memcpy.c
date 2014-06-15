@@ -66,8 +66,8 @@ static void edmac_memcpy_init()
 #ifdef CONFIG_ENGINE_RESLOCK
     
     /* lookup the edmac channel indices for reslock */
-    int read_edmac_index = edmac_channel_to_index(edmac_read_chan, EDMAC_DIR_READ);
-    int write_edmac_index = edmac_channel_to_index(edmac_write_chan, EDMAC_DIR_WRITE);
+    int read_edmac_index = edmac_channel_to_index(edmac_read_chan);
+    int write_edmac_index = edmac_channel_to_index(edmac_write_chan);
 
     if (read_edmac_index >= 0 && write_edmac_index >= 0)
     {
