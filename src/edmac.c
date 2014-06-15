@@ -67,6 +67,11 @@ uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction)
 
 uint32_t edmac_get_dir(uint32_t channel)
 {
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return EDMAC_DIR_UNUSED;
+    }
+    
     if(!IS_USED(edmac_chanlist[channel]))
     {
         return EDMAC_DIR_UNUSED;
