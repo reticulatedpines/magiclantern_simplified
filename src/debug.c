@@ -2325,18 +2325,18 @@ static void edmac_display_page(int i0, int x0, int y0)
     for (int i = 0; i < 16; i++)
     {
         char msg[100];
+        int ch = i0 + i;
 
-        uint32_t base = edmac_get_base(i0+i);
-        uint32_t addr = shamem_read(base + 8);
+        uint32_t addr = edmac_get_address(ch);
         union edmac_size_t
         {
             struct { short x, y; } size;
             uint32_t raw;
         };
 
-        union edmac_size_t size = (union edmac_size_t) shamem_read(base + 0x10);
+        union edmac_size_t size = (union edmac_size_t) edmac_get_length(ch);
 
-        int state = MEM(base + 0);
+        int state = edmac_get_state(ch);
         int color =
             state == 0 ? COLOR_GRAY(50) :   // inactive?
             state == 1 ? COLOR_GREEN1 :     // active?
@@ -2344,18 +2344,18 @@ static void edmac_display_page(int i0, int x0, int y0)
 
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", ch, addr, size.size.x, size.size.y);
         }
         else
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", i0+i, addr, size.raw);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", ch, addr, size.raw);
         }
 
         if (color == COLOR_RED)
             STR_APPEND(msg, " (%x)", state);
 
-        uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
-        uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
+        uint32_t conn_w  = edmac_get_connection(ch, EDMAC_DIR_WRITE);
+        uint32_t conn_r  = edmac_get_connection(ch, EDMAC_DIR_READ);
 
         if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
         else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
@@ -2386,9 +2386,9 @@ static void edmac_display_detailed(int channel)
 
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
-    uint32_t state = MEM(base + 0);
-    uint32_t flags = shamem_read(base + 4);
-    uint32_t addr = shamem_read(base + 8);
+    uint32_t state = edmac_get_state(channel);
+    uint32_t flags = edmac_get_flags(channel);
+    uint32_t addr = edmac_get_address(channel);
 
     union edmac_size_t
     {
