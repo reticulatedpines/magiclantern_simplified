@@ -2482,10 +2482,20 @@ static MENU_UPDATE_FUNC(edmac_display)
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    if (edmac_selection == 0) // overview
+    if (edmac_selection == 0 || edmac_selection == 1) // overview
     {
-        edmac_display_page(0, 0, 30);
-        edmac_display_page(16, 360, 30);
+        if (edmac_selection == 0)
+        {
+            edmac_display_page(0, 0, 30);
+            edmac_display_page(16, 360, 30);
+        }
+        else
+        {
+            edmac_display_page(16, 0, 30);
+            #ifdef CONFIG_DIGIC_V
+            edmac_display_page(32, 360, 30);
+            #endif
+        }
 
         //~ int x = 20;
         bmp_printf(
@@ -2510,7 +2520,7 @@ static MENU_UPDATE_FUNC(edmac_display)
     }
     else // detailed view
     {
-        edmac_display_detailed(edmac_selection - 1);
+        edmac_display_detailed(edmac_selection - 2);
     }
 }
 #endif
@@ -2855,7 +2865,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "EDMAC display",
                 .priv = &edmac_selection,
-                .max = 48,
+                .max = 49,
                 .update = edmac_display,
             },
             MENU_EOL
