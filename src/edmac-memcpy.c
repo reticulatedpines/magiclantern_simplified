@@ -321,6 +321,10 @@ void edmac_memcpy_finish()
 /* use this to detect unused edmac channels (call from don't click me) */
 #if 0
 #include "property.h"
+#include "console.h"
+#include "beep.h"
+#include "shoot.h"
+
 void find_free_edmac_channels()
 {
     msleep(2000);
@@ -329,11 +333,12 @@ void find_free_edmac_channels()
     {
         {
             if (!lv) force_liveview();
+            int ch = edmac_index_to_channel(i, EDMAC_DIR_WRITE);
             
             bmp_printf(FONT_MED, 50, 50, 
-                "Trying write channel [%d]...\n"
+                "Trying write channel #%d...\n"
                 "Press PLAY if not working", 
-                i
+                ch
             );
             
             int res[] = { 0x00000000 + i }; /* write edmac channel */
@@ -342,19 +347,20 @@ void find_free_edmac_channels()
             UnLockEngineResources(resLock);
             if (lv)
             {
-                bmp_printf(FONT_MED, 50, 70, "Write channel [%d] seems to work", i);
-                console_printf("Write channel [%d] seems to work\n", i);
+                bmp_printf(FONT_MED, 50, 70, "Write channel #%d seems to work", ch);
+                console_printf("Write channel #%d seems to work\n", ch);
                 beep();
             }
             msleep(2000);
         }
         {
             if (!lv) force_liveview();
+            int ch = edmac_index_to_channel(i, EDMAC_DIR_READ);
             
             bmp_printf(FONT_MED, 50, 50, 
-                "Trying read channel [%d]...\n"
+                "Trying read channel #%d...\n"
                 "Press PLAY if not working", 
-                i
+                ch
             );
             
             int res[] = { 0x00010000 + i }; /* read edmac channel */
@@ -363,8 +369,8 @@ void find_free_edmac_channels()
             UnLockEngineResources(resLock);
             if (lv)
             {
-                bmp_printf(FONT_MED, 50, 70, "Read channel [%d] seems to work", i);
-                console_printf("Read channel [%d] seems to work\n", i);
+                bmp_printf(FONT_MED, 50, 70, "Read channel #%d seems to work", ch);
+                console_printf("Read channel #%d seems to work\n", ch);
                 beep();
             }
             msleep(2000);
