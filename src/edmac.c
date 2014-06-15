@@ -5,9 +5,9 @@
 #define WRITE(x) (x)
 #define READ(x)  (0x80000000 | (x))
 
-#define IS_USED(x) ((x) != 0xFFFFFFFF)
-#define IS_WRITE(x) (((x) & 0x80000000) == 0)
-#define IS_READ(x)  (((x) & 0x80000000) != 0)
+#define IS_USED(ch) ((ch) < NUM_EDMAC_CHANNELS && edmac_chanlist[ch] != 0xFFFFFFFF)
+#define IS_WRITE(ch) (((ch) & 8) == 0)
+#define IS_READ(ch)  (((ch) & 8) != 0)
 
 /* channel usage for 5D3 */
 static uint32_t edmac_chanlist[] = 
@@ -32,6 +32,11 @@ static uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19
 
 uint32_t edmac_channel_to_index(uint32_t channel, uint32_t direction)
 {
+    if (!IS_USED(channel))
+    {
+        return -1;
+    }
+    
     switch (direction)
     {
         case EDMAC_DIR_READ:
@@ -53,6 +58,11 @@ uint32_t edmac_channel_to_index(uint32_t channel, uint32_t direction)
 
 uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction)
 {
+    if (index >= COUNT(read_edmacs))
+    {
+        return -1;
+    }
+    
     switch (direction)
     {
         case EDMAC_DIR_READ:
@@ -67,22 +77,17 @@ uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction)
 
 uint32_t edmac_get_dir(uint32_t channel)
 {
-    if (channel >= NUM_EDMAC_CHANNELS)
+    if (!IS_USED(channel))
     {
         return EDMAC_DIR_UNUSED;
     }
     
-    if(!IS_USED(edmac_chanlist[channel]))
-    {
-        return EDMAC_DIR_UNUSED;
-    }
-    
-    if(IS_WRITE(edmac_chanlist[channel]))
+    if (IS_WRITE(channel))
     {
         return EDMAC_DIR_WRITE;
     }
     
-    if(IS_READ(edmac_chanlist[channel]))
+    if (IS_READ(channel))
     {
         return EDMAC_DIR_READ;
     }
@@ -92,6 +97,11 @@ uint32_t edmac_get_dir(uint32_t channel)
 
 uint32_t edmac_get_base(uint32_t channel)
 {
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
     uint32_t bases[] = { 0xC0F04000, 0xC0F26000, 0xC0F30000 };
     uint32_t edmac_block = channel >> 4;
     uint32_t edmac_num = channel & 0x0F;
@@ -101,7 +111,7 @@ uint32_t edmac_get_base(uint32_t channel)
 
 uint32_t edmac_get_state(uint32_t channel)
 {
-    if (channel > NUM_EDMAC_CHANNELS - 1)
+    if (channel >= NUM_EDMAC_CHANNELS)
     {
         return -1;
     }
@@ -112,21 +122,41 @@ uint32_t edmac_get_state(uint32_t channel)
 
 uint32_t edmac_get_flags(uint32_t channel)
 {
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
     return shamem_read(edmac_get_base(channel) + 0x04);
 }
 
 uint32_t edmac_get_address(uint32_t channel)
 {
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
     return shamem_read(edmac_get_base(channel) + 0x08);
 }
 
 uint32_t edmac_get_length(uint32_t channel)
 {
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
     return shamem_read(edmac_get_base(channel) + 0x10);
 }
 
 uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
 {
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
     uint32_t addr = 0;
     
     if(direction == EDMAC_DIR_READ)
