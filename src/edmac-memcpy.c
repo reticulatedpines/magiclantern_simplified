@@ -54,16 +54,12 @@ uint32_t edmac_write_chan = 0x04;
 /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
 uint32_t dmaConnection = 6;
 
-#ifdef CONFIG_ENGINE_RESLOCK
 static struct LockEntry * resLock = 0;
-#endif
 
 static void edmac_memcpy_init()
 {
     edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
     edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", 0);
-
-#ifdef CONFIG_ENGINE_RESLOCK
     
     /* lookup the edmac channel indices for reslock */
     int read_edmac_index = edmac_channel_to_index(edmac_read_chan);
@@ -82,7 +78,6 @@ static void edmac_memcpy_init()
     //~ else bmp_printf(FONT_MED, 50, 50, "%d %d %d %d %d ", edmac_write_chan, write_edmac_index, edmac_read_chan, read_edmac_index, dmaConnection, resLock);
     
     ASSERT(resLock);
-#endif
 }
 
 INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
@@ -98,7 +93,6 @@ static void edmac_write_complete_cbr(void * ctx)
 
 void edmac_memcpy_res_lock()
 {
-    #ifdef CONFIG_ENGINE_RESLOCK
     //~ bmp_printf(FONT_MED, 50, 50, "Locking");
     int r = LockEngineResources(resLock);
     if (r & 1)
@@ -107,14 +101,11 @@ void edmac_memcpy_res_lock()
         return;
     }
     //~ bmp_printf(FONT_MED, 50, 50, "Locked!");
-    #endif
 }
 
 void edmac_memcpy_res_unlock()
 {
-    #ifdef CONFIG_ENGINE_RESLOCK
     UnLockEngineResources(resLock);
-    #endif
 }
 
 void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
@@ -300,9 +291,7 @@ void* edmac_memcpy_start(void* dst, void* src, size_t length)
         void * ret = memcpy(dst, src, length);
         /* simulate a started copy operation */
         take_semaphore(edmac_memcpy_sem, 0);
-        #ifdef CONFIG_ENGINE_RESLOCK
         LockEngineResources(resLock);
-        #endif
         give_semaphore(edmac_read_done_sem);
         return ret;
     }

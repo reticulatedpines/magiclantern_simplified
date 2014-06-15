@@ -135,8 +135,5 @@
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
 
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
-
 /** We have an internal GPS */
 #define CONFIG_GPS
