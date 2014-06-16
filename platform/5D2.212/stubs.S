@@ -193,11 +193,11 @@ NSTUB(0xFF89220C,  gui_post_10000085)
 NSTUB(0xFF9B3AD0,  gui_timer_something)
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
-// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFFABD838,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF874C74,  CancelTimer)                             /* present on 650D.104 */
+NSTUB(0xFF86C720,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+NSTUB(0xFF86C7A0,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+NSTUB(0xFF874A74,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x86B0,  mvr_config)
