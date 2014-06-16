@@ -46,6 +46,7 @@ NSTUB(0xFF9ABE20,  FIO_FindClose)
 NSTUB(0xFF9ABD20,  FIO_FindNextEx)
 NSTUB(0xFF9AAFA0,  FIO_ReadFile)
 NSTUB(0xFF9AB120,  FIO_SeekFile)
+NSTUB(0xFF9AB050,  FIO_SeekSkipFile)
 NSTUB(0xFF9AB150,  FIO_WriteFile)
 NSTUB(0xFF9AB574, _FIO_CreateDirectory)
 NSTUB(0xFF9AAC68, _FIO_CreateFile)
@@ -53,7 +54,6 @@ NSTUB(0xFF9ABBF4, _FIO_FindFirstEx)
 NSTUB(0xFF9AB304, _FIO_GetFileSize)
 NSTUB(0xFF9AABB4, _FIO_OpenFile)
 NSTUB(0xFF9AAE84, _FIO_RemoveFile)
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 // NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI **/
