@@ -71,7 +71,7 @@ void EngDrvOutLV(uint32_t reg, uint32_t val)
     if (ml_shutdown_requested) return;
 
 #if defined(CONFIG_7D)
-    if (!RECORDING_H264 && (reg == FPS_REGISTER_A || reg == FPS_REGISTER_B || reg == FPS_REGISTER_CONFIRM_CHANGES))
+    if (reg == FPS_REGISTER_A || reg == FPS_REGISTER_B || reg == FPS_REGISTER_CONFIRM_CHANGES)
     {
         volatile uint32_t wait = 1;
         memcpy(buf, &val, sizeof(uint32_t));
