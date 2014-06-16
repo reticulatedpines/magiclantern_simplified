@@ -135,9 +135,15 @@ static int fps_values_x1000[] = {
 };
 
 static CONFIG_INT("fps.override", fps_override, 0);
-#ifndef FEATURE_FPS_OVERRIDE
-#define fps_override 0
+
+static inline int get_fps_override()
+{
+#ifdef FEATURE_FPS_OVERRIDE
+    return fps_override;
+#else
+    return 0;
 #endif
+}
 
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 
@@ -168,7 +174,7 @@ static int fps_ramp_up = 0;
     #ifndef FEATURE_WAV_RECORDING
     #error This requires FEATURE_WAV_RECORDING.
     #endif
-int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
+int fps_should_record_wav() { return get_fps_override() && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
 #else
 int fps_should_record_wav() { return 0; }
 #endif
@@ -433,7 +439,7 @@ static uint32_t nrzi_encode( uint32_t in_val )
 /* All other modes: keep shutter speed constant */
 void fps_override_shutter_blanking()
 {
-    if (!fps_override)
+    if (!get_fps_override())
         return;
 
     /* already overriden? */
@@ -563,7 +569,7 @@ int fps_get_shutter_speed_shift(int raw_shutter)
 
 static int fps_should_disable_sound()
 {
-    if (fps_override && lv && is_movie_mode())
+    if (get_fps_override() && lv && is_movie_mode())
     {
         /* only disable sound when recording H.264, not raw */
         if (!raw_lv_is_enabled())
@@ -802,7 +808,6 @@ static MENU_UPDATE_FUNC(fps_print)
     {
         last_inactive = t;
     }
-    
 }
 
 static MENU_UPDATE_FUNC(fps_current_print)
@@ -934,7 +939,7 @@ static void fps_register_reset()
 
 static void fps_reset()
 {
-    //~ fps_override = 0;
+    //~ get_fps_override() = 0;
     fps_needs_updating = 0;
 
     #ifdef NEW_FPS_METHOD
@@ -959,7 +964,7 @@ static void fps_change_value(void* priv, int delta)
     fps_override_index = MOD(fps_override_index + delta, COUNT(fps_values_x1000));
     desired_fps_timer_a_offset = 0;
     desired_fps_timer_b_offset = 0;
-    if (fps_override) fps_needs_updating = 1;
+    if (get_fps_override()) fps_needs_updating = 1;
 }
 
 static void fps_enable_disable(void* priv, int delta)
@@ -967,7 +972,7 @@ static void fps_enable_disable(void* priv, int delta)
     #ifdef FEATURE_FPS_OVERRIDE
     fps_override = !fps_override;
     #endif
-    if (fps_override) fps_needs_updating = 1;
+    if (get_fps_override()) fps_needs_updating = 1;
 }
 
 #ifndef FRAME_SHUTTER_BLANKING_WRITE
@@ -1037,19 +1042,19 @@ static MENU_UPDATE_FUNC(tg_freq_print)
 static void fps_timer_fine_tune_a(void* priv, int delta)
 {
     desired_fps_timer_a_offset += delta * 2;
-    if (fps_override) fps_needs_updating = 1;
+    if (get_fps_override()) fps_needs_updating = 1;
 }
 
 static void fps_timer_fine_tune_a_big(void* priv, int delta)
 {
     desired_fps_timer_a_offset += delta * 100;
-    if (fps_override) fps_needs_updating = 1;
+    if (get_fps_override()) fps_needs_updating = 1;
 }
 
 static void fps_timer_fine_tune_b(void* priv, int delta)
 {
     desired_fps_timer_b_offset += delta;
-    if (fps_override) fps_needs_updating = 1;
+    if (get_fps_override()) fps_needs_updating = 1;
 }
 
 
@@ -1249,7 +1254,7 @@ static void fps_criteria_change(void* priv, int delta)
     desired_fps_timer_a_offset = 0;
     desired_fps_timer_b_offset = 0;
     fps_criteria = MOD(fps_criteria + delta, 4);
-    if (fps_override) fps_needs_updating = 1;
+    if (get_fps_override()) fps_needs_updating = 1;
 }
 
 static MENU_UPDATE_FUNC(fps_wav_record_print)
@@ -1493,7 +1498,7 @@ static void fps_read_default_timer_values()
 // maybe FPS settings were changed by someone else? if yes, force a refresh
 static void fps_check_refresh()
 {
-    int fps_ov = fps_override;
+    int fps_ov = get_fps_override();
     static int old_fps_ov = 0;
     if (old_fps_ov != fps_ov) fps_needs_updating = 1;
     old_fps_ov = fps_ov;
@@ -1565,7 +1570,7 @@ static void fps_task()
         #endif
         {
             #ifdef CONFIG_FPS_AGGRESSIVE_UPDATE
-            msleep(fps_override && RECORDING ? 10 : 100);
+            msleep(get_fps_override() && RECORDING ? 10 : 100);
             #else
             msleep(100);
             #endif
@@ -1586,11 +1591,11 @@ static void fps_task()
         
         //~ NotifyBox(2000, "d: %d,%d. c: %d,%d ", fps_timer_a_orig, fps_timer_b_orig, fps_timer_a, fps_timer_b);
         
-        if (!fps_override) 
+        if (!get_fps_override()) 
         {
             msleep(100);
 
-            if (!fps_override && fps_needs_updating)
+            if (!get_fps_override() && fps_needs_updating)
             {
                 fps_reset();
                 fps_read_current_timer_values();
@@ -1734,7 +1739,7 @@ void fps_mvr_log(char* mvr_logfile_buffer)
 // on certain events (PLAY, RECORD) we need to disable FPS override temporarily
 int handle_fps_events(struct event * event)
 {
-    if (!fps_override) return 1;
+    if (!get_fps_override()) return 1;
     
     #ifdef FEATURE_FPS_RAMPING
     if (FPS_RAMP && event->param == BGMT_INFO)
@@ -1780,7 +1785,7 @@ int fps_get_iso_correction_evx8()
 #ifdef FRAME_SHUTTER_BLANKING_WRITE
     return 0;
 #else
-    if (!fps_override) return 0;
+    if (!get_fps_override()) return 0;
     if (!fps_const_expo) return 0;
     if (!is_movie_mode()) return 0;
     if (!lens_info.raw_iso) return 0; // no auto iso
@@ -1804,7 +1809,7 @@ void fps_expo_iso_step()
     static int dirty = 0;
     if (mv) /* movie mode: only enable when it's selected from menu */
     {
-        if (!(fps_const_expo && fps_override))
+        if (!(fps_const_expo && get_fps_override()))
         {
             if (dirty) set_movie_digital_iso_gain_for_gradual_expo(1024);
             return;
@@ -1812,7 +1817,7 @@ void fps_expo_iso_step()
     }
     else /* photo mode: always on if FPS is enabled and expo override is disabled */
     {
-        if (!fps_override)
+        if (!get_fps_override())
             return;
         
         if (CONTROL_BV) /* expo override will take care of it */
