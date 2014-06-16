@@ -42,9 +42,6 @@
 #include "fps.h"
 #include "shoot.h"
 
-#if defined(CONFIG_7D)
-#include "ml_rpc.h"
-#endif
 
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
@@ -56,6 +53,16 @@
 #define FPS_REGISTER_A_DEFAULT_VALUE ((int) shamem_read(FPS_REGISTER_A+4))
 #define FPS_REGISTER_B_VALUE ((int) shamem_read(FPS_REGISTER_B))
 
+#ifdef CONFIG_7D
+uint32_t *buf = NULL;
+uint32_t QuickOutIPCTransfer(int type, uint32_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), volatile uint32_t* cb_parm);
+
+void fps_bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
+{
+    *parm = 0;
+}
+#endif
+
 void EngDrvOutLV(uint32_t reg, uint32_t val)
 {
     if (!lv) return;
@@ -64,25 +71,19 @@ void EngDrvOutLV(uint32_t reg, uint32_t val)
     if (ml_shutdown_requested) return;
 
 #if defined(CONFIG_7D)
-    /* okay first write to the register on master side */
-    ml_rpc_send(ML_RPC_ENGIO_WRITE, reg, val, 0, 0);
-    
-    /* then update the memory structure that contains the register's value.
-       if we dont patch that, master will crash on record stop due to rewriting 
-       with inconsistent values
-    */
-    if(reg == FPS_REGISTER_A)
+    if (!RECORDING_H264 && (reg == FPS_REGISTER_A || reg == FPS_REGISTER_B || reg == FPS_REGISTER_CONFIRM_CHANGES))
     {
-        ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8704, val, 0, 0);
+        volatile uint32_t wait = 1;
+        memcpy(buf, &val, sizeof(uint32_t));
+        QuickOutIPCTransfer(0, buf, sizeof(uint32_t), reg, &fps_bulk_cb, &wait);
+        
+        while(wait)
+        {
+            msleep(10);
+        }
     }
-    if(reg == FPS_REGISTER_B)
-    {
-        ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8774, val, 0, 0);
-    }
-    
-    /* fall through here and also update slave registers. should not hurt. to be verified. */
 #endif
-
+    
     _EngDrvOut(reg, val);
 }
 
@@ -627,6 +628,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 {
     restore_sound_recording();
 }
+
 PROP_HANDLER(PROP_MVR_REC_START)
 {
     if (!buf[0] && !lv)
@@ -636,7 +638,6 @@ PROP_HANDLER(PROP_MVR_REC_START)
     if (buf[0] == 1)
         fps_ramp_up = !fps_ramp_up;
 #endif
-
 }
 //--------------------------------------------------------
 
@@ -782,6 +783,12 @@ static MENU_UPDATE_FUNC(fps_print)
     
     if (fps_override)
     {
+        #if defined(CONFIG_7D)
+        if(!is_movie_mode() || !raw_lv_is_enabled()){
+            fps_override = 0;
+            return;
+        }
+        #endif
         int current_fps = fps_get_current_x1000();
         MENU_SET_VALUE("%d.%03d", 
             current_fps/1000, current_fps%1000
@@ -964,6 +971,12 @@ static void fps_change_value(void* priv, int delta)
 static void fps_enable_disable(void* priv, int delta)
 {
     #ifdef FEATURE_FPS_OVERRIDE
+    #if defined(CONFIG_7D)
+    if(!is_movie_mode() || !raw_lv_is_enabled())
+    {
+        return;
+    }
+    #endif
     fps_override = !fps_override;
     #endif
     if (fps_override) fps_needs_updating = 1;
@@ -1552,7 +1565,9 @@ static void fps_task()
 {
     TASK_LOOP
     {
-     
+        #ifdef CONFIG_7D
+        buf = fio_malloc(sizeof(uint32_t));
+        #endif
         #ifdef FEATURE_FPS_RAMPING
         if (FPS_RAMP) 
         {
