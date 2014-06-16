@@ -139,7 +139,12 @@ static CONFIG_INT("fps.override", fps_override, 0);
 static inline int get_fps_override()
 {
 #ifdef FEATURE_FPS_OVERRIDE
+    #ifdef CONFIG_7D
+    /* on 7D, FPS override can be used only for RAW and in photo mode */
+    return fps_override && (!is_movie_mode() || raw_lv_is_enabled());
+    #else
     return fps_override;
+    #endif
 #else
     return 0;
 #endif
@@ -808,6 +813,14 @@ static MENU_UPDATE_FUNC(fps_print)
     {
         last_inactive = t;
     }
+    
+#ifdef CONFIG_7D
+    if (is_movie_mode() && !raw_lv_is_enabled())
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "On 7D, FPS override can be used only with RAW, or in photo mode.");
+    }
+#endif
+
 }
 
 static MENU_UPDATE_FUNC(fps_current_print)
