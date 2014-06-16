@@ -70,10 +70,8 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-//#if defined(CONFIG_MEMPATCH_CHECK)
 uint32_t ml_used_mem = 0;
 uint32_t ml_reserved_mem = 0;
-//#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -756,7 +754,6 @@ my_init_task(int a, int b, int c, int d)
     /* check for the correct mov instruction */
     if((orig_instr & 0xFFFFF000) == 0xE3A01000)
     {
-#if defined(CONFIG_MEMPATCH_CHECK)
         /* mask out the lowest bits for rotate and immed */
         uint32_t new_address = RESTARTSTART;
         
@@ -778,18 +775,7 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
-        
-        /* ensure binary is not too large */
-        if(ml_used_mem > ml_reserved_mem)
-        {
-            while(1)
-            {
-                info_led_blink(3, 500, 500);
-                info_led_blink(3, 100, 500);
-                msleep(1000);
-            }
-        }
-#endif
+
         /* now patch init task and continue execution */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
     }
@@ -814,20 +800,25 @@ my_init_task(int a, int b, int c, int d)
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
     cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
     #endif
-
-    int ans = init_task(a,b,c,d);
-    
-    /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
-    /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
-    //cache_unlock();
-#else
-    // Call their init task
-    #ifdef CONFIG_ALLOCATE_MEMORY_POOL
-    int ans = init_task_patched(a,b,c,d);
-    #else
-    int ans = init_task(a,b,c,d);
-    #endif // CONFIG_ALLOCATE_MEMORY_POOL
 #endif // HIJACK_CACHE_HOOK
+
+    /* ensure binary is not too large */
+    if(ml_used_mem > ml_reserved_mem)
+    {
+        while(1)
+        {
+            info_led_blink(3, 500, 500);
+            info_led_blink(3, 100, 500);
+            msleep(1000);
+        }
+    }
+
+    // Call their init task
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL
+    int ans = init_task_patched(a,b,c,d);
+#else
+    int ans = init_task(a,b,c,d);
+#endif // CONFIG_ALLOCATE_MEMORY_POOL
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any

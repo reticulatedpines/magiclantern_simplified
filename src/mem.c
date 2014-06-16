@@ -1011,7 +1011,6 @@ static MENU_UPDATE_FUNC(meminfo_display)
             }
             break;
 
-        #if defined(CONFIG_MEMPATCH_CHECK)
         case 6: // autoexec size
         {
             extern uint32_t ml_reserved_mem;
@@ -1030,7 +1029,6 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
             break;
         }
-        #endif
     }
 
     if (guess_needed && !guess_mem_running)
@@ -1272,7 +1270,6 @@ static struct menu_entry mem_menus[] = {
                 .update = meminfo_display,
                 .help = "Largest fragmented block from shoot memory.",
             },
-            #if defined(CONFIG_MEMPATCH_CHECK)
             {
                 .name = "AUTOEXEC.BIN",
                 .icon_type = IT_ALWAYS_ON,
@@ -1280,7 +1277,6 @@ static struct menu_entry mem_menus[] = {
                 .update = meminfo_display,
                 .help = "Memory reserved statically at startup for ML binary.",
             },
-            #endif
             MENU_EOL
         },
     },
