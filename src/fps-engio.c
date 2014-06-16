@@ -1569,11 +1569,12 @@ static void fps_disable_timers_evfstate()
 // do all FPS changes from this task only - to avoid trouble ;)
 static void fps_task()
 {
+    #ifdef CONFIG_7D
+    buf = fio_malloc(sizeof(uint32_t));
+    #endif
+    
     TASK_LOOP
     {
-        #ifdef CONFIG_7D
-        buf = fio_malloc(sizeof(uint32_t));
-        #endif
         #ifdef FEATURE_FPS_RAMPING
         if (FPS_RAMP) 
         {
