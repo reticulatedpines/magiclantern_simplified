@@ -2174,12 +2174,13 @@ static void mlv_play_task(void *priv)
             filename = raw_movie_filename;
         }
     }
+
+    /* create playlist */
+    mlv_playlist_build(0);
     
     /* if called with NULL, play first file found when building playlist */
     if(!filename)
     {
-        mlv_playlist_build(0);
-        
         if(mlv_playlist_entries <= 0)
         {
             mlv_play_show_dlg(2000, "No videos found");
@@ -2187,7 +2188,6 @@ static void mlv_play_task(void *priv)
         }
         
         strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
-        mlv_playlist_free();
     }
     else
     {
@@ -2202,12 +2202,6 @@ static void mlv_play_task(void *priv)
         
         strcpy(mlv_play_current_filename, filename);
     }
-    
-    /* create playlist in background to minimize delays */
-    //~ task_create("mlv_playlist_build", 0x1e, 0x1000, mlv_playlist_build, NULL);
-    
-    /* it's not that slow, and I'm not sure it's thread safe */
-    mlv_playlist_build(0);
     
     mlv_play_enter_playback();
     
