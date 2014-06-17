@@ -2204,7 +2204,10 @@ static void mlv_play_task(void *priv)
     }
     
     /* create playlist in background to minimize delays */
-    task_create("mlv_playlist_build", 0x1e, 0x1000, mlv_playlist_build, NULL);
+    //~ task_create("mlv_playlist_build", 0x1e, 0x1000, mlv_playlist_build, NULL);
+    
+    /* it's not that slow, and I'm not sure it's thread safe */
+    mlv_playlist_build(0);
     
     mlv_play_enter_playback();
     
