@@ -41,6 +41,9 @@ uint32_t edmac_write_chan = 0x04;
 #elif defined(CONFIG_550D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x05;
+#elif defined(CONFIG_600D)
+uint32_t edmac_read_chan = 0x19;
+uint32_t edmac_write_chan = 0x21;
 #elif defined(CONFIG_1100D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x04;

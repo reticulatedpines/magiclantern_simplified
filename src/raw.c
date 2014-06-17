@@ -464,6 +464,14 @@ static int raw_update_params_work()
             return 0;
         }
         
+        #ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
+        if (lv_dispsize == 10)
+        {
+            dbg_printf("LV raw has trouble with 10x zoom\n");
+            return 0;
+        }
+        #endif
+        
         raw_info.buffer = (void*) DEFAULT_RAW_BUFFER;
         
         if (!raw_info.buffer)
@@ -1890,6 +1898,25 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
         menu_set_warning_raw(entry, info);
     }
 }
+
+#ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
+/* workaround: disable raw flag in zoom mode (it crashes on some cameras) */
+/* not exactly nice, but better than crashing */
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+    if (lv_raw_enabled)
+    {
+        if (buf[0] == 10)
+        {
+            call("lv_save_raw", 0);
+        }
+        else
+        {
+            call("lv_save_raw", 1);
+        }
+    }
+}
+#endif
 
 static void raw_init()
 {

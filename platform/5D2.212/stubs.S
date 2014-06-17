@@ -46,6 +46,7 @@ NSTUB(0xFF9ABE20,  FIO_FindClose)
 NSTUB(0xFF9ABD20,  FIO_FindNextEx)
 NSTUB(0xFF9AAFA0,  FIO_ReadFile)
 NSTUB(0xFF9AB120,  FIO_SeekFile)
+NSTUB(0xFF9AB050,  FIO_SeekSkipFile)
 NSTUB(0xFF9AB150,  FIO_WriteFile)
 NSTUB(0xFF9AB574, _FIO_CreateDirectory)
 NSTUB(0xFF9AAC68, _FIO_CreateFile)
@@ -79,6 +80,7 @@ NSTUB(0xFF8580E8,  StartASIFDMAADC)
 NSTUB(0xFF85828C,  StartASIFDMADAC)
 NSTUB(0xFF858360,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -191,9 +193,11 @@ NSTUB(0xFF89220C,  gui_post_10000085)
 NSTUB(0xFF9B3AD0,  gui_timer_something)
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0xFFABD838,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF874C74,  CancelTimer)                             /* present on 650D.104 */
+NSTUB(0xFF86C720,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+NSTUB(0xFF86C7A0,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+NSTUB(0xFF874A74,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x86B0,  mvr_config)

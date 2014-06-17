@@ -136,3 +136,6 @@
 
 /** There are no manual exposure controls in movie mode => we need expo override */
 #define CONFIG_NO_MANUAL_EXPOSURE_MOVIE
+
+/** LV RAW has trouble with 10x zoom, disable it */
+#define CONFIG_RAW_DISABLE_IN_10X_ZOOM

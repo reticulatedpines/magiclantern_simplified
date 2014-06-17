@@ -132,10 +132,21 @@ cstart( void )
           e.g. run at the cached address 0x00800000, we wont risk jumping into nirvana here.
           This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why?
           Because the code above (blob_memcpy) already made totally wrong assumptions about memory addresses.
-     */
-    void __attribute__((long_call)) (*copy_and_run_ml)() = (void*) RESTARTSTART;
+
+       The name is not very inspired: it will not restart the camera, and may not copy anything.
+       Keeping it for historical reasons (to match old docs).
+       
+       This function will patch Canon's startup code from main firmware in order to run ML, reserve memory
+       for ML binary, starting from RESTARTSTART (where we already copied it), and... start it.
+       
+       Note: we can't just leave ML binary here (0x40800000), because the main firmware will reuse this area
+       sooner or later. So, we have copied it to RESTARTSTART, and will tell Canon code not to touch it
+       (usually by resizing some memory allocation pool and choosing RESTARTSTART in the newly created space).
+    */
+    void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
+    copy_and_restart();
+
 #endif /* __ARM__ */
-    copy_and_run_ml();
 
     // Unreachable
     while(1)

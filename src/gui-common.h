@@ -188,12 +188,13 @@ gui_hide_menu( int redisplay_time );
                       // 9: unavi? (user navigation?)
                       // 10: unavi set?
 #define GUISTATE_QMENU 9
+#define GUISTATE_QR_ZOOM 12 // QuickReview zoom
 #endif
 
 void fake_simple_button(int bgmt_code);
 void GUI_Control(int bgmt_code, int obj, int arg, int unknown);
 
-#define QR_MODE (gui_state == GUISTATE_QR)
+#define QR_MODE (gui_state == GUISTATE_QR || gui_state == GUISTATE_QR_ZOOM)
 #define PLAY_OR_QR_MODE (PLAY_MODE || QR_MODE)
 
 void canon_gui_disable_front_buffer();

@@ -73,7 +73,7 @@
 // ~#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-#define CONFIG_DISPLAY_FILTERS
+//~ #define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 #define CONFIG_FRAME_ISO_OVERRIDE
@@ -97,7 +97,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-#define CONFIG_DMA_MEMCPY
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY

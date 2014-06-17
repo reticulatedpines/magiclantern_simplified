@@ -290,6 +290,8 @@
     /* to be refactored with the lvinfo engine */
     #define FEATURE_FLEXINFO
 
+    //~ #define FEATURE_GPS_TWEAKS  // 6D only for now
+
 /** Debug menu **/
 
     //~ #define FEATURE_SHOW_OVERLAY_FPS
