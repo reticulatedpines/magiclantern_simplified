@@ -73,6 +73,7 @@ struct mem_allocator
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
     int minimum_free_space;                 /* will never allocate if free space would drop under this */
     int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
+    int maximum_blocks;                     /* will never allocate more than N buffers */
     
     /* private stuff */
     int mem_used;
@@ -167,6 +168,9 @@ static struct mem_allocator allocators[] = {
         .get_max_region = _shoot_get_free_space,    /* we usually have a bunch of large contiguous chunks */
         
         .is_preferred_for_temporary_space = 1,  /* if we know we'll free this memory quickly, prefer this one */
+
+        /* 5D3 crashes at around 1300 calls to AllocateContinuousMemoryResource, no idea about others */
+        .maximum_blocks = 1000,
         
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
@@ -608,8 +612,13 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                         //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
                         if (size < max_region)
                         {
-                            /* yes, we do! */
-                            return a;
+                            /* do we have enough free blocks? */
+                            int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
+                            if (allocators[a].num_blocks < max_blocks)
+                            {
+                                /* yes, we do! */
+                                return a;
+                            }
                         }
                     }
                 }
