@@ -562,23 +562,27 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
         int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
 
-        /* TODO: get rid of cascaded if's (use negative logic and "continue") */
-        
         /* do we need DMA? */
-        if (
+        if (!(
                 (require_dma && has_dma) ||
                 (!require_dma && has_non_dma)
-           )
+           ))
         {
+            continue;
+        }
+
             /* is this pool preferred for temporary allocations? */
-            if (
+            if (!(
                     !require_tmp ||
                     (require_tmp == preferred_for_tmp)
-               )
+               ))
             {
+                continue;
+            }
+            
                 /* matches preferred size criteria? */
                 if 
-                    (
+                    (!(
                         (
                             !require_preferred_size ||
                             (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
@@ -588,12 +592,15 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                             /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
                             size >= allocators[a].minimum_alloc_size
                         )
-                   )
+                   ))
                 {
+                    continue;
+                }
+                
                     /* do we have enough free space without exceeding the preferred limit? */
                     int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
                     //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
-                    if (
+                    if (!(
                             (
                                 /* preferred free space is... well... optional */
                                 !require_preferred_free_space ||
@@ -604,26 +611,29 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                                 /* minimum_free_space is mandatory */
                                 free_space - size - 1024 > allocators[a].minimum_free_space
                             )    
-                       )
+                       ))
                     {
+                        continue;
+                    }
+                    
                         /* do we have a large enough contiguous chunk? */
                         /* use a heuristic if we don't know, use a safety margin even if we know */
                         int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
                         //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
-                        if (size < max_region)
+                        if (!(size < max_region))
                         {
+                            continue;
+                        }
+                        
                             /* do we have enough free blocks? */
                             int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
-                            if (allocators[a].num_blocks < max_blocks)
+                            if (!(allocators[a].num_blocks < max_blocks))
                             {
+                                continue;
+                            }
+                            
                                 /* yes, we do! */
                                 return a;
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
     return -1;
 }
