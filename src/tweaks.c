@@ -3284,7 +3284,10 @@ void display_filter_step(int k)
         /* for new cameras: if there are no more display filters active, free the output buffer */
         if (display_filter_buffer)
         {
-            YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) last_canon_buffer;
+            if (YUV422_LV_BUFFER_DISPLAY_ADDR == (uint32_t) display_filter_buffer)
+            {
+                YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) last_canon_buffer;
+            }
             free(display_filter_buffer_unaligned);
             display_filter_buffer = 0;
         }
