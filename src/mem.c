@@ -571,69 +571,69 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
             continue;
         }
 
-            /* is this pool preferred for temporary allocations? */
-            if (!(
-                    !require_tmp ||
-                    (require_tmp == preferred_for_tmp)
-               ))
-            {
-                continue;
-            }
-            
-                /* matches preferred size criteria? */
-                if 
-                    (!(
-                        (
-                            !require_preferred_size ||
-                            (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
-                        )
-                        && 
-                        (
-                            /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
-                            size >= allocators[a].minimum_alloc_size
-                        )
-                   ))
-                {
-                    continue;
-                }
-                
-                    /* do we have enough free space without exceeding the preferred limit? */
-                    int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
-                    //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
-                    if (!(
-                            (
-                                /* preferred free space is... well... optional */
-                                !require_preferred_free_space ||
-                                (free_space - size - 1024 > allocators[a].preferred_free_space)
-                            )
-                            &&
-                            (
-                                /* minimum_free_space is mandatory */
-                                free_space - size - 1024 > allocators[a].minimum_free_space
-                            )    
-                       ))
-                    {
-                        continue;
-                    }
-                    
-                        /* do we have a large enough contiguous chunk? */
-                        /* use a heuristic if we don't know, use a safety margin even if we know */
-                        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
-                        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
-                        if (!(size < max_region))
-                        {
-                            continue;
-                        }
-                        
-                            /* do we have enough free blocks? */
-                            int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
-                            if (!(allocators[a].num_blocks < max_blocks))
-                            {
-                                continue;
-                            }
-                            
-                                /* yes, we do! */
-                                return a;
+        /* is this pool preferred for temporary allocations? */
+        if (!(
+                !require_tmp ||
+                (require_tmp == preferred_for_tmp)
+           ))
+        {
+            continue;
+        }
+        
+        /* matches preferred size criteria? */
+        if 
+            (!(
+                (
+                    !require_preferred_size ||
+                    (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                )
+                && 
+                (
+                    /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
+                    size >= allocators[a].minimum_alloc_size
+                )
+           ))
+        {
+            continue;
+        }
+        
+        /* do we have enough free space without exceeding the preferred limit? */
+        int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
+        //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
+        if (!(
+                (
+                    /* preferred free space is... well... optional */
+                    !require_preferred_free_space ||
+                    (free_space - size - 1024 > allocators[a].preferred_free_space)
+                )
+                &&
+                (
+                    /* minimum_free_space is mandatory */
+                    free_space - size - 1024 > allocators[a].minimum_free_space
+                )    
+           ))
+        {
+            continue;
+        }
+        
+        /* do we have a large enough contiguous chunk? */
+        /* use a heuristic if we don't know, use a safety margin even if we know */
+        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
+        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
+        if (!(size < max_region))
+        {
+            continue;
+        }
+        
+        /* do we have enough free blocks? */
+        int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
+        if (!(allocators[a].num_blocks < max_blocks))
+        {
+            continue;
+        }
+        
+        /* yes, we do! */
+        return a;
     }
     return -1;
 }
