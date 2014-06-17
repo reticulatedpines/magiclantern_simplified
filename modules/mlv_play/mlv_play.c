@@ -1224,7 +1224,7 @@ static FILE **mlv_play_load_chunks(char *base_filename, uint32_t *entries)
     FILE **files = malloc(sizeof(FILE*));
     
     files[0] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(!files[0])
+    if (files[0] == INVALID_PTR)
     {
         return NULL;
     }
@@ -1312,7 +1312,15 @@ static void mlv_play_render_task(uint32_t priv)
         {
             continue;
         }
-        
+
+        if(!buffer->frameBuffer)
+        {
+            bmp_printf(FONT_MED, 30, 400, "buffer empty");
+            beep();
+            msleep(1000);
+            break;
+        }
+
         raw_info.buffer = buffer->frameBuffer;
         raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
         raw_force_aspect_ratio_1to1();
@@ -1669,14 +1677,14 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 
                 buffer->frameSize = frame_size;
                 buffer->frameBuffer = fio_malloc(buffer->frameSize);
-                
-                if(!buffer->frameBuffer)
-                {
-                    bmp_printf(FONT_MED, 30, 400, "allocation failed");
-                    beep();
-                    msleep(1000);
-                    break;
-                }        
+            }
+
+            if(!buffer->frameBuffer)
+            {
+                bmp_printf(FONT_MED, 30, 400, "allocation failed");
+                beep();
+                msleep(1000);
+                break;
             }
             
             if(FIO_ReadFile(in_file, &vidf_block, sizeof(mlv_vidf_hdr_t)) != sizeof(mlv_vidf_hdr_t))
@@ -1828,16 +1836,16 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
             
             buffer->frameSize = frame_size;
             buffer->frameBuffer = malloc(buffer->frameSize);
-            
-            if(!buffer->frameBuffer)
-            {
-                bmp_printf(FONT_MED, 30, 400, "allocation failed");
-                beep();
-                msleep(1000);
-                break;
-            }        
         }
-            
+
+        if(!buffer->frameBuffer)
+        {
+            bmp_printf(FONT_MED, 30, 400, "allocation failed");
+            beep();
+            msleep(1000);
+            break;
+        }
+        
         int32_t r = FIO_ReadFile(chunk_files[chunk_num], buffer->frameBuffer, frame_size);
         
         /* reading failed */
@@ -2135,11 +2143,13 @@ static void mlv_play_enter_playback()
     for(int num = 0; num < 3; num++)
     {
         frame_buf_t *buffer = malloc(sizeof(frame_buf_t));
-        
-        buffer->frameSize = 0;
-        buffer->frameBuffer = NULL;
-        
-        msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
+        if (buffer)
+        {
+            buffer->frameSize = 0;
+            buffer->frameBuffer = NULL;
+            
+            msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
+        }
     }
     
     /* clear anything on screen */
