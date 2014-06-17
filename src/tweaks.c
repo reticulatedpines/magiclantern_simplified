@@ -3124,6 +3124,7 @@ void defish_draw_play()
 #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 static void* display_filter_buffer_unaligned = 0;
 static void* display_filter_buffer = 0;
+static void* last_canon_buffer = 0;
 #endif
 
 static int display_filter_valid_image = 0;
@@ -3263,6 +3264,12 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     if (!display_filter_buffer) return CBR_RET_CONTINUE;
     if (!display_filter_valid_image) return CBR_RET_CONTINUE;
     if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
+    
+    /* save the old buffer (to restore it when turning off display filters) */
+    void* current_buffer = (void*) YUV422_LV_BUFFER_DISPLAY_ADDR;
+    if (current_buffer != display_filter_buffer) last_canon_buffer = current_buffer;
+    
+    /* switch the displayed buffer to our filtered image */
     YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) display_filter_buffer;
 #endif
     return CBR_RET_STOP;
@@ -3277,6 +3284,7 @@ void display_filter_step(int k)
         /* for new cameras: if there are no more display filters active, free the output buffer */
         if (display_filter_buffer)
         {
+            YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) last_canon_buffer;
             free(display_filter_buffer_unaligned);
             display_filter_buffer = 0;
         }
