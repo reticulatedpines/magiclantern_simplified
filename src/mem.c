@@ -610,7 +610,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 (
                     /* minimum_free_space is mandatory */
                     free_space - size - 1024 > allocators[a].minimum_free_space
-                )    
+                )
            ))
         {
             continue;
@@ -620,14 +620,14 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         /* use a heuristic if we don't know, use a safety margin even if we know */
         int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
         //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
-        if (!(size < max_region))
+        if (size > max_region)
         {
             continue;
         }
         
         /* do we have enough free blocks? */
         int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
-        if (!(allocators[a].num_blocks < max_blocks))
+        if (allocators[a].num_blocks >= max_blocks)
         {
             continue;
         }
