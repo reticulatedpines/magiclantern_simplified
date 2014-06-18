@@ -5228,6 +5228,9 @@ static void joystick_longpress_check()
     {
         /* long press opens ML menu or submenus */
         fake_simple_button(MLEV_JOYSTICK_LONG);
+        
+        /* make sure it won't re-trigger */
+        joystick_longpress++;
     }
     else if (joystick_longpress < 2 && !joystick_pressed && gui_menu_shown())
     {
