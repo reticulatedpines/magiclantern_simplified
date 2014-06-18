@@ -5206,10 +5206,16 @@ static void menu_show_version(void)
 #ifdef CONFIG_JOY_CENTER_ACTIONS
 static int joystick_pressed = 0;
 static int joystick_longpress = 0;
+static int joy_center_action_disabled = 0;
 
 /* called from GUI timers */
 static void joystick_longpress_check()
 {
+    if (joy_center_action_disabled)
+    {
+        return;
+    }
+    
     if (joystick_pressed)
     {
         joystick_longpress++;
@@ -5256,6 +5262,11 @@ int handle_ml_menu_erase(struct event * event)
     /* also trigger menu by a long joystick press */
     if (event->param == BGMT_JOY_CENTER)
     {
+        if (joy_center_action_disabled)
+        {
+            return gui_menu_shown() ? 0 : 1;
+        }
+        
         if (is_submenu_or_edit_mode_active())
         {
             /* in submenus, a short press goes back to main menu (since you can edit with left and right) */
@@ -5274,7 +5285,16 @@ int handle_ml_menu_erase(struct event * event)
     else if (event->param == BGMT_UNPRESS_UDLR)
     {
         joystick_pressed = 0;
+        joy_center_action_disabled = 0;
     }
+    else if (event->param == BGMT_PRESS_LEFT      || event->param == BGMT_PRESS_RIGHT        ||
+             event->param == BGMT_PRESS_DOWN      || event->param == BGMT_PRESS_UP           ||
+             event->param == BGMT_PRESS_UP_LEFT   || event->param == BGMT_PRESS_UP_RIGHT     ||
+             event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
+    {
+        joy_center_action_disabled = 1;
+    }
+
 #endif
 
     return 1;
