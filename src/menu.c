@@ -4635,8 +4635,9 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JUMP:
     case BGMT_PRESS_DIRECT_PRINT:
 #endif
+    case MLEV_JOYSTICK_LONG:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-        menu_entry_select( menu, 2 ); // auto setting select
+        menu_entry_select( menu, 2 ); // Q action select
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
@@ -5202,17 +5203,46 @@ static void menu_show_version(void)
         build_user);
 }
 
+#ifdef CONFIG_JOY_CENTER_ACTIONS
+static int joystick_pressed = 0;
+static int joystick_longpress = 0;
+
+/* called from GUI timers */
+static void joystick_longpress_check()
+{
+    if (joystick_pressed)
+    {
+        joystick_longpress++;
+        delayed_call(100, joystick_longpress_check);
+    }
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
+    
+    if (joystick_longpress == 5)
+    {
+        /* long press opens ML menu or submenus */
+        fake_simple_button(MLEV_JOYSTICK_LONG);
+    }
+    else if (joystick_longpress < 2 && !joystick_pressed && gui_menu_shown())
+    {
+        /* short press in menu => do a regular SET */
+        fake_simple_button(BGMT_PRESS_SET);
+        fake_simple_button(BGMT_UNPRESS_UDLR);
+    }
+}
+#endif
 
 // this should work on most cameras
 int handle_ml_menu_erase(struct event * event)
 {
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
-#ifdef CONFIG_TOUCHSCREEN
-    if (event->param == BGMT_TRASH || event->param == BGMT_TOUCH_2_FINGER)
-#else
-    if (event->param == BGMT_TRASH)
-#endif
+    if (event->param == BGMT_TRASH ||
+        (event->param == MLEV_JOYSTICK_LONG && !gui_menu_shown()) ||
+        #ifdef CONFIG_TOUCHSCREEN
+        event->param == BGMT_TOUCH_2_FINGER ||
+        #endif
+       0)
     {
         if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
         {
@@ -5221,6 +5251,31 @@ int handle_ml_menu_erase(struct event * event)
         }
         //~ else bmp_printf(FONT_LARGE, 100, 100, "%d ", gui_state);
     }
+    
+#ifdef CONFIG_JOY_CENTER_ACTIONS
+    /* also trigger menu by a long joystick press */
+    if (event->param == BGMT_JOY_CENTER)
+    {
+        if (is_submenu_or_edit_mode_active())
+        {
+            /* in submenus, a short press goes back to main menu (since you can edit with left and right) */
+            fake_simple_button(MLEV_JOYSTICK_LONG);
+            return 0;
+        }
+        else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || gui_menu_shown())
+        {
+            /* if we can make use of a long joystick press, check it */
+            joystick_pressed = 1;
+            joystick_longpress = 0;
+            delayed_call(100, joystick_longpress_check);
+            if (gui_menu_shown()) return 0;
+        }
+    }
+    else if (event->param == BGMT_UNPRESS_UDLR)
+    {
+        joystick_pressed = 0;
+    }
+#endif
 
     return 1;
 }
