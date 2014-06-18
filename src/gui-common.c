@@ -657,17 +657,6 @@ void fake_simple_button(int bgmt_code)
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
 
-static void redraw_after_task(int msec)
-{
-    msleep(msec);
-    redraw();
-}
-
-void redraw_after(int msec)
-{
-    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
-}
-
 int display_is_on()
 {
     return DISPLAY_IS_ON;
@@ -676,4 +665,14 @@ int display_is_on()
 void delayed_call(int delay_ms, void(*function)(void))
 {
     SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, 0);
+}
+
+static void redraw_after_cbr()
+{
+    redraw();   /* this one simply posts an event to the GUI task */
+}
+
+void redraw_after(int msec)
+{
+    delayed_call(msec, redraw_after_cbr);
 }
