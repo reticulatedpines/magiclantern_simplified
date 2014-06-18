@@ -11,6 +11,7 @@
 #include <lens.h>
 #include <config.h>
 #include <lvinfo.h>
+#include <timer.h>
 
 #if defined(FEATURE_AF_PATTERNS)
 #include <af_patterns.h>
@@ -670,4 +671,9 @@ void redraw_after(int msec)
 int display_is_on()
 {
     return DISPLAY_IS_ON;
+}
+
+void delayed_call(int delay_ms, void(*function)(void))
+{
+    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, 0);
 }
