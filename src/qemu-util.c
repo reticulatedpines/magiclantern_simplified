@@ -7,6 +7,8 @@
 #define REG_SHUTDOWN 0xCF123004
 #define REG_DUMP_VRAM 0xCF123008
 #define REG_GET_KEY    0xCF123010
+#define REG_BMP_VRAM   0xCF123014
+#define REG_IMG_VRAM   0xCF123018
 
 int qprintf(const char * fmt, ...) // prints in the QEMU console
 {
@@ -148,12 +150,16 @@ static void qemu_key_poll()
 
 TASK_CREATE( "qemu_key_poll", qemu_key_poll, 0, 0x1a, 0x2000 );
 
-#define BMP_VRAM_ADDR 0x003638100
-
 void qemu_cam_init()
 {
     // set BMP VRAM
-    bmp_vram_info[1].vram2 = (void*) BMP_VRAM_ADDR;
+    uintptr_t bmp_raw = fio_malloc(960*540*2 + 16384);
+    uintptr_t bmp_aligned = (bmp_raw + 4095) & ~4095;
+    uintptr_t bmp_hdmi = bmp_aligned + 0x008;
+    uintptr_t bmp_lcd = bmp_hdmi + BMP_HDMI_OFFSET;
+    bmp_vram_info[1].vram2 = bmp_lcd;
+    MEM(REG_BMP_VRAM) = bmp_lcd;
+    qprintf("BMP buffer: raw=%x hdmi=%x lcd=%x\n", bmp_raw, bmp_hdmi, bmp_lcd);
 
     // fake display on
     #ifdef DISPLAY_STATEOBJ

@@ -29,6 +29,8 @@
 #define REG_DUMP_VRAM  0xCF123008
 #define REG_PRINT_NUM  0xCF12300C
 #define REG_GET_KEY    0xCF123010
+#define REG_BMP_VRAM   0xCF123014
+#define REG_IMG_VRAM   0xCF123018
 
 /*
  * FIO access to a local directory
@@ -125,6 +127,8 @@ typedef struct
     int keybuf[16];
     int key_index_r;
     int key_index_w;
+    uint32_t bmp_vram;
+    uint32_t img_vram;
     RTCState rtc;
 } EOSState;
 

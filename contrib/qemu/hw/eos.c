@@ -130,12 +130,20 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
                 return 0;
 
             case REG_DUMP_VRAM:
-                eos_dump_vram(value);
+                eos_dump_vram(value ? value : ws->bmp_vram);
                 return 0;
 
             case REG_SHUTDOWN:
                 printf("Goodbye!\n");
                 qemu_system_shutdown_request();
+                return 0;
+            
+            case REG_BMP_VRAM:
+                ws->bmp_vram = (uint32_t) value;
+                return 0;
+
+            case REG_IMG_VRAM:
+                ws->img_vram = (uint32_t) value;
                 return 0;
         }
     }
@@ -553,7 +561,7 @@ static void eos_update_display(void *parm)
     framebuffer_update_display(
         surface,
         s->system_mem,
-        0x003638100,
+        s->bmp_vram,
         720, 480,
         960, linesize, 0, s->display_invalidate, 
         draw_line8_32, 0,

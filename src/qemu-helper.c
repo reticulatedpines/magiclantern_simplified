@@ -42,8 +42,6 @@
 #define RAM_OFFSET 0
 #endif
 
-#define BMP_VRAM_ADDR 0x003638100
-
 int qprintf(const char * fmt, ...) // prints in the QEMU console
 {
     va_list ap;
@@ -191,7 +189,7 @@ void q_call(char* func)
     
     if (streq(func, "dispcheck"))
     {
-        *(volatile uint32_t*) REG_DUMP_VRAM = BMP_VRAM_ADDR;
+        *(volatile uint32_t*) REG_DUMP_VRAM = 0;
         return;
     }
 
