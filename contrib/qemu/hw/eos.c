@@ -145,6 +145,14 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
             case REG_IMG_VRAM:
                 ws->img_vram = (uint32_t) value;
                 return 0;
+            
+            case REG_RAW_BUFF:
+                ws->raw_buff = (uint32_t) value;
+                return 0;
+
+            case REG_DISP_TYPE:
+                ws->display_type = (uint32_t) value;
+                return 0;
         }
     }
     else
@@ -164,6 +172,18 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
                     return ws->keybuf[(ws->key_index_r++) & 15];
                 }
             }
+
+            case REG_BMP_VRAM:
+                return ws->bmp_vram;
+
+            case REG_IMG_VRAM:
+                return ws->img_vram;
+            
+            case REG_RAW_BUFF:
+                return ws->raw_buff;
+            
+            case REG_DISP_TYPE:
+                return ws->display_type;
         }
         return 0;
     }
@@ -545,10 +565,18 @@ static void eos_update_display(void *parm)
     EOSState *s = (EOSState *)parm;
 
     DisplaySurface *surface = qemu_console_surface(s->con);
+    
+    /* these numbers need double-checking */
+    /*                  LCD    HDMI-1080   HDMI-480    SD-PAL      SD-NTSC */
+    int widths[]    = { 720,   960,        720,        720,        720     };
+    int heights[]   = { 480,   540,        480,        576,        480     };
+    
+    int width   = widths    [s->display_type];
+    int height  = heights   [s->display_type];
 
-    if (720 != surface_width(surface) || 480 != surface_height(surface))
+    if (width != surface_width(surface) || height != surface_height(surface))
     {
-        qemu_console_resize(s->con, 720, 480);
+        qemu_console_resize(s->con, width, height);
         surface = qemu_console_surface(s->con);
         s->display_invalidate = 1;
     }
@@ -562,14 +590,14 @@ static void eos_update_display(void *parm)
         surface,
         s->system_mem,
         s->bmp_vram,
-        720, 480,
+        width, height,
         960, linesize, 0, s->display_invalidate, 
         draw_line8_32, 0,
         &first, &last
     );
     
     if (first >= 0) {
-        dpy_gfx_update(s->con, 0, first, 720, last - first + 1);
+        dpy_gfx_update(s->con, 0, first, width, last - first + 1);
     }
     
     s->display_invalidate = 0;
@@ -588,6 +616,7 @@ static const GraphicHwOps eos_display_ops = {
 
 static void eos_key_event(void *parm, int keycode)
 {
+    /* keys sent to guest machine */
     EOSState *s = (EOSState *)parm;
     s->keybuf[(s->key_index_w++) & 15] = keycode;
 }

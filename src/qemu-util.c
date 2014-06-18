@@ -1,6 +1,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "cache_hacks.h"
+#include "propvalues.h"
 
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000
@@ -9,6 +10,8 @@
 #define REG_GET_KEY    0xCF123010
 #define REG_BMP_VRAM   0xCF123014
 #define REG_IMG_VRAM   0xCF123018
+#define REG_RAW_BUFF   0xCF12301C
+#define REG_DISP_TYPE  0xCF123020
 
 int qprintf(const char * fmt, ...) // prints in the QEMU console
 {
@@ -97,9 +100,9 @@ static int translate_scancode(int scancode)
 
 static void qemu_print_help()
 {
-    bmp_printf(FONT_LARGE, 50, 50, "Magic Lantern in QEMU");
+    bmp_printf(FONT_LARGE, 50, 30, "Magic Lantern in QEMU");
 
-    big_bmp_printf(FONT_MONO_20 | FONT_ALIGN_FILL, 50, 100,
+    big_bmp_printf(FONT_MONO_20 | FONT_ALIGN_FILL, 50, 80,
         "DELETE       open ML menu\n"
         "SPACE        SET\n"
         "SHIFT        half-shutter\n"
@@ -114,9 +117,55 @@ static void qemu_print_help()
         "PageUp/Dn    rear scrollwheel\n"
         "[ and ]      top scrollwheel\n"
         "+/-          zoom in/out\n"
+        "H            LCD/HDMI/SD monitor\n"
     );
 
     bmp_printf(FONT_LARGE, 50, 400, "Have fun!");
+}
+
+static void toggle_display_type()
+{
+    // set BMP VRAM
+    static uintptr_t bmp_raw = 0;
+    
+    if (!bmp_raw)
+    {
+        /* first-time initialization */
+        bmp_raw = (uintptr_t) fio_malloc(960*540*2 + 16384);
+    }
+    else
+    {
+        /* switch to next mode */
+        MEM(REG_DISP_TYPE) = MOD(MEM(REG_DISP_TYPE) + 1, 5);
+    }
+    
+    uintptr_t bmp_aligned = (bmp_raw + 4095) & ~4095;
+    uintptr_t bmp_hdmi = bmp_aligned + 0x008;
+    uintptr_t bmp_lcd = bmp_hdmi + BMP_HDMI_OFFSET;
+    
+    /* one of those is for PAL, the other is for NTSC; see BMP_VRAM_START in bmp.c */
+    uintptr_t bmp_sd1 = bmp_hdmi + BMP_HDMI_OFFSET + 8;
+    uintptr_t bmp_sd2 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c8;
+    uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
+    
+    int display_type = MEM(REG_DISP_TYPE);
+    char* display_modes[] = {   "LCD",  "HDMI-1080",    "HDMI-480", "SD-PAL",   "SD-NTSC"   };
+    uintptr_t buffers[]   = {   bmp_lcd, bmp_hdmi,       bmp_lcd,    bmp_sd1,    bmp_sd2    };
+    int hdmi_codes[]      = {   0,       5,              2,          0,          0          };
+    int ext_hdmi_codes[]  = {   0,       1,              1,          0,          0          };
+    int ext_rca_codes[]   = {   0,       0,              0,          1,          1          };
+    int pal_codes[]       = {   0,       0,              0,          1,          0          };
+    
+    bmp_vram_info[1].vram2 = MEM(REG_BMP_VRAM) = buffers[display_type];
+    hdmi_code = hdmi_codes[display_type];
+    ext_monitor_hdmi = ext_hdmi_codes[display_type];
+    _ext_monitor_rca = ext_rca_codes[display_type];
+    //~ pal = pal_codes[display_type];
+    
+    qprintf(
+        "BMP buffer (%s): raw=%x hdmi=%x lcd=%x real=%x idle=%x\n", 
+        display_modes[display_type], bmp_raw, bmp_hdmi, bmp_lcd, bmp_vram_real(), bmp_vram_idle()
+    );
 }
 
 static void qemu_key_poll()
@@ -124,7 +173,11 @@ static void qemu_key_poll()
     TASK_LOOP
     {
         int keycode = MEM(REG_GET_KEY);
-        if (keycode)
+        if (keycode == 0x23) // H
+        {
+            toggle_display_type();
+        }
+        else if (keycode)
         {
             int event_code = translate_scancode(keycode);
             if (event_code >= 0)
@@ -152,23 +205,12 @@ TASK_CREATE( "qemu_key_poll", qemu_key_poll, 0, 0x1a, 0x2000 );
 
 void qemu_cam_init()
 {
-    // set BMP VRAM
-    uintptr_t bmp_raw = fio_malloc(960*540*2 + 16384);
-    uintptr_t bmp_aligned = (bmp_raw + 4095) & ~4095;
-    uintptr_t bmp_hdmi = bmp_aligned + 0x008;
-    uintptr_t bmp_lcd = bmp_hdmi + BMP_HDMI_OFFSET;
-    bmp_vram_info[1].vram2 = bmp_lcd;
-    MEM(REG_BMP_VRAM) = bmp_lcd;
-    qprintf("BMP buffer: raw=%x hdmi=%x lcd=%x\n", bmp_raw, bmp_hdmi, bmp_lcd);
+    toggle_display_type();
 
     // fake display on
     #ifdef DISPLAY_STATEOBJ
     DISPLAY_STATEOBJ->current_state = 1;
     #else
     DISPLAY_IS_ON = 1;
-    #endif
-    
-    #ifdef CONFIG_5D3
-    MEM(0xff0cb304) = RET_INSTR;    /* fixme: hotplug task can't be blocked via task dispatch hook? */
     #endif
 }

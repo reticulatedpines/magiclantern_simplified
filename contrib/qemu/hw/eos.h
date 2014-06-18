@@ -31,6 +31,8 @@
 #define REG_GET_KEY    0xCF123010
 #define REG_BMP_VRAM   0xCF123014
 #define REG_IMG_VRAM   0xCF123018
+#define REG_RAW_BUFF   0xCF12301C
+#define REG_DISP_TYPE  0xCF123020
 
 /*
  * FIO access to a local directory
@@ -124,11 +126,13 @@ typedef struct
     uint32_t flash_state_machine;
     QemuConsole *con;
     int display_invalidate;
+    enum {DISPLAY_LCD, DISPLAY_HDMI_1080, DISPLAY_HDMI_480, DISPLAY_SD_PAL, DISPLAY_SD_NTSC} display_type;
+    uint32_t bmp_vram;
+    uint32_t img_vram;
+    uint32_t raw_buff;
     int keybuf[16];
     int key_index_r;
     int key_index_w;
-    uint32_t bmp_vram;
-    uint32_t img_vram;
     RTCState rtc;
 } EOSState;
 
