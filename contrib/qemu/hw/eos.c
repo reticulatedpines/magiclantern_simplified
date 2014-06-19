@@ -551,10 +551,18 @@ static void draw_line8_32(void *opaque,
 
     do {
         v = ldub_raw((void *) s);
-        r = R[v];
-        g = G[v];
-        b = B[v];
-        ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        if (v)
+        {
+            r = R[v];
+            g = G[v];
+            b = B[v];
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        }
+        else
+        {
+            r = g = b = rand();
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        }
         s ++;
         d += 4;
     } while (-- width != 0);
@@ -591,7 +599,7 @@ static void eos_update_display(void *parm)
         s->system_mem,
         s->bmp_vram,
         width, height,
-        960, linesize, 0, s->display_invalidate, 
+        960, linesize, 0, 1, 
         draw_line8_32, 0,
         &first, &last
     );
