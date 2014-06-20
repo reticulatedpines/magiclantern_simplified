@@ -6368,10 +6368,8 @@ shoot_task( void* unused )
                 
                 if(audio_release_running)
                 {   
-                    #ifndef CONFIG_7D
                     //Enable Audio IC In Photo Mode if off
                     if (!is_movie_mode())
-                    #endif
                     {
                         SoundDevActiveIn(0);
                     }
