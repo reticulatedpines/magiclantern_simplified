@@ -22,6 +22,7 @@
 #include "fw-signature.h"
 #include "lvinfo.h"
 #include "timer.h"
+#include "raw.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -159,10 +160,91 @@ static void dump_rom_task(void* priv, int unused)
     dump_big_seg(4, "ML/LOGS/RAM4.BIN");
 }
 
-static void dump_rom(void* priv, int unused)
+static PROP_INT(PROP_VIDEO_SYSTEM, pal);
+
+static void dump_img_task(void* priv, int unused)
 {
-    gui_stop_menu();
-    task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
+    for (int i = 5; i > 0; i--)
+    {
+        NotifyBox(1000, "Will dump VRAMs in %d s...", i);
+        msleep(1000);
+    }
+    NotifyBox(5000, "Dumping VRAMs...");
+    
+    FILE * f = NULL;
+    char pattern[0x80];
+    char filename[0x80];
+    
+    /* fixme */
+    extern int is_pure_play_photo_mode();
+    
+    char* video_mode = 
+        PLAY_MODE && is_pure_play_photo_mode()          ? "PLAY-PH"  :
+        PLAY_MODE && is_pure_play_movie_mode()          ? "PLAY-MV"  :
+        PLAY_MODE                                       ? "PLAY-UNK" :
+        lv && lv_dispsize==5                            ? "ZOOM-X5"  :
+        lv && lv_dispsize==10                           ? "ZOOM-X10" :
+        lv && lv_dispsize==1 && !is_native_movie_mode() ? "PH-LV"    :
+        !is_native_movie_mode() && QR_MODE              ? "PH-QR"    :
+        !is_native_movie_mode()                         ? "PH-UNK"   :
+        video_mode_resolution == 0 && !video_mode_crop  ? "MV-1080"  :
+        video_mode_resolution == 1 && !video_mode_crop  ? "MV-720"   :
+        video_mode_resolution == 2 && !video_mode_crop  ? "MV-480"   :
+        video_mode_resolution == 0 && video_mode_crop   ? "MVC-1080" :
+        video_mode_resolution == 2 && video_mode_crop   ? "MVC-480"  :  "MV-UNK";
+    
+    char* display_mode = 
+        !EXT_MONITOR_CONNECTED                          ? "LCD"      :
+        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI-1080":
+        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI-720" :
+        _ext_monitor_rca && pal                         ? "SD-PAL"   :
+        _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";
+
+    char* rec_mode = RECORDING_H264 ? "REC" : "STANDBY";
+    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode, rec_mode);
+    
+    /* make sure the VRAM parameters are updated */
+    get_yuv422_vram();
+    get_yuv422_hd_vram();
+
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "LV-%%03d.422", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    f = FIO_CreateFile(filename);
+    if (f != INVALID_PTR)
+    {
+        FIO_WriteFile(f, vram_lv.vram, vram_lv.height * vram_lv.pitch);
+        FIO_CloseFile(f);
+    }
+
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "HD-%%03d.422", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    f = FIO_CreateFile(filename);
+    if (f != INVALID_PTR)
+    {
+        FIO_WriteFile(f, vram_hd.vram, vram_hd.height * vram_hd.pitch);
+        FIO_CloseFile(f);
+    }
+
+    if (lv) raw_lv_request();
+    if (raw_update_params())
+    {
+        /* make a copy of the raw buffer, because it's being updated while we are saving it */
+        void* buf = malloc(raw_info.frame_size);
+        if (buf)
+        {
+            memcpy(buf, raw_info.buffer, raw_info.frame_size);
+            snprintf(pattern + path_len, sizeof(pattern) - path_len, "RAW-%%03d.DNG", 0);
+            get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+            struct raw_info local_raw_info = raw_info;
+            local_raw_info.buffer = buf;
+            save_dng(filename, &local_raw_info);
+            free(buf);
+        }
+    }
+    if (lv) raw_lv_release();
+    
+    NotifyBox(2000, "Done :)");
+    beep();
 }
 
 #ifdef FEATURE_GUIMODE_TEST
@@ -2616,8 +2698,15 @@ static struct menu_entry debug_menus[] = {
 #endif
     {
         .name        = "Dump ROM and RAM",
-        .select        = dump_rom,
+        .priv        = dump_rom_task,
+        .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
+    },
+    {
+        .name        = "Dump image buffers",
+        .priv        = dump_img_task,
+        .select      = (void(*)(void*,int))run_in_separate_task,
+        .help = "Dump all image buffers (LV, HD, RAW) from current video mode."
     },
 #ifdef FEATURE_DONT_CLICK_ME
     {

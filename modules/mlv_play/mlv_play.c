@@ -2131,6 +2131,7 @@ static void mlv_play_leave_playback()
 static void mlv_play_enter_playback()
 {
     /* prepare display */
+    NotifyBoxHide();
     mlv_play_set_mode(1);
     
     /* render task is slave and controlled via these variables */
