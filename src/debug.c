@@ -225,6 +225,7 @@ static void dump_img_task(void* priv, int unused)
         FIO_CloseFile(f);
     }
 
+#ifdef CONFIG_RAW_LIVEVIEW
     if (lv) raw_lv_request();
     if (raw_update_params())
     {
@@ -242,7 +243,8 @@ static void dump_img_task(void* priv, int unused)
         }
     }
     if (lv) raw_lv_release();
-    
+#endif
+
     NotifyBox(2000, "Done :)");
     beep();
 }
