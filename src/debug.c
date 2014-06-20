@@ -195,8 +195,8 @@ static void dump_img_task(void* priv, int unused)
     
     char* display_mode = 
         !EXT_MONITOR_CONNECTED                          ? "LCD"      :
-        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI-1080":
-        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI-480" :
+        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :
+        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :
         _ext_monitor_rca && pal                         ? "SD-PAL"   :
         _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";
 
