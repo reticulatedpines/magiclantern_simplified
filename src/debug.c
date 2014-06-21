@@ -237,6 +237,12 @@ static void dump_img_task(void* priv, int unused)
     if (lv) raw_lv_request();
     if (raw_update_params())
     {
+        /* first frames right after enabling the raw buffer might be corrupted, figure out why */
+        /* todo: fix it in the raw backend */
+        wait_lv_frames(3);
+        raw_set_dirty();
+        raw_update_params();
+        
         /* make a copy of the raw buffer, because it's being updated while we are saving it */
         void* buf = malloc(raw_info.frame_size);
         if (buf)
