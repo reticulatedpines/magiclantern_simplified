@@ -179,29 +179,34 @@ static void dump_img_task(void* priv, int unused)
     extern int is_pure_play_photo_mode();
     
     char* video_mode = 
-        PLAY_MODE && is_pure_play_photo_mode()          ? "PLAY-PH"  :
-        PLAY_MODE && is_pure_play_movie_mode()          ? "PLAY-MV"  :
+        PLAY_MODE && is_pure_play_photo_mode()          ? "PLAY-PH"  :      /* Playback, reviewing a picture */
+        PLAY_MODE && is_pure_play_movie_mode()          ? "PLAY-MV"  :      /* Playback, reviewing a video */
         PLAY_MODE                                       ? "PLAY-UNK" :
-        lv && lv_dispsize==5                            ? "ZOOM-X5"  :
-        lv && lv_dispsize==10                           ? "ZOOM-X10" :
-        lv && lv_dispsize==1 && !is_native_movie_mode() ? "PH-LV"    :
-        !is_native_movie_mode() && QR_MODE              ? "PH-QR"    :
+        lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
+        lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
+        lv && lv_dispsize==1 && !is_native_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
+        !is_native_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
         !is_native_movie_mode()                         ? "PH-UNK"   :
-        video_mode_resolution == 0 && !video_mode_crop  ? "MV-1080"  :
-        video_mode_resolution == 1 && !video_mode_crop  ? "MV-720"   :
-        video_mode_resolution == 2 && !video_mode_crop  ? "MV-480"   :
-        video_mode_resolution == 0 && video_mode_crop   ? "MVC-1080" :
-        video_mode_resolution == 2 && video_mode_crop   ? "MVC-480"  :  "MV-UNK";
+        video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
+        video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
+        video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
+        video_mode_resolution == 0 &&  video_mode_crop && !RECORDING_H264 ? "MVC-1080" :    /* Movie 1080p crop (3x zoom as with 600D), standby */
+        video_mode_resolution == 2 &&  video_mode_crop && !RECORDING_H264 ? "MVC-480"  :    /* Movie 480p crop (as with 550D), standby */
+        video_mode_resolution == 0 && !video_mode_crop &&  RECORDING_H264 ? "REC-1080" :    /* Movie 1080p, recording */
+        video_mode_resolution == 1 && !video_mode_crop &&  RECORDING_H264 ? "REC-720"  :    /* Movie 720p, recording */
+        video_mode_resolution == 2 && !video_mode_crop &&  RECORDING_H264 ? "REC-480"  :    /* Movie 480p, recording */
+        video_mode_resolution == 0 &&  video_mode_crop &&  RECORDING_H264 ? "RECC1080" :    /* Movie 1080p crop, recording */
+        video_mode_resolution == 2 &&  video_mode_crop &&  RECORDING_H264 ? "RECC-480" :    /* Movie 480p crop, recording */
+        "MV-UNK";
     
     char* display_mode = 
-        !EXT_MONITOR_CONNECTED                          ? "LCD"      :
-        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI-1080":
-        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI-720" :
-        _ext_monitor_rca && pal                         ? "SD-PAL"   :
-        _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";
+        !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
+        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
+        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
+        _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
+        _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
 
-    char* rec_mode = RECORDING_H264 ? "REC" : "STANDBY";
-    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode, rec_mode);
+    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
     
     /* make sure the VRAM parameters are updated */
     get_yuv422_vram();
@@ -225,6 +230,7 @@ static void dump_img_task(void* priv, int unused)
         FIO_CloseFile(f);
     }
 
+#ifdef CONFIG_RAW_LIVEVIEW
     if (lv) raw_lv_request();
     if (raw_update_params())
     {
@@ -242,7 +248,8 @@ static void dump_img_task(void* priv, int unused)
         }
     }
     if (lv) raw_lv_release();
-    
+#endif
+
     NotifyBox(2000, "Done :)");
     beep();
 }
