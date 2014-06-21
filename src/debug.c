@@ -258,6 +258,20 @@ static void dump_img_task(void* priv, int unused)
     }
 #endif
 
+    /* create a log file with relevant settings */
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "VRAM-%%03d.LOG", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    f = FIO_CreateFile(filename);
+    if (f != INVALID_PTR)
+    {
+        my_fprintf(f, "display=%d (hdmi=%d code=%d rca=%d)\n", EXT_MONITOR_CONNECTED, ext_monitor_hdmi, hdmi_code, _ext_monitor_rca);
+        my_fprintf(f, "lv=%d (zoom=%d dispmode=%d rec=%d)\n", lv, lv_dispsize, lv_disp_mode, RECORDING_H264);
+        my_fprintf(f, "movie=%d (res=%d crop=%d fps=%d)\n", is_native_movie_mode(), video_mode_resolution, video_mode_crop, video_mode_fps);
+        my_fprintf(f, "play=%d (ph=%d, mv=%d, qr=%d)\n", PLAY_MODE, is_pure_play_photo_mode(), is_pure_play_movie_mode(), QR_MODE);
+        
+        FIO_CloseFile(f);
+    }
+
     NotifyBox(2000, "Done :)");
     beep();
 }
