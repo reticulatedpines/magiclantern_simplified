@@ -231,6 +231,9 @@ static void dump_img_task(void* priv, int unused)
     }
 
 #ifdef CONFIG_RAW_LIVEVIEW
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "RAW-%%03d.DNG", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    
     if (lv) raw_lv_request();
     if (raw_update_params())
     {
@@ -239,8 +242,6 @@ static void dump_img_task(void* priv, int unused)
         if (buf)
         {
             memcpy(buf, raw_info.buffer, raw_info.frame_size);
-            snprintf(pattern + path_len, sizeof(pattern) - path_len, "RAW-%%03d.DNG", 0);
-            get_numbered_file_name(pattern, 999, filename, sizeof(filename));
             struct raw_info local_raw_info = raw_info;
             local_raw_info.buffer = buf;
             save_dng(filename, &local_raw_info);
@@ -248,6 +249,13 @@ static void dump_img_task(void* priv, int unused)
         }
     }
     if (lv) raw_lv_release();
+    
+    if (!is_file(filename))
+    {
+        /* if we don't have any raw data, create an empty DNG just to keep file numbering consistent */
+        f = FIO_CreateFile(filename);
+        FIO_CloseFile(f);
+    }
 #endif
 
     NotifyBox(2000, "Done :)");
