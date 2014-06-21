@@ -201,6 +201,7 @@ static void dump_img_task(void* priv, int unused)
     
     char* display_mode = 
         !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
+        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
         ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
         ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
         _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
