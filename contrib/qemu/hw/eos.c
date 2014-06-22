@@ -144,6 +144,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
 
             case REG_IMG_VRAM:
                 ws->img_vram = (uint32_t) value;
+                eos_load_image(ws, "LV-000.422", 0, -1, value);
                 return 0;
             
             case REG_RAW_BUFF:
@@ -542,15 +543,102 @@ static void *eos_interrupt_thread(void *parm)
     return NULL;
 }
 
+// precompute some parts of YUV to RGB computations
+static int yuv2rgb_RV[256];
+static int yuv2rgb_GU[256];
+static int yuv2rgb_GV[256];
+static int yuv2rgb_BU[256];
+
+/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
+ * BT 601:
+ * R'= Y' + 0.000*U' + 1.403*V'
+ * G'= Y' - 0.344*U' - 0.714*V'
+ * B'= Y' + 1.773*U' + 0.000*V'
+ * 
+ * BT 709:
+ * R'= Y' + 0.0000*Cb + 1.5701*Cr
+ * G'= Y' - 0.1870*Cb - 0.4664*Cr
+ * B'= Y' - 1.8556*Cb + 0.0000*Cr
+ */
+
+static void precompute_yuv2rgb(int rec709)
+{
+    int u, v;
+    if (rec709)
+    {
+        /*
+        *R = *Y + 1608 * V / 1024;
+        *G = *Y -  191 * U / 1024 - 478 * V / 1024;
+        *B = *Y + 1900 * U / 1024;
+        */
+        for (u = 0; u < 256; u++)
+        {
+            int8_t U = u;
+            yuv2rgb_GU[u] = (-191 * U) >> 10;
+            yuv2rgb_BU[u] = (1900 * U) >> 10;
+        }
+
+        for (v = 0; v < 256; v++)
+        {
+            int8_t V = v;
+            yuv2rgb_RV[v] = (1608 * V) >> 10;
+            yuv2rgb_GV[v] = (-478 * V) >> 10;
+        }
+    }
+    else // REC 601
+    {
+        /*
+        *R = *Y + ((1437 * V) >> 10);
+        *G = *Y -  ((352 * U) >> 10) - ((731 * V) >> 10);
+        *B = *Y + ((1812 * U) >> 10);
+        */
+        for (u = 0; u < 256; u++)
+        {
+            int8_t U = u;
+            yuv2rgb_GU[u] = (-352 * U) >> 10;
+            yuv2rgb_BU[u] = (1812 * U) >> 10;
+        }
+
+        for (v = 0; v < 256; v++)
+        {
+            int8_t V = v;
+            yuv2rgb_RV[v] = (1437 * V) >> 10;
+            yuv2rgb_GV[v] = (-731 * V) >> 10;
+        }
+    }
+}
+
+#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
+
+static void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
+{
+    const int v_and_ff = V & 0xFF;
+    const int u_and_ff = U & 0xFF;
+    int v = Y + yuv2rgb_RV[v_and_ff];
+    *R = COERCE(v, 0, 255);
+    v = Y + yuv2rgb_GU[u_and_ff] + yuv2rgb_GV[v_and_ff];
+    *G = COERCE(v, 0, 255);
+    v = Y + yuv2rgb_BU[u_and_ff];
+    *B = COERCE(v, 0, 255);
+}
+
+#define UYVY_GET_Y1(uyvy) (((uyvy) >>  8) & 0xFF)
+#define UYVY_GET_Y2(uyvy) (((uyvy) >> 24) & 0xFF)
+#define UYVY_GET_U(uyvy)  (((uyvy)      ) & 0xFF)
+#define UYVY_GET_V(uyvy)  (((uyvy) >> 16) & 0xFF)
+
+
 /* todo: supoort other bith depths */
 
-static void draw_line8_32(void *opaque,
-                uint8_t *d, const uint8_t *s, int width, int deststep)
+typedef void (*drawfn_bmp_yuv)(void *, uint8_t *, const uint8_t *, const uint8_t*, int, int);
+
+static void draw_line8_32_bmp_yuv(void *opaque,
+                uint8_t *d, const uint8_t *bmp, const uint8_t *img, int width, int deststep)
 {
     uint8_t v, r, g, b;
 
     do {
-        v = ldub_raw((void *) s);
+        v = ldub_raw((void *) bmp);
         if (v)
         {
             r = R[v];
@@ -560,12 +648,146 @@ static void draw_line8_32(void *opaque,
         }
         else
         {
-            r = g = b = rand();
-            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+            uint32_t uyvy =  ldl_raw((uintptr_t)img & ~3);
+            int Y = (uintptr_t)img & 3 ? UYVY_GET_Y2(uyvy) : UYVY_GET_Y1(uyvy);
+            int U = UYVY_GET_U(uyvy);
+            int V = UYVY_GET_V(uyvy);
+            int R, G, B;
+            yuv2rgb(Y, U, V, &R, &G, &B);
+            ((uint32_t *) d)[0] = rgb_to_pixel32(R, G, B);
         }
-        s ++;
+        bmp ++;
+        img += 2;
         d += 4;
     } while (-- width != 0);
+}
+
+static void framebuffer_update_display_bmp_yuv(
+    DisplaySurface *ds,
+    MemoryRegion *address_space,
+    hwaddr base_bmp,
+    hwaddr base_yuv,
+    int cols, /* Width in pixels.  */
+    int rows_bmp, /* Height in pixels.  */
+    int rows_yuv,
+    int src_width_bmp, /* Length of source line, in bytes.  */
+    int src_width_yuv,
+    int dest_row_pitch, /* Bytes between adjacent horizontal output pixels.  */
+    int dest_col_pitch, /* Bytes between adjacent vertical output pixels.  */
+    int invalidate, /* nonzero to redraw the whole image.  */
+    drawfn_bmp_yuv fn,
+    void *opaque,
+    int *first_row, /* Input and output.  */
+    int *last_row /* Output only */)
+{
+    hwaddr src_len_bmp;
+    hwaddr src_len_yuv;
+    uint8_t *dest;
+    uint8_t *src_bmp;
+    uint8_t *src_yuv;
+    uint8_t *src_base_bmp;
+    uint8_t *src_base_yuv;
+    int first, last = 0;
+    int dirty;
+    int i;
+    ram_addr_t addr_bmp;
+    ram_addr_t addr_yuv;
+    MemoryRegionSection mem_section_bmp;
+    MemoryRegionSection mem_section_yuv;
+    MemoryRegion *mem_bmp;
+    MemoryRegion *mem_yuv;
+
+    i = *first_row;
+    *first_row = -1;
+    src_len_bmp = src_width_bmp * rows_bmp;
+    src_len_yuv = src_width_yuv * rows_yuv;
+
+    mem_section_bmp = memory_region_find(address_space, base_bmp, src_len_bmp);
+    mem_section_yuv = memory_region_find(address_space, base_yuv, src_len_yuv);
+    mem_bmp = mem_section_bmp.mr;
+    mem_yuv = mem_section_yuv.mr;
+    if (int128_get64(mem_section_bmp.size) != src_len_bmp ||
+            !memory_region_is_ram(mem_section_bmp.mr)) {
+        goto out;
+    }
+    assert(mem_bmp);
+    assert(mem_section_bmp.offset_within_address_space == base_bmp);
+
+    if (int128_get64(mem_section_yuv.size) != src_len_yuv ||
+            !memory_region_is_ram(mem_section_yuv.mr)) {
+        goto out;
+    }
+    assert(mem_yuv);
+    assert(mem_section_yuv.offset_within_address_space == base_yuv);
+
+    memory_region_sync_dirty_bitmap(mem_bmp);
+    memory_region_sync_dirty_bitmap(mem_yuv);
+    src_base_bmp = cpu_physical_memory_map(base_bmp, &src_len_bmp, 0);
+    src_base_yuv = cpu_physical_memory_map(base_yuv, &src_len_yuv, 0);
+    /* If we can't map the framebuffer then bail.  We could try harder,
+       but it's not really worth it as dirty flag tracking will probably
+       already have failed above.  */
+    if (!src_base_bmp)
+        goto out;
+    if (!src_base_yuv)
+        goto out;
+    if (src_len_bmp != src_width_bmp * rows_bmp) {
+        cpu_physical_memory_unmap(src_base_bmp, src_len_bmp, 0, 0);
+        goto out;
+    }
+    if (src_len_yuv != src_width_yuv * rows_yuv) {
+        cpu_physical_memory_unmap(src_base_yuv, src_len_yuv, 0, 0);
+        goto out;
+    }
+    src_bmp = src_base_bmp;
+    src_yuv = src_base_yuv;
+    dest = surface_data(ds);
+    if (dest_col_pitch < 0)
+        dest -= dest_col_pitch * (cols - 1);
+    if (dest_row_pitch < 0) {
+        dest -= dest_row_pitch * (rows_bmp - 1);
+    }
+    first = -1;
+    addr_bmp = mem_section_bmp.offset_within_region;
+    addr_yuv = mem_section_yuv.offset_within_region;
+
+    addr_bmp += i * src_width_bmp;
+    addr_yuv += i * src_width_yuv;
+    src_bmp += i * src_width_bmp;
+    src_yuv += i * src_width_yuv;
+    dest += i * dest_row_pitch;
+
+    for (; i < rows_bmp; i++) {
+        dirty = memory_region_get_dirty(mem_bmp, addr_bmp, src_width_bmp,
+                                             DIRTY_MEMORY_VGA);
+        dirty |= memory_region_get_dirty(mem_yuv, addr_yuv, src_width_yuv,
+                                             DIRTY_MEMORY_VGA);
+        if (dirty || invalidate) {
+            fn(opaque, dest, src_bmp, src_yuv, cols, dest_col_pitch);
+            if (first == -1)
+                first = i;
+            last = i;
+        }
+        addr_bmp += src_width_bmp;
+        src_bmp += src_width_bmp;
+        addr_yuv += src_width_yuv;
+        src_yuv += src_width_yuv;
+        dest += dest_row_pitch;
+    }
+    cpu_physical_memory_unmap(src_base_bmp, src_len_bmp, 0, 0);
+    cpu_physical_memory_unmap(src_base_yuv, src_len_yuv, 0, 0);
+    if (first < 0) {
+        goto out;
+    }
+    memory_region_reset_dirty(mem_bmp, mem_section_bmp.offset_within_region, src_len_bmp,
+                              DIRTY_MEMORY_VGA);
+    memory_region_reset_dirty(mem_yuv, mem_section_yuv.offset_within_region, src_len_yuv,
+                              DIRTY_MEMORY_VGA);
+    *first_row = first;
+    *last_row = last;
+out:
+    memory_region_unref(mem_bmp);
+    memory_region_unref(mem_yuv);
 }
 
 static void eos_update_display(void *parm)
@@ -590,17 +812,17 @@ static void eos_update_display(void *parm)
     }
     
     int first, last;
-    int i;
     
     first = 0;
     int linesize = surface_stride(surface);
-    framebuffer_update_display(
+    framebuffer_update_display_bmp_yuv(
         surface,
         s->system_mem,
         s->bmp_vram,
-        width, height,
-        960, linesize, 0, 1, 
-        draw_line8_32, 0,
+        s->img_vram,
+        width, height, height,
+        960, 720*2, linesize, 0, 1,
+        draw_line8_32_bmp_yuv, 0,
         &first, &last
     );
     
@@ -767,6 +989,8 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     // set entry point
     s->cpu->env.regs[15] = 0x800000;
     s->cpu->env.regs[13] = 0x8000000;
+    
+    precompute_yuv2rgb(1);
 }
 
 ML_MACHINE(50D,   0xFF010000);

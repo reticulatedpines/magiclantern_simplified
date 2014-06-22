@@ -139,7 +139,7 @@ static void toggle_display_type()
         MEM(REG_DISP_TYPE) = MOD(MEM(REG_DISP_TYPE) + 1, 5);
     }
     
-    uintptr_t bmp_aligned = (bmp_raw + 4095) & ~4095;
+    uintptr_t bmp_aligned = (bmp_raw + 0xFFF) & ~0xFFF;
     uintptr_t bmp_hdmi = bmp_aligned + 0x008;
     uintptr_t bmp_lcd = bmp_hdmi + BMP_HDMI_OFFSET;
     
@@ -166,6 +166,17 @@ static void toggle_display_type()
         "BMP buffer (%s): raw=%x hdmi=%x lcd=%x real=%x idle=%x\n", 
         display_modes[display_type], bmp_raw, bmp_hdmi, bmp_lcd, bmp_vram_real(), bmp_vram_idle()
     );
+    
+    /* set image VRAM (LV buffer) */
+    //~ uintptr_t lv_buffer = (uintptr_t) fio_malloc(1920*1080*2 + 0x1000);
+    uintptr_t lv_buffer = (uintptr_t) fio_malloc(720*480*2 + 0x1000);
+    uintptr_t lv_aligned = (lv_buffer + 0x7FF) & ~0x7FF;
+    YUV422_LV_BUFFER_DISPLAY_ADDR = lv_aligned + 0x800;
+    MEM(REG_IMG_VRAM) = lv_aligned;
+    qprintf(
+        "IMG buffer: %x\n", lv_aligned
+    );
+    lv = 1;
 }
 
 static void qemu_key_poll()
