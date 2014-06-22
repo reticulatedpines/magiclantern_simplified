@@ -112,7 +112,7 @@ task_trampoline(
 
 
 /** Hook to override task dispatch */
-void (*task_dispatch_hook)(
+extern void (*task_dispatch_hook)(
         struct context **       context
 );
 

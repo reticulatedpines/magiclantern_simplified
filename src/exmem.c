@@ -291,7 +291,7 @@ int _shoot_get_free_space()
     }
     else
     {
-        return 30*1024*1024;
+        return (int)(31.5*1024*1024);
     }
 }
 

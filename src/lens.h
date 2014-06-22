@@ -266,11 +266,12 @@ void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B);
 static const uint16_t values_iso[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,560,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2800,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,12800,25600};
 static const uint8_t  codes_iso[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,  128,  136}; 
 
-// todo: extend the numbers for full shutter range (need some extra care in shoot.c)
 // measured from 5D3 in movie mode with expo override, and rounded manually to match Canon values
-// market values:                          1/25             30             40   45   50             60        80        90  100            125            160  180  200            250            320  350  400            500            640  750  800           1000           1250 1500 1600           2000           2500 3000 3200           4000           5000 6000 6400           8000
-static const uint16_t values_shutter[] = {0, 25,  27,  28,  30,  35,  38,  40,  45,  50,  55,  58,  60,  70,  80,  85,  90, 100, 110, 120, 125, 140, 150, 160, 180, 200, 215, 235, 250, 280, 300, 320, 350, 400, 430, 470, 500, 560, 600, 640, 750, 800, 850, 900,1000,1100,1200,1250,1500,1600,1700,1900,2000,2300,2400,2500,3000,3200,3500,3800,4000,4500,4800,5000,6000,6400,7200,7800,8000};
-static const uint8_t  codes_shutter[]  = {0, 93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160};
+// at long exposures, the real durations are 32 seconds and 16 seconds; don't round those, since it may be important to know if you are using the intervalometer
+// the others are more or less exact (25.5, 20, 12.5, 10...)
+// market values:                            30"            25"  20"  20"            15"            13"  10"  10"             8"             6"   6"   5"             4"             3"2  3"   2"5            2"             1"6  1"5  1"3            1"             0"8  0"7  0"6            0"5            0"4  0"3  0"3            1/4            1/5  1/6 1/6             1/8           1/10 1/10 1/13           1/15           1/20     1/25             30             40   45   50             60             80   90  100            125            160  180  200            250            320  350  400            500            640  750  800           1000           1250 1500 1600           2000           2500 3000 3200           4000           5000 6000 6400           8000
+static const uint16_t values_shutter[] = {0, 320, 320, 320, 250, 200, 200, 200, 200, 160, 160, 160, 125, 100, 100, 100, 100,  80,  80,  80,  60,  60,  50,  50,  50,  40,  40,  40,  32,  30,  25,  25,  25,  20,  20,  20,  16,  15,  13,  13,  13,  10,  10,  10,   8,   7,   6,   6,   6,   5,   5,   5,   4,   3,   3,   3,   3,   4,   4,   4,   5,   6,   6,   6,   6,   8,   8,   8,  10,  10,  13,  13,  13,  15,  15,  15,  20,  20,  25,  27,  28,  30,  35,  38,  40,  45,  50,  55,  58,  60,  70,  80,  80,  90, 100, 110, 120, 125, 140, 150, 160, 180, 200, 215, 235, 250, 280, 300, 320, 350, 400, 430, 470, 500, 560, 600, 640, 750, 800, 850, 900,1000,1100,1200,1250,1500,1600,1700,1900,2000,2300,2400,2500,3000,3200,3500,3800,4000,4500,4800,5000,6000,6400,7200,7800,8000};
+static const uint8_t  codes_shutter[]  = {0,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160};
 
 // aperture*10
 // in 1/8ev, but values different than Canon display:
@@ -416,6 +417,38 @@ void set_htp(int value);
 #define ISO_12800 128
 #define ISO_25600 136
 
+#define SHUTTER_BULB 12 /* special value for BULB mode */
+#define SHUTTER_MIN 16
+#define SHUTTER_30s 16
+#define SHUTTER_25s 19
+#define SHUTTER_20s 20
+#define SHUTTER_15s 24
+#define SHUTTER_13s 27
+#define SHUTTER_10s 28
+#define SHUTTER_8s 32
+#define SHUTTER_6s 35
+#define SHUTTER_5s 37
+#define SHUTTER_4s 40
+#define SHUTTER_3s2 43
+#define SHUTTER_3s 44
+#define SHUTTER_2s5 45
+#define SHUTTER_2s 48
+#define SHUTTER_1s6 51
+#define SHUTTER_1s5 52
+#define SHUTTER_1s3 53
+#define SHUTTER_1s 56
+#define SHUTTER_0s8 59
+#define SHUTTER_0s7 60
+#define SHUTTER_0s6 61
+#define SHUTTER_0s5 64
+#define SHUTTER_0s4 67
+#define SHUTTER_0s3 68
+#define SHUTTER_1_4 72
+#define SHUTTER_1_5 75
+#define SHUTTER_1_6 76
+#define SHUTTER_1_8 80
+#define SHUTTER_1_10 83
+#define SHUTTER_1_13 85
 #define SHUTTER_1_15 88
 #define SHUTTER_1_20 92
 #define SHUTTER_1_25 93
@@ -452,6 +485,7 @@ void set_htp(int value);
 #define SHUTTER_1_6000 156
 #define SHUTTER_1_6400 157
 #define SHUTTER_1_8000 160
+#define SHUTTER_MAX 160
 
 #define APERTURE_1_4 16
 #define APERTURE_2 24

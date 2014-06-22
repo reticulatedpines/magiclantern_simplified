@@ -36,7 +36,10 @@
 #endif
 
     #define FEATURE_AUDIO_METERS
+    
+#ifdef CONFIG_BEEP
     #define FEATURE_BEEP
+#endif
     //~ #define FEATURE_WAV_RECORDING
     //~ #define FEATURE_VOICE_TAGS
 
@@ -288,6 +291,8 @@
 
     /* to be refactored with the lvinfo engine */
     #define FEATURE_FLEXINFO
+
+    //~ #define FEATURE_GPS_TWEAKS  // 6D only for now
 
 /** Debug menu **/
 
