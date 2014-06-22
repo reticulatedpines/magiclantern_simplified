@@ -134,8 +134,5 @@
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
 
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
-
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
