@@ -23,8 +23,8 @@
 #define MLEV_MENU_REDRAW -15
 #define MLEV_AV_SHORT -16
 #define MLEV_AV_LONG -17
-
 #define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
+#define MLEV_JOYSTICK_LONG -19
  
 
 /** \file
@@ -291,5 +291,8 @@ int get_disp_pressed();
 int get_zoom_out_pressed();
 
 int display_is_on();
+
+/* wrapper for GUI timers */
+void delayed_call(int delay_ms, void(*function)(void));
 
 #endif
