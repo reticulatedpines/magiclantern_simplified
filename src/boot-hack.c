@@ -791,10 +791,6 @@ my_init_task(int a, int b, int c, int d)
         cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
     #endif
     }
-
-    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
-    ml_reserved_mem = ML_RESERVED_MEM;
-    #endif
 #endif
 
     #ifdef CONFIG_6D
@@ -811,6 +807,10 @@ my_init_task(int a, int b, int c, int d)
     /* this call will also tell us how much memory we have reserved for autoexec.bin */
     init_task_func = init_task_patched(a,b,c,d);
 #endif
+
+    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
+    ml_reserved_mem = ML_RESERVED_MEM;
+    #endif
 
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
