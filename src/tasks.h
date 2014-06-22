@@ -93,6 +93,8 @@ get_current_task(void);
 extern int
 init_task( int a, int b, int c, int d );
 
+typedef int (*init_task_func)(int,int,int,int);
+
 /** Official routine to create the init task.
  * \internal
  */
@@ -112,7 +114,7 @@ task_trampoline(
 
 
 /** Hook to override task dispatch */
-void (*task_dispatch_hook)(
+extern void (*task_dispatch_hook)(
         struct context **       context
 );
 

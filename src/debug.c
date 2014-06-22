@@ -21,6 +21,8 @@
 #include "cropmarks.h"
 #include "fw-signature.h"
 #include "lvinfo.h"
+#include "timer.h"
+#include "raw.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -158,10 +160,127 @@ static void dump_rom_task(void* priv, int unused)
     dump_big_seg(4, "ML/LOGS/RAM4.BIN");
 }
 
-static void dump_rom(void* priv, int unused)
+static PROP_INT(PROP_VIDEO_SYSTEM, pal);
+
+static void dump_img_task(void* priv, int unused)
 {
-    gui_stop_menu();
-    task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
+    for (int i = 5; i > 0; i--)
+    {
+        NotifyBox(1000, "Will dump VRAMs in %d s...", i);
+        msleep(1000);
+    }
+    NotifyBox(5000, "Dumping VRAMs...");
+    
+    FILE * f = NULL;
+    char pattern[0x80];
+    char filename[0x80];
+    
+    /* fixme */
+    extern int is_pure_play_photo_mode();
+    
+    char* video_mode = 
+        PLAY_MODE && is_pure_play_photo_mode()          ? "PLAY-PH"  :      /* Playback, reviewing a picture */
+        PLAY_MODE && is_pure_play_movie_mode()          ? "PLAY-MV"  :      /* Playback, reviewing a video */
+        PLAY_MODE                                       ? "PLAY-UNK" :
+        lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
+        lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
+        lv && lv_dispsize==1 && !is_native_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
+        !is_native_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
+        !is_native_movie_mode()                         ? "PH-UNK"   :
+        video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
+        video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
+        video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
+        video_mode_resolution == 0 &&  video_mode_crop && !RECORDING_H264 ? "MVC-1080" :    /* Movie 1080p crop (3x zoom as with 600D), standby */
+        video_mode_resolution == 2 &&  video_mode_crop && !RECORDING_H264 ? "MVC-480"  :    /* Movie 480p crop (as with 550D), standby */
+        video_mode_resolution == 0 && !video_mode_crop &&  RECORDING_H264 ? "REC-1080" :    /* Movie 1080p, recording */
+        video_mode_resolution == 1 && !video_mode_crop &&  RECORDING_H264 ? "REC-720"  :    /* Movie 720p, recording */
+        video_mode_resolution == 2 && !video_mode_crop &&  RECORDING_H264 ? "REC-480"  :    /* Movie 480p, recording */
+        video_mode_resolution == 0 &&  video_mode_crop &&  RECORDING_H264 ? "RECC1080" :    /* Movie 1080p crop, recording */
+        video_mode_resolution == 2 &&  video_mode_crop &&  RECORDING_H264 ? "RECC-480" :    /* Movie 480p crop, recording */
+        "MV-UNK";
+    
+    char* display_mode = 
+        !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
+        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
+        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
+        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
+        _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
+        _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
+
+    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
+    
+    /* make sure the VRAM parameters are updated */
+    get_yuv422_vram();
+    get_yuv422_hd_vram();
+
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "LV-%%03d.422", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    f = FIO_CreateFile(filename);
+    if (f != INVALID_PTR)
+    {
+        FIO_WriteFile(f, vram_lv.vram, vram_lv.height * vram_lv.pitch);
+        FIO_CloseFile(f);
+    }
+
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "HD-%%03d.422", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    f = FIO_CreateFile(filename);
+    if (f != INVALID_PTR)
+    {
+        FIO_WriteFile(f, vram_hd.vram, vram_hd.height * vram_hd.pitch);
+        FIO_CloseFile(f);
+    }
+
+#ifdef CONFIG_RAW_LIVEVIEW
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "RAW-%%03d.DNG", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    
+    if (lv) raw_lv_request();
+    if (raw_update_params())
+    {
+        /* first frames right after enabling the raw buffer might be corrupted, figure out why */
+        /* todo: fix it in the raw backend */
+        wait_lv_frames(3);
+        raw_set_dirty();
+        raw_update_params();
+        
+        /* make a copy of the raw buffer, because it's being updated while we are saving it */
+        void* buf = malloc(raw_info.frame_size);
+        if (buf)
+        {
+            memcpy(buf, raw_info.buffer, raw_info.frame_size);
+            struct raw_info local_raw_info = raw_info;
+            local_raw_info.buffer = buf;
+            save_dng(filename, &local_raw_info);
+            free(buf);
+        }
+    }
+    if (lv) raw_lv_release();
+    
+    if (!is_file(filename))
+    {
+        /* if we don't have any raw data, create an empty DNG just to keep file numbering consistent */
+        f = FIO_CreateFile(filename);
+        FIO_CloseFile(f);
+    }
+#endif
+
+    /* create a log file with relevant settings */
+    snprintf(pattern + path_len, sizeof(pattern) - path_len, "VRAM-%%03d.LOG", 0);
+    get_numbered_file_name(pattern, 999, filename, sizeof(filename));
+    f = FIO_CreateFile(filename);
+    if (f != INVALID_PTR)
+    {
+        my_fprintf(f, "display=%d (hdmi=%d code=%d rca=%d)\n", EXT_MONITOR_CONNECTED, ext_monitor_hdmi, hdmi_code, _ext_monitor_rca);
+        my_fprintf(f, "lv=%d (zoom=%d dispmode=%d rec=%d)\n", lv, lv_dispsize, lv_disp_mode, RECORDING_H264);
+        my_fprintf(f, "movie=%d (res=%d crop=%d fps=%d)\n", is_native_movie_mode(), video_mode_resolution, video_mode_crop, video_mode_fps);
+        my_fprintf(f, "play=%d (ph=%d, mv=%d, qr=%d)\n", PLAY_MODE, is_pure_play_photo_mode(), is_pure_play_movie_mode(), QR_MODE);
+        
+        FIO_CloseFile(f);
+    }
+
+    NotifyBox(2000, "Done :)");
+    beep();
 }
 
 #ifdef FEATURE_GUIMODE_TEST
@@ -243,7 +362,38 @@ static void bsod()
 
 static void run_test()
 {
-    msleep(1000);
+    msleep(2000);
+    
+    /* allocate up to 50000 small blocks of RAM, 32K each */
+    int N = 50000;
+    int blocksize = 32*1024;
+    void** ptr = malloc(N * sizeof(ptr[0]));
+    if (ptr)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            ptr[i] = 0;
+        }
+
+        for (int i = 0; i < N; i++)
+        {
+            ptr[i] = malloc(blocksize);
+            bmp_printf(FONT_MONO_20, 0, 0, "alloc %d %8x (total %s)", i, ptr[i], format_memory_size(i * blocksize));
+            if (ptr[i]) memset(ptr[i], rand(), blocksize);
+            else break;
+        }
+        
+        for (int i = 0; i < N; i++)
+        {
+            if (ptr[i])
+            {
+                bmp_printf(FONT_MONO_20, 0, 20, "free %x   ", ptr[i]);
+                free(ptr[i]);
+            }
+        }
+    }
+    free(ptr);
+    return;
     
     /* check for memory leaks */
     for (int i = 0; i < 1000; i++)
@@ -803,10 +953,36 @@ static void stress_test_picture(int n, int delay)
     msleep(delay);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
+static volatile int timer_func = 0;
+static volatile int timer_arg = 0;
+static volatile int64_t timer_time = 0;
+
+static void timer_cbr(int arg1, void* arg2)
+{
+    timer_func = 1;
+    timer_arg = arg1;
+    timer_time = get_us_clock_value();
+}
+
+static void overrun_cbr(int arg1, void* arg2)
+{
+    timer_func = 2;
+    timer_arg = arg1;
+    timer_time = get_us_clock_value();
+}
+
+static void next_tick_cbr(int arg1, void* arg2)
+{
+    timer_func = 3;
+    timer_arg = arg1;
+    timer_time = get_us_clock_value();
+    SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
+}
+
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
 #define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
 static int test_task_created = 0;
@@ -821,6 +997,13 @@ static void stub_test_task(void* arg)
     extern void _FreeMemory(void* ptr);
     extern void* _alloc_dma_memory(size_t size);
     extern void _free_dma_memory(void* ptr);
+    
+    int maxlen = 1024*1024;
+    int log_len = 0;
+    char* log_buf = fio_malloc(maxlen);
+    if (!log_buf) return;
+    
+    console_show();
 
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
@@ -829,12 +1012,94 @@ static void stub_test_task(void* arg)
     int passed_tests = 0;
     int failed_tests = 0;
 
-    FILE* log = FIO_CreateFile( "stubtest.log" );
     int silence = 0;    // if 1, only failures are logged to file
     int ok = 1;
 
     for (int i=0; i < n; i++)
     {
+        /* GUI timers */
+        
+        /* SetTimerAfter, CancelTimer */
+        {
+            int t0 = get_us_clock_value()/1000;
+            int ta0 = 0;
+
+            /* this one should overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetTimerAfter(0, timer_cbr, overrun_cbr, 0), == 0x15);
+            TEST_TRY_FUNC_CHECK(timer_func, == 2);
+            ta0 = timer_arg;
+
+            /* this one should not overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(900));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 +  900 => CBR should not be called yet */
+            TEST_TRY_VOID(msleep(200));
+            TEST_TRY_FUNC_CHECK(timer_func, == 1);  /* ta0 + 1100 => CBR should be called by now */
+            TEST_TRY_FUNC_CHECK(ABS((timer_time/1000 - t0) - 1000), <= 20);
+            TEST_TRY_FUNC_CHECK(ABS((timer_arg - ta0) - 1000), <= 20);
+            // current time: ta0+1100
+
+            /* this one should not call the CBR, because we'll cancel it */
+            timer_func = 0;
+            int timer;
+            TEST_TRY_FUNC_CHECK(timer = SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(400));
+            TEST_TRY_VOID(CancelTimer(timer));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 + 1500 => CBR should be not be called, and we'll cancel it early */
+            TEST_TRY_VOID(msleep(1500));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 + 3000 => CBR should be not be called, because it was canceled */
+        }
+        
+        /* microsecond timer wraps around at 1048576 */
+        int DeltaT(int a, int b)
+        {
+            return MOD(a - b, 1048576);
+        }
+
+        /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
+        {
+            int64_t t0 = get_us_clock_value();
+            int ta0 = 0;
+
+            /* this one should overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetHPTimerAfterNow(0, timer_cbr, overrun_cbr, 0), == 0x15);
+            TEST_TRY_FUNC_CHECK(timer_func, == 2);
+            ta0 = timer_arg;
+
+            /* this one should not overrun */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetHPTimerAfterNow(100000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(90));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 +  90000 => CBR should not be called yet */
+            TEST_TRY_VOID(msleep(20));
+            TEST_TRY_FUNC_CHECK(timer_func, == 1);  /* ta0 + 110000 => CBR should be called by now */
+            
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 1000);
+
+            /* this one should call SetHPTimerNextTick in the CBR */
+            timer_func = 0;
+            TEST_TRY_FUNC_CHECK(SetHPTimerAfterNow(90000, next_tick_cbr, overrun_cbr, 0), % 2 == 0);
+            TEST_TRY_VOID(msleep(80));
+            TEST_TRY_FUNC_CHECK(timer_func, == 0);  /* ta0 + 190000 => CBR should not be called yet */
+            TEST_TRY_VOID(msleep(20));
+            TEST_TRY_FUNC_CHECK(timer_func, == 3);  /* ta0 + 210000 => next_tick_cbr should be called by now */
+                                                    /* and it will setup timer_cbr via SetHPTimerNextTick */
+            TEST_TRY_VOID(msleep(80));
+            TEST_TRY_FUNC_CHECK(timer_func, == 3);  /* ta0 + 290000 => timer_cbr should not be called yet */
+            TEST_TRY_VOID(msleep(20));
+            TEST_TRY_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
+            TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
+        }
+
+        /* uncomment to test only the timers */
+        //~ continue;
 
         // strlen
         TEST_TRY_FUNC_CHECK(strlen("abc"), == 3);
@@ -1135,10 +1400,17 @@ static void stub_test_task(void* arg)
 
         beep();
     }
+
+    FILE* log = FIO_CreateFile( "stubtest.log" );
+    FIO_WriteFile(log, log_buf, log_len);
     FIO_CloseFile(log);
+    fio_free(log_buf);
 
-
-    NotifyBox(10000, "Test complete.\n%d passed, %d failed.", passed_tests, failed_tests);
+    console_printf(
+        "=========================================================\n"
+        "Test complete, %d passed, %d failed.\n.",
+        passed_tests, failed_tests
+    );
 }
 
 #if defined(CONFIG_7D)
@@ -2202,41 +2474,70 @@ static void edmac_display_page(int i0, int x0, int y0)
     for (int i = 0; i < 16; i++)
     {
         char msg[100];
+        int ch = i0 + i;
 
-        uint32_t base = edmac_get_base(i0+i);
-        uint32_t addr = shamem_read(base + 8);
+        uint32_t addr = edmac_get_address(ch);
         union edmac_size_t
         {
             struct { short x, y; } size;
             uint32_t raw;
         };
 
-        union edmac_size_t size = (union edmac_size_t) shamem_read(base + 0x10);
+        union edmac_size_t size = (union edmac_size_t) edmac_get_length(ch);
 
-        int state = MEM(base + 0);
-        int color =
-            state == 0 ? COLOR_GRAY(50) :   // inactive?
-            state == 1 ? COLOR_GREEN1 :     // active?
-            COLOR_RED;                      // no idea
+        int state = edmac_get_state(ch);
 
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", ch, addr, size.size.x, size.size.y);
         }
         else
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", i0+i, addr, size.raw);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", ch, addr, size.raw);
         }
 
-        if (color == COLOR_RED)
+        if (state != 0 && state != 1)
             STR_APPEND(msg, " (%x)", state);
 
-        uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
-        uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
+        uint32_t dir     = edmac_get_dir(ch);
+        uint32_t conn_w  = edmac_get_connection(ch, EDMAC_DIR_WRITE);
+        uint32_t conn_r  = edmac_get_connection(ch, EDMAC_DIR_READ);
 
-        if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
-        else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
-        else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
+        if (conn_w != 0 && conn_r != 0xFF)
+        {
+            /* should be unreachable */
+            STR_APPEND(msg, " <%x,%x>", conn_w, conn_r);
+        }
+        else if (dir == EDMAC_DIR_WRITE)
+        {
+            if (conn_w == 0)
+            {
+                STR_APPEND(msg, " <w>");
+            }
+            else
+            {
+                STR_APPEND(msg, " <w%x>", conn_w);
+            }
+        }
+        else if (dir == EDMAC_DIR_READ)
+        {
+            if (conn_r == 0xFF)
+            {
+                STR_APPEND(msg, " <r>");
+            }
+            else
+            {
+                STR_APPEND(msg, " <r%x>", conn_r);
+            }
+        }
+
+        int color =
+            conn_r != 0xFF && dir != EDMAC_DIR_READ ? COLOR_RED      :   /* seems used for read, but dir is not read? */
+            conn_w != 0 && dir != EDMAC_DIR_WRITE   ? COLOR_RED      :   /* seems used for write, but dir is not write? */
+            dir == EDMAC_DIR_UNUSED                 ? COLOR_GRAY(20) :   /* unused? */
+            state == 0                              ? COLOR_GRAY(50) :   /* inactive? */
+            state == 1                              ? COLOR_GREEN1   :   /* active? */
+                                                      COLOR_RED      ;   /* no idea */
 
         bmp_printf(
             FONT(FONT_MONO_20, color, COLOR_BLACK),
@@ -2263,9 +2564,9 @@ static void edmac_display_detailed(int channel)
 
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
-    uint32_t state = MEM(base + 0);
-    uint32_t flags = shamem_read(base + 4);
-    uint32_t addr = shamem_read(base + 8);
+    uint32_t state = edmac_get_state(channel);
+    uint32_t flags = edmac_get_flags(channel);
+    uint32_t addr = edmac_get_address(channel);
 
     union edmac_size_t
     {
@@ -2283,6 +2584,12 @@ static void edmac_display_detailed(int channel)
     uint32_t off2a = shamem_read(base + 0x24);
     uint32_t off3  = shamem_read(base + 0x28);
 
+    uint32_t dir     = edmac_get_dir(channel);
+    char* dir_s      = 
+        dir == EDMAC_DIR_READ  ? "read"  :
+        dir == EDMAC_DIR_WRITE ? "write" :
+                                 "unused?";
+    
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
     
@@ -2302,7 +2609,7 @@ static void edmac_display_detailed(int channel)
     bmp_printf(FONT_MONO_20, 50, y += fh, "off2b      : %8x ", off2b);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off3       : %8x ", off3);
     y += fh;
-    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x dir=%s", conn_w, conn_r, dir_s);
 
     #if defined(CONFIG_5D3)
     /**
@@ -2324,10 +2631,20 @@ static MENU_UPDATE_FUNC(edmac_display)
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    if (edmac_selection == 0) // overview
+    if (edmac_selection == 0 || edmac_selection == 1) // overview
     {
-        edmac_display_page(0, 0, 30);
-        edmac_display_page(16, 360, 30);
+        if (edmac_selection == 0)
+        {
+            edmac_display_page(0, 0, 30);
+            edmac_display_page(16, 360, 30);
+        }
+        else
+        {
+            edmac_display_page(16, 0, 30);
+            #ifdef CONFIG_DIGIC_V
+            edmac_display_page(32, 360, 30);
+            #endif
+        }
 
         //~ int x = 20;
         bmp_printf(
@@ -2352,7 +2669,7 @@ static MENU_UPDATE_FUNC(edmac_display)
     }
     else // detailed view
     {
-        edmac_display_detailed(edmac_selection - 1);
+        edmac_display_detailed(edmac_selection - 2);
     }
 }
 #endif
@@ -2462,8 +2779,15 @@ static struct menu_entry debug_menus[] = {
 #endif
     {
         .name        = "Dump ROM and RAM",
-        .select        = dump_rom,
+        .priv        = dump_rom_task,
+        .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
+    },
+    {
+        .name        = "Dump image buffers",
+        .priv        = dump_img_task,
+        .select      = (void(*)(void*,int))run_in_separate_task,
+        .help = "Dump all image buffers (LV, HD, RAW) from current video mode."
     },
 #ifdef FEATURE_DONT_CLICK_ME
     {
@@ -2697,7 +3021,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "EDMAC display",
                 .priv = &edmac_selection,
-                .max = 48,
+                .max = 49,
                 .update = edmac_display,
             },
             MENU_EOL
@@ -3419,7 +3743,6 @@ bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 static int zoom_in_pressed = 0;
 static int zoom_out_pressed = 0;
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-int joy_center_pressed = 0;
 
 int handle_buttons_being_held(struct event * event)
 {
@@ -3427,10 +3750,6 @@ int handle_buttons_being_held(struct event * event)
     #ifdef CONFIG_5DC
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-    #endif
-    #ifdef BGMT_JOY_CENTER
-    if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
-    if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif
     #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }

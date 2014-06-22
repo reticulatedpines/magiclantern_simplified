@@ -10,7 +10,14 @@
 #undef FEATURE_FLEXINFO
 
 // disabled, because autoexec.bin gets to big and 600D does not boot
+
+#undef FEATURE_DONT_CLICK_ME
+
 #undef FEATURE_SHOW_TASKS
 #undef FEATURE_SHOW_CPU_USAGE
 #undef FEATURE_SHOW_GUI_EVENTS
+
+#undef FEATURE_SHOW_IMAGE_BUFFERS_INFO
 #undef FEATURE_SHOW_EDMAC_INFO
+
+#undef CONFIG_TSKMON

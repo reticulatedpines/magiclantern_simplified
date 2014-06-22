@@ -60,6 +60,7 @@ NSTUB(0xFF332B0C, _FIO_GetFileSize)
 NSTUB(0xFF332530, _FIO_OpenFile)
 NSTUB(0xFF332698, _FIO_RemoveFile)
 NSTUB(0xFF333024, _FIO_RenameFile)
+NSTUB(0xFF3327F0,  FIO_SeekSkipFile)
 
 /** GUI **/
 NSTUB(   0x74F10,  gui_main_struct)
@@ -88,6 +89,7 @@ NSTUB(0xFF11C5D0,  StartASIFDMAADC)                         // warning: looks di
 NSTUB(0xFF11C9A4,  StartASIFDMADAC)                         // warning: looks different
 NSTUB(0xFF11C87C,  StopASIFDMAADC)                          // warning: looks different
 NSTUB(0xFF11CC24,  StopASIFDMADAC)                          // warning: looks different
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 
 /** Audio **/
 NSTUB(   0x752E0,  sounddev)                                // Maybe 0x752e0 or 0x753f4
@@ -197,8 +199,10 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 
 /** GUI timers **/
 NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0xFFCD1890 - RAM_OFFSET,  SetTimerAfter)
+NSTUB(0xFFCCB328 - RAM_OFFSET,  SetHPTimerAfterNow)         
+NSTUB(0xFFCCB418 - RAM_OFFSET,  SetHPTimerNextTick)          
+NSTUB(0xFFCD1A90 - RAM_OFFSET,  CancelTimer)   
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)
@@ -277,6 +281,7 @@ NSTUB(   0x75F08,  task_max)
 NSTUB(0xFFCC5A80 - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFCD4DD8 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFD0EFA0 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(0xFFCCCDF0, GetTaskName)
 
 /** Task sleep **/
 NSTUB(0xFFCCCB6C - RAM_OFFSET,  msleep)

@@ -116,3 +116,9 @@
 
 /** We can use the DMA controller to copy data */
 #define CONFIG_EDMAC_MEMCPY
+
+/** LV RAW has trouble with 10x zoom, disable it */
+#define CONFIG_RAW_DISABLE_IN_10X_ZOOM
+
+/** Use joystick for one-finger menu navigation */
+#define CONFIG_JOY_CENTER_ACTIONS

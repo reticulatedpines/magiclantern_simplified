@@ -37,6 +37,8 @@
 //0xA0000 - 640K Should Be enough for everyone
 #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xC1C000
 
+#define ML_RESERVED_MEM (640*1024)
+
 //~ fixup start address of AllocateMemory pool 0x8F0000
 #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C3190
 //#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE2410887 

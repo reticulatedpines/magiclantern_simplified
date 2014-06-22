@@ -154,7 +154,6 @@ feature_links = {
     'FEATURE_GLOBAL_DRAW'               :  'http://wiki.magiclantern.fm/userguide#global_draw',
     'FEATURE_HISTOGRAM'                 :  'http://wiki.magiclantern.fm/userguide#histogram_and_waveform',
     'FEATURE_MAGIC_ZOOM'                :  'http://wiki.magiclantern.fm/userguide#magic_zoom',
-    'FEATURE_RAW_HISTOGRAM'             :  'http://www.magiclantern.fm/forum/index.php?topic=5149.msg31247#msg31247',
     'FEATURE_SPOTMETER'                 :  'http://wiki.magiclantern.fm/userguide#spotmeter',
     'FEATURE_VECTORSCOPE'               :  'http://wiki.magiclantern.fm/userguide#vectorscope',
     'FEATURE_WAVEFORM'                  :  'http://wiki.magiclantern.fm/userguide#histogram_and_waveform',
@@ -209,13 +208,18 @@ feature_links = {
     'FEATURE_STICKY_HALFSHUTTER'        :  'http://wiki.magiclantern.fm/userguide#misc_key_settings',
     'FEATURE_WARNINGS_FOR_BAD_SETTINGS' :  'http://www.magiclantern.fm/forum/index.php?topic=3820.msg20562#msg20562',
     'FEATURE_DONT_CLICK_ME'             :  'http://wiki.magiclantern.fm/userguide#don_t_click_me',
-    'FEATURE_SCREENSHOT'                :  'http://wiki.magiclantern.fm/userguide#screenshot_10_s',
+    'FEATURE_SCREENSHOT'                :  'http://www.magiclantern.fm/forum/index.php?topic=10540.0',
     'FEATURE_SHOW_CMOS_TEMPERATURE'     :  'http://wiki.magiclantern.fm/userguide#cmos_temperature',
-    'FEATURE_SHOW_CPU_USAGE'            : 'http://wiki.magiclantern.fm/userguide#save_cpu_usage_log',
+    'FEATURE_SHOW_CPU_USAGE'            :  'http://wiki.magiclantern.fm/userguide#save_cpu_usage_log',
     'FEATURE_SHOW_FREE_MEMORY'          :  'http://wiki.magiclantern.fm/userguide#free_memory',
     'FEATURE_SHOW_IMAGE_BUFFERS_INFO'   :  'http://www.magiclantern.fm/forum/index.php?topic=3820.msg20563#msg20563',
     'FEATURE_SHOW_SHUTTER_COUNT'        :  'http://wiki.magiclantern.fm/userguide#shutter_count',
     'FEATURE_SHOW_TASKS'                :  'http://wiki.magiclantern.fm/userguide#show_tasks',
+    
+    'FEATURE_RAW_SPOTMETER'             :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
+    'FEATURE_RAW_HISTOGRAM'             :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
+    'FEATURE_RAW_ZEBRAS'                :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
+    'FEATURE_SHUTTER_FINE_TUNING'       :  'http://www.magiclantern.fm/forum/index.php?topic=5123.0',
 }
 
 readme_links = {}

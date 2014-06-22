@@ -2802,8 +2802,8 @@ static CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
 
 #ifdef FEATURE_ANAMORPHIC_PREVIEW
 
-static int anamorphic_ratio_num[10] = {5, 4, 7, 3, 5, 2};
-static int anamorphic_ratio_den[10] = {4, 3, 5, 2, 3, 1};
+static int anamorphic_ratio_num[10] = {5, 4, 7, 3, 5, 9, 2};
+static int anamorphic_ratio_den[10] = {4, 3, 5, 2, 3, 5, 1};
 
 static MENU_UPDATE_FUNC(anamorphic_preview_display)
 {
@@ -3124,6 +3124,7 @@ void defish_draw_play()
 #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 static void* display_filter_buffer_unaligned = 0;
 static void* display_filter_buffer = 0;
+static void* last_canon_buffer = 0;
 #endif
 
 static int display_filter_valid_image = 0;
@@ -3263,6 +3264,12 @@ int display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
     if (!display_filter_buffer) return CBR_RET_CONTINUE;
     if (!display_filter_valid_image) return CBR_RET_CONTINUE;
     if (!display_filter_enabled()) { display_filter_valid_image = 0;  return CBR_RET_CONTINUE; }
+    
+    /* save the old buffer (to restore it when turning off display filters) */
+    void* current_buffer = (void*) YUV422_LV_BUFFER_DISPLAY_ADDR;
+    if (current_buffer != display_filter_buffer) last_canon_buffer = current_buffer;
+    
+    /* switch the displayed buffer to our filtered image */
     YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) display_filter_buffer;
 #endif
     return CBR_RET_STOP;
@@ -3277,6 +3284,10 @@ void display_filter_step(int k)
         /* for new cameras: if there are no more display filters active, free the output buffer */
         if (display_filter_buffer)
         {
+            if (YUV422_LV_BUFFER_DISPLAY_ADDR == (uint32_t) display_filter_buffer)
+            {
+                YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) last_canon_buffer;
+            }
             free(display_filter_buffer_unaligned);
             display_filter_buffer = 0;
         }
@@ -3496,8 +3507,8 @@ static struct menu_entry display_menus[] = {
         .name = "Anamorphic",
         .priv     = &anamorphic_preview,
         .update = anamorphic_preview_display, 
-        .max = 6,
-        .choices = (const char *[]) {"OFF", "5:4 (1.25)", "4:3 (1.33)", "7:5 (1.4)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
+        .max = 7,
+        .choices = (const char *[]) {"OFF", "5:4 (1.25)", "4:3 (1.33)", "7:5 (1.4)", "3:2 (1.5)", "5:3 (1.66)", "9:5 (1.8)", "2:1"},
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
         .depends_on = DEP_LIVEVIEW | DEP_GLOBAL_DRAW,
 /*
@@ -3505,8 +3516,8 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "Stretch Ratio",
                 .priv = &anamorphic_ratio_idx, 
-                .max = 5,
-                .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "7:5 (1.4)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
+                .max = 6,
+                .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "7:5 (1.4)", "3:2 (1.5)", "5:3 (1.66)", "9:5 (1.8)", "2:1"},
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL

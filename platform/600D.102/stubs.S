@@ -72,6 +72,7 @@ NSTUB(0xFF1E6830, _FIO_GetFileSize)
 NSTUB(0xFF1E6254, _FIO_OpenFile)
 NSTUB(0xFF1E63BC, _FIO_RemoveFile)
 NSTUB(0xFF1E6D28, _FIO_RenameFile)
+NSTUB(0xFF1E6514,  FIO_SeekSkipFile)
 
 /** GUI **/
 NSTUB(    0x1C38,  gui_main_struct)                         // in gui_main_task
@@ -97,6 +98,7 @@ NSTUB(0xFF0556C8,  StartASIFDMAADC)
 NSTUB(0xFF05587C,  StartASIFDMADAC)
 NSTUB(0xFF055950,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -209,12 +211,11 @@ NSTUB(0xFF0AAB3C,  gui_other_post)
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF06FCE4,  SetHPTimerAfterNow)
+NSTUB(0xFF06FDD8,  SetHPTimerNextTick)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
-NSTUB(0xFF06FCE4, SetHPTimerAfterNow)
-NSTUB(0xFF06FB60, SetHPTimerAfterTimeout)
-NSTUB(0xFF06FDD8, SetHPTimerNextTick)
+NSTUB(0xFF077EF4,  CancelTimer)
+NSTUB(0xFF077CF4,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x6290,  mvr_config)
@@ -343,6 +344,7 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 ///NSTUB( 0xff33a734, RedrawDisplay )
 ///NSTUB(0xFF14B9E4,  RemoteRelease)
 ///NSTUB(0xFF062CEC,  SetBitmapVramAddress)                    // where to find bmp_vram_info
+///NSTUB(0xFF06FB60, SetHPTimerAfterTimeout)
 ///NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )               // not found
 ///NSTUB(0xFF072280, _AllocateMemory_do)                       // no err70, malloc structure at 0x3070
 ///NSTUB(0xFF05BF04, _prop_get_value)
