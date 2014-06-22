@@ -1035,16 +1035,20 @@ static MENU_UPDATE_FUNC(meminfo_display)
             extern uint32_t ml_reserved_mem;
             extern uint32_t ml_used_mem;
 
-            if (ABS(ml_used_mem - ml_reserved_mem) < 1024) MENU_SET_VALUE(
-                "%s",
-                format_memory_size(ml_used_mem)
-            );
-            else MENU_SET_VALUE(
-                "%s of %s",
-                format_memory_size(ml_used_mem), format_memory_size(ml_reserved_mem)
-            );
+            if (ABS(ml_used_mem - ml_reserved_mem) < 1024)
+            {
+                MENU_SET_VALUE("%s", format_memory_size(ml_used_mem));
+            }
+            else
+            {
+                MENU_SET_VALUE("%s of ",format_memory_size(ml_used_mem));
+                MENU_APPEND_VALUE("%s", format_memory_size(ml_reserved_mem));
+            }
+            
             if (ml_reserved_mem < ml_used_mem)
+            {
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
+            }
 
             break;
         }
