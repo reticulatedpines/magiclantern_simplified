@@ -177,6 +177,8 @@ static void toggle_display_type()
     //~ qprintf(
         //~ "IMG buffer: %x\n", lv_aligned
     //~ );
+    
+    vram_params_set_dirty();
 }
 
 static void toggle_liveview()
@@ -223,6 +225,7 @@ static void toggle_liveview()
     
     clrscr();
     redraw();
+    vram_params_set_dirty();
 }
 
 static void qemu_key_poll()
