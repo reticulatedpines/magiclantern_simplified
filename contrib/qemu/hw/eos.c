@@ -144,7 +144,14 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
 
             case REG_IMG_VRAM:
                 ws->img_vram = (uint32_t) value;
-                eos_load_image(ws, "LV-000.422", 0, -1, value);
+                if (value)
+                {
+                    eos_load_image(ws, "LV-000.422", 0, -1, value);
+                }
+                else
+                {
+                    printf("Image buffer disabled\n");
+                }
                 return 0;
             
             case REG_RAW_BUFF:
@@ -632,11 +639,35 @@ static void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 
 typedef void (*drawfn_bmp_yuv)(void *, uint8_t *, const uint8_t *, const uint8_t*, int, int, int);
 
+static void draw_line8_32(void *opaque,
+                uint8_t *d, const uint8_t *s, int width, int deststep)
+{
+    uint8_t v, r, g, b;
+    
+    do {
+        v = ldub_raw((void *) s);
+        if (v)
+        {
+            r = R[v];
+            g = G[v];
+            b = B[v];
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        }
+        else
+        {
+            r = g = b = rand();
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        }
+        s ++;
+        d += 4;
+    } while (-- width != 0);
+}
+
 static void draw_line8_32_bmp_yuv(void *opaque,
                 uint8_t *d, const uint8_t *bmp, const uint8_t *yuv, int width, int deststep, int yuvstep)
 {
     uint8_t v, r, g, b;
-
+    
     do {
         v = ldub_raw((void *) bmp);
         if (v)
@@ -829,16 +860,32 @@ static void eos_update_display(void *parm)
     
     first = 0;
     int linesize = surface_stride(surface);
-    framebuffer_update_display_bmp_yuv(
-        surface,
-        s->system_mem,
-        s->bmp_vram,
-        s->img_vram,
-        width, height, yuv_height,
-        960, yuv_width*2, linesize, 0, 1,
-        draw_line8_32_bmp_yuv, 0,
-        &first, &last
-    );
+    
+    if (s->img_vram)
+    {
+        framebuffer_update_display_bmp_yuv(
+            surface,
+            s->system_mem,
+            s->bmp_vram,
+            s->img_vram,
+            width, height, yuv_height,
+            960, yuv_width*2, linesize, 0, s->display_invalidate,
+            draw_line8_32_bmp_yuv, 0,
+            &first, &last
+        );
+    }
+    else
+    {
+        framebuffer_update_display(
+            surface,
+            s->system_mem,
+            s->bmp_vram,
+            width, height,
+            960, linesize, 0, 1,
+            draw_line8_32, 0,
+            &first, &last
+        );
+    }
     
     if (first >= 0) {
         dpy_gfx_update(s->con, 0, first, width, last - first + 1);
