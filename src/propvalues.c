@@ -155,11 +155,12 @@ PROP_HANDLER( PROP_LV_ACTION )
 #endif
 
 /* special case for dual monitor support */
-/* external display with mirroring (hdmi_code==20), from ML's standpoint, is identical to built-in LCD */
-/* therefore, if hdmi_code is 20, the other ML code will believe there's no external monitor connected */
+/* external display with mirroring enabled, from ML's standpoint, is identical to built-in LCD */
+/* therefore, if hdmi_mirroring is true, the rest of ML code will believe there's no external monitor connected */
 
 static int ext_monitor_hdmi_raw;
 static int hdmi_code_raw;
+static int hdmi_mirroring;
 
 volatile int ext_monitor_hdmi;
 volatile int hdmi_code;
@@ -168,7 +169,7 @@ volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
 
 static void hdmi_vars_update()
 {
-    if (hdmi_code != 20)
+    if (!hdmi_mirroring)
     {
         /* regular external monitor */
         ext_monitor_hdmi = ext_monitor_hdmi_raw;
@@ -228,6 +229,8 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     /* 2 on external monitor with mirroring enabled; however, you can't tell when Canon overlays are present (FIXME) */
     /* todo: check whether this snippet is portable */
     lv_disp_mode = (uint8_t)buf[1] & 1;
+    hdmi_mirroring = buf[1] & 2;
+    hdmi_vars_update();
     #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_DIGIC_V)
     lv_disp_mode = (uint8_t)buf[1];
     #else
