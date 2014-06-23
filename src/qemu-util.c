@@ -118,9 +118,10 @@ static void qemu_print_help()
         "[ and ]      top scrollwheel\n"
         "+/-          zoom in/out\n"
         "H            LCD/HDMI/SD monitor\n"
+        "L            LiveView\n"
     );
 
-    bmp_printf(FONT_LARGE, 50, 400, "Have fun!");
+    bmp_printf(FONT_LARGE, 50, 420, "Have fun!");
 }
 
 static void toggle_display_type()
@@ -169,14 +170,59 @@ static void toggle_display_type()
     
     /* set image VRAM (LV buffer) */
     //~ uintptr_t lv_buffer = (uintptr_t) fio_malloc(1920*1080*2 + 0x1000);
-    uintptr_t lv_buffer = (uintptr_t) fio_malloc(720*480*2 + 0x1000);
-    uintptr_t lv_aligned = (lv_buffer + 0x7FF) & ~0x7FF;
-    YUV422_LV_BUFFER_DISPLAY_ADDR = lv_aligned + 0x800;
-    MEM(REG_IMG_VRAM) = lv_aligned;
-    qprintf(
-        "IMG buffer: %x\n", lv_aligned
-    );
-    lv = 1;
+    //~ uintptr_t lv_buffer = (uintptr_t) fio_malloc(720*480*2 + 0x1000);
+    //~ uintptr_t lv_buffer = YUV422_LV_BUFFER_1;
+    //~ uintptr_t lv_aligned = (lv_buffer + 0x7FF) & ~0x7FF;
+    //~ YUV422_LV_BUFFER_DISPLAY_ADDR = lv_aligned + 0x800;
+    //~ qprintf(
+        //~ "IMG buffer: %x\n", lv_aligned
+    //~ );
+}
+
+static void toggle_liveview()
+{
+    if (!lv)
+    {
+        printf("LiveView on\n"); 
+
+        /* pretend we go into LiveView */
+        lv = 1;
+        _expsim = 1;
+        lv_dispsize = 1;
+
+        /* this will load an image in the YUV buffers, from eos.c */
+        /* fixme: hardcoded buffers, may overwrite something */
+        MEM(REG_IMG_VRAM) = YUV422_LV_BUFFER_1;
+        MEM(REG_IMG_VRAM) = YUV422_LV_BUFFER_2;
+        MEM(REG_IMG_VRAM) = YUV422_LV_BUFFER_3;
+
+        /* fill the gui_task_list structure with some dummy values, 
+         * so ML code believes it's running on top of Canon's LV dialog 
+         * and show the overlays
+         */
+        struct gui_task * current = gui_task_list.current;
+        if (!current)
+        {
+            printf("Fake LV dialog handler\n"); 
+            /* fixme: 5D3 only */
+            extern thunk LiveViewLevelApp_handler;
+            
+            gui_task_list.current = current = malloc(sizeof(struct gui_task));
+            current->priv = malloc(sizeof(struct dialog));
+            struct dialog * dialog = current->priv;
+            dialog->handler = &LiveViewLevelApp_handler;
+        }
+
+    }
+    else
+    {
+        printf("LiveView off\n"); 
+        lv = 0;
+        MEM(REG_IMG_VRAM) = 0;
+    }
+    
+    clrscr();
+    redraw();
 }
 
 static void qemu_key_poll()
@@ -187,6 +233,10 @@ static void qemu_key_poll()
         if (keycode == 0x23) // H
         {
             toggle_display_type();
+        }
+        else if (keycode == 0x26) // L
+        {
+            toggle_liveview();
         }
         else if (keycode)
         {
@@ -205,7 +255,7 @@ static void qemu_key_poll()
             msleep(50);
         }
         
-        if (!gui_menu_shown())
+        if (!gui_menu_shown() && !lv)
         {
             qemu_print_help();
         }
