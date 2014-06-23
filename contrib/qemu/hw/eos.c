@@ -630,10 +630,10 @@ static void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 
 /* todo: supoort other bith depths */
 
-typedef void (*drawfn_bmp_yuv)(void *, uint8_t *, const uint8_t *, const uint8_t*, int, int);
+typedef void (*drawfn_bmp_yuv)(void *, uint8_t *, const uint8_t *, const uint8_t*, int, int, int);
 
 static void draw_line8_32_bmp_yuv(void *opaque,
-                uint8_t *d, const uint8_t *bmp, const uint8_t *img, int width, int deststep)
+                uint8_t *d, const uint8_t *bmp, const uint8_t *yuv, int width, int deststep, int yuvstep)
 {
     uint8_t v, r, g, b;
 
@@ -648,8 +648,8 @@ static void draw_line8_32_bmp_yuv(void *opaque,
         }
         else
         {
-            uint32_t uyvy =  ldl_raw((uintptr_t)img & ~3);
-            int Y = (uintptr_t)img & 3 ? UYVY_GET_Y2(uyvy) : UYVY_GET_Y1(uyvy);
+            uint32_t uyvy =  ldl_raw((uintptr_t)yuv & ~3);
+            int Y = (uintptr_t)yuv & 3 ? UYVY_GET_Y2(uyvy) : UYVY_GET_Y1(uyvy);
             int U = UYVY_GET_U(uyvy);
             int V = UYVY_GET_V(uyvy);
             int R, G, B;
@@ -657,11 +657,13 @@ static void draw_line8_32_bmp_yuv(void *opaque,
             ((uint32_t *) d)[0] = rgb_to_pixel32(R, G, B);
         }
         bmp ++;
-        img += 2;
+        yuv += yuvstep;
         d += 4;
     } while (-- width != 0);
 }
 
+/* similar to QEMU's framebuffer_update_display, but with two image planes */
+/* main plane is BMP (8-bit, same size as output), secondary plane is YUV (scaled to match the BMP one) */
 static void framebuffer_update_display_bmp_yuv(
     DisplaySurface *ds,
     MemoryRegion *address_space,
@@ -692,6 +694,7 @@ static void framebuffer_update_display_bmp_yuv(
     int i;
     ram_addr_t addr_bmp;
     ram_addr_t addr_yuv;
+    ram_addr_t addr_base_yuv;
     MemoryRegionSection mem_section_bmp;
     MemoryRegionSection mem_section_yuv;
     MemoryRegion *mem_bmp;
@@ -750,12 +753,17 @@ static void framebuffer_update_display_bmp_yuv(
     first = -1;
     addr_bmp = mem_section_bmp.offset_within_region;
     addr_yuv = mem_section_yuv.offset_within_region;
+    addr_base_yuv = addr_yuv;
 
+    int j = i * rows_yuv / rows_bmp;
     addr_bmp += i * src_width_bmp;
-    addr_yuv += i * src_width_yuv;
     src_bmp += i * src_width_bmp;
-    src_yuv += i * src_width_yuv;
+    addr_yuv = addr_base_yuv + j * src_width_yuv;
+    src_yuv = src_base_yuv + j * src_width_yuv;
     dest += i * dest_row_pitch;
+    
+    /* fixme: only works for integer factors */
+    int src_yuv_pitch = src_width_yuv / cols;
 
     for (; i < rows_bmp; i++) {
         dirty = memory_region_get_dirty(mem_bmp, addr_bmp, src_width_bmp,
@@ -763,15 +771,17 @@ static void framebuffer_update_display_bmp_yuv(
         dirty |= memory_region_get_dirty(mem_yuv, addr_yuv, src_width_yuv,
                                              DIRTY_MEMORY_VGA);
         if (dirty || invalidate) {
-            fn(opaque, dest, src_bmp, src_yuv, cols, dest_col_pitch);
+            fn(opaque, dest, src_bmp, src_yuv, cols, dest_col_pitch, src_yuv_pitch);
             if (first == -1)
                 first = i;
             last = i;
         }
+
+        int j = i * rows_yuv / rows_bmp;
         addr_bmp += src_width_bmp;
         src_bmp += src_width_bmp;
-        addr_yuv += src_width_yuv;
-        src_yuv += src_width_yuv;
+        addr_yuv = addr_base_yuv + j * src_width_yuv;
+        src_yuv = src_base_yuv + j * src_width_yuv;
         dest += dest_row_pitch;
     }
     cpu_physical_memory_unmap(src_base_bmp, src_len_bmp, 0, 0);
@@ -798,11 +808,15 @@ static void eos_update_display(void *parm)
     
     /* these numbers need double-checking */
     /*                  LCD    HDMI-1080   HDMI-480    SD-PAL      SD-NTSC */
-    int widths[]    = { 720,   960,        720,        720,        720     };
-    int heights[]   = { 480,   540,        480,        576,        480     };
+    int widths[]      = {   720,   960,        720,        720,        720     };
+    int heights[]     = {   480,   540,        480,        576,        480     };
+    int yuv_widths[]  = {   720,  1920,        720,        540,        540     };
+    int yuv_heights[] = {   480,  1080,        480,        572,        480     };
     
-    int width   = widths    [s->display_type];
-    int height  = heights   [s->display_type];
+    int width       = widths     [s->display_type];
+    int height      = heights    [s->display_type];
+    int yuv_width   = yuv_widths [s->display_type];
+    int yuv_height  = yuv_heights[s->display_type];
 
     if (width != surface_width(surface) || height != surface_height(surface))
     {
@@ -820,8 +834,8 @@ static void eos_update_display(void *parm)
         s->system_mem,
         s->bmp_vram,
         s->img_vram,
-        width, height, height,
-        960, 720*2, linesize, 0, 1,
+        width, height, yuv_height,
+        960, yuv_width*2, linesize, 0, 1,
         draw_line8_32_bmp_yuv, 0,
         &first, &last
     );
