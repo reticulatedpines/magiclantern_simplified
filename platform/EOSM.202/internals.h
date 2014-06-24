@@ -73,7 +73,7 @@
 // ~#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-#define CONFIG_DISPLAY_FILTERS
+//~ #define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 #define CONFIG_FRAME_ISO_OVERRIDE
@@ -133,9 +133,6 @@
 /** We have access to Raw data */
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
-
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
 
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS

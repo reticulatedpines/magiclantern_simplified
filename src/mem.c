@@ -73,6 +73,7 @@ struct mem_allocator
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
     int minimum_free_space;                 /* will never allocate if free space would drop under this */
     int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
+    int maximum_blocks;                     /* will never allocate more than N buffers */
     
     /* private stuff */
     int mem_used;
@@ -167,15 +168,14 @@ static struct mem_allocator allocators[] = {
         .get_max_region = _shoot_get_free_space,    /* we usually have a bunch of large contiguous chunks */
         
         .is_preferred_for_temporary_space = 1,  /* if we know we'll free this memory quickly, prefer this one */
+
+        /* 5D3 crashes at around 1300 calls to AllocateContinuousMemoryResource, no idea about others */
+        .maximum_blocks = 1000,
         
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
         .preferred_max_alloc_size = 32 * 1024 * 1024,
-        #ifdef CONFIG_1100D
         .minimum_alloc_size = 5 * 1024,
-        #else
-        .minimum_alloc_size = 32 * 1024,
-        #endif
     },
 #endif
 };
@@ -562,63 +562,78 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
         int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
 
-        /* TODO: get rid of cascaded if's (use negative logic and "continue") */
-        
         /* do we need DMA? */
-        if (
+        if (!(
                 (require_dma && has_dma) ||
                 (!require_dma && has_non_dma)
-           )
+           ))
         {
-            /* is this pool preferred for temporary allocations? */
-            if (
-                    !require_tmp ||
-                    (require_tmp == preferred_for_tmp)
-               )
-            {
-                /* matches preferred size criteria? */
-                if 
-                    (
-                        (
-                            !require_preferred_size ||
-                            (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
-                        )
-                        && 
-                        (
-                            /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
-                            size >= allocators[a].minimum_alloc_size
-                        )
-                   )
-                {
-                    /* do we have enough free space without exceeding the preferred limit? */
-                    int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
-                    //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
-                    if (
-                            (
-                                /* preferred free space is... well... optional */
-                                !require_preferred_free_space ||
-                                (free_space - size - 1024 > allocators[a].preferred_free_space)
-                            )
-                            &&
-                            (
-                                /* minimum_free_space is mandatory */
-                                free_space - size - 1024 > allocators[a].minimum_free_space
-                            )    
-                       )
-                    {
-                        /* do we have a large enough contiguous chunk? */
-                        /* use a heuristic if we don't know, use a safety margin even if we know */
-                        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
-                        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
-                        if (size < max_region)
-                        {
-                            /* yes, we do! */
-                            return a;
-                        }
-                    }
-                }
-            }
+            continue;
         }
+
+        /* is this pool preferred for temporary allocations? */
+        if (!(
+                !require_tmp ||
+                (require_tmp == preferred_for_tmp)
+           ))
+        {
+            continue;
+        }
+        
+        /* matches preferred size criteria? */
+        if 
+            (!(
+                (
+                    !require_preferred_size ||
+                    (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                )
+                && 
+                (
+                    /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
+                    size >= allocators[a].minimum_alloc_size
+                )
+           ))
+        {
+            continue;
+        }
+        
+        /* do we have enough free space without exceeding the preferred limit? */
+        int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
+        //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
+        if (!(
+                (
+                    /* preferred free space is... well... optional */
+                    !require_preferred_free_space ||
+                    (free_space - size - 1024 > allocators[a].preferred_free_space)
+                )
+                &&
+                (
+                    /* minimum_free_space is mandatory */
+                    free_space - size - 1024 > allocators[a].minimum_free_space
+                )
+           ))
+        {
+            continue;
+        }
+        
+        /* do we have a large enough contiguous chunk? */
+        /* use a heuristic if we don't know, use a safety margin even if we know */
+        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
+        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
+        if (size > max_region)
+        {
+            continue;
+        }
+        
+        /* do we have enough free blocks? */
+        int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
+        if (allocators[a].num_blocks >= max_blocks)
+        {
+            continue;
+        }
+        
+        /* yes, we do! */
+        return a;
     }
     return -1;
 }
@@ -1015,26 +1030,28 @@ static MENU_UPDATE_FUNC(meminfo_display)
             }
             break;
 
-        #if defined(CONFIG_MEMPATCH_CHECK)
         case 6: // autoexec size
         {
             extern uint32_t ml_reserved_mem;
             extern uint32_t ml_used_mem;
 
-            if (ABS(ml_used_mem - ml_reserved_mem) < 1024) MENU_SET_VALUE(
-                "%s",
-                format_memory_size(ml_used_mem)
-            );
-            else MENU_SET_VALUE(
-                "%s of %s",
-                format_memory_size(ml_used_mem), format_memory_size(ml_reserved_mem)
-            );
+            if (ABS(ml_used_mem - ml_reserved_mem) < 1024)
+            {
+                MENU_SET_VALUE("%s", format_memory_size(ml_used_mem));
+            }
+            else
+            {
+                MENU_SET_VALUE("%s of ",format_memory_size(ml_used_mem));
+                MENU_APPEND_VALUE("%s", format_memory_size(ml_reserved_mem));
+            }
+            
             if (ml_reserved_mem < ml_used_mem)
+            {
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
+            }
 
             break;
         }
-        #endif
     }
 
     if (guess_needed && !guess_mem_running)
@@ -1276,7 +1293,6 @@ static struct menu_entry mem_menus[] = {
                 .update = meminfo_display,
                 .help = "Largest fragmented block from shoot memory.",
             },
-            #if defined(CONFIG_MEMPATCH_CHECK)
             {
                 .name = "AUTOEXEC.BIN",
                 .icon_type = IT_ALWAYS_ON,
@@ -1284,7 +1300,6 @@ static struct menu_entry mem_menus[] = {
                 .update = meminfo_display,
                 .help = "Memory reserved statically at startup for ML binary.",
             },
-            #endif
             MENU_EOL
         },
     },

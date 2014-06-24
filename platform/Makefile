@@ -42,3 +42,5 @@ reorder-stubs:
 
 cleanup-stubs:
 	python ../contrib/stub-format/stub-cleanup.py all
+
+pretty-stubs: beautify-stubs reorder-stubs cleanup-stubs

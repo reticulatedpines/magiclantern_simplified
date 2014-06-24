@@ -58,6 +58,7 @@ NSTUB(0xFF342A88, _FIO_GetFileSize)
 NSTUB(0xFF3424AC, _FIO_OpenFile)
 NSTUB(0xFF342614, _FIO_RemoveFile)
 NSTUB(0xFF342FA0, _FIO_RenameFile)
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(   0x236A8,  gui_main_struct)
@@ -86,6 +87,7 @@ NSTUB(0xFF10B0D8,  SoundDevShutDownIn)
 NSTUB(0xFF108764,  StartASIFDMAADC)
 NSTUB(0xFF10891C,  StartASIFDMADAC)
 NSTUB(0xFF1089F4,  StopASIFDMADAC)
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
@@ -195,12 +197,11 @@ NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(    0xB6D8,  CancelTimer)
+NSTUB(    0x4FD8,  SetHPTimerAfterNow)
 NSTUB(    0xB4D8,  SetTimerAfter)
-NSTUB(    0xB6D8,  TimerCancel)
-//NSTUB(0x4FD8, SetHPTimerAfterNow)
-//NSTUB(0x4E54, SetHPTimerAfterTimeout)
-//NSTUB(0xB558, SetTimerWhen)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(    0x514C,  SetHPTimerNextTick)
 
 /** H264 Encoder **/
 NSTUB(   0x31424,  mvr_config)
@@ -319,6 +320,8 @@ NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by e
 ///NSTUB(   0x1192C,  PopEDmac)                                // Xref: PackMem_PopEDmacForMemorySuite
 ///NSTUB(0xFF4D3B94,  RedrawDisplay)                           // xref: Refresh whole
 ///NSTUB(0xFF128870,  SetBitmapVramAddress)
+///NSTUB(0x4E54, SetHPTimerAfterTimeout)
+///NSTUB(0xB558, SetTimerWhen)
 ///NSTUB(0xFF10B118,  SoundDevActiveOut)
 ///NSTUB(0xFF10B6F4,  SoundDevStopIn)
 ///NSTUB(0xFF10B7C4,  SoundDevStopOut)

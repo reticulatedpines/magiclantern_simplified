@@ -95,6 +95,9 @@
 /** We know how to use DMA_MEMCPY **/
 //~ #define CONFIG_DMA_MEMCPY
 
+/** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+#define CONFIG_EDMAC_MEMCPY
+
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
 
@@ -117,8 +120,8 @@
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
 
-/** for 600D */
-#define CONFIG_EDMAC_MEMCPY
-
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #define CONFIG_EDMAC_RAW_SLURP
+
+/** We know how to use engine resource locks */
+#define CONFIG_ENGINE_RESLOCK

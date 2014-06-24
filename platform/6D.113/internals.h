@@ -126,7 +126,7 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 /** Aggressive FPS update **/
-#define CONFIG_FPS_AGGRESSIVE_UPDATE
+/~#define CONFIG_FPS_AGGRESSIVE_UPDATE
 
 /** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
 #define CONFIG_REC709
@@ -134,9 +134,6 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
-
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
 
 /** We have an internal GPS */
 #define CONFIG_GPS

@@ -5433,8 +5433,8 @@ int handle_intervalometer(struct event * event)
     // stop intervalometer with MENU or PLAY
     if (!IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
         intervalometer_stop();
-    return 1;
 #endif
+    return 1;
 }
 
 // this syncs with DIGIC clock from clock_task
@@ -6368,10 +6368,8 @@ shoot_task( void* unused )
                 
                 if(audio_release_running)
                 {   
-                    #ifndef CONFIG_7D
                     //Enable Audio IC In Photo Mode if off
                     if (!is_movie_mode())
-                    #endif
                     {
                         SoundDevActiveIn(0);
                     }
