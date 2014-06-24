@@ -687,7 +687,7 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
-    #if defined(CONFIG_550D)
+    #if defined(CONFIG_550D) || defined(CONFIG_7D)
     // change end limit to 0xc60000 => reserve 640K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
     ml_reserved_mem = 640 * 1024;
