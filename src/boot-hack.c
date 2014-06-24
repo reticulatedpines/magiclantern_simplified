@@ -832,6 +832,11 @@ my_init_task(int a, int b, int c, int d)
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
+        #ifdef CONFIG_QEMU
+        qprintf("Out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+        call("shutdown");
+        #endif
+        
         while(1)
         {
             info_led_blink(3, 500, 500);
