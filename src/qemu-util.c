@@ -64,7 +64,9 @@ static int translate_scancode(int scancode)
         case 0x1B: return BGMT_WHEEL_RIGHT;
         case 0x19: return BGMT_PLAY;                    /* P */
         case 0x17: return BGMT_INFO;                    /* I */
+        #ifdef BGMT_RATE
         case 0x13: return BGMT_RATE;                    /* R */
+        #endif
         case 0x0D: return BGMT_PRESS_ZOOMIN_MAYBE;      /* + */
         //~ case 0x8D: return BGMT_UNPRESS_ZOOMIN_MAYBE;
         //~ case 0x0C: return BGMT_PRESS_ZOOMOUT_MAYBE;      /* - */
@@ -206,13 +208,11 @@ static void toggle_liveview()
         if (!current)
         {
             printf("Fake LV dialog handler\n"); 
-            /* fixme: 5D3 only */
-            extern thunk LiveViewLevelApp_handler;
-            
+            extern thunk LiveViewApp_handler;
             gui_task_list.current = current = malloc(sizeof(struct gui_task));
             current->priv = malloc(sizeof(struct dialog));
             struct dialog * dialog = current->priv;
-            dialog->handler = &LiveViewLevelApp_handler;
+            dialog->handler = &LiveViewApp_handler;
         }
 
     }

@@ -1062,6 +1062,7 @@ ML_MACHINE(5D2,   0xFF810000);
 ML_MACHINE(5D3,   0xFF0C0000);
 ML_MACHINE(650D,  0xFF0C0000);
 ML_MACHINE(100D,  0xFF0C0000);
+ML_MACHINE(7D,    0xFF810000);
 
 EOS_MACHINE(50D,  0xFF010000);
 EOS_MACHINE(60D,  0xFF010000);
@@ -1071,6 +1072,7 @@ EOS_MACHINE(5D2,  0xFF810000);
 EOS_MACHINE(5D3,  0xFF0C0000);
 EOS_MACHINE(650D, 0xFF0C0000);
 EOS_MACHINE(100D, 0xFF0C0000);
+EOS_MACHINE(7D,   0xFF810000);
 
 static void eos_machine_init(void)
 {
@@ -1082,6 +1084,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_ml_5D3);
     qemu_register_machine(&canon_eos_machine_ml_650D);
     qemu_register_machine(&canon_eos_machine_ml_100D);
+    qemu_register_machine(&canon_eos_machine_ml_7D);
     qemu_register_machine(&canon_eos_machine_50D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
@@ -1090,6 +1093,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_5D3);
     qemu_register_machine(&canon_eos_machine_650D);
     qemu_register_machine(&canon_eos_machine_100D);
+    qemu_register_machine(&canon_eos_machine_7D);
 }
 
 machine_init(eos_machine_init);

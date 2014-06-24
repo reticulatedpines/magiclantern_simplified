@@ -109,6 +109,7 @@ void ml_gui_main_task()
     
     #ifdef CONFIG_QEMU
     gui_main_struct.msg_queue = msg_queue_create("gui", 100);
+    gui_main_struct.msg_queue_550d = msg_queue_create("gui2", 100);
     #else
     gui_init_end(); // no params?
     #endif
@@ -157,6 +158,10 @@ void ml_gui_main_task()
         if ((index >= GMT_NFUNCS) || (index < 0)) {
             continue;
         }
+        
+        #ifdef CONFIG_QEMU
+        continue;
+        #endif
 
         void(*f)(struct event *) = funcs[index];
         f(event);
