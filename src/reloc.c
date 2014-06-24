@@ -264,6 +264,9 @@ reloc(
 #endif
 
 #ifdef __ARM__
+    /* don't return if executable code was overwritten by fixups */
+    while ((intptr_t)entry - (intptr_t)fixups < 0);
+    
     /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
     sync_caches();
 #endif
