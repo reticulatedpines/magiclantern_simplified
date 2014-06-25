@@ -207,7 +207,7 @@ static void dump_img_task(void* priv, int unused)
         _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
         _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
 
-    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
+    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
     
     /* make sure the VRAM parameters are updated */
     get_yuv422_vram();
