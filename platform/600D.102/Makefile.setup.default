@@ -1,7 +1,5 @@
 #Makefile for 600D
 
-CONFIG_MEMCHECK=n
-
 ML_AUDIO_OBJ = audio-lapis.o
 
 ML_SRC_EXTRA_OBJS = \
