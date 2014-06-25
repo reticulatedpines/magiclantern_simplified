@@ -2,8 +2,6 @@
 
 CONFIG_MEMCHECK=n
 
-CONFIG_RELOC=y
-
 ML_AUDIO_OBJ = audio-lapis.o
 
 ML_SRC_EXTRA_OBJS = \
