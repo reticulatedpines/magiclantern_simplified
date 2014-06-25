@@ -1835,7 +1835,7 @@ retry_find:
             /* choose the largest contiguous free section */
             /* O(n), n = slot_count */
             int32_t len = 0;
-            void* prev_ptr = INVALID_PTR;
+            void* prev_ptr = PTR_INVALID;
             int32_t prev_blockSize = 0;
             int32_t best_len = 0;
             for (int32_t i = 0; i < slot_count; i++)
@@ -1868,7 +1868,7 @@ retry_find:
                 else
                 {
                     len = 0;
-                    prev_ptr = INVALID_PTR;
+                    prev_ptr = PTR_INVALID;
                 }
             }
 

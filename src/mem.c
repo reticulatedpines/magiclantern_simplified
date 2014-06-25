@@ -444,7 +444,7 @@ static void memcheck_remove(unsigned int ptr, unsigned int failed)
         {
             if(memcheck_mallocbuf[buf_pos].ptr == ptr)
             {
-                memcheck_mallocbuf[buf_pos].ptr = (intptr_t) INVALID_PTR;
+                memcheck_mallocbuf[buf_pos].ptr = (intptr_t) PTR_INVALID;
                 memcheck_mallocbuf[buf_pos].failed |= (0x00000001 | failed);
             }            
         }

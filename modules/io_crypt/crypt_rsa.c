@@ -73,7 +73,6 @@ This notice must always be retained in any copy.
 #define FIO_OpenFile(file,mode) fopen(file, "r")
 #define FIO_GetFileSize(f,ret) getFileSize(f,ret)
 
-#define INVALID_PTR 0
 #define O_RDONLY 0
 #define O_SYNC 0
 

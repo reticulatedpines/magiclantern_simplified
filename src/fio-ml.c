@@ -350,7 +350,7 @@ FILE* FIO_OpenFile(const char* filename, unsigned mode )
     
     FILE* f = _FIO_OpenFile(new_filename, mode);
     
-    if (f != INVALID_PTR)
+    if (f != PTR_INVALID)
     {
         /* let's hope 0 is not a valid file handle... */
         ASSERT(f);
@@ -460,7 +460,7 @@ static FILE* _FIO_CreateFileEx(const char* name)
     _FIO_RemoveFile(name);
     FILE* f = _FIO_CreateFile(name);
 
-    if (f != INVALID_PTR)
+    if (f != PTR_INVALID)
     {
         /* let's hope 0 is not a valid file handle... */
         ASSERT(f);
@@ -482,7 +482,7 @@ static FILE* _FIO_CreateFileEx(const char* name)
 
     f = _FIO_CreateFile(name);
 
-    if (f != INVALID_PTR)
+    if (f != PTR_INVALID)
     {
         ASSERT(f);
         return f;

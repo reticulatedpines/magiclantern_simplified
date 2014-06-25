@@ -1256,7 +1256,7 @@ static int FAST choose_next_capture_slot()
     /* choose the largest contiguous free section */
     /* O(n), n = slot_count */
     int len = 0;
-    void* prev_ptr = INVALID_PTR;
+    void* prev_ptr = PTR_INVALID;
     int best_len = 0;
     int best_index = -1;
     for (int i = 0; i < slot_count; i++)
@@ -1287,7 +1287,7 @@ static int FAST choose_next_capture_slot()
         else
         {
             len = 0;
-            prev_ptr = INVALID_PTR;
+            prev_ptr = PTR_INVALID;
         }
     }
 
