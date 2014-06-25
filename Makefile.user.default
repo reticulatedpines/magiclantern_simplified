@@ -131,9 +131,6 @@ CONFIG_CONSOLE      = y
 endif
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
-ifndef CONFIG_PICOC
-CONFIG_PICOC        = n
-endif
 CONFIG_TCC          = y
 CONFIG_MODULES      = y
 CONFIG_TINYPY       = n
