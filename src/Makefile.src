@@ -166,7 +166,11 @@ ML_SRC_OBJS = \
 	fileprefix.o \
 	lvinfo.o \
 	builtin-enforcing.o \
-	ml-cbr.o 
+	ml-cbr.o \
+	raw.o \
+	chdk-dng.o \
+	edmac-memcpy.o \
+
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 

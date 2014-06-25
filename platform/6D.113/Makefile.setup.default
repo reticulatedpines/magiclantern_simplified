@@ -4,7 +4,4 @@ ML_BITRATE_OBJ = bitrate-6d.o
 
 ML_SRC_EXTRA_OBJS = \
 	afma.o \
-	raw.o \
-	chdk-dng.o \
-	edmac-memcpy.o \
 	gps.o
