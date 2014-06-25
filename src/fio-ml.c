@@ -338,12 +338,26 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #undef IS_DRV_PATH
 }
 
+/* Canon stub */
+/* note: it returns -1 on error, unlike fopen from plain C */
 FILE* _FIO_OpenFile(const char* filename, unsigned mode );
+
+/* this one returns 0 on error, just like in plain C */
 FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
-    return _FIO_OpenFile(new_filename, mode);
+    
+    FILE* f = _FIO_OpenFile(new_filename, mode);
+    
+    if (f != INVALID_PTR)
+    {
+        /* let's hope 0 is not a valid file handle... */
+        ASSERT(f);
+        return f;
+    }
+    
+    return 0;
 }
 
 int _FIO_GetFileSize(const char * filename, uint32_t * size);
@@ -434,16 +448,24 @@ static void _FIO_CreateDir_recursive(char* path)
     _FIO_CreateDirectory(path);
 }
 
+/* Canon stub */
+/* note: it returns -1 on error, unlike fopen from plain C */
 FILE* _FIO_CreateFile(const char* filename );
 
-// a wrapper that also creates missing dirs and removes existing file
+/* a wrapper that also creates missing dirs and removes existing file */
+/* this one returns 0 on error, just like in plain C */
 static FILE* _FIO_CreateFileEx(const char* name)
 {
     // first assume the path is alright
     _FIO_RemoveFile(name);
     FILE* f = _FIO_CreateFile(name);
+
     if (f != INVALID_PTR)
+    {
+        /* let's hope 0 is not a valid file handle... */
+        ASSERT(f);
         return f;
+    }
 
     // if we are here, the path may be inexistent => create it
     int n = strlen(name);
@@ -459,8 +481,15 @@ static FILE* _FIO_CreateFileEx(const char* name)
     }
 
     f = _FIO_CreateFile(name);
-        
-    return f;
+
+    if (f != INVALID_PTR)
+    {
+        ASSERT(f);
+        return f;
+    }
+    
+    /* return 0 on error, just like in plain C */
+    return 0;
 }
 FILE* FIO_CreateFile(const char* name)
 {
