@@ -498,25 +498,19 @@ FILE* FIO_CreateFile(const char* name)
     return _FIO_CreateFileEx(new_name);
 }
 
-FILE* _FIO_CreateFileOrAppend(const char* name)
+FILE* FIO_CreateFileOrAppend(const char* name)
 {
     /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
-    FILE * f = _FIO_OpenFile(name, O_RDWR | O_SYNC);
-    if (f == INVALID_PTR)
+    FILE * f = FIO_OpenFile(name, O_RDWR | O_SYNC);
+    if (!f)
     {
-        f = _FIO_CreateFile(name);
+        f = FIO_CreateFile(name);
     }
     else
     {
         FIO_SeekFile(f,0,SEEK_END);
     }
     return f;
-}
-FILE* FIO_CreateFileOrAppend(const char* name)
-{
-    char new_name[100];
-    fixup_filename(new_name, name, 100);
-    return _FIO_CreateFileOrAppend(new_name);
 }
 
 int _FIO_CopyFile(char *src,char *dst)
