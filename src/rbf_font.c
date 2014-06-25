@@ -171,7 +171,7 @@ static int rbf_font_load(char *file, font* f, int maxchar)
 
     // open file (can't use fopen here due to potential conflict FsIoNotify crash)
     FILE *fd = FIO_OpenFile(file, O_RDONLY | O_SYNC);
-    if( fd == INVALID_PTR )
+    if (!fd)
     {
         return 0;
     }

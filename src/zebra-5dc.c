@@ -781,53 +781,6 @@ waveform_draw_image(
 }
 
 
-static FILE * g_aj_logfile = INVALID_PTR;
-unsigned int aj_create_log_file( char * name)
-{
-   g_aj_logfile = FIO_CreateFile( name );
-   if ( g_aj_logfile == INVALID_PTR )
-   {
-      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
-      return( 0 );  // FAILURE
-   }
-   return( 1 );  // SUCCESS
-}
-
-void aj_close_log_file( void )
-{
-   if (g_aj_logfile == INVALID_PTR)
-      return;
-   FIO_CloseFile( g_aj_logfile );
-   g_aj_logfile = INVALID_PTR;
-}
-
-void dump_seg(uint32_t start, uint32_t size, char* filename)
-{
-    DEBUG();
-    aj_create_log_file(filename);
-    FIO_WriteFile( g_aj_logfile, (const void *) start, size );
-    aj_close_log_file();
-    DEBUG();
-}
-
-void dump_big_seg(int k, char* filename)
-{
-    DEBUG();
-    aj_create_log_file(filename);
-    
-    int i;
-    for (i = 0; i < 16; i++)
-    {
-        DEBUG();
-        uint32_t start = (k << 28 | i << 24);
-        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
-        FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
-    }
-    
-    aj_close_log_file();
-    DEBUG();
-}
-
 int tic()
 {
     struct tm now;
