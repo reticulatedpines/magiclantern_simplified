@@ -513,15 +513,15 @@ FILE* FIO_CreateFileOrAppend(const char* name)
     return f;
 }
 
-int _FIO_CopyFile(char *src,char *dst)
+int FIO_CopyFile(char *src,char *dst)
 {
-    FILE* f = _FIO_OpenFile(src, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return -1;
+    FILE* f = FIO_OpenFile(src, O_RDONLY | O_SYNC);
+    if (!f) return -1;
 
-    FILE* g = _FIO_CreateFile(dst);
-    if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
+    FILE* g = FIO_CreateFile(dst);
+    if (!g) { FIO_CloseFile(f); return -1; }
 
-    const int bufsize = MIN(_GetFileSize(src), 128*1024);
+    const int bufsize = MIN(FIO_GetFileSize_direct(src), 128*1024);
     void* buf = fio_malloc(bufsize);
     if (!buf) return -1;
 
@@ -544,29 +544,21 @@ int _FIO_CopyFile(char *src,char *dst)
     
     if (err)
     {
-        _FIO_RemoveFile(dst);
+        FIO_RemoveFile(dst);
         return -1;
     }
     
     /* all OK */
     return 0;
 }
-int FIO_CopyFile(char *src,char *dst)
-{
-    char newSrc[255];
-    char newDst[255];
-    fixup_filename(newSrc, src, 255);
-    fixup_filename(newDst, dst, 255);
-    return _FIO_CopyFile(newSrc, newDst);
-}
 
-static int _FIO_MoveFile(char *src,char *dst)
+int FIO_MoveFile(char *src,char *dst)
 {
-    int err = _FIO_CopyFile(src,dst);
+    int err = FIO_CopyFile(src,dst);
     if (!err)
     {
         /* file copied, we can remove the old one */
-        _FIO_RemoveFile(src);
+        FIO_RemoveFile(src);
         return 0;
     }
     else
@@ -574,14 +566,6 @@ static int _FIO_MoveFile(char *src,char *dst)
         /* something went wrong; keep the old file and return error code */
         return err;
     }
-}
-int FIO_MoveFile(char *src, char *dst)
-{
-    char newSrc[255];
-    char newDst[255];
-    fixup_filename(newSrc, src, 255);
-    fixup_filename(newDst, dst, 255);
-    return _FIO_MoveFile(newSrc, newDst);
 }
 
 int is_file(char* path)
