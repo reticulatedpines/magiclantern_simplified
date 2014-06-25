@@ -1492,7 +1492,7 @@ static void raw_video_rec_task()
     char backup_filename[100];
     snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
     FILE* bf = FIO_CreateFile(backup_filename);
-    if (bf == INVALID_PTR)
+    if (!bf)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
         goto cleanup;
@@ -1506,7 +1506,7 @@ static void raw_video_rec_task()
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
     f = FIO_CreateFile(raw_movie_filename);
-    if (f == INVALID_PTR)
+    if (!f)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
         goto cleanup;
@@ -1699,7 +1699,7 @@ static void raw_video_rec_task()
                 /* try to create a new chunk */
                 chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
                 FILE* g = FIO_CreateFile(chunk_filename);
-                if (g == INVALID_PTR) goto abort;
+                if (!g) goto abort;
                 
                 /* write the remaining data in the new chunk */
                 int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
@@ -1857,7 +1857,7 @@ abort_and_check_early_stop:
             FIO_CloseFile(f); f = 0;
             chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
             FILE* g = FIO_CreateFile(chunk_filename);
-            if (g != INVALID_PTR)
+            if (g)
             {
                 footer_ok = lv_rec_save_footer(g);
                 FIO_CloseFile(g);
@@ -2262,9 +2262,12 @@ static unsigned int raw_rec_init()
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
         FILE* f = FIO_CreateFile(warmup_filename);
-        FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
-        FIO_CloseFile(f);
-        FIO_RemoveFile(warmup_filename);
+        if (f)
+        {
+            FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
+            FIO_CloseFile(f);
+            FIO_RemoveFile(warmup_filename);
+        }
         NotifyBoxHide();
     }
 
