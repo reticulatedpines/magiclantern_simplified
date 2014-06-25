@@ -118,7 +118,6 @@ BUILDVER=$(shell whoami).$(shell hg id -i -r .)
 VERSION:=Nightly.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 # Build configuration - untested and debug stuff handy for devs
-CONFIG_PYMITE       = n
 CONFIG_TIMECODE     = n
 CONFIG_PTP          = n
 CONFIG_PTP_CHDK     = n
