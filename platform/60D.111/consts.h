@@ -154,7 +154,7 @@
 // * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
 // * see LiveView image under menu
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
-#define GUIMODE_ML_MENU (lv ? 0x45 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x45 : 2)
 // outside LiveView, Canon menu is a good choice
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
