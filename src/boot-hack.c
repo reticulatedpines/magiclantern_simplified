@@ -394,10 +394,7 @@ static void backup_task()
 static void my_big_init_task()
 {
   _find_ml_card();
-
-#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   _load_fonts();
-#endif
 
 #ifdef CONFIG_HELLO_WORLD
     int sig = compute_signature((int*)SIG_START, 0x10000);
@@ -438,7 +435,6 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
-    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();
