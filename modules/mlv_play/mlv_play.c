@@ -421,7 +421,7 @@ static void mlv_play_delete()
     
     char *msg = strdup(current.fullPath);
     
-    task_create("mlv_play_del_task", 0x1e, 0x800, mlv_play_del_task, (void*)msg);
+    task_create("mlv_play_del_task", 0x1e, 0x4000, mlv_play_del_task, (void*)msg);
     mlv_play_show_dlg(1000, "Deleting...");
 }
 
@@ -2137,8 +2137,8 @@ static void mlv_play_enter_playback()
     /* render task is slave and controlled via these variables */
     mlv_play_render_abort = 0;
     mlv_play_rendering = 1;
-    task_create("mlv_play_render", 0x1d, 0x1000, mlv_play_render_task, NULL);
-    task_create("mlv_play_osd_task", 0x15, 0x1000, mlv_play_osd_task, 0);
+    task_create("mlv_play_render", 0x1d, 0x4000, mlv_play_render_task, NULL);
+    task_create("mlv_play_osd_task", 0x15, 0x4000, mlv_play_osd_task, 0);
     
     /* queue a few buffers that are not allocated yet */
     for(int num = 0; num < 3; num++)
@@ -2252,7 +2252,7 @@ void mlv_play_file(char *filename)
 {
     gui_stop_menu();
     
-    task_create("mlv_play_task", 0x1e, 0x1000, mlv_play_task, (void*)filename);
+    task_create("mlv_play_task", 0x1e, 0x4000, mlv_play_task, (void*)filename);
 }
 
 FILETYPE_HANDLER(mlv_play_filehandler)
@@ -2368,7 +2368,7 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
         {
             case MODULE_KEY_PLAY:
             {
-                task_create("mlv_play_task", 0x1e, 0x1000, mlv_play_task, NULL);
+                task_create("mlv_play_task", 0x1e, 0x4000, mlv_play_task, NULL);
                 return 0;
             }
         }
