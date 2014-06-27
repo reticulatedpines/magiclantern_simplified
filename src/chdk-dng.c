@@ -59,6 +59,8 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 
+#define INVALID_PTR             ((void *)0xFFFFFFFF)
+
 #endif
 
 #include "raw.h"
