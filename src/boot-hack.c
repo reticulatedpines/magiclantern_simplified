@@ -46,6 +46,10 @@
 #include "gps.h"
 #endif
 
+#ifdef CONFIG_QEMU
+#include "qemu-util.h"
+#endif
+
 #if defined(CONFIG_HELLO_WORLD)
 #include "fw-signature.h"
 #endif
