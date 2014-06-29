@@ -305,7 +305,7 @@ static void mlv_play_del_task(char *parm)
     char current_ext[4];
     char filename[128];
     char current_file[128];
-        
+    
     trace_write(mlv_play_trace_ctx, "[Delete] Delete request for: '%s'", parm);
     
     /* keep filename locally */
@@ -423,12 +423,17 @@ static void mlv_play_delete()
     playlist_entry_t next;
     playlist_entry_t prev;
     
+    /* save the currently played file */
     strncpy(current.fullPath, mlv_play_current_filename, sizeof(current.fullPath));
+    
+    /* check next/prev */
     next = mlv_playlist_next(current);
     prev = mlv_playlist_prev(current);
     
+    /* remove the currently played from the playlist */
     mlv_playlist_delete(current);
     
+    /* check which of the files is available and play this one so the one to be deleted is no longer used */
     if(strlen(next.fullPath))
     {
         strncpy(mlv_play_next_filename, next.fullPath, sizeof(mlv_play_next_filename));
@@ -443,6 +448,7 @@ static void mlv_play_delete()
     }
     else
     {
+        /* if none is available, just stop playback */
         mlv_play_render_abort = 1;
     }
     
