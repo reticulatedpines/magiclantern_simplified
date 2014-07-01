@@ -64,6 +64,10 @@ static MENU_UPDATE_FUNC(silent_pic_display)
         case SILENT_PIC_MODE_SLITSCAN:
             MENU_SET_VALUE("Slit-Scan");
             break;
+
+        case SILENT_PIC_MODE_FULLRES:
+            MENU_SET_VALUE("Full-res");
+            break;
     }
 }
 
@@ -692,7 +696,7 @@ silent_pic_take_fullres(int interactive)
      * reads PROP_ISO, PROP_SHUTTER and PROP_APERTURE, 
      * and creates a "job" object (CreateSkeltonJob)
      */
-    struct JobClass * job = call("FA_CreateTestImage");
+    struct JobClass * job = (void*) call("FA_CreateTestImage");
 
     info_led_on();
     int t0 = get_ms_clock_value();
