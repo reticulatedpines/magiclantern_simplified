@@ -24,6 +24,7 @@ static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
 #define SILENT_PIC_MODE_BURST_END_TRIGGER 2
 #define SILENT_PIC_MODE_BEST_SHOTS 3
 #define SILENT_PIC_MODE_SLITSCAN 4
+#define SILENT_PIC_MODE_FULLRES 5
 
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
@@ -96,7 +97,7 @@ static void silent_pic_save_dng(char* filename, struct raw_info * raw_info)
 #ifdef FEATURE_SILENT_PIC_RAW
 
 static void
-silent_pic_take_raw(int interactive)
+silent_pic_take_lv(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
     raw_lv_request();
@@ -480,7 +481,7 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
 }
 
 static void
-silent_pic_take_raw(int interactive)
+silent_pic_take_lv(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
     int raw_flag = 1;
@@ -667,12 +668,90 @@ cleanup:
 }
 #endif
 
+static void
+silent_pic_take_fullres(int interactive)
+{
+    /* get out of LiveView, but leave the shutter open */
+    PauseLiveView();
+    clrscr();
+    vram_clear_lv();
+
+    /* 
+     * This enters factory testing mode (SRM_ChangeMemoryManagementForFactory),
+     * reads PROP_ISO, PROP_SHUTTER and PROP_APERTURE, 
+     * and creates a "job" object (CreateSkeltonJob)
+     */
+    struct JobClass * job = call("FA_CreateTestImage");
+
+    info_led_on();
+    int t0 = get_ms_clock_value();
+    
+    /*
+     * This one sets PROP_FA_ADJUST_FLAG to 4 (whatever that means),
+     * then sends event 0 to SCS state (scsReleaseStart),
+     * then sends event 1 to SCS state (scsReleaseData),
+     * then resets PROP_FA_ADJUST_FLAG back to 0.
+     * 
+     * The SCS state machine continues with scsDummyReadoutDone,
+     * scsCapReady, scsCapEnd and scsFinalReadoutDone.
+     * 
+     * After that, raw image data will be written by CCDWriteEDmacCompleteCBR
+     * and available from RAW_PHOTO_EDMAC (defined in raw.c)
+     */
+    call("FA_CaptureTestImage", job);
+    
+    int t1 = get_ms_clock_value();
+    info_led_off();
+    
+    /* 
+     * This goes out of factory mode (SRM_ChangeMemoryManagementForImage)
+     * and deallocates the job object (DeleteSkeltonJob)
+     */
+    call("FA_DeleteTestImage", job);
+    
+    /* tell the raw backend to catch the raw buffer address from RAW_PHOTO_EDMAC */
+    void raw_buffer_intercept_from_stateobj();
+    raw_buffer_intercept_from_stateobj();
+
+    /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
+    int new_gui = GUISTATE_QR;
+    prop_request_change_wait(PROP_GUI_STATE, &new_gui, 4, 1000);
+    
+    /* preview the raw image */
+    raw_set_dirty();
+    raw_update_params();
+    clrscr();
+    raw_preview_fast();
+
+    /* prepare to save the file */
+    struct raw_info local_raw_info = raw_info;
+    
+    /* leave some time for overlays to get displayed */
+    /* (fixme: saving the DNG will destroy the contents of the raw buffer) */
+    msleep(2000);
+
+    /* save the raw image as DNG */
+    char* fn = silent_pic_get_name();
+    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
+    bmp_printf(FONT_MED, 0, 85, "Captured in %d ms.", t1 - t0);
+    silent_pic_save_dng(fn, &local_raw_info);
+    bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
+}
+
 static unsigned int
 silent_pic_take(unsigned int interactive) // for remote release, set interactive=0
 {
     if (!silent_pic_enabled) return CBR_RET_CONTINUE;
     if (!lv) force_liveview();
-    silent_pic_take_raw(interactive);
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES)
+    {
+        silent_pic_take_fullres(interactive);
+    }
+    else
+    {
+        silent_pic_take_lv(interactive);
+    }
     return CBR_RET_STOP;
 }
 
@@ -714,15 +793,16 @@ static struct menu_entry silent_menu[] = {
             {
                 .name = "Silent Mode",
                 .priv = &silent_pic_mode,
-                .max = 4,
+                .max = 5,
                 .help = "Choose the silent picture mode:",
                 .help2 = 
                     "Take a silent picture when you press the shutter halfway.\n"
                     "Take pictures until memory gets full, then save to card.\n"
                     "Take pictures continuously, save the last few pics to card.\n"
                     "Take pictures continuously, save the best (focused) images.\n"
-                    "Distorted pictures for funky effects.\n",
-                .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan"),
+                    "Distorted pictures for funky effects.\n"
+                    "Experimental full-resolution pictures.\n",
+                .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan", "Full-res"),
                 .icon_type = IT_DICE,
             },
             {
