@@ -719,7 +719,12 @@ silent_pic_take_fullres(int interactive)
     
     /* preview the raw image */
     raw_set_dirty();
-    raw_update_params();
+    int ok = raw_update_params();
+    if (!ok)
+    {
+        bmp_printf(FONT_MED, 0, 0, "Raw error");
+        return;
+    }
     clrscr();
     raw_preview_fast();
 
