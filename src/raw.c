@@ -103,6 +103,13 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /**
  * Photo-mode raw buffer address
+ * To find it, lookup CCDWriteEDmacCompleteCBR in ASM code, and find the corresponding EDMAC channnel.
+ * 
+ * example for 5D2:
+ * ffa3763c:    e24f1f6f    sub r1, pc, #444                    ; @str:CCDWriteEDmacCompleteCBR
+ * ffa37640:    e3a00002    mov r0, #2                          ; so, it uses EDMAC channel #2 => RAW_PHOTO_EDMAC 0xc0f04208
+ * ffa37644:    ebfdb453    bl  @EDMAC_RegisterCompleteCBR
+ * 
  * On old cameras, it can be intercepted from SDSf3 state object, right after sdsMem1toRAWcompress.
  * On new cameras, use the SSS state, sssCompleteMem1ToRaw.
  * 
@@ -110,24 +117,12 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
-#define RAW_PHOTO_EDMAC 0xc0f04A08
-#endif
-
 #if defined(CONFIG_5D2)
-#define RAW_PHOTO_EDMAC 0xc0f04208 /* CCDWriteEDmacCompleteCBR */
+#define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
 #if defined(CONFIG_5D3)
 #define RAW_PHOTO_EDMAC 0xc0f04008
-#endif
-
-#if defined(CONFIG_6D)
-#define RAW_PHOTO_EDMAC 0xc0f04808
-#endif
-
-#if defined(CONFIG_60D) || defined (CONFIG_550D)
-#define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
 static uint32_t raw_buffer_photo = 0;
@@ -631,10 +626,11 @@ static int raw_update_params_work()
          *
          * Also, the RAW file has unused areas, usually black; we need to skip them.
          * 
-         * Start with 0, then load the RAW in your favorite photo editor (e.g. ufraw+gimp),
-         * then find the usable area, read the coords and plug the skip values here.
+         * To check the skip offsets, load raw_diag.mo (from the CMOS/ADTG ISO research thread),
+         * select the "OB zones" option, and adjust the skip offsets until the picture looks like this:
+         * https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/iso50/ob/ob-zones-5d3-6400.png
          * 
-         * Try to use even offsets only, otherwise the colors will be screwed up.
+         * Use even offsets only, otherwise the colors will be screwed up.
          */
         
         #ifdef CONFIG_5D2
