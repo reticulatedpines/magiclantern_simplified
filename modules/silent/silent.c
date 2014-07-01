@@ -10,6 +10,7 @@
 #include <shoot.h>
 #include <zebra.h>
 #include <beep.h>
+#include <lens.h>
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
@@ -675,6 +676,16 @@ silent_pic_take_fullres(int interactive)
     PauseLiveView();
     clrscr();
     vram_clear_lv();
+
+    /* there are problems with shutter speeds slower than 15 seconds */
+    /* (corrupted image and camera lockup, at least on 5D2 and 550D) */
+    if (lens_info.raw_shutter < SHUTTER_15s)
+    {
+        bmp_printf(FONT_MED, 0, 0, "Exposure too long");
+        msleep(2000);
+        ResumeLiveView();
+        return;
+    }
 
     /* 
      * This enters factory testing mode (SRM_ChangeMemoryManagementForFactory),
