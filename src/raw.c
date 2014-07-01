@@ -117,7 +117,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_60D)
+#if defined(CONFIG_5D2) || defined(CONFIG_60D) || defined(CONFIG_550D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
@@ -665,9 +665,9 @@ static int raw_update_params_work()
         width = 5344;
         height = 3516;
         skip_left = 142;
-        skip_right = 18;
-        skip_top = 58;
-        skip_bottom = 10;
+        skip_right = 0;
+        skip_top = 50;
+        skip_bottom = 0;
         #endif
 
         #ifdef CONFIG_600D
