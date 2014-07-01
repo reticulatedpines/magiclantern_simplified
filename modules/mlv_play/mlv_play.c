@@ -76,6 +76,8 @@ static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVI
 static CONFIG_INT("play.exact_fps", mlv_play_exact_fps, 0);
 
 
+static uint32_t mlv_play_trace_ctx = TRACE_ERROR;
+
 /* OSD menu items */
 #define MLV_PLAY_MENU_IDLE    0
 #define MLV_PLAY_MENU_FADEIN  1
@@ -298,92 +300,117 @@ static void mlv_play_del_task(char *parm)
 {
     uint32_t size = 0;
     uint32_t loops = 0;
+    uint32_t state = 0;
     uint32_t seq_number = 0;
-    char seq_name[3];
+    char current_ext[4];
     char filename[128];
     char current_file[128];
+    
+    trace_write(mlv_play_trace_ctx, "[Delete] Delete request for: '%s'", parm);
     
     /* keep filename locally */
     strncpy(filename, parm, sizeof(filename));
     free(parm);
+    strncpy(current_file, filename, sizeof(current_file));
     
-    /* file does not exist */
+    /* file does not exist. the specified base file must exist, so abort */
     if(FIO_GetFileSize(filename, &size))
     {
+        trace_write(mlv_play_trace_ctx, "  Does not exist!");
         return;
     }
     
     TASK_LOOP
     {
-        msleep(250);
-        
-        loops++;
-        if(loops > 100)
+        if(loops > 50)
         {
-            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed, retrying...", filename);
+            trace_write(mlv_play_trace_ctx, "  Deleting '%s' failed, aborting !!!", current_file);
+            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed, aborting !!!", current_file);
+            return;
+        }
+        else if(loops > 10)
+        {
+            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed, retrying...", current_file);
+        }
+        
+        switch(state)
+        {
+            case 0:
+                /* try to delete index file */
+                strcpy(current_ext, "IDX");
+                break;
+                
+            case 1:
+                /* try to delete main file */
+                strcpy(current_ext, "MLV");
+                break;
+                
+            case 2:
+                /* try to delete chunk files */
+                snprintf(current_ext, 4, "M%02d", seq_number);
+                break;
+                
+            case 3:
+                /* next chunk file */
+                if(seq_number >= 99)
+                {
+                    /* that would be the hundreth chunk, so lets say that was it */
+                    state++;
+                }
+                else
+                {
+                    /* increase chunk counter and delete next file */
+                    seq_number++;
+                    state--;
+                }
+                continue;
+                
+            case 4:
+                /* we are done */
+                return;
         }
 
-        /* try to delete main file */
-        strncpy(current_file, filename, sizeof(current_file));
-        
-        if(!FIO_GetFileSize(current_file, &size))
+        int failed = 0;
+        for(int drive = 0; drive < 2; drive++)
         {
-            if(FIO_RemoveFile(current_file))
-            {
-                continue;
-            }
-        }
-        
-        /* try to delete index file */
-        strncpy(current_file, filename, sizeof(current_file));
-        strcpy(&current_file[strlen(current_file) - 3], "IDX");
-        
-        if(!FIO_GetFileSize(current_file, &size))
-        {
-            if(FIO_RemoveFile(current_file))
-            {
-                continue;
-            }
-        }
-        
-        /* this is the ultimate abort condition */
-        if(seq_number >= 99)
-        {
-            break;
-        }
-        
-        /* check for the next file M00, M01 etc */
-        snprintf(seq_name, 3, "%02d", seq_number);
-        strncpy(current_file, filename, sizeof(current_file));
-        strcpy(&current_file[strlen(current_file) - 2], seq_name);
-        
-        /* try to delete files on all cards */
-        current_file[0] = 'A';
-        
-        if(FIO_GetFileSize(current_file, &size))
-        {
-            current_file[0] = 'B';
+            /* set extension */
+            strcpy(&current_file[strlen(current_file) - 3], current_ext);
+            
+            /* set drive letter */
+            current_file[0] = drive ? 'A' : 'B';
+            
+            trace_write(mlv_play_trace_ctx, "[Delete] Next file: '%s'", current_file);
+            
+            /* check if file exists */
             if(FIO_GetFileSize(current_file, &size))
             {
-                /* no more files */
-                break;
+                continue;
+            }
+            
+            trace_write(mlv_play_trace_ctx, "  existing, deleting");
+            
+            /* if existing, try to delete and set fail flag if that doesnt work */
+            if(FIO_RemoveFile(current_file))
+            {
+                trace_write(mlv_play_trace_ctx, "  FAILED");
+                failed = 1;
             }
             else
             {
-                if(FIO_RemoveFile(current_file))
-                {
-                    continue;
-                }
-                seq_number++;
+                trace_write(mlv_play_trace_ctx, "  deleted");
             }
+        }
+        
+        /* if there was no failure in deleting the file, next state */
+        if(!failed)
+        {
+            loops = 0;
+            state++;
         }
         else
         {
-            if(FIO_RemoveFile(current_file))
-            {
-                continue;
-            }
-            seq_number++;
+            loops++;
+            msleep(100);
         }
     }
     
@@ -396,12 +423,17 @@ static void mlv_play_delete()
     playlist_entry_t next;
     playlist_entry_t prev;
     
+    /* save the currently played file */
     strncpy(current.fullPath, mlv_play_current_filename, sizeof(current.fullPath));
+    
+    /* check next/prev */
     next = mlv_playlist_next(current);
     prev = mlv_playlist_prev(current);
     
+    /* remove the currently played from the playlist */
     mlv_playlist_delete(current);
     
+    /* check which of the files is available and play this one so the one to be deleted is no longer used */
     if(strlen(next.fullPath))
     {
         strncpy(mlv_play_next_filename, next.fullPath, sizeof(mlv_play_next_filename));
@@ -416,12 +448,13 @@ static void mlv_play_delete()
     }
     else
     {
+        /* if none is available, just stop playback */
         mlv_play_render_abort = 1;
     }
     
     char *msg = strdup(current.fullPath);
     
-    task_create("mlv_play_del_task", 0x1e, 0x800, mlv_play_del_task, (void*)msg);
+    task_create("mlv_play_del_task", 0x1e, 0x4000, mlv_play_del_task, (void*)msg);
     mlv_play_show_dlg(1000, "Deleting...");
 }
 
@@ -2137,8 +2170,8 @@ static void mlv_play_enter_playback()
     /* render task is slave and controlled via these variables */
     mlv_play_render_abort = 0;
     mlv_play_rendering = 1;
-    task_create("mlv_play_render", 0x1d, 0x1000, mlv_play_render_task, NULL);
-    task_create("mlv_play_osd_task", 0x15, 0x1000, mlv_play_osd_task, 0);
+    task_create("mlv_play_render", 0x1d, 0x4000, mlv_play_render_task, NULL);
+    task_create("mlv_play_osd_task", 0x15, 0x4000, mlv_play_osd_task, 0);
     
     /* queue a few buffers that are not allocated yet */
     for(int num = 0; num < 3; num++)
@@ -2252,7 +2285,7 @@ void mlv_play_file(char *filename)
 {
     gui_stop_menu();
     
-    task_create("mlv_play_task", 0x1e, 0x1000, mlv_play_task, (void*)filename);
+    task_create("mlv_play_task", 0x1e, 0x4000, mlv_play_task, (void*)filename);
 }
 
 FILETYPE_HANDLER(mlv_play_filehandler)
@@ -2368,7 +2401,7 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
         {
             case MODULE_KEY_PLAY:
             {
-                task_create("mlv_play_task", 0x1e, 0x1000, mlv_play_task, NULL);
+                task_create("mlv_play_task", 0x1e, 0x4000, mlv_play_task, NULL);
                 return 0;
             }
         }
@@ -2380,6 +2413,11 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
 
 static unsigned int mlv_play_init()
 {
+    /* setup log file */
+    mlv_play_trace_ctx = trace_start("mlv_play", "mlv_play.log");
+    trace_set_flushrate(mlv_play_trace_ctx, 500);
+    trace_format(mlv_play_trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
+    
     /* setup queues for frame buffers */
     mlv_play_queue_empty = (struct msg_queue *) msg_queue_create("mlv_play_queue_empty", 10);
     mlv_play_queue_render = (struct msg_queue *) msg_queue_create("mlv_play_queue_render", 10);

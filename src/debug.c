@@ -201,12 +201,13 @@ static void dump_img_task(void* priv, int unused)
     
     char* display_mode = 
         !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
+        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
         ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
         ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
         _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
         _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
 
-    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
+    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
     
     /* make sure the VRAM parameters are updated */
     get_yuv422_vram();
@@ -237,6 +238,12 @@ static void dump_img_task(void* priv, int unused)
     if (lv) raw_lv_request();
     if (raw_update_params())
     {
+        /* first frames right after enabling the raw buffer might be corrupted, figure out why */
+        /* todo: fix it in the raw backend */
+        wait_lv_frames(3);
+        raw_set_dirty();
+        raw_update_params();
+        
         /* make a copy of the raw buffer, because it's being updated while we are saving it */
         void* buf = malloc(raw_info.frame_size);
         if (buf)
@@ -2467,41 +2474,70 @@ static void edmac_display_page(int i0, int x0, int y0)
     for (int i = 0; i < 16; i++)
     {
         char msg[100];
+        int ch = i0 + i;
 
-        uint32_t base = edmac_get_base(i0+i);
-        uint32_t addr = shamem_read(base + 8);
+        uint32_t addr = edmac_get_address(ch);
         union edmac_size_t
         {
             struct { short x, y; } size;
             uint32_t raw;
         };
 
-        union edmac_size_t size = (union edmac_size_t) shamem_read(base + 0x10);
+        union edmac_size_t size = (union edmac_size_t) edmac_get_length(ch);
 
-        int state = MEM(base + 0);
-        int color =
-            state == 0 ? COLOR_GRAY(50) :   // inactive?
-            state == 1 ? COLOR_GREEN1 :     // active?
-            COLOR_RED;                      // no idea
+        int state = edmac_get_state(ch);
 
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", ch, addr, size.size.x, size.size.y);
         }
         else
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", i0+i, addr, size.raw);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", ch, addr, size.raw);
         }
 
-        if (color == COLOR_RED)
+        if (state != 0 && state != 1)
             STR_APPEND(msg, " (%x)", state);
 
-        uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
-        uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
+        uint32_t dir     = edmac_get_dir(ch);
+        uint32_t conn_w  = edmac_get_connection(ch, EDMAC_DIR_WRITE);
+        uint32_t conn_r  = edmac_get_connection(ch, EDMAC_DIR_READ);
 
-        if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
-        else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
-        else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
+        if (conn_w != 0 && conn_r != 0xFF)
+        {
+            /* should be unreachable */
+            STR_APPEND(msg, " <%x,%x>", conn_w, conn_r);
+        }
+        else if (dir == EDMAC_DIR_WRITE)
+        {
+            if (conn_w == 0)
+            {
+                STR_APPEND(msg, " <w>");
+            }
+            else
+            {
+                STR_APPEND(msg, " <w%x>", conn_w);
+            }
+        }
+        else if (dir == EDMAC_DIR_READ)
+        {
+            if (conn_r == 0xFF)
+            {
+                STR_APPEND(msg, " <r>");
+            }
+            else
+            {
+                STR_APPEND(msg, " <r%x>", conn_r);
+            }
+        }
+
+        int color =
+            conn_r != 0xFF && dir != EDMAC_DIR_READ ? COLOR_RED      :   /* seems used for read, but dir is not read? */
+            conn_w != 0 && dir != EDMAC_DIR_WRITE   ? COLOR_RED      :   /* seems used for write, but dir is not write? */
+            dir == EDMAC_DIR_UNUSED                 ? COLOR_GRAY(20) :   /* unused? */
+            state == 0                              ? COLOR_GRAY(50) :   /* inactive? */
+            state == 1                              ? COLOR_GREEN1   :   /* active? */
+                                                      COLOR_RED      ;   /* no idea */
 
         bmp_printf(
             FONT(FONT_MONO_20, color, COLOR_BLACK),
@@ -2528,9 +2564,9 @@ static void edmac_display_detailed(int channel)
 
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
-    uint32_t state = MEM(base + 0);
-    uint32_t flags = shamem_read(base + 4);
-    uint32_t addr = shamem_read(base + 8);
+    uint32_t state = edmac_get_state(channel);
+    uint32_t flags = edmac_get_flags(channel);
+    uint32_t addr = edmac_get_address(channel);
 
     union edmac_size_t
     {
@@ -2548,6 +2584,12 @@ static void edmac_display_detailed(int channel)
     uint32_t off2a = shamem_read(base + 0x24);
     uint32_t off3  = shamem_read(base + 0x28);
 
+    uint32_t dir     = edmac_get_dir(channel);
+    char* dir_s      = 
+        dir == EDMAC_DIR_READ  ? "read"  :
+        dir == EDMAC_DIR_WRITE ? "write" :
+                                 "unused?";
+    
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
     
@@ -2567,7 +2609,7 @@ static void edmac_display_detailed(int channel)
     bmp_printf(FONT_MONO_20, 50, y += fh, "off2b      : %8x ", off2b);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off3       : %8x ", off3);
     y += fh;
-    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x dir=%s", conn_w, conn_r, dir_s);
 
     #if defined(CONFIG_5D3)
     /**
@@ -2589,10 +2631,20 @@ static MENU_UPDATE_FUNC(edmac_display)
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    if (edmac_selection == 0) // overview
+    if (edmac_selection == 0 || edmac_selection == 1) // overview
     {
-        edmac_display_page(0, 0, 30);
-        edmac_display_page(16, 360, 30);
+        if (edmac_selection == 0)
+        {
+            edmac_display_page(0, 0, 30);
+            edmac_display_page(16, 360, 30);
+        }
+        else
+        {
+            edmac_display_page(16, 0, 30);
+            #ifdef CONFIG_DIGIC_V
+            edmac_display_page(32, 360, 30);
+            #endif
+        }
 
         //~ int x = 20;
         bmp_printf(
@@ -2617,7 +2669,7 @@ static MENU_UPDATE_FUNC(edmac_display)
     }
     else // detailed view
     {
-        edmac_display_detailed(edmac_selection - 1);
+        edmac_display_detailed(edmac_selection - 2);
     }
 }
 #endif
@@ -2969,7 +3021,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "EDMAC display",
                 .priv = &edmac_selection,
-                .max = 48,
+                .max = 49,
                 .update = edmac_display,
             },
             MENU_EOL
@@ -3704,7 +3756,6 @@ bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 static int zoom_in_pressed = 0;
 static int zoom_out_pressed = 0;
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-int joy_center_pressed = 0;
 
 int handle_buttons_being_held(struct event * event)
 {
@@ -3712,10 +3763,6 @@ int handle_buttons_being_held(struct event * event)
     #ifdef CONFIG_5DC
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-    #endif
-    #ifdef BGMT_JOY_CENTER
-    if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
-    if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif
     #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }

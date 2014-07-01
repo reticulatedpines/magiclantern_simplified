@@ -21,15 +21,26 @@ my_fprintf(
 )
 {
     va_list         ap;
-
-    char* buf = fio_malloc(4096);
-
-    va_start( ap, fmt );
-    int len = vsnprintf( buf, 4095, fmt, ap );
-    va_end( ap );
-
-    FIO_WriteFile( file, buf, len );
-    fio_free(buf);
+    int len = 0;
+    
+    int maxlen = 1024;
+    char* buf = fio_malloc(maxlen);
+    
+    if (!buf)
+    {
+        maxlen = 128;
+        buf = fio_malloc(maxlen);
+    }
+    
+    if (buf)
+    {
+        va_start( ap, fmt );
+        len = vsnprintf( buf, maxlen-1, fmt, ap );
+        va_end( ap );
+        FIO_WriteFile( file, buf, len );
+        fio_free(buf);
+    }
+    
     return len;
 }
 
