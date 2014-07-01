@@ -58,8 +58,10 @@ static int translate_scancode(int scancode)
         case 0x32: return BGMT_MENU;                    /* M */
         case 0x39: return BGMT_PRESS_SET;               /* space */
         case 0xB9: return BGMT_UNPRESS_SET;
+        #ifdef BGMT_JOY_CENTER
         case 0x2D: return BGMT_JOY_CENTER;              /* X */
         case 0xAD: return BGMT_UNPRESS_UDLR;
+        #endif
         case 0x1A: return BGMT_WHEEL_LEFT;              /* [ and ] */
         case 0x1B: return BGMT_WHEEL_RIGHT;
         case 0x19: return BGMT_PLAY;                    /* P */
@@ -89,7 +91,11 @@ static int translate_scancode(int scancode)
                 case 0xC8:
                 case 0xCB:
                 case 0xD0:
+                #ifdef BGMT_UNPRESS_UDLR
                 case 0xCD: return BGMT_UNPRESS_UDLR;
+                #else
+                case 0xCD: return BGMT_UNPRESS_LEFT;    /* fixme: not correct, but enough for ML menu */
+                #endif
                 case 0x49: return BGMT_WHEEL_UP;        /* page up */
                 case 0x51: return BGMT_WHEEL_DOWN;
                 case 0x53: return BGMT_TRASH;           /* delete */
@@ -272,7 +278,10 @@ void qemu_cam_init()
     toggle_display_type();
 
     // fake display on
-    #ifdef DISPLAY_STATEOBJ
+    #if defined(CONFIG_550D)
+    extern int display_is_on_550D;
+    display_is_on_550D = 1;
+    #elif defined(DISPLAY_STATEOBJ)
     DISPLAY_STATEOBJ->current_state = 1;
     #else
     DISPLAY_IS_ON = 1;

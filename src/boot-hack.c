@@ -260,7 +260,9 @@ my_task_dispatch_hook(
     
     if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
         (   /* only start some whitelisted Canon tasks */
+            #ifndef CONFIG_550D
             !streq(task_name, "Startup") &&
+            #endif
             !streq(task_name, "TaskMain") &&
             !streq(task_name, "PowerMgr") &&
             !streq(task_name, "EventMgr") &&
