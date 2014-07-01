@@ -6,5 +6,6 @@
 #define VOI_STATE (*(struct state_object **)0x269D8)
 #define EVF_STATE (*(struct state_object **)0x4ff8)
 #define MOVREC_STATE (*(struct state_object **)0x5A40)
+#define SDS_FRONT3_STATE (*(struct state_object **)0x3A84)
 
 #endif // __platform_state_object_h
