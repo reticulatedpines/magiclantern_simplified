@@ -89,9 +89,12 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
 #endif
 
-#ifdef CONFIG_5D3
-//~ #define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)  /* 113 */
-#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
+#ifdef CONFIG_5D3_113
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#endif
+
+#ifdef CONFIG_5D3_123
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
 #endif
 
 #else
@@ -155,7 +158,15 @@ void raw_buffer_intercept_from_stateobj()
  * note: values are off by 1
  */
 #define PREFERRED_RAW_TYPE 16
+
+#ifdef CONFIG_5D3_113
+#define RAW_TYPE_ADDRESS 0x2D168
+#endif
+
+#ifdef CONFIG_5D3_123
 #define RAW_TYPE_ADDRESS 0x2D0E0
+#endif
+
 #endif
 
 /**
