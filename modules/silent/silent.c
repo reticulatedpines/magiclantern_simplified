@@ -718,12 +718,6 @@ silent_pic_take_fullres(int interactive)
     int t1 = get_ms_clock_value();
     info_led_off();
     
-    /* 
-     * This goes out of factory mode (SRM_ChangeMemoryManagementForImage)
-     * and deallocates the job object (DeleteSkeltonJob)
-     */
-    call("FA_DeleteTestImage", job);
-    
     /* tell the raw backend to catch the raw buffer address from RAW_PHOTO_EDMAC */
     void raw_buffer_intercept_from_stateobj();
     raw_buffer_intercept_from_stateobj();
@@ -745,17 +739,36 @@ silent_pic_take_fullres(int interactive)
 
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
-    
-    /* leave some time for overlays to get displayed */
-    /* (fixme: saving the DNG will destroy the contents of the raw buffer) */
-    msleep(2000);
 
-    /* save the raw image as DNG */
-    char* fn = silent_pic_get_name();
-    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-    bmp_printf(FONT_MED, 0, 85, "Captured in %d ms.", t1 - t0);
-    silent_pic_save_dng(fn, &local_raw_info);
-    bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
+    /* make a copy of the image, because save_dng will overwrite the contents of the raw buffer */
+    struct JobClass * copy_job = (void*) call("FA_CreateTestImage");
+    void* copy_buf = (void*) call("FA_GetCrawBuf", copy_job);
+    
+    if (copy_buf)
+    {
+        /* save the raw image as DNG */
+        char* fn = silent_pic_get_name();
+        bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
+        bmp_printf(FONT_MED, 0, 85, "Captured in %d ms.", t1 - t0);
+        
+        local_raw_info.buffer = copy_buf;
+        memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
+        silent_pic_save_dng(fn, &local_raw_info);
+        
+        bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
+    }
+    else
+    {
+        bmp_printf(FONT_MED, 0, 0, "Memory error");
+    }
+
+    /* 
+     * This deallocates the job object (DeleteSkeltonJob),
+     * and after the last job is deallocated, it gets out of factory mode
+     * (SRM_ChangeMemoryManagementForImage)
+     */
+    call("FA_DeleteTestImage", job);
+    call("FA_DeleteTestImage", copy_job);
 }
 
 static unsigned int
