@@ -678,6 +678,10 @@ silent_pic_take_fullres(int interactive)
 {
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
+    
+    /* block all keys until finished, to avoid errors */
+    gui_uilock(UILOCK_EVERYTHING);
+
     clrscr();
     vram_clear_lv();
 
@@ -687,6 +691,7 @@ silent_pic_take_fullres(int interactive)
     {
         bmp_printf(FONT_MED, 0, 0, "Exposure too long");
         msleep(2000);
+        gui_uilock(UILOCK_NONE);
         ResumeLiveView();
         return;
     }
@@ -725,6 +730,7 @@ silent_pic_take_fullres(int interactive)
     /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
     int new_gui = GUISTATE_QR;
     prop_request_change_wait(PROP_GUI_STATE, &new_gui, 4, 1000);
+    gui_uilock(UILOCK_EVERYTHING);
     
     /* preview the raw image */
     raw_set_dirty();
@@ -732,6 +738,7 @@ silent_pic_take_fullres(int interactive)
     if (!ok)
     {
         bmp_printf(FONT_MED, 0, 0, "Raw error");
+        gui_uilock(UILOCK_NONE);
         return;
     }
     clrscr();
@@ -769,6 +776,8 @@ silent_pic_take_fullres(int interactive)
      */
     call("FA_DeleteTestImage", job);
     call("FA_DeleteTestImage", copy_job);
+    
+    gui_uilock(UILOCK_NONE);
 }
 
 static unsigned int
