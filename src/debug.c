@@ -363,6 +363,50 @@ static void bsod()
 static void run_test()
 {
     msleep(2000);
+
+    console_show();
+    msleep(2000);
+    
+    struct memSuite * suite = shoot_malloc_suite(0);
+    printf("hSuite %x (%s)\n", suite, format_memory_size(suite->size));
+    msleep(1000);
+    
+    /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
+    /* 50D/500D have 27M, 5D3 has 40 */
+    for (int i = 0; i < 1000; i++)
+    {
+        void* buf1 = malloc(25*1024*1024);
+        printf("malloc(25M) => %x\n", buf1);
+        
+        void* buf2 = malloc(25*1024*1024);
+        printf("malloc(25M) => %x\n", buf2);
+
+        /* we must be able to free them in any order, even if the backend doesn't allow that */
+        if (rand()%2)
+        {
+            free(buf1);
+            free(buf2);
+        }
+        else
+        {
+            free(buf2);
+            free(buf1);
+        }
+
+        if (i == 0)
+        {
+            /* delay the first iteration, so you can see what's going on */
+            /* also save a screenshot */
+            msleep(5000);
+            take_screenshot(0, SCREENSHOT_BMP);
+        }
+    }
+    
+    shoot_free_suite(suite);
+    
+    return;
+    
+    /* todo: cleanup the following tests and move them in the mem_chk module */
     
     /* allocate up to 50000 small blocks of RAM, 32K each */
     int N = 50000;
