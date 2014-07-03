@@ -2,6 +2,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "property.h"
 
 extern void* _malloc(size_t size);
 extern void _free(void* ptr);
@@ -332,8 +333,23 @@ void exmem_test()
 }
 #endif
 
+/* SRM job memory */
+
+/* These buffers must be freed in the same order as allocated. */
+/* To keep things simple, let's allow a single allocation call at a time */
+/* (no other tasks will be able to use it until the original task frees what it got) */
+static int srm_allocated = 0;
+
+/* There are a few fixed-size buffers; the exact size is camera-specific (RAW buffer size, 30-40 MB) */
+/* and will be detected upon first allocation */
 static uint32_t srm_buffer_size = 0;
+
+/* used to know when allocation was done */
 static struct semaphore * srm_alloc_sem = 0;
+
+/* after allocating this buffer, you can no longer take pictures; will lock the shutter to prevent it */
+PROP_INT(PROP_ICU_UILOCK, uilock);
+static uint32_t old_uilock_shutter;
 
 static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
 {
@@ -357,6 +373,12 @@ static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer
 
 struct memSuite * srm_malloc_suite(int num_requested_buffers)
 {
+    if (srm_allocated)
+    {
+        /* only one task can alloc it at a time */
+        return 0;
+    }
+    
     void* buffers[10];
     
     if (num_requested_buffers <= 0)
@@ -399,6 +421,12 @@ struct memSuite * srm_malloc_suite(int num_requested_buffers)
         AddMemoryChunk(suite, chunk);
     }
     
+    /* after allocating this, you can no longer take pictures (ERR70) */
+    /* block the shutter button to avoid it (only touch the shutter-related bits, just in case) */
+    old_uilock_shutter = uilock & UILOCK_SHUTTER;
+    gui_uilock(uilock | UILOCK_SHUTTER);
+    
+    srm_allocated = 1;
     return suite;
 }
 
@@ -421,6 +449,12 @@ void srm_free_suite(struct memSuite * suite)
     
     /* after freeing the big buffers, this will free the memory suite and the chunks (the data structures) */
     DeleteMemorySuite(suite);
+
+    /* unlock the shutter button (only touch the shutter-related bits, just in case) */
+    int unlocked_shutter = (uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
+    gui_uilock(unlocked_shutter);
+    
+    srm_allocated = 0;
 }
 
 static void exmem_init()
