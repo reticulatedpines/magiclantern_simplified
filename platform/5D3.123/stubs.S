@@ -199,6 +199,12 @@ NSTUB(0xFF13C35C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF9FB990 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFF9FB368 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF9FC12C - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xff9fadc4 - RAM_OFFSET,  CreateMemoryChunk)
+NSTUB(0xff9fb8c0 - RAM_OFFSET,  AddMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xff0ee3e8,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xff0f18f8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
