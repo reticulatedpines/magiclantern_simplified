@@ -190,6 +190,8 @@ static struct mem_allocator allocators[] = {
         .get_free_space = _srm_get_free_space,
         .get_max_region = _srm_get_max_region,
 
+        .is_preferred_for_temporary_space = 2,  /* prefer not to use it, use shoot_malloc if you can */
+
         /* only use it for huge buffers */
         .minimum_alloc_size = 25 * 1024 * 1024,
     },
@@ -576,7 +578,8 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
     {
         int has_non_dma = allocators[a].malloc ? 1 : 0;
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
-        int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
+        int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space;
+        if (!preferred_for_tmp) preferred_for_tmp = -1;
 
         /* do we need DMA? */
         if (!(
@@ -659,7 +662,7 @@ static int choose_allocator(int size, unsigned int flags)
     /* note: free space routines may be queried more than once (this can be optimized) */
     
     int needs_dma = (flags & MEM_DMA) ? 1 : 0;
-    int prefers_tmp = (flags & MEM_TEMPORARY) ? 1 : -1;
+    int prefers_tmp = (flags & MEM_TEMPORARY) ? 1 : (flags & MEM_SRM) ? 2 : -1;
     
     int a;
     
