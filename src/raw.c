@@ -117,7 +117,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_60D) || defined(CONFIG_550D)
+#if defined(CONFIG_5D2) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
@@ -653,12 +653,11 @@ static int raw_update_params_work()
         #ifdef CONFIG_500D
         /* from debug log: [TTJ][150,5401,0] RAW(4832,3204,0,14) */
         width = 4832;
-        height = 3204;
+        height = 3201;
         skip_left = 62;
-        skip_top = 26;
-        /* also we have a 40-pixel border on the right that contains image data */
-        /* for some reason, we need to go back by 28 lines to find the top OB area */
-        raw_info.buffer -= 40*14/8 + 28*width*14/8;
+        skip_top = 24;
+        /* skip one line */
+        raw_info.buffer += width * 14/8;
         #endif
 
         #ifdef CONFIG_550D
