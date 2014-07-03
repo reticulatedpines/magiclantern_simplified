@@ -3,6 +3,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "property.h"
+#include "lens.h"
 
 extern void* _malloc(size_t size);
 extern void _free(void* ptr);
@@ -347,10 +348,6 @@ static uint32_t srm_buffer_size = 0;
 /* used to know when allocation was done */
 static struct semaphore * srm_alloc_sem = 0;
 
-/* after allocating this buffer, you can no longer take pictures; will lock the shutter to prevent it */
-PROP_INT(PROP_ICU_UILOCK, uilock);
-static uint32_t old_uilock_shutter;
-
 static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
 {
     if (!srm_buffer_size)
@@ -371,6 +368,26 @@ static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer
     give_semaphore(srm_alloc_sem);
 }
 
+/* after allocating this buffer, you can no longer take pictures (ERR70); will lock the shutter to prevent it */
+PROP_INT(PROP_ICU_UILOCK, uilock);
+static uint32_t old_uilock_shutter;
+
+static void srm_shutter_lock()
+{
+    /* block the shutter button to avoid ERR70 */
+    /* (only touch the shutter-related bits, just in case) */
+    old_uilock_shutter = uilock & UILOCK_SHUTTER;
+    gui_uilock(uilock | UILOCK_SHUTTER);
+}
+
+static void srm_shutter_unlock()
+{
+    /* unlock the shutter button */
+    /* (only touch the shutter-related bits, just in case) */
+    int unlocked_shutter = (uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
+    gui_uilock(unlocked_shutter);
+}
+
 struct memSuite * _srm_malloc_suite(int num_requested_buffers)
 {
     printf("srm_malloc_suite(%d)...\n", num_requested_buffers);
@@ -381,6 +398,22 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
         return 0;
     }
     
+    if (lens_info.job_state)
+    {
+        /* this can't work in parallel with taking pictures */
+        return 0;
+    }
+    
+    srm_shutter_lock();
+
+    if (lens_info.job_state)
+    {
+        /* did you manage to press the shutter meanwhile? */
+        /* you should go to a race contest :) */
+        srm_shutter_unlock();
+        return 0;
+    }
+
     void* buffers[10];
     
     if (num_requested_buffers <= 0)
@@ -411,6 +444,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     
     if (num_buffers == 0)
     {
+        srm_shutter_unlock();
         return 0;
     }
     
@@ -424,11 +458,6 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
         ASSERT(chunk);
         AddMemoryChunk(suite, chunk);
     }
-    
-    /* after allocating this, you can no longer take pictures (ERR70) */
-    /* block the shutter button to avoid it (only touch the shutter-related bits, just in case) */
-    old_uilock_shutter = uilock & UILOCK_SHUTTER;
-    gui_uilock(uilock | UILOCK_SHUTTER);
     
     printf("srm_malloc_suite => %x\n", suite);
     srm_allocated = 1;
@@ -456,11 +485,8 @@ void _srm_free_suite(struct memSuite * suite)
     
     /* after freeing the big buffers, this will free the memory suite and the chunks (the data structures) */
     DeleteMemorySuite(suite);
-
-    /* unlock the shutter button (only touch the shutter-related bits, just in case) */
-    int unlocked_shutter = (uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
-    gui_uilock(unlocked_shutter);
     
+    srm_shutter_unlock();
     srm_allocated = 0;
 }
 

@@ -367,6 +367,7 @@ static void run_test()
     console_show();
     msleep(2000);
     
+    /* comment out this if you want to take pictures during the test */
     struct memSuite * suite = shoot_malloc_suite(0);
     printf("hSuite %x (%s)\n", suite, format_memory_size(suite->size));
     msleep(1000);
@@ -399,6 +400,12 @@ static void run_test()
             /* also save a screenshot */
             msleep(5000);
             take_screenshot(0, SCREENSHOT_BMP);
+        }
+        
+        if (!buf1 || !buf2)
+        {
+            /* allocation failed? wait before retrying */
+            msleep(1000);
         }
     }
     
