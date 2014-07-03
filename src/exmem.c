@@ -332,10 +332,102 @@ void exmem_test()
 }
 #endif
 
+static uint32_t srm_buffer_size = 0;
+static struct semaphore * srm_alloc_sem = 0;
+
+static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
+{
+    if (!srm_buffer_size)
+    {
+        /* we can't tell how much to allocate; the allocator tells us */
+        srm_buffer_size = raw_buffer_size;
+    }
+    else
+    {
+        /* it should tell us the same thing every time */
+        ASSERT(srm_buffer_size == raw_buffer_size);
+    }
+    
+    /* return the newly allocated buffer in the output variable */
+    *dst_ptr = raw_buffer;
+    
+    /* announce it's done */
+    give_semaphore(srm_alloc_sem);
+}
+
+struct memSuite * srm_malloc_suite(int num_requested_buffers)
+{
+    void* buffers[10];
+    
+    if (num_requested_buffers <= 0)
+    {
+        /* if you request 0, this means allocate as much as you can */
+        num_requested_buffers = COUNT(buffers);
+    }
+    
+    int num_buffers = 0;
+    
+    /* try to allocate the number of requested buffers (or less, if not possible) */
+    for (num_buffers = 0; num_buffers < MIN(num_requested_buffers, COUNT(buffers)); num_buffers++)
+    {
+        /* allocate a large contiguous buffer, normally used for RAW photo capture */
+        buffers[num_buffers] = 0;
+        SRM_AllocateMemoryResourceFor1stJob(srm_malloc_cbr, &buffers[num_buffers]);
+        int err = take_semaphore(srm_alloc_sem, 100);
+
+        if (err)
+        {
+            /* the call will time out when there's no more RAM, and the request will be dropped */
+            /* (unlike shoot_malloc, here it won't trigger the CBR after freeing something) */
+            break;
+        }
+    }
+    
+    if (num_buffers == 0)
+    {
+        return 0;
+    }
+    
+    /* pack the buffers into a memory suite, so they can be used in the same way as with shoot_malloc_suite */
+    struct memSuite * suite = CreateMemorySuite(buffers[0], srm_buffer_size, 0);
+    ASSERT(suite);
+    
+    for (int i = 1; i < num_buffers; i++)
+    {
+        struct memChunk * chunk = CreateMemoryChunk(buffers[i], srm_buffer_size, 0);
+        ASSERT(chunk);
+        AddMemoryChunk(suite, chunk);
+    }
+    
+    return suite;
+}
+
+void srm_free_suite(struct memSuite * suite)
+{
+    struct memChunk * chunk = GetFirstChunkFromSuite(suite);
+
+    while(chunk)
+    {
+        /* make sure we have a suite returned by srm_malloc_suite */
+        uint32_t size = GetSizeOfMemoryChunk(chunk);
+        ASSERT(size == srm_buffer_size);
+        
+        /* we need to delete each chunk in exactly the same order as we have allocated them */
+        void* buf = GetMemoryAddressOfMemoryChunk(chunk);
+        SRM_FreeMemoryResourceFor1stJob(buf, 0, 0);
+        
+        chunk = GetNextMemoryChunk(suite, chunk);
+    }
+    
+    /* after freeing the big buffers, this will free the memory suite and the chunks (the data structures) */
+    DeleteMemorySuite(suite);
+}
+
 static void exmem_init()
 {
     alloc_sem = create_named_semaphore(0,0);
     free_sem = create_named_semaphore(0,0);
+    srm_alloc_sem = create_named_semaphore(0,0);
 }
 
 INIT_FUNC("exmem", exmem_init);
