@@ -188,10 +188,10 @@ static struct mem_allocator allocators[] = {
         .malloc_dma = _srm_malloc,       /* can be used for both cacheable and uncacheable memory */
         .free_dma = _srm_free,
         .get_free_space = _srm_get_free_space,
-        .get_max_region = _srm_get_free_space,
+        .get_max_region = _srm_get_max_region,
 
         /* only use it for huge buffers */
-        .minimum_alloc_size = 30 * 1024 * 1024,
+        .minimum_alloc_size = 25 * 1024 * 1024,
     },
 #endif
 };
@@ -933,7 +933,7 @@ static void guess_free_mem_task(void* priv, int delta)
     _shoot_free_suite(hSuite);
 
     /* test the new SRM job allocator */
-    hSuite = srm_malloc_suite(0);
+    hSuite = _srm_malloc_suite(0);
     
     if (!hSuite)
     {
@@ -962,7 +962,7 @@ static void guess_free_mem_task(void* priv, int delta)
 
     ASSERT(srm_buffer_size * srm_num_buffers == hSuite->size);
     
-    srm_free_suite(hSuite);
+    _srm_free_suite(hSuite);
 
     /* mallocs can resume now */
     give_semaphore(mem_sem);

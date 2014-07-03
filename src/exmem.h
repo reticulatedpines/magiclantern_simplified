@@ -67,10 +67,13 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size);
 void * _shoot_malloc( size_t len );
 void _shoot_free( void * buf );
 
-/* similar to shoot_malloc, but limited to a single large buffer for now */
+/* similar to shoot_malloc, for very large buffers (32-40 MB) */
+/* usage caveat: you *must* free these as soon as you finish working with them,
+ * because you can't take pictures as long as one of those is allocated */
 void* _srm_malloc(size_t size);
 void _srm_free(void* ptr);
 int _srm_get_free_space();
+int _srm_get_max_region();
 struct memSuite * _srm_malloc_suite(int num_requested_buffers);
 void _srm_free_suite(struct memSuite * suite);
 

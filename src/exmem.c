@@ -457,50 +457,155 @@ void _srm_free_suite(struct memSuite * suite)
     srm_allocated = 0;
 }
 
+/* malloc-like wrapper for the SRM buffers */
+struct srm_malloc_buf
+{
+    void* buffer;
+    int used;
+};
+
+static struct memSuite * srm_malloc_hSuite = 0;
+static struct srm_malloc_buf srm_malloc_buffers[10] = {{0}};
+
 /* similar to shoot_malloc, but limited to a single large buffer for now */
 void* _srm_malloc(size_t size)
 {
-    struct memSuite * theSuite = _srm_malloc_suite(1);
-    if (!theSuite) return 0;
+    if (!srm_malloc_hSuite)
+    {
+        /*
+         * allocate everything on first call
+         * (since other tasks can't allocate from this buffer anymore anyway,
+         * there's nothing to lose - other than 100ms for autodetection
+         */
+        srm_malloc_hSuite = _srm_malloc_suite(0);
+        
+        if (!srm_malloc_hSuite)
+        {
+            /* what the duck? */
+            return 0;
+        }
+        
+        /* let's see what we've got here */
+        struct memChunk * chunk = GetFirstChunkFromSuite(srm_malloc_hSuite);
+        int i = 0;
+
+        while(chunk)
+        {
+            /* make sure we have a suite returned by srm_malloc_suite */
+            uint32_t size = GetSizeOfMemoryChunk(chunk);
+            ASSERT(size == srm_buffer_size);
+            
+            /* populate the buffers available for this large malloc, and mark them as unused */
+            void* buffer = GetMemoryAddressOfMemoryChunk(chunk);
+            ASSERT(buffer);
+            srm_malloc_buffers[i].buffer = buffer;
+            srm_malloc_buffers[i].used = 0;
+            
+            chunk = GetNextMemoryChunk(srm_malloc_hSuite, chunk);
+            i++;
+        }
+    }
     
-    /* now we only have to tweak some things so it behaves like plain malloc */
-    void* hChunk = (void*) GetFirstChunkFromSuite(theSuite);
-    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+    /* find the first unused buffer */
+    void* buffer = 0;
+    for (int i = 0; i < srm_malloc_hSuite->num_chunks; i++)
+    {
+        if (!srm_malloc_buffers[i].used)
+        {
+            buffer = srm_malloc_buffers[i].buffer;
+            srm_malloc_buffers[i].used = 1;
+            break;
+        }
+    }
     
     /* here we can't request a certain size; we can just check whether we got enough, or not */
-    size_t allocated_size = GetSizeOfMemoryChunk(hChunk);
-    if (allocated_size < size + 4)
+    /* note: size checking is done after allocating, in order to simplify the deallocation code */
+    if (srm_buffer_size < size + 4)
     {
         /* not enough */
-        _srm_free_suite(theSuite);
+        _srm_free(buffer);
         return 0;
     }
     
-    *(struct memSuite **)ptr = theSuite;
-    //~ printf("srm_malloc(%s) => %x hSuite=%x\n", format_memory_size(size), ptr+4, theSuite);
-    return ptr + 4;
+    return buffer;
 }
 
 void _srm_free(void* ptr)
 {
     if (!ptr) return;
-    if ((intptr_t)ptr & 3) return;
-    struct memSuite * hSuite = *(struct memSuite **)(ptr - 4);
-    //~ printf("shoot_free(%x) hSuite=%x\n", ptr, hSuite);
-    _srm_free_suite(hSuite);
+
+    /* identify the buffer from its pointer, and mark it as unused */
+    /* also count how many used buffers are left */
+    int buffers_used = 0;
+    for (int i = 0; i < srm_malloc_hSuite->num_chunks; i++)
+    {
+        if (srm_malloc_buffers[i].used && srm_malloc_buffers[i].buffer == ptr)
+        {
+            srm_malloc_buffers[i].used = 0;
+        }
+        
+        if (srm_malloc_buffers[i].used)
+        {
+            buffers_used++;
+        }
+    }
+
+    if (buffers_used == 0)
+    {
+        /* no more buffers used? deallocate the suite from the system */
+        _srm_free_suite(srm_malloc_hSuite);
+        srm_malloc_hSuite = 0;
+    }
+}
+
+int _srm_get_max_region()
+{
+    if (!srm_buffer_size)
+    {
+        /* do a quick test malloc just to check the size */
+        void* test_suite = _srm_malloc_suite(1);
+        if (test_suite) _srm_free_suite(test_suite);
+    }
+    
+    return srm_buffer_size;
 }
 
 int _srm_get_free_space()
 {
-    if (srm_allocated)
+    if (!srm_malloc_hSuite)
     {
-        /* can't alloc any more */
-        return 0;
+        if (srm_allocated)
+        {
+            /* somebody else already allocated everything */
+            return 0;
+        }
     }
     
-    /* bogus value, slightly larger than real, so the memory backend will try this one */
-    /* there's no other way to get such large buffers, so there's nothing to lose by trying it */
-    return 40*1024*1024;
+    if (!srm_buffer_size)
+    {
+        /* do a quick test malloc just to check the size */
+        void* test_suite = _srm_malloc_suite(1);
+        if (test_suite) _srm_free_suite(test_suite);
+    }
+    
+    if (srm_malloc_hSuite)
+    {
+        /* we already have some malloc's from this buffer; let's see if there's anything left */
+        int buffers_used = 0;
+        for (int i = 0; i < srm_malloc_hSuite->num_chunks; i++)
+        {
+            if (srm_malloc_buffers[i].used)
+            {
+                buffers_used++;
+            }
+        }
+        
+        int buffers_free = srm_malloc_hSuite->num_chunks - buffers_used;
+        return srm_buffer_size * buffers_free;
+    }
+    
+    /* assume we have at least one buffer */
+    return srm_buffer_size;
 }
 
 static void exmem_init()
