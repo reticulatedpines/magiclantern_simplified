@@ -365,22 +365,25 @@ static void run_test()
     msleep(2000);
 
     console_show();
-    msleep(2000);
+    msleep(1000);
+    printf("Try taking some pictures during this test!\n");
     
-    /* comment out this if you want to take pictures during the test */
-    struct memSuite * suite = shoot_malloc_suite(0);
-    printf("hSuite %x (%s)\n", suite, format_memory_size(suite->size));
+    /* let's see how much RAM we can get */
+    struct memSuite * suite = srm_malloc_suite(0);
+    struct memChunk * chunk = GetFirstChunkFromSuite(suite);
+    printf("hSuite %x (%dx%s)\n", suite, suite->num_chunks, format_memory_size(chunk->size));
+    srm_free_suite(suite);
     msleep(1000);
     
     /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
     /* 50D/500D have 27M, 5D3 has 40 */
     for (int i = 0; i < 1000; i++)
     {
-        void* buf1 = malloc(25*1024*1024);
-        printf("malloc(25M) => %x\n", buf1);
+        void* buf1 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf1);
         
-        void* buf2 = malloc(25*1024*1024);
-        printf("malloc(25M) => %x\n", buf2);
+        void* buf2 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf2);
 
         /* we must be able to free them in any order, even if the backend doesn't allow that */
         if (rand()%2)
@@ -409,10 +412,8 @@ static void run_test()
         }
     }
     
-    shoot_free_suite(suite);
-    
     return;
-    
+        
     /* todo: cleanup the following tests and move them in the mem_chk module */
     
     /* allocate up to 50000 small blocks of RAM, 32K each */
