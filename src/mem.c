@@ -819,6 +819,8 @@ static int stack_size_crit(int x)
     return -1;
 }
 
+static int srm_num_buffers = 0;
+static int srm_buffer_size = 0;
 static int max_shoot_malloc_mem = 0;
 static int max_shoot_malloc_frag_mem = 0;
 static char shoot_malloc_frag_desc[70] = "";
@@ -898,6 +900,38 @@ static void guess_free_mem_task(void* priv, int delta)
     exmem_clear(hSuite, 0);
 
     _shoot_free_suite(hSuite);
+
+    /* test the new SRM job allocator */
+    hSuite = srm_malloc_suite(0);
+    
+    if (!hSuite)
+    {
+        beep();
+        guess_mem_running = 0;
+        give_semaphore(mem_sem);
+        return;
+    }
+    
+    srm_num_buffers = hSuite->num_chunks;
+    currentChunk = GetFirstChunkFromSuite(hSuite);
+    srm_buffer_size = GetSizeOfMemoryChunk(currentChunk);
+
+    while(currentChunk)
+    {
+        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+        chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
+        ASSERT(chunkAvail == srm_buffer_size);
+
+        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
+        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
+        memset(memory_map + start, COLOR_CYAN, width);
+
+        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
+    }
+
+    ASSERT(srm_buffer_size * srm_num_buffers == hSuite->size);
+    
+    srm_free_suite(hSuite);
 
     /* mallocs can resume now */
     give_semaphore(mem_sem);
@@ -1030,7 +1064,12 @@ static MENU_UPDATE_FUNC(meminfo_display)
             }
             break;
 
-        case 6: // autoexec size
+        case 6: // srm job
+            MENU_SET_VALUE("%d" SYM_TIMES "%s", srm_num_buffers, format_memory_size(srm_buffer_size));
+            guess_needed = 1;
+            break;
+
+        case 7: // autoexec size
         {
             extern uint32_t ml_reserved_mem;
             extern uint32_t ml_used_mem;
@@ -1068,7 +1107,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
     if (guess_mem_running)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
     else
-        MENU_SET_HELP("GREEN=free shoot, BLUE=00/FF maybe free, RED=maybe used");
+        MENU_SET_HELP("GREEN=shoot, CYAN=srm, BLUE=maybe free, RED=maybe used.");
 #endif
 }
 
@@ -1294,9 +1333,16 @@ static struct menu_entry mem_menus[] = {
                 .help = "Largest fragmented block from shoot memory.",
             },
             {
-                .name = "AUTOEXEC.BIN",
+                .name = "SRM job total",
                 .icon_type = IT_ALWAYS_ON,
                 .priv = (int*)6,
+                .update = meminfo_display,
+                .help = "Free memory from SRM_AllocateMemoryResourceFor1stJob.",
+            },
+            {
+                .name = "AUTOEXEC.BIN",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)7,
                 .update = meminfo_display,
                 .help = "Memory reserved statically at startup for ML binary.",
             },
