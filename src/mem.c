@@ -178,6 +178,22 @@ static struct mem_allocator allocators[] = {
         .minimum_alloc_size = 5 * 1024,
     },
 #endif
+
+#if 1
+    /* large buffers (30-40 MB), but you can't even take a picture with one of those allocated */
+    {
+        .name = "srm_malloc",
+        .malloc = _srm_malloc,
+        .free = _srm_free,
+        .malloc_dma = _srm_malloc,       /* can be used for both cacheable and uncacheable memory */
+        .free_dma = _srm_free,
+        .get_free_space = _srm_get_free_space,
+        .get_max_region = _srm_get_free_space,
+
+        /* only use it for huge buffers */
+        .minimum_alloc_size = 30 * 1024 * 1024,
+    },
+#endif
 };
 
 /* total memory allocated (for printing it) */
@@ -772,6 +788,21 @@ void shoot_free_suite(struct memSuite * hSuite)
 {
     take_semaphore(mem_sem, 0);
     _shoot_free_suite(hSuite);
+    give_semaphore(mem_sem);
+}
+
+struct memSuite * srm_malloc_suite(int num_requested_buffers)
+{
+    take_semaphore(mem_sem, 0);
+    void* ans = _srm_malloc_suite(num_requested_buffers);
+    give_semaphore(mem_sem);
+    return ans;
+}
+
+void srm_free_suite(struct memSuite * suite)
+{
+    take_semaphore(mem_sem, 0);
+    _srm_free_suite(suite);
     give_semaphore(mem_sem);
 }
 

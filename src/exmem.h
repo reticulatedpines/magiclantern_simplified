@@ -67,6 +67,13 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size);
 void * _shoot_malloc( size_t len );
 void _shoot_free( void * buf );
 
+/* similar to shoot_malloc, but limited to a single large buffer for now */
+void* _srm_malloc(size_t size);
+void _srm_free(void* ptr);
+int _srm_get_free_space();
+struct memSuite * _srm_malloc_suite(int num_requested_buffers);
+void _srm_free_suite(struct memSuite * suite);
+
 void SRM_AllocateMemoryResourceFor1stJob(void (*callback)(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size), void** dst_ptr);
 void SRM_FreeMemoryResourceFor1stJob(void* raw_buffer, int unk1_zero, int unk2_zero);
 

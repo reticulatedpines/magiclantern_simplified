@@ -371,7 +371,7 @@ static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer
     give_semaphore(srm_alloc_sem);
 }
 
-struct memSuite * srm_malloc_suite(int num_requested_buffers)
+struct memSuite * _srm_malloc_suite(int num_requested_buffers)
 {
     if (srm_allocated)
     {
@@ -430,7 +430,7 @@ struct memSuite * srm_malloc_suite(int num_requested_buffers)
     return suite;
 }
 
-void srm_free_suite(struct memSuite * suite)
+void _srm_free_suite(struct memSuite * suite)
 {
     struct memChunk * chunk = GetFirstChunkFromSuite(suite);
 
@@ -455,6 +455,52 @@ void srm_free_suite(struct memSuite * suite)
     gui_uilock(unlocked_shutter);
     
     srm_allocated = 0;
+}
+
+/* similar to shoot_malloc, but limited to a single large buffer for now */
+void* _srm_malloc(size_t size)
+{
+    struct memSuite * theSuite = _srm_malloc_suite(1);
+    if (!theSuite) return 0;
+    
+    /* now we only have to tweak some things so it behaves like plain malloc */
+    void* hChunk = (void*) GetFirstChunkFromSuite(theSuite);
+    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+    
+    /* here we can't request a certain size; we can just check whether we got enough, or not */
+    size_t allocated_size = GetSizeOfMemoryChunk(hChunk);
+    if (allocated_size < size + 4)
+    {
+        /* not enough */
+        _srm_free_suite(theSuite);
+        return 0;
+    }
+    
+    *(struct memSuite **)ptr = theSuite;
+    //~ printf("srm_malloc(%s) => %x hSuite=%x\n", format_memory_size(size), ptr+4, theSuite);
+    return ptr + 4;
+}
+
+void _srm_free(void* ptr)
+{
+    if (!ptr) return;
+    if ((intptr_t)ptr & 3) return;
+    struct memSuite * hSuite = *(struct memSuite **)(ptr - 4);
+    //~ printf("shoot_free(%x) hSuite=%x\n", ptr, hSuite);
+    _srm_free_suite(hSuite);
+}
+
+int _srm_get_free_space()
+{
+    if (srm_allocated)
+    {
+        /* can't alloc any more */
+        return 0;
+    }
+    
+    /* bogus value, slightly larger than real, so the memory backend will try this one */
+    /* there's no other way to get such large buffers, so there's nothing to lose by trying it */
+    return 40*1024*1024;
 }
 
 static void exmem_init()
