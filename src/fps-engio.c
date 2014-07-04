@@ -851,6 +851,60 @@ static MENU_UPDATE_FUNC(desired_fps_print)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS value is computed from photo shutter speed.");
 }
 
+static MENU_UPDATE_FUNC(rolling_shutter_print)
+{
+    /* Timer A tells us how fast the rows are read out */
+    /* Timer A / main clock = time for reading one line */
+    /* Multiply by raw vertical resolution => rolling shutter */
+
+    int main_clock_div_timer_A = get_current_tg_freq();
+    float line_readout_time_us = 1.0e9f / main_clock_div_timer_A;
+    
+    int line_readout_time_us_x10 = (int)roundf(line_readout_time_us * 10.0f);
+
+    /* since we don't know exactly the recording resolution, that's the only reliable value that we can display */
+    MENU_SET_VALUE("%s%d.%d "SYM_MICRO"s / line", FMT_FIXEDPOINT1(line_readout_time_us_x10));
+    
+    int vertical_res = 0;
+    int horizontal_res = 0;
+    
+    if (raw_lv_is_enabled())
+    {
+        horizontal_res = raw_info.jpeg.width;
+        vertical_res = raw_info.jpeg.height;
+    }
+    
+    if (RECORDING_H264)
+    {
+        get_yuv422_hd_vram();
+        horizontal_res = vram_hd.width;
+        vertical_res = vram_hd.height;
+
+        if (video_mode_resolution <= 1)
+        {
+            /* guess how many pixels are actually used for 16:9 recording */
+            /* (the HD buffer might be a little larger than that) */
+            int vertical_res_16_9 = (horizontal_res * 9/16) & ~1;
+            vertical_res = MIN(vertical_res, vertical_res_16_9);
+        }
+    }
+    
+    /* trick to display status messages even with FPS override turned off */
+    int old_warn = info->warning_level;
+    info->warning_level = MENU_WARN_NONE;
+    
+    if (vertical_res)
+    {
+        int rolling_shutter_ms_x10 = (int)roundf(line_readout_time_us * vertical_res / 100.0f);
+        
+        MENU_SET_WARNING(MAX(MENU_WARN_INFO, old_warn), "Rolling shutter: %s%d.%d ms at %dx%d.", FMT_FIXEDPOINT1(rolling_shutter_ms_x10), horizontal_res, vertical_res);
+    }
+    else
+    {
+        MENU_SET_WARNING(MAX(MENU_WARN_ADVICE, old_warn), "Start recording to find out the vertical resolution.");
+    }
+}
+
 #if defined(NEW_FPS_METHOD)
 
 static int video_mode[10];
@@ -1385,6 +1439,13 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_current_print,
                 .icon_type = IT_ALWAYS_ON,
                 .help = "Exact FPS (computed). For fine tuning, change timer values.",
+            },
+
+            {
+                .name = "Rolling shutter",
+                .update = rolling_shutter_print,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Amount of jello effect. Multiply \""SYM_MICRO"s/line\" by vertical resolution.",
             },
 
             #ifdef CONFIG_FRAME_ISO_OVERRIDE
