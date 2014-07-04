@@ -1468,6 +1468,7 @@ static struct menu_entry fps_menu[] = {
                 .max = 1,
                 .help  = "Sync FPS with shutter speed, for long exposures in LiveView.",
                 .depends_on = DEP_PHOTO_MODE,
+                .advanced = 1,
             },
 
             #ifdef FEATURE_FPS_WAV_RECORD
