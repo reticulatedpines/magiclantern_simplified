@@ -8,16 +8,23 @@ struct memSuite
     char* signature; // MemSuite
     int size;
     int num_chunks;
-    int first_chunk_maybe;
+    void *last_chunk; // points to last chunks chunk.prev
+    void *first_chunk; // points to first chunks chunk.prev
+    int mem_type; // not used during free, so mem types may vary within a suite
 };
 
 struct memChunk
 {
     char* signature; // MemChunk
-    int off_0x04;
-    int next_chunk_maybe;
+    void *prev; // points to previous chunks chunk.prev or to suite.last_chunk
+    void *next; // points to next chunks chunk.prev or to suite.last_chunk
     int size;
     int remain;
+    void *heap_ptr;
+    void *memory_address;
+    int ring_heap_handle;
+    void (*free_cbr)(void *addr);
+    int mem_type;
 };
 
 #define CHECK_SUITE_SIGNATURE(suite) ASSERT(streq((suite)->signature, "MemSuite"));
