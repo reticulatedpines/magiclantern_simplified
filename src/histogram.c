@@ -699,24 +699,30 @@ static LVINFO_UPDATE_FUNC(histobar_update)
             int fg = item->color_fg;    /* outline color */
             int bg0 = item->color_bg;   /* background color */
             int bg = bg0;               /* fill color */
-            if (full) bg = fg;
-            if (ev == histobar_stops-1 && histobar_clipped > thr)
+
+            if (full)
             {
-                fg = bg = COLOR_RED;
+                bg = fg;
             }
-            else if (ev == 0 && full)
+
+            if (ev == histobar_midtone_level)
             {
-                fg = bg = COLOR_LIGHT_BLUE;
+                fg = bg = COLOR_YELLOW;
             }
             
             if (ev < histobar_shadow_level && full)
             {
                 fh = h/3;
             }
-            
-            if (ev == histobar_midtone_level)
+
+            if (ev == histobar_stops-1 && histobar_clipped > thr)
             {
-                fg = bg = COLOR_YELLOW;
+                fg = bg = COLOR_RED;
+                fh = h;
+            }
+            else if (ev == 0 && full)
+            {
+                fg = bg = COLOR_LIGHT_BLUE;
             }
             
             bmp_fill(bg0, x, y, w-2, h-fh);
