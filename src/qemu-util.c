@@ -1,7 +1,9 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "cache_hacks.h"
-#include "propvalues.h"
+#include "property.h"
+#include "raw.h"
+#include "lens.h"
 
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000
@@ -205,6 +207,26 @@ static void toggle_liveview()
         MEM(REG_IMG_VRAM) = YUV422_LV_BUFFER_1;
         MEM(REG_IMG_VRAM) = YUV422_LV_BUFFER_2;
         MEM(REG_IMG_VRAM) = YUV422_LV_BUFFER_3;
+        YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_3;
+        
+#if 0
+        /* load LV RAW buffer */
+        /* fixme: hardcoded, may overwrite something */
+        void* raw_buffer = 0x3F000000;
+        MEM(REG_RAW_BUFF) = raw_buffer;
+        MEM(0x2600C + 0x2c) = raw_buffer;   /* fixme: 5D3 113 only */
+        
+        /* simulate ISO, which gives white level and dynamic range in photo mode */
+        EngDrvOut(0xc0f08030, 0x10e7);
+        lens_info.raw_iso = ISO_3200;
+        lens_info.iso = 3200;
+        
+        /* preview the raw buffer, to make sure it was loaded correctly */
+        raw_lv_request();
+        raw_update_params();
+        raw_preview_fast();
+        raw_lv_release();
+#endif
 
         /* fill the gui_task_list structure with some dummy values, 
          * so ML code believes it's running on top of Canon's LV dialog 
@@ -286,4 +308,6 @@ void qemu_cam_init()
     #else
     DISPLAY_IS_ON = 1;
     #endif
+    
+    pic_quality = PICQ_RAW;
 }

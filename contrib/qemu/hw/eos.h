@@ -200,7 +200,7 @@ unsigned int eos_handler ( EOSState *ws, unsigned int address, unsigned char typ
 unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay);
 unsigned int flash_get_blocksize(unsigned int rom, unsigned int size, unsigned int word_offset);
 
-static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr);
+static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian);
 
 /* EOS ROM device */
 /* its not done yet */

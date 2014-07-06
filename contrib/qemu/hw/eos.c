@@ -115,6 +115,18 @@ static void eos_dump_vram(uint32_t address)
     fclose(f);
 }
 
+static void reverse_bytes_order(char* buf, int count)
+{
+    short* buf16 = (short*) buf;
+    int i;
+    for (i = 0; i < count/2; i++)
+    {
+        short x = buf16[i];
+        buf[2*i+1] = x;
+        buf[2*i] = x >> 8;
+    }
+}
+
 unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     if(type & MODE_WRITE)
@@ -146,7 +158,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
                 ws->img_vram = (uint32_t) value;
                 if (value)
                 {
-                    eos_load_image(ws, "LV-000.422", 0, -1, value);
+                    eos_load_image(ws, "LV-000.422", 0, -1, value, 0);
                 }
                 else
                 {
@@ -156,6 +168,15 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
             
             case REG_RAW_BUFF:
                 ws->raw_buff = (uint32_t) value;
+                if (value)
+                {
+                    /* fixme: hardcoded strip offset */
+                    eos_load_image(ws, "RAW-000.DNG", 33792, -1, value, 1);
+                }
+                else
+                {
+                    printf("Raw buffer disabled\n");
+                }
                 return 0;
 
             case REG_DISP_TYPE:
@@ -457,7 +478,7 @@ unsigned int eos_handle_ml_fio ( unsigned int parm, EOSState *ws, unsigned int a
     return 0;
 }
 
-static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr)
+static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian)
 {
     int size = get_image_size(file);
     if (size < 0)
@@ -491,6 +512,10 @@ static void eos_load_image(EOSState *s, const char* file, int offset, int max_si
 
     if ((max_size > 0) && (size > max_size)) {
         size = max_size;
+    }
+    
+    if (swap_endian) {
+        reverse_bytes_order(buf + offset, size);
     }
 
     cpu_physical_memory_write_rom(addr, buf + offset, size);
@@ -1003,9 +1028,9 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     EOSState *s = eos_init_cpu();
 
     /* populate ROM0 */
-    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR);
+    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
     /* populate ROM1 */
-    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR);
+    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
 
     s->cpu->env.regs[15] = rom_start;
 }
@@ -1015,15 +1040,15 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     EOSState *s = eos_init_cpu();
 
     /* populate ROM0 */
-    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR);
+    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
     /* populate ROM1 */
-    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR);
+    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
 
-    eos_load_image(s, "autoexec.bin", 0, -1, 0x00800000);
+    eos_load_image(s, "autoexec.bin", 0, -1, 0x00800000, 0);
 
     /* we will replace Canon stubs with our own implementations */
     /* see qemu-helper.c, stub_mappings[] */
-    eos_load_image(s, "qemu-helper.bin", 0, -1, Q_HELPER_ADDR);
+    eos_load_image(s, "qemu-helper.bin", 0, -1, Q_HELPER_ADDR, 0);
     uint32_t magic  = 0x12345678;
     uint32_t addr   = Q_HELPER_ADDR;
     while (eos_get_mem_w(s, addr) != magic || eos_get_mem_w(s, addr + 4) != magic)
