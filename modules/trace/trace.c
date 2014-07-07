@@ -417,17 +417,15 @@ uint32_t trace_vwrite(uint32_t context, tsc_t tsc, char *string, va_list ap)
         ctx->buffer_written += linebuffer_pos;
     }
     
-    sei(old_int);
-
     /* seems the string was too long */
     if(linebuffer_pos > available)
     {
         /* abort trace as data will be lost */
         ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
+        sei(old_int);
         free(linebuffer);
         return TRACE_ERROR;
     }
-
 
     /* successful, commit the buffer content */
     uint32_t commit_size = 0;
@@ -448,6 +446,8 @@ uint32_t trace_vwrite(uint32_t context, tsc_t tsc, char *string, va_list ap)
     {
         memcpy(ctx->buffer, &linebuffer[commit_size], linebuffer_pos - commit_size);
     }
+    
+    sei(old_int);
     
     /* wake up writer if buffer is getting full */
     if(ctx->buffer_written > ctx->buffer_size / 2)
