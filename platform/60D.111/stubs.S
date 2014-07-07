@@ -185,8 +185,14 @@ NSTUB(0xFF073C0C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF0710A8,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF070AF0,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF071840,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF070D34,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF070B64,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF070584,  CreateMemoryChunk)
+NSTUB(0xFF070FD4,  AddMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xFF02CEC4,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02F764,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Post.
