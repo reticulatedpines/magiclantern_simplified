@@ -17,12 +17,12 @@ static trace_entry_t trace_contexts[TRACE_MAX_CONTEXT];
 extern tsc_t get_us_clock_value();
 
 /* general selection of allocation method */
-void *trace_alloc(uint32_t size)
+static void *trace_alloc(uint32_t size)
 {
     return malloc(size);
 }
 
-void trace_free(void *data)
+static void trace_free(void *data)
 {
     free(data);
 }
