@@ -1,9 +1,14 @@
 
 #define __trace_c__
 
+
+#include <stdint.h>
+#include <string.h>
+
 #include <module.h>
 #include <dryos.h>
 #include <bmp.h>
+
 
 #include "trace.h"
 
@@ -12,7 +17,7 @@ static trace_entry_t trace_contexts[TRACE_MAX_CONTEXT];
 extern tsc_t get_us_clock_value();
 
 /* general selection of allocation method */
-void *trace_alloc(int size)
+void *trace_alloc(uint32_t size)
 {
     return malloc(size);
 }
@@ -37,8 +42,8 @@ static void trace_task(volatile trace_entry_t *ctx)
         
         if(ctx->buffer_read_pos != ctx->buffer_write_pos)
         {
-            unsigned int used = 0;
-            unsigned int wr_pos = ctx->buffer_write_pos;
+            uint32_t used = 0;
+            uint32_t wr_pos = ctx->buffer_write_pos;
             
             if(wr_pos > ctx->buffer_read_pos)
             {
@@ -53,11 +58,11 @@ static void trace_task(volatile trace_entry_t *ctx)
             ctx->buffer_read_pos += used;
             ctx->buffer_read_pos %= ctx->buffer_size;
 
-            unsigned int total = 0;
+            uint32_t total = 0;
             while(total < used)
             {
                 /* write as much as possible at once */
-                int written = FIO_WriteFile(ctx->file_handle, &write_buf[total], used - total);
+                uint32_t written = FIO_WriteFile(ctx->file_handle, &write_buf[total], used - total);
 
                 /* check for writing errors */
                 if(written > 0)
@@ -92,12 +97,12 @@ static void trace_task(volatile trace_entry_t *ctx)
     ctx->used = 0;
 }
 
-unsigned int trace_start(char *name, char *file_name)
+uint32_t trace_start(char *name, char *file_name)
 {
-    int pos = 0;
+    uint32_t pos = 0;
     
     /* small atomic lock here to stay thread safe */
-    int old_stat = cli();
+    uint32_t old_stat = cli();
     for(pos = 0; pos < TRACE_MAX_CONTEXT; pos++)
     {
         if(!trace_contexts[pos].used)
@@ -126,13 +131,13 @@ unsigned int trace_start(char *name, char *file_name)
     ctx->cur_entries = 0;
 
     /* copy strings */
-    strncpy(ctx->name, name, sizeof(ctx->name));
-    strncpy(ctx->file_name, file_name, sizeof(ctx->file_name));
+    strncpy((char *)ctx->name, name, sizeof(ctx->name));
+    strncpy((char *)ctx->file_name, file_name, sizeof(ctx->file_name));
 
     /* start worker task */
     ctx->queue = msg_queue_create("trace_wake", 1);
     ctx->task_state = TRACE_TASK_STATE_DEAD;
-    ctx->task = (unsigned int)task_create("trace_task", 0x18, 0x1000, &trace_task, (void *)ctx);
+    ctx->task = (uint32_t)task_create("trace_task", 0x18, 0x1000, &trace_task, (void *)ctx);
     
     /* create trace file */
     FIO_RemoveFile(ctx->file_name);
@@ -156,7 +161,7 @@ unsigned int trace_start(char *name, char *file_name)
     ctx->last_tsc = ctx->start_tsc;
 
     /* make sure task is running */
-    for(int loops = 0; loops < 250; loops++)
+    for(uint32_t loops = 0; loops < 250; loops++)
     {
         if(ctx->task_state != TRACE_TASK_STATE_DEAD)
         {
@@ -175,7 +180,7 @@ unsigned int trace_start(char *name, char *file_name)
     return TRACE_ERROR;
 }
 
-unsigned int trace_stop(unsigned int context, int wait)
+uint32_t trace_stop(uint32_t context, uint32_t wait)
 {
     trace_entry_t *ctx = &trace_contexts[context];
 
@@ -192,7 +197,7 @@ unsigned int trace_stop(unsigned int context, int wait)
     }
 
     /* wait for task to terminate */
-    for(int loops = 0; loops < 500; loops++)
+    for(uint32_t loops = 0; loops < 500; loops++)
     {
         if(ctx->task_state == TRACE_TASK_STATE_DEAD)
         {
@@ -214,7 +219,7 @@ unsigned int trace_stop(unsigned int context, int wait)
 }
 
 /* setup some custom format options. when separator is a null byte, it will be omitted */
-unsigned int trace_format(unsigned int context, unsigned int format, unsigned char separator)
+uint32_t trace_format(uint32_t context, uint32_t format, char separator)
 {
     trace_entry_t *ctx = &trace_contexts[context];
 
@@ -229,7 +234,7 @@ unsigned int trace_format(unsigned int context, unsigned int format, unsigned ch
     return TRACE_OK;
 }
 
-unsigned int trace_set_flushrate(unsigned int context, unsigned int timeout)
+uint32_t trace_set_flushrate(uint32_t context, uint32_t timeout)
 {
     trace_entry_t *ctx = &trace_contexts[context];
 
@@ -243,7 +248,7 @@ unsigned int trace_set_flushrate(unsigned int context, unsigned int timeout)
     return TRACE_OK;
 }
 
-unsigned int trace_flush(unsigned int context)
+uint32_t trace_flush(uint32_t context)
 {
     trace_entry_t *ctx = &trace_contexts[context];
 
@@ -252,15 +257,15 @@ unsigned int trace_flush(unsigned int context)
         return TRACE_ERROR;
     }
 
-    msg_queue_post(ctx->queue, ctx);
+    msg_queue_post(ctx->queue, (uint32_t)ctx);
     
     return TRACE_OK;
 }
 
 
-static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t tsc, char *timestamp, int *timestamp_pos)
+static uint32_t trace_write_timestamp(trace_entry_t *ctx, uint32_t type, tsc_t tsc, char *timestamp, uint32_t *timestamp_pos)
 {
-    int pos = *timestamp_pos;
+    uint32_t pos = *timestamp_pos;
 
     switch(type)
     {
@@ -269,7 +274,7 @@ static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t ts
             /* write raw timestamp counter "000015255" */
             char tmp[32];
 
-            snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(tsc >> 32), (unsigned int)tsc);
+            snprintf(tmp, sizeof(tmp), "%08X%08X", (uint32_t)(tsc >> 32), (uint32_t)tsc);
             memcpy(&timestamp[pos], tmp, 17);
             pos += 16;
             break;
@@ -279,14 +284,14 @@ static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t ts
             /* write time since measurement start "0:0:36.309" */
             char tmp[32];
             
-            unsigned int usec = tsc % 1000000ULL;
-            unsigned int sec_total = tsc / 1000000ULL;
-            unsigned int sec = sec_total % 60;
-            unsigned int min = (sec_total / 60) % 60;
-            unsigned int hrs = (sec_total / 3600) % 60;
+            uint32_t usec = tsc % 1000000ULL;
+            uint32_t sec_total = tsc / 1000000ULL;
+            uint32_t sec = sec_total % 60;
+            uint32_t min = (sec_total / 60) % 60;
+            uint32_t hrs = (sec_total / 3600) % 60;
 
             snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%06d", hrs, min, sec, usec);
-            strcpy(&timestamp[pos], tmp);
+            strcpy((char *)&timestamp[pos], tmp);
             pos += 15;
             break;
         }
@@ -306,9 +311,9 @@ static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t ts
     return TRACE_OK;
 }
 
-unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list ap)
+uint32_t trace_vwrite(uint32_t context, tsc_t tsc, char *string, va_list ap)
 {
-    int linebuffer_pos = 0;
+    uint32_t linebuffer_pos = 0;
     trace_entry_t *ctx = &trace_contexts[context];
 
     /* make sure ctx is valid, this ctx is used and the writer thread is running */
@@ -318,7 +323,7 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     }
     
     /* build timestamp string */
-    int max_len = TRACE_MAX_LINE_LENGTH;
+    uint32_t max_len = TRACE_MAX_LINE_LENGTH;
     char *linebuffer = malloc(max_len + 1);
     linebuffer[linebuffer_pos] = 0;
     
@@ -374,7 +379,7 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     ctx->last_tsc = tsc;
     
     /* now fill that into the line buffer */
-    int len = 0;
+    uint32_t len = 0;
     
     if(string)
     {
@@ -448,7 +453,7 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     if(ctx->buffer_written > ctx->buffer_size / 2)
     {
         ctx->buffer_written = 0;
-        msg_queue_post(ctx->queue, ctx);
+        msg_queue_post(ctx->queue, (uint32_t)ctx);
     }
     
     /* reached the maximum allowed number of entries? */
@@ -457,7 +462,7 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     {
         /* finish trace */
         ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
-        msg_queue_post(ctx->queue, ctx);
+        msg_queue_post(ctx->queue, (uint32_t)ctx);
     }
 
     free(linebuffer);
@@ -465,30 +470,30 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
 }
 
 /* write some string into specified trace */
-unsigned int trace_write(unsigned int context, char *string, ...)
+uint32_t trace_write(uint32_t context, char *string, ...)
 {
     va_list ap;
     
     va_start(ap, string);
-    unsigned int ret = trace_vwrite(context, get_us_clock_value(), string, ap);
+    uint32_t ret = trace_vwrite(context, get_us_clock_value(), string, ap);
     va_end(ap);
     
     return ret;
 }
 
-unsigned int trace_write_tsc(unsigned int context, tsc_t tsc, char *string, ...)
+uint32_t trace_write_tsc(uint32_t context, tsc_t tsc, char *string, ...)
 {
     va_list ap;
     
     va_start(ap, string);
-    unsigned int ret = trace_vwrite(context, tsc, string, ap);
+    uint32_t ret = trace_vwrite(context, tsc, string, ap);
     va_end(ap);
     
     return ret;
 }
 
 /* write some binary data into specified trace with an variable length field in front */
-unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length)
+uint32_t trace_write_binary(uint32_t context, uint8_t *buffer, uint32_t length)
 {
     tsc_t tsc = get_us_clock_value();
     trace_entry_t *ctx = &trace_contexts[context];
@@ -508,7 +513,7 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
     }
 
     /* the main task is dealing with our pointers, so we have to lock this section */
-    int old_stat = cli();
+    uint32_t old_stat = cli();
 
     /* first copy TSC */
     memcpy(&ctx->buffer[ctx->buffer_write_pos], &tsc, sizeof(tsc));
@@ -527,11 +532,11 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
 }
 
 /* internal */
-static unsigned int trace_write_varlength(unsigned int context, unsigned int length)
+static uint32_t trace_write_varlength(uint32_t context, uint32_t length)
 {
     trace_entry_t *ctx = &trace_contexts[context];
 
-    int var_length = 0;
+    uint32_t var_length = 0;
     if(length >= 0x10)
     {
         var_length = 1;
@@ -545,7 +550,7 @@ static unsigned int trace_write_varlength(unsigned int context, unsigned int len
         var_length = 3;
     }
 
-    unsigned char data[4];
+    uint8_t data[4];
 
     /* build variable length buffer which is copied only partially */
     data[0] = (var_length << 4) | (length & 0x0F);
@@ -560,7 +565,7 @@ static unsigned int trace_write_varlength(unsigned int context, unsigned int len
     return var_length + 1;
 }
 
-unsigned int trace_available()
+uint32_t trace_available()
 {
     return 1;
 }
@@ -569,34 +574,12 @@ static unsigned int trace_init()
 {
     /* don't initialize anything as other modules may use this module during their init, these could be ran before ours */
     
-    /* some performance tests */
-    if(0)
-    {
-        int ctx = trace_start("trace", "trace.tst");
-        int old_stat = cli();
-        trace_write(ctx, "Tick");
-        trace_write(ctx, "Tick");
-        trace_write(ctx, "Tick");
-        trace_write(ctx, "Tick");
-        trace_write(ctx, "%d", old_stat);
-        trace_write(ctx, "%d", old_stat);
-        trace_write(ctx, "%d", old_stat);
-        trace_write(ctx, "%d %d", old_stat, old_stat);
-        trace_write(ctx, "%d %d", old_stat, old_stat);
-        trace_write(ctx, "%d %d", old_stat, old_stat);
-        trace_write(ctx, "%s", "Tack");
-        trace_write(ctx, "%s", "Tack");
-        trace_write(ctx, "%s", "Tack");
-        sei(old_stat);
-        trace_stop(ctx, 1);
-        beep();
-    }
     return 0;
 }
 
 static unsigned int trace_deinit()
 {
-    for(int pos = 0; pos < TRACE_MAX_CONTEXT; pos++)
+    for(uint32_t pos = 0; pos < TRACE_MAX_CONTEXT; pos++)
     {
         if(trace_contexts[pos].used)
         {
