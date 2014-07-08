@@ -7,4 +7,4 @@ Generate sidecar (XMP/UFRaw) files for post deflicking.
 :License: GPL
 :Credits: Audionut (Module)
 :Summary: Post deflicker sidecar files
-:Forum: http://http://www.magiclantern.fm/forum/index.php?topic=12585.0
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=12585.0
