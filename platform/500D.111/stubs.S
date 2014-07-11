@@ -57,7 +57,7 @@ NSTUB(0xFF197378, _FIO_FindFirstEx)
 NSTUB(0xFF196A88, _FIO_GetFileSize)
 NSTUB(0xFF196338, _FIO_OpenFile)
 NSTUB(0xFF196608, _FIO_RemoveFile)
-NSTUB(0xFF1967D4,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
+NSTUB(0xFF1967D4,  FIO_SeekSkipFile)
 // NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI **/
@@ -182,8 +182,11 @@ NSTUB(0xFF06EFDC,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF06C494,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF06BE78,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF06CC4C,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF06C0D0,  CreateMemorySuite)
+NSTUB(0xFF06BEEC,  DeleteMemorySuite)
+NSTUB(0xFF06B90C,  CreateMemoryChunk)
+NSTUB(0xFF06C3A8,  AddMemoryChunk)
+
 
 /** GUI for old cameras **/
 NSTUB(    0x3B90,  gui_timer_struct)                        // in GUI_Control_Post
@@ -198,10 +201,10 @@ NSTUB(0xFF1A09AC,  gui_timer_something)
 
 /** GUI timers **/
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-NSTUB(0xFF070700,  CancelTimer)                             /* present on 650D.104 */
-NSTUB(0xFF068268,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
-NSTUB(0xFF0682E8,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
-NSTUB(0xFF070500,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFF070700,  CancelTimer)
+NSTUB(0xFF068268,  SetHPTimerAfterNow)
+NSTUB(0xFF0682E8,  SetHPTimerNextTick)
+NSTUB(0xFF070500,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x8684,  mvr_config)
@@ -274,6 +277,10 @@ NSTUB(0xFF193ED0,  UnLockEngineResources)                   /* present on 7D.203
 NSTUB(0xFF069770,  create_named_semaphore)
 NSTUB(0xFF0699B8,  give_semaphore)
 NSTUB(0xFF0698D0,  take_semaphore)
+
+/** SRM JobMem **/
+NSTUB(0xFF02A788,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02C6F8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** Task info **/
 NSTUB(    0x31DC,  task_max)
