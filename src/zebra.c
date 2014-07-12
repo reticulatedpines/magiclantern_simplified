@@ -186,6 +186,7 @@ static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   0 );// luma/rgb/lu
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
 static CONFIG_INT( "zebra.rec", zebra_rec,  1 );
+static CONFIG_INT( "zebra.raw.under", zebra_raw_underexposure,  1 );
 
 #define MZ_ZOOM_WHILE_RECORDING 1
 #define MZ_ZOOMREC_N_FOCUS_RING 2
@@ -583,7 +584,7 @@ static void FAST draw_zebras_raw()
     if (!bvram) return;
 
     int white = raw_info.white_level;
-    int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
+    int underexposed = zebra_raw_underexposure ? ev_to_raw(- (raw_info.dynamic_range - (zebra_raw_underexposure - 1) * 100) / 100.0) : 0;
     
     int zoom0 = (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR); /* stop when zooming in playback */
 
@@ -2786,6 +2787,13 @@ struct menu_entry zebra_menus[] = {
                 .update = raw_zebra_update,
                 .choices = (const char *[]) {"OFF", "Always", "Photo only"},
                 .help = "Use RAW zebras if possible.",
+            },
+            {
+                .name = "Raw zebra underexposure",
+                .priv = &zebra_raw_underexposure,
+                .max = 5,
+                .choices = (const char *[]) {"OFF", "0 EV", "1 EV", "2 EV", "3 EV", "4 EV"},
+                .help = "RAW zebra underexposure threshold",
             },
             #endif
             MENU_EOL
