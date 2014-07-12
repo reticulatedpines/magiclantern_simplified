@@ -142,6 +142,7 @@ static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 static CONFIG_INT("mlv.preview", preview_mode, 0);
 static CONFIG_INT("mlv.warm_up", warm_up, 0);
 static CONFIG_INT("mlv.memory_hack", memory_hack, 0);
+static CONFIG_INT("mlv.use_srm_memory", use_srm_memory, 1);
 static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
 static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
 
@@ -180,7 +181,8 @@ static uint64_t mlv_rec_dma_start = 0;
 static uint64_t mlv_rec_dma_end = 0;
 static uint64_t mlv_rec_dma_duration = 0;
 
-static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
+static struct memSuite * shoot_mem_suite = 0;           /* memory suites for our buffers */
+static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int32_t fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
@@ -843,25 +845,95 @@ static void check_prot(uint32_t ptr, uint32_t size, uint32_t original)
     }
 }
 
-
-static void free_buffers()
+static void free_mem_suite(struct memSuite * mem_suite, void(*free_suite_func)(struct memSuite *))
 {
     if (mem_suite)
     {
         struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-
+        
         while(chunk)
         {
             uint32_t size = GetSizeOfMemoryChunk(chunk);
             uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-
+            
             check_prot(ptr, size, 1);
-
+            
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
-        shoot_free_suite(mem_suite);
+        free_suite_func(mem_suite);
     }
-    mem_suite = 0;
+}
+
+static void free_buffers()
+{
+    free_mem_suite(shoot_mem_suite, &shoot_free_suite);
+    shoot_mem_suite = 0;
+    free_mem_suite(srm_mem_suite, &srm_free_suite);
+    srm_mem_suite = 0;
+}
+
+static void setup_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
+{
+    if(mem_suite)
+    {
+        uint32_t waste = UINT_MAX;
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        
+        while(chunk)
+        {
+            uint32_t size = GetSizeOfMemoryChunk(chunk);
+            uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+            
+            /* add some protection to detect overwrites */
+            setup_prot(&ptr, &size);
+            check_prot(ptr, size, 0);
+            
+            if(size >= buf_size)
+            {
+                if(size - buf_size < waste)
+                {
+                    waste = size - buf_size;
+                    fullsize_buffers[0] = (void *)ptr;
+                }
+            }
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+    }
+}
+
+static uint32_t add_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
+{
+    uint32_t total_size = 0;
+    if(mem_suite)
+    {
+        /* use all chunks larger than frame_size for recording */
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        
+        while(chunk)
+        {
+            uint32_t size = GetSizeOfMemoryChunk(chunk);
+            uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+            
+            trace_write(raw_rec_trace_ctx, "Chunk: 0x%08X, size: 0x%08X", ptr, size);
+            
+            /* add some protection to detect overwrites */
+            setup_prot(&ptr, &size);
+            check_prot(ptr, size, 0);
+            
+            if(ptr == (uint32_t)fullsize_buffers[0]) /* already used */
+            {
+                trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
+                ptr += buf_size;
+                size -= buf_size;
+            }
+            
+            setup_chunk(ptr, size);
+            total_size += size;
+            
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+    }
+    return total_size;
 }
 
 static int32_t setup_buffers()
@@ -882,7 +954,7 @@ static int32_t setup_buffers()
         msleep(200);
     }
 
-    mem_suite = shoot_malloc_suite(0);
+    shoot_mem_suite = shoot_malloc_suite(0);
 
     if(memory_hack)
     {
@@ -894,38 +966,19 @@ static int32_t setup_buffers()
         }
         refresh_raw_settings(1);
     }
+    
+    srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
 
-    if(!mem_suite)
+    if(!shoot_mem_suite && !srm_mem_suite)
     {
         return 0;
     }
 
     /* allocate memory for double buffering */
     uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
-
-    /* find the smallest chunk that we can use for buf_size */
-    uint32_t waste = UINT_MAX;
-    struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-
-    while(chunk)
-    {
-        uint32_t size = GetSizeOfMemoryChunk(chunk);
-        uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-        
-        /* add some protection to detect overwrites */
-        setup_prot(&ptr, &size);
-        check_prot(ptr, size, 0);
-
-        if(size >= buf_size)
-        {
-            if(size - buf_size < waste)
-            {
-                waste = size - buf_size;
-                fullsize_buffers[0] = (void *)ptr;
-            }
-        }
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
+    
+    setup_mem_suite(shoot_mem_suite, buf_size);
+    setup_mem_suite(srm_mem_suite, buf_size);
 
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
@@ -938,32 +991,8 @@ static int32_t setup_buffers()
 
     trace_write(raw_rec_trace_ctx, "frame size = 0x%X", frame_size);
 
-    /* use all chunks larger than frame_size for recording */
-    chunk = GetFirstChunkFromSuite(mem_suite);
-
-    while(chunk)
-    {
-        uint32_t size = GetSizeOfMemoryChunk(chunk);
-        uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-
-        trace_write(raw_rec_trace_ctx, "Chunk: 0x%08X, size: 0x%08X", ptr, size);
-
-        /* add some protection to detect overwrites */
-        setup_prot(&ptr, &size);
-        check_prot(ptr, size, 0);
-
-        if(ptr == (uint32_t)fullsize_buffers[0]) /* already used */
-        {
-            trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
-            ptr += buf_size;
-            size -= buf_size;
-        }
-
-        setup_chunk(ptr, size);
-        total_size += size;
-
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
+    total_size += add_mem_suite(shoot_mem_suite, buf_size);
+    total_size += add_mem_suite(srm_mem_suite, buf_size);
 
     if(DISPLAY_REC_INFO_DEBUG)
     {
@@ -3755,6 +3784,12 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
+                .name = "Use SRM job memory",
+                .priv = &use_srm_memory,
+                .max = 1,
+                .help = "Allocate memory from SRM job buffers",
+            },
+            {
                 .name = "Extra Hacks",
                 .priv = &small_hacks,
                 .max = 1,
@@ -4145,6 +4180,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
+    MODULE_CONFIG(use_srm_memory)
 
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
