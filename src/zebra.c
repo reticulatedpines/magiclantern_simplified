@@ -765,7 +765,7 @@ static void FAST draw_zebras_raw_lv()
 
     int white = raw_info.white_level;
     if (white > 16383) white = 15000;
-    int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
+    int underexposed = zebra_raw_underexposure ? ev_to_raw(- (raw_info.dynamic_range - (zebra_raw_underexposure - 1) * 100) / 100.0) : 0;
 
     int off = get_y_skip_offset_for_overlays();
     for(int i = os.y0 + off; i < os.y_max - off; i += 2 )
