@@ -2794,6 +2794,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 5,
                 .choices = (const char *[]) {"OFF", "0 EV", "1 EV", "2 EV", "3 EV", "4 EV"},
                 .help = "RAW zebra underexposure threshold",
+                .help2 = "(in EVs above the noise floor)"
             },
             #endif
             MENU_EOL
