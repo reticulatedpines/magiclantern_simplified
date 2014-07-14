@@ -321,8 +321,8 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_B_MIN (ZOOM ? 1490 : MV720 ? 873 : raw_lv_is_enabled() ? 1500 : 1580)
 #endif
 
-#ifdef NEW_FPS_METHOD
 static int fps_timer_b_method = 0;
+#ifdef NEW_FPS_METHOD
 static uint16_t * sensor_timing_table_original = 0;
 static uint16_t sensor_timing_table_patched[175*2];
 #endif
