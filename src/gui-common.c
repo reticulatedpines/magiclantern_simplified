@@ -639,7 +639,8 @@ void gui_uilock(int what)
     int unlocked = UILOCK_NONE;
     prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(50);
-    prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
+    prop_request_change(PROP_ICU_UILOCK, &what, 4);
+    msleep(50);
 }
 
 void ui_lock(int what)
