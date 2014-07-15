@@ -2397,6 +2397,9 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
         if (!liveview_display_idle())
             return 1;
         
+        if (RECORDING)
+            return 1;
+        
         switch(key)
         {
             case MODULE_KEY_PLAY:
