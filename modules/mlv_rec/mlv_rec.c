@@ -141,7 +141,6 @@ static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 static CONFIG_INT("mlv.preview", preview_mode, 0);
 static CONFIG_INT("mlv.warm_up", warm_up, 0);
-static CONFIG_INT("mlv.memory_hack", memory_hack, 0);
 static CONFIG_INT("mlv.use_srm_memory", use_srm_memory, 1);
 static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
 static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
@@ -948,25 +947,7 @@ static int32_t setup_buffers()
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
 
-    if(memory_hack)
-    {
-        PauseLiveView();
-        msleep(200);
-    }
-
     shoot_mem_suite = shoot_malloc_suite(0);
-
-    if(memory_hack)
-    {
-        ResumeLiveView();
-        msleep(500);
-        while (!raw_update_params())
-        {
-            msleep(100);
-        }
-        refresh_raw_settings(1);
-    }
-    
     srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
 
     if(!shoot_mem_suite && !srm_mem_suite)
@@ -3766,12 +3747,6 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Some cards seem to get a bit faster after this.",
             },
             {
-                .name = "Memory hack",
-                .priv = &memory_hack,
-                .max = 1,
-                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
-            },
-            {
                 .name = "Use SRM job memory",
                 .priv = &use_srm_memory,
                 .max = 1,
@@ -4076,12 +4051,6 @@ static unsigned int raw_rec_init()
         if (!exFAT && streq(e->name, "Files > 4GiB (exFAT)") )
             e->shidden = 1;
 
-        /* Memory hack confirmed to work only on 5D3 and 6D */
-        if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
-        {
-            e->shidden = 1;
-            memory_hack = 0;
-        }
     }
 
     /* disable card spanning on models other than 5D3 */
