@@ -3837,7 +3837,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* keys are only hooked in LiveView */
-    if (!liveview_display_idle())
+    if (!liveview_display_idle() && !RECORDING_RAW)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
