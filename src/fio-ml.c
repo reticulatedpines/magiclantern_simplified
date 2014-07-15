@@ -120,7 +120,7 @@ static void card_test(struct card_info * card)
                 if (warning_enabling_workaround)
                 {
                     bmp_printf(FONT_CANON, 0,  0, "CF test fail, enabling workaround.");
-                    bmp_printf(FONT_CANON, 0, 40, "Restart the camera and try again.");
+                    bmp_printf(FONT_CANON, 0, 40, "Restart the camera to try again.");
                     cf_card_workaround = 1;
                 }
                 else
@@ -131,6 +131,13 @@ static void card_test(struct card_info * card)
                 beep();
                 info_led_blink(1, 1000, 1000);
             }
+        }
+        
+        if (!cf_card_workaround)
+        {
+            /* test OK, save config once again to make sure we won't end up with the compatibility flag enabled by mistake */
+            /* (might happen on a crash, or if you take the battery out) */
+            config_save();
         }
     }
 }

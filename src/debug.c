@@ -207,7 +207,7 @@ static void dump_img_task(void* priv, int unused)
         _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
         _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
 
-    int path_len = snprintf(pattern, sizeof(pattern), "VRAM/%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
+    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
     
     /* make sure the VRAM parameters are updated */
     get_yuv422_vram();
@@ -363,6 +363,58 @@ static void bsod()
 static void run_test()
 {
     msleep(2000);
+
+    console_show();
+    msleep(1000);
+    printf("Try taking some pictures during this test!\n");
+    
+    /* let's see how much RAM we can get */
+    struct memSuite * suite = srm_malloc_suite(0);
+    struct memChunk * chunk = GetFirstChunkFromSuite(suite);
+    printf("hSuite %x (%dx%s)\n", suite, suite->num_chunks, format_memory_size(chunk->size));
+    srm_free_suite(suite);
+    msleep(1000);
+    
+    /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
+    /* 50D/500D have 27M, 5D3 has 40 */
+    for (int i = 0; i < 1000; i++)
+    {
+        void* buf1 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf1);
+        
+        void* buf2 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf2);
+
+        /* we must be able to free them in any order, even if the backend doesn't allow that */
+        if (rand()%2)
+        {
+            free(buf1);
+            free(buf2);
+        }
+        else
+        {
+            free(buf2);
+            free(buf1);
+        }
+
+        if (i == 0)
+        {
+            /* delay the first iteration, so you can see what's going on */
+            /* also save a screenshot */
+            msleep(5000);
+            take_screenshot(0, SCREENSHOT_BMP);
+        }
+        
+        if (!buf1 || !buf2)
+        {
+            /* allocation failed? wait before retrying */
+            msleep(1000);
+        }
+    }
+    
+    return;
+        
+    /* todo: cleanup the following tests and move them in the mem_chk module */
     
     /* allocate up to 50000 small blocks of RAM, 32K each */
     int N = 50000;

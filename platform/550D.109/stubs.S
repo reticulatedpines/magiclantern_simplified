@@ -272,9 +272,9 @@ NSTUB(0xFF06E358,  CreateRecursiveLock)
 NSTUB(0xFF1D2FBC,  ReleaseRecursiveLock)
 
 /** ResLock **/
-// NSTUB(    ???,  CreateResLockEntry)                      /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  LockEngineResources)                     /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  UnLockEngineResources)                   /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+NSTUB(0xff1c4074, CreateResLockEntry)
+NSTUB(0xff1c4a34, LockEngineResources)
+NSTUB(0xff1c46f8, UnLockEngineResources)
 
 /** Semaphores **/
 NSTUB(0xFF069D10,  create_named_semaphore)

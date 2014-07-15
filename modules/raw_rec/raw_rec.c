@@ -129,7 +129,7 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_HACKED (preview_mode == 3)
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
-static CONFIG_INT("raw.memory.hack", memory_hack, 0);
+static CONFIG_INT("raw.use.srm.memory", use_srm_memory, 1);
 static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
 /* Recording Status Indicator Options */
@@ -138,12 +138,12 @@ static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 #define INDICATOR_ON_SCREEN  2
 #define INDICATOR_RAW_BUFFER 3
 
-static int debug_info = 0;
+static int show_graph = 0;
 
 /* auto-choose the indicator style based on global draw settings */
 /* GD off: only "on screen" works, obviously */
 /* GD on: place it on the info bars to be minimally invasive */
-#define indicator_display (debug_info ? INDICATOR_RAW_BUFFER : get_global_draw() ? INDICATOR_IN_LVINFO : INDICATOR_ON_SCREEN)
+#define indicator_display (show_graph ? INDICATOR_RAW_BUFFER : get_global_draw() ? INDICATOR_IN_LVINFO : INDICATOR_ON_SCREEN)
 
 /* state variables */
 static int res_x = 0;
@@ -182,7 +182,8 @@ struct frame_slot
     enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
 };
 
-static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
+static struct memSuite * shoot_mem_suite = 0;           /* memory suite for our buffers */
+static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
@@ -646,119 +647,97 @@ static unsigned int lv_rec_read_footer(FILE *f)
     return 1;
 }
 
+static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
+{
+    if(mem_suite)
+    {
+        /* use all chunks larger than frame_size for recording */
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        while(chunk)
+        {
+            int size = GetSizeOfMemoryChunk(chunk);
+            void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
+            if (ptr != fullsize_buffers[0]) /* already used */
+            {
+                /* write it down for future frame predictions */
+                if (chunk_index < COUNT(chunk_list) && size > 8192)
+                {
+                    chunk_list[chunk_index] = size - 8192;
+                    chunk_index++;
+                }
+                
+                /* align at 4K */
+                ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
+                
+                /* fit as many frames as we can */
+                while (size >= frame_size + 8192 && slot_count < COUNT(slots))
+                {
+                    slots[slot_count].ptr = ptr;
+                    slots[slot_count].status = SLOT_FREE;
+                    ptr += frame_size;
+                    size -= frame_size;
+                    slot_count++;
+                    //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
+                }
+            }
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+    }
+    return chunk_index;
+}
+
 static int setup_buffers()
 {
+    /* allocate memory for double buffering */
+    /* (we need a single large contiguous chunk) */
+    int buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    ASSERT(fullsize_buffers[0] == 0);
+    fullsize_buffers[0] = fio_malloc(buf_size);
+    
+    /* reuse Canon's buffer */
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
+
+    /* anything wrong? */
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    {
+        /* buffers will be freed by caller in the cleanup section */
+        return 0;
+    }
+
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
     
     memset(chunk_list, 0, sizeof(chunk_list));
     
-    if (memory_hack) { PauseLiveView(); msleep(200); }
+    shoot_mem_suite = shoot_malloc_suite(0);
+    srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
     
-    mem_suite = shoot_malloc_suite(0);
-    
-    if (memory_hack) 
+    if (!shoot_mem_suite && !srm_mem_suite)
     {
-        ResumeLiveView();
-        msleep(500);
-        while (!raw_update_params())
-            msleep(100);
-        refresh_raw_settings(1);
+        return 0;
     }
-    
-    if (!mem_suite) return 0;
-    
-    /* allocate memory for double buffering */
-    int buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
-
-    /* find the smallest chunk that we can use for buf_size */
-    fullsize_buffers[0] = 0;
-    struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-    int waste = INT_MAX;
-    while(chunk)
-    {
-        int size = GetSizeOfMemoryChunk(chunk);
-        if (size >= buf_size)
-        {
-            if (size - buf_size < waste)
-            {
-                waste = size - buf_size;
-                fullsize_buffers[0] = GetMemoryAddressOfMemoryChunk(chunk);
-            }
-        }
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
-    if (fullsize_buffers[0] == 0) return 0;
-
-    //~ console_printf("fullsize buffer %x\n", fullsize_buffers[0]);
-    
-    /* reuse Canon's buffer */
-    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-    if (fullsize_buffers[1] == 0) return 0;
-    
-    chunk_list[0] = waste;
-    int chunk_index = 1;
-
-    /* use all chunks larger than frame_size for recording */
-    chunk = GetFirstChunkFromSuite(mem_suite);
-    slot_count = 0;
-    while(chunk)
-    {
-        int size = GetSizeOfMemoryChunk(chunk);
-        void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
-        if (ptr != fullsize_buffers[0]) /* already used */
-        {
-            /* write it down for future frame predictions */
-            if (chunk_index < COUNT(chunk_list) && size > 8192)
-            {
-                chunk_list[chunk_index] = size - 8192;
-                chunk_index++;
-            }
-
-            /* align at 4K */
-            ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
-            
-            /* fit as many frames as we can */
-            while (size >= frame_size + 8192 && slot_count < COUNT(slots))
-            {
-                slots[slot_count].ptr = ptr;
-                slots[slot_count].status = SLOT_FREE;
-                ptr += frame_size;
-                size -= frame_size;
-                slot_count++;
-                //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-            }
-        }
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
-    
-    /* try to recycle the waste */
-    if (waste >= frame_size + 8192)
-    {
-        int size = waste;
-        void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
-        while (size >= frame_size + 8192 && slot_count < COUNT(slots))
-        {
-            slots[slot_count].ptr = ptr;
-            slots[slot_count].status = SLOT_FREE;
-            ptr += frame_size;
-            size -= frame_size;
-            slot_count++;
-            //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-        }
-    }
+        
+    int chunk_index = 0;
+    chunk_index = add_mem_suite(shoot_mem_suite, buf_size, chunk_index);
+    chunk_index = add_mem_suite(srm_mem_suite, buf_size, chunk_index);
   
     /* we need at least 3 slots */
     if (slot_count < 3)
+    {
         return 0;
+    }
     
     return 1;
 }
 
 static void free_buffers()
 {
-    if (mem_suite) shoot_free_suite(mem_suite);
-    mem_suite = 0;
+    if (shoot_mem_suite) shoot_free_suite(shoot_mem_suite);
+    shoot_mem_suite = 0;
+    if (srm_mem_suite) srm_free_suite(srm_mem_suite);
+    srm_mem_suite = 0;
+    if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
+    fullsize_buffers[0] = 0;
 }
 
 static int get_free_slots()
@@ -2018,10 +1997,10 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Memory hack",
-                .priv = &memory_hack,
+                .name = "Use SRM job memory",
+                .priv = &use_srm_memory,
                 .max = 1,
-                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+                .help = "Allocate memory from SRM job buffers",
                 .advanced = 1,
             },
             {
@@ -2032,10 +2011,10 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Debug info",
-                .priv = &debug_info,
+                .name = "Show buffer graph",
+                .priv = &show_graph,
                 .max = 1,
-                .help = "Show detailed info and buffer allocation graphs.",
+                .help = "Displays a graph of the current buffer usage and expected frames.",
                 .advanced = 1,
             },
             {
@@ -2238,13 +2217,6 @@ static unsigned int raw_rec_init()
             e->shidden = 1;
             //sound_rec = 0;
         }
-
-        /* Memory hack confirmed to work only on 5D3 and 6D */
-        if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
-        {
-            e->shidden = 1;
-            memory_hack = 0;
-        }
     }
 
     if (cam_5d2 || cam_50d)
@@ -2298,7 +2270,7 @@ MODULE_CONFIGS_START()
     //~ MODULE_CONFIG(sound_rec)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
-    MODULE_CONFIG(memory_hack)
+    MODULE_CONFIG(use_srm_memory)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
 MODULE_CONFIGS_END()

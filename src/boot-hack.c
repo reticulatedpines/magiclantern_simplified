@@ -626,7 +626,8 @@ void ml_crash_message(char* msg)
 #define CREATETASK_MAIN_LEN (ROM_CREATETASK_MAIN_END - ROM_CREATETASK_MAIN_START)
 #endif
 
-int init_task_patched(int a, int b, int c, int d)
+
+init_task_func init_task_patched(int a, int b, int c, int d)
 {
     // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
     // Example for the 1100D firmware
@@ -695,7 +696,7 @@ int init_task_patched(int a, int b, int c, int d)
     NotifyBox(10000, "%x ", new_CreateTaskMain); */
     
     // Well... let's cross the fingers and call the relocated stuff
-    return new_init_task(a,b,c,d);
+    return new_init_task;
 
 }
 #endif // CONFIG_ALLOCATE_MEMORY_POOL
@@ -790,10 +791,6 @@ my_init_task(int a, int b, int c, int d)
         cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
     #endif
     }
-
-    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
-    ml_reserved_mem = ML_RESERVED_MEM;
-    #endif
 #endif
 
     #ifdef CONFIG_6D
@@ -802,8 +799,21 @@ my_init_task(int a, int b, int c, int d)
     #endif
 #endif // HIJACK_CACHE_HOOK
 
+    // Prepare to call Canon's init_task
+    init_task_func init_task_func = &init_task;
+    
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL
+    /* use a patched version of Canon's init_task */
+    /* this call will also tell us how much memory we have reserved for autoexec.bin */
+    init_task_func = init_task_patched(a,b,c,d);
+#endif
+
+    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
+    ml_reserved_mem = ML_RESERVED_MEM;
+    #endif
+
     /* ensure binary is not too large */
-    if(ml_used_mem > ml_reserved_mem)
+    if (ml_used_mem > ml_reserved_mem)
     {
         while(1)
         {
@@ -813,12 +823,8 @@ my_init_task(int a, int b, int c, int d)
         }
     }
 
-    // Call their init task
-#ifdef CONFIG_ALLOCATE_MEMORY_POOL
-    int ans = init_task_patched(a,b,c,d);
-#else
-    int ans = init_task(a,b,c,d);
-#endif // CONFIG_ALLOCATE_MEMORY_POOL
+    // memory check OK, call Canon's init_task
+    int ans = init_task_func(a,b,c,d);
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any

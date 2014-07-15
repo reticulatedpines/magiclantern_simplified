@@ -2072,10 +2072,12 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     {
         if (buf[0] == 10)
         {
+            lv_raw_enabled = -1;
             call("lv_save_raw", 0);
         }
         else
         {
+            lv_raw_enabled = 1;
             call("lv_save_raw", 1);
         }
     }

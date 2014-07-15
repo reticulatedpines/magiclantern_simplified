@@ -247,6 +247,9 @@ reloc(
         }
     }
 
+    /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
+    sync_caches();
+
     // Return the entry point of the new function
     return entry;
 }

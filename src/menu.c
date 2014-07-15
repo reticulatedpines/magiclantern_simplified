@@ -5241,6 +5241,38 @@ static void joystick_longpress_check()
 }
 #endif
 
+#ifdef CONFIG_EOSM
+static int erase_pressed = 0;
+static int erase_longpress = 0;
+
+/* called from GUI timers */
+static void erase_longpress_check()
+{
+    if (erase_pressed)
+    {
+        erase_longpress++;
+        delayed_call(100, erase_longpress_check);
+    }
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
+    
+    if (erase_longpress == 5)
+    {
+        /* long press opens ML menu */
+        fake_simple_button(BGMT_TRASH);
+        
+        /* make sure it won't re-trigger */
+        erase_longpress++;
+    }
+    else if (erase_longpress <= 2 && !erase_pressed)
+    {
+        /* short press => do a regular "down/erase" */
+        fake_simple_button(BGMT_PRESS_DOWN);
+        fake_simple_button(BGMT_UNPRESS_DOWN);
+    }
+}
+#endif
+
 // this should work on most cameras
 int handle_ml_menu_erase(struct event * event)
 {
@@ -5298,6 +5330,24 @@ int handle_ml_menu_erase(struct event * event)
         joy_center_action_disabled = 1;
     }
 
+#endif
+
+#ifdef CONFIG_EOSM
+    /* also trigger menu by a long press on ERASE (DOWN) */
+    if (event->param == BGMT_PRESS_DOWN)
+    {
+        if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !IS_FAKE(event))
+        {
+            erase_pressed = 1;
+            erase_longpress = 0;
+            delayed_call(100, erase_longpress_check);
+            return 0;
+        }
+    }
+    else if (event->param == BGMT_UNPRESS_DOWN)
+    {
+        erase_pressed = 0;
+    }
 #endif
 
     return 1;

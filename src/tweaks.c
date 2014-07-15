@@ -1139,15 +1139,18 @@ tweak_task( void* unused)
         
         #ifdef FEATURE_LV_FOCUS_BOX_FAST
         // faster focus box in liveview
-        if (arrow_pressed && lv && liveview_display_idle() && focus_box_lv_speed)
+        if (arrow_pressed && lv && liveview_display_idle())
         {
-            msleep(200);
-            int delay = 30;
-            while (!arrow_unpressed)
+            if (focus_box_lv_speed)
             {
-                fake_simple_button(arrow_pressed);
-                msleep(delay);
-                if (delay > 10) delay -= 2;
+                msleep(200);
+                int delay = 30;
+                while (!arrow_unpressed)
+                {
+                    fake_simple_button(arrow_pressed);
+                    msleep(delay);
+                    if (delay > 10) delay -= 2;
+                }
             }
             arrow_pressed = 0;
         }

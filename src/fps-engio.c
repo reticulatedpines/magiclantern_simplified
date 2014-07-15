@@ -255,11 +255,10 @@ static void fps_read_current_timer_values();
 	//~ #define FPS_TIMER_A_MAX 0x8000
 #elif defined(CONFIG_6D)
     #define TG_FREQ_BASE 25600000
-    #define TG_FREQ_SHUTTER (ntsc ? 44000000 : 40000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 20), ZOOM ? 708 : 512)
-	#undef FPS_TIMER_B_MIN
-	#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1386)
-	// 1294 - 1363/64
+    #define TG_FREQ_SHUTTER (ntsc ? 43920000 : 40000000)
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 22 : MV720 ? 10 : 34) ) //, ZOOM ? 708 : 512)
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN (fps_timer_b_orig - (ZOOM ? 6 : MV720 ? 10 : 10)) 
 #elif defined(CONFIG_650D)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000)
@@ -319,7 +318,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN (ZOOM ? 510 : MV720 ? 410 : 398)
 
     #undef FPS_TIMER_B_MIN
-    #define FPS_TIMER_B_MIN (ZOOM ? 1470 : MV720 ? 873 : raw_lv_is_enabled() ? 1500 : 1580)
+    #define FPS_TIMER_B_MIN (ZOOM ? 1490 : MV720 ? 873 : raw_lv_is_enabled() ? 1500 : 1580)
 #endif
 
 #ifdef NEW_FPS_METHOD
