@@ -464,7 +464,7 @@ static void mlv_play_delete_if_requested()
     {
         mlv_play_show_dlg(0, "Deleting...");
         mlv_play_delete();
-        mlv_play_show_dlg(0, 0);
+        mlv_play_show_dlg(3000, "Deleted.");
         mlv_play_delete_requested = 0;
     }
 }
