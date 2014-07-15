@@ -4139,7 +4139,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(allow_frame_skip)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
-    MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(use_srm_memory)
 
     MODULE_CONFIG(start_delay_idx)
