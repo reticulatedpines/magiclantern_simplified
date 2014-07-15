@@ -2186,7 +2186,8 @@ static LVINFO_UPDATE_FUNC(picq_update)
         );
     }
     
-    if (raw_lv_is_enabled())
+    int raw_lv = raw_lv_is_enabled();
+    if (raw_lv)
     {
         /* make it obvious that LiveView is in RAW mode */
         /* (primarily for troubleshooting the raw backend, proper raw_lv_request/release calls and Magic Zoom slowdowns) */
@@ -2195,7 +2196,7 @@ static LVINFO_UPDATE_FUNC(picq_update)
             /* todo: icon? */
             snprintf(buffer, sizeof(buffer), "RAW");
         }
-        item->color_fg = COLOR_GREEN1;
+        item->color_fg = raw_lv == 1 ? COLOR_GREEN1 : COLOR_GRAY(20);
     }
 }
 

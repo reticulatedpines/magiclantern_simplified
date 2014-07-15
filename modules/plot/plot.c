@@ -36,7 +36,7 @@ void plot_get_extremes(plot_coll_t *coll, uint32_t field, plot_data_t win_lo, pl
     
     if(!coll || !coll->used)
     {
-        return 0.0f;
+        return;
     }
     
     for(uint32_t entry = 0; entry < coll->used; entry++)

@@ -113,7 +113,9 @@ FILE* _FIO_CreateFile(const char* filename );
 
 static void run_test()
 {
-    FILE * f = _FIO_CreateFile("FF000000.BIN");
+    /* change to A:/ for CF cards */
+    FILE * f = _FIO_CreateFile("B:/FF000000.BIN");
+    
     if (f != (void*) -1)
     {
         FIO_WriteFile(f, (void*) 0xFF000000, 0x1000000);

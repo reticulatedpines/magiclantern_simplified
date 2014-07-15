@@ -318,7 +318,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN (ZOOM ? 510 : MV720 ? 410 : 398)
 
     #undef FPS_TIMER_B_MIN
-    #define FPS_TIMER_B_MIN (ZOOM ? 1470 : MV720 ? 873 : raw_lv_is_enabled() ? 1500 : 1580)
+    #define FPS_TIMER_B_MIN (ZOOM ? 1490 : MV720 ? 873 : raw_lv_is_enabled() ? 1500 : 1580)
 #endif
 
 #ifdef NEW_FPS_METHOD

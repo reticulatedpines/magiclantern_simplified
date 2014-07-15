@@ -59,6 +59,8 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 
+#define INVALID_PTR             ((void *)0xFFFFFFFF)
+
 #endif
 
 #include "raw.h"
@@ -751,7 +753,7 @@ int save_dng(char* filename, struct raw_info * raw_info)
     #endif
     
     FILE* f = FIO_CreateFile(filename);
-    if (!f) return 0;
+    if (f == INVALID_PTR) return 0;
     write_dng(f, raw_info);
     FIO_CloseFile(f);
     return 1;
