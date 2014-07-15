@@ -870,13 +870,14 @@ static void free_buffers()
     shoot_mem_suite = 0;
     free_mem_suite(srm_mem_suite, &srm_free_suite);
     srm_mem_suite = 0;
+    if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
+    fullsize_buffers[0] = 0;
 }
 
 static void setup_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
 {
     if(mem_suite)
     {
-        uint32_t waste = UINT_MAX;
         struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
         
         while(chunk)
@@ -888,14 +889,6 @@ static void setup_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
             setup_prot(&ptr, &size);
             check_prot(ptr, size, 0);
             
-            if(size >= buf_size)
-            {
-                if(size - buf_size < waste)
-                {
-                    waste = size - buf_size;
-                    fullsize_buffers[0] = (void *)ptr;
-                }
-            }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
     }
@@ -920,13 +913,6 @@ static uint32_t add_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
             setup_prot(&ptr, &size);
             check_prot(ptr, size, 0);
             
-            if(ptr == (uint32_t)fullsize_buffers[0]) /* already used */
-            {
-                trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
-                ptr += buf_size;
-                size -= buf_size;
-            }
-            
             setup_chunk(ptr, size);
             total_size += size;
             
@@ -942,8 +928,22 @@ static int32_t setup_buffers()
     
     slot_count = 0;
     slot_group_count = 0;
-    fullsize_buffers[0] = 0;
-    fullsize_buffers[1] = 0;
+
+    /* allocate memory for double buffering */
+    /* (we need a single large contiguous chunk) */
+    uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    ASSERT(fullsize_buffers[0] == 0);
+    fullsize_buffers[0] = fio_malloc(buf_size);
+    
+    /* reuse Canon's buffer */
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
+
+    /* anything wrong? */
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    {
+        /* buffers will be freed by caller in the cleanup section */
+        return 0;
+    }
 
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
@@ -974,20 +974,8 @@ static int32_t setup_buffers()
         return 0;
     }
 
-    /* allocate memory for double buffering */
-    uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
-    
     setup_mem_suite(shoot_mem_suite, buf_size);
     setup_mem_suite(srm_mem_suite, buf_size);
-
-    /* reuse Canon's buffer */
-    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-
-    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
-    {
-        free_buffers();
-        return 0;
-    }
 
     trace_write(raw_rec_trace_ctx, "frame size = 0x%X", frame_size);
 
