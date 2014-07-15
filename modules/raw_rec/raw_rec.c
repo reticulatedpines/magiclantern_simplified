@@ -129,7 +129,6 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_HACKED (preview_mode == 3)
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
-static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.use.srm.memory", use_srm_memory, 1);
 static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
@@ -709,26 +708,7 @@ static int setup_buffers()
     
     memset(chunk_list, 0, sizeof(chunk_list));
     
-    if (memory_hack)
-    {
-        /* allocating from shoot_malloc outside LiveView may give more memory */
-        PauseLiveView();
-        msleep(200);
-    }
-    
     shoot_mem_suite = shoot_malloc_suite(0);
-    
-    if (memory_hack) 
-    {
-        ResumeLiveView();
-        msleep(500);
-        while (!raw_update_params())
-            msleep(100);
-        refresh_raw_settings(1);
-    }
-    
-    /* allocating from SRM outside LiveView may give too much memory */
-    /* (you may not be able to get back into LiveView) => allocate from SRM only from LV */
     srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
     
     if (!shoot_mem_suite && !srm_mem_suite)
@@ -2016,13 +1996,6 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Memory hack",
-                .priv = &memory_hack,
-                .max = 1,
-                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
-                .advanced = 1,
-            },
-            {
                 .name = "Use SRM job memory",
                 .priv = &use_srm_memory,
                 .max = 1,
@@ -2243,13 +2216,6 @@ static unsigned int raw_rec_init()
             e->shidden = 1;
             //sound_rec = 0;
         }
-
-        /* Memory hack confirmed to work only on 5D3 and 6D */
-        if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
-        {
-            e->shidden = 1;
-            memory_hack = 0;
-        }
     }
 
     if (cam_5d2 || cam_50d)
@@ -2303,7 +2269,6 @@ MODULE_CONFIGS_START()
     //~ MODULE_CONFIG(sound_rec)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
-    MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(use_srm_memory)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
