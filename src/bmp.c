@@ -58,6 +58,9 @@
 
         if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c8) // SD mode 1
             return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c8);
+            
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c0) // SD 700D
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c0);
 
         // something else - new camera? return it unchanged (failsafe)
         ASSERT(0);
@@ -358,6 +361,16 @@ con_printf(
 
 #ifdef CONFIG_HEXDUMP
 
+static void bmp_puts_diff(uint32_t font_normal, uint32_t font_highlight, int x, int y, char* msg, char* old_msg)
+{
+    for (char *c = msg, *o = old_msg; *c; c++, o++)
+    {
+        int font = *c == *o ? font_normal : font_highlight;
+        int chr = *c;
+        bmp_puts(font, &x, &y, (char*) &chr);
+    }
+}
+
 void
 bmp_hexdump(
     uint32_t fontspec,
@@ -374,38 +387,32 @@ bmp_hexdump(
     len = (len + 15) & ~15;
 
     uint32_t d = (uint32_t) buf;
-
+    char msg[100];
+    static char prev_msg[10][100];
+    
     do {
-        bmp_printf(
-            fontspec,
-            x,
-            y,
-            #ifdef CONFIG_VXWORKS // low-res screen, need to use larger font
-            "%08x: %08x %08x %08x %08x : %04x",
-            #else
+        snprintf(msg, sizeof(msg),
             "%08x: %08x %08x %08x %08x %08x %08x %08x %08x : %04x",
-            #endif
             (uint32_t) d,
             len >  0 ? MEMX(d+0x00) : 0,
             len >  4 ? MEMX(d+0x04) : 0,
             len >  8 ? MEMX(d+0x08) : 0,
             len > 12 ? MEMX(d+0x0C) : 0,
-            #ifndef CONFIG_VXWORKS
             len > 16 ? MEMX(d+0x10) : 0,
             len > 20 ? MEMX(d+0x14) : 0,
             len > 24 ? MEMX(d+0x18) : 0,
             len > 28 ? MEMX(d+0x1C) : 0,
-            #endif
             (void*)d - (void*)buf
         );
+
+        int row = (d - (uint32_t) buf) / 32;
+        row = COERCE(row, 0, 9);
+        bmp_puts_diff(FONT_SMALL, FONT(FONT_SMALL, COLOR_RED, COLOR_BLACK), x, y, msg, prev_msg[row]);
+        memcpy(prev_msg[row], msg, sizeof(msg));
+
         y += fontspec_height( fontspec );
-        #ifdef CONFIG_VXWORKS
-        d += 16;
-        len -= 16;
-        #else
         d += 32;
         len -= 32;
-        #endif
     } while(len > 0);
 }
 #endif
@@ -441,6 +448,26 @@ bmp_fill(
 #else
         memset(row, color, w);
 #endif
+
+     #ifdef CONFIG_500D // err70?!
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+     #endif
+
     }
 }
 

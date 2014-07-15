@@ -62,7 +62,6 @@ asm(
 );
 #endif /* __ARM__ */
 
-#if SHOULD_CHECK_SIG
 static void busy_wait(int n)
 {
     int i,j;
@@ -90,55 +89,21 @@ static void fail()
     blink(50);
 }
 
-#endif
-
 extern int compute_signature(int* start, int num);
 
 void
 __attribute__((noreturn))
 cstart( void )
 {
-#if SHOULD_CHECK_SIG
 
+    #if !(CURRENT_CAMERA_SIGNATURE)
+    #warning Signature Checking bypassed!! Please use a proper signature
+    #else
     int s = compute_signature((int*)SIG_START, SIG_LEN);
-
-    #ifdef CONFIG_5D3
-    if (s != (int)SIG_5D3_113)
+    int _signature = (int)CURRENT_CAMERA_SIGNATURE;
+    if (s != _signature)
         fail();
     #endif
-
-    #ifdef CONFIG_EOSM
-    if (s != (int)SIG_EOSM_202)
-        fail();
-    #endif
-
-    #if defined(CONFIG_7D)
-    if (s != (int)SIG_7D_203)
-        fail();
-    #endif
-
-    #if defined(CONFIG_7D_MASTER)
-    if (s != (int)SIG_7D_MASTER_203)
-        fail();
-    #endif
-
-    #ifdef CONFIG_6D
-    if (s != (int)SIG_6D_113)
-        fail();
-    #endif
-
-    #ifdef CONFIG_650D
-    if (s != (int)SIG_650D_104)
-        fail();
-    #endif
-
-    #ifdef CONFIG_700D
-    if (s != (int)SIG_700D_113)
-        fail();
-    #endif
-
-    //TODO: Add CONFIG_100D signature check
-#endif
 
 #ifdef __ARM__
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
@@ -167,10 +132,21 @@ cstart( void )
           e.g. run at the cached address 0x00800000, we wont risk jumping into nirvana here.
           This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why?
           Because the code above (blob_memcpy) already made totally wrong assumptions about memory addresses.
-     */
-    void __attribute__((long_call)) (*copy_and_run_ml)() = (void*) RESTARTSTART;
+
+       The name is not very inspired: it will not restart the camera, and may not copy anything.
+       Keeping it for historical reasons (to match old docs).
+       
+       This function will patch Canon's startup code from main firmware in order to run ML, reserve memory
+       for ML binary, starting from RESTARTSTART (where we already copied it), and... start it.
+       
+       Note: we can't just leave ML binary here (0x40800000), because the main firmware will reuse this area
+       sooner or later. So, we have copied it to RESTARTSTART, and will tell Canon code not to touch it
+       (usually by resizing some memory allocation pool and choosing RESTARTSTART in the newly created space).
+    */
+    void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
+    copy_and_restart();
+
 #endif /* __ARM__ */
-    copy_and_run_ml();
 
     // Unreachable
     while(1)

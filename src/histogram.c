@@ -119,8 +119,14 @@ MENU_UPDATE_FUNC(raw_histo_update)
 {
     menu_checkdep_raw(entry, info);
 
-    if (raw_histogram_enable)
+    if (HISTOBAR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use Histobar in LiveView, RAW histogram after taking a pic.");
+    }
+    else if (raw_histogram_enable)
+    {
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
+    }
 }
 #endif
 
@@ -424,11 +430,11 @@ void hist_highlight(int level)
 
 int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed)
 {
-    if (!raw_update_params()) return -1;
+    if (!raw_update_params()) goto err;
     get_yuv422_vram();
 
     int* hist = malloc(16384*4);
-    if (!hist) return -1;
+    if (!hist) goto err;
     memset(hist, 0, 16384*4);
 
     int off = get_y_skip_offset_for_histogram();
@@ -528,6 +534,13 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
 
     free(hist);
     return 1;
+
+err:
+    for (int k = 0; k < n; k++)
+    {
+        output_raw_values[k] = -1;
+    }
+    return -1;
 }
 
 int raw_hist_get_percentile_level(int percentile_x10, int gray_projection, int speed)

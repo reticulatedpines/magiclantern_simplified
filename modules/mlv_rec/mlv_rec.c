@@ -122,27 +122,28 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 CONFIG_INT("mlv.video.enabled", mlv_video_enabled, 0);
 
-static CONFIG_INT("mlv.video.buffer_fill_method", buffer_fill_method, 4);
-static CONFIG_INT("mlv.video.fast_card_buffers", fast_card_buffers, 1);
-static CONFIG_INT("mlv.video.tracing", enable_tracing, 0);
-static CONFIG_INT("mlv.black_fix", black_fix, 1);
-static CONFIG_INT("mlv.video.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.res.x", resolution_index_x, 12);
-static CONFIG_INT("mlv.aspect.ratio", aspect_ratio_index, 10);
-static CONFIG_INT("mlv.write.speed", measured_write_speed, 0);
-static CONFIG_INT("mlv.skip.frames", allow_frame_skip, 0);
-static CONFIG_INT("mlv.skip.card_spanning", card_spanning, 0);
+static CONFIG_INT("mlv.buffer_fill_method", buffer_fill_method, 4);
+static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
+static CONFIG_INT("mlv.tracing", enable_tracing, 0);
+static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
+static CONFIG_INT("mlv.show_graph", show_graph, 0);
+static CONFIG_INT("mlv.black_fix", black_fix, 0);
+static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
+static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
+static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
+static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
+static CONFIG_INT("mlv.card_spanning", card_spanning, 0);
 static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
-static CONFIG_INT("mlv.reckey", rec_key, 0);
+static CONFIG_INT("mlv.rec_key", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 static CONFIG_INT("mlv.preview", preview_mode, 0);
-static CONFIG_INT("mlv.warm.up", warm_up, 0);
-static CONFIG_INT("mlv.memory.hack", memory_hack, 0);
-static CONFIG_INT("mlv.small.hacks", small_hacks, 1);
-static CONFIG_INT("mlv.video.display_rec_info", display_rec_info, 1);
+static CONFIG_INT("mlv.warm_up", warm_up, 0);
+static CONFIG_INT("mlv.memory_hack", memory_hack, 0);
+static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
+static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
 
 static int start_delay = 0;
 
@@ -224,6 +225,45 @@ static int32_t raw_tag_take = 0;
 static int32_t mlv_file_count = 0;
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
+
+
+/* START: helper code for a post mortem dump */
+static void *mlv_dmp_ptr = NULL;
+static uint32_t mlv_dmp_size = 0;
+static uint32_t mlv_dmp_used = 0;
+
+static void mlv_rec_err_addbin(void *data, uint32_t length)
+{
+    if(!mlv_dmp_ptr)
+    {
+        mlv_dmp_size = 8192;
+        mlv_dmp_ptr = malloc(mlv_dmp_size);
+    }
+    
+    if(mlv_dmp_used + length > mlv_dmp_size)
+    {
+        mlv_dmp_size += 8192 + length;
+        mlv_dmp_ptr = realloc(mlv_dmp_ptr, mlv_dmp_size);
+    }
+    memcpy((void *)((uint32_t)mlv_dmp_ptr + mlv_dmp_used), data, length);
+    mlv_dmp_used += length;
+}
+
+static void mlv_rec_err_printf(const char* format, ... )
+{
+    va_list args;
+    va_start( args, format );
+    
+    uint32_t size = strlen(format) + 64;
+    char *fmt_str = malloc(size);
+
+    vsnprintf(fmt_str, size, format, args);
+    mlv_rec_err_addbin(fmt_str, strlen(fmt_str));
+    
+    free(fmt_str);
+    va_end( args );
+}
+/* END: helper code for a post mortem dump */
 
 
 /* helpers for reserving disc space */
@@ -736,6 +776,8 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
         slots[slot_count].ptr = (void*)(ptr + pre_align);
         slots[slot_count].status = SLOT_FREE;
         slots[slot_count].size = vidf_hdr->blockSize + write_size_align;
+        slots[slot_count].blockSize = vidf_hdr->blockSize;
+        slots[slot_count].frameSpace = vidf_hdr->frameSpace;
 
         trace_write(raw_rec_trace_ctx, "  slot %3d: base 0x%08X, end 0x%08X, aligned 0x%08X, data 0x%08X, size 0x%X (pre 0x%08X, edmac 0x%04X, write 0x%04X)",
             slot_count, ptr, (slots[slot_count].ptr + slots[slot_count].size), slots[slot_count].ptr, dataStart + vidf_hdr->frameSpace, slots[slot_count].size, pre_align, edmac_size_align, write_size_align);
@@ -1285,7 +1327,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             if(DISPLAY_REC_INFO_ICON)
             {
                 int32_t fps = fps_get_current_x1000();
-                int32_t t = (frame_count * 1000 + fps/2) / fps;
+                int32_t t = ((frame_count + frame_skips) * 1000 + fps/2) / fps;
                 int32_t predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
                 /* print the Recording Icon */
                 int rl_color;
@@ -1308,13 +1350,28 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, COLOR_BG_DARK);
                 
                 /* Display the Status */
-                if(!frame_skips)
+                bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
+                if(frame_skips)
                 {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
+                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+30, "%d skipped", frame_skips);
                 }
-                else
+
+                /* Write speed, main thread only */
+                int32_t speed = current_write_speed[0];
+                int32_t idle_percent = idle_time[0] * 100 / (writing_time[0] + idle_time[0]);
+                speed /= 10;
+                if(writing_time[0] || idle_time[0])
                 {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%d skipped", frame_skips);
+                    char msg[50];
+                    snprintf(msg, sizeof(msg), "%d.%01dMB/s", speed/10, speed%10);
+                    if (idle_time[0])
+                    {
+                        if (idle_percent) 
+                        { 
+                            STR_APPEND(msg, "\n%d%% idle", idle_percent); 
+                        }
+                    }
+                    bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5+font_med.height, "%s", msg);
                 }
             }
             else if(DISPLAY_REC_INFO_DEBUG)
@@ -1851,84 +1908,87 @@ retry_find:
 }
 
 /* this function uses the frameSpace area in a VIDF that was meant for padding to insert some other block before */
-static int32_t mlv_prepend_block(mlv_vidf_hdr_t *vidf, mlv_hdr_t *block)
+static int32_t mlv_prepend_block(uint32_t slot, mlv_hdr_t *block)
 {
-    if(!memcmp(vidf->blockType, "VIDF", 4))
+    mlv_vidf_hdr_t *hdr = slots[slot].ptr;
+    uint32_t blockSize = block->blockSize;
+    
+    /* make sure that the block size of the block to insert is aligned */
+    blockSize += ((0x10 - (blockSize % 0x10)) % 0x10);
+    
+    if(!memcmp(hdr->blockType, "VIDF", 4))
     {
         /* it's a VIDF block that should get shrinked and data prepended.
            new layout:
-            NULL (with the old VIDF data content plus a backup of the original size, which is 4 bytes)
-            BLOCK
-            VIDF
+            BLOCK  (the block being inserted)
+            VIDF   (original VIDF, just shrinked frameSpace)
         */
-        if(vidf->frameSpace < block->blockSize + sizeof(mlv_vidf_hdr_t) + 4 + 8)
+        if(hdr->frameSpace < blockSize)
         {
             /* there is not enough room */
             return 1;
         }
 
         /* calculate start address of repositioned VIDF block */
-        uint32_t block_offset = sizeof(mlv_vidf_hdr_t) + 4;
-        uint32_t new_vidf_offset = block_offset + block->blockSize;
+        uint32_t new_vidf_offset = blockSize;
 
-        mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)vidf + new_vidf_offset);
-
+        /* create pointers to all blocks used */
+        mlv_hdr_t *inserted_block = (mlv_hdr_t *)hdr;
+        mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)hdr + new_vidf_offset);
 
         /* copy VIDF header to new position and fix frameSpace */
-        memmove(new_vidf, vidf, sizeof(mlv_vidf_hdr_t));
+        memmove(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
         new_vidf->blockSize -= new_vidf_offset;
         new_vidf->frameSpace -= new_vidf_offset;
 
         /* copy block to prepend */
-        memmove((void*)((uint32_t)vidf + block_offset), block, block->blockSize);
-
-        /* backup old size into free space then set the header to be totally skipped */
-        mlv_bkup_hdr_t *backup_hdr = (mlv_bkup_hdr_t *)vidf;
-        backup_hdr->blockSizeOrig = vidf->blockSize;
-        vidf->blockSize = sizeof(mlv_bkup_hdr_t);
+        memmove(inserted_block, block, block->blockSize);
         
-        mlv_set_type((mlv_hdr_t *)vidf, "BKUP");
+        /* and set the correctly aligned blocksize */
+        inserted_block->blockSize = blockSize;
 
         return 0;
     }
-    else if(!memcmp(vidf->blockType, "BKUP", 4))
+    else
     {
-        /* there is already something injected, try to add a new block behind prepended */
-        mlv_vidf_hdr_t *hdr = NULL;
-        uint32_t offset = vidf->blockSize;
-
         /* now skip until the VIDF is reached */
-        while(offset < vidf->frameSpace)
+        uint32_t offset = 0;
+        while(offset < slots[slot].frameSpace)
         {
-            hdr = (mlv_vidf_hdr_t *)((uint32_t)vidf + offset);
+            mlv_hdr_t *current_hdr = (mlv_hdr_t *)((uint32_t)hdr + offset);
+            
+            ASSERT((current_hdr->blockSize > 0) && (current_hdr->blockSize < 0x20000000));
 
-            ASSERT(hdr->blockSize > 0);
-
-            if(!memcmp(hdr->blockType, "VIDF", 4))
+            if(!memcmp(current_hdr->blockType, "VIDF", 4))
             {
-                if(hdr->frameSpace < block->blockSize)
+                mlv_vidf_hdr_t *old_vidf = (mlv_vidf_hdr_t *)current_hdr;
+                
+                if(old_vidf->frameSpace < blockSize)
                 {
                     /* there is not enough room */
                     return 2;
                 }
 
                 /* calculate start address of the again repositioned VIDF block */
-                mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)hdr + block->blockSize);
+                mlv_vidf_hdr_t *new_vidf = (mlv_vidf_hdr_t *)((uint32_t)old_vidf + blockSize);
 
                 /* copy VIDF header to new position and fix frameSpace */
-                memmove(new_vidf, hdr, sizeof(mlv_vidf_hdr_t));
-                new_vidf->blockSize -= block->blockSize;
-                new_vidf->frameSpace -= block->blockSize;
+                memmove(new_vidf, old_vidf, sizeof(mlv_vidf_hdr_t));
+                new_vidf->blockSize -= blockSize;
+                new_vidf->frameSpace -= blockSize;
 
                 /* copy block to prepend */
-                memmove(hdr, block, block->blockSize);
+                memmove(current_hdr, block, block->blockSize);
+                
+                /* and set the correctly aligned blocksize */
+                current_hdr->blockSize = blockSize;
 
                 return 0;
             }
             else
             {
                 /* skip to next block */
-                offset += hdr->blockSize;
+                offset += current_hdr->blockSize;
             }
         }
 
@@ -1973,19 +2033,13 @@ static int32_t FAST process_frame()
         return 0;
     }
 
-    /* restore from BKUP block used when prepending data */
+    /* restore VIDF header */
     mlv_vidf_hdr_t *hdr = slots[capture_slot].ptr;
-    if(!memcmp(hdr->blockType, "BKUP", 4))
-    {
-        mlv_bkup_hdr_t *backup = (mlv_bkup_hdr_t *)hdr;
-        hdr->blockSize = backup->blockSizeOrig;
-        mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
-    }
+    mlv_set_type((mlv_hdr_t *)hdr, "VIDF");
     mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
     
-    /* just to make sure there is no corruption */
-    ASSERT(hdr->blockSize >= (sizeof(mlv_vidf_hdr_t) + hdr->frameSpace + frame_size));
-
+    hdr->blockSize = slots[capture_slot].blockSize;
+    hdr->frameSpace = slots[capture_slot].frameSpace;
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
     hdr->cropPosX = (skip_x + 7) & ~7;
@@ -2082,7 +2136,9 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
 static char *get_next_raw_movie_file_name()
 {
-    static char filename[100];
+    static char filename[48];
+    static char videoname[48];
+    static char dirname[48];
     struct tm now;
 
     LoadCalendarFromRTC(&now);
@@ -2093,7 +2149,18 @@ static char *get_next_raw_movie_file_name()
          * Get unique file names from the current date/time
          * last field gets incremented if there's another video with the same name
          */
-        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        snprintf(videoname, sizeof(videoname), "M%02d-%02d%02d", now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+         
+        if(create_dirs)
+        {
+            snprintf(dirname, sizeof(dirname), "%s/%s", get_dcim_dir(), videoname);
+            snprintf(filename, sizeof(filename), "%s/%s.MLV", dirname, videoname);
+            FIO_CreateDirectory(dirname);
+        }
+        else
+        {
+            snprintf(filename, sizeof(filename), "%s/%s.MLV", get_dcim_dir(), videoname);
+        }
 
         /* when card spanning is enabled, primary writer is for CF, regardless which card is preferred */
         if(card_spanning)
@@ -2385,6 +2452,8 @@ static void raw_writer_task(uint32_t writer)
 
     struct msg_queue *queue = mlv_writer_queues[writer];
 
+    char *error_message = "Huh? Which error?";
+    
     /* keep it local to make sure it is getting optimized */
     FILE* f = mlv_handles[writer];
     FILE* next_file_handle = NULL;
@@ -2434,6 +2503,7 @@ static void raw_writer_task(uint32_t writer)
         if(!job)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: job is NULL");
+            error_message = "Internal error #1";
             goto abort;
         }
 
@@ -2459,7 +2529,10 @@ static void raw_writer_task(uint32_t writer)
                 {
                     /* check if we will reach the 4GiB boundary with this write */
                     uint32_t free_space = mlv_max_filesize - written_chunk;
+                    uint32_t limit = 8 * job->block_size;
 
+                    //trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: free: 0x%08x limit: 0x%08x", writer, free_space, limit);
+                    
                     if(free_space < job->block_size)
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, queuing close of '%s'", writer, chunk_filename[writer]);
@@ -2474,6 +2547,7 @@ static void raw_writer_task(uint32_t writer)
                         if(!close_job)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close_job is NULL", writer);
+                            error_message = "Internal error #2";
                             goto abort;
                         }
 
@@ -2489,6 +2563,7 @@ static void raw_writer_task(uint32_t writer)
                         if(!next_file_handle)
                         {
                             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: no chunk prepared", writer);
+                            error_message = "Internal error #3";
                             goto abort;
                         }
 
@@ -2511,32 +2586,40 @@ static void raw_writer_task(uint32_t writer)
 
                         handle_requested = 0;
 
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s'", writer, chunk_filename[writer]);
+                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: reached 4GiB, next chunk is '%s', %d", writer, chunk_filename[writer], f);
                     }
-                    else if((free_space < 8 * job->block_size) && !handle_requested)
+                    else if(free_space < limit)
                     {
-                        /* we will reach the 4GiB boundary soon */
-                        trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB (0x%08x), request another chunk", writer, free_space);
-
-                        /* queue a preparation job */
-                        handle_job_t *prepare_job = NULL;
-                        msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
-                        
-                        if(!prepare_job)
+                        if(!handle_requested)
                         {
-                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
-                            goto abort;
+                            /* we will reach the 4GiB boundary soon */
+                            trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: close to 4GiB (0x%08x), request another chunk", writer, free_space);
+
+                            /* queue a preparation job */
+                            handle_job_t *prepare_job = NULL;
+                            msg_queue_receive(mlv_job_alloc_queue, &prepare_job, 0);
+                            
+                            if(!prepare_job)
+                            {
+                                trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: prepare_job is NULL", writer);
+                                error_message = "Internal error #4";
+                                goto abort;
+                            }
+
+                            prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
+                            prepare_job->writer = writer;
+                            prepare_job->file_handle = NULL;
+                            prepare_job->file_header = file_header;
+                            prepare_job->filename[0] = '\000';
+
+                            msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
+
+                            handle_requested = 1;
                         }
-
-                        prepare_job->job_type = JOB_TYPE_NEXT_HANDLE;
-                        prepare_job->writer = writer;
-                        prepare_job->file_handle = NULL;
-                        prepare_job->file_header = file_header;
-                        prepare_job->filename[0] = '\000';
-
-                        msg_queue_post(mlv_mgr_queue, (uint32_t) prepare_job);
-
-                        handle_requested = 1;
+                        else
+                        {
+                            /* recheck? no dont think thats necessary */
+                        }
                     }
                 }
 
@@ -2579,9 +2662,21 @@ static void raw_writer_task(uint32_t writer)
                     
                     /* now try to write the remaining buffer content */
                     written = FIO_WriteFile(f, &((char *)job->block_ptr)[written], job->block_size - written);
-                    if (written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
+                    if(written != (int32_t)(job->block_size - written)) /* 4GB limit or card full? */
                     {
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: Even writing after removing dummy file failed. No idea what to do now.", writer);
+                        if(large_file_support)
+                        {
+                            error_message = "Card/camera really exFAT?";
+                        }
+                        else
+                        {
+                            error_message = "Card/Filesystem error?";
+                        }
+                    }
+                    else
+                    {
+                        error_message = "Card seems to be full";
                     }
                     
                     goto abort;
@@ -2609,6 +2704,7 @@ static void raw_writer_task(uint32_t writer)
         {
             trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
             bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 300, "WRITER#%d: unhandled job 0x%08X", writer, job->job_type);
+            error_message = "Internal error ";
             goto abort;
         }
 
@@ -2618,7 +2714,7 @@ static void raw_writer_task(uint32_t writer)
 abort:
             raw_recording_state = RAW_FINISHING;
             raw_rec_cbr_stopping();
-            bmp_printf( FONT_MED, 30, 90, "Movie recording stopped automagically     ");
+            NotifyBox(5000, "Recording stopped:\n '%s'", error_message);
             /* this is error beep, not audio sync beep */
             beep_times(2);
             break;
@@ -2674,8 +2770,6 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
         static int32_t failed = 0;
         uint32_t msg_count = 0;
 
-        mlv_vidf_hdr_t *hdr = slots[slot].ptr;
-
         /* check if there is a block that should get embedded */
         msg_queue_count(mlv_block_queue, &msg_count);
 
@@ -2694,7 +2788,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
                 raw_rec_cbr_mlv_block(block);
 
                 /* prepend the given block if possible or requeue it in case of error */
-                int32_t ret = mlv_prepend_block(hdr, block);
+                int32_t ret = mlv_prepend_block(slot, block);
                 if(!ret)
                 {
                     queued++;
@@ -3035,6 +3129,40 @@ static void raw_video_rec_task()
 
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
+            /* create a post mortem dump */
+            if(mlv_dmp_ptr)
+            {
+                char filename[64]; 
+                
+                strncpy(filename, mlv_movie_filename, sizeof(filename));
+                strncpy(&filename[strlen(filename) - 3], "ERR", 4);
+
+                FILE *file = FIO_CreateFile(filename);
+                
+                if(file)
+                {
+                    FIO_WriteFile(file, mlv_dmp_ptr, mlv_dmp_used);
+                    FIO_CloseFile(file);       
+                    beep();
+                    bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 100, "ERROR: Please send us %s", filename);
+                    ASSERT(0 && "ERROR: Please send us the generated .ERR file");
+                }
+                else
+                {
+                    ASSERT(0 && "ERROR: Some error occurred, but could not create error dump");
+                }
+                
+                /* reset to defaults */
+                free(mlv_dmp_ptr);
+                mlv_dmp_ptr = NULL;
+                mlv_dmp_size = 0;
+                mlv_dmp_used = 0;
+                
+                /* stop recording */
+                raw_recording_state = RAW_FINISHING;
+                raw_rec_cbr_stopping();
+            }
+            
             /* on shutdown or writers that aborted, abort even if there are unwritten slots */
             if(ml_shutdown_requested || !mlv_rec_threads)
             {
@@ -3545,6 +3673,12 @@ static struct menu_entry raw_video_menu[] =
                 .choices = aspect_ratio_choices,
             },
             {
+                .name = "Create directory",
+                .priv = &create_dirs,
+                .max = 1,
+                .help = "Save video chunks in separate folders",
+            },
+            {
                 .name = "Global Draw",
                 .priv = &kill_gd,
                 .max = 1,
@@ -3630,7 +3764,8 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Fix black level",
                 .priv = &black_fix,
                 .max = 1,
-                .help  = "Forces the black level to 2048 to fix green cast",
+                .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
+                .help2  = "Try this to fix green casts.",
             },
             {
                 .name = "Debug trace",
@@ -4027,4 +4162,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
     MODULE_CONFIG(black_fix)
+    MODULE_CONFIG(create_dirs)
 MODULE_CONFIGS_END()

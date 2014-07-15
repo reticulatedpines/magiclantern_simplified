@@ -1,6 +1,9 @@
 /*
  *  1100D 1.0.5 consts
  */
+
+#define CANON_SHUTTER_RATING 100000
+
 #include "consts-600d.101.h"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
@@ -136,9 +139,6 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 
 #define MVR_992_STRUCT (*(void**)0x1DF4)
-
-// Dummy defines for features that we don't really have
-#define DISPLAY_SENSOR_POWERED 0
 
 #define SENSOR_RES_X 4272
 #define SENSOR_RES_Y 2848

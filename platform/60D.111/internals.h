@@ -107,18 +107,12 @@
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
-/** We have AllocateMemoryResourceForSingleChunk */
-#define CONFIG_EXMEM_SINGLE_CHUNK
-
 /** We have access to raw data in LiveView and Photo mode */
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
 
 /** We know how to use edmac_memcpy */
 #define CONFIG_EDMAC_MEMCPY
-
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #define CONFIG_EDMAC_RAW_SLURP

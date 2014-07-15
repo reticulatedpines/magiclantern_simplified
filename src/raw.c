@@ -348,7 +348,7 @@ static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 #endif
 
 #ifdef CONFIG_700D
-static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
 #endif
 
 #ifdef CONFIG_60D
@@ -360,7 +360,7 @@ static int dynamic_ranges[] = {1100, 1094, 1060, 1005, 919, 826, 726, 633};
 #endif
 
 #ifdef CONFIG_EOSM
-static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+static int dynamic_ranges[] = {1060, 1063, 1037, 982, 901, 831, 718, 622, 536};
 #endif
 
 #ifdef CONFIG_7D
@@ -387,7 +387,7 @@ static int raw_lv_get_resolution(int* width, int* height)
     int zoom = lv_dispsize > 1;
 
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     #ifdef CONFIG_5D3
     /* don't know how to get the resolution without relying on Canon's lv_save_raw */
@@ -453,7 +453,7 @@ static int raw_update_params_work()
     int zoom = lv_dispsize > 1;
     
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     if (lv)
     {
@@ -463,6 +463,14 @@ static int raw_update_params_work()
             dbg_printf("LV raw disabled\n");
             return 0;
         }
+        
+        #ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
+        if (lv_dispsize == 10)
+        {
+            dbg_printf("LV raw has trouble with 10x zoom\n");
+            return 0;
+        }
+        #endif
         
         raw_info.buffer = (void*) DEFAULT_RAW_BUFFER;
         
@@ -647,9 +655,10 @@ static int raw_update_params_work()
         width = 4832;
         height = 3204;
         skip_left = 62;
-        skip_bottom = 28;
+        skip_top = 26;
         /* also we have a 40-pixel border on the right that contains image data */
-        raw_info.buffer -= 40*14/8;
+        /* for some reason, we need to go back by 28 lines to find the top OB area */
+        raw_info.buffer -= 40*14/8 + 28*width*14/8;
         #endif
 
         #ifdef CONFIG_550D
@@ -1889,6 +1898,27 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
         menu_set_warning_raw(entry, info);
     }
 }
+
+#ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
+/* workaround: disable raw flag in zoom mode (it crashes on some cameras) */
+/* not exactly nice, but better than crashing */
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+    if (lv_raw_enabled)
+    {
+        if (buf[0] == 10)
+        {
+            lv_raw_enabled = -1;
+            call("lv_save_raw", 0);
+        }
+        else
+        {
+            lv_raw_enabled = 1;
+            call("lv_save_raw", 1);
+        }
+    }
+}
+#endif
 
 static void raw_init()
 {

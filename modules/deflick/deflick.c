@@ -14,6 +14,7 @@
 #include "histogram.h"
 #include "fileprefix.h"
 #include "module.h"
+#include "console.h"
 
 static CONFIG_INT("post.deflicker", post_deflicker, 0);
 static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);
@@ -109,6 +110,13 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
     post_deflicker_save_sidecar_file(type, fn, ev);
 }
 
+static float raw_to_ev_custom(int raw, int white_level)
+{
+    int raw_max = white_level - raw_info.black_level;
+    float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - raw_info.black_level, 1, raw_max));
+    return raw_ev;
+}
+
 static void post_deflicker_task()
 {
     /* not quite correct in burst mode, but at least only one task will run at a time */
@@ -141,7 +149,12 @@ static void post_deflicker_task()
         give_semaphore(deflicker_sem);
         return;
     }
-    float ev = raw_to_ev(raw);
+    
+    /* assume a fixed white level, like most raw image processors do */
+    /* any value around 15000 will do (the effect of changing it would be a small shift in exposure, same amount in all images) */
+    /* without this, variations in the the default (autodetected) white level will introduce flicker */
+    float ev = raw_to_ev_custom(raw, 15000);
+
     float correction = post_deflicker_target_level - ev;
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
 
@@ -216,7 +229,7 @@ static struct menu_entry post_deflicker_menu[] = {
                 .min = 20,
                 .max = 80,
                 .unit = UNIT_PERCENT,
-                .help  = "Where to meter for deflickering. Recommended: 50% (median).",
+                .help  = "Where to meter for deflicking. Recommended: 50% (median).",
                 .help2 = "Try 75% if you get black borders (e.g. Samyang 8mm on 5D).",
             },
             {
@@ -225,7 +238,8 @@ static struct menu_entry post_deflicker_menu[] = {
                 .min = -8,
                 .max = -1,
                 .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
-                .help = "Desired exposure level for processed pics. 0=overexposed.",
+                .help = "Where to place the exposure level for processed pics",
+                .help2 = "EV below overexposure.",
             },
             MENU_EOL,
         },

@@ -5,7 +5,7 @@ x: prepare-all autoexec-all autoexec.bin
 	$(call build,STAT,$(STAT_CMD) autoexec.bin)
 
 prepare-all:
-	$(MAKE) -C .. all-supported-models
+	$(MAKE) -C .. all-supported-unified-models
 
 reboot-all.o : prepare-all
 
@@ -24,9 +24,7 @@ autoexec-all: reboot-all.o
 clean::
 	$(call rm_files, autoexec-all autoexec-all.bin)
 
-empty:=
-space:= $(empty) $(empty)
-MODEL=$(subst $(space),.,$(SUPPORTED_MODELS))
+MODEL:=UNIFIED
 
 ML_MODEL_DIR = all
 

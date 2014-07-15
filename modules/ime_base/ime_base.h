@@ -3,6 +3,7 @@
 #define _ime_base_h_
 
 #ifndef _ime_base_c_
+#include <beep.h>
 #define IME_WEAK(x) WEAK_FUNC(x)
 #else
 #define IME_WEAK(x)

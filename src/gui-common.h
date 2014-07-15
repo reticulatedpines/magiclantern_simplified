@@ -2,8 +2,7 @@
 #define _big_gui_h_
 
 #include "dialog.h"
-
-#include "dialog.h"
+#include "menu.h"
 
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
@@ -24,8 +23,8 @@
 #define MLEV_MENU_REDRAW -15
 #define MLEV_AV_SHORT -16
 #define MLEV_AV_LONG -17
-
 #define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
+#define MLEV_JOYSTICK_LONG -19
  
 
 /** \file
@@ -189,12 +188,13 @@ gui_hide_menu( int redisplay_time );
                       // 9: unavi? (user navigation?)
                       // 10: unavi set?
 #define GUISTATE_QMENU 9
+#define GUISTATE_QR_ZOOM 12 // QuickReview zoom
 #endif
 
 void fake_simple_button(int bgmt_code);
 void GUI_Control(int bgmt_code, int obj, int arg, int unknown);
 
-#define QR_MODE (gui_state == GUISTATE_QR)
+#define QR_MODE (gui_state == GUISTATE_QR || gui_state == GUISTATE_QR_ZOOM)
 #define PLAY_OR_QR_MODE (PLAY_MODE || QR_MODE)
 
 void canon_gui_disable_front_buffer();
@@ -273,7 +273,6 @@ int handle_fps_events(struct event * event);
 int handle_expo_preset(struct event * event);
 int handle_disp_preset_key(struct event * event);
 int handle_fast_zoom_box(struct event * event);
-int handle_af_patterns(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
@@ -286,7 +285,14 @@ void reset_pre_shutdown_flag_step();
 
 char* get_info_button_name();
 
+int get_disp_pressed();
+
 /* to be moved from debug.c */
 int get_zoom_out_pressed();
+
+int display_is_on();
+
+/* wrapper for GUI timers */
+void delayed_call(int delay_ms, void(*function)(void));
 
 #endif

@@ -79,8 +79,6 @@ static void fail()
     blink(50);
 }
 
-extern int compute_signature(int* start, int num);
-
 /** Include the relocatable shim code */
 extern uint8_t blob_start_550;
 extern uint8_t blob_end_550;

@@ -77,7 +77,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(!file)
+    if(file == INVALID_PTR)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
@@ -161,8 +161,18 @@ static void module_update_core_symbols(TCCState* state)
         void* new_address = (void*) tcc_get_symbol(state, (char*) module_symbol_entry->name);
         if (new_address)
         {
-            *(module_symbol_entry->address) = new_address;
-            console_printf("  [i] upd %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+            if (new_address != module_symbol_entry->address)
+            {
+                *(module_symbol_entry->address) = new_address;
+                console_printf("  [i] upd: %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+            }
+            else
+            {
+                /* you have declared a non-static MODULE_SYMBOL (or MODULE_FUNCTION), which got exported into the SYM file */
+                /* this will not work; fix it by declaring it as static */
+                console_show();
+                console_printf("  [E] wtf: %s (should be static)\n", module_symbol_entry->name);
+            }
         }
         else
         {
@@ -177,6 +187,15 @@ static void _module_load_all(uint32_t list_only)
     uint32_t module_cnt = 0;
     struct fio_file file;
     uint32_t update_properties = 0;
+
+    if(module_console_enabled)
+    {
+        console_show();
+    }
+    else
+    {
+        console_hide();
+    }
 
 #ifdef CONFIG_MODULE_UNLOAD
     /* ensure all modules are unloaded */
@@ -516,11 +535,6 @@ static void _module_load_all(uint32_t list_only)
     #endif
     
     console_printf("Modules loaded\n");
-    
-    if(!module_console_enabled)
-    {
-        console_hide();
-    }
 }
 
 static void _module_unload_all(void)
@@ -954,17 +968,21 @@ int module_display_filter_update()
         {
             while(cbr->name)
             {
+                /* run the first module display filter that returned 1 in module_display_filter_enabled */ 
                 if(cbr->type == CBR_DISPLAY_FILTER && cbr->ctx)
                 {
                     /* arg!=0: draw the filtered image in these buffers */
                     struct display_filter_buffers buffers;
                     display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
                     
-                    if (buffers.src_buf && buffers.dst_buf) /* do not call the CBR with invalid arguments */
+                    /* do not call the CBR with invalid arguments */
+                    if (buffers.src_buf && buffers.dst_buf)
                     {
                         cbr->handler((intptr_t) &buffers);
                     }
-                    break;
+                    
+                    /* do not allow other display filters to run */
+                    return 1;
                 }
                 cbr++;
             }

@@ -2,6 +2,8 @@
  * Consts for 6D 113 firmware
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC022C184 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
@@ -34,6 +36,8 @@
 //~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCBC000
 //0xA0000 - 640K Should Be enough for everyone
 #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xC1C000
+
+#define ML_RESERVED_MEM (640*1024)
 
 //~ fixup start address of AllocateMemory pool 0x8F0000
 #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C3190
@@ -89,8 +93,6 @@
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x75FD0)
-
-    #define DISPLAY_SENSOR_POWERED 0
 
 // for gui_main_task
 #define GMT_NFUNCS 7

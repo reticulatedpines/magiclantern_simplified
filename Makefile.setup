@@ -51,18 +51,13 @@ ifeq ($(TARGET_COMPILER), arm-gcc)
 				-D__ARM__
 endif
 
-#
-# ToDo: remove 
-#	-Wno-implicit-function-declaration
-#
-# Reason: these warnings make sense! potential crash situations.
-#
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
 	-Wextra \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
+	-Werror-implicit-function-declaration \
 	-Wno-missing-field-initializers \
 	-Wno-format \
 	-Wdouble-promotion \
@@ -89,10 +84,6 @@ AFLAGS=\
 
 ifdef CONFIG_SMALL_FONTS
 $(error CONFIG_SMALL_FONTS must be renamed to ML_SRC_SMALL_FONTS)
-endif
-
-ifdef CONFIG_STATIC_FONTS
-$(error CONFIG_STATIC_FONTS must be renamed to ML_SRC_STATIC_FONTS)
 endif
 
 ensureCorrectValue = $(if $(filter $($(1)),y n 1 0), ,$(1)=n $(warning BAD VALUE FOR $(1)=$($(1)) DEFAULTING TO n))

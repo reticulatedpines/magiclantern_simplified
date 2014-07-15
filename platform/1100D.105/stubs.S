@@ -54,6 +54,7 @@ NSTUB(0xFF1D979C, _FIO_GetFileSize)                         // might be good (du
 NSTUB(0xFF1D91C0, _FIO_OpenFile)                            // might be good (dumps=1, score=92)
 NSTUB(0xFF1D9328, _FIO_RemoveFile)                          // might be good (dumps=1, score=53)
 NSTUB(0xFF1D9C94, _FIO_RenameFile)
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1BF4,  gui_main_struct)                         // in gui_main_task
@@ -78,6 +79,8 @@ NSTUB(0xFF069F88,  SetSamplingRate)
 NSTUB(0xFF0554C4,  StartASIFDMAADC)
 NSTUB(0xFF055678,  StartASIFDMADAC)
 NSTUB(0xFF05574C,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -188,6 +191,13 @@ NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (du
 // NSTUB(    ???,  gui_init_event)                          /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF076470,  CancelTimer)
+NSTUB(0xFF06E260,  SetHPTimerAfterNow)
+NSTUB(0xFF06E354,  SetHPTimerNextTick)
+NSTUB(0xFF076270,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)

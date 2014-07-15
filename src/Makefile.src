@@ -15,7 +15,8 @@ CFLAGS += \
 	-DVERSION=\"$(VERSION)\" \
 	-DCAMERA_MODEL=\"$(MODEL)\" \
 	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
-	-DCONFIG_FW_VERSION=$(FW_VERSION)
+	-DCONFIG_FW_VERSION=$(FW_VERSION) \
+	-DCURRENT_CAMERA_SIGNATURE=SIG_$(MODEL)_$(FW_VERSION)
 
 ifeq ($(ML_BOOT_HACK_OBJ), n)
 ML_BOOT_HACK_OBJ =
@@ -142,7 +143,7 @@ ML_SRC_OBJS = \
 	$(ML_BOOTFLAGS_OBJ) \
 	dialog_test.o \
 	vram.o \
-	aj_port.o \
+	greenscreen.o \
 	fps-engio.o \
 	shoot.o \
 	hdr.o \
@@ -164,6 +165,7 @@ ML_SRC_OBJS = \
 	screenshot.o \
 	fileprefix.o \
 	lvinfo.o \
+	builtin-enforcing.o \
 	ml-cbr.o 
 
 ML_OBJS-y += $(ML_SRC_OBJS)
@@ -174,7 +176,9 @@ else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
 
+ifneq ($(ML_SRC_PROFILE),minimal)
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
+endif
 
 ifdef ML_SRC_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))

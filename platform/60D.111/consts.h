@@ -2,6 +2,8 @@
  *  60D 1.1.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -68,8 +70,6 @@
 #define FOCUS_CONFIRMATION (*(int*)0x4680)
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 //~ #define AF_BUTTON_PRESSED_LV 0
-
-#define DISPLAY_SENSOR_POWERED 0
 
 // for gui_main_task
 #define GMT_NFUNCS 7
@@ -154,7 +154,7 @@
 // * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
 // * see LiveView image under menu
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
-#define GUIMODE_ML_MENU (lv ? 0x45 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x45 : 2)
 // outside LiveView, Canon menu is a good choice
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))

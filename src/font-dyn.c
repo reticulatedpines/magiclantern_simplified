@@ -1,7 +1,6 @@
 #include "font.h"
 #include "bmp.h"
 
-#ifndef CONFIG_STATIC_FONTS
 struct font font_large = {
     .width      = 20,
     .height     = 32,
@@ -19,7 +18,6 @@ struct font font_small = {
     .height     = 12,
     .bitmap     = 0,
 };
-#endif
 
 struct sfont font_large_shadow = {
     .width      = 20,
@@ -90,7 +88,6 @@ void load_fonts(void* unused)
     
     // if something goes wrong, you will see chinese fonts :)
     
-#ifndef CONFIG_STATIC_FONTS
     int size;
     for (int i = 0; i < 10; i++)
     {
@@ -119,7 +116,6 @@ void load_fonts(void* unused)
     }
     //~ bfnt_puts("FONTS OK", 0, 0, COLOR_WHITE, COLOR_BLACK);
     //#else
-#endif
 
     /*font_small_shadow.bitmap = SmallAlloc(size);
     memcpy(font_small_shadow.bitmap, font_small.bitmap, size);

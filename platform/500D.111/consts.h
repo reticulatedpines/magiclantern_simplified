@@ -2,6 +2,8 @@
  *  500D 1.1.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses. TODO: Alex, plese double check it. reboot.c used a different address
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -244,7 +246,7 @@
 
 #define LV_STRUCT_PTR 0x1d78
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
+//~ #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58) NG
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x24d48

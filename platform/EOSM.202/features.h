@@ -5,7 +5,6 @@
 #undef FEATURE_MLU_HANDHELD
 #undef FEATURE_STICKY_DOF // No DOF button
 #undef FEATURE_IMAGE_EFFECTS // DigicV new effects check "Art Filter"
-#undef CONFIG_MEMPATCH_CHECK // Reports 0 for total, like 6D
 #undef FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY // Well.. it will work in 1 mode
 #undef FEATURE_AF_PATTERNS // No regular AF
 #undef FEATURE_VOICE_TAGS // Just to be sure
@@ -36,5 +35,4 @@
 #undef FEATURE_LV_FOCUS_BOX_SNAP
 #undef FEATURE_ARROW_SHORTCUTS
 
-#define FEATURE_HEADPHONE_MONITORING
 #define FEATURE_EYEFI_TRICKS

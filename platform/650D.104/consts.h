@@ -2,6 +2,8 @@
  *  650D 1.0.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 /* 
  * Initial constants as found by Indy 
  */
@@ -21,9 +23,6 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
 #define HIJACK_TASK_ADDR 0x233D8
 
-/*
- * Most of the stuff that follows is taken directly from the EOSM or 5D3
- */
 // no idea if it's overflowing, need to check experimentally 
 #define ARMLIB_OVERFLOWING_BUFFER 0x4A824 // in AJ_armlib_setup_related3
 
@@ -220,7 +219,7 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
-#define ARROW_MODE_TOGGLE_KEY "LCD SENSOR"
+#define ARROW_MODE_TOGGLE_KEY "LCD sensor"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)

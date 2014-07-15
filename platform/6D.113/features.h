@@ -14,5 +14,9 @@
 #define FEATURE_KEN_ROCKWELL_ZOOM_5D3 // Play From Image Review Mode - Did not bring up play
 
 /* Audio Features */
-#define FEATURE_HEADPHONE_MONITORING
+//~ #define FEATURE_HEADPHONE_MONITORING // reported not to work
 #define FEATURE_AUDIO_METERS
+
+#define FEATURE_GPS_TWEAKS
+
+#define FEATURE_AUDIO_REMOTE_SHOT

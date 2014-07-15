@@ -115,12 +115,15 @@ static int advanced_mode = 0;       /* cached value; only for submenus for now *
 static int caret_position = 0;
 
 #define SUBMENU_OR_EDIT (submenu_level || edit_mode)
+#define EDIT_OR_TRANSPARENT (edit_mode || menu_lv_transparent_mode)
 
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
 //~ static CONFIG_INT("menu.set", set_action, 2);
 //~ static CONFIG_INT("menu.start.my", start_in_my_menu, 0);
 
 static int is_customize_selected();
+
+extern WEAK_FUNC(ret_0) void CancelDateTimer();
 
 #define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (((entry)->max - (entry)->min < 15) || (entry)->choices) && IS_ML_PTR((entry)->priv))
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && IS_ML_PTR((entry)->priv))
@@ -569,7 +572,7 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
 /* for editing with caret */
 static int get_delta(struct menu_entry * entry, int sign)
 {
-    if(!edit_mode)
+    if(!EDIT_OR_TRANSPARENT)
         return sign;
     else if(entry->unit == UNIT_DEC)
         return sign * powi(10, caret_position);
@@ -591,6 +594,11 @@ static int uses_caret_editing(struct menu_entry * entry)
     return 
         entry->select == 0 &&   /* caret editing requires its own toggle logic */
         (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME);  /* only these caret edit modes are supported */
+}
+
+static int editing_with_caret(struct menu_entry * entry)
+{
+    return EDIT_OR_TRANSPARENT && uses_caret_editing(entry);
 }
 
 static void caret_move(struct menu_entry * entry, int delta)
@@ -1995,7 +2003,7 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
     else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR && !is_manual_focus())
+    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
     else if (DEPENDS_ON(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
@@ -2038,7 +2046,7 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual focus.");
         else if (WORKS_BEST_IN(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR && !is_manual_focus())
+        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
         //~ else if (WORKS_BEST_IN(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");
@@ -2225,6 +2233,24 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
         batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
+static void print_help_line(int color, int x, int y, char* msg)
+{
+    int fnt = FONT(FONT_MED, color, MENU_BG_COLOR_HEADER_FOOTER);
+    int len = bmp_string_width(fnt, msg);
+    
+    if (len > 720 - 2*x)
+    {
+        /* squeeze long lines (if the help text is just a bit too long) */
+        /* TODO: detect if squeezing fails and beep or print the help line in red; requires changes in the font backend */
+        fnt |= FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720 - 2*x);
+    }
+    
+    bmp_printf(
+        fnt, x, y,
+        "%s", msg
+    );
+}
+
 static void
 entry_print(
     int x,
@@ -2363,9 +2389,8 @@ skip_name:
     
     int xval = x + w;
     
-    if (edit_mode && 
-        entry->selected && 
-        uses_caret_editing(entry) && 
+    if (entry->selected && 
+        editing_with_caret(entry) && 
         caret_position >= (int)strlen(info->value))
     {
         bmp_fill(COLOR_WHITE, xval, y + fontspec_font(fnt)->height - 4, char_width, 2);
@@ -2380,9 +2405,8 @@ skip_name:
         info->value
     );
     
-    if(edit_mode &&
-       entry->selected &&
-       uses_caret_editing(entry) &&
+    if(entry->selected &&
+       editing_with_caret(entry) &&
        caret_position < (int)strlen(info->value) &&
        strlen(info->value) > 0)
     {
@@ -2458,12 +2482,10 @@ skip_name:
         char* help1 = (char*)entry->help;
         if (!help1) help1 = info->help;
         
-        if (help1) bmp_printf(
-            FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
-             10,  MENU_HELP_Y_POS, 
-            "%s",
-            help1
-        );
+        if (help1)
+        {
+            print_help_line(help_color, 10, MENU_HELP_Y_POS, help1);
+        }
 
         char* help2 = 0;
         if (help1 != info->help) help2 = info->help;
@@ -2491,12 +2513,10 @@ skip_name:
         }
 
         // only show the second help line if there are no audio meters
-        if (!audio_meters_are_drawn()) bmp_printf(
-            FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
-             10,  MENU_HELP_Y_POS_2, 
-             "%s",
-             help2
-        );
+        if (!audio_meters_are_drawn())
+        {
+            print_help_line(help_color, 10, MENU_HELP_Y_POS_2, help2);
+        }
     }
 
     // if there's a warning message set, display it
@@ -2510,11 +2530,7 @@ skip_name:
         int warn_y = audio_meters_are_drawn() ? MENU_HELP_Y_POS : MENU_WARNING_Y_POS;
         
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, warn_y, 720, font_med.height);
-        bmp_printf(
-            FONT(FONT_MED, warn_color, MENU_BG_COLOR_HEADER_FOOTER),
-             10, warn_y, "%s",
-                info->warning
-        );
+        print_help_line(warn_color, 10, warn_y, info->warning);
     }
     
     /* from now on, we'll draw the icon only, which should be shifted */
@@ -2604,12 +2620,12 @@ menu_entry_process(
         {
             /* in edit mode with caret, we will not allow the update function to override the entry value */
             char default_value[MENU_MAX_VALUE_LEN];
-            if (edit_mode && uses_caret_editing(entry))
+            if (editing_with_caret(entry))
                 snprintf(default_value, MENU_MAX_VALUE_LEN, "%s", info.value);
             
             entry->update(entry, &info);
             
-            if (edit_mode && uses_caret_editing(entry))
+            if (editing_with_caret(entry))
                 snprintf(info.value, MENU_MAX_VALUE_LEN, "%s", default_value);
         }
 
@@ -3747,7 +3763,7 @@ menu_entry_select(
         {
             /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
             /* exception: hex fields are never fast-toggled */
-            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+            if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
@@ -3810,7 +3826,7 @@ menu_entry_select(
         }
         else if (IS_ML_PTR(entry->priv))
         {
-            if ((edit_mode && uses_caret_editing(entry)) || (entry->unit == UNIT_HEX))
+            if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
@@ -3937,8 +3953,12 @@ menu_entry_move(
     // Select the new one, which might be the same as the old one
     entry->selected = 1;
     
-    //reset caret_position
-    caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    if (!menu_lv_transparent_mode)
+    {
+        /* reset caret_position */
+        /* don't reset it when LV is behind our menu, since in this case we usually want to edit many similar fields */
+        caret_position = entry->unit == UNIT_TIME ? 1 : 0;
+    }
     
     give_semaphore( menu_sem );
 
@@ -4325,6 +4345,27 @@ void keyrepeat_ack(int button_code) // also for arrow shortcuts
     keyrep_ack = (button_code == keyrepeat);
 }
 
+#ifdef CONFIG_TOUCHSCREEN
+int handle_ml_menu_touch(struct event * event)
+{
+    int button_code = event->param;
+    switch (button_code) {
+        case BGMT_TOUCH_1_FINGER:
+            fake_simple_button(BGMT_Q);
+            return 0;
+        case BGMT_TOUCH_2_FINGER:
+            fake_simple_button(BGMT_TRASH);
+            return 0;
+        case BGMT_UNTOUCH_1_FINGER:
+        case BGMT_UNTOUCH_2_FINGER:
+            return 0;
+        default:
+            return 1;
+    }
+    return 1;
+}
+#endif
+
 int
 handle_ml_menu_keys(struct event * event) 
 {
@@ -4483,7 +4524,7 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_RIGHT:
-        if(edit_mode)
+        if(EDIT_OR_TRANSPARENT)
         {
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && uses_caret_editing(entry))
@@ -4502,7 +4543,7 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_LEFT:
-        if(edit_mode)
+        if(EDIT_OR_TRANSPARENT)
         {
             struct menu_entry * entry = get_selected_entry(menu);
             if(entry && uses_caret_editing(entry))
@@ -4594,8 +4635,9 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JUMP:
     case BGMT_PRESS_DIRECT_PRINT:
 #endif
+    case MLEV_JOYSTICK_LONG:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-        menu_entry_select( menu, 2 ); // auto setting select
+        menu_entry_select( menu, 2 ); // Q action select
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
@@ -4628,26 +4670,6 @@ handle_ml_menu_keys(struct event * event)
     return 0;
 }
 
-#ifdef CONFIG_TOUCHSCREEN
-int handle_ml_menu_touch(struct event * event)
-{
-    int button_code = event->param;
-    switch (button_code) {
-        case BGMT_TOUCH_1_FINGER:
-            fake_simple_button(BGMT_Q);
-            return 0;
-        case BGMT_TOUCH_2_FINGER:
-            fake_simple_button(BGMT_TRASH);
-            return 0;
-        case BGMT_UNTOUCH_1_FINGER:
-        case BGMT_UNTOUCH_2_FINGER:
-            return 0;
-        default:
-            return 1;
-    }
-    return 1;
-}
-#endif
 
 
 void
@@ -4828,6 +4850,9 @@ static void menu_open()
     piggyback_canon_menu();
     canon_gui_disable_front_buffer(0);
     if (lv && EXT_MONITOR_CONNECTED) clrscr();
+
+    CancelDateTimer();
+
     menu_redraw_full();
 }
 static void menu_close() 
@@ -5178,17 +5203,87 @@ static void menu_show_version(void)
         build_user);
 }
 
+#ifdef CONFIG_JOY_CENTER_ACTIONS
+static int joystick_pressed = 0;
+static int joystick_longpress = 0;
+static int joy_center_action_disabled = 0;
+
+/* called from GUI timers */
+static void joystick_longpress_check()
+{
+    if (joy_center_action_disabled)
+    {
+        return;
+    }
+    
+    if (joystick_pressed)
+    {
+        joystick_longpress++;
+        delayed_call(100, joystick_longpress_check);
+    }
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
+    
+    if (joystick_longpress == 5)
+    {
+        /* long press opens ML menu or submenus */
+        fake_simple_button(MLEV_JOYSTICK_LONG);
+        
+        /* make sure it won't re-trigger */
+        joystick_longpress++;
+    }
+    else if (joystick_longpress < 2 && !joystick_pressed && gui_menu_shown())
+    {
+        /* short press in menu => do a regular SET */
+        fake_simple_button(BGMT_PRESS_SET);
+        fake_simple_button(BGMT_UNPRESS_UDLR);
+    }
+}
+#endif
+
+#ifdef CONFIG_EOSM
+static int erase_pressed = 0;
+static int erase_longpress = 0;
+
+/* called from GUI timers */
+static void erase_longpress_check()
+{
+    if (erase_pressed)
+    {
+        erase_longpress++;
+        delayed_call(100, erase_longpress_check);
+    }
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
+    
+    if (erase_longpress == 5)
+    {
+        /* long press opens ML menu */
+        fake_simple_button(BGMT_TRASH);
+        
+        /* make sure it won't re-trigger */
+        erase_longpress++;
+    }
+    else if (erase_longpress <= 2 && !erase_pressed)
+    {
+        /* short press => do a regular "down/erase" */
+        fake_simple_button(BGMT_PRESS_DOWN);
+        fake_simple_button(BGMT_UNPRESS_DOWN);
+    }
+}
+#endif
 
 // this should work on most cameras
 int handle_ml_menu_erase(struct event * event)
 {
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
-#ifdef CONFIG_TOUCHSCREEN
-    if (event->param == BGMT_TRASH || event->param == BGMT_TOUCH_2_FINGER)
-#else
-    if (event->param == BGMT_TRASH)
-#endif
+    if (event->param == BGMT_TRASH ||
+        (event->param == MLEV_JOYSTICK_LONG && !gui_menu_shown()) ||
+        #ifdef CONFIG_TOUCHSCREEN
+        event->param == BGMT_TOUCH_2_FINGER ||
+        #endif
+       0)
     {
         if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
         {
@@ -5197,6 +5292,63 @@ int handle_ml_menu_erase(struct event * event)
         }
         //~ else bmp_printf(FONT_LARGE, 100, 100, "%d ", gui_state);
     }
+    
+#ifdef CONFIG_JOY_CENTER_ACTIONS
+    /* also trigger menu by a long joystick press */
+    if (event->param == BGMT_JOY_CENTER)
+    {
+        if (joy_center_action_disabled)
+        {
+            return gui_menu_shown() ? 0 : 1;
+        }
+        
+        if (is_submenu_or_edit_mode_active())
+        {
+            /* in submenus, a short press goes back to main menu (since you can edit with left and right) */
+            fake_simple_button(MLEV_JOYSTICK_LONG);
+            return 0;
+        }
+        else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || gui_menu_shown())
+        {
+            /* if we can make use of a long joystick press, check it */
+            joystick_pressed = 1;
+            joystick_longpress = 0;
+            delayed_call(100, joystick_longpress_check);
+            if (gui_menu_shown()) return 0;
+        }
+    }
+    else if (event->param == BGMT_UNPRESS_UDLR)
+    {
+        joystick_pressed = 0;
+        joy_center_action_disabled = 0;
+    }
+    else if (event->param == BGMT_PRESS_LEFT      || event->param == BGMT_PRESS_RIGHT        ||
+             event->param == BGMT_PRESS_DOWN      || event->param == BGMT_PRESS_UP           ||
+             event->param == BGMT_PRESS_UP_LEFT   || event->param == BGMT_PRESS_UP_RIGHT     ||
+             event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
+    {
+        joy_center_action_disabled = 1;
+    }
+
+#endif
+
+#ifdef CONFIG_EOSM
+    /* also trigger menu by a long press on ERASE (DOWN) */
+    if (event->param == BGMT_PRESS_DOWN)
+    {
+        if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !IS_FAKE(event))
+        {
+            erase_pressed = 1;
+            erase_longpress = 0;
+            delayed_call(100, erase_longpress_check);
+            return 0;
+        }
+    }
+    else if (event->param == BGMT_UNPRESS_DOWN)
+    {
+        erase_pressed = 0;
+    }
+#endif
 
     return 1;
 }
