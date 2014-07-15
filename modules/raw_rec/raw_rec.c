@@ -661,11 +661,8 @@ static int setup_buffers()
     {
         ResumeLiveView();
         msleep(500);
-        
-        if (!raw_update_params_retry_lv(5))
-        {
-            return 0;
-        }
+        while (!raw_update_params())
+            msleep(100);
         refresh_raw_settings(1);
     }
     

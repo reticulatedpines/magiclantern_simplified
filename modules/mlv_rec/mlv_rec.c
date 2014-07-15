@@ -907,11 +907,11 @@ static int32_t setup_buffers()
     {
         ResumeLiveView();
         msleep(500);
-        
-        if(!mlv_rec_update_raw(5))
+        while (!raw_update_params())
         {
-            return 0;
+            msleep(100);
         }
+        refresh_raw_settings(1);
     }
 
     if(!mem_suite)
