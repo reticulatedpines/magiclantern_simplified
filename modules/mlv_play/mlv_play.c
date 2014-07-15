@@ -265,6 +265,9 @@ static void mlv_play_progressbar(int pct, char *msg)
     }
 }
 
+/* call with positive duration and some string => print it for a while, then clear it */
+/* call with 0 duration and some string => print it without clearing */
+/* call with 0 duration and null string => just clear it */
 static void mlv_play_show_dlg(uint32_t duration, char *string)
 {
     uint32_t width = 500;
@@ -273,27 +276,35 @@ static void mlv_play_show_dlg(uint32_t duration, char *string)
     uint32_t pos_x = (720 - width) / 2;
     struct bmp_file_t *icon = NULL;
     
-    icon = bmp_load_ram((uint8_t *)LDVAR(video_bmp), LDLEN(video_bmp), 0);
-    
-    bmp_fill(COLOR_BG, pos_x, pos_y, width, height);
-    
-    /* redraw 4 times in case it gets overdrawn */
-    for(int loop = 0; loop < 4; loop++)
+    if (string)
     {
-        if(icon)
+        icon = bmp_load_ram((uint8_t *)LDVAR(video_bmp), LDLEN(video_bmp), 0);
+        
+        bmp_fill(COLOR_BG, pos_x, pos_y, width, height);
+        
+        /* redraw 4 times in case it gets overdrawn */
+        for(int loop = 0; loop < 4; loop++)
         {
-            bmp_draw_scaled_ex(icon, pos_x + 10, pos_y + 10, 128, 128, 0);
-        }
-        else
-        {
-            bmp_printf(FONT_CANON, pos_x + 10, pos_y + 10 - font_med.height / 2, "[X]");
+            if(icon)
+            {
+                bmp_draw_scaled_ex(icon, pos_x + 10, pos_y + 10, 128, 128, 0);
+            }
+            else
+            {
+                bmp_printf(FONT_CANON, pos_x + 10, pos_y + 10 - font_med.height / 2, "[X]");
+            }
+            
+            bmp_printf(FONT_CANON, pos_x + 128 + 20, pos_y + (128 / 2) - 16, string);
+            msleep(duration / 10);
         }
         
-        bmp_printf(FONT_CANON, pos_x + 128 + 20, pos_y + (128 / 2) - 16, string);
-        msleep(duration / 10);
+        free(icon);
     }
     
-    bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
+    if (duration || !string)
+    {
+        bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
+    }
 }
 
 /* run deletion in the same task as playback, to sync with file closing etc */
@@ -302,7 +313,7 @@ static int mlv_play_delete_requested = 0;
 static void mlv_play_delete_request()
 {
     mlv_play_delete_requested = 1;
-    mlv_play_show_dlg(1000, "Deleting...");
+    mlv_play_show_dlg(0, "Stopping...");
 }
 
 static void mlv_play_delete_work(char *filename)
@@ -450,7 +461,9 @@ static void mlv_play_delete_if_requested()
 {
     if (mlv_play_delete_requested)
     {
+        mlv_play_show_dlg(0, "Deleting...");
         mlv_play_delete();
+        mlv_play_show_dlg(0, 0);
         mlv_play_delete_requested = 0;
     }
 }
@@ -1951,6 +1964,12 @@ static void mlv_play(char *filename, FILE **chunk_files, uint32_t chunk_count)
 
 static void mlv_play_set_mode(int32_t mode)
 {
+    /* comparing gui state with gui mode is generally not correct, but in this particular case, the values match */
+    if (gui_state == mode)
+    {
+        return;
+    }
+
     uint32_t loops = 0;
     
     SetGUIRequestMode(mode);
@@ -2138,7 +2157,7 @@ static void mlv_play_leave_playback()
     
     while(mlv_play_rendering)
     {
-        msleep(20);
+        info_led_blink(1, 100, 100);
     }
     
     /* clean up buffers - free memories and all buffers */
@@ -2221,8 +2240,13 @@ static void mlv_play_task(void *priv)
         }
     }
 
+    /* get into Canon's PLAY mode */
+    mlv_play_enter_playback();
+
     /* create playlist */
+    mlv_play_show_dlg(0, "Building playlist...");
     mlv_playlist_build(0);
+    mlv_play_show_dlg(0, 0);
     
     /* if called with NULL, play first file found when building playlist */
     if(!filename)
@@ -2230,7 +2254,7 @@ static void mlv_play_task(void *priv)
         if(mlv_playlist_entries <= 0)
         {
             mlv_play_show_dlg(2000, "No videos found");
-            return;
+            goto cleanup;
         }
         
         strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
@@ -2243,13 +2267,11 @@ static void mlv_play_task(void *priv)
         if(FIO_GetFileSize(filename, &size))
         {
             mlv_play_show_dlg(2000, "No videos found");
-            return;
+            goto cleanup;
         }
         
         strcpy(mlv_play_current_filename, filename);
     }
-    
-    mlv_play_enter_playback();
     
     do
     {
