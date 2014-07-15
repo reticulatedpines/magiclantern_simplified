@@ -154,6 +154,7 @@ static playlist_entry_t mlv_playlist_next(playlist_entry_t current);
 static playlist_entry_t mlv_playlist_prev(playlist_entry_t current);
 static void mlv_playlist_delete(playlist_entry_t current);
 static void mlv_playlist_build(uint32_t priv);
+static uint32_t mlv_play_should_stop();
 
 /* microsecond durations for one frame */
 static uint32_t mlv_play_frame_div_group = 0;
@@ -1344,7 +1345,7 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
-        if(mlv_play_paused)
+        if(mlv_play_paused && !mlv_play_should_stop())
         {
             msleep(100);
             continue;
@@ -1704,16 +1705,10 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             mlv_vidf_hdr_t vidf_block;
             
             /* now get a buffer from the queue */
-            retry_dequeue:
-            if(msg_queue_receive(mlv_play_queue_empty, &buffer, 5000))
+            while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
+
+            if (mlv_play_should_stop())
             {
-                if(mlv_play_paused)
-                {
-                    goto retry_dequeue;
-                }
-                bmp_printf(FONT_MED, 0, 400, "Failed to get a free buffer. If you can reproduce this, please report.");
-                beep();
-                msleep(1000);
                 break;
             }
             
@@ -1856,22 +1851,16 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         
         frame_buf_t *buffer = NULL;
         
-        while(mlv_play_paused)
+        while(mlv_play_paused && !mlv_play_should_stop())
         {
             msleep(100);
         }
         
         /* now get a buffer from the queue */
-        retry_dequeue:
-        if(msg_queue_receive(mlv_play_queue_empty, &buffer, 5000))
+        while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
+        
+        if (mlv_play_should_stop())
         {
-            if(mlv_play_paused)
-            {
-                goto retry_dequeue;
-            }
-            bmp_printf(FONT_MED, 0, 400, "Failed to get a free buffer, exiting");
-            beep();
-            msleep(1000);
             break;
         }
         
