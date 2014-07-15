@@ -1490,7 +1490,7 @@ static void mlv_play_stop_fps_timer()
     }
 }
 
-static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
+static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
     uint32_t fps = fps_nom * 1000 / fps_denom;
     
@@ -1510,7 +1510,7 @@ static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     {
         mlv_play_exact_fps = 0;
         beep();
-        return;
+        return 0;
     }
     
     /* ensure the queue is empty */
@@ -1524,6 +1524,8 @@ static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     
     /* and finally start timer in 1 us */
     SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    
+    return 1;
 }
 
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
@@ -1800,8 +1802,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             
             if(!fps_timer_started)
             {
-                fps_timer_started = 1;
-                mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                fps_timer_started = mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
             }
             
             if(mlv_play_exact_fps)
