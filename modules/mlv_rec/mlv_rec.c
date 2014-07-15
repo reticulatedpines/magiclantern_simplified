@@ -86,6 +86,7 @@ static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
 static uint32_t cam_5d3 = 0;
+static uint32_t cam_500d = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
@@ -1597,6 +1598,7 @@ static void hack_liveview(int32_t unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
+            cam_500d ? 0xFF2ABEF8 :
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
@@ -3833,7 +3835,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* keys are only hooked in LiveView */
-    if (!liveview_display_idle())
+    if (!liveview_display_idle() && !RECORDING_RAW)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
@@ -4020,6 +4022,7 @@ static unsigned int raw_rec_init()
     cam_5d2   = is_camera("5D2",  "2.1.2");
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.1.3");
+    cam_500d  = is_camera("500D", "1.1.1");
     cam_550d  = is_camera("550D", "1.0.9");
     cam_6d    = is_camera("6D",   "1.1.3");
     cam_600d  = is_camera("600D", "1.0.2");
