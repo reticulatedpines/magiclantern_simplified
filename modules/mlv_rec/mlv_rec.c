@@ -136,7 +136,6 @@ static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
 static CONFIG_INT("mlv.card_spanning", card_spanning, 0);
 static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
-static CONFIG_INT("mlv.rec_key", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
@@ -3672,13 +3671,6 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Disable global draw while recording.\n Some previews depend on GD",
             },
             {
-                .name = "Rec Key",
-                .priv = &rec_key,
-                .max = 1,
-                .choices = CHOICES("LV/REC", "MENU"),
-                .help = "Start recording with either LV or Menu button. Required for EOSM",
-            },
-            {
                 .name = "Frame skipping",
                 .priv = &allow_frame_skip,
                 .max = 1,
@@ -3830,12 +3822,6 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
-
-    /* MENU ON EOSM Photo Mode */
-    if (cam_eos_m)
-    {
-        rec_key_pressed = ( rec_key ? key== MODULE_KEY_MENU : (key == MODULE_KEY_LV || key == MODULE_KEY_REC) );
-    }
 
     /* ... or SET on 5D2/50D */
     if (cam_50d || cam_5d2) rec_key_pressed = (key == MODULE_KEY_PRESS_SET);
@@ -4028,8 +4014,6 @@ static unsigned int raw_rec_init()
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
-        if (!cam_eos_m && streq(e->name, "Rec Key") )
-            e->shidden = 1;
         if (cam_eos_m && streq(e->name, "Digital dolly") )
             e->shidden = 1;
 
@@ -4129,7 +4113,6 @@ MODULE_CONFIGS_START()
 
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
-    MODULE_CONFIG(rec_key)
     MODULE_CONFIG(display_rec_info)
 
     MODULE_CONFIG(small_hacks)
