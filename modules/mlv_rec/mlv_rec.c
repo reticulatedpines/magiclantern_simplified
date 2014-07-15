@@ -3801,7 +3801,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Show buffer graph",
                 .priv = &show_graph,
                 .max = 1,
-                .help = "Displays a graph of the current buffer usage and expected frames",
+                .help = "Displays a graph of the current buffer usage and expected frames.",
             },
             {
                 .name = "Buffer fill method",

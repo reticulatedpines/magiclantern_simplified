@@ -139,12 +139,12 @@ static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 #define INDICATOR_ON_SCREEN  2
 #define INDICATOR_RAW_BUFFER 3
 
-static int debug_info = 0;
+static int show_graph = 0;
 
 /* auto-choose the indicator style based on global draw settings */
 /* GD off: only "on screen" works, obviously */
 /* GD on: place it on the info bars to be minimally invasive */
-#define indicator_display (debug_info ? INDICATOR_RAW_BUFFER : get_global_draw() ? INDICATOR_IN_LVINFO : INDICATOR_ON_SCREEN)
+#define indicator_display (show_graph ? INDICATOR_RAW_BUFFER : get_global_draw() ? INDICATOR_IN_LVINFO : INDICATOR_ON_SCREEN)
 
 /* state variables */
 static int res_x = 0;
@@ -2037,10 +2037,10 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Debug info",
-                .priv = &debug_info,
+                .name = "Show buffer graph",
+                .priv = &show_graph,
                 .max = 1,
-                .help = "Show detailed info and buffer allocation graphs.",
+                .help = "Displays a graph of the current buffer usage and expected frames.",
                 .advanced = 1,
             },
             {
