@@ -2193,8 +2193,17 @@ static void mlv_play_enter_playback()
     mlv_play_clear_screen();
 }
 
+static struct semaphore * mlv_play_sem = 0;
+
 static void mlv_play_task(void *priv)
 {
+    if (take_semaphore(mlv_play_sem, 100))
+    {
+        NotifyBox(2000, "mlv_play already running");
+        beep();
+        return;
+    }
+    
     FILE **chunk_files = NULL;
     uint32_t chunk_count = 0;
     char *filename = (char *)priv;
@@ -2284,6 +2293,7 @@ static void mlv_play_task(void *priv)
 cleanup:
     mlv_playlist_free();
     mlv_play_leave_playback();
+    give_semaphore(mlv_play_sem);
 }
 
 
@@ -2438,6 +2448,8 @@ static unsigned int mlv_play_init()
     
     fileman_register_type("RAW", "RAW Video", mlv_play_filehandler);
     fileman_register_type("MLV", "MLV Video", mlv_play_filehandler);
+    
+    mlv_play_sem = create_named_semaphore("mlv_play_running", 1);
     
     return 0;
 }
