@@ -1510,6 +1510,7 @@ static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     if(mlv_play_frame_div_group >= COUNT(mlv_play_frame_dividers))
     {
         mlv_play_exact_fps = 0;
+        NotifyBox(2000, "Can't play at %d FPS", (fps+500)/1000);
         beep();
         return 0;
     }
@@ -1532,6 +1533,7 @@ static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
+    uint32_t fps_timer_start_attempted = 0;
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
@@ -1795,21 +1797,34 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             
-            if(!fps_timer_started)
+            if (mlv_play_exact_fps)
             {
-                fps_timer_started = mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-            }
-            
-            if(mlv_play_exact_fps)
-            {
-                /* wait till it is time to render */
-                uint32_t temp = 0;
-                while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                if (!fps_timer_start_attempted)
                 {
-                    if(mlv_play_should_stop())
+                    /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
+                    fps_timer_started = mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                    fps_timer_start_attempted = 1;
+                }
+                
+                if (fps_timer_started)
+                {
+                    /* wait till it is time to render */
+                    uint32_t temp = 0;
+                    while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
                     {
-                        break;
+                        if(mlv_play_should_stop())
+                        {
+                            break;
+                        }
                     }
+                }
+            }
+            else
+            {
+                if (!fps_timer_started)
+                {
+                    /* let's give it another chance */
+                    fps_timer_start_attempted = 0;
                 }
             }
             
