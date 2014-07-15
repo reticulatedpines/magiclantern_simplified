@@ -1598,7 +1598,6 @@ static void hack_liveview(int32_t unhack)
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
             cam_5d3 ? 0xff4acda4 :
-            cam_500d ? 0xFF2ABEF8 :
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
@@ -1607,6 +1606,7 @@ static void hack_liveview(int32_t unhack)
             cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
+            cam_500d ? 0xFF2ABEF8 :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -4022,7 +4022,6 @@ static unsigned int raw_rec_init()
     cam_5d2   = is_camera("5D2",  "2.1.2");
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.1.3");
-    cam_500d  = is_camera("500D", "1.1.1");
     cam_550d  = is_camera("550D", "1.0.9");
     cam_6d    = is_camera("6D",   "1.1.3");
     cam_600d  = is_camera("600D", "1.0.2");
@@ -4030,6 +4029,7 @@ static unsigned int raw_rec_init()
     cam_7d    = is_camera("7D",   "2.0.3");
     cam_700d  = is_camera("700D", "1.1.3");
     cam_60d   = is_camera("60D",  "1.1.1");
+    cam_500d  = is_camera("500D", "1.1.1");
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
