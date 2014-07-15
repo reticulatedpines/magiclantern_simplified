@@ -184,9 +184,9 @@ static void dump_img_task(void* priv, int unused)
         PLAY_MODE                                       ? "PLAY-UNK" :
         lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
         lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
-        lv && lv_dispsize==1 && !is_native_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
-        !is_native_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
-        !is_native_movie_mode()                         ? "PH-UNK"   :
+        lv && lv_dispsize==1 && !is_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
+        !is_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
+        !is_movie_mode()                         ? "PH-UNK"   :
         video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
         video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
         video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
@@ -273,7 +273,7 @@ static void dump_img_task(void* priv, int unused)
     {
         my_fprintf(f, "display=%d (hdmi=%d code=%d rca=%d)\n", EXT_MONITOR_CONNECTED, ext_monitor_hdmi, hdmi_code, _ext_monitor_rca);
         my_fprintf(f, "lv=%d (zoom=%d dispmode=%d rec=%d)\n", lv, lv_dispsize, lv_disp_mode, RECORDING_H264);
-        my_fprintf(f, "movie=%d (res=%d crop=%d fps=%d)\n", is_native_movie_mode(), video_mode_resolution, video_mode_crop, video_mode_fps);
+        my_fprintf(f, "movie=%d (res=%d crop=%d fps=%d)\n", is_movie_mode(), video_mode_resolution, video_mode_crop, video_mode_fps);
         my_fprintf(f, "play=%d (ph=%d, mv=%d, qr=%d)\n", PLAY_MODE, is_pure_play_photo_mode(), is_pure_play_movie_mode(), QR_MODE);
         
         FIO_CloseFile(f);

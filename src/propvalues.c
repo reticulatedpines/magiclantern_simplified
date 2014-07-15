@@ -81,7 +81,7 @@ volatile int lv_paused = 0; // not a property, but related
 
 int get_expsim();
 
-bool FAST is_native_movie_mode()
+bool FAST is_movie_mode()
 {
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     return 
@@ -96,25 +96,6 @@ bool FAST is_native_movie_mode()
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
     #endif
-}
-
-static volatile bool custom_movie_mode = 0;
-void set_custom_movie_mode(int value)
-{
-    custom_movie_mode = value;
-}
-bool is_custom_movie_mode() { return custom_movie_mode; }
-
-bool FAST is_movie_mode()
-{
-    /* e.g. raw video, mjpeg, whatever (these modules would have to call set_custom_movie_mode); */
-    if (custom_movie_mode) 
-        return true;
-    
-    if (is_native_movie_mode())
-        return true;
-    
-    return false;
 }
 
 volatile int shutter_count = 0;

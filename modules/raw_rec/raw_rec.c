@@ -498,11 +498,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
     if (auto_power_off_time)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
 
-    if (is_custom_movie_mode() && !is_native_movie_mode())
-    {
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
-    }
-
     if (!RAW_IS_IDLE)
     {
         MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
@@ -830,9 +825,6 @@ static void raw_video_enable()
 {
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
-
-    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
-    if (cam_eos_m) set_custom_movie_mode(1);
     
     msleep(50);
 }
@@ -840,14 +832,13 @@ static void raw_video_enable()
 static void raw_video_disable()
 {
     raw_lv_release();
-    if (cam_eos_m) set_custom_movie_mode(0);
 }
 
 static void raw_lv_request_update()
 {
     static int raw_lv_requested = 0;
 
-    if (raw_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (raw_video_enabled && lv && is_movie_mode())
     {
         if (!raw_lv_requested)
         {
