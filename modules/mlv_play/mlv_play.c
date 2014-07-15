@@ -2288,7 +2288,11 @@ static void mlv_play_task(void *priv)
         }
         
         strncpy(mlv_play_current_filename, mlv_play_next_filename, sizeof(mlv_play_next_filename));
-    } while(1);
+
+        /* stop file request was handled, if there was any */
+        mlv_play_stopfile = 0;
+
+    } while(!mlv_play_should_stop());
     
 cleanup:
     mlv_playlist_free();
