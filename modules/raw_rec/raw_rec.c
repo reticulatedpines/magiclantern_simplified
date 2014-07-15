@@ -647,29 +647,6 @@ static unsigned int lv_rec_read_footer(FILE *f)
     return 1;
 }
 
-static int setup_mem_suite(struct memSuite * mem_suite, int buf_size)
-{
-    int waste = INT_MAX;
-    if(mem_suite)
-    {
-        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-        while(chunk)
-        {
-            int size = GetSizeOfMemoryChunk(chunk);
-            if (size >= buf_size)
-            {
-                if (size - buf_size < waste)
-                {
-                    waste = size - buf_size;
-                    fullsize_buffers[0] = GetMemoryAddressOfMemoryChunk(chunk);
-                }
-            }
-            chunk = GetNextMemoryChunk(mem_suite, chunk);
-        }
-    }
-    return waste;
-}
-
 static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
 {
     if(mem_suite)
@@ -711,12 +688,33 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
 
 static int setup_buffers()
 {
+    /* allocate memory for double buffering */
+    /* (we need a single large contiguous chunk) */
+    int buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    ASSERT(fullsize_buffers[0] == 0);
+    fullsize_buffers[0] = fio_malloc(buf_size);
+    
+    /* reuse Canon's buffer */
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
+
+    /* anything wrong? */
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    {
+        /* buffers will be freed by caller in the cleanup section */
+        return 0;
+    }
+
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
     
     memset(chunk_list, 0, sizeof(chunk_list));
     
-    if (memory_hack) { PauseLiveView(); msleep(200); }
+    if (memory_hack)
+    {
+        /* allocating from shoot_malloc outside LiveView may give more memory */
+        PauseLiveView();
+        msleep(200);
+    }
     
     shoot_mem_suite = shoot_malloc_suite(0);
     
@@ -729,52 +727,24 @@ static int setup_buffers()
         refresh_raw_settings(1);
     }
     
+    /* allocating from SRM outside LiveView may give too much memory */
+    /* (you may not be able to get back into LiveView) => allocate from SRM only from LV */
     srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
     
-    if (!shoot_mem_suite && !srm_mem_suite) return 0;
-    
-    /* allocate memory for double buffering */
-    int buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
-
-    /* find the smallest chunk that we can use for buf_size */
-    fullsize_buffers[0] = 0;
-    int waste = INT_MAX;
-    waste = MIN(waste, setup_mem_suite(shoot_mem_suite, buf_size));
-    waste = MIN(waste, setup_mem_suite(srm_mem_suite, buf_size));
-    
-    if (fullsize_buffers[0] == 0) return 0;
-
-    //~ console_printf("fullsize buffer %x\n", fullsize_buffers[0]);
-    
-    /* reuse Canon's buffer */
-    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-    if (fullsize_buffers[1] == 0) return 0;
-    
-    chunk_list[0] = waste;
-    int chunk_index = 1;
+    if (!shoot_mem_suite && !srm_mem_suite)
+    {
+        return 0;
+    }
+        
+    int chunk_index = 0;
     chunk_index = add_mem_suite(shoot_mem_suite, buf_size, chunk_index);
     chunk_index = add_mem_suite(srm_mem_suite, buf_size, chunk_index);
-    
-    
-    /* try to recycle the waste */
-    if (waste >= frame_size + 8192)
-    {
-        int size = waste;
-        void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
-        while (size >= frame_size + 8192 && slot_count < COUNT(slots))
-        {
-            slots[slot_count].ptr = ptr;
-            slots[slot_count].status = SLOT_FREE;
-            ptr += frame_size;
-            size -= frame_size;
-            slot_count++;
-            //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-        }
-    }
   
     /* we need at least 3 slots */
     if (slot_count < 3)
+    {
         return 0;
+    }
     
     return 1;
 }
@@ -785,6 +755,8 @@ static void free_buffers()
     shoot_mem_suite = 0;
     if (srm_mem_suite) srm_free_suite(srm_mem_suite);
     srm_mem_suite = 0;
+    if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
+    fullsize_buffers[0] = 0;
 }
 
 static int get_free_slots()
