@@ -178,8 +178,14 @@ NSTUB(0xFF873550,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF870AF8,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF870518,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF871270,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xff870720,  CreateMemorySuite)                       // allocates 0x18 bytes, then calls CreateMemoryChunk
+NSTUB(0xff87058c,  DeleteMemorySuite)                       // in fmCreateWaveFileCallback
+NSTUB(0xff86ffd4,  CreateMemoryChunk)                       // called before WrapMemoryInChunk (first Create, then Add)
+NSTUB(0xff870a0c,  AddMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xff82d540,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xff82efd0,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x38F0,  gui_timer_struct)

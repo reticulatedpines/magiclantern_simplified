@@ -175,14 +175,20 @@ NSTUB(0xFFA73404 - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFA73460 - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
+NSTUB(    0x8E58,  AddMemoryChunk)           // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13C6F8,  AllocateContinuousMemoryResource)
 NSTUB(0xFF13C6AC,  AllocateMemoryResource)
+NSTUB(    0x835C,  CreateMemoryChunk)        // called from CreateMemorySuite
 NSTUB(0xFFA65A1C - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFA65814 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13C810,  FreeMemoryResource)
 NSTUB(0xFFA65DC8 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFA657A0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA66564 - RAM_OFFSET,  GetNextMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xFF0E6C78,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0EA848,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */

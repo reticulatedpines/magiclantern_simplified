@@ -181,6 +181,10 @@ NSTUB(0xFF07EC38,  GetNextMemoryChunk)
 // NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 
+/** SRM JobMem **/
+NSTUB(0xFF02CD78,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02F098,  SRM_FreeMemoryResourceFor1stJob)
+
 /** GUI for old cameras **/
 NSTUB(    0x3624,  gui_timer_struct)
 NSTUB(0xFF0AB97C,  gui_change_lcd_state_post)

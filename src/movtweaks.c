@@ -950,11 +950,11 @@ static struct menu_entry mov_menus[] = {
     #endif
     #ifdef FEATURE_GRADUAL_EXPOSURE
     {
-        .name = "Gradual Expo.",
+        .name = "Gradual Exposure",
         .priv = &smooth_iso,
         .max = 1,
         .help   = "Use smooth exposure transitions, by compensating with ISO.",
-        .help2  = "=> adjust ISO, exposure and aperture without large jumps.",
+        .help2  = "=> adjust ISO, shutter speed and aperture without large jumps.",
         .submenu_width = 700,
         .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
@@ -964,7 +964,7 @@ static struct menu_entry mov_menus[] = {
                 .min = 1,
                 .max = 7,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("1EV / 8 frames", "1EV / 16 frames", "1EV / 32 frames", "1EV / 64 frames", "1EV / 128 frames", "1EV / 256 frames", "1EV / 512 frames"),
+                .choices = CHOICES("1 EV / 8 frames", "1 EV / 16 frames", "1 EV / 32 frames", "1 EV / 64 frames", "1 EV / 128 frames", "1 EV / 256 frames", "1 EV / 512 frames"),
                 .help = "How fast the exposure transitions should be.",
             },
             MENU_EOL

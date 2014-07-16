@@ -86,6 +86,7 @@ static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
 static uint32_t cam_5d3 = 0;
+static uint32_t cam_500d = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
@@ -135,13 +136,12 @@ static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
 static CONFIG_INT("mlv.card_spanning", card_spanning, 0);
 static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
-static CONFIG_INT("mlv.rec_key", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
 static CONFIG_INT("mlv.preview", preview_mode, 0);
 static CONFIG_INT("mlv.warm_up", warm_up, 0);
-static CONFIG_INT("mlv.memory_hack", memory_hack, 0);
+static CONFIG_INT("mlv.use_srm_memory", use_srm_memory, 1);
 static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
 static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
 
@@ -180,7 +180,8 @@ static uint64_t mlv_rec_dma_start = 0;
 static uint64_t mlv_rec_dma_end = 0;
 static uint64_t mlv_rec_dma_duration = 0;
 
-static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
+static struct memSuite * shoot_mem_suite = 0;           /* memory suites for our buffers */
+static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int32_t fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
@@ -621,11 +622,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
     }
 
-    if (is_custom_movie_mode() && !is_native_movie_mode())
-    {
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
-    }
-
     if (!RAW_IS_IDLE)
     {
         MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
@@ -843,25 +839,81 @@ static void check_prot(uint32_t ptr, uint32_t size, uint32_t original)
     }
 }
 
-
-static void free_buffers()
+static void free_mem_suite(struct memSuite * mem_suite, void(*free_suite_func)(struct memSuite *))
 {
     if (mem_suite)
     {
         struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-
+        
         while(chunk)
         {
             uint32_t size = GetSizeOfMemoryChunk(chunk);
             uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-
+            
             check_prot(ptr, size, 1);
-
+            
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
-        shoot_free_suite(mem_suite);
+        free_suite_func(mem_suite);
     }
-    mem_suite = 0;
+}
+
+static void free_buffers()
+{
+    free_mem_suite(shoot_mem_suite, &shoot_free_suite);
+    shoot_mem_suite = 0;
+    free_mem_suite(srm_mem_suite, &srm_free_suite);
+    srm_mem_suite = 0;
+    if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
+    fullsize_buffers[0] = 0;
+}
+
+static void setup_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
+{
+    if(mem_suite)
+    {
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        
+        while(chunk)
+        {
+            uint32_t size = GetSizeOfMemoryChunk(chunk);
+            uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+            
+            /* add some protection to detect overwrites */
+            setup_prot(&ptr, &size);
+            check_prot(ptr, size, 0);
+            
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+    }
+}
+
+static uint32_t add_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
+{
+    uint32_t total_size = 0;
+    if(mem_suite)
+    {
+        /* use all chunks larger than frame_size for recording */
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        
+        while(chunk)
+        {
+            uint32_t size = GetSizeOfMemoryChunk(chunk);
+            uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
+            
+            trace_write(raw_rec_trace_ctx, "Chunk: 0x%08X, size: 0x%08X", ptr, size);
+            
+            /* add some protection to detect overwrites */
+            setup_prot(&ptr, &size);
+            check_prot(ptr, size, 0);
+            
+            setup_chunk(ptr, size);
+            total_size += size;
+            
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+    }
+    return total_size;
 }
 
 static int32_t setup_buffers()
@@ -870,100 +922,41 @@ static int32_t setup_buffers()
     
     slot_count = 0;
     slot_group_count = 0;
-    fullsize_buffers[0] = 0;
-    fullsize_buffers[1] = 0;
+
+    /* allocate memory for double buffering */
+    /* (we need a single large contiguous chunk) */
+    uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    ASSERT(fullsize_buffers[0] == 0);
+    fullsize_buffers[0] = fio_malloc(buf_size);
+    
+    /* reuse Canon's buffer */
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
+
+    /* anything wrong? */
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    {
+        /* buffers will be freed by caller in the cleanup section */
+        return 0;
+    }
 
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
 
-    if(memory_hack)
-    {
-        PauseLiveView();
-        msleep(200);
-    }
+    shoot_mem_suite = shoot_malloc_suite(0);
+    srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
 
-    mem_suite = shoot_malloc_suite(0);
-
-    if(memory_hack)
-    {
-        ResumeLiveView();
-        msleep(500);
-        while (!raw_update_params())
-        {
-            msleep(100);
-        }
-        refresh_raw_settings(1);
-    }
-
-    if(!mem_suite)
+    if(!shoot_mem_suite && !srm_mem_suite)
     {
         return 0;
     }
 
-    /* allocate memory for double buffering */
-    uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
-
-    /* find the smallest chunk that we can use for buf_size */
-    uint32_t waste = UINT_MAX;
-    struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
-
-    while(chunk)
-    {
-        uint32_t size = GetSizeOfMemoryChunk(chunk);
-        uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-        
-        /* add some protection to detect overwrites */
-        setup_prot(&ptr, &size);
-        check_prot(ptr, size, 0);
-
-        if(size >= buf_size)
-        {
-            if(size - buf_size < waste)
-            {
-                waste = size - buf_size;
-                fullsize_buffers[0] = (void *)ptr;
-            }
-        }
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
-
-    /* reuse Canon's buffer */
-    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-
-    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
-    {
-        free_buffers();
-        return 0;
-    }
+    setup_mem_suite(shoot_mem_suite, buf_size);
+    setup_mem_suite(srm_mem_suite, buf_size);
 
     trace_write(raw_rec_trace_ctx, "frame size = 0x%X", frame_size);
 
-    /* use all chunks larger than frame_size for recording */
-    chunk = GetFirstChunkFromSuite(mem_suite);
-
-    while(chunk)
-    {
-        uint32_t size = GetSizeOfMemoryChunk(chunk);
-        uint32_t ptr = (uint32_t)GetMemoryAddressOfMemoryChunk(chunk);
-
-        trace_write(raw_rec_trace_ctx, "Chunk: 0x%08X, size: 0x%08X", ptr, size);
-
-        /* add some protection to detect overwrites */
-        setup_prot(&ptr, &size);
-        check_prot(ptr, size, 0);
-
-        if(ptr == (uint32_t)fullsize_buffers[0]) /* already used */
-        {
-            trace_write(raw_rec_trace_ctx, "  (fullsize_buffers, so skip 0x%08X)", buf_size);
-            ptr += buf_size;
-            size -= buf_size;
-        }
-
-        setup_chunk(ptr, size);
-        total_size += size;
-
-        chunk = GetNextMemoryChunk(mem_suite, chunk);
-    }
+    total_size += add_mem_suite(shoot_mem_suite, buf_size);
+    total_size += add_mem_suite(srm_mem_suite, buf_size);
 
     if(DISPLAY_REC_INFO_DEBUG)
     {
@@ -1230,28 +1223,19 @@ static void raw_video_enable()
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
 
-    if(cam_eos_m && !is_movie_mode())
-    {
-        set_custom_movie_mode(1);
-    }
-
     msleep(50);
 }
 
 static void raw_video_disable()
 {
     raw_lv_release();
-    if (cam_eos_m && is_custom_movie_mode())
-    {
-        set_custom_movie_mode(0);
-    }
 }
 
 static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (mlv_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (mlv_video_enabled && lv && is_movie_mode())
     {
         if (!raw_lv_requested)
         {
@@ -1607,6 +1591,7 @@ static void hack_liveview(int32_t unhack)
             cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
+            cam_500d ? 0xFF2ABEF8 :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -3686,13 +3671,6 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Disable global draw while recording.\n Some previews depend on GD",
             },
             {
-                .name = "Rec Key",
-                .priv = &rec_key,
-                .max = 1,
-                .choices = CHOICES("LV/REC", "MENU"),
-                .help = "Start recording with either LV or Menu button. Required for EOSM",
-            },
-            {
                 .name = "Frame skipping",
                 .priv = &allow_frame_skip,
                 .max = 1,
@@ -3749,10 +3727,10 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Some cards seem to get a bit faster after this.",
             },
             {
-                .name = "Memory hack",
-                .priv = &memory_hack,
+                .name = "Use SRM job memory",
+                .priv = &use_srm_memory,
                 .max = 1,
-                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+                .help = "Allocate memory from SRM job buffers",
             },
             {
                 .name = "Extra Hacks",
@@ -3778,7 +3756,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Show buffer graph",
                 .priv = &show_graph,
                 .max = 1,
-                .help = "Displays a graph of the current buffer usage and expected frames",
+                .help = "Displays a graph of the current buffer usage and expected frames.",
             },
             {
                 .name = "Buffer fill method",
@@ -3835,7 +3813,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* keys are only hooked in LiveView */
-    if (!liveview_display_idle())
+    if (!liveview_display_idle() && !RECORDING_RAW)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
@@ -3844,12 +3822,6 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
-
-    /* MENU ON EOSM Photo Mode */
-    if (cam_eos_m)
-    {
-        rec_key_pressed = ( rec_key ? key== MODULE_KEY_MENU : (key == MODULE_KEY_LV || key == MODULE_KEY_REC) );
-    }
 
     /* ... or SET on 5D2/50D */
     if (cam_50d || cam_5d2) rec_key_pressed = (key == MODULE_KEY_PRESS_SET);
@@ -4029,6 +4001,7 @@ static unsigned int raw_rec_init()
     cam_7d    = is_camera("7D",   "2.0.3");
     cam_700d  = is_camera("700D", "1.1.3");
     cam_60d   = is_camera("60D",  "1.1.1");
+    cam_500d  = is_camera("500D", "1.1.1");
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
@@ -4041,8 +4014,6 @@ static unsigned int raw_rec_init()
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
-        if (!cam_eos_m && streq(e->name, "Rec Key") )
-            e->shidden = 1;
         if (cam_eos_m && streq(e->name, "Digital dolly") )
             e->shidden = 1;
 
@@ -4053,12 +4024,6 @@ static unsigned int raw_rec_init()
         if (!exFAT && streq(e->name, "Files > 4GiB (exFAT)") )
             e->shidden = 1;
 
-        /* Memory hack confirmed to work only on 5D3 and 6D */
-        if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
-        {
-            e->shidden = 1;
-            memory_hack = 0;
-        }
     }
 
     /* disable card spanning on models other than 5D3 */
@@ -4144,11 +4109,10 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(allow_frame_skip)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
-    MODULE_CONFIG(memory_hack)
+    MODULE_CONFIG(use_srm_memory)
 
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
-    MODULE_CONFIG(rec_key)
     MODULE_CONFIG(display_rec_info)
 
     MODULE_CONFIG(small_hacks)
