@@ -175,10 +175,10 @@ NSTUB(0xFFA73404 - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFA73460 - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
-NSTUB(    0x8E58,  AddMemoryChunk)           // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
+NSTUB(0xFFA65CF8 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13C6F8,  AllocateContinuousMemoryResource)
 NSTUB(0xFF13C6AC,  AllocateMemoryResource)
-NSTUB(    0x835C,  CreateMemoryChunk)        // called from CreateMemorySuite
+NSTUB(0xFFA651FC - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFFA65A1C - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFA65814 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13C810,  FreeMemoryResource)

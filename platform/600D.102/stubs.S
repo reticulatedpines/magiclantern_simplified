@@ -286,9 +286,9 @@ NSTUB(0xFF075500,  CreateRecursiveLock)
 NSTUB(0xFF1F5EA0,  ReleaseRecursiveLock)
 
 /** ResLock **/
-NSTUB(0xFF1E4910, CreateResLockEntry)
-NSTUB(0xFF1E4E50, LockEngineResources)
-NSTUB(0xFF1E4F8C, UnLockEngineResources)
+NSTUB(0xFF1E4910,  CreateResLockEntry)
+NSTUB(0xFF1E4E50,  LockEngineResources)
+NSTUB(0xFF1E4F8C,  UnLockEngineResources)
 
 /** Semaphores **/
 NSTUB(0xFF070E90,  create_named_semaphore)

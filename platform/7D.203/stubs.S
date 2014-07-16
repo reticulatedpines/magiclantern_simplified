@@ -55,7 +55,7 @@ NSTUB(0xFF1FC800, _FIO_GetFileSize)
 NSTUB(0xFF1FC224, _FIO_OpenFile)
 NSTUB(0xFF1FC38C, _FIO_RemoveFile)
 // NSTUB(0xFF0455B4, _FIO_RenameFile)   // not sure it is ceresFIORename   /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
-NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)                        
+NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)
 
 /** GUI **/
 NSTUB(    0x1BF4,  gui_main_struct)
@@ -200,8 +200,8 @@ NSTUB(0xFF07B708,  gui_timer_something)
 NSTUB(0xFF34E5B0,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 NSTUB(0xFF078E6C,  SetHPTimerAfterNow)
 NSTUB(0xFF078EEC,  SetHPTimerNextTick)
-NSTUB(0xFF082700,  CancelTimer)                            
-NSTUB(0xFF082500,  SetTimerAfter)                           
+NSTUB(0xFF082700,  CancelTimer)
+NSTUB(0xFF082500,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0xA39C,  mvr_config)
@@ -259,7 +259,7 @@ NSTUB(0xFF07A7D4,  BulkInIPCTransfer)
 NSTUB(0xFF07A704,  BulkOutIPCTransfer)
 NSTUB(0xFF07AED4,  RegisterRPCHandler)
 NSTUB(0xFF07AF84,  RequestRPC)
-NSTUB(0xFF07A954,  QuickOutIPCTransfer)        
+NSTUB(0xFF07A954,  QuickOutIPCTransfer)
 
 /** Recursive locks **/
 NSTUB(0xFF205FA8,  AcquireRecursiveLock)                    // AJ_KernelDry_KerRLock.c
