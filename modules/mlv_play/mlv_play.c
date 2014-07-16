@@ -2274,7 +2274,9 @@ static void mlv_play_task(void *priv)
         
         if(FIO_GetFileSize(filename, &size))
         {
-            mlv_play_show_dlg(2000, "No videos found");
+            char msg[50];
+            snprintf(msg, sizeof(msg), "%s\nnot found", strrchr(filename, '/')+1);
+            mlv_play_show_dlg(4000, msg);
             goto cleanup;
         }
         
