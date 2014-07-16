@@ -20,9 +20,9 @@
 
 #define MODULE_COUNT_MAX              32
 #define MODULE_NAME_LENGTH            8
-#define MODULE_FILENAME_LENGTH        64
-#define MODULE_STATUS_LENGTH          64
-
+#define MODULE_FILENAME_LENGTH        31    /* A:/ML/MODULES/8_3_name.mo */
+#define MODULE_STATUS_LENGTH          7     /* longest is FileErr */
+#define MODULE_LONG_STATUS_LENGTH     63
 
 /* some callbacks that may be needed by modules. more to come. ideas? needs? */
 #define CBR_PRE_SHOOT                 1 /* called before image is taken */
@@ -181,7 +181,7 @@ typedef struct
     char filename[MODULE_FILENAME_LENGTH+1];
     char long_filename[MODULE_FILENAME_LENGTH+1];
     char status[MODULE_STATUS_LENGTH+1];
-    char long_status[MODULE_STATUS_LENGTH+1];
+    char long_status[MODULE_LONG_STATUS_LENGTH+1];
     module_info_t *info;
     module_strpair_t *strings;
     module_parminfo_t *params;
