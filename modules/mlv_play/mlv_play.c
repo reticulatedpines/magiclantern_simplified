@@ -2256,18 +2256,7 @@ static void mlv_play_task(void *priv)
     mlv_playlist_build(0);
     mlv_play_show_dlg(0, 0);
     
-    /* if called with NULL, play first file found when building playlist */
-    if(!filename)
-    {
-        if(mlv_playlist_entries <= 0)
-        {
-            mlv_play_show_dlg(2000, "No videos found");
-            goto cleanup;
-        }
-        
-        strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
-    }
-    else
+    if (filename)
     {
         uint32_t size = 0;
         /* is this file still available? if not, show dialog and return */
@@ -2277,10 +2266,26 @@ static void mlv_play_task(void *priv)
             char msg[50];
             snprintf(msg, sizeof(msg), "%s\nnot found", strrchr(filename, '/')+1);
             mlv_play_show_dlg(4000, msg);
+            
+            /* try to play the first file instead */
+            filename = 0;
+        }
+        else
+        {
+            strcpy(mlv_play_current_filename, filename);
+        }
+    }
+
+    /* if called with NULL, or the requested file was not found, play first file found when building playlist */
+    if(!filename)
+    {
+        if(mlv_playlist_entries <= 0)
+        {
+            mlv_play_show_dlg(2000, "No videos found");
             goto cleanup;
         }
         
-        strcpy(mlv_play_current_filename, filename);
+        strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
     }
     
     do
