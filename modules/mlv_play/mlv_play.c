@@ -304,7 +304,8 @@ static void mlv_play_delete_request()
     mlv_play_show_dlg(0, "Stopping...");
 }
 
-static void mlv_play_delete_work(char *filename)
+/* returns 1 on success, 0 on failure */
+static int mlv_play_delete_work(char *filename)
 {
     uint32_t size = 0;
     uint32_t state = 0;
@@ -320,7 +321,7 @@ static void mlv_play_delete_work(char *filename)
     if(FIO_GetFileSize(filename, &size))
     {
         trace_write(mlv_play_trace_ctx, "  Does not exist!");
-        return;
+        return 0;
     }
     
     while (1)
@@ -359,7 +360,7 @@ static void mlv_play_delete_work(char *filename)
                 
             case 4:
                 /* we are done */
-                return;
+                return 1;
         }
 
         int failed = 0;
@@ -372,6 +373,7 @@ static void mlv_play_delete_work(char *filename)
             current_file[0] = drive ? 'A' : 'B';
             
             trace_write(mlv_play_trace_ctx, "[Delete] Next file: '%s'", current_file);
+            printf("[Delete] Next file: '%s'", current_file);
             
             /* check if file exists */
             if(FIO_GetFileSize(current_file, &size))
@@ -400,17 +402,14 @@ static void mlv_play_delete_work(char *filename)
         }
         else
         {
-            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed", current_file);
-            beep();
-            msleep(2000);
-            return;
+            return 0;
         }
     }
     
-    return;
+    return 1;
 }
 
-static void mlv_play_delete()
+static int mlv_play_delete()
 {
     playlist_entry_t current;
     playlist_entry_t next;
@@ -427,7 +426,7 @@ static void mlv_play_delete()
     mlv_playlist_delete(current);
 
     /* delete the files */
-    mlv_play_delete_work(current.fullPath);
+    int ok = mlv_play_delete_work(current.fullPath);
 
     /* check which of the files is available and play it */
     if(strlen(next.fullPath))
@@ -443,6 +442,8 @@ static void mlv_play_delete()
         /* if none is available, just stop playback */
         mlv_play_render_abort = 1;
     }
+    
+    return ok;
 }
 
 static void mlv_play_delete_if_requested()
@@ -450,8 +451,8 @@ static void mlv_play_delete_if_requested()
     if (mlv_play_delete_requested)
     {
         mlv_play_show_dlg(0, "Deleting...");
-        mlv_play_delete();
-        mlv_play_show_dlg(3000, "Deleted.");
+        int ok = mlv_play_delete();
+        mlv_play_show_dlg(3000, ok ? "Deleted." : "Delete failed.");
         mlv_play_delete_requested = 0;
     }
 }
