@@ -568,9 +568,10 @@ static void mlv_play_osd_quit(char *msg, uint32_t msg_len, uint32_t selected)
     }
 }
 
+static uint32_t delete_selected = 0;
+
 static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
 {
-    static uint32_t delete_selected = 0;
     uint32_t max_time = 5000;
 
     if(selected)
@@ -2338,6 +2339,7 @@ cleanup:
     mlv_playlist_free();
     mlv_play_leave_playback();
     mlv_play_delete_requested = 0;
+    delete_selected = 0;
     give_semaphore(mlv_play_sem);
 }
 
