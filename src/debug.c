@@ -366,14 +366,28 @@ static void run_test()
 
     console_show();
     msleep(1000);
-    printf("Try taking some pictures during this test!\n");
     
     /* let's see how much RAM we can get */
     struct memSuite * suite = srm_malloc_suite(0);
     struct memChunk * chunk = GetFirstChunkFromSuite(suite);
     printf("hSuite %x (%dx%s)\n", suite, suite->num_chunks, format_memory_size(chunk->size));
+    
+    printf("You should not be able to take pictures,\n");
+    printf("but autofocus should work.\n");
+
+    info_led_on();
+    for (int i = 10; i >= 0; i--)
+    {
+        msleep(1000);
+        printf("%d...", i);
+    }
+    printf("\b\b\n");
+    info_led_off();
+    
     srm_free_suite(suite);
     msleep(1000);
+
+    printf("Now try taking some pictures during the test.\n");
     
     /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
     /* 50D/500D have 27M, 5D3 has 40 */
