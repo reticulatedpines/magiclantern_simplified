@@ -44,6 +44,9 @@
 #include "../file_man/file_man.h"
 #include "../lv_rec/lv_rec.h"
 
+/* uncomment for live debug messages */
+//~ #define trace_write(trace, fmt, ...) { printf(fmt, ## __VA_ARGS__); printf("\n"); msleep(500); }
+
 #define MAX_PATH                 100
 
 /* declare the video.bmp we have added */
@@ -313,6 +316,9 @@ static int mlv_play_delete_work(char *filename)
     char current_ext[4];
     char current_file[128];
     
+    /* original extension, to be used as read-only */
+    const char* main_ext = filename + strlen(filename) - 3;
+    
     trace_write(mlv_play_trace_ctx, "[Delete] Delete request for: '%s'", filename);
     
     strncpy(current_file, filename, sizeof(current_file));
@@ -324,23 +330,35 @@ static int mlv_play_delete_work(char *filename)
         return 0;
     }
     
+    int is_mlv = streq(main_ext, "MLV") || streq(main_ext, "mlv");
+    
     while (1)
     {
         switch(state)
         {
             case 0:
-                /* try to delete index file */
-                strcpy(current_ext, "IDX");
-                break;
-                
-            case 1:
                 /* try to delete main file */
-                strcpy(current_ext, "MLV");
+                strcpy(current_ext, main_ext);
+                break;
+
+            case 1:
+                /* try to delete index file */
+                if (is_mlv)
+                {
+                    strcpy(current_ext, "IDX");
+                }
+                else
+                {
+                    /* index files are only used on MLVs, skip for other files */
+                    state++;
+                    continue;
+                }
                 break;
                 
             case 2:
                 /* try to delete chunk files */
-                snprintf(current_ext, 4, "M%02d", seq_number);
+                snprintf(current_ext, 4, "X%02d", seq_number);
+                current_ext[0] = main_ext[0];
                 break;
                 
             case 3:
@@ -363,7 +381,6 @@ static int mlv_play_delete_work(char *filename)
                 return 1;
         }
 
-        int failed = 0;
         for(int drive = 0; drive < 2; drive++)
         {
             /* set extension */
@@ -372,22 +389,36 @@ static int mlv_play_delete_work(char *filename)
             /* set drive letter */
             current_file[0] = drive ? 'A' : 'B';
             
+            if (!is_mlv)
+            {
+                if (current_file[0] != filename[0])
+                {
+                    /* non-MLV files can't be spanned, do not delete the file with the same name from the other card */
+                    trace_write(mlv_play_trace_ctx, "[Delete] Skip drive: '%s'", current_file);
+                    continue;
+                }
+            }
+            
             trace_write(mlv_play_trace_ctx, "[Delete] Next file: '%s'", current_file);
-            printf("[Delete] Next file: '%s'", current_file);
             
             /* check if file exists */
             if(FIO_GetFileSize(current_file, &size))
             {
+                if (state == 0 && current_file[0] == filename[0])
+                {
+                    trace_write(mlv_play_trace_ctx, "[Delete] main file does not exist '%s'", current_file);
+                    return 0;
+                }
                 continue;
             }
-            
+
             trace_write(mlv_play_trace_ctx, "  existing, deleting");
             
             /* if existing, try to delete and set fail flag if that doesnt work */
             if(FIO_RemoveFile(current_file))
             {
                 trace_write(mlv_play_trace_ctx, "  FAILED");
-                failed = 1;
+                return 0;
             }
             else
             {
@@ -396,14 +427,7 @@ static int mlv_play_delete_work(char *filename)
         }
         
         /* if there was no failure in deleting the file, next state */
-        if(!failed)
-        {
-            state++;
-        }
-        else
-        {
-            return 0;
-        }
+        state++;
     }
     
     return 1;
@@ -427,6 +451,7 @@ static int mlv_play_delete()
 
     /* delete the files */
     int ok = mlv_play_delete_work(current.fullPath);
+    trace_write(mlv_play_trace_ctx, "[Delete] returned %s", ok ? "success" : "FAILURE");
 
     /* check which of the files is available and play it */
     if(strlen(next.fullPath))
