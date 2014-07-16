@@ -180,6 +180,8 @@ NSTUB(0xFF13C298,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF9EA118 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFF9E9AF0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xff9e954c - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
+NSTUB(0xff9ea048 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 
 /** SRM JobMem **/
 NSTUB(0xFF0EEAA8,  SRM_AllocateMemoryResourceFor1stJob)
