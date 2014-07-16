@@ -157,21 +157,8 @@ static void mlv_playlist_build(uint32_t priv);
 static uint32_t mlv_play_should_stop();
 
 /* microsecond durations for one frame */
-static uint32_t mlv_play_frame_div_group = 0;
 static uint32_t mlv_play_frame_div_pos = 0;
-static const uint32_t mlv_play_frame_dividers[] =
-{
-    /*
-     fps  delay1 delay2 delay3 
-    */
-    23976, 41709, 41708, 41708,  /* 23.976 */
-    24000, 41667, 41667, 41666,  /* 24     */
-    25000, 40000, 40000, 40000,  /* 25     */
-    29970, 33367, 33367, 33366,  /* 29.970 */
-    30000, 33334, 33333, 33333,  /* 30     */
-    50000, 20000, 20000, 20000,  /* 50     */
-    59940, 16684, 16683, 16683,  /* 59.940 */
-};
+static uint32_t mlv_play_frame_dividers[3];
 
 /* as soon all cameras provide FIO_SeekSkipFile, we can remove that temporary code */
 static uint64_t FIO_SeekSkipFile_emulate(FILE* stream, uint64_t position, int whence)
@@ -1468,9 +1455,9 @@ static void mlv_play_clear_screen()
 
 static void mlv_play_fps_tick(int expiry_value, void *priv)
 {
-    uint32_t offset = mlv_play_frame_dividers[mlv_play_frame_div_group + mlv_play_frame_div_pos];
+    uint32_t offset = mlv_play_frame_dividers[mlv_play_frame_div_pos];
     mlv_play_frame_div_pos = (mlv_play_frame_div_pos + 1) % 3;
-    
+
     if(mlv_play_timer_stop)
     {
         mlv_play_timer_stop = 0;
@@ -1493,28 +1480,19 @@ static void mlv_play_stop_fps_timer()
 
 static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
-    uint32_t fps = fps_nom * 1000 / fps_denom;
-    
-    mlv_play_frame_div_group = COUNT(mlv_play_frame_dividers);
-    
-    for(uint32_t pos = 0; pos < COUNT(mlv_play_frame_dividers); pos += 4)
+    uint32_t three_frames = 3 * 1000000 * fps_denom / fps_nom;
+
+    mlv_play_frame_dividers[0] = mlv_play_frame_dividers[1] = mlv_play_frame_dividers[2] = three_frames / 3;
+    switch(three_frames % 3)
     {
-        /* assuming we always can get an exact match */
-        if(mlv_play_frame_dividers[pos] == fps)
-        {
-            mlv_play_frame_div_group = pos;
-        }
+        case 2:
+            mlv_play_frame_dividers[1]++;
+        case 1:
+            mlv_play_frame_dividers[0]++;
+        default:
+            break;
     }
-    
-    /* did not find an exact match? */
-    if(mlv_play_frame_div_group >= COUNT(mlv_play_frame_dividers))
-    {
-        mlv_play_exact_fps = 0;
-        NotifyBox(2000, "Can't play at %d FPS", (fps+500)/1000);
-        beep();
-        return 0;
-    }
-    
+
     /* ensure the queue is empty */
     mlv_play_flush_queue(mlv_play_queue_fps);
     
