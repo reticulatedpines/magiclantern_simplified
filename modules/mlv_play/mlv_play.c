@@ -2276,7 +2276,7 @@ static void mlv_play_task(void *priv)
         }
     }
 
-    /* if called with NULL, or the requested file was not found, play first file found when building playlist */
+    /* if called with NULL, or the requested file was not found, play last file found when building playlist */
     if(!filename)
     {
         if(mlv_playlist_entries <= 0)
@@ -2285,7 +2285,7 @@ static void mlv_play_task(void *priv)
             goto cleanup;
         }
         
-        strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
+        strncpy(mlv_play_current_filename, mlv_playlist[mlv_playlist_entries-1].fullPath, sizeof(mlv_play_current_filename));
     }
     
     do
