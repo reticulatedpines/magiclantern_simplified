@@ -2291,7 +2291,10 @@ static void mlv_play_task(void *priv)
         {
             msleep(100);
         }
-        
+
+        /* anything more to delete? */
+        mlv_play_delete_if_requested();
+
         strncpy(mlv_play_current_filename, mlv_play_next_filename, sizeof(mlv_play_next_filename));
 
         /* stop file request was handled, if there was any */
