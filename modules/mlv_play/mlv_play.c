@@ -568,7 +568,7 @@ static void mlv_play_osd_quit(char *msg, uint32_t msg_len, uint32_t selected)
     }
 }
 
-static uint32_t delete_selected = 0;
+static uint32_t mlv_play_osd_delete_selected = 0;
 
 static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
 {
@@ -576,31 +576,31 @@ static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
 
     if(selected)
     {
-        if(!delete_selected || selected == 2)
+        if(!mlv_play_osd_delete_selected || selected == 2)
         {
             mlv_play_osd_force_redraw = 1;
-            delete_selected = get_ms_clock_value();
+            mlv_play_osd_delete_selected = get_ms_clock_value();
         }
         else
         {
             mlv_play_osd_force_redraw = 0;
-            delete_selected = 0;
+            mlv_play_osd_delete_selected = 0;
             mlv_play_delete_request();
         }
     }
     
     if(msg)
     {
-        uint32_t time_passed = get_ms_clock_value() - delete_selected;
+        uint32_t time_passed = get_ms_clock_value() - mlv_play_osd_delete_selected;
         uint32_t seconds = (max_time - time_passed) / 1000;
         
-        if(delete_selected && seconds > 0)
+        if(mlv_play_osd_delete_selected && seconds > 0)
         {
             snprintf(msg, msg_len, "[delete? %ds]", seconds);
         }
         else
         {
-            delete_selected = 0;
+            mlv_play_osd_delete_selected = 0;
             mlv_play_osd_force_redraw = 0;
             snprintf(msg, msg_len, "Del");
         }
@@ -2339,7 +2339,7 @@ cleanup:
     mlv_playlist_free();
     mlv_play_leave_playback();
     mlv_play_delete_requested = 0;
-    delete_selected = 0;
+    mlv_play_osd_delete_selected = 0;
     give_semaphore(mlv_play_sem);
 }
 
