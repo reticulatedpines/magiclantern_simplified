@@ -2302,6 +2302,7 @@ static void mlv_play_task(void *priv)
 cleanup:
     mlv_playlist_free();
     mlv_play_leave_playback();
+    mlv_play_delete_requested = 0;
     give_semaphore(mlv_play_sem);
 }
 
