@@ -1947,8 +1947,7 @@ static void mlv_play(char *filename, FILE **chunk_files, uint32_t chunk_count)
 
 static void mlv_play_set_mode(int32_t mode)
 {
-    /* comparing gui state with gui mode is generally not correct, but in this particular case, the values match */
-    if (gui_state == mode)
+    if (get_gui_mode() == mode)
     {
         return;
     }
@@ -1956,7 +1955,7 @@ static void mlv_play_set_mode(int32_t mode)
     uint32_t loops = 0;
     
     SetGUIRequestMode(mode);
-    while(gui_state != mode)
+    while(get_gui_mode() != mode)
     {
         msleep(100);
         loops++;
