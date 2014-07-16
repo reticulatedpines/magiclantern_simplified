@@ -675,3 +675,9 @@ void redraw_after(int msec)
 {
     delayed_call(msec, redraw_after_cbr);
 }
+
+int get_gui_mode()
+{
+    /* this is GUIMode from SetGUIRequestMode */
+    return CURRENT_DIALOG_MAYBE;
+}
