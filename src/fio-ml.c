@@ -382,6 +382,7 @@ int FIO_CreateDirectory(const char * dirname)
 {
     char new_dirname[100];
     fixup_filename(new_dirname, dirname, 100);
+    if (is_dir(new_dirname)) return 0;
     return _FIO_CreateDirectory(new_dirname);
 }
 
