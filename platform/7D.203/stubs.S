@@ -178,8 +178,10 @@ NSTUB(0xFF080FDC,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF07E4A0,  GetFirstChunkFromSuite)
 NSTUB(0xFF07DEE8,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF07EC38,  GetNextMemoryChunk)
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF07E12C,  CreateMemorySuite)                       // allocates 0x18 bytes, then calls CreateMemoryChunk
+NSTUB(0xFF07DF5C,  DeleteMemorySuite)                       // in fmCreateWaveFileCallback
+NSTUB(0xFF07D97C,  CreateMemoryChunk)                       // called before WrapMemoryInChunk (first Create, then Add)
+NSTUB(0xFF07E3CC,  AddMemoryChunk)
 
 /** SRM JobMem **/
 NSTUB(0xFF02CD78,  SRM_AllocateMemoryResourceFor1stJob)
