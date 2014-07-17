@@ -121,7 +121,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
-#if defined(CONFIG_5D3)
+#if defined(CONFIG_5D3) || defined(CONFIG_700D)
 #define RAW_PHOTO_EDMAC 0xc0f04008
 #endif
 
