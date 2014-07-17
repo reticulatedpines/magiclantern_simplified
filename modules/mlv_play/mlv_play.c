@@ -44,6 +44,9 @@
 #include "../file_man/file_man.h"
 #include "../lv_rec/lv_rec.h"
 
+/* uncomment for live debug messages */
+//~ #define trace_write(trace, fmt, ...) { printf(fmt, ## __VA_ARGS__); printf("\n"); msleep(500); }
+
 #define MAX_PATH                 100
 
 /* declare the video.bmp we have added */
@@ -154,23 +157,11 @@ static playlist_entry_t mlv_playlist_next(playlist_entry_t current);
 static playlist_entry_t mlv_playlist_prev(playlist_entry_t current);
 static void mlv_playlist_delete(playlist_entry_t current);
 static void mlv_playlist_build(uint32_t priv);
+static uint32_t mlv_play_should_stop();
 
 /* microsecond durations for one frame */
-static uint32_t mlv_play_frame_div_group = 0;
 static uint32_t mlv_play_frame_div_pos = 0;
-static const uint32_t mlv_play_frame_dividers[] =
-{
-    /*
-     fps  delay1 delay2 delay3 
-    */
-    23976, 41709, 41708, 41708,  /* 23.976 */
-    24000, 41667, 41667, 41666,  /* 24     */
-    25000, 40000, 40000, 40000,  /* 25     */
-    29970, 33367, 33367, 33366,  /* 29.970 */
-    30000, 33334, 33333, 33333,  /* 30     */
-    50000, 20000, 20000, 20000,  /* 50     */
-    59940, 16684, 16683, 16683,  /* 59.940 */
-};
+static uint32_t mlv_play_frame_dividers[3];
 
 /* as soon all cameras provide FIO_SeekSkipFile, we can remove that temporary code */
 static uint64_t FIO_SeekSkipFile_emulate(FILE* stream, uint64_t position, int whence)
@@ -265,6 +256,9 @@ static void mlv_play_progressbar(int pct, char *msg)
     }
 }
 
+/* call with positive duration and some string => print it for a while, then clear it */
+/* call with 0 duration and some string => print it without clearing */
+/* call with 0 duration and null string => just clear it */
 static void mlv_play_show_dlg(uint32_t duration, char *string)
 {
     uint32_t width = 500;
@@ -273,81 +267,98 @@ static void mlv_play_show_dlg(uint32_t duration, char *string)
     uint32_t pos_x = (720 - width) / 2;
     struct bmp_file_t *icon = NULL;
     
-    icon = bmp_load_ram((uint8_t *)LDVAR(video_bmp), LDLEN(video_bmp), 0);
-    
-    bmp_fill(COLOR_BG, pos_x, pos_y, width, height);
-    
-    /* redraw 4 times in case it gets overdrawn */
-    for(int loop = 0; loop < 4; loop++)
+    if (string)
     {
-        if(icon)
+        icon = bmp_load_ram((uint8_t *)LDVAR(video_bmp), LDLEN(video_bmp), 0);
+        
+        bmp_fill(COLOR_BG, pos_x, pos_y, width, height);
+        
+        /* redraw 4 times in case it gets overdrawn */
+        for(int loop = 0; loop < 4; loop++)
         {
-            bmp_draw_scaled_ex(icon, pos_x + 10, pos_y + 10, 128, 128, 0);
-        }
-        else
-        {
-            bmp_printf(FONT_CANON, pos_x + 10, pos_y + 10 - font_med.height / 2, "[X]");
+            if(icon)
+            {
+                bmp_draw_scaled_ex(icon, pos_x + 10, pos_y + 10, 128, 128, 0);
+            }
+            else
+            {
+                bmp_printf(FONT_CANON, pos_x + 10, pos_y + 10 - font_med.height / 2, "[X]");
+            }
+            
+            bmp_printf(FONT_CANON, pos_x + 128 + 20, pos_y + (128 / 2) - 16, string);
+            msleep(duration / 10);
         }
         
-        bmp_printf(FONT_CANON, pos_x + 128 + 20, pos_y + (128 / 2) - 16, string);
-        msleep(duration / 10);
+        free(icon);
     }
     
-    bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
+    if (duration || !string)
+    {
+        bmp_fill(COLOR_EMPTY, pos_x, pos_y, width, height);
+    }
 }
 
-static void mlv_play_del_task(char *parm)
+/* run deletion in the same task as playback, to sync with file closing etc */
+static int mlv_play_delete_requested = 0;
+
+static void mlv_play_delete_request()
+{
+    mlv_play_delete_requested = 1;
+    mlv_play_show_dlg(0, "Stopping...");
+}
+
+/* returns 1 on success, 0 on failure */
+static int mlv_play_delete_work(char *filename)
 {
     uint32_t size = 0;
-    uint32_t loops = 0;
     uint32_t state = 0;
     uint32_t seq_number = 0;
     char current_ext[4];
-    char filename[128];
     char current_file[128];
     
-    trace_write(mlv_play_trace_ctx, "[Delete] Delete request for: '%s'", parm);
+    /* original extension, to be used as read-only */
+    const char* main_ext = filename + strlen(filename) - 3;
     
-    /* keep filename locally */
-    strncpy(filename, parm, sizeof(filename));
-    free(parm);
+    trace_write(mlv_play_trace_ctx, "[Delete] Delete request for: '%s'", filename);
+    
     strncpy(current_file, filename, sizeof(current_file));
     
     /* file does not exist. the specified base file must exist, so abort */
     if(FIO_GetFileSize(filename, &size))
     {
         trace_write(mlv_play_trace_ctx, "  Does not exist!");
-        return;
+        return 0;
     }
     
-    TASK_LOOP
+    int is_mlv = streq(main_ext, "MLV") || streq(main_ext, "mlv");
+    
+    while (1)
     {
-        if(loops > 50)
-        {
-            trace_write(mlv_play_trace_ctx, "  Deleting '%s' failed, aborting !!!", current_file);
-            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed, aborting !!!", current_file);
-            return;
-        }
-        else if(loops > 10)
-        {
-            bmp_printf(FONT_MED, 30, 220, "Deleting '%s' failed, retrying...", current_file);
-        }
-        
         switch(state)
         {
             case 0:
-                /* try to delete index file */
-                strcpy(current_ext, "IDX");
-                break;
-                
-            case 1:
                 /* try to delete main file */
-                strcpy(current_ext, "MLV");
+                strcpy(current_ext, main_ext);
+                break;
+
+            case 1:
+                /* try to delete index file */
+                if (is_mlv)
+                {
+                    strcpy(current_ext, "IDX");
+                }
+                else
+                {
+                    /* index files are only used on MLVs, skip for other files */
+                    state++;
+                    continue;
+                }
                 break;
                 
             case 2:
                 /* try to delete chunk files */
-                snprintf(current_ext, 4, "M%02d", seq_number);
+                snprintf(current_ext, 4, "X%02d", seq_number);
+                current_ext[0] = main_ext[0];
                 break;
                 
             case 3:
@@ -367,10 +378,9 @@ static void mlv_play_del_task(char *parm)
                 
             case 4:
                 /* we are done */
-                return;
+                return 1;
         }
 
-        int failed = 0;
         for(int drive = 0; drive < 2; drive++)
         {
             /* set extension */
@@ -379,21 +389,36 @@ static void mlv_play_del_task(char *parm)
             /* set drive letter */
             current_file[0] = drive ? 'A' : 'B';
             
+            if (!is_mlv)
+            {
+                if (current_file[0] != filename[0])
+                {
+                    /* non-MLV files can't be spanned, do not delete the file with the same name from the other card */
+                    trace_write(mlv_play_trace_ctx, "[Delete] Skip drive: '%s'", current_file);
+                    continue;
+                }
+            }
+            
             trace_write(mlv_play_trace_ctx, "[Delete] Next file: '%s'", current_file);
             
             /* check if file exists */
             if(FIO_GetFileSize(current_file, &size))
             {
+                if (state == 0 && current_file[0] == filename[0])
+                {
+                    trace_write(mlv_play_trace_ctx, "[Delete] main file does not exist '%s'", current_file);
+                    return 0;
+                }
                 continue;
             }
-            
+
             trace_write(mlv_play_trace_ctx, "  existing, deleting");
             
             /* if existing, try to delete and set fail flag if that doesnt work */
             if(FIO_RemoveFile(current_file))
             {
                 trace_write(mlv_play_trace_ctx, "  FAILED");
-                failed = 1;
+                return 0;
             }
             else
             {
@@ -402,22 +427,13 @@ static void mlv_play_del_task(char *parm)
         }
         
         /* if there was no failure in deleting the file, next state */
-        if(!failed)
-        {
-            loops = 0;
-            state++;
-        }
-        else
-        {
-            loops++;
-            msleep(100);
-        }
+        state++;
     }
     
-    return;
+    return 1;
 }
 
-static void mlv_play_delete()
+static int mlv_play_delete()
 {
     playlist_entry_t current;
     playlist_entry_t next;
@@ -432,19 +448,19 @@ static void mlv_play_delete()
     
     /* remove the currently played from the playlist */
     mlv_playlist_delete(current);
-    
-    /* check which of the files is available and play this one so the one to be deleted is no longer used */
+
+    /* delete the files */
+    int ok = mlv_play_delete_work(current.fullPath);
+    trace_write(mlv_play_trace_ctx, "[Delete] returned %s", ok ? "success" : "FAILURE");
+
+    /* check which of the files is available and play it */
     if(strlen(next.fullPath))
     {
         strncpy(mlv_play_next_filename, next.fullPath, sizeof(mlv_play_next_filename));
-        mlv_play_stopfile = 1;
-        mlv_play_paused = 0;
     }
     else if(strlen(prev.fullPath))
     {
         strncpy(mlv_play_next_filename, prev.fullPath, sizeof(mlv_play_next_filename));
-        mlv_play_stopfile = 1;
-        mlv_play_paused = 0;
     }
     else
     {
@@ -452,10 +468,18 @@ static void mlv_play_delete()
         mlv_play_render_abort = 1;
     }
     
-    char *msg = strdup(current.fullPath);
-    
-    task_create("mlv_play_del_task", 0x1e, 0x4000, mlv_play_del_task, (void*)msg);
-    mlv_play_show_dlg(1000, "Deleting...");
+    return ok;
+}
+
+static void mlv_play_delete_if_requested()
+{
+    if (mlv_play_delete_requested)
+    {
+        mlv_play_show_dlg(0, "Deleting...");
+        int ok = mlv_play_delete();
+        mlv_play_show_dlg(3000, ok ? "Deleted." : "Delete failed.");
+        mlv_play_delete_requested = 0;
+    }
 }
 
 static void mlv_play_osd_quality(char *msg, uint32_t msg_len, uint32_t selected)
@@ -544,38 +568,39 @@ static void mlv_play_osd_quit(char *msg, uint32_t msg_len, uint32_t selected)
     }
 }
 
+static uint32_t mlv_play_osd_delete_selected = 0;
+
 static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
 {
-    static uint32_t delete_selected = 0;
     uint32_t max_time = 5000;
 
     if(selected)
     {
-        if(!delete_selected || selected == 2)
+        if(!mlv_play_osd_delete_selected || selected == 2)
         {
             mlv_play_osd_force_redraw = 1;
-            delete_selected = get_ms_clock_value();
+            mlv_play_osd_delete_selected = get_ms_clock_value();
         }
         else
         {
             mlv_play_osd_force_redraw = 0;
-            delete_selected = 0;
-            mlv_play_delete();
+            mlv_play_osd_delete_selected = 0;
+            mlv_play_delete_request();
         }
     }
     
     if(msg)
     {
-        uint32_t time_passed = get_ms_clock_value() - delete_selected;
+        uint32_t time_passed = get_ms_clock_value() - mlv_play_osd_delete_selected;
         uint32_t seconds = (max_time - time_passed) / 1000;
         
-        if(delete_selected && seconds > 0)
+        if(mlv_play_osd_delete_selected && seconds > 0)
         {
             snprintf(msg, msg_len, "[delete? %ds]", seconds);
         }
         else
         {
-            delete_selected = 0;
+            mlv_play_osd_delete_selected = 0;
             mlv_play_osd_force_redraw = 0;
             snprintf(msg, msg_len, "Del");
         }
@@ -1334,7 +1359,7 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
-        if(mlv_play_paused)
+        if(mlv_play_paused && !mlv_play_should_stop())
         {
             msleep(100);
             continue;
@@ -1433,6 +1458,12 @@ static uint32_t mlv_play_should_stop()
         return 1;
     }
     
+    /* should the current file be deleted? stop playback first */
+    if (mlv_play_delete_requested)
+    {
+        return 1;
+    }
+    
     return 0;
 }
 
@@ -1451,9 +1482,9 @@ static void mlv_play_clear_screen()
 
 static void mlv_play_fps_tick(int expiry_value, void *priv)
 {
-    uint32_t offset = mlv_play_frame_dividers[mlv_play_frame_div_group + mlv_play_frame_div_pos];
+    uint32_t offset = mlv_play_frame_dividers[mlv_play_frame_div_pos];
     mlv_play_frame_div_pos = (mlv_play_frame_div_pos + 1) % 3;
-    
+
     if(mlv_play_timer_stop)
     {
         mlv_play_timer_stop = 0;
@@ -1474,29 +1505,21 @@ static void mlv_play_stop_fps_timer()
     }
 }
 
-static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
+static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
-    uint32_t fps = fps_nom * 1000 / fps_denom;
-    
-    mlv_play_frame_div_group = COUNT(mlv_play_frame_dividers);
-    
-    for(uint32_t pos = 0; pos < COUNT(mlv_play_frame_dividers); pos += 4)
+    uint32_t three_frames = 3 * 1000000 * fps_denom / fps_nom;
+
+    mlv_play_frame_dividers[0] = mlv_play_frame_dividers[1] = mlv_play_frame_dividers[2] = three_frames / 3;
+    switch(three_frames % 3)
     {
-        /* assuming we always can get an exact match */
-        if(mlv_play_frame_dividers[pos] == fps)
-        {
-            mlv_play_frame_div_group = pos;
-        }
+        case 2:
+            mlv_play_frame_dividers[1]++;
+        case 1:
+            mlv_play_frame_dividers[0]++;
+        default:
+            break;
     }
-    
-    /* did not find an exact match? */
-    if(mlv_play_frame_div_group >= COUNT(mlv_play_frame_dividers))
-    {
-        mlv_play_exact_fps = 0;
-        beep();
-        return;
-    }
-    
+
     /* ensure the queue is empty */
     mlv_play_flush_queue(mlv_play_queue_fps);
     
@@ -1508,11 +1531,14 @@ static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     
     /* and finally start timer in 1 us */
     SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    
+    return 1;
 }
 
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
+    uint32_t fps_timer_start_attempted = 0;
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
@@ -1686,16 +1712,10 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             mlv_vidf_hdr_t vidf_block;
             
             /* now get a buffer from the queue */
-            retry_dequeue:
-            if(msg_queue_receive(mlv_play_queue_empty, &buffer, 5000))
+            while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
+
+            if (mlv_play_should_stop())
             {
-                if(mlv_play_paused)
-                {
-                    goto retry_dequeue;
-                }
-                bmp_printf(FONT_MED, 0, 400, "Failed to get a free buffer. If you can reproduce this, please report.");
-                beep();
-                msleep(1000);
                 break;
             }
             
@@ -1771,7 +1791,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 
             if(rtci_block.timestamp)
             {
-                snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "%02d.%02d.%04d %02d:%02d:%02d", rtci_block.tm_mday, rtci_block.tm_mon, 1900 + rtci_block.tm_year, rtci_block.tm_hour, rtci_block.tm_min, rtci_block.tm_sec);
+                snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "%02d.%02d.%04d %02d:%02d:%02d", rtci_block.tm_mday, rtci_block.tm_mon + 1, 1900 + rtci_block.tm_year, rtci_block.tm_hour, rtci_block.tm_min, rtci_block.tm_sec);
             }
             
             snprintf(buffer->messages.botLeft, SCREEN_MSG_LEN, "%s: %dx%d", filename, rawi_block.xRes, rawi_block.yRes);
@@ -1782,22 +1802,34 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             
-            if(!fps_timer_started)
+            if (mlv_play_exact_fps)
             {
-                fps_timer_started = 1;
-                mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-            }
-            
-            if(mlv_play_exact_fps)
-            {
-                /* wait till it is time to render */
-                uint32_t temp = 0;
-                while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                if (!fps_timer_start_attempted)
                 {
-                    if(mlv_play_should_stop())
+                    /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
+                    fps_timer_started = mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                    fps_timer_start_attempted = 1;
+                }
+                
+                if (fps_timer_started)
+                {
+                    /* wait till it is time to render */
+                    uint32_t temp = 0;
+                    while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
                     {
-                        break;
+                        if(mlv_play_should_stop())
+                        {
+                            break;
+                        }
                     }
+                }
+            }
+            else
+            {
+                if (!fps_timer_started)
+                {
+                    /* let's give it another chance */
+                    fps_timer_start_attempted = 0;
                 }
             }
             
@@ -1839,22 +1871,16 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         
         frame_buf_t *buffer = NULL;
         
-        while(mlv_play_paused)
+        while(mlv_play_paused && !mlv_play_should_stop())
         {
             msleep(100);
         }
         
         /* now get a buffer from the queue */
-        retry_dequeue:
-        if(msg_queue_receive(mlv_play_queue_empty, &buffer, 5000))
+        while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
+        
+        if (mlv_play_should_stop())
         {
-            if(mlv_play_paused)
-            {
-                goto retry_dequeue;
-            }
-            bmp_printf(FONT_MED, 0, 400, "Failed to get a free buffer, exiting");
-            beep();
-            msleep(1000);
             break;
         }
         
@@ -1948,10 +1974,15 @@ static void mlv_play(char *filename, FILE **chunk_files, uint32_t chunk_count)
 
 static void mlv_play_set_mode(int32_t mode)
 {
+    if (get_gui_mode() == mode)
+    {
+        return;
+    }
+
     uint32_t loops = 0;
     
     SetGUIRequestMode(mode);
-    while(gui_state != mode)
+    while(get_gui_mode() != mode)
     {
         msleep(100);
         loops++;
@@ -2135,7 +2166,7 @@ static void mlv_play_leave_playback()
     
     while(mlv_play_rendering)
     {
-        msleep(20);
+        info_led_blink(1, 100, 100);
     }
     
     /* clean up buffers - free memories and all buffers */
@@ -2190,8 +2221,17 @@ static void mlv_play_enter_playback()
     mlv_play_clear_screen();
 }
 
+static struct semaphore * mlv_play_sem = 0;
+
 static void mlv_play_task(void *priv)
 {
+    if (take_semaphore(mlv_play_sem, 100))
+    {
+        NotifyBox(2000, "mlv_play already running");
+        beep();
+        return;
+    }
+    
     FILE **chunk_files = NULL;
     uint32_t chunk_count = 0;
     char *filename = (char *)priv;
@@ -2209,35 +2249,45 @@ static void mlv_play_task(void *priv)
         }
     }
 
+    /* get into Canon's PLAY mode */
+    mlv_play_enter_playback();
+
     /* create playlist */
+    mlv_play_show_dlg(0, "Building playlist...");
     mlv_playlist_build(0);
+    mlv_play_show_dlg(0, 0);
     
-    /* if called with NULL, play first file found when building playlist */
-    if(!filename)
-    {
-        if(mlv_playlist_entries <= 0)
-        {
-            mlv_play_show_dlg(2000, "No videos found");
-            return;
-        }
-        
-        strncpy(mlv_play_current_filename, mlv_playlist[0].fullPath, sizeof(mlv_play_current_filename));
-    }
-    else
+    if (filename)
     {
         uint32_t size = 0;
         /* is this file still available? if not, show dialog and return */
         
         if(FIO_GetFileSize(filename, &size))
         {
+            char msg[50];
+            snprintf(msg, sizeof(msg), "%s\nnot found", strrchr(filename, '/')+1);
+            mlv_play_show_dlg(4000, msg);
+            
+            /* try to play the first file instead */
+            filename = 0;
+        }
+        else
+        {
+            strcpy(mlv_play_current_filename, filename);
+        }
+    }
+
+    /* if called with NULL, or the requested file was not found, play last file found when building playlist */
+    if(!filename)
+    {
+        if(mlv_playlist_entries <= 0)
+        {
             mlv_play_show_dlg(2000, "No videos found");
-            return;
+            goto cleanup;
         }
         
-        strcpy(mlv_play_current_filename, filename);
+        strncpy(mlv_play_current_filename, mlv_playlist[mlv_playlist_entries-1].fullPath, sizeof(mlv_play_current_filename));
     }
-    
-    mlv_play_enter_playback();
     
     do
     {
@@ -2266,18 +2316,31 @@ static void mlv_play_task(void *priv)
         mlv_play(mlv_play_current_filename, chunk_files, chunk_count);
         mlv_play_close_chunks(chunk_files, chunk_count);
         
+        /* all files closed, anything to delete? */
+        mlv_play_delete_if_requested();
+        
         /* playback finished. wait until... hmm.. something happens */
         while(!strlen(mlv_play_next_filename) && !mlv_play_should_stop())
         {
             msleep(100);
         }
-        
+
+        /* anything more to delete? */
+        mlv_play_delete_if_requested();
+
         strncpy(mlv_play_current_filename, mlv_play_next_filename, sizeof(mlv_play_next_filename));
-    } while(1);
+
+        /* stop file request was handled, if there was any */
+        mlv_play_stopfile = 0;
+
+    } while(!mlv_play_should_stop());
     
 cleanup:
     mlv_playlist_free();
     mlv_play_leave_playback();
+    mlv_play_delete_requested = 0;
+    mlv_play_osd_delete_selected = 0;
+    give_semaphore(mlv_play_sem);
 }
 
 
@@ -2397,6 +2460,9 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
         if (!liveview_display_idle())
             return 1;
         
+        if (RECORDING)
+            return 1;
+        
         switch(key)
         {
             case MODULE_KEY_PLAY:
@@ -2429,6 +2495,8 @@ static unsigned int mlv_play_init()
     
     fileman_register_type("RAW", "RAW Video", mlv_play_filehandler);
     fileman_register_type("MLV", "MLV Video", mlv_play_filehandler);
+    
+    mlv_play_sem = create_named_semaphore("mlv_play_running", 1);
     
     return 0;
 }

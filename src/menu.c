@@ -5285,7 +5285,7 @@ int handle_ml_menu_erase(struct event * event)
         #endif
        0)
     {
-        if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
+        if (gui_state == GUISTATE_IDLE || (gui_menu_shown() && !beta_should_warn()))
         {
             give_semaphore( gui_sem );
             return 0;

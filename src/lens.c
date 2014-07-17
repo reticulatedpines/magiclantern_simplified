@@ -1773,7 +1773,7 @@ void bv_update_lensinfo()
 
 void bv_apply_tv(int tv)
 {
-    if (is_native_movie_mode())
+    if (is_movie_mode())
         CONTROL_BV_TV = COERCE(tv, 0x5C, 0xA0); // try to extend shutter range, 1/24 ... 1/8000
     else
         CONTROL_BV_TV = COERCE(tv, 0x60, 0x98); // 600D: [LV] ERROR >> Tv:0x10, TvMax:0x98, TvMin:0x60
@@ -2260,7 +2260,7 @@ static LVINFO_UPDATE_FUNC(mvi_number_update)
 {
     LVINFO_BUFFER(12);
     
-    if (is_native_movie_mode())
+    if (is_movie_mode() && !raw_lv_is_enabled())
     {
         snprintf(buffer, sizeof(buffer), "MVI_%04d", get_shooting_card()->file_number);
     }

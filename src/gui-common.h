@@ -229,6 +229,7 @@ void _redraw_do();  /* private */
 
 /* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
 void SetGUIRequestMode(int mode);
+int get_gui_mode();
 
 /* on some cameras, Canon encodes multiple scrollwheel clicks in a single event */
 /* this breaks them down into individual events, for ML code that expects one event = one click */
