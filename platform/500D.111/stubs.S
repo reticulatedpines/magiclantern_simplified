@@ -200,7 +200,7 @@ NSTUB(0xFF091720,  gui_post_10000085)                       // should be called 
 NSTUB(0xFF1A09AC,  gui_timer_something)
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF2B80AC,  CancelDateTimer)
 NSTUB(0xFF070700,  CancelTimer)
 NSTUB(0xFF068268,  SetHPTimerAfterNow)
 NSTUB(0xFF0682E8,  SetHPTimerNextTick)
