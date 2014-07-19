@@ -11,6 +11,7 @@
 #include <zebra.h>
 #include <beep.h>
 #include <lens.h>
+#include "../lv_rec/lv_rec.h"
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
@@ -20,6 +21,7 @@ extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );
 static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
+static CONFIG_INT( "silent.pic.file.format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
 #define SILENT_PIC_MODE_BURST_END_TRIGGER 2
@@ -71,11 +73,41 @@ static MENU_UPDATE_FUNC(silent_pic_display)
     }
 }
 
+/* save using the raw video file format  */
+static void save_raw(char* filename, struct raw_info * raw_info)
+{
+    lv_rec_file_footer_t footer;
+    FILE* save_file;
+    
+    save_file = FIO_CreateFile(filename);
+    
+    if (save_file == INVALID_PTR)
+    {
+        bmp_printf( FONT_MED, 0, 80, "File create error");
+    }
+    else
+    {
+        FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
+        
+        strcpy((char*)footer.magic, "RAWM");
+        footer.xRes = raw_info->width;
+        footer.yRes = raw_info->height;
+        footer.frameSize = raw_info->frame_size;
+        footer.frameCount = 1;
+        footer.frameSkip = 1;
+        footer.sourceFpsx1000 = 1;
+        footer.raw_info = *raw_info;
+        
+        FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
+        FIO_CloseFile(save_file);
+    }
+}
+
 static char* silent_pic_get_name()
 {
     static char imgname[100];
     
-    char *extension   = "DNG";
+    char *extension   = silent_pic_file_format ? "RAW" : "DNG";
     int file_number   = get_shooting_card()->file_number;
     
     if (is_intervalometer_running())
@@ -94,9 +126,16 @@ static char* silent_pic_get_name()
     return imgname;
 }
 
-static void silent_pic_save_dng(char* filename, struct raw_info * raw_info)
+static void silent_pic_save_file(char* filename, struct raw_info * raw_info)
 {
-    save_dng(filename, raw_info);
+    if(silent_pic_file_format == 0)
+    {
+        save_dng(filename, raw_info);
+    }
+    else
+    {
+        save_raw(filename, raw_info);
+    }
 }
 
 #ifdef FEATURE_SILENT_PIC_RAW
@@ -118,7 +157,7 @@ silent_pic_take_lv(int interactive)
     /* save it to card */
     char* fn = silent_pic_get_name();
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    silent_pic_save_dng(fn, &raw_info);
+    silent_pic_save_file(fn, &raw_info);
     redraw();
 }
 
@@ -628,7 +667,7 @@ silent_pic_take_lv(int interactive)
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
             raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
-            silent_pic_save_dng(fn, &local_raw_info);
+            silent_pic_save_file(fn, &local_raw_info);
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
             {
@@ -661,7 +700,7 @@ silent_pic_take_lv(int interactive)
         char* fn = silent_pic_get_name();
         local_raw_info.buffer = sp_frames[0];
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        silent_pic_save_dng(fn, &local_raw_info);
+        silent_pic_save_file(fn, &local_raw_info);
         redraw();
     }
     
@@ -760,7 +799,7 @@ silent_pic_take_fullres(int interactive)
         
         local_raw_info.buffer = copy_buf;
         memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
-        silent_pic_save_dng(fn, &local_raw_info);
+        silent_pic_save_file(fn, &local_raw_info);
         
         bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
     }
@@ -862,6 +901,14 @@ static struct menu_entry silent_menu[] = {
                 .choices = CHOICES("Top->Bottom", "Bottom->Top", "Left->Right", "Right->Left", "Horizontal"),
                 .icon_type = IT_DICE,
             },
+            {
+                .name = "File Format",
+                .priv = &silent_pic_file_format,
+                .max = 1,
+                .help = "File format to save the image as",
+                .choices = CHOICES("DNG", "RAW"),
+                .icon_type = IT_DICE,
+            },
             MENU_EOL,
         },
         #endif
@@ -896,4 +943,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(silent_pic_enabled)
     MODULE_CONFIG(silent_pic_mode)
     MODULE_CONFIG(silent_pic_slitscan_mode)
+    MODULE_CONFIG(silent_pic_file_format)
 MODULE_CONFIGS_END()
