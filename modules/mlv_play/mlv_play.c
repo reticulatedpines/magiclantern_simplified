@@ -1495,7 +1495,16 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
     msg_queue_post(mlv_play_queue_fps, 0);
     
     mlv_play_fps_ticks++;
-    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+
+    /* use high-precision timer for FPS > 2  */
+    if (offset < 500000)
+    {
+        SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    }
+    else
+    {
+        SetTimerAfter(offset / 1000, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    }
 }
 
 static void mlv_play_stop_fps_timer()
