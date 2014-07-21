@@ -12,6 +12,7 @@
 #include <beep.h>
 #include <lens.h>
 #include "../lv_rec/lv_rec.h"
+#include "../mlv_rec/mlv.h"
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
@@ -103,11 +104,110 @@ static void save_raw(char* filename, struct raw_info * raw_info)
     }
 }
 
+/* save using the MLV file format  */
+static void save_mlv(char* filename, struct raw_info * raw_info)
+{
+    mlv_file_hdr_t mlv_file_hdr;
+    mlv_rawi_hdr_t rawi;
+    mlv_rtci_hdr_t rtci_hdr;
+    mlv_expo_hdr_t expo_hdr;
+    mlv_lens_hdr_t lens_hdr;
+    mlv_idnt_hdr_t idnt_hdr;
+    mlv_wbal_hdr_t wbal_hdr;
+    mlv_styl_hdr_t styl_hdr;
+    mlv_vidf_hdr_t vidf_hdr;
+    uint64_t mlv_start_timestamp = 0;
+    FILE* save_file;
+    
+    save_file = FIO_CreateFile(filename);
+    
+    if (save_file == INVALID_PTR)
+    {
+        bmp_printf( FONT_MED, 0, 80, "File create error");
+    }
+    else
+    {
+        mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
+        
+        memset(&rawi, 0, sizeof(mlv_file_hdr_t));
+        mlv_init_fileheader(&mlv_file_hdr);
+        mlv_file_hdr.fileGuid = mlv_generate_guid();
+        mlv_file_hdr.fileNum = 0;
+        mlv_file_hdr.fileCount = 0;
+        mlv_file_hdr.fileFlags = 4;
+        mlv_file_hdr.videoClass = 1;
+        mlv_file_hdr.audioClass = 0;
+        mlv_file_hdr.videoFrameCount = 1;
+        mlv_file_hdr.audioFrameCount = 0;
+        mlv_file_hdr.sourceFpsNom = 1;
+        mlv_file_hdr.sourceFpsDenom = 1;
+        FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
+        
+        memset(&rawi, 0, sizeof(mlv_rawi_hdr_t));
+        mlv_set_type((mlv_hdr_t *)&rawi, "RAWI");
+        mlv_set_timestamp((mlv_hdr_t *)&rawi, mlv_start_timestamp);
+        rawi.blockSize = sizeof(mlv_rawi_hdr_t);
+        rawi.xRes = raw_info->width;
+        rawi.yRes = raw_info->height;
+        rawi.raw_info = *raw_info;
+        FIO_WriteFile(save_file, &rawi, rawi.blockSize);
+        
+        mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
+        mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
+        mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
+        mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
+        mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
+        mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
+        
+        rtci_hdr.timestamp = 1;
+        expo_hdr.timestamp = 2;
+        lens_hdr.timestamp = 3;
+        idnt_hdr.timestamp = 4;
+        wbal_hdr.timestamp = 5;
+        styl_hdr.timestamp = 6;
+        
+        if(silent_pic_mode == SILENT_PIC_MODE_FULLRES)
+        {
+            expo_hdr.shutterValue = 1000 * raw2shutter_ms(lens_info.raw_shutter);
+        }
+        
+        FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize);
+        FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize);
+        FIO_WriteFile(save_file, &lens_hdr, lens_hdr.blockSize);
+        FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize);
+        FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize);
+        FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize);
+        
+        memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+        mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDF");
+        mlv_set_timestamp((mlv_hdr_t *)&vidf_hdr, mlv_start_timestamp);
+        vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + raw_info->frame_size;
+        FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t));
+        
+        FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
+        FIO_CloseFile(save_file);
+    }
+    
+}
+
 static char* silent_pic_get_name()
 {
     static char imgname[100];
     
-    char *extension   = silent_pic_file_format ? "RAW" : "DNG";
+    char *extension;
+    if(silent_pic_file_format == 0)
+    {
+        extension = "RAW";
+    }
+    else if(silent_pic_file_format == 1)
+    {
+        extension = "DNG";
+    }
+    else
+    {
+        extension = "MLV";
+    }
+    
     int file_number   = get_shooting_card()->file_number;
     
     if (is_intervalometer_running())
@@ -132,9 +232,13 @@ static void silent_pic_save_file(char* filename, struct raw_info * raw_info)
     {
         save_dng(filename, raw_info);
     }
-    else
+    else if(silent_pic_file_format == 1)
     {
         save_raw(filename, raw_info);
+    }
+    else
+    {
+        save_mlv(filename, raw_info);
     }
 }
 
@@ -904,9 +1008,10 @@ static struct menu_entry silent_menu[] = {
             {
                 .name = "File Format",
                 .priv = &silent_pic_file_format,
-                .max = 1,
+                .max = 2,
                 .help = "File format to save the image as",
-                .choices = CHOICES("DNG", "RAW"),
+                .help2 = "MLV requires mlv_rec module to be loaded",
+                .choices = CHOICES("DNG", "RAW", "MLV"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
