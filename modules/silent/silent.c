@@ -30,6 +30,10 @@ static CONFIG_INT( "silent.pic.file.format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
 
+#define SILENT_PIC_FILE_FORMAT_DNG 0
+#define SILENT_PIC_FILE_FORMAT_RAW 1
+#define SILENT_PIC_FILE_FORMAT_MLV 2
+
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_LTR 2 // left to right
@@ -195,13 +199,13 @@ static char* silent_pic_get_name()
     static char imgname[100];
     
     char *extension;
-    if(silent_pic_file_format == 0)
-    {
-        extension = "RAW";
-    }
-    else if(silent_pic_file_format == 1)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
     {
         extension = "DNG";
+    }
+    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
+    {
+        extension = "RAW";
     }
     else
     {
@@ -228,11 +232,11 @@ static char* silent_pic_get_name()
 
 static void silent_pic_save_file(char* filename, struct raw_info * raw_info)
 {
-    if(silent_pic_file_format == 0)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
     {
         save_dng(filename, raw_info);
     }
-    else if(silent_pic_file_format == 1)
+    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
     {
         save_raw(filename, raw_info);
     }
