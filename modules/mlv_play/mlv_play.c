@@ -70,6 +70,7 @@ static int res_x = 0;
 static int res_y = 0;
 static int frame_count = 0;
 static int frame_size = 0;
+static unsigned int fps1000 = 0; /* used for RAW playback */
 
 static volatile uint32_t mlv_play_render_abort = 0;
 static volatile uint32_t mlv_play_rendering = 0;
@@ -1266,6 +1267,7 @@ static unsigned int mlv_play_read_footer(FILE *f)
     frame_size = footer.frameSize;
     raw_info.white_level = footer.raw_info.white_level;
     raw_info.black_level = footer.raw_info.black_level;
+    fps1000 = footer.sourceFpsx1000;
     
     return 1;
 }
@@ -1493,7 +1495,16 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
     msg_queue_post(mlv_play_queue_fps, 0);
     
     mlv_play_fps_ticks++;
-    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+
+    /* use high-precision timer for FPS > 2  */
+    if (offset < 500000)
+    {
+        SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    }
+    else
+    {
+        SetTimerAfter(offset / 1000, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    }
 }
 
 static void mlv_play_stop_fps_timer()
@@ -1847,6 +1858,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
 
 static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
+    uint32_t fps_timer_started = 0;
+    uint32_t fps_timer_start_attempted = 0;
     uint32_t chunk_num = 0;
     
     /* read footer information and update global variables, will seek automatically */
@@ -1863,6 +1876,28 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
     
     for (int i = 0; i < frame_count-1; i++)
     {
+        /* check if we are too slow */
+        if(mlv_play_exact_fps)
+        {
+            uint32_t fps_events_pending = 0;
+            msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
+
+            /* skip frame if we should play at exact fps and we already should be one frame farther */
+            if(fps_events_pending > 1)
+            {
+                uint32_t temp = 0;
+                msg_queue_receive(mlv_play_queue_fps, &temp, 50);
+
+                mlv_play_frames_skipped++;
+                continue;
+            }
+        }
+        else
+        {
+            /* if not, just keep the queue clean */
+            mlv_play_flush_queue(mlv_play_queue_fps);
+        }
+
         /* there are various reasons why this read/play task should get stopped */
         if(mlv_play_should_stop())
         {
@@ -1953,8 +1988,44 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         buffer->yRes = res_y;
         buffer->bitDepth = 14;
         
+        if (mlv_play_exact_fps)
+        {
+            if (!fps_timer_start_attempted)
+            {
+                /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
+                fps_timer_started = mlv_play_start_fps_timer(fps1000, 1000);
+                fps_timer_start_attempted = 1;
+            }
+
+            if (fps_timer_started)
+            {
+                /* wait till it is time to render */
+                uint32_t temp = 0;
+                while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                {
+                    if(mlv_play_should_stop())
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (!fps_timer_started)
+            {
+                /* let's give it another chance */
+                fps_timer_start_attempted = 0;
+            }
+        }
+
         /* requeue frame buffer for rendering */
         msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
+    }
+
+    if(fps_timer_started)
+    {
+        mlv_play_stop_fps_timer();
     }
 }
 
