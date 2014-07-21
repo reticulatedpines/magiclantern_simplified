@@ -1014,7 +1014,10 @@ static struct menu_entry silent_menu[] = {
                 .priv = &silent_pic_file_format,
                 .max = 2,
                 .help = "File format to save the image as",
-                .help2 = "MLV requires mlv_rec module to be loaded",
+                .help2 =
+                    "DNG may be slow, but no extra post-processing.\n"
+                    "RAW is fast but no metadata.\n"
+                    "MLV is fast, has metadata, requires mlv_rec loaded.\n",
                 .choices = CHOICES("DNG", "RAW", "MLV"),
                 .icon_type = IT_DICE,
             },
