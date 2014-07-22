@@ -1888,6 +1888,21 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 uint32_t temp = 0;
                 msg_queue_receive(mlv_play_queue_fps, &temp, 50);
 
+                uint32_t pos1 = FIO_SeekSkipFile_emulate(chunk_files[chunk_num], 0, SEEK_CUR);
+                uint32_t pos2 = FIO_SeekSkipFile_emulate(chunk_files[chunk_num], frame_size, SEEK_CUR);
+                if ((int32_t)(pos2 - pos1) != frame_size)
+                {
+                    chunk_num++;
+                    if (chunk_num < chunk_count)
+                    {
+                        FIO_SeekSkipFile_emulate(chunk_files[chunk_num], frame_size - (pos2 - pos1), SEEK_CUR);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
                 mlv_play_frames_skipped++;
                 continue;
             }
