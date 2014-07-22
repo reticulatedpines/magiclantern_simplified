@@ -78,6 +78,9 @@ NSTUB(0xFFA9C284 - RAM_OFFSET,  DryosDebugMsg)
 /** Task sleep **/
 NSTUB(0xFFA9F144 - RAM_OFFSET,  msleep)
 
+/** ResLock **/
+NSTUB(0xFF2B602C,  CreateResLockEntry)
+
 /** Semaphores **/
 NSTUB(0xFFA9EB08 - RAM_OFFSET,  create_named_semaphore)
 NSTUB(0xFFA9EC68 - RAM_OFFSET,  take_semaphore)
@@ -110,6 +113,22 @@ NSTUB(0xFFAE3694 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampolin
 
 /** Eventprocs (call by name) **/
 NSTUB(0xFF143278,  call)
+
+/** ExMem **/
+//NSTUB(0xFF13C244,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
+//NSTUB(0xFF13C1F8,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFFAA1D4C - RAM_OFFSET,  CreateMemorySuite)
+NSTUB(0xFFAA199C - RAM_OFFSET,  DeleteMemorySuite)
+//NSTUB(0xFF13C35C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
+//NSTUB(0xFF9FB990 - RAM_OFFSET,  GetFirstChunkFromSuite)
+//NSTUB(0xFF9FB368 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
+//NSTUB(0xFF9FC12C - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xFFAA0D88 - RAM_OFFSET,  CreateMemoryChunk)
+NSTUB(0xFFAA159C - RAM_OFFSET,  AddMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xFF0E6494,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0EA030,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI **/
 NSTUB(0xFF0D6348,  GUI_Control)
@@ -145,7 +164,7 @@ NSTUB(0xFF54E650,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER
 NSTUB(0xFF127F14,  prop_register_slave)
 NSTUB(0xFF12874C, _prop_cleanup)
 //NSTUB(0xFF128680,  prop_deliver)
-//NSTUB(0xFF128104, _prop_request_change)
+NSTUB(0xFF128104, _prop_request_change)
 //NSTUB(0xFF12886C, _prop_get_value)                          // unsafe
 
 /** Memory allocation **/
@@ -196,11 +215,6 @@ NSTUB(0xFFAA43D8 - RAM_OFFSET,  CancelTimer) // TODO: verify .. wrong on 5D3 alr
 //NSTUB(0xFF113058,  SetNextASIFDACBuffer)
 //NSTUB(0xFF1187B0,  SetSamplingRate)
 //NSTUB(0xFF1370A4,  SetAudioVolumeOut)
-
-///** experimental EDMAC research **/
-//NSTUB(0xFFAA1D4C - RAM_OFFSET,  CreateMemorySuite)
-//NSTUB(0xFFAA199C - RAM_OFFSET,  DeleteMemorySuite)
-
 
 ///** EDMAC routines */
 //NSTUB(0xFFACC1AC - RAM_OFFSET,  SetEDmac)
