@@ -161,7 +161,7 @@ static char* replace_mlv_extension(char* original_filename, int chunk_index)
 }
 
 /* save using the MLV file format  */
-static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
+static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
     mlv_rawi_hdr_t rawi;
     mlv_rtci_hdr_t rtci_hdr;
@@ -172,9 +172,10 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
     mlv_styl_hdr_t styl_hdr;
     mlv_vidf_hdr_t vidf_hdr;
     FILE* save_file;
-    int interval = get_interval_count();
+    if(is_intervalometer_running())
+        frame_number = get_interval_count();
     
-    if(interval == 0)
+    if(frame_number == 0)
     {
         current_size = 0;
         mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
@@ -201,13 +202,13 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
         mlv_file_hdr.fileFlags = 4;
         mlv_file_hdr.videoClass = 1;
         mlv_file_hdr.audioClass = 0;
-        mlv_file_hdr.videoFrameCount = interval + 1;
+        mlv_file_hdr.videoFrameCount = frame_number + 1;
         mlv_file_hdr.audioFrameCount = 0;
         mlv_file_hdr.sourceFpsNom = 1;
-        mlv_file_hdr.sourceFpsDenom = interval ? get_interval_time() : 1;
+        mlv_file_hdr.sourceFpsDenom = is_intervalometer_running() ? get_interval_time() : 1;
         FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
         
-        if(interval == 0)
+        if(frame_number == 0)
         {
             //first image in the sequence, we need a rawi
             memset(&rawi, 0, sizeof(mlv_rawi_hdr_t));
@@ -265,7 +266,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
         memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
         mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDF");
         mlv_set_timestamp((mlv_hdr_t *)&vidf_hdr, mlv_start_timestamp);
-        vidf_hdr.frameNumber = interval;
+        vidf_hdr.frameNumber = frame_number;
         vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + raw_info->frame_size;
         FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t));
         
@@ -284,7 +285,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
     
 }
 
-static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
+static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
     
     if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
@@ -298,7 +299,7 @@ static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms
     }
     else
     {
-        save_mlv(raw_info, capture_time_ms);
+        save_mlv(raw_info, capture_time_ms, frame_number);
     }
 }
 
@@ -320,7 +321,7 @@ silent_pic_take_lv(int interactive)
 
     /* save it to card */
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    silent_pic_save_file(&raw_info, 0);
+    silent_pic_save_file(&raw_info, 0, 0);
     redraw();
 }
 
@@ -829,7 +830,7 @@ silent_pic_take_lv(int interactive)
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
             raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
-            silent_pic_save_file(&local_raw_info, 0);
+            silent_pic_save_file(&local_raw_info, 0, i - i0);
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
             {
@@ -861,7 +862,7 @@ silent_pic_take_lv(int interactive)
         
         local_raw_info.buffer = sp_frames[0];
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        silent_pic_save_file(&local_raw_info, 0);
+        silent_pic_save_file(&local_raw_info, 0, 0);
         redraw();
     }
     
@@ -959,7 +960,7 @@ silent_pic_take_fullres(int interactive)
         
         local_raw_info.buffer = copy_buf;
         memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
-        silent_pic_save_file(&local_raw_info, t1 - t0);
+        silent_pic_save_file(&local_raw_info, t1 - t0, 0);
         
         bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
     }
