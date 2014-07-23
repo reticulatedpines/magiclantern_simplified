@@ -161,7 +161,7 @@ static char* replace_mlv_extension(char* original_filename, int chunk_index)
 }
 
 /* save using the MLV file format  */
-static void save_mlv(struct raw_info * raw_info)
+static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
 {
     mlv_rawi_hdr_t rawi;
     mlv_rtci_hdr_t rtci_hdr;
@@ -250,9 +250,9 @@ static void save_mlv(struct raw_info * raw_info)
         mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
         mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
         
-        if(silent_pic_mode == SILENT_PIC_MODE_FULLRES)
+        if(capture_time_ms > 0)
         {
-            expo_hdr.shutterValue = 1000 * raw2shutter_ms(lens_info.raw_shutter);
+            expo_hdr.shutterValue = 1000 * capture_time_ms;
         }
         
         FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize);
@@ -284,7 +284,7 @@ static void save_mlv(struct raw_info * raw_info)
     
 }
 
-static void silent_pic_save_file(struct raw_info * raw_info)
+static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
 {
     
     if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
@@ -298,7 +298,7 @@ static void silent_pic_save_file(struct raw_info * raw_info)
     }
     else
     {
-        save_mlv(raw_info);
+        save_mlv(raw_info, capture_time_ms);
     }
 }
 
@@ -320,7 +320,7 @@ silent_pic_take_lv(int interactive)
 
     /* save it to card */
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    silent_pic_save_file(&raw_info);
+    silent_pic_save_file(&raw_info, 0);
     redraw();
 }
 
@@ -829,7 +829,7 @@ silent_pic_take_lv(int interactive)
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
             raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
-            silent_pic_save_file(&local_raw_info);
+            silent_pic_save_file(&local_raw_info, 0);
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
             {
@@ -861,7 +861,7 @@ silent_pic_take_lv(int interactive)
         
         local_raw_info.buffer = sp_frames[0];
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        silent_pic_save_file(&local_raw_info);
+        silent_pic_save_file(&local_raw_info, 0);
         redraw();
     }
     
@@ -959,7 +959,7 @@ silent_pic_take_fullres(int interactive)
         
         local_raw_info.buffer = copy_buf;
         memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
-        silent_pic_save_file(&local_raw_info);
+        silent_pic_save_file(&local_raw_info, t1 - t0);
         
         bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
     }
