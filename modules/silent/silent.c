@@ -17,6 +17,17 @@
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
+extern WEAK_FUNC(ret_0) void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp);
+extern WEAK_FUNC(ret_0) void mlv_fill_expo(mlv_expo_hdr_t *hdr, uint64_t start_timestamp);
+extern WEAK_FUNC(ret_0) void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp);
+extern WEAK_FUNC(ret_0) void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
+extern WEAK_FUNC(ret_0) void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp);
+extern WEAK_FUNC(ret_0) void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp);
+extern WEAK_FUNC(ret_0) uint64_t mlv_generate_guid();
+extern WEAK_FUNC(ret_0) void mlv_init_fileheader(mlv_file_hdr_t *hdr);
+extern WEAK_FUNC(ret_0) void mlv_set_type(mlv_hdr_t *hdr, char *type);
+extern WEAK_FUNC(ret_0) uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start);
+
 #define FEATURE_SILENT_PIC_RAW_BURST
 //~ #define FEATURE_SILENT_PIC_RAW
 
@@ -85,22 +96,45 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             MENU_SET_VALUE("Full-res");
             break;
     }
+    
+    
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit RAW.");
+    }
+    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
+    }
+    else
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit DNG.");
+    }
+}
+
+static MENU_UPDATE_FUNC(silent_pic_file_format_display)
+{
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid == (void*)&ret_0)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option");
+    }
 }
 
 static char* silent_pic_get_name()
 {
     char *extension;
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
-    {
-        extension = "DNG";
-    }
-    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
+    
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
     {
         extension = "RAW";
     }
-    else
+    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
     {
         extension = "MLV";
+    }
+    else
+    {
+        extension = "DNG";
     }
     
     int file_number = get_shooting_card()->file_number;
@@ -287,19 +321,18 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
 
 static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
-    
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
-    {
-        char* filename = silent_pic_get_name();
-        save_dng(filename, raw_info);
-    }
-    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
     {
         save_raw(raw_info);
     }
-    else
+    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
     {
         save_mlv(raw_info, capture_time_ms, frame_number);
+    }
+    else
+    {
+        char* filename = silent_pic_get_name();
+        save_dng(filename, raw_info);
     }
 }
 
@@ -1064,13 +1097,14 @@ static struct menu_entry silent_menu[] = {
             },
             {
                 .name = "File Format",
+                .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
                 .max = 2,
                 .help = "File format to save the image as",
                 .help2 =
                     "DNG may be slow, but no extra post-processing.\n"
                     "RAW is fast but no metadata.\n"
-                    "MLV is fast, has metadata, requires mlv_rec loaded.\n",
+                    "MLV is fast, has metadata.\n",
                 .choices = CHOICES("DNG", "RAW", "MLV"),
                 .icon_type = IT_DICE,
             },
