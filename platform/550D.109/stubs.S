@@ -188,8 +188,14 @@ NSTUB(0xFF06F53C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF06C9EC,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF06C434,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF06D184,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF06C678,  CreateMemorySuite)
+NSTUB(0xFF06C4A8,  DeleteMemorySuite)
+NSTUB(0xFF06BEC8,  CreateMemoryChunk)
+NSTUB(0xFF06C918,  AddMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xFF028590,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02AD5C,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
@@ -272,9 +278,9 @@ NSTUB(0xFF06E358,  CreateRecursiveLock)
 NSTUB(0xFF1D2FBC,  ReleaseRecursiveLock)
 
 /** ResLock **/
-NSTUB(0xff1c4074, CreateResLockEntry)
-NSTUB(0xff1c4a34, LockEngineResources)
-NSTUB(0xff1c46f8, UnLockEngineResources)
+NSTUB(0xFF1C4074,  CreateResLockEntry)
+NSTUB(0xFF1C4A34,  LockEngineResources)
+NSTUB(0xFF1C46F8,  UnLockEngineResources)
 
 /** Semaphores **/
 NSTUB(0xFF069D10,  create_named_semaphore)

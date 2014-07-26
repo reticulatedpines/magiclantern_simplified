@@ -7,6 +7,7 @@ top_dir = "../"
 
 # override the autodetection
 force_used = [
+    "SetASIFMode",
 ]
 force_unused = [
     "vram_get_number",      # old way of accessing VRAM (5D2 only)

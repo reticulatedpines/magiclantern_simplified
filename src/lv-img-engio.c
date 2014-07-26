@@ -935,7 +935,7 @@ static struct menu_entry lv_img_menu[] = {
 
     #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_SHUTTER_FINE_TUNING)
     {
-        .name = "Image Finetuning",
+        .name = "Image Fine-tuning",
         .select = menu_open_submenu,
         .help = "Subtle image enhancements via DIGIC register tweaks.",
         .depends_on = DEP_MOVIE_MODE,

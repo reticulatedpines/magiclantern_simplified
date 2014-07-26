@@ -185,6 +185,12 @@ NSTUB(0xFF14A588,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFCCF2E0 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFCCECB8 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xFFCCE714 - RAM_OFFSET,  CreateMemoryChunk)
+NSTUB(0xFFCCF210 - RAM_OFFSET,  AddMemoryChunk)
+
+/** SRM JobMem **/
+NSTUB(0xFF0F0098,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0F40C8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -200,9 +206,9 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 /** GUI timers **/
 NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
 NSTUB(0xFFCD1890 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFFCCB328 - RAM_OFFSET,  SetHPTimerAfterNow)         
-NSTUB(0xFFCCB418 - RAM_OFFSET,  SetHPTimerNextTick)          
-NSTUB(0xFFCD1A90 - RAM_OFFSET,  CancelTimer)   
+NSTUB(0xFFCCB328 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFCCB418 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFFCD1A90 - RAM_OFFSET,  CancelTimer)
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)
@@ -281,7 +287,7 @@ NSTUB(   0x75F08,  task_max)
 NSTUB(0xFFCC5A80 - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFCD4DD8 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFD0EFA0 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
-NSTUB(0xFFCCCDF0, GetTaskName)
+///NSTUB(0xFFCCCDF0,  GetTaskName)
 
 /** Task sleep **/
 NSTUB(0xFFCCCB6C - RAM_OFFSET,  msleep)

@@ -178,6 +178,24 @@ static struct mem_allocator allocators[] = {
         .minimum_alloc_size = 5 * 1024,
     },
 #endif
+
+#if 1
+    /* large buffers (30-40 MB), but you can't even take a picture with one of those allocated */
+    {
+        .name = "srm_malloc",
+        .malloc = _srm_malloc,
+        .free = _srm_free,
+        .malloc_dma = _srm_malloc,       /* can be used for both cacheable and uncacheable memory */
+        .free_dma = _srm_free,
+        .get_free_space = _srm_get_free_space,
+        .get_max_region = _srm_get_max_region,
+
+        .is_preferred_for_temporary_space = 2,  /* prefer not to use it, use shoot_malloc if you can */
+
+        /* only use it for huge buffers */
+        .minimum_alloc_size = 25 * 1024 * 1024,
+    },
+#endif
 };
 
 /* total memory allocated (for printing it) */
@@ -560,7 +578,8 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
     {
         int has_non_dma = allocators[a].malloc ? 1 : 0;
         int has_dma = allocators[a].malloc_dma ? 1 : 0;
-        int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space ? 1 : -1;
+        int preferred_for_tmp = allocators[a].is_preferred_for_temporary_space;
+        if (!preferred_for_tmp) preferred_for_tmp = -1;
 
         /* do we need DMA? */
         if (!(
@@ -643,7 +662,7 @@ static int choose_allocator(int size, unsigned int flags)
     /* note: free space routines may be queried more than once (this can be optimized) */
     
     int needs_dma = (flags & MEM_DMA) ? 1 : 0;
-    int prefers_tmp = (flags & MEM_TEMPORARY) ? 1 : -1;
+    int prefers_tmp = (flags & MEM_TEMPORARY) ? 1 : (flags & MEM_SRM) ? 2 : -1;
     
     int a;
     
@@ -775,6 +794,21 @@ void shoot_free_suite(struct memSuite * hSuite)
     give_semaphore(mem_sem);
 }
 
+struct memSuite * srm_malloc_suite(int num_requested_buffers)
+{
+    take_semaphore(mem_sem, 0);
+    void* ans = _srm_malloc_suite(num_requested_buffers);
+    give_semaphore(mem_sem);
+    return ans;
+}
+
+void srm_free_suite(struct memSuite * suite)
+{
+    take_semaphore(mem_sem, 0);
+    _srm_free_suite(suite);
+    give_semaphore(mem_sem);
+}
+
 struct memSuite * shoot_malloc_suite_contig(size_t size)
 {
     take_semaphore(mem_sem, 0);
@@ -819,6 +853,8 @@ static int stack_size_crit(int x)
     return -1;
 }
 
+static int srm_num_buffers = 0;
+static int srm_buffer_size = 0;
 static int max_shoot_malloc_mem = 0;
 static int max_shoot_malloc_frag_mem = 0;
 static char shoot_malloc_frag_desc[70] = "";
@@ -898,6 +934,38 @@ static void guess_free_mem_task(void* priv, int delta)
     exmem_clear(hSuite, 0);
 
     _shoot_free_suite(hSuite);
+
+    /* test the new SRM job allocator */
+    hSuite = _srm_malloc_suite(0);
+    
+    if (!hSuite)
+    {
+        beep();
+        guess_mem_running = 0;
+        give_semaphore(mem_sem);
+        return;
+    }
+    
+    srm_num_buffers = hSuite->num_chunks;
+    currentChunk = GetFirstChunkFromSuite(hSuite);
+    srm_buffer_size = GetSizeOfMemoryChunk(currentChunk);
+
+    while(currentChunk)
+    {
+        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+        chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
+        ASSERT(chunkAvail == srm_buffer_size);
+
+        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
+        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
+        memset(memory_map + start, COLOR_CYAN, width);
+
+        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
+    }
+
+    ASSERT(srm_buffer_size * srm_num_buffers == hSuite->size);
+    
+    _srm_free_suite(hSuite);
 
     /* mallocs can resume now */
     give_semaphore(mem_sem);
@@ -1030,7 +1098,12 @@ static MENU_UPDATE_FUNC(meminfo_display)
             }
             break;
 
-        case 6: // autoexec size
+        case 6: // srm job
+            MENU_SET_VALUE("%d" SYM_TIMES "%s", srm_num_buffers, format_memory_size(srm_buffer_size));
+            guess_needed = 1;
+            break;
+
+        case 7: // autoexec size
         {
             extern uint32_t ml_reserved_mem;
             extern uint32_t ml_used_mem;
@@ -1068,7 +1141,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
     if (guess_mem_running)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
     else
-        MENU_SET_HELP("GREEN=free shoot, BLUE=00/FF maybe free, RED=maybe used");
+        MENU_SET_HELP("GREEN=shoot, CYAN=srm, BLUE=maybe free, RED=maybe used.");
 #endif
 }
 
@@ -1294,9 +1367,16 @@ static struct menu_entry mem_menus[] = {
                 .help = "Largest fragmented block from shoot memory.",
             },
             {
-                .name = "AUTOEXEC.BIN",
+                .name = "SRM job total",
                 .icon_type = IT_ALWAYS_ON,
                 .priv = (int*)6,
+                .update = meminfo_display,
+                .help = "Free memory from SRM_AllocateMemoryResourceFor1stJob.",
+            },
+            {
+                .name = "AUTOEXEC.BIN",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)7,
                 .update = meminfo_display,
                 .help = "Memory reserved statically at startup for ML binary.",
             },

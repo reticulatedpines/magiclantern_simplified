@@ -20,6 +20,7 @@ extern void __mem_free( void * buf);
 /* flags */
 #define MEM_DMA       1 /* require uncacheable (DMA) memory (e.g. for file I/O) */
 #define MEM_TEMPORARY 2 /* this memory will be freed quickly (e.g. to use shoot_malloc, that must be free when changing some Canon settings) */
+#define MEM_SRM       4 /* prefer the SRM job memory allocator (take care) */
 
 /* this may be reused by other code */
 /* warning: not thread safe (but it's OK to use it in menu) */
@@ -49,6 +50,10 @@ const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... *
 /* allocate temporary memory for reading files */
 #define fio_malloc(len)     __mem_malloc(len, MEM_TEMPORARY | MEM_DMA, __FILE__, __LINE__)
 #define fio_free            free
+
+/* allocate from SRM job buffer (for very large chunks) */
+#define srm_malloc(len)     __mem_malloc(len, MEM_SRM | MEM_DMA, __FILE__, __LINE__)
+#define srm_free            free
 
 #endif
 
