@@ -1188,10 +1188,11 @@ static unsigned int mlv_play_is_raw(FILE *f)
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
-    FIO_SeekSkipFile_emulate(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    uint32_t end = FIO_SeekSkipFile(f, 0, SEEK_END);
+    FIO_SeekSkipFile(f, end - sizeof(lv_rec_file_footer_t), SEEK_SET);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
@@ -1238,10 +1239,11 @@ static unsigned int mlv_play_read_footer(FILE *f)
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
-    FIO_SeekSkipFile_emulate(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    uint32_t end = FIO_SeekSkipFile(f, 0, SEEK_END);
+    FIO_SeekSkipFile(f, end - sizeof(lv_rec_file_footer_t), SEEK_SET);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
