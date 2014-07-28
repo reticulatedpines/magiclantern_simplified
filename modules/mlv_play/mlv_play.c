@@ -1495,6 +1495,12 @@ static void mlv_play_stop_fps_timer()
 
 static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
+    if (fps_nom == 0)
+    {
+        /* bad metadata? play at 24 fps */
+        fps_nom = 24 * fps_denom;
+    }
+    
     uint32_t three_frames = 3 * 1000000 * fps_denom / fps_nom;
 
     mlv_play_frame_dividers[0] = mlv_play_frame_dividers[1] = mlv_play_frame_dividers[2] = three_frames / 3;
