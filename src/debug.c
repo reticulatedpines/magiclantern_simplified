@@ -1205,6 +1205,10 @@ static void stub_test_task(void* arg)
 
         /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
         {
+            /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
+            SetGUIRequestMode(1);
+            msleep(1000);
+
             int64_t t0 = get_us_clock_value();
             int ta0 = 0;
 
