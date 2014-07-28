@@ -41,6 +41,7 @@
 //FIND
 //Unused
 
+	
 
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -182,21 +183,19 @@ NSTUB(0xFFA8B1DC - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFA8B260 - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
+NSTUB(0xFFA72BC8 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13B80C,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13B7C0,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFFA720CC - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFFA728EC - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFA726E4 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13B924,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFA72C98 - RAM_OFFSET,  GetFirstChunkFromSuite)     // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA72670 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
-NSTUB(0xFFA720CC - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
-NSTUB(0xFFA72BC8 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
-
-/** SRM JobMem **/
 NSTUB(0xFF0E75DC,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF0EB63C,  SRM_FreeMemoryResourceFor1stJob)
-	
+
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_change_mode)                         /* present on 7D.203, 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
@@ -209,11 +208,11 @@ NSTUB(0xFF0EB63C,  SRM_FreeMemoryResourceFor1stJob)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFF52CDC8,  CancelDateTimer)
+NSTUB(0xFFA75448 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA6ECE0 - RAM_OFFSET,  SetHPTimerAfterNow)
 NSTUB(0xFFA6EDD0 - RAM_OFFSET,  SetHPTimerNextTick)
-NSTUB(0xFFA75448 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA75248 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFF52CDC8,  CancelDateTimer)
 
 /** H264 Encoder **/
 NSTUB(   0x4C124,  mvr_config)
@@ -269,6 +268,7 @@ NSTUB(0xFF11F910,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 

@@ -181,18 +181,16 @@ NSTUB(0xFF86488C,  call)                                    // d
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF869438,  AddMemoryChunk)                          // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF86BE6C,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF86BE28,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF868A00,  CreateMemoryChunk)                       // called from CreateMemorySuite
+NSTUB(0xFF86914C,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF868FB8,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 NSTUB(0xFF86BF7C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF869524,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF868F44,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF869C9C,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-NSTUB(0xFF868A00,  CreateMemoryChunk)                       // called from CreateMemorySuite
-NSTUB(0xFF869438,  AddMemoryChunk)                          // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
-NSTUB(0xFF86914C,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-NSTUB(0xFF868FB8,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-
-/** SRM JobMem **/
 NSTUB(0xFF82B254,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF82CCA8,  SRM_FreeMemoryResourceFor1stJob)
 
@@ -208,11 +206,11 @@ NSTUB(0xFF889DCC,  gui_post_10000085)                       // should be called 
 NSTUB(0xFF98A990,  gui_timer_something)                     // d
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF86D6A0,  CancelTimer)
-NSTUB(0xFF86D4A0,  SetTimerAfter)
 NSTUB(0xFF8652CC,  SetHPTimerAfterNow)
 NSTUB(0xFF86534C,  SetHPTimerNextTick)
+NSTUB(0xFF86D4A0,  SetTimerAfter)
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x7674,  mvr_config)                              // d
@@ -268,6 +266,7 @@ NSTUB(0xFF85978C,  prop_register_slave)                     // called by"GUI_Reg
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 

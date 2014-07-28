@@ -172,18 +172,16 @@ NSTUB(0xFF06D7DC,  call)                                    // might be good (du
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF072040,  AddMemoryChunk)
 NSTUB(0xFF074B68,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF074B1C,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF0715BC,  CreateMemoryChunk)
+NSTUB(0xFF071D9C,  CreateMemorySuite)
+NSTUB(0xFF071BD0,  DeleteMemorySuite)
 NSTUB(0xFF074C80,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF072114,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF071B5C,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF0728A8,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-NSTUB(0xFF071D9C,  CreateMemorySuite)
-NSTUB(0xFF071BD0,  DeleteMemorySuite)
-NSTUB(0xFF0715BC,  CreateMemoryChunk)
-NSTUB(0xFF072040,  AddMemoryChunk)
-
-/** SRM JobMem **/
 NSTUB(0xFF029268,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF02BCF0,  SRM_FreeMemoryResourceFor1stJob)
 
@@ -199,11 +197,11 @@ NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (du
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF076470,  CancelTimer)
 NSTUB(0xFF06E260,  SetHPTimerAfterNow)
 NSTUB(0xFF06E354,  SetHPTimerNextTick)
 NSTUB(0xFF076270,  SetTimerAfter)
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
@@ -259,6 +257,7 @@ NSTUB(0xFF05BAC4,  prop_register_slave)                     // might be good (du
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 

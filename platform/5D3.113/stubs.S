@@ -172,18 +172,16 @@ NSTUB(0xFF13B68C,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF9EA048 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13C180,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13C134,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF9E954C - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFF9E9D6C - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFF9E9B64 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13C298,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF9EA118 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFF9E9AF0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
-NSTUB(0xFF9E954C - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
-NSTUB(0xFF9EA048 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
-
-/** SRM JobMem **/
 NSTUB(0xFF0EEAA8,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF0F1D58,  SRM_FreeMemoryResourceFor1stJob)
 
@@ -259,6 +257,7 @@ NSTUB(0xFF12340C,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 

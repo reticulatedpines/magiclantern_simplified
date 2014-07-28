@@ -185,8 +185,6 @@ NSTUB(0xFF13C810,  FreeMemoryResource)
 NSTUB(0xFFA65DC8 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFA657A0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA66564 - RAM_OFFSET,  GetNextMemoryChunk)
-
-/** SRM JobMem **/
 NSTUB(0xFF0E6C78,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF0EA848,  SRM_FreeMemoryResourceFor1stJob)
 
@@ -262,6 +260,7 @@ NSTUB(0xFF11F29C,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
