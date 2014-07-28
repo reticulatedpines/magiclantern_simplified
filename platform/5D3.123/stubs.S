@@ -59,7 +59,6 @@ NSTUB(0xFF30E814,  FIO_CloseFile)
 NSTUB(0xFF30F80C,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF30F72C,  FIO_FindNextEx)
 NSTUB(0xFF30E5C4,  FIO_ReadFile)
-NSTUB(0xFF30E744,  FIO_SeekFile)
 NSTUB(0xFF30E674,  FIO_SeekSkipFile)
 NSTUB(0xFF30E764,  FIO_WriteFile)
 NSTUB(0xFF30F070, _FIO_CreateDirectory)
@@ -72,24 +71,17 @@ NSTUB(0xFF30E51C, _FIO_RemoveFile)
 
 /** GUI **/
 NSTUB(   0x24120,  gui_main_struct)
+NSTUB(   0x321C8,  gui_task_list)
 NSTUB(0xFF0DED1C,  GUI_Control)
 NSTUB(0xFF18B6CC,  SetGUIRequestMode)
 NSTUB(0xFF0DF384,  gui_init_end)
 NSTUB(0xFF0DE948,  gui_main_task)
 NSTUB(0xFF1A7BBC,  gui_massive_event_loop)
-NSTUB(   0x321C8,  gui_task_list)
 // NSTUB(0xFF0DEED8, GUI_ChangeMode)
 // NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
 // NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
-
-/** GUI timers **/
-NSTUB(0xFF4AEDDC,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-NSTUB(0xFF9FDF40 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFF9F79D8 - RAM_OFFSET,  SetHPTimerAfterNow)
-NSTUB(0xFF9F7AC8 - RAM_OFFSET,  SetHPTimerNextTick)
-NSTUB(0xFF9FE140 - RAM_OFFSET,  CancelTimer)
 
 /** ASIF **/
 NSTUB(0xFF1379D0,  PowerAudioOutput)
@@ -101,6 +93,7 @@ NSTUB(0xFF10E634,  StartASIFDMAADC)
 NSTUB(0xFF10E7EC,  StartASIFDMADAC)
 NSTUB(0xFF10E7B0,  StopASIFDMAADC)
 NSTUB(0xFF10E8C4,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
@@ -191,20 +184,18 @@ NSTUB(0xFF13B750,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 700D.111, 650D.104, EOSM.202 */
 
 /** ExMem **/
+NSTUB(0xFF9FB8C0 - RAM_OFFSET,  AddMemoryChunk)
 NSTUB(0xFF13C244,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13C1F8,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF9FADC4 - RAM_OFFSET,  CreateMemoryChunk)
 NSTUB(0xFF9FB5E4 - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFF9FB3DC - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13C35C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF9FB990 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFF9FB368 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF9FC12C - RAM_OFFSET,  GetNextMemoryChunk)
-NSTUB(0xff9fadc4 - RAM_OFFSET,  CreateMemoryChunk)
-NSTUB(0xff9fb8c0 - RAM_OFFSET,  AddMemoryChunk)
-
-/** SRM JobMem **/
-NSTUB(0xff0ee3e8,  SRM_AllocateMemoryResourceFor1stJob)
-NSTUB(0xff0f18f8,  SRM_FreeMemoryResourceFor1stJob)
+NSTUB(0xFF0EE3E8,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0F18F8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -216,6 +207,13 @@ NSTUB(0xff0f18f8,  SRM_FreeMemoryResourceFor1stJob)
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+
+/** GUI timers **/
+NSTUB(0xFF4AEDDC,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
+NSTUB(0xFF9FE140 - RAM_OFFSET,  CancelTimer)
+NSTUB(0xFF9F79D8 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFF9F7AC8 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFF9FDF40 - RAM_OFFSET,  SetTimerAfter)
 
 /** H264 Encoder **/
 // NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
@@ -272,6 +270,7 @@ NSTUB(0xFF12301C,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -292,17 +291,17 @@ NSTUB(0xFF9F8D40 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x25024,  task_max)
+NSTUB(0xFF9F94A0,  GetTaskName)
 NSTUB(0xFF9F2CEC - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFA010F4 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFA0A0D8 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
-NSTUB(0xff9f94a0, GetTaskName)
 
 /** Task sleep **/
 NSTUB(0xFF9F921C - RAM_OFFSET,  msleep)
 
 /** Tasks **/
-NSTUB(0xFF9F92D0 - RAM_OFFSET,  task_create)
 NSTUB(   0x23D00,  task_dispatch_hook)
+NSTUB(0xFF9F92D0 - RAM_OFFSET,  task_create)
 NSTUB(0xFF9FE5E8 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
@@ -320,8 +319,9 @@ NSTUB(0xFFA067B4 - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF4557F8,  CreateDialogBox)
 ///NSTUB(0xFF4547C8,  DeleteDialogBox)
 ///NSTUB(0xFF182B34, ENCODE_StartEncodeJpeg)
+///NSTUB(0xFF30E744,  FIO_SeekFile)
 ///NSTUB(0xFF1A0448, GUI_GetFirmVersion)
-// NSTUB(0xFF197C40, GUI_SetRollingPitchingLevelStatus_bad) // has side effects
+///NSTUB(0xFF197C40, GUI_SetRollingPitchingLevelStatus_bad) // has side effects
 ///NSTUB(0xFF9FB750 - RAM_OFFSET, GetNumberOfChunks)
 ///NSTUB(0xFF9FB308 - RAM_OFFSET, GetRemainOfMemoryChunk)
 ///NSTUB(0xFF9FB338 - RAM_OFFSET, GetSizeOfMemoryChunk)
