@@ -163,7 +163,7 @@ static void save_raw(struct raw_info * raw_info)
     char* filename = silent_pic_get_name();
     FILE* save_file = FIO_CreateFile(filename);
     
-    if (save_file == INVALID_PTR)
+    if (!save_file)
     {
         bmp_printf( FONT_MED, 0, 80, "File create error");
     }
@@ -221,7 +221,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     }
     
     
-    if (save_file == INVALID_PTR)
+    if (!save_file)
     {
         bmp_printf( FONT_MED, 0, 80, "File create error");
     }
@@ -270,7 +270,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
                 FIO_CloseFile(save_file);
                 char * new_filename = replace_mlv_extension(image_file_name, mlv_current_file_chunk_index);
                 save_file = FIO_CreateFile(new_filename);
-                if (save_file == INVALID_PTR)
+                if (!save_file)
                 {
                     bmp_printf( FONT_MED, 0, 80, "File create error: '%s'", new_filename);
                     return;
@@ -283,7 +283,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
                 FIO_CloseFile(save_file);
                 char * new_filename = replace_mlv_extension(image_file_name, mlv_current_file_chunk_index);
                 save_file = FIO_OpenFile(new_filename, O_RDWR | O_SYNC);
-                if (save_file == INVALID_PTR)
+                if (!save_file)
                 {
                     bmp_printf( FONT_MED, 0, 80, "Open file error: '%s'", new_filename);
                     return;
