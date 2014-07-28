@@ -32,8 +32,6 @@
 #include "font.h"
 #include "rbf_font.h"
 
-uint8_t* read_entire_file(const char * filename, int* buf_size);
-
 extern int bmp_enabled;
 
 /** Returns a pointer to the real BMP vram (or to idle BMP vram) */
@@ -245,8 +243,6 @@ int bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... );    /* r
 int big_bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... ); /* this one accepts larger strings */
 int bmp_string_width(int fontspec, const char* str);                  /* string width in pixels, with a given font */
 int bmp_strlen_clipped(int fontspec, const char* str, int maxlen);    /* string len (in chars), if you want to clip at maxlen pix */
-
-size_t read_file( const char * filename, void * buf, size_t size);
 
 extern void
 con_printf(
