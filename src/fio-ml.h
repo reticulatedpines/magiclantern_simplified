@@ -114,7 +114,7 @@ extern uint32_t FIO_GetFileSize_direct(const char * filename);   /* todo: use ju
 
 /* returns absolute position after seeking */
 /* note: seeking past the end of a file does not work on all cameras */
-extern uint64_t FIO_SeekSkipFile( FILE* stream, uint64_t position, int whence );
+extern int64_t FIO_SeekSkipFile( FILE* stream, int64_t position, int whence );
 
 /* ML wrappers */
 extern FILE* FIO_CreateFile( const char* name );
