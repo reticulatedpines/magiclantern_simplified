@@ -107,11 +107,14 @@ extern int FIO_GetFileSize( const char * filename, uint32_t * size );
 extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );
 extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
 extern void FIO_FindClose( struct fio_dirent * dirent );
-extern uint64_t FIO_SeekSkipFile( FILE* stream, uint64_t position, int whence );
 extern int FIO_RenameFile(char *src,char *dst);
 extern int FIO_RemoveFile(const char * filename);
 extern int FIO_GetFileSize(const char * filename, uint32_t * size);
 extern uint32_t FIO_GetFileSize_direct(const char * filename);   /* todo: use just this one */
+
+/* returns absolute position after seeking */
+/* note: seeking past the end of a file does not work on all cameras */
+extern uint64_t FIO_SeekSkipFile( FILE* stream, uint64_t position, int whence );
 
 /* ML wrappers */
 extern FILE* FIO_CreateFile( const char* name );
