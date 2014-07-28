@@ -68,7 +68,7 @@ extern void * realloc( void * buf, size_t newlen );
 
 #define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
 
-#define INVALID_PTR             ((void *)0xFFFFFFFF)
+#define PTR_INVALID             ((void *)0xFFFFFFFF)
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)

@@ -290,7 +290,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     }
     
     FILE *dummy_file = FIO_CreateFile(filename);
-    if(dummy_file == INVALID_PTR)
+    if(!dummy_file)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
         return 0;
@@ -1820,7 +1820,7 @@ retry_find:
             /* choose the largest contiguous free section */
             /* O(n), n = slot_count */
             int32_t len = 0;
-            void* prev_ptr = INVALID_PTR;
+            void* prev_ptr = PTR_INVALID;
             int32_t prev_blockSize = 0;
             int32_t best_len = 0;
             for (int32_t i = 0; i < slot_count; i++)
@@ -1853,7 +1853,7 @@ retry_find:
                 else
                 {
                     len = 0;
-                    prev_ptr = INVALID_PTR;
+                    prev_ptr = PTR_INVALID;
                 }
             }
 
@@ -2387,7 +2387,7 @@ static uint32_t raw_get_next_filenum()
 
 static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
 {
-    if(f == INVALID_PTR || f == NULL)
+    if(f == NULL)
     {
         return;
     }
@@ -2706,7 +2706,7 @@ abort:
         }
     }
 
-    if(f != INVALID_PTR)
+    if (f)
     {
         file_header.videoFrameCount = frames_written;
 
@@ -3069,7 +3069,7 @@ static void raw_video_rec_task()
             mlv_handles[writer] = FIO_OpenFile(chunk_filename[writer], O_RDWR | O_SYNC);
             
             /* failed to open? */
-            if(mlv_handles[writer] == INVALID_PTR)
+            if(!mlv_handles[writer])
             {
                 trace_write(raw_rec_trace_ctx, "FIO_CreateFile(#%d): FAILED", writer);
                 NotifyBox(5000, "Failed to create file. Card full?");
@@ -3282,7 +3282,7 @@ static void raw_video_rec_task()
                     handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
-                    if(handle->file_handle == INVALID_PTR)
+                    if (!handle->file_handle)
                     {
                         NotifyBox(5000, "Failed to open file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
@@ -4046,7 +4046,7 @@ static unsigned int raw_rec_init()
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
         FILE* f = FIO_CreateFile(warmup_filename);
-        if(f != INVALID_PTR)
+        if (f)
         {
             FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
             FIO_CloseFile(f);

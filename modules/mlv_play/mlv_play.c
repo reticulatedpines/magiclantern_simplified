@@ -893,7 +893,7 @@ static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
     
     in_file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     
-    if(in_file == INVALID_PTR)
+    if (!in_file)
     {
         return NULL;
     }
@@ -951,7 +951,7 @@ static void mlv_play_save_index(char *base_filename, mlv_file_hdr_t *ref_file_hd
     
     out_file = FIO_CreateFile(filename);
     
-    if(out_file == INVALID_PTR)
+    if (!out_file)
     {
         return;
     }
@@ -1263,7 +1263,7 @@ static FILE **mlv_play_load_chunks(char *base_filename, uint32_t *entries)
     FILE **files = malloc(sizeof(FILE*));
     
     files[0] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if (files[0] == INVALID_PTR)
+    if (!files[0])
     {
         return NULL;
     }
@@ -1286,14 +1286,14 @@ static FILE **mlv_play_load_chunks(char *base_filename, uint32_t *entries)
         files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         
         /* if failed, try B */
-        if(files[*entries] == INVALID_PTR)
+        if (!files[*entries])
         {
             filename[0] = 'B';
             files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         }
         
         /* when succeeded, check for next chunk, else abort */
-        if(files[*entries] != INVALID_PTR)
+        if (files[*entries])
         {
             (*entries)++;
         }
@@ -2424,7 +2424,7 @@ FILETYPE_HANDLER(mlv_play_filehandler)
         case FILEMAN_CMD_INFO:
         {
             FILE* f = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
-            if( f == INVALID_PTR )
+            if (!f)
             {
                 return 0;
             }

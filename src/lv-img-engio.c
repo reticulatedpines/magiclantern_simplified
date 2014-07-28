@@ -410,34 +410,38 @@ void digic_dump()
     }
 
     FILE* f = FIO_CreateFile(log_filename);
-    
-    for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
+    if (f)
     {
-        int value = (int) shamem_read(reg);
-        if (value && value != -1)
+        for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
         {
-            bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
-            my_fprintf(f, "%8x: %8x\n", reg, value);
+            int value = (int) shamem_read(reg);
+            if (value && value != -1)
+            {
+                bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
+                my_fprintf(f, "%8x: %8x\n", reg, value);
+            }
         }
+        FIO_CloseFile(f);
     }
-    FIO_CloseFile(f);
 }
 
 void digic_dump_h264()
 {
     msleep(1000);
     FILE* f = FIO_CreateFile("ML/LOGS/h264.log");
-    
-    for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
+    if (f)
     {
-        int value = MEM(reg);
-        if (value && value != -1)
+        for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
         {
-            bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
-            my_fprintf(f, "%8x: %8x\n", reg, value);
+            int value = MEM(reg);
+            if (value && value != -1)
+            {
+                bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
+                my_fprintf(f, "%8x: %8x\n", reg, value);
+            }
         }
+        FIO_CloseFile(f);
     }
-    FIO_CloseFile(f);
 }
 
 #endif // CONFIG_DIGIC_POKE

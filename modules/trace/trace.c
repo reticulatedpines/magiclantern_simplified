@@ -142,7 +142,7 @@ uint32_t trace_start(char *name, char *file_name)
     /* create trace file */
     FIO_RemoveFile(ctx->file_name);
     ctx->file_handle = FIO_CreateFile(ctx->file_name);
-    if(ctx->file_handle == INVALID_PTR)
+    if (!ctx->file_handle)
     {
         ctx->used = 0;
         return TRACE_ERROR;

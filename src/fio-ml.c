@@ -345,12 +345,26 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #undef IS_DRV_PATH
 }
 
+/* Canon stub */
+/* note: it returns -1 on error, unlike fopen from plain C */
 FILE* _FIO_OpenFile(const char* filename, unsigned mode );
+
+/* this one returns 0 on error, just like in plain C */
 FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
     char new_filename[100];
     fixup_filename(new_filename, filename, 100);
-    return _FIO_OpenFile(new_filename, mode);
+    
+    FILE* f = _FIO_OpenFile(new_filename, mode);
+    
+    if (f != PTR_INVALID)
+    {
+        /* let's hope 0 is not a valid file handle... */
+        ASSERT(f);
+        return f;
+    }
+    
+    return 0;
 }
 
 int _FIO_GetFileSize(const char * filename, uint32_t * size);
@@ -442,16 +456,24 @@ static void _FIO_CreateDir_recursive(char* path)
     _FIO_CreateDirectory(path);
 }
 
+/* Canon stub */
+/* note: it returns -1 on error, unlike fopen from plain C */
 FILE* _FIO_CreateFile(const char* filename );
 
-// a wrapper that also creates missing dirs and removes existing file
+/* a wrapper that also creates missing dirs and removes existing file */
+/* this one returns 0 on error, just like in plain C */
 static FILE* _FIO_CreateFileEx(const char* name)
 {
     // first assume the path is alright
     _FIO_RemoveFile(name);
     FILE* f = _FIO_CreateFile(name);
-    if (f != INVALID_PTR)
+
+    if (f != PTR_INVALID)
+    {
+        /* let's hope 0 is not a valid file handle... */
+        ASSERT(f);
         return f;
+    }
 
     // if we are here, the path may be inexistent => create it
     int n = strlen(name);
@@ -467,8 +489,15 @@ static FILE* _FIO_CreateFileEx(const char* name)
     }
 
     f = _FIO_CreateFile(name);
-        
-    return f;
+
+    if (f != PTR_INVALID)
+    {
+        ASSERT(f);
+        return f;
+    }
+    
+    /* return 0 on error, just like in plain C */
+    return 0;
 }
 FILE* FIO_CreateFile(const char* name)
 {
@@ -477,13 +506,13 @@ FILE* FIO_CreateFile(const char* name)
     return _FIO_CreateFileEx(new_name);
 }
 
-FILE* _FIO_CreateFileOrAppend(const char* name)
+FILE* FIO_CreateFileOrAppend(const char* name)
 {
     /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
-    FILE * f = _FIO_OpenFile(name, O_RDWR | O_SYNC);
-    if (f == INVALID_PTR)
+    FILE * f = FIO_OpenFile(name, O_RDWR | O_SYNC);
+    if (!f)
     {
-        f = _FIO_CreateFile(name);
+        f = FIO_CreateFile(name);
     }
     else
     {
@@ -491,22 +520,16 @@ FILE* _FIO_CreateFileOrAppend(const char* name)
     }
     return f;
 }
-FILE* FIO_CreateFileOrAppend(const char* name)
+
+int FIO_CopyFile(char *src,char *dst)
 {
-    char new_name[100];
-    fixup_filename(new_name, name, 100);
-    return _FIO_CreateFileOrAppend(new_name);
-}
+    FILE* f = FIO_OpenFile(src, O_RDONLY | O_SYNC);
+    if (!f) return -1;
 
-int _FIO_CopyFile(char *src,char *dst)
-{
-    FILE* f = _FIO_OpenFile(src, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return -1;
+    FILE* g = FIO_CreateFile(dst);
+    if (!g) { FIO_CloseFile(f); return -1; }
 
-    FILE* g = _FIO_CreateFile(dst);
-    if (g == INVALID_PTR) { FIO_CloseFile(f); return -1; }
-
-    const int bufsize = MIN(_GetFileSize(src), 128*1024);
+    const int bufsize = MIN(FIO_GetFileSize_direct(src), 128*1024);
     void* buf = fio_malloc(bufsize);
     if (!buf) return -1;
 
@@ -529,29 +552,21 @@ int _FIO_CopyFile(char *src,char *dst)
     
     if (err)
     {
-        _FIO_RemoveFile(dst);
+        FIO_RemoveFile(dst);
         return -1;
     }
     
     /* all OK */
     return 0;
 }
-int FIO_CopyFile(char *src,char *dst)
-{
-    char newSrc[255];
-    char newDst[255];
-    fixup_filename(newSrc, src, 255);
-    fixup_filename(newDst, dst, 255);
-    return _FIO_CopyFile(newSrc, newDst);
-}
 
-static int _FIO_MoveFile(char *src,char *dst)
+int FIO_MoveFile(char *src,char *dst)
 {
-    int err = _FIO_CopyFile(src,dst);
+    int err = FIO_CopyFile(src,dst);
     if (!err)
     {
         /* file copied, we can remove the old one */
-        _FIO_RemoveFile(src);
+        FIO_RemoveFile(src);
         return 0;
     }
     else
@@ -559,14 +574,6 @@ static int _FIO_MoveFile(char *src,char *dst)
         /* something went wrong; keep the old file and return error code */
         return err;
     }
-}
-int FIO_MoveFile(char *src, char *dst)
-{
-    char newSrc[255];
-    char newDst[255];
-    fixup_filename(newSrc, src, 255);
-    fixup_filename(newDst, dst, 255);
-    return _FIO_MoveFile(newSrc, newDst);
 }
 
 int is_file(char* path)
@@ -604,50 +611,33 @@ int get_numbered_file_name(const char* pattern, int nmax, char* filename, int ma
     return -1;
 }
 
-static FILE * g_aj_logfile = INVALID_PTR;
-static unsigned int aj_create_log_file( char * name)
-{
-   g_aj_logfile = FIO_CreateFile( name );
-   if ( g_aj_logfile == INVALID_PTR )
-   {
-      bmp_printf( FONT_SMALL, 120, 40, "FCreate: Err %s", name );
-      return( 0 );  // FAILURE
-   }
-   return( 1 );  // SUCCESS
-}
-
-static void aj_close_log_file( void )
-{
-   if (g_aj_logfile == INVALID_PTR)
-      return;
-   FIO_CloseFile( g_aj_logfile );
-   g_aj_logfile = INVALID_PTR;
-}
-
 void dump_seg(void* start, uint32_t size, char* filename)
 {
     DEBUG();
-    aj_create_log_file(filename);
-    FIO_WriteFile( g_aj_logfile, start, size );
-    aj_close_log_file();
+    FILE* f = FIO_CreateFile(filename);
+    if (f)
+    {
+        FIO_WriteFile( f, start, size );
+        FIO_CloseFile(f);
+    }
     DEBUG();
 }
 
 void dump_big_seg(int k, char* filename)
 {
     DEBUG();
-    aj_create_log_file(filename);
-    
-    int i;
-    for (i = 0; i < 16; i++)
+    FILE* f = FIO_CreateFile(filename);
+    if (f)
     {
-        DEBUG();
-        uint32_t start = (k << 28 | i << 24);
-        bmp_printf(FONT_LARGE, 50, 50, "DUMP %x %8x ", i, start);
-        FIO_WriteFile( g_aj_logfile, (const void *) start, 0x1000000 );
+        for (int i = 0; i < 16; i++)
+        {
+            DEBUG();
+            uint32_t start = (k << 28 | i << 24);
+            bmp_printf(FONT_LARGE, 50, 50, "Saving %8x...", start);
+            FIO_WriteFile( f, (const void *) start, 0x1000000 );
+        }
+        FIO_CloseFile(f);
     }
-    
-    aj_close_log_file();
     DEBUG();
 }
 

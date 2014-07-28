@@ -5043,10 +5043,16 @@ static void make_overlay()
         }
     }
     FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
-    FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
-    FIO_CloseFile(f);
-    bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
-
+    if (f)
+    {
+        FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
+        FIO_CloseFile(f);
+        bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
+    }
+    else
+    {
+        bmp_printf(FONT_MED, 0, 0, "Overlay error.  ");
+    }
     msleep(1000);
 }
 
@@ -5063,7 +5069,7 @@ static void show_overlay()
     clrscr();
 
     FILE* f = FIO_OpenFile("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return;
+    if (!f) return;
     FIO_ReadFile(f, bvram_mirror, 960*480 );
     FIO_CloseFile(f);
 

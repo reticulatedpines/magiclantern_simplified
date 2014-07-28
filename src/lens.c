@@ -884,7 +884,7 @@ mvr_create_logfile(
         snprintf(name, sizeof(name), "%s/MVI_%04d.LOG", get_dcim_dir(), get_shooting_card()->file_number);
 
         FILE * mvr_logfile = mvr_logfile = FIO_CreateFile( name );
-        if( mvr_logfile == INVALID_PTR )
+        if (!mvr_logfile)
         {
             bmp_printf( FONT_MED, 0, 40,
                 "Unable to create movie log! fd=%x\n%s",
