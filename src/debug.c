@@ -1115,6 +1115,49 @@ static void stub_test_task(void* arg)
             }
             TEST_TRY_FUNC_CHECK(count, == 1000*15);
         }
+        
+        /* FIO_SeekSkipFile test */
+        {
+            void* buf = 0;
+            TEST_TRY_FUNC_CHECK(buf = fio_malloc(0x1000000), != 0);
+            memset(buf, 0x13, 0x1000000);
+            if (buf)
+            {
+                /* create a file a little higher than 2 GiB for testing */
+                /* to make sure the stub handles 64-bit position arguments */
+                FILE* f = FIO_CreateFile("test.dat");
+                if (f)
+                {
+                    printf("Creating a 2GB file...       ");
+                    for (int i = 0; i < 130; i++)
+                    {
+                        printf("\b\b\b\b\b\b\b%3d/130", i);
+                        FIO_WriteFile(f, buf, 0x1000000);
+                    }
+                    printf("\n");
+                    FIO_CloseFile(f);
+                    TEST_TRY_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000000);
+                    
+                    /* now reopen it to append something */
+                    TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDWR | O_SYNC), != 0);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0, SEEK_END), == (int)0x82000000);
+                    TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, buf, 0x10), == 0x10);
+
+                    /* some more seeking around */
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_END), == (int)0x81fffff0);
+                    TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, buf, 0x30), == 0x30);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0x20, SEEK_SET), == 0x20);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0x30, SEEK_CUR), == 0x50);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_CUR), == 0x30);
+                    
+                    /* note: seeking past the end of a file does not work on all cameras, so we'll not test that */
+
+                    FIO_CloseFile(f);
+                    TEST_TRY_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000020);
+                }
+            }
+            fio_free(buf);
+        }
 
         TEST_TRY_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
 
