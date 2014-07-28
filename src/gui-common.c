@@ -437,10 +437,6 @@ int handle_common_events_by_feature(struct event * event)
 
     if (handle_module_keys(event) == 0) return 0;
     if (handle_flexinfo_keys(event) == 0) return 0;
-    
-    #ifdef CONFIG_PICOC
-    if (handle_picoc_keys(event) == 0) return 0;
-    #endif
 
     #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
     if (handle_digital_zoom_shortcut(event) == 0) return 0;
