@@ -113,7 +113,7 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
  //~ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
 
-#define GUIMODE_ML_MENU ( RECORDING ?  99 : 90 ) // any from 90...102 ?!
+#define GUIMODE_ML_MENU ( RECORDING_H264 ?  99 : 90 ) // any from 90...102 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -143,7 +143,7 @@
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
-#define AF_BTN_STAR 2
+#define AF_BTN_STAR 1
 
 	#define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
 	#define IMGPLAY_ZOOM_LEVEL_MAX 14

@@ -51,7 +51,7 @@ NSTUB(0xFF332990,  FIO_CloseFile)
 NSTUB(0xFF333988,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF3338A8,  FIO_FindNextEx)
 NSTUB(0xFF332740,  FIO_ReadFile)
-NSTUB(0xFF3328C0,  FIO_SeekFile)
+NSTUB(0xFF3327F0,  FIO_SeekSkipFile)
 NSTUB(0xFF3328E0,  FIO_WriteFile)
 NSTUB(0xFF3331EC, _FIO_CreateDirectory)
 NSTUB(0xFF3325EC, _FIO_CreateFile)
@@ -60,7 +60,6 @@ NSTUB(0xFF332B0C, _FIO_GetFileSize)
 NSTUB(0xFF332530, _FIO_OpenFile)
 NSTUB(0xFF332698, _FIO_RemoveFile)
 NSTUB(0xFF333024, _FIO_RenameFile)
-NSTUB(0xFF3327F0,  FIO_SeekSkipFile)
 
 /** GUI **/
 NSTUB(   0x74F10,  gui_main_struct)
@@ -177,14 +176,18 @@ NSTUB(0xFFCFCD08 - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFCFCD8C - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
+NSTUB(0xFFCCF210 - RAM_OFFSET,  AddMemoryChunk)
 NSTUB(0xFF14A470,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A424,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFFCCE714 - RAM_OFFSET,  CreateMemoryChunk)
 NSTUB(0xFFCCEF34 - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFCCED2C - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF14A588,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFCCF2E0 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFCCECB8 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xFF0F0098,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0F40C8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -199,10 +202,10 @@ NSTUB(0xFFCCFA7C - RAM_OFFSET,  GetNextMemoryChunk)
 
 /** GUI timers **/
 NSTUB(0xFF51A848,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
+NSTUB(0xFFCD1A90 - RAM_OFFSET,  CancelTimer)
+NSTUB(0xFFCCB328 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFCCB418 - RAM_OFFSET,  SetHPTimerNextTick)
 NSTUB(0xFFCD1890 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFFCCB328 - RAM_OFFSET,  SetHPTimerAfterNow)         
-NSTUB(0xFFCCB418 - RAM_OFFSET,  SetHPTimerNextTick)          
-NSTUB(0xFFCD1A90 - RAM_OFFSET,  CancelTimer)   
 
 /** H264 Encoder **/
 NSTUB(   0x7AE8C,  mvr_config)
@@ -258,6 +261,7 @@ NSTUB(0xFF12FB84,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -281,7 +285,6 @@ NSTUB(   0x75F08,  task_max)
 NSTUB(0xFFCC5A80 - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFCD4DD8 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFD0EFA0 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
-NSTUB(0xFFCCCDF0, GetTaskName)
 
 /** Task sleep **/
 NSTUB(0xFFCCCB6C - RAM_OFFSET,  msleep)
@@ -308,11 +311,13 @@ NSTUB(0xFFCFB688 - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF71666C,  DeadViewLevelApp_handler)                // 
 ///NSTUB(0xFF4B3B54,  DeleteDialogBox)
 ///NSTUB(0xFFCE3188 - RAM_OFFSET,  ENCODE_StartEncodeJpeg)     // called from RAM in 6D, wasn't in EOS M.
+///NSTUB(0xFF3328C0,  FIO_SeekFile)
 ///NSTUB(0xFF1A3614,  GUI_GetFirmVersion)
 ///NSTUB(0xFFCCF0A0 - RAM_OFFSET, GetNumberOfChunks)
 ///NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)
 ///NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
 ///NSTUB(0xFFCCEFC0 - RAM_OFFSET, GetSizeOfMemorySuite)
+///NSTUB(0xFFCCCDF0,  GetTaskName)
 ///NSTUB(0xFF19AB58,  GuiSetAutoBrightness)
 ///NSTUB(0xFF1F2550,  IvaParamMode)
 ///NSTUB(0xFFCF8BE4 - RAM_OFFSET,  MREQ_ISR)

@@ -229,7 +229,7 @@ int config_save_file(const char *filename)
     }
     
     FILE * file = FIO_CreateFile( filename );
-    if( file == INVALID_PTR )
+    if(!file)
     {
         fio_free(msg);
         return -1;
@@ -292,7 +292,7 @@ void config_flag_file_setting_save(char* file, int setting)
     if (setting)
     {
         FILE* f = FIO_CreateFile(file);
-        FIO_CloseFile(f);
+        if (f) FIO_CloseFile(f);
     }
 }
 
@@ -508,7 +508,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
     }
     
     FILE * file = FIO_CreateFile( filename );
-    if( file == INVALID_PTR )
+    if (!file)
     {
         fio_free(msg);
         return -1;
@@ -745,13 +745,16 @@ static MENU_SELECT_FUNC(config_preset_toggle)
     else
     {
         FILE* f = FIO_CreateFile(config_preset_file);
-        if (config_new_preset_index == 1)
-            my_fprintf(f, "Startup mode");
-        else if (config_new_preset_index == 2)
-            my_fprintf(f, "Startup key");
-        else
-            my_fprintf(f, "%s", config_preset_choices[config_new_preset_index]);
-        FIO_CloseFile(f);
+        if (f)
+        {
+            if (config_new_preset_index == 1)
+                my_fprintf(f, "Startup mode");
+            else if (config_new_preset_index == 2)
+                my_fprintf(f, "Startup key");
+            else
+                my_fprintf(f, "%s", config_preset_choices[config_new_preset_index]);
+            FIO_CloseFile(f);
+        }
     }
 }
 

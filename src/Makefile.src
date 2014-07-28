@@ -180,7 +180,9 @@ else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
 
+ifneq ($(ML_SRC_PROFILE),minimal)
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
+endif
 
 ifdef ML_SRC_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))

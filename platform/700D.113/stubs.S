@@ -48,7 +48,6 @@ NSTUB(0xFF345378,  FIO_CloseFile)
 NSTUB(0xFF346370,  FIO_FindClose)                           // FindClose
 NSTUB(0xFF346290,  FIO_FindNextEx)
 NSTUB(0xFF345128,  FIO_ReadFile)
-NSTUB(0xFF3452A8,  FIO_SeekFile)
 NSTUB(0xFF3451D8,  FIO_SeekSkipFile)
 NSTUB(0xFF3452C8,  FIO_WriteFile)
 NSTUB(0xFF345BD4, _FIO_CreateDirectory)
@@ -175,14 +174,18 @@ NSTUB(0xFFA73404 - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFA73460 - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
+NSTUB(0xFFA65CF8 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13C6F8,  AllocateContinuousMemoryResource)
 NSTUB(0xFF13C6AC,  AllocateMemoryResource)
+NSTUB(0xFFA651FC - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFFA65A1C - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFA65814 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13C810,  FreeMemoryResource)
 NSTUB(0xFFA65DC8 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFA657A0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA66564 - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xFF0E6C78,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0EA848,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -256,6 +259,7 @@ NSTUB(0xFF11F29C,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -303,6 +307,7 @@ NSTUB(0xFFA71D84 - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF4B6E5C,  CreateDialogBox)
 ///NSTUB(0xFF4B5E24,  DeleteDialogBox)
 ///NSTUB(0xFF19EB3C,  ENCODE_StartEncodeJpeg)
+///NSTUB(0xFF3452A8,  FIO_SeekFile)
 ///NSTUB(0xFF1C0118,  GUI_GetFirmVersion)
 ///NSTUB(    0x8CE8, GetNumberOfChunks)
 ///NSTUB(0xFFA65740 - RAM_OFFSET,  GetRemainOfMemoryChunk)

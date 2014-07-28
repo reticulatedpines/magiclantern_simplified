@@ -358,6 +358,12 @@ int prop_request_change_wait(unsigned property, const void* addr, size_t len, in
 {
     prop_reset_ack(property);
     prop_request_change(property, addr, len);
+    
+    if (streq(get_task_name_from_id(get_current_task()), "PropMgr"))
+    {
+        /* never wait when called from a property handler (it would lock-up) */
+        return 0;
+    }
 
     for (int i = 0; i < timeout/20; i++)
     {

@@ -1908,11 +1908,19 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     {
         if (buf[0] == 10)
         {
+            lv_raw_enabled = -1;
+
+            #ifndef CONFIG_RAW_DISABLE_IN_10X_ZOOM_WEAK
+            /* crash reported on 50D if this is called; however, other cameras (550D, 500D) require it to avoid crashes */
             call("lv_save_raw", 0);
+            #endif
         }
         else
         {
+            lv_raw_enabled = 1;
+            #ifndef CONFIG_RAW_DISABLE_IN_10X_ZOOM_WEAK
             call("lv_save_raw", 1);
+            #endif
         }
     }
 }

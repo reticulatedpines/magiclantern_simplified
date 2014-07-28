@@ -1826,6 +1826,57 @@ read_headers:
                     }
                     
                     file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
+                    
+                    /* check if there is enough memory for that frame */
+                    if(frame_size > frame_buffer_size)
+                    {
+                        /* no, set new size */
+                        frame_buffer_size = frame_size;
+                        
+                        /* free the buffers */
+                        free(frame_buffer);
+                        
+                        if(frame_arith_buffer)
+                        {
+                            free(frame_arith_buffer);
+                        }
+                        
+                        if(prev_frame_buffer)
+                        {
+                            free(prev_frame_buffer);
+                        }
+                        
+                        /* and allocate them again if they were used before */
+                        frame_buffer = malloc(frame_buffer_size);
+                        
+                        if(!frame_buffer)
+                        {
+                            print_msg(MSG_ERROR, "Failed to allocate %d byte\n", frame_buffer_size);
+                            goto abort;
+                        }
+                        
+                        if(frame_arith_buffer)
+                        {
+                            frame_arith_buffer = malloc(frame_buffer_size);
+                            if(!frame_arith_buffer)
+                            {
+                                print_msg(MSG_ERROR, "Failed to allocate %d byte\n", frame_buffer_size);
+                                goto abort;
+                            }
+                        }
+                        
+                        if(prev_frame_buffer)
+                        {
+                            prev_frame_buffer = malloc(frame_buffer_size);
+                            if(!prev_frame_buffer)
+                            {
+                                print_msg(MSG_ERROR, "Failed to allocate %d byte\n", frame_buffer_size);
+                                goto abort;
+                            }
+
+                        }
+                    }
+                    
                     if(fread(frame_buffer, frame_size, 1, in_file) != 1)
                     {
                         print_msg(MSG_ERROR, "File ends in the middle of a block\n");
