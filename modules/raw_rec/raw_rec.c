@@ -603,45 +603,6 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     return written == sizeof(lv_rec_file_footer_t);
 }
 
-static unsigned int lv_rec_read_footer(FILE *f)
-{
-    lv_rec_file_footer_t footer;
-
-    /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekSkipFile(f, 0, 1);
-    FIO_SeekSkipFile(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
-    int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
-
-    /* check if the footer was read */
-    if(read != sizeof(lv_rec_file_footer_t))
-    {
-        bmp_printf(FONT_MED, 30, 190, "File position mismatch. Read %d", read);
-        beep();
-        msleep(1000);
-    }
-    
-    /* check if the footer is in the right format */
-    if(strncmp((char*)footer.magic, "RAWM", 4))
-    {
-        bmp_printf(FONT_MED, 30, 190, "Footer format mismatch");
-        beep();
-        msleep(1000);
-        return 0;
-    }
-        
-    /* update global variables with data from footer */
-    res_x = footer.xRes;
-    res_y = footer.yRes;
-    frame_count = footer.frameCount + 1;
-    frame_size = footer.frameSize;
-    // raw_info = footer.raw_info;
-    raw_info.white_level = footer.raw_info.white_level;
-    raw_info.black_level = footer.raw_info.black_level;
-    
-    return 1;
-}
-
 static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
 {
     if(mem_suite)
