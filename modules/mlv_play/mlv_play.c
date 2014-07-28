@@ -1027,6 +1027,7 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
         int64_t position = 0;
         
         size = FIO_SeekSkipFile(chunk_files[chunk], 0, SEEK_END);
+        FIO_SeekSkipFile(chunk_files[chunk], 0, SEEK_SET);
         
         mlv_play_progressbar(0, "");
         
