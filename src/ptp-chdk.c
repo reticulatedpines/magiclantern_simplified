@@ -462,7 +462,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
                 FIO_RemoveFile(fn);
                 f = FIO_CreateFile(fn);
-                if ( f == NULL )
+                if (!f)
                 {
                     msg.id = PTP_RC_GeneralError;
                     fio_free(fn);

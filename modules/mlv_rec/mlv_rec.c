@@ -290,7 +290,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     }
     
     FILE *dummy_file = FIO_CreateFile(filename);
-    if(dummy_file == INVALID_PTR)
+    if(!dummy_file)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
         return 0;
@@ -298,7 +298,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
     FIO_WriteFile(dummy_file, (void*)0x40000000, size);
-    uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
+    uint32_t new_pos = FIO_SeekSkipFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
@@ -1820,7 +1820,7 @@ retry_find:
             /* choose the largest contiguous free section */
             /* O(n), n = slot_count */
             int32_t len = 0;
-            void* prev_ptr = INVALID_PTR;
+            void* prev_ptr = PTR_INVALID;
             int32_t prev_blockSize = 0;
             int32_t best_len = 0;
             for (int32_t i = 0; i < slot_count; i++)
@@ -1853,7 +1853,7 @@ retry_find:
                 else
                 {
                     len = 0;
-                    prev_ptr = INVALID_PTR;
+                    prev_ptr = PTR_INVALID;
                 }
             }
 
@@ -2387,7 +2387,7 @@ static uint32_t raw_get_next_filenum()
 
 static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
 {
-    if(f == INVALID_PTR || f == NULL)
+    if(f == NULL)
     {
         return;
     }
@@ -2464,7 +2464,7 @@ static void raw_writer_task(uint32_t writer)
     /* update file count */
     file_header.fileNum = writer;
 
-    written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+    written_chunk = FIO_SeekSkipFile(f, 0, SEEK_CUR);
     
     util_atomic_inc(&mlv_rec_threads);
     while(raw_recording_state == RAW_PREPARING)
@@ -2561,8 +2561,8 @@ static void raw_writer_task(uint32_t writer)
                         strncpy(next_filename, "", MAX_PATH);
 
                         frames_written = 0;
-                        FIO_SeekFile(f, 0, SEEK_END);
-                        written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+                        FIO_SeekSkipFile(f, 0, SEEK_END);
+                        written_chunk = FIO_SeekSkipFile(f, 0, SEEK_CUR);
 
                         /* write next header */
                         file_header.fileNum = next_file_num;
@@ -2611,7 +2611,7 @@ static void raw_writer_task(uint32_t writer)
                 /* start write and measure times */
                 job->last_time_after = last_time_after;
                 job->time_before = get_us_clock_value();
-                job->file_offset = FIO_SeekFile(f, 0, SEEK_CUR);
+                job->file_offset = FIO_SeekSkipFile(f, 0, SEEK_CUR);
                 int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
                 job->time_after = get_us_clock_value();
 
@@ -2706,11 +2706,11 @@ abort:
         }
     }
 
-    if(f != INVALID_PTR)
+    if (f)
     {
         file_header.videoFrameCount = frames_written;
 
-        FIO_SeekFile(f, 0, SEEK_SET);
+        FIO_SeekSkipFile(f, 0, SEEK_SET);
         mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
         FIO_CloseFile(f);
     }
@@ -3069,7 +3069,7 @@ static void raw_video_rec_task()
             mlv_handles[writer] = FIO_OpenFile(chunk_filename[writer], O_RDWR | O_SYNC);
             
             /* failed to open? */
-            if(mlv_handles[writer] == INVALID_PTR)
+            if(!mlv_handles[writer])
             {
                 trace_write(raw_rec_trace_ctx, "FIO_CreateFile(#%d): FAILED", writer);
                 NotifyBox(5000, "Failed to create file. Card full?");
@@ -3077,7 +3077,7 @@ static void raw_video_rec_task()
                 return;
             }
 
-            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
+            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
         }
 
         /* create writer threads with decreasing priority */
@@ -3282,14 +3282,14 @@ static void raw_video_rec_task()
                     handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
-                    if(handle->file_handle == INVALID_PTR)
+                    if (!handle->file_handle)
                     {
                         NotifyBox(5000, "Failed to open file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
                         break;
                     }
 
-                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
+                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
             
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], (uint32_t) handle);
@@ -3300,7 +3300,7 @@ static void raw_video_rec_task()
 
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
 
-                    FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                    FIO_SeekSkipFile(handle->file_handle, 0, SEEK_SET);
                     mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                     FIO_CloseFile(handle->file_handle);
 
@@ -3352,7 +3352,7 @@ static void raw_video_rec_task()
 
                 trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
 
-                FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                FIO_SeekSkipFile(handle->file_handle, 0, SEEK_SET);
                 mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                 FIO_CloseFile(handle->file_handle);
 
@@ -4046,7 +4046,7 @@ static unsigned int raw_rec_init()
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
         FILE* f = FIO_CreateFile(warmup_filename);
-        if(f != INVALID_PTR)
+        if (f)
         {
             FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
             FIO_CloseFile(f);

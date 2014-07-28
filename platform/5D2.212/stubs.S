@@ -45,7 +45,6 @@ NSTUB(0xFF9AAD10,  FIO_CloseFile)
 NSTUB(0xFF9ABE20,  FIO_FindClose)
 NSTUB(0xFF9ABD20,  FIO_FindNextEx)
 NSTUB(0xFF9AAFA0,  FIO_ReadFile)
-NSTUB(0xFF9AB120,  FIO_SeekFile)
 NSTUB(0xFF9AB050,  FIO_SeekSkipFile)
 NSTUB(0xFF9AB150,  FIO_WriteFile)
 NSTUB(0xFF9AB574, _FIO_CreateDirectory)
@@ -172,18 +171,16 @@ NSTUB(0xFF86BCE0,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF870A0C,  AddMemoryChunk)
 NSTUB(0xFF873440,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF8733FC,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF86FFD4,  CreateMemoryChunk)                       // called before WrapMemoryInChunk (first Create, then Add)
+NSTUB(0xFF870720,  CreateMemorySuite)                       // allocates 0x18 bytes, then calls CreateMemoryChunk
+NSTUB(0xFF87058C,  DeleteMemorySuite)                       // in fmCreateWaveFileCallback
 NSTUB(0xFF873550,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF870AF8,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF870518,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF871270,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-NSTUB(0xFF870720,  CreateMemorySuite)                       // allocates 0x18 bytes, then calls CreateMemoryChunk
-NSTUB(0xFF87058C,  DeleteMemorySuite)                       // in fmCreateWaveFileCallback
-NSTUB(0xFF86FFD4,  CreateMemoryChunk)                       // called before WrapMemoryInChunk (first Create, then Add)
-NSTUB(0xFF870A0C,  AddMemoryChunk)
-
-/** SRM JobMem **/
 NSTUB(0xFF82D540,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF82EFD0,  SRM_FreeMemoryResourceFor1stJob)
 
@@ -259,6 +256,7 @@ NSTUB(0xFF85F0F0,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -310,6 +308,7 @@ NSTUB(0xFF9B7324,  vsnprintf)
 ///NSTUB(0xFFAD2828,  ChangeColorPalette)
 ///NSTUB(0xFFA6D108,  CreateDialogBox)
 ///NSTUB(0xFFA6CBA0,  DeleteDialogBox)
+///NSTUB(0xFF9AB120,  FIO_SeekFile)
 ///NSTUB(0xFF9D6128,  GUI_GetFirmVersion)
 ///NSTUB(0xFF9D7F88,  GuiEdLedBlink)
 ///NSTUB(0xFF9D7F64,  GuiEdLedOff)

@@ -35,6 +35,7 @@
 
 #define RAM_OFFSET 0xffa4ebe0 // Some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
 
+
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB(0xFF0C1C10,  cstart)
@@ -48,7 +49,6 @@ NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
 NSTUB(0xFF343904,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF343824,  FIO_FindNextEx)
 NSTUB(0xFF3426BC,  FIO_ReadFile)
-NSTUB(0xFF34283C,  FIO_SeekFile)
 NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
 NSTUB(0xFF343168, _FIO_CreateDirectory)
 NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
@@ -114,8 +114,8 @@ NSTUB(0xC0220000,  camera_engine)
 NSTUB(0xFFA59040 - RAM_OFFSET,  dma_memcpy)                 // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 
 /** Debug messages **/
-NSTUB(0xFFA5253C - RAM_OFFSET,  DryosDebugMsg)
 NSTUB(   0x241BC,  dm_names)
+NSTUB(0xFFA5253C - RAM_OFFSET,  DryosDebugMsg)
 NSTUB(0xFFA528A8 - RAM_OFFSET,  dm_set_store_level)         // Not so sure
 
 /** Dialog API **/
@@ -175,14 +175,18 @@ NSTUB(0xFFA65144 - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFA651A0 - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
+NSTUB(0xFFA57A38 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
+NSTUB(0xFF13BC20,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
+NSTUB(0xFF13BBD4,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFFA56F3C - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFFA5775C - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFA57554 - RAM_OFFSET,  DeleteMemorySuite)
+NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFA57B08 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFA574E0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA582A4 - RAM_OFFSET,  GetNextMemoryChunk)
-NSTUB(0xFF13BC20,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
-NSTUB(0xFF13BBD4,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
-NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
+NSTUB(0xFF0E6AE4,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0EA5B8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -198,9 +202,9 @@ NSTUB(0xFF13BD38,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 /** GUI timers **/
 NSTUB(0xFFA5A2B8 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA53BB8 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFA53D2C - RAM_OFFSET,  SetHPTimerNextTick)
 NSTUB(0xFFA5A0B8 - RAM_OFFSET,  SetTimerAfter)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-NSTUB(0xFFA53D2C - RAM_OFFSET,  SetHPTimerNextTick)
 
 /** H264 Encoder **/
 NSTUB(   0x31424,  mvr_config)
@@ -230,8 +234,8 @@ NSTUB(0xFFA56024 - RAM_OFFSET,  GetSizeOfMaxRegion)
 NSTUB(0xFFA562D8 - RAM_OFFSET, _AllocateMemory)
 NSTUB(0xFFA56674 - RAM_OFFSET, _FreeMemory)
 NSTUB(0xFFA65A6C - RAM_OFFSET, _alloc_dma_memory)
-NSTUB(0xFFA65AA0 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF0C8368, _free)                                    // see "can't malloc", it calls both malloc and free
+NSTUB(0xFFA65AA0 - RAM_OFFSET, _free_dma_memory)
 NSTUB(0xFF0C8310, _malloc)
 // NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
 
@@ -256,6 +260,7 @@ NSTUB(0xFF11E778,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -275,24 +280,24 @@ NSTUB(0xFFA54FA4 - RAM_OFFSET,  give_semaphore)
 NSTUB(0xFFA54EB8 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
+NSTUB(   0x247A4,  task_max)                                // Not so sure....
 NSTUB(0xFFA5110C - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFA5D26C - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFA6850C - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
-NSTUB(   0x247A4,  task_max)                                // Not so sure....
 
 /** Task sleep **/
 NSTUB(0xFFA55394 - RAM_OFFSET,  msleep)
 
 /** Tasks **/
-NSTUB(0xFFA55448 - RAM_OFFSET,  task_create)
 NSTUB(   0x232C4,  task_dispatch_hook)
+NSTUB(0xFFA55448 - RAM_OFFSET,  task_create)
 NSTUB(0xFFA5A760 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 
 /** Misc **/
-NSTUB(0xFFA63AC4 - RAM_OFFSET,  vsnprintf)                  // not sure it gets called from RAM
 NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by exceptionhandlercbr
+NSTUB(0xFFA63AC4 - RAM_OFFSET,  vsnprintf)                  // not sure it gets called from RAM
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
@@ -303,6 +308,7 @@ NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by e
 ///NSTUB(0xFF4B341C,  CreateDialogBox)
 ///NSTUB(0xFF4B23E4,  DeleteDialogBox)
 ///NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
+///NSTUB(0xFF34283C,  FIO_SeekFile)
 ///NSTUB(0xFF1BE180,  GUI_GetFirmVersion)
 ///NSTUB(0x00008CE8, GetNumberOfChunks)
 ///NSTUB(    0x88A0,  GetRemainOfMemoryChunk)

@@ -305,3 +305,7 @@ Output size: 5496 x 3670
 #define UNAVI (MEM(0x8418c) ==2) // Between the "17s" find with mem browser
 #define SCROLLHACK (MEM(0x841C0) !=0)
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 85 / 100 - 102)
