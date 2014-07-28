@@ -1149,9 +1149,6 @@ static void stub_test_task(void* arg)
                     TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0x20, SEEK_SET), == 0x20);
                     TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0x30, SEEK_CUR), == 0x50);
                     TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_CUR), == 0x30);
-                    int64_t err;
-                    TEST_TRY_FUNC_CHECK(err = FIO_SeekSkipFile(f, (int64_t)0x8000000000000000, SEEK_CUR), == (int)0xFFFFFFFF);
-                    TEST_TRY_FUNC_CHECK(err == (int64_t)0xFFFFFFFFFFFFFFFF, == 1);
                     
                     /* note: seeking past the end of a file does not work on all cameras, so we'll not test that */
 
