@@ -852,18 +852,18 @@ audio_reg_dump_once()
         }
     
     FILE* f = FIO_CreateFile(log_filename);
-
-	unsigned i;
-	for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
+    if (f)
+    {
+        unsigned i;
+        for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
         {
             const uint16_t reg = audio_ic_read( audio_regs_once[i] );
             my_fprintf(f, "%s %02x\n", audio_reg_names_once[i], reg);
             msleep(10);
         }
-    
-    FIO_CloseFile(f);
-
-    NotifyBox(4000, "log audio%02d.log saved", log_number );
+        FIO_CloseFile(f);
+        NotifyBox(4000, "log audio%02d.log saved", log_number );
+    }
 }
 #endif
 

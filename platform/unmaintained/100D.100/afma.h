@@ -1,6 +1,10 @@
 // 5D3 AFMA constants
 
-#define PROP_AFMA 0x80040027
+/*
+ * TODO: EVERYTHING BELOW HERE IS UNVERIFIED OR PLAIN WRONG
+ */
+
+//#define PROP_AFMA 0x80040027
 
 static int8_t afma_buf[0x10];
 #define AFMA_MODE           afma_buf[0x0]

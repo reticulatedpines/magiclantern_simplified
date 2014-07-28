@@ -5470,7 +5470,7 @@ static void menu_save_flags(char* filename)
     }
     
     FILE * file = FIO_CreateFile(filename);
-    if( file == INVALID_PTR )
+    if (!file)
         goto end;
     
     FIO_WriteFile(file, cfg, strlen(cfg));
@@ -5550,7 +5550,7 @@ void config_menu_save_flags()
     }
     
     FILE * file = FIO_CreateFile( "ML/LOGS/MENUS.LOG" );
-    if( file == INVALID_PTR )
+    if (!file)
         return;
     
     FIO_WriteFile(file, cfg, strlen(cfg));
@@ -5751,7 +5751,7 @@ void menu_save_current_config_as_picoc_preset(char* filename)
     //~ ASSERT(cfglen == strlen(cfg)); // seems OK
     
     FILE * file = FIO_CreateFile(filename);
-    if( file == INVALID_PTR )
+    if (!file)
         goto end;
     
     FIO_WriteFile(file, cfg, strlen(cfg));

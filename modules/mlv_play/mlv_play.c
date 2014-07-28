@@ -70,6 +70,7 @@ static int res_x = 0;
 static int res_y = 0;
 static int frame_count = 0;
 static int frame_size = 0;
+static unsigned int fps1000 = 0; /* used for RAW playback */
 
 static volatile uint32_t mlv_play_render_abort = 0;
 static volatile uint32_t mlv_play_rendering = 0;
@@ -162,26 +163,6 @@ static uint32_t mlv_play_should_stop();
 /* microsecond durations for one frame */
 static uint32_t mlv_play_frame_div_pos = 0;
 static uint32_t mlv_play_frame_dividers[3];
-
-/* as soon all cameras provide FIO_SeekSkipFile, we can remove that temporary code */
-static uint64_t FIO_SeekSkipFile_emulate(FILE* stream, uint64_t position, int whence)
-{
-    const uint32_t maxOffset = 0x7FFFFFFF;
-    
-    /* the OS routine FIO_SeekFile only accepts signed integers as position, so work around to position absolutely */
-    if(whence == SEEK_SET && position > maxOffset)
-    {
-        FIO_SeekFile(stream, 0, SEEK_SET);
-        
-        while(position > maxOffset)
-        {
-            FIO_SeekFile(stream, maxOffset, SEEK_CUR);
-            position -= maxOffset;
-        }
-        return FIO_SeekFile(stream, (uint32_t)position, SEEK_CUR);
-    }
-    return FIO_SeekFile(stream, (uint32_t)position, whence);
-}
 
 static void mlv_play_flush_queue(struct msg_queue *queue)
 {
@@ -912,7 +893,7 @@ static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
     
     in_file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     
-    if(in_file == INVALID_PTR)
+    if (!in_file)
     {
         return NULL;
     }
@@ -922,7 +903,7 @@ static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
         mlv_hdr_t buf;
         uint32_t position = 0;
         
-        position = FIO_SeekSkipFile_emulate(in_file, 0, SEEK_CUR);
+        position = FIO_SeekSkipFile(in_file, 0, SEEK_CUR);
         
         if(FIO_ReadFile(in_file, &buf, sizeof(mlv_hdr_t)) != sizeof(mlv_hdr_t))
         {
@@ -930,10 +911,8 @@ static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
         }
         
         /* jump back to the beginning of the block just read */
-        FIO_SeekSkipFile_emulate(in_file, position, SEEK_SET);
+        FIO_SeekSkipFile(in_file, position, SEEK_SET);
 
-        position = FIO_SeekSkipFile_emulate(in_file, 0, SEEK_CUR);
-        
         /* we should check the MLVI header for matching UID value to make sure its the right index... */
         if(!memcmp(buf.blockType, "XREF", 4))
         {
@@ -947,11 +926,11 @@ static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
         }
         else
         {
-            FIO_SeekSkipFile_emulate(in_file, position + buf.blockSize, SEEK_SET);
+            FIO_SeekSkipFile(in_file, position + buf.blockSize, SEEK_SET);
         }
         
         /* we are at the same position as before, so abort */
-        if(position == FIO_SeekSkipFile_emulate(in_file, 0, SEEK_CUR))
+        if(position == FIO_SeekSkipFile(in_file, 0, SEEK_CUR))
         {
             break;
         }
@@ -972,7 +951,7 @@ static void mlv_play_save_index(char *base_filename, mlv_file_hdr_t *ref_file_hd
     
     out_file = FIO_CreateFile(filename);
     
-    if(out_file == INVALID_PTR)
+    if (!out_file)
     {
         return;
     }
@@ -1047,9 +1026,8 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
         uint64_t size = 0;
         uint64_t position = 0;
         
-        FIO_SeekSkipFile_emulate(chunk_files[chunk], 0, SEEK_END);
-        size = FIO_SeekSkipFile_emulate(chunk_files[chunk], 0, SEEK_CUR);
-        FIO_SeekSkipFile_emulate(chunk_files[chunk], 0, SEEK_SET);
+        size = FIO_SeekSkipFile(chunk_files[chunk], 0, SEEK_END);
+        FIO_SeekSkipFile(chunk_files[chunk], 0, SEEK_SET);
         
         mlv_play_progressbar(0, "");
         
@@ -1106,7 +1084,7 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
                 mlv_file_hdr_t file_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
                 
-                FIO_SeekSkipFile_emulate(chunk_files[chunk], position, SEEK_SET);
+                FIO_SeekSkipFile(chunk_files[chunk], position, SEEK_SET);
                 
                 /* read the whole header block, but limit size to either our local type size or the written block size */
                 if(FIO_ReadFile(chunk_files[chunk], &file_hdr, hdr_size) != (int32_t)hdr_size)
@@ -1157,7 +1135,7 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
             }
             
             position += buf.blockSize;
-            FIO_SeekSkipFile_emulate(chunk_files[chunk], position, SEEK_SET);
+            FIO_SeekSkipFile(chunk_files[chunk], position, SEEK_SET);
         }
     }
     
@@ -1187,10 +1165,11 @@ static unsigned int mlv_play_is_raw(FILE *f)
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
-    FIO_SeekSkipFile_emulate(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    uint32_t end = FIO_SeekSkipFile(f, 0, SEEK_END);
+    FIO_SeekSkipFile(f, end - sizeof(lv_rec_file_footer_t), SEEK_SET);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
@@ -1212,10 +1191,10 @@ static unsigned int mlv_play_is_mlv(FILE *f)
     mlv_file_hdr_t header;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
-    FIO_SeekSkipFile_emulate(f, 0, SEEK_SET);
+    unsigned int old_pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    FIO_SeekSkipFile(f, 0, SEEK_SET);
     int read = FIO_ReadFile(f, &header, sizeof(mlv_file_hdr_t));
-    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(mlv_file_hdr_t))
@@ -1237,10 +1216,11 @@ static unsigned int mlv_play_read_footer(FILE *f)
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekSkipFile_emulate(f, 0, 1);
-    FIO_SeekSkipFile_emulate(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    uint32_t end = FIO_SeekSkipFile(f, 0, SEEK_END);
+    FIO_SeekSkipFile(f, end - sizeof(lv_rec_file_footer_t), SEEK_SET);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekSkipFile_emulate(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
@@ -1266,6 +1246,7 @@ static unsigned int mlv_play_read_footer(FILE *f)
     frame_size = footer.frameSize;
     raw_info.white_level = footer.raw_info.white_level;
     raw_info.black_level = footer.raw_info.black_level;
+    fps1000 = footer.sourceFpsx1000;
     
     return 1;
 }
@@ -1282,7 +1263,7 @@ static FILE **mlv_play_load_chunks(char *base_filename, uint32_t *entries)
     FILE **files = malloc(sizeof(FILE*));
     
     files[0] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if (files[0] == INVALID_PTR)
+    if (!files[0])
     {
         return NULL;
     }
@@ -1305,14 +1286,14 @@ static FILE **mlv_play_load_chunks(char *base_filename, uint32_t *entries)
         files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         
         /* if failed, try B */
-        if(files[*entries] == INVALID_PTR)
+        if (!files[*entries])
         {
             filename[0] = 'B';
             files[*entries] = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
         }
         
         /* when succeeded, check for next chunk, else abort */
-        if(files[*entries] != INVALID_PTR)
+        if (files[*entries])
         {
             (*entries)++;
         }
@@ -1493,7 +1474,16 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
     msg_queue_post(mlv_play_queue_fps, 0);
     
     mlv_play_fps_ticks++;
-    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+
+    /* use high-precision timer for FPS > 2  */
+    if (offset < 500000)
+    {
+        SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    }
+    else
+    {
+        SetTimerAfter(offset / 1000, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
+    }
 }
 
 static void mlv_play_stop_fps_timer()
@@ -1588,7 +1578,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         /* use the common header structure to get file size */
         mlv_hdr_t buf;
         
-        FIO_SeekSkipFile_emulate(in_file, position, SEEK_SET);
+        FIO_SeekSkipFile(in_file, position, SEEK_SET);
         if(FIO_ReadFile(in_file, &buf, sizeof(mlv_hdr_t)) != sizeof(mlv_hdr_t))
         {
             bmp_printf(FONT_MED, 30, 190, "File ends prematurely during block header");
@@ -1596,7 +1586,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             msleep(1000);
             break;
         }
-        FIO_SeekSkipFile_emulate(in_file, position, SEEK_SET);
+        FIO_SeekSkipFile(in_file, position, SEEK_SET);
         
         /* special case: if first block read, reset frame count as all MLVI blocks frame count will get accumulated */
         if(block_xref_pos == 0)
@@ -1758,7 +1748,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             /* skip frame space */
-            FIO_SeekSkipFile_emulate(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
+            FIO_SeekSkipFile(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
 
             /* finally read the raw data */
             if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != (int32_t)buffer->frameSize)
@@ -1847,6 +1837,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
 
 static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
+    uint32_t fps_timer_started = 0;
+    uint32_t fps_timer_start_attempted = 0;
     uint32_t chunk_num = 0;
     
     /* read footer information and update global variables, will seek automatically */
@@ -1863,6 +1855,43 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
     
     for (int i = 0; i < frame_count-1; i++)
     {
+        /* check if we are too slow */
+        if(mlv_play_exact_fps)
+        {
+            uint32_t fps_events_pending = 0;
+            msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
+
+            /* skip frame if we should play at exact fps and we already should be one frame farther */
+            if(fps_events_pending > 1)
+            {
+                uint32_t temp = 0;
+                msg_queue_receive(mlv_play_queue_fps, &temp, 50);
+
+                uint32_t pos1 = FIO_SeekSkipFile(chunk_files[chunk_num], 0, SEEK_CUR);
+                uint32_t pos2 = FIO_SeekSkipFile(chunk_files[chunk_num], frame_size, SEEK_CUR);
+                if ((int32_t)(pos2 - pos1) != frame_size)
+                {
+                    chunk_num++;
+                    if (chunk_num < chunk_count)
+                    {
+                        FIO_SeekSkipFile(chunk_files[chunk_num], frame_size - (pos2 - pos1), SEEK_CUR);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                mlv_play_frames_skipped++;
+                continue;
+            }
+        }
+        else
+        {
+            /* if not, just keep the queue clean */
+            mlv_play_flush_queue(mlv_play_queue_fps);
+        }
+
         /* there are various reasons why this read/play task should get stopped */
         if(mlv_play_should_stop())
         {
@@ -1953,8 +1982,44 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         buffer->yRes = res_y;
         buffer->bitDepth = 14;
         
+        if (mlv_play_exact_fps)
+        {
+            if (!fps_timer_start_attempted)
+            {
+                /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
+                fps_timer_started = mlv_play_start_fps_timer(fps1000, 1000);
+                fps_timer_start_attempted = 1;
+            }
+
+            if (fps_timer_started)
+            {
+                /* wait till it is time to render */
+                uint32_t temp = 0;
+                while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                {
+                    if(mlv_play_should_stop())
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (!fps_timer_started)
+            {
+                /* let's give it another chance */
+                fps_timer_start_attempted = 0;
+            }
+        }
+
         /* requeue frame buffer for rendering */
         msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
+    }
+
+    if(fps_timer_started)
+    {
+        mlv_play_stop_fps_timer();
     }
 }
 
@@ -2359,7 +2424,7 @@ FILETYPE_HANDLER(mlv_play_filehandler)
         case FILEMAN_CMD_INFO:
         {
             FILE* f = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
-            if( f == INVALID_PTR )
+            if (!f)
             {
                 return 0;
             }

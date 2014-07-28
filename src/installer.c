@@ -273,7 +273,7 @@ copy_and_restart( int offset )
 int check_autoexec()
 {
     FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
+    if (f)
     {
         FIO_CloseFile(f);
         return 1;

@@ -4486,7 +4486,7 @@ void hdr_create_script(int f0, int focus_stack)
     snprintf(name, sizeof(name), "%s/%s_%04d.%s", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0, hdr_scripts == 3 ? "txt" : "sh");
 
     FILE * f = FIO_CreateFile(name);
-    if ( f == INVALID_PTR )
+    if (!f)
     {
         bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFile: error for %s", name );
         return;
@@ -4561,7 +4561,7 @@ void interval_create_script(int f0)
     int append_header = !is_file(name);
     FILE * f = FIO_CreateFileOrAppend(name);
     
-    if ( f == INVALID_PTR )
+    if (!f)
     {
         bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileOrAppend: error for %s", name );
         return;

@@ -513,7 +513,7 @@ read_file(
 )
 {
     FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
-    if( file == INVALID_PTR )
+    if (!file)
         return -1;
     unsigned rc = FIO_ReadFile( file, buf, size );
     FIO_CloseFile( file );
@@ -860,9 +860,12 @@ void set_ml_palette()
         NotifyBox(10000, "%x ", PB_Palette);
         SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
         FILE* f = FIO_CreateFile("pb.log");
-        for (int i = 0; i < 16; i++)
-            my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
-        FIO_CloseFile(f);
+        if (f)
+        {
+            for (int i = 0; i < 16; i++)
+                my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
+            FIO_CloseFile(f);
+        }
     }
     else // use pre-computed PB palette (just send it to digic)
     {
@@ -1488,13 +1491,10 @@ void save_vram(const char * filename)
     if (!b) return;
 
     FILE * file = FIO_CreateFile( filename );
-    if( file == INVALID_PTR )
-        return;
-    else
+    if (file)
     {
-    FIO_WriteFile(file, b, BMP_VRAM_SIZE);
-
-    FIO_CloseFile( file );
+        FIO_WriteFile(file, b, BMP_VRAM_SIZE);
+        FIO_CloseFile( file );
     }
 }
 

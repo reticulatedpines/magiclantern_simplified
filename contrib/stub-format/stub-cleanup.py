@@ -36,6 +36,7 @@ force_unused = [
     "PackMem_SetEDmacForMemorySuite",
     "PackMem_StartEDmac",
     "CreateDialogBox",
+    "FIO_SeekFile",
 ]
 
 def check_used_work(stub):

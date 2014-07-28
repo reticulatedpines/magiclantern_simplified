@@ -9,7 +9,7 @@
 int check_eyefi()
 {
     FILE * f = FIO_OpenFile("EYEFI/REQC", 0);
-    if (f != (void*) -1)
+    if (f)
     {
         FIO_CloseFile(f);
         return 1;
