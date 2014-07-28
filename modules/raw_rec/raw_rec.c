@@ -608,10 +608,10 @@ static unsigned int lv_rec_read_footer(FILE *f)
     lv_rec_file_footer_t footer;
 
     /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekFile(f, 0, 1);
-    FIO_SeekFile(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    unsigned int old_pos = FIO_SeekSkipFile(f, 0, 1);
+    FIO_SeekSkipFile(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekFile(f, old_pos, SEEK_SET);
+    FIO_SeekSkipFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))

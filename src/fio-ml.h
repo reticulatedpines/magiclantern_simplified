@@ -62,7 +62,7 @@ typedef struct _file * FILE;
 #define O_ASYNC          020000
 /* @} */
 
-/* whence value for FIO_SeekFile */
+/* whence value for FIO_SeekSkipFile */
 #define 	SEEK_SET   0
 #define 	SEEK_CUR   1
 #define 	SEEK_END   2
@@ -107,7 +107,6 @@ extern int FIO_GetFileSize( const char * filename, uint32_t * size );
 extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );
 extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
 extern void FIO_FindClose( struct fio_dirent * dirent );
-extern uint64_t FIO_SeekFile( FILE* stream, size_t position, int whence );
 extern uint64_t FIO_SeekSkipFile( FILE* stream, uint64_t position, int whence );
 extern int FIO_RenameFile(char *src,char *dst);
 extern int FIO_RemoveFile(const char * filename);

@@ -49,7 +49,6 @@ NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
 NSTUB(0xFF343904,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF343824,  FIO_FindNextEx)
 NSTUB(0xFF3426BC,  FIO_ReadFile)
-NSTUB(0xFF34283C,  FIO_SeekFile)
 NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
 NSTUB(0xFF343168, _FIO_CreateDirectory)
 NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
@@ -309,6 +308,7 @@ NSTUB(0xFFA63AC4 - RAM_OFFSET,  vsnprintf)                  // not sure it gets 
 ///NSTUB(0xFF4B341C,  CreateDialogBox)
 ///NSTUB(0xFF4B23E4,  DeleteDialogBox)
 ///NSTUB(0xFF511E88, ErrCardApp_handler) // Unused
+///NSTUB(0xFF34283C,  FIO_SeekFile)
 ///NSTUB(0xFF1BE180,  GUI_GetFirmVersion)
 ///NSTUB(0x00008CE8, GetNumberOfChunks)
 ///NSTUB(    0x88A0,  GetRemainOfMemoryChunk)

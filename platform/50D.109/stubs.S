@@ -54,7 +54,6 @@ NSTUB(0xFF982590,  FIO_CloseFile)                           // d
 NSTUB(0xFF9836A0,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF9835A0,  FIO_FindNextEx)                          // d
 NSTUB(0xFF982820,  FIO_ReadFile)                            // d
-NSTUB(0xFF9829A0,  FIO_SeekFile)                            // mk11174 and Chucho  0xff9829b0
 NSTUB(0xFF9828D0,  FIO_SeekSkipFile)
 NSTUB(0xFF9829D0,  FIO_WriteFile)                           // d
 NSTUB(0xFF982DF4, _FIO_CreateDirectory)
@@ -317,6 +316,7 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 ///NSTUB(0xFFA4717C,  CreateDialogBox)
 ///NSTUB(0xFFA46C14,  DeleteDialogBox)
 ///NSTUB(0xFFA850E0,  EndMovieRecSequence)
+///NSTUB(0xFF9829A0,  FIO_SeekFile)                            // mk11174 and Chucho  0xff9829b0
 ///NSTUB(0xFF9ABFF4,  GUI_GetFirmVersion)                      // d
 ///NSTUB(0xFF9A4630,  GUI_SetLvTimer)
 ///NSTUB(0xFF9ADAA4,  GuiEdLedBlink)

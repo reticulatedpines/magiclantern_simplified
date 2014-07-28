@@ -298,7 +298,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
     FIO_WriteFile(dummy_file, (void*)0x40000000, size);
-    uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
+    uint32_t new_pos = FIO_SeekSkipFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
@@ -2464,7 +2464,7 @@ static void raw_writer_task(uint32_t writer)
     /* update file count */
     file_header.fileNum = writer;
 
-    written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+    written_chunk = FIO_SeekSkipFile(f, 0, SEEK_CUR);
     
     util_atomic_inc(&mlv_rec_threads);
     while(raw_recording_state == RAW_PREPARING)
@@ -2561,8 +2561,8 @@ static void raw_writer_task(uint32_t writer)
                         strncpy(next_filename, "", MAX_PATH);
 
                         frames_written = 0;
-                        FIO_SeekFile(f, 0, SEEK_END);
-                        written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+                        FIO_SeekSkipFile(f, 0, SEEK_END);
+                        written_chunk = FIO_SeekSkipFile(f, 0, SEEK_CUR);
 
                         /* write next header */
                         file_header.fileNum = next_file_num;
@@ -2611,7 +2611,7 @@ static void raw_writer_task(uint32_t writer)
                 /* start write and measure times */
                 job->last_time_after = last_time_after;
                 job->time_before = get_us_clock_value();
-                job->file_offset = FIO_SeekFile(f, 0, SEEK_CUR);
+                job->file_offset = FIO_SeekSkipFile(f, 0, SEEK_CUR);
                 int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
                 job->time_after = get_us_clock_value();
 
@@ -2710,7 +2710,7 @@ abort:
     {
         file_header.videoFrameCount = frames_written;
 
-        FIO_SeekFile(f, 0, SEEK_SET);
+        FIO_SeekSkipFile(f, 0, SEEK_SET);
         mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
         FIO_CloseFile(f);
     }
@@ -3077,7 +3077,7 @@ static void raw_video_rec_task()
                 return;
             }
 
-            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
+            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
         }
 
         /* create writer threads with decreasing priority */
@@ -3289,7 +3289,7 @@ static void raw_video_rec_task()
                         break;
                     }
 
-                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
+                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
             
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], (uint32_t) handle);
@@ -3300,7 +3300,7 @@ static void raw_video_rec_task()
 
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
 
-                    FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                    FIO_SeekSkipFile(handle->file_handle, 0, SEEK_SET);
                     mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                     FIO_CloseFile(handle->file_handle);
 
@@ -3352,7 +3352,7 @@ static void raw_video_rec_task()
 
                 trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
 
-                FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                FIO_SeekSkipFile(handle->file_handle, 0, SEEK_SET);
                 mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                 FIO_CloseFile(handle->file_handle);
 

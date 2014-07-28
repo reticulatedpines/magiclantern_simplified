@@ -516,7 +516,7 @@ FILE* FIO_CreateFileOrAppend(const char* name)
     }
     else
     {
-        FIO_SeekFile(f,0,SEEK_END);
+        FIO_SeekSkipFile(f,0,SEEK_END);
     }
     return f;
 }

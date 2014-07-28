@@ -51,7 +51,6 @@ NSTUB(0xFF332990,  FIO_CloseFile)
 NSTUB(0xFF333988,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF3338A8,  FIO_FindNextEx)
 NSTUB(0xFF332740,  FIO_ReadFile)
-NSTUB(0xFF3328C0,  FIO_SeekFile)
 NSTUB(0xFF3327F0,  FIO_SeekSkipFile)
 NSTUB(0xFF3328E0,  FIO_WriteFile)
 NSTUB(0xFF3331EC, _FIO_CreateDirectory)
@@ -312,6 +311,7 @@ NSTUB(0xFFCFB688 - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF71666C,  DeadViewLevelApp_handler)                // 
 ///NSTUB(0xFF4B3B54,  DeleteDialogBox)
 ///NSTUB(0xFFCE3188 - RAM_OFFSET,  ENCODE_StartEncodeJpeg)     // called from RAM in 6D, wasn't in EOS M.
+///NSTUB(0xFF3328C0,  FIO_SeekFile)
 ///NSTUB(0xFF1A3614,  GUI_GetFirmVersion)
 ///NSTUB(0xFFCCF0A0 - RAM_OFFSET, GetNumberOfChunks)
 ///NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)

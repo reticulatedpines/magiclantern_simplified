@@ -45,7 +45,6 @@ NSTUB(0xFF1D9620,  FIO_CloseFile)                           // might be good (du
 NSTUB(0xFF1DA5F0,  FIO_FindClose)                           // might be good (dumps=1, score=69)
 NSTUB(0xFF1DA510,  FIO_FindNextEx)                          // might be good (dumps=1, score=50)
 NSTUB(0xFF1D93D0,  FIO_ReadFile)                            // might be good (dumps=1, score=87)
-NSTUB(0xFF1D9550,  FIO_SeekFile)
 NSTUB(0xFF1D9570,  FIO_WriteFile)                           // might be good (dumps=1, score=65)
 NSTUB(0xFF1D9E5C, _FIO_CreateDirectory)                     // might be good (dumps=1, score=13)
 NSTUB(0xFF1D927C, _FIO_CreateFile)                          // might be good (dumps=1, score=50)
@@ -308,6 +307,7 @@ NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (du
 ///NSTUB(0xFF06C914,  DebugMsg)                                // might be good (dumps=1, score=1.1e+03)
 ///NSTUB(0xFF31C270,  DeleteDialogBox)                         // might be good (dumps=1, score=47)
 ///NSTUB(0xff35abc4, ErrCardApp_handler) Unused
+///NSTUB(0xFF1D9550,  FIO_SeekFile)
 ///NSTUB(0xFF223218,  GUI_GetFirmVersion)                      // might be good (dumps=1, score=11)
 ///NSTUB(0xFF10DC10,  GetJpegBufForLV)                         // Actually FA_GetJpegBufForLV check ROM FA_ routines to find it
 ///NSTUB(0xFF10DC1C,  GetJpegSizeForLV)                        // Actually FA_GetJpegSizeForLV (see above)

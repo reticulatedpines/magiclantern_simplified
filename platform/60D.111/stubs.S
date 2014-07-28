@@ -52,7 +52,6 @@ NSTUB(0xFF1CA3FC,  FIO_CloseFile)
 NSTUB(0xFF1CB3CC,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1CB2EC,  FIO_FindNextEx)
 NSTUB(0xFF1CA1AC,  FIO_ReadFile)
-NSTUB(0xFF1CA32C,  FIO_SeekFile)
 NSTUB(0xFF1CA25C,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 NSTUB(0xFF1CA34C,  FIO_WriteFile)
 NSTUB(0xFF1CAC38, _FIO_CreateDirectory)
@@ -316,6 +315,7 @@ NSTUB(0xFF1DA530,  vsnprintf)
 ///NSTUB(0xFF3076F8, CreateDialogBox)
 ///NSTUB(0xFF306E8C, DeleteDialogBox)
 ///NSTUB(0xFF1C571C,  EngDrvIn)
+///NSTUB(0xFF1CA32C,  FIO_SeekFile)
 ///NSTUB(0xFF0A61DC,  GUI_Control_Post)
 ///NSTUB(0xFF2143A8,  GUI_GetFirmVersion)
 ///NSTUB(0xFF36E594,  HideBottomInfoDisp_maybe)                // look for StartBottomInfoDispTimer

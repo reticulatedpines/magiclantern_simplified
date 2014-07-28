@@ -193,11 +193,11 @@ static int rbf_font_load(char *file, font* f, int maxchar)
     alloc_cTable(f);
 
     // read width table (using uncached buffer)
-    FIO_SeekFile(fd, f->hdr._wmapAddr, SEEK_SET);
+    FIO_SeekSkipFile(fd, f->hdr._wmapAddr, SEEK_SET);
     font_read(fd, (unsigned char*)&f->wTable[f->hdr.charFirst], f->charCount);
 
     // read cTable data (using uncached buffer)
-    FIO_SeekFile(fd, f->hdr._cmapAddr, SEEK_SET);
+    FIO_SeekSkipFile(fd, f->hdr._cmapAddr, SEEK_SET);
     font_read(fd, (unsigned char*)f->cTable, f->charCount*f->hdr.charSize);
 
     FIO_CloseFile(fd);
