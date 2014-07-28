@@ -1087,6 +1087,38 @@ static void stub_test_task(void* arg)
 
     for (int i=0; i < n; i++)
     {
+        /* File I/O */
+
+        FILE* f;
+        TEST_TRY_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != 0);
+        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
+        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
+        TEST_TRY_VOID(FIO_CloseFile(f));
+        uint32_t size;
+        TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
+        TEST_TRY_FUNC_CHECK(size, == 0x20000);
+        void* p;
+        TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != 0);
+        TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
+        TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
+        TEST_TRY_VOID(FIO_CloseFile(f));
+        TEST_TRY_VOID(_free_dma_memory(p));
+
+        {
+            int count = 0;
+            FILE* f = FIO_CreateFile("test.dat");
+            if (f)
+            {
+                for (int i = 0; i < 1000; i++)
+                    count += FIO_WriteFile(f, "Will it blend?\n", 15);
+                FIO_CloseFile(f);
+            }
+            TEST_TRY_FUNC_CHECK(count, == 1000*15);
+        }
+
+        TEST_TRY_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
+
+
         /* GUI timers */
         
         /* SetTimerAfter, CancelTimer */
@@ -1433,37 +1465,6 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
         TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
         TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
-
-        // file I/O
-
-        FILE* f;
-        TEST_TRY_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != 0);
-        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
-        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
-        TEST_TRY_VOID(FIO_CloseFile(f));
-        uint32_t size;
-        TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
-        TEST_TRY_FUNC_CHECK(size, == 0x20000);
-        void* p;
-        TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != 0);
-        TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
-        TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
-        TEST_TRY_VOID(FIO_CloseFile(f));
-        TEST_TRY_VOID(_free_dma_memory(p));
-
-        {
-            int count = 0;
-            FILE* f = FIO_CreateFile("test.dat");
-            if (f)
-            {
-                for (int i = 0; i < 1000; i++)
-                    count += FIO_WriteFile(f, "Will it blend?\n", 15);
-                FIO_CloseFile(f);
-            }
-            TEST_TRY_FUNC_CHECK(count, == 1000*15);
-        }
-
-        TEST_TRY_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
 
         // sw1
         TEST_TRY_VOID(SW1(1,100));
