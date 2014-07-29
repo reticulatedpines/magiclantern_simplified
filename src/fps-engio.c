@@ -275,7 +275,7 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 28800000
     #define TG_FREQ_SHUTTER 41379310 // not sure
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 630 : 688 )
-#else // 550D, 600D, 60D
+#elif defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D)
     #define TG_FREQ_BASE 28800000
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
     #define TG_FREQ_PAL  50000000
