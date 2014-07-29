@@ -199,8 +199,6 @@ static int is_current_mode_ntsc()
     return 0;
 }
 
-int fps_get_current_x1000();
-void flip_zoom(); // refreshes display mode
 static void fps_unpatch_table();
 static void fps_patch_timerB(int timer_value);
 static void fps_read_default_timer_values();
@@ -212,11 +210,6 @@ static void fps_read_current_timer_values();
 #else
 #define FPS_TIMER_A_MAX 0x2000
 #define FPS_TIMER_B_MAX (0x4000-1)
-#endif
-
-#ifdef CONFIG_FPS_TIMER_A_ONLY
-    #undef FPS_TIMER_B_MAX
-    #define FPS_TIMER_B_MAX fps_timer_b_orig
 #endif
 
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
@@ -942,7 +935,7 @@ static void flip_zoom_twostage(int stage)
     }
 }
 
-void flip_zoom()
+static void flip_zoom()
 {
     flip_zoom_twostage(1);
     flip_zoom_twostage(2);
@@ -1338,8 +1331,6 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_PERCENT,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
-//~ we only modify FPS_REGISTER_A, so no optimizations possible.
-#ifndef CONFIG_FPS_TIMER_A_ONLY
             {
                 .name = "Optimize for",
                 .priv       = &fps_criteria,
@@ -1373,7 +1364,6 @@ static struct menu_entry fps_menu[] = {
                         "HiJello, FastTv: jello effects and fast shutters (2-5 fps).\n"
                         #endif
             },
-#endif
             #ifndef FRAME_SHUTTER_BLANKING_WRITE
             {
                 .name = "Shutter range",
@@ -1689,9 +1679,7 @@ static void fps_task()
             float ff = default_fps * ks + f * (1-ks);
             int fr = (int)roundf(ff);
             fps_setup_timerA(fr);
-#ifndef CONFIG_FPS_TIMER_A_ONLY
             fps_setup_timerB(fr);
-#endif
             fps_read_current_timer_values();
 
             // take care of sound settings to prevent recording from stopping
@@ -1737,9 +1725,7 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
-#ifndef CONFIG_FPS_TIMER_A_ONLY
         fps_setup_timerB(f);
-#endif
         //~ info_led_off();
         fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
