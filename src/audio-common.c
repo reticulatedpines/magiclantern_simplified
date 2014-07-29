@@ -259,31 +259,31 @@ draw_meter(
 
 static void
 draw_ticks(
-           int          x,
-           int          y,
+           int          x_origin,
+           int          y_origin,
            int          tick_height,
-           int width
+           int          width
            )
 {
-    const uint32_t pitch = BMPPITCH;
-    uint32_t * row = (uint32_t*) bmp_vram();
+    const int pitch = BMPPITCH;
+    uint16_t * row = (uint16_t*) bmp_vram();
     if( !row )
         return;
-    row += (pitch/4) * y + AUDIO_METER_OFFSET - 2 + x/4;//seems to need less of an offset
+
+    row += (pitch/2) * y_origin + AUDIO_METER_OFFSET*2 + x_origin/2;
     
-    const uint32_t white_word = 0
-        | ( COLOR_WHITE << 24 )
-        | ( COLOR_WHITE << 16 )
+    const uint16_t white_word = 0
         | ( COLOR_WHITE <<  8 )
         | ( COLOR_WHITE <<  0 );
     
-    for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
+    for( ; tick_height > 0 ; tick_height--, row += pitch/2 )
         {
             int db;
             for( db=-40; db<= 0 ; db+=5 )
                 {
                     const uint32_t x_db = width + db * width / 40;
-                    row[x_db/4] = white_word;
+                    row[x_db/2-1] = white_word;
+                    row[x_db/2] = white_word;
                 }
         }
 }
@@ -337,7 +337,7 @@ static void draw_meters(void)
     }
     
     draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label, width);
-    draw_ticks( x0, y0 + 10, 3, width);
+    draw_ticks( x0, y0 + 10, 2, width);
 #if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d
     draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label, width);
 #endif
