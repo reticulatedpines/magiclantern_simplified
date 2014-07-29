@@ -259,14 +259,15 @@ draw_meter(
 
 static void
 draw_ticks(
-           int          x_origin,
-           int          y_origin,
-           int          tick_height,
-           int          width
-           )
+   int x_origin,
+   int y_origin,
+   int tick_height,
+   int width
+)
 {
     const int pitch = BMPPITCH;
     uint16_t * row = (uint16_t*) bmp_vram();
+
     if( !row )
         return;
 
@@ -277,15 +278,14 @@ draw_ticks(
         | ( COLOR_WHITE <<  0 );
     
     for( ; tick_height > 0 ; tick_height--, row += pitch/2 )
+    {
+        for(int db = -40; db <= 0 ; db += 5 )
         {
-            int db;
-            for( db=-40; db<= 0 ; db+=5 )
-                {
-                    const uint32_t x_db = width + db * width / 40;
-                    row[x_db/2-1] = white_word;
-                    row[x_db/2] = white_word;
-                }
+            const uint32_t x_db = width + db * width / 40;
+            row[x_db/2-1] = white_word;
+            row[x_db/2] = white_word;
         }
+    }
 }
 
 static int audio_cmd_to_gain_x1000(int cmd);
