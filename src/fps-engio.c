@@ -575,6 +575,14 @@ static int fps_should_disable_sound()
 {
     if (get_fps_override() && lv && is_movie_mode())
     {
+        /* same FPS as the one from Canon menu? sound OK */
+        int default_fps = is_current_mode_ntsc() ? video_mode_fps * 1000 * 1000 / 1001 : video_mode_fps * 1000;
+        int current_fps = fps_get_current_x1000();
+        if (current_fps == default_fps)
+        {
+            return 0;
+        }
+
         /* only disable sound when recording H.264, not raw */
         if (!raw_lv_is_enabled())
         {
@@ -800,7 +808,7 @@ static MENU_UPDATE_FUNC(fps_print)
         
         /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
-        if (sound_recording_enabled_canon() && is_movie_mode() && !raw_lv_is_enabled() && t > last_inactive + 1000)
+        if (sound_recording_enabled_canon() && is_movie_mode() && fps_should_disable_sound() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
 
 #ifndef CONFIG_FRAME_ISO_OVERRIDE
