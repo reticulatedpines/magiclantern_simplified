@@ -139,6 +139,8 @@ static struct mem_allocator allocators[] = {
         .minimum_free_space = 512 * 1024,           /* Canon code also allocates from here, so keep it free */
         #endif
     },
+#ifndef CONFIG_INSTALLER    /* installer only needs the basic allocators */
+
 
 #if 0 /* not implemented yet */
     {
@@ -161,7 +163,6 @@ static struct mem_allocator allocators[] = {
         .preferred_max_alloc_size = 512 * 1024,
     },
 #endif
-
 #if 1
     /* must be completely free when navigating Canon menus, so only use it as a last resort */
     {
@@ -202,6 +203,7 @@ static struct mem_allocator allocators[] = {
         .minimum_alloc_size = 25 * 1024 * 1024,
     },
 #endif
+#endif  /* CONFIG_INSTALLER */
 };
 
 /* total memory allocated (for printing it) */
@@ -843,6 +845,10 @@ INIT_FUNC(__FILE__, mem_init);
 
 
 /* GUI stuff */
+
+#ifdef CONFIG_INSTALLER
+#undef FEATURE_SHOW_FREE_MEMORY
+#endif
 
 #ifdef FEATURE_SHOW_FREE_MEMORY
 
