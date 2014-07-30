@@ -3730,26 +3730,7 @@ static void CopyMLFilesToRAM_BeforeFormat()
 // check if autoexec.bin is present on the card
 static int check_autoexec()
 {
-    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
-
-// check if magic.fir is present on the card
-static int check_fir()
-{
-    FILE * f = FIO_OpenFile("MAGIC.FIR", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
+    return is_file("AUTOEXEC.BIN");
 }
 
 static void CopyMLFilesBack_AfterFormat()
@@ -3811,7 +3792,7 @@ static void HijackFormatDialogBox_main()
     #endif
 
     // make sure we have something to restore :)
-    if (!check_autoexec() && !check_fir()) return;
+    if (!check_autoexec()) return;
 
     gui_uilock(UILOCK_EVERYTHING);
     

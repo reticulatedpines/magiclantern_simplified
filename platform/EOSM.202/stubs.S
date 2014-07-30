@@ -272,9 +272,9 @@ NSTUB(0xFF11F910,  prop_register_slave)
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
 /** Recursive locks **/
-NSTUB(0xFFA87CB8 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
+NSTUB(0xFFA88520 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
 NSTUB(0xFFA73E6C - RAM_OFFSET,  CreateRecursiveLock)
-NSTUB(0xFFA87D64 - RAM_OFFSET,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFFA88634 - RAM_OFFSET,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
 
 /** ResLock **/
 NSTUB(0xFF2C5848,  CreateResLockEntry)
