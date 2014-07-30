@@ -74,13 +74,14 @@ static void call_bootflag_eventproc(char* eventproc)
             bmp_printf(FONT_LARGE, 0, 450, eventproc);
             info_led_blink(1, 50, 50);
         }
-        if (CURRENT_DIALOG_MAYBE == DLG_MENU)
+
+        /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
+        uint32_t old = cli();
+        if (CURRENT_DIALOG_MAYBE == DLG_MENU && DISPLAY_IS_ON)
         {
-            /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
-            uint32_t old = cli();
             call( eventproc );
-            sei(old);
         }
+        sei(old);
     }
 }
 
