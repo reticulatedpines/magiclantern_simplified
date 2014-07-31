@@ -125,24 +125,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_PHOTO_EDMAC 0xc0f04008
 #endif
 
-static uint32_t raw_buffer_photo = 0;
-
-/* called from state-object.c, SDSf3 or SSS state */
-void raw_buffer_intercept_from_stateobj()
-{
-    /**
-     * will grab the RAW image buffer address and hope it doesn't change
-     * 
-     * with dm-spy log:
-     * 5D2: [TTJ] START RD1:0x4000048 RD2:0x64d1864
-     * 5D3: [TTL] START RD1:0x8602914 RD2:0xad24490
-     * 
-     * don't use the value from debug logs, since it will change after a few pics;
-     * look it up on the EDMAC registers and use that one instead.
-     */
-    raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
-}
-
 /** 
  * Raw type (optional)
  * decompile lv_af_raw
@@ -587,12 +569,8 @@ static int raw_update_params_work()
         {
             return 0;
         }
-
-        raw_info.buffer = (void*) raw_buffer_photo;
         
-        #if defined(CONFIG_500D)
         raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
-        #endif
         
         if (!raw_info.buffer)
         {
@@ -600,31 +578,12 @@ static int raw_update_params_work()
             return 0;
         }
         
+        /* autodetect image size from EDMAC */
+        width  = shamem_read(RAW_PHOTO_EDMAC + 8) * 8 / 14; /* size B */
+        height = shamem_read(RAW_PHOTO_EDMAC + 4) + 1;     /* size N */
+        
         /**
-         * Raw buffer size for photos
-         * Usually it's slightly larger than what raw converters will tell you.
-         * 
-         * Width value is critical (if incorrect, the image will be heavily distorted).
-         * Height is not critical.
-         *
-         * I've guessed the image width by dumping the raw buffer, and then using FFT to guess the period of the image stream.
-         * 
-         * 1) define RAW_DEBUG_DUMP
-         * 
-         * 2) load raw.buf into img.py and run guesspitch, details here: http://magiclantern.wikia.com/wiki/VRAM/550D 
-         * 
-         *          In [4]: s = readseg("raw.buf", 0, 30000000)
-         * 
-         *          In [5]: guesspitch(s)
-         *          3079
-         *          9743.42318935
-         * 
-         *          In [6]: 9743*8/14
-         *          Out[6]: 5567
-         * 
-         *          Then, trial and error => 5568.
-         *
-         * Also, the RAW file has unused areas, usually black; we need to skip them.
+         * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
          * To check the skip offsets, load raw_diag.mo (from the CMOS/ADTG ISO research thread),
          * select the "OB zones" option, and adjust the skip offsets until the picture looks like this:
@@ -634,26 +593,17 @@ static int raw_update_params_work()
          */
         
         #ifdef CONFIG_5D2
-        /* from debug log: [TTJ][150,27089,0] RAW(5792,3804,0,14) */
-        width = 5792;
-        height = 3804;
         skip_left = 160;
         skip_top = 52;
         #endif
 
         #ifdef CONFIG_5D3
-        /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
-        width = 5936;       /* note: CR2 size, at least from dcraw, exiftool and adobedng->dcraw, is 5920 */
-        height = 3950;      /* larger value will cause crash (the raw buffer is allocated at exact size) */
         skip_left = 138;    /* this gives a tight fit */
         skip_right = 2;
         skip_top = 80;      /* matches dcraw */
         #endif
 
         #ifdef CONFIG_500D
-        /* from debug log: [TTJ][150,5401,0] RAW(4832,3204,0,14) */
-        width = 4832;
-        height = 3201;
         skip_left = 62;
         skip_top = 24;
         /* skip one line */
@@ -661,47 +611,34 @@ static int raw_update_params_work()
         #endif
 
         #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-        width = 5344;
-        height = 3516;
         skip_left = 142;
         skip_top = 52;
         #endif
 
         #ifdef CONFIG_1100D
-        //  from debug log: [TTJ][150,2551,0] RAW(4352,2874,0,14)
-        width = 4352; //From TTJ Log
-        height = 2874;
         skip_top = 16;
         skip_left = 62;
         raw_info.buffer += width * 14/8;
         #endif
 
         #ifdef CONFIG_6D
-        width = 5568;
-        height = 3722;
         skip_left = 72;
         skip_right = 0;
         skip_top = 52;
         #endif
       
         #if defined(CONFIG_50D)
-        width = 4832;
-        height = 3228;
         skip_left = 64;
         skip_top = 54;
         #endif 
 
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
-        width = 5280;
-        height = 3528;
         skip_left = 72;
         skip_top = 52;
         #endif
 
         #ifdef CONFIG_7D /* very similar to 5D2 */
-        width = 5360;
-        height = 3516;
         skip_left = 158;
         skip_top = 52;
         /* first pixel should be red, but here it isn't, so we'll skip one line */

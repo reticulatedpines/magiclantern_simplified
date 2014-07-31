@@ -972,10 +972,6 @@ silent_pic_take_fullres(int interactive)
     
     int t1 = get_ms_clock_value();
     info_led_off();
-    
-    /* tell the raw backend to catch the raw buffer address from RAW_PHOTO_EDMAC */
-    void raw_buffer_intercept_from_stateobj();
-    raw_buffer_intercept_from_stateobj();
 
     /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
     int new_gui = GUISTATE_QR;
