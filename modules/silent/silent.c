@@ -945,6 +945,20 @@ silent_pic_take_fullres(int interactive)
         ResumeLiveView();
         return;
     }
+    
+    /* Canon photo taking code is busy? (may happen if you press the shutter fully) */
+    while (lens_info.job_state)
+    {
+        bmp_printf(FONT_MED, 0, 0, "Busy...");
+        msleep(10);
+    }
+    
+    /* Are we still in paused LV mode? */
+    if (!LV_PAUSED)
+    {
+        gui_uilock(UILOCK_NONE);
+        return;
+    }
 
     /* 
      * This enters factory testing mode (SRM_ChangeMemoryManagementForFactory),
