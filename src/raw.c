@@ -582,6 +582,14 @@ static int raw_update_params_work()
         width  = shamem_read(RAW_PHOTO_EDMAC + 8) * 8 / 14; /* size B */
         height = shamem_read(RAW_PHOTO_EDMAC + 4) + 1;     /* size N */
         
+        /* in photo mode, raw buffer size is from ~12 Mpix (1100D) to ~24 Mpix (5D3) */
+        /* (this EDMAC may be reused for something else, usually smaller, or with a different size encoding - refuse to run if this happens) */
+        if ((width & 0xFFFFE000) || (height & 0xFFFFE000) || (width*height < 10e6) || (width*height > 30e6))
+        {
+            dbg_printf("Photo raw size error\n");
+            return 0;
+        }
+        
         /**
          * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
