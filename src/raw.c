@@ -121,7 +121,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_700D)
+#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D)
 #define RAW_PHOTO_EDMAC 0xc0f04008
 #endif
 
@@ -688,12 +688,12 @@ static int raw_update_params_work()
         raw_info.buffer += 4 * width * 14/8 + 16*14/8;
         #endif
 
-        #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
+        #ifdef CONFIG_6D
         width = 5568;
-        height = 3708;
-        skip_left = 84; //Meta Data
-        skip_right = 14;
-        skip_top = 50; // Meta Data
+        height = 3722;
+        skip_left = 72;
+        skip_right = 0;
+        skip_top = 52;
         #endif
 
         #if defined(CONFIG_60D)
