@@ -57,7 +57,7 @@ NSTUB(0xFF342A88, _FIO_GetFileSize)
 NSTUB(0xFF3424AC, _FIO_OpenFile)
 NSTUB(0xFF342614, _FIO_RemoveFile)
 NSTUB(0xFF342FA0, _FIO_RenameFile)
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
+NSTUB(0xFF34276C, FIO_SeekSkipFile)                        /* took relative offset of 700D entry points and compared them to 650Ds. Tests are OK. */
 
 /** GUI **/
 NSTUB(   0x236A8,  gui_main_struct)
