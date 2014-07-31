@@ -670,11 +670,10 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_600D
-        width = 5344; //From Guess Py
+        width = 5344;
         height = 3465;
-        skip_left = 152;
-        skip_right = 10;
-        skip_top = 56;
+        skip_left = 142;
+        skip_top = 52;
         #endif
 
         #ifdef CONFIG_1100D
