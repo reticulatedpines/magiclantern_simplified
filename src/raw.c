@@ -660,18 +660,9 @@ static int raw_update_params_work()
         raw_info.buffer += width * 14/8;
         #endif
 
-        #ifdef CONFIG_550D
+        #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
         width = 5344;
         height = 3516;
-        skip_left = 142;
-        skip_right = 0;
-        skip_top = 50;
-        skip_bottom = 0;
-        #endif
-
-        #ifdef CONFIG_600D
-        width = 5344;
-        height = 3465;
         skip_left = 142;
         skip_top = 52;
         #endif
@@ -692,15 +683,6 @@ static int raw_update_params_work()
         skip_right = 0;
         skip_top = 52;
         #endif
-
-        #if defined(CONFIG_60D)
-        width = 5344;
-        height = 3516;
-        skip_left = 142;
-        skip_right = 0;
-        skip_top = 50;
-        #endif
-
       
         #if defined(CONFIG_50D)
         width = 4832;
