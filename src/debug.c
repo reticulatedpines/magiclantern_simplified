@@ -1489,11 +1489,24 @@ static void stub_test_task(void* arg)
         // mq
         static struct msg_queue * mq = 0;
         int m = 0;
-        TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 5), != 0);
+        uint32_t mqcount = 0;
+        TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 2), != 0);   /* queue with max. 2 items */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);             /* return value should be always 0 */
         TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 1);
+        TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0xABCDEF0), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 2);
+        TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0xBADCAFE), != 0);                       /* queue full, should return error */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 2);
         TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 1);
         TEST_TRY_FUNC_CHECK(m, == 0x1234567);
-        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);
+        TEST_TRY_FUNC_CHECK(m, == 0xABCDEF0);
+        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);    /* queue empty, should return error */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count((void*)1, &mqcount), != 0);                 /* invalid call, should return error */
 
         // sem
         static struct semaphore * sem = 0;
