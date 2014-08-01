@@ -318,7 +318,7 @@ static MENU_SELECT_FUNC(adv_int_load)
     snprintf(filename,MAX_PATH,"%sSEQ.TXT",get_config_dir());
     
     FILE* f = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(f != INVALID_PTR)
+    if(f)
     {
         char* buffer = fio_malloc(FILE_BUF_SIZE);
         if(buffer)
@@ -367,7 +367,7 @@ static MENU_SELECT_FUNC(adv_int_save)
     snprintf(filename,MAX_PATH,"%sSEQ.TXT",get_config_dir());
     
     FILE* f = FIO_CreateFile(filename);
-    if(f != INVALID_PTR)
+    if(f)
     {
         for(struct keyframe * current = keyframes; current; current = current->next)
         {
