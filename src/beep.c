@@ -192,14 +192,14 @@ end:
 }
 
 
-static FILE* file = INVALID_PTR;
+static FILE* file = NULL;
 #define WAV_BUF_SIZE 8192
 static int16_t* wav_buf[2] = {0,0};
 static int wav_ibuf = 0;
 
 static void asif_continue_cbr()
 {
-    if (file == INVALID_PTR) return;
+    if (!file) return;
 
     void* buf = wav_buf[wav_ibuf];
     int s = 0;
@@ -207,7 +207,7 @@ static void asif_continue_cbr()
     if (!s) 
     { 
         FIO_CloseFile(file);
-        file = INVALID_PTR;
+        file = NULL;
         asif_stop_cbr(); 
         info_led_off();
         return; 
@@ -226,9 +226,9 @@ static void wav_play(char* filename)
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
-    if( file != INVALID_PTR ) return;
+    if(file) return;
     file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
-    if( file == INVALID_PTR ) return;
+    if(!file) return;
 
     int s1 = FIO_ReadFile( file, buf1, WAV_BUF_SIZE );
     int s2 = FIO_ReadFile( file, buf2, WAV_BUF_SIZE );
@@ -272,7 +272,7 @@ static void wav_play(char* filename)
     
 wav_cleanup:
     FIO_CloseFile(file);
-    file = INVALID_PTR;
+    file = NULL;
 }
 
 static void asif_rec_stop_cbr()
@@ -322,9 +322,12 @@ static void wav_recordsmall(char* filename, int duration, int show_progress)
     msleep(1000);
        
     FILE* f = FIO_CreateFile(filename);
-    FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
-    FIO_CloseFile(f);
-    fio_free(wav_buf);
+    if (f)
+    {
+        FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
+        FIO_CloseFile(f);
+        fio_free(wav_buf);
+    }
 }
 
 #endif
@@ -332,12 +335,12 @@ static void wav_recordsmall(char* filename, int duration, int show_progress)
 static void audio_stop_playback()
 {
 #ifdef FEATURE_WAV_RECORDING
-    if (beep_playing && file != INVALID_PTR) 
+    if (beep_playing && file != NULL) 
     {
         info_led_on();
         beep_playing = 2; // the CBR will stop the playback and close the file properly
         while (beep_playing) msleep(100);
-        ASSERT(file == INVALID_PTR);
+        ASSERT(file == NULL);
     }
     else // simple beep, just stop it 
 #endif
@@ -351,7 +354,7 @@ static void audio_stop_recording()
     info_led_on();
     audio_recording = 2; // the CBR will stop recording and close the file properly
     while (audio_recording) msleep(100);
-    ASSERT(file == INVALID_PTR);
+    ASSERT(file == NULL);
 }
 #endif
 
@@ -434,7 +437,7 @@ static void write_q_dump(){
 
 static void asif_rec_continue_cbr()
 {
-    if (file == INVALID_PTR) return;
+    if (file == NULL) return;
 
     void* buf = wav_buf[wav_ibuf];
     add_write_q(buf);
@@ -442,7 +445,7 @@ static void asif_rec_continue_cbr()
     if (audio_recording == 2)
     {
         FIO_CloseFile(file);
-        file = INVALID_PTR;
+        file = NULL;
         audio_recording = 0;
         info_led_off();
 #ifdef CONFIG_6D
@@ -462,9 +465,9 @@ static void wav_record(char* filename, int show_progress)
     if (!buf1) return;
     if (!buf2) return;
 
-    if( file != INVALID_PTR ) return;
+    if(file) return;
     file = FIO_CreateFile(filename);
-    if( file == INVALID_PTR ) return;
+    if (!file) return;
     FIO_WriteFile(file, UNCACHEABLE(wav_header), sizeof(wav_header));
     
     audio_recording = 1;

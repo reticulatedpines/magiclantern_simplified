@@ -593,7 +593,7 @@ static void iocrypt_speed_test_write(char *file, uint32_t blocksize, uint32_t lo
     
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), file);
     FILE* f = FIO_CreateFile(filename);
-    if(f == INVALID_PTR)
+    if(!f)
     {
         free(buffer);
         return;
@@ -621,7 +621,7 @@ static void iocrypt_speed_test_read(char *file, uint32_t blocksize)
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), file);
     
     FILE* f = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(f == INVALID_PTR)
+    if(!f)
     {
         free(buffer);
         return;

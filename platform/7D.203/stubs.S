@@ -46,7 +46,7 @@ NSTUB(0xFF1FC684,  FIO_CloseFile)
 NSTUB(0xFF1FD554,  FIO_FindClose)                           // AJ__switch_0x1A50_n_calls_fstOpenDir
 NSTUB(0xFF1FD42C,  FIO_FindNextEx)
 NSTUB(0xFF1FC434,  FIO_ReadFile)
-NSTUB(0xFF1FC5B4,  FIO_SeekFile)
+NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)
 NSTUB(0xFF1FC5D4,  FIO_WriteFile)
 NSTUB(0xFF1FCCF4, _FIO_CreateDirectory)                     // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
 NSTUB(0xFF1FC2E0, _FIO_CreateFile)
@@ -83,6 +83,7 @@ NSTUB(0xFF061A88,  StartASIFDMAADC)
 NSTUB(0xFF061C44,  StartASIFDMADAC)
 NSTUB(0xFF061C08,  StopASIFDMAADC)                          // Called by SoundDevStopIn
 NSTUB(0xFF061D20,  StopASIFDMADAC)
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 
 /** Audio **/
 NSTUB(    0x1F54,  sounddev)
@@ -170,14 +171,18 @@ NSTUB(0xFF07842C,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF07E3CC,  AddMemoryChunk)
 NSTUB(0xFF080EC4,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF080E78,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF07D97C,  CreateMemoryChunk)                       // called before WrapMemoryInChunk (first Create, then Add)
+NSTUB(0xFF07E12C,  CreateMemorySuite)                       // allocates 0x18 bytes, then calls CreateMemoryChunk
+NSTUB(0xFF07DF5C,  DeleteMemorySuite)                       // in fmCreateWaveFileCallback
 NSTUB(0xFF080FDC,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF07E4A0,  GetFirstChunkFromSuite)
 NSTUB(0xFF07DEE8,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF07EC38,  GetNextMemoryChunk)
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF02CD78,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02F098,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x3624,  gui_timer_struct)
@@ -192,11 +197,10 @@ NSTUB(0xFF07B708,  gui_timer_something)
 
 /** GUI timers **/
 NSTUB(0xFF34E5B0,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
-NSTUB(0xFF078E6C, SetHPTimerAfterNow)
-NSTUB(0xFF078D2C, SetHPTimerAfterTimeout)
-NSTUB(0xFF078EEC, SetHPTimerNextTick)
+NSTUB(0xFF082700,  CancelTimer)
+NSTUB(0xFF078E6C,  SetHPTimerAfterNow)
+NSTUB(0xFF078EEC,  SetHPTimerNextTick)
+NSTUB(0xFF082500,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0xA39C,  mvr_config)
@@ -252,6 +256,7 @@ NSTUB(0xFF0686A4,  prop_unregister_slave)
 /** RPC (for 7D) **/
 NSTUB(0xFF07A7D4,  BulkInIPCTransfer)
 NSTUB(0xFF07A704,  BulkOutIPCTransfer)
+NSTUB(0xFF07A954,  QuickOutIPCTransfer)
 NSTUB(0xFF07AED4,  RegisterRPCHandler)
 NSTUB(0xFF07AF84,  RequestRPC)
 
@@ -299,6 +304,7 @@ NSTUB(0xFF209670,  vsnprintf)
 ///NSTUB(0xFF06EDD0,  AsyncEnableImagePhysicalScreenParameter)
 ///NSTUB(0xFF2FFD3C,  CreateDialogBox)
 ///NSTUB(0xFF2FF7C4,  DeleteDialogBox)
+///NSTUB(0xFF1FC5B4,  FIO_SeekFile)
 ///NSTUB(0xFF23F414,  GUI_GetFirmVersion)
 ///NSTUB(0xFF11A8E0,  GetJpegBufForLV)
 ///NSTUB(0xFF11A8EC,  GetJpegSizeForLV)
@@ -320,12 +326,12 @@ NSTUB(0xFF209670,  vsnprintf)
 ///NSTUB(0xFF3D2598,  PackMem_StartEDmac)
 ///NSTUB(0xFF1F5864,  PopEDmac)
 ///NSTUB(0xFF074410,  PowerMicAmp)
-///NSTUB(0xFF07A954,  QuickOutIPCTransfer)
 ///NSTUB(0xFF317EE8,  RedrawDisplay)
 ///NSTUB(0xFF15FD74,  RemoteRelease)
 ///NSTUB(0xFF064D80,  SamplingParamInRate)
 ///NSTUB(0xFF06F2FC,  SetBitmapVramAddress)
 ///NSTUB(0xFF073F54,  SetFilterRec)
+///NSTUB(0xFF078D2C, SetHPTimerAfterTimeout)
 ///NSTUB(0xFF064FF8,  SetVolumeInVolume)
 ///NSTUB(0xFF0650BC,  SetWindCutMode)
 ///NSTUB(0xFF064034,  SoundDevLock)

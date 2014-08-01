@@ -77,7 +77,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(!file)
+    if (!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
@@ -968,17 +968,21 @@ int module_display_filter_update()
         {
             while(cbr->name)
             {
+                /* run the first module display filter that returned 1 in module_display_filter_enabled */ 
                 if(cbr->type == CBR_DISPLAY_FILTER && cbr->ctx)
                 {
                     /* arg!=0: draw the filtered image in these buffers */
                     struct display_filter_buffers buffers;
                     display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
                     
-                    if (buffers.src_buf && buffers.dst_buf) /* do not call the CBR with invalid arguments */
+                    /* do not call the CBR with invalid arguments */
+                    if (buffers.src_buf && buffers.dst_buf)
                     {
                         cbr->handler((intptr_t) &buffers);
                     }
-                    break;
+                    
+                    /* do not allow other display filters to run */
+                    return 1;
                 }
                 cbr++;
             }
@@ -1661,8 +1665,11 @@ static void module_load_task(void* unused)
         else
         {
             FILE *handle = FIO_CreateFile(module_lockfile);
-            FIO_WriteFile(handle, lockstr, strlen(lockstr));
-            FIO_CloseFile(handle);
+            if (handle)
+            {
+                FIO_WriteFile(handle, lockstr, strlen(lockstr));
+                FIO_CloseFile(handle);
+            }
             
             /* now load modules */
             _module_load_all(0);

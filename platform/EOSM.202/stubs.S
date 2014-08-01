@@ -41,6 +41,7 @@
 //FIND
 //Unused
 
+	
 
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -55,7 +56,6 @@ NSTUB(0xFF3468F4,  FIO_CloseFile)
 NSTUB(0xFF3478EC,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF34780C,  FIO_FindNextEx)
 NSTUB(0xFF3466A4,  FIO_ReadFile)
-NSTUB(0xFF346824,  FIO_SeekFile)
 NSTUB(0xFF346754,  FIO_SeekSkipFile)
 NSTUB(0xFF346844,  FIO_WriteFile)
 NSTUB(0xFF347150, _FIO_CreateDirectory)
@@ -73,9 +73,6 @@ NSTUB(0xFF0D7674,  GUI_Control)
 NSTUB(0xFF1A805C,  SetGUIRequestMode)
 NSTUB(0xFF0D7D18,  gui_init_end)
 NSTUB(0xFF0D72A0,  gui_main_task)
-NSTUB(0xFFA6ECE0 - RAM_OFFSET, SetHPTimerAfterNow)
-NSTUB(0xFFA6EB5C - RAM_OFFSET, SetHPTimerAfterTimeout)
-NSTUB(0xFFA6EDD0 - RAM_OFFSET, SetHPTimerNextTick)
 //NSTUB(0xFF0D783C, GUI_ChangeMode)
 //NSTUB(0xFF1B4F70, Gui_SetSoundRecord) // Look for GUI_setsoundrec - Just changes prop
 	//NSTUB(0xff1a4fc8, gui_massive_event_loop)
@@ -96,6 +93,7 @@ NSTUB(0xFF10A674,  StartASIFDMAADC)                         // To Regular
 NSTUB(0xFF10AA48,  StartASIFDMADAC)                         // Needs Patches Or
 NSTUB(0xFF10A920,  StopASIFDMAADC)                          // Regular
 NSTUB(0xFF10ACC8,  StopASIFDMADAC)                          // NormalStopAsif
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 
 /** Audio **/
@@ -184,14 +182,18 @@ NSTUB(0xFFA8B1DC - RAM_OFFSET,  TryPostStageEvent)
 NSTUB(0xFFA8B260 - RAM_OFFSET,  TryPostStageEvent_end)
 
 /** ExMem **/
+NSTUB(0xFFA72BC8 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13B80C,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13B7C0,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFFA720CC - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFFA728EC - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFFA726E4 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13B924,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFA72C98 - RAM_OFFSET,  GetFirstChunkFromSuite)     // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA72670 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xFF0E75DC,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0EB63C,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -205,9 +207,11 @@ NSTUB(0xFFA73434 - RAM_OFFSET,  GetNextMemoryChunk)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
+NSTUB(0xFF52CDC8,  CancelDateTimer)
+NSTUB(0xFFA75448 - RAM_OFFSET,  CancelTimer)
+NSTUB(0xFFA6ECE0 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFA6EDD0 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFFA75248 - RAM_OFFSET,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(   0x4C124,  mvr_config)
@@ -263,13 +267,14 @@ NSTUB(0xFF11F910,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
 /** Recursive locks **/
-NSTUB(0xFFA87CB8 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
+NSTUB(0xFFA88520 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
 NSTUB(0xFFA73E6C - RAM_OFFSET,  CreateRecursiveLock)
-NSTUB(0xFFA87D64 - RAM_OFFSET,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFFA88634 - RAM_OFFSET,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
 
 /** ResLock **/
 NSTUB(0xFF2C5848,  CreateResLockEntry)
@@ -310,6 +315,7 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF4C3BC0,  CreateDialogBox)
 ///NSTUB(0xFF4C2B88,  DeleteDialogBox)
 ///NSTUB(0xFF19991C, ENCODE_StartEncodeJpeg)
+///NSTUB(0xFF346824,  FIO_SeekFile)
 ///NSTUB(0xFF1BD13C, GUI_GetFirmVersion)
 ///NSTUB(0xFFA721A4 - RAM_OFFSET, GetNumberOfChunks)
 ///NSTUB(0xFFA71D5C - RAM_OFFSET, GetRemainOfMemoryChunk)
@@ -330,6 +336,7 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF4E4338,  RedrawDisplay)
 ///NSTUB(0x35784, SIO3_ISR)
 ///NSTUB(0xFF1299C4, SetBitmapVramAddress)
+///NSTUB(0xFFA6EB5C - RAM_OFFSET,  SetHPTimerAfterTimeout)
 ///NSTUB(0xFF2BFAEC, SetNextASIFDACBuffer_1) // Int16 Direct Control
 ///NSTUB(0xFF10D174,  SoundDevActiveOut)
 ///NSTUB(0xFF2BF578, StartASIFDMADAC_1)  //~ Direct

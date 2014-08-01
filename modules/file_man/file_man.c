@@ -702,7 +702,7 @@ FILETYPE_HANDLER(text_handler)
     if (!buf) return 0;
     
     FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
-    if (file != INVALID_PTR)
+    if (file)
     {
         int r = FIO_ReadFile(file, buf, 1024);
         FIO_CloseFile(file);

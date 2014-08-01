@@ -23,8 +23,8 @@
 #define MLEV_MENU_REDRAW -15
 #define MLEV_AV_SHORT -16
 #define MLEV_AV_LONG -17
-
 #define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
+#define MLEV_JOYSTICK_LONG -19
  
 
 /** \file
@@ -188,12 +188,13 @@ gui_hide_menu( int redisplay_time );
                       // 9: unavi? (user navigation?)
                       // 10: unavi set?
 #define GUISTATE_QMENU 9
+#define GUISTATE_QR_ZOOM 12 // QuickReview zoom
 #endif
 
 void fake_simple_button(int bgmt_code);
 void GUI_Control(int bgmt_code, int obj, int arg, int unknown);
 
-#define QR_MODE (gui_state == GUISTATE_QR)
+#define QR_MODE (gui_state == GUISTATE_QR || gui_state == GUISTATE_QR_ZOOM)
 #define PLAY_OR_QR_MODE (PLAY_MODE || QR_MODE)
 
 void canon_gui_disable_front_buffer();
@@ -228,6 +229,7 @@ void _redraw_do();  /* private */
 
 /* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
 void SetGUIRequestMode(int mode);
+int get_gui_mode();
 
 /* on some cameras, Canon encodes multiple scrollwheel clicks in a single event */
 /* this breaks them down into individual events, for ML code that expects one event = one click */
@@ -290,5 +292,8 @@ int get_disp_pressed();
 int get_zoom_out_pressed();
 
 int display_is_on();
+
+/* wrapper for GUI timers */
+void delayed_call(int delay_ms, void(*function)(void));
 
 #endif

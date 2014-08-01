@@ -45,7 +45,6 @@ NSTUB(0xFF309D38,  FIO_CloseFile)
 NSTUB(0xFF30AD30,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF30AC50,  FIO_FindNextEx)
 NSTUB(0xFF309AE8,  FIO_ReadFile)
-NSTUB(0xFF309C68,  FIO_SeekFile)
 NSTUB(0xFF309B98,  FIO_SeekSkipFile)
 NSTUB(0xFF309C88,  FIO_WriteFile)
 NSTUB(0xFF30A594, _FIO_CreateDirectory)
@@ -80,6 +79,7 @@ NSTUB(0xFF10EAA0,  StartASIFDMAADC)
 NSTUB(0xFF10EC58,  StartASIFDMADAC)
 NSTUB(0xFF10ED30,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -171,14 +171,18 @@ NSTUB(0xFF13B68C,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF9EA048 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13C180,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13C134,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF9E954C - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
 NSTUB(0xFF9E9D6C - RAM_OFFSET,  CreateMemorySuite)
 NSTUB(0xFF9E9B64 - RAM_OFFSET,  DeleteMemorySuite)
 NSTUB(0xFF13C298,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF9EA118 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFF9E9AF0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(0xFF0EEAA8,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF0F1D58,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -193,11 +197,10 @@ NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
 
 /** GUI timers **/
 NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
-NSTUB(0xFF9E6160 - RAM_OFFSET, SetHPTimerAfterNow)
-NSTUB(0xFF9E5FDC - RAM_OFFSET, SetHPTimerAfterTimeout)
-NSTUB(0xFF9E6250 - RAM_OFFSET, SetHPTimerNextTick)
+NSTUB(0xFF9EC8C8 - RAM_OFFSET,  CancelTimer)                // called from CancelUnaviFeedBackTimer and many others
+NSTUB(0xFF9E6160 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFF9E6250 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFF9EC6C8 - RAM_OFFSET,  SetTimerAfter)              // called from StartUnaviFeedBackTimer and many others
 
 /** H264 Encoder **/
 // NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -253,6 +256,7 @@ NSTUB(0xFF12340C,  prop_register_slave)
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -300,6 +304,7 @@ NSTUB(0xFF9F4F3C - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF44C8C4,  CreateDialogBox)
 ///NSTUB(0xFF44B894,  DeleteDialogBox)
 ///NSTUB(0xff181314, ENCODE_StartEncodeJpeg)
+///NSTUB(0xFF309C68,  FIO_SeekFile)
 ///NSTUB(0xff19d7e8, GUI_GetFirmVersion)
 ///NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus_bad) // has side effects
 ///NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)

@@ -73,7 +73,6 @@ This notice must always be retained in any copy.
 #define FIO_OpenFile(file,mode) fopen(file, "r")
 #define FIO_GetFileSize(f,ret) getFileSize(f,ret)
 
-#define INVALID_PTR 0
 #define O_RDONLY 0
 #define O_SYNC 0
 
@@ -618,7 +617,7 @@ static void crypt_rsa_reset(crypt_priv_t *priv)
 static uint32_t crypt_rsa_save(char *file, t_crypt_key *key)
 {
     FILE* f = FIO_CreateFile(file);
-    if(f == INVALID_PTR)
+    if(!f)
     {
         return 0;
     }
@@ -644,7 +643,7 @@ uint32_t crypt_rsa_load(char *file, t_crypt_key *key)
     }
 
     FILE* f = FIO_OpenFile(file, O_RDONLY | O_SYNC);
-    if(f == INVALID_PTR)
+    if(!f)
     {
         return 0;
     }

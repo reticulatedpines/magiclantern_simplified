@@ -299,12 +299,12 @@ void bmp_draw_rect_chamfer(int color, int x0, int y0, int w, int h, int a, int t
 #define COLOR_EMPTY             0x00 // total transparent
 #define COLOR_WHITE             0x01 // Normal white
 #define COLOR_BLACK             0x02
-#ifdef CONFIG_4_3_SCREEN
-#define COLOR_BG                0x03 // transparent black
-#else
-#define COLOR_BG                0x14 // transparent gray
-#endif
-#define COLOR_BG_DARK           0x03 // transparent black
+
+#define COLOR_TRANSPARENT_BLACK 0x03
+#define COLOR_TRANSPARENT_GRAY  0x14 // not portable, old cameras show it as magenta
+
+#define COLOR_BG                COLOR_TRANSPARENT_BLACK
+#define COLOR_BG_DARK           COLOR_TRANSPARENT_BLACK // deprecated
 
 #define COLOR_CYAN              0x05
 #define COLOR_GREEN1            0x06

@@ -70,10 +70,8 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-//#if defined(CONFIG_MEMPATCH_CHECK)
 uint32_t ml_used_mem = 0;
 uint32_t ml_reserved_mem = 0;
-//#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -358,7 +356,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     
     /* no, create file and store data */
     handle = FIO_CreateFile(file);
-    if (handle != INVALID_PTR)
+    if (handle)
     {
       while(pos < length)
       {
@@ -386,6 +384,9 @@ static void backup_task()
 }
 #endif
 
+#ifdef CONFIG_HELLO_WORLD
+    #include "fw-signature.h"
+#endif
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
@@ -397,8 +398,7 @@ static void my_big_init_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    #include "fw-signature.h"
-    int sig = compute_signature(SIG_START, 0x10000);
+    int sig = compute_signature((int*)SIG_START, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
@@ -424,7 +424,7 @@ static void my_big_init_task()
     
     msleep(500);
     FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f != INVALID_PTR) {
+    if (f) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
         bmp_printf(FONT_LARGE, 50, 250, ":)");    
@@ -626,7 +626,8 @@ void ml_crash_message(char* msg)
 #define CREATETASK_MAIN_LEN (ROM_CREATETASK_MAIN_END - ROM_CREATETASK_MAIN_START)
 #endif
 
-int init_task_patched(int a, int b, int c, int d)
+
+init_task_func init_task_patched(int a, int b, int c, int d)
 {
     // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
     // Example for the 1100D firmware
@@ -695,7 +696,7 @@ int init_task_patched(int a, int b, int c, int d)
     NotifyBox(10000, "%x ", new_CreateTaskMain); */
     
     // Well... let's cross the fingers and call the relocated stuff
-    return new_init_task(a,b,c,d);
+    return new_init_task;
 
 }
 #endif // CONFIG_ALLOCATE_MEMORY_POOL
@@ -754,7 +755,6 @@ my_init_task(int a, int b, int c, int d)
     /* check for the correct mov instruction */
     if((orig_instr & 0xFFFFF000) == 0xE3A01000)
     {
-#if defined(CONFIG_MEMPATCH_CHECK)
         /* mask out the lowest bits for rotate and immed */
         uint32_t new_address = RESTARTSTART;
         
@@ -776,18 +776,7 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
-        
-        /* ensure binary is not too large */
-        if(ml_used_mem > ml_reserved_mem)
-        {
-            while(1)
-            {
-                info_led_blink(3, 500, 500);
-                info_led_blink(3, 100, 500);
-                msleep(1000);
-            }
-        }
-#endif
+
         /* now patch init task and continue execution */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
     }
@@ -802,30 +791,40 @@ my_init_task(int a, int b, int c, int d)
         cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
     #endif
     }
-
-    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
-    ml_reserved_mem = ML_RESERVED_MEM;
-    #endif
 #endif
 
     #ifdef CONFIG_6D
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
     cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
     #endif
-
-    int ans = init_task(a,b,c,d);
-    
-    /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
-    /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
-    //cache_unlock();
-#else
-    // Call their init task
-    #ifdef CONFIG_ALLOCATE_MEMORY_POOL
-    int ans = init_task_patched(a,b,c,d);
-    #else
-    int ans = init_task(a,b,c,d);
-    #endif // CONFIG_ALLOCATE_MEMORY_POOL
 #endif // HIJACK_CACHE_HOOK
+
+    // Prepare to call Canon's init_task
+    init_task_func init_task_func = &init_task;
+    
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL
+    /* use a patched version of Canon's init_task */
+    /* this call will also tell us how much memory we have reserved for autoexec.bin */
+    init_task_func = init_task_patched(a,b,c,d);
+#endif
+
+    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
+    ml_reserved_mem = ML_RESERVED_MEM;
+    #endif
+
+    /* ensure binary is not too large */
+    if (ml_used_mem > ml_reserved_mem)
+    {
+        while(1)
+        {
+            info_led_blink(3, 500, 500);
+            info_led_blink(3, 100, 500);
+            msleep(1000);
+        }
+    }
+
+    // memory check OK, call Canon's init_task
+    int ans = init_task_func(a,b,c,d);
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
@@ -835,11 +834,11 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
-#if defined(CONFIG_CRASH_LOG) && defined(DRYOS_ASSERT_HANDLER)
+#if defined(CONFIG_CRASH_LOG)
     // decompile TH_assert to find out the location
     old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
     *(void**)(DRYOS_ASSERT_HANDLER) = (void*)my_assert_handler;
-#endif // (CONFIG_CRASH_LOG) && (DRYOS_ASSERT_HANDLER)
+#endif // (CONFIG_CRASH_LOG)
     
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message

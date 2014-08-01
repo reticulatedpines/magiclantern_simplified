@@ -109,10 +109,13 @@ copy_and_restart( int offset )
  * the terminal drivers, stdio, stdlib and armlib.
  */
 
+FILE* _FIO_CreateFile(const char* filename );
 
 static void run_test()
 {
-    FILE * f = FIO_CreateFile("FF000000.BIN");
+    /* change to A:/ for CF cards */
+    FILE * f = _FIO_CreateFile("B:/FF000000.BIN");
+    
     if (f != (void*) -1)
     {
         FIO_WriteFile(f, (void*) 0xFF000000, 0x1000000);
@@ -148,12 +151,14 @@ my_init_task(int a, int b, int c, int d)
     int ans = init_task(a,b,c,d);
     
     msleep(5000);
-    
+
+/*
     while(1)
     {
         null_pointer_check();
         msleep(100);
     }
+*/
 
     task_create("test", 0x1e, 0x1000, run_test, 0 );
 }

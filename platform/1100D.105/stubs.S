@@ -45,7 +45,6 @@ NSTUB(0xFF1D9620,  FIO_CloseFile)                           // might be good (du
 NSTUB(0xFF1DA5F0,  FIO_FindClose)                           // might be good (dumps=1, score=69)
 NSTUB(0xFF1DA510,  FIO_FindNextEx)                          // might be good (dumps=1, score=50)
 NSTUB(0xFF1D93D0,  FIO_ReadFile)                            // might be good (dumps=1, score=87)
-NSTUB(0xFF1D9550,  FIO_SeekFile)
 NSTUB(0xFF1D9570,  FIO_WriteFile)                           // might be good (dumps=1, score=65)
 NSTUB(0xFF1D9E5C, _FIO_CreateDirectory)                     // might be good (dumps=1, score=13)
 NSTUB(0xFF1D927C, _FIO_CreateFile)                          // might be good (dumps=1, score=50)
@@ -54,6 +53,7 @@ NSTUB(0xFF1D979C, _FIO_GetFileSize)                         // might be good (du
 NSTUB(0xFF1D91C0, _FIO_OpenFile)                            // might be good (dumps=1, score=92)
 NSTUB(0xFF1D9328, _FIO_RemoveFile)                          // might be good (dumps=1, score=53)
 NSTUB(0xFF1D9C94, _FIO_RenameFile)
+NSTUB(0xFF1D9480,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1BF4,  gui_main_struct)                         // in gui_main_task
@@ -79,6 +79,7 @@ NSTUB(0xFF0554C4,  StartASIFDMAADC)
 NSTUB(0xFF055678,  StartASIFDMADAC)
 NSTUB(0xFF05574C,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -170,14 +171,18 @@ NSTUB(0xFF06D7DC,  call)                                    // might be good (du
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF072040,  AddMemoryChunk)
 NSTUB(0xFF074B68,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF074B1C,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF0715BC,  CreateMemoryChunk)
+NSTUB(0xFF071D9C,  CreateMemorySuite)
+NSTUB(0xFF071BD0,  DeleteMemorySuite)
 NSTUB(0xFF074C80,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF072114,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF071B5C,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF0728A8,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF029268,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02BCF0,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
@@ -191,9 +196,11 @@ NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (du
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF076470,  CancelTimer)
+NSTUB(0xFF06E260,  SetHPTimerAfterNow)
+NSTUB(0xFF06E354,  SetHPTimerNextTick)
+NSTUB(0xFF076270,  SetTimerAfter)
 // NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
-// NSTUB(    ???,  TimerCancel)                             /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
@@ -249,6 +256,7 @@ NSTUB(0xFF05BAC4,  prop_register_slave)                     // might be good (du
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -299,6 +307,7 @@ NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (du
 ///NSTUB(0xFF06C914,  DebugMsg)                                // might be good (dumps=1, score=1.1e+03)
 ///NSTUB(0xFF31C270,  DeleteDialogBox)                         // might be good (dumps=1, score=47)
 ///NSTUB(0xff35abc4, ErrCardApp_handler) Unused
+///NSTUB(0xFF1D9550,  FIO_SeekFile)
 ///NSTUB(0xFF223218,  GUI_GetFirmVersion)                      // might be good (dumps=1, score=11)
 ///NSTUB(0xFF10DC10,  GetJpegBufForLV)                         // Actually FA_GetJpegBufForLV check ROM FA_ routines to find it
 ///NSTUB(0xFF10DC1C,  GetJpegSizeForLV)                        // Actually FA_GetJpegSizeForLV (see above)

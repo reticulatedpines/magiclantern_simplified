@@ -430,11 +430,11 @@ void hist_highlight(int level)
 
 int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed)
 {
-    if (!raw_update_params()) return -1;
+    if (!raw_update_params()) goto err;
     get_yuv422_vram();
 
     int* hist = malloc(16384*4);
-    if (!hist) return -1;
+    if (!hist) goto err;
     memset(hist, 0, 16384*4);
 
     int off = get_y_skip_offset_for_histogram();
@@ -534,6 +534,13 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
 
     free(hist);
     return 1;
+
+err:
+    for (int k = 0; k < n; k++)
+    {
+        output_raw_values[k] = -1;
+    }
+    return -1;
 }
 
 int raw_hist_get_percentile_level(int percentile_x10, int gray_projection, int speed)
@@ -615,7 +622,7 @@ static void histobar_refresh()
         int max = MAX(MAX(histogram.hist_r[i], histogram.hist_g[i]), histogram.hist_b[i]);
         int ev_till_right_x10 = 120 - (i * 120 / (HIST_WIDTH-1));
         int ev_till_right = ev_till_right_x10 / 10;
-        int ev_from_left = 12 - ev_till_right;
+        int ev_from_left = histobar_stops - ev_till_right;
         if (max > thr)
         {
             stops_until_overexposure = ev_till_right_x10;
@@ -643,6 +650,18 @@ static void histobar_refresh()
     #endif
 
     histobar_stops_until_overexposure = stops_until_overexposure;
+
+    #ifdef CONFIG_QEMU
+    /* double-check median and shadow levels (compare with histobar readings) */
+    int prctiles[2] = {500, 50};
+    int raw_levels[2];
+    int ev_levels[2];
+    raw_hist_get_percentile_levels(prctiles, raw_levels, 2, GRAY_PROJECTION_MAX_RGB, 0);
+    ev_levels[0] = (int)roundf(raw_to_ev(raw_levels[0]) * 10);
+    ev_levels[1] = (int)roundf(raw_to_ev(raw_levels[1]) * 10);
+    printf("Median   : %d = %s%d.%d EV\n", raw_levels[0], FMT_FIXEDPOINT1(ev_levels[0]));
+    printf("Shadow 5%%: %d = %s%d.%d EV\n", 0, raw_levels[1], FMT_FIXEDPOINT1(ev_levels[1]));
+    #endif
 
     lens_display_set_dirty();
 }
@@ -680,24 +699,30 @@ static LVINFO_UPDATE_FUNC(histobar_update)
             int fg = item->color_fg;    /* outline color */
             int bg0 = item->color_bg;   /* background color */
             int bg = bg0;               /* fill color */
-            if (full) bg = fg;
-            if (ev == histobar_stops-1 && histobar_clipped > thr)
+
+            if (full)
             {
-                fg = bg = COLOR_RED;
+                bg = fg;
             }
-            else if (ev == 0 && full)
+
+            if (ev == histobar_midtone_level)
             {
-                fg = bg = COLOR_LIGHT_BLUE;
+                fg = bg = COLOR_YELLOW;
             }
             
             if (ev < histobar_shadow_level && full)
             {
                 fh = h/3;
             }
-            
-            if (ev == histobar_midtone_level && full)
+
+            if (ev == histobar_stops-1 && histobar_clipped > thr)
             {
-                fg = bg = COLOR_YELLOW;
+                fg = bg = COLOR_RED;
+                fh = h;
+            }
+            else if (ev == 0 && full)
+            {
+                fg = bg = COLOR_LIGHT_BLUE;
             }
             
             bmp_fill(bg0, x, y, w-2, h-fh);

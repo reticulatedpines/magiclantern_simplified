@@ -4486,7 +4486,7 @@ void hdr_create_script(int f0, int focus_stack)
     snprintf(name, sizeof(name), "%s/%s_%04d.%s", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0, hdr_scripts == 3 ? "txt" : "sh");
 
     FILE * f = FIO_CreateFile(name);
-    if ( f == INVALID_PTR )
+    if (!f)
     {
         bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFile: error for %s", name );
         return;
@@ -4561,7 +4561,7 @@ void interval_create_script(int f0)
     int append_header = !is_file(name);
     FILE * f = FIO_CreateFileOrAppend(name);
     
-    if ( f == INVALID_PTR )
+    if (!f)
     {
         bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileOrAppend: error for %s", name );
         return;
@@ -5433,8 +5433,8 @@ int handle_intervalometer(struct event * event)
     // stop intervalometer with MENU or PLAY
     if (!IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
         intervalometer_stop();
-    return 1;
 #endif
+    return 1;
 }
 
 // this syncs with DIGIC clock from clock_task
@@ -6368,10 +6368,8 @@ shoot_task( void* unused )
                 
                 if(audio_release_running)
                 {   
-                    #ifndef CONFIG_7D
                     //Enable Audio IC In Photo Mode if off
                     if (!is_movie_mode())
-                    #endif
                     {
                         SoundDevActiveIn(0);
                     }
