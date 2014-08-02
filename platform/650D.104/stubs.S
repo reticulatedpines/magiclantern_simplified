@@ -200,10 +200,10 @@ NSTUB(0xFF0EA5B8,  SRM_FreeMemoryResourceFor1stJob)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
-NSTUB(0xFFA5A2B8 - RAM_OFFSET,  CancelTimer)
-NSTUB(0xFFA53BB8 - RAM_OFFSET,  SetHPTimerAfterNow)
-NSTUB(0xFFA53D2C - RAM_OFFSET,  SetHPTimerNextTick)
-NSTUB(0xFFA5A0B8 - RAM_OFFSET,  SetTimerAfter)
+NSTUB(0xFFA589B8 - RAM_OFFSET,  CancelTimer)
+NSTUB(0xFFA522B8 - RAM_OFFSET,  SetHPTimerAfterNow)
+NSTUB(0xFFA523A8 - RAM_OFFSET,  SetHPTimerNextTick)
+NSTUB(0xFFA587B8 - RAM_OFFSET,  SetTimerAfter)
 NSTUB(0xFF51DBD8,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
