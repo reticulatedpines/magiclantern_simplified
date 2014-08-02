@@ -204,7 +204,7 @@ NSTUB(0xFFA5A2B8 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA53BB8 - RAM_OFFSET,  SetHPTimerAfterNow)
 NSTUB(0xFFA53D2C - RAM_OFFSET,  SetHPTimerNextTick)
 NSTUB(0xFFA5A0B8 - RAM_OFFSET,  SetTimerAfter)
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF51DBD8,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x31424,  mvr_config)
