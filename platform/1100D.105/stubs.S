@@ -200,7 +200,7 @@ NSTUB(0xFF076470,  CancelTimer)
 NSTUB(0xFF06E260,  SetHPTimerAfterNow)
 NSTUB(0xFF06E354,  SetHPTimerNextTick)
 NSTUB(0xFF076270,  SetTimerAfter)
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF36C6A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
