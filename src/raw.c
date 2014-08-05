@@ -616,6 +616,7 @@ static int raw_update_params_work()
         skip_top = 24;
         /* skip one line */
         raw_info.buffer += width * 14/8;
+        height--;
         #endif
 
         #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
@@ -627,6 +628,7 @@ static int raw_update_params_work()
         skip_top = 16;
         skip_left = 62;
         raw_info.buffer += width * 14/8;
+        height--;
         #endif
 
         #ifdef CONFIG_6D
