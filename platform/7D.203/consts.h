@@ -8,10 +8,6 @@
 #define LEDON 0x138000
 #define LEDOFF 0x38400
 
-//~ Format dialog consts
-#define FORMAT_BTN "[Q]"
-#define STR_LOC 11
-
 #define CARD_A_MAKER 0x8748F
 #define CARD_A_MODEL 0x874c3
 #define CARD_A_LABEL 0x218000
@@ -211,6 +207,9 @@
 
 #define DIALOG_MnCardFormatBegin (0x213AC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x22C68) // similar
+#define FORMAT_BTN_NAME "[Q]"
+#define FORMAT_BTN BGMT_Q
+#define FORMAT_STR_LOC 11
 
 #define BULB_MIN_EXPOSURE 500
 

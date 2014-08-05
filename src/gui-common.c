@@ -534,22 +534,7 @@ int handle_common_events_by_feature(struct event * event)
     #endif
     
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
-    #ifdef BGMT_Q
-    if (MENU_MODE && (event->param == BGMT_Q
-        #ifdef BGMT_Q_ALT
-        || event->param == BGMT_Q_ALT
-        #endif
-    ))
-    #elif defined(BGMT_FUNC)
-    if (MENU_MODE && event->param == BGMT_FUNC)
-    #elif defined(BGMT_PICSTYLE)
-    if (MENU_MODE && event->param == BGMT_PICSTYLE)
-    #elif defined(BGMT_LV)
-    if (MENU_MODE && event->param == BGMT_LV)
-    #else
-    if (0)
-    #endif
-         return handle_keep_ml_after_format_toggle();
+    if (handle_keep_ml_after_format_toggle(event) == 0) return 0;
 #endif
         
     #ifdef FEATURE_FPS_OVERRIDE

@@ -3531,17 +3531,10 @@ static void HijackFormatDialogBox()
     struct dialog * dialog = current->priv;
     if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-    /** Defaults for format dialog consts **/
-    #if !defined(FORMAT_BTN)
-        #define FORMAT_BTN "[Q]"
-    #elif !defined(STR_LOC)
-        #define STR_LOC 11
-    #endif
-
     if (keep_ml_after_format)
-        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN_NAME);
     else
-        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN_NAME);
     dialog_redraw(dialog);
 }
 
@@ -3554,13 +3547,16 @@ static void HijackCurrentDialogBox(int string_id, char* msg)
     dialog_redraw(dialog);
 }
 
-int handle_keep_ml_after_format_toggle()
+int handle_keep_ml_after_format_toggle(struct event * event)
 {
-    if (!MENU_MODE) return 1;
-    if (MEM(DIALOG_MnCardFormatBegin) == 0) return 1;
-    keep_ml_after_format = !keep_ml_after_format;
-    fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
-    return 0;
+    if (event->param == FORMAT_BTN && MENU_MODE && MEM(DIALOG_MnCardFormatBegin))
+    {
+        keep_ml_after_format = !keep_ml_after_format;
+        fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
+        return 0;
+    }
+    
+    return 1;
 }
 
 /**
@@ -3743,14 +3739,14 @@ static void CopyMLFilesBack_AfterFormat()
         if(should_run_polling_action(500, &aux))
         {
             snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
-            HijackCurrentDialogBox(STR_LOC, msg);
+            HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
         }
         dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
         int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4);
         if (sig != tmp_files[i].sig)
         {
             snprintf(msg, sizeof(msg), "Could not restore %s :(", tmp_files[i].name);
-            HijackCurrentDialogBox(STR_LOC, msg);
+            HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
             msleep(2000);
             FIO_RemoveFile(tmp_files[i].name);
             if (i <= 1) return;
@@ -3761,15 +3757,15 @@ static void CopyMLFilesBack_AfterFormat()
     /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
     if(check_autoexec())
     {
-        HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        HijackCurrentDialogBox(FORMAT_STR_LOC, "Writing bootflags...");
         
         extern void bootflag_write_bootblock(void);
         bootflag_write_bootblock();
     }
 
-    HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Magic Lantern restored :)");
     msleep(1000);
-    HijackCurrentDialogBox(STR_LOC, "Format");
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Format");
 }
 
 static void HijackFormatDialogBox_main()
