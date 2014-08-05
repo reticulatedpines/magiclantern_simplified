@@ -192,7 +192,7 @@
 #define DIALOG_MnCardFormatExecute (0x24398+4) // similar
 #define FORMAT_BTN_NAME "[LiveView]"
 #define FORMAT_BTN BGMT_LV
-#define STR_LOC 12
+#define FORMAT_STR_LOC 12
 
 #define BULB_MIN_EXPOSURE 1000
 

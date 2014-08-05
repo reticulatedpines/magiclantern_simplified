@@ -77,7 +77,7 @@
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 #define FORMAT_BTN_NAME "[Q]"
 #define FORMAT_BTN BGMT_Q
-#define STR_LOC 11
+#define FORMAT_STR_LOC 11
 
 #define BULB_MIN_EXPOSURE 1000
 
