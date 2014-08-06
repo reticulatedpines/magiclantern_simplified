@@ -137,3 +137,6 @@
 
 /** We have an internal GPS */
 #define CONFIG_GPS
+
+/** Hide Canon bottom bar from DebugMsg hook */
+#define CONFIG_LVAPP_HACK_DEBUGMSG

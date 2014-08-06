@@ -118,11 +118,6 @@ BUILDVER=$(shell whoami).$(shell hg id -i -r .)
 VERSION:=Nightly.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 # Build configuration - untested and debug stuff handy for devs
-CONFIG_PYMITE       = n
-ifndef CONFIG_RELOC
-CONFIG_RELOC        = n
-endif
-CONFIG_TIMECODE     = n
 CONFIG_PTP          = n
 CONFIG_PTP_CHDK     = n
 CONFIG_PTP_ML       = n
@@ -135,9 +130,6 @@ CONFIG_CONSOLE      = y
 endif
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
-ifndef CONFIG_PICOC
-CONFIG_PICOC        = n
-endif
 CONFIG_TCC          = y
 CONFIG_MODULES      = y
 CONFIG_TINYPY       = n

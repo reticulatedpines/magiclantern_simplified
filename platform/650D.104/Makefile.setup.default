@@ -1,7 +1,2 @@
 #Makefile for EOS 650D
 
-
-ML_SRC_EXTRA_OBJS = \
-	raw.o \
-	chdk-dng.o \
-	edmac-memcpy.o
