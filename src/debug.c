@@ -829,6 +829,12 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
             TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
         }
+        
+        /* CancelDateTimer - not sure how to test, so will check the stub directly */
+        extern thunk CancelDateTimer;
+        TEST_TRY_FUNC_CHECK(MEM(&CancelDateTimer), == (int)0xe92d4010); /* push	{r4, lr} on all cameras so far */
+        //~ char* CancelDateTimer_name = asm_guess_func_name_from_string((uint32_t)&CancelDateTimer); /* requires asm.o */
+        //~ TEST_TRY_FUNC_CHECK(streq(CancelDateTimer_name, "CancelDateTimer") || streq(CancelDateTimer_name, "StopDateTimer"), != 0);
 
         /* uncomment to test only the timers */
         //~ continue;
@@ -1072,11 +1078,24 @@ static void stub_test_task(void* arg)
         // mq
         static struct msg_queue * mq = 0;
         int m = 0;
-        TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 5), != 0);
+        uint32_t mqcount = 0;
+        TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 2), != 0);   /* queue with max. 2 items */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);             /* return value should be always 0 */
         TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 1);
+        TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0xABCDEF0), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 2);
+        TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0xBADCAFE), != 0);                       /* queue full, should return error */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 2);
         TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 1);
         TEST_TRY_FUNC_CHECK(m, == 0x1234567);
-        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);
+        TEST_TRY_FUNC_CHECK(m, == 0xABCDEF0);
+        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);    /* queue empty, should return error */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count((void*)1, &mqcount), != 0);                 /* invalid call, should return error */
 
         // sem
         static struct semaphore * sem = 0;
@@ -3258,26 +3277,7 @@ static void CopyMLFilesToRAM_BeforeFormat()
 // check if autoexec.bin is present on the card
 static int check_autoexec()
 {
-    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
-
-// check if magic.fir is present on the card
-static int check_fir()
-{
-    FILE * f = FIO_OpenFile("MAGIC.FIR", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
+    return is_file("AUTOEXEC.BIN");
 }
 
 static void CopyMLFilesBack_AfterFormat()
@@ -3326,7 +3326,7 @@ static void HijackFormatDialogBox_main()
     // at this point, Format dialog box is active
 
     // make sure we have something to restore :)
-    if (!check_autoexec() && !check_fir()) return;
+    if (!check_autoexec()) return;
 
     gui_uilock(UILOCK_EVERYTHING);
     

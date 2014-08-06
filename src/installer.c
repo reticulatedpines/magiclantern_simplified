@@ -74,13 +74,14 @@ static void call_bootflag_eventproc(char* eventproc)
             bmp_printf(FONT_LARGE, 0, 450, eventproc);
             info_led_blink(1, 50, 50);
         }
-        if (CURRENT_DIALOG_MAYBE == DLG_MENU)
+
+        /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
+        uint32_t old = cli();
+        if (CURRENT_DIALOG_MAYBE == DLG_MENU && DISPLAY_IS_ON)
         {
-            /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
-            uint32_t old = cli();
             call( eventproc );
-            sei(old);
         }
+        sei(old);
     }
 }
 
@@ -512,6 +513,11 @@ int hdmi_code = 0;
 void update_vram_params(){};
 void draw_line(int x1, int y1, int x2, int y2, int cl){}
 void NotifyBox(int timeout, char* fmt, ...) {}
+struct memSuite * _shoot_malloc_suite(size_t size) { return 0; }
+struct memSuite * _shoot_malloc_suite_contig(size_t size) { return 0; }
+void _shoot_free_suite(struct memSuite * suite) {}
+struct memSuite * _srm_malloc_suite(int num) { return 0; }
+void _srm_free_suite(struct memSuite * suite) {}
 
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
