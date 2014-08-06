@@ -1607,7 +1607,7 @@ static void bmp_init(void* unused)
     bmp_lock = CreateRecursiveLock(0);
     ASSERT(bmp_lock)
     bvram_mirror_init();
-    update_vram_params();
+    _update_vram_params();
 }
 
 INIT_FUNC(__FILE__, bmp_init);
