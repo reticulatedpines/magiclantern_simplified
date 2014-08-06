@@ -60,7 +60,7 @@
  * 
  * Looking in sub_FF132FA0 => returns *(0x24758 + 4*arg0), arg0 is 0 for built-in LCD and probably 1 for HDMI
  */
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(*(uint32_t*)0x24758 + 4))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(*(uint32_t*)(0x24758 + (hdmi_code >= 5 ? 4 : 0)) + 4))
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
