@@ -2056,11 +2056,11 @@ static void mlv_play_set_mode(int32_t mode)
     uint32_t loops = 0;
     
     SetGUIRequestMode(mode);
-    while(get_gui_mode() != mode)
+    while (get_gui_mode() != mode || !display_is_on())
     {
         msleep(100);
         loops++;
-        if(loops > 10)
+        if(loops > 50)
         {
             break;
         }
