@@ -225,10 +225,10 @@ void _update_vram_params()
     prev_EXT_MONITOR_RCA = EXT_MONITOR_RCA;
     
     // LV crop area (black bars)
-    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : EXT_MONITOR_RCA ? (pal ? 40 : 40) :    0);
-    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : EXT_MONITOR_RCA ? (pal ? 29 : 25) :    0);
-    os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 640 : 720;
-    os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 388 : 480;
+    os.x0   = hdmi_code >= 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : EXT_MONITOR_RCA ? (pal ? 40 : 40) :    0);
+    os.y0   = hdmi_code >= 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : EXT_MONITOR_RCA ? (pal ? 29 : 25) :    0);
+    os.x_ex = hdmi_code >= 5 ? 810 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 640 : 720;
+    os.y_ex = hdmi_code >= 5 ? 540 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 388 : 480;
 #if defined(CONFIG_4_3_SCREEN)
     if (!EXT_MONITOR_CONNECTED)
     {
@@ -297,8 +297,8 @@ void _update_vram_params()
         vram_lv.width  = 720;
         vram_lv.height = 240;
     #else
-        vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : EXT_MONITOR_RCA ? 540 : 720;
-        vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : EXT_MONITOR_RCA ? (pal ? 572 : 480) : 480;
+        vram_lv.width  = hdmi_code >= 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : EXT_MONITOR_RCA ? 540 : 720;
+        vram_lv.height = hdmi_code >= 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : EXT_MONITOR_RCA ? (pal ? 572 : 480) : 480;
     #endif
     vram_lv.pitch = vram_lv.width * 2;
 #endif
@@ -320,14 +320,14 @@ void _update_vram_params()
     // bmp to lv transformation
     // LCD: (0,0) -> (0,0)
     // HDMI: (-120,-30) -> (0,0) and scaling factor is 2
-    bm2lv.tx = hdmi_code == 5 ?  240 : EXT_MONITOR_RCA ? 4 : 0;
-    bm2lv.ty = hdmi_code == 5 ? (video_mode_resolution>0 ? 30 : 60) : 0;
-    bm2lv.sx = hdmi_code == 5 ? 2048 : EXT_MONITOR_RCA ? 768 : 1024;
-    bm2lv.sy = 1024 * vram_lv.height / (hdmi_code==5 ? 540 : 480); // no black bars at top or bottom
+    bm2lv.tx = hdmi_code >= 5 ?  240 : EXT_MONITOR_RCA ? 4 : 0;
+    bm2lv.ty = hdmi_code >= 5 ? (video_mode_resolution>0 ? 30 : 60) : 0;
+    bm2lv.sx = hdmi_code >= 5 ? 2048 : EXT_MONITOR_RCA ? 768 : 1024;
+    bm2lv.sy = 1024 * vram_lv.height / (hdmi_code >= 5 ? 540 : 480); // no black bars at top or bottom
 #endif
     
-    //~ lv_ratio_num = hdmi_code == 5 ? 16 : 3;
-    //~ lv_ratio_den = hdmi_code == 5 ?  9 : 2;
+    //~ lv_ratio_num = hdmi_code >= 5 ? 16 : 3;
+    //~ lv_ratio_den = hdmi_code >= 5 ?  9 : 2;
 
     // HD buffer (used for recording)
     //~ hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;

@@ -2760,7 +2760,7 @@ void display_shake_step()
     if (!display_shake) return;
     if (!lv) return;
     if (!DISPLAY_IS_ON) return;
-    if (hdmi_code == 5) return;
+    if (hdmi_code >= 5) return;
     static int k; k++;
     if (k%2) return;
     if ((MEM(REG_EDMAC_WRITE_LV_ADDR) & 0xFFFF) != (YUV422_LV_BUFFER_1 & 0xFFFF)) return;
@@ -2816,7 +2816,7 @@ int FAST anamorphic_squeeze_bmp_y(int y)
 {
     if (likely(!anamorphic_preview)) return y;
     if (unlikely(!lv)) return y;
-    if (unlikely(hdmi_code == 5)) return y;
+    if (unlikely(hdmi_code >= 5)) return y;
     if (unlikely(y < 0 || y >= 480)) return y;
 
     static int prev_idx = -1;
@@ -2851,7 +2851,7 @@ static void FAST anamorphic_squeeze()
     if (!anamorphic_preview) return;
     if (!get_global_draw()) return;
     if (!lv) return;
-    if (hdmi_code == 5) return;
+    if (hdmi_code >= 5) return;
     
     int num = anamorphic_ratio_num[anamorphic_ratio_idx];
     int den = anamorphic_ratio_den[anamorphic_ratio_idx];
