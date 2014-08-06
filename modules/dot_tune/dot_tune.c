@@ -18,6 +18,7 @@
 extern void set_afma_mode(int mode);
 extern int get_afma_mode();
 extern int get_afma_max();
+extern int get_config_afma_wide_tele();
 
 /* lens.c */
 extern void restore_af_button_assignment();
@@ -26,6 +27,7 @@ extern void assign_af_button_to_halfshutter();
 /* state-object.c */
 extern int display_is_on();
 
+static int afma_wide_tele = 0;
 static int AFMA_MAX = 0;
 
 #define AFMA_SCAN_PASSES_MAX 10
@@ -496,24 +498,30 @@ static void afma_auto_tune()
 // for toggling
 static int afma_mode_to_index(int mode)
 {
-#ifdef CONFIG_AFMA_WIDE_TELE
-    if (mode == AFMA_MODE_PER_LENS_WIDE) return 2;
-    else if (mode == AFMA_MODE_PER_LENS_TELE) return 3;
-    else return mode;
-#else
-    return mode;
-#endif
+    if (afma_wide_tele)
+    {
+        if (mode == AFMA_MODE_PER_LENS_WIDE) return 2;
+        else if (mode == AFMA_MODE_PER_LENS_TELE) return 3;
+        else return mode;
+    }
+    else
+    {
+        return mode;
+    }
 }
 
 static int afma_index_to_mode(int index)
 {
-#ifdef CONFIG_AFMA_WIDE_TELE
-    if (index == 2) return AFMA_MODE_PER_LENS_WIDE;
-    else if (index == 3) return AFMA_MODE_PER_LENS_TELE;
-    else return index;
-#else
-    return index;
-#endif
+    if (afma_wide_tele)
+    {
+        if (index == 2) return AFMA_MODE_PER_LENS_WIDE;
+        else if (index == 3) return AFMA_MODE_PER_LENS_TELE;
+        else return index;
+    }
+    else
+    {
+        return index;
+    }
 }
 
 // sync ML AFMA mode from Canon firmware
@@ -529,12 +537,13 @@ static void afma_mode_sync()
     {
         afma_mode = mode;
 
-        #ifdef CONFIG_AFMA_WIDE_TELE
-        if (afma_mode == AFMA_MODE_PER_LENS)
+        if (afma_wide_tele)
         {
-            afma_mode = AFMA_MODE_PER_LENS_WIDE; // don't know focal length limits yet, so just choose wide
+            if (afma_mode == AFMA_MODE_PER_LENS)
+            {
+                afma_mode = AFMA_MODE_PER_LENS_WIDE; // don't know focal length limits yet, so just choose wide
+            }
         }
-        #endif
     }
 
     afma_mode_index = afma_mode_to_index(afma_mode);
@@ -588,15 +597,16 @@ static MENU_UPDATE_FUNC(afma_display)
             afma > 0 ? "+" : "", afma
         );
         
-        #ifdef CONFIG_AFMA_WIDE_TELE
-        if (afma_mode == AFMA_MODE_PER_LENS)
+        if (afma_wide_tele)
         {
-            int w = get_afma(AFMA_MODE_PER_LENS_WIDE);
-            int t = get_afma(AFMA_MODE_PER_LENS_TELE);
-            if (w != t)
-                MENU_SET_VALUE("W:%d T:%d", w, t);
+            if (afma_mode == AFMA_MODE_PER_LENS)
+            {
+                int w = get_afma(AFMA_MODE_PER_LENS_WIDE);
+                int t = get_afma(AFMA_MODE_PER_LENS_TELE);
+                if (w != t)
+                    MENU_SET_VALUE("W:%d T:%d", w, t);
+            }
         }
-        #endif
 
         MENU_SET_ICON(MNI_PERCENT, 50 + afma * 50 / AFMA_MAX);
     }
@@ -621,11 +631,7 @@ static MENU_SELECT_FUNC(afma_toggle)
 
 static MENU_SELECT_FUNC(afma_mode_toggle)
 {
-    #ifdef CONFIG_AFMA_WIDE_TELE
-    int afma_index_max = 3;
-    #else
-    int afma_index_max = 2;
-    #endif
+    int afma_index_max = afma_wide_tele ? 3 : 2;
     
     if (!lens_info.name[0])
         return;
@@ -684,40 +690,57 @@ static struct menu_entry afma_menu[] = {
                 .help  = "Adjust AFMA value manually. Range: -100...+100.",
                 .edit_mode = EM_MANY_VALUES,
             },
-            {
-                .name = "AFMA mode",
-                .priv = &afma_mode_index,
-                .select = afma_mode_toggle,
-                .min = 0,
-                #ifdef CONFIG_AFMA_WIDE_TELE
-                .max = 3,
-                #else
-                .max = 2,
-                #endif
-                .choices = CHOICES(
-                    "Disabled", 
-                    "All lenses",
-                    #ifdef CONFIG_AFMA_WIDE_TELE
-                    "This lens, wide/prime", 
-                    "This lens, tele"
-                    #else
-                    "This lens"
-                    #endif
-                ),
-                .help  = "Where to apply the AFMA adjustment.",
-                .icon_type = IT_DICE_OFF,
-            },
             MENU_EOL
         },
+    },
+};
+
+static struct menu_entry afma_mode_menu_regular[] = 
+{
+    {
+        .name = "AFMA mode",
+        .priv = &afma_mode_index,
+        .select = afma_mode_toggle,
+        .min = 0,
+        .max = 2,
+        .choices = CHOICES(
+            "Disabled", 
+            "All lenses",
+            "This lens"
+        ),
+        .help  = "Where to apply the AFMA adjustment.",
+        .icon_type = IT_DICE_OFF,
+    },
+};
+
+static struct menu_entry afma_mode_menu_wide_tele[] = 
+{
+    {
+        .name = "AFMA mode",
+        .priv = &afma_mode_index,
+        .select = afma_mode_toggle,
+        .min = 0,
+        .max = 3,
+        .choices = CHOICES(
+            "Disabled", 
+            "All lenses",
+            "This lens, wide/prime", 
+            "This lens, tele"
+        ),
+        .help  = "Where to apply the AFMA adjustment.",
+        .icon_type = IT_DICE_OFF,
     },
 };
 
 static unsigned int dottune_init()
 {
     AFMA_MAX = get_afma_max();
+    afma_wide_tele = get_config_afma_wide_tele();
+    
     if (AFMA_MAX)
     {
-        menu_add( "Focus", afma_menu, COUNT(afma_menu));
+        menu_add("Focus", afma_menu, COUNT(afma_menu));
+        menu_add("DotTune AFMA", afma_wide_tele ? afma_mode_menu_wide_tele : afma_mode_menu_regular, 1);
         return 0;
     }
     else
