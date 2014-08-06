@@ -1246,6 +1246,12 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
             TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
         }
+        
+        /* CancelDateTimer - not sure how to test, so will check the stub directly */
+        extern thunk CancelDateTimer;
+        TEST_TRY_FUNC_CHECK(MEM(&CancelDateTimer), == (int)0xe92d4010); /* push	{r4, lr} on all cameras so far */
+        //~ char* CancelDateTimer_name = asm_guess_func_name_from_string((uint32_t)&CancelDateTimer); /* requires asm.o */
+        //~ TEST_TRY_FUNC_CHECK(streq(CancelDateTimer_name, "CancelDateTimer") || streq(CancelDateTimer_name, "StopDateTimer"), != 0);
 
         /* uncomment to test only the timers */
         //~ continue;
