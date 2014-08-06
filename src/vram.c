@@ -10,6 +10,7 @@
 #include "menu.h"
 #include "shoot.h"
 #include "zebra.h"
+#include "raw.h"
 
 //~ #define CONFIG_DEBUGMSG 1
 
@@ -391,6 +392,10 @@ void _update_vram_params()
 //~ #endif
 
     vram_update_luts();
+    
+    #ifdef CONFIG_RAW_LIVEVIEW
+    raw_set_dirty();
+    #endif
 }
 
 
