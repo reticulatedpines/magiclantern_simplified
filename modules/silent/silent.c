@@ -934,16 +934,15 @@ silent_pic_take_fullres(int interactive)
 
     clrscr();
     vram_clear_lv();
+    
+    char* error_msg = 0;
 
     /* there are problems with shutter speeds slower than 15 seconds */
     /* (corrupted image and camera lockup, at least on 5D2 and 550D) */
     if (lens_info.raw_shutter < SHUTTER_15s)
     {
-        bmp_printf(FONT_MED, 0, 0, "Exposure too long");
-        msleep(2000);
-        gui_uilock(UILOCK_NONE);
-        ResumeLiveView();
-        return;
+        error_msg = "Exposure too long";
+        goto err;
     }
     
     /* Canon photo taking code is busy? (may happen if you press the shutter fully) */
@@ -956,8 +955,7 @@ silent_pic_take_fullres(int interactive)
     /* Are we still in paused LV mode? */
     if (!LV_PAUSED)
     {
-        gui_uilock(UILOCK_NONE);
-        return;
+        goto err;
     }
 
     /* 
@@ -1037,6 +1035,17 @@ silent_pic_take_fullres(int interactive)
     call("FA_DeleteTestImage", copy_job);
     
     gui_uilock(UILOCK_NONE);
+    return;
+
+err:
+    if (error_msg)
+    {
+        bmp_printf(FONT_MED, 0, 0, "%s", error_msg);
+        msleep(2000);
+    }
+    gui_uilock(UILOCK_NONE);
+    ResumeLiveView();
+    return;
 }
 
 static unsigned int
