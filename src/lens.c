@@ -1233,16 +1233,20 @@ PROP_HANDLER( PROP_APERTURE ) // for Tv mode
     lens_display_set_dirty();
 }
 
-static int shutter_also_ack = -1;
 PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
 {
+    /* without this, EOS-M is misbehaving in M mode: https://bitbucket.org/hudson/magic-lantern/pull-request/566/fullres-silent-pics-changes-for-eos-m/activity */
+    if (shooting_mode == SHOOTMODE_M)
+    {
+        return;
+    }
+    
     if (!CONTROL_BV)
     {
         if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
             lensinfo_set_shutter(buf[0]);
     }
     lens_display_set_dirty();
-    shutter_also_ack = buf[0];
 }
 
 static int ae_ack = 12345;
