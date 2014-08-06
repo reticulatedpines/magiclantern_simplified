@@ -548,11 +548,7 @@ static MENU_UPDATE_FUNC(afma_generic_update)
 
 static MENU_SELECT_FUNC(afma_scan_range_toggle)
 {
-    #ifdef CONFIG_AFMA_EXTENDED
     int afma_index_max = 3;
-    #else
-    int afma_index_max = 1;
-    #endif
     
     if (!lens_info.name[0])
         return;
@@ -665,18 +661,12 @@ static struct menu_entry afma_menu[] = {
                 .priv = &afma_scan_range_index,
                 .select = afma_scan_range_toggle,
                 .min = 0,
-                #ifdef CONFIG_AFMA_EXTENDED
                 .max = 3,
-                #else
-                .max = 1,
-                #endif
                 .choices = CHOICES(
                     "Auto range detection", 
                     "Linear -20 .. +20", 
-                    #ifdef CONFIG_AFMA_EXTENDED
                     "Linear -40 .. +40", 
                     "Linear -100 .. +100", 
-                    #endif
                 ),
                 .help  = "AFMA scan type and range",
             },
@@ -691,11 +681,7 @@ static struct menu_entry afma_menu[] = {
                 .name = "AF microadjust",
                 .update = afma_display,
                 .select = afma_toggle,
-                #ifdef CONFIG_AFMA_EXTENDED
                 .help  = "Adjust AFMA value manually. Range: -100...+100.",
-                #else
-                .help  = "Adjust AFMA value manually. Range: -20...+20.",
-                #endif
                 .edit_mode = EM_MANY_VALUES,
             },
             {
