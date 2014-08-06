@@ -944,6 +944,12 @@ silent_pic_take_fullres(int interactive)
         error_msg = "Exposure too long";
         goto err;
     }
+
+    if (lens_info.raw_iso == 0)
+    {
+        error_msg = "Auto ISO not compatible";
+        goto err;
+    }
     
     /* Canon photo taking code is busy? (may happen if you press the shutter fully) */
     while (lens_info.job_state)
