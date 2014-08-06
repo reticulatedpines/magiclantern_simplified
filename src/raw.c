@@ -900,14 +900,22 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     preview_rect_y = y;
     preview_rect_w = w;
     preview_rect_h = h;
+    
+    /* preview area (usually active area) should match the area from os.x0/y0 to os.x_max/y_max */
 
     /* note: this will call BMP_LOCK */
     /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
+    
+    /* scaling factor: raw width should match os.x_ex, same for raw height and os.y_ex */
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
-    lv2raw.tx = x - BM2RAW_DX(os.x0);
-    lv2raw.ty = y - BM2RAW_DY(os.y0);
+
+    /* translation: raw top-left corner (x,y) should match (os.x0,os.y0) */
+    int x0_lv = BM2LV_X(os.x0);
+    int y0_lv = BM2LV_Y(os.y0);
+    lv2raw.tx = x - LV2RAW_DX(x0_lv);
+    lv2raw.ty = y - LV2RAW_DY(y0_lv);
 }
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom)
