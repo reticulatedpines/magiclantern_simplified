@@ -153,7 +153,7 @@ static void vram_params_update_if_dirty()
         BMP_LOCK( 
             if (vram_params_dirty)
             {
-                update_vram_params(); 
+                _update_vram_params(); 
                 vram_params_dirty = 0;
             }
         )
@@ -207,7 +207,7 @@ PROP_HANDLER(PROP_LOGICAL_CONNECT)
 
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
-void update_vram_params()
+void _update_vram_params()
 {
     #if CONFIG_DEBUGMSG
     if (is_menu_active("VRAM")) return;
