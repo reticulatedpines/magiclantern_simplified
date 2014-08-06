@@ -319,7 +319,7 @@ FILE* q__FIO_OpenFile( const char* filename, unsigned mode )
     qfio_printf("%s", filename);
     fio_read_pos = 0;
     int ok = MEM(REG_FIO_OPENFILE);
-    return ok ? 0 : INVALID_PTR;
+    return ok ? 1 : 0;
 }
 
 int q_FIO_ReadFile( FILE* stream, void* ptr, size_t count )
@@ -439,7 +439,6 @@ void*  stub_mappings[] = {
     STUB_MAP(FIO_ReadFile)
     STUB_MAP(FIO_WriteFile)
     STUB_MAP(FIO_CloseFile)
-    STUB_MAP(FIO_SeekFile)
     STUB_MAP(FIO_SeekSkipFile)
     
     STUB_MAP(prop_register_slave)
