@@ -43,7 +43,7 @@
 
 static uint32_t trace_ctx = TRACE_ERROR;
 
-static CONFIG_INT("mlv.snd.enabled", mlv_snd_enabled, 0);
+static CONFIG_INT("mlv.snd.enabled", mlv_snd_enabled, 1);
 static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
 static CONFIG_INT("mlv.snd.bit.depth", mlv_snd_in_bits_per_sample, 16);
 static CONFIG_INT("mlv.snd.sample.rate", mlv_snd_in_sample_rate, 48000);
