@@ -935,10 +935,11 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
     dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
     
-    int preview_skip_left = skip_left;
-    int preview_skip_top = skip_top;
-    int preview_width = raw_info.jpeg.width;
-    int preview_height = raw_info.jpeg.height;
+    /* Canon does not render the entire active area - these numbers give pixel-perfect alignment on 5D3 */
+    int preview_skip_left = skip_left + 14;
+    int preview_skip_top = skip_top + 8;
+    int preview_width = raw_info.jpeg.width - 28;
+    int preview_height = raw_info.jpeg.height - 16;
 
 #ifdef CONFIG_RAW_LIVEVIEW
     if (lv_dispsize > 1)

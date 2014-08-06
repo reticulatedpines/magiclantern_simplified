@@ -163,6 +163,7 @@ static struct mem_allocator allocators[] = {
         .preferred_max_alloc_size = 512 * 1024,
     },
 #endif
+
 #if 1
     /* must be completely free when navigating Canon menus, so only use it as a last resort */
     {
