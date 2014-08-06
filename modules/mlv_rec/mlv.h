@@ -162,7 +162,8 @@ typedef struct {
 
 typedef struct {
     uint16_t    fileNumber;    /* the logical file number as specified in header */
-    uint16_t    empty;    /* for future use. set to zero. */
+    uint8_t     empty;    /* for future use. set to zero. */
+    uint8_t     frameType;    /* 1 for VIDF */
     uint64_t    frameOffset;    /* the file offset at which the frame is stored (VIDF/AUDF) */
 } PACKED mlv_xref_t;
 
