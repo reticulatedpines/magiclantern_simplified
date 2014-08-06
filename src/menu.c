@@ -123,7 +123,7 @@ static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
 
-extern WEAK_FUNC(ret_0) void CancelDateTimer();
+extern void CancelDateTimer();
 
 #define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (((entry)->max - (entry)->min < 15) || (entry)->choices) && IS_ML_PTR((entry)->priv))
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && IS_ML_PTR((entry)->priv))

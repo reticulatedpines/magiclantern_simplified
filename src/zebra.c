@@ -3728,7 +3728,7 @@ int liveview_display_idle()
     extern thunk LiveViewWifiApp_handler;
     #endif
 
-    #if defined(CONFIG_RELOC)
+    #if defined(CONFIG_LVAPP_HACK_RELOC)
     extern uintptr_t new_LiveViewApp_handler;
     #endif
 
@@ -3739,7 +3739,7 @@ int liveview_display_idle()
         (// gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler 
-                  #if defined(CONFIG_RELOC)
+                  #if defined(CONFIG_LVAPP_HACK_RELOC)
                   || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
                   #endif
                   #if defined(CONFIG_5D3)

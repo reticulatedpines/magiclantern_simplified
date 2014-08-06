@@ -46,6 +46,14 @@
 #include "gps.h"
 #endif
 
+#ifdef CONFIG_QEMU
+#include "qemu-util.h"
+#endif
+
+#if defined(CONFIG_HELLO_WORLD)
+#include "fw-signature.h"
+#endif
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);
@@ -201,6 +209,10 @@ copy_and_restart( )
 }
 
 
+static int _hold_your_horses = 1; // 0 after config is read
+int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+
 #ifndef CONFIG_EARLY_PORT
 
 /** This task does nothing */
@@ -211,9 +223,6 @@ null_task( void )
     return;
 }
 
-static int _hold_your_horses = 1; // 0 after config is read
-int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -384,18 +393,12 @@ static void backup_task()
 }
 #endif
 
-#ifdef CONFIG_HELLO_WORLD
-    #include "fw-signature.h"
-#endif
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
 {
   _find_ml_card();
-
-#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   _load_fonts();
-#endif
 
 #ifdef CONFIG_HELLO_WORLD
     int sig = compute_signature((int*)SIG_START, 0x10000);
@@ -436,7 +439,6 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
-    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();

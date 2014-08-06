@@ -130,3 +130,6 @@
 
 /** There are no manual exposure controls in movie mode => we need expo override */
 #define CONFIG_NO_MANUAL_EXPOSURE_MOVIE
+
+/** Use a patched LiveViewApp dialog hander to hide Canon bottom bar */
+#define CONFIG_LVAPP_HACK_RELOC
