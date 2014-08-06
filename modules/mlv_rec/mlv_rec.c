@@ -1572,7 +1572,7 @@ static void hack_liveview(int32_t unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
 
-        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        if (cam_50d && !(hdmi_code >= 5) && !unhack)
         {
             /* not sure how to unhack this one, and on 5D2 it crashes */
             call("lv_af_fase_addr", 0); //Turn off face detection

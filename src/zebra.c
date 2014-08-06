@@ -259,7 +259,7 @@ int should_draw_zoom_overlay()
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
-    if (hdmi_code == 5) return 0;
+    if (hdmi_code >= 5) return 0;
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz()) return 0;
@@ -439,7 +439,7 @@ int get_global_draw() // menu setting, or off if
             #endif
             !LV_PAUSED && 
             #ifdef CONFIG_5D3
-            !(hdmi_code==5 && video_mode_resolution>0) && // unusual VRAM parameters
+            !(hdmi_code >= 5 && video_mode_resolution>0) && // unusual VRAM parameters
             #endif
             job_state_ready_to_take_pic();
     }
@@ -2046,7 +2046,7 @@ static MENU_UPDATE_FUNC(global_draw_display)
     }
 
     #ifdef CONFIG_5D3
-    if (hdmi_code==5 && video_mode_resolution>0) // unusual VRAM parameters
+    if (hdmi_code >= 5 && video_mode_resolution>0) // unusual VRAM parameters
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDMI 50p/60p.");
     #endif
     if (lv && lv_disp_mode && ZEBRAS_IN_LIVEVIEW)
@@ -2105,7 +2105,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 
     if (EXT_MONITOR_RCA)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
-    else if (hdmi_code == 5)
+    else if (hdmi_code >= 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     extern int display_broken_for_mz(); /* tweaks.c */

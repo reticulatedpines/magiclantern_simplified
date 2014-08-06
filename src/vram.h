@@ -73,8 +73,10 @@ struct vram_info
 #define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
 #endif
 
-void update_vram_params();
 void vram_params_set_dirty();
+
+/* internal; also called from bmp.c */
+void _update_vram_params();
 
 /* to be removed (new-lv-buffer-detection branch) */
 void guess_fastrefresh_direction();

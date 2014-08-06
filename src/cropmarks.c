@@ -368,7 +368,7 @@ cropmark_draw()
         cropmark_cache_update_signature();
         bvram_mirror_clear();
 
-        if (hdmi_code == 5 && is_pure_play_movie_mode())
+        if (hdmi_code >= 5 && is_pure_play_movie_mode())
         {   // exception: cropmarks will have some parts of them outside the screen
             bmp_draw_scaled_ex(cropmarks, BMP_W_MINUS+1, BMP_H_MINUS - 50, 960, 640, bvram_mirror);
         }
@@ -402,8 +402,10 @@ static int cropmark_cache_get_signature()
             should_use_default_cropmarks() 
                 ? (cropmarks_x * 1601 + cropmarks_y * 481)          /* default cropmarks: they get burned in the bvram mirror */
                 : (crop_index * 13579 + crop_enabled * 14567)       /* bitmap cropmarks: only the bitmap gets burned in the bvram mirror */
-        ) +
-        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
+        )
+        + (hdmi_code + EXT_MONITOR_RCA) * 315 +                     /* force redraw when changing display type (LCD, HDMI, SD) */
+        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 +         /* force redraw when bitmap parameters changed */
+        (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765; /* force redraw when video resolution changed, or when switching between video and photo mode */
     return sig;
 }
 
@@ -415,7 +417,7 @@ static void cropmark_cache_update_signature()
 static int cropmark_cache_is_valid()
 {
     if (cropmark_cache_dirty) return 0; // some other ML task asked for redraw
-    if (hdmi_code == 5 && PLAY_MODE) return 0; // unusual geometry - better force full redraw every time
+    if (hdmi_code >= 5 && PLAY_MODE) return 0; // unusual geometry - better force full redraw every time
     
     int sig = cropmark_cache_get_signature(); // video mode changed => needs redraw
     if (cropmark_cache_sig != sig) return 0;
@@ -486,7 +488,6 @@ static void FAST default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
-    if (hdmi_code == 5) return; // wrongly positioned
     if (!is_movie_mode())
     {
         /* no default cropmarks in photo mode */

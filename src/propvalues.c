@@ -135,9 +135,45 @@ PROP_HANDLER( PROP_LV_ACTION )
 }
 #endif
 
-volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
-volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+/* special case for dual monitor support */
+/* external display with mirroring enabled, from ML's standpoint, is identical to built-in LCD */
+/* therefore, if hdmi_mirroring is true, the rest of ML code will believe there's no external monitor connected */
+
+static int ext_monitor_hdmi_raw;
+static int hdmi_code_raw;
+static int hdmi_mirroring;
+
+volatile int ext_monitor_hdmi;
+volatile int hdmi_code;
+
 volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
+
+static void hdmi_vars_update()
+{
+    if (!hdmi_mirroring)
+    {
+        /* regular external monitor */
+        ext_monitor_hdmi = ext_monitor_hdmi_raw;
+        hdmi_code = hdmi_code_raw;
+    }
+    else
+    {
+        /* external monitor with mirroring, overlays are on built-in LCD */
+        ext_monitor_hdmi = hdmi_code = 0;
+    }
+}
+
+PROP_HANDLER(PROP_HDMI_CHANGE)
+{
+    ext_monitor_hdmi_raw = buf[0];
+    hdmi_vars_update();
+}
+
+PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
+{
+    hdmi_code_raw = buf[0];
+    hdmi_vars_update();
+}
 
 #ifdef CONFIG_50D
 int __recording = 0;
@@ -169,7 +205,14 @@ int lv_disp_mode;
 #ifndef CONFIG_EOSM //~ we update lv_disp_mode from 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_DIGIC_V)
+    #if defined(CONFIG_5D3)
+    /* 1 when Canon overlays are present on the built-in LCD, 0 when they are not present (so we can display our overlays) */
+    /* 2 on external monitor with mirroring enabled; however, you can't tell when Canon overlays are present (FIXME) */
+    /* todo: check whether this snippet is portable */
+    lv_disp_mode = (uint8_t)buf[1] & 1;
+    hdmi_mirroring = buf[1] & 2;
+    hdmi_vars_update();
+    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_DIGIC_V)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];

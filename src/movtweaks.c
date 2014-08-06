@@ -52,6 +52,7 @@ static int hdmi_code_array[8];
 
 PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
 {
+    ASSERT(len == 32);
     memcpy(hdmi_code_array, buf, 32);
 }
 
@@ -439,7 +440,7 @@ void movtweak_step()
         #ifdef FEATURE_FORCE_HDMI_VGA
         if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
         {
-            if (hdmi_code == 5)
+            if (hdmi_code >= 5)
             {
                 msleep(1000);
                 gui_uilock(UILOCK_EVERYTHING);
