@@ -140,7 +140,7 @@ static void dump_rom_task(void* priv, int unused)
     FILE * f = NULL;
 
     f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
-    if (f != (void*) -1)
+    if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
         FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
@@ -149,7 +149,7 @@ static void dump_rom_task(void* priv, int unused)
     msleep(200);
 
     f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
-    if (f != (void*) -1)
+    if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
         FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
@@ -184,9 +184,9 @@ static void dump_img_task(void* priv, int unused)
         PLAY_MODE                                       ? "PLAY-UNK" :
         lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
         lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
-        lv && lv_dispsize==1 && !is_native_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
-        !is_native_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
-        !is_native_movie_mode()                         ? "PH-UNK"   :
+        lv && lv_dispsize==1 && !is_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
+        !is_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
+        !is_movie_mode()                         ? "PH-UNK"   :
         video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
         video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
         video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
@@ -216,7 +216,7 @@ static void dump_img_task(void* priv, int unused)
     snprintf(pattern + path_len, sizeof(pattern) - path_len, "LV-%%03d.422", 0);
     get_numbered_file_name(pattern, 999, filename, sizeof(filename));
     f = FIO_CreateFile(filename);
-    if (f != INVALID_PTR)
+    if (f)
     {
         FIO_WriteFile(f, vram_lv.vram, vram_lv.height * vram_lv.pitch);
         FIO_CloseFile(f);
@@ -225,7 +225,7 @@ static void dump_img_task(void* priv, int unused)
     snprintf(pattern + path_len, sizeof(pattern) - path_len, "HD-%%03d.422", 0);
     get_numbered_file_name(pattern, 999, filename, sizeof(filename));
     f = FIO_CreateFile(filename);
-    if (f != INVALID_PTR)
+    if (f)
     {
         FIO_WriteFile(f, vram_hd.vram, vram_hd.height * vram_hd.pitch);
         FIO_CloseFile(f);
@@ -269,11 +269,11 @@ static void dump_img_task(void* priv, int unused)
     snprintf(pattern + path_len, sizeof(pattern) - path_len, "VRAM-%%03d.LOG", 0);
     get_numbered_file_name(pattern, 999, filename, sizeof(filename));
     f = FIO_CreateFile(filename);
-    if (f != INVALID_PTR)
+    if (f)
     {
         my_fprintf(f, "display=%d (hdmi=%d code=%d rca=%d)\n", EXT_MONITOR_CONNECTED, ext_monitor_hdmi, hdmi_code, _ext_monitor_rca);
         my_fprintf(f, "lv=%d (zoom=%d dispmode=%d rec=%d)\n", lv, lv_dispsize, lv_disp_mode, RECORDING_H264);
-        my_fprintf(f, "movie=%d (res=%d crop=%d fps=%d)\n", is_native_movie_mode(), video_mode_resolution, video_mode_crop, video_mode_fps);
+        my_fprintf(f, "movie=%d (res=%d crop=%d fps=%d)\n", is_movie_mode(), video_mode_resolution, video_mode_crop, video_mode_fps);
         my_fprintf(f, "play=%d (ph=%d, mv=%d, qr=%d)\n", PLAY_MODE, is_pure_play_photo_mode(), is_pure_play_movie_mode(), QR_MODE);
         
         FIO_CloseFile(f);
@@ -363,6 +363,72 @@ static void bsod()
 static void run_test()
 {
     msleep(2000);
+
+    console_show();
+    msleep(1000);
+    
+    /* let's see how much RAM we can get */
+    struct memSuite * suite = srm_malloc_suite(0);
+    struct memChunk * chunk = GetFirstChunkFromSuite(suite);
+    printf("hSuite %x (%dx%s)\n", suite, suite->num_chunks, format_memory_size(chunk->size));
+    
+    printf("You should not be able to take pictures,\n");
+    printf("but autofocus should work.\n");
+
+    info_led_on();
+    for (int i = 10; i >= 0; i--)
+    {
+        msleep(1000);
+        printf("%d...", i);
+    }
+    printf("\b\b\n");
+    info_led_off();
+    
+    srm_free_suite(suite);
+    msleep(1000);
+
+    printf("Now try taking some pictures during the test.\n");
+    
+    /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
+    /* 50D/500D have 27M, 5D3 has 40 */
+    for (int i = 0; i < 1000; i++)
+    {
+        void* buf1 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf1);
+        
+        void* buf2 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf2);
+
+        /* we must be able to free them in any order, even if the backend doesn't allow that */
+        if (rand()%2)
+        {
+            free(buf1);
+            free(buf2);
+        }
+        else
+        {
+            free(buf2);
+            free(buf1);
+        }
+
+        if (i == 0)
+        {
+            /* delay the first iteration, so you can see what's going on */
+            /* also save a screenshot */
+            msleep(5000);
+            take_screenshot(0, SCREENSHOT_BMP);
+        }
+        
+        if (!buf1 || !buf2)
+        {
+            /* allocation failed? wait before retrying */
+            msleep(1000);
+        }
+    }
+    
+    return;
+        
+    /* todo: cleanup the following tests and move them in the mem_chk module */
     
     /* allocate up to 50000 small blocks of RAM, 32K each */
     int N = 50000;
@@ -536,8 +602,9 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     msleep(2000);
     int filesize = 1024; // MB
     int n = filesize * 1024 * 1024 / bufsize;
+    FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
+    if (f)
     {
-        FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
         int t0 = get_ms_clock_value();
         int i;
         for (i = 0; i < n; i++)
@@ -668,7 +735,7 @@ static void twocard_write_task(char* filename)
     int msg;
     int filesize = 0;
     FILE* f = FIO_CreateFile(filename);
-    if (f != INVALID_PTR)
+    if (f)
     {
         while (msg_queue_receive(twocard_mq, (struct event **) &msg, 1000) == 0)
         {
@@ -733,7 +800,7 @@ static void card_bufsize_benchmark_task()
     int y = 100;
 
     FILE* log = FIO_CreateFile("bench.log");
-    if (log == INVALID_PTR) goto cleanup;
+    if (!log) goto cleanup;
 
     my_fprintf(log, "Buffer size experiment\n");
     my_fprintf(log, "ML %s, %s\n", build_version, build_id); // this includes camera name
@@ -754,6 +821,8 @@ static void card_bufsize_benchmark_task()
         uint32_t n = filesize * 1024 * 1024 / bufsize;
 
         FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
+        if (!f) goto cleanup;
+
         int t0 = get_ms_clock_value();
         int total = 0;
         for (uint32_t i = 0; i < n; i++)
@@ -765,6 +834,7 @@ static void card_bufsize_benchmark_task()
             if (r != bufsize) break;
         }
         FIO_CloseFile(f);
+
         int t1 = get_ms_clock_value();
         int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
         bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
@@ -774,7 +844,7 @@ static void card_bufsize_benchmark_task()
 
     }
 cleanup:
-    if (log != INVALID_PTR) FIO_CloseFile(log);
+    if (log) FIO_CloseFile(log);
     canon_gui_enable_front_buffer(1);
 }
 
@@ -1017,6 +1087,81 @@ static void stub_test_task(void* arg)
 
     for (int i=0; i < n; i++)
     {
+        /* File I/O */
+
+        FILE* f;
+        TEST_TRY_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != 0);
+        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
+        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
+        TEST_TRY_VOID(FIO_CloseFile(f));
+        uint32_t size;
+        TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
+        TEST_TRY_FUNC_CHECK(size, == 0x20000);
+        void* p;
+        TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != 0);
+        TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
+        TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
+        TEST_TRY_VOID(FIO_CloseFile(f));
+        TEST_TRY_VOID(_free_dma_memory(p));
+
+        {
+            int count = 0;
+            FILE* f = FIO_CreateFile("test.dat");
+            if (f)
+            {
+                for (int i = 0; i < 1000; i++)
+                    count += FIO_WriteFile(f, "Will it blend?\n", 15);
+                FIO_CloseFile(f);
+            }
+            TEST_TRY_FUNC_CHECK(count, == 1000*15);
+        }
+        
+        /* FIO_SeekSkipFile test */
+        {
+            void* buf = 0;
+            TEST_TRY_FUNC_CHECK(buf = fio_malloc(0x1000000), != 0);
+            memset(buf, 0x13, 0x1000000);
+            if (buf)
+            {
+                /* create a file a little higher than 2 GiB for testing */
+                /* to make sure the stub handles 64-bit position arguments */
+                FILE* f = FIO_CreateFile("test.dat");
+                if (f)
+                {
+                    printf("Creating a 2GB file...       ");
+                    for (int i = 0; i < 130; i++)
+                    {
+                        printf("\b\b\b\b\b\b\b%3d/130", i);
+                        FIO_WriteFile(f, buf, 0x1000000);
+                    }
+                    printf("\n");
+                    FIO_CloseFile(f);
+                    TEST_TRY_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000000);
+                    
+                    /* now reopen it to append something */
+                    TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDWR | O_SYNC), != 0);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0, SEEK_END), == (int)0x82000000);
+                    TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, buf, 0x10), == 0x10);
+
+                    /* some more seeking around */
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_END), == (int)0x81fffff0);
+                    TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, buf, 0x30), == 0x30);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0x20, SEEK_SET), == 0x20);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, 0x30, SEEK_CUR), == 0x50);
+                    TEST_TRY_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_CUR), == 0x30);
+                    
+                    /* note: seeking past the end of a file does not work on all cameras, so we'll not test that */
+
+                    FIO_CloseFile(f);
+                    TEST_TRY_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000020);
+                }
+            }
+            fio_free(buf);
+        }
+
+        TEST_TRY_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
+
+
         /* GUI timers */
         
         /* SetTimerAfter, CancelTimer */
@@ -1060,6 +1205,10 @@ static void stub_test_task(void* arg)
 
         /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
         {
+            /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
+            SetGUIRequestMode(1);
+            msleep(1000);
+
             int64_t t0 = get_us_clock_value();
             int ta0 = 0;
 
@@ -1097,6 +1246,12 @@ static void stub_test_task(void* arg)
             TEST_TRY_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
             TEST_TRY_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
         }
+        
+        /* CancelDateTimer - not sure how to test, so will check the stub directly */
+        extern thunk CancelDateTimer;
+        TEST_TRY_FUNC_CHECK(MEM(&CancelDateTimer), == (int)0xe92d4010); /* push	{r4, lr} on all cameras so far */
+        //~ char* CancelDateTimer_name = asm_guess_func_name_from_string((uint32_t)&CancelDateTimer); /* requires asm.o */
+        //~ TEST_TRY_FUNC_CHECK(streq(CancelDateTimer_name, "CancelDateTimer") || streq(CancelDateTimer_name, "StopDateTimer"), != 0);
 
         /* uncomment to test only the timers */
         //~ continue;
@@ -1340,11 +1495,24 @@ static void stub_test_task(void* arg)
         // mq
         static struct msg_queue * mq = 0;
         int m = 0;
-        TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 5), != 0);
+        uint32_t mqcount = 0;
+        TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 2), != 0);   /* queue with max. 2 items */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);             /* return value should be always 0 */
         TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 1);
+        TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0xABCDEF0), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 2);
+        TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0xBADCAFE), != 0);                       /* queue full, should return error */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 2);
         TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 1);
         TEST_TRY_FUNC_CHECK(m, == 0x1234567);
-        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);
+        TEST_TRY_FUNC_CHECK(m, == 0xABCDEF0);
+        TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);    /* queue empty, should return error */
+        TEST_TRY_FUNC_CHECK(msg_queue_count(mq, &mqcount), + mqcount == 0);
+        TEST_TRY_FUNC_CHECK(msg_queue_count((void*)1, &mqcount), != 0);                 /* invalid call, should return error */
 
         // sem
         static struct semaphore * sem = 0;
@@ -1364,34 +1532,6 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
         TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 
-        // file I/O
-
-        FILE* f;
-        TEST_TRY_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != (int)INVALID_PTR);
-        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
-        TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
-        TEST_TRY_VOID(FIO_CloseFile(f));
-        uint32_t size;
-        TEST_TRY_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
-        TEST_TRY_FUNC_CHECK(size, == 0x20000);
-        void* p;
-        TEST_TRY_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != (int)INVALID_PTR);
-        TEST_TRY_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
-        TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
-        TEST_TRY_VOID(FIO_CloseFile(f));
-        TEST_TRY_VOID(_free_dma_memory(p));
-
-        {
-        int count = 0;
-        FILE* f = FIO_CreateFile("test.dat");
-        for (int i = 0; i < 1000; i++)
-            count += FIO_WriteFile(f, "Will it blend?\n", 15);
-        FIO_CloseFile(f);
-        TEST_TRY_FUNC_CHECK(count, == 1000*15);
-        }
-
-        TEST_TRY_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
-
         // sw1
         TEST_TRY_VOID(SW1(1,100));
         TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
@@ -1402,8 +1542,11 @@ static void stub_test_task(void* arg)
     }
 
     FILE* log = FIO_CreateFile( "stubtest.log" );
-    FIO_WriteFile(log, log_buf, log_len);
-    FIO_CloseFile(log);
+    if (log)
+    {
+        FIO_WriteFile(log, log_buf, log_len);
+        FIO_CloseFile(log);
+    }
     fio_free(log_buf);
 
     console_printf(
@@ -2138,24 +2281,27 @@ static void save_crash_log()
     }
 
     FILE* f = FIO_CreateFile(log_filename);
-    my_fprintf(f, "%s\n\n", get_assert_msg());
-    my_fprintf(f,
-        "Magic Lantern version : %s\n"
-        "Mercurial changeset   : %s\n"
-        "Built on %s by %s.\n",
-        build_version,
-        build_id,
-        build_date,
-        build_user);
+    if (f)
+    {
+        my_fprintf(f, "%s\n\n", get_assert_msg());
+        my_fprintf(f,
+            "Magic Lantern version : %s\n"
+            "Mercurial changeset   : %s\n"
+            "Built on %s by %s.\n",
+            build_version,
+            build_id,
+            build_date,
+            build_user);
 
-    int M = GetFreeMemForAllocateMemory();
-    int m = MALLOC_FREE_MEMORY;
-    my_fprintf(f,
-        "Free Memory  : %dK + %dK\n",
-        m/1024, M/1024
-    );
+        int M = GetFreeMemForAllocateMemory();
+        int m = MALLOC_FREE_MEMORY;
+        my_fprintf(f,
+            "Free Memory  : %dK + %dK\n",
+            m/1024, M/1024
+        );
 
-    FIO_CloseFile(f);
+        FIO_CloseFile(f);
+    }
 
     msleep(1000);
 
@@ -2404,7 +2550,17 @@ static MENU_UPDATE_FUNC (prop_display)
 void prop_dump()
 {
     FILE* f = FIO_CreateFile("ML/LOGS/PROP.LOG");
+    if (!f)
+    {
+        return;
+    }
+
     FILE* g = FIO_CreateFile("ML/LOGS/PROP-STR.LOG");
+    if (!g)
+    {
+        FIO_CloseFile(f);
+        return;
+    }
 
     unsigned i, j, k;
 
@@ -3593,26 +3749,7 @@ static void CopyMLFilesToRAM_BeforeFormat()
 // check if autoexec.bin is present on the card
 static int check_autoexec()
 {
-    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
-
-// check if magic.fir is present on the card
-static int check_fir()
-{
-    FILE * f = FIO_OpenFile("MAGIC.FIR", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
+    return is_file("AUTOEXEC.BIN");
 }
 
 static void CopyMLFilesBack_AfterFormat()
@@ -3661,7 +3798,7 @@ static void HijackFormatDialogBox_main()
     // at this point, Format dialog box is active
 
     // make sure we have something to restore :)
-    if (!check_autoexec() && !check_fir()) return;
+    if (!check_autoexec()) return;
 
     gui_uilock(UILOCK_EVERYTHING);
     

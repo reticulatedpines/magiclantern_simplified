@@ -52,7 +52,7 @@ NSTUB(0xFF1CA3FC,  FIO_CloseFile)
 NSTUB(0xFF1CB3CC,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1CB2EC,  FIO_FindNextEx)
 NSTUB(0xFF1CA1AC,  FIO_ReadFile)
-NSTUB(0xFF1CA32C,  FIO_SeekFile)
+NSTUB(0xFF1CA25C,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 NSTUB(0xFF1CA34C,  FIO_WriteFile)
 NSTUB(0xFF1CAC38, _FIO_CreateDirectory)
 NSTUB(0xFF1CA058, _FIO_CreateFile)
@@ -61,7 +61,6 @@ NSTUB(0xFF1CA578, _FIO_GetFileSize)
 NSTUB(0xFF1C9F9C, _FIO_OpenFile)
 NSTUB(0xFF1CA104, _FIO_RemoveFile)                          // after _FIO_CreateFile, before FIO_ReadFile
 NSTUB(0xFF1CAA70, _FIO_RenameFile)
-NSTUB(0xFF1CA25C,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1CF8,  gui_main_struct)                         // in gui_main_task. LDR     R0, [R4,#0x30]  ; queue_handle
@@ -179,14 +178,18 @@ NSTUB(0xFF06C7A4,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF070FD4,  AddMemoryChunk)
 NSTUB(0xFF073AF4,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF073AA8,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF070584,  CreateMemoryChunk)
+NSTUB(0xFF070D34,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF070B64,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 NSTUB(0xFF073C0C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF0710A8,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF070AF0,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF071840,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF02CEC4,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02F764,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Post.
@@ -200,11 +203,11 @@ NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Po
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF0753AC,  CancelTimer)                             /* present on 650D.104 */
 NSTUB(0xFF06D228,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
 NSTUB(0xFF06D31C,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
 NSTUB(0xFF0751AC,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFF35CB2C,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x5DD0,  mvr_config)
@@ -260,6 +263,7 @@ NSTUB(0xFF05B058,  prop_register_slave)                     // called by"GUI_Reg
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -311,6 +315,7 @@ NSTUB(0xFF1DA530,  vsnprintf)
 ///NSTUB(0xFF3076F8, CreateDialogBox)
 ///NSTUB(0xFF306E8C, DeleteDialogBox)
 ///NSTUB(0xFF1C571C,  EngDrvIn)
+///NSTUB(0xFF1CA32C,  FIO_SeekFile)
 ///NSTUB(0xFF0A61DC,  GUI_Control_Post)
 ///NSTUB(0xFF2143A8,  GUI_GetFirmVersion)
 ///NSTUB(0xFF36E594,  HideBottomInfoDisp_maybe)                // look for StartBottomInfoDispTimer

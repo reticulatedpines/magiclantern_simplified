@@ -54,7 +54,6 @@ NSTUB(0xFF1C69EC,  FIO_CloseFile)
 NSTUB(0xFF1C7934,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1C7854,  FIO_FindNextEx)
 NSTUB(0xFF1C679C,  FIO_ReadFile)
-NSTUB(0xFF1C691C,  FIO_SeekFile)
 NSTUB(0xFF1C684C,  FIO_SeekSkipFile)
 NSTUB(0xFF1C693C,  FIO_WriteFile)
 NSTUB(0xFF1C71A0, _FIO_CreateDirectory)
@@ -64,7 +63,6 @@ NSTUB(0xFF1C6B68, _FIO_GetFileSize)
 NSTUB(0xFF1C658C, _FIO_OpenFile)
 NSTUB(0xFF1C66F4, _FIO_RemoveFile)
 NSTUB(0xFF1C7060, _FIO_RenameFile)                          // doesn't work; 600D has debug strings for this, match.py finds it
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1C04,  gui_main_struct)                         // in gui_main_task
@@ -182,14 +180,18 @@ NSTUB(0xFF068178,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF06C918,  AddMemoryChunk)
 NSTUB(0xFF06F424,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF06F3D8,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF06BEC8,  CreateMemoryChunk)
+NSTUB(0xFF06C678,  CreateMemorySuite)
+NSTUB(0xFF06C4A8,  DeleteMemorySuite)
 NSTUB(0xFF06F53C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF06C9EC,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF06C434,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF06D184,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF028590,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02AD5C,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
@@ -203,11 +205,11 @@ NSTUB(0xFF095728,  gui_other_post)
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF070C60,  CancelTimer)                             /* present on 650D.104 */
 NSTUB(0xFF068BB8,  SetHPTimerAfterNow)
 NSTUB(0xFF068C38,  SetHPTimerNextTick)
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-NSTUB(0xFF070C60,  CancelTimer)                             /* present on 650D.104 */
 NSTUB(0xFF070A60,  SetTimerAfter)
+NSTUB(0xFF3050A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x67BC,  mvr_config)
@@ -263,6 +265,7 @@ NSTUB(0xFF0574A0,  prop_register_slave)                     // called by"GUI_Reg
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -272,9 +275,9 @@ NSTUB(0xFF06E358,  CreateRecursiveLock)
 NSTUB(0xFF1D2FBC,  ReleaseRecursiveLock)
 
 /** ResLock **/
-NSTUB(0xff1c4074, CreateResLockEntry)
-NSTUB(0xff1c4a34, LockEngineResources)
-NSTUB(0xff1c46f8, UnLockEngineResources)
+NSTUB(0xFF1C4074,  CreateResLockEntry)
+NSTUB(0xFF1C4A34,  LockEngineResources)
+NSTUB(0xFF1C46F8,  UnLockEngineResources)
 
 /** Semaphores **/
 NSTUB(0xFF069D10,  create_named_semaphore)
@@ -317,6 +320,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 ///NSTUB(0xFF31CFCC,  ChangeColorPalette)
 ///NSTUB(0xFF2B5EEC,  CreateDialogBox)
 ///NSTUB(0xFF2B5890,  DeleteDialogBox)
+///NSTUB(0xFF1C691C,  FIO_SeekFile)
 ///NSTUB(0xFF020760,  GUI_CONTROL)
 ///NSTUB(0xFF20CBB0,  GUI_GetFirmVersion)
 ///NSTUB(0xFF204C8C,  GUI_SetElectricShutter)

@@ -388,7 +388,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     
     /* no, create file and store data */
     handle = FIO_CreateFile(file);
-    if (handle != INVALID_PTR)
+    if (handle)
     {
       while(pos < length)
       {
@@ -421,10 +421,7 @@ static void backup_task()
 static void my_big_init_task()
 {
   _find_ml_card();
-
-#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   _load_fonts();
-#endif
 
 #ifdef CONFIG_HELLO_WORLD
     int sig = compute_signature((int*)SIG_START, 0x10000);
@@ -453,7 +450,7 @@ static void my_big_init_task()
     
     msleep(500);
     FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f != INVALID_PTR) {
+    if (f) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
         bmp_printf(FONT_LARGE, 50, 250, ":)");    
@@ -465,7 +462,6 @@ static void my_big_init_task()
 #endif
     
     call("DisablePowerSave");
-    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();

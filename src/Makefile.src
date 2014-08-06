@@ -89,7 +89,6 @@ ML_INSTALLER_OBJS = \
 	dialog_test.o \
 	bootflags.o \
 	mem.o \
-	exmem.o \
 	util.o \
 
 ML_OBJS-y += $(ML_INSTALLER_OBJS)
@@ -166,7 +165,11 @@ ML_SRC_OBJS = \
 	fileprefix.o \
 	lvinfo.o \
 	builtin-enforcing.o \
-	ml-cbr.o 
+	ml-cbr.o \
+	raw.o \
+	chdk-dng.o \
+	edmac-memcpy.o \
+
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 

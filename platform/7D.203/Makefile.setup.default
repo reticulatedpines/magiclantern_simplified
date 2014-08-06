@@ -8,8 +8,5 @@ ML_SRC_EXTRA_OBJS = \
 	ml_rpc.o \
 	video_hacks.o \
 	ptpbuf.o \
-	raw.o \
-	edmac-memcpy.o \
-	chdk-dng.o \
 	afma.o
 

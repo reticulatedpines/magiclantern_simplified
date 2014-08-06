@@ -250,7 +250,7 @@ Output size: 5496 x 3670
 #define IMGPLAY_ZOOM_POS_DELTA_X 110 //(0x2be - 0x190)
 #define IMGPLAY_ZOOM_POS_DELTA_Y 90 //(0x1d4 - 0x150)
 
-#define BULB_EXPOSURE_CORRECTION 649 // min value for which bulb exif is OK [not tested]
+#define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x82B24)   //~ from string: refresh partly
@@ -305,3 +305,7 @@ Output size: 5496 x 3670
 #define UNAVI (MEM(0x8418c) ==2) // Between the "17s" find with mem browser
 #define SCROLLHACK (MEM(0x841C0) !=0)
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 85 / 100 - 102)

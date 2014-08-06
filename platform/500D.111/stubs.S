@@ -49,7 +49,7 @@ NSTUB(0xFF196494,  FIO_CloseFile)
 NSTUB(0xFF1975A4,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1974A4,  FIO_FindNextEx)
 NSTUB(0xFF196724,  FIO_ReadFile)
-NSTUB(0xFF1968A4,  FIO_SeekFile)
+NSTUB(0xFF1967D4,  FIO_SeekSkipFile)
 NSTUB(0xFF1968D4,  FIO_WriteFile)
 NSTUB(0xFF196CF8, _FIO_CreateDirectory)
 NSTUB(0xFF1963EC, _FIO_CreateFile)
@@ -57,7 +57,6 @@ NSTUB(0xFF197378, _FIO_FindFirstEx)
 NSTUB(0xFF196A88, _FIO_GetFileSize)
 NSTUB(0xFF196338, _FIO_OpenFile)
 NSTUB(0xFF196608, _FIO_RemoveFile)
-// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 // NSTUB(    ???, _FIO_RenameFile)                          /* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI **/
@@ -176,14 +175,18 @@ NSTUB(0xFF067828,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF06C3A8,  AddMemoryChunk)
 NSTUB(0xFF06EECC,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF06EE88,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF06B90C,  CreateMemoryChunk)
+NSTUB(0xFF06C0D0,  CreateMemorySuite)
+NSTUB(0xFF06BEEC,  DeleteMemorySuite)
 NSTUB(0xFF06EFDC,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF06C494,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF06BE78,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF06CC4C,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF02A788,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02C6F8,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x3B90,  gui_timer_struct)                        // in GUI_Control_Post
@@ -197,11 +200,11 @@ NSTUB(0xFF091720,  gui_post_10000085)                       // should be called 
 NSTUB(0xFF1A09AC,  gui_timer_something)
 
 /** GUI timers **/
-// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
-// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
-// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
-// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
-// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
+NSTUB(0xFF2B80AC,  CancelDateTimer)
+NSTUB(0xFF070700,  CancelTimer)
+NSTUB(0xFF068268,  SetHPTimerAfterNow)
+NSTUB(0xFF0682E8,  SetHPTimerNextTick)
+NSTUB(0xFF070500,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x8684,  mvr_config)
@@ -237,10 +240,10 @@ NSTUB(0xFF018F70, _malloc)                                  // maybe it's better
 // NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
 
 /** Message queues **/
+NSTUB(0xFF0696FC,  msg_queue_count)                         /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 NSTUB(0xFF0693C0,  msg_queue_create)
 NSTUB(0xFF0696BC,  msg_queue_post)
 NSTUB(0xFF0694D0,  msg_queue_receive)
-// NSTUB(    ???,  msg_queue_count)                         /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** PTP **/
 NSTUB(0xFF20C498,  ptp_register_handler)
@@ -257,6 +260,7 @@ NSTUB(0xFF059868,  prop_register_slave)                     // called by"GUI_Reg
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -266,9 +270,9 @@ NSTUB(0xFF06DEC0,  CreateRecursiveLock)
 NSTUB(0xFF1A0E58,  ReleaseRecursiveLock)                    // not sure, these are not called anywhere
 
 /** ResLock **/
-// NSTUB(    ???,  CreateResLockEntry)                      /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  LockEngineResources)                     /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  UnLockEngineResources)                   /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+NSTUB(0xFF19384C,  CreateResLockEntry)                      /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+NSTUB(0xFF194190,  LockEngineResources)                     /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+NSTUB(0xFF193ED0,  UnLockEngineResources)                   /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 
 /** Semaphores **/
 NSTUB(0xFF069770,  create_named_semaphore)
@@ -304,6 +308,7 @@ NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg
 ///NSTUB(0xFF2C92BC,  ChangeColorPalette)
 ///NSTUB(0xFF26896C,  CreateDialogBox)
 ///NSTUB(0xFF2683F4,  DeleteDialogBox)
+///NSTUB(0xFF1968A4,  FIO_SeekFile)
 ///NSTUB(0xFF1C6630,  GUI_GetFirmVersion)
 ///NSTUB(0xFF062800,  GetDisplayType)
 ///NSTUB(0xFF1C864C,  GuiEdLedBlink)

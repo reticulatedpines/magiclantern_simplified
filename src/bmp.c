@@ -300,65 +300,6 @@ int bmp_strlen_clipped(int fontspec, const char* str, int maxwidth)
     return rbf_strlen_clipped((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth);
 }
 
-#if 0
-void
-con_printf(
-    unsigned        fontspec,
-    const char *        fmt,
-    ...
-)
-{
-    va_list            ap;
-    char            buf[ 256 ];
-    static int        x = 0;
-    static int        y = 32;
-
-    va_start( ap, fmt );
-    vsnprintf( buf, sizeof(buf)-1, fmt, ap );
-    va_end( ap );
-
-    const uint32_t        pitch = BMPPITCH;
-    uint8_t * vram = bmp_vram();
-    if( !vram )
-        return;
-    uint8_t * first_row = vram + y * pitch + x;
-    uint8_t * row = first_row;
-
-    char * s = buf;
-    char c;
-    const struct font * const font = fontspec_font( fontspec );
-
-    while( (c = *s++) )
-    {
-        if( c == '\n' )
-        {
-            row = first_row += pitch * font->height;
-            y += font->height;
-            x = 0;
-            bmp_fill( 0, 0, y, 720, font->height );
-        } else {
-            _draw_char( fontspec, row, c );
-            row += font->width;
-            x += font->width;
-        }
-
-        if( x > 720 )
-        {
-            y += font->height;
-            x = 0;
-            bmp_fill( 0, 0, y, 720, font->height );
-        }
-
-        if( y > 480 )
-        {
-            x = 0;
-            y = 32;
-            bmp_fill( 0, 0, y, 720, font->height );
-        }
-    }
-}
-#endif
-
 #ifdef CONFIG_HEXDUMP
 
 static void bmp_puts_diff(uint32_t font_normal, uint32_t font_highlight, int x, int y, char* msg, char* old_msg)
@@ -470,56 +411,6 @@ bmp_fill(
 
     }
 }
-
-#if 0
-/** Draw a picture of the BMP color palette. */
-void
-bmp_draw_palette( void )
-{
-    uint32_t x, y, msb, lsb;
-    const uint32_t height = 30;
-    const uint32_t width = 45;
-
-    for( msb=0 ; msb<16; msb++ )
-    {
-        for( y=0 ; y<height; y++ )
-        {
-            uint8_t * const row = bmp_vram() + (y + height*msb) * BMPPITCH;
-
-            for( lsb=0 ; lsb<16 ; lsb++ )
-            {
-                for( x=0 ; x<width ; x++ )
-                    row[x+width*lsb] = (msb << 4) | lsb;
-            }
-        }
-    }
-
-    static int written;
-    if( !written )
-        call("dispcheck");
-    written = 1;
-    msleep(2000);
-}
-#endif
-
-int retry_count = 0;
-
-
-size_t
-read_file(
-    const char *        filename,
-    void *            buf,
-    size_t            size
-)
-{
-    FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
-    if( file == INVALID_PTR )
-        return -1;
-    unsigned rc = FIO_ReadFile( file, buf, size );
-    FIO_CloseFile( file );
-    return rc;
-}
-
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
 
@@ -650,89 +541,10 @@ getfilesize_fail:
     return NULL;
 }
 
-uint8_t* read_entire_file(const char * filename, int* buf_size)
-{
-    *buf_size = 0;
-    uint32_t size;
-    if( FIO_GetFileSize( filename, &size ) != 0 )
-        goto getfilesize_fail;
-
-    DEBUG("File '%s' size %d bytes", filename, size);
-
-    uint8_t * buf = fio_malloc( size + 1);
-    if( !buf )
-    {
-        DebugMsg( DM_MAGIC, 3, "%s: fio_malloc failed", filename );
-        goto malloc_fail;
-    }
-    size_t rc = read_file( filename, buf, size );
-    if( rc != size )
-        goto read_fail;
-
-    *buf_size = size;
-
-    buf[size] = 0; // null-terminate text files
-
-    return buf;
-
-//~ fail_buf_copy:
-read_fail:
-    fio_free( buf );
-malloc_fail:
-getfilesize_fail:
-    DEBUG("failed");
-    return NULL;
-}
-
-
 void clrscr()
 {
     BMP_LOCK( bmp_fill( 0x0, BMP_W_MINUS, BMP_H_MINUS, BMP_TOTAL_WIDTH, BMP_TOTAL_HEIGHT ); )
 }
-
-#if 0
-// mirror can be NULL
-void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear)
-{
-    if (!bmp) return;
-    //~ if (!bmp_enabled) return;
-    if (bmp->compression!=0) return; // bmp_draw doesn't support RLE yet
-
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-
-    x0 = COERCE(x0, BMP_W_MINUS, BMP_W_PLUS - (int)bmp->width);
-    y0 = COERCE(y0, BMP_H_MINUS, BMP_H_PLUS - (int)bmp->height);
-
-    uint32_t x,y;
-    for( y=0 ; y < bmp->height; y++ )
-    {
-        uint8_t * const b_row = (uint8_t*)( bvram + (y + y0) * BMPPITCH );
-        uint8_t * const m_row = (uint8_t*)( mirror+ (y + y0) * BMPPITCH );
-        for( x=0 ; x < bmp->width ; x++ )
-        {
-            if (clear)
-            {
-                uint8_t p = b_row[ x + x0 ];
-                uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-                if (pix && p == pix)
-                    b_row[x + x0] = 0;
-            }
-            else
-            {
-                if (mirror)
-                {
-                    uint8_t p = b_row[ x + x0 ];
-                    uint8_t m = m_row[ x + x0 ];
-                    if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-                }
-                uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-                b_row[x + x0] = pix;
-            }
-        }
-    }
-}
-#endif
 
 // this is slow, but is good for a small number of pixels :)
 uint8_t bmp_getpixel(int x, int y)
@@ -743,15 +555,6 @@ uint8_t bmp_getpixel(int x, int y)
     uint8_t * const bvram = bmp_vram();
     return bvram[x + y * BMPPITCH];
 }
-
-/*uint8_t bmp_getpixel_real(int x, int y)
-{
-    ASSERT(x >= BMP_W_MINUS && x < BMP_W_PLUS)
-    ASSERT(y >= BMP_H_MINUS && y < BMP_H_PLUS)
-
-    uint8_t * const bvram = bmp_vram_real();
-    return bvram[x + y * BMPPITCH];
-}*/
 
 void bmp_putpixel(int x, int y, uint8_t color)
 {
@@ -847,9 +650,12 @@ void set_ml_palette()
         NotifyBox(10000, "%x ", PB_Palette);
         SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
         FILE* f = FIO_CreateFile("pb.log");
-        for (int i = 0; i < 16; i++)
-            my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
-        FIO_CloseFile(f);
+        if (f)
+        {
+            for (int i = 0; i < 16; i++)
+                my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
+            FIO_CloseFile(f);
+        }
     }
     else // use pre-computed PB palette (just send it to digic)
     {
@@ -1233,82 +1039,6 @@ int bfnt_char_get_width(int c)
 }
 
 /*
-int bfnt_draw_char_half(int c, int px, int py, int fg, int bg, int g1, int g2)
-{
-    if (!bfnt_ok())
-    {
-        bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
-        return 0;
-    }
-
-    uint16_t* chardata = bfnt_find_char(c);
-    if (!chardata) return 0;
-    uint8_t* buff = chardata + 5;
-    int ptr = 0;
-
-    unsigned int cw  = chardata[0]; // the stored bitmap width
-    unsigned int ch  = chardata[1]; // the stored bitmap height
-    unsigned int crw = chardata[2]; // the displayed character width
-    unsigned int xo  = chardata[3]; // X offset for displaying the bitmap
-    unsigned int yo  = chardata[4]; // Y offset for displaying the bitmap
-    unsigned int bb    = cw / 8 + (cw % 8 == 0 ? 0 : 1); // calculate the byte number per line
-
-    //~ bmp_printf(FONT_SMALL, 0, 0, "%x %d %d %d %d %d %d", chardata, cw, ch, crw, xo, yo, bb);
-
-    if (cw > 100) return 0;
-    if (ch > 50) return 0;
-
-    static uint8_t tmp[50][25];
-
-    int i,j,k;
-
-    for (i = 0; i < 50; i++)
-        for (j = 0; j < 25; j++)
-            tmp[i][j] = 0;
-
-    for (i = 0; i < ch; i++)
-    {
-        for (j = 0; j < bb; j++)
-        {
-            for (k = 0; k < 8; k++)
-            {
-                if (j*8 + k < cw)
-                {
-                    if ((buff[ptr+j] & (1 << (7-k))))
-                        tmp[COERCE((j*8+k)>>1, 0, 49)][COERCE(i>>1, 0, 24)] ++;
-                }
-            }
-        }
-        ptr += bb;
-    }
-
-    bmp_fill(bg, px+3, py, crw/2+xo/2+3, 20);
-
-    for (i = 0; i <= cw/2; i++)
-    {
-        for (j = 0; j <= ch/2; j++)
-        {
-            int c = COLOR_RED;
-            switch (tmp[i][j])
-            {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                    c = bg;
-                    break;
-                case 4:
-                    c = fg;
-                    break;
-            }
-            if (c != bg) bmp_putpixel(px+xo/2+i, py+yo/2+j, c);
-        }
-    }
-
-    return crw>>1;
-}*/
-
-/*
 void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
 {
     while (*s)
@@ -1403,101 +1133,6 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
         }
     }
 }
-
-#if 0
-static void bmp_dim_line(void* dest, size_t n, int even)
-{
-    ASSERT(dest);
-
-    int* dst = (int*) dest;
-    int* end = (int*)(dest + n);
-    if (even)
-    {
-        for( ; dst < end; dst++)
-#ifdef CONFIG_VXWORKS
-            *dst = (*dst & 0x0F0F0F0F) | 0x90909090;
-#else
-            *dst = (*dst & 0x00FF00FF) | 0x02000200;
-#endif
-    }
-    else
-    {
-        for( ; dst < end; dst++)
-#ifdef CONFIG_VXWORKS
-            *dst = (*dst & 0xF0F0F0F0) | 0x09090909;
-#else
-            *dst = (*dst & 0xFF00FF00) | 0x00020002;
-#endif
-    }
-}
-
-// this is only used in menu, so only cover the 720x480 part
-void bmp_dim(int y1, int y2)
-{
-    uint32_t* b = (uint32_t *)bmp_vram();
-    ASSERT(b);
-    if (!b) return;
-    int i;
-    //int j;
-#ifdef CONFIG_VXWORKS
-    for (i = y1; i < y2; i+=2)
-    {
-        bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);
-    }
-#else
-    for (i = y1; i < y2; i ++)
-    {
-        bmp_dim_line(&b[BM(0,i)/4], 720, i%2);
-    }
-#endif
-}
-
-void bmp_make_semitransparent()
-{
-    uint8_t* b = (uint8_t *)bmp_vram();
-    ASSERT(b);
-    if (!b) return;
-    int i,j;
-    for (i = BMP_H_MINUS; i < BMP_H_PLUS; i ++)
-    {
-        for (j = BMP_W_MINUS; j < BMP_W_PLUS; j ++)
-        {
-            if (b[BM(j,i)] == COLOR_BLACK || b[BM(j,i)] == 40)
-                b[BM(j,i)] = COLOR_BG;
-        }
-    }
-}
-
-void save_vram(const char * filename)
-{
-    uint8_t* b = (uint8_t *)bmp_vram();
-    ASSERT(b);
-    if (!b) return;
-
-    FILE * file = FIO_CreateFile( filename );
-    if( file == INVALID_PTR )
-        return;
-    else
-    {
-    FIO_WriteFile(file, b, BMP_VRAM_SIZE);
-
-    FIO_CloseFile( file );
-    }
-}
-
-int load_vram(const char * filename)
-{
-    uint8_t* b = (uint8_t *)bmp_vram();
-    ASSERT(b);
-    if (!b) return -1;
-
-    uint32_t size;
-    if( FIO_GetFileSize( filename, &size ) != 0 )
-        return -1;
-    return read_file(filename, b, size);
-}
-#endif
-
 
 static void palette_disable(uint32_t disabled)
 {

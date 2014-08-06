@@ -120,8 +120,11 @@ void console_puts(const char* str) // don't DebugMsg from here!
     bmp_printf(FONT_MED, 0, 0, "%s ", str);
 
     FILE* f = FIO_CreateFileOrAppend("ML/LOGS/console.log");
-    FIO_WriteFile( f, str, strlen(str) );
-    FIO_CloseFile(f);
+    if (f)
+    {
+        FIO_WriteFile( f, str, strlen(str) );
+        FIO_CloseFile(f);
+    }
     //~ msleep(100);         /* uncomment this to troubleshoot things that lockup the camera - to make sure FIO tasks actually flushed everything */
     #endif
 

@@ -79,7 +79,7 @@ int open(const char *pathname, int flags)
     handle->pos = 0;
     
     file = FIO_OpenFile(pathname, flags);
-    if(file == INVALID_PTR)
+    if (!file)
     {
         printf("Error loading '%s': File does not exist\n", pathname);
         fio_free(handle);

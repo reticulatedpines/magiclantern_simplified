@@ -259,33 +259,33 @@ draw_meter(
 
 static void
 draw_ticks(
-           int          x,
-           int          y,
-           int          tick_height,
-           int width
-           )
+   int x_origin,
+   int y_origin,
+   int tick_height,
+   int width
+)
 {
-    const uint32_t pitch = BMPPITCH;
-    uint32_t * row = (uint32_t*) bmp_vram();
+    const int pitch = BMPPITCH;
+    uint16_t * row = (uint16_t*) bmp_vram();
+
     if( !row )
         return;
-    row += (pitch/4) * y + AUDIO_METER_OFFSET - 2 + x/4;//seems to need less of an offset
+
+    row += (pitch/2) * y_origin + AUDIO_METER_OFFSET*2 + x_origin/2;
     
-    const uint32_t white_word = 0
-        | ( COLOR_WHITE << 24 )
-        | ( COLOR_WHITE << 16 )
+    const uint16_t white_word = 0
         | ( COLOR_WHITE <<  8 )
         | ( COLOR_WHITE <<  0 );
     
-    for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
+    for( ; tick_height > 0 ; tick_height--, row += pitch/2 )
+    {
+        for(int db = -40; db <= 0 ; db += 5 )
         {
-            int db;
-            for( db=-40; db<= 0 ; db+=5 )
-                {
-                    const uint32_t x_db = width + db * width / 40;
-                    row[x_db/4] = white_word;
-                }
+            const uint32_t x_db = width + db * width / 40;
+            row[x_db/2-1] = white_word;
+            row[x_db/2] = white_word;
         }
+    }
 }
 
 static int audio_cmd_to_gain_x1000(int cmd);
@@ -337,7 +337,7 @@ static void draw_meters(void)
     }
     
     draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label, width);
-    draw_ticks( x0, y0 + 10, 3, width);
+    draw_ticks( x0, y0 + 10, 2, width);
 #if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d
     draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label, width);
 #endif
@@ -852,18 +852,18 @@ audio_reg_dump_once()
         }
     
     FILE* f = FIO_CreateFile(log_filename);
-
-	unsigned i;
-	for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
+    if (f)
+    {
+        unsigned i;
+        for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
         {
             const uint16_t reg = audio_ic_read( audio_regs_once[i] );
             my_fprintf(f, "%s %02x\n", audio_reg_names_once[i], reg);
             msleep(10);
         }
-    
-    FIO_CloseFile(f);
-
-    NotifyBox(4000, "log audio%02d.log saved", log_number );
+        FIO_CloseFile(f);
+        NotifyBox(4000, "log audio%02d.log saved", log_number );
+    }
 }
 #endif
 
