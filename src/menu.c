@@ -672,7 +672,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         {
             entry->icon_type = IT_SUBMENU;
         }
-        else if (!IS_ML_PTR(entry->priv) || entry->select == (void(*)(void*,int))run_in_separate_task)
+        else if (!IS_ML_PTR(entry->priv) || entry->select == run_in_separate_task)
         {
             entry->icon_type = IT_ACTION;
         }
@@ -2120,7 +2120,7 @@ entry_default_display_info(
         STR_APPEND(value, "%s", entry->choices[SELECTED_INDEX(entry)]);
     }
 
-    else if (IS_ML_PTR(entry->priv) && entry->select != (void(*)(void*,int))run_in_separate_task)
+    else if (IS_ML_PTR(entry->priv) && entry->select != run_in_separate_task)
     {
         if (entry->min == 0 && entry->max == 1)
         {

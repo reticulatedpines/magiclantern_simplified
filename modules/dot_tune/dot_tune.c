@@ -654,7 +654,7 @@ static struct menu_entry afma_menu[] = {
             {
                 .name = "Start Scan",
                 .priv = afma_auto_tune,
-                .select = (void (*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .update = afma_generic_update,
                 .help  = "Step 1: achieve critical focus in LiveView with 10x zoom.",
                 .help2 = "Step 2: run this and leave the camera still for ~2 minutes.",
