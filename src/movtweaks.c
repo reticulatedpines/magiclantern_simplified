@@ -134,10 +134,6 @@ void set_shooting_mode(int m)
 }
 
 static CONFIG_INT("movie.restart", movie_restart,0);
-
-#ifdef FEATURE_REMAP
-static CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
-#endif
 static CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 static CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
 static CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
@@ -168,27 +164,6 @@ static void movie_rec_halfshutter_step()
         if (NOT_RECORDING && ALLOW_MOVIE_START) schedule_movie_start();
         else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }
-}
-#endif
-
-#ifdef FEATURE_REMAP // unstable
-void do_movie_mode_remap()
-{
-    if (gui_state == GUISTATE_PLAYMENU) return;
-    if (gui_menu_shown()) return;
-    if (!movie_mode_remap) return;
-    int movie_newmode = movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X : MOVIE_MODE_REMAP_Y;
-    if (shooting_mode == movie_newmode)
-    {
-        ensure_movie_mode();
-    }
-}
-
-static MENU_UPDATE_FUNC(mode_remap_print)
-{
-    MENU_SET_VALUE(
-        movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X_STR : movie_mode_remap == 2 ? MOVIE_MODE_REMAP_Y_STR : "OFF"
-    );
 }
 #endif
 
@@ -932,21 +907,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .max        = 1,
                     .help = "Auto-restart movie recording, if it happens to stop.",
                     .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_REMAP
-                {
-                    .name = "MovieModeRemap",
-                    .priv = &movie_mode_remap,
-                    .update    = mode_remap_print,
-                    .min = 0,
-                    #ifdef CONFIG_50D
-                    .max = 1,
-                    #else
-                    .max = 2,
-                    #endif
-                    .choices = CHOICES("OFF", "A-DEP", "CA"),
-                    .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
                 },
                 #endif
                 #ifdef FEATURE_REC_NOTIFY
