@@ -281,14 +281,19 @@ static void afma_auto_tune_automatic()
         return;
     }
 
+    int left = MAX(-AFMA_MAX,found_focus_min_value - 10);
+    int right = MIN(AFMA_MAX,found_focus_max_value + 10);
+
     // Phase 2: scan range edge to edge
     for (int pass = 1 ; pass <= afma_scan_passes; pass++)
     {
+        int direction = ((pass % 2) == 1 ? 1 : -1);
 
-        for (int i = MAX(-AFMA_MAX,found_focus_min_value - 10) ; i <= MIN(AFMA_MAX,found_focus_max_value + 10) ; i++) 
+        for (int j = 0; j <= right - left; j++)
         {
+            int i = (direction == 1 ? left : right) + direction * j;
 
-            // skip values that were already scaned during Phase 1
+            // skip values that were already scanned during Phase 1
             if (pass == 1 &&
                 scanned[i+AFMA_MAX] > 0)
                 continue; 
