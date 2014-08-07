@@ -664,16 +664,6 @@ static MENU_UPDATE_FUNC(focus_delay_update)
     MENU_SET_VALUE("%dms", lens_focus_delay*10);
 }
 
-#ifdef FEATURE_MOVIE_AF
-CONFIG_INT("movie.af", movie_af, 0);
-CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
-CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
-int movie_af_stepsize = 10;
-#else
-#define movie_af 0
-#endif
-
-
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 int focus_min_value = 0; // to confirm focus variation 
@@ -693,9 +683,6 @@ int get_focus_graph()
 { 
     if (should_draw_bottom_graphs())
         return zebra_should_run();
-
-    if (movie_af && is_movie_mode())
-        return !is_manual_focus() && zebra_should_run();
 
     if (get_trap_focus() && can_lv_trap_focus_be_active())
         return (liveview_display_idle() && get_global_draw()) || get_halfshutter_pressed();
@@ -755,97 +742,6 @@ int is_manual_focus()
     return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
 }
 
-#ifdef FEATURE_MOVIE_AF
-int movie_af_active()
-{
-    return is_movie_mode() && lv && !is_manual_focus() && (focus_done || movie_af==3);
-}
-
-static void movie_af_step(int mag)
-{
-    if (!movie_af_active()) return;
-    
-    #define MAXSTEPSIZE 64
-    #define NP ((int)movie_af_noisefilter)
-    #define NQ (10 - NP)
-    
-    int dirchange = 0;
-    static int dir = 1;
-    static int prev_mag = 0;
-    static int target_focus_rate = 1;
-    if (mag == prev_mag) return;
-    
-    bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
-
-    static int dmag = 0;
-    dmag = ((mag - prev_mag) * NQ + dmag * NP) / 10; // focus derivative is filtered (it's noisy)
-    int dmagp = dmag * 10000 / prev_mag;
-    static int dmagp_acc = 0;
-    static int acc_num = 0;
-    dmagp_acc += dmagp;
-    acc_num++;
-    
-    if (focus_done_raw & 0x1000) // bam! focus motor has hit something
-    {
-        dirchange = 1;
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "BAM!");
-    }
-    else if (movie_af_reverse_dir_request)
-    {
-        dirchange = 1;
-        movie_af_reverse_dir_request = 0;
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "REV ");
-    }
-    else
-    {
-        if (dmagp_acc < -500 && acc_num >= 2) dirchange = 1;
-        if (ABS(dmagp_acc) < 500)
-        {
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " !! "); // confused
-        }
-        else
-        {
-            dmagp_acc = 0;
-            acc_num = 0;
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " :) "); // it knows exactly if it's going well or not
-        }
-
-        if (ABS(dmagp) > target_focus_rate) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
-        else movie_af_stepsize = movie_af_stepsize * 3 / 2;               // when focus is "locked", derivative of focus amount is very high => step size will be very low
-        movie_af_stepsize = COERCE(movie_af_stepsize, 2, MAXSTEPSIZE);    // when OOF, derivative is very small => will increase focus speed
-    }
-    
-    if (dirchange)
-    {
-        dir = -dir;
-        dmag = 0;
-        target_focus_rate /= 4;
-    }
-    else
-    {
-        target_focus_rate = target_focus_rate * 11/10;
-    }
-    target_focus_rate = COERCE(target_focus_rate, movie_af_aggressiveness * 20, movie_af_aggressiveness * 100);
-
-    focus_done = 0; 
-    static int focus_pos = 0;
-    int focus_delta = movie_af_stepsize * SGN(dir);
-    focus_pos += focus_delta;
-    LensFocus(focus_delta);  // send focus command
-
-    //~ bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
-    
-    if (get_global_draw())
-    {
-        bmp_fill(0, 8, 151, 128, 10);                                          // display focus info
-        bmp_fill(COLOR_RED, 8, 151, movie_af_stepsize, 5);
-        bmp_fill(COLOR_BLUE, 8, 156, 64 * target_focus_rate / movie_af_aggressiveness / 100, 5);
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s %d%%   ", dir > 0 ? "FAR " : "NEAR", dmagp/100);
-    }
-    prev_mag = mag;
-}
-#endif
-
 static int trap_focus_autoscaling = 1;
 
 #ifdef FEATURE_TRAP_FOCUS
@@ -862,7 +758,7 @@ int handle_trap_focus(struct event * event)
 
 static int focus_graph_dirty = 0;
 
-#if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM) || defined(FEATURE_MOVIE_AF)
+#if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM)
 
 #define NMAGS 64
 static int mags[NMAGS] = {0};
@@ -943,56 +839,10 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
     int focus_mag = focus_mag_a + focus_mag_b;
     #endif
     
-#ifdef FEATURE_MOVIE_AF
-    if (movie_af != 3)
-#endif
-    {
-        update_focus_mag(focus_mag);
-#ifdef FEATURE_MOVIE_AF
-        if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
-            movie_af_step(focus_mag);
-#endif
-    }
+    update_focus_mag(focus_mag);
 }
 #else
 void plot_focus_mag(){};
-#endif
-
-#ifdef FEATURE_MOVIE_AF
-static void
-movie_af_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    if (movie_af)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Movie AF      : %s A%d N%d",
-            movie_af == 1 ? "Hold" : movie_af == 2 ? "Cont" : movie_af == 3 ? "CFPk" : "Err",
-            movie_af_aggressiveness,
-            movie_af_noisefilter
-        );
-    else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Movie AF      : OFF"
-        );
-}
-
-void movie_af_aggressiveness_bump(void* priv)
-{
-    movie_af_aggressiveness = movie_af_aggressiveness * 2;
-    if (movie_af_aggressiveness > 64) movie_af_aggressiveness = 1;
-}
-void movie_af_noisefilter_bump(void* priv)
-{
-    movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
-}
 #endif
 
 static void
@@ -1003,16 +853,6 @@ focus_misc_task(void* unused)
         msleep(100);
         
         if (hsp_countdown) hsp_countdown--;
-
-#ifdef FEATURE_MOVIE_AF
-        if (movie_af == 3)
-        {
-            int fm = get_spot_focus(100);
-            update_focus_mag(fm);
-            //~ if (get_focus_graph()) plot_focus_mag();
-            movie_af_step(fm);
-        }
-#endif
 
         if (focus_graph_dirty && get_focus_graph()) 
         {
@@ -1132,19 +972,6 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
         #endif
-    },
-    #endif
-    
-    #ifdef FEATURE_MOVIE_AF
-    {
-        .name = "Movie AF",
-        .priv = &movie_af,
-        .update    = movie_af_print,
-        .select     = menu_quaternary_toggle,
-        .select_reverse = movie_af_noisefilter_bump,
-        .select_Q = movie_af_aggressiveness_bump,
-        .help = "Custom AF algorithm in movie mode. Not very efficient."
-        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE | DEP_AUTOFOCUS,
     },
     #endif
 

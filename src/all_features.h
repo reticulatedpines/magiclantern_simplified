@@ -195,7 +195,6 @@
     #define FEATURE_RACK_FOCUS
     #define FEATURE_FOCUS_STACKING
     #define FEATURE_AF_PATTERNS
-    //~ #define FEATURE_MOVIE_AF // not reliable
 #endif
 
 /** Display menu **/
