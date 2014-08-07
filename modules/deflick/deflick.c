@@ -81,7 +81,7 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
     snprintf(sidecar, sizeof(sidecar), "%s/%s.%s", dir, basename, type ? "UFR" : "XMP");
 
     FILE* f = FIO_CreateFile(sidecar);
-    if (f == INVALID_PTR) return;
+    if (!f) return;
     if (type == 0)
     {
         /* not sure */
@@ -229,7 +229,7 @@ static struct menu_entry post_deflicker_menu[] = {
                 .min = 20,
                 .max = 80,
                 .unit = UNIT_PERCENT,
-                .help  = "Where to meter for deflickering. Recommended: 50% (median).",
+                .help  = "Where to meter for deflicking. Recommended: 50% (median).",
                 .help2 = "Try 75% if you get black borders (e.g. Samyang 8mm on 5D).",
             },
             {
@@ -238,7 +238,8 @@ static struct menu_entry post_deflicker_menu[] = {
                 .min = -8,
                 .max = -1,
                 .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
-                .help = "Desired exposure level for processed pics. 0=overexposed.",
+                .help = "Where to place the exposure level for processed pics",
+                .help2 = "EV below overexposure.",
             },
             MENU_EOL,
         },

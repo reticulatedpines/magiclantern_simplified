@@ -84,6 +84,7 @@ static int cam_eos_m = 0;
 static int cam_5d2 = 0;
 static int cam_50d = 0;
 static int cam_5d3 = 0;
+static int cam_500d = 0;
 static int cam_550d = 0;
 static int cam_6d = 0;
 static int cam_600d = 0;
@@ -498,11 +499,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
     if (auto_power_off_time)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
 
-    if (is_custom_movie_mode() && !is_native_movie_mode())
-    {
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
-    }
-
     if (!RAW_IS_IDLE)
     {
         MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
@@ -606,45 +602,6 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     int written = FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
     
     return written == sizeof(lv_rec_file_footer_t);
-}
-
-static unsigned int lv_rec_read_footer(FILE *f)
-{
-    lv_rec_file_footer_t footer;
-
-    /* get current position in file, seek to footer, read and go back where we were */
-    unsigned int old_pos = FIO_SeekFile(f, 0, 1);
-    FIO_SeekFile(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
-    int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekFile(f, old_pos, SEEK_SET);
-
-    /* check if the footer was read */
-    if(read != sizeof(lv_rec_file_footer_t))
-    {
-        bmp_printf(FONT_MED, 30, 190, "File position mismatch. Read %d", read);
-        beep();
-        msleep(1000);
-    }
-    
-    /* check if the footer is in the right format */
-    if(strncmp((char*)footer.magic, "RAWM", 4))
-    {
-        bmp_printf(FONT_MED, 30, 190, "Footer format mismatch");
-        beep();
-        msleep(1000);
-        return 0;
-    }
-        
-    /* update global variables with data from footer */
-    res_x = footer.xRes;
-    res_y = footer.yRes;
-    frame_count = footer.frameCount + 1;
-    frame_size = footer.frameSize;
-    // raw_info = footer.raw_info;
-    raw_info.white_level = footer.raw_info.white_level;
-    raw_info.black_level = footer.raw_info.black_level;
-    
-    return 1;
 }
 
 static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
@@ -830,9 +787,6 @@ static void raw_video_enable()
 {
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
-
-    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
-    if (cam_eos_m) set_custom_movie_mode(1);
     
     msleep(50);
 }
@@ -840,14 +794,13 @@ static void raw_video_enable()
 static void raw_video_disable()
 {
     raw_lv_release();
-    if (cam_eos_m) set_custom_movie_mode(0);
 }
 
 static void raw_lv_request_update()
 {
     static int raw_lv_requested = 0;
 
-    if (raw_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (raw_video_enabled && lv && is_movie_mode())
     {
         if (!raw_lv_requested)
         {
@@ -1190,6 +1143,7 @@ static void hack_liveview(int unhack)
             cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
+            cam_500d ? 0xFF2ABEF8 :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -1236,7 +1190,7 @@ static int FAST choose_next_capture_slot()
     /* choose the largest contiguous free section */
     /* O(n), n = slot_count */
     int len = 0;
-    void* prev_ptr = INVALID_PTR;
+    void* prev_ptr = PTR_INVALID;
     int best_len = 0;
     int best_index = -1;
     for (int i = 0; i < slot_count; i++)
@@ -1267,7 +1221,7 @@ static int FAST choose_next_capture_slot()
         else
         {
             len = 0;
-            prev_ptr = INVALID_PTR;
+            prev_ptr = PTR_INVALID;
         }
     }
 
@@ -1472,7 +1426,7 @@ static void raw_video_rec_task()
     char backup_filename[100];
     snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
     FILE* bf = FIO_CreateFile(backup_filename);
-    if (bf == INVALID_PTR)
+    if (!bf)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
         goto cleanup;
@@ -1486,7 +1440,7 @@ static void raw_video_rec_task()
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
     f = FIO_CreateFile(raw_movie_filename);
-    if (f == INVALID_PTR)
+    if (!f)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
         goto cleanup;
@@ -1679,7 +1633,7 @@ static void raw_video_rec_task()
                 /* try to create a new chunk */
                 chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
                 FILE* g = FIO_CreateFile(chunk_filename);
-                if (g == INVALID_PTR) goto abort;
+                if (!g) goto abort;
                 
                 /* write the remaining data in the new chunk */
                 int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
@@ -1837,7 +1791,7 @@ abort_and_check_early_stop:
             FIO_CloseFile(f); f = 0;
             chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
             FILE* g = FIO_CreateFile(chunk_filename);
-            if (g != INVALID_PTR)
+            if (g)
             {
                 footer_ok = lv_rec_save_footer(g);
                 FIO_CloseFile(g);
@@ -2040,7 +1994,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* keys are only hooked in LiveView */
-    if (!liveview_display_idle())
+    if (!liveview_display_idle() && !RECORDING_RAW)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
@@ -2206,6 +2160,7 @@ static unsigned int raw_rec_init()
     cam_7d    = is_camera("7D",   "2.0.3");
     cam_700d  = is_camera("700D", "1.1.3");
     cam_60d   = is_camera("60D",  "1.1.1");
+    cam_500d  = is_camera("500D", "1.1.1");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
@@ -2235,9 +2190,12 @@ static unsigned int raw_rec_init()
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
         FILE* f = FIO_CreateFile(warmup_filename);
-        FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
-        FIO_CloseFile(f);
-        FIO_RemoveFile(warmup_filename);
+        if (f)
+        {
+            FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
+            FIO_CloseFile(f);
+            FIO_RemoveFile(warmup_filename);
+        }
         NotifyBoxHide();
     }
 

@@ -402,11 +402,11 @@ static MENU_UPDATE_FUNC(focus_show_a)
     if (entry->selected) override_zoom_buttons = 1;
     
     MENU_SET_VALUE(
-        "%s%d%s",
+        "%s%d %s",
         focus_task_delta > 0 ? "+" : 
         focus_task_delta < 0 ? "-" : "",
         ABS(focus_task_delta),
-        focus_task_delta ? "steps from here" : " (here)"
+        focus_task_delta ? "steps from here" : "(here)"
     );
     MENU_SET_ICON(MNI_BOOL(focus_task_delta), 0);
     MENU_SET_ENABLED(focus_task_delta);

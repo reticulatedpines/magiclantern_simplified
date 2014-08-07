@@ -112,3 +112,6 @@
 
 /** LV RAW has trouble with 10x zoom, disable it */
 #define CONFIG_RAW_DISABLE_IN_10X_ZOOM
+
+/** Use a patched LiveViewApp dialog hander to hide Canon bottom bar */
+#define CONFIG_LVAPP_HACK_RELOC

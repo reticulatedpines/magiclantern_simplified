@@ -992,14 +992,22 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     preview_rect_y = y;
     preview_rect_w = w;
     preview_rect_h = h;
+    
+    /* preview area (usually active area) should match the area from os.x0/y0 to os.x_max/y_max */
 
     /* note: this will call BMP_LOCK */
     /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
+    
+    /* scaling factor: raw width should match os.x_ex, same for raw height and os.y_ex */
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
     lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
-    lv2raw.tx = x - BM2RAW_DX(os.x0);
-    lv2raw.ty = y - BM2RAW_DY(os.y0);
+
+    /* translation: raw top-left corner (x,y) should match (os.x0,os.y0) */
+    int x0_lv = BM2LV_X(os.x0);
+    int y0_lv = BM2LV_Y(os.y0);
+    lv2raw.tx = x - LV2RAW_DX(x0_lv);
+    lv2raw.ty = y - LV2RAW_DY(y0_lv);
 }
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom)
@@ -1019,10 +1027,11 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
     dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
     
-    int preview_skip_left = skip_left;
-    int preview_skip_top = skip_top;
-    int preview_width = raw_info.jpeg.width;
-    int preview_height = raw_info.jpeg.height;
+    /* Canon does not render the entire active area - these numbers give pixel-perfect alignment on 5D3 */
+    int preview_skip_left = skip_left + 14;
+    int preview_skip_top = skip_top + 8;
+    int preview_width = raw_info.jpeg.width - 28;
+    int preview_height = raw_info.jpeg.height - 16;
 
 #ifdef CONFIG_RAW_LIVEVIEW
     if (lv_dispsize > 1)
@@ -1073,7 +1082,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
-    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", 0, 0, vram_lv.width, vram_lv.height);
+    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", BM2LV_X(os.x0), BM2LV_Y(os.y0), BM2LV_X(os.x_max), BM2LV_Y(os.y_max));
     dbg_printf("raw2bm test: (%d,%d) - (%d,%d)\n", RAW2BM_X(raw_info.active_area.x1), RAW2BM_Y(raw_info.active_area.y1), RAW2BM_X(raw_info.active_area.x2), RAW2BM_Y(raw_info.active_area.y2));
     dbg_printf("  should be: (%d,%d) - (%d,%d)\n", os.x0, os.y0, os.x_max, os.y_max);
     dbg_printf("bm2raw test: (%d,%d) - (%d,%d)\n", BM2RAW_X(os.x0), BM2RAW_Y(os.y0), BM2RAW_X(os.x_max), BM2RAW_Y(os.y_max));
@@ -2073,12 +2082,18 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
         if (buf[0] == 10)
         {
             lv_raw_enabled = -1;
+
+            #ifndef CONFIG_RAW_DISABLE_IN_10X_ZOOM_WEAK
+            /* crash reported on 50D if this is called; however, other cameras (550D, 500D) require it to avoid crashes */
             call("lv_save_raw", 0);
+            #endif
         }
         else
         {
             lv_raw_enabled = 1;
+            #ifndef CONFIG_RAW_DISABLE_IN_10X_ZOOM_WEAK
             call("lv_save_raw", 1);
+            #endif
         }
     }
     #endif

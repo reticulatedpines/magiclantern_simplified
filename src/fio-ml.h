@@ -62,7 +62,7 @@ typedef struct _file * FILE;
 #define O_ASYNC          020000
 /* @} */
 
-/* whence value for FIO_SeekFile */
+/* whence value for FIO_SeekSkipFile */
 #define 	SEEK_SET   0
 #define 	SEEK_CUR   1
 #define 	SEEK_END   2
@@ -107,12 +107,14 @@ extern int FIO_GetFileSize( const char * filename, uint32_t * size );
 extern struct fio_dirent * FIO_FindFirstEx( const char * dirname, struct fio_file * file );
 extern int FIO_FindNextEx( struct fio_dirent * dirent, struct fio_file * file );
 extern void FIO_FindClose( struct fio_dirent * dirent );
-extern uint64_t FIO_SeekFile( FILE* stream, size_t position, int whence );
-extern uint64_t FIO_SeekSkipFile( FILE* stream, uint64_t position, int whence );
 extern int FIO_RenameFile(char *src,char *dst);
 extern int FIO_RemoveFile(const char * filename);
 extern int FIO_GetFileSize(const char * filename, uint32_t * size);
 extern uint32_t FIO_GetFileSize_direct(const char * filename);   /* todo: use just this one */
+
+/* returns absolute position after seeking */
+/* note: seeking past the end of a file does not work on all cameras */
+extern int64_t FIO_SeekSkipFile( FILE* stream, int64_t position, int whence );
 
 /* ML wrappers */
 extern FILE* FIO_CreateFile( const char* name );
@@ -131,5 +133,9 @@ void dump_seg(void* start, uint32_t size, char* filename);
 
 /* dump 0x10000000 bytes (256MB) from 0x10000000 * k */
 void dump_big_seg(int k, char* filename);
+
+size_t read_file( const char * filename, void * buf, size_t size);
+
+uint8_t* read_entire_file(const char * filename, int* buf_size);
 
 #endif

@@ -17,14 +17,6 @@
 #include <af_patterns.h>
 #endif
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
-#define CONFIG_LVAPP_HACK_RELOC
-#elif defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
-#define CONFIG_LVAPP_HACK_DEBUGMSG
-#elif defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME)
-#define CONFIG_LVAPP_HACK_FBUFF
-#endif
-
 #if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK_FBUFF)
 #define CONFIG_LVAPP_HACK
 #endif
@@ -639,8 +631,7 @@ void gui_uilock(int what)
     int unlocked = UILOCK_NONE;
     prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(50);
-    prop_request_change(PROP_ICU_UILOCK, &what, 4);
-    msleep(50);
+    prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
 }
 
 void ui_lock(int what)
@@ -674,4 +665,10 @@ static void redraw_after_cbr()
 void redraw_after(int msec)
 {
     delayed_call(msec, redraw_after_cbr);
+}
+
+int get_gui_mode()
+{
+    /* this is GUIMode from SetGUIRequestMode */
+    return CURRENT_DIALOG_MAYBE;
 }

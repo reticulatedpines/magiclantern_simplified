@@ -86,6 +86,7 @@ static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
 static uint32_t cam_5d3 = 0;
+static uint32_t cam_500d = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
@@ -134,7 +135,6 @@ static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
 static CONFIG_INT("mlv.card_spanning", card_spanning, 0);
 static CONFIG_INT("mlv.delay", start_delay_idx, 0);
 static CONFIG_INT("mlv.killgd", kill_gd, 1);
-static CONFIG_INT("mlv.rec_key", rec_key, 0);
 static CONFIG_INT("mlv.large_file_support", large_file_support, 0);
 static CONFIG_INT("mlv.create_dummy", create_dummy, 1);
 static CONFIG_INT("mlv.dolly", dolly_mode, 0);
@@ -289,7 +289,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     }
     
     FILE *dummy_file = FIO_CreateFile(filename);
-    if(dummy_file == INVALID_PTR)
+    if(!dummy_file)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
         return 0;
@@ -297,7 +297,7 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
     FIO_WriteFile(dummy_file, (void*)0x40000000, size);
-    uint32_t new_pos = FIO_SeekFile(dummy_file, 0, SEEK_CUR);
+    uint32_t new_pos = FIO_SeekSkipFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
@@ -637,11 +637,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
     if (auto_power_off_time)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
-    }
-
-    if (is_custom_movie_mode() && !is_native_movie_mode())
-    {
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
     }
 
     if (!RAW_IS_IDLE)
@@ -1247,28 +1242,19 @@ static void raw_video_enable()
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
 
-    if(cam_eos_m && !is_movie_mode())
-    {
-        set_custom_movie_mode(1);
-    }
-
     msleep(50);
 }
 
 static void raw_video_disable()
 {
     raw_lv_release();
-    if (cam_eos_m && is_custom_movie_mode())
-    {
-        set_custom_movie_mode(0);
-    }
 }
 
 static void raw_lv_request_update()
 {
     static int32_t raw_lv_requested = 0;
 
-    if (mlv_video_enabled && lv && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    if (mlv_video_enabled && lv && is_movie_mode())
     {
         if (!raw_lv_requested)
         {
@@ -1624,6 +1610,7 @@ static void hack_liveview(int32_t unhack)
             cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
+            cam_500d ? 0xFF2ABEF8 :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -1852,7 +1839,7 @@ retry_find:
             /* choose the largest contiguous free section */
             /* O(n), n = slot_count */
             int32_t len = 0;
-            void* prev_ptr = INVALID_PTR;
+            void* prev_ptr = PTR_INVALID;
             int32_t prev_blockSize = 0;
             int32_t best_len = 0;
             for (int32_t i = 0; i < slot_count; i++)
@@ -1885,7 +1872,7 @@ retry_find:
                 else
                 {
                     len = 0;
-                    prev_ptr = INVALID_PTR;
+                    prev_ptr = PTR_INVALID;
                 }
             }
 
@@ -2406,7 +2393,7 @@ static uint32_t raw_get_next_filenum()
 
 static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
 {
-    if(f == INVALID_PTR || f == NULL)
+    if(f == NULL)
     {
         return;
     }
@@ -2483,7 +2470,7 @@ static void raw_writer_task(uint32_t writer)
     /* update file count */
     file_header.fileNum = writer;
 
-    written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+    written_chunk = FIO_SeekSkipFile(f, 0, SEEK_CUR);
     
     util_atomic_inc(&mlv_rec_threads);
     while(raw_recording_state == RAW_PREPARING)
@@ -2580,8 +2567,8 @@ static void raw_writer_task(uint32_t writer)
                         strncpy(next_filename, "", MAX_PATH);
 
                         frames_written = 0;
-                        FIO_SeekFile(f, 0, SEEK_END);
-                        written_chunk = FIO_SeekFile(f, 0, SEEK_CUR);
+                        FIO_SeekSkipFile(f, 0, SEEK_END);
+                        written_chunk = FIO_SeekSkipFile(f, 0, SEEK_CUR);
 
                         /* write next header */
                         file_header.fileNum = next_file_num;
@@ -2630,7 +2617,7 @@ static void raw_writer_task(uint32_t writer)
                 /* start write and measure times */
                 job->last_time_after = last_time_after;
                 job->time_before = get_us_clock_value();
-                job->file_offset = FIO_SeekFile(f, 0, SEEK_CUR);
+                job->file_offset = FIO_SeekSkipFile(f, 0, SEEK_CUR);
                 int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
                 job->time_after = get_us_clock_value();
 
@@ -2725,11 +2712,11 @@ abort:
         }
     }
 
-    if(f != INVALID_PTR)
+    if (f)
     {
         file_header.videoFrameCount = frames_written;
 
-        FIO_SeekFile(f, 0, SEEK_SET);
+        FIO_SeekSkipFile(f, 0, SEEK_SET);
         mlv_write_hdr(f, (mlv_hdr_t *)&file_header);
         FIO_CloseFile(f);
     }
@@ -3086,7 +3073,7 @@ static void raw_video_rec_task()
             mlv_handles[writer] = FIO_OpenFile(chunk_filename[writer], O_RDWR | O_SYNC);
             
             /* failed to open? */
-            if(mlv_handles[writer] == INVALID_PTR)
+            if(!mlv_handles[writer])
             {
                 trace_write(raw_rec_trace_ctx, "FIO_CreateFile(#%d): FAILED", writer);
                 NotifyBox(5000, "Failed to create file. Card full?");
@@ -3094,7 +3081,7 @@ static void raw_video_rec_task()
                 return;
             }
 
-            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekFile(mlv_handles[writer], 0, SEEK_END));
+            trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_END));
         }
 
         /* create writer threads with decreasing priority */
@@ -3299,14 +3286,14 @@ static void raw_video_rec_task()
                     handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
-                    if(handle->file_handle == INVALID_PTR)
+                    if (!handle->file_handle)
                     {
                         NotifyBox(5000, "Failed to open file. Card full?");
                         trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
                         break;
                     }
 
-                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekFile(handle->file_handle, 0, SEEK_END));
+                    trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekSkipFile(handle->file_handle, 0, SEEK_END));
             
                     /* requeue job again, the writer will care for it */
                     msg_queue_post(mlv_writer_queues[handle->writer], (uint32_t) handle);
@@ -3317,7 +3304,7 @@ static void raw_video_rec_task()
 
                     trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
 
-                    FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                    FIO_SeekSkipFile(handle->file_handle, 0, SEEK_SET);
                     mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                     FIO_CloseFile(handle->file_handle);
 
@@ -3369,7 +3356,7 @@ static void raw_video_rec_task()
 
                 trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: close file '%s'", handle->writer, handle->filename);
 
-                FIO_SeekFile(handle->file_handle, 0, SEEK_SET);
+                FIO_SeekSkipFile(handle->file_handle, 0, SEEK_SET);
                 mlv_write_hdr(handle->file_handle, (mlv_hdr_t *)&(handle->file_header));
                 FIO_CloseFile(handle->file_handle);
 
@@ -3688,13 +3675,6 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Disable global draw while recording.\n Some previews depend on GD",
             },
             {
-                .name = "Rec Key",
-                .priv = &rec_key,
-                .max = 1,
-                .choices = CHOICES("LV/REC", "MENU"),
-                .help = "Start recording with either LV or Menu button. Required for EOSM",
-            },
-            {
                 .name = "Frame skipping",
                 .priv = &allow_frame_skip,
                 .max = 1,
@@ -3830,7 +3810,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* keys are only hooked in LiveView */
-    if (!liveview_display_idle())
+    if (!liveview_display_idle() && !RECORDING_RAW)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
@@ -3839,12 +3819,6 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
-
-    /* MENU ON EOSM Photo Mode */
-    if (cam_eos_m)
-    {
-        rec_key_pressed = ( rec_key ? key== MODULE_KEY_MENU : (key == MODULE_KEY_LV || key == MODULE_KEY_REC) );
-    }
 
     /* ... or SET on 5D2/50D */
     if (cam_50d || cam_5d2) rec_key_pressed = (key == MODULE_KEY_PRESS_SET);
@@ -4024,6 +3998,7 @@ static unsigned int raw_rec_init()
     cam_7d    = is_camera("7D",   "2.0.3");
     cam_700d  = is_camera("700D", "1.1.3");
     cam_60d   = is_camera("60D",  "1.1.1");
+    cam_500d  = is_camera("500D", "1.1.1");
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
@@ -4036,8 +4011,6 @@ static unsigned int raw_rec_init()
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
-        if (!cam_eos_m && streq(e->name, "Rec Key") )
-            e->shidden = 1;
         if (cam_eos_m && streq(e->name, "Digital dolly") )
             e->shidden = 1;
 
@@ -4070,7 +4043,7 @@ static unsigned int raw_rec_init()
         char warmup_filename[100];
         snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
         FILE* f = FIO_CreateFile(warmup_filename);
-        if(f != INVALID_PTR)
+        if (f)
         {
             FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
             FIO_CloseFile(f);
@@ -4137,7 +4110,6 @@ MODULE_CONFIGS_START()
 
     MODULE_CONFIG(start_delay_idx)
     MODULE_CONFIG(kill_gd)
-    MODULE_CONFIG(rec_key)
     MODULE_CONFIG(display_rec_info)
 
     MODULE_CONFIG(small_hacks)

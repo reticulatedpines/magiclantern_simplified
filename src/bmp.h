@@ -32,8 +32,6 @@
 #include "font.h"
 #include "rbf_font.h"
 
-uint8_t* read_entire_file(const char * filename, int* buf_size);
-
 extern int bmp_enabled;
 
 /** Returns a pointer to the real BMP vram (or to idle BMP vram) */
@@ -246,15 +244,6 @@ int big_bmp_printf( uint32_t fontspec, int x, int y, const char* fmt, ... ); /* 
 int bmp_string_width(int fontspec, const char* str);                  /* string width in pixels, with a given font */
 int bmp_strlen_clipped(int fontspec, const char* str, int maxlen);    /* string len (in chars), if you want to clip at maxlen pix */
 
-size_t read_file( const char * filename, void * buf, size_t size);
-
-extern void
-con_printf(
-        uint32_t fontspec,
-        const char *fmt,
-        ...
-) __attribute__((format(printf,2,3)));
-
 extern void
 bmp_hexdump(
     uint32_t fontspec,
@@ -299,12 +288,12 @@ void bmp_draw_rect_chamfer(int color, int x0, int y0, int w, int h, int a, int t
 #define COLOR_EMPTY             0x00 // total transparent
 #define COLOR_WHITE             0x01 // Normal white
 #define COLOR_BLACK             0x02
-#ifdef CONFIG_4_3_SCREEN
-#define COLOR_BG                0x03 // transparent black
-#else
-#define COLOR_BG                0x14 // transparent gray
-#endif
-#define COLOR_BG_DARK           0x03 // transparent black
+
+#define COLOR_TRANSPARENT_BLACK 0x03
+#define COLOR_TRANSPARENT_GRAY  0x14 // not portable, old cameras show it as magenta
+
+#define COLOR_BG                COLOR_TRANSPARENT_BLACK
+#define COLOR_BG_DARK           COLOR_TRANSPARENT_BLACK // deprecated
 
 #define COLOR_CYAN              0x05
 #define COLOR_GREEN1            0x06
@@ -402,31 +391,9 @@ uint8_t bmp_getpixel(int x, int y);
 #define TOPBAR_BGCOLOR (bmp_getpixel(os.x0,os.y0))
 #define BOTTOMBAR_BGCOLOR (bmp_getpixel(os.x0,os.y_max-1))
 
-//~ struct semaphore * bmp_sem;
-//~ struct semaphore * gmt_sem;
-//~ #define BMP_SEM(x) { bmp_printf(FONT_LARGE, 50, 100, "B1 %s:%d", __func__, __LINE__); take_semaphore(bmp_sem, 0); x; give_semaphore(bmp_sem); bmp_printf(FONT_LARGE, 50, 100, "B0                                 ");}
-//~ #define GMT_SEM(x) { bmp_printf(FONT_LARGE, 50, 50, "G1 %s:%d", __func__, __LINE__); card_led_on(); take_semaphore(gmt_sem, 0); x; give_semaphore(gmt_sem);  card_led_off(); bmp_printf(FONT_LARGE, 50, 50, "G0                                 "); }
-
 extern void* bmp_lock;
-extern void* gmt_lock;
-//~ extern int bmp_ctr;
-
-//~ #define BMP_LOCK(x) { if(bmp_lock) AcquireRecursiveLock(bmp_lock, 0); x; if(bmp_lock) ReleaseRecursiveLock(bmp_lock, 0);}
-//~ #define GMT_LOCxK(x) { if(gmt_lock) AcquireRecursiveLock(gmt_lock, 0); x; if(gmt_lock) ReleaseRecursiveLock(gmt_lock, 0);}
-
-extern void *AcquireRecursiveLock(void *lock, int n);
-extern void *CreateRecursiveLock(int n);
-extern void *ReleaseRecursiveLock(void *lock);
 
 #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
-#define GMT_LOCK(x) { error }
-
-//~ #define BMP_LOCK(x) { CheckBmpAcquireRecursiveLock(bmp_lock, __LINE__, __func__); x; CheckBmpReleaseRecursiveLock(bmp_lock);}
-
-//~ #define BMP_LOCK(x) { x; }
-//~ #define BMP_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 150, "BMP_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(bmp_lock, 500); bmp_printf(FONT_SMALL, 50, 150, "                          "); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 releasing...                    "); ReleaseRecursiveLock(bmp_lock); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
-//~ #define GMT_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 200, "GMT_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 500); bmp_printf(FONT_SMALL, 50, 200, "                          "); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 releasing...                    "); ReleaseRecursiveLock(gmt_lock); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
-
 
 void bmp_flip(uint8_t* dst, uint8_t* src, int voffset);
 void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);

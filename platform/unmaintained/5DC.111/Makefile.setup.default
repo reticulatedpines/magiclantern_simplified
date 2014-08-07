@@ -1,7 +1,5 @@
 #Makefile for 5DC
 
-CONFIG_RELOC = y
-
 ML_ZEBRA_OBJ = zebra-5dc.o
 ML_ENTRY_OBJ = local_entry.o
 ML_PICSTYLE_AUTO = n

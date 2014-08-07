@@ -77,7 +77,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    if(file == INVALID_PTR)
+    if (!file)
     {
         console_printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
@@ -1665,8 +1665,11 @@ static void module_load_task(void* unused)
         else
         {
             FILE *handle = FIO_CreateFile(module_lockfile);
-            FIO_WriteFile(handle, lockstr, strlen(lockstr));
-            FIO_CloseFile(handle);
+            if (handle)
+            {
+                FIO_WriteFile(handle, lockstr, strlen(lockstr));
+                FIO_CloseFile(handle);
+            }
             
             /* now load modules */
             _module_load_all(0);

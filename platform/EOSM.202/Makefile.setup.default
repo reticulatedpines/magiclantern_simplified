@@ -2,8 +2,3 @@
 
 TOP_DIR=../..
 ML_AF_PATTERNS_OBJ = n
-
-ML_SRC_EXTRA_OBJS = \
-	raw.o \
-	chdk-dng.o \
-	edmac-memcpy.o

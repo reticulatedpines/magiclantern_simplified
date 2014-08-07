@@ -78,7 +78,7 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
     unsigned int written = 0;
     
     FILE *f = FIO_CreateFile(file);
-    if (f != (void*) -1)
+    if (f)
     {
         struct memChunk *currentChunk;
         unsigned char *chunkAddress;
@@ -446,6 +446,13 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     {
         srm_shutter_unlock();
         return 0;
+    }
+    
+    if (num_requested_buffers == COUNT(buffers))
+    {
+        /* all SRM memory allocated => Canon code already locked the shutter for us */
+        /* (we still need the lock active while allocating, to pass the race condition test) */
+        srm_shutter_unlock();
     }
     
     /* pack the buffers into a memory suite, so they can be used in the same way as with shoot_malloc_suite */
