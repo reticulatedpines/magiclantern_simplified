@@ -432,16 +432,6 @@ void lv_movie_size_toggle(void* priv, int delta)
 }
 #endif
 
-#ifdef FEATURE_LVAE_EXPO_LOCK
-int movie_expo_lock = 0;
-static void movie_expo_lock_toggle()
-{
-    if (!is_movie_mode()) return;
-    movie_expo_lock = !movie_expo_lock;
-    call("lv_ae", !movie_expo_lock);
-}
-#endif
-
 #ifdef CONFIG_BLUE_LED
 CONFIG_INT("rec.notify", rec_notify, 3);
 #else
@@ -951,15 +941,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .icon_type = IT_DICE_OFF,
                     .help = "Always use LiveView (with manual lens or after lens swap).",
                     .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_LVAE_EXPO_LOCK
-                {
-                    .name       = "Exposure Lock",
-                    .priv       = &movie_expo_lock,
-                    .select     = movie_expo_lock_toggle,
-                    .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-                    .help       = "Lock the exposure in movie mode.",
                 },
                 #endif
                 #ifdef FEATURE_SHUTTER_LOCK

@@ -142,7 +142,6 @@
 
     // 50D movie hacks
     //~ #define FEATURE_MOVIE_RECORDING_50D
-    //~ #define FEATURE_LVAE_EXPO_LOCK
 
     // 650D / EOSM hacks
     //~ #define FEATURE_CROP_MODE_HACK
