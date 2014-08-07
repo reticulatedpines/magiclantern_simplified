@@ -954,16 +954,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                 },
                 #endif
 
-                #if 0
-                {
-                    .name = "REC on resume",
-                    .priv = &start_recording_on_resume,
-                    .max = 1,
-                    .help = "Auto-record if camera wakes up due to halfshutter press."
-                    .depends_on = DEP_MOVIE_MODE,
-              },
-                #endif
-
                 MENU_EOL
         }
     },
