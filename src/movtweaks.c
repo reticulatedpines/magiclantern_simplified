@@ -135,48 +135,12 @@ void set_shooting_mode(int m)
 
 static CONFIG_INT("movie.restart", movie_restart,0);
 
-#ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-CONFIG_INT("movie.cliplen", movie_cliplen,0);
-#endif
-
 #ifdef FEATURE_REMAP
 static CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 #endif
 static CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 static CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
 static CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
-
-#ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-
-static int movie_autostop_running = 0;
-
-static int movie_cliplen_values[] = {0, 1, 2, 3, 4, 5, 10, 15};
-
-static int current_cliplen_index(int t)
-{
-    int i;
-    for (i = 0; i < COUNT(movie_cliplen_values); i++)
-        if (t == movie_cliplen_values[i]) return i;
-    return 0;
-}
-
-static void movie_cliplen_toggle(void* priv, int sign)
-{
-    int* t = (int*)priv;
-    int i = current_cliplen_index(*t);
-    i = MOD(i + sign, COUNT(movie_cliplen_values));
-    *(int*)priv = movie_cliplen_values[i];
-}
-
-static MENU_UPDATE_FUNC(movie_cliplen_display)
-{
-    int val = CURRENT_VALUE;
-    if (val) MENU_SET_VALUE(
-        "after %d min",
-        val
-    );
-}
-#endif
 
 #ifdef FEATURE_MOVIE_REC_KEY
 
@@ -390,10 +354,6 @@ void movtweak_step()
             movie_was_stopped_by_set = 0;
         }
     #endif
-
-        #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-        if (NOT_RECORDING) movie_autostop_running = 0;
-        #endif
         
         if (is_movie_mode())
         {
@@ -403,22 +363,6 @@ void movtweak_step()
             
             #ifdef FEATURE_SHUTTER_LOCK
             if (shutter_lock) shutter_lock_step();
-            #endif
-            
-            #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-            if (RECORDING && movie_cliplen) {
-                if (!movie_autostop_running) {
-                    movie_autostop_running = get_seconds_clock();
-                } else {
-                    int dt = (get_seconds_clock() - movie_autostop_running);
-                    int r = movie_cliplen*60 - dt;
-                    if (dt == 0) NotifyBox(2000,"Will stop after %d minute%s", movie_cliplen, movie_cliplen > 1 ? "s" : "");
-                    if (r > 0 && r <= 10) NotifyBox(2000,"Will stop after %d second%s", r, r > 1 ? "s" : "");
-                    if(r < 0) {
-                        schedule_movie_end();
-                    }
-                }
-            }
             #endif
         }
 
@@ -987,16 +931,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .priv = &movie_restart,
                     .max        = 1,
                     .help = "Auto-restart movie recording, if it happens to stop.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-                {
-                    .name    = "Stop recording",
-                    .priv    = &movie_cliplen,
-                    .update  = movie_cliplen_display,
-                    .select  = movie_cliplen_toggle,
-                    .help = "Auto-stop the movie after a set amount of minutes.",
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif

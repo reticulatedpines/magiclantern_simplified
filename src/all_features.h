@@ -110,7 +110,6 @@
     #define FEATURE_REC_INDICATOR
     #define FEATURE_MOVIE_LOGGING
     #define FEATURE_MOVIE_RESTART
-    //~ #define FEATURE_MOVIE_AUTOSTOP_RECORDING // will be moved to scripts
     #define FEATURE_REC_NOTIFY
     //~ #define FEATURE_REC_NOTIFY_BEEP // this may interfere with sound recording, so only enable it where we know it works
     #define FEATURE_MOVIE_REC_KEY
