@@ -505,13 +505,16 @@ static int afma_mode_to_index(int mode)
 {
     if (afma_wide_tele)
     {
-        if (mode == AFMA_MODE_PER_LENS_WIDE) return 2;
-        else if (mode == AFMA_MODE_PER_LENS_TELE) return 3;
-        else return mode;
+        return 
+            (mode == AFMA_MODE_ALL_LENSES)    ? 1 :
+            (mode == AFMA_MODE_PER_LENS_WIDE) ? 2 :
+            (mode == AFMA_MODE_PER_LENS_TELE) ? 3 :
+            (mode == AFMA_MODE_PER_LENS)      ? 4 : 
+                                                0 ;
     }
     else
     {
-        return mode;
+        return mode == AFMA_MODE_ALL_LENSES ? 1 : 0;
     }
 }
 
@@ -519,13 +522,17 @@ static int afma_index_to_mode(int index)
 {
     if (afma_wide_tele)
     {
-        if (index == 2) return AFMA_MODE_PER_LENS_WIDE;
-        else if (index == 3) return AFMA_MODE_PER_LENS_TELE;
-        else return index;
+        return 
+            (index == 1) ? AFMA_MODE_ALL_LENSES :
+            (index == 2) ? AFMA_MODE_PER_LENS_WIDE :
+            (index == 3) ? AFMA_MODE_PER_LENS_TELE :
+            (index == 4) ? AFMA_MODE_PER_LENS :
+                           AFMA_MODE_DISABLED ;
     }
     else
     {
-        return index;
+        return index ? AFMA_MODE_ALL_LENSES 
+                     : AFMA_MODE_DISABLED ;
     }
 }
 
@@ -636,7 +643,7 @@ static MENU_SELECT_FUNC(afma_toggle)
 
 static MENU_SELECT_FUNC(afma_mode_toggle)
 {
-    int afma_index_max = afma_wide_tele ? 3 : 2;
+    int afma_index_max = afma_wide_tele ? 4 : 2;
     
     if (!lens_info.name[0])
         return;
@@ -725,14 +732,20 @@ static struct menu_entry afma_mode_menu_wide_tele[] =
         .priv = &afma_mode_index,
         .select = afma_mode_toggle,
         .min = 0,
-        .max = 3,
+        .max = 4,
         .choices = CHOICES(
             "Disabled", 
             "All lenses",
-            "This lens, wide/prime", 
-            "This lens, tele"
+            "This lens, wide end", 
+            "This lens, tele end",
+            "This lens, prime/both", 
         ),
-        .help  = "Where to apply the AFMA adjustment.",
+        .help  = "Where to apply the AFMA adjustment:",
+        .help2 = " \n"
+                 "All lenses will be adjusted with the same amount.\n"
+                 "For this zoom lens: adjust the wide end only (zoom out).\n"
+                 "For this zoom lens: adjust the tele end only (zoom in).\n"
+                 "For this lens (prime or zoom): adjust for the entire range.\n",
         .icon_type = IT_DICE_OFF,
     },
 };
