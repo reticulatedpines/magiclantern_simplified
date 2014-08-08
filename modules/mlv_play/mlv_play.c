@@ -1132,7 +1132,10 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
                 frame_xref_table[frame_xref_entries].frameTime = timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = chunk;
-                frame_xref_table[frame_xref_entries].frameType = !memcmp(buf.blockType, "VIDF", 4);
+                frame_xref_table[frame_xref_entries].frameType =
+                    !memcmp(buf.blockType, "VIDF", 4) ? MLV_FRAME_VIDF :
+                    !memcmp(buf.blockType, "AUDF", 4) ? MLV_FRAME_AUDF :
+                    MLV_FRAME_UNSPECIFIED;
                 
                 frame_xref_entries++;
             }
@@ -1575,8 +1578,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             break;
         }
 
-        /* if in exact playback and this is a skippable frame (VIDF) */
-        if(mlv_play_exact_fps && (xrefs[block_xref_pos].frameType == 1))
+        /* if in exact playback and this is a skippable VIDF frame */
+        if(mlv_play_exact_fps && (xrefs[block_xref_pos].frameType == MLV_FRAME_VIDF))
         {
             uint32_t fps_events_pending = 0;
             msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
