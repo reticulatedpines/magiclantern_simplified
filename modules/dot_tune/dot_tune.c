@@ -520,7 +520,10 @@ static int afma_mode_to_index(int mode)
     }
     else
     {
-        return mode == AFMA_MODE_ALL_LENSES ? 1 : 0;
+        return
+            (mode == AFMA_MODE_ALL_LENSES)    ? 1 :
+            (mode == AFMA_MODE_PER_LENS)      ? 2 :
+                                                0 ;
     }
 }
 
@@ -537,8 +540,10 @@ static int afma_index_to_mode(int index)
     }
     else
     {
-        return index ? AFMA_MODE_ALL_LENSES 
-                     : AFMA_MODE_DISABLED ;
+        return
+            (index == 1) ? AFMA_MODE_ALL_LENSES :
+            (index == 2) ? AFMA_MODE_PER_LENS :
+                           AFMA_MODE_DISABLED ;
     }
 }
 
