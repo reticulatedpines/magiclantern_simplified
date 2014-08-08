@@ -266,10 +266,8 @@ static void afma_auto_tune_automatic()
 
         if (!get_halfshutter_pressed())
         {
-            beep();
-            set_afma(afma0, afma_mode);
             NotifyBox(2000, "Canceled by user.");
-            return;
+            goto error;
         }
 
     }
@@ -277,8 +275,7 @@ static void afma_auto_tune_automatic()
     if (!found_focus)
     {
         NotifyBox(5000, "OOF, check focus and contrast.");
-        set_afma(afma0, afma_mode);
-        return;
+        goto error;
     }
 
     int left = MAX(-AFMA_MAX,found_focus_min_value - 10);
@@ -323,20 +320,16 @@ static void afma_auto_tune_automatic()
             
             if (!get_halfshutter_pressed())
             {
-                beep();
-                set_afma(afma0, afma_mode);
                 NotifyBox(2000, "Canceled by user.");
-                return;
+                goto error;
             }
         }
 
     }
 
     SW1(0,100);
-    
-    beep();
-
     restore_af_button_assignment();
+    beep();
 
     int s = 0;
     int w = 0;
@@ -347,20 +340,28 @@ static void afma_auto_tune_automatic()
         s += (wi * i);
         w += wi;
     }
+
     if (w < afma_scan_passes*3)
     {
         NotifyBox(5000, "OOF, check focus and contrast.");
-        set_afma(afma0, afma_mode);
+        goto error;
     }
-    else
-    {
-        int afma = s / w;
-        NotifyBox(10000, "New AFMA: %d", afma);
-        set_afma(afma, afma_mode);
-        msleep(300);
-        afma_print_status_extended(score, range_display_min, range_display_max);
-        //~ call("dispcheck"); // screenshot
-    }
+
+    int afma = s / w;
+    NotifyBox(10000, "New AFMA: %d", afma);
+    set_afma(afma, afma_mode);
+    msleep(300);
+    afma_print_status_extended(score, range_display_min, range_display_max);
+    //~ call("dispcheck"); // screenshot
+    
+    /* all OK */
+    return;
+
+error:
+    set_afma(afma0, afma_mode);
+    SW1(0,100);
+    restore_af_button_assignment();
+    beep();
 }
 
 static void afma_auto_tune_linear(int range_expand_factor)
@@ -403,18 +404,15 @@ static void afma_auto_tune_linear(int range_expand_factor)
             
             if (!get_halfshutter_pressed())
             {
-                beep();
-                set_afma(afma0, afma_mode);
                 NotifyBox(2000, "Canceled by user.");
-                return;
+                goto error;
             }
         }
     }
-    SW1(0,100);
     
-    beep();
-
+    SW1(0,100);
     restore_af_button_assignment();
+    beep();
 
     int s = 0;
     int w = 0;
@@ -425,33 +423,41 @@ static void afma_auto_tune_linear(int range_expand_factor)
         s += (wi * i * range_expand_factor);
         w += wi;
     }
+    
     if (w < 10)
     {
         NotifyBox(5000, "OOF, check focus and contrast.");
-        set_afma(afma0, afma_mode);
+        goto error;
     }
-    else
+
+    int afma = s / w;
+    NotifyBox(10000, "New AFMA: %d", afma);
+    set_afma(afma, afma_mode);
+    msleep(300);
+    afma_print_status(score, range_expand_factor);
+    //~ call("dispcheck"); // screenshot
+    
+    if (score[0] > 5 || score[40] > 5) // focus confirmed for extreme values
     {
-        int afma = s / w;
-        NotifyBox(10000, "New AFMA: %d", afma);
-        set_afma(afma, afma_mode);
-        msleep(300);
-        afma_print_status(score, range_expand_factor);
-        //~ call("dispcheck"); // screenshot
-        
-        if (score[0] > 5 || score[40] > 5) // focus confirmed for extreme values
-        {
-            msleep(3000);
-            beep();
-            if (range_expand_factor == 1)
-                NotifyBox(5000, "Try scanning from -40 to +40.");
-            else if (range_expand_factor == 2)
-                NotifyBox(5000, "Try scanning from -100 to +100.");
-            else
-                NotifyBox(5000, "Double-check the focus target.");
-        }
+        msleep(3000);
+        beep();
+        if (range_expand_factor == 1)
+            NotifyBox(5000, "Try scanning from -40 to +40.");
+        else if (range_expand_factor == 2)
+            NotifyBox(5000, "Try scanning from -100 to +100.");
+        else
+            NotifyBox(5000, "Double-check the focus target.");
     }
-}    
+    
+    /* all OK */
+    return;
+
+error:
+    set_afma(afma0, afma_mode);
+    SW1(0,100);
+    restore_af_button_assignment();
+    beep();
+}
 
 static void afma_auto_tune()
 {
