@@ -5279,7 +5279,6 @@ int handle_ml_menu_erase(struct event * event)
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
     if (event->param == BGMT_TRASH ||
-        (event->param == MLEV_JOYSTICK_LONG && !gui_menu_shown()) ||
         #ifdef CONFIG_TOUCHSCREEN
         event->param == BGMT_TOUCH_2_FINGER ||
         #endif
@@ -5290,8 +5289,18 @@ int handle_ml_menu_erase(struct event * event)
             give_semaphore( gui_sem );
             return 0;
         }
-        //~ else bmp_printf(FONT_LARGE, 100, 100, "%d ", gui_state);
     }
+
+    if (event->param == MLEV_JOYSTICK_LONG && !gui_menu_shown())
+    {
+        /* some cameras will trigger the Q menu (with photo settings) from a joystick press, others will do nothing */
+        if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU)
+        {
+            give_semaphore( gui_sem );
+            return 0;
+        }
+    }
+    
     
 #ifdef CONFIG_JOY_CENTER_ACTIONS
     /* also trigger menu by a long joystick press */
