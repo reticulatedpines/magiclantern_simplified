@@ -554,14 +554,6 @@ static void afma_mode_sync()
     if ((afma_mode & 0xFF) != mode)
     {
         afma_mode = mode;
-
-        if (afma_wide_tele)
-        {
-            if (afma_mode == AFMA_MODE_PER_LENS)
-            {
-                afma_mode = AFMA_MODE_PER_LENS_WIDE; // don't know focal length limits yet, so just choose wide
-            }
-        }
     }
 
     afma_mode_index = afma_mode_to_index(afma_mode);
