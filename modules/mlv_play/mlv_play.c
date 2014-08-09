@@ -1801,6 +1801,9 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->xRes = rawi_block.xRes;
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
+
+            raw_info.black_level = rawi_block.raw_info.black_level;
+            raw_info.white_level = rawi_block.raw_info.white_level;
             
             if (mlv_play_exact_fps)
             {
