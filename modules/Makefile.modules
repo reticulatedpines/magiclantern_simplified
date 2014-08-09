@@ -65,7 +65,7 @@ include $(TOP_DIR)/Makefile.filerules
 # http://mercurial.selenic.com/wiki/VersioningWithMake
 # the original trick didn't work, it rebuilds every time, figure out why
 HGVERSION:= $(shell hg parents --template 'hgid: {node|short}')
-.PHONY: hgstamp
 hgstamp:
 	@[ -f $@ ] || touch $@
-	@echo $(HGVERSION) | cmp -s $@ - || ( echo $(HGVERSION) > $@ ; echo "Updated HGVERSION" )
+	@echo $(HGVERSION) | cmp -s $@ - || echo $(HGVERSION) > $@
+	@echo "REBUILDING"
