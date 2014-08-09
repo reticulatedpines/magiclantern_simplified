@@ -784,7 +784,10 @@ static void mlv_play_osd_task(void *priv)
                 {
                     if(key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
                     {
-                        mlv_play_osd_state = MLV_PLAY_MENU_FADEOUT;
+                        if (!mlv_play_osd_force_redraw)
+                        {
+                            mlv_play_osd_state = MLV_PLAY_MENU_FADEOUT;
+                        }
                     }
                     else
                     {
