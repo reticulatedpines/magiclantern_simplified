@@ -1581,11 +1581,11 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         /* if in exact playback and this is a skippable VIDF frame */
         if(mlv_play_exact_fps && (xrefs[block_xref_pos].frameType == MLV_FRAME_VIDF))
         {
-            uint32_t fps_events_pending = 0;
-            msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
+            uint32_t frames_to_skip = 0;
+            msg_queue_count(mlv_play_queue_fps, &frames_to_skip);
 
             /* skip this frame if we are behind */
-            if(fps_events_pending > 1)
+            if(frames_to_skip > 0)
             {
                 uint32_t temp = 0;
                 msg_queue_receive(mlv_play_queue_fps, &temp, 50);
@@ -1868,11 +1868,11 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         /* check if we are too slow */
         if(mlv_play_exact_fps)
         {
-            uint32_t fps_events_pending = 0;
-            msg_queue_count(mlv_play_queue_fps, &fps_events_pending);
+            uint32_t frames_to_skip = 0;
+            msg_queue_count(mlv_play_queue_fps, &frames_to_skip);
 
             /* skip frame if we should play at exact fps and we already should be one frame farther */
-            if(fps_events_pending > 1)
+            if(frames_to_skip > 0)
             {
                 uint32_t temp = 0;
                 msg_queue_receive(mlv_play_queue_fps, &temp, 50);
