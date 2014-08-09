@@ -436,6 +436,7 @@ typedef struct
     uint64_t    frameTime;
     uint64_t    frameOffset;
     uint32_t    fileNumber;
+    uint8_t     frameType;
 } PACKED frame_xref_t;
 
 void xref_resize(frame_xref_t **table, int entries, int *allocated)
@@ -460,9 +461,20 @@ void xref_dump(mlv_xref_hdr_t *xref)
 
     for(uint32_t pos = 0; pos < xref->entryCount; pos++)
     {
-        print_msg(MSG_INFO, "Entry %d/%d\n", pos, xref->entryCount);
+        print_msg(MSG_INFO, "Entry %d/%d\n", pos + 1, xref->entryCount);
         print_msg(MSG_INFO, "    File   #%d\n", xrefs[pos].fileNumber);
         print_msg(MSG_INFO, "    Offset 0x%08X\n", xrefs[pos].frameOffset);
+        switch (xrefs[pos].frameType)
+        {
+            case MLV_FRAME_VIDF:
+                print_msg(MSG_INFO, "    Type   VIDF\n");
+                break;
+            case MLV_FRAME_AUDF:
+                print_msg(MSG_INFO, "    Type   AUDF\n");
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -771,6 +783,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
 
         field.frameOffset = index[entry].frameOffset;
         field.fileNumber = index[entry].fileNumber;
+        field.frameType = index[entry].frameType;
 
         if(fwrite(&field, sizeof(mlv_xref_t), 1, out_file) != 1)
         {
@@ -1616,6 +1629,7 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = 0;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                frame_xref_table[frame_xref_entries].frameType = MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
@@ -1695,6 +1709,7 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                frame_xref_table[frame_xref_entries].frameType = MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
@@ -1720,6 +1735,11 @@ read_headers:
 
             if(!memcmp(buf.blockType, "AUDF", 4))
             {
+                if(xref_mode)
+                {
+                    frame_xref_table[frame_xref_entries - 1].frameType = MLV_FRAME_AUDF;
+                }
+
                 mlv_audf_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_audf_hdr_t), buf.blockSize);
 
@@ -1778,6 +1798,11 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "VIDF", 4))
             {
+                if(xref_mode)
+                {
+                    frame_xref_table[frame_xref_entries - 1].frameType = MLV_FRAME_VIDF;
+                }
+
                 mlv_vidf_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_vidf_hdr_t), buf.blockSize);
 
