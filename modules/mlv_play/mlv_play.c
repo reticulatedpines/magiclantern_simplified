@@ -1475,7 +1475,11 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
         mlv_play_timer_stop = 0;
         return;
     }
-    msg_queue_post(mlv_play_queue_fps, 0);
+
+    if (!mlv_play_paused)
+    {
+        msg_queue_post(mlv_play_queue_fps, 0);
+    }
     
     mlv_play_fps_ticks++;
 
