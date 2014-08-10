@@ -48,7 +48,7 @@ static unsigned int bulb_nd_shoot_cbr()
     if(!bulb_nd_enabled) return 0;
     if(is_movie_mode() || is_bulb_mode() || !display_idle() || gui_menu_shown()) return 0;
     
-    int bulb_duration = powi(2, bulb_nd_ev_x2 / 2) * ( bulb_nd_ev_x2 % 2 ? 1 : 1.5 ) * raw2shutter_ms(lens_info.raw_shutter);
+    int bulb_duration = powi(2, bulb_nd_ev_x2 / 2) * ( bulb_nd_ev_x2 % 2 ? 1.5 : 1 ) * raw2shutter_ms(lens_info.raw_shutter);
     
     bmp_printf(FONT_LARGE, 0, 0, "BULB (+%d.%d EV): %d\"", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5, bulb_duration / 1000);
     
