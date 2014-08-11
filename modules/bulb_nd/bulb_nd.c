@@ -29,6 +29,10 @@ static MENU_UPDATE_FUNC(buld_nd_display)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "BULB duration = current shutter + %d.%d EV", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5);
     }
+    if(bulb_nd_enabled)
+    {
+        MENU_SET_VALUE("+%d.%d EV", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5);
+    }
 }
 
 static MENU_UPDATE_FUNC(buld_nd_amount_display)
@@ -122,20 +126,24 @@ static struct menu_entry bulb_nd_menu[] =
         .max = 1,
         .help  = "Hold SET to take a bulb exposure based on current expo settings",
         .depends_on = DEP_PHOTO_MODE,
-    },
-    {
-        .name = "ND Strength",
-        .priv = &bulb_nd_ev_x2,
-        .update = buld_nd_amount_display,
-        .max = 40,
-        .help  = "Strength of ND Filter in EV",
-        .help2  = "Used to compute bulb time from current settings",
+        .children = (struct menu_entry[])
+        {
+            {
+                .name = "ND Strength",
+                .priv = &bulb_nd_ev_x2,
+                .update = buld_nd_amount_display,
+                .max = 40,
+                .help  = "Strength of ND Filter in EV",
+                .help2  = "Used to compute bulb time from current settings",
+            },
+            MENU_EOL
+        },
     },
 };
 
 static unsigned int bulb_nd_init()
 {
-    menu_add("Bulb Timer", bulb_nd_menu, COUNT(bulb_nd_menu));
+    menu_add("Shoot", bulb_nd_menu, COUNT(bulb_nd_menu));
 
     return 0;
 }
