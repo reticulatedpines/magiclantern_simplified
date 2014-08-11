@@ -17,6 +17,7 @@ static CONFIG_INT("bulb_nd.ev.x2", bulb_nd_ev_x2, 0);
 
 int display_idle();
 static int set_pressed = 0;
+static int last_valid_shutter = 0;
 
 static MENU_UPDATE_FUNC(buld_nd_display)
 {
@@ -47,10 +48,10 @@ static unsigned int bulb_nd_shoot_cbr()
 {
     if(!bulb_nd_enabled) return 0;
     if(is_movie_mode() || is_bulb_mode() || !display_idle() || gui_menu_shown()) return 0;
+    if(lens_info.raw_shutter) last_valid_shutter = lens_info.raw_shutter;
+    int bulb_duration = powi(2, bulb_nd_ev_x2 / 2) * ( bulb_nd_ev_x2 % 2 ? 1.5 : 1 ) * raw2shutter_ms(last_valid_shutter);
     
-    int bulb_duration = powi(2, bulb_nd_ev_x2 / 2) * ( bulb_nd_ev_x2 % 2 ? 1.5 : 1 ) * raw2shutter_ms(lens_info.raw_shutter);
-    
-    bmp_printf(FONT_LARGE, 0, 0, "BULB (+%d.%d EV): %d\"", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5, bulb_duration / 1000);
+    bmp_printf(FONT_LARGE, 0, 0, "BULB (+%d.%d EV): %d\" ", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5, bulb_duration / 1000);
     
     if (set_pressed && job_state_ready_to_take_pic() && get_ms_clock_value() - set_pressed > 1000)
     {
