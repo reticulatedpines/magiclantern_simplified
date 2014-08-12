@@ -1709,7 +1709,10 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
-                frame_xref_table[frame_xref_entries].frameType = MLV_FRAME_UNSPECIFIED;
+                frame_xref_table[frame_xref_entries].frameType =
+                    !memcmp(buf.blockType, "VIDF", 4) ? MLV_FRAME_VIDF :
+                    !memcmp(buf.blockType, "AUDF", 4) ? MLV_FRAME_AUDF :
+                    MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
@@ -1735,11 +1738,6 @@ read_headers:
 
             if(!memcmp(buf.blockType, "AUDF", 4))
             {
-                if(xref_mode)
-                {
-                    frame_xref_table[frame_xref_entries - 1].frameType = MLV_FRAME_AUDF;
-                }
-
                 mlv_audf_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_audf_hdr_t), buf.blockSize);
 
@@ -1798,11 +1796,6 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "VIDF", 4))
             {
-                if(xref_mode)
-                {
-                    frame_xref_table[frame_xref_entries - 1].frameType = MLV_FRAME_VIDF;
-                }
-
                 mlv_vidf_hdr_t block_hdr;
                 uint32_t hdr_size = MIN(sizeof(mlv_vidf_hdr_t), buf.blockSize);
 
