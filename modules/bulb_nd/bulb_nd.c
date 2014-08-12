@@ -72,42 +72,33 @@ static MENU_UPDATE_FUNC(bulb_nd_measure_display)
 
 static void bulb_nd_measure_task(int unused)
 {
-    TASK_LOOP
+    if(running_measure == BULB_ND_MEASURE_STATE_PIC_1)
     {
-        msleep(1000);
-        if(running_measure == BULB_ND_MEASURE_STATE_PIC_1)
+        if (!raw_update_params())
         {
-            if (!raw_update_params())
-            {
-                NotifyBox(5000, "Raw error");
-                break;
-            }
-            measured_pic_1 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_MEDIAN_RGB, 0);
-            //get out of QR
-            SW1(1,50);
-            SW1(0,0);
-            running_measure++;
+            NotifyBox(5000, "Raw error");
+            return;
         }
-        else if(running_measure == BULB_ND_MEASURE_STATE_PIC_2)
-        {
-            if (!raw_update_params())
-            {
-                NotifyBox(5000, "Raw error");
-                break;
-            }
-            int measured_pic_2 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_MEDIAN_RGB, 0);
-            float ev = (bulb_nd_ev_x2 / 2.0F) + raw_to_ev(measured_pic_1) - raw_to_ev(measured_pic_2);
-            int ev_x10 = (int)roundf(ev * 10);
-            NotifyBox(10000, "Measured ND Strength: %d.%d EV", ev_x10 / 10, ev_x10 % 10);
-            bulb_nd_ev_x2 = (int)roundf(ev * 2);
-            break;
-        }
-        else if(!running_measure)
-        {
-            break;
-        }
+        measured_pic_1 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_MEDIAN_RGB, 0);
+        //get out of QR
+        SW1(1,50);
+        SW1(0,0);
+        running_measure++;
     }
-    running_measure = 0;
+    else if(running_measure == BULB_ND_MEASURE_STATE_PIC_2)
+    {
+        if (!raw_update_params())
+        {
+            NotifyBox(5000, "Raw error");
+            return;
+        }
+        int measured_pic_2 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_MEDIAN_RGB, 0);
+        float ev = (bulb_nd_ev_x2 / 2.0F) + raw_to_ev(measured_pic_1) - raw_to_ev(measured_pic_2);
+        int ev_x10 = (int)roundf(ev * 10);
+        NotifyBox(10000, "Measured ND Strength: %d.%d EV", ev_x10 / 10, ev_x10 % 10);
+        bulb_nd_ev_x2 = (int)roundf(ev * 2);
+        running_measure = 0;
+    }
 }
 
 static MENU_SELECT_FUNC(bulb_nd_measure)
@@ -116,7 +107,6 @@ static MENU_SELECT_FUNC(bulb_nd_measure)
     {
         gui_stop_menu();
         running_measure = 1;
-        task_create("bulb_nd_measure_task", 0x1c, 0x1000, bulb_nd_measure_task, (void*) 0);
     }
 }
 
@@ -128,6 +118,7 @@ PROP_HANDLER(PROP_GUI_STATE)
         if(running_measure == BULB_ND_MEASURE_STATE_WAIT_PIC_1 || running_measure == BULB_ND_MEASURE_STATE_WAIT_PIC_2)
         {
             running_measure ++;
+            task_create("bulb_nd_measure_task", 0x1c, 0x1000, bulb_nd_measure_task, (void*) 0);
         }
     }
 }
@@ -139,7 +130,7 @@ static unsigned int bulb_nd_shoot_cbr()
     if(lens_info.raw_shutter) last_valid_shutter = lens_info.raw_shutter;
     int bulb_duration = powi(2, bulb_nd_ev_x2 / 2) * ( bulb_nd_ev_x2 % 2 ? 1.5 : 1 ) * raw2shutter_ms(last_valid_shutter);
     
-    bmp_printf(FONT_LARGE, 0, 0, "BULB (+%d.%d EV): %d\" ", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5, bulb_duration / 1000);
+    bmp_printf(FONT_LARGE, 0, 0, "BULB (+%2d.%d EV):%5d\"   ", bulb_nd_ev_x2 / 2, (bulb_nd_ev_x2 % 2) * 5, bulb_duration / 1000);
     
     if(running_measure == BULB_ND_MEASURE_STATE_WAIT_PIC_1)
     {
