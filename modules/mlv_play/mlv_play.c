@@ -109,8 +109,8 @@ typedef struct
 {
     uint64_t    frameTime;
     uint64_t    frameOffset;
-    uint32_t    fileNumber;
-    uint8_t     frameType;
+    uint16_t    fileNumber;
+    uint16_t    frameType;
 } frame_xref_t;
 
 typedef struct

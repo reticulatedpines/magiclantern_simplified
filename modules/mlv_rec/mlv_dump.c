@@ -435,8 +435,8 @@ typedef struct
 {
     uint64_t    frameTime;
     uint64_t    frameOffset;
-    uint32_t    fileNumber;
-    uint8_t     frameType;
+    uint16_t    fileNumber;
+    uint16_t    frameType;
 } PACKED frame_xref_t;
 
 void xref_resize(frame_xref_t **table, int entries, int *allocated)
