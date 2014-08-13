@@ -8,6 +8,8 @@
 #include <lens.h>
 #include <version.h>
 
+#ifdef CONFIG_BATTERY_INFO
+
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
 
@@ -121,3 +123,5 @@ void RefreshBatteryLevel_1Hz()
     }
     old_battery_level = bat_info.level;
 }
+
+#endif
