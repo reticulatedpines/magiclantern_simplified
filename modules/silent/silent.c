@@ -14,6 +14,7 @@
 #include <string.h>
 #include "../lv_rec/lv_rec.h"
 #include "../mlv_rec/mlv.h"
+#include "battery.h"
 
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
@@ -27,6 +28,10 @@ extern WEAK_FUNC(ret_0) uint64_t mlv_generate_guid();
 extern WEAK_FUNC(ret_0) void mlv_init_fileheader(mlv_file_hdr_t *hdr);
 extern WEAK_FUNC(ret_0) void mlv_set_type(mlv_hdr_t *hdr, char *type);
 extern WEAK_FUNC(ret_0) uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start);
+
+extern WEAK_FUNC(ret_0) int GetBatteryLevel();
+extern WEAK_FUNC(ret_0) int GetBatteryTimeRemaining();
+extern WEAK_FUNC(ret_0) int GetBatteryDrainRate();
 
 #define FEATURE_SILENT_PIC_RAW_BURST
 //~ #define FEATURE_SILENT_PIC_RAW
@@ -931,6 +936,24 @@ cleanup:
 }
 #endif
 
+static void show_battery_status()
+{
+    if ((void*)&GetBatteryLevel == (void*)&ret_0)
+    {
+        return;
+    }
+    
+    int l = GetBatteryLevel();
+    int r = GetBatteryTimeRemaining();
+    int d = GetBatteryDrainRate();
+    bmp_printf(FONT_MED, 0, 480 - font_med.height,
+        "Battery: %d%%, %dh%02dm, %d%%/h",
+        l, 0, 
+        r / 3600, (r % 3600) / 60,
+        d, 0
+    );
+}
+
 static void
 silent_pic_take_fullres(int interactive)
 {
@@ -966,8 +989,8 @@ silent_pic_take_fullres(int interactive)
         msleep(10);
     }
     
-    /* Are we still in paused LV mode? */
-    if (!LV_PAUSED)
+    /* Are we still in paused LV mode? (QR is also allowed) */
+    if (!LV_PAUSED && gui_state != GUISTATE_QR)
     {
         goto err;
     }
@@ -978,7 +1001,8 @@ silent_pic_take_fullres(int interactive)
      * and creates a "job" object (CreateSkeltonJob)
      */
     struct JobClass * job = (void*) call("FA_CreateTestImage");
-
+    
+    lens_info.job_state = 1;
     info_led_on();
     int t0 = get_ms_clock_value();
     
@@ -998,6 +1022,7 @@ silent_pic_take_fullres(int interactive)
     
     int t1 = get_ms_clock_value();
     info_led_off();
+    lens_info.job_state = 0;
 
     /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
     int new_gui = GUISTATE_QR;
@@ -1014,6 +1039,14 @@ silent_pic_take_fullres(int interactive)
         return;
     }
     clrscr();
+
+    if (is_intervalometer_running())
+    {
+        display_on();
+        msleep(50);
+        show_battery_status();
+    }
+
     raw_preview_fast();
 
     /* prepare to save the file */
@@ -1049,6 +1082,12 @@ silent_pic_take_fullres(int interactive)
     call("FA_DeleteTestImage", copy_job);
     
     gui_uilock(UILOCK_NONE);
+    
+    if (is_intervalometer_running())
+    {
+        display_off();
+    }
+    
     return;
 
 err:
@@ -1066,14 +1105,17 @@ static unsigned int
 silent_pic_take(unsigned int interactive) // for remote release, set interactive=0
 {
     if (!silent_pic_enabled) return CBR_RET_CONTINUE;
-    if (!lv) force_liveview();
     
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES)
     {
+        /* in fullres mode, go to LiveView only if in normal photo mode */
+        /* if it's in QR (most likely from previous silent picture), just stay there */
+        if (!lv && gui_state != GUISTATE_QR) force_liveview();
         silent_pic_take_fullres(interactive);
     }
     else
     {
+        if (!lv) force_liveview();
         silent_pic_take_lv(interactive);
     }
     return CBR_RET_STOP;
