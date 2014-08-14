@@ -20,28 +20,28 @@
 #define CHAR_CANCEL 0x02
 #define CHAR_DEL    0x08
 
-extern int menu_redraw_blocked;
+extern int32_t menu_redraw_blocked;
 
 /* appearance options */
-static int ime_wheel_x = 360;
-static int ime_wheel_y = 420;
-static int ime_wheel_w = 250;
-static int ime_wheel_h = 200;
-static int ime_str_x = 30;
-static int ime_str_y = 100;
-static int ime_str_w = 650;
-static int ime_caption_x = 27;
-static int ime_caption_y = 20;
+static int32_t ime_wheel_x = 360;
+static int32_t ime_wheel_y = 420;
+static int32_t ime_wheel_w = 250;
+static int32_t ime_wheel_h = 200;
+static int32_t ime_str_x = 30;
+static int32_t ime_str_y = 100;
+static int32_t ime_str_w = 650;
+static int32_t ime_caption_x = 27;
+static int32_t ime_caption_y = 20;
 
-static int ime_text_fg = COLOR_WHITE;
-static int ime_text_bg = COLOR_BLACK;
-static int ime_color_bg = COLOR_GRAY(10);
+static int32_t ime_text_fg = COLOR_WHITE;
+static int32_t ime_text_bg = COLOR_BLACK;
+static int32_t ime_color_bg = COLOR_GRAY(10);
 
-static unsigned int ime_font_title = 0;
-static unsigned int ime_font_wheel = 0;
-static unsigned int ime_font_wheel_sel = 0;
-static unsigned int ime_font_txtfield = 0;
-static unsigned int ime_font_caret = 0;
+static uint32_t ime_font_title = 0;
+static uint32_t ime_font_wheel = 0;
+static uint32_t ime_font_wheel_sel = 0;
+static uint32_t ime_font_txtfield = 0;
+static uint32_t ime_font_caret = 0;
 
 /* thats the charset that is used for various use cases */
 #define IME_VAR_CHARSET           3
@@ -52,40 +52,40 @@ static unsigned int ime_font_caret = 0;
 #define IME_FUNC_CHARSET          6
 
 /* should that be located in files? */
-static unsigned char ime_charset_alpha_upper[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
-static unsigned char ime_charset_alpha_lower[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
-static unsigned char ime_charset_numeric[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-static unsigned char ime_charset_punctuation[] = {'.', ',', ':', ';', '!', '?', '`', '\'', '\"'};
-static unsigned char ime_charset_math[] = { '+', '-', '*', '/', '^' };
-static unsigned char ime_charset_file[] = { '.', ' ', '-', '_' };
-static unsigned char ime_charset_mail[] = { '@', '.', '-', '_', '!', '#', '$', '%', '&', '\'', '*', '+', '-', '/', '=', '?', '^', '_', '`', '{', '|', '}' };
-static unsigned char ime_charset_func[] = { CHAR_DEL, CHAR_OK, CHAR_CANCEL };
+static char ime_charset_alpha_upper[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+static char ime_charset_alpha_lower[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+static char ime_charset_numeric[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+static char ime_charset_punctuation[] = {'.', ',', ':', ';', '!', '?', '`', '\'', '\"'};
+static char ime_charset_math[] = { '+', '-', '*', '/', '^' };
+static char ime_charset_file[] = { '.', ' ', '-', '_' };
+static char ime_charset_mail[] = { '@', '.', '-', '_', '!', '#', '$', '%', '&', '\'', '*', '+', '-', '/', '=', '?', '^', '_', '`', '{', '|', '}' };
+static char ime_charset_func[] = { CHAR_DEL, CHAR_OK, CHAR_CANCEL };
 
 /* number of characters in specific sets */
-static unsigned int ime_charset_types[] = { IME_CHARSET_ALPHA | IME_CHARSET_FILENAME, IME_CHARSET_ALPHA, IME_CHARSET_NUMERIC | IME_CHARSET_FILENAME, IME_CHARSET_PUNCTUATION, IME_CHARSET_MATH, IME_CHARSET_MAIL, IME_CHARSET_ANY };
-static unsigned char *ime_charsets[] = { ime_charset_alpha_upper, ime_charset_alpha_lower, ime_charset_numeric, ime_charset_punctuation, ime_charset_math, ime_charset_mail, ime_charset_func };
-static int ime_charcounts[] = { sizeof(ime_charset_alpha_upper), sizeof(ime_charset_alpha_lower), sizeof(ime_charset_numeric), sizeof(ime_charset_punctuation), sizeof(ime_charset_math), sizeof(ime_charset_mail), sizeof(ime_charset_func) };
-static unsigned char *ime_charsetnames[] = { (unsigned char *)"upper", (unsigned char *)"lower", (unsigned char *)"num", (unsigned char *)"punct", (unsigned char *)"math", (unsigned char *)"var" };
+static uint32_t ime_charset_types[] = { IME_CHARSET_ALPHA | IME_CHARSET_FILENAME, IME_CHARSET_ALPHA, IME_CHARSET_NUMERIC | IME_CHARSET_FILENAME, IME_CHARSET_PUNCTUATION, IME_CHARSET_MATH, IME_CHARSET_MAIL, IME_CHARSET_ANY };
+static char *ime_charsets[] = { ime_charset_alpha_upper, ime_charset_alpha_lower, ime_charset_numeric, ime_charset_punctuation, ime_charset_math, ime_charset_mail, ime_charset_func };
+static uint32_t ime_charcounts[] = { sizeof(ime_charset_alpha_upper), sizeof(ime_charset_alpha_lower), sizeof(ime_charset_numeric), sizeof(ime_charset_punctuation), sizeof(ime_charset_math), sizeof(ime_charset_mail), sizeof(ime_charset_func) };
+//static char *ime_charsetnames[] = { "upper", "lower", "num", "punct", "math", "var" };
 
 
 typedef struct
 {
-    unsigned int active;
-    unsigned char *string;
-    unsigned int max_length;
-    unsigned int selection;
-    unsigned char *caption;
+    uint32_t active;
+    char *string;
+    uint32_t max_length;
+    uint32_t selection;
+    char *caption;
     t_ime_update_cbr update_cbr;
     t_ime_done_cbr done_cbr;
-    unsigned int caret_pos;
-    unsigned int valid;
+    uint32_t caret_pos;
+    uint32_t valid;
     
     /* infos about current selected charset */
-    unsigned int charset_type;
-    unsigned char *charset;
-    unsigned int charset_charcount;
-    unsigned int charsetnum;
-    unsigned int returncode;
+    uint32_t charset_type;
+    char *charset;
+    uint32_t charset_charcount;
+    uint32_t charsetnum;
+    uint32_t returncode;
 } ime_ctx_t;
 
 static ime_ctx_t *ime_current_ctx = NULL;
@@ -106,11 +106,11 @@ static void ime_update(ime_ctx_t *ctx)
 
 static void ime_draw_wheel(ime_ctx_t *ctx)
 {
-    int char_pos = ctx->selection;
-    int visible_chars = MIN(ctx->charset_charcount, 15);
+    uint32_t char_pos = ctx->selection;
+    uint32_t visible_chars = MIN(ctx->charset_charcount, 15);
 
-    int first_char = (int)(char_pos - visible_chars / 2);
-    int last_char = (int)(char_pos + visible_chars / 2);
+    uint32_t first_char = (uint32_t)(char_pos - visible_chars / 2);
+    uint32_t last_char = (uint32_t)(char_pos + visible_chars / 2);
     
     /* display only a window with the nearest characters around selection */
     if(last_char >= ime_charcounts[ctx->charsetnum] - 1)
@@ -119,22 +119,22 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
         first_char = MAX(0, last_char - visible_chars + 1);
     }
     
-    if(first_char <= 0)
+    /* happens when first_char is less than zero */
+    if(first_char > last_char)
     {
         first_char = 0;
         last_char = MIN(visible_chars - 1, ime_charcounts[ctx->charsetnum] - 1);
     }
     
-    int pos = 0;
+    uint32_t pos = 0;
     
-    for(int char_pos = first_char; char_pos <= last_char; char_pos++)
+    for(uint32_t char_pos = first_char; char_pos <= last_char; char_pos++)
     {
-        int sine = 0;
-        int cosine = 0;
+        int32_t sine = 0;
+        int32_t cosine = 0;
         
-        cordic((-PI/2 + PI * (float)pos / (float)(visible_chars-1)) * MUL, &sine, &cosine, CORDIC_NTAB);
+        cordic((-PI/2 + PI * (float)pos / (float)(visible_chars-1)) * MUL, (int *)&sine, (int *)&cosine, CORDIC_NTAB);
         pos++;
-        
         
         char buf[16];
         unsigned char selected_char = ime_charsets[ctx->charsetnum][char_pos];
@@ -158,13 +158,13 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
         }
         
         /* measure string width */
-        int width = bmp_string_width(ime_font_wheel, buf);
+        int32_t width = bmp_string_width(ime_font_wheel, buf);
             
-        int x = ime_wheel_x + ime_wheel_w * sine / MUL - width/2;
-        int y = ime_wheel_y - ime_wheel_h * cosine / MUL - 25;
+        int32_t x = ime_wheel_x + ime_wheel_w * sine / MUL - width/2;
+        int32_t y = ime_wheel_y - ime_wheel_h * cosine / MUL - 25;
         
-        int line_x = ime_wheel_x + (ime_wheel_w - 40) * sine / MUL;
-        int line_y = ime_wheel_y - (ime_wheel_h - 40) * cosine / MUL;
+        int32_t line_x = ime_wheel_x + (ime_wheel_w - 40) * sine / MUL;
+        int32_t line_y = ime_wheel_y - (ime_wheel_h - 40) * cosine / MUL;
         
         if(ctx->selection == char_pos)
         {
@@ -172,7 +172,7 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
             bmp_fill(COLOR_BLACK, x - 3, y - 3, width + 6, 50);
             
             /* some kind of arrow towards the character */
-            for(int bold = -2; bold <= 2; bold++)
+            for(int32_t bold = -2; bold <= 2; bold++)
             {
                 draw_line(ime_wheel_x, ime_wheel_y, line_x, line_y, COLOR_ORANGE);
                 draw_line(ime_wheel_x+bold, ime_wheel_y, line_x, line_y, COLOR_ORANGE);
@@ -193,12 +193,12 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
 
 static void ime_draw(ime_ctx_t *ctx)
 {
-    int color_fg = ime_text_fg;
+    int32_t color_border = COLOR_ORANGE;
     
     /* if text isnt valid, print red */
     if(!ctx->valid)
     {
-        color_fg = COLOR_RED;
+        color_border = COLOR_RED;
     }
     
     BMP_LOCK
@@ -209,7 +209,7 @@ static void ime_draw(ime_ctx_t *ctx)
         bmp_fill(ime_color_bg, 0, 0, 720, 480);
         
         /* some nice borders */
-        for(int width = 0; width < 5; width++)
+        for(int32_t width = 0; width < 5; width++)
         {
             draw_line(0+width, 0+width, 720-width, 0+width, COLOR_GRAY(20));
             draw_line(0+width, 0+width, 0+width, 480-width, COLOR_GRAY(20));
@@ -229,12 +229,12 @@ static void ime_draw(ime_ctx_t *ctx)
         bmp_fill(COLOR_BLACK, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
 
         /* orange rectangle around that dark text box background */
-        bmp_draw_rect(COLOR_ORANGE, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
+        bmp_draw_rect(color_border, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
         
         /* now the text and right after the caret */
         bmp_printf(ime_font_txtfield, ime_str_x + 3, ime_str_y + 3, "%s", ctx->string);
-        char *tmp_str = malloc(strlen(ctx->string) + 1);
-        strcpy(tmp_str, ctx->string);
+        char *tmp_str = malloc(strlen((const char *)ctx->string) + 1);
+        strcpy(tmp_str, (const char *)ctx->string);
         tmp_str[ctx->caret_pos] = '\000';
         bmp_printf(ime_font_caret, ime_str_x + 3 + bmp_string_width(ime_font_txtfield, tmp_str), ime_str_y + 3, "_");
         free(tmp_str);
@@ -248,7 +248,7 @@ static void ime_draw(ime_ctx_t *ctx)
     )
 }
 
-static int ime_select_charset(ime_ctx_t *ctx, int charset)
+static int32_t ime_select_charset(ime_ctx_t *ctx, int32_t charset)
 {
     /* only select charset if it matches the charset type patter specified by dialog creator */
     if(charset < COUNT(ime_charcounts) && (ime_charset_types[charset] & ctx->charset_type))
@@ -286,7 +286,7 @@ static unsigned int ime_keypress_cbr(unsigned int key)
             ctx->returncode = IME_CANCEL;
             ctx->active = 0;
             break;
-
+            
         case MODULE_KEY_Q:
             ime_select_charset(ctx, IME_FUNC_CHARSET);
             ctx->selection = 1;
@@ -325,7 +325,7 @@ static unsigned int ime_keypress_cbr(unsigned int key)
         case MODULE_KEY_PRESS_DOWN:
             if(ctx->charsetnum < COUNT(ime_charcounts))
             {
-                int set = ctx->charsetnum + 1;
+                int32_t set = ctx->charsetnum + 1;
                 
                 while(set < COUNT(ime_charcounts))
                 {
@@ -343,7 +343,7 @@ static unsigned int ime_keypress_cbr(unsigned int key)
         case MODULE_KEY_PRESS_UP:
             if(ctx->charsetnum > 0)
             {
-                int set = ctx->charsetnum - 1;
+                int32_t set = ctx->charsetnum - 1;
                 
                 while(set >= 0)
                 {
@@ -409,13 +409,13 @@ static void ime_config()
 
 IME_UPDATE_FUNC(ime_update_cbr_file)
 {
-    if(strlen((char*)text) > 12)
+    if(strlen((const char *)text) > 12)
     {
         return IME_ERR_UNKNOWN;
     }
     
-    int dots = 0;
-    for(int pos = 0; pos < strlen((char*)text); pos++)
+    int32_t dots = 0;
+    for(uint32_t pos = 0; pos < strlen((const char *)text); pos++)
     {
         if(text[pos] == '.')
         {
@@ -429,12 +429,12 @@ IME_UPDATE_FUNC(ime_update_cbr_file)
     }
 
     char *dot_pos = strchr((char*)text, '.');
-    if(strlen(dot_pos + 1) > 3)
+    if(strlen((const char *)dot_pos + 1) > 3)
     {
         return IME_ERR_UNKNOWN;
     }
     
-    if((int)dot_pos - (int)text > 8)
+    if((int32_t)dot_pos - (int32_t)text > 8)
     {
         return IME_ERR_UNKNOWN;
     }
@@ -443,7 +443,7 @@ IME_UPDATE_FUNC(ime_update_cbr_file)
 }
 
 
-static void ime_input(unsigned int parm)
+static void ime_input(uint32_t parm)
 {
     ime_ctx_t *ctx = (ime_ctx_t *)parm;
     
@@ -485,17 +485,25 @@ static void ime_input(unsigned int parm)
     /* re-enable menu painting */
     menu_redraw_blocked = 0;
     
+    if(ctx->caption)
+    {
+        free(ctx->caption);
+    }
     free(ctx);
 }
 
-static void *ime_start(unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h)
+static void *ime_start(char *caption, char *text, int32_t max_length, int32_t codepage, int32_t charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int32_t x, int32_t y, int32_t w, int32_t h)
 {
     ime_ctx_t *ctx = malloc(sizeof(ime_ctx_t));
     
     /* set parameters */
     ctx->string = text;
-    ctx->caption = caption;
-    ctx->caret_pos = strlen((char*)text);
+    ctx->caption = NULL;
+    if(caption)
+    {
+        ctx->caption = strdup(caption);
+    }
+    ctx->caret_pos = strlen((const char *)text);
     ctx->max_length = max_length;
     ctx->charset_type = charset;
 
@@ -509,7 +517,7 @@ static void *ime_start(unsigned char *caption, unsigned char *text, int max_leng
     ctx->returncode = IME_CANCEL;
 
     /* fill remaining space with zeros just to make sure. trailing zero is placed behind text */
-    for(int pos = strlen((char*)ctx->string); pos <= max_length; pos++)
+    for(int32_t pos = strlen((const char *)ctx->string); pos <= max_length; pos++)
     {
         ctx->string[pos] = '\000';
     }
@@ -540,7 +548,6 @@ static void *ime_start(unsigned char *caption, unsigned char *text, int max_leng
     return ctx;
 }
 
-
 static t_ime_handler ime_descriptor = 
 {
     .name = "ime_rot",
@@ -551,7 +558,7 @@ static t_ime_handler ime_descriptor =
 
 static unsigned int ime_init()
 {
-    ime_font_title = FONT(FONT_LARGE, COLOR_WHITE, ime_color_bg);
+    ime_font_title = FONT(FONT_LARGE, ime_text_fg, ime_color_bg);
     ime_font_wheel = FONT(FONT_LARGE, COLOR_ORANGE, ime_color_bg);
     ime_font_wheel_sel = FONT(FONT_LARGE, COLOR_ORANGE, COLOR_BLACK);
     ime_font_txtfield = FONT(FONT_LARGE, ime_text_fg, ime_text_bg);
@@ -565,8 +572,6 @@ static unsigned int ime_deinit()
 {
     return 0;
 }
-
-
 
 MODULE_INFO_START()
     MODULE_INIT(ime_init)

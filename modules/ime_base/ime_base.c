@@ -15,17 +15,17 @@
 
 #include "ime_base.h"
 
-static unsigned int ime_base_method = 0;
-static unsigned int ime_base_method_count = 0;
-static unsigned char ime_base_test_text[100];
+static uint32_t ime_base_method = 0;
+static uint32_t ime_base_method_count = 0;
+static char ime_base_test_text[100];
 static t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
 
 /* this function has to be public so that other modules can register file types for viewing this file */
-unsigned int ime_base_register(t_ime_handler *handler)
+uint32_t ime_base_register(t_ime_handler *handler)
 {
     /* locking without semaphores as this function may get called even before our own init routine */
-    unsigned int old_int = cli();
+    uint32_t old_int = cli();
     
     if(ime_base_method_count < IME_MAX_METHODS)
     {
@@ -37,7 +37,7 @@ unsigned int ime_base_register(t_ime_handler *handler)
     return 0;
 }
 
-void *ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h )
+void *ime_base_start (char *caption, char *text, int32_t max_length, int32_t codepage, int32_t charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int32_t x, int32_t y, int32_t w, int32_t h )
 {
     if(ime_base_method < ime_base_method_count)
     {
@@ -80,7 +80,7 @@ IME_UPDATE_FUNC(ime_base_test_update)
 
 IME_DONE_FUNC(ime_base_test_done)
 {
-    for(int loops = 0; loops < 50; loops++)
+    for(int32_t loops = 0; loops < 50; loops++)
     {
         bmp_printf(FONT_MED, 30, 120, "ime_base: done: <%s>, %d", text, status);
         msleep(100);
@@ -187,14 +187,9 @@ static unsigned int ime_base_deinit()
     return 0;
 }
 
-
-
 MODULE_INFO_START()
     MODULE_INIT(ime_base_init)
     MODULE_DEINIT(ime_base_deinit)
 MODULE_INFO_END()
-
-MODULE_CBRS_START()
-MODULE_CBRS_END()
 
 #endif
