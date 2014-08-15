@@ -52,7 +52,9 @@ static int translate_scancode(int scancode)
 {
     switch (scancode)
     {
+        #ifdef BGMT_Q
         case 0x10: return BGMT_Q;                       /* Q */
+        #endif
         case 0x1C: return BGMT_PRESS_FULLSHUTTER;       /* ENTER */
         case 0x9C: return BGMT_UNPRESS_FULLSHUTTER;
         case 0x36: return BGMT_PRESS_HALFSHUTTER;       /* right shift */
