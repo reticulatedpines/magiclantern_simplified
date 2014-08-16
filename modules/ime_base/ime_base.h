@@ -57,7 +57,7 @@ typedef uint32_t (*t_ime_done_cbr)(void *ctx, uint32_t status, char *text);
    it will call 'update' if (update != NULL) periodically or on any update_cbr (caret pos or string) and done_cbr when the dialog is finished.
    return the context of the dialog if it was started. this is a paramete for future functions and used to identify the exact dialog.
    
-   the passed text buffer must reserve max_length characters plus the trailing zero byte.
+   the passed text buffer must reserve max_length characters, including the null byte. e.g. you can pass sizeof(buffer) if it is an array.
    
    in case of any other error (e.g. unavailability of some resource) it will return NULL.
    if an error occured, the error message will be placed in the 'text' pointer given, so make sure you use a separate buffer.
