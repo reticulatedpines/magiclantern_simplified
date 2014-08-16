@@ -355,6 +355,11 @@ static unsigned int ime_keypress_cbr(unsigned int key)
             }
             break;
             
+        case MODULE_KEY_TRASH:
+            /* directly delete character */
+            strncpy((char*)&ctx->string[ctx->caret_pos], (char*)&ctx->string[ctx->caret_pos+1], ctx->max_length - ctx->caret_pos);
+            break;
+            
         case MODULE_KEY_JOY_CENTER:
         case MODULE_KEY_PRESS_SET:
             if(ctx->selection < ctx->charset_charcount)
