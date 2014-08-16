@@ -24,6 +24,7 @@
 #define IME_CHARSET_MATH        0x10
 #define IME_CHARSET_MAIL        0x20
 #define IME_CHARSET_FILENAME    0x40
+#define IME_CHARSET_HEX         0x80
 
 /* all characters are allowed, passing parameter 0x00 will also map to this */
 #define IME_CHARSET_ANY         0xFFFFFFFF

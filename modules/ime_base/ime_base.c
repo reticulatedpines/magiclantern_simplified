@@ -89,30 +89,42 @@ static IME_DONE_FUNC(ime_base_test_done)
 
 static MENU_SELECT_FUNC(ime_base_test_any)
 {
+    strncpy(ime_base_test_text, "This is a test", sizeof(ime_base_test_text));
     ime_base_start("Any charset", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_alpha)
 {
+    strncpy(ime_base_test_text, "Test", sizeof(ime_base_test_text));
     ime_base_start("Alpha", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ALPHA, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_num)
 {
+    strncpy(ime_base_test_text, "16384", sizeof(ime_base_test_text));
     ime_base_start("Numeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_NUMERIC, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_alnum)
 {
+    strncpy(ime_base_test_text, "Test1", sizeof(ime_base_test_text));
     ime_base_start("Alphanumeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, (IME_CHARSET_ALPHA | IME_CHARSET_NUMERIC), &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_hex)
+{
+    strncpy(ime_base_test_text, "0xDEADBEEF", sizeof(ime_base_test_text));
+    ime_base_start("Hexadecimal", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, (IME_CHARSET_HEX), &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_punct)
 {
+    strncpy(ime_base_test_text, ".,", sizeof(ime_base_test_text));
     ime_base_start("Punctuation", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_PUNCTUATION, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_math)
 {
+    strncpy(ime_base_test_text, "1+2*3", sizeof(ime_base_test_text));
     ime_base_start("Math", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_MATH, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_file)
 {
+    strncpy(ime_base_test_text, "FILE.DAT", sizeof(ime_base_test_text));
     ime_base_start("Filename", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_FILENAME, NULL, &ime_base_test_done, 0, 0, 0, 0);
 }
 
@@ -152,6 +164,10 @@ static struct menu_entry ime_base_menu[] =
             {
                 .name = "Test: Numeric",
                 .select = &ime_base_test_num,
+            },
+            {
+                .name = "Test: Hexadecimal",
+                .select = &ime_base_test_hex,
             },
             {
                 .name = "Test: Alphanumeric",
