@@ -519,8 +519,8 @@ static void *ime_start(char *caption, char *text, int32_t max_length, int32_t co
     ctx->valid = 1;
     ctx->returncode = IME_CANCEL;
 
-    /* fill remaining space with zeros just to make sure. trailing zero is placed behind text */
-    for(int32_t pos = strlen((const char *)ctx->string); pos <= max_length; pos++)
+    /* fill remaining space with zeros just to make sure.t */
+    for(int32_t pos = strlen((const char *)ctx->string); pos < max_length; pos++)
     {
         ctx->string[pos] = '\000';
     }
