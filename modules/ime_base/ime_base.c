@@ -72,13 +72,12 @@ static MENU_SELECT_FUNC(ime_base_method_select)
     }
 }
 
-IME_UPDATE_FUNC(ime_base_test_update)
+static IME_UPDATE_FUNC(ime_base_test_update)
 {
-    //bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
     return IME_OK;
 }
 
-IME_DONE_FUNC(ime_base_test_done)
+static IME_DONE_FUNC(ime_base_test_done)
 {
     for(int32_t loops = 0; loops < 50; loops++)
     {
