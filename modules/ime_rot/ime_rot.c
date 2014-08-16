@@ -40,6 +40,7 @@ static int32_t ime_color_bg = COLOR_GRAY(10);
 static uint32_t ime_font_title = 0;
 static uint32_t ime_font_wheel = 0;
 static uint32_t ime_font_wheel_sel = 0;
+static uint32_t ime_font_wheel_inact = 0;
 static uint32_t ime_font_txtfield = 0;
 static uint32_t ime_font_caret = 0;
 
@@ -78,6 +79,7 @@ typedef struct
     t_ime_update_cbr update_cbr;
     t_ime_done_cbr done_cbr;
     uint32_t caret_pos;
+    uint32_t caret_shown;
     uint32_t valid;
     
     /* infos about current selected charset */
@@ -104,18 +106,23 @@ static void ime_update(ime_ctx_t *ctx)
     }
 }
 
-static void ime_draw_wheel(ime_ctx_t *ctx)
-{
-    uint32_t char_pos = ctx->selection;
-    uint32_t visible_chars = MIN(ctx->charset_charcount, 15);
 
+static void ime_draw_wheel(uint32_t selection, uint32_t charsetnum, uint32_t color, uint32_t color_sel, int32_t radius_delta, int32_t arrow_width, int32_t active)
+{
+    if(charsetnum >= COUNT(ime_charcounts))
+    {
+        return;
+    }
+    
+    uint32_t char_pos = selection;
+    uint32_t visible_chars = MIN(ime_charcounts[charsetnum], 15);
     uint32_t first_char = (uint32_t)(char_pos - visible_chars / 2);
     uint32_t last_char = (uint32_t)(char_pos + visible_chars / 2);
     
     /* display only a window with the nearest characters around selection */
-    if(last_char >= ime_charcounts[ctx->charsetnum] - 1)
+    if(last_char >= ime_charcounts[charsetnum] - 1)
     {
-        last_char = ime_charcounts[ctx->charsetnum] - 1;
+        last_char = ime_charcounts[charsetnum] - 1;
         first_char = MAX(0, last_char - visible_chars + 1);
     }
     
@@ -123,11 +130,56 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
     if(first_char > last_char)
     {
         first_char = 0;
-        last_char = MIN(visible_chars - 1, ime_charcounts[ctx->charsetnum] - 1);
+        last_char = MIN(visible_chars - 1, ime_charcounts[charsetnum] - 1);
+    }
+    
+    /* draw borders around current character set */
+    uint32_t prev_x1 = 0;
+    uint32_t prev_y1 = 0;
+    uint32_t prev_x2 = 0;
+    uint32_t prev_y2 = 0;
+    uint32_t circle_steps = 100;
+    
+    /* draw circle using a few steps */
+    for(uint32_t circle_step = 0; circle_step < circle_steps; circle_step++)
+    {
+        int32_t sine = 0;
+        int32_t cosine = 0;
+        
+        cordic((-PI/2 + PI * circle_step / circle_steps) * MUL, (int *)&sine, (int *)&cosine, CORDIC_NTAB);
+        
+        /* two lines, above and below the letters */
+        uint32_t circle_x1 = ime_wheel_x + (sine * (ime_wheel_w - 22)) / MUL;
+        uint32_t circle_y1 = ime_wheel_y - (cosine * (ime_wheel_h - 22)) / MUL;
+        uint32_t circle_x2 = ime_wheel_x + (sine * (ime_wheel_w + 25)) / MUL;
+        uint32_t circle_y2 = ime_wheel_y - (cosine * (ime_wheel_h + 25)) / MUL;
+        
+        /* first line isnt drawn, it would go from origin (0,0) */
+        if(prev_x1 != 0 && prev_y1 != 0)
+        {
+            draw_line(prev_x1+1, prev_y1+0, circle_x1+1, circle_y1+0, COLOR_ORANGE);
+            draw_line(prev_x1+0, prev_y1+1, circle_x1+0, circle_y1+1, COLOR_ORANGE);
+            draw_line(prev_x1-1, prev_y1+0, circle_x1-1, circle_y1+0, COLOR_ORANGE);
+            draw_line(prev_x1+0, prev_y1-1, circle_x1+0, circle_y1-1, COLOR_ORANGE);
+            draw_line(prev_x1, prev_y1, circle_x1, circle_y1, COLOR_DARK_RED);
+        }
+        if(prev_x2 != 0 && prev_y2 != 0)
+        {
+            draw_line(prev_x2+1, prev_y2+0, circle_x2+1, circle_y2+0, COLOR_ORANGE);
+            draw_line(prev_x2+0, prev_y2+1, circle_x2+0, circle_y2+1, COLOR_ORANGE);
+            draw_line(prev_x2-1, prev_y2+0, circle_x2-1, circle_y2+0, COLOR_ORANGE);
+            draw_line(prev_x2+0, prev_y2-1, circle_x2+0, circle_y2-1, COLOR_ORANGE);
+            draw_line(prev_x2, prev_y2, circle_x2, circle_y2, COLOR_DARK_RED);
+        }
+        
+        /* remember last position */
+        prev_x1 = circle_x1;
+        prev_y1 = circle_y1;
+        prev_x2 = circle_x2;
+        prev_y2 = circle_y2;
     }
     
     uint32_t pos = 0;
-    
     for(uint32_t char_pos = first_char; char_pos <= last_char; char_pos++)
     {
         int32_t sine = 0;
@@ -137,7 +189,7 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
         pos++;
         
         char buf[16];
-        unsigned char selected_char = ime_charsets[ctx->charsetnum][char_pos];
+        unsigned char selected_char = ime_charsets[charsetnum][char_pos];
         
         if(selected_char == CHAR_OK)
         {
@@ -157,54 +209,88 @@ static void ime_draw_wheel(ime_ctx_t *ctx)
             buf[1] = '\000';
         }
         
-        /* measure string width */
-        int32_t width = bmp_string_width(ime_font_wheel, buf);
-            
-        int32_t x = ime_wheel_x + ime_wheel_w * sine / MUL - width/2;
-        int32_t y = ime_wheel_y - ime_wheel_h * cosine / MUL - 25;
+        /* position as circle around center */
+        int32_t x = ime_wheel_x + ((ime_wheel_w + radius_delta) * sine) / MUL;
+        int32_t y = ime_wheel_y - ((ime_wheel_h + radius_delta) * cosine) / MUL;
         
         int32_t line_x = ime_wheel_x + (ime_wheel_w - 40) * sine / MUL;
         int32_t line_y = ime_wheel_y - (ime_wheel_h - 40) * cosine / MUL;
         
-        if(ctx->selection == char_pos)
+        /* measure string width */
+        int32_t width = bmp_string_width(ime_font_wheel, buf);
+        int32_t height = fontspec_height(ime_font_wheel);
+        
+        if(selection == char_pos && active)
         {
             /* black box around character */
-            bmp_fill(COLOR_BLACK, x - 3, y - 3, width + 6, 50);
+            bmp_fill(COLOR_BLACK, x - width/2 - 3, y - height/2 - 3, width + 6, height + 6);
             
             /* some kind of arrow towards the character */
-            for(int32_t bold = -2; bold <= 2; bold++)
+            for(int32_t bold = -arrow_width; bold <= arrow_width; bold++)
             {
                 draw_line(ime_wheel_x, ime_wheel_y, line_x, line_y, COLOR_ORANGE);
                 draw_line(ime_wheel_x+bold, ime_wheel_y, line_x, line_y, COLOR_ORANGE);
                 draw_line(ime_wheel_x+bold, ime_wheel_y+bold, line_x, line_y, COLOR_ORANGE);
                 draw_line(ime_wheel_x, ime_wheel_y+bold, line_x, line_y, COLOR_ORANGE);
             }
+            fill_circle(ime_wheel_x, ime_wheel_y, arrow_width * 2, COLOR_RED);
             
             /* print character */
-            bmp_printf(ime_font_wheel_sel, x, y, buf);
+            bmp_printf(color_sel, x - width/2, y - height/2, buf);
         }
         else
         {
-            draw_line(ime_wheel_x, ime_wheel_y, line_x, line_y, ime_color_bg);
-            bmp_printf(ime_font_wheel, x, y, buf);
+            bmp_printf(color, x - width/2, y - height/2, buf);
+        }
+        
+        /* draw dot on letter center */
+        // fill_circle(x, y, 4, COLOR_RED);
+    }
+}
+
+static void ime_draw_wheels(ime_ctx_t *ctx)
+{
+    /* preview previous charset */
+    for(int32_t set = ctx->charsetnum - 1; set >= 0; set--)
+    {
+        /* is that the next valid one? */
+        if(ime_charset_types[set] & ctx->charset_type)
+        {
+            ime_draw_wheel(ctx->selection, set, ime_font_wheel_inact, ime_font_wheel_inact, 40, 0, 0);
+            break;
         }
     }
+    /* preview next charset */
+    for(int32_t set = ctx->charsetnum + 1; set < COUNT(ime_charset_types); set++)
+    {
+        /* is that the next valid one? */
+        if(ime_charset_types[set] & ctx->charset_type)
+        {
+            ime_draw_wheel(ctx->selection, set, ime_font_wheel_inact, ime_font_wheel_inact, -40, 0, 0);
+            break;
+        }
+    }
+    
+    /* draw the currently selected charset */
+    ime_draw_wheel(ctx->selection, ctx->charsetnum, ime_font_wheel, ime_font_wheel_sel, 0, 6, 1);
 }
 
 static void ime_draw(ime_ctx_t *ctx)
 {
     int32_t color_border = COLOR_ORANGE;
+    int32_t color_bg = COLOR_BLACK;
     
     /* if text isnt valid, print red */
     if(!ctx->valid)
     {
         color_border = COLOR_RED;
+        color_bg = COLOR_DARK_RED;
     }
     
     BMP_LOCK
     (
         bmp_draw_to_idle(1);
-            
+        
         /* uniform background */
         bmp_fill(ime_color_bg, 0, 0, 720, 480);
         
@@ -226,21 +312,24 @@ static void ime_draw(ime_ctx_t *ctx)
         }
         
         /* draw a dark background for the text line */
-        bmp_fill(COLOR_BLACK, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
+        bmp_fill(color_bg, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
 
         /* orange rectangle around that dark text box background */
         bmp_draw_rect(color_border, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
         
         /* now the text and right after the caret */
         bmp_printf(ime_font_txtfield, ime_str_x + 3, ime_str_y + 3, "%s", ctx->string);
-        char *tmp_str = malloc(strlen((const char *)ctx->string) + 1);
-        strcpy(tmp_str, (const char *)ctx->string);
+        char *tmp_str = strdup(ctx->string);
         tmp_str[ctx->caret_pos] = '\000';
-        bmp_printf(ime_font_caret, ime_str_x + 3 + bmp_string_width(ime_font_txtfield, tmp_str), ime_str_y + 3, "_");
+        
+        if(ctx->caret_shown)
+        {
+            bmp_printf(ime_font_caret, ime_str_x + 3 + bmp_string_width(ime_font_txtfield, tmp_str), ime_str_y + 3, "_");
+        }
         free(tmp_str);
 
         /* draw rotation wheel */
-        ime_draw_wheel(ctx);
+        ime_draw_wheels(ctx);
         
         /* show buffer */
         bmp_draw_to_idle(0);
@@ -250,7 +339,7 @@ static void ime_draw(ime_ctx_t *ctx)
 
 static int32_t ime_select_charset(ime_ctx_t *ctx, int32_t charset)
 {
-    /* only select charset if it matches the charset type patter specified by dialog creator */
+    /* only select charset if it matches the charset type pattern specified by dialog creator */
     if(charset < COUNT(ime_charcounts) && (ime_charset_types[charset] & ctx->charset_type))
     {
         ctx->charset = ime_charsets[charset];
@@ -477,8 +566,15 @@ static void ime_input(uint32_t parm)
     ime_current_ctx = ctx;
     
     /* redraw periodically */
+    uint32_t caret_ctr = 0;
     while(ctx->active)
     {
+        caret_ctr++;
+        if(caret_ctr > 1)
+        {
+            ctx->caret_shown = !ctx->caret_shown;
+        }
+        
         ime_update(ctx);
         ime_draw(ctx);
         msleep(250);
@@ -566,6 +662,7 @@ static unsigned int ime_init()
     ime_font_title = FONT(FONT_LARGE, ime_text_fg, ime_color_bg);
     ime_font_wheel = FONT(FONT_LARGE, COLOR_ORANGE, ime_color_bg);
     ime_font_wheel_sel = FONT(FONT_LARGE, COLOR_ORANGE, COLOR_BLACK);
+    ime_font_wheel_inact = FONT(FONT_LARGE, COLOR_GRAY(20), ime_color_bg);
     ime_font_txtfield = FONT(FONT_LARGE, ime_text_fg, ime_text_bg);
     ime_font_caret = SHADOW_FONT(FONT(FONT_LARGE, COLOR_BLACK, COLOR_ORANGE));
 

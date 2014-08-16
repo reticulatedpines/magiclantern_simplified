@@ -73,6 +73,7 @@ typedef struct
     t_ime_update_cbr update_cbr;
     t_ime_done_cbr done_cbr;
     uint32_t caret_pos;
+    uint32_t caret_shown;
     uint32_t valid;
     
     /* infos about current selected charset */
@@ -177,17 +178,19 @@ static void ime_draw_charset(ime_ctx_t *ctx, uint32_t charset, uint32_t font, ui
 static void ime_draw(ime_ctx_t *ctx)
 {
     int32_t color_border = COLOR_ORANGE;
+    int32_t color_bg = COLOR_BLACK;
     
     /* if text isnt valid, print red */
     if(!ctx->valid)
     {
         color_border = COLOR_RED;
+        color_bg = COLOR_DARK_RED;
     }
     
     BMP_LOCK
     (
         bmp_draw_to_idle(1);
-            
+        
         /* uniform background */
         bmp_fill(ime_color_bg, 0, 0, 720, 480);
         
@@ -209,17 +212,20 @@ static void ime_draw(ime_ctx_t *ctx)
         }
         
         /* draw a dark background for the text line */
-        bmp_fill(COLOR_BLACK, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
+        bmp_fill(color_bg, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
 
         /* orange rectangle around that dark text box background */
         bmp_draw_rect(color_border, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
         
         /* now the text and right after the caret */
         bmp_printf(ime_font_txtfield, ime_str_x + 3, ime_str_y + 3, "%s", ctx->string);
-        char *tmp_str = malloc(strlen((const char *)ctx->string) + 1);
-        strcpy(tmp_str, (const char *)ctx->string);
+        char *tmp_str = strdup(ctx->string);
         tmp_str[ctx->caret_pos] = '\000';
-        bmp_printf(ime_font_caret, ime_str_x + 3 + bmp_string_width(ime_font_txtfield, tmp_str), ime_str_y + 3, "_");
+        
+        if(ctx->caret_shown)
+        {
+            bmp_printf(ime_font_caret, ime_str_x + 3 + bmp_string_width(ime_font_txtfield, tmp_str), ime_str_y + 3, "_");
+        }
         free(tmp_str);
 
         /* orange rectangle around that dark characters box background */
@@ -248,7 +254,7 @@ static void ime_draw(ime_ctx_t *ctx)
 
 static int32_t ime_select_charset(ime_ctx_t *ctx, int32_t charset)
 {
-    /* only select charset if it matches the charset type patter specified by dialog creator */
+    /* only select charset if it matches the charset type pattern specified by dialog creator */
     if(charset < COUNT(ime_charcounts) && (ime_charset_types[charset] & ctx->charset_type))
     {
         ctx->charset = ime_charsets[charset];
@@ -475,8 +481,15 @@ static void ime_input(uint32_t parm)
     ime_current_ctx = ctx;
     
     /* redraw periodically */
+    uint32_t caret_ctr = 0;
     while(ctx->active)
     {
+        caret_ctr++;
+        if(caret_ctr > 1)
+        {
+            ctx->caret_shown = !ctx->caret_shown;
+        }
+        
         ime_update(ctx);
         ime_draw(ctx);
         msleep(250);
@@ -561,7 +574,7 @@ static t_ime_handler ime_descriptor =
 
 static unsigned int ime_init()
 {
-    ime_font_title = FONT(FONT_LARGE, COLOR_WHITE, ime_color_bg);
+    ime_font_title = FONT(FONT_LARGE, ime_text_fg, ime_color_bg);
     ime_font_box = FONT(FONT_LARGE, COLOR_ORANGE, ime_color_bg);
     ime_font_txtfield = FONT(FONT_LARGE, ime_text_fg, ime_text_bg);
     ime_font_caret = SHADOW_FONT(FONT(FONT_LARGE, COLOR_BLACK, COLOR_ORANGE));
