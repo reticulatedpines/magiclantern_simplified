@@ -617,7 +617,7 @@ static void ime_input(uint32_t parm)
     ime_ctx_t *ctx = (ime_ctx_t *)parm;
     
     /* select appropriate punctuation for filenames */
-    if(ctx->charset_type & IME_CHARSET_FILENAME)
+    if(ctx->charset_type == IME_CHARSET_FILENAME)
     {
         ime_charsets[IME_VAR_CHARSET] = ime_charset_file;
         ime_charset_types[IME_VAR_CHARSET] = IME_CHARSET_FILENAME;
