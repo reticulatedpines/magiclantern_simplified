@@ -448,7 +448,7 @@ static unsigned int ime_keypress_cbr(unsigned int key)
             
         case MODULE_KEY_TRASH:
             /* directly delete character */
-            strncpy((char*)&ctx->string[ctx->caret_pos], (char*)&ctx->string[ctx->caret_pos+1], ctx->max_length - ctx->caret_pos);
+            strncpy((char*)&ctx->string[ctx->caret_pos], (char*)&ctx->string[ctx->caret_pos+1], ctx->max_length - ctx->caret_pos - 1);
             break;
             
         case MODULE_KEY_JOY_CENTER:
@@ -461,7 +461,7 @@ static unsigned int ime_keypress_cbr(unsigned int key)
                 {
                     /* backspace/del was pressed */
                     //ctx->caret_pos--;
-                    strncpy((char*)&ctx->string[ctx->caret_pos], (char*)&ctx->string[ctx->caret_pos+1], ctx->max_length - ctx->caret_pos);
+                    strncpy((char*)&ctx->string[ctx->caret_pos], (char*)&ctx->string[ctx->caret_pos+1], ctx->max_length - ctx->caret_pos - 1);
                 }
                 else if(selected_char == CHAR_OK)
                 {
@@ -477,7 +477,7 @@ static unsigned int ime_keypress_cbr(unsigned int key)
                 }
                 else
                 {
-                    if(ctx->caret_pos < ctx->max_length)
+                    if(ctx->caret_pos < ctx->max_length - 1)
                     {
                         ctx->string[ctx->caret_pos] = selected_char;
                         ctx->caret_pos++;
@@ -580,7 +580,10 @@ static void ime_input(uint32_t parm)
         msleep(250);
     }
     
-    ctx->done_cbr(ctx, ctx->returncode, ctx->string);
+    if(ctx->done_cbr)
+    {
+        ctx->done_cbr(ctx, ctx->returncode, ctx->string);
+    }
     ime_current_ctx = NULL;
     
     /* re-enable menu painting */
