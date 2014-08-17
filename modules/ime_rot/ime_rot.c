@@ -109,6 +109,36 @@ static void ime_update(ime_ctx_t *ctx)
 }
 
 
+static void ime_draw_arc(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color, uint32_t steps)
+{
+    /* draw borders around current character set */
+    uint32_t prev_x = 0;
+    uint32_t prev_y = 0;
+    
+    /* draw circle using a few steps */
+    for(uint32_t circle_step = 0; circle_step < steps; circle_step++)
+    {
+        int32_t sine = 0;
+        int32_t cosine = 0;
+        
+        cordic((-PI/2 + PI * circle_step / steps) * MUL, (int *)&sine, (int *)&cosine, CORDIC_NTAB);
+        
+        /* two lines, above and below the letters */
+        uint32_t circle_x = COERCE(x + (sine * (int32_t)w) / MUL, 0, 719);
+        uint32_t circle_y = COERCE(y - (cosine * (int32_t)h) / MUL, 0, 479);
+        
+        /* first line isnt drawn, it would go from origin (0,0) */
+        if(prev_x != 0 && prev_y != 0)
+        {
+            draw_line(prev_x, prev_y, circle_x, circle_y, color);
+        }
+        
+        /* remember last position */
+        prev_x = circle_x;
+        prev_y = circle_y;
+    }
+}
+
 static void ime_draw_wheel(uint32_t selection, uint32_t charsetnum, uint32_t color, uint32_t color_sel, int32_t radius_delta, int32_t arrow_width, int32_t active)
 {
     if(charsetnum >= COUNT(ime_charcounts))
@@ -135,51 +165,10 @@ static void ime_draw_wheel(uint32_t selection, uint32_t charsetnum, uint32_t col
         last_char = MIN(visible_chars - 1, ime_charcounts[charsetnum] - 1);
     }
     
-    /* draw borders around current character set */
-    uint32_t prev_x1 = 0;
-    uint32_t prev_y1 = 0;
-    uint32_t prev_x2 = 0;
-    uint32_t prev_y2 = 0;
-    uint32_t circle_steps = 100;
-    
-    /* draw circle using a few steps */
-    for(uint32_t circle_step = 0; circle_step < circle_steps; circle_step++)
-    {
-        int32_t sine = 0;
-        int32_t cosine = 0;
-        
-        cordic((-PI/2 + PI * circle_step / circle_steps) * MUL, (int *)&sine, (int *)&cosine, CORDIC_NTAB);
-        
-        /* two lines, above and below the letters */
-        uint32_t circle_x1 = ime_wheel_x + (sine * (ime_wheel_w - 22)) / MUL;
-        uint32_t circle_y1 = ime_wheel_y - (cosine * (ime_wheel_h - 22)) / MUL;
-        uint32_t circle_x2 = ime_wheel_x + (sine * (ime_wheel_w + 25)) / MUL;
-        uint32_t circle_y2 = ime_wheel_y - (cosine * (ime_wheel_h + 25)) / MUL;
-        
-        /* first line isnt drawn, it would go from origin (0,0) */
-        if(prev_x1 != 0 && prev_y1 != 0)
-        {
-            draw_line(prev_x1+1, prev_y1+0, circle_x1+1, circle_y1+0, COLOR_ORANGE);
-            draw_line(prev_x1+0, prev_y1+1, circle_x1+0, circle_y1+1, COLOR_ORANGE);
-            draw_line(prev_x1-1, prev_y1+0, circle_x1-1, circle_y1+0, COLOR_ORANGE);
-            draw_line(prev_x1+0, prev_y1-1, circle_x1+0, circle_y1-1, COLOR_ORANGE);
-            draw_line(prev_x1, prev_y1, circle_x1, circle_y1, COLOR_DARK_RED);
-        }
-        if(prev_x2 != 0 && prev_y2 != 0)
-        {
-            draw_line(prev_x2+1, prev_y2+0, circle_x2+1, circle_y2+0, COLOR_ORANGE);
-            draw_line(prev_x2+0, prev_y2+1, circle_x2+0, circle_y2+1, COLOR_ORANGE);
-            draw_line(prev_x2-1, prev_y2+0, circle_x2-1, circle_y2+0, COLOR_ORANGE);
-            draw_line(prev_x2+0, prev_y2-1, circle_x2+0, circle_y2-1, COLOR_ORANGE);
-            draw_line(prev_x2, prev_y2, circle_x2, circle_y2, COLOR_DARK_RED);
-        }
-        
-        /* remember last position */
-        prev_x1 = circle_x1;
-        prev_y1 = circle_y1;
-        prev_x2 = circle_x2;
-        prev_y2 = circle_y2;
-    }
+    ime_draw_arc(ime_wheel_x, ime_wheel_y, ime_wheel_w - 25, ime_wheel_h - 25, COLOR_ORANGE, 64);
+    ime_draw_arc(ime_wheel_x, ime_wheel_y, ime_wheel_w - 22, ime_wheel_h - 22, COLOR_ORANGE, 64);
+    ime_draw_arc(ime_wheel_x, ime_wheel_y, ime_wheel_w + 25, ime_wheel_h + 25, COLOR_ORANGE, 64);
+    ime_draw_arc(ime_wheel_x, ime_wheel_y, ime_wheel_w + 27, ime_wheel_h + 27, COLOR_ORANGE, 64);
     
     uint32_t pos = 0;
     for(uint32_t char_pos = first_char; char_pos <= last_char; char_pos++)
@@ -222,7 +211,7 @@ static void ime_draw_wheel(uint32_t selection, uint32_t charsetnum, uint32_t col
         int32_t width = bmp_string_width(ime_font_wheel, buf);
         int32_t height = fontspec_height(ime_font_wheel);
         
-        if(selection == char_pos && active)
+        if((selection == char_pos) && active)
         {
             /* black box around character */
             bmp_fill(COLOR_BLACK, x - width/2 - 3, y - height/2 - 3, width + 6, height + 6);
@@ -242,7 +231,19 @@ static void ime_draw_wheel(uint32_t selection, uint32_t charsetnum, uint32_t col
         }
         else
         {
-            bmp_printf(color, x - width/2, y - height/2, buf);
+            if(active)
+            {
+                uint32_t gray_distance = 5;
+                uint32_t gray_dist = 10 + (100 - 10) * (gray_distance - MIN(gray_distance, ABS((int32_t)selection - (int32_t)char_pos))) / gray_distance;
+                uint32_t gray_rot = 10 + (100 - 10) * cosine / MUL;
+                uint32_t gray = MAX(gray_rot, gray_dist);
+                
+                bmp_printf(FONT(color,COLOR_GRAY(gray),FONT_BG(color)), x - width/2, y - height/2, buf);
+            }
+            else
+            {
+                bmp_printf(color, x - width/2, y - height/2, buf);
+            }
         }
         
         /* draw dot on letter center */
