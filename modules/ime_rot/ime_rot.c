@@ -22,20 +22,22 @@
 
 extern int32_t menu_redraw_blocked;
 
-/* appearance options */
-static int32_t ime_wheel_x = 360;
-static int32_t ime_wheel_y = 420;
-static int32_t ime_wheel_w = 250;
-static int32_t ime_wheel_h = 200;
-static int32_t ime_str_x = 30;
-static int32_t ime_str_y = 100;
-static int32_t ime_str_w = 650;
-static int32_t ime_caption_x = 27;
-static int32_t ime_caption_y = 20;
+static int32_t ime_config_mode = 0;
 
-static int32_t ime_text_fg = COLOR_WHITE;
-static int32_t ime_text_bg = COLOR_BLACK;
-static int32_t ime_color_bg = COLOR_GRAY(10);
+/* appearance options */
+static CONFIG_INT("ime.rot.wheel.x", ime_wheel_x, 360);
+static CONFIG_INT("ime.rot.wheel.y", ime_wheel_y, 450);
+static CONFIG_INT("ime.rot.wheel.w", ime_wheel_w, 300);
+static CONFIG_INT("ime.rot.wheel.h", ime_wheel_h, 250);
+static CONFIG_INT("ime.rot.str.x", ime_str_x, 30);
+static CONFIG_INT("ime.rot.str.y", ime_str_y, 100);
+static CONFIG_INT("ime.rot.str.w", ime_str_w, 650);
+static CONFIG_INT("ime.rot.caption.x", ime_caption_x, 27);
+static CONFIG_INT("ime.rot.caption.x", ime_caption_y, 20);
+
+static CONFIG_INT("ime.rot.color.text_fg", ime_text_fg, COLOR_WHITE);
+static CONFIG_INT("ime.rot.color.text_bg", ime_text_bg, COLOR_BLACK);
+static CONFIG_INT("ime.rot.color.bg", ime_color_bg, COLOR_GRAY(10));
 
 static uint32_t ime_font_title = 0;
 static uint32_t ime_font_wheel = 0;
@@ -311,6 +313,15 @@ static void ime_draw(ime_ctx_t *ctx)
             draw_line(ime_caption_x + 5, ime_caption_y + 40 + 3, ime_str_w + ime_str_x + 5, ime_caption_y + 40 + 3, COLOR_ORANGE);
         }
         
+        if(ime_config_mode)
+        {
+            bmp_printf(FONT(FONT_MONO_20,COLOR_RED,COLOR_BLACK), ime_caption_x, ime_caption_y,      "[CONFIG MODE]                   ");
+            bmp_printf(FONT(FONT_MONO_20,COLOR_RED,COLOR_BLACK), ime_caption_x, ime_caption_y + 20, "  U/D/L/R:  Position characters ");
+            bmp_printf(FONT(FONT_MONO_20,COLOR_RED,COLOR_BLACK), ime_caption_x, ime_caption_y + 40, "  Wheels:   Resize characters   ");
+            bmp_printf(FONT(FONT_MONO_20,COLOR_RED,COLOR_BLACK), ime_caption_x, ime_caption_y + 60, "  SET:      Done                ");
+            bmp_printf(FONT(FONT_MONO_20,COLOR_RED,COLOR_BLACK), ime_caption_x, ime_caption_y + 80, "                                ");
+        }
+        
         /* draw a dark background for the text line */
         bmp_fill(color_bg, ime_str_x, ime_str_y, ime_str_w, fontspec_height(ime_font_txtfield) + 6);
 
@@ -358,13 +369,70 @@ static int32_t ime_select_charset(ime_ctx_t *ctx, int32_t charset)
     return 0;
 }
 
+static unsigned int ime_keypress_config(unsigned int key)
+{
+    switch (key)
+    {
+        case MODULE_KEY_PRESS_LEFT:
+            ime_wheel_x--;
+            break;
+            
+        case MODULE_KEY_PRESS_RIGHT:
+            ime_wheel_x++;
+            break;
+            
+        case MODULE_KEY_PRESS_UP:
+            ime_wheel_y--;
+            break;
+            
+        case MODULE_KEY_PRESS_DOWN:
+            ime_wheel_y++;
+            break;
+            
+        case MODULE_KEY_WHEEL_UP:
+            ime_wheel_w--;
+            break;
+            
+        case MODULE_KEY_WHEEL_DOWN:
+            ime_wheel_w++;
+            break;
+            
+        case MODULE_KEY_WHEEL_LEFT:
+            ime_wheel_h--;
+            break;
+            
+        case MODULE_KEY_WHEEL_RIGHT:
+            ime_wheel_h++;
+            break;
+            
+        case MODULE_KEY_JOY_CENTER:
+        case MODULE_KEY_PRESS_SET:
+            ime_config_mode = 0;
+            break;
+        
+            
+        default:
+            return 0;
+    }
+    
+    return 0;
+}
+
+
 static unsigned int ime_keypress_cbr(unsigned int key)
 {
     ime_ctx_t *ctx = ime_current_ctx;
     
     if (!ctx || !ctx->active)
+    {
         return 1;
-    
+    }
+
+    if(ime_config_mode)
+    {
+        return ime_keypress_config(key);
+    }
+
     switch (key)
     {
         case MODULE_KEY_PRESS_HALFSHUTTER:
@@ -491,13 +559,19 @@ static unsigned int ime_keypress_cbr(unsigned int key)
     }
     
     ime_update(ctx);
-    
     ime_draw(ctx);
+    
     return 0;
 }
 
 static void ime_config()
 {
+    static char buf[32];
+    
+    strcpy(buf, "Config mode");
+    
+    ime_config_mode = 1;
+    ime_base_start("Config", buf, sizeof(buf), IME_UTF8, IME_CHARSET_ANY, NULL, NULL, 0, 0, 0, 0);
 }
 
 
@@ -687,4 +761,17 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_KEYPRESS, ime_keypress_cbr, 0)
 MODULE_CBRS_END()
 
-
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(ime_wheel_x)
+    MODULE_CONFIG(ime_wheel_y)
+    MODULE_CONFIG(ime_wheel_w)
+    MODULE_CONFIG(ime_wheel_h)
+    MODULE_CONFIG(ime_str_x)
+    MODULE_CONFIG(ime_str_y)
+    MODULE_CONFIG(ime_str_w)
+    MODULE_CONFIG(ime_caption_x)
+    MODULE_CONFIG(ime_caption_y)
+    MODULE_CONFIG(ime_text_fg)
+    MODULE_CONFIG(ime_text_bg)
+    MODULE_CONFIG(ime_color_bg)
+MODULE_CONFIGS_END()

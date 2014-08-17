@@ -15,8 +15,9 @@
 
 #include "ime_base.h"
 
-static uint32_t ime_base_method = 0;
-static uint32_t ime_base_method_count = 0;
+static CONFIG_INT("ime.base.method", ime_base_method, 0);
+
+static int32_t ime_base_method_count = 0;
 static char ime_base_test_text[100];
 static t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
@@ -207,4 +208,7 @@ MODULE_INFO_START()
     MODULE_DEINIT(ime_base_deinit)
 MODULE_INFO_END()
 
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(ime_base_method)
+MODULE_CONFIGS_END()
 #endif
