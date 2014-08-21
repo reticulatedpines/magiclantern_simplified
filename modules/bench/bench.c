@@ -287,33 +287,55 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
 {
     bmp_printf(FONT_LARGE, 0, 0, "%s...", msg);
 
-    int times = 0;
-    int t0 = get_ms_clock_value();
-    for (int i = 0; i < INT_MAX; i++)
+    int speeds[2];
+
+    for (int display = 1; display >= 0; display--)
     {
-        bench_fun(arg0, arg1, arg2, arg3);
-        if (i%2) info_led_off(); else info_led_on();
-
-        /* run the benchmark for roughly 1 second */
-        if (get_ms_clock_value_fast() - t0 > 1000)
+        if (!display && (msg[0] == 'e' || msg[0] == 'b'))
         {
-            times = i + 1;
-            break;
+            /* EDMAC and BMP tests crash with display off */
+            speeds[display] = 0;
+            continue;
         }
+        
+        if (display) display_on(); else display_off();
+        msleep(100);
+    
+        int times = 0;
+        int t0 = get_ms_clock_value();
+        for (int i = 0; i < INT_MAX; i++)
+        {
+            bench_fun(arg0, arg1, arg2, arg3);
+            if (i%2) info_led_off(); else info_led_on();
+
+            /* run the benchmark for roughly 1 second */
+            if (get_ms_clock_value_fast() - t0 > 1000)
+            {
+                times = i + 1;
+                break;
+            }
+        }
+        int t1 = get_ms_clock_value();
+        int dt = t1 - t0;
+
+        info_led_off();
+
+        /* units: KB/s */
+        int speed = bufsize * times / dt;
+
+        /* transform in MB/s x100 */
+        speeds[display] = speed * 100 / 1024;
     }
-    int t1 = get_ms_clock_value();
-    int dt = t1 - t0;
-
-    info_led_off();
-
-    /* units: KB/s */
-    int speed = bufsize * times / dt;
-
-    /* transform in MB/s x100 */
-    speed = speed * 100 / 1024;
-
-    bmp_printf(FONT_MONO_20, 0, *y += 20, "%s :%4d.%02d MB/s", msg, speed/100, speed%100);
-    msleep(10);
+    
+    if (speeds[0])
+    {
+        bmp_printf(FONT_MONO_20, 0, *y += 20, "%s :%4d.%02d MB/s;   %4d.%02d MB/s disp off", msg, speeds[1]/100, speeds[1]%100, speeds[0]/100, speeds[0]%100);
+    }
+    else
+    {
+        bmp_printf(FONT_MONO_20, 0, *y += 20, "%s :%4d.%02d MB/s;     (test skipped)      ", msg, speeds[1]/100, speeds[1]%100);
+    }
+    msleep(1000);
 }
 
 static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
