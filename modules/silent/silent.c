@@ -236,11 +236,11 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
         mlv_init_fileheader(&mlv_file_hdr);
         mlv_file_hdr.fileGuid = mlv_generate_guid();
         mlv_file_hdr.fileNum = 0;
-        mlv_file_hdr.fileCount = 0;
+        mlv_file_hdr.fileCount = 0; //autodetect
         mlv_file_hdr.fileFlags = 4;
         mlv_file_hdr.videoClass = 1;
         mlv_file_hdr.audioClass = 0;
-        mlv_file_hdr.videoFrameCount = frame_number + 1;
+        mlv_file_hdr.videoFrameCount = 0; //autodetect
         mlv_file_hdr.audioFrameCount = 0;
         mlv_file_hdr.sourceFpsNom = 1;
         mlv_file_hdr.sourceFpsDenom = is_intervalometer_running() ? get_interval_time() : 1;
@@ -277,6 +277,9 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
                 }
                 
                 bmp_printf( FONT_MED, 0, 150, "4GB Limit reached, new file: '%s'", new_filename);
+                
+                //add the mlvi header to the new chunk
+                FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
             }
             else if(mlv_current_file_chunk_index >= 0)
             {
