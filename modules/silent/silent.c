@@ -194,10 +194,40 @@ static char* replace_mlv_extension(char* original_filename, int chunk_index)
     return new_filename;
 }
 
+static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info)
+{
+    //MLVI file header
+    memset(&mlv_file_hdr, 0, sizeof(mlv_file_hdr_t));
+    mlv_init_fileheader(&mlv_file_hdr);
+    mlv_file_hdr.fileGuid = mlv_generate_guid();
+    mlv_file_hdr.fileNum = 0;
+    mlv_file_hdr.fileCount = 0; //autodetect
+    mlv_file_hdr.fileFlags = 4;
+    mlv_file_hdr.videoClass = 1;
+    mlv_file_hdr.audioClass = 0;
+    mlv_file_hdr.videoFrameCount = 0; //autodetect
+    mlv_file_hdr.audioFrameCount = 0;
+    mlv_file_hdr.sourceFpsNom = 1;
+    mlv_file_hdr.sourceFpsDenom = is_intervalometer_running() ? get_interval_time() : 1;
+    FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
+    
+    //put a rawi in each chunk in case we loose a chunk
+    mlv_rawi_hdr_t rawi;
+    memset(&rawi, 0, sizeof(mlv_rawi_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&rawi, "RAWI");
+    mlv_set_timestamp((mlv_hdr_t *)&rawi, mlv_start_timestamp);
+    rawi.blockSize = sizeof(mlv_rawi_hdr_t);
+    rawi.xRes = raw_info->width;
+    rawi.yRes = raw_info->height;
+    rawi.raw_info = *raw_info;
+    FIO_WriteFile(save_file, &rawi, rawi.blockSize);
+    
+    current_mlv_size += mlv_file_hdr.blockSize + rawi.blockSize;
+}
+
 /* save using the MLV file format  */
 static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
-    mlv_rawi_hdr_t rawi;
     mlv_rtci_hdr_t rtci_hdr;
     mlv_expo_hdr_t expo_hdr;
     mlv_lens_hdr_t lens_hdr;
@@ -231,34 +261,10 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
         {
             bmp_printf( FONT_MED, 0, 110, "Frame #%d, Current Size: %d MiB", frame_number, (uint32_t)(current_mlv_size >> 20));
         }
-        //always re-write the header
-        memset(&rawi, 0, sizeof(mlv_file_hdr_t));
-        mlv_init_fileheader(&mlv_file_hdr);
-        mlv_file_hdr.fileGuid = mlv_generate_guid();
-        mlv_file_hdr.fileNum = 0;
-        mlv_file_hdr.fileCount = 0; //autodetect
-        mlv_file_hdr.fileFlags = 4;
-        mlv_file_hdr.videoClass = 1;
-        mlv_file_hdr.audioClass = 0;
-        mlv_file_hdr.videoFrameCount = 0; //autodetect
-        mlv_file_hdr.audioFrameCount = 0;
-        mlv_file_hdr.sourceFpsNom = 1;
-        mlv_file_hdr.sourceFpsDenom = is_intervalometer_running() ? get_interval_time() : 1;
-        FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
         
         if(frame_number == 0)
         {
-            //first image in the sequence, we need a rawi
-            memset(&rawi, 0, sizeof(mlv_rawi_hdr_t));
-            mlv_set_type((mlv_hdr_t *)&rawi, "RAWI");
-            mlv_set_timestamp((mlv_hdr_t *)&rawi, mlv_start_timestamp);
-            rawi.blockSize = sizeof(mlv_rawi_hdr_t);
-            rawi.xRes = raw_info->width;
-            rawi.yRes = raw_info->height;
-            rawi.raw_info = *raw_info;
-            FIO_WriteFile(save_file, &rawi, rawi.blockSize);
-            
-            current_mlv_size += mlv_file_hdr.blockSize + rawi.blockSize;
+            silent_write_mlv_chunk_headers(save_file, raw_info);
         }
         else
         {
@@ -278,8 +284,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
                 
                 bmp_printf( FONT_MED, 0, 150, "4GB Limit reached, new file: '%s'", new_filename);
                 
-                //add the mlvi header to the new chunk
-                FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
+                silent_write_mlv_chunk_headers(save_file, raw_info);
             }
             else if(mlv_current_file_chunk_index >= 0)
             {
