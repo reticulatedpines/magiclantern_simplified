@@ -194,13 +194,13 @@ static char* replace_mlv_extension(char* original_filename, int chunk_index)
     return new_filename;
 }
 
-static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info)
+static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info, uint16_t file_num)
 {
     //MLVI file header
     memset(&mlv_file_hdr, 0, sizeof(mlv_file_hdr_t));
     mlv_init_fileheader(&mlv_file_hdr);
     mlv_file_hdr.fileGuid = mlv_generate_guid();
-    mlv_file_hdr.fileNum = 0;
+    mlv_file_hdr.fileNum = file_num;
     mlv_file_hdr.fileCount = 0; //autodetect
     mlv_file_hdr.fileFlags = 4;
     mlv_file_hdr.videoClass = 1;
@@ -264,7 +264,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
         
         if(frame_number == 0)
         {
-            silent_write_mlv_chunk_headers(save_file, raw_info);
+            silent_write_mlv_chunk_headers(save_file, raw_info, 0);
         }
         else
         {
@@ -284,7 +284,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
                 
                 bmp_printf( FONT_MED, 0, 150, "4GB Limit reached, new file: '%s'", new_filename);
                 
-                silent_write_mlv_chunk_headers(save_file, raw_info);
+                silent_write_mlv_chunk_headers(save_file, raw_info, mlv_current_file_chunk_index + 1);
             }
             else if(mlv_current_file_chunk_index >= 0)
             {
