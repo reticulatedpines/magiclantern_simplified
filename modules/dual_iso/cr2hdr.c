@@ -1581,6 +1581,17 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int bmed = median_int_wirth(tmp, n);
     //~ int bmed = kth_smallest_int(tmp, n, n/4);
 
+    int * bps = 0;
+    if (plot_iso_curve)
+    {
+        /* bright percentiles, in 0.1% increments */
+        bps = malloc(1000 * sizeof(bps[0]));
+        for (int i = 0; i < 1000; i++)
+        {
+            bps[i] = kth_smallest_int(tmp, n, (long long) n*i/1000);
+        }
+    }
+
     /* also compute the range for bright pixels (used to find the slope) */
     int b_lo = kth_smallest_int(tmp, n, n*98/100);
     int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
@@ -1599,6 +1610,17 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     }
     int dmed = median_int_wirth(tmp, n);
     //~ int dmed = kth_smallest_int(tmp, n, n/4);
+
+    int * dps = 0;
+    if (plot_iso_curve)
+    {
+        /* dark percentiles, in 0.1% increments */
+        dps = malloc(1000 * sizeof(bps[0]));
+        for (int i = 0; i < 1000; i++)
+        {
+            dps[i] = kth_smallest_int(tmp, n, (long long) n*i/1000);
+        }
+    }
 
     /* bright median from bright exposure */
     n = 0;
@@ -1670,6 +1692,17 @@ static int match_exposures(double* corr_ev, int* white_darkened)
             }
         }
         fprintf(f, "];\n");
+
+        fprintf(f, "bps = [ ");
+        for (int i = 0; i < 1000; i++)
+            fprintf(f, "%d ", bps[i]);
+        fprintf(f, "];\n");
+
+        fprintf(f, "dps = [ ");
+        for (int i = 0; i < 1000; i++)
+            fprintf(f, "%d ", dps[i]);
+        fprintf(f, "];\n");
+
         fprintf(f, "bright = data(:,1);\n");
         fprintf(f, "brightd = data(:,1)*a+b;\n");
         fprintf(f, "dark = data(:,2);\n");
@@ -1678,6 +1711,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         fprintf(f, "plot(brightd, dark, 'o', 'markersize', 0.1, brightd(hi), dark(hi), 'og', 'markersize', 0.1, brightd, brightd, 'or', 'markersize', 1); hold on;\n");
         //~ fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
         fprintf(f, "axis auto; set(gca,'xscale','log'); set(gca,'yscale','log');\n");
+        fprintf(f, "plot(bps*a+b, dps, 'm', 'linewidth', 2, bps(round(1:49.95:end))*a+b, dps(round(1:49.95:end)), 'om', 'markersize', 3, 'linewidth', 6);\n");
         fprintf(f, "plot([%d %d]*a+b, [%d %d], 'or', 'markersize', 5, 'linewidth', 6);\n", bmed, bmax, dmed, dmax);
         fprintf(f, "print -dpng iso-curve.png\n");
         fclose(f);
@@ -1685,6 +1719,8 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     }
     free(dark);
     free(bright);
+    if (dps) free(dps);
+    if (bps) free(bps);
 
     /* apply the correction */
     double b20 = b * 16;
