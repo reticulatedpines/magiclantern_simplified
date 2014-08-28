@@ -1664,19 +1664,21 @@ static int match_exposures(double* corr_ev, int* white_darkened)
                 int d = dark[x + y*w];
                 int b = bright[x + y*w];
                 if (b >= clip0) continue;       /* also included discarded highlights in the graph */
-                if (rand()%200 > 1) continue;
+                if (rand()%100 > 1) continue;
 
                 fprintf(f, "    %d %d;\n", b, d);
             }
         }
         fprintf(f, "];\n");
         fprintf(f, "bright = data(:,1);\n");
+        fprintf(f, "brightd = data(:,1)*a+b;\n");
         fprintf(f, "dark = data(:,2);\n");
         fprintf(f, "hi = bright > %d & bright < %d;\n", b_lo, b_hi);
-        fprintf(f, "median(dark(hi) - bright(hi)*a - b)\n");
-        fprintf(f, "plot(bright, dark, 'o', 'markersize', 1, bright(hi), dark(hi), 'og', 'markersize', 1, bright, a*bright+b, 'or', 'markersize', 1);\n");
-        fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
-        fprintf(f, "hold on, plot([%d %d], [%d %d], '*r', 'linewidth', 2);\n", bmed, bmax, dmed, dmax);
+        //~ fprintf(f, "median(dark(hi) - bright(hi)*a - b)\n");
+        fprintf(f, "plot(brightd, dark, 'o', 'markersize', 0.1, brightd(hi), dark(hi), 'og', 'markersize', 0.1, brightd, brightd, 'or', 'markersize', 1); hold on;\n");
+        //~ fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
+        fprintf(f, "axis auto; set(gca,'xscale','log'); set(gca,'yscale','log');\n");
+        fprintf(f, "plot([%d %d]*a+b, [%d %d], 'or', 'markersize', 5, 'linewidth', 6);\n", bmed, bmax, dmed, dmax);
         fprintf(f, "print -dpng iso-curve.png\n");
         fclose(f);
         if(system("octave --persist iso-curve.m"));
