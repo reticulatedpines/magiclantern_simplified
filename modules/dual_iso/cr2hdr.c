@@ -2578,7 +2578,7 @@ static int hdr_interpolate()
         }
     }
 
-    for (int y = h-2; y < h; y ++)
+    for (int y = h-4; y < h; y ++)
     {
         uint32_t* native = BRIGHT_ROW ? bright : dark;
         uint32_t* interp = BRIGHT_ROW ? dark : bright;
