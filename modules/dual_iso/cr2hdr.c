@@ -526,7 +526,7 @@ void raw_set_pixel_20to16(int x, int y, int value) {
 void raw_set_pixel_20to16_rand(int x, int y, int value) {
     /* To avoid posterization, it's a good idea to add some noise before rounding */
     /* The sweet spot seems to be with Gaussian noise of stdev=0.5, http://www.magiclantern.fm/forum/index.php?topic=10895.msg107972#msg107972 */
-    raw_set_pixel16(x, y, (int)(value / 16.0 + fast_randn05() + 0.5));
+    raw_set_pixel16(x, y, COERCE((int)(value / 16.0 + fast_randn05() + 0.5), 0, 0xFFFF));
 }
 
 static void reverse_bytes_order(void* buf, int count)
@@ -1702,8 +1702,9 @@ static int match_exposures(double* corr_ev, int* white_darkened)
                 p = p - b20 + b20*a;
             }
             
-            /* out of range? mark as bad pixel and interpolate it later */
-            if (p < 0 || p > 0xFFFFF) p = 0;
+            /* out of range? */
+            /* note: this breaks M24-1127 */
+            p = COERCE(p, 0, 0xFFFFF);
             
             raw_set_pixel20(x, y, p);
         }
