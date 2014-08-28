@@ -1360,6 +1360,7 @@ static int identify_bright_and_dark_fields(int rggb)
 
     /* white level is not yet known, just use a rough guess */
     int white = 10000;
+    int black = raw_info.black_level;
     
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1427,11 +1428,14 @@ static int identify_bright_and_dark_fields(int rggb)
         
         if (ref < ref_off)
         {
-            /* try to remove the black offset by estimating it from relatively dark pixels */
-            off[0] = raw[0];
-            off[1] = raw[1];
-            off[2] = raw[2];
-            off[3] = raw[3];
+            if (MAX(MAX(raw[0], raw[1]), MAX(raw[2], raw[3])) < black + (white-black) / 4)
+            {
+                /* try to remove the black offset by estimating it from relatively dark pixels */
+                off[0] = raw[0];
+                off[1] = raw[1];
+                off[2] = raw[2];
+                off[3] = raw[3];
+            }
         }
 
         if (raw[0] >= white) break;
