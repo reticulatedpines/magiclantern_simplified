@@ -196,7 +196,7 @@ void embed_original_raw(const char* dng_file, const char* raw_file, int delete_o
     int r = system(exif_cmd);
     if(r!=0)
     {
-        printf("%-16s: could not extract original raw\n", dng_file);
+        printf("%-16s: could not embed original raw\n", dng_file);
         return;
     }
 
