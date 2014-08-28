@@ -1685,7 +1685,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     /* apply the correction */
     double b20 = b * 16;
-    for (int y = 0; y < h-1; y ++)
+    for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
         {
@@ -2782,32 +2782,32 @@ static int hdr_interpolate()
     if (debug_blend)
     {
         raw_info.buffer = raw_buffer_16;
-        for (int y = 3; y < h-2; y ++)
-            for (int x = 2; x < w-2; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 raw_set_pixel_20to16(x, y, raw_buffer_32[x + y*w]);
         save_debug_dng("normal.dng");
         raw_info.buffer = raw_buffer_32;
 
-        for (int y = 3; y < h-2; y ++)
-            for (int x = 2; x < w-2; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 raw_set_pixel_20to16(x, y, bright[x + y*w]);
         save_debug_dng("bright.dng");
 
-        for (int y = 3; y < h-2; y ++)
-            for (int x = 2; x < w-2; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 raw_set_pixel_20to16(x, y, dark[x + y*w]);
         save_debug_dng("dark.dng");
 
         if (use_fullres)
         {
-            for (int y = 3; y < h-2; y ++)
-                for (int x = 2; x < w-2; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 0; x < w; x ++)
                     raw_set_pixel_20to16(x, y, fullres[x + y*w]);
             save_debug_dng("fullres.dng");
         }
 
-        for (int y = 3; y < h-2; y ++)
-            for (int x = 2; x < w-2; x ++)
+        for (int y = 0; y < h; y ++)
+            for (int x = 0; x < w; x ++)
                 raw_set_pixel_20to16(x, y, halfres[x + y*w]);
         save_debug_dng("halfres.dng");
 
@@ -2815,14 +2815,14 @@ static int hdr_interpolate()
         {
             if (use_fullres)
             {
-                for (int y = 3; y < h-2; y ++)
-                    for (int x = 2; x < w-2; x ++)
+                for (int y = 0; y < h; y ++)
+                    for (int x = 0; x < w; x ++)
                         raw_set_pixel_20to16(x, y, fullres_smooth[x + y*w]);
                 save_debug_dng("fullres_smooth.dng");
             }
 
-            for (int y = 3; y < h-2; y ++)
-                for (int x = 2; x < w-2; x ++)
+            for (int y = 0; y < h; y ++)
+                for (int x = 0; x < w; x ++)
                     raw_set_pixel_20to16(x, y, halfres_smooth[x + y*w]);
             save_debug_dng("halfres_smooth.dng");
         }
