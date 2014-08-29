@@ -1588,11 +1588,11 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int * bps = 0;
     if (plot_iso_curve)
     {
-        /* bright percentiles, in 0.1% increments */
-        bps = malloc(1000 * sizeof(bps[0]));
-        for (int i = 0; i < 1000; i++)
+        /* bright percentiles, in 0.5% increments */
+        bps = malloc(200 * sizeof(bps[0]));
+        for (int i = 0; i < 200; i++)
         {
-            bps[i] = kth_smallest_int(tmp, n, (long long) n*i/1000);
+            bps[i] = kth_smallest_int(tmp, n, (long long) n*i/200);
         }
     }
 
@@ -1618,11 +1618,11 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int * dps = 0;
     if (plot_iso_curve)
     {
-        /* dark percentiles, in 0.1% increments */
-        dps = malloc(1000 * sizeof(bps[0]));
-        for (int i = 0; i < 1000; i++)
+        /* dark percentiles, in 0.5% increments */
+        dps = malloc(200 * sizeof(bps[0]));
+        for (int i = 0; i < 200; i++)
         {
-            dps[i] = kth_smallest_int(tmp, n, (long long) n*i/1000);
+            dps[i] = kth_smallest_int(tmp, n, (long long) n*i/200);
         }
     }
 
@@ -1676,34 +1676,38 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     if (plot_iso_curve)
     {
-        printf("Least squares   : y = %f*x + %f\n", a, b);
+        printf("Linear fit      : y = %f*x + %f\n", a, b);
         FILE* f = fopen("iso-curve.m", "w");
         fprintf(f, "a = %g\n", a);
         fprintf(f, "b = %g\n", b);
         fprintf(f, "clip = %d\n", clip);
         fprintf(f, "data = [\n");
-        int y0 = raw_info.active_area.y1;
-        for (int y = y0; y < h-2; y++)
+        int y0 = raw_info.active_area.y1 + 5;
+        for (int i = 0; i < 50000; i++)
         {
-            for (int x = 0; x < w; x++)
+            int x = rand() % w;
+            int y = rand() % (h-y0-5) + y0;
+            int d = dark[x + y*w];
+            int b = bright[x + y*w];
+            if (b >= clip0)
             {
-                int d = dark[x + y*w];
-                int b = bright[x + y*w];
-                if (b >= clip0) continue;       /* also included discarded highlights in the graph */
-                if (rand()%100 > 1) continue;
-
-                fprintf(f, "    %d %d;\n", b, d);
+                /* retry (discard this pixel) */
+                /* this graph includes a few more highlights, not just those actually used for fitting */
+                i--;
+                continue;
             }
+            /* randomize data, to get a better idea of pixel density */
+            fprintf(f, "    %f %f;\n", b + fast_randn05(), d + fast_randn05());
         }
         fprintf(f, "];\n");
 
         fprintf(f, "bps = [ ");
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 200; i++)
             fprintf(f, "%d ", bps[i]);
         fprintf(f, "];\n");
 
         fprintf(f, "dps = [ ");
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 200; i++)
             fprintf(f, "%d ", dps[i]);
         fprintf(f, "];\n");
 
@@ -1714,9 +1718,9 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         //~ fprintf(f, "median(dark(hi) - bright(hi)*a - b)\n");
         fprintf(f, "plot(brightd, dark, 'o', 'markersize', 0.1, brightd(hi), dark(hi), 'og', 'markersize', 0.1, brightd, brightd, 'or', 'markersize', 1); hold on;\n");
         //~ fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
-        fprintf(f, "axis auto; set(gca,'xscale','log'); set(gca,'yscale','log');\n");
-        fprintf(f, "plot(bps*a+b, dps, 'm', 'linewidth', 2, bps(round(1:49.95:end))*a+b, dps(round(1:49.95:end)), 'om', 'markersize', 3, 'linewidth', 6);\n");
-        fprintf(f, "plot([%d %d]*a+b, [%d %d], 'or', 'markersize', 5, 'linewidth', 6);\n", bmed, bmax, dmed, dmax);
+        fprintf(f, "axis auto; set(gca,'xscale','log'); set(gca,'yscale','log'); axis tight;\n");
+        fprintf(f, "plot(bps*a+b, dps, 'm', 'linewidth', 2, bps(round(1:9.99:end))*a+b, dps(round(1:9.99:end)), 'om', 'markersize', 3, 'linewidth', 6);\n");
+        fprintf(f, "plot([%d %d]*a+b, [%d %d], 'or', 'markersize', 3, 'linewidth', 8);\n", bmed, bmax, dmed, dmax);
         fprintf(f, "print -dpng iso-curve.png\n");
         fclose(f);
         if(system("octave --persist iso-curve.m"));
