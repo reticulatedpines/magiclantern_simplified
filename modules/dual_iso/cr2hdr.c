@@ -1533,6 +1533,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
 
     int w = raw_info.width;
     int h = raw_info.height;
+    int y0 = raw_info.active_area.y1 + 2;
 
     /* quick interpolation for matching */
     int* dark   = malloc(w * h * sizeof(dark[0]));
@@ -1540,19 +1541,20 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     memset(dark, 0, w * h * sizeof(dark[0]));
     memset(bright, 0, w * h * sizeof(bright[0]));
     
-    for (int y = 2; y < h-2; y++)
+    for (int y = y0; y < h-2; y += 3)
     {
         int* native = BRIGHT_ROW ? bright : dark;
         int* interp = BRIGHT_ROW ? dark : bright;
 
-        for (int x = 0; x < w; x++)
+        for (int x = 0; x < w; x += 3)
         {
             int pa = raw_get_pixel_20to16(x, y-2) - black;
             int pb = raw_get_pixel_20to16(x, y+2) - black;
-            int pi = (pa + pb) / 2;
-            if (pa >= clip || pb >= clip) pi = clip;
-            interp[x + y * w] = pi;
             int pn = raw_get_pixel_20to16(x, y) - black;
+            int pi = (pa + pb + 1) / 2;
+            if (pa >= clip || pb >= clip) pi = clip0;               /* pixel too bright? discard */
+            if (pi >= clip) pn = clip0;                             /* interpolated pixel not good? discard the other one too */
+            interp[x + y * w] = pi;
             native[x + y * w] = pn;
         }
     }
@@ -1567,7 +1569,6 @@ static int match_exposures(double* corr_ev, int* white_darkened)
      * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
      * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
      */
-    int y0 = raw_info.active_area.y1 + 2;
     int nmax = (w+2) * (h+2) / 9;   /* downsample by 3x3 for speed */
     int * tmp = malloc(nmax * sizeof(tmp[0]));
     
@@ -1685,8 +1686,8 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         int y0 = raw_info.active_area.y1 + 5;
         for (int i = 0; i < 50000; i++)
         {
-            int x = rand() % w;
-            int y = rand() % (h-y0-5) + y0;
+            int x = (rand() % w)/3*3;
+            int y = (rand() % (h-y0-5))/3*3 + y0;
             int d = dark[x + y*w];
             int b = bright[x + y*w];
             if (b >= clip0)
