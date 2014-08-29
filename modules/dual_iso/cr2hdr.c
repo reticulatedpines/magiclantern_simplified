@@ -1529,7 +1529,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     int black = black20/16;
     int white = white20/16;
     int clip0 = white - black;
-    int clip  = clip0 * 0.9;    /* there may be nonlinear response in very bright areas */
+    int clip  = clip0 * 0.95;    /* there may be nonlinear response in very bright areas */
 
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1562,7 +1562,8 @@ static int match_exposures(double* corr_ev, int* white_darkened)
     /* 
      * Robust line fit (match unclipped data):
      * - use (median_bright, median_dark) as origin
-     * - minimize error median between 99 and 99.9th percentile to find the slope (ISO)
+     * - select highlights between 98 and 99.9th percentile to find the slope (ISO)
+     * - choose the slope that explains the largest number of highlight points (inspired from RANSAC)
      * 
      * Rationale:
      * - exposure matching is important to be correct in bright_highlights (which are combined with dark_midtones)
@@ -1584,7 +1585,6 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         }
     }
     int bmed = median_int_wirth(tmp, n);
-    //~ int bmed = kth_smallest_int(tmp, n, n/4);
 
     int * bps = 0;
     if (plot_iso_curve)
@@ -1614,7 +1614,6 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         }
     }
     int dmed = median_int_wirth(tmp, n);
-    //~ int dmed = kth_smallest_int(tmp, n, n/4);
 
     int * dps = 0;
     if (plot_iso_curve)
@@ -1627,52 +1626,57 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         }
     }
 
-    /* bright median from bright exposure */
-    n = 0;
+    /* select highlights used to find the slope (ISO) */
+    /* (98th percentile => up to 2% highlights) */
+    int hi_nmax = nmax/50;
+    int hi_n = 0;
+    int* hi_dark = malloc(hi_nmax * sizeof(hi_dark[0]));
+    int* hi_bright = malloc(hi_nmax * sizeof(hi_bright[0]));
+
     for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
+             int d = dark[x + y*w];
              int b = bright[x + y*w];
              if (b >= b_hi) continue;
              if (b <= b_lo) continue;
-             tmp[n++] = b;
+             hi_dark[hi_n] = d;
+             hi_bright[hi_n] = b;
+             hi_n++;
+             if (hi_n >= hi_nmax) break;
         }
     }
-    int bmax = median_int_wirth(tmp, n);
 
-    int dmax = 0;
+    //~ printf("Selected %d highlight points (max %d)\n", hi_n, hi_nmax);
+    
     double a = 0;
     double b = 0;
 
-    /* bright median from dark - corrected_bright (minimize the error iteratively) */
-    for (int k = 0; k < 50; k++)
+    int best_score = 0;
+    for (double ev = 0; ev < 6; ev += 0.002)
     {
-        n = 0;
-        for (int y = y0; y < h-2; y += 3)
+        double test_a = pow(2, -ev);
+        double test_b = dmed - bmed * test_a;
+
+        int score = 0;
+        for (int i = 0; i < hi_n; i++)
         {
-            for (int x = 0; x < w; x += 3)
-            {
-                 int da = dark[x + y*w];
-                 int br = bright[x + y*w];
-                 if (br >= b_hi) continue;
-                 if (br <= b_lo) continue;
-                 int e = da - (br*a + b);
-                 if (k > 0 && ABS(e) > 200) continue;   /* ignore outliers when fine-tuning */
-                 tmp[n++] = e;
-            }
+            int d = hi_dark[i];
+            int b = hi_bright[i];
+            int e = d - (b*test_a + test_b);
+            if (ABS(e) < 50) score++;
         }
-        int emed = median_int_wirth(tmp, n);
-        dmax += emed;
-
-        a = (double) (dmax - dmed) / (bmax - bmed);
-        b = dmed - bmed * a;
-        
-        //~ printf("%d %f %f\n", emed, a, b);
-        
-        if (emed == 0) break;
+        if (score > best_score)
+        {
+            best_score = score;
+            a = test_a;
+            b = test_b;
+            //~ printf("%f: %d\n", a, score);
+        }
     }
-
+    free(hi_dark); hi_dark = 0;
+    free(hi_bright); hi_bright = 0;
     free(tmp); tmp = 0;
 
     if (plot_iso_curve)
@@ -1721,7 +1725,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         //~ fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
         fprintf(f, "axis auto; set(gca,'xscale','log'); set(gca,'yscale','log'); axis tight;\n");
         fprintf(f, "plot(bps*a+b, dps, 'm', 'linewidth', 2, bps(round(1:9.99:end))*a+b, dps(round(1:9.99:end)), 'om', 'markersize', 3, 'linewidth', 6);\n");
-        fprintf(f, "plot([%d %d]*a+b, [%d %d], 'or', 'markersize', 3, 'linewidth', 8);\n", bmed, bmax, dmed, dmax);
+        fprintf(f, "plot([%d %d]*a+b, [%d %d], 'or', 'markersize', 3, 'linewidth', 8);\n", bmed, 0, dmed, 0);
         fprintf(f, "print -dpng iso-curve.png\n");
         fclose(f);
         if(system("octave --persist iso-curve.m"));
