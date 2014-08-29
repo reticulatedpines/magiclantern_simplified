@@ -736,7 +736,7 @@ static void mlv_play_osd_task(void *priv)
     uint32_t next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
  
     mlv_play_osd_state = MLV_PLAY_MENU_IDLE;
-    mlv_play_osd_item = 0;
+    mlv_play_osd_item = 1;
     mlv_play_paused = 0;   
     
     uint32_t last_keypress_time = get_ms_clock_value();
