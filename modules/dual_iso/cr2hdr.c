@@ -1549,23 +1549,18 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         {
             int pa = raw_get_pixel_20to16(x, y-2) - black;
             int pb = raw_get_pixel_20to16(x, y+2) - black;
-            int pn = raw_get_pixel_20to16(x, y) - black;
             int pi = (pa + pb) / 2;
-            if (pa >= clip || pb >= clip) pi = clip;                /* pixel too bright? discard */
-            int dark_thr_i = (interp == bright) ? 256 : 32;         /* separate thresholds seem a bit better (just a very rough guess) */
-            int dark_thr_n = (native == bright) ? 256 : 32;
-            if (pi <= dark_thr_i || pn <= dark_thr_n) pi = clip;    /* pixel too dark? discard */
-            if (pi >= clip) pn = clip;                              /* interpolated pixel not good? discard the other one too */
+            if (pa >= clip || pb >= clip) pi = clip;
             interp[x + y * w] = pi;
+            int pn = raw_get_pixel_20to16(x, y) - black;
             native[x + y * w] = pn;
         }
     }
     
     /* 
-     * Robust line fit:
-     * - discard pixels too bright (clipped) and too dark (very noisy)
+     * Robust line fit (match unclipped data):
      * - use (median_bright, median_dark) as origin
-     * - use the 90th percentile from (bright, dark) to find the slope (ISO)
+     * - minimize error median between 99 and 99.9th percentile to find the slope (ISO)
      * 
      * Rationale:
      * - exposure matching is important to be correct in bright_highlights (which are combined with dark_midtones)
@@ -1588,7 +1583,7 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         }
     }
     int bmed = median_int_wirth(tmp, n);
-    int bmax = kth_smallest_int(tmp, n, n*9/10);
+    //~ int bmed = kth_smallest_int(tmp, n, n/4);
 
     int * bps = 0;
     if (plot_iso_curve)
@@ -1600,6 +1595,10 @@ static int match_exposures(double* corr_ev, int* white_darkened)
             bps[i] = kth_smallest_int(tmp, n, (long long) n*i/1000);
         }
     }
+
+    /* also compute the range for bright pixels (used to find the slope) */
+    int b_lo = kth_smallest_int(tmp, n, n*98/100);
+    int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
 
     /* median_dark */
     n = 0;
@@ -1614,9 +1613,10 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         }
     }
     int dmed = median_int_wirth(tmp, n);
-    int dmax = kth_smallest_int(tmp, n, n*9/10);
+    //~ int dmed = kth_smallest_int(tmp, n, n/4);
 
     int * dps = 0;
+    if (plot_iso_curve)
     {
         /* dark percentiles, in 0.1% increments */
         dps = malloc(1000 * sizeof(bps[0]));
@@ -1626,8 +1626,51 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         }
     }
 
-    double a = (double) (dmax - dmed) / (bmax - bmed);
-    double b = dmed - bmed * a;
+    /* bright median from bright exposure */
+    n = 0;
+    for (int y = y0; y < h-2; y += 3)
+    {
+        for (int x = 0; x < w; x += 3)
+        {
+             int b = bright[x + y*w];
+             if (b >= b_hi) continue;
+             if (b <= b_lo) continue;
+             tmp[n++] = b;
+        }
+    }
+    int bmax = median_int_wirth(tmp, n);
+
+    int dmax = 0;
+    double a = 0;
+    double b = 0;
+
+    /* bright median from dark - corrected_bright (minimize the error iteratively) */
+    for (int k = 0; k < 50; k++)
+    {
+        n = 0;
+        for (int y = y0; y < h-2; y += 3)
+        {
+            for (int x = 0; x < w; x += 3)
+            {
+                 int da = dark[x + y*w];
+                 int br = bright[x + y*w];
+                 if (br >= b_hi) continue;
+                 if (br <= b_lo) continue;
+                 int e = da - (br*a + b);
+                 if (k > 0 && ABS(e) > 200) continue;   /* ignore outliers when fine-tuning */
+                 tmp[n++] = e;
+            }
+        }
+        int emed = median_int_wirth(tmp, n);
+        dmax += emed;
+
+        a = (double) (dmax - dmed) / (bmax - bmed);
+        b = dmed - bmed * a;
+        
+        //~ printf("%d %f %f\n", emed, a, b);
+        
+        if (emed == 0) break;
+    }
 
     free(tmp); tmp = 0;
 
@@ -1667,9 +1710,9 @@ static int match_exposures(double* corr_ev, int* white_darkened)
         fprintf(f, "bright = data(:,1);\n");
         fprintf(f, "brightd = data(:,1)*a+b;\n");
         fprintf(f, "dark = data(:,2);\n");
-        //~ fprintf(f, "hi = bright > %d & bright < %d;\n", b_lo, b_hi);
+        fprintf(f, "hi = bright > %d & bright < %d;\n", b_lo, b_hi);
         //~ fprintf(f, "median(dark(hi) - bright(hi)*a - b)\n");
-        fprintf(f, "plot(brightd, dark, 'o', 'markersize', 0.1, brightd, brightd, 'or', 'markersize', 1); hold on;\n");
+        fprintf(f, "plot(brightd, dark, 'o', 'markersize', 0.1, brightd(hi), dark(hi), 'og', 'markersize', 0.1, brightd, brightd, 'or', 'markersize', 1); hold on;\n");
         //~ fprintf(f, "axis([-1000 clip*1.1 -1000 1.5*a*clip+b]);\n");
         fprintf(f, "axis auto; set(gca,'xscale','log'); set(gca,'yscale','log');\n");
         fprintf(f, "plot(bps*a+b, dps, 'm', 'linewidth', 2, bps(round(1:49.95:end))*a+b, dps(round(1:49.95:end)), 'om', 'markersize', 3, 'linewidth', 6);\n");
