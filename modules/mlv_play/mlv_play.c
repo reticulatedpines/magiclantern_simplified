@@ -1577,8 +1577,27 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     /* index building would print on screen */
     mlv_play_clear_screen();
     
-    for(uint32_t block_xref_pos = 0; block_xref_pos < block_xref->entryCount; block_xref_pos++)
+    uint32_t block_xref_pos = 0;
+    while(1)
     {
+        /* after playback is finished, return to beginning and put into pause */
+        if (block_xref_pos == block_xref->entryCount)
+        {
+            /* reset counter */
+            block_xref_pos = 0;
+
+            /* miscellaneous cleanup */
+            mlv_play_flush_queue(mlv_play_queue_fps);
+            mlv_play_info = (mlv_play_info == 1 ? 2 : mlv_play_info);
+
+            mlv_play_paused = 1;
+        }
+
+        while(mlv_play_paused && !mlv_play_should_stop())
+        {
+            msleep(100);
+        }
+
         /* there are various reasons why this read/play task should get stopped */
         if(mlv_play_should_stop())
         {
@@ -1598,6 +1617,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 msg_queue_receive(mlv_play_queue_fps, &temp, 50);
 
                 mlv_play_frames_skipped++;
+                block_xref_pos++;
                 continue;
             }
         }
@@ -1846,6 +1866,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             /* queue frame buffer for rendering */
             msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
         }
+        block_xref_pos++;
     }
     
     if(fps_timer_started)
@@ -1873,8 +1894,29 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
     /* update OSD */
     msg_queue_post(mlv_play_queue_osd, (uint32_t) 0);
     
-    for (int i = 0; i < frame_count-1; i++)
+    int i = 0;
+    while(1)
     {
+        /* after playback is finished, return to beginning and put into pause */
+        if (i == frame_count - 1)
+        {
+            /* reset counters */
+            i = 0;
+            chunk_num = 0;
+
+            /* reset file pointers */
+            for(uint32_t j = 0; j < chunk_count; j++)
+            {
+                FIO_SeekSkipFile(chunk_files[j], 0, SEEK_SET);
+            }
+
+            /* miscellaneous cleanup */
+            mlv_play_flush_queue(mlv_play_queue_fps);
+            mlv_play_info = (mlv_play_info == 1 ? 2 : mlv_play_info);
+
+            mlv_play_paused = 1;
+        }
+
         /* check if we are too slow */
         if(mlv_play_exact_fps)
         {
@@ -1908,6 +1950,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 }
 
                 mlv_play_frames_skipped++;
+                i++;
                 continue;
             }
         }
@@ -2040,6 +2083,8 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
 
         /* requeue frame buffer for rendering */
         msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
+
+        i++;
     }
 
     if(fps_timer_started)
