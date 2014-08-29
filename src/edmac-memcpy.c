@@ -32,9 +32,9 @@ uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
 uint32_t edmac_read_chan = 0x19;  /* Read: 0 5 7 11 14 15 */
 uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
 #elif defined(CONFIG_7D)
-uint32_t edmac_read_chan = 0x19;  /*Read 1 2 3 4 5 7 8 9 10 11 12 13 14 15 */
-uint32_t edmac_write_chan = 0x05;	/* Write 3 4 5 6 7 8 10 11 12 13 14 15 */
-//5 zoom, 6 not
+uint32_t edmac_read_chan = 0x0A;  /*Read 0x19 0x0D 0x0B 0x0A(82MB/S)*/
+uint32_t edmac_write_chan = 0x06; /* Write 0x5 0x6 0x4 (LV) */
+//5 zoom, 6 not - improved performance (no HDMI related tearing)
 #elif defined(CONFIG_500D)
 uint32_t edmac_read_chan = 0x0D;
 uint32_t edmac_write_chan = 0x04;
@@ -119,8 +119,12 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int sr
     take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-    uint32_t dmaFlags = 0x40001000;
-
+    #ifdef CONFIG_7D
+    uint32_t dmaFlags = 0x20001000; //Original are faster on 7D
+    #else   
+    uint32_t dmaFlags = 0x40001000; //Enhanced
+    #endif // unfamiliar with macros, did I do that right?
+    
     /* create a memory suite from a already existing (continuous) memory block with given size. */
     uint32_t src_adjusted = ((uint32_t)src & 0x1FFFFFFF) + src_x + src_y * src_width;
     uint32_t dst_adjusted = ((uint32_t)dst & 0x1FFFFFFF) + dst_x + dst_y * dst_width;
@@ -387,6 +391,9 @@ uint32_t raw_write_chan = 1;
 uint32_t raw_write_chan = 4;
 #endif
 
+#ifdef CONFIG_7D
+uint32_t raw_write_chan = 5; //writes faster
+#endif
 
 static void edmac_slurp_complete_cbr (void* ctx)
 {
