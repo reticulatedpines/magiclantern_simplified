@@ -61,7 +61,7 @@
 /** There is a separate bulb mode on the mode dial (other cameras have BULB = M + shutter speed beyond 30s) **/
 #define CONFIG_SEPARATE_BULB_MODE
 
-/** We can control audio settings from ML, wind filter will remain undefined**/
+/** We can control audio settings from ML**/
 #define CONFIG_AUDIO_CONTROLS
 
 /** Zoom button can't be used while recording (for Magic Zoom) **/
