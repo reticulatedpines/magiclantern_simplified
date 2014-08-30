@@ -123,7 +123,7 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int sr
     uint32_t dmaFlags = 0x20001000; //Original are faster on 7D
     #else   
     uint32_t dmaFlags = 0x40001000; //Enhanced
-    #endif // unfamiliar with macros, did I do that right?
+    #endif 
     
     /* create a memory suite from a already existing (continuous) memory block with given size. */
     uint32_t src_adjusted = ((uint32_t)src & 0x1FFFFFFF) + src_x + src_y * src_width;
