@@ -775,6 +775,11 @@ static void mlv_play_osd_task(void *priv)
                     mlv_play_osd_act(&mlv_play_osd_delete);
                     mlv_play_osd_delete(NULL, 0, 2);
                     break;
+
+                case MODULE_KEY_PLAY:
+                    mlv_play_osd_act(&mlv_play_osd_pause);
+                    mlv_play_osd_pause(NULL, 0, 1);
+                    break;
             }
             
             switch(mlv_play_osd_state)
