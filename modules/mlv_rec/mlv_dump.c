@@ -1843,6 +1843,7 @@ read_headers:
                     {
                         print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
                         file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
+                        block_hdr.frameSpace += fix_bug_1_offset;
                         fix_bug_1_offset = 0;
                     }
                     
