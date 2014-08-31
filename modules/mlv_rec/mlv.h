@@ -32,6 +32,10 @@
 
 #define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
 
+#define MLV_FRAME_UNSPECIFIED 0
+#define MLV_FRAME_VIDF        1
+#define MLV_FRAME_AUDF        2
+
 #if defined(PACKED)
 #undef PACKED
 #endif
@@ -162,7 +166,8 @@ typedef struct {
 
 typedef struct {
     uint16_t    fileNumber;    /* the logical file number as specified in header */
-    uint16_t    empty;    /* for future use. set to zero. */
+    uint8_t     empty;    /* for future use. set to zero. */
+    uint8_t     frameType;    /* MLV_FRAME_VIDF(1) for VIDF, MLV_FRAME_AUDF(2) for AUDF, MLV_FRAME_UNSPECIFIED(0) otherwise */
     uint64_t    frameOffset;    /* the file offset at which the frame is stored (VIDF/AUDF) */
 } PACKED mlv_xref_t;
 
