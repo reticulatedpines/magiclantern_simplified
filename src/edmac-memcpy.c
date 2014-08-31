@@ -119,7 +119,7 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int sr
     take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-    #ifdef CONFIG_7D
+    #if defined(CONFIG_7D)
     uint32_t dmaFlags = 0x20001000; //Original are faster on 7D
     #else   
     uint32_t dmaFlags = 0x40001000; //Enhanced
