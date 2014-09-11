@@ -13,6 +13,7 @@ namespace WebDAVServer
 {
     public class DNGCreator
     {
+        public static double ProcessingTime;
         //all the mlv block headers corresponding to a particular frame, needed to generate a DNG for that frame
         [StructLayout(LayoutKind.Sequential, Pack = 1), Serializable]
         public struct frame_headers
@@ -43,8 +44,13 @@ namespace WebDAVServer
         internal static uint GetSize(string mlvFileName, MLVTypes.mlv_vidf_hdr_t vidfHeader, byte[] pixelData, object[] metadata)
         {
             frame_headers dngData = CreateDngData(vidfHeader, metadata);
-            
-            uint totalSize = dng_get_size(ref dngData);
+
+            uint headerSize = dng_get_header_size(ref dngData);
+            uint imageSize = dng_get_image_size(ref dngData);
+            byte[] headerData = new byte[headerSize];
+            uint headerSizeReal = dng_get_header_data(ref dngData, headerData, 0, headerSize);
+
+            uint totalSize = headerSizeReal + imageSize;
 
             return totalSize;
         }
@@ -61,7 +67,10 @@ namespace WebDAVServer
                 byte[] imageData = new byte[imageSize];
 
                 uint headerSizeReal = dng_get_header_data(ref dngData, headerData, 0, headerSize);
+
+                DateTime start = DateTime.Now;
                 uint dataSizeReal = dng_get_image_data(ref dngData, inData, imageData, 0, imageSize);
+                ProcessingTime = (DateTime.Now - start).TotalMilliseconds;
 
                 /* now assemble header and image data */
                 byte[] dngFileData = new byte[headerSizeReal + dataSizeReal];

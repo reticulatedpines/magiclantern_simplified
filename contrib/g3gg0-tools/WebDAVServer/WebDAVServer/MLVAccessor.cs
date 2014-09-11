@@ -277,11 +277,15 @@ namespace WebDAVServer
         internal static long GetFileSize(string mlvFileName, string content)
         {
             string type = GetFileType(content);
+            int frame = GetFrameNumber(mlvFileName, content);
+            MLVCachedReader cache = GetReader(mlvFileName);
+            object[] metadata = cache.reader.GetVideoFrameMetadata((uint)frame);
 
             switch (type)
             {
                 case "DNG":
-                    return 20000000;
+                    return DNGCreator.GetSize(mlvFileName, cache.handler.VidfHeader, cache.handler.RawPixelData, metadata);
+
                 case "JPG":
                     return 100000;
             }

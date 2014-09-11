@@ -80,7 +80,7 @@
             this.txtLog.Name = "txtLog";
             this.txtLog.ReadOnly = true;
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtLog.Size = new System.Drawing.Size(471, 261);
+            this.txtLog.Size = new System.Drawing.Size(538, 273);
             this.txtLog.TabIndex = 0;
             // 
             // notifyIcon
@@ -98,7 +98,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(485, 296);
+            this.tabControl1.Size = new System.Drawing.Size(552, 308);
             this.tabControl1.TabIndex = 1;
             // 
             // tabPageLog
@@ -107,7 +107,7 @@
             this.tabPageLog.Location = new System.Drawing.Point(4, 25);
             this.tabPageLog.Name = "tabPageLog";
             this.tabPageLog.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageLog.Size = new System.Drawing.Size(477, 267);
+            this.tabPageLog.Size = new System.Drawing.Size(544, 279);
             this.tabPageLog.TabIndex = 0;
             this.tabPageLog.Text = "Log Messages";
             this.tabPageLog.UseVisualStyleBackColor = true;
@@ -157,10 +157,10 @@
             this.cmbDrives.TabIndex = 6;
             this.cmbDrives.DropDown += new System.EventHandler(this.cmbDrives_DropDown);
             // 
-            // button1
+            // btnMapDrive
             // 
             this.btnMapDrive.Location = new System.Drawing.Point(6, 57);
-            this.btnMapDrive.Name = "button1";
+            this.btnMapDrive.Name = "btnMapDrive";
             this.btnMapDrive.Size = new System.Drawing.Size(118, 23);
             this.btnMapDrive.TabIndex = 5;
             this.btnMapDrive.Text = "Map";
@@ -382,7 +382,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(485, 296);
+            this.ClientSize = new System.Drawing.Size(552, 308);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.tabControl1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;

@@ -43,15 +43,11 @@ namespace WebDAVServer
 
         public long ResponseBinaryContentLength = 0;
         public BinaryReader ResponseBinaryContent = null;
-
         public ArrayList HeaderLines = new ArrayList();
 
         protected string RequestPath = "";
         protected string BaseHref = "";
-        
-
         protected bool SkipRequestLogging = false;
-
 
         public enum FileType
         {
@@ -303,8 +299,6 @@ namespace WebDAVServer
         {
             StringBuilder response = new StringBuilder();
             TextWriter writer = new StreamWriter(stream);
-
-            //AddDefaultHeaders();
 
             /* authentication required? */
             if (IsAccessDenied())
@@ -1009,8 +1003,8 @@ namespace WebDAVServer
                         {
                             xml.WriteElementString("creationdate", "DAV:", info.CreationTimeUtc.ToString("r", CultureInfo.InvariantCulture));
                             xml.WriteElementString("getlastmodified", "DAV:", info.LastWriteTimeUtc.ToString("r", CultureInfo.InvariantCulture));
-                            xml.WriteElementString("quota-available-bytes", "DAV:", GetTotalFreeSpace(info.FullName).ToString());
-                            xml.WriteElementString("quota-used-bytes", "DAV:", GetTotalUsedSpace(info.FullName).ToString());
+                            //xml.WriteElementString("quota-available-bytes", "DAV:", GetTotalFreeSpace(info.FullName).ToString());
+                            //xml.WriteElementString("quota-used-bytes", "DAV:", GetTotalUsedSpace(info.FullName).ToString());
                         }
                         
                         xml.WriteStartElement("resourcetype", "DAV:");

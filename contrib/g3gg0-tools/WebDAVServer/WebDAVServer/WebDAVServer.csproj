@@ -92,7 +92,6 @@
     <Compile Include="DNGCreator.cs" />
     <Compile Include="MLVAccessor.cs" />
     <Compile Include="RequestHandler.cs" />
-    <Compile Include="WAVCreator.cs" />
     <Compile Include="WebDAVServer.cs">
     </Compile>
     <Compile Include="WebDAVServerForm.cs">

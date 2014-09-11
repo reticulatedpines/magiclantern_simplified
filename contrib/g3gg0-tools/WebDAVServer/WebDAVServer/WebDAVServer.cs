@@ -26,15 +26,14 @@ namespace WebDAVServer
         internal StringBuilder _RequestMessages = new StringBuilder();
         internal StringBuilder _LogMessages = new StringBuilder();
 
-        public long Connections = 0;
-
         public object StatisticsLock = new object();
+        public long Connections = 0;
         public long BytesReadHeader = 0;
         public long BytesWrittenHeader = 0;
         public long BytesReadData = 0;
         public long BytesWrittenData = 0;
 
-        public static string Version = "2.1";
+        public static string Version = "2.2";
         public string DefaultConfigFileName = "WebDAVServer.cfg";
         public string ConfigFilePath = "";
         public string ConfigFileName = "";
@@ -283,7 +282,6 @@ namespace WebDAVServer
                     }
                 }
             }
-
         }
 
         public void TransferGetStats(out long total, out long transferred)
@@ -656,7 +654,7 @@ namespace WebDAVServer
 
             DateTime endTime = DateTime.Now;
             sock.Close();
-            LogRequest("  (Socket closed, " + (endTime - startTime).TotalMilliseconds + " ms)");
+            LogRequest("  (Socket closed, " + (endTime - startTime).TotalMilliseconds + " ms, " +DNGCreator.ProcessingTime+" ms)");
         }
 
         private string ReadLine(NetworkStream stream)
