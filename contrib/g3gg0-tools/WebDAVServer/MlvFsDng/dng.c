@@ -280,28 +280,29 @@ eeeeeeff ffffffff
 ffffgggg gggggggg
 gghhhhhh hhhhhhhh
 */
-
-size_t dng_get_image_data(struct frame_headers * frame_headers, uint8_t *packed_data, uint8_t * output_buffer, off_t offset, size_t max_size)
+size_t dng_get_image_data(struct frame_headers * frame_headers, uint16_t * packed_bits, uint8_t * output_buffer, off_t offset, size_t max_size)
 {
 	//unpack bits to 16 bit little endian (LSB first)
 	int bpp = frame_headers->rawi_hdr.raw_info.bits_per_pixel;
-	uint64_t pixel_start_index = (size_t)MAX(0, offset) / 2; //lets hope offsets are always even for now
+	uint64_t pixel_start_index = MAX(0, offset) / 2; //lets hope offsets are always even for now
 	uint64_t pixel_start_address = pixel_start_index * bpp / 16;
 	size_t output_size = max_size - (offset < 0 ? (size_t)(-offset) : 0);
 	uint64_t pixel_count = output_size / 2;
-	uint64_t packed_size = (pixel_count + 2) * bpp / 16;
-	uint16_t * packed_bits = packed_data;
-	uint8_t * buffer = output_buffer + (offset < 0 ? (size_t)(-offset) : 0) + offset % 2;
+	uint16_t * dng_data = (uint16_t *)(output_buffer + (offset < 0 ? (size_t)(-offset) : 0) + offset % 2);
 	uint32_t mask = (1 << bpp) - 1;
 
-	for (size_t pixel_index = 0; pixel_index < pixel_count; pixel_index++)
-	{
-		uint64_t pixel_address = (pixel_index + pixel_start_index) * bpp / 16 - pixel_start_address;
-		uint64_t pixel_offset = (pixel_index + pixel_start_index) * bpp % 16;
-		uint32_t data = ((packed_bits[pixel_address] << 16) & 0xFFFF0000) | (packed_bits[pixel_address + 1] & 0xFFFF);
-		*(uint16_t*)(buffer + pixel_index * 2) = (uint16_t)((data >> ((32 - bpp) - pixel_offset)) & mask);
-	}
+	/* ok this is pointing outside the reserved buffer, but its indexed later to get within bounds again */
+	uint16_t * raw_bits = (uint16_t *)((uint32_t)packed_bits - pixel_start_address);
 
+	for (int pixel_index = 0; pixel_index < (int)pixel_count; pixel_index++)
+	{
+		uint32_t bits_offset = (pixel_start_index + pixel_index) * bpp;
+		uint32_t bits_address = bits_offset / 16;
+		uint32_t bits_shift = bits_offset % 16;
+		uint32_t data = (raw_bits[bits_address] << 16) | raw_bits[bits_address + 1];
+
+		dng_data[pixel_index] = (uint16_t)((data >> ((32 - bpp) - bits_shift)) & mask);
+	}
 	return max_size;
 }
 
