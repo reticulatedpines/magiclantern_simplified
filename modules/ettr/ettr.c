@@ -4,8 +4,6 @@
  * Optimize the exposure for raw shooting (photo + video).
  */
 
-#define CONFIG_CONSOLE
-
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
@@ -21,6 +19,7 @@
 #include <focus.h>
 #include <beep.h>
 #include <histogram.h>
+#include <console.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
