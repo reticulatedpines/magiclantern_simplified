@@ -35,6 +35,13 @@
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPageLog = new System.Windows.Forms.TabPage();
             this.tabPageAutostart = new System.Windows.Forms.TabPage();
+            this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.chkShowInfos = new System.Windows.Forms.CheckBox();
+            this.chkShowJpeg = new System.Windows.Forms.CheckBox();
+            this.txtCacheTime = new System.Windows.Forms.TextBox();
+            this.txtPrefetch = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.label1 = new System.Windows.Forms.Label();
             this.cmbDrives = new System.Windows.Forms.ComboBox();
@@ -61,9 +68,11 @@
             this.ctxShow = new System.Windows.Forms.ToolStripMenuItem();
             this.ctxQuit = new System.Windows.Forms.ToolStripMenuItem();
             this.progressBar = new System.Windows.Forms.ProgressBar();
+            this.chkShowFits = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPageLog.SuspendLayout();
             this.tabPageAutostart.SuspendLayout();
+            this.groupBox5.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -74,7 +83,7 @@
             // txtLog
             // 
             this.txtLog.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.txtLog.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtLog.Font = new System.Drawing.Font("Courier New", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtLog.Location = new System.Drawing.Point(3, 3);
             this.txtLog.Multiline = true;
             this.txtLog.Name = "txtLog";
@@ -87,7 +96,6 @@
             // 
             this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
             this.notifyIcon.Text = "g3gg0.de WebDAVServer";
-            this.notifyIcon.Visible = true;
             // 
             // tabControl1
             // 
@@ -114,6 +122,7 @@
             // 
             // tabPageAutostart
             // 
+            this.tabPageAutostart.Controls.Add(this.groupBox5);
             this.tabPageAutostart.Controls.Add(this.groupBox4);
             this.tabPageAutostart.Controls.Add(this.groupBox3);
             this.tabPageAutostart.Controls.Add(this.textBox1);
@@ -122,10 +131,82 @@
             this.tabPageAutostart.Location = new System.Drawing.Point(4, 25);
             this.tabPageAutostart.Name = "tabPageAutostart";
             this.tabPageAutostart.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageAutostart.Size = new System.Drawing.Size(477, 267);
+            this.tabPageAutostart.Size = new System.Drawing.Size(544, 279);
             this.tabPageAutostart.TabIndex = 1;
             this.tabPageAutostart.Text = "Setup";
             this.tabPageAutostart.UseVisualStyleBackColor = true;
+            // 
+            // groupBox5
+            // 
+            this.groupBox5.Controls.Add(this.chkShowFits);
+            this.groupBox5.Controls.Add(this.chkShowInfos);
+            this.groupBox5.Controls.Add(this.chkShowJpeg);
+            this.groupBox5.Controls.Add(this.txtCacheTime);
+            this.groupBox5.Controls.Add(this.txtPrefetch);
+            this.groupBox5.Controls.Add(this.label5);
+            this.groupBox5.Controls.Add(this.label4);
+            this.groupBox5.Location = new System.Drawing.Point(339, 114);
+            this.groupBox5.Name = "groupBox5";
+            this.groupBox5.Size = new System.Drawing.Size(196, 141);
+            this.groupBox5.TabIndex = 7;
+            this.groupBox5.TabStop = false;
+            this.groupBox5.Text = "MLV Options";
+            // 
+            // chkShowInfos
+            // 
+            this.chkShowInfos.AutoSize = true;
+            this.chkShowInfos.Location = new System.Drawing.Point(9, 106);
+            this.chkShowInfos.Name = "chkShowInfos";
+            this.chkShowInfos.Size = new System.Drawing.Size(79, 17);
+            this.chkShowInfos.TabIndex = 2;
+            this.chkShowInfos.Text = "Show Infos";
+            this.chkShowInfos.UseVisualStyleBackColor = true;
+            this.chkShowInfos.CheckedChanged += new System.EventHandler(this.chkShowInfos_CheckedChanged);
+            // 
+            // chkShowJpeg
+            // 
+            this.chkShowJpeg.AutoSize = true;
+            this.chkShowJpeg.Location = new System.Drawing.Point(9, 83);
+            this.chkShowJpeg.Name = "chkShowJpeg";
+            this.chkShowJpeg.Size = new System.Drawing.Size(76, 17);
+            this.chkShowJpeg.TabIndex = 2;
+            this.chkShowJpeg.Text = "Show JPG";
+            this.chkShowJpeg.UseVisualStyleBackColor = true;
+            this.chkShowJpeg.CheckedChanged += new System.EventHandler(this.chkShowJpeg_CheckedChanged);
+            // 
+            // txtCacheTime
+            // 
+            this.txtCacheTime.Location = new System.Drawing.Point(120, 55);
+            this.txtCacheTime.Name = "txtCacheTime";
+            this.txtCacheTime.Size = new System.Drawing.Size(70, 20);
+            this.txtCacheTime.TabIndex = 1;
+            this.txtCacheTime.TextChanged += new System.EventHandler(this.txtCacheTime_TextChanged);
+            // 
+            // txtPrefetch
+            // 
+            this.txtPrefetch.Location = new System.Drawing.Point(120, 25);
+            this.txtPrefetch.Name = "txtPrefetch";
+            this.txtPrefetch.Size = new System.Drawing.Size(70, 20);
+            this.txtPrefetch.TabIndex = 1;
+            this.txtPrefetch.TextChanged += new System.EventHandler(this.txtPrefetch_TextChanged);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(6, 58);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(74, 13);
+            this.label5.TabIndex = 0;
+            this.label5.Text = "Cache time [s]";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(6, 28);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(83, 13);
+            this.label4.TabIndex = 0;
+            this.label4.Text = "Prefetch images";
             // 
             // groupBox4
             // 
@@ -134,7 +215,7 @@
             this.groupBox4.Controls.Add(this.btnMapDrive);
             this.groupBox4.Location = new System.Drawing.Point(339, 7);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(130, 89);
+            this.groupBox4.Size = new System.Drawing.Size(196, 100);
             this.groupBox4.TabIndex = 6;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Map Drive";
@@ -371,12 +452,23 @@
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(294, 2);
+            this.progressBar.Location = new System.Drawing.Point(350, 5);
             this.progressBar.Maximum = 1000;
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(189, 15);
             this.progressBar.TabIndex = 5;
             this.progressBar.Visible = false;
+            // 
+            // chkShowFits
+            // 
+            this.chkShowFits.AutoSize = true;
+            this.chkShowFits.Location = new System.Drawing.Point(91, 83);
+            this.chkShowFits.Name = "chkShowFits";
+            this.chkShowFits.Size = new System.Drawing.Size(79, 17);
+            this.chkShowFits.TabIndex = 3;
+            this.chkShowFits.Text = "Show FITS";
+            this.chkShowFits.UseVisualStyleBackColor = true;
+            this.chkShowFits.CheckedChanged += new System.EventHandler(this.chkShowFits_CheckedChanged);
             // 
             // WebDAVServerForm
             // 
@@ -394,6 +486,8 @@
             this.tabPageLog.PerformLayout();
             this.tabPageAutostart.ResumeLayout(false);
             this.tabPageAutostart.PerformLayout();
+            this.groupBox5.ResumeLayout(false);
+            this.groupBox5.PerformLayout();
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
             this.groupBox3.ResumeLayout(false);
@@ -438,6 +532,14 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox cmbDrives;
         private System.Windows.Forms.Button btnMapDrive;
+        private System.Windows.Forms.GroupBox groupBox5;
+        private System.Windows.Forms.CheckBox chkShowInfos;
+        private System.Windows.Forms.CheckBox chkShowJpeg;
+        private System.Windows.Forms.TextBox txtCacheTime;
+        private System.Windows.Forms.TextBox txtPrefetch;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.CheckBox chkShowFits;
     }
 }
 

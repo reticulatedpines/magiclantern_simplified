@@ -8,7 +8,7 @@ namespace WebDAVServer
 {
     class WebDAVService : ServiceBase
     {
-        private WebDAVServer Server = null;
+        public WebDAVServer Server = null;
         public static string WebDAVServiceName = "WebDAVServer";
         public static string WebDAVDisplayName = "WebDAVServer v" + WebDAVServer.Version + " by g3gg0.de";
 
@@ -26,6 +26,13 @@ namespace WebDAVServer
             {
                 try
                 {
+                    ServiceController ctl = ServiceController.GetServices().FirstOrDefault(s => s.ServiceName == "WebDAVServiceName");
+
+                    if(ctl == null)
+                    {
+                        return false;
+                    }
+
                     ServiceController sc = new ServiceController();
                     sc.ServiceName = WebDAVServiceName;
                     string status = sc.Status.ToString().ToLower();
