@@ -97,6 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DNGCreator.cs" />
+    <Compile Include="FITSCreator.cs" />
     <Compile Include="MLVAccessor.cs" />
     <Compile Include="RequestHandler.cs" />
     <Compile Include="WebDAVServer.cs">

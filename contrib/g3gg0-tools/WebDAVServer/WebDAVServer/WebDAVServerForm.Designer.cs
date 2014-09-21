@@ -69,6 +69,8 @@
             this.ctxQuit = new System.Windows.Forms.ToolStripMenuItem();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.chkShowFits = new System.Windows.Forms.CheckBox();
+            this.chkShowDng = new System.Windows.Forms.CheckBox();
+            this.chkShowWav = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPageLog.SuspendLayout();
             this.tabPageAutostart.SuspendLayout();
@@ -138,6 +140,8 @@
             // 
             // groupBox5
             // 
+            this.groupBox5.Controls.Add(this.chkShowWav);
+            this.groupBox5.Controls.Add(this.chkShowDng);
             this.groupBox5.Controls.Add(this.chkShowFits);
             this.groupBox5.Controls.Add(this.chkShowInfos);
             this.groupBox5.Controls.Add(this.chkShowJpeg);
@@ -147,7 +151,7 @@
             this.groupBox5.Controls.Add(this.label4);
             this.groupBox5.Location = new System.Drawing.Point(339, 114);
             this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Size = new System.Drawing.Size(196, 141);
+            this.groupBox5.Size = new System.Drawing.Size(196, 157);
             this.groupBox5.TabIndex = 7;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "MLV Options";
@@ -155,7 +159,7 @@
             // chkShowInfos
             // 
             this.chkShowInfos.AutoSize = true;
-            this.chkShowInfos.Location = new System.Drawing.Point(9, 106);
+            this.chkShowInfos.Location = new System.Drawing.Point(9, 128);
             this.chkShowInfos.Name = "chkShowInfos";
             this.chkShowInfos.Size = new System.Drawing.Size(79, 17);
             this.chkShowInfos.TabIndex = 2;
@@ -166,11 +170,11 @@
             // chkShowJpeg
             // 
             this.chkShowJpeg.AutoSize = true;
-            this.chkShowJpeg.Location = new System.Drawing.Point(9, 83);
+            this.chkShowJpeg.Location = new System.Drawing.Point(92, 82);
             this.chkShowJpeg.Name = "chkShowJpeg";
-            this.chkShowJpeg.Size = new System.Drawing.Size(76, 17);
+            this.chkShowJpeg.Size = new System.Drawing.Size(46, 17);
             this.chkShowJpeg.TabIndex = 2;
-            this.chkShowJpeg.Text = "Show JPG";
+            this.chkShowJpeg.Text = "JPG";
             this.chkShowJpeg.UseVisualStyleBackColor = true;
             this.chkShowJpeg.CheckedChanged += new System.EventHandler(this.chkShowJpeg_CheckedChanged);
             // 
@@ -462,13 +466,35 @@
             // chkShowFits
             // 
             this.chkShowFits.AutoSize = true;
-            this.chkShowFits.Location = new System.Drawing.Point(91, 83);
+            this.chkShowFits.Location = new System.Drawing.Point(9, 105);
             this.chkShowFits.Name = "chkShowFits";
-            this.chkShowFits.Size = new System.Drawing.Size(79, 17);
+            this.chkShowFits.Size = new System.Drawing.Size(49, 17);
             this.chkShowFits.TabIndex = 3;
-            this.chkShowFits.Text = "Show FITS";
+            this.chkShowFits.Text = "FITS";
             this.chkShowFits.UseVisualStyleBackColor = true;
             this.chkShowFits.CheckedChanged += new System.EventHandler(this.chkShowFits_CheckedChanged);
+            // 
+            // chkShowDng
+            // 
+            this.chkShowDng.AutoSize = true;
+            this.chkShowDng.Location = new System.Drawing.Point(9, 82);
+            this.chkShowDng.Name = "chkShowDng";
+            this.chkShowDng.Size = new System.Drawing.Size(50, 17);
+            this.chkShowDng.TabIndex = 4;
+            this.chkShowDng.Text = "DNG";
+            this.chkShowDng.UseVisualStyleBackColor = true;
+            this.chkShowDng.CheckedChanged += new System.EventHandler(this.chkShowDng_CheckedChanged);
+            // 
+            // chkShowWav
+            // 
+            this.chkShowWav.AutoSize = true;
+            this.chkShowWav.Location = new System.Drawing.Point(92, 105);
+            this.chkShowWav.Name = "chkShowWav";
+            this.chkShowWav.Size = new System.Drawing.Size(51, 17);
+            this.chkShowWav.TabIndex = 5;
+            this.chkShowWav.Text = "WAV";
+            this.chkShowWav.UseVisualStyleBackColor = true;
+            this.chkShowWav.CheckedChanged += new System.EventHandler(this.chkShowWav_CheckedChanged);
             // 
             // WebDAVServerForm
             // 
@@ -540,6 +566,8 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.CheckBox chkShowFits;
+        private System.Windows.Forms.CheckBox chkShowWav;
+        private System.Windows.Forms.CheckBox chkShowDng;
     }
 }
 

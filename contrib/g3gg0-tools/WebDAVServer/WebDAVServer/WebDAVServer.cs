@@ -33,7 +33,7 @@ namespace WebDAVServer
         public long BytesReadData = 0;
         public long BytesWrittenData = 0;
 
-        public static string Version = "2.7";
+        public static string Version = "2.8";
         public string DefaultConfigFileName = "WebDAVServer.cfg";
         public string ConfigFilePath = "";
         public string ConfigFileName = "";
@@ -58,6 +58,8 @@ namespace WebDAVServer
             public bool ShowJpeg;
             public bool ShowInfos;
             public bool ShowFits;
+            public bool ShowDng;
+            public bool ShowWav;
         }
         public SettingsContainer Settings = new SettingsContainer();
         public string Statistics
@@ -85,7 +87,8 @@ namespace WebDAVServer
             Settings.ShowInfos = true;
             Settings.ShowJpeg = true;
             Settings.ShowFits = true;
-            
+            Settings.ShowDng = true;
+            Settings.ShowWav = true;
 
             /* read default config */
             ReadDefaultConfigFile();

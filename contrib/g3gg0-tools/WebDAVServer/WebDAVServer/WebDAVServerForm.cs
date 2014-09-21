@@ -70,6 +70,8 @@ namespace WebDAVServer
             chkShowInfos.Checked = Server.Settings.ShowInfos;
             chkShowJpeg.Checked = Server.Settings.ShowJpeg;
             chkShowFits.Checked = Server.Settings.ShowFits;
+            chkShowDng.Checked = Server.Settings.ShowDng;
+            chkShowWav.Checked = Server.Settings.ShowWav;
 
             UpdateDriveLetters();
         }
@@ -525,6 +527,16 @@ namespace WebDAVServer
         private void chkShowFits_CheckedChanged(object sender, EventArgs e)
         {
             Server.Settings.ShowFits = chkShowFits.Checked;
+        }
+
+        private void chkShowDng_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowDng = chkShowDng.Checked;
+        }
+
+        private void chkShowWav_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowWav = chkShowWav.Checked;
         }
     }
 }
