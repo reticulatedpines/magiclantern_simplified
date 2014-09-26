@@ -61,7 +61,7 @@ void my_gui_task( void )
         }
 
         if (event->type == 0 && event->param < 0) {
-            continue;           /* do not pass internal ML events to Canon code */
+            goto event_loop_bottom;           /* do not pass internal ML events to Canon code */
         }
 
         switch ( event->type )

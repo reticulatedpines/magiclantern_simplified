@@ -65,6 +65,9 @@ task_create(
         void *                  arg
 );
 
+extern void *AcquireRecursiveLock(void *lock, int n);
+extern void *CreateRecursiveLock(int n);
+extern void *ReleaseRecursiveLock(void *lock);
 
 struct semaphore;
 

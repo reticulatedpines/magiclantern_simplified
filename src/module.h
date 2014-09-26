@@ -1,6 +1,8 @@
 #ifndef _module_h_
 #define _module_h_
 
+#include <stdint.h>
+
 #define MODULE_PATH                   "ML/MODULES/"
 
 /* module info structures */
@@ -168,7 +170,7 @@ typedef struct
 typedef struct
 {
     const char *name;
-    void (*handler)(unsigned int property, void * priv, void * addr, unsigned int len);
+    void (*handler)(unsigned int property, void * priv, uint32_t * addr, unsigned int len);
     const unsigned int property;
     const unsigned int property_length;
 } module_prophandler_t;
@@ -250,7 +252,7 @@ typedef struct
 #if defined(MODULE)
 #define PROP_HANDLER(id)                                        MODULE_PROP_ENTRY_(MODULE_PROPHANDLER_PREFIX,MODULE_NAME, id, #id)
 #define MODULE_PROP_ENTRY_(prefix,modname,id,idstr)             MODULE_PROP_ENTRY__(prefix,modname,id,idstr)
-#define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, void *, unsigned int);\
+#define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, uint32_t *, unsigned int);\
                                                                 module_prophandler_t prefix##modname##_##id##_block = { \
                                                                     .name            = idstr, \
                                                                     .handler         = &prefix##modname##_##id, \
@@ -260,9 +262,16 @@ typedef struct
                                                                 void prefix##modname##_##id( \
                                                                         unsigned int property, \
                                                                         void *       token, \
-                                                                        void *       buf, \
+                                                                        uint32_t *   buf, \
                                                                         unsigned int len \
                                                                 )
+
+#define PROP_INT(id,name) \
+volatile uint32_t name; \
+PROP_HANDLER(id) { \
+        name = buf[0]; \
+}
+
 #endif
 
 

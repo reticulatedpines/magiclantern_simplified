@@ -435,8 +435,9 @@ typedef struct
 {
     uint64_t    frameTime;
     uint64_t    frameOffset;
-    uint32_t    fileNumber;
-} PACKED frame_xref_t;
+    uint16_t    fileNumber;
+    uint16_t    frameType;
+} frame_xref_t;
 
 void xref_resize(frame_xref_t **table, int entries, int *allocated)
 {
@@ -460,9 +461,20 @@ void xref_dump(mlv_xref_hdr_t *xref)
 
     for(uint32_t pos = 0; pos < xref->entryCount; pos++)
     {
-        print_msg(MSG_INFO, "Entry %d/%d\n", pos, xref->entryCount);
+        print_msg(MSG_INFO, "Entry %d/%d\n", pos + 1, xref->entryCount);
         print_msg(MSG_INFO, "    File   #%d\n", xrefs[pos].fileNumber);
         print_msg(MSG_INFO, "    Offset 0x%08X\n", xrefs[pos].frameOffset);
+        switch (xrefs[pos].frameType)
+        {
+            case MLV_FRAME_VIDF:
+                print_msg(MSG_INFO, "    Type   VIDF\n");
+                break;
+            case MLV_FRAME_AUDF:
+                print_msg(MSG_INFO, "    Type   AUDF\n");
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -771,6 +783,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
 
         field.frameOffset = index[entry].frameOffset;
         field.fileNumber = index[entry].fileNumber;
+        field.frameType = index[entry].frameType;
 
         if(fwrite(&field, sizeof(mlv_xref_t), 1, out_file) != 1)
         {
@@ -1616,6 +1629,7 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = 0;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                frame_xref_table[frame_xref_entries].frameType = MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
@@ -1695,6 +1709,10 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                frame_xref_table[frame_xref_entries].frameType =
+                    !memcmp(buf.blockType, "VIDF", 4) ? MLV_FRAME_VIDF :
+                    !memcmp(buf.blockType, "AUDF", 4) ? MLV_FRAME_AUDF :
+                    MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
@@ -1818,14 +1836,16 @@ read_headers:
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     int prev_frame_size = frame_size;
 
+                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
+                    
                     /* we can correct that frame by fixing frame space */
-                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
+                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
                     {
-                        block_hdr.frameSpace -= fix_bug_1_offset;
+                        print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
+                        file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
+                        block_hdr.frameSpace += fix_bug_1_offset;
                         fix_bug_1_offset = 0;
                     }
-                    
-                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                     
                     /* check if there is enough memory for that frame */
                     if(frame_size > frame_buffer_size)
@@ -2327,6 +2347,14 @@ read_headers:
                 else
                 {
                     file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
+                    
+                    /* we can correct that frame by fixing frame space */
+                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
+                    {
+                        print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
+                        file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
+                        fix_bug_1_offset = 0;
+                    }
                 }
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
@@ -2834,7 +2862,7 @@ read_headers:
                 if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
                 {
                     char type[5];
-                    uint32_t range = 0x40;
+                    uint32_t range = 0x80;
                     
                     type[4] = '\000';
                     print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Invalid block at 0x%08" PRIx64 ", trying to fix it\n", position);
@@ -2852,7 +2880,7 @@ read_headers:
                         
                         if(!memcmp(type, "NULL", 4))
                         {
-                            fix_bug_1_offset = offset - range / 2;
+                            fix_bug_1_offset = -(offset - range / 2);
                             print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Success, offset: %d bytes.\n", fix_bug_1_offset);
                             file_set_pos(in_file, position_previous, SEEK_SET);
                             position = position_previous;

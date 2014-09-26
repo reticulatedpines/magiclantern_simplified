@@ -133,10 +133,7 @@ namespace mlv_view_sharp
                 }
             }
 
-            TotalFrameCount = (uint)block;
-
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
-            FrameXrefList = frameXrefList;
         }
 
         private MLVTypes.mlv_rawi_hdr_t ReadFooter()

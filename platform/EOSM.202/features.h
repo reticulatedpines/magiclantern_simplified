@@ -8,7 +8,6 @@
 #undef FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY // Well.. it will work in 1 mode
 #undef FEATURE_AF_PATTERNS // No regular AF
 #undef FEATURE_VOICE_TAGS // Just to be sure
-#undef FEATURE_PLAY_422 // No way to select
 #undef FEATURE_SHUTTER_FINE_TUNING //Doesn't seem to work
 
 

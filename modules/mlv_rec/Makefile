@@ -7,7 +7,7 @@ MODULE_OBJS=mlv_rec.o mlv.o
 include ../Makefile.modules
 
 MLV_CFLAGS = -I$(SRC_DIR) -D MLV_USE_LZMA -m32 -Wpadded -mno-ms-bitfields -D _7ZIP_ST -D MLV2DNG
-MLV_LFLAGS = 
+MLV_LFLAGS = -m32
 MLV_LIBS = -lm
 MLV_LIBS_MINGW = -lm
 
