@@ -6314,7 +6314,7 @@ shoot_task( void* unused )
             int canceled = 0;
             if (dt == 0) // crazy mode - needs to be fast
             {
-                int num = interval_stop_after ? interval_stop_after : 100000;
+                int num = interval_stop_after ? interval_stop_after : 9000;
                 canceled = take_fast_pictures(num);
                 intervalometer_pictures_taken += num - 1;
             }
