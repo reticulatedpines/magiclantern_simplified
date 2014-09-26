@@ -1096,6 +1096,10 @@ cleanup:
     if (is_intervalometer_running())
     {
         display_off();
+        
+        /* attempt to reset the powersave timer */
+        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
+        prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
     }
     
     return;
