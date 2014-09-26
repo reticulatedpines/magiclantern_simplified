@@ -171,7 +171,7 @@ int raw_get_pixel(int x, int y) {
     return p->a;
 }
 
-int raw_set_pixel(int x, int y, int value)
+void raw_set_pixel(int x, int y, int value)
 {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
     switch (x%8) {
@@ -184,7 +184,6 @@ int raw_set_pixel(int x, int y, int value)
         case 6: p->g_lo = value; p->g_hi = value >> 2; break;
         case 7: p->h = value; break;
     }
-    return p->a;
 }
 
 /**
