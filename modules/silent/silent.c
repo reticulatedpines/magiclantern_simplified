@@ -1054,34 +1054,53 @@ silent_pic_take_fullres(int interactive)
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
 
-    /* make a copy of the image, because save_dng will overwrite the contents of the raw buffer */
-    struct JobClass * copy_job = (void*) call("FA_CreateTestImage");
-    void* copy_buf = (void*) call("FA_GetCrawBuf", copy_job);
+    /* DNG only: make a copy of the image, because save_dng will overwrite the contents of the raw buffer */
+    struct JobClass * copy_job = 0;
+    void* copy_buf = 0;
     
-    if (copy_buf)
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
     {
-        /* save the raw image as DNG */
+        copy_job = (void*) call("FA_CreateTestImage");
+        copy_buf = (void*) call("FA_GetCrawBuf", copy_job);
+
+        if (!copy_buf)
+        {
+            bmp_printf(FONT_MED, 0, 0, "Memory error");
+            goto cleanup;
+        }
+    }
+    
+    /* save the raw image as DNG or MLV */
+    {
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
         bmp_printf(FONT_MED, 0, 85, "Captured in %d ms.", t1 - t0);
         
-        local_raw_info.buffer = copy_buf;
-        memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
-        silent_pic_save_file(&local_raw_info, t1 - t0, 0);
+        int t0 = get_ms_clock_value();
         
-        bmp_printf(FONT_MED, 0, 60, "Saved %d x %d.   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-    }
-    else
-    {
-        bmp_printf(FONT_MED, 0, 0, "Memory error");
+        if (copy_buf)
+        {
+            local_raw_info.buffer = copy_buf;
+            memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
+        }
+        
+        silent_pic_save_file(&local_raw_info, t1 - t0, 0);
+        int t1 = get_ms_clock_value();
+        
+        bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms).   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height, t1-t0);
     }
 
+cleanup:
     /* 
      * This deallocates the job object (DeleteSkeltonJob),
      * and after the last job is deallocated, it gets out of factory mode
      * (SRM_ChangeMemoryManagementForImage)
      */
     call("FA_DeleteTestImage", job);
-    call("FA_DeleteTestImage", copy_job);
+    
+    if (copy_job)
+    {
+        call("FA_DeleteTestImage", copy_job);
+    }
     
     gui_uilock(UILOCK_NONE);
     
