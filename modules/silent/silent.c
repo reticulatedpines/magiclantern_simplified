@@ -982,6 +982,8 @@ silent_pic_take_fullres(int interactive)
     {
         goto err;
     }
+    
+    display_off();
 
     /* 
      * This enters factory testing mode (SRM_ChangeMemoryManagementForFactory),
@@ -1012,6 +1014,8 @@ silent_pic_take_fullres(int interactive)
     info_led_off();
     lens_info.job_state = 0;
 
+    display_on();
+
     /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
     int new_gui = GUISTATE_QR;
     prop_request_change_wait(PROP_GUI_STATE, &new_gui, 4, 1000);
@@ -1030,7 +1034,6 @@ silent_pic_take_fullres(int interactive)
 
     if (is_intervalometer_running())
     {
-        display_on();
         msleep(50);
         show_battery_status();
     }
