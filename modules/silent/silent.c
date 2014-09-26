@@ -970,6 +970,12 @@ silent_pic_take_fullres(int interactive)
         goto err;
     }
     
+    if (!can_use_raw_overlays_photo())
+    {
+        error_msg = "Set picture quality to RAW";
+        goto err;
+    }
+    
     /* Canon photo taking code is busy? (may happen if you press the shutter fully) */
     while (lens_info.job_state)
     {
