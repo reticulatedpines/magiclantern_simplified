@@ -3159,7 +3159,7 @@ int expo_value_rounding_ok(int raw, int is_aperture)
     if (is_aperture)
         if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
     
-    int r = raw % 8;
+    int r = ABS(raw) % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5)
         return 0;
     return 1;
