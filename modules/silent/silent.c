@@ -39,7 +39,7 @@ extern WEAK_FUNC(ret_0) int GetBatteryDrainRate();
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );
 static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
-static CONFIG_INT( "silent.pic.file.format", silent_pic_file_format, 0 );
+static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
 #define SILENT_PIC_MODE_BURST_END_TRIGGER 2
@@ -48,8 +48,7 @@ static CONFIG_INT( "silent.pic.file.format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_FULLRES 5
 
 #define SILENT_PIC_FILE_FORMAT_DNG 0
-#define SILENT_PIC_FILE_FORMAT_RAW 1
-#define SILENT_PIC_FILE_FORMAT_MLV 2
+#define SILENT_PIC_FILE_FORMAT_MLV 1
 
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
@@ -101,12 +100,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
     }
     
-    
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
-    {
-        MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit RAW.");
-    }
-    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
     }
@@ -120,7 +114,7 @@ static MENU_UPDATE_FUNC(silent_pic_file_format_display)
 {
     if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid == (void*)&ret_0)
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option.");
     }
 }
 
@@ -128,11 +122,7 @@ static char* silent_pic_get_name()
 {
     char *extension;
     
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
-    {
-        extension = "RAW";
-    }
-    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
     {
         extension = "MLV";
     }
@@ -345,11 +335,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
 
 static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_RAW)
-    {
-        save_raw(raw_info);
-    }
-    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
     {
         save_mlv(raw_info, capture_time_ms, frame_number);
     }
@@ -1211,13 +1197,12 @@ static struct menu_entry silent_menu[] = {
                 .name = "File Format",
                 .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
-                .max = 2,
-                .help = "File format to save the image as",
+                .max = 1,
+                .help = "File format to save the image as:",
                 .help2 =
                     "DNG may be slow, but no extra post-processing.\n"
-                    "RAW is fast but no metadata.\n"
-                    "MLV is fast, has metadata.\n",
-                .choices = CHOICES("DNG", "RAW", "MLV"),
+                    "MLV is fast, and will save a single file when used with intervalometer.\n",
+                .choices = CHOICES("DNG", "MLV"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
