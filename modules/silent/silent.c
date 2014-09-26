@@ -949,6 +949,13 @@ static void show_battery_status()
     );
 }
 
+/* FA test image code only looks at these 3 properties - doesn't know about auto ISO & stuff */
+/* lens_info data may not be in sync, e.g. when using expo override */
+/* so, check these props directly before taking a picture */
+static PROP_INT(PROP_ISO, prop_iso);
+static PROP_INT(PROP_SHUTTER, prop_shutter);
+
+
 static void
 silent_pic_take_fullres(int interactive)
 {
@@ -965,13 +972,13 @@ silent_pic_take_fullres(int interactive)
 
     /* there are problems with shutter speeds slower than 15 seconds */
     /* (corrupted image and camera lockup, at least on 5D2 and 550D) */
-    if (lens_info.raw_shutter < SHUTTER_15s)
+    if (prop_shutter < SHUTTER_15s)
     {
         error_msg = "Exposure too long";
         goto err;
     }
 
-    if (lens_info.raw_iso == 0)
+    if (prop_iso == 0)
     {
         error_msg = "Auto ISO not compatible";
         goto err;
@@ -1203,6 +1210,10 @@ static struct menu_entry silent_menu[] = {
 
 static unsigned int silent_init()
 {
+    /* fixme in core: prop handlers should trigger when initializing, but they do not */
+    prop_iso = lens_info.raw_iso;
+    prop_shutter = lens_info.raw_shutter;
+    
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
     return 0;
 }
@@ -1230,3 +1241,8 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(silent_pic_slitscan_mode)
     MODULE_CONFIG(silent_pic_file_format)
 MODULE_CONFIGS_END()
+
+MODULE_PROPHANDLERS_START()
+    MODULE_PROPHANDLER(PROP_ISO)
+    MODULE_PROPHANDLER(PROP_SHUTTER)
+MODULE_PROPHANDLERS_END()
