@@ -991,6 +991,12 @@ silent_pic_take_fullres(int interactive)
     
     display_off();
 
+    /* we'll need these later */
+    struct JobClass * copy_job = 0;
+    void* copy_buf = 0;
+
+    /* from now on, we can no longer jump to "err" */
+
     /* 
      * This enters factory testing mode (SRM_ChangeMemoryManagementForFactory),
      * reads PROP_ISO, PROP_SHUTTER and PROP_APERTURE, 
@@ -1033,8 +1039,7 @@ silent_pic_take_fullres(int interactive)
     if (!ok)
     {
         bmp_printf(FONT_MED, 0, 0, "Raw error");
-        gui_uilock(UILOCK_NONE);
-        return;
+        goto cleanup;
     }
     clrscr();
 
@@ -1048,11 +1053,8 @@ silent_pic_take_fullres(int interactive)
 
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
-
-    /* DNG only: make a copy of the image, because save_dng will overwrite the contents of the raw buffer */
-    struct JobClass * copy_job = 0;
-    void* copy_buf = 0;
     
+    /* DNG only: make a copy of the image, because save_dng will overwrite the contents of the raw buffer */
     if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_DNG)
     {
         copy_job = (void*) call("FA_CreateTestImage");
@@ -1084,6 +1086,15 @@ silent_pic_take_fullres(int interactive)
         bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms).   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height, t1-t0);
     }
 
+    if (is_intervalometer_running())
+    {
+        display_off();
+        
+        /* attempt to reset the powersave timer */
+        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
+        prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
+    }
+
 cleanup:
     /* 
      * This deallocates the job object (DeleteSkeltonJob),
@@ -1098,15 +1109,6 @@ cleanup:
     }
     
     gui_uilock(UILOCK_NONE);
-    
-    if (is_intervalometer_running())
-    {
-        display_off();
-        
-        /* attempt to reset the powersave timer */
-        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
-        prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
-    }
     
     return;
 
