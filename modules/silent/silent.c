@@ -1027,6 +1027,13 @@ silent_pic_take_fullres(int interactive)
     lens_info.job_state = 0;
 
     display_on();
+    
+    /* GUI changing may fail if half-shutter is pressed, so wait until user de-presses it */
+    while (get_halfshutter_pressed())
+    {
+        bmp_printf(FONT_MED, 0, 0, "Half-shutter pressed...");
+        msleep(20);
+    }
 
     /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
     int new_gui = GUISTATE_QR;
