@@ -42,12 +42,13 @@ namespace WebDAVServer
         public string ResponseTextContent = "";
 
         public long ResponseBinaryContentLength = 0;
-        public BinaryReader ResponseBinaryContent = null;
+        public byte[] ResponseBinaryContent = null;
         public ArrayList HeaderLines = new ArrayList();
 
         protected string RequestPath = "";
         protected string BaseHref = "";
         protected bool SkipRequestLogging = false;
+        public bool SendHeaderOnly = false;
 
         public enum FileType
         {
@@ -346,7 +347,6 @@ namespace WebDAVServer
 
                 if (ResponseBinaryContent != null)
                 {
-                    //ResponseBinaryContent.Close();
                     ResponseBinaryContent = null;
                 }
             }
@@ -385,88 +385,68 @@ namespace WebDAVServer
                 Server.LogRequest("> " + line.Replace("\r", ""));
             }
 
-            int blockLength = 64 * 1024;
-            byte[] tempBuf = new byte[blockLength];
-
-            if (ResponseTextContent.Length > 0)
+            if (!SendHeaderOnly)
             {
-                WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseTextContent.Length);
-                int written = 0;
-
-                try
+                if (ResponseTextContent.Length > 0)
                 {
+                    WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseTextContent.Length);
+                    int written = 0;
+
                     byte[] respTextData = Encoding.ASCII.GetBytes(ResponseTextContent);
-
-                    while (written < respTextData.Length)
+                    try
                     {
-                        int length = Math.Min(blockLength, respTextData.Length - written);
+                        stream.Write(respTextData, written, respTextData.Length);
 
-                        stream.Write(respTextData, written, length);
-
-                        written += length;
-                        BytesWrittenHeader += length;
-                        info.BlockTransferred(length);
+                        written += respTextData.Length;
+                        BytesWrittenHeader += respTextData.Length;
+                        info.BlockTransferred(respTextData.Length);
                     }
-                }
-                catch (Exception e)
-                {
-                }
-
-                info.TransferFinished();
-
-                if (!SkipRequestLogging)
-                {
-                    Server.LogRequest(ResponseTextContent.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;"));
-                }
-                SkipRequestLogging = false;
-
-                ResponseTextContent = "";
-            }
-
-            if (ResponseBinaryContentLength > 0)
-            {
-                WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseBinaryContentLength);
-                long written = 0;
-
-                try
-                {
-                    do
+                    catch (Exception e)
                     {
-                        int read = ResponseBinaryContent.Read(tempBuf, 0, blockLength);
+                    }
 
-                        if (read > 0)
-                        {
-                            stream.Write(tempBuf, 0, read);
-                            written += read;
-                            BytesWrittenData += read;
-                            info.BlockTransferred(read);
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    } while (true);
+                    info.TransferFinished();
+
+                    if (!SkipRequestLogging)
+                    {
+                        Server.LogRequest(ResponseTextContent.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;"));
+                    }
+                    SkipRequestLogging = false;
+
+                    ResponseTextContent = "";
                 }
-                catch (Exception e)
+
+                if (ResponseBinaryContentLength > 0)
                 {
+                    WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseBinaryContentLength);
+                    long written = 0;
+
+                    try
+                    {
+                        do
+                        {
+                            stream.Write(ResponseBinaryContent, 0, ResponseBinaryContent.Length);
+                            written += ResponseBinaryContent.Length;
+                            BytesWrittenData += ResponseBinaryContent.Length;
+                            info.BlockTransferred(ResponseBinaryContent.Length);
+                        } while (true);
+                    }
+                    catch (Exception e)
+                    {
+                    }
+
+                    info.TransferFinished();
+
+                    Server.LogRequest("> (binary content of size " + written + ")");
+
+                    stream.Flush();
                 }
 
-                info.TransferFinished();
-
-                Server.LogRequest("> (binary content of size " + written + ")");
-
-                stream.Flush();
+                if (ResponseBinaryContent != null)
+                {
+                    ResponseBinaryContent = null;
+                }
             }
-
-            if (ResponseBinaryContent != null)
-            {
-                //ResponseBinaryContent.Close();
-                ResponseBinaryContent = null;
-            }
-
-            /* defaults again */
-            StatusCode = GetStatusCode(500);
-            MimeType = "text/plain";
         }
 
         public bool IsAccessDenied()
@@ -817,7 +797,7 @@ namespace WebDAVServer
                                             frameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
                                             frameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameName);
                                             frameInfo.FullName = RequestPath + "/" + frameInfo.Name;
-                                            frameInfo.DisplayName = "Frame #" + frame + " as DNG";
+                                            frameInfo.DisplayName = "Frame " + frame + " as DNG";
 
                                             if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + frameInfo.Name))
                                             {
@@ -835,7 +815,7 @@ namespace WebDAVServer
                                             frameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
                                             frameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameName);
                                             frameInfo.FullName = RequestPath + "/" + frameInfo.Name;
-                                            frameInfo.DisplayName = "Frame #" + frame + " as Jpeg";
+                                            frameInfo.DisplayName = "Frame " + frame + " as Jpeg";
 
                                             if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + frameInfo.Name))
                                             {
@@ -853,7 +833,7 @@ namespace WebDAVServer
                                             frameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
                                             frameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameName);
                                             frameInfo.FullName = RequestPath + "/" + frameInfo.Name;
-                                            frameInfo.DisplayName = "Frame #" + frame + " as FITS";
+                                            frameInfo.DisplayName = "Frame " + frame + " as FITS";
 
                                             if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + frameInfo.Name))
                                             {
@@ -1610,42 +1590,45 @@ namespace WebDAVServer
                             long remaining = RequestContentLength;
                             byte[] readBuffer = new byte[blockSize];
 
-                            file = File.Create(type.LocalPath);
+                            file = File.Open(type.LocalPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Write);
 
-                            while (remaining > 0)
+                            file.Lock(0, file.Length);
+
+                            if (file != null)
                             {
-                                int length = (int)Math.Min(remaining, blockSize);
-
-                                length = PutDataStream.Read(readBuffer, 0, length);
-                                if (length > 0)
+                                while (remaining > 0)
                                 {
-                                    file.Write(readBuffer, 0, length);
+                                    int length = (int)Math.Min(remaining, blockSize);
 
-                                    remaining -= length;
-                                    BytesReadData += length;
-                                    info.BlockTransferred(length);
+                                    length = PutDataStream.Read(readBuffer, 0, length);
+                                    if (length > 0)
+                                    {
+                                        file.Write(readBuffer, 0, length);
+
+                                        remaining -= length;
+                                        BytesReadData += length;
+                                        info.BlockTransferred(length);
+                                    }
+                                    else
+                                    {
+                                        Server.Log("[E] read <0 byte during PUT request");
+                                        remaining = 0;
+                                    }
                                 }
-                                else
-                                {
-                                    Server.Log("[E] read <0 byte during PUT request");
-                                    remaining = 0;
-                                }
+
+                                file.Unlock(0, file.Length);
+                                file.Close();
+                                file = null;
+                                success = true;
                             }
-                            success = true;
                         }
                         catch (Exception e)
                         {
+                            Server.Log("[E] "+e.ToString()+" during PUT request");
                             success = false;
                         }
 
                         info.TransferFinished();
-
-                        if (file != null)
-                        {
-                            file.Flush();
-                            file.Close();
-                            file = null;
-                        }
 
                         if (!success)
                         {
@@ -1697,9 +1680,9 @@ namespace WebDAVServer
                     {
                         try
                         {
-                            Stream returnStream = MLVAccessor.GetDataStream(type.MlvFilePath, type.MlvFileContent);
+                            byte[] returnStream = MLVAccessor.GetDataStream(type.MlvFilePath, type.MlvFileContent);
 
-                            ResponseBinaryContent = new BinaryReader(returnStream);
+                            ResponseBinaryContent = returnStream;
                             ResponseBinaryContentLength = returnStream.Length;
 
                             StatusCode = GetStatusCode(200);
@@ -1738,9 +1721,14 @@ namespace WebDAVServer
                         {
                             try
                             {
-                                FileStream file = File.Open(type.LocalPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                                ResponseBinaryContent = new BinaryReader(file);
-                                ResponseBinaryContentLength = file.Length;
+                                FileStream file = File.Open(type.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                                byte[] data = new byte[file.Length];
+                                file.Read(data, 0, data.Length);
+                                file.Close();
+
+                                ResponseBinaryContent = data;
+                                ResponseBinaryContentLength = data.Length;
 
                                 StatusCode = GetStatusCode(200);
                                 HeaderLines.Add("ETag: 1/" + RequestPath);
@@ -1948,6 +1936,22 @@ namespace WebDAVServer
             ResponseTextContent = listing;
             MimeType = "text/html";
         }
+    }
+
+
+    public class HeadHandler : GetHandler
+    {
+        public HeadHandler(WebDAVServer server, string request)
+            : base(server, request)
+        {
+            SendHeaderOnly = true;
+        }
+
+        public override void HandleRequest(Stream stream)
+        {
+            base.HandleRequest(stream);
+        }
+
     }
 
     public class OptionsHandler : RequestHandler

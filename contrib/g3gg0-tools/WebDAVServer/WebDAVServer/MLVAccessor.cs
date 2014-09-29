@@ -32,7 +32,7 @@ namespace WebDAVServer
             public string name;
             public eFileType type;
             public int frameNum;
-            public Stream stream;
+            public byte[] bufferedData;
             public DateTime lastUseTime;
         }
 
@@ -60,61 +60,105 @@ namespace WebDAVServer
             CacheCheckTimer.Enabled = true;
         }
 
+        private static long CacheUsage
+        {
+            get
+            {
+                long totalSize = 0;
+
+                lock (MLVCache)
+                {
+                    foreach (var elem in MLVCache)
+                    {
+                        long size = 0;
+                        foreach (var file in elem.Value.cachedFiles.Values)
+                        {
+                            size += file.bufferedData.Length;
+                        }
+                        totalSize += size;
+                    }
+                }
+                return totalSize;
+            }
+        }
+
         private static void CleanCache()
         {
-            /* check if the file wasnt used for a few minutes, then remove */
-            lock (MLVCache)
+            /* if memory usage is higher than 800MiB, remove until we use less */
+            while (CacheUsage > 500 * 1024 * 1024)
             {
-                ArrayList remove = new ArrayList();
-                foreach (var entry in MLVCache.Values)
+                lock (MLVCache)
                 {
-                    remove.Add(entry);
-                }
+                    CachedFile oldestFile = new CachedFile();
+                    MLVCachedReader oldestReader = null;
+                    oldestFile.lastUseTime = DateTime.MaxValue;
 
-                foreach (MLVCachedReader entry in remove)
-                {
-                    /* too old, remove */
-                    if ((DateTime.Now - entry.lastUseTime).TotalSeconds >= Program.Instance.Server.Settings.CacheTime)
+                    foreach (MLVCachedReader reader in MLVCache.Values)
                     {
-                        MLVCache.Remove(entry.file);
-
-                        /* remove all files separately */
-                        lock (entry.cachedFiles)
+                        foreach (var file in reader.cachedFiles.Values)
                         {
-                            ArrayList fileRemoves = new ArrayList();
-
-                            foreach (var file in entry.cachedFiles.Values)
+                            if (file.lastUseTime < oldestFile.lastUseTime)
                             {
-                                fileRemoves.Add(file);
-                            }
-
-                            foreach (CachedFile file in fileRemoves)
-                            {
-                                entry.cachedFiles.Remove(file.name);
-                                file.stream.Close();
+                                oldestFile = file;
+                                oldestReader = reader;
                             }
                         }
                     }
-                    else
+
+                    oldestFile.bufferedData = null;
+                    oldestReader.cachedFiles.Remove(oldestFile.name);
+                }
+            }
+
+            ArrayList cachedMlvFiles = new ArrayList();
+            foreach (var entry in MLVCache.Values)
+            {
+                cachedMlvFiles.Add(entry);
+            }
+
+            foreach (MLVCachedReader entry in cachedMlvFiles)
+            {
+                /* too old, remove */
+                if ((DateTime.Now - entry.lastUseTime).TotalSeconds >= Program.Instance.Server.Settings.CacheTime)
+                {
+                    MLVCache.Remove(entry.file);
+
+                    /* remove all files separately */
+                    lock (entry.cachedFiles)
                     {
-                        /* cleanup cached files every minute */
-                        lock (entry.cachedFiles)
+                        ArrayList fileRemoves = new ArrayList();
+
+                        foreach (var file in entry.cachedFiles.Values)
                         {
-                            ArrayList fileRemoves = new ArrayList();
+                            fileRemoves.Add(file);
+                        }
 
-                            foreach (var file in entry.cachedFiles.Values)
-                            {
-                                if ((DateTime.Now - file.lastUseTime).TotalSeconds >= Program.Instance.Server.Settings.CacheTime)
-                                {
-                                    fileRemoves.Add(file);
-                                }
-                            }
+                        foreach (CachedFile file in fileRemoves)
+                        {
+                            entry.cachedFiles.Remove(file.name);
+                            file.bufferedData = null;
+                        }
+                    }
+                }
+                else
+                {
+                    /* cleanup cached files every minute */
+                    lock (entry.cachedFiles)
+                    {
+                        ArrayList fileRemoves = new ArrayList();
 
-                            foreach (CachedFile file in fileRemoves)
+                        foreach (var file in entry.cachedFiles.Values)
+                        {
+                            if ((DateTime.Now - file.lastUseTime).TotalSeconds >= Program.Instance.Server.Settings.CacheTime)
                             {
-                                entry.cachedFiles.Remove(file.name);
-                                file.stream.Close();
+                                fileRemoves.Add(file);
                             }
+                        }
+
+                        foreach (CachedFile file in fileRemoves)
+                        {
+                            entry.cachedFiles.Remove(file.name);
+                            file.bufferedData = null;
                         }
                     }
                 }
@@ -140,7 +184,7 @@ namespace WebDAVServer
                             long size = 0;
                             foreach (var file in elem.Value.cachedFiles.Values)
                             {
-                                size += file.stream.Length;
+                                size += file.bufferedData.Length;
                             }
                             totalSize += size;
 
@@ -233,12 +277,12 @@ namespace WebDAVServer
             return Imaging.CreateBitmapSourceFromHBitmap(bmp.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
         }
 
-        public static Stream GetDataStream(string mlvFileName, string content)
+        public static byte[] GetDataStream(string mlvFileName, string content)
         {
             return GetDataStream(mlvFileName, content, Program.Instance.Server.Settings.PrefetchCount);
         }
 
-        public static Stream GetDataStream(string mlvFileName, string content, int prefetchCount)
+        public static byte[] GetDataStream(string mlvFileName, string content, int prefetchCount)
         {
             MLVCachedReader cache = GetReader(mlvFileName);
             eFileType type = GetFileType(content);
@@ -250,9 +294,8 @@ namespace WebDAVServer
                     PrefetchNext(mlvFileName, content, prefetchCount - 1);
 
                     cache.cachedFiles[content].lastUseTime = DateTime.Now;
-                    cache.cachedFiles[content].stream.Seek(0, SeekOrigin.Begin);
 
-                    return cache.cachedFiles[content].stream;
+                    return cache.cachedFiles[content].bufferedData;
                 }
             }
 
@@ -260,8 +303,7 @@ namespace WebDAVServer
             {
                 case eFileType.Txt:
                     string info = GetInfoFields(mlvFileName).Aggregate<string>(addString);
-                    MemoryStream stream = new MemoryStream(ASCIIEncoding.ASCII.GetBytes(info));
-                    return stream;
+                    return ASCIIEncoding.ASCII.GetBytes(info);
 
                 case eFileType.Wav:
                     return GetWaveDataStream(mlvFileName);
@@ -333,7 +375,7 @@ namespace WebDAVServer
                 case eFileType.Fits:
                     {
                         object[] metadata = cache.reader.GetVideoFrameMetadata((uint)frame);
-                        Stream stream = FITSCreator.Create(mlvFileName, vidfHeader, data, metadata);
+                        byte[] stream = FITSCreator.Create(mlvFileName, vidfHeader, data, metadata);
 
                         PrefetchSave(mlvFileName, content, eFileType.Dng, frame, stream);
                         PrefetchNext(mlvFileName, content, prefetchCount);
@@ -344,7 +386,7 @@ namespace WebDAVServer
                 case eFileType.Dng:
                     {
                         object[] metadata = cache.reader.GetVideoFrameMetadata((uint)frame);
-                        Stream stream = DNGCreator.Create(mlvFileName, vidfHeader, data, metadata);
+                        byte[] stream = DNGCreator.Create(mlvFileName, vidfHeader, data, metadata);
 
                         PrefetchSave(mlvFileName, content, eFileType.Dng, frame, stream);
                         PrefetchNext(mlvFileName, content, prefetchCount);
@@ -365,18 +407,23 @@ namespace WebDAVServer
 
                             stream.Seek(0, SeekOrigin.Begin);
                         }
+                        stream.Seek(0, SeekOrigin.Begin);
 
-                        PrefetchSave(mlvFileName, content, eFileType.Jpg, frame, stream);
+                        byte[] buffer = new byte[stream.Length];
+                        stream.Read(buffer, 0, buffer.Length);
+                        stream.Close();
+
+                        PrefetchSave(mlvFileName, content, eFileType.Jpg, frame, buffer);
                         PrefetchNext(mlvFileName, content, prefetchCount);
 
-                        return stream;
+                        return buffer;
                     }
             }
 
             throw new FileNotFoundException("Requested frame " + frame + " of type " + type + " but we dont support that");
         }
 
-        private static Stream GetMJpegDataStream(string mlvFileName)
+        private static byte[] GetMJpegDataStream(string mlvFileName)
         {
             Stream stream = new MemoryStream();
 
@@ -385,24 +432,31 @@ namespace WebDAVServer
 
             foreach (uint frame in frames)
             {
-                Stream frameData = GetDataStream(mlvFileName, frame.ToString("000000") + ".JPG");
+                byte[] frameData = GetDataStream(mlvFileName, frame.ToString("000000") + ".JPG");
                 if (frameData != null)
                 {
                     JpegBitmapEncoder encoder = new JpegBitmapEncoder();
                     encoder.QualityLevel = 90;
-                    encoder.Frames.Add(BitmapFrame.Create(frameData));
+                    encoder.Frames.Add(BitmapFrame.Create(new MemoryStream(frameData)));
                     encoder.Save(stream);
                 }
             }
 
             stream.Seek(0, SeekOrigin.Begin);
 
-            return stream;
+            byte[] buffer = new byte[stream.Length];
+            stream.Read(buffer, 0, buffer.Length);
+
+            stream.Close();
+
+            return buffer;
         }
 
-        private static void PrefetchSave(string mlvFileName, string content, eFileType type, int frame, Stream stream)
+        private static void PrefetchSave(string mlvFileName, string content, eFileType type, int frame, byte[] stream)
         {
             MLVCachedReader cache = GetReader(mlvFileName);
+
+            CleanCache();
 
             lock (cache.cachedFiles)
             {
@@ -412,11 +466,11 @@ namespace WebDAVServer
 
                     cachedFile.lastUseTime = DateTime.Now;
                     cachedFile.name = content;
-                    cachedFile.stream = stream;
+                    cachedFile.bufferedData = stream;
                     cachedFile.type = type;
                     cachedFile.frameNum = frame;
 
-                    //cache.cachedFiles.Add(content, cachedFile);
+                    cache.cachedFiles.Add(content, cachedFile);
                 }
             }
         }
@@ -472,7 +526,7 @@ namespace WebDAVServer
         }
 
 
-        private static Stream GetWaveDataStream(string mlvFileName)
+        private static byte[] GetWaveDataStream(string mlvFileName)
         {
             MLVCachedReader cache = GetReader(mlvFileName);
             Stream mem = new MemoryStream();
@@ -508,7 +562,13 @@ namespace WebDAVServer
 
             mem.Seek(0, SeekOrigin.Begin);
 
-            return mem;
+            byte[] buffer = new byte[mem.Length];
+            mem.Read(buffer, 0, buffer.Length);
+
+            mem.Close();
+            wr.Close();
+
+            return buffer;
         }
 
         internal static bool HasAudio(string mlvFileName)
@@ -528,7 +588,7 @@ namespace WebDAVServer
             switch (type)
             {
                 case eFileType.Dng:
-                    return ".JPG";
+                    return ".DNG";
                 case eFileType.Fits:
                     return ".FITS";
                 case eFileType.Wav:

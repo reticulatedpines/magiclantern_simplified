@@ -33,7 +33,7 @@ namespace WebDAVServer
         public long BytesReadData = 0;
         public long BytesWrittenData = 0;
 
-        public static string Version = "2.8";
+        public static string Version = "2.9";
         public string DefaultConfigFileName = "WebDAVServer.cfg";
         public string ConfigFilePath = "";
         public string ConfigFileName = "";
@@ -521,6 +521,10 @@ namespace WebDAVServer
             DateTime startTime = DateTime.Now;
 
             sock.ReceiveTimeout = RequestHandler.Timeout * 100;
+            sock.Blocking = false;
+            sock.NoDelay = true;
+            sock.SendBufferSize = 16 * 1024;
+            sock.UseOnlyOverlappedIO = true;
 
             string type = "";
             string path = "";
@@ -595,6 +599,10 @@ namespace WebDAVServer
 
                                         case "GET":
                                             handler = new GetHandler(this, path);
+                                            break;
+
+                                        case "HEAD":
+                                            handler = new HeadHandler(this, path);
                                             break;
 
                                         case "PUT":
@@ -689,7 +697,7 @@ namespace WebDAVServer
                     }
                     catch (FileNotFoundException e)
                     {
-                        Log("[E] '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+                        Log("[E] 404 '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
 
                         /* respond with error */
                         handler = new RequestHandler(this, "/");
@@ -704,9 +712,20 @@ namespace WebDAVServer
                         handler.KeepAlive = false;
                         return;
                     }
+                    catch (UnauthorizedAccessException e)
+                    {
+                        Log("[i] 403 '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+
+                        /* respond with error */
+                        handler = new RequestHandler(this, "/");
+                        handler.StatusCode = RequestHandler.GetStatusCode(403);
+                        handler.KeepAlive = false;
+                        handler.HandleRequest(stream);
+                        stream.Flush();
+                    }
                     catch (Exception e)
                     {
-                        Log("[E] '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+                        Log("[E] 500 '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
 
                         /* respond with error */
                         handler = new RequestHandler(this, "/");
@@ -720,7 +739,7 @@ namespace WebDAVServer
                     if (EnableRequestLog)
                     {
                         DateTime endTime = DateTime.Now;
-                        Log("[i] Connection from " + sock.RemoteEndPoint + " (" + type + " " + path + ") took " + (endTime - startTime).TotalMilliseconds + " ms");
+                        Log("[i] Connection from " + sock.RemoteEndPoint + " (" + type + " " + path + ") took " + (endTime - startTime).TotalMilliseconds + " ms (" + handler.StatusCode + ")");
                     }
                     LogRequest("");
 

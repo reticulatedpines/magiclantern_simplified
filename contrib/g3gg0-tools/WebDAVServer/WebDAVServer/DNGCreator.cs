@@ -61,7 +61,7 @@ namespace WebDAVServer
             }
         }
 
-        internal static Stream Create(string mlvFileName, MLVTypes.mlv_vidf_hdr_t vidfHeader, byte[] inData, object[] metadata)
+        internal static byte[] Create(string mlvFileName, MLVTypes.mlv_vidf_hdr_t vidfHeader, byte[] inData, object[] metadata)
         {
             frame_headers dngData = CreateDngData(vidfHeader, metadata);
             uint dngHeaderSize = dng_get_header_size(ref dngData);
@@ -82,7 +82,7 @@ namespace WebDAVServer
 
             ProcessingTime = (DateTime.Now - start).TotalMilliseconds;
 
-            return new MemoryStream(imageData);
+            return imageData;
         }
 
         private static frame_headers CreateDngData(MLVTypes.mlv_vidf_hdr_t vidfHeader, object[] metadata)
