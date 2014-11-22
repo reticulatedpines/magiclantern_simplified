@@ -436,6 +436,11 @@ int is_play_or_qr_mode()
     return PLAY_OR_QR_MODE;
 }
 
+int is_play_mode()
+{
+    return PLAY_MODE;
+}
+
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)
