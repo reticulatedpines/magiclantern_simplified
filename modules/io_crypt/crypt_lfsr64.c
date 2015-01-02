@@ -111,6 +111,29 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
         //trace_write(iocrypt_trace_ctx, "update_key: forced update");
     }
     
+#define INCREMENTAL
+
+#if defined(INCREMENTAL)
+    if(ctx->current_block < block)
+    {
+        while(ctx->current_block < block)
+        {
+            crypt_lfsr64_clock(ctx, 64);
+            ctx->current_block++;
+        }
+    }
+    else
+    {
+        ctx->lfsr_state = ctx->lfsr_init;
+        ctx->current_block = 0;
+        
+        while(ctx->current_block < block)
+        {
+            crypt_lfsr64_clock(ctx, 64);
+            ctx->current_block++;
+        }
+    }
+#else
     ctx->current_block = block;
     
     uint32_t block_mask = block;
@@ -128,6 +151,7 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
     crypt_lfsr64_clock(ctx, ((ctx->lfsr_state >> 23) & 0x03) + 5);
     ctx->lfsr_state ^= block_mask;
     crypt_lfsr64_clock(ctx, ((ctx->lfsr_state >> 21) & 0x07) + 16);
+#endif
     
     trace_write(iocrypt_trace_ctx, "update_key: offset 0x%08X, password: 0x%08X%08X, key: 0x%08X%08X", offset, (uint32_t)(ctx->password>>32), (uint32_t)ctx->password, (uint32_t)(ctx->lfsr_state>>32), (uint32_t)ctx->lfsr_state);
     
