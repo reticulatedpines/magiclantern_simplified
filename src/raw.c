@@ -117,7 +117,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_7D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
@@ -650,10 +650,7 @@ static int raw_update_params_work()
 
         #ifdef CONFIG_7D /* very similar to 5D2 */
         skip_left = 158;
-        skip_top = 52;
-        /* first pixel should be red, but here it isn't, so we'll skip one line */
-        /* also we have a 16-pixel border on the left that contains image data */
-        raw_info.buffer += width * 14/8 + 16*14/8;
+        skip_top = 50;
         #endif
 
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
