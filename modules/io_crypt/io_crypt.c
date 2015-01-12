@@ -208,7 +208,7 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
 static uint32_t iocrypt_asym_init(int fd)
 {
     uint64_t file_key = 0;
-    uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
+    uint32_t lfsr_blocksize = (16 << iocrypt_block_size);
     uint32_t blocksize = crypt_rsa_blocksize(iocrypt_rsa_ctx.priv);
     
     trace_write(iocrypt_trace_ctx, "iocrypt_save_asym_hdr: block size %d bytes, lfsr_blocksize %d bytes", blocksize, lfsr_blocksize);
@@ -274,7 +274,7 @@ static uint32_t iocrypt_asym_init(int fd)
 
 static uint32_t iocrypt_sym_init(int fd)
 {
-    uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
+    uint32_t lfsr_blocksize = (16 << iocrypt_block_size);
     
     trace_write(iocrypt_trace_ctx, "iocrypt_sym_init: lfsr_blocksize %d bytes", lfsr_blocksize);
     
@@ -813,9 +813,9 @@ static struct menu_entry iocrypt_menus[] =
             {
                 .name = "Blocksize",
                 .priv = &iocrypt_block_size,
-                .max = 6,
+                .max = 9,
                 .icon_type = IT_DICE,
-                .choices = (const char *[]) {"8k", "16k", "32k", "64k", "128k", "256k", "512k"},
+                .choices = (const char *[]) {"16", "32", "64", "128", "256", "512", "1k", "2k", "4k", "8k"},
                 .help = "Blocks get encrypted with the same 64 bit key. The smaller the more secure but slower.",
             },
             {
