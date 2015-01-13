@@ -57,11 +57,12 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SLITSCAN_CENTER_H 4 // center horizontal
 //#define SILENT_PIC_MODE_SLITSCAN_CENTER_V 5 // center vertical
 
+static int silent_pic_mlv_available = 0;
 static mlv_file_hdr_t mlv_file_hdr;
 static uint64_t mlv_start_timestamp = 0;
 static char image_file_name[100];
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
-static int mlv_current_file_chunk_index = -1;
+
 
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 {
@@ -100,7 +101,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
     }
     
-    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && silent_pic_mlv_available)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
     }
@@ -112,7 +113,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
 
 static MENU_UPDATE_FUNC(silent_pic_file_format_display)
 {
-    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid == (void*)&ret_0)
+    if ((silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV) && !silent_pic_mlv_available)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option.");
     }
@@ -122,7 +123,7 @@ static char* silent_pic_get_name()
 {
     char *extension;
     
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && silent_pic_mlv_available)
     {
         extension = "MLV";
     }
@@ -133,7 +134,7 @@ static char* silent_pic_get_name()
     
     int file_number = get_shooting_card()->file_number;
     
-    int is_mlv = (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0);
+    int is_mlv = (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && silent_pic_mlv_available);
     
     if (is_intervalometer_running() && !is_mlv)
     {
@@ -219,6 +220,67 @@ static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * ra
     FIO_WriteFile(save_file, &rawi, rawi.blockSize);
 }
 
+static int32_t get_chunk_filename(char* base_name, char* filename, int32_t chunk)
+{
+    /* change file extension, according to chunk number: MLV, M00, M01 and so on */
+    strncpy(filename, base_name, 13);
+
+    if(chunk > 0)
+    {
+        int32_t len = strlen(filename);
+        snprintf(filename + len - 2, 3, "%02d", chunk - 1);
+    }
+
+    return 0;
+}
+
+static FILE *open_mlv_file(char *base_filename, uint32_t max_filesize)
+{
+    FILE *save_file = NULL;
+    int chunk = -1;
+    char filename[16];
+    uint32_t size = 0;
+    
+    /* default filename */
+    strcpy(filename, base_filename);
+    
+    /* try all possible MLV chunk names */
+    while(!save_file && chunk < 100)
+    {
+        /* first file always is MLV, then M00 etc */
+        if(chunk >= 0)
+        {
+            get_chunk_filename(base_filename, filename, chunk);
+        }
+
+        /* check if file exists */
+        if(FIO_GetFileSize(filename, &size) == 0)
+        {
+            if(size > max_filesize)
+            {
+                chunk++;
+            }
+            else
+            {
+                save_file = FIO_OpenFile(filename, O_RDWR | O_SYNC);
+            }
+        }
+        else
+        {
+            save_file = FIO_CreateFile(filename);
+        }
+    }
+
+    if(!save_file)
+    {
+        return NULL;
+    }
+    
+    FIO_SeekSkipFile(save_file, 0, SEEK_SET);
+    
+    return save_file;
+}
+
 /* save using the MLV file format  */
 static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
@@ -229,114 +291,86 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     mlv_wbal_hdr_t wbal_hdr;
     mlv_styl_hdr_t styl_hdr;
     mlv_vidf_hdr_t vidf_hdr;
-    FILE* save_file;
+    FILE* save_file = NULL;    
     
+    /* default case: use last filename */
+    char *filename = image_file_name;
+    
+    /* if intervalometer is active, only get the next filename for the first frame */
     if (is_intervalometer_running())
     {
         frame_number = get_interval_count();
+        
+        if(frame_number == 0)
+        {
+            filename = silent_pic_get_name();
+        }
     }
     
-    if (frame_number == 0 || !streq(image_file_name + strlen(image_file_name) - 4, ".MLV"))
-    {
-        /* create the MLV file */
-        mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
-        save_file = FIO_CreateFile(silent_pic_get_name());
-    }
-    else
-    {
-        /* open the existing MLV file, and leave the file pointer at the beginning */
-        save_file = FIO_OpenFile(image_file_name, O_RDWR | O_SYNC);
-        FIO_SeekSkipFile(save_file, 0, SEEK_SET);
-    }
-    
+    save_file = open_mlv_file(filename, mlv_max_filesize - (uint32_t)(raw_info->frame_size * 2));
     
     if (!save_file)
     {
         bmp_printf( FONT_MED, 0, 80, "File create error");
+        return;
     }
-    else
+    
+    if (frame_number == 0)
     {
-        //append new blocks onto the end of the file
-        int64_t current_mlv_size = FIO_SeekSkipFile(save_file, 0, SEEK_END);
-
-        if(is_intervalometer_running())
-        {
-            bmp_printf( FONT_MED, 0, 110, "Frame #%d, Current Size: %d MiB", frame_number, (uint32_t)(current_mlv_size >> 20));
-        }
-
-        if(frame_number == 0)
-        {
-            silent_write_mlv_chunk_headers(save_file, raw_info, 0);
-        }
-        else
-        {
-            if(current_mlv_size + raw_info->frame_size * 2 > mlv_max_filesize)
-            {
-                //4GB limit
-                mlv_current_file_chunk_index++;
-                current_mlv_size = 0;
-                FIO_CloseFile(save_file);
-                char * new_filename = replace_mlv_extension(image_file_name, mlv_current_file_chunk_index);
-                save_file = FIO_CreateFile(new_filename);
-                if (!save_file)
-                {
-                    bmp_printf( FONT_MED, 0, 80, "File create error: '%s'", new_filename);
-                    return;
-                }
-                
-                bmp_printf( FONT_MED, 0, 150, "4GB Limit reached, new file: '%s'", new_filename);
-                
-                silent_write_mlv_chunk_headers(save_file, raw_info, mlv_current_file_chunk_index + 1);
-            }
-            else if(mlv_current_file_chunk_index >= 0)
-            {
-                FIO_CloseFile(save_file);
-                char * new_filename = replace_mlv_extension(image_file_name, mlv_current_file_chunk_index);
-                save_file = FIO_OpenFile(new_filename, O_RDWR | O_SYNC);
-                if (!save_file)
-                {
-                    bmp_printf( FONT_MED, 0, 80, "Open file error: '%s'", new_filename);
-                    return;
-                }
-            }
-        }
-        
-        //always re-write exposure metadata (easier than checking if we need to, is there any reason not to?)
-        mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
-        mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
-        mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
-        mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
-        mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
-        mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
-        
-        if(capture_time_ms > 0)
-        {
-            expo_hdr.shutterValue = 1000 * capture_time_ms;
-        }
-        
-        FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize);
-        FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize);
-        FIO_WriteFile(save_file, &lens_hdr, lens_hdr.blockSize);
-        FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize);
-        FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize);
-        FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize);
-        
-        memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
-        mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDF");
-        mlv_set_timestamp((mlv_hdr_t *)&vidf_hdr, mlv_start_timestamp);
-        vidf_hdr.frameNumber = frame_number;
-        vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + raw_info->frame_size;
-        FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t));
-        
-        FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
-        FIO_CloseFile(save_file);
+        /* create the MLVI header */
+        mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
+        silent_write_mlv_chunk_headers(save_file, raw_info, 0);
     }
+    
+    /* append new blocks onto the end of the file */
+    int64_t current_mlv_size = FIO_SeekSkipFile(save_file, 0, SEEK_END);
+
+    if(is_intervalometer_running())
+    {
+        bmp_printf( FONT_MED, 0, 110, "Frame #%d, Current Size: %d MiB", frame_number, (uint32_t)(current_mlv_size >> 20));
+    }
+
+    //always re-write exposure metadata (easier than checking if we need to, is there any reason not to?)
+    mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
+    mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
+    mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
+    mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
+    mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
+    mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
+    
+    if(capture_time_ms > 0)
+    {
+        expo_hdr.shutterValue = 1000 * capture_time_ms;
+    }
+    
+    FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize);
+    FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize);
+    FIO_WriteFile(save_file, &lens_hdr, lens_hdr.blockSize);
+    FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize);
+    FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize);
+    FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize);
+    
+    memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDF");
+    mlv_set_timestamp((mlv_hdr_t *)&vidf_hdr, mlv_start_timestamp);
+    vidf_hdr.frameNumber = frame_number;
+    vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + raw_info->frame_size;
+    
+    FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t));
+    FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
+    
+    FIO_CloseFile(save_file);
 }
 
 static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && (void*)&mlv_generate_guid != (void*)&ret_0)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
+        if(!silent_pic_mlv_available)
+        {
+            NotifyBox(2000, "MLV module not loaded. Will abort.");
+            return;
+        }
         save_mlv(raw_info, capture_time_ms, frame_number);
     }
     else
@@ -1239,7 +1273,9 @@ static unsigned int silent_init()
     /* fixme in core: prop handlers should trigger when initializing, but they do not */
     prop_iso = lens_info.raw_iso;
     prop_shutter = lens_info.raw_shutter;
-    
+
+    silent_pic_mlv_available = (mlv_generate_guid() != 0);
+
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
     return 0;
 }
