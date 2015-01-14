@@ -320,6 +320,14 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
         /* create the MLVI header */
         mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
         silent_write_mlv_chunk_headers(save_file, raw_info, 0);
+        
+        /* those will most probably not change at all after the first frame was captured (in theory they could of course) */
+        mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
+        mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
+        mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
+        FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize);
+        FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize);
+        FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize);
     }
     
     /* append new blocks onto the end of the file */
@@ -330,13 +338,10 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
         bmp_printf( FONT_MED, 0, 110, "Frame #%d, Current Size: %d MiB", frame_number, (uint32_t)(current_mlv_size >> 20));
     }
 
-    //always re-write exposure metadata (easier than checking if we need to, is there any reason not to?)
+    /* always re-write exposure metadata */
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
-    mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
-    mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
-    mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
     
     if(capture_time_ms > 0)
     {
@@ -346,9 +351,6 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize);
     FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize);
     FIO_WriteFile(save_file, &lens_hdr, lens_hdr.blockSize);
-    FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize);
-    FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize);
-    FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize);
     
     memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
     mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDF");
