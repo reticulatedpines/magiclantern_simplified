@@ -2313,7 +2313,11 @@ read_headers:
                             }
 
                             /* finally save the DNG */
-                            save_dng(frame_filename, &raw_info);
+                            if(!save_dng(frame_filename, &raw_info))
+                            {
+                                print_msg(MSG_ERROR, "Failed writing into .DNG file\n");
+                                goto abort;
+                            }
 
                             /* callout for a saved dng file */
                             lua_call_va(lua_state, "dng_saved", "si", frame_filename, block_hdr.frameNumber);
