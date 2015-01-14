@@ -33,6 +33,7 @@ static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6);
 static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2);
 static CONFIG_INT("auto.ettr.dual.iso", auto_ettr_dual_iso_link, 1);
+static CONFIG_INT("auto.ettr.allow.beeps", auto_ettr_allow_beeps, 1);
 
 static int debug_info = 0;
 static int show_metered_areas = 0;
@@ -668,7 +669,10 @@ static void auto_ettr_step_task(int corr)
     if (status == ETTR_SETTLED)
     {
         /* cool, we got the ideal exposure */
-        beep();
+        if(auto_ettr_allow_beeps)
+        {
+            beep();
+        }
         ettr_pics_took = 0;
         
         msleep(1000);
@@ -684,21 +688,30 @@ static void auto_ettr_step_task(int corr)
     else if (ettr_pics_took >= 3)
     {
         /* I give up */
-        beep_times(3);
+        if(auto_ettr_allow_beeps)
+        {
+            beep_times(3);
+        }
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: giving up\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_LIMITS_REACHED)
     {
-        beep_times(3);
+        if(auto_ettr_allow_beeps)
+        {
+            beep_times(3);
+        }
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_PRECOND_TIMEOUT)
     {
-        beep_times(3);
+        if(auto_ettr_allow_beeps)
+        {
+            beep_times(3);
+        }
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: timeout while waiting for preconditions\n");
@@ -712,7 +725,10 @@ static void auto_ettr_step_task(int corr)
     }
     else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
     {
-        beep_times(2);
+        if(auto_ettr_allow_beeps)
+        {
+            beep_times(2);
+        }
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: next %s (was %s)", get_current_exposure_settings(), prev_exposure_settings);
 
@@ -943,7 +959,10 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
 
 static void auto_ettr_on_request_task_fast()
 {
-    beep();
+    if(auto_ettr_allow_beeps)
+    {
+        beep();
+    }
     int raw_requested = 0;
     
     char* err_msg = "ETTR failed";
@@ -1051,13 +1070,19 @@ static void auto_ettr_on_request_task_fast()
     }
 
 /* ok: */
-    beep();
+    if(auto_ettr_allow_beeps)
+    {
+        beep();
+    }
     NotifyBoxHide();
     goto cleanup;
 
 err:
-    beep();
-    beep();
+    if(auto_ettr_allow_beeps)
+    {
+        beep();
+        beep();
+    }
     NotifyBox(2000, err_msg);
     goto cleanup;
 
@@ -1143,7 +1168,10 @@ end:
 
 static void auto_ettr_on_request_task_slow()
 {
-    beep();
+    if(auto_ettr_allow_beeps)
+    {
+        beep();
+    }
     char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
@@ -1189,13 +1217,19 @@ static void auto_ettr_on_request_task_slow()
     }
 
 /* ok: */
-    beep();
+    if(auto_ettr_allow_beeps)
+    {
+        beep();
+    }
     NotifyBoxHide();
     goto cleanup;
 
 err:
-    beep();
-    beep();
+    if(auto_ettr_allow_beeps)
+    {
+        beep();
+        beep();
+    }
     NotifyBox(2000, err_msg);
     goto cleanup;
 
@@ -1234,7 +1268,12 @@ static void auto_ettr_step_lv_slow()
     int status = auto_ettr_work(corr);
 
     if (status == ETTR_SETTLED)
-        beep();
+    {
+        if(auto_ettr_allow_beeps)
+        {
+            beep();
+        }
+    }
 }
 
 static void auto_ettr_step_lv()
@@ -1489,6 +1528,13 @@ static struct menu_entry ettr_menu[] =
                 .advanced = 1,
             },
             {
+                .name = "Allow beeps",
+                .priv = &auto_ettr_allow_beeps,
+                .max = 1,
+                .help =  "Make status beeps",
+                .advanced = 1,
+            },
+            {
                 .name = "Show debug info",
                 .priv = &debug_info,
                 .max = 1,
@@ -1572,4 +1618,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_ettr_midtone_snr_limit)
     MODULE_CONFIG(auto_ettr_shadow_snr_limit)
     MODULE_CONFIG(auto_ettr_dual_iso_link)
+    MODULE_CONFIG(auto_ettr_allow_beeps)
 MODULE_CONFIGS_END()
