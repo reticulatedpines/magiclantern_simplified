@@ -306,6 +306,10 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
             filename = silent_pic_get_name();
         }
     }
+    else
+    {
+        filename = silent_pic_get_name();
+    }
     
     save_file = open_mlv_file(filename, mlv_max_filesize - (uint32_t)(raw_info->frame_size * 2));
     
