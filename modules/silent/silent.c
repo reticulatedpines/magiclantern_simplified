@@ -47,8 +47,10 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
 
-#define SILENT_PIC_FILE_FORMAT_DNG 0
-#define SILENT_PIC_FILE_FORMAT_MLV 1
+#define SILENT_PIC_FILE_FORMAT_DNG        0
+#define SILENT_PIC_FILE_FORMAT_MLV_MULTI  1
+#define SILENT_PIC_FILE_FORMAT_MLV_SINGLE 2
+#define SILENT_PIC_FILE_FORMAT_MLV_MASK   3
 
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
@@ -62,6 +64,7 @@ static mlv_file_hdr_t mlv_file_hdr;
 static uint64_t mlv_start_timestamp = 0;
 static char image_file_name[100];
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
+static uint32_t mlv_file_frame_number = 0;
 
 
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
@@ -71,6 +74,8 @@ static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 }
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
+    mlv_file_frame_number = 0;
+    
     if (!silent_pic_enabled)
         return;
 
@@ -101,7 +106,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
     }
     
-    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && silent_pic_mlv_available)
+    if ((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && silent_pic_mlv_available)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
     }
@@ -113,7 +118,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
 
 static MENU_UPDATE_FUNC(silent_pic_file_format_display)
 {
-    if ((silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV) && !silent_pic_mlv_available)
+    if ((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && !silent_pic_mlv_available)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option.");
     }
@@ -123,7 +128,7 @@ static char* silent_pic_get_name()
 {
     char *extension;
     
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && silent_pic_mlv_available)
+    if((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && silent_pic_mlv_available)
     {
         extension = "MLV";
     }
@@ -134,7 +139,7 @@ static char* silent_pic_get_name()
     
     int file_number = get_shooting_card()->file_number;
     
-    int is_mlv = (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && silent_pic_mlv_available);
+    int is_mlv = ((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && silent_pic_mlv_available);
     
     if (is_intervalometer_running() && !is_mlv)
     {
@@ -306,12 +311,27 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
             filename = silent_pic_get_name();
         }
     }
+    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV_MULTI)
+    {
+        /* no intervalometer, but user wants a multi frame MLV */
+        frame_number = mlv_file_frame_number;
+        mlv_file_frame_number++;
+        
+        if(frame_number == 0)
+        {
+            filename = silent_pic_get_name();
+        }
+    }
     else
     {
+        /* single-frame MLV files always get a new name */
         filename = silent_pic_get_name();
     }
     
-    save_file = open_mlv_file(filename, mlv_max_filesize - (uint32_t)(raw_info->frame_size * 2));
+    /* if the size exceeds this size, create a new chunk */
+    uint32_t max_size = mlv_max_filesize - (uint32_t)(raw_info->frame_size * 2);
+    
+    save_file = open_mlv_file(filename, max_size);
     
     if (!save_file)
     {
@@ -341,6 +361,14 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     {
         bmp_printf( FONT_MED, 0, 110, "Frame #%d, Current Size: %d MiB", frame_number, (uint32_t)(current_mlv_size >> 20));
     }
+    
+    /* if we are in a new chunk, write MLVI header */
+    if(!current_mlv_size)
+    {
+        mlv_file_hdr.fileNum++;
+        mlv_file_hdr.videoFrameCount = 0;
+        FIO_WriteFile(save_file, &mlv_file_hdr, sizeof(mlv_file_hdr_t));
+    }
 
     /* always re-write exposure metadata */
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
@@ -365,18 +393,25 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t));
     FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
     
+    /* update frame count and rewrite MLVI header */
+    mlv_file_hdr.videoFrameCount++;
+    FIO_SeekSkipFile(save_file, 0, SEEK_SET);
+    FIO_WriteFile(save_file, &mlv_file_hdr, sizeof(mlv_file_hdr_t));
+    
+    /* done */
     FIO_CloseFile(save_file);
 }
 
 static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
+    if(silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK)
     {
         if(!silent_pic_mlv_available)
         {
             NotifyBox(2000, "MLV module not loaded. Will abort.");
             return;
         }
+
         save_mlv(raw_info, capture_time_ms, frame_number);
     }
     else
@@ -1259,12 +1294,13 @@ static struct menu_entry silent_menu[] = {
                 .name = "File Format",
                 .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
-                .max = 1,
+                .max = 2,
                 .help = "File format to save the image as:",
                 .help2 =
-                    "DNG may be slow, but no extra post-processing.\n"
-                    "MLV is fast, and will save a single file when used with intervalometer.\n",
-                .choices = CHOICES("DNG", "MLV"),
+                    "DNG needs no post-processing, MLV is faster but requires extra tools.\n"
+                    "To start a new file, disable and re-enable silent picture.\n",
+                    "Writes an extra MLV for every picture being taken.\n",
+                .choices = CHOICES("DNG", "Multi Frame MLV", "Single Frame MLV"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
