@@ -1084,7 +1084,7 @@ silent_pic_take_fullres(int interactive)
     int t0 = get_ms_clock_value();
     
     /*
-     * This one sets PROP_FA_ADJUST_FLAG to 4 (whatever that means),
+     * This one sets PROP_FA_ADJUST_FLAG to 4 (configures scsReleaseData for DARK_MEM1),
      * then sends event 0 to SCS state (scsReleaseStart),
      * then sends event 1 to SCS state (scsReleaseData),
      * then resets PROP_FA_ADJUST_FLAG back to 0.
@@ -1298,13 +1298,13 @@ static struct menu_entry silent_menu[] = {
                 .help = "File format to save the image as:",
                 .help2 =
                     "DNG needs no post-processing, MLV is faster but requires extra tools.\n"
-                    "To start a new file, disable and re-enable silent picture.\n",
+                    "To start a new file, disable and re-enable silent picture.\n"
                     "Writes an extra MLV for every picture being taken.\n",
                 .choices = CHOICES("DNG", "Multi Frame MLV", "Single Frame MLV"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
-        },
+        }
         #endif
     },
 };
