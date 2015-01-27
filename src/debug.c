@@ -576,11 +576,11 @@ static void run_test()
 #endif
 }
 
-void run_in_separate_task(void (*priv)(void), int delta)
+void run_in_separate_task(void* routine, int argument)
 {
     gui_stop_menu();
-    if (!priv) return;
-    task_create("run_test", 0x1a, 0x1000, priv, (void*)delta);
+    if (!routine) return;
+    task_create("run_test", 0x1a, 0x1000, (void(*)(void*)) routine, (void*)argument);
 }
 
 
@@ -2917,7 +2917,7 @@ static struct menu_entry debug_menus[] = {
     #if 0
     {
         .name = "Draw palette",
-        .select        = (void(*)(void*,int))bmp_draw_palette,
+        .select        = bmp_draw_palette,
         .help = "Display a test pattern to see the color palette."
     },
     #endif
@@ -2936,20 +2936,20 @@ static struct menu_entry debug_menus[] = {
     {
         .name        = "Dump ROM and RAM",
         .priv        = dump_rom_task,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     },
     {
         .name        = "Dump image buffers",
         .priv        = dump_img_task,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "Dump all image buffers (LV, HD, RAW) from current video mode."
     },
 #ifdef FEATURE_DONT_CLICK_ME
     {
         .name        = "Don't click me!",
         .priv =         run_test,
-        .select        = (void(*)(void*,int))run_in_separate_task,
+        .select        = run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
 #endif
@@ -2957,13 +2957,13 @@ static struct menu_entry debug_menus[] = {
     {
         .name        = "DM Log",
         .priv        = j_debug_intercept,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "Log DebugMessages"
     },
     {
         .name        = "TryPostEvent Log",
         .priv        = j_tp_intercept,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "Log TryPostEvents"
     },
 #endif
@@ -2977,45 +2977,45 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stubs API test",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
             #if defined(CONFIG_7D)
             {
                 .name = "RPC reliability test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = rpc_test_task,
                 .help = "Flood master with RPC requests and print delay. "
             },
             #endif
             {
                 .name = "Quick test (around 15 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
             {
                 .name = "Random tests (infinite loop)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stress_test_random_task,
                 .help = "A thorough test which randomly enables functions from menu. "
             },
             {
                 .name = "Menu backend test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stress_test_menu_dlg_api_task,
                 .help = "Tests proper usage of Canon API calls in ML menu backend."
             },
             {
                 .name = "Redraw test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = excessive_redraws_task,
                 .help = "Causes excessive redraws for testing the graphics backend",
             },
             {
                 .name = "Rectangle test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = bmp_fill_test_task,
                 .help = "Stresses graphics bandwith. Run this while recording.",
             },
@@ -3031,7 +3031,7 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Create a stuck task",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = frozen_task,
                 .help = "Creates a task which will become stuck in an infinite loop."
             },
@@ -3042,13 +3042,13 @@ static struct menu_entry debug_menus[] = {
             },
             {
                 .name = "Division by zero",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = divzero_task,
                 .help = "Performs some math operations which will divide by zero."
             },
             {
                 .name = "Allocate 1MB of RAM",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = alloc_1M_task,
                 .help = "Allocates 1MB RAM from system memory, without freeing it."
             },
@@ -3067,13 +3067,13 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Card R/W benchmark (5 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = card_benchmark_task,
                 .help = "Check card read/write speed. Uses a 1GB temporary file."
             },
             {
                 .name = "Card buffer benchmark (inf)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = card_bufsize_benchmark_task,
                 .help = "Experiment for finding optimal write buffer sizes.",
                 .help2 = "Results saved in BENCH.LOG."
@@ -3081,28 +3081,28 @@ static struct menu_entry debug_menus[] = {
             #ifdef CONFIG_5D3
             {
                 .name = "CF+SD write benchmark (1 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = twocard_benchmark_task,
                 .help = "Write speed on both CF and SD cards at the same time."
             },
             #endif
             {
                 .name = "Memory benchmark (1 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = mem_benchmark_task,
                 .help = "Check memory read/write speed."
             },
             #ifdef FEATURE_FOCUS_PEAK
             {
                 .name = "Focus peaking benchmark (30s)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = peaking_benchmark,
                 .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
             },
             #endif
             {
                 .name = "Menu benchmark (10s)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = menu_benchmark,
                 .help = "Check speed of menu backend."
             },
@@ -3155,7 +3155,7 @@ static struct menu_entry debug_menus[] = {
 #ifdef FEATURE_GUIMODE_TEST
     {
         .name = "Test GUI modes (DANGEROUS!!!)",
-        .select = (void(*)(void*,int))run_in_separate_task,
+        .select = run_in_separate_task,
         .priv = guimode_test,
         .help = "Cycle through all GUI modes and take screenshots.",
     },
