@@ -3654,6 +3654,11 @@ static void TmpMem_AddFile(char* filename)
     if (filesize == -1) return;
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
+    
+    /* don't add the same file twice */
+    for (int i = 0; i < tmp_file_index; i++)
+        if (streq(tmp_files[i].name, filename))
+            return;
 
     read_file(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
@@ -3675,7 +3680,7 @@ static void TmpMem_AddFile(char* filename)
     }
 }
 
-static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int recursive_levels)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int (*is_valid_filename)(char*), int recursive_levels)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -3690,14 +3695,15 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
             {
                 char new_dir[0x80];
                 snprintf(new_dir, sizeof(new_dir), "%s%s/", dir, file.name);
-                CopyMLDirectoryToRAM_BeforeFormat(new_dir, cropmarks_flag, recursive_levels-1);
+                CopyMLDirectoryToRAM_BeforeFormat(new_dir, is_valid_filename, recursive_levels-1);
             }
             continue; // is a directory
         }
-        if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
-
-        int n = strlen(file.name);
-        if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
+        
+        if (is_valid_filename && !is_valid_filename(file.name))
+        {
+            continue;
+        }
 
         char fn[0x80];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
@@ -3707,19 +3713,41 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
     FIO_FindClose(dirent);
 }
 
+static int is_valid_fir_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".FIR") || streq(filename + n - 4, ".fir")))
+        return 1;
+    return 0;
+}
+
+static int is_valid_log_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".LOG") || streq(filename + n - 4, ".log")))
+        return 1;
+    return 0;
+}
+
 static void CopyMLFilesToRAM_BeforeFormat()
 {
+    /* this is the most important file, read it first */
     TmpMem_AddFile("AUTOEXEC.BIN");
-    TmpMem_AddFile("MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 0);
+    
+    /* some important subdirectories from ML/ */
     CopyMLDirectoryToRAM_BeforeFormat("ML/FONTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
     CopyMLDirectoryToRAM_BeforeFormat("ML/MODULES/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/SCRIPTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/DATA/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/CROPMKS/", 1, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/DOC/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/LOGS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
+
+    /* FIR files from root dir */
+    CopyMLDirectoryToRAM_BeforeFormat("", is_valid_fir_filename, 0);
+    
+    /* everything else from ML dir */
+    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 2);
+    
+    /* and, if we still have free space, also keep the LOG files from root dir */
+    CopyMLDirectoryToRAM_BeforeFormat("", is_valid_log_filename, 0);
+    
     TmpMem_UpdateSizeDisplay(0);
 }
 
