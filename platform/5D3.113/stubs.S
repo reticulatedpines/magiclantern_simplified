@@ -220,9 +220,9 @@ NSTUB(0xFFA02C50 - RAM_OFFSET,  pre_isr_hook)
 // NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
 
 /** Making the card bootable **/
-// NSTUB(   0x20890, cf_device) idk...
-// NSTUB(0xff5bb2c8, fsuDecodePartitionTable) // AJ_fsuGetPart_related
-// NSTUB(   0x399D4, sd_device)
+NSTUB(   0x36200, cf_device_ptr)                            // cf_device is at MEM(MEM(0x36200) + 0x10)
+NSTUB(0xff5bb2c8, fsuDecodePartitionTable)                  // AJ_fsuGetPart_related
+NSTUB(   0x399D4, sd_device)
 
 /** Memory allocation **/
 NSTUB(0xFF9E8688 - RAM_OFFSET,  GetMemoryInformation)

@@ -183,9 +183,10 @@
 
 #define DIALOG_MnCardFormatBegin (0x363BC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B98) // similar
+#define FORMATTING_CF_CARD (MEM(0x363B8) == 1)  // in CreateDialogBox(DlgMnCardFormatBegin), *0x363B8 = HALFWORD(arg0); 1=cf, 2=sd
 #define FORMAT_BTN_NAME "[Q]"
 #define FORMAT_BTN BGMT_Q
-#define FORMAT_STR_LOC 11
+#define FORMAT_STR_LOC 13
 
 #define BULB_MIN_EXPOSURE 500
 

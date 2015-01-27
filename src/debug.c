@@ -3759,8 +3759,12 @@ static void CopyMLFilesBack_AfterFormat()
     {
         HijackCurrentDialogBox(FORMAT_STR_LOC, "Writing bootflags...");
         
-        extern void bootflag_write_bootblock(void);
-        bootflag_write_bootblock();
+        extern int bootflag_write_bootblock(void);
+        if (!bootflag_write_bootblock())
+        {
+            beep_times(3);
+            NotifyBox(5000, "Bootflags not written, use EosCard");
+        }
     }
 
     HijackCurrentDialogBox(FORMAT_STR_LOC, "Magic Lantern restored :)");
@@ -3773,6 +3777,15 @@ static void HijackFormatDialogBox_main()
     if (!MENU_MODE) return;
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     // at this point, Format dialog box is active
+    
+    #ifdef CONFIG_DUAL_SLOT
+    int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
+    if (ml_on_cf != FORMATTING_CF_CARD)
+    {
+        /* we are not formatting the ML card, no need to restore anything */
+        return;
+    }
+    #endif
 
     // make sure we have something to restore :)
     if (!check_autoexec()) return;
