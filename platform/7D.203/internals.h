@@ -122,6 +122,3 @@
 
 /** Use joystick for one-finger menu navigation */
 #define CONFIG_JOY_CENTER_ACTIONS
-
-/** This camera loads ML into the AllocateMemory pool **/
-#define CONFIG_ALLOCATE_MEMORY_POOL
