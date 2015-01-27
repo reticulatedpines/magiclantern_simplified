@@ -185,7 +185,7 @@ copy_and_restart( )
 
     //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
 #ifndef CONFIG_6D
-#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
@@ -409,12 +409,17 @@ static void my_big_init_task()
         info_led_blink(1, 500, 500);
     }
 #endif
+
 #ifdef CONFIG_DUMPER_BOOTFLAG
     msleep(5000);
-    SetGUIRequestMode(2);
+    SetGUIRequestMode(DLG_PLAY);
+    msleep(1000);
+    update_vram_params();
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+    bmp_printf(FONT_LARGE, 50, 200, "Please wait...");
     msleep(2000);
 
-    if (CURRENT_DIALOG_MAYBE != 2)
+    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
     {
         bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
         return;
@@ -427,13 +432,16 @@ static void my_big_init_task()
     
     msleep(500);
     FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f) {
-        len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
+    if (f)
+    {
+        FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
         bmp_printf(FONT_LARGE, 50, 250, ":)");    
     }
     else
+    {
         bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
+    }
     info_led_blink(1, 500, 500);
     return;
 #endif

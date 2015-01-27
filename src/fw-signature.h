@@ -1,7 +1,7 @@
 #ifndef _fw_signature_h_
 #define _fw_signature_h_
 
-#include <internals.h>
+#include <config-defines.h>
 
 #define SIG_LEN 0x10000
 
