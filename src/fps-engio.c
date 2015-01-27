@@ -199,8 +199,6 @@ static int is_current_mode_ntsc()
     return 0;
 }
 
-int fps_get_current_x1000();
-void flip_zoom(); // refreshes display mode
 static void fps_unpatch_table();
 static void fps_patch_timerB(int timer_value);
 static void fps_read_default_timer_values();
@@ -212,11 +210,6 @@ static void fps_read_current_timer_values();
 #else
 #define FPS_TIMER_A_MAX 0x2000
 #define FPS_TIMER_B_MAX (0x4000-1)
-#endif
-
-#ifdef CONFIG_FPS_TIMER_A_ONLY
-    #undef FPS_TIMER_B_MAX
-    #define FPS_TIMER_B_MAX fps_timer_b_orig
 #endif
 
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
@@ -231,59 +224,40 @@ static void fps_read_current_timer_values();
 
 #if defined(CONFIG_5D2)
     #define TG_FREQ_BASE 24000000
-    #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 20), ZOOM ? 0x262 : 0x228) // trial and error (with digic poke)
 #elif defined(CONFIG_7D)
     #define TG_FREQ_BASE 24000000
-    #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000) // todo, just copied
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 20), ZOOM ? 0x262 : 0x228) // todo
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
-    #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
     #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 4 : MV720 ? 30 : 42)) /* zoom: can do 20, but has a black bar on the right */
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN (fps_timer_b_orig - (ZOOM ? 44 : MV720 ? 0 : 70)) /* you can push LiveView until 68fps (timer_b_orig - 50), but good luck recording that */
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
-    #define TG_FREQ_SHUTTER (ntsc || NOT_RECORDING ? 56760000 : 50000000)
     #define FPS_TIMER_A_MIN 520
-	#undef FPS_TIMER_B_MIN
-	#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1970)
-	//~ #undef FPS_TIMER_B_MAX
-	//~ #define FPS_TIMER_B_MAX 0x8000
-	//~ #undef FPS_TIMER_A_MAX
-	//~ #define FPS_TIMER_A_MAX 0x8000
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1970)
 #elif defined(CONFIG_6D)
     #define TG_FREQ_BASE 25600000
-    #define TG_FREQ_SHUTTER (ntsc ? 43920000 : 40000000)
     #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 22 : MV720 ? 10 : 34) ) //, ZOOM ? 708 : 512)
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN (fps_timer_b_orig - (ZOOM ? 6 : MV720 ? 10 : 10)) 
 #elif defined(CONFIG_650D)
     #define TG_FREQ_BASE 32000000
-    #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000)
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_700D)
     #define TG_FREQ_BASE 32000000 //copy from 650D
-    #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000) //copy from 650D
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
-    #define TG_FREQ_SHUTTER 23188405 // not sure
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
 #elif defined(CONFIG_50D)
     #define TG_FREQ_BASE 28800000
-    #define TG_FREQ_SHUTTER 41379310 // not sure
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 630 : 688 )
-#else // 550D, 600D, 60D
+#elif defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D)
     #define TG_FREQ_BASE 28800000
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
-    #define TG_FREQ_PAL  50000000
-    #define TG_FREQ_NTSC_SHUTTER 49440000
-    #define TG_FREQ_ZOOM 39230730 // not 100% sure
-    #define TG_FREQ_CROP_NTSC_SHUTTER (crop == 0xc ? 47160000 : 64860000)
-    #define TG_FREQ_CROP_PAL_SHUTTER (crop == 0xc ? 50000000 : 64000000)
-    #define TG_FREQ_SHUTTER (zoom ? TG_FREQ_ZOOM : (crop ? (ntsc ? TG_FREQ_CROP_NTSC_SHUTTER : TG_FREQ_CROP_PAL_SHUTTER) : (ntsc ? TG_FREQ_NTSC_SHUTTER : TG_FREQ_PAL)))
 #endif
 
 // these can change timer B with another method, more suitable for high FPS
@@ -360,6 +334,7 @@ int get_current_tg_freq()
 #define FPS_x1000_TO_TIMER(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_FPS/(fps_x1000)):0)
 #define TIMER_TO_FPS_x1000(t) (((t)!=0)?(TG_FREQ_FPS/(t)):0)
 
+#define TG_FREQ_SHUTTER calc_tg_freq(fps_timer_a_orig)
 #define SHUTTER_x1000_TO_TIMER(s_x1000) (TG_FREQ_SHUTTER/(s_x1000))
 #define TIMER_TO_SHUTTER_x1000(t) (TG_FREQ_SHUTTER/(t))
 
@@ -391,21 +366,12 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 int get_max_shutter_timer()
 {
     int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
-    int ntsc = is_current_mode_ntsc();
-    int zoom = lv_dispsize > 1 ? 1 : 0;
-    int crop = video_mode_crop;
-    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
     return SHUTTER_x1000_TO_TIMER(default_fps);
 }
 
 /* shutter speed in microseconds, from timer value */
 int get_shutter_speed_us_from_timer(int timer)
 {
-    int ntsc = is_current_mode_ntsc();
-    int zoom = lv_dispsize > 1 ? 1 : 0;
-    int crop = video_mode_crop;
-    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
-
     return timer * 1000000 / (TG_FREQ_SHUTTER/1000);
 }
 
@@ -497,11 +463,6 @@ int get_current_shutter_reciprocal_x1000()
     #endif
     
     //~ NotifyBox(1000, "%d ", timer);
-    int ntsc = is_current_mode_ntsc();
-    int zoom = lv_dispsize > 1 ? 1 : 0;
-    int crop = video_mode_crop;
-    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
-
     int shutter_r_x1000 = TIMER_TO_SHUTTER_x1000(timer);
     
     // shutter speed can't be slower than 1/fps
@@ -575,6 +536,14 @@ static int fps_should_disable_sound()
 {
     if (get_fps_override() && lv && is_movie_mode())
     {
+        /* same FPS as the one from Canon menu? sound OK */
+        int default_fps = is_current_mode_ntsc() ? video_mode_fps * 1000 * 1000 / 1001 : video_mode_fps * 1000;
+        int current_fps = fps_get_current_x1000();
+        if (current_fps == default_fps)
+        {
+            return 0;
+        }
+
         /* only disable sound when recording H.264, not raw */
         if (!raw_lv_is_enabled())
         {
@@ -800,7 +769,7 @@ static MENU_UPDATE_FUNC(fps_print)
         
         /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
-        if (sound_recording_enabled_canon() && is_movie_mode() && !raw_lv_is_enabled() && t > last_inactive + 1000)
+        if (sound_recording_enabled_canon() && is_movie_mode() && fps_should_disable_sound() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
 
 #ifndef CONFIG_FRAME_ISO_OVERRIDE
@@ -966,7 +935,7 @@ static void flip_zoom_twostage(int stage)
     }
 }
 
-void flip_zoom()
+static void flip_zoom()
 {
     flip_zoom_twostage(1);
     flip_zoom_twostage(2);
@@ -1362,8 +1331,6 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_PERCENT,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
-//~ we only modify FPS_REGISTER_A, so no optimizations possible.
-#ifndef CONFIG_FPS_TIMER_A_ONLY
             {
                 .name = "Optimize for",
                 .priv       = &fps_criteria,
@@ -1397,7 +1364,6 @@ static struct menu_entry fps_menu[] = {
                         "HiJello, FastTv: jello effects and fast shutters (2-5 fps).\n"
                         #endif
             },
-#endif
             #ifndef FRAME_SHUTTER_BLANKING_WRITE
             {
                 .name = "Shutter range",
@@ -1713,9 +1679,7 @@ static void fps_task()
             float ff = default_fps * ks + f * (1-ks);
             int fr = (int)roundf(ff);
             fps_setup_timerA(fr);
-#ifndef CONFIG_FPS_TIMER_A_ONLY
             fps_setup_timerB(fr);
-#endif
             fps_read_current_timer_values();
 
             // take care of sound settings to prevent recording from stopping
@@ -1761,9 +1725,7 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
-#ifndef CONFIG_FPS_TIMER_A_ONLY
         fps_setup_timerB(f);
-#endif
         //~ info_led_off();
         fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
@@ -2104,12 +2066,6 @@ void set_frame_shutter_timer(int timer)
 
 void set_frame_shutter(int shutter_reciprocal)
 {
-    /* is this really necessary? clean up by putting getters in macros? */
-    int ntsc = is_current_mode_ntsc();
-    int zoom = lv_dispsize > 1 ? 1 : 0;
-    int crop = video_mode_crop;
-    (void)zoom; (void)crop; (void)ntsc;
-    
     set_frame_shutter_timer(TG_FREQ_SHUTTER / shutter_reciprocal / 1000);
 }
 
