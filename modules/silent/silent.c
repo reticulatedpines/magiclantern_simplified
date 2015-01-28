@@ -312,7 +312,10 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     else
     {
         /* save frames into a single MLV */
-        /* (will reset the counter and create a new file once you get back into menu) */
+        /* will reset the counter and create a new file:
+         * a) once you get back into menu, or
+         * b) at the end of a burst sequence
+         */
         frame_number = mlv_file_frame_number;
         mlv_file_frame_number++;
         
@@ -970,6 +973,12 @@ silent_pic_take_lv(int interactive)
         
         if (LV_PAUSED) ResumeLiveView();
         else redraw();
+        
+        if (sp_num_frames > 1)
+        {
+            /* was it a burst sequence? reset the MLV frame counter to start a new file */
+            mlv_file_frame_number = 0;
+        }
     }
     else
     {
