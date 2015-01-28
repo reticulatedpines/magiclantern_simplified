@@ -61,15 +61,19 @@
 #include <menu.h>
 #include <config.h>
 #include <string.h>
+#include <rand.h>
 #include <io_crypt.h>
 
 #include "crypt_lfsr64.h"
 #include "crypt_rsa.h"
+#include "hash_password.h"
 
 #include "../trace/trace.h"
 #include "../ime_base/ime_base.h"
 
 uint32_t iocrypt_trace_ctx = TRACE_ERROR;
+
+extern void gui_open_menu();
 
 /* magics used to detect or set file type */
 static const uint8_t cr2_magic[] = "\x49\x49\x2A\x00";
@@ -133,7 +137,7 @@ static uint32_t iocrypt_shutdown = 0;
 
 static CONFIG_INT("io_crypt.enabled", iocrypt_enabled, 0);
 static CONFIG_INT("io_crypt.mode", iocrypt_mode, 0);
-static CONFIG_INT("io_crypt.fake", iocrypt_fake, 0);
+//static CONFIG_INT("io_crypt.fake", iocrypt_fake, 0);
 static CONFIG_INT("io_crypt.block_size", iocrypt_block_size, 4);
 static CONFIG_INT("io_crypt.ask_pass", iocrypt_ask_pass, 0);
 static CONFIG_INT("io_crypt.rsa_key_size", iocrypt_rsa_key_size, 2);
@@ -159,7 +163,7 @@ static IME_DONE_FUNC(iocrypt_ime_done)
         return IME_OK;
     }
     
-    hash_password(text, &iocrypt_key);
+    hash_password((char *)text, &iocrypt_key);
     
     /* done, use that key */
     give_semaphore(iocrypt_password_sem);
@@ -204,7 +208,7 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
 static uint32_t iocrypt_asym_init(int fd)
 {
     uint64_t file_key = 0;
-    uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
+    uint32_t lfsr_blocksize = (16 << iocrypt_block_size);
     uint32_t blocksize = crypt_rsa_blocksize(iocrypt_rsa_ctx.priv);
     
     trace_write(iocrypt_trace_ctx, "iocrypt_save_asym_hdr: block size %d bytes, lfsr_blocksize %d bytes", blocksize, lfsr_blocksize);
@@ -215,7 +219,7 @@ static uint32_t iocrypt_asym_init(int fd)
     char *key = malloc(blocksize + 32);
     
     /* create a random per-file crypt key */
-    rand_fill(key, blocksize / 4);
+    rand_fill((uint32_t*)key, blocksize / 4);
     memcpy(&file_key, key, sizeof(uint64_t));
 
     /* encrypt the randomly generated per-file header with RSA public key */
@@ -230,7 +234,7 @@ static uint32_t iocrypt_asym_init(int fd)
     job.fd_pos = 0;
     
     trace_write(iocrypt_trace_ctx, "iocrypt_asym_init: encrypt");
-    msg_queue_post(iocrypt_msgs, &job);
+    msg_queue_post(iocrypt_msgs, (uint32_t)&job);
 
     /* wait until worker finished */
     take_semaphore(job.semaphore, 0);
@@ -251,7 +255,7 @@ static uint32_t iocrypt_asym_init(int fd)
     
     /* fill remaining space with random data */
     char *filler = malloc(remain);
-    rand_fill(filler, remain / 4);
+    rand_fill((uint32_t*)filler, remain / 4);
     orig_iodev->WriteFile(fd, (uint8_t*)filler, remain);
     free(filler);
     
@@ -270,7 +274,7 @@ static uint32_t iocrypt_asym_init(int fd)
 
 static uint32_t iocrypt_sym_init(int fd)
 {
-    uint32_t lfsr_blocksize = (8192 << iocrypt_block_size);
+    uint32_t lfsr_blocksize = (16 << iocrypt_block_size);
     
     trace_write(iocrypt_trace_ctx, "iocrypt_sym_init: lfsr_blocksize %d bytes", lfsr_blocksize);
     
@@ -283,7 +287,7 @@ static uint32_t iocrypt_sym_init(int fd)
     
     /* fill remaining space with random data */
     char *filler = malloc(remain);
-    rand_fill(filler, remain / 4);
+    rand_fill((uint32_t*)filler, remain / 4);
     orig_iodev->WriteFile(fd, (uint8_t*)filler, remain);
     free(filler);
     
@@ -300,7 +304,6 @@ static uint32_t iocrypt_sym_init(int fd)
 
 static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, char *filename_)
 {
-    int plain = 0;
     int decryptable = 0;
     
     uint32_t fd = orig_iodev->OpenFile(iodev, filename, flags, filename_);
@@ -335,17 +338,14 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                 if(!memcmp(buf, jpg_magic, 4))
                 {
                     trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted JPEG", filename);
-                    plain = 1;
                 }
                 else if(!memcmp(buf, cr2_magic, 4))
                 {
                     trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be unencrypted CR2", filename);
-                    plain = 1;
                 }
                 else if(!memcmp(buf, lfsr_magic, 4))
                 {
                     trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be LFSR encrypted, try to decrypt on the fly", filename);
-                    plain = 0;
                     
                     uint32_t lfsr_blocksize = 0;
                     iodev_SetPosition(fd, 4);
@@ -505,7 +505,7 @@ static uint32_t hook_iodev_ReadFile(uint32_t fd, uint8_t *buf, uint32_t length)
             job.fd_pos = fd_pos;
             
             trace_write(iocrypt_trace_ctx, "iodev_ReadFile: decrypt");
-            msg_queue_post(iocrypt_msgs, &job);
+            msg_queue_post(iocrypt_msgs, (uint32_t)&job);
             
             /* wait until worker finished */
             take_semaphore(job.semaphore, 0);
@@ -544,7 +544,7 @@ static uint32_t hook_iodev_WriteFile(uint32_t fd, uint8_t *buf, uint32_t length)
             job.fd_pos = fd_pos;
             
             trace_write(iocrypt_trace_ctx, "iodev_WriteFile: encrypt");
-            msg_queue_post(iocrypt_msgs, &job);
+            msg_queue_post(iocrypt_msgs, (uint32_t)&job);
             
             /* wait until worker finished */
             take_semaphore(job.semaphore, 0);
@@ -572,7 +572,7 @@ static void iocrypt_enter_pw()
     
     gui_open_menu();
     
-    if(!ime_base_start("io_crypt: Enter password", iocrypt_ime_text, sizeof(iocrypt_ime_text) - 1, IME_UTF8, IME_CHARSET_ANY, &iocrypt_ime_update, &iocrypt_ime_done, 0, 0, 0, 0))
+    if(!ime_base_start((unsigned char *)"io_crypt: Enter password", (unsigned char *)iocrypt_ime_text, sizeof(iocrypt_ime_text) - 1, IME_UTF8, IME_CHARSET_ANY, &iocrypt_ime_update, &iocrypt_ime_done, 0, 0, 0, 0))
     {
         give_semaphore(iocrypt_password_sem);
         iocrypt_key = 0;
@@ -813,9 +813,9 @@ static struct menu_entry iocrypt_menus[] =
             {
                 .name = "Blocksize",
                 .priv = &iocrypt_block_size,
-                .max = 6,
+                .max = 9,
                 .icon_type = IT_DICE,
-                .choices = (const char *[]) {"8k", "16k", "32k", "64k", "128k", "256k", "512k"},
+                .choices = (const char *[]) {"16", "32", "64", "128", "256", "512", "1k", "2k", "4k", "8k"},
                 .help = "Blocks get encrypted with the same 64 bit key. The smaller the more secure but slower.",
             },
             {
@@ -915,7 +915,7 @@ static void iocrypt_task()
 static unsigned int iocrypt_init()
 {
     /* for debugging */
-    if(1)
+    if(0)
     {
         char filename[32] = "IO_CRYPT.TXT";
         
@@ -1012,7 +1012,7 @@ static unsigned int iocrypt_init()
     }
     
     /* this memory is used for buffering encryption, so we dont have to undo the changes in memory */
-    iocrypt_scratch = shoot_malloc(CRYPT_SCRATCH_SIZE);
+    iocrypt_scratch = malloc(CRYPT_SCRATCH_SIZE);
     
     /* now patch the iodev handlers */
     orig_iodev = (iodev_handlers_t *)MEM(iodev_table);
@@ -1048,7 +1048,7 @@ static unsigned int iocrypt_deinit()
     MEM(iodev_table) = (uint32_t)orig_iodev;
     if(iocrypt_scratch)
     {
-        shoot_free(iocrypt_scratch);
+        free(iocrypt_scratch);
     }
     return 0;
 }

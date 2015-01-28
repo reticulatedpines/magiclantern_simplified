@@ -63,7 +63,7 @@ void rand_seed(uint32_t seed)
     for(int loops = 0; loops < 128; loops++)
     {
         lfsr113[loops%4] ^= seed;
-        rand_fill(&tmp, 1);
+        rand_fill((uint32_t *)&tmp, 1);
     }
 }
 
@@ -72,7 +72,6 @@ static void io_decrypt_test()
 {
     uint64_t key = 0xDEADBEEFDEADBEEF;
     uint32_t lfsr_blocksize = 0x00000224;
-    uint32_t file_offset = 0;
     crypt_cipher_t crypt_ctx;
 
     /* initialize encryption with some common parameters */
@@ -82,21 +81,21 @@ static void io_decrypt_test()
     rand_seed(0x12341234);
     
     uint32_t bufsize = 1 * 1024 * 1024;
-    char *buf_src = malloc(bufsize);
-    char *buf_dst = malloc(bufsize);
+    uint8_t *buf_src = malloc(bufsize);
+    uint8_t *buf_dst = malloc(bufsize);
     
     for(int loop = 0; loop < 1000; loop++)
     {
         /* prepare both buffers */
-        rand_fill(buf_src, bufsize / 4);
+        rand_fill((uint32_t *)buf_src, bufsize / 4);
         memcpy(buf_dst, buf_src, bufsize);
         
         /* forge some test start and length */
         uint32_t start = 0;
         uint32_t length = 0;
         
-        rand_fill(&start, 1);
-        rand_fill(&length, 1);
+        rand_fill((uint32_t *)&start, 1);
+        rand_fill((uint32_t *)&length, 1);
         
         start %= bufsize;
         length %= (bufsize - start + 1);
@@ -232,6 +231,9 @@ int main(int argc, char *argv[])
             printf("lfsr_blocksize: %d\n", lfsr_blocksize);
             return -1;
         }
+        
+        printf("lfsr_blocksize: %d\n", lfsr_blocksize);
+        printf("encrypted_size: %d\n", encrypted_size);
         
         char *encrypted = malloc(encrypted_size);
         if(fread(encrypted, 1, encrypted_size, in_file) != encrypted_size)

@@ -22,7 +22,7 @@ namespace WebDAVServer
     public partial class WebDAVServerForm : Form
     {
         private bool AllowClosing = false;
-        private WebDAVServer Server = null;
+        public WebDAVServer Server = null;
         private System.Windows.Forms.Timer UpdateTimer = null;
         private bool StartServerAfterServiceStopped = false;
         private bool StartServiceAfterServiceStopped = false;
@@ -39,8 +39,14 @@ namespace WebDAVServer
 
             /* register stuff for minimizing etc */
             Resize += new EventHandler(WebDAVServer_Resize);
-            notifyIcon.MouseClick += new MouseEventHandler(notifyIcon_MouseClick);
-            notifyIcon.ContextMenuStrip = contextMenuToolbar;
+
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                notifyIcon.MouseClick += new MouseEventHandler(notifyIcon_MouseClick);
+                notifyIcon.ContextMenuStrip = contextMenuToolbar;
+                this.notifyIcon.Visible = true;
+            }
+
 
             UpdateTimer = new System.Windows.Forms.Timer();
             UpdateTimer.Interval = 100;
@@ -59,6 +65,13 @@ namespace WebDAVServer
             txtPath.Text = Server.Settings.Path;
             txtPort.Text = Server.Settings.Port.ToString();
             txtAuth.Text = Server.Settings.AuthTokens;
+            txtCacheTime.Text = Server.Settings.CacheTime.ToString();
+            txtPrefetch.Text = Server.Settings.PrefetchCount.ToString();
+            chkShowInfos.Checked = Server.Settings.ShowInfos;
+            chkShowJpeg.Checked = Server.Settings.ShowJpeg;
+            chkShowFits.Checked = Server.Settings.ShowFits;
+            chkShowDng.Checked = Server.Settings.ShowDng;
+            chkShowWav.Checked = Server.Settings.ShowWav;
 
             UpdateDriveLetters();
         }
@@ -84,7 +97,7 @@ namespace WebDAVServer
                 if (total > 0)
                 {
                     progressBar.Visible = true;
-                    progressBar.Value = (int)((1000.0f * transferred) / total);
+                    progressBar.Value = (int)Math.Max(0,Math.Min(1000,((1000.0f * transferred) / total)));
                 }
                 else
                 {
@@ -111,7 +124,7 @@ namespace WebDAVServer
                 }
 
                 UpdateButtons();
-                txtLog.Text = Server.LogMessages;
+                txtLog.Text = Server.Statistics + Environment.NewLine + Server.LogMessages;
             }
         }
 
@@ -337,13 +350,17 @@ namespace WebDAVServer
         private void btnPath_Click(object sender, EventArgs e)
         {
             string folderName = "[Folder]";
+            Console.WriteLine("btnPath_Click");
             OpenFileDialog dlg = new OpenFileDialog();
+
 
             dlg.CheckFileExists = false;
             dlg.FileName = folderName;
 
+            Console.WriteLine("ShowDialog...");
             if (dlg.ShowDialog() == DialogResult.OK)
             {
+                Console.WriteLine("ShowDialog... OK");
                 string folder = "";
                 string[] splits = dlg.FileName.Split('\\');
 
@@ -354,6 +371,7 @@ namespace WebDAVServer
 
                 txtPath.Text = folder;
             }
+            Console.WriteLine("ShowDialog... done");
         }
 
         private void txtPath_TextChanged(object sender, EventArgs e)
@@ -484,6 +502,41 @@ namespace WebDAVServer
             }
 
             UpdateDriveLetters();
+        }
+
+        private void txtPrefetch_TextChanged(object sender, EventArgs e)
+        {
+            int.TryParse(txtPrefetch.Text, out Server.Settings.PrefetchCount);
+        }
+
+        private void txtCacheTime_TextChanged(object sender, EventArgs e)
+        {
+            int.TryParse(txtCacheTime.Text, out Server.Settings.CacheTime);
+        }
+
+        private void chkShowJpeg_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowJpeg = chkShowJpeg.Checked;
+        }
+
+        private void chkShowInfos_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowInfos = chkShowInfos.Checked;
+        }
+
+        private void chkShowFits_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowFits = chkShowFits.Checked;
+        }
+
+        private void chkShowDng_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowDng = chkShowDng.Checked;
+        }
+
+        private void chkShowWav_CheckedChanged(object sender, EventArgs e)
+        {
+            Server.Settings.ShowWav = chkShowWav.Checked;
         }
     }
 }

@@ -1258,6 +1258,8 @@ void expfuse_preview_update_task(int dir)
     void* buf_acc = (void*)YUV422_HD_BUFFER_1;
     void* buf_ws  = (void*)YUV422_HD_BUFFER_2;
     void* buf_lv  = get_yuv422_vram()->vram;
+    if (!buf_lv) goto end;
+    
     int numpix    = get_yuv422_vram()->width * get_yuv422_vram()->height;
     if (!expfuse_running)
     {
@@ -1269,14 +1271,16 @@ void expfuse_preview_update_task(int dir)
     }
     next_image_in_play_mode(dir);
     buf_lv = get_yuv422_vram()->vram; // refresh
-    // add new image
+    if (!buf_lv) goto end;
 
+    // add new image
     weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(buf_acc, buf_lv, buf_ws, numpix);
     weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(buf_lv, buf_acc, buf_ws, numpix);
     expfuse_num_images++;
     bmp_printf(FONT_MED, 0, 0, "%d images  ", expfuse_num_images);
     //~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
+end:
     give_semaphore(set_maindial_sem);
 }
 
@@ -1333,6 +1337,8 @@ void expo_adjust_playback(int dir)
     take_semaphore(set_maindial_sem, 0);
 
     uint8_t* current_buf = get_yuv422_vram()->vram;
+    if (!current_buf) goto end;
+    
     int w = get_yuv422_vram()->width;
     int h = get_yuv422_vram()->height;
     int buf_size = w * h * 2;
@@ -1397,6 +1403,7 @@ void expo_adjust_playback(int dir)
         }
     }
 
+end:
     give_semaphore(set_maindial_sem);
 #endif
 }
@@ -3159,7 +3166,7 @@ int expo_value_rounding_ok(int raw, int is_aperture)
     if (is_aperture)
         if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
     
-    int r = raw % 8;
+    int r = ABS(raw) % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5)
         return 0;
     return 1;

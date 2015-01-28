@@ -42,12 +42,13 @@ namespace WebDAVServer
         public string ResponseTextContent = "";
 
         public long ResponseBinaryContentLength = 0;
-        public BinaryReader ResponseBinaryContent = null;
+        public byte[] ResponseBinaryContent = null;
         public ArrayList HeaderLines = new ArrayList();
 
         protected string RequestPath = "";
         protected string BaseHref = "";
         protected bool SkipRequestLogging = false;
+        public bool SendHeaderOnly = false;
 
         public enum FileType
         {
@@ -67,6 +68,7 @@ namespace WebDAVServer
             public string MlvFilePath;
             public string MlvFileContent;
             public string MlvStoreDir;
+            public string MlvBaseName;
 
             public static VirtualFileType Resolve(string request)
             {
@@ -74,29 +76,54 @@ namespace WebDAVServer
 
                 type.RequestPath = request;
 
-                if (request.ToLower().EndsWith(".mlv"))
-                {
-                    type.MlvFilePath = GetLocalName(RootPath, request);
-                    type.MlvStoreDir = type.MlvFilePath.ToLower() + "_store";
+                bool containsMlv = request.ToUpper().Contains(".MLV");
+                bool containsRaw = request.ToUpper().Contains(".RAW");
 
+                string ext = "";
+                string storeDirExt = "";
+
+                if (containsMlv)
+                {
+                    ext = ".MLV";
+                    storeDirExt = ".MLD";
+                }
+                else
+                {
+                    ext = ".RAW";
+                    storeDirExt = ".RAD";
+                }
+
+                type.LocalPath = GetLocalName(RootPath, request);
+                type.MlvFilePath = GetMlvFileName(type.LocalPath);
+
+                if(!File.Exists(type.MlvFilePath))
+                {
+                    type.Type = FileType.Direct;
+                    type.LocalPath = GetLocalName(RootPath, request);
+                    return type;
+                }
+
+                FileInfo mlvFileInfo = new FileInfo(type.MlvFilePath);
+                type.MlvBaseName = mlvFileInfo.Name.ToUpper().Replace(ext, "");
+
+                if (mlvFileInfo.Directory != null)
+                {
+                    type.MlvStoreDir = mlvFileInfo.Directory.FullName + Path.DirectorySeparatorChar + type.MlvBaseName + storeDirExt;
+                }
+
+                if (request.ToUpper().EndsWith(ext))
+                {
                     type.LocalPath = "";
                     type.Type = FileType.PureVirtualDir;
                     return type;
                 }
-                else if(request.ToLower().Contains(".mlv/"))
+                else if (containsMlv || containsRaw)
                 {
-                    string localPath = GetLocalName(RootPath, request);
-                    type.MlvFilePath = GetMlvFileName(localPath);
-                    type.MlvStoreDir = type.MlvFilePath.ToLower() + "_store";
-
-                    FileInfo mlvFileInfo = new FileInfo(type.MlvFilePath);
-                    string fileBaseName = mlvFileInfo.Name.ToUpper().Replace(".MLV", "") + "_";
-
                     /* strip the requested file within that directory. e.g. 'M12-3456_<anything>' or 'foo.txt'  */
-                    string requestedFile = localPath.Replace(type.MlvFilePath + Path.DirectorySeparatorChar, "");
+                    string requestedFile = type.LocalPath.Replace(type.MlvFilePath + Path.DirectorySeparatorChar, "");
 
                     /* is this not a M12-3456_<anything> filename? or is it a directory? */
-                    if (!requestedFile.StartsWith(fileBaseName) || requestedFile.Contains(Path.DirectorySeparatorChar))
+                    if (!requestedFile.StartsWith(type.MlvBaseName) || requestedFile.Contains(Path.DirectorySeparatorChar))
                     {
                         type.Type = FileType.Redirected;
                         type.LocalPath = type.MlvStoreDir + Path.DirectorySeparatorChar + requestedFile;
@@ -104,18 +131,25 @@ namespace WebDAVServer
                         return type;
                     }
 
-                    string content = requestedFile.Replace(fileBaseName, "");
+                    string content = requestedFile.Replace(type.MlvBaseName, "").Trim('_');
+
+                    /* save location in virtual directory in the "LocalPath" field */
+                    type.LocalPath = type.MlvStoreDir + Path.DirectorySeparatorChar + requestedFile;
+
+                    if (File.Exists(type.LocalPath))
+                    {
+                        type.Type = FileType.Redirected;
+                        return type;
+                    }
 
                     if (!MLVAccessor.FileExists(type.MlvFilePath, content))
                     {
                         type.Type = FileType.Redirected;
-                        type.LocalPath = type.MlvStoreDir + Path.DirectorySeparatorChar + requestedFile;
-
                         return type;
                     }
 
                     type.Type = FileType.PureVirtualFile;
-                    type.MlvFileContent = content;
+                    type.MlvFileContent = content.ToUpper();
                     return type;
                 }
 
@@ -147,9 +181,12 @@ namespace WebDAVServer
             foreach (string elem in splits)
             {
                 path += elem;
-                if (elem.ToLower().EndsWith(".mlv"))
+                if (elem.ToUpper().EndsWith(".MLV") || elem.ToUpper().EndsWith(".RAW"))
                 {
-                    return path;
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
                 }
                 path += Path.DirectorySeparatorChar;
             }
@@ -298,7 +335,6 @@ namespace WebDAVServer
         public virtual void HandleRequest(Stream stream)
         {
             StringBuilder response = new StringBuilder();
-            TextWriter writer = new StreamWriter(stream);
 
             /* authentication required? */
             if (IsAccessDenied())
@@ -311,7 +347,6 @@ namespace WebDAVServer
 
                 if (ResponseBinaryContent != null)
                 {
-                    ResponseBinaryContent.Close();
                     ResponseBinaryContent = null;
                 }
             }
@@ -340,96 +375,78 @@ namespace WebDAVServer
 
             response.AppendLine("Content-Type: " + MimeType);
             response.AppendLine("");
-            writer.Write(response.ToString());
-            writer.Flush();
-            BytesWrittenHeader += response.Length;
+
+            byte[] textHeaderData = Encoding.ASCII.GetBytes(response.ToString());
+            stream.Write(textHeaderData, 0, textHeaderData.Length);
+            BytesWrittenHeader += textHeaderData.Length;
 
             foreach (string line in response.ToString().Split('\n'))
             {
                 Server.LogRequest("> " + line.Replace("\r", ""));
             }
 
-            if (ResponseTextContent.Length > 0)
+            if (!SendHeaderOnly)
             {
-                WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseTextContent.Length);
-
-                int blockLength = 1024;
-                int written = 0;
-
-                try
+                if (ResponseTextContent.Length > 0)
                 {
-                    while (written < ResponseTextContent.Length)
-                    {
-                        int length = Math.Min(blockLength, ResponseTextContent.Length - written);
-                        string data = ResponseTextContent.Substring(written, length);
+                    WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseTextContent.Length);
+                    int written = 0;
 
-                        writer.Write(data);
-                        writer.Flush();
-                        written += data.Length;
-                        BytesWrittenHeader += data.Length;
-                        info.BlockTransferred(data.Length);
+                    byte[] respTextData = Encoding.ASCII.GetBytes(ResponseTextContent);
+                    try
+                    {
+                        stream.Write(respTextData, written, respTextData.Length);
+
+                        written += respTextData.Length;
+                        BytesWrittenHeader += respTextData.Length;
+                        info.BlockTransferred(respTextData.Length);
                     }
-                }
-                catch (Exception e)
-                {
-                }
-
-                info.TransferFinished();
-
-                if (!SkipRequestLogging)
-                {
-                    Server.LogRequest(ResponseTextContent.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;"));
-                }
-                SkipRequestLogging = false;
-
-                ResponseTextContent = "";
-            }
-
-            if (ResponseBinaryContentLength > 0)
-            {
-                WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseBinaryContentLength);
-                int blockLength = 4096;
-                long written = 0;
-
-                try
-                {
-                    do
+                    catch (Exception e)
                     {
-                        byte[] data = ResponseBinaryContent.ReadBytes(blockLength);
+                    }
 
-                        if (data != null && data.Length != 0)
-                        {
-                            stream.Write(data, 0, data.Length);
-                            written += data.Length;
-                            BytesWrittenData += data.Length;
-                            info.BlockTransferred(data.Length);
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    } while (true);
+                    info.TransferFinished();
+
+                    if (!SkipRequestLogging)
+                    {
+                        Server.LogRequest(ResponseTextContent.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;"));
+                    }
+                    SkipRequestLogging = false;
+
+                    ResponseTextContent = "";
                 }
-                catch (Exception e)
+
+                if (ResponseBinaryContentLength > 0)
                 {
+                    WebDAVServer.TransferInfo info = new WebDAVServer.TransferInfo(Server, ResponseBinaryContentLength);
+                    long written = 0;
+
+                    try
+                    {
+                        do
+                        {
+                            stream.Write(ResponseBinaryContent, 0, ResponseBinaryContent.Length);
+                            written += ResponseBinaryContent.Length;
+                            BytesWrittenData += ResponseBinaryContent.Length;
+                            info.BlockTransferred(ResponseBinaryContent.Length);
+                        } while (true);
+                    }
+                    catch (Exception e)
+                    {
+                    }
+
+                    info.TransferFinished();
+
+                    Server.LogRequest("> (binary content of size " + written + ")");
+
+                    stream.Flush();
                 }
 
-                info.TransferFinished();
-
-                Server.LogRequest("> (binary content of size " + written + ")");
-
-                stream.Flush();
+                if (ResponseBinaryContent != null)
+                {
+                    ResponseBinaryContent = null;
+                }
             }
-
-            if (ResponseBinaryContent != null)
-            {
-                ResponseBinaryContent.Close();
-                ResponseBinaryContent = null;
-            }
-
-            /* defaults again */
-            StatusCode = GetStatusCode(500);
-            MimeType = "text/plain";
         }
 
         public bool IsAccessDenied()
@@ -691,89 +708,166 @@ namespace WebDAVServer
 
                     case FileType.PureVirtualDir:
                         {
-                            XmlTextWriter xml = new XmlTextWriter(mem, Encoding.UTF8);
-                            FileInfo mlvFileInfo = new FileInfo(type.MlvFilePath);
-                            string fileBaseName = mlvFileInfo.Name.ToUpper().Replace(".MLV", "") + "_";
-
-                            xml.Formatting = Formatting.Indented;
-                            xml.IndentChar = ' ';
-                            xml.Indentation = 1;
-                            xml.WriteStartDocument();
-
-                            xml.WriteStartElement("D", "multistatus", "DAV:");
-
-                            /* infos about current directory */
-                            AddDirectoryInfo(xml, mlvFileInfo, RequestPath);
-
-                            int depth = 0;
-
-                            if (DepthHeaderLine == "1")
+                            try
                             {
-                                depth = 1;
-                            }
-                            else if (DepthHeaderLine.ToLower() == "infinity")
-                            {
-                                depth = int.MaxValue;
-                            }
+                                XmlTextWriter xml = new XmlTextWriter(mem, Encoding.UTF8);
+                                FileInfo mlvFileInfo = new FileInfo(type.MlvFilePath);
 
-                            /* add children only if propfind is called with a depth > 0 */
-                            if (depth > 0)
-                            {
-                                /* wav file*/
-                                if (MLVAccessor.HasAudio(mlvFileInfo.FullName))
+                                xml.Formatting = Formatting.Indented;
+                                xml.IndentChar = ' ';
+                                xml.Indentation = 1;
+                                xml.WriteStartDocument();
+
+                                xml.WriteStartElement("D", "multistatus", "DAV:");
+
+                                /* infos about current directory */
+                                AddDirectoryInfo(xml, mlvFileInfo, RequestPath);
+
+                                int depth = 0;
+
+                                if (DepthHeaderLine == "1")
                                 {
-                                    DAVFileDirInfo mlvWavInfo = new DAVFileDirInfo(fileBaseName + "audio.wav");
-
-                                    mlvWavInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, "audio.wav");
-                                    mlvWavInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, "audio.wav");
-                                    mlvWavInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, "audio.wav");
-                                    mlvWavInfo.FullName = RequestPath + "/" + mlvWavInfo.Name;
-
-                                    AddFileInfo(xml, mlvWavInfo, mlvWavInfo.FullName);
+                                    depth = 1;
+                                }
+                                else if (DepthHeaderLine.ToLower() == "infinity")
+                                {
+                                    depth = int.MaxValue;
                                 }
 
-                                /* add one file per frame */
-                                foreach (uint frame in MLVAccessor.GetFrameNumbers(mlvFileInfo.FullName))
+                                /* add children only if propfind is called with a depth > 0 */
+                                if (depth > 0)
                                 {
-                                    string frameNameDng = frame.ToString("000000") + ".dng";
-                                    string frameNameJpg = frame.ToString("000000") + ".jpg";
-                                    DAVFileDirInfo mlvFrameInfo = new DAVFileDirInfo(fileBaseName + frameNameDng);
-                                    DAVFileDirInfo mlvJpegFrameInfo = new DAVFileDirInfo(fileBaseName + frameNameJpg);
+                                    if (Program.Instance.Server.Settings.ShowInfos)
+                                    {
+                                        foreach (string file in MLVAccessor.GetInfoFields(mlvFileInfo.FullName))
+                                        {
+                                            string virtFile = ValidateFileName(type.MlvBaseName + "__" + file);
+                                            DAVFileDirInfo mlvMiscInfo = new DAVFileDirInfo(virtFile);
 
-                                    /* one DNG file per frame */
-                                    mlvFrameInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameNameDng);
-                                    mlvFrameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameNameDng);
-                                    mlvFrameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameNameDng);
-                                    mlvFrameInfo.FullName = RequestPath + "/" + mlvFrameInfo.Name;
-                                    mlvFrameInfo.DisplayName = "Frame #" + frame + " as DNG";
+                                            mlvMiscInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, ".txt");
+                                            mlvMiscInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, ".txt");
+                                            mlvMiscInfo.Length = 0;
+                                            mlvMiscInfo.FullName = RequestPath + "/" + mlvMiscInfo.Name;
 
-                                    /* one JPEG file per frame */
-                                    mlvJpegFrameInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameNameJpg);
-                                    mlvJpegFrameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameNameJpg);
-                                    mlvJpegFrameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameNameJpg);
-                                    mlvJpegFrameInfo.FullName = RequestPath + "/" + mlvJpegFrameInfo.Name;
-                                    mlvJpegFrameInfo.DisplayName = "Frame #" + frame + " as Jpeg";
+                                            AddFileInfo(xml, mlvMiscInfo, mlvMiscInfo.FullName);
+                                        }
 
-                                    /* add them */
-                                    AddFileInfo(xml, mlvFrameInfo, mlvFrameInfo.FullName);
-                                    AddFileInfo(xml, mlvJpegFrameInfo, mlvJpegFrameInfo.FullName);
+                                        DAVFileDirInfo mlvInfoInfo = new DAVFileDirInfo(type.MlvBaseName + ".txt");
+
+                                        mlvInfoInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, ".txt");
+                                        mlvInfoInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, ".txt");
+                                        mlvInfoInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, ".txt");
+                                        mlvInfoInfo.FullName = RequestPath + "/" + mlvInfoInfo.Name;
+
+                                        if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + mlvInfoInfo.Name))
+                                        {
+                                            AddFileInfo(xml, mlvInfoInfo, mlvInfoInfo.FullName);
+                                        }
+                                    }
+
+                                    /* wav file*/
+                                    if (Program.Instance.Server.Settings.ShowWav)
+                                    {
+                                        if (MLVAccessor.HasAudio(mlvFileInfo.FullName))
+                                        {
+                                            DAVFileDirInfo mlvWavInfo = new DAVFileDirInfo(type.MlvBaseName + ".wav");
+
+                                            mlvWavInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, ".wav");
+                                            mlvWavInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, ".wav");
+                                            mlvWavInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, ".wav");
+                                            mlvWavInfo.FullName = RequestPath + "/" + mlvWavInfo.Name;
+
+                                            if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + mlvWavInfo.Name))
+                                            {
+                                                AddFileInfo(xml, mlvWavInfo, mlvWavInfo.FullName);
+                                            }
+                                        }
+                                    }
+
+                                    /* add one file per frame */
+                                    foreach (uint frame in MLVAccessor.GetFrameNumbers(mlvFileInfo.FullName))
+                                    {
+                                        if (Program.Instance.Server.Settings.ShowDng)
+                                        {
+                                            string frameName = frame.ToString("000000") + ".dng";
+                                            DAVFileDirInfo frameInfo = new DAVFileDirInfo(type.MlvBaseName + "_" + frameName);
+
+                                            /* one DNG file per frame */
+                                            frameInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
+                                            frameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
+                                            frameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameName);
+                                            frameInfo.FullName = RequestPath + "/" + frameInfo.Name;
+                                            frameInfo.DisplayName = "Frame " + frame + " as DNG";
+
+                                            if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + frameInfo.Name))
+                                            {
+                                                AddFileInfo(xml, frameInfo, frameInfo.FullName);
+                                            }
+                                        }
+
+                                        /* one JPEG file per frame if enabled */
+                                        if (Program.Instance.Server.Settings.ShowJpeg)
+                                        {
+                                            string frameName = frame.ToString("000000") + ".jpg";
+                                            DAVFileDirInfo frameInfo = new DAVFileDirInfo(type.MlvBaseName + "_" + frameName);
+
+                                            frameInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
+                                            frameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
+                                            frameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameName);
+                                            frameInfo.FullName = RequestPath + "/" + frameInfo.Name;
+                                            frameInfo.DisplayName = "Frame " + frame + " as Jpeg";
+
+                                            if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + frameInfo.Name))
+                                            {
+                                                AddFileInfo(xml, frameInfo, frameInfo.FullName);
+                                            }
+                                        }
+
+                                        /* one FITS file per frame if enabled */
+                                        if (Program.Instance.Server.Settings.ShowFits)
+                                        {
+                                            string frameName = frame.ToString("000000") + ".fits";
+                                            DAVFileDirInfo frameInfo = new DAVFileDirInfo(type.MlvBaseName + "_" + frameName);
+
+                                            frameInfo.CreationTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
+                                            frameInfo.LastWriteTimeUtc = MLVAccessor.GetFileDateUtc(mlvFileInfo.FullName, frameName);
+                                            frameInfo.Length = MLVAccessor.GetFileSize(mlvFileInfo.FullName, frameName);
+                                            frameInfo.FullName = RequestPath + "/" + frameInfo.Name;
+                                            frameInfo.DisplayName = "Frame " + frame + " as FITS";
+
+                                            if (!File.Exists(type.MlvStoreDir + Path.DirectorySeparatorChar + frameInfo.Name))
+                                            {
+                                                AddFileInfo(xml, frameInfo, frameInfo.FullName);
+                                            }
+                                        }
+                                    }
+
+                                    /* add locally stored files */
+                                    if (Directory.Exists(type.MlvStoreDir))
+                                    {
+                                        AddFilesAndFolders(xml, type.MlvStoreDir, depth - 1);
+                                    }
                                 }
 
-                                /* add locally stored files */
-                                if (Directory.Exists(type.MlvStoreDir))
-                                {
-                                    AddFilesAndFolders(xml, type.MlvStoreDir, depth - 1);
-                                }
+                                xml.WriteEndElement();
+                                xml.WriteEndDocument();
+                                xml.Flush();
+
+                                StatusCode = GetStatusCode(207);
+                                ResponseTextContent = RequestHandler.StreamToString(mem);
+
+                                Server.LogRequest("Providing file list for MLV file: " + type.MlvFilePath);
                             }
-
-                            xml.WriteEndElement();
-                            xml.WriteEndDocument();
-                            xml.Flush();
-
-                            StatusCode = GetStatusCode(207);
-                            ResponseTextContent = RequestHandler.StreamToString(mem);
-
-                            Server.LogRequest("Providing file list for MLV file: " + type.MlvFilePath);
+                            catch(FileNotFoundException e)
+                            {
+                                Server.Log("[E] Invalid MLV location: " + type.RequestPath);
+                                StatusCode = GetStatusCode(404);
+                            }
+                            catch(Exception e)
+                            {
+                                Server.Log("[E] Error while browsing " + type.RequestPath + ": " + e.GetType() + ", " + e.Message);
+                                StatusCode = GetStatusCode(500);
+                            }
                         }
                         break;
 
@@ -879,6 +973,11 @@ namespace WebDAVServer
             base.HandleRequest(stream);
         }
 
+        private string ValidateFileName(string file)
+        {
+            return Path.GetInvalidFileNameChars().Aggregate(file, (current, c) => current.Replace(c.ToString(), "_"));
+        }
+
         private void AddFilesAndFolders(XmlTextWriter xml, string localName, int depth)
         {
             if (depth < 0)
@@ -890,15 +989,21 @@ namespace WebDAVServer
             {
                 DirectoryInfo info = new DirectoryInfo(dirname);
 
-                AddDirectoryInfo(xml, info, (RequestPath + "/" + info.Name).Replace("//", "/"));
-                AddFilesAndFolders(xml, localName + "\\" + info.Name, depth - 1);
+                if (info.Name.ToUpper().EndsWith(".MLD") || info.Name.ToUpper().EndsWith(".RAD"))
+                {
+                }
+                else
+                {
+                    AddDirectoryInfo(xml, info, (RequestPath + "/" + info.Name).Replace("//", "/"));
+                    AddFilesAndFolders(xml, localName + "\\" + info.Name, depth - 1);
+                }
             }
 
             foreach (string filename in Directory.GetFiles(localName))
             {
                 FileInfo info = new FileInfo(filename);
 
-                if (info.Name.ToLower().EndsWith(".mlv"))
+                if (info.Name.ToUpper().EndsWith(".MLV") || info.Name.ToUpper().EndsWith(".RAW"))
                 {
                     AddDirectoryInfo(xml, null, (RequestPath + "/" + info.Name).Replace("//", "/"));
                 }
@@ -1442,6 +1547,12 @@ namespace WebDAVServer
             
             VirtualFileType type = VirtualFileType.Resolve(RequestPath);
 
+            /* writes to existing files get redirected into virtual dir */
+            if (type.Type == FileType.PureVirtualFile)
+            {
+                type.Type = FileType.Redirected;
+            }
+
             switch (type.Type)
             {
                 case FileType.PureVirtualDir:
@@ -1449,7 +1560,7 @@ namespace WebDAVServer
                     break;
 
                 case FileType.PureVirtualFile:
-                    StatusCode = GetStatusCode(403);
+                    StatusCode = GetStatusCode(500);
                     break;
 
                 case FileType.Redirected:
@@ -1479,42 +1590,45 @@ namespace WebDAVServer
                             long remaining = RequestContentLength;
                             byte[] readBuffer = new byte[blockSize];
 
-                            file = File.Create(type.LocalPath);
+                            file = File.Open(type.LocalPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Write);
 
-                            while (remaining > 0)
+                            file.Lock(0, file.Length);
+
+                            if (file != null)
                             {
-                                int length = (int)Math.Min(remaining, blockSize);
-
-                                length = PutDataStream.Read(readBuffer, 0, length);
-                                if (length > 0)
+                                while (remaining > 0)
                                 {
-                                    file.Write(readBuffer, 0, length);
+                                    int length = (int)Math.Min(remaining, blockSize);
 
-                                    remaining -= length;
-                                    BytesReadData += length;
-                                    info.BlockTransferred(length);
+                                    length = PutDataStream.Read(readBuffer, 0, length);
+                                    if (length > 0)
+                                    {
+                                        file.Write(readBuffer, 0, length);
+
+                                        remaining -= length;
+                                        BytesReadData += length;
+                                        info.BlockTransferred(length);
+                                    }
+                                    else
+                                    {
+                                        Server.Log("[E] read <0 byte during PUT request");
+                                        remaining = 0;
+                                    }
                                 }
-                                else
-                                {
-                                    Server.Log("[E] read <0 byte during PUT request");
-                                    remaining = 0;
-                                }
+
+                                file.Unlock(0, file.Length);
+                                file.Close();
+                                file = null;
+                                success = true;
                             }
-                            success = true;
                         }
                         catch (Exception e)
                         {
+                            Server.Log("[E] "+e.ToString()+" during PUT request");
                             success = false;
                         }
 
                         info.TransferFinished();
-
-                        if (file != null)
-                        {
-                            file.Flush();
-                            file.Close();
-                            file = null;
-                        }
 
                         if (!success)
                         {
@@ -1564,11 +1678,11 @@ namespace WebDAVServer
 
                 case FileType.PureVirtualFile:
                     {
-                        Stream returnStream = MLVAccessor.GetDataStream(type.MlvFilePath, type.MlvFileContent);
-
                         try
                         {
-                            ResponseBinaryContent = new BinaryReader(returnStream);
+                            byte[] returnStream = MLVAccessor.GetDataStream(type.MlvFilePath, type.MlvFileContent);
+
+                            ResponseBinaryContent = returnStream;
                             ResponseBinaryContentLength = returnStream.Length;
 
                             StatusCode = GetStatusCode(200);
@@ -1577,8 +1691,14 @@ namespace WebDAVServer
                             HeaderLines.Add("Accept-Ranges: bytes");
                             MimeType = GetMimeType(type.MlvFileContent);
                         }
+                        catch (FileNotFoundException e)
+                        {
+                            Server.Log("[E] Invalid MLV location: " + type.RequestPath);
+                            StatusCode = GetStatusCode(404);
+                        }
                         catch (Exception e)
                         {
+                            Server.Log("[E] Error while browsing " + type.RequestPath + ": " + e.GetType() + ", " + e.Message);
                             StatusCode = GetStatusCode(500);
                         }
                     }
@@ -1601,9 +1721,14 @@ namespace WebDAVServer
                         {
                             try
                             {
-                                FileStream file = File.Open(type.LocalPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                                ResponseBinaryContent = new BinaryReader(file);
-                                ResponseBinaryContentLength = file.Length;
+                                FileStream file = File.Open(type.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                                byte[] data = new byte[file.Length];
+                                file.Read(data, 0, data.Length);
+                                file.Close();
+
+                                ResponseBinaryContent = data;
+                                ResponseBinaryContentLength = data.Length;
 
                                 StatusCode = GetStatusCode(200);
                                 HeaderLines.Add("ETag: 1/" + RequestPath);
@@ -1811,6 +1936,22 @@ namespace WebDAVServer
             ResponseTextContent = listing;
             MimeType = "text/html";
         }
+    }
+
+
+    public class HeadHandler : GetHandler
+    {
+        public HeadHandler(WebDAVServer server, string request)
+            : base(server, request)
+        {
+            SendHeaderOnly = true;
+        }
+
+        public override void HandleRequest(Stream stream)
+        {
+            base.HandleRequest(stream);
+        }
+
     }
 
     public class OptionsHandler : RequestHandler

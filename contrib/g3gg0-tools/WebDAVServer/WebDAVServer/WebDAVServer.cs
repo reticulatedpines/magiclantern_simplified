@@ -33,7 +33,7 @@ namespace WebDAVServer
         public long BytesReadData = 0;
         public long BytesWrittenData = 0;
 
-        public static string Version = "2.2";
+        public static string Version = "2.9";
         public string DefaultConfigFileName = "WebDAVServer.cfg";
         public string ConfigFilePath = "";
         public string ConfigFileName = "";
@@ -49,18 +49,46 @@ namespace WebDAVServer
 
         public class SettingsContainer
         {
+            public string Version;
             public string Path;
             public int Port;
             public string AuthTokens;
+            public int PrefetchCount;
+            public int CacheTime;
+            public bool ShowJpeg;
+            public bool ShowInfos;
+            public bool ShowFits;
+            public bool ShowDng;
+            public bool ShowWav;
         }
         public SettingsContainer Settings = new SettingsContainer();
+        public string Statistics
+        {
+            get
+            {
+                StringBuilder ret = new StringBuilder();
+                
+                ret.AppendLine("Statistics:");
+                ret.AppendLine(MLVAccessor.Statistics);
+
+                return ret.ToString();
+            }
+        }
 
         public WebDAVServer(string[] arg)
         {
             /* default options */
+            Settings.Version = Version;
             Settings.Path = GetExecutableRoot();
             Settings.Port = 8082;
             Settings.AuthTokens = "";
+            Settings.CacheTime = 5 * 60;
+            Settings.PrefetchCount = 10;
+            Settings.ShowInfos = true;
+            Settings.ShowJpeg = true;
+            Settings.ShowFits = true;
+            Settings.ShowDng = true;
+            Settings.ShowWav = true;
 
             /* read default config */
             ReadDefaultConfigFile();
@@ -156,11 +184,20 @@ namespace WebDAVServer
                                 CleanupClientThreads();
                             });
 
+                            try
+                            {
+                                clientThread.Priority = ThreadPriority.Highest;
+                            }
+                            catch (Exception e)
+                            {
+                            }
+                            clientThread.Name = "Handle Connection";
+                            clientThread.Start();
+
                             lock (ClientThreads)
                             {
                                 ClientThreads.AddLast(clientThread);
                             }
-                            clientThread.Start();
                         }
                     }
                     catch (SocketException e)
@@ -174,7 +211,22 @@ namespace WebDAVServer
             }
             catch (SocketException e)
             {
-                Log("[E] WebDAVServer failed to start. (" + e.GetType() + ")");
+                switch (e.SocketErrorCode)
+                {
+                    case SocketError.AccessDenied:
+                        Log("[E] WebDAVServer failed to start: You are not allowed to use this port (start as administrator)");
+                        break;
+                    case SocketError.AddressAlreadyInUse:
+                        Log("[E] WebDAVServer failed to start: This port is already in use");
+                        break;
+                    default:
+                        Log("[E] WebDAVServer failed to start: " + e.SocketErrorCode + " (" + e.Message + ")");
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Log("[E] WebDAVServer failed to start: " + e.GetType() + " (" + e.Message + ")");
             }
         }
 
@@ -317,14 +369,23 @@ namespace WebDAVServer
 
         public void ReadConfigFile(string fileName)
         {
+            SettingsContainer settings = null;
             try
             {
                 XmlSerializer ser = new XmlSerializer(typeof(SettingsContainer));
                 FileStream stream = new FileStream(fileName, FileMode.Open);
                 try
                 {
-                    Settings = (SettingsContainer)ser.Deserialize(stream);
-                    ConfigFileStatus += ", successfully read";
+                    settings = (SettingsContainer)ser.Deserialize(stream);
+                    if (Version == settings.Version)
+                    {
+                        Settings = settings;
+                        ConfigFileStatus += ", successfully read";
+                    }
+                    else
+                    {
+                        ConfigFileStatus += ", successfully read but version mismatch";
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -339,6 +400,7 @@ namespace WebDAVServer
             {
                 ConfigFileStatus += ", caused " + ex.GetType().Name;
             }
+
         }
 
         public void SaveConfigFile(string fileName)
@@ -453,14 +515,19 @@ namespace WebDAVServer
         private void HandleConnection(Socket sock)
         {
             NetworkStream stream = new NetworkStream(sock);
-
-            /* the readline function will retry 10 times * 100 = 1 sec */
-            sock.ReceiveTimeout = RequestHandler.Timeout * 100;
-
             string line = null;
             bool error = false;
             bool keepAlive = false;
             DateTime startTime = DateTime.Now;
+
+            sock.ReceiveTimeout = RequestHandler.Timeout * 100;
+            sock.Blocking = false;
+            sock.NoDelay = true;
+            sock.SendBufferSize = 16 * 1024;
+            sock.UseOnlyOverlappedIO = true;
+
+            string type = "";
+            string path = "";
 
             do
             {
@@ -516,8 +583,8 @@ namespace WebDAVServer
                         {
                             if (line.Contains(' '))
                             {
-                                string type = line.Substring(0, line.IndexOf(' '));
-                                string path = line.Substring(line.IndexOf(' ')).Trim();
+                                type = line.Substring(0, line.IndexOf(' '));
+                                path = line.Substring(line.IndexOf(' ')).Trim();
                                 try
                                 {
                                     switch (type)
@@ -532,6 +599,10 @@ namespace WebDAVServer
 
                                         case "GET":
                                             handler = new GetHandler(this, path);
+                                            break;
+
+                                        case "HEAD":
+                                            handler = new HeadHandler(this, path);
                                             break;
 
                                         case "PUT":
@@ -570,8 +641,6 @@ namespace WebDAVServer
                                             handler = new RequestHandler(this, "/");
                                             break;
                                     }
-
-                                    Log("[i] Connection from " + sock.RemoteEndPoint + " (" + type + ")");
                                 }
                                 catch (IOException e)
                                 {
@@ -602,10 +671,17 @@ namespace WebDAVServer
                             {
                                 Log("[E] '" + e.GetType().ToString() + "' in connection from " + sock.RemoteEndPoint + " (AddHeaderLine)");
                             }
-                            stream.Flush();
+                            //stream.Flush();
                         }
                     }
                 } while (line != "");
+
+                if(handler == null)
+                {
+                    Log("[E] Empty request in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+                    handler.KeepAlive = false;
+                    return;
+                }
 
                 if (!error)
                 {
@@ -619,15 +695,37 @@ namespace WebDAVServer
                         handler.HandleRequest(stream);
                         stream.Flush();
                     }
-                    catch (IOException e)
+                    catch (FileNotFoundException e)
                     {
-                        /* just close */
-                        sock.Close();
+                        Log("[E] 404 '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+
+                        /* respond with error */
+                        handler = new RequestHandler(this, "/");
+                        handler.StatusCode = RequestHandler.GetStatusCode(404);
+                        handler.KeepAlive = false;
+                        handler.HandleRequest(stream);
+                        stream.Flush();
+                    }
+                    catch (SocketException e)
+                    {
+                        Log("[E] '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+                        handler.KeepAlive = false;
                         return;
+                    }
+                    catch (UnauthorizedAccessException e)
+                    {
+                        Log("[i] 403 '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+
+                        /* respond with error */
+                        handler = new RequestHandler(this, "/");
+                        handler.StatusCode = RequestHandler.GetStatusCode(403);
+                        handler.KeepAlive = false;
+                        handler.HandleRequest(stream);
+                        stream.Flush();
                     }
                     catch (Exception e)
                     {
-                        Log("[E] '" + e.GetType().ToString() + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
+                        Log("[E] 500 '" + e.GetType().ToString() + ": " + e.Message + "' in connection from " + sock.RemoteEndPoint + " (HandleContent/HandleRequest)");
 
                         /* respond with error */
                         handler = new RequestHandler(this, "/");
@@ -637,6 +735,12 @@ namespace WebDAVServer
                         stream.Flush();
                     }
 
+
+                    if (EnableRequestLog)
+                    {
+                        DateTime endTime = DateTime.Now;
+                        Log("[i] Connection from " + sock.RemoteEndPoint + " (" + type + " " + path + ") took " + (endTime - startTime).TotalMilliseconds + " ms (" + handler.StatusCode + ")");
+                    }
                     LogRequest("");
 
                     lock (StatisticsLock)
@@ -648,59 +752,49 @@ namespace WebDAVServer
                     }
 
                     keepAlive = handler.KeepAlive;
+
+                    /* windows isnt really using keepalive :( */
                     keepAlive = false;
                 }
             } while (keepAlive);
 
-            DateTime endTime = DateTime.Now;
             sock.Close();
-            LogRequest("  (Socket closed, " + (endTime - startTime).TotalMilliseconds + " ms, " +DNGCreator.ProcessingTime+" ms)");
+            LogRequest("  (Socket closed)");
         }
 
         private string ReadLine(NetworkStream stream)
         {
-            StringBuilder line = new StringBuilder("");
-            char character;
-            int loops = 10;
+            StringBuilder line = new StringBuilder();
 
-            while (true)
+            try
             {
-                bool received = false;
-
-                character = ' ';
-                try
+                while (true)
                 {
                     int ch = stream.ReadByte();
 
-                    if (ch < 0)
+                    if (ch < 0 && line.Length == 0)
                     {
                         throw new EndOfStreamException();
                     }
-                    else
-                    {
-                        character = (char)ch;
-                        received = true;
-                    }
-                }
-                catch (Exception e)
-                {
-                    if (--loops <= 0)
-                    {
-                        throw e;
-                    }
-                }
-
-                if (received)
-                {
-                    if (character != '\n' && character != '\r')
-                    {
-                        line.Append(character);
-                    }
-                    else if (character != '\r')
+                    else if (ch < 0)
                     {
                         break;
                     }
+                    else
+                    {
+                        if ((char)ch != '\n' && (char)ch != '\r')
+                        {
+                            line.Append((char)ch);
+                        }
+                        else if ((char)ch != '\r')
+                        {
+                            break;
+                        }
+                    }
                 }
+            }
+            catch (Exception e)
+            {
             }
 
             return line.ToString();

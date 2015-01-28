@@ -8,10 +8,6 @@
 #define LEDON 0x46
 #define LEDOFF 0x44
 
-//~ Format dialog consts
-#define FORMAT_BTN "[Q]"
-#define STR_LOC 11
-
 #define HIJACK_CACHE_HACK
 
 #define HIJACK_CACHE_HACK_BSS_END_ADDR   0xFF0123E4
@@ -216,6 +212,9 @@
 
 #define DIALOG_MnCardFormatBegin   (0x12864+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x158BC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define FORMAT_BTN_NAME "[Q]"
+#define FORMAT_BTN BGMT_Q_ALT
+#define FORMAT_STR_LOC 11
 
 #define BULB_MIN_EXPOSURE 1000
 

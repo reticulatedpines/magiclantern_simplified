@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 
 
@@ -43,59 +42,84 @@ namespace WebDAVServer
 
         internal static uint GetSize(string mlvFileName, MLVTypes.mlv_vidf_hdr_t vidfHeader, byte[] pixelData, object[] metadata)
         {
-            frame_headers dngData = CreateDngData(vidfHeader, metadata);
-
-            uint headerSize = dng_get_header_size(ref dngData);
-            uint imageSize = dng_get_image_size(ref dngData);
-            byte[] headerData = new byte[headerSize];
-            uint headerSizeReal = dng_get_header_data(ref dngData, headerData, 0, headerSize);
-
-            uint totalSize = headerSizeReal + imageSize;
-
-            return totalSize;
-        }
-
-        internal static Stream Create(string mlvFileName, MLVTypes.mlv_vidf_hdr_t vidfHeader, byte[] inData, object[] metadata)
-        {
-            frame_headers dngData = CreateDngData(vidfHeader, metadata);
-
             try
             {
+                frame_headers dngData = CreateDngData(vidfHeader, metadata);
+
                 uint headerSize = dng_get_header_size(ref dngData);
                 uint imageSize = dng_get_image_size(ref dngData);
                 byte[] headerData = new byte[headerSize];
-                byte[] imageData = new byte[imageSize];
-
                 uint headerSizeReal = dng_get_header_data(ref dngData, headerData, 0, headerSize);
 
-                DateTime start = DateTime.Now;
-                uint dataSizeReal = dng_get_image_data(ref dngData, inData, imageData, 0, imageSize);
-                ProcessingTime = (DateTime.Now - start).TotalMilliseconds;
+                uint totalSize = headerSizeReal + imageSize;
 
-                /* now assemble header and image data */
-                byte[] dngFileData = new byte[headerSizeReal + dataSizeReal];
-
-                Array.Copy(headerData, 0, dngFileData, 0, headerSizeReal);
-                Array.Copy(imageData, 0, dngFileData, headerSizeReal, dataSizeReal);
-
-                return new MemoryStream(dngFileData);
+                return totalSize;
             }
             catch(Exception e)
             {
-                return new MemoryStream();
+                return 0;
             }
+        }
+
+        internal static byte[] Create(string mlvFileName, MLVTypes.mlv_vidf_hdr_t vidfHeader, byte[] inData, object[] metadata)
+        {
+            frame_headers dngData = CreateDngData(vidfHeader, metadata);
+            uint dngHeaderSize = dng_get_header_size(ref dngData);
+            uint dngImageDataSize = (uint)(dngData.rawi_hdr.xRes * dngData.rawi_hdr.yRes * 16 / 8);
+            uint rawImageDataSize = (uint)(dngData.rawi_hdr.xRes * dngData.rawi_hdr.yRes * dngData.rawi_hdr.raw_info.bits_per_pixel / 8);
+
+            byte[] imageData = new byte[dngHeaderSize + dngImageDataSize];
+
+            if(rawImageDataSize > inData.Length)
+            {
+                throw new InvalidDataException("Raw data has only " + inData.Length + " bytes instead of " + rawImageDataSize + " bytes declared by RAWI info");
+            }
+
+            uint headerSizeReal = dng_get_header_data(ref dngData, imageData, 0, dngHeaderSize);
+
+            DateTime start = DateTime.Now;
+            uint dataSizeReal = dng_get_image_data(ref dngData, inData, imageData, -(int)headerSizeReal, dngImageDataSize);
+
+            ProcessingTime = (DateTime.Now - start).TotalMilliseconds;
+
+            return imageData;
         }
 
         private static frame_headers CreateDngData(MLVTypes.mlv_vidf_hdr_t vidfHeader, object[] metadata)
         {
             frame_headers dngData = new frame_headers();
 
-            foreach (dynamic obj in metadata)
+            foreach (var obj in metadata)
             {
                 if (obj.GetType() == typeof(MLVTypes.mlv_file_hdr_t))
                 {
-                    dngData.file_hdr = obj;
+                    dngData.file_hdr = (MLVTypes.mlv_file_hdr_t)obj;
                 }
+                else if (obj.GetType() == typeof(MLVTypes.mlv_rtci_hdr_t))
+                {
+                    dngData.rtci_hdr = (MLVTypes.mlv_rtci_hdr_t)obj;
+                }
+                else if (obj.GetType() == typeof(MLVTypes.mlv_idnt_hdr_t))
+                {
+                    dngData.idnt_hdr = (MLVTypes.mlv_idnt_hdr_t)obj;
+                }
+                else if (obj.GetType() == typeof(MLVTypes.mlv_rawi_hdr_t))
+                {
+                    dngData.rawi_hdr = (MLVTypes.mlv_rawi_hdr_t)obj;
+                }
+                else if (obj.GetType() == typeof(MLVTypes.mlv_expo_hdr_t))
+                {
+                    dngData.expo_hdr = (MLVTypes.mlv_expo_hdr_t)obj;
+                }
+                else if (obj.GetType() == typeof(MLVTypes.mlv_lens_hdr_t))
+                {
+                    dngData.lens_hdr = (MLVTypes.mlv_lens_hdr_t)obj;
+                }
+                else if (obj.GetType() == typeof(MLVTypes.mlv_wbal_hdr_t))
+                {
+                    dngData.wbal_hdr = (MLVTypes.mlv_wbal_hdr_t)obj;
+                }
+                    /*
                 else
                 {
                     switch ((String)obj.blockType)
@@ -119,7 +143,7 @@ namespace WebDAVServer
                             dngData.wbal_hdr = obj;
                             break;
                     }
-                }
+                }*/
             }
             dngData.vidf_hdr = vidfHeader;
 

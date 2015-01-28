@@ -39,6 +39,7 @@ This notice must always be retained in any copy.
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include <beep.h>
 
 #include "../trace/trace.h"
 
@@ -58,7 +59,7 @@ This notice must always be retained in any copy.
 #define trace_write(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 #endif
 
-/* simulate ML/DryOS behavoir for desktop mode */
+/* simulate ML/DryOS behavior for desktop mode */
 #define NotifyBox(x,...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 #define NotifyBoxHide() do { } while(0)
 #define beep() do { } while(0)
@@ -368,7 +369,7 @@ int crypt_rsa_generate(int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key, u
 
     /* Create RSA key pair (n, e),(d, p, q, dP, dQ, qInv) */
     char seed[256];
-    rand_fill(seed, sizeof(seed)/4);
+    rand_fill((uint32_t *)seed, sizeof(seed)/4);
 
     res = generateRSAKey(n, e, d, p, q, dP, dQ, qInv, nbits+1, 3, 50, seed, sizeof(seed), crypt_rsa_rand, progress);
 
@@ -535,8 +536,18 @@ uint32_t crypt_rsa_get_keysize(void *priv)
     rsa_ctx_t *ctx = (rsa_ctx_t *)priv;
 
     int nibbles = strlen(ctx->pub_key.primefac);
-
-    return nibbles * 4;
+    
+    if(!nibbles)
+    {
+        nibbles = strlen(ctx->priv_key.primefac);
+    }
+    
+    if(!nibbles)
+    {
+        return 0;
+    }
+    
+    return (nibbles - 1) * 4;
 }
 
 void crypt_rsa_set_keysize(uint32_t size)
@@ -551,7 +562,7 @@ void crypt_rsa_clear_key(t_crypt_key *key)
     key->key = "";
 }
 
-/* returns the key size in bits */
+/* returns the key size in bytes */
 uint32_t crypt_rsa_blocksize(crypt_priv_t *priv)
 {
     uint32_t keysize = crypt_rsa_get_keysize(priv);
@@ -574,7 +585,7 @@ static uint32_t crypt_rsa_encrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src
 
     if(crypt_rsa_blocksize(ctx) > length)
     {
-        trace_write(iocrypt_trace_ctx, "crypt_rsa_encrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(ctx), length);
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_encrypt: key size mismatch %d vs. %d bytes", crypt_rsa_blocksize(ctx), length);
         return 0;
     }
 
@@ -593,7 +604,7 @@ static uint32_t crypt_rsa_decrypt(crypt_priv_t *priv, uint8_t *dst, uint8_t *src
 
     if(crypt_rsa_blocksize(ctx) > length)
     {
-        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d", crypt_rsa_blocksize(ctx), length);
+        trace_write(iocrypt_trace_ctx, "crypt_rsa_decrypt: key size mismatch %d vs. %d bytes", crypt_rsa_blocksize(ctx), length);
         return 0;
     }
 
@@ -786,7 +797,7 @@ void crypt_rsa_test()
     if(ret)
     {
         NotifyBox(5000, "Test failed, check log!\n");
-        beep_times(5);
+        beep();
     }
     else
     {
@@ -824,9 +835,19 @@ void crypt_rsa_init(crypt_cipher_t *crypt_ctx)
 
     crypt_rsa_load("ML/DATA/io_crypt.pub", &ctx->pub_key);
     crypt_rsa_load("ML/DATA/io_crypt.key", &ctx->priv_key);
-    crypt_rsa_load("io_crypt.pub", &ctx->pub_key);
-    crypt_rsa_load("io_crypt.key", &ctx->priv_key);
-
+    
+    if(!crypt_rsa_get_keysize(ctx))
+    {
+        crypt_rsa_load("io_crypt.pub", &ctx->pub_key);
+        crypt_rsa_load("io_crypt.key", &ctx->priv_key);
+    }
+    
+    if(!crypt_rsa_get_keysize(ctx))
+    {
+        crypt_rsa_load("IO_CRYPT.PUB", &ctx->pub_key);
+        crypt_rsa_load("IO_CRYPT.KEY", &ctx->priv_key);
+    }
+    
     trace_write(iocrypt_trace_ctx, "crypt_rsa_init: loaded %d bit key", crypt_rsa_get_keysize(ctx));
 
 

@@ -17,6 +17,4 @@ void reset_movie_cropmarks();
 
 void crop_set_dirty(int redraw_timeout);
 
-int is_valid_cropmark_filename(char* filename);
-
 #endif
