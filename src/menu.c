@@ -5693,11 +5693,19 @@ int menu_request_image_backend()
         return 0;
     }
 
-    if (t > last_guimode_request + 500 && DISPLAY_IS_ON && get_yuv422_vram()->vram)
+    if (t > last_guimode_request + 500 && DISPLAY_IS_ON)
     {
-        /* ready to draw on the YUV buffer! */
-        clrscr();
-        return 1;
+        if (get_yuv422_vram()->vram)
+        {
+            /* ready to draw on the YUV buffer! */
+            clrscr();
+            return 1;
+        }
+        else
+        {
+            /* something might be wrong */
+            yuv422_buffer_check();
+        }
     }
     
     /* not yet ready, please retry */

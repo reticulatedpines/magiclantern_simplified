@@ -316,3 +316,6 @@ int* get_screen_layout_ptr();
 #define SCREENLAYOUT_UNDER_16_9 4 // HDMI VGA and SD
 
 #endif
+
+/* check if the YUV buffer is initialized, and print a warning if not */
+void yuv422_buffer_check();

@@ -1627,6 +1627,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
 
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
 {
+    yuv422_buffer_check();
+
     if (raw_buffer == (void*)-1)
         raw_buffer = (void*)raw_info.buffer;
     
