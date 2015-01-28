@@ -357,9 +357,13 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     /* append new blocks onto the end of the file */
     int64_t current_mlv_size = FIO_SeekSkipFile(save_file, 0, SEEK_END);
 
-    if(is_intervalometer_running())
+    if (frame_number)
     {
-        bmp_printf( FONT_MED, 0, 110, "Frame #%d, Current Size: %d MiB", frame_number, (uint32_t)(current_mlv_size >> 20));
+        bmp_printf( FONT_MED, 0, 35, "%s: %d MiB, %d frames", 
+            filename,
+            (uint32_t)((current_mlv_size + raw_info->frame_size) >> 20),
+            frame_number + 1
+        );
     }
     
     /* if we are in a new chunk, write MLVI header */
