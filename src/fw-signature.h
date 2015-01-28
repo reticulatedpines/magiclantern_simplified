@@ -47,4 +47,9 @@ static int compute_signature(int* start, int num)
     return c;
 }
 
+#ifdef CONFIG_QEMU
+/* we are using patched ROMs, so the signature will fail for sure; skip it */
+#undef CURRENT_CAMERA_SIGNATURE
+#endif
+
 #endif //_fw_signature_h_
