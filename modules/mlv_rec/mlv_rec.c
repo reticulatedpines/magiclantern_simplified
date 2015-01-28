@@ -617,11 +617,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
 
     refresh_raw_settings(0);
 
-    if (auto_power_off_time)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
-    }
-
     if (!RAW_IS_IDLE)
     {
         MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
@@ -2997,6 +2992,10 @@ static void raw_video_rec_task()
     update_resolution_params();
 
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
+    
+    /* disable powersave timer */
+    const int powersave_prohibit = 2;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
@@ -3463,6 +3462,11 @@ cleanup:
 
     hack_liveview(1);
     redraw();
+
+    /* re-enable powersave timer */
+    const int powersave_permit = 1;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+
     raw_recording_state = RAW_IDLE;
 }
 
