@@ -565,6 +565,7 @@ struct vram_info * get_yuv422_hd_vram()
 void vram_clear_lv()
 {
     struct vram_info * lv_vram = get_yuv422_vram();
+    if (!lv_vram->vram) return;
     memset(lv_vram->vram, 0, lv_vram->height * lv_vram->pitch);
 }
 
