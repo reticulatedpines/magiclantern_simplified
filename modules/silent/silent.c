@@ -47,10 +47,8 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
 
-#define SILENT_PIC_FILE_FORMAT_DNG        0
-#define SILENT_PIC_FILE_FORMAT_MLV_MULTI  1
-#define SILENT_PIC_FILE_FORMAT_MLV_SINGLE 2
-#define SILENT_PIC_FILE_FORMAT_MLV_MASK   3
+#define SILENT_PIC_FILE_FORMAT_DNG 0
+#define SILENT_PIC_FILE_FORMAT_MLV 1
 
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
@@ -106,7 +104,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
     }
     
-    if ((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && silent_pic_mlv_available)
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
     }
@@ -118,7 +116,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
 
 static MENU_UPDATE_FUNC(silent_pic_file_format_display)
 {
-    if ((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && !silent_pic_mlv_available)
+    if ((silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV) && !silent_pic_mlv_available)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option.");
     }
@@ -128,7 +126,7 @@ static char* silent_pic_get_name()
 {
     char *extension;
     
-    if((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && silent_pic_mlv_available)
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
         extension = "MLV";
     }
@@ -139,7 +137,7 @@ static char* silent_pic_get_name()
     
     int file_number = get_shooting_card()->file_number;
     
-    int is_mlv = ((silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK) && silent_pic_mlv_available);
+    int is_mlv = (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV);
     
     if (is_intervalometer_running() && !is_mlv)
     {
@@ -311,9 +309,10 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
             filename = silent_pic_get_name();
         }
     }
-    else if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV_MULTI)
+    else
     {
-        /* no intervalometer, but user wants a multi frame MLV */
+        /* save frames into a single MLV */
+        /* (will reset the counter and create a new file once you get back into menu) */
         frame_number = mlv_file_frame_number;
         mlv_file_frame_number++;
         
@@ -321,11 +320,6 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
         {
             filename = silent_pic_get_name();
         }
-    }
-    else
-    {
-        /* single-frame MLV files always get a new name */
-        filename = silent_pic_get_name();
     }
     
     /* if the size exceeds this size, create a new chunk */
@@ -408,7 +402,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
 
 static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
 {
-    if(silent_pic_file_format & SILENT_PIC_FILE_FORMAT_MLV_MASK)
+    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
         if(!silent_pic_mlv_available)
         {
@@ -1298,13 +1292,12 @@ static struct menu_entry silent_menu[] = {
                 .name = "File Format",
                 .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
-                .max = 2,
+                .max = 1,
                 .help = "File format to save the image as:",
                 .help2 =
-                    "DNG needs no post-processing, MLV is faster but requires extra tools.\n"
-                    "To start a new file, disable and re-enable silent picture.\n"
-                    "Writes an extra MLV for every picture being taken.\n",
-                .choices = CHOICES("DNG", "Multi Frame MLV", "Single Frame MLV"),
+                    "DNG is slow, but needs no extra post-processing.\n"
+                    "MLV is fast, and will group all frames into a single video file.\n",
+                .choices = CHOICES("DNG", "MLV"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
