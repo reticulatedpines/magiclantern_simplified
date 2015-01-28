@@ -151,7 +151,7 @@ static char* silent_pic_get_name()
         snprintf(pattern, sizeof(pattern), "%s/%04d%%04d.%s", get_dcim_dir(), file_number, 0, extension);
         get_numbered_file_name(pattern, 9999, image_file_name, sizeof(image_file_name));
     }
-    bmp_printf(FONT_MED, 0, 35, "%s    ", image_file_name);
+    bmp_printf(FONT_MED, 0, 37, "%s    ", image_file_name);
     return image_file_name;
 }
 
@@ -165,7 +165,7 @@ static void save_raw(struct raw_info * raw_info)
     
     if (!save_file)
     {
-        bmp_printf( FONT_MED, 0, 80, "File create error");
+        bmp_printf( FONT_MED, 0, 83, "File create error");
     }
     else
     {
@@ -332,7 +332,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     
     if (!save_file)
     {
-        bmp_printf( FONT_MED, 0, 80, "File create error");
+        bmp_printf( FONT_MED, 0, 83, "File create error");
         return;
     }
     
@@ -356,7 +356,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
 
     if (frame_number)
     {
-        bmp_printf( FONT_MED, 0, 35, "%s: %d MiB, %d frames", 
+        bmp_printf( FONT_MED, 0, 37, "%s: %d MiB, %d frames", 
             filename,
             (uint32_t)((current_mlv_size + raw_info->frame_size) >> 20),
             frame_number + 1
@@ -844,11 +844,11 @@ silent_pic_take_lv(int interactive)
     sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite);
 
     if (sp_buffer_count > 1)
-        bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
+        bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
 
     if (sp_buffer_count == 0)
     {
-        bmp_printf(FONT_MED, 0, 80, "Buffer error");
+        bmp_printf(FONT_MED, 0, 83, "Buffer error");
         goto cleanup;
     }
     
@@ -937,9 +937,10 @@ silent_pic_take_lv(int interactive)
             sp_num_frames -= i0, i0 = 0; /* save pics starting from index 0, to preserve ordering by focus */
         }
         
+        clrscr();
+        
         for (int i = i0; i < sp_num_frames; i++)
         {
-            clrscr();
             bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
 
             if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
@@ -1159,7 +1160,7 @@ silent_pic_take_fullres(int interactive)
     /* save the raw image as DNG or MLV */
     {
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        bmp_printf(FONT_MED, 0, 85, "Captured in %d ms.", t1 - t0);
+        bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", t1 - t0);
         
         int t0 = get_ms_clock_value();
         
