@@ -112,6 +112,11 @@ static MENU_UPDATE_FUNC(silent_pic_display)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit DNG.");
     }
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && shooting_mode != SHOOTMODE_M)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) mode.");
+    }
 }
 
 static MENU_UPDATE_FUNC(silent_pic_file_format_display)
@@ -1039,23 +1044,29 @@ silent_pic_take_fullres(int interactive)
     
     char* error_msg = 0;
 
+    if (shooting_mode != SHOOTMODE_M)
+    {
+        error_msg = "Manual (M) mode is required.";
+        goto err;
+    }
+
+    if (prop_iso == 0 || prop_shutter == 0)
+    {
+        error_msg = "Manual exposure is required.";
+        goto err;
+    }
+
     /* there are problems with shutter speeds slower than 15 seconds */
     /* (corrupted image and camera lockup, at least on 5D2 and 550D) */
     if (prop_shutter < SHUTTER_15s)
     {
-        error_msg = "Exposure too long";
-        goto err;
-    }
-
-    if (prop_iso == 0)
-    {
-        error_msg = "Auto ISO not compatible";
+        error_msg = "Exposure too long.";
         goto err;
     }
     
     if (!can_use_raw_overlays_photo())
     {
-        error_msg = "Set picture quality to RAW";
+        error_msg = "Set picture quality to RAW.";
         goto err;
     }
     
