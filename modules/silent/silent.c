@@ -1173,7 +1173,10 @@ silent_pic_take_fullres(int interactive)
         silent_pic_save_file(&local_raw_info, t1 - t0, 0);
         int t1 = get_ms_clock_value();
         
-        bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms).   ", local_raw_info.jpeg.width, local_raw_info.jpeg.height, t1-t0);
+        bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms, %d MiB/s).   ", 
+            local_raw_info.jpeg.width, local_raw_info.jpeg.height,
+            t1-t0, (int)roundf(local_raw_info.frame_size * 1000.0f / (t1 - t0) / 1024.0f / 1024.0f)
+        );
     }
 
     if (is_intervalometer_running())
