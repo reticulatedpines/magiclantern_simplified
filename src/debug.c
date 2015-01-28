@@ -3542,17 +3542,10 @@ static void HijackFormatDialogBox()
     struct dialog * dialog = current->priv;
     if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-    /** Defaults for format dialog consts **/
-    #if !defined(FORMAT_BTN)
-        #define FORMAT_BTN "[Q]"
-    #elif !defined(STR_LOC)
-        #define STR_LOC 11
-    #endif
-
     if (keep_ml_after_format)
-        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN_NAME);
     else
-        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN_NAME);
     dialog_redraw(dialog);
 }
 
@@ -3565,13 +3558,16 @@ static void HijackCurrentDialogBox(int string_id, char* msg)
     dialog_redraw(dialog);
 }
 
-int handle_keep_ml_after_format_toggle()
+int handle_keep_ml_after_format_toggle(struct event * event)
 {
-    if (!MENU_MODE) return 1;
-    if (MEM(DIALOG_MnCardFormatBegin) == 0) return 1;
-    keep_ml_after_format = !keep_ml_after_format;
-    fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
-    return 0;
+    if (event->param == FORMAT_BTN && MENU_MODE && MEM(DIALOG_MnCardFormatBegin))
+    {
+        keep_ml_after_format = !keep_ml_after_format;
+        fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
+        return 0;
+    }
+    
+    return 1;
 }
 
 /**
@@ -3669,6 +3665,11 @@ static void TmpMem_AddFile(char* filename)
     if (filesize == -1) return;
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
+    
+    /* don't add the same file twice */
+    for (int i = 0; i < tmp_file_index; i++)
+        if (streq(tmp_files[i].name, filename))
+            return;
 
     read_file(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
@@ -3690,7 +3691,7 @@ static void TmpMem_AddFile(char* filename)
     }
 }
 
-static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int recursive_levels)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int (*is_valid_filename)(char*), int recursive_levels)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -3705,14 +3706,15 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
             {
                 char new_dir[0x80];
                 snprintf(new_dir, sizeof(new_dir), "%s%s/", dir, file.name);
-                CopyMLDirectoryToRAM_BeforeFormat(new_dir, cropmarks_flag, recursive_levels-1);
+                CopyMLDirectoryToRAM_BeforeFormat(new_dir, is_valid_filename, recursive_levels-1);
             }
             continue; // is a directory
         }
-        if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
-
-        int n = strlen(file.name);
-        if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
+        
+        if (is_valid_filename && !is_valid_filename(file.name))
+        {
+            continue;
+        }
 
         char fn[0x80];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
@@ -3722,19 +3724,41 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
     FIO_FindClose(dirent);
 }
 
+static int is_valid_fir_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".FIR") || streq(filename + n - 4, ".fir")))
+        return 1;
+    return 0;
+}
+
+static int is_valid_log_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".LOG") || streq(filename + n - 4, ".log")))
+        return 1;
+    return 0;
+}
+
 static void CopyMLFilesToRAM_BeforeFormat()
 {
+    /* this is the most important file, read it first */
     TmpMem_AddFile("AUTOEXEC.BIN");
-    TmpMem_AddFile("MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 0);
+    
+    /* some important subdirectories from ML/ */
     CopyMLDirectoryToRAM_BeforeFormat("ML/FONTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
     CopyMLDirectoryToRAM_BeforeFormat("ML/MODULES/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/SCRIPTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/DATA/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/CROPMKS/", 1, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/DOC/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/LOGS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
+
+    /* FIR files from root dir */
+    CopyMLDirectoryToRAM_BeforeFormat("", is_valid_fir_filename, 0);
+    
+    /* everything else from ML dir */
+    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 2);
+    
+    /* and, if we still have free space, also keep the LOG files from root dir */
+    CopyMLDirectoryToRAM_BeforeFormat("", is_valid_log_filename, 0);
+    
     TmpMem_UpdateSizeDisplay(0);
 }
 
@@ -3754,14 +3778,14 @@ static void CopyMLFilesBack_AfterFormat()
         if(should_run_polling_action(500, &aux))
         {
             snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
-            HijackCurrentDialogBox(STR_LOC, msg);
+            HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
         }
         dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
         int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4);
         if (sig != tmp_files[i].sig)
         {
             snprintf(msg, sizeof(msg), "Could not restore %s :(", tmp_files[i].name);
-            HijackCurrentDialogBox(STR_LOC, msg);
+            HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
             msleep(2000);
             FIO_RemoveFile(tmp_files[i].name);
             if (i <= 1) return;
@@ -3772,15 +3796,19 @@ static void CopyMLFilesBack_AfterFormat()
     /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
     if(check_autoexec())
     {
-        HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        HijackCurrentDialogBox(FORMAT_STR_LOC, "Writing bootflags...");
         
-        extern void bootflag_write_bootblock(void);
-        bootflag_write_bootblock();
+        extern int bootflag_write_bootblock(void);
+        if (!bootflag_write_bootblock())
+        {
+            beep_times(3);
+            NotifyBox(5000, "Bootflags not written, use EosCard");
+        }
     }
 
-    HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Magic Lantern restored :)");
     msleep(1000);
-    HijackCurrentDialogBox(STR_LOC, "Format");
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Format");
 }
 
 static void HijackFormatDialogBox_main()
@@ -3788,6 +3816,15 @@ static void HijackFormatDialogBox_main()
     if (!MENU_MODE) return;
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     // at this point, Format dialog box is active
+    
+    #ifdef CONFIG_DUAL_SLOT
+    int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
+    if (ml_on_cf != FORMATTING_CF_CARD)
+    {
+        /* we are not formatting the ML card, no need to restore anything */
+        return;
+    }
+    #endif
 
     // make sure we have something to restore :)
     if (!check_autoexec()) return;
