@@ -613,7 +613,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
             (!(
                 (
                     !require_preferred_size ||
-                    (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                    (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_max_alloc_size)
                 )
                 && 
                 (
