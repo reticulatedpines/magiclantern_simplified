@@ -73,7 +73,7 @@ static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
     /* reset the MLV frame counter if we enter ML menu */
-    /* exception: don't reset the intervalometer is running - we might want to change some settings on the fly */
+    /* exception: don't reset if the intervalometer is running - we might want to change some settings on the fly */
     if (!is_intervalometer_running())
     {
         mlv_file_frame_number = 0;
@@ -309,6 +309,8 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
     /* default case: use last filename */
     char *filename = image_file_name;
     
+    static int intervalometer_was_running = 0;
+
     /* if intervalometer is active, only get the next filename for the first frame */
     if (is_intervalometer_running())
     {
@@ -322,12 +324,24 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
              */
             mlv_file_frame_number = 0;
         }
+        intervalometer_was_running = 1;
+    }
+    else
+    {
+        if (intervalometer_was_running)
+        {
+            /* also create a new MLV once you turn off the intervalometer */
+            /* (this is also handled in menu, but if you press the buttons quickly, it will not reset the counter) */
+            mlv_file_frame_number = 0;
+            intervalometer_was_running = 0;
+        }
     }
 
     /* save frames into a single MLV */
     /* will reset the counter and create a new file:
      * a) once you get back into menu, or
      * b) at the end of a burst sequence
+     * c) when you start/stop the intervalometer
      */
     int frame_number = mlv_file_frame_number;
     mlv_file_frame_number++;
