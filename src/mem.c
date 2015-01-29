@@ -619,11 +619,13 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         }
         
         /* matches preferred size criteria? */
+        int preferred_min = allocators[a].preferred_min_alloc_size;
+        int preferred_max = allocators[a].preferred_max_alloc_size ? allocators[a].preferred_max_alloc_size : INT_MAX;
         if 
             (!(
                 (
                     !require_preferred_size ||
-                    (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_max_alloc_size)
+                    (size >= preferred_min && size <= preferred_max)
                 )
                 && 
                 (
@@ -632,7 +634,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 )
            ))
         {
-            dbg_printf("%s: pref size mismatch (req=%d, pref=%d..%d, min=%d)\n", allocators[a].name, size, allocators[a].preferred_min_alloc_size, allocators[a].preferred_max_alloc_size, allocators[a].minimum_alloc_size);
+            dbg_printf("%s: pref size mismatch (req=%d, pref=%d..%d, min=%d)\n", allocators[a].name, size, preferred_min, preferred_max, allocators[a].minimum_alloc_size);
             continue;
         }
         
