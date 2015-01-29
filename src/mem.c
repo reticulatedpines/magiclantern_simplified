@@ -182,7 +182,7 @@ static struct mem_allocator allocators[] = {
         
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
-        .preferred_max_alloc_size = 32 * 1024 * 1024,
+        .preferred_max_alloc_size = 20 * 1024 * 1024,
         .minimum_alloc_size = 5 * 1024,
     },
 #endif
@@ -201,7 +201,7 @@ static struct mem_allocator allocators[] = {
         .is_preferred_for_temporary_space = 2,  /* prefer not to use it, use shoot_malloc if you can */
 
         /* only use it for huge buffers */
-        .minimum_alloc_size = 25 * 1024 * 1024,
+        .minimum_alloc_size = 20 * 1024 * 1024,
     },
 #endif
 #endif  /* CONFIG_INSTALLER */
