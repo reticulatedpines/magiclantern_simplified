@@ -583,6 +583,14 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
 
 static int search_for_allocator(int size, int require_preferred_size, int require_preferred_free_space, int require_tmp, int require_dma)
 {
+    dbg_printf("search_for_allocator(%s, prefer %s%s%s%s)\n",
+        format_memory_size(size),
+        require_preferred_size ? "size " : "",
+        require_preferred_free_space ? "space " : "",
+        require_tmp == 1 ? "tmp1 " : require_tmp == 2 ? "tmp2 " : require_tmp == -1 ? "tmp_no" : require_tmp ? "err" : "",
+        require_dma ? "dma " : ""
+    );
+    
     for (int a = 0; a < COUNT(allocators); a++)
     {
         int has_non_dma = allocators[a].malloc ? 1 : 0;
@@ -596,6 +604,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 (!require_dma && has_non_dma)
            ))
         {
+            dbg_printf("%s: dma mismatch (%d,%d,%d)\n", allocators[a].name, require_dma, has_dma, has_non_dma);
             continue;
         }
 
@@ -605,6 +614,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 (require_tmp == preferred_for_tmp)
            ))
         {
+            dbg_printf("%s: tmp mismatch (%d,%d)\n", allocators[a].name, require_tmp, preferred_for_tmp);
             continue;
         }
         
@@ -622,6 +632,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 )
            ))
         {
+            dbg_printf("%s: pref size mismatch (req=%d, pref=%d..%d, min=%d)\n", allocators[a].name, size, allocators[a].preferred_min_alloc_size, allocators[a].preferred_max_alloc_size, allocators[a].minimum_alloc_size);
             continue;
         }
         
@@ -641,15 +652,16 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 )
            ))
         {
+            dbg_printf("%s: free space mismatch (req=%d,free=%d,pref=%d,min=%d)\n", allocators[a].name, size, free_space, allocators[a].preferred_free_space, allocators[a].minimum_free_space);
             continue;
         }
         
         /* do we have a large enough contiguous chunk? */
         /* use a heuristic if we don't know, use a safety margin even if we know */
         int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
-        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
         if (size > max_region)
         {
+            dbg_printf("%s: max region mismatch %s\n", allocators[a].name, format_memory_size(max_region));
             continue;
         }
         
@@ -657,6 +669,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
         if (allocators[a].num_blocks >= max_blocks)
         {
+            dbg_printf("%s: not enough free blocks (%d,%d)\n", allocators[a].num_blocks, max_blocks);
             continue;
         }
         
