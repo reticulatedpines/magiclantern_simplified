@@ -1178,6 +1178,8 @@ silent_pic_take_fullres(int interactive)
     }
     
     /* save the raw image as DNG or MLV */
+    int save_time;
+    
     {
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
         bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", capture_time);
@@ -1192,10 +1194,11 @@ silent_pic_take_fullres(int interactive)
         
         silent_pic_save_file(&local_raw_info, capture_time, 0);
         int t1 = get_ms_clock_value();
+        save_time = t1 - t0;
         
         bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms, %d MiB/s).   ", 
             local_raw_info.jpeg.width, local_raw_info.jpeg.height,
-            t1-t0, (int)roundf(local_raw_info.frame_size * 1000.0f / (t1 - t0) / 1024.0f / 1024.0f)
+            save_time, (int)roundf(local_raw_info.frame_size * 1000.0f / (t1 - t0) / 1024.0f / 1024.0f)
         );
     }
 
@@ -1205,7 +1208,7 @@ silent_pic_take_fullres(int interactive)
         /* but do not block during this time */
         /* (will set a timer - if we are still in QR mode, turn off the display) */
         int intervalometer_delay = get_interval_time() * 1000;
-        int intervalometer_remaining = intervalometer_delay - capture_time - 2000;
+        int intervalometer_remaining = intervalometer_delay - capture_time - save_time - 2000;
         int preview_delay = 
             image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000) 
                               : 0;
