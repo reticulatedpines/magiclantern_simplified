@@ -62,7 +62,7 @@ static mlv_file_hdr_t mlv_file_hdr;
 static uint64_t mlv_start_timestamp = 0;
 static char image_file_name[100];
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
-static uint32_t mlv_file_frame_number = 0;
+static int mlv_file_frame_number = 0;
 
 
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
@@ -72,7 +72,12 @@ static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 }
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
-    mlv_file_frame_number = 0;
+    /* reset the MLV frame counter if we enter ML menu */
+    /* exception: don't reset the intervalometer is running - we might want to change some settings on the fly */
+    if (!is_intervalometer_running())
+    {
+        mlv_file_frame_number = 0;
+    }
     
     if (!silent_pic_enabled)
         return;
@@ -290,7 +295,7 @@ static FILE *open_mlv_file(char *base_filename, uint32_t max_filesize)
 }
 
 /* save using the MLV file format  */
-static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_number)
+static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
 {
     mlv_rtci_hdr_t rtci_hdr;
     mlv_expo_hdr_t expo_hdr;
@@ -307,28 +312,32 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     /* if intervalometer is active, only get the next filename for the first frame */
     if (is_intervalometer_running())
     {
-        frame_number = get_interval_count();
-        
-        if(frame_number == 0)
+        int interval_count = get_interval_count();
+        if (interval_count == 0 || interval_count < mlv_file_frame_number)
         {
-            filename = silent_pic_get_name();
+            /* create a new MLV if:
+             * - it is the first frame in a timelapse sequence
+             * - it's not the first frame, but the intervalometer frame number is smaller than the MLV frame number
+             *   (which means the intervalometer was somehow restarted, but the first frame was not a silent picture)
+             */
+            mlv_file_frame_number = 0;
         }
     }
-    else
+
+    /* save frames into a single MLV */
+    /* will reset the counter and create a new file:
+     * a) once you get back into menu, or
+     * b) at the end of a burst sequence
+     */
+    int frame_number = mlv_file_frame_number;
+    mlv_file_frame_number++;
+    
+    if(frame_number == 0)
     {
-        /* save frames into a single MLV */
-        /* will reset the counter and create a new file:
-         * a) once you get back into menu, or
-         * b) at the end of a burst sequence
-         */
-        frame_number = mlv_file_frame_number;
-        mlv_file_frame_number++;
-        
-        if(frame_number == 0)
-        {
-            filename = silent_pic_get_name();
-        }
+        filename = silent_pic_get_name();
     }
+    
+    ASSERT(filename[0]);
     
     /* if the size exceeds this size, create a new chunk */
     uint32_t max_size = mlv_max_filesize - (uint32_t)(raw_info->frame_size * 2);
@@ -408,7 +417,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms, int frame_
     FIO_CloseFile(save_file);
 }
 
-static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, int frame_number)
+static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
 {
     if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
@@ -418,7 +427,7 @@ static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms
             return;
         }
 
-        save_mlv(raw_info, capture_time_ms, frame_number);
+        save_mlv(raw_info, capture_time_ms);
     }
     else
     {
@@ -955,7 +964,7 @@ silent_pic_take_lv(int interactive)
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
             raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
-            silent_pic_save_file(&local_raw_info, 0, i - i0);
+            silent_pic_save_file(&local_raw_info, 0);
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
             {
@@ -993,7 +1002,7 @@ silent_pic_take_lv(int interactive)
         
         local_raw_info.buffer = sp_frames[0];
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        silent_pic_save_file(&local_raw_info, 0, 0);
+        silent_pic_save_file(&local_raw_info, 0);
         redraw();
     }
     
@@ -1192,7 +1201,7 @@ silent_pic_take_fullres(int interactive)
             memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
         }
         
-        silent_pic_save_file(&local_raw_info, capture_time, 0);
+        silent_pic_save_file(&local_raw_info, capture_time);
         int t1 = get_ms_clock_value();
         save_time = t1 - t0;
         
