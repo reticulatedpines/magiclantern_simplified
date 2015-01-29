@@ -703,6 +703,15 @@ static int choose_allocator(int size, unsigned int flags)
     /* next, try something that doesn't meet the temporary preference */
     if (prefers_tmp)
     {
+        /* try again preferred size and free space */
+        a = search_for_allocator(size, 1, 1, 0, needs_dma);
+        if (a >= 0) return a;
+
+        /* relax preferred buffer size */
+        a = search_for_allocator(size, 0, 1, 0, needs_dma);
+        if (a >= 0) return a;
+
+        /* relax preferred free space as well */
         a = search_for_allocator(size, 0, 0, 0, needs_dma);
         if (a >= 0) return a;
     }
