@@ -1029,6 +1029,13 @@ static void show_battery_status()
 static PROP_INT(PROP_ISO, prop_iso);
 static PROP_INT(PROP_SHUTTER, prop_shutter);
 
+static void display_off_if_qr_mode()
+{
+    if (is_play_or_qr_mode())
+    {
+        display_off();
+    }
+}
 
 static void
 silent_pic_take_fullres(int interactive)
@@ -1117,6 +1124,8 @@ silent_pic_take_fullres(int interactive)
     call("FA_CaptureTestImage", job);
     
     int t1 = get_ms_clock_value();
+    int capture_time = t1 - t0;
+
     info_led_off();
     lens_info.job_state = 0;
 
@@ -1171,7 +1180,7 @@ silent_pic_take_fullres(int interactive)
     /* save the raw image as DNG or MLV */
     {
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", t1 - t0);
+        bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", capture_time);
         
         int t0 = get_ms_clock_value();
         
@@ -1181,7 +1190,7 @@ silent_pic_take_fullres(int interactive)
             memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
         }
         
-        silent_pic_save_file(&local_raw_info, t1 - t0, 0);
+        silent_pic_save_file(&local_raw_info, capture_time, 0);
         int t1 = get_ms_clock_value();
         
         bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms, %d MiB/s).   ", 
@@ -1192,7 +1201,15 @@ silent_pic_take_fullres(int interactive)
 
     if (is_intervalometer_running())
     {
-        display_off();
+        /* keep the display on, up to "image_review_time" seconds (as set in Canon menu) */
+        /* but do not block during this time */
+        /* (will set a timer - if we are still in QR mode, turn off the display) */
+        int intervalometer_delay = get_interval_time() * 1000;
+        int intervalometer_remaining = intervalometer_delay - capture_time - 2000;
+        int preview_delay = 
+            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000) 
+                              : 0;
+        delayed_call(preview_delay, display_off_if_qr_mode);
         
         /* attempt to reset the powersave timer */
         int prolong = 3; /* AUTO_POWEROFF_PROLONG */
