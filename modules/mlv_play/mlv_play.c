@@ -1996,7 +1996,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             buffer->frameSize = frame_size;
-            buffer->frameBuffer = malloc(buffer->frameSize);
+            buffer->frameBuffer = fio_malloc(buffer->frameSize);
         }
 
         if(!buffer->frameBuffer)
