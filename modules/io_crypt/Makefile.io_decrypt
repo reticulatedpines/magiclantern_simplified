@@ -1,6 +1,6 @@
 # Makefile for the io_decrypt software
 
-C_FILES=io_decrypt.c crypt_lfsr64.c crypt_rsa.c hash_password.c bigdigits.c bigd.c
+C_FILES=io_decrypt.c crypt_lfsr64.c crypt_xtea.c crypt_rsa.c hash_password.c bigdigits.c bigd.c
 C_DEPS=crypt_lfsr64.h
 
 HOST_BIN=io_decrypt
