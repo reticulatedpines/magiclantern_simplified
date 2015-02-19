@@ -1748,7 +1748,7 @@ draw_zebra_and_focus( int Z, int F )
         struct vram_info *hd_vram = focus_peaking_lores ? get_yuv422_vram() : get_yuv422_hd_vram();
         uint32_t hdvram = (uint32_t)hd_vram->vram;
         if (focus_peaking_lores) hdvram = (uint32_t)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
-        if (!hdvram) return;
+        if (!hdvram) return 0;
         
         int off = get_y_skip_offset_for_overlays();
         int yStart = os.y0 + off + 8;
