@@ -544,7 +544,7 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
 void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 {
     uint32_t index = 0;
-    if(vignetting_correction_enable && lvmgr)
+    if(vignetting_correction_enable && lvmgr && is_movie_mode())
     {
         uint32_t *vign = &lvmgr[0x83];
 
