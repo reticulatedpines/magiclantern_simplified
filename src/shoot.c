@@ -1614,7 +1614,7 @@ static MENU_UPDATE_FUNC(shutter_display)
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
             "%s, %d"SYM_DEGREE,
-            lens_format_shutter_reciprocal(s),
+            lens_format_shutter_reciprocal(s, 5),
             deg);
     }
     else
