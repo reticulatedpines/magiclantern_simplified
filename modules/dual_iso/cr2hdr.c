@@ -986,14 +986,14 @@ static int black_subtract(int left_margin, int top_margin)
     {
        for (int y = ymin; y < h; y++)
        {
-           int avg = 0;
+            /* use median instead of averaging, to ignore hot pixels */
+           int samples[256];
            int num = 0;
-           for (int x = 2 + k; x < left_margin - 8; x+=2)
+           for (int x = 2 + k; x < left_margin - 8 && num < COUNT(samples); x+=2, num++)
            {
-               avg += raw_get_pixel16(x, y);
-               num++;
+               samples[num] = raw_get_pixel16(x, y);
            }
-           vblack[y * 2 + k] = avg / num;
+           vblack[y * 2 + k] = median_int_wirth(samples, num);
        }
     }
     /* perform some slight filtering (averaging) so we don't add noise to the image */
@@ -1050,13 +1050,14 @@ static int black_subtract(int left_margin, int top_margin)
         int y0 = ymin + k;
         int offset = 0;
         {
+            /* use median instead of averaging, to ignore hot pixels */
+            int samples[256];
             int num = 0;
-            for (int y = y0; y < ymax; y += 4)
+            for (int y = y0; y < ymax && num < COUNT(samples); y += 4, num++)
             {
-                offset += blackframe[y*w];
-                num++;
+                samples[num] = blackframe[y*w];
             }
-            offset /= num;
+            offset = median_int_wirth(samples, num);
         }
         
         /* try to fix banding that repeats every 8 pixels */
