@@ -1164,23 +1164,22 @@ static int black_subtract_simple(int left_margin, int top_margin)
     
     int h = raw_info.height;
 
-    /* average left bar */
-    long long avg = 0;
+    /* median value from left OB bar */
+    int* samples = malloc(left_margin * h * sizeof(samples[0]));
+    
     int num = 0;
     for (int y = top_margin + 20; y < h - 20; y++)
     {
         for (int x = 16; x < left_margin - 16; x++)
         {
             int p = raw_get_pixel20(x, y);
-            if (p > 0)
-            {
-                avg += p;
-                num++;
-            }
+            samples[num++] = p;
         }
     }
     
-    int new_black = avg / num;
+    int new_black = median_int_wirth(samples, num);
+    
+    free(samples); samples = 0;
         
     int black_delta = raw_info.black_level - new_black;
     
