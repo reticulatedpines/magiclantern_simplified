@@ -166,7 +166,8 @@ extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_skip_buffer(uint32_t buffer_index, 
 
 
 /* helpers for reserving disc space */
-static uint32_t mlv_rec_alloc_dummy(uint32_t size);
+static uint32_t mlv_rec_alloc_dummy(char *filename, uint32_t size);
+static uint32_t mlv_rec_alloc_dummies(uint32_t size);
 static void mlv_rec_release_dummy();
 static uint32_t calc_padding(uint32_t address, uint32_t alignment);
 static uint32_t raw_rec_should_preview(uint32_t ctx);

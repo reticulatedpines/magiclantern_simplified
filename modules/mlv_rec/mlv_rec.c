@@ -268,12 +268,9 @@ static void mlv_rec_err_printf(const char* format, ... )
 
 
 /* helpers for reserving disc space */
-static uint32_t mlv_rec_alloc_dummy(uint32_t size)
+static uint32_t mlv_rec_alloc_dummy(char *filename, uint32_t size)
 {
-    char filename[32];
-    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
-
-    /* add an megabyte extra */
+    /* add a megabyte extra */
     size += 1024 * 1024;
     
     uint32_t file_size = 0;
@@ -292,30 +289,66 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     FILE *dummy_file = FIO_CreateFile(filename);
     if(!dummy_file)
     {
-        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file '%s'", filename);
         return 0;
     }
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
+    trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Allocating %d MiB backup: '%s'", size / 1024 / 1024, filename);
+    
     FIO_WriteFile(dummy_file, (void*)0x40000000, size);
     uint32_t new_pos = FIO_SeekSkipFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
     {
-        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to write to dummy file", filename);
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to write to dummy file '%s'", filename);
         return 0;
     }
     
     return 1;
 }
 
-static void mlv_rec_release_dummy()
+static uint32_t mlv_rec_alloc_dummies(uint32_t total_size)
+{
+    /* now allocate a dummy file that is going to be released when disk runs full */
+    uint32_t ret = 0;
+    char filename[MAX_PATH];
+    
+    trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummies: allocating...");
+    
+    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
+
+    /* do one for the "main" card */
+    ret = mlv_rec_alloc_dummy(filename, total_size);
+    
+    /* do the same for the other cards, if needed */
+    if(card_spanning)
+    {
+        filename[0] = 'B';
+        
+        ret |= mlv_rec_alloc_dummy(filename, total_size);
+    }
+    
+    trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummies: allocating returns %d", ret);
+    return ret;
+}
+
+
+static void mlv_rec_release_dummies()
 {
     char filename[32];
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
 
-    FIO_RemoveFile(filename);
+    /* delete the one for the "main" card */
+    
+    /* do the same for the other cards, if needed */
+    if(card_spanning)
+    {
+        filename[0] = 'B';
+        
+        FIO_RemoveFile(filename);
+    }
 }
 
 /* calc required padding for given address */
@@ -1046,8 +1079,7 @@ static int32_t setup_buffers()
     
     if(create_dummy)
     {
-        /* now allocate a dummy file that is going to be released when disk runs full */
-        return mlv_rec_alloc_dummy(total_size);
+        return mlv_rec_alloc_dummies(total_size);
     }
     
     return 1;
@@ -2373,8 +2405,8 @@ static uint32_t raw_get_next_filenum()
     uint32_t fileNum = 0;
 
     uint32_t old_int = cli();
-    mlv_file_hdr.fileCount++;
     fileNum = mlv_file_hdr.fileCount;
+    mlv_file_hdr.fileCount++;
     sei(old_int);
 
     return fileNum;
@@ -2631,8 +2663,8 @@ static void raw_writer_task(uint32_t writer)
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, job->block_size);
                     }
 
-                    /* okay, writing failed. now try to save what we have by reelasing the dummy file */
-                    mlv_rec_release_dummy();
+                    /* okay, writing failed. now try to save what we have by relasing the dummy file */
+                    mlv_rec_release_dummies();
 
                     /* if the whole write call failed, nothing would have been saved */
                     if(written < 0)
@@ -3075,7 +3107,8 @@ static void raw_video_rec_task()
                 beep_times(2);
                 return;
             }
-
+            
+            mlv_file_hdr.fileCount++;
             trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_END));
         }
 
@@ -3114,7 +3147,7 @@ static void raw_video_rec_task()
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
             /* create a post mortem dump */
-            if(mlv_dmp_ptr)
+            if(mlv_binlog_buffer)
             {
                 char filename[64]; 
                 
@@ -3125,7 +3158,7 @@ static void raw_video_rec_task()
                 
                 if(file)
                 {
-                    FIO_WriteFile(file, mlv_dmp_ptr, mlv_dmp_used);
+                    FIO_WriteFile(file, mlv_binlog_buffer, mlv_binlog_used);
                     FIO_CloseFile(file);       
                     beep();
                     bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 100, "ERROR: Please send us %s", filename);
@@ -3137,10 +3170,10 @@ static void raw_video_rec_task()
                 }
                 
                 /* reset to defaults */
-                free(mlv_dmp_ptr);
-                mlv_dmp_ptr = NULL;
-                mlv_dmp_size = 0;
-                mlv_dmp_used = 0;
+                free(mlv_binlog_buffer);
+                mlv_binlog_buffer = NULL;
+                mlv_binlog_size = 0;
+                mlv_binlog_used = 0;
                 
                 /* stop recording */
                 raw_recording_state = RAW_FINISHING;
@@ -3281,11 +3314,21 @@ static void raw_video_rec_task()
                     handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
-                    if (!handle->file_handle)
+                    if(!handle->file_handle)
                     {
-                        NotifyBox(5000, "Failed to open file. Card full?");
-                        trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
-                        break;
+                        /* we probably ran out of precreated files, create one now which is a bit more expensive */
+                        handle->file_handle = FIO_CreateFile(handle->filename);
+                        if(!handle->file_handle)
+                        {
+                            NotifyBox(5000, "Failed to create new file. Card full?");
+                            trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
+                            
+                            /* try to free up some space and exit */
+                            mlv_rec_release_dummies();
+                            raw_recording_state = RAW_FINISHING;
+                            raw_rec_cbr_stopping();
+                        }
+                        raw_prepare_chunk(handle->file_handle, &handle->file_header);
                     }
 
                     trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekSkipFile(handle->file_handle, 0, SEEK_END));
