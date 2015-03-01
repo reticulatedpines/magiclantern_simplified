@@ -274,7 +274,7 @@ void dng_restore_metadata(const char* dng_file)
     json_file[len+1] = '\0';
     
     char exif_cmd[1000];
-    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"-json=%s\" \"%s\" -q", json_file, dng_file);
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool \"-json=%s\" \"%s\" -q -overwrite_original", json_file, dng_file);
     int r = system(exif_cmd);
     if(r!=0)
     {
