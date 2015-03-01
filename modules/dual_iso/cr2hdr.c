@@ -1863,6 +1863,12 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
 
     int hot_pixels = 0;
     int cold_pixels = 0;
+
+    /* really dark pixels (way below the black level) are probably noise */
+    /* there might be dark pixels not that much below the black level, but they need further checking */
+    int cold_thr = MAX(0, black - dark_noise*8);
+    int maybe_cold_thr = black + dark_noise*2;
+
     for (int y = 6; y < h-6; y ++)
     {
         for (int x = 6; x < w-6; x ++)
@@ -1870,14 +1876,12 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
             int p = raw_get_pixel20(x, y);
             
             int is_hot = 0;
-            int is_cold = 0;
-
-            /* really dark pixels (way below the black level) are probably noise */
-            is_cold = (p < black - dark_noise*8);
+            int is_cold = (p < cold_thr);
+            int maybe_cold = (p < maybe_cold_thr);
 
             /* we don't have no hot pixels on the bright exposure */
             /* but we may have cold pixels */
-            if (!BRIGHT_ROW || is_cold)
+            if (!BRIGHT_ROW || maybe_cold)
             {
                 /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
                 int neighbours[100];
@@ -1907,11 +1911,18 @@ static void find_and_fix_bad_pixels(int dark_noise, int bright_noise, int* raw2e
                     
                     /* this difference will only get lower, so if it's already too low (see below), stop scanning */
                     /* (don't stop scanning if the pixel is cold, since we'll need this info to interpolate it) */
-                    if (raw2ev[p] - raw2ev[max] <= EV_RESOLUTION && !is_cold)
-                        break;
+                    if (raw2ev[p] - raw2ev[max] <= EV_RESOLUTION && !maybe_cold)
+                        break;  
                 }
                 
                 is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
+                
+                if (maybe_cold)
+                {
+                    /* there may be cold pixels very close to black level */
+                    /* heuristic: if it's much darker than the brightest neighbour, it's a cold pixel */
+                    is_cold |= (raw2ev[max] - raw2ev[p] > EV_RESOLUTION * 10);
+                }
                 
                 if (fix_bad_pixels == 2)    /* aggressive */
                 {
@@ -2162,6 +2173,9 @@ static int hdr_interpolate()
     int white_darkened = white_bright;
     int ok = match_exposures(&corr_ev, &white_darkened);
     if (!ok) goto err;
+
+    /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
+    black_subtract_simple(raw_info.active_area.x1, raw_info.active_area.y1);
 
     /* estimate dynamic range */
     double lowiso_dr = log2(white - black) - dark_noise_ev;
@@ -3180,7 +3194,7 @@ static int hdr_interpolate()
     printf("Noise level     : %.02f (20-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
     printf("Dynamic range   : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 
-    /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
+    /* run a final black subtract pass, to fix whatever our funky processing may do to blacks */
     black_subtract_simple(raw_info.active_area.x1, raw_info.active_area.y1);
     white = raw_info.white_level;
     black = raw_info.black_level;
