@@ -2692,7 +2692,7 @@ static int hdr_interpolate()
             {
                 int b = bright[x + y*w];
                 int d = dark[x + y*w];
-                if (MAX(b,d) < black + 512 * 64)
+                if (MAX(b,d) < white_darkened)
                 {
                     delta[delta_num++] = b - d;
                 }
@@ -2701,13 +2701,15 @@ static int hdr_interpolate()
             /* compute median difference */
             int med_delta = median_int_wirth(delta, delta_num);
             
-            if (delta_num < 500)
+            if (delta_num < 200)
             {
+                //~ printf("%d: too few points (%d)\n", y, delta_num);
                 continue;
             }
 
             if (ABS(med_delta) > 200*16)
             {
+                printf("%d: offset too large (%d)\n", y, med_delta);
                 continue;
             }
 
