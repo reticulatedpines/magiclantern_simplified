@@ -70,7 +70,7 @@ int use_stripe_fix = 1;
 float soft_film_ev = 0;
 
 int exif_wb = 0;
-float custom_wb[3] = {2, 1, 2};
+float custom_wb[3] = {0, 0, 0};
 int debug_wb = 0;
 
 #define WB_GRAY_MED 1
@@ -173,7 +173,7 @@ struct cmd_group options[] = {
             { &gray_wb,     WB_GRAY_MAX, "--wb=graymax",    "set AsShotNeutral by maximizing the number of gray pixels (default)" },
             { &gray_wb,     WB_GRAY_MED, "--wb=graymed",    "set AsShotNeutral from the median of R-G and B-G" },
             { &exif_wb,               1, "--wb=exif",       "set AsShotNeutral from EXIF WB (not exactly working)" },
-            { (int*)&custom_wb[0],    3, "--wb=%f,%f,%f",   "use custom RGB multipliers (default 2,1,2)" },
+            { (int*)&custom_wb[0],    3, "--wb=%f,%f,%f",   "use custom RGB multipliers" },
             OPTION_EOL
         },
     },
@@ -3245,7 +3245,23 @@ static int hdr_interpolate()
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
 
     char* AsShotNeutral_method = "default";
-    if (gray_wb)
+    if (exif_wb)
+    {
+        AsShotNeutral_method = "fixme";
+        
+        /* fixme: exif WB will not be applied to soft-film curve (will use some dummy values instead) */
+        custom_wb[0] = 2;
+        custom_wb[1] = 1;
+        custom_wb[2] = 2;
+    }
+    else if (custom_wb[1])
+    {
+        float red_balance = custom_wb[0]/custom_wb[1];
+        float blue_balance = custom_wb[2]/custom_wb[1];
+        dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
+        AsShotNeutral_method = "custom";
+    }
+    else /* if (gray_wb) */
     {
         float red_balance = -1, blue_balance = -1;
         white_balance_gray(&red_balance, &blue_balance, gray_wb);
@@ -3258,23 +3274,12 @@ static int hdr_interpolate()
             gray_wb == WB_GRAY_MAX ? "gray max" :
              "?"; 
     }
-    else if (exif_wb)
+
+    if (!exif_wb)
     {
-        AsShotNeutral_method = "fixme";
-    }
-    else
-    {
-        float red_balance = custom_wb[0]/custom_wb[1];
-        float blue_balance = custom_wb[2]/custom_wb[1];
-        dng_set_wbgain(1000000, red_balance*1000000, 1, 1, 1000000, blue_balance*1000000);
-        AsShotNeutral_method = "custom";
-    }
-    
-    custom_wb[0] /= custom_wb[1];
-    custom_wb[2] /= custom_wb[1];
-    custom_wb[1] = 1;
-    
-    {
+        custom_wb[0] /= custom_wb[1];
+        custom_wb[2] /= custom_wb[1];
+        custom_wb[1] = 1;
         double multipliers[3] = {custom_wb[0], custom_wb[1], custom_wb[2]};
         double temperature, green;
         ufraw_multipliers_to_kelvin_green(multipliers, &temperature, &green);
