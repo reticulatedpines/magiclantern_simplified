@@ -79,6 +79,18 @@
 #include "mlv.h"
 #include "mlv_rec.h"
 
+/* an alternative tracing method that embeds the logs into the MLV file itself */
+#define EMBEDDED_LOGGING
+
+#if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
+#define trace_write                                 mlv_debg_printf
+#define trace_available()                           1
+#define trace_start(name, file_name)                (uint32_t)(file_name)
+#define trace_stop(trace, wait)                     (void)0
+#define trace_format(context, format, separator)    (void)0
+#define trace_set_flushrate(context, timeout)       (void)0
+#endif
+
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -227,45 +239,106 @@ static int32_t mlv_file_count = 0;
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
 
+#if defined(EMBEDDED_LOGGING)
+/* START: helper code for logging into MLV files */
+static uint8_t *mlv_debg_buffer = NULL;
+static uint32_t mlv_debg_size = 0;
+static uint32_t mlv_debg_used = 0;
 
-/* START: helper code for a post mortem dump */
-static void *mlv_dmp_ptr = NULL;
-static uint32_t mlv_dmp_size = 0;
-static uint32_t mlv_dmp_used = 0;
-
-static void mlv_rec_err_addbin(void *data, uint32_t length)
+static void mlv_debg_addbin(void *data, uint32_t length)
 {
-    if(!mlv_dmp_ptr)
+    if(!mlv_debg_buffer)
     {
-        mlv_dmp_size = 8192;
-        mlv_dmp_ptr = malloc(mlv_dmp_size);
+        mlv_debg_size = 8192;
+        mlv_debg_buffer = malloc(mlv_debg_size);
     }
     
-    if(mlv_dmp_used + length > mlv_dmp_size)
+    if(mlv_debg_used + length > mlv_debg_size)
     {
-        mlv_dmp_size += 8192 + length;
-        mlv_dmp_ptr = realloc(mlv_dmp_ptr, mlv_dmp_size);
+        mlv_debg_size += 8192 + length;
+        mlv_debg_buffer = realloc(mlv_debg_buffer, mlv_debg_size);
     }
-    memcpy((void *)((uint32_t)mlv_dmp_ptr + mlv_dmp_used), data, length);
-    mlv_dmp_used += length;
+    
+    memcpy(&mlv_debg_buffer[mlv_debg_used], data, length);
+    mlv_debg_used += length;
+    mlv_debg_buffer[mlv_debg_used] = '\000';
 }
 
-static void mlv_rec_err_printf(const char* format, ... )
+static void mlv_rec_requeue_debg(mlv_debg_hdr_t *hdr)
+{
+    uint8_t *str_pos = (uint8_t *)((uint32_t)hdr + sizeof(mlv_debg_hdr_t));
+    
+    uint32_t old_int = cli();
+    mlv_debg_addbin(str_pos, hdr->length);
+    sei(old_int);
+    
+    free(hdr);
+}
+
+static mlv_debg_hdr_t *mlv_rec_queue_debg()
+{
+    if(!mlv_debg_used)
+    {
+        return NULL;
+    }
+    
+    uint32_t old_int = cli();
+    
+    /* locked because mlv_debg_used is read and altered here */
+    uint32_t size = mlv_debg_used + sizeof(mlv_debg_hdr_t);
+    
+    /* pad size to 32 bits */
+    if(size % 4)
+    {
+        size += 4;
+        size &= ~3;
+    }
+    
+    mlv_debg_hdr_t *hdr = malloc(size);
+    
+    uint8_t *str_pos = (uint8_t *)((uint32_t)hdr + sizeof(mlv_debg_hdr_t));
+    memcpy(str_pos, mlv_debg_buffer, mlv_debg_used);
+    
+    /* set block size and payload size (they may differ due to padding) */
+    hdr->blockSize = size;
+    hdr->length = mlv_debg_used;
+    hdr->type = 0;
+    
+    mlv_debg_used = 0;
+    
+    /* end of locking area */
+    sei(old_int);
+
+    mlv_set_type((mlv_hdr_t *)hdr, "DEBG");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+    
+    return hdr;
+}
+
+static void mlv_debg_printf(uint32_t ctx, const char* format, ... )
 {
     va_list args;
     va_start( args, format );
     
-    uint32_t size = strlen(format) + 64;
+    uint32_t size = strlen(format) + 128;
     char *fmt_str = malloc(size);
 
     vsnprintf(fmt_str, size, format, args);
-    mlv_rec_err_addbin(fmt_str, strlen(fmt_str));
+
+    /* here we can check if logging is enabled and if not, skip further logging */
+    if(enable_tracing)
+    {
+        uint32_t old_int = cli();
+        mlv_debg_addbin(fmt_str, strlen(fmt_str));
+        mlv_debg_addbin("\n", 1);
+        sei(old_int);
+    }
     
     free(fmt_str);
     va_end( args );
 }
-/* END: helper code for a post mortem dump */
-
+/* END: helper code for logging into MLV files */
+#endif
 
 /* helpers for reserving disc space */
 static uint32_t mlv_rec_alloc_dummy(char *filename, uint32_t size)
@@ -2537,6 +2610,28 @@ static void raw_writer_task(uint32_t writer)
             /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
             if(1)
             {
+#if defined(EMBEDDED_LOGGING)
+                if(writer == 0)
+                {
+                    /* instantly embed DEBG messages, if any */
+                    mlv_debg_hdr_t *debg_hdr = mlv_rec_queue_debg();
+                    
+                    if(debg_hdr)
+                    {
+                        int32_t debg_written = FIO_WriteFile(f, debg_hdr, debg_hdr->blockSize);
+                        
+                        if(debg_written != (int32_t)debg_hdr->blockSize)
+                        {
+                            mlv_rec_requeue_debg(debg_hdr);
+                        }
+                        else
+                        {
+                           free(debg_hdr);
+                        }
+                    }
+                }
+#endif
+
                 if(!large_file_support)
                 {
                     /* check if we will reach the 4GiB boundary with this write */
@@ -2784,7 +2879,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
 
         /* check if there is a block that should get embedded */
         msg_queue_count(mlv_block_queue, &msg_count);
-
+        
         /* embed what is possible */
         for(uint32_t msg = 0; msg < msg_count; msg++)
         {
@@ -3146,40 +3241,6 @@ static void raw_video_rec_task()
 
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
-            /* create a post mortem dump */
-            if(mlv_binlog_buffer)
-            {
-                char filename[64]; 
-                
-                strncpy(filename, mlv_movie_filename, sizeof(filename));
-                strncpy(&filename[strlen(filename) - 3], "ERR", 4);
-
-                FILE *file = FIO_CreateFile(filename);
-                
-                if(file)
-                {
-                    FIO_WriteFile(file, mlv_binlog_buffer, mlv_binlog_used);
-                    FIO_CloseFile(file);       
-                    beep();
-                    bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 100, "ERROR: Please send us %s", filename);
-                    ASSERT(0 && "ERROR: Please send us the generated .ERR file");
-                }
-                else
-                {
-                    ASSERT(0 && "ERROR: Some error occurred, but could not create error dump");
-                }
-                
-                /* reset to defaults */
-                free(mlv_binlog_buffer);
-                mlv_binlog_buffer = NULL;
-                mlv_binlog_size = 0;
-                mlv_binlog_used = 0;
-                
-                /* stop recording */
-                raw_recording_state = RAW_FINISHING;
-                raw_rec_cbr_stopping();
-            }
-            
             /* on shutdown or writers that aborted, abort even if there are unwritten slots */
             if(ml_shutdown_requested || !mlv_rec_threads)
             {
@@ -3796,7 +3857,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Debug trace",
                 .priv = &enable_tracing,
                 .max = 1,
-                .help = "Write an execution trace to memory card. Causes perfomance drop.",
+                .help = "Write an execution trace. Causes perfomance drop.",
                 .help2 = "You have to restart camera before setting takes effect.",
             },
             {

@@ -226,6 +226,15 @@ typedef struct {
     uint32_t    wbs_ba;    /* range: -9...9 */
 }  mlv_wbal_hdr_t;
 
+typedef struct {
+    uint8_t     blockType[4];    /* DEBG - debug messages for development use, contains no production data */
+    uint32_t    blockSize;
+    uint64_t    timestamp;
+    uint32_t    type;       /* debug data type, for now 0 - text log */
+    uint32_t    length;     /* data can be of arbitrary length and blocks are padded to 32 bits, so store real length */
+ /* uint8_t     stringData[variable]; */
+}  mlv_debg_hdr_t;
+
 #pragma pack(pop)
 
 /* helper routines for filling structures from generic camera information */

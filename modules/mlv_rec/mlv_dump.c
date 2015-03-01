@@ -2506,6 +2506,69 @@ read_headers:
                     free(buf);
                 }
             }
+            else if(!memcmp(buf.blockType, "DEBG", 4))
+            {
+                mlv_debg_hdr_t block_hdr;
+                int32_t hdr_size = MIN(sizeof(mlv_debg_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    goto abort;
+                }
+
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+
+                /* get the string length and malloc a buffer for that string */
+                int str_length = block_hdr.blockSize - hdr_size;
+
+                if(str_length)
+                {
+                    char *buf = malloc(str_length + 1);
+
+                    if(fread(buf, str_length, 1, in_file) != 1)
+                    {
+                        free(buf);
+                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        goto abort;
+                    }
+
+                    if(verbose)
+                    {
+                        buf[block_hdr.length] = '\000';
+                        print_msg(MSG_INFO, "     String:   '%s'\n", buf);
+                    }
+                    
+                    char *log_filename = malloc(strlen(input_filename) + 6);
+                    snprintf(log_filename, strlen(input_filename) + 6, "%s.log", input_filename);
+                    
+                    FILE *log_file = fopen(log_filename, "ab+");
+                    fwrite(buf, block_hdr.length, 1, log_file);
+                    fclose(log_file);
+                    free(log_filename);
+
+                    /* only output this block if there is any data */
+                    if(mlv_output && !no_metadata_mode)
+                    {
+                        /* correct header size if needed */
+                        block_hdr.blockSize = sizeof(mlv_debg_hdr_t) + str_length;
+                        if(fwrite(&block_hdr, sizeof(mlv_debg_hdr_t), 1, out_file) != 1)
+                        {
+                            free(buf);
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                        if(fwrite(buf, str_length, 1, out_file) != 1)
+                        {
+                            free(buf);
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                    }
+
+                    free(buf);
+                }
+            }
             else if(!memcmp(buf.blockType, "ELVL", 4))
             {
                 mlv_elvl_hdr_t block_hdr;
