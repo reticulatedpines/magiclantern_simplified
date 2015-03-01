@@ -1234,6 +1234,9 @@ static int hdr_check()
 {
     int black = raw_info.black_level;
     int white = raw_info.white_level;
+    
+    /* ignore the last half-stop (we don't know the white level accurately at this point) */
+    white = (white - black) * 0.707 + black;
 
     int w = raw_info.width;
     int h = raw_info.height;
