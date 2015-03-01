@@ -807,6 +807,22 @@ int main(int argc, char** argv)
                     }
                 }
                 
+                char renamed_filename[1000];
+                char* old_filename = 0;
+                if (strcasecmp(filename, out_filename) == 0)
+                {
+                    /* if the filesystem is not case-sensitive, we will overwrite the input file */
+                    /* I don't know how to detect this in a portable way, so I'll rename the input file just in case */
+                    /* if no overwriting takes place, the renaming will be undone */
+                    //~ printf("Might overwrite input file.\n");
+                    snprintf(renamed_filename, sizeof(renamed_filename), "%s", filename);
+                    int len = strlen(renamed_filename);
+                    renamed_filename[len-1] = '6';
+                    rename(filename, renamed_filename);
+                    old_filename = filename;
+                    filename = renamed_filename;
+                }
+
                 if (orig_filename[0])
                 {
                     dng_backup_metadata(out_filename);
@@ -833,7 +849,21 @@ int main(int argc, char** argv)
                     int delete_original = (embed_original != 2);
                     embed_original_raw(out_filename, filename, delete_original);
                 }
-                
+
+                if (old_filename && is_file(renamed_filename))
+                {
+                    if (!is_file(old_filename))
+                    {
+                        /* input file not overwritten, undo renaming */
+                        rename(renamed_filename, old_filename);
+                    }
+                    else
+                    {
+                        /* output file would overwrite the input file */
+                        unlink(renamed_filename);
+                    }
+                }
+
                 /* record black and white levels */
                 file_indices[num_files] = k;
                 blacks[num_files] = raw_info.black_level;
