@@ -1441,10 +1441,11 @@ static int identify_bright_and_dark_fields(int rggb)
             }
         }
 
-        if (raw[0] >= white) break;
-        if (raw[1] >= white) break;
-        if (raw[2] >= white) break;
-        if (raw[3] >= white) break;
+        if ((raw[0] >= white) + (raw[1] >= white) + (raw[2] >= white) + (raw[3] >= white) >= 2)
+        {
+            /* stop when at least two accumulators reach clipping */
+            break;
+        }
     }
 
     if (debug_bddb)
