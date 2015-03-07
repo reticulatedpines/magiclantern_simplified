@@ -543,9 +543,11 @@ static void update_resolution_params()
     if ( (cam_eos_m && !video_mode_crop) ? (lv_dispsize == 1) : (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) ) /* 720p, image squeezed */
     {
         /* assume the raw image should be 16:9 when de-squeezed */
-        int32_t correct_height = max_res_x * 9 / 16;
+        //int32_t correct_height = max_res_x * 9 / 16;
         //int32_t correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
-        squeeze_factor = (float)correct_height / max_res_y;
+        //squeeze_factor = (float)correct_height / max_res_y;
+        /* 720p mode uses 5x3 binning (5DMK3) or horizontal binning + vertical skipping (other cameras) */
+        squeeze_factor = 1.6666f; // 5.0/3.0
     }
     else squeeze_factor = 1.0f;
 
