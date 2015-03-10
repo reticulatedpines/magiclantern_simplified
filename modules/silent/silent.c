@@ -70,6 +70,21 @@ static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
     if (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN)
     MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This option is only for slit-scan pictures.");
 }
+
+static MENU_UPDATE_FUNC(silent_pic_check_mlv)
+{
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && !silent_pic_mlv_available)
+    {
+        if (info->warning_level == MENU_WARN_NOT_WORKING)
+        {
+            /* make sure the MLV warning appears first (with highest priority) */
+            /* (normally, the menu backend prints only the first warning with the highest level, but here we want the last one) */
+            info->warning_level = 0;
+        }
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "To use the MLV file format, you must load the mlv_rec module.");
+    }
+}
+
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
     /* reset the MLV frame counter if we enter ML menu */
@@ -112,24 +127,25 @@ static MENU_UPDATE_FUNC(silent_pic_display)
     if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
+        MENU_APPEND_VALUE(", MLV");
     }
     else
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit DNG.");
+        MENU_APPEND_VALUE(", DNG");
     }
     
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && shooting_mode != SHOOTMODE_M)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) mode.");
     }
+    
+    silent_pic_check_mlv(entry, info);
 }
 
 static MENU_UPDATE_FUNC(silent_pic_file_format_display)
 {
-    if ((silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV) && !silent_pic_mlv_available)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must load the mlv_rec module to use this option.");
-    }
+    silent_pic_check_mlv(entry, info);
 }
 
 static char* silent_pic_get_name()
@@ -297,6 +313,11 @@ static FILE *open_mlv_file(char *base_filename, uint32_t max_filesize)
 /* save using the MLV file format  */
 static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
 {
+    if (!silent_pic_mlv_available)
+    {
+        return;
+    }
+    
     mlv_rtci_hdr_t rtci_hdr;
     mlv_expo_hdr_t expo_hdr;
     mlv_lens_hdr_t lens_hdr;
@@ -435,12 +456,6 @@ static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms
 {
     if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
-        if(!silent_pic_mlv_available)
-        {
-            NotifyBox(2000, "MLV module not loaded. Will abort.");
-            return;
-        }
-
         save_mlv(raw_info, capture_time_ms);
     }
     else
@@ -1273,8 +1288,21 @@ err:
 static unsigned int
 silent_pic_take(unsigned int interactive) // for remote release, set interactive=0
 {
-    if (!silent_pic_enabled) return CBR_RET_CONTINUE;
-    
+    if (!silent_pic_enabled)
+    {
+        /* tell the photo taking backend that no custom picture was taken */
+        /* (so it should try another custom picture handler or a regular picture) */
+        return CBR_RET_CONTINUE;
+    }
+
+    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && !silent_pic_mlv_available)
+    {
+        NotifyBox(2000, "MLV module not loaded. Will abort.");
+        
+        /* user error; do not try to take a regular picture if this fails */
+        return CBR_RET_STOP;
+    }
+
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES)
     {
         /* in fullres mode, go to LiveView only if in normal photo mode */
