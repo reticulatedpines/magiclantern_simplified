@@ -1075,6 +1075,8 @@ static void display_off_if_qr_mode()
     }
 }
 
+static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
+
 static void
 silent_pic_take_fullres(int interactive)
 {
@@ -1103,9 +1105,11 @@ silent_pic_take_fullres(int interactive)
 
     /* there are problems with shutter speeds slower than 15 seconds */
     /* (corrupted image and camera lockup, at least on 5D2 and 550D) */
-    if (prop_shutter < SHUTTER_15s)
+    if (prop_shutter < SLOWEST_SHUTTER)
     {
-        error_msg = "Exposure too long.";
+        static char expo_msg[50];
+        snprintf(expo_msg, sizeof(expo_msg), "Exposure too long (max %s).", lens_format_shutter(SLOWEST_SHUTTER));
+        error_msg = expo_msg;
         goto err;
     }
     
@@ -1409,6 +1413,12 @@ static unsigned int silent_init()
     prop_shutter = lens_info.raw_shutter;
 
     silent_pic_mlv_available = ((int)mlv_generate_guid() != 0);
+
+    if (is_camera("500D", "*") || is_camera("550D", "*") || is_camera("600D", "*"))
+    {
+        /* see http://www.magiclantern.fm/forum/index.php?topic=12523.msg129874#msg129874 */
+        SLOWEST_SHUTTER = SHUTTER_0s8;
+    }
 
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
     return 0;
