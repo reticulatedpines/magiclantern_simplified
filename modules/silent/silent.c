@@ -16,6 +16,8 @@
 #include "../mlv_rec/mlv.h"
 #include "battery.h"
 
+static uint64_t ret_0_long() { return 0; }
+
 extern WEAK_FUNC(ret_0) void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
 
 extern WEAK_FUNC(ret_0) void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp);
@@ -24,10 +26,10 @@ extern WEAK_FUNC(ret_0) void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_t
 extern WEAK_FUNC(ret_0) void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
 extern WEAK_FUNC(ret_0) void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp);
 extern WEAK_FUNC(ret_0) void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp);
-extern WEAK_FUNC(ret_0) uint64_t mlv_generate_guid();
+extern WEAK_FUNC(ret_0_long) uint64_t mlv_generate_guid();
 extern WEAK_FUNC(ret_0) void mlv_init_fileheader(mlv_file_hdr_t *hdr);
 extern WEAK_FUNC(ret_0) void mlv_set_type(mlv_hdr_t *hdr, char *type);
-extern WEAK_FUNC(ret_0) uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start);
+extern WEAK_FUNC(ret_0_long) uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start);
 
 extern WEAK_FUNC(ret_0) int GetBatteryLevel();
 extern WEAK_FUNC(ret_0) int GetBatteryTimeRemaining();
@@ -1412,7 +1414,7 @@ static unsigned int silent_init()
     prop_iso = lens_info.raw_iso;
     prop_shutter = lens_info.raw_shutter;
 
-    silent_pic_mlv_available = ((int)mlv_generate_guid() != 0);
+    silent_pic_mlv_available = (mlv_generate_guid() != 0ULL);
 
     if (is_camera("500D", "*") || is_camera("550D", "*") || is_camera("600D", "*"))
     {
