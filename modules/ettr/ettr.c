@@ -1512,7 +1512,7 @@ static struct menu_entry ettr_menu[] =
                 .name = "Allow beeps",
                 .priv = &auto_ettr_allow_beeps,
                 .max = 1,
-                .help =  "Make status beeps",
+                .help =  "Make status beeps (1 = OK, 2 = need more pictures, 3 = error).",
                 .advanced = 1,
             },
             {
