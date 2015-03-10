@@ -1380,7 +1380,7 @@ static unsigned int silent_init()
     prop_iso = lens_info.raw_iso;
     prop_shutter = lens_info.raw_shutter;
 
-    silent_pic_mlv_available = (mlv_generate_guid() != 0);
+    silent_pic_mlv_available = ((int)mlv_generate_guid() != 0);
 
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
     return 0;
