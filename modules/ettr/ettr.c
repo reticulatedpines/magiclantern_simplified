@@ -702,7 +702,7 @@ static void auto_ettr_step_task(int corr)
     else if (ettr_pics_took >= 3)
     {
         /* I give up */
-        ettr_beep();
+        ettr_beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: giving up\n%s", get_current_exposure_settings());
