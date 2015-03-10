@@ -13,9 +13,13 @@ char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
 
+/* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
+/* is_camera("5D3", "*") - will accept all firmware versions */
 int is_camera(const char * model, const char * firmware)
 {
-    return streq(__camera_model_short, model) && streq(firmware_version, firmware);
+    return 
+        streq(__camera_model_short, model) &&                           /* check camera model */
+        (streq(firmware_version, firmware) || streq(firmware, "*"));    /* check firmware version */
 }
 
 PROP_HANDLER(PROP_CAM_MODEL)
