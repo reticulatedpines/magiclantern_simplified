@@ -57,6 +57,23 @@ extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) int  raw_lv_is_enabled();
 
+/* optional beeps */
+static void ettr_beep()
+{
+    if (auto_ettr_allow_beeps)
+    {
+        beep();
+    }
+}
+
+static void ettr_beep_times(int n)
+{
+    if (auto_ettr_allow_beeps)
+    {
+        beep_times(n);
+    }
+}
+
 static char* get_current_exposure_settings()
 {
     static char msg[50];
@@ -669,10 +686,7 @@ static void auto_ettr_step_task(int corr)
     if (status == ETTR_SETTLED)
     {
         /* cool, we got the ideal exposure */
-        if(auto_ettr_allow_beeps)
-        {
-            beep();
-        }
+        ettr_beep();
         ettr_pics_took = 0;
         
         msleep(1000);
@@ -688,30 +702,21 @@ static void auto_ettr_step_task(int corr)
     else if (ettr_pics_took >= 3)
     {
         /* I give up */
-        if(auto_ettr_allow_beeps)
-        {
-            beep_times(3);
-        }
+        ettr_beep();
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: giving up\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_LIMITS_REACHED)
     {
-        if(auto_ettr_allow_beeps)
-        {
-            beep_times(3);
-        }
+        ettr_beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_PRECOND_TIMEOUT)
     {
-        if(auto_ettr_allow_beeps)
-        {
-            beep_times(3);
-        }
+        ettr_beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: timeout while waiting for preconditions\n");
@@ -725,10 +730,7 @@ static void auto_ettr_step_task(int corr)
     }
     else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
     {
-        if(auto_ettr_allow_beeps)
-        {
-            beep_times(2);
-        }
+        ettr_beep_times(2);
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: next %s (was %s)", get_current_exposure_settings(), prev_exposure_settings);
 
@@ -959,10 +961,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
 
 static void auto_ettr_on_request_task_fast()
 {
-    if(auto_ettr_allow_beeps)
-    {
-        beep();
-    }
+    ettr_beep();
     int raw_requested = 0;
     
     char* err_msg = "ETTR failed";
@@ -1070,19 +1069,13 @@ static void auto_ettr_on_request_task_fast()
     }
 
 /* ok: */
-    if(auto_ettr_allow_beeps)
-    {
-        beep();
-    }
+    ettr_beep();
     NotifyBoxHide();
     goto cleanup;
 
 err:
-    if(auto_ettr_allow_beeps)
-    {
-        beep();
-        beep();
-    }
+    ettr_beep();
+    ettr_beep();
     NotifyBox(2000, err_msg);
     goto cleanup;
 
@@ -1168,10 +1161,7 @@ end:
 
 static void auto_ettr_on_request_task_slow()
 {
-    if(auto_ettr_allow_beeps)
-    {
-        beep();
-    }
+    ettr_beep();
     char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
@@ -1217,19 +1207,13 @@ static void auto_ettr_on_request_task_slow()
     }
 
 /* ok: */
-    if(auto_ettr_allow_beeps)
-    {
-        beep();
-    }
+    ettr_beep();
     NotifyBoxHide();
     goto cleanup;
 
 err:
-    if(auto_ettr_allow_beeps)
-    {
-        beep();
-        beep();
-    }
+    ettr_beep();
+    ettr_beep();
     NotifyBox(2000, err_msg);
     goto cleanup;
 
@@ -1269,10 +1253,7 @@ static void auto_ettr_step_lv_slow()
 
     if (status == ETTR_SETTLED)
     {
-        if(auto_ettr_allow_beeps)
-        {
-            beep();
-        }
+        ettr_beep();
     }
 }
 
