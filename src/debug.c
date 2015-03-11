@@ -184,6 +184,7 @@ static void dump_img_task(void* priv, int unused)
         PLAY_MODE                                       ? "PLAY-UNK" :
         lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
         lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
+        lv && lv_dispsize!=1                            ? "ZOOM-UNK" :      /* Other zoom level? (6D seems to have one) */
         lv && lv_dispsize==1 && !is_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
         !is_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
         !is_movie_mode()                         ? "PH-UNK"   :
