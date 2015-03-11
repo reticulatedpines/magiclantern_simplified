@@ -42,6 +42,7 @@ void set_lv_zoom(int zoom);
 void next_image_in_play_mode(int direction);
 void get_out_of_play_mode(int extra_wait);
 int is_pure_play_movie_mode();      /* tweaks.c, to be moved */
+int is_pure_play_photo_mode();
 int is_pure_play_photo_or_movie_mode();
 int is_play_mode();
 int is_play_or_qr_mode();
