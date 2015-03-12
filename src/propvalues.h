@@ -122,4 +122,12 @@ extern int beep_enabled;
 int get_expsim();
 void set_expsim(int expsim);
 
+/* returns a short name of the current video mode (e.g. MV-1080, ZOOM-X5 and so on) */
+/* if FPS info is not included, the string has max 8 chars */
+char* get_video_mode_name(int include_fps);
+
+/* returns a short name (max 8 chars) of the current display device */
+/* (e.g. LCD, HDMI1080, SD-NTSC and so on) */
+char* get_display_device_name();
+
 #endif

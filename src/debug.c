@@ -160,8 +160,6 @@ static void dump_rom_task(void* priv, int unused)
     dump_big_seg(4, "ML/LOGS/RAM4.BIN");
 }
 
-static PROP_INT(PROP_VIDEO_SYSTEM, pal);
-
 static void dump_img_task(void* priv, int unused)
 {
     for (int i = 5; i > 0; i--)
@@ -175,40 +173,11 @@ static void dump_img_task(void* priv, int unused)
     char pattern[0x80];
     char filename[0x80];
     
-    /* fixme */
-    extern int is_pure_play_photo_mode();
+    char* video_mode = get_video_mode_name(0);
+    char* display_device = get_display_device_name();
     
-    char* video_mode = 
-        PLAY_MODE && is_pure_play_photo_mode()          ? "PLAY-PH"  :      /* Playback, reviewing a picture */
-        PLAY_MODE && is_pure_play_movie_mode()          ? "PLAY-MV"  :      /* Playback, reviewing a video */
-        PLAY_MODE                                       ? "PLAY-UNK" :
-        lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
-        lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
-        lv && lv_dispsize!=1                            ? "ZOOM-UNK" :      /* Other zoom level? (6D seems to have one) */
-        lv && lv_dispsize==1 && !is_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
-        !is_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
-        !is_movie_mode()                         ? "PH-UNK"   :
-        video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
-        video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
-        video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
-        video_mode_resolution == 0 &&  video_mode_crop && !RECORDING_H264 ? "MVC-1080" :    /* Movie 1080p crop (3x zoom as with 600D), standby */
-        video_mode_resolution == 2 &&  video_mode_crop && !RECORDING_H264 ? "MVC-480"  :    /* Movie 480p crop (as with 550D), standby */
-        video_mode_resolution == 0 && !video_mode_crop &&  RECORDING_H264 ? "REC-1080" :    /* Movie 1080p, recording */
-        video_mode_resolution == 1 && !video_mode_crop &&  RECORDING_H264 ? "REC-720"  :    /* Movie 720p, recording */
-        video_mode_resolution == 2 && !video_mode_crop &&  RECORDING_H264 ? "REC-480"  :    /* Movie 480p, recording */
-        video_mode_resolution == 0 &&  video_mode_crop &&  RECORDING_H264 ? "RECC1080" :    /* Movie 1080p crop, recording */
-        video_mode_resolution == 2 &&  video_mode_crop &&  RECORDING_H264 ? "RECC-480" :    /* Movie 480p crop, recording */
-        "MV-UNK";
-    
-    char* display_mode = 
-        !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
-        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
-        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
-        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
-        _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
-        _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
 
-    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
+    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_device);
     
     /* make sure the VRAM parameters are updated */
     get_yuv422_vram();
@@ -655,29 +624,11 @@ static char* print_benchmark_header()
     bmp_printf(FONT_MONO_20, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
 
     static char mode[100];
-    snprintf(mode, sizeof(mode), "Mode: ");
-    if (lv)
-    {
-        if (lv_dispsize > 1)
-        {
-            STR_APPEND(mode, "LV zoom x%d", lv_dispsize);
-        }
-        else if (is_movie_mode())
-        {
-            char* video_modes[] = {"1920x1080", "1280x720", "640x480"};
-            STR_APPEND(mode, "movie %s%s %dp", video_modes[video_mode_resolution], video_mode_crop ? " crop" : "", video_mode_fps);
-        }
-        else
-        {
-            STR_APPEND(mode, "LV photo");
-        }
-    }
-    else
-    {
-        STR_APPEND(mode, PLAY_MODE ? "playback" : display_idle() ? "photo" : "idk");
-    }
-
-    STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
+    snprintf(mode, sizeof(mode),
+        "Mode: %s %s, Global Draw: %s",
+        get_video_mode_name(1), get_display_device_name(),
+        get_global_draw() ? "ON" : "OFF"
+    );
 
     bmp_printf(FONT_MONO_20, 0, 60, mode);
     return mode;

@@ -203,3 +203,44 @@ PROP_HANDLER( PROP_COPYRIGHT_STRING )
     if( len > sizeof(copyright_info) ) len = sizeof(copyright_info);
     memcpy( copyright_info, buf, len );
 }
+
+char* get_video_mode_name(int include_fps)
+{
+    static char zoom_msg[12];
+    snprintf(zoom_msg, sizeof(zoom_msg), "ZOOM-X%d", lv_dispsize);
+    
+    char* video_mode = 
+        is_pure_play_photo_mode()                   ? "PLAY-PH"  :      /* Playback, reviewing a picture */
+        is_pure_play_movie_mode()                   ? "PLAY-MV"  :      /* Playback, reviewing a video */
+        is_play_mode()                              ? "PLAY-UNK" :
+        lv && lv_dispsize!=1                        ? zoom_msg   :      /* Some zoom in LiveView */
+        lv && lv_dispsize==1 && !is_movie_mode()    ? "PH-LV"    :      /* Photo LiveView */
+        !is_movie_mode() && QR_MODE                 ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
+        !is_movie_mode()                            ? "PH-UNK"   :
+        video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
+        video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
+        video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
+        video_mode_resolution == 0 &&  video_mode_crop && !RECORDING_H264 ? "MVC-1080" :    /* Movie 1080p crop (3x zoom as with 600D), standby */
+        video_mode_resolution == 2 &&  video_mode_crop && !RECORDING_H264 ? "MVC-480"  :    /* Movie 480p crop (as with 550D), standby */
+        video_mode_resolution == 0 && !video_mode_crop &&  RECORDING_H264 ? "REC-1080" :    /* Movie 1080p, recording */
+        video_mode_resolution == 1 && !video_mode_crop &&  RECORDING_H264 ? "REC-720"  :    /* Movie 720p, recording */
+        video_mode_resolution == 2 && !video_mode_crop &&  RECORDING_H264 ? "REC-480"  :    /* Movie 480p, recording */
+        video_mode_resolution == 0 &&  video_mode_crop &&  RECORDING_H264 ? "RECC1080" :    /* Movie 1080p crop, recording */
+        video_mode_resolution == 2 &&  video_mode_crop &&  RECORDING_H264 ? "RECC-480" :    /* Movie 480p crop, recording */
+        "MV-UNK";
+    
+    return video_mode;
+}
+
+char* get_display_device_name()
+{
+    char* display_device = 
+        !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
+        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
+        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
+        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
+        _ext_monitor_rca && video_system_pal            ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
+        _ext_monitor_rca && !video_system_pal           ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
+    
+    return display_device;
+}
