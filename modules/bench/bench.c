@@ -20,6 +20,7 @@ extern void menu_benchmark();
 /* fixme: how to use multiple files without exporting a bunch of symbols from the module? */
 #include "card_bench.c"
 #include "mem_bench.c"
+#include "mem_perf.c"
 
 static struct menu_entry bench_menu[] =
 {
@@ -66,7 +67,29 @@ static struct menu_entry bench_menu[] =
                         .name = "Memory benchmark (1 min)",
                         .select = run_in_separate_task,
                         .priv = mem_benchmark_task,
-                        .help = "Check memory read/write speed."
+                        .help = "Check memory read/write speed using different methods.",
+                        .help2 = "(cacheable, uncacheable, EDMAC, different data types...)"
+                    },
+                    {
+                        .name = "Cache benchmark (RAM)",
+                        .select = run_in_separate_task,
+                        .priv = mem_perf_test_cached,
+                        .help = "Detect RAM cache size by benchmarking (look for a sharp speed drop).",
+                        .help2 = "Tip: load the 'plot' module to get a nice graph.",
+                    },
+                    {
+                        .name = "Cache benchmark (RAM, no cache)",
+                        .select = run_in_separate_task,
+                        .priv = mem_perf_test_uncached,
+                        .help = "This checks if the speed drop is indeed caused by cache overflow.",
+                        .help2 = "Tip: load the 'plot' module to get a nice graph.",
+                    },
+                    {
+                        .name = "Cache benchmark (ROM)",
+                        .select = run_in_separate_task,
+                        .priv = mem_perf_test_rom,
+                        .help = "Detect ROM cache size by benchmarking (look for a sharp speed drop).",
+                        .help2 = "Tip: load the 'plot' module to get a nice graph.",
                     },
                     MENU_EOL,
                 },
