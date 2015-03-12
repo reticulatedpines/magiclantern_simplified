@@ -27,9 +27,6 @@
     /** It's a good idea to back up ROM contents on the card - just in case **/
     #define CONFIG_AUTOBACKUP_ROM
 
-    /** It's a good idea to run some automated tests **/
-    #define CONFIG_STRESS_TEST
-
     /** You may want to disable this for troubleshooting **/
     #define CONFIG_CONFIG_FILE
     
