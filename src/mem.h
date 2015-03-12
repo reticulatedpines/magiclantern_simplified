@@ -110,6 +110,6 @@ extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 
 /* free memory info */
 int GetFreeMemForAllocateMemory();
-static int GetFreeMemForMalloc();
+int GetFreeMemForMalloc();
 
 #endif
