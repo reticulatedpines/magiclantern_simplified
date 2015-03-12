@@ -93,29 +93,11 @@ static char* print_benchmark_header()
     bmp_printf(FONT_MONO_20, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
 
     static char mode[100];
-    snprintf(mode, sizeof(mode), "Mode: ");
-    if (lv)
-    {
-        if (lv_dispsize > 1)
-        {
-            STR_APPEND(mode, "LV zoom x%d", lv_dispsize);
-        }
-        else if (is_movie_mode())
-        {
-            char* video_modes[] = {"1920x1080", "1280x720", "640x480"};
-            STR_APPEND(mode, "movie %s%s %dp", video_modes[video_mode_resolution], video_mode_crop ? " crop" : "", video_mode_fps);
-        }
-        else
-        {
-            STR_APPEND(mode, "LV photo");
-        }
-    }
-    else
-    {
-        STR_APPEND(mode, gui_state == GUISTATE_PLAYMENU ? "playback" : display_idle() ? "photo" : "idk");
-    }
-
-    STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
+    snprintf(mode, sizeof(mode),
+        "Mode: %s %s, Global Draw: %s",
+        get_video_mode_name(1), get_display_device_name(),
+        get_global_draw() ? "ON" : "OFF"
+    );
 
     bmp_printf(FONT_MONO_20, 0, 60, mode);
     return mode;
