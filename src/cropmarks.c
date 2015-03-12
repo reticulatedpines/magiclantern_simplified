@@ -30,8 +30,7 @@ void crop_set_dirty(int value)
     crop_dirty = MAX(crop_dirty, value);
 }
 
-//also used in debug.c CopyMLDirectoryToRAM_BeforeFormat
-int is_valid_cropmark_filename(char* filename)
+static int is_valid_cropmark_filename(char* filename)
 {
     int n = strlen(filename);
     if ((n > 4) && (streq(filename + n - 4, ".BMP") || streq(filename + n - 4, ".bmp")) && (filename[0] != '.') && (filename[0] != '_'))
@@ -402,8 +401,10 @@ static int cropmark_cache_get_signature()
             should_use_default_cropmarks() 
                 ? (cropmarks_x * 1601 + cropmarks_y * 481)          /* default cropmarks: they get burned in the bvram mirror */
                 : (crop_index * 13579 + crop_enabled * 14567)       /* bitmap cropmarks: only the bitmap gets burned in the bvram mirror */
-        ) +
-        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
+        )
+        + (hdmi_code + EXT_MONITOR_RCA) * 315 +                     /* force redraw when changing display type (LCD, HDMI, SD) */
+        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 +         /* force redraw when bitmap parameters changed */
+        (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765; /* force redraw when video resolution changed, or when switching between video and photo mode */
     return sig;
 }
 
@@ -486,7 +487,6 @@ static void FAST default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
-    if (hdmi_code == 5) return; // wrongly positioned
     if (!is_movie_mode())
     {
         /* no default cropmarks in photo mode */

@@ -22,7 +22,7 @@
 #include "util.h"
 
 #ifdef MEM_DEBUG
-#define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
+#define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
 #else
 #define dbg_printf(fmt,...) {}
 #endif
@@ -163,7 +163,8 @@ static struct mem_allocator allocators[] = {
         .preferred_max_alloc_size = 512 * 1024,
     },
 #endif
-#if 1
+
+#if !defined(CONFIG_QEMU)
     /* must be completely free when navigating Canon menus, so only use it as a last resort */
     {
         .name = "shoot_malloc",

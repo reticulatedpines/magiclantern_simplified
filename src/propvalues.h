@@ -32,11 +32,15 @@ extern char firmware_version[32];
 #define MODEL_EOS_M      0x80000331
 #define MODEL_EOS_100D   0x80000346
 
+#ifndef _DONT_INCLUDE_PROPVALUES_
 extern int lv; // TRUE when LiveView is active
 extern int lv_paused; // only valid if lv is true
+#endif
+
 #define LV_PAUSED (lv_paused)
 #define LV_NON_PAUSED (lv && !lv_paused)
 
+#ifndef _DONT_INCLUDE_PROPVALUES_
 extern int lv_dispsize; // 1 / 5 / A
 extern int _expsim; /* private, use get_expsim instead */
 extern int shooting_mode;        /* C3M => M */
@@ -50,6 +54,8 @@ extern int pic_quality;
 extern int avail_shot;
 extern int __recording;
 extern int __recording_custom;
+#endif
+
 #define NOT_RECORDING (__recording == 0 && __recording_custom == 0)
 #define RECORDING (__recording || __recording_custom)
 #define RECORDING_H264 (__recording > 0)
@@ -65,6 +71,7 @@ extern int __recording_custom;
 #define CUSTOM_RECORDING_MJPEG           2
 void set_recording_custom(int state);
 
+#ifndef _DONT_INCLUDE_PROPVALUES_
 extern int af_mode;
 extern int metering_mode;
 extern int dofpreview;
@@ -97,6 +104,8 @@ extern char artist_name[64];
 extern char copyright_info[64];
 extern int date_format;
 extern int auto_power_off_time;
+extern int video_system_pal;
+#endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
 #define EXT_MONITOR_RCA (_ext_monitor_rca && !ext_monitor_hdmi)
@@ -112,5 +121,13 @@ extern int beep_enabled;
 /* in tweaks.c */
 int get_expsim();
 void set_expsim(int expsim);
+
+/* returns a short name of the current video mode (e.g. MV-1080, ZOOM-X5 and so on) */
+/* if FPS info is not included, the string has max 8 chars */
+char* get_video_mode_name(int include_fps);
+
+/* returns a short name (max 8 chars) of the current display device */
+/* (e.g. LCD, HDMI1080, SD-NTSC and so on) */
+char* get_display_device_name();
 
 #endif

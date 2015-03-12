@@ -161,7 +161,7 @@ static void ml_gui_main_task( void )
         }
 
         if (event_ptr->type == 0 && event_ptr->param < 0) {
-            continue;           /* do not pass internal ML events to Canon code */
+            goto event_loop_bottom;           /* do not pass internal ML events to Canon code */
         }
 
 		switch( event_ptr->type )

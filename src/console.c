@@ -9,6 +9,10 @@
 #include "zebra.h"
 #include "shoot.h"
 
+#ifdef CONFIG_QEMU
+#include "qemu-util.h"
+#endif
+
 #ifndef CONFIG_CONSOLE
 #error Something went wrong CONFIg_CONSOLE should be defined
 #endif

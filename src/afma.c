@@ -111,3 +111,12 @@ int get_afma_max()
 {
     return AFMA_MAX;
 }
+
+int get_config_afma_wide_tele()
+{
+    #ifdef CONFIG_AFMA_WIDE_TELE
+    return 1;
+    #else
+    return 0;
+    #endif
+}

@@ -305,7 +305,8 @@ namespace mlv_view_sharp
         public unsafe struct mlv_xref_t
         {
             public uint16_t fileNumber;    /* the logical file number as specified in header */
-            public uint16_t empty;    /* for future use. set to zero. */
+            public uint8_t empty;    /* for future use. set to zero. */
+            public uint8_t frameType;    /* for future use. set to zero. */
             public uint64_t frameOffset;    /* the file offset at which the frame is stored (VIDF/AUDF) */
         };
 
@@ -505,6 +506,12 @@ namespace mlv_view_sharp
 
         internal static object ToStruct(string type, byte[] buf)
         {
+            return ToStruct(type, buf, 0);
+        }
+
+        internal static object ToStruct(byte[] buf)
+        {
+            string type = Encoding.UTF8.GetString(buf, 0, 4);
             return ToStruct(type, buf, 0);
         }
 

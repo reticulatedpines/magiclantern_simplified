@@ -1,6 +1,7 @@
 #include "all_features.h"
 
-#define FEATURE_LV_3RD_PARTY_FLASH // requires props
+//~ #define FEATURE_LV_3RD_PARTY_FLASH // doesn't work, https://bitbucket.org/hudson/magic-lantern/issue/2081/650d-and-external-flash-in-liveview-mode
+
 #define FEATURE_EYEFI_TRICKS
 
 // Disable all audio stuff

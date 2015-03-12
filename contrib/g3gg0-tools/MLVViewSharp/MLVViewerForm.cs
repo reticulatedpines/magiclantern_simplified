@@ -253,7 +253,7 @@ namespace mlv_view_sharp
                                 try
                                 {
                                     txtInfo.Text = metaData.ToString();
-                                    trackBarPosition.Maximum = (int)reader.TotalFrameCount;
+                                    trackBarPosition.Maximum = (int)reader.HighestVideoFrameNumber + 1;
 
                                     FramePositionWarning = "";
 
@@ -263,7 +263,7 @@ namespace mlv_view_sharp
                                     }
                                     else
                                     {
-                                        int block = reader.GetFrameBlockNumber((uint)trackBarPosition.Value - 1);
+                                        int block = reader.GetVideoFrameBlockNumber((uint)trackBarPosition.Value - 1);
 
                                         if (block >= 0)
                                         {
@@ -281,7 +281,7 @@ namespace mlv_view_sharp
 
                                     string advText = "File: '" + reader.FileNames[reader.FileNum] + "' Offset: 0x" + reader.FilePos.ToString("X8") + " FrameSpace: 0x" + (Handler.VidfHeader.frameSpace-Handler.RawFixOffset).ToString("X4");
 
-                                    lblPosition.Text = "Current position: " + (Handler.VidfHeader.frameNumber + 1) + "/" + (reader.TotalFrameCount) + FramePositionWarning;
+                                    lblPosition.Text = "Current position: " + (Handler.VidfHeader.frameNumber + 1) + "/" + (reader.TotalVideoFrameCount) + FramePositionWarning;
                                     lblPosition.Text += "    |    " + advText;
 
                                     /* update picturebox - this is very slow and inefficient */
@@ -321,7 +321,7 @@ namespace mlv_view_sharp
                                     {
                                         if (trackBarPosition.Value != lastFrameNumber || ForceReread)
                                         {
-                                            int block = reader.GetFrameBlockNumber((uint)trackBarPosition.Value - 1);
+                                            int block = reader.GetVideoFrameBlockNumber((uint)trackBarPosition.Value - 1);
 
                                             if (block >= 0)
                                             {
