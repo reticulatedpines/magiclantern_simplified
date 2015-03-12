@@ -39,7 +39,7 @@ void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
        \r\n\
        SUBS R6, #1\r\n\
        BNE mem_perf_asm_loop_outer\r\n\
-       " : : [address]"r"(address), [size]"r"(size), [loops]"r"(loops) : "r3", "r4", "r5", "r6"
+       " : : [address]"r"(address), [size]"r"(size), [loops]"r"(loops) : "r2", "r3", "r4", "r5", "r6"
     );
 }
 
