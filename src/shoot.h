@@ -46,6 +46,7 @@ int is_pure_play_photo_mode();
 int is_pure_play_photo_or_movie_mode();
 int is_play_mode();
 int is_play_or_qr_mode();
+int is_menu_mode();
 void play_zoom_center_on_selected_af_point();
 
 /* set+maindial actions for playback */

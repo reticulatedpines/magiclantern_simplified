@@ -441,6 +441,11 @@ int is_play_mode()
     return PLAY_MODE;
 }
 
+int is_menu_mode()
+{
+    return MENU_MODE;
+}
+
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)

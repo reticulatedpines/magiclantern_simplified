@@ -293,6 +293,8 @@ int get_zoom_out_pressed();
 
 int display_is_on();
 
+int get_dlg_signature();
+
 /* wrapper for GUI timers */
 void delayed_call(int delay_ms, void(*function)(void));
 
