@@ -470,7 +470,8 @@ static struct menu_entry bench_menu[] =
                 .name = "Focus peaking benchmark (30s)",
                 .select = run_in_separate_task,
                 .priv = peaking_benchmark,
-                .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
+                .help = "Check how fast peaking runs in PLAY mode (1000 iterations).",
+                .help2 = "You must enable focus peaking manually before running this."
             },
             {
                 .name = "Menu benchmark (10s)",
