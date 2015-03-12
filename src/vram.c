@@ -206,8 +206,6 @@ PROP_HANDLER(PROP_LOGICAL_CONNECT)
     vram_params_set_dirty();
 }
 
-static PROP_INT(PROP_VIDEO_SYSTEM, pal);
-
 void _update_vram_params()
 {
     #if CONFIG_DEBUGMSG
@@ -225,8 +223,8 @@ void _update_vram_params()
     prev_EXT_MONITOR_RCA = EXT_MONITOR_RCA;
     
     // LV crop area (black bars)
-    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : EXT_MONITOR_RCA ? (pal ? 40 : 40) :    0);
-    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : EXT_MONITOR_RCA ? (pal ? 29 : 25) :    0);
+    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : EXT_MONITOR_RCA ? (video_system_pal ? 40 : 40) :    0);
+    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : EXT_MONITOR_RCA ? (video_system_pal ? 29 : 25) :    0);
     os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 640 : 720;
     os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 388 : 480;
 #if defined(CONFIG_4_3_SCREEN)
@@ -298,7 +296,7 @@ void _update_vram_params()
         vram_lv.height = 240;
     #else
         vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : EXT_MONITOR_RCA ? 540 : 720;
-        vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : EXT_MONITOR_RCA ? (pal ? 572 : 480) : 480;
+        vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : EXT_MONITOR_RCA ? (video_system_pal ? 572 : 480) : 480;
     #endif
     vram_lv.pitch = vram_lv.width * 2;
 #endif

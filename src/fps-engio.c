@@ -184,16 +184,12 @@ int fps_should_record_wav() { return get_fps_override() && fps_wav_record && is_
 int fps_should_record_wav() { return 0; }
 #endif
 
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
-PROP_INT(PROP_VIDEO_SYSTEM, pal);
-#endif
-
 static int is_current_mode_ntsc()
 {
     if (!is_movie_mode()) return 0;
 
     #if defined(CONFIG_50D)
-    return !pal;
+    return !video_system_pal;
     #endif
     if (video_mode_fps == 30 || video_mode_fps == 60 || video_mode_fps == 24) return 1;
     return 0;
@@ -627,7 +623,7 @@ static int fps_get_timer(int fps_x1000)
     int fps_timer = FPS_x1000_TO_TIMER(fps_x1000);
 
     #if defined(CONFIG_500D) || defined(CONFIG_50D) // these cameras use 30.000 fps, not 29.97 => look in system settings to check if PAL or NTSC
-    ntsc = !pal;
+    ntsc = !video_system_pal;
     #endif
 
     // in PAL/NTSC, round FPS to match the power supply frequency and avoid flicker
