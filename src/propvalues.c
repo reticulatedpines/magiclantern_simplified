@@ -7,6 +7,7 @@
 
 #define _DONT_INCLUDE_PROPVALUES_
 #include "property.h"
+#include "shoot.h"
 
 char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
@@ -51,6 +52,7 @@ volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
+volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
