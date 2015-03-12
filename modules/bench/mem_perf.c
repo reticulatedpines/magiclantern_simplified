@@ -16,10 +16,9 @@
 
 #include "../plot/plot.h"
 
-uint32_t mem_perf_runtime = 50; /* msec */
-uint32_t mem_perf_test_running = 0;
+static uint32_t mem_perf_runtime = 50; /* msec */
 
-void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
+static void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
 {
     asm volatile ("\
        MOV R6, %[loops]\r\n\
@@ -43,7 +42,7 @@ void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
     );
 }
 
-float mem_perf_run(uint32_t block_size, uint32_t address)
+static float mem_perf_run(uint32_t block_size, uint32_t address)
 {
     uint64_t runtime = 0;
     uint32_t wall_time = 0;
@@ -79,19 +78,17 @@ float mem_perf_run(uint32_t block_size, uint32_t address)
     return speed;
 }
 
-void mem_perf_test(uint32_t address)
+static void mem_perf_test(uint32_t address)
 {
     msleep(1000);
     
     canon_gui_disable_front_buffer();
     clrscr();
     
-    mem_perf_test_running = 1;
-    
     uint32_t width = 700;
-    uint32_t height = 420;
+    uint32_t height = 360;
     plot_coll_t *coll = plot_alloc_data(2);
-    plot_graph_t *plot = plot_alloc_graph(5, 5, width, height);
+    plot_graph_t *plot = plot_alloc_graph(5, 35, width, height);
     
     if(plot)
     {
@@ -101,12 +98,14 @@ void mem_perf_test(uint32_t address)
     float prev_speed = 0;
     float max_speed = 0;
     uint32_t max_speed_size = 0;
+    float drop_speed = 0;
+    uint32_t drop_speed_size = 0;
     uint32_t slower_count = 0;
-    
+
     for(uint32_t block_size = 128; block_size < 262144; block_size += 128)
     {
         float speed = mem_perf_run(block_size, address);
-        
+
         if(plot)
         {
             /* update the plot */
@@ -120,12 +119,19 @@ void mem_perf_test(uint32_t address)
             plot->x_win.max = plot->x_win.max + (plot->x_win.max - plot->x_win.min) / 10;
             plot_graph_update(coll, plot);
         }
-        
+
         /* a new maximum? */
         if(max_speed < speed)
         {
             max_speed = speed;
             max_speed_size = block_size;
+        }
+
+        /* find the point where speed drops significantly */
+        if(drop_speed < speed * 1.1)
+        {
+            drop_speed = speed;
+            drop_speed_size = block_size;
         }
         
         /* now get the change in speed compared to last size */
@@ -141,32 +147,39 @@ void mem_perf_test(uint32_t address)
             slower_count = 0;
         }
         
-        /* permanent slowdown or test aborted */
-        if(slower_count > 100 || !mem_perf_test_running)
+        /* permanent slowdown or user abort */
+        if(slower_count > 50 || get_halfshutter_pressed())
         {
             break;
         }
         
-        bmp_printf(FONT_MED, 15, 450, "Peak: %d bytes (%d MiB/s) ", max_speed_size, (uint32_t)max_speed);
+        bmp_printf(FONT_MONO_20, 5, 5, "Benchmarking from address 0x%X... ", address);
+        bmp_printf(FONT_MONO_20, 5, 410, "Now :%6d bytes (%d MiB/s)    ", block_size, (uint32_t)speed);
+        bmp_printf(FONT_MONO_20, 5, 430, "Peak:%6d bytes (%d MiB/s)    ", max_speed_size, (uint32_t)max_speed);
+        bmp_printf(FONT_MONO_20, 5, 450, "Drop:%6d bytes (%d MiB/s)    ", drop_speed_size, (uint32_t)drop_speed);
         
         prev_speed = speed;
         msleep(20);
     }
+    
+    bmp_printf(FONT_MONO_20, 5, 5, "Benchmarking from address 0x%X done.", address);
+    take_screenshot("cache%d.ppm", SCREENSHOT_BMP);
+    msleep(3000);
+    canon_gui_enable_front_buffer(1);
 }
 
-void mem_perf_test_cached()
+static void mem_perf_test_cached()
 {
     mem_perf_test(0x00100000);
 }
 
-void mem_perf_test_uncached()
+static void mem_perf_test_uncached()
 {
     mem_perf_test(0x40100000);
 }
 
-void mem_perf_test_rom()
+static void mem_perf_test_rom()
 {
-    mem_perf_test(0xC0F10000);
+    mem_perf_test(0xFF010000);
 }
-
 #endif
