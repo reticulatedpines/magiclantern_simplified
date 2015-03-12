@@ -128,12 +128,12 @@ static MENU_UPDATE_FUNC(silent_pic_display)
     
     if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
-        MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit MLV.");
+        MENU_SET_HELP("File format: 14-bit MLV, group frames in a single file.");
         MENU_APPEND_VALUE(", MLV");
     }
     else
     {
-        MENU_SET_WARNING(MENU_WARN_INFO, "File format: 14-bit DNG.");
+        MENU_SET_HELP("File format: 14-bit DNG, individual files.");
         MENU_APPEND_VALUE(", DNG");
     }
     
@@ -1355,7 +1355,6 @@ static struct menu_entry silent_menu[] = {
         .depends_on = DEP_LIVEVIEW,
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
-        .help2 = "File format: 14-bit DNG.",
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
