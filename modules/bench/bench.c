@@ -442,39 +442,39 @@ static struct menu_entry bench_menu[] =
         .children =  (struct menu_entry[]) {
             {
                 .name = "Card R/W benchmark (5 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = card_benchmark_task,
                 .help = "Check card read/write speed. Uses a 1GB temporary file."
             },
             {
                 .name = "CF+SD write benchmark (1 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = twocard_benchmark_task,
                 .help = "Write speed on both CF and SD cards at the same time.",
                 .shidden = 1,   /* only appears if you have two cards inserted */
             },
             {
                 .name = "Card buffer benchmark (inf)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = card_bufsize_benchmark_task,
                 .help = "Experiment for finding optimal write buffer sizes.",
                 .help2 = "Results saved in BENCH.LOG."
             },
             {
                 .name = "Memory benchmark (1 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = mem_benchmark_task,
                 .help = "Check memory read/write speed."
             },
             {
                 .name = "Focus peaking benchmark (30s)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = peaking_benchmark,
                 .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
             },
             {
                 .name = "Menu benchmark (10s)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = menu_benchmark,
                 .help = "Check speed of menu backend."
             },
