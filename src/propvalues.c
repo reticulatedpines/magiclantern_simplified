@@ -5,7 +5,7 @@
 #include "dryos.h"
 #include "bmp.h"
 
-#define _propvalues_h_
+#define _DONT_INCLUDE_PROPVALUES_
 #include "property.h"
 
 char __camera_model_short[8] = CAMERA_MODEL;
