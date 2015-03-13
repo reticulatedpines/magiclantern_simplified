@@ -11,6 +11,7 @@
 #include <zebra.h>
 #include <beep.h>
 #include <lens.h>
+#include <focus.h>
 #include <string.h>
 #include "../lv_rec/lv_rec.h"
 #include "../mlv_rec/mlv.h"
@@ -855,6 +856,8 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
 static void
 silent_pic_take_lv(int interactive)
 {
+    bmp_printf(FONT_MED, 0, 37, "Preparing...");
+
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
     int raw_flag = 1;
     raw_lv_request();
@@ -1326,6 +1329,9 @@ silent_pic_take(unsigned int interactive) // for remote release, set interactive
 
 static unsigned int silent_pic_polling_cbr(unsigned int ctx)
 {
+    if (!silent_pic_enabled)
+        return 0;
+    
     static int silent_pic_countdown;
     if (!display_idle())
     {
@@ -1333,13 +1339,33 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
     }
     else if (!get_halfshutter_pressed())
     {
-        if (silent_pic_countdown) silent_pic_countdown--;
+        if (silent_pic_countdown)
+            silent_pic_countdown--;
     }
 
-    if (lv && silent_pic_enabled && get_halfshutter_pressed())
+    if (lv && get_halfshutter_pressed())
     {
-        if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
+        /* half-shutter was pressed while in playback mode, for example */
+        if (silent_pic_countdown)
             return 0;
+
+        if (!is_manual_focus())
+        {
+            /* try to ignore the AF button, and only take pictures on plain half-shutter */
+            /* problem: lv_focus_status is not updated right away :( */
+            bmp_printf(FONT_MED, 0, 37, "Hold on...");
+            wait_lv_frames(4);
+            if (lv_focus_status == 3)
+            {
+                while (get_halfshutter_pressed())
+                {
+                    bmp_printf(FONT_MED, 0, 37, "Focusing...");
+                    msleep(10);
+                }
+                redraw();
+                return 0;
+            }
+        }
         
         silent_pic_take(1);
     }
@@ -1352,8 +1378,7 @@ static struct menu_entry silent_menu[] = {
         .priv = &silent_pic_enabled,
         .update = silent_pic_display,
         .max  = 1,
-        .depends_on = DEP_LIVEVIEW,
-        .works_best_in = DEP_CFN_AF_BACK_BUTTON,
+        .depends_on = DEP_LIVEVIEW | DEP_CFN_AF_BACK_BUTTON,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
         .submenu_width = 650,
