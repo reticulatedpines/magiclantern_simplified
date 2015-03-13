@@ -660,7 +660,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         
         /* do we have a large enough contiguous chunk? */
         /* use a heuristic if we don't know, use a safety margin even if we know */
-        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
+        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 4096 : free_space / 4;
         if (size > max_region)
         {
             dbg_printf("%s: max region mismatch %s\n", allocators[a].name, format_memory_size(max_region));
