@@ -1178,6 +1178,9 @@ silent_pic_take_fullres(int interactive)
 
     display_on();
     
+    /* on 60D, without this delay, preview is black (unless you hold half-shutter pressed for a while) */
+    msleep(200);
+    
     /* GUI changing may fail if half-shutter is pressed, so wait until user de-presses it */
     while (get_halfshutter_pressed())
     {
