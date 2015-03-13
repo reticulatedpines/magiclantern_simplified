@@ -184,45 +184,6 @@ static char* silent_pic_get_name()
     return image_file_name;
 }
 
-/* save using the raw video file format  */
-static void save_raw(struct raw_info * raw_info)
-{
-    lv_rec_file_footer_t footer;
-    
-    char* filename = silent_pic_get_name();
-    FILE* save_file = FIO_CreateFile(filename);
-    
-    if (!save_file)
-    {
-        bmp_printf( FONT_MED, 0, 83, "File create error");
-    }
-    else
-    {
-        FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
-        
-        strcpy((char*)footer.magic, "RAWM");
-        footer.xRes = raw_info->width;
-        footer.yRes = raw_info->height;
-        footer.frameSize = raw_info->frame_size;
-        footer.frameCount = 1;
-        footer.frameSkip = 1;
-        footer.sourceFpsx1000 = 1;
-        footer.raw_info = *raw_info;
-        
-        FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
-        FIO_CloseFile(save_file);
-    }
-}
-
-static char* replace_mlv_extension(char* original_filename, int chunk_index)
-{
-    static char new_filename[100];
-    strncpy(new_filename, original_filename, sizeof(new_filename));
-    int len = strlen(new_filename);
-    snprintf(new_filename + len - 2, 3, "%02d",  chunk_index);
-    return new_filename;
-}
-
 static int silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info, uint16_t file_num)
 {
     //MLVI file header
