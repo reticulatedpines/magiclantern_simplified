@@ -223,7 +223,7 @@ static char* replace_mlv_extension(char* original_filename, int chunk_index)
     return new_filename;
 }
 
-static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info, uint16_t file_num)
+static int silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info, uint16_t file_num)
 {
     //MLVI file header
     memset(&mlv_file_hdr, 0, sizeof(mlv_file_hdr_t));
@@ -238,7 +238,7 @@ static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * ra
     mlv_file_hdr.audioFrameCount = 0;
     mlv_file_hdr.sourceFpsNom = 1;
     mlv_file_hdr.sourceFpsDenom = is_intervalometer_running() ? get_interval_time() : 1;
-    FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize);
+    if (FIO_WriteFile(save_file, &mlv_file_hdr, mlv_file_hdr.blockSize) != (int)mlv_file_hdr.blockSize) return 0;
     
     //put a rawi in each chunk in case we loose a chunk
     mlv_rawi_hdr_t rawi;
@@ -249,7 +249,9 @@ static void silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * ra
     rawi.xRes = raw_info->width;
     rawi.yRes = raw_info->height;
     rawi.raw_info = *raw_info;
-    FIO_WriteFile(save_file, &rawi, rawi.blockSize);
+    if (FIO_WriteFile(save_file, &rawi, rawi.blockSize) != (int)rawi.blockSize) return 0;
+    
+    return 1;
 }
 
 static int32_t get_chunk_filename(char* base_name, char* filename, int32_t chunk)
@@ -314,11 +316,12 @@ static FILE *open_mlv_file(char *base_filename, uint32_t max_filesize)
 }
 
 /* save using the MLV file format  */
-static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
+/* returns 1 on success, 0 on error */
+static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
 {
     if (!silent_pic_mlv_available)
     {
-        return;
+        return 0;
     }
     
     mlv_rtci_hdr_t rtci_hdr;
@@ -385,22 +388,22 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
     if (!save_file)
     {
         bmp_printf( FONT_MED, 0, 83, "File create error");
-        return;
+        return 0;
     }
     
     if (frame_number == 0)
     {
         /* create the MLVI header */
         mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
-        silent_write_mlv_chunk_headers(save_file, raw_info, 0);
+        if (!silent_write_mlv_chunk_headers(save_file, raw_info, 0)) goto write_error;
         
         /* those will most probably not change at all after the first frame was captured (in theory they could of course) */
         mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
         mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
         mlv_fill_styl(&styl_hdr, mlv_start_timestamp);
-        FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize);
-        FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize);
-        FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize);
+        if (FIO_WriteFile(save_file, &idnt_hdr, idnt_hdr.blockSize) != (int)idnt_hdr.blockSize) goto write_error;
+        if (FIO_WriteFile(save_file, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) goto write_error;
+        if (FIO_WriteFile(save_file, &styl_hdr, styl_hdr.blockSize) != (int)styl_hdr.blockSize) goto write_error;
     }
     
     /* append new blocks onto the end of the file */
@@ -420,7 +423,7 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
     {
         mlv_file_hdr.fileNum++;
         mlv_file_hdr.videoFrameCount = 0;
-        FIO_WriteFile(save_file, &mlv_file_hdr, sizeof(mlv_file_hdr_t));
+        if (FIO_WriteFile(save_file, &mlv_file_hdr, sizeof(mlv_file_hdr_t)) != sizeof(mlv_file_hdr_t)) goto write_error;
     }
 
     /* always re-write exposure metadata */
@@ -433,9 +436,9 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
         expo_hdr.shutterValue = 1000 * capture_time_ms;
     }
     
-    FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize);
-    FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize);
-    FIO_WriteFile(save_file, &lens_hdr, lens_hdr.blockSize);
+    if (FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) goto write_error;
+    if (FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) goto write_error;
+    if (FIO_WriteFile(save_file, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) goto write_error;
     
     memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
     mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDF");
@@ -443,34 +446,42 @@ static void save_mlv(struct raw_info * raw_info, int capture_time_ms)
     vidf_hdr.frameNumber = frame_number;
     vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + raw_info->frame_size;
     
-    FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t));
-    FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size);
+    if (FIO_WriteFile(save_file, &vidf_hdr, sizeof(mlv_vidf_hdr_t)) != sizeof(mlv_vidf_hdr_t)) goto write_error;
+    if (FIO_WriteFile(save_file, raw_info->buffer, raw_info->frame_size) != raw_info->frame_size) goto write_error;
     
     /* update frame count and rewrite MLVI header */
     mlv_file_hdr.videoFrameCount++;
     FIO_SeekSkipFile(save_file, 0, SEEK_SET);
-    FIO_WriteFile(save_file, &mlv_file_hdr, sizeof(mlv_file_hdr_t));
+    if (FIO_WriteFile(save_file, &mlv_file_hdr, sizeof(mlv_file_hdr_t)) != sizeof(mlv_file_hdr_t)) goto write_error;
     
     /* done */
     FIO_CloseFile(save_file);
+    return 1;
+
+write_error:
+    FIO_CloseFile(save_file);
+    bmp_printf( FONT_MED, 0, 83, "File write error (card full?)");
+    return 0;
 }
 
-static void silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
+static int silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
 {
     if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
     {
-        save_mlv(raw_info, capture_time_ms);
+        return save_mlv(raw_info, capture_time_ms);
     }
     else
     {
         char* filename = silent_pic_get_name();
-        save_dng(filename, raw_info);
+        int ok = save_dng(filename, raw_info);
+        if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
+        return ok;
     }
 }
 
 #ifdef FEATURE_SILENT_PIC_RAW
 
-static void
+static int
 silent_pic_take_lv(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
@@ -486,8 +497,10 @@ silent_pic_take_lv(int interactive)
 
     /* save it to card */
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    silent_pic_save_file(&raw_info, 0, 0);
+    int ok = silent_pic_save_file(&raw_info, 0, 0);
     redraw();
+    
+    return ok;
 }
 
 #elif defined(FEATURE_SILENT_PIC_RAW_BURST)
@@ -853,10 +866,11 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
     return count;
 }
 
-static void
+static int
 silent_pic_take_lv(int interactive)
 {
     bmp_printf(FONT_MED, 0, 37, "Preparing...");
+    int ok = 1;
 
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
     int raw_flag = 1;
@@ -998,7 +1012,8 @@ silent_pic_take_lv(int interactive)
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1);
             raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
-            silent_pic_save_file(&local_raw_info, 0);
+            ok = silent_pic_save_file(&local_raw_info, 0);
+            if (!ok) break;
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
             {
@@ -1036,7 +1051,7 @@ silent_pic_take_lv(int interactive)
         
         local_raw_info.buffer = sp_frames[0];
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        silent_pic_save_file(&local_raw_info, 0);
+        ok = silent_pic_save_file(&local_raw_info, 0);
         redraw();
     }
     
@@ -1045,6 +1060,7 @@ cleanup:
     sp_buffer_count = 0;
     if (hSuite) shoot_free_suite(hSuite);
     if (raw_flag) raw_lv_release();
+    return ok;
 }
 #endif
 
@@ -1082,9 +1098,11 @@ static void display_off_if_qr_mode()
 
 static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
 
-static void
+static int
 silent_pic_take_fullres(int interactive)
 {
+    int ok = 1;
+    
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
     
@@ -1195,8 +1213,7 @@ silent_pic_take_fullres(int interactive)
     
     /* preview the raw image */
     raw_set_dirty();
-    int ok = raw_update_params();
-    if (!ok)
+    if (!raw_update_params())
     {
         bmp_printf(FONT_MED, 0, 0, "Raw error");
         goto cleanup;
@@ -1242,14 +1259,17 @@ silent_pic_take_fullres(int interactive)
             memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
         }
         
-        silent_pic_save_file(&local_raw_info, capture_time);
+        ok = silent_pic_save_file(&local_raw_info, capture_time);
         int t1 = get_ms_clock_value();
         save_time = t1 - t0;
-        
-        bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms, %d MiB/s).   ", 
-            local_raw_info.jpeg.width, local_raw_info.jpeg.height,
-            save_time, (int)roundf(local_raw_info.frame_size * 1000.0f / (t1 - t0) / 1024.0f / 1024.0f)
-        );
+     
+        if (ok)
+        {
+            bmp_printf(FONT_MED, 0, 60, "Saved %d x %d (%d ms, %d MiB/s).   ", 
+                local_raw_info.jpeg.width, local_raw_info.jpeg.height,
+                save_time, (int)roundf(local_raw_info.frame_size * 1000.0f / (t1 - t0) / 1024.0f / 1024.0f)
+            );
+        }
     }
 
     if (is_intervalometer_running())
@@ -1284,7 +1304,7 @@ cleanup:
     
     gui_uilock(UILOCK_NONE);
     
-    return;
+    return ok;
 
 err:
     if (error_msg)
@@ -1294,7 +1314,7 @@ err:
     }
     gui_uilock(UILOCK_NONE);
     ResumeLiveView();
-    return;
+    return 0;
 }
 
 static unsigned int
@@ -1314,20 +1334,22 @@ silent_pic_take(unsigned int interactive) // for remote release, set interactive
         /* user error; do not try to take a regular picture if this fails */
         return CBR_RET_STOP;
     }
+    
+    int ok = 0;
 
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES)
     {
         /* in fullres mode, go to LiveView only if in normal photo mode */
         /* if it's in QR (most likely from previous silent picture), just stay there */
         if (!lv && gui_state != GUISTATE_QR) force_liveview();
-        silent_pic_take_fullres(interactive);
+        ok = silent_pic_take_fullres(interactive);
     }
     else
     {
         if (!lv) force_liveview();
-        silent_pic_take_lv(interactive);
+        ok = silent_pic_take_lv(interactive);
     }
-    return CBR_RET_STOP;
+    return ok ? CBR_RET_STOP : CBR_RET_ERROR;
 }
 
 static unsigned int silent_pic_polling_cbr(unsigned int ctx)
