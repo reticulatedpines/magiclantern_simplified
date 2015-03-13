@@ -714,7 +714,7 @@ static void create_thumbnail(struct raw_info * raw_info)
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static void write_dng(FILE* fd, struct raw_info * raw_info) 
+static int write_dng(FILE* fd, struct raw_info * raw_info) 
 {
     create_dng_header(raw_info);
     char* rawadr = (void*)raw_info->buffer;
@@ -722,14 +722,15 @@ static void write_dng(FILE* fd, struct raw_info * raw_info)
     if (dng_header_buf)
     {
         create_thumbnail(raw_info);
-        write(fd, dng_header_buf, dng_header_buf_size);
-        write(fd, thumbnail_buf, dng_th_width*dng_th_height*3);
+        if (write(fd, dng_header_buf, dng_header_buf_size) != dng_header_buf_size) return 0;
+        if (write(fd, thumbnail_buf, dng_th_width*dng_th_height*3) != dng_th_width*dng_th_height*3) return 0;
 
         reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
-        write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size);
+        if (write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size) != camera_sensor.raw_size) return 0;
 
         free_dng_header();
     }
+    return 1;
 }
 
 #ifdef CONFIG_MAGICLANTERN
@@ -739,6 +740,7 @@ PROP_HANDLER(PROP_CAM_MODEL)
 }
 #endif
 
+/* returns 1 on success, 0 on error */
 int save_dng(char* filename, struct raw_info * raw_info)
 {
     #ifdef RAW_DEBUG_BLACK
@@ -754,7 +756,12 @@ int save_dng(char* filename, struct raw_info * raw_info)
     
     FILE* f = FIO_CreateFile(filename);
     if (!f) return 0;
-    write_dng(f, raw_info);
+    int ok = write_dng(f, raw_info);
     FIO_CloseFile(f);
+    if (!ok)
+    {
+        FIO_RemoveFile(filename);
+        return 0;
+    }
     return 1;
 }
