@@ -51,10 +51,10 @@ volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
-//~ int battery_level_bars = 0;
-PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+volatile PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
+volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;

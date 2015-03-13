@@ -81,6 +81,7 @@
 #define PROP_LV_FOCUS_STOP      0x80050003 // LVCAF_LensDriveStop
 #define PROP_LV_FOCUS_BAD       0x80050029 // true if camera couldn't focus?
 #define PROP_LV_FOCUS_STATE     0x80050009 // 1 OK, 101 bad, 201 not done?
+#define PROP_LV_FOCUS_STATUS    0x80050023 // 1 = idle, 3 = focusing in LiveView
 #define PROP_LV_FOCUS_CMD       0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
 #define PROP_LV_FOCUS_DATA      0x80050026 // 8 integers; updates quickly when AF is active
 #define PROP_LVAF_0003          0x80050003
@@ -157,7 +158,6 @@
 #define PROP_LV_OUTPUT_DEVICE   0x80050011      // 1 == LCD?
 #define PROP_HOUTPUT_TYPE       0x80030030      // 0 = no info displayed in LV, 1 = info displayed (this is toggled with DISP)
 #define PROP_MIRROR_DOWN        0x8005001C
-#define PROP_LV_EXPSIM          0x80050023
 #define PROP_MYMENU_LISTING     0x80040009
 
 #define PROP_LV_MOVIE_SELECT    0x8004001C      // 0=DisableMovie, 1=? or 2=EnableMovie
