@@ -1427,6 +1427,10 @@ int main (int argc, char *argv[])
             {
                 print_msg(MSG_INFO, "   - But only write '%s' blocks\n", extract_block);
             }
+            if(inject_filename)
+            {
+                print_msg(MSG_INFO, "   - Inject data from '%s'\n", inject_filename);
+            }
         }
 
         print_msg(MSG_INFO, "   - Output into '%s'\n", output_filename);
@@ -1468,6 +1472,7 @@ int main (int argc, char *argv[])
     memset(&wbal_info, 0x00, sizeof(mlv_wbal_hdr_t));
     memset(&wavi_info, 0x00, sizeof(mlv_wavi_hdr_t));
     memset(&rtci_info, 0x00, sizeof(mlv_rtci_hdr_t));
+    memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     char info_string[256] = "(MLV Video without INFO blocks)";
 
@@ -1703,7 +1708,7 @@ read_headers:
             }
 
             /* is this the first file? */
-            if(file_hdr.fileNum == 0)
+            if(main_header.fileGuid == 0)
             {
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
 
