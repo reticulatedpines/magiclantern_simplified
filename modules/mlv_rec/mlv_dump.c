@@ -106,7 +106,11 @@ enum bug_id
         introduced: 9058cbc13fa4 
         fixed in  : 2da80f3de3d1 
         */
-    BUG_ID_BLOCKSIZE_WRONG = 1
+    BUG_ID_BLOCKSIZE_WRONG = 1,
+    /* 
+        dont know yet where this bug comes from. was reported in http://www.magiclantern.fm/forum/index.php?topic=14703
+    */
+    BUG_ID_FRAMEDATA_MISALIGN = 2
 };
 
 int batch_mode = 0;
@@ -1063,6 +1067,7 @@ int main (int argc, char *argv[])
     int black_fix = 0;
     enum bug_id fix_bug = BUG_ID_NONE;
     int fix_bug_1_offset = 0;
+    int fix_bug_2_offset = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 0;
@@ -1108,6 +1113,17 @@ int main (int argc, char *argv[])
                 {
                     fix_bug = MIN(16384, MAX(1, atoi(optarg)));
                     print_msg(MSG_INFO, "FIX BUG #%d [active]\n", fix_bug);
+                    
+                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN)
+                    {
+                        char *parm = strchr(optarg, ',');
+                        if(parm && *parm)
+                        {
+                            parm++;
+                            fix_bug_2_offset = MIN(16384, MAX(-16384, atoi(parm)));
+                            print_msg(MSG_INFO, "FIX BUG #%d [active] parameter: %d\n", fix_bug, fix_bug_2_offset);
+                        }
+                    }
                 }
                 break;
               
@@ -1986,7 +2002,13 @@ read_headers:
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     int prev_frame_size = frame_size;
 
-                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
+                    uint64_t skipSize = block_hdr.frameSpace;
+                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN && (int)block_hdr.frameSpace >= fix_bug_2_offset)
+                    {
+                        print_msg(MSG_INFO, "BUG_ID_FRAMEDATA_MISALIGN: Offset frame data by %d byte\n", fix_bug_2_offset);
+                        skipSize -= fix_bug_2_offset;
+                    }
+                    file_set_pos(in_file, skipSize, SEEK_CUR);
                     
                     /* we can correct that frame by fixing frame space */
                     if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
@@ -2053,6 +2075,11 @@ read_headers:
                         goto abort;
                     }
 
+                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN && (int)block_hdr.frameSpace >= fix_bug_2_offset)
+                    {
+                        file_set_pos(in_file, fix_bug_2_offset, SEEK_CUR);
+                    }
+                    
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                     if(recompress || decompress || ((raw_output || dng_output) && compressed))
