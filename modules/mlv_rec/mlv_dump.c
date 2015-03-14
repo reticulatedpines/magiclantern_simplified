@@ -2020,7 +2020,7 @@ read_headers:
                     }
                     
                     /* check if there is enough memory for that frame */
-                    if(frame_size > frame_buffer_size)
+                    if(frame_size > (int)frame_buffer_size)
                     {
                         /* no, set new size */
                         frame_buffer_size = frame_size;
