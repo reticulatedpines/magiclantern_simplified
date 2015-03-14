@@ -3220,11 +3220,11 @@ abort:
 
         if(fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
         {
-            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+            print_msg(MSG_ERROR, "Failed writing average frame header into .MLV file\n");
         }
         if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
         {
-            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+            print_msg(MSG_ERROR, "Failed writing average frame data into .MLV file\n");
         }
     }
 
@@ -3269,7 +3269,7 @@ abort:
         
         if(fwrite(&main_header, main_header.blockSize, 1, out_file) != 1)
         {
-            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+            print_msg(MSG_ERROR, "Failed to rewrite header in .MLV file\n");
         }
     }
     
