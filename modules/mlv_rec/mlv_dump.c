@@ -3221,12 +3221,10 @@ abort:
         if(fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-            goto abort;
         }
         if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-            goto abort;
         }
     }
 
@@ -3239,7 +3237,6 @@ abort:
         if(fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .RAW file\n");
-            goto abort;
         }
     }
 
@@ -3273,7 +3270,6 @@ abort:
         if(fwrite(&main_header, main_header.blockSize, 1, out_file) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-            goto abort;
         }
     }
     
@@ -3298,7 +3294,6 @@ abort:
         if(fwrite(&tmp_uint32, 4, 1, out_file_wav) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
-            goto abort;
         }
 
         tmp_uint32 = wav_file_size; /* data size */
@@ -3306,7 +3301,6 @@ abort:
         if(fwrite(&tmp_uint32, 4, 1, out_file_wav) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
-            goto abort;
         }
         fclose(out_file_wav);
     }
