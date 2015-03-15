@@ -374,8 +374,50 @@ void draw_ml_bottombar()
     lvinfo_display(0,1);
 }
 
+static int round_nicely(int x, int digits)
+{
+    int x0 = x;
+    
+    /* round X to N significant digits */
+    /* e.g. 1234 rounded to 2 digits => 1200 */
+    int thr = powi(10, digits);
+    
+    if (x < thr/10) return x;
+    
+    int f = 1;
+    while (x >= thr)
+    {
+        if ((x + 2) / 5 == 25)
+        {
+            /* exception: allow 125, 1250 and so on, because Canon does it as well */
+            x = (x + 2) / 5;
+            f *= 5;
+        }
+        else
+        {
+            x = (x + 5) / 10;
+            f *= 10;
+        }
+    }
+    
+    /* re-round to cancel accumulated errors, if any */
+    x = (x0 + f/2) / f;
+    
+    /* avoid ending in odd digits if the number is large (e.g. allow 11, 13, 19, 21, but don't allow 61 or 79) */
+    int last_digit = x % 10;
+    int next_digit = (x / 10) % 10;
+    if ((last_digit == 1 || last_digit == 3 || last_digit == 7 || last_digit == 9) && next_digit >= 5)
+    {
+        f *= 2;
+        x = (x0 + f/2) / f;
+    }
+    
+    return x * f;
+}
+
 // Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input
-char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
+// To be used in movie mode; it doesn't try too hard to be consistent with Canon values
+char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
 {
     static char shutter[32];
     if (shutter_reciprocal_x1000 == 0)
@@ -386,27 +428,20 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
     {
         snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", (shutter_reciprocal_x1000+500000)/1000000);
     }
-    else if (shutter_reciprocal_x1000 == 33333 && is_movie_mode())
-    {
-        /* exception, to avoid flicker with artificial lights (don't round this one to preferred numbers) */
-        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"33");
-    }
     else if (shutter_reciprocal_x1000 > 24000)
     {
-        /* TODO: should use binary search, because the shutter speeds array is sorted */
-        int best_err = INT_MAX;
-        int best_shutter = 0;
-        for (int i = 0; i < COUNT(values_shutter); i++)
+        int shutter_rounded = round_nicely(shutter_reciprocal_x1000, digits);
+        
+        if (digits <= 2)
         {
-            int tested_shutter = values_shutter[i] * 1000;
-            int err = ABS(tested_shutter - shutter_reciprocal_x1000);
-            if (err < best_err)
-            {
-                best_shutter = tested_shutter;
-                best_err = err;
-            }
+            snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_rounded/1000);
         }
-        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (best_shutter+500)/1000);
+        else
+        {
+            /* todo: compute how many digits should be after the decimal point? */
+            shutter_rounded = (shutter_rounded + 5) / 10;
+            snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%s%d.%02d", FMT_FIXEDPOINT2(shutter_rounded));
+        }
     }
     else if (shutter_reciprocal_x1000 > 3000)
     {
@@ -424,6 +459,7 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
 }
 
 // Pretty prints the shutter speed given the raw shutter value as input
+// To be used in photo mode; it will try to be somewhat consistent with Canon values
 char* lens_format_shutter(int tv)
 {
     static char shutter[32];
@@ -2372,7 +2408,7 @@ static LVINFO_UPDATE_FUNC(tv_update)
     }
     else if (is_movie_mode())
     {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000()));
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000(), 2));
     }
     else if (lens_info.raw_shutter)
     {

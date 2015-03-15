@@ -8,10 +8,6 @@
 #define LEDON 0x46
 #define LEDOFF 0x44
 
-//~ Format dialog consts
-#define FORMAT_BTN "[LV]"
-#define STR_LOC 12
-
 #define HIJACK_INSTR_BL_CSTART 0xFF012AE8
 #define HIJACK_INSTR_BSS_END 0xFF01093C
 #define HIJACK_FIXBR_BZERO32 0xFF0108A4
@@ -194,6 +190,9 @@
 
 #define DIALOG_MnCardFormatBegin (0x242AC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x24398+4) // similar
+#define FORMAT_BTN_NAME "[LiveView]"
+#define FORMAT_BTN BGMT_LV
+#define FORMAT_STR_LOC 12
 
 #define BULB_MIN_EXPOSURE 1000
 

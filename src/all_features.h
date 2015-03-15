@@ -110,7 +110,6 @@
     #define FEATURE_REC_INDICATOR
     #define FEATURE_MOVIE_LOGGING
     #define FEATURE_MOVIE_RESTART
-    //~ #define FEATURE_MOVIE_AUTOSTOP_RECORDING // will be moved to scripts
     #define FEATURE_REC_NOTIFY
     //~ #define FEATURE_REC_NOTIFY_BEEP // this may interfere with sound recording, so only enable it where we know it works
     #define FEATURE_MOVIE_REC_KEY
@@ -143,7 +142,6 @@
 
     // 50D movie hacks
     //~ #define FEATURE_MOVIE_RECORDING_50D
-    //~ #define FEATURE_LVAE_EXPO_LOCK
 
     // 650D / EOSM hacks
     //~ #define FEATURE_CROP_MODE_HACK
@@ -197,7 +195,6 @@
     #define FEATURE_RACK_FOCUS
     #define FEATURE_FOCUS_STACKING
     #define FEATURE_AF_PATTERNS
-    //~ #define FEATURE_MOVIE_AF // not reliable
 #endif
 
 /** Display menu **/
@@ -242,7 +239,6 @@
     #define FEATURE_PLAY_COMPARE_IMAGES
     #define FEATURE_PLAY_TIMELAPSE
     #define FEATURE_PLAY_EXPOSURE_ADJUST
-    #define FEATURE_PLAY_422
 
     #define FEATURE_IMAGE_REVIEW_PLAY
     #define FEATURE_QUICK_ZOOM

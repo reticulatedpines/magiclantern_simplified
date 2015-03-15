@@ -278,7 +278,7 @@ int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
 void spy_event(struct event * event);
 
-int handle_keep_ml_after_format_toggle();
+int handle_keep_ml_after_format_toggle(struct event * event);
 
 void check_pre_shutdown_flag();
 void reset_pre_shutdown_flag_step();

@@ -419,18 +419,6 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
     struct bmp_file_t * bmp = (struct bmp_file_t *) buf;
     if( bmp->signature != 0x4D42 )
     {
-        DebugMsg( DM_MAGIC, 3, "%s: signature %04x", filename, bmp->signature );
-        int i;
-        for( i=0 ; i<64; i += 16 )
-            DebugMsg( DM_MAGIC, 3,
-                "%08x: %08x %08x %08x %08x",
-                buf + i,
-                ((uint32_t*)(buf + i))[0],
-                ((uint32_t*)(buf + i))[1],
-                ((uint32_t*)(buf + i))[2],
-                ((uint32_t*)(buf + i))[3]
-            );
-
         goto signature_fail;
     }
 
@@ -439,7 +427,6 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
     const unsigned image_offset = (unsigned) bmp->image;
     if( image_offset > size )
     {
-        DebugMsg( DM_MAGIC, 3, "%s: size too large: %x > %x", filename, image_offset, size );
         goto offsetsize_fail;
     }
 

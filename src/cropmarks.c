@@ -30,8 +30,7 @@ void crop_set_dirty(int value)
     crop_dirty = MAX(crop_dirty, value);
 }
 
-//also used in debug.c CopyMLDirectoryToRAM_BeforeFormat
-int is_valid_cropmark_filename(char* filename)
+static int is_valid_cropmark_filename(char* filename)
 {
     int n = strlen(filename);
     if ((n > 4) && (streq(filename + n - 4, ".BMP") || streq(filename + n - 4, ".bmp")) && (filename[0] != '.') && (filename[0] != '_'))

@@ -313,9 +313,11 @@ static void update_resolution_params()
     if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
     {
         /* assume the raw image should be 16:9 when de-squeezed */
-        int correct_height = max_res_x * 9 / 16;
+        //int correct_height = max_res_x * 9 / 16;
         //int correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
-        squeeze_factor = (float)correct_height / max_res_y;
+        //squeeze_factor = (float)correct_height / max_res_y;
+        /* 720p mode uses 5x3 binning (5DMK3) or horizontal binning + vertical skipping (other cameras) */
+        squeeze_factor = 1.6666f; // 5.0/3.0
     }
     else squeeze_factor = 1.0f;
 
@@ -494,9 +496,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
     if (!raw_video_enabled) return;
     
     refresh_raw_settings(0);
-
-    if (auto_power_off_time)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
 
     if (!RAW_IS_IDLE)
     {
@@ -1420,6 +1419,10 @@ static void raw_video_rec_task()
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
+    
+    /* disable powersave timer */
+    int powersave_prohibit = 2;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1827,6 +1830,11 @@ cleanup:
     #endif
     hack_liveview(1);
     redraw();
+    
+    /* re-enable powersave timer */
+    int powersave_permit = 1;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+
     raw_recording_state = RAW_IDLE;
 }
 

@@ -1,7 +1,7 @@
 #ifndef _fw_signature_h_
 #define _fw_signature_h_
 
-#include <internals.h>
+#include <config-defines.h>
 
 #define SIG_LEN 0x10000
 
@@ -46,5 +46,10 @@ static int compute_signature(int* start, int num)
     }
     return c;
 }
+
+#ifdef CONFIG_QEMU
+/* we are using patched ROMs, so the signature will fail for sure; skip it */
+#undef CURRENT_CAMERA_SIGNATURE
+#endif
 
 #endif //_fw_signature_h_

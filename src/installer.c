@@ -285,7 +285,12 @@ int check_autoexec()
 static void hook_on_canon_menu()
 {
     gui_uilock(UILOCK_EVERYTHING);
-    SetGUIRequestMode(DLG_MENU);
+    
+    if (CURRENT_DIALOG_MAYBE != DLG_MENU)
+    {
+        SetGUIRequestMode(DLG_MENU);
+    }
+    
     for (int i = 0; i < 10; i++)
     {
         msleep(100);
@@ -392,21 +397,18 @@ static int install(void)
     
     for (int i = 30; i > 0; i--)
     {
-        if (CURRENT_DIALOG_MAYBE == DLG_MENU)
+        if (CURRENT_DIALOG_MAYBE != DLG_MENU || !DISPLAY_IS_ON)
         {
-            print_bootflags();
-            bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
+            /* abort if user gets out of Canon menu */
+            return 0;
         }
 
+        print_bootflags();
+        bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
         bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
             "For removing the boot flag, please wait for %d seconds.  ", i
         );
-        msleep(1000);
-        
-        if (!DISPLAY_IS_ON)
-        {
-            info_led_blink(1,50,0);
-        }
+        info_led_blink(1,50,950);
     }
     return 1;
 }
@@ -473,8 +475,22 @@ void install_task()
     
     /* finish uninstalling */
     gui_uilock(UILOCK_SHUTTER);
-    bmp_printf(FONT_CANON, 0, 430, "Please restart your camera.");
-    print_bootflags();
+    
+    while(1)
+    {
+        if (DISPLAY_IS_ON)
+        {
+            bmp_fill(COLOR_BLACK, 0, 420, 720, 60);
+            int fnt = FONT(FONT_CANON, ok ? COLOR_WHITE : COLOR_RED, COLOR_BLACK);
+            bmp_printf(fnt, 0, 430, "Please restart your camera.");
+            print_bootflags();
+            msleep(1000);
+        }
+        else
+        {
+            info_led_blink(1, 500, 500);
+        }
+    }
 }
 
 void redraw() { clrscr(); }
@@ -510,7 +526,7 @@ void redraw_after(int time) {}
 uint32_t edmac_get_address(uint32_t channel) { return 0; }
 void EngDrvOut(uint32_t reg, uint32_t value) {}
 int hdmi_code = 0;
-void update_vram_params(){};
+void _update_vram_params(){};
 void draw_line(int x1, int y1, int x2, int y2, int cl){}
 void NotifyBox(int timeout, char* fmt, ...) {}
 struct vram_info lv_vram;
@@ -520,6 +536,7 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size) { return 0; }
 void _shoot_free_suite(struct memSuite * suite) {}
 struct memSuite * _srm_malloc_suite(int num) { return 0; }
 void _srm_free_suite(struct memSuite * suite) {}
+char* get_current_task_name() { return "?"; }
 
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
