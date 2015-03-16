@@ -3945,6 +3945,6 @@ void EngDrvOut(uint32_t reg, uint32_t value)
     #endif
 
     if (ml_shutdown_requested) return;
-    if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
+    if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _EngDrvOut(reg, value);
 }
