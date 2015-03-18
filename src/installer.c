@@ -406,7 +406,7 @@ static int install(void)
         print_bootflags();
         bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
         bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
-            "For removing the boot flag, please wait for %d seconds.  ", i
+            "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
         info_led_blink(1,50,950);
     }
