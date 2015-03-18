@@ -137,6 +137,29 @@ static void blink(int n)
 static void fail()
 {
     disp_init();
+
+#ifdef CONFIG_INSTALLER
+    print_line(COLOR_WHITE, 4, "Magic Lantern");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "Incorrect firmware version.");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "Expecting a Canon " CAMERA_MODEL ",");
+    print_line(COLOR_GRAY+2, 2, "with firmware version " STR(CONFIG_FW_VERSION) ".");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "Please reinstall Canon firmware " STR(CONFIG_FW_VERSION) ",");
+    print_line(COLOR_WHITE, 2, "even if you already have this version.");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+#else
     print_line(COLOR_WHITE, 4, "Magic Lantern");
     print_line(COLOR_WHITE, 2, VERSION);
     print_line(COLOR_WHITE, 2, "");
@@ -163,6 +186,7 @@ static void fail()
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+#endif
     
     /* I doubt we can still boot Canon firmware from this point, but didn't try */
     while(1);
