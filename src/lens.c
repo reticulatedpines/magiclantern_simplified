@@ -55,7 +55,7 @@ void bv_update_lensinfo();
 void bv_auto_update();
 static void lensinfo_set_aperture(int raw);
 static void bv_expsim_shift();
-
+extern int dof_display;
 
 static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
@@ -2562,7 +2562,19 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
     
     if(lens_info.focus_dist)
     {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+        if (dof_display)
+        {
+            snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+            int xw = item->x + item->width/2;
+            bmp_fill(COLOR_BG, xw-90, item->y-36, 125, 26);
+            bmp_printf(FONT(FONT_MED, COLOR_GREEN1, COLOR_BG) | FONT_ALIGN_RIGHT, xw-35, item->y-33, "%s", lens_format_dist( lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, COLOR_GREEN1, COLOR_BG), xw-19, item->y-33, "%s", lens_format_dist( lens_info.dof_far));
+            bmp_fill(COLOR_WHITE, xw-27, item->y-32, 1, 19);
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+        }
     }
 }
 
