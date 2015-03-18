@@ -13,8 +13,5 @@ else
 RESTARTSTART	= 0x0009E300
 endif
 
-# must have 8.3 characters for 64GB EXFAT cards
-UPDATE_NAME_FIR=ML-6D113.FIR
-
 #End of FW_VERSION == 113
 endif
