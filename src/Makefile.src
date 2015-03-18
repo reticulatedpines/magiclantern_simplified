@@ -327,3 +327,7 @@ clean::
 	$(call rm_files, version.c version.bin)
 
 FORCE:
+
+# fixme: better place for this?
+include $(BUILD_TOOLS_DIR)/Makefile
+
