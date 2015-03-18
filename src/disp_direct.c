@@ -202,6 +202,7 @@ void disp_init()
     
     /* set frame buffer memory area */
     MEM(0xC0F140D0) = (uint32_t)disp_framebuf & ~0x40000000;
+    MEM(0xC0F140D4) = (uint32_t)disp_framebuf & ~0x40000000;
     
     /* we don't use YUV */
     
