@@ -384,7 +384,9 @@ static int raw_lv_get_resolution(int* width, int* height)
     int mv640 = mv && video_mode_resolution == 2;
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
-    int zoom = lv_dispsize > 1;
+    
+    /* note: 6D reports 129 = 0x81 for zoom x1, and it behaves just like plain (unzoomed) LiveView) */
+    int zoom = (lv_dispsize & 0xF) > 1;
 
     /* silence warnings; not all cameras have all these modes */
     (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
@@ -515,11 +517,10 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_6D
-        //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
-        skip_top        = zoom ? 30 : mv720 ? 28 : 28; //28
-        skip_left       = zoom ? 84 : mv720 ? 86: 86; //86
-        skip_right      = zoom ? 0  : mv720 ? 12 : 10;
-        //~ skip_bottom = 1;
+        /* same skip offsets in 1080p and 720p; top/left bar is the same in x5 zoom as well */
+        skip_top        = 28;
+        skip_left       = 80;
+        skip_right      = zoom ? 0  : 10;
         #endif
 
         #ifdef CONFIG_500D

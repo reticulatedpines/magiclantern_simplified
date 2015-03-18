@@ -65,6 +65,7 @@
 #include <io_crypt.h>
 
 #include "crypt_lfsr64.h"
+#include "crypt_xtea.h"
 #include "crypt_rsa.h"
 #include "hash_password.h"
 
@@ -80,6 +81,8 @@ static const uint8_t cr2_magic[] = "\x49\x49\x2A\x00";
 static const uint8_t jpg_magic[] = "\xff\xd8\xff\xe1";
 static const uint8_t rsa_magic[] = "\xff\xd8\xff\xd8";
 static const uint8_t lfsr_magic[] = "\xff\xd8\xff\x8d";
+static const uint8_t xtea_magic[] = "\xff\xd8\xff\x8e";
+static const uint8_t rsaxtea_magic[] = "\xff\xd8\xff\xd9";
 
 /* FIO function hooks */
 static iodev_handlers_t *orig_iodev = NULL;
@@ -208,6 +211,7 @@ static uint32_t hook_iodev_CloseFile(uint32_t fd)
 static uint32_t iocrypt_asym_init(int fd)
 {
     uint64_t file_key = 0;
+    uint32_t password[4];
     uint32_t lfsr_blocksize = (16 << iocrypt_block_size);
     uint32_t blocksize = crypt_rsa_blocksize(iocrypt_rsa_ctx.priv);
     
@@ -222,6 +226,9 @@ static uint32_t iocrypt_asym_init(int fd)
     rand_fill((uint32_t*)key, blocksize / 4);
     memcpy(&file_key, key, sizeof(uint64_t));
 
+    /* todo: fill it correctly */
+    memset(password, 0x00, sizeof(password));
+    
     /* encrypt the randomly generated per-file header with RSA public key */
     volatile iocrypt_job_t job;
     
@@ -243,7 +250,7 @@ static uint32_t iocrypt_asym_init(int fd)
     uint32_t encrypted_size = job.ret;
     
     /* write header, block size and encrypted key */
-    orig_iodev->WriteFile(fd, (uint8_t*)rsa_magic, 4);
+    orig_iodev->WriteFile(fd, (uint8_t*)rsaxtea_magic, 4);
     orig_iodev->WriteFile(fd, (uint8_t*)&encrypted_size, sizeof(uint32_t));
     orig_iodev->WriteFile(fd, (uint8_t*)&lfsr_blocksize, sizeof(uint32_t));
     orig_iodev->WriteFile(fd, (uint8_t*)key, encrypted_size);
@@ -266,7 +273,8 @@ static uint32_t iocrypt_asym_init(int fd)
     
     /* init encryption */
     iocrypt_files[fd].file_key = file_key;
-    crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
+    //crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
+    crypt_xtea_init(&iocrypt_files[fd].crypt_ctx, password, iocrypt_files[fd].file_key);
     iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
 
     return 1;
@@ -274,12 +282,13 @@ static uint32_t iocrypt_asym_init(int fd)
 
 static uint32_t iocrypt_sym_init(int fd)
 {
+    uint32_t password[4];
     uint32_t lfsr_blocksize = (16 << iocrypt_block_size);
     
     trace_write(iocrypt_trace_ctx, "iocrypt_sym_init: lfsr_blocksize %d bytes", lfsr_blocksize);
     
     /* write header, block size and encrypted key */
-    orig_iodev->WriteFile(fd, (uint8_t*)lfsr_magic, 4);
+    orig_iodev->WriteFile(fd, (uint8_t*)xtea_magic, 4);
     orig_iodev->WriteFile(fd, (uint8_t*)&lfsr_blocksize, sizeof(uint32_t));
     
     iocrypt_files[fd].header_size = 0x200;
@@ -294,9 +303,13 @@ static uint32_t iocrypt_sym_init(int fd)
     /* rewind file */
     iodev_SetPosition(fd, 0);
     
+    /* todo: fill it correctly */
+    memset(password, 0x00, sizeof(password));
+    
     /* init encryption */
     iocrypt_files[fd].file_key = iocrypt_key;
-    crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
+    //crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_files[fd].file_key);
+    crypt_xtea_init(&iocrypt_files[fd].crypt_ctx, password, iocrypt_files[fd].file_key);
     iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
 
     return 1;
@@ -353,6 +366,57 @@ static uint32_t hook_iodev_OpenFile(void *iodev, char *filename, int32_t flags, 
                     iodev_SetPosition(fd, 0x200);
                     
                     crypt_lfsr64_init(&iocrypt_files[fd].crypt_ctx, iocrypt_key);
+                    iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
+                    
+                    if(iocrypt_files[fd].crypt_ctx.priv)
+                    {
+                        /* read again to check if it is decryptable now */
+                        orig_iodev->ReadFile(fd, buf, 4);
+                        iodev_SetPosition(fd, 0);
+                        
+                        iocrypt_files[fd].crypt_ctx.decrypt(iocrypt_files[fd].crypt_ctx.priv, buf, buf, 4, 0);
+            
+                        if(!memcmp(buf, jpg_magic, 4))
+                        {
+                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be decryptable JPEG", filename);
+                            decryptable = 1;
+                        }
+                        else if(!memcmp(buf, cr2_magic, 4))
+                        {
+                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be decryptable CR2", filename);
+                            decryptable = 1;
+                        }
+                        else
+                        {
+                            trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be not decryptable", filename);
+                        }
+                        
+                        /* shall we crypt the file? if not, release context */
+                        if(!decryptable)
+                        {
+                            iocrypt_files[fd].crypt_ctx.deinit(iocrypt_files[fd].crypt_ctx.priv);
+                            iocrypt_files[fd].crypt_ctx.priv = NULL;
+                        }
+                        else
+                        {
+                            iocrypt_files[fd].header_size = 0x200;
+                        }
+                    }
+                }
+                else if(!memcmp(buf, xtea_magic, 4))
+                {
+                    uint32_t password[4];
+                    trace_write(iocrypt_trace_ctx, "   ->> File '%s' seems to be XTEA encrypted, try to decrypt on the fly", filename);
+                    
+                    uint32_t lfsr_blocksize = 0;
+                    iodev_SetPosition(fd, 4);
+                    orig_iodev->ReadFile(fd, (uint8_t *)&lfsr_blocksize, 4);
+                    iodev_SetPosition(fd, 0x200);
+                    
+                    /* todo: fill it correctly */
+                    memset(password, 0x00, sizeof(password));
+                    
+                    crypt_xtea_init(&iocrypt_files[fd].crypt_ctx, password, iocrypt_key);
                     iocrypt_files[fd].crypt_ctx.set_blocksize(iocrypt_files[fd].crypt_ctx.priv, lfsr_blocksize);
                     
                     if(iocrypt_files[fd].crypt_ctx.priv)

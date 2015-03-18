@@ -408,9 +408,6 @@ seconds_clock_task( void* unused )
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
 
-
-static PROP_INT(PROP_VIDEO_SYSTEM, pal);
-
 #ifdef FEATURE_INTERVALOMETER
 
 static MENU_UPDATE_FUNC(timelapse_calc_display)
@@ -421,7 +418,7 @@ static MENU_UPDATE_FUNC(timelapse_calc_display)
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     int fps = video_mode_fps;
-    if (!fps) fps = pal ? 25 : 30;
+    if (!fps) fps = video_system_pal ? 25 : 30;
     MENU_SET_WARNING(MENU_WARN_INFO, 
         "Timelapse: %dh%02dm, %d shots, %d fps => %02dm%02ds.", 
         total_time_m / 60, 
@@ -1614,7 +1611,7 @@ static MENU_UPDATE_FUNC(shutter_display)
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
             "%s, %d"SYM_DEGREE,
-            lens_format_shutter_reciprocal(s),
+            lens_format_shutter_reciprocal(s, 5),
             deg);
     }
     else
@@ -2391,7 +2388,7 @@ static void zoom_halfshutter_step()
         if (hs && lv_dispsize == 1 && display_idle())
         {
             #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
-            msleep(200);
+            msleep(500);
             #else
             msleep(50);
             #endif
