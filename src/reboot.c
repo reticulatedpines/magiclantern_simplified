@@ -28,6 +28,7 @@
 #include "consts.h"
 #include "fw-signature.h"
 #include "disp_direct.h"
+#include <string.h>
 
 /* this magic is a BX R3 */
 #define FOOTER_MAGIC 0xE12FFF13
@@ -141,11 +142,16 @@ static void fail()
     print_line(COLOR_WHITE, 2, VERSION);
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "Firmware checksum error.");
+    print_line(COLOR_WHITE, 2, "Model detection error.");
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 2, "Expecting a Canon " CAMERA_MODEL ",");
-    print_line(COLOR_GRAY+2, 2, "with firmware version " STR(CONFIG_FW_VERSION) ".");
+    char* fw_version = STR(CONFIG_FW_VERSION);
+    char* camera_model_line =  "Your camera doesn't look like a " CAMERA_MODEL " x.x.x.";
+    int len = strlen(camera_model_line);
+    camera_model_line[len-6] = fw_version[0];
+    camera_model_line[len-4] = fw_version[1];
+    camera_model_line[len-2] = fw_version[2];
+    print_line(COLOR_GRAY+2, 2, camera_model_line);
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_GRAY+2, 1, "What you can do:");
