@@ -28,6 +28,7 @@
 #include "consts.h"
 #include "fw-signature.h"
 #include "disp_direct.h"
+#include <string.h>
 
 /* this magic is a BX R3 */
 #define FOOTER_MAGIC 0xE12FFF13
@@ -164,26 +165,32 @@ static void fail()
     print_line(COLOR_WHITE, 2, VERSION);
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "Firmware checksum error.");
+    print_line(COLOR_WHITE, 2, "Model detection error.");
+    print_line(COLOR_WHITE, 2, "");
+    char* fw_version = STR(CONFIG_FW_VERSION);
+    char* camera_model_line =  "Your camera doesn't look like a " CAMERA_MODEL " x.x.x.";
+    int len = strlen(camera_model_line);
+    camera_model_line[len-6] = fw_version[0];
+    camera_model_line[len-4] = fw_version[1];
+    camera_model_line[len-2] = fw_version[2];
+    print_line(COLOR_GRAY+2, 2, camera_model_line);
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 2, "Expecting a Canon " CAMERA_MODEL ",");
-    print_line(COLOR_GRAY+2, 2, "with firmware version " STR(CONFIG_FW_VERSION) ".");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 1, "What you can do:");
-    print_line(COLOR_GRAY+2, 1, "");
-    print_line(COLOR_GRAY+2, 1, "- Make sure you have downloaded the right Magic Lantern zip for your camera model.");
-    print_line(COLOR_GRAY+2, 1, "");
-    print_line(COLOR_GRAY+2, 1, "- Make sure you have the right Canon firmware (try upgrading/downgrading it to " STR(CONFIG_FW_VERSION) ").");
-    print_line(COLOR_GRAY+2, 1, "");
-    print_line(COLOR_GRAY+2, 1, "- To use your camera without Magic Lantern, format this card from your computer.");
-    print_line(COLOR_GRAY+2, 1, "");
-    print_line(COLOR_GRAY+2, 1, "- If your camera no longer boots without a card, first take a deep breath, then copy ");
-    print_line(COLOR_GRAY+2, 1, "  ML/LOGS/ROM*.BIN from all your cards to a safe place, then contact ML developers.");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "What you can do:");
+    print_line(COLOR_GRAY+2, 2, "");
+    print_line(COLOR_GRAY+2, 2, "- Make sure you've got the right ML zip");
+    print_line(COLOR_GRAY+2, 2, "  for your camera model.");
+    print_line(COLOR_GRAY+2, 2, "");
+    print_line(COLOR_GRAY+2, 2, "- If in doubt, upgrade (or downgrade)");
+    char* upgrade_line =        "  your Canon firmware to x.x.x (again).";
+    len = strlen(upgrade_line);
+    upgrade_line[len-14] = fw_version[0];
+    upgrade_line[len-12] = fw_version[1];
+    upgrade_line[len-10] = fw_version[2];
+    print_line(COLOR_GRAY+2, 2, upgrade_line);
+    print_line(COLOR_GRAY+2, 2, "");
+    print_line(COLOR_GRAY+2, 2, "- To use your camera without Magic Lantern,");
+    print_line(COLOR_GRAY+2, 2, "  format this card from your computer.");
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
 #endif

@@ -146,23 +146,30 @@ static uint32_t find_func_called_before_string_ref(char* ref_string)
 static void* disp_init_autodetect()
 {
     /* Called right before printing the following strings:
-     * "Other models\n"                     (5D2, 5D3, 60D, 500D, 70D)
+     * "Other models\n"                     (5D2, 5D3, 60D, 500D, 70D, 7D)
      * "File(*.fir) not found\n"            (5D2, 5D3, 60D, 500D, 70D)
-     * "sum check error or code modify\n"   (5D2, 60D, 500D)
+     * "sum check error or code modify\n"   (5D2, 60D, 500D, 7D)
      * "sum check error\n"                  (5D3, 70D)
-     * "CF Read error\n"                    (5D2, 60D, 500D)
+     * "CF Read error\n"                    (5D2, 60D, 500D, 7D)
      * ...
      */
     
     uint32_t a = find_func_called_before_string_ref("Other models\n");
     uint32_t b = find_func_called_before_string_ref("File(*.fir) not found\n");
+    uint32_t c = find_func_called_before_string_ref("sum check error or code modify\n");
     
     if (a == b)
     {
         /* I think this is what we are looking for :) */
         return (void*) a;
     }
-    
+
+    if (a == c)
+    {
+        /* I think this is what we are looking for :) */
+        return (void*) a;
+    }
+
     return 0;
 }
 
@@ -195,6 +202,7 @@ void disp_init()
     
     /* set frame buffer memory area */
     MEM(0xC0F140D0) = (uint32_t)disp_framebuf & ~0x40000000;
+    MEM(0xC0F140D4) = (uint32_t)disp_framebuf & ~0x40000000;
     
     /* we don't use YUV */
     
