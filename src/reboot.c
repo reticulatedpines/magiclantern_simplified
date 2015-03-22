@@ -28,38 +28,79 @@
 #include "consts.h"
 #include "fw-signature.h"
 
+/* this magic is a BX R3 */
+#define FOOTER_MAGIC 0xE12FFF13
+#define STR(x) STRx(x)
+#define STRx(x) #x
+
 #ifdef __ARM__
 asm(
     ".text\n"
     ".globl _start\n"
     "_start:\n"
+    
+    /* first comes the check if we were loaded successfully, efficiently packed into 0x20 bytes */
+    "ADD   R4, PC, #0x0C\n"
+    "LDM   R4, {R1-R3}\n"
+    "LDR   R0, [R2]\n"
+    "CMP   R0, R1\n"
+    "BEQ   skip_fir_header\n"
+    
+    /* reset */
+    "reset:\n"
+    "BX    R3\n"                    /* -> R1 (magic 0xE12FFF13) */
+    ".word   autoexec_bin_footer\n" /* -> R2 (footer address) */
+    ".word   "STR(ROMBASEADDR)"\n"  /* -> R3 (reset address) */
 
+    
     /* if used in a .fir file, there is a 0x120 byte address offset.
        so cut the first 0x120 bytes off autoexec.bin before embedding into .fir
      */
-    "B       skip_fir_header\n"
-    ".incbin \"version.bin\"\n" // this must have exactly 0x11C (284) bytes
+     
+    /* as we dont want to waste too much space, embed the version information here. must have exactly 0x100 bytes. */
+    ".incbin \"version.bin\"\n"
+    
+    /* ok our code starts here */
     "skip_fir_header:\n"
-
     "MRS     R0, CPSR\n"
     "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
     "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
     "MSR     CPSR, R0\n"
+    
+    /* init checksum variables */
+    "ADR     R2, checksum_area\n"
+    "LDM     R2, {R0, R1, R10, R11}\n"
+    
+    /* checksums a 32 byte area at once */
+    "checksum_loop:\n"
+    "LDMIA   R0!, { R2-R9 }\n"
+    "EOR     R2, R2, R3\n"
+    "EOR     R4, R4, R5\n"
+    "EOR     R6, R6, R7\n"
+    "EOR     R8, R8, R9\n"
+    "EOR     R2, R2, R4\n"
+    "EOR     R6, R6, R8\n"
+    "EOR     R2, R2, R6\n"
+    "EOR     R11, R11, R2\n"
+    "CMP     R0, R1\n"
+    "BLO     checksum_loop\n"
+    "CMP     R11, #0x00\n"
+    
+    /* if the checksum was wrong, reset to main firmware */
+    "BXNE    R10\n"
     "B       cstart\n"
+    
+    "checksum_area:"
+    ".word   _start\n"
+    ".word   autoexec_bin_checksum_end\n"
+    ".word   "STR(ROMBASEADDR)"\n"
+    ".word   0x00000000\n"
 );
 
 /** Include the relocatable shim code */
 extern uint8_t blob_start;
 extern uint8_t blob_end;
 
-asm(
-    ".text\n"
-    ".globl blob_start\n"
-    "blob_start:\n"
-    ".incbin \"magiclantern.bin\"\n"
-    "blob_end:\n"
-    ".globl blob_end\n"
-);
 #endif /* __ARM__ */
 
 static void busy_wait(int n)
@@ -152,3 +193,35 @@ cstart( void )
     while(1)
         ;
 }
+
+asm(
+    /* footer is read by first instructions to check if autoexec.bin was loaded correctly 
+       .rodata is selected after .text by the default linker script, so this will go to the
+       end of the file, being a usable footer.
+    */
+    ".section .rodata\n"
+    
+    ".globl blob_start\n"
+    "blob_start:\n"
+    
+    ".incbin \"magiclantern.bin\"\n"
+    
+    "blob_end:\n"
+    ".globl blob_end\n"
+    
+    ".align 5, 0xCE\n"
+
+    /* fill up so there are only two words left */
+    ".word   0xCEEEEEEC\n"
+    ".word   0xCEEEEEEC\n"
+    ".word   0xCEEEEEEC\n"
+    ".word   0xCEEEEEEC\n"
+    ".word   0xCEEEEEEC\n"
+    ".word   0xCEEEEEEC\n"
+    
+    "autoexec_bin_footer:\n"
+    ".word   "STR(FOOTER_MAGIC)"\n"
+    "autoexec_bin_checksum:\n"
+    ".word   0xCCCCCCCC\n"
+    "autoexec_bin_checksum_end:\n"
+);

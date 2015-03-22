@@ -302,15 +302,13 @@ $(PLATFORM_DIR)/version.c: FORCE
 
 # this must have exactly 0x11C (284) bytes, see reboot.c
 $(PLATFORM_DIR)/version.bin: FORCE
-	$(call build,"VERSION",echo -e '\b\b\b\bMagic Lantern $(VERSION)') > $@
+	$(call build,"VERSION",echo 'Magic Lantern $(VERSION)') > $@
 	@echo 'Mercurial changeset: '`hg id` >> $@
-	@echo 'Built on '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
 	@echo '' >> $@
-	@echo 'Camera  : $(MODEL)' >> $@
-	@echo 'Firmware: $(FW_VERSION)' >> $@
-	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
-	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
-	@truncate -s 284 $@
+	@echo 'Camera   : $(MODEL)' >> $@
+	@echo 'Firmware : $(FW_VERSION)' >> $@
+	@truncate -s 256 $@
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
@@ -329,3 +327,7 @@ clean::
 	$(call rm_files, version.c version.bin)
 
 FORCE:
+
+# fixme: better place for this?
+include $(BUILD_TOOLS_DIR)/Makefile
+
