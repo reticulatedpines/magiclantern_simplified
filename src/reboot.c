@@ -27,6 +27,8 @@
 #include "compiler.h"
 #include "consts.h"
 #include "fw-signature.h"
+#include "disp_direct.h"
+#include <string.h>
 
 /* this magic is a BX R3 */
 #define FOOTER_MAGIC 0xE12FFF13
@@ -95,6 +97,14 @@ asm(
     ".word   autoexec_bin_checksum_end\n"
     ".word   "STR(ROMBASEADDR)"\n"
     ".word   0x00000000\n"
+
+    ".globl blob_start\n"
+    "blob_start:\n"
+    
+    ".incbin \"magiclantern.bin\"\n"
+    
+    "blob_end:\n"
+    ".globl blob_end\n"
 );
 
 /** Include the relocatable shim code */
@@ -127,7 +137,37 @@ static void blink(int n)
 
 static void fail()
 {
-    blink(50);
+    disp_init();
+    print_line(COLOR_WHITE, 4, "Magic Lantern");
+    print_line(COLOR_WHITE, 2, VERSION);
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "Model detection error.");
+    print_line(COLOR_WHITE, 2, "");
+    char* fw_version = STR(CONFIG_FW_VERSION);
+    char* camera_model_line =  "Your camera doesn't look like a " CAMERA_MODEL " x.x.x.";
+    int len = strlen(camera_model_line);
+    camera_model_line[len-6] = fw_version[0];
+    camera_model_line[len-4] = fw_version[1];
+    camera_model_line[len-2] = fw_version[2];
+    print_line(COLOR_GRAY+2, 2, camera_model_line);
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "What you can do:");
+    print_line(COLOR_GRAY+2, 2, "");
+    print_line(COLOR_GRAY+2, 2, "- Make sure you've got the right ML zip");
+    print_line(COLOR_GRAY+2, 2, "  for your camera model.");
+    print_line(COLOR_GRAY+2, 2, "");
+    print_line(COLOR_GRAY+2, 2, "- Make sure you have the right firmware");
+    print_line(COLOR_GRAY+2, 2, "  version from Canon (reinstall if needed).");
+    print_line(COLOR_GRAY+2, 2, "");
+    print_line(COLOR_GRAY+2, 2, "- To use your camera without Magic Lantern,");
+    print_line(COLOR_GRAY+2, 2, "  format this card from your computer.");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+    
+    /* I doubt we can still boot Canon firmware from this point, but didn't try */
+    while(1);
 }
 
 extern int compute_signature(int* start, int num);
@@ -136,14 +176,15 @@ void
 __attribute__((noreturn))
 cstart( void )
 {
-
     #if !(CURRENT_CAMERA_SIGNATURE)
     #warning Signature Checking bypassed!! Please use a proper signature
     #else
     int s = compute_signature((int*)SIG_START, SIG_LEN);
     int _signature = (int)CURRENT_CAMERA_SIGNATURE;
     if (s != _signature)
+    {
         fail();
+    }
     #endif
 
 #ifdef __ARM__
@@ -193,35 +234,3 @@ cstart( void )
     while(1)
         ;
 }
-
-asm(
-    /* footer is read by first instructions to check if autoexec.bin was loaded correctly 
-       .rodata is selected after .text by the default linker script, so this will go to the
-       end of the file, being a usable footer.
-    */
-    ".section .rodata\n"
-    
-    ".globl blob_start\n"
-    "blob_start:\n"
-    
-    ".incbin \"magiclantern.bin\"\n"
-    
-    "blob_end:\n"
-    ".globl blob_end\n"
-    
-    ".align 5, 0xCE\n"
-
-    /* fill up so there are only two words left */
-    ".word   0xCEEEEEEC\n"
-    ".word   0xCEEEEEEC\n"
-    ".word   0xCEEEEEEC\n"
-    ".word   0xCEEEEEEC\n"
-    ".word   0xCEEEEEEC\n"
-    ".word   0xCEEEEEEC\n"
-    
-    "autoexec_bin_footer:\n"
-    ".word   "STR(FOOTER_MAGIC)"\n"
-    "autoexec_bin_checksum:\n"
-    ".word   0xCCCCCCCC\n"
-    "autoexec_bin_checksum_end:\n"
-);

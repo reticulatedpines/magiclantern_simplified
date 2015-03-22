@@ -204,7 +204,10 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 ifndef ML_SRC_REBOOT_OBJ
-ML_SRC_REBOOT_OBJ = reboot.o
+ML_SRC_REBOOT_OBJ = reboot.o \
+	disp_direct.o font_direct.o \
+	strlen.o strcmp.o gcc-libgcc.a \
+	footer.o
 endif
 
 clean::
