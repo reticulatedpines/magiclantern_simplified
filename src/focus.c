@@ -20,7 +20,9 @@
 #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
 #include "lcdsensor.h"
 #endif
-CONFIG_INT( "dof.diplay", dof_display, 1);
+
+CONFIG_INT( "dof.diplay", dof_display, 0);
+
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
