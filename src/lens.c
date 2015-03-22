@@ -2566,7 +2566,7 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
         
         if (dof_display)
         {
-            int xw = item->x + item->width/2;
+            int xw = item->x + item->width/2 - 25;  /* do not center it, because it may overlap with the histogram */
             bmp_fill(COLOR_BG, xw-70, item->y-36, 140, 26);
             bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
             bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
