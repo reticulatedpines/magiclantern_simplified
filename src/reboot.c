@@ -158,13 +158,8 @@ static void fail()
     print_line(COLOR_GRAY+2, 2, "- Make sure you've got the right ML zip");
     print_line(COLOR_GRAY+2, 2, "  for your camera model.");
     print_line(COLOR_GRAY+2, 2, "");
-    print_line(COLOR_GRAY+2, 2, "- If in doubt, upgrade (or downgrade)");
-    char* upgrade_line =        "  your Canon firmware to x.x.x (again).";
-    len = strlen(upgrade_line);
-    upgrade_line[len-14] = fw_version[0];
-    upgrade_line[len-12] = fw_version[1];
-    upgrade_line[len-10] = fw_version[2];
-    print_line(COLOR_GRAY+2, 2, upgrade_line);
+    print_line(COLOR_GRAY+2, 2, "- Make sure you have the right firmware");
+    print_line(COLOR_GRAY+2, 2, "  version from Canon (reinstall if needed).");
     print_line(COLOR_GRAY+2, 2, "");
     print_line(COLOR_GRAY+2, 2, "- To use your camera without Magic Lantern,");
     print_line(COLOR_GRAY+2, 2, "  format this card from your computer.");
