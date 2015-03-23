@@ -22,7 +22,7 @@
 int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
-#define CONSOLE_W 58
+#define CONSOLE_W 80
 #define CONSOLE_H 21
 #define CONSOLE_FONT FONT_MONO_20
 
@@ -245,7 +245,7 @@ static void console_draw(int tiny)
     if (chopped_columns < 5) chopped_columns = 0;
 
     /* top-left corner of "full" console (without lines/columns skipped) */
-    unsigned x0 =  720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
+    unsigned x0 =  (chopped_columns < 7) ? 0 : 8;
     unsigned y0 =  480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
 
     /* correct y to account for skipped lines */
@@ -261,10 +261,8 @@ static void console_draw(int tiny)
 
     int fnt = FONT(CONSOLE_FONT,COLOR_WHITE, (lv || PLAY_OR_QR_MODE) ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
 
-    int xa = (x0 & ~3) - 1;
-    int ya = (yc-1);
-    int w = fontspec_font(fnt)->width * (CONSOLE_W - chopped_columns) + 2;
-    int h = fontspec_font(fnt)->height * (CONSOLE_H - skipped_lines) + 2;
+    int w = MIN((chopped_columns < 7) ? 720 : 704, fontspec_font(fnt)->width * (CONSOLE_W - chopped_columns) + 2);
+    int h = fontspec_font(fnt)->height * (CONSOLE_H - skipped_lines);
 
     /* did the console shrink? if so, redraw Canon GUI around it */
     static int prev_w = 0;
@@ -282,12 +280,9 @@ static void console_draw(int tiny)
     prev_w = w;
     prev_h = h;
 
-
-    bmp_draw_rect(60, xa, ya, w, h);
-    bmp_draw_rect(COLOR_BLACK, xa-1, ya-1, w+2, h+2);
-
     /* display each line */
     int found_cursor = 0;
+    int printed_width = 0;
     for (int i = skipped_lines; i < CONSOLE_H; i++)
     {
         char buf[CONSOLE_W+1];
@@ -309,8 +304,12 @@ static void console_draw(int tiny)
         }
         buf[CONSOLE_W - chopped_columns] = 0;
         int y = yc + fontspec_font(fnt)->height * (i - skipped_lines);
-        bmp_printf(fnt, x0, y, buf);
+        printed_width = bmp_printf(fnt | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(w), x0, y, buf);
     }
+    
+    bmp_draw_rect(60, x0-1, yc-1, printed_width+2, h+2);
+    bmp_draw_rect(COLOR_BLACK, x0-2, yc-2, printed_width+4, h+4);
+
 }
 
 void console_draw_from_menu()
