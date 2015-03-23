@@ -128,6 +128,9 @@ void console_puts(const char* str) // don't DebugMsg from here!
     //~ msleep(100);         /* uncomment this to troubleshoot things that lockup the camera - to make sure FIO tasks actually flushed everything */
     #endif
 
+    /* for handling carriage returns */
+    static int cr = 0;
+    
     const char* c = str;
     while (*c)
     {
@@ -137,22 +140,36 @@ void console_puts(const char* str) // don't DebugMsg from here!
                 NEW_CHAR(' ');
             while (MOD(console_buffer_index, CONSOLE_W) != 0)
                 NEW_CHAR(' ');
+            cr = 0;
         }
         else if (*c == '\t')
         {
             NEW_CHAR(' ');
-            while (MOD(MOD(console_buffer_index, CONSOLE_W), 4) != 0)
+            while (MOD(console_buffer_index, 4) != 0)
                 NEW_CHAR(' ');
         }
-        else if (*c == 8)
+        else if (*c == '\b')
         {
-            console_buffer_index = MOD(console_buffer_index - 1, BUFSIZE);
-            console_buffer[console_buffer_index] = ' ';
+            console_buffer_index--;
+            CONSOLE_BUFFER(console_buffer_index) = ' ';
+        }
+        else if (*c == '\r')
+        {
+            cr = 1; /* will handle it later */
         }
         else
+        {
+            if (cr) /* need to handle a carriage return without line feed */
+            {
+                while (MOD(console_buffer_index, CONSOLE_W))
+                    console_buffer_index--;
+                cr = 0;
+            }
             NEW_CHAR(*c);
+        }
         c++;
     }
+    
     console_buffer_index = MOD(console_buffer_index, BUFSIZE);
 }
 
@@ -288,6 +305,7 @@ static void console_draw(int tiny)
                 }
             }
             buf[j] = found_cursor ? ' ' : CONSOLE_BUFFER(cbpos+j);
+            if (buf[j] == 0) buf[j] = '?';
         }
         buf[CONSOLE_W - chopped_columns] = 0;
         int y = yc + fontspec_font(fnt)->height * (i - skipped_lines);
