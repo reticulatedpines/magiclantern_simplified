@@ -379,16 +379,18 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
         int bg = FONT_BG(fontspec);
         int len = maxlen;
         int space = len - rbf_str_width(rbf_font, str);
+        int is_mono = rbf_char_width(rbf_font, 'm') == rbf_char_width(rbf_font, 'i');
         
         /* divide the space across the chars: a space character can accept 5 times more stretch space than a regular letter */
         /* first non-letter (indent) can't be stretched (to render bullet points correctly) */
+        /* monospaced fonts are squeezed uniformly */
         int bins = 0;
         char* c = (char*) str;
         int indent = 1;
         while (*c && *(c+1))    /* note: last char should not be stretched */
         {
             if (*c != ' ' && *c != '*') indent = 0;
-            bins += indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
+            bins += is_mono ? 3 : indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
             c++;
         }
         
@@ -410,21 +412,24 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
         while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
         {
             l += rbf_draw_char(rbf_font, x+l, y, *str, fontspec);
-            
-            /* Bresenham step */
             int l0 = l;
-            if (*str != ' ' && *str != '*') indent = 0;
-            int repeat = indent ? 0 : space < 0 ? 1 : *str == ' ' ? 10 : 2;
-            for (int i = 0; i < repeat; i++)
+
+            if (*(str+1))
             {
-                if (D > 0)
+                /* Bresenham step */
+                if (*str != ' ' && *str != '*') indent = 0;
+                int repeat = is_mono ? 3 : indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
+                for (int i = 0; i < repeat; i++)
                 {
-                    l += SGN(space);
-                    D = D + (2*dy - 2*dx);
-                }
-                else
-                {
-                    D = D + 2*dy;
+                    if (D > 0)
+                    {
+                        l += SGN(space);
+                        D = D + (2*dy - 2*dx);
+                    }
+                    else
+                    {
+                        D = D + 2*dy;
+                    }
                 }
             }
             
