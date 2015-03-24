@@ -1011,6 +1011,11 @@ tweak_task( void* unused)
     struct tm now;
     LoadCalendarFromRTC(&now);
     joke_mode = (now.tm_mday == 1 && now.tm_mon == 3);
+    if (joke_mode)
+    {
+        msleep(1000);
+        joke_mode = display_idle();
+    }
     
     extern void movtweak_task_init();
     movtweak_task_init();
@@ -1237,6 +1242,15 @@ tweak_task( void* unused)
             idle_wakeup_reset_counters(0);
         }
         #endif
+        
+        if (joke_mode)
+        {
+            if (rand() % 1000 == 13 && !RECORDING)
+            {
+                extern void bsod();
+                bsod();
+            }
+        }
     }
 }
 
@@ -2377,31 +2391,6 @@ static void preview_contrast_n_saturation_step()
     if (play_dirty) play_dirty--; else return;
     msleep(100);
 #else
-    if (joke_mode && (get_seconds_clock() - get_last_time_active() < 2 || RECORDING))
-    {
-        /* this should be obvious for anyone with basic web browsing skills :) */
-        uint32_t magic_reg = 0xC0238064;
-        #ifdef CONFIG_7D
-        magic_reg = 0xC0238004;
-        #endif
-        
-        int x = MEM(magic_reg);
-        if (x && rand() % 10 < 3)
-        {
-            if (rand() % 100 != 13)
-            {
-                /* uuuuu, what does this button do? */
-                MEM(magic_reg) = rand() % 10 == 1 ? 0xFF : rand() % x;
-                msleep(20);
-                MEM(magic_reg) = x;
-            }
-            else
-            {
-                /* no, DeeDee, no!!! */
-                MEM(magic_reg) = 0;
-            }
-        }
-    }
     if (!lv) return;
 #endif
 
