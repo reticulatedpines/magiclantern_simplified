@@ -1340,16 +1340,20 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
             /* try to ignore the AF button, and only take pictures on plain half-shutter */
             /* problem: lv_focus_status is not updated right away :( */
             bmp_printf(FONT_MED, 0, 37, "Hold on...");
-            wait_lv_frames(4);
-            if (lv_focus_status == 3)
+            for (int i = 0; i < 5; i++)
             {
-                while (get_halfshutter_pressed())
+                wait_lv_frames(1);
+                
+                if (lv_focus_status == 3)
                 {
-                    bmp_printf(FONT_MED, 0, 37, "Focusing...");
-                    msleep(10);
+                    while (get_halfshutter_pressed())
+                    {
+                        bmp_printf(FONT_MED, 0, 37, "Focusing...");
+                        msleep(10);
+                    }
+                    redraw();
+                    return 0;
                 }
-                redraw();
-                return 0;
             }
         }
         
