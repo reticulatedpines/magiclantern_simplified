@@ -404,9 +404,8 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
         int dx = bins;
         int dy = ABS(space);
         
-        /* if it requires too much stretching, give up */
-        if (dy > dx)
-            dy = 0;
+        /* if it requires too much stretching, just stretch as much as we can */
+        dy = MIN(dy, dx);
         
         int D = 2*dy - dx;
 
