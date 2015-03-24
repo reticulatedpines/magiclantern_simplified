@@ -1071,6 +1071,41 @@ static void display_off_if_qr_mode()
     }
 }
 
+static void FAST dark_frame_preview()
+{
+    int black = raw_info.black_level;
+
+    /* display +/- 50 units around black level */
+    int min = black - 50;
+    int max = black + 50;
+    uint8_t gamma[101];
+    for (int i = 0; i < 101; i++)
+    {
+        int p = black + i - 50;
+        int g = 100 * (p - min) / (max - min);
+        int c = COLOR_GRAY(g);
+        gamma[i] = c;
+    }
+
+    struct raw_pixblock * raw = CACHEABLE(raw_info.buffer);
+
+    for (int by = os.y0; by < os.y_max; by++)
+    {
+        int ry = BM2RAW_Y(by);
+        struct raw_pixblock * row = (void*)raw + ry * raw_info.pitch;
+
+        for (int bx = os.x0; bx < os.x_max; bx++)
+        {
+            int rx = BM2RAW_X(bx);
+            struct raw_pixblock * p = row + (rx/8);
+            int c = p->a;
+
+            c = COERCE(c, min, max);
+            bmp_putpixel(bx, by, gamma[c - black + 50]);
+        }
+    }
+}
+
 static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
 
 static int
@@ -1203,7 +1238,14 @@ silent_pic_take_fullres(int interactive)
         show_battery_status();
     }
 
-    raw_preview_fast();
+    if (started_in_lv)
+    {
+        raw_preview_fast();
+    }
+    else
+    {
+        dark_frame_preview();
+    }
 
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
