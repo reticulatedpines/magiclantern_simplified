@@ -21,7 +21,7 @@
 #include "lcdsensor.h"
 #endif
 
-CONFIG_INT( "dof.diplay", dof_display, 0);
+CONFIG_INT( "dof.display", dof_display, 0);
 
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
