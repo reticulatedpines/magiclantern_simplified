@@ -317,31 +317,41 @@ static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
     /* default case: use last filename */
     char *filename = image_file_name;
     
-    static int intervalometer_was_running = 0;
+    /* burst modes will group frames into a MLV themselves;
+     * here, we will handle only the modes that capture a single image at a time,
+     * which  will be grouped by the intervalometer 
+     */
+    if (silent_pic_mode != SILENT_PIC_MODE_BURST &&
+        silent_pic_mode != SILENT_PIC_MODE_BURST_END_TRIGGER &&
+        silent_pic_mode != SILENT_PIC_MODE_BEST_SHOTS
+        )
+    {
+        static int intervalometer_was_running = 0;
 
-    /* if intervalometer is active, only get the next filename for the first frame */
-    if (is_intervalometer_running())
-    {
-        int interval_count = get_interval_count();
-        if (interval_count == 0 || interval_count < mlv_file_frame_number)
+        /* if intervalometer is active, only get the next filename for the first frame */
+        if (is_intervalometer_running())
         {
-            /* create a new MLV if:
-             * - it is the first frame in a timelapse sequence
-             * - it's not the first frame, but the intervalometer frame number is smaller than the MLV frame number
-             *   (which means the intervalometer was somehow restarted, but the first frame was not a silent picture)
-             */
-            mlv_file_frame_number = 0;
+            int interval_count = get_interval_count();
+            if (interval_count == 0 || interval_count < mlv_file_frame_number)
+            {
+                /* create a new MLV if:
+                 * - it is the first frame in a timelapse sequence
+                 * - it's not the first frame, but the intervalometer frame number is smaller than the MLV frame number
+                 *   (which means the intervalometer was somehow restarted, but the first frame was not a silent picture)
+                 */
+                mlv_file_frame_number = 0;
+            }
+            intervalometer_was_running = 1;
         }
-        intervalometer_was_running = 1;
-    }
-    else
-    {
-        if (intervalometer_was_running)
+        else
         {
-            /* also create a new MLV once you turn off the intervalometer */
-            /* (this is also handled in menu, but if you press the buttons quickly, it will not reset the counter) */
-            mlv_file_frame_number = 0;
-            intervalometer_was_running = 0;
+            if (intervalometer_was_running)
+            {
+                /* also create a new MLV once you turn off the intervalometer */
+                /* (this is also handled in menu, but if you press the buttons quickly, it will not reset the counter) */
+                mlv_file_frame_number = 0;
+                intervalometer_was_running = 0;
+            }
         }
     }
 
