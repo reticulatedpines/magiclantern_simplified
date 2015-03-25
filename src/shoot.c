@@ -5911,6 +5911,9 @@ shoot_task( void* unused )
                     intervalometer_pictures_taken = 1;
                     int dt = get_interval_time();
                     intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
+#ifdef CONFIG_MODULES
+                    module_exec_cbr(CBR_INTERVALOMETER);
+#endif
                 }
                 #endif
             }
