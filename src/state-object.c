@@ -52,6 +52,10 @@ static volatile int vsync_counter = 0;
 /* waits for N LiveView frames */
 int wait_lv_frames(int num_frames)
 {
+    #ifdef CONFIG_QEMU
+    return 0;   /* fixme: call the vsync hook from qemu-util */
+    #endif
+    
     vsync_counter = 0;
     int count = 0;
     int frame_duration = 1000000 / fps_get_current_x1000();

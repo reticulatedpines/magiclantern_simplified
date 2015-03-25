@@ -55,6 +55,7 @@ void green_screen_step()
    ****************************************************************/
 
    uint32_t* lv = (uint32_t *) get_yuv422_vram()->vram;
+   if (!lv) return;
    uint8_t* bm = bmp_vram();
    // uint16_t* bm16 = (uint16_t *) bmp_vram();
    uint8_t* bm_mirror = (uint8_t *) get_bvram_mirror();

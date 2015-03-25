@@ -482,6 +482,7 @@ hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
     uint32_t* buf = (uint32_t*)lv->vram;
+    if (!buf) return;
 
     int x,y;
 
@@ -1223,6 +1224,7 @@ static void draw_zebras( int Z )
         #endif
         
         uint8_t * lvram = get_yuv422_vram()->vram;
+        if (!lvram) return;
 
         int zlr = zlh;
         int zlg = zlh;
@@ -1489,6 +1491,7 @@ void FAST peak_disp_filter()
     {
         void* aux_buf = (void*)YUV422_HD_BUFFER_2;
         void* current_buf = get_yuv422_vram()->vram;
+        if (!current_buf) return;
         int w = get_yuv422_vram()->width;
         int h = get_yuv422_vram()->height;
         int buf_size = w * h * 2;
@@ -1745,6 +1748,7 @@ draw_zebra_and_focus( int Z, int F )
         struct vram_info *hd_vram = focus_peaking_lores ? get_yuv422_vram() : get_yuv422_hd_vram();
         uint32_t hdvram = (uint32_t)hd_vram->vram;
         if (focus_peaking_lores) hdvram = (uint32_t)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
+        if (!hdvram) return 0;
         
         int off = get_y_skip_offset_for_overlays();
         int yStart = os.y0 + off + 8;
@@ -3717,7 +3721,7 @@ int liveview_display_idle()
     extern thunk LiveViewWifiApp_handler;
     #endif
 
-    #if defined(CONFIG_RELOC)
+    #if defined(CONFIG_LVAPP_HACK_RELOC)
     extern uintptr_t new_LiveViewApp_handler;
     #endif
 
@@ -3728,7 +3732,7 @@ int liveview_display_idle()
         (// gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler 
-                  #if defined(CONFIG_RELOC)
+                  #if defined(CONFIG_LVAPP_HACK_RELOC)
                   || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
                   #endif
                   #if defined(CONFIG_5D3)
@@ -5017,7 +5021,8 @@ static void make_overlay()
 
     struct vram_info * vram = get_yuv422_vram();
     uint8_t * const lvram = vram->vram;
-    //~ int lvpitch = YUV422_LV_PITCH;
+    if (!lvram) return;
+
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
 

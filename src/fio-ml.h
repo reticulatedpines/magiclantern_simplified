@@ -134,4 +134,8 @@ void dump_seg(void* start, uint32_t size, char* filename);
 /* dump 0x10000000 bytes (256MB) from 0x10000000 * k */
 void dump_big_seg(int k, char* filename);
 
+size_t read_file( const char * filename, void * buf, size_t size);
+
+uint8_t* read_entire_file(const char * filename, int* buf_size);
+
 #endif

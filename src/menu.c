@@ -38,6 +38,10 @@
 #include "debug.h"
 #include "lvinfo.h"
 
+#ifdef CONFIG_QEMU
+#define GUIMODE_ML_MENU 0
+#endif
+
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
@@ -123,7 +127,7 @@ static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
 
-extern WEAK_FUNC(ret_0) void CancelDateTimer();
+extern void CancelDateTimer();
 
 #define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (((entry)->max - (entry)->min < 15) || (entry)->choices) && IS_ML_PTR((entry)->priv))
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && IS_ML_PTR((entry)->priv))
@@ -672,7 +676,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         {
             entry->icon_type = IT_SUBMENU;
         }
-        else if (!IS_ML_PTR(entry->priv) || entry->select == (void(*)(void*,int))run_in_separate_task)
+        else if (!IS_ML_PTR(entry->priv) || entry->select == run_in_separate_task)
         {
             entry->icon_type = IT_ACTION;
         }
@@ -2120,7 +2124,7 @@ entry_default_display_info(
         STR_APPEND(value, "%s", entry->choices[SELECTED_INDEX(entry)]);
     }
 
-    else if (IS_ML_PTR(entry->priv) && entry->select != (void(*)(void*,int))run_in_separate_task)
+    else if (IS_ML_PTR(entry->priv) && entry->select != run_in_separate_task)
     {
         if (entry->min == 0 && entry->max == 1)
         {
@@ -5279,7 +5283,6 @@ int handle_ml_menu_erase(struct event * event)
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
     if (event->param == BGMT_TRASH ||
-        (event->param == MLEV_JOYSTICK_LONG && !gui_menu_shown()) ||
         #ifdef CONFIG_TOUCHSCREEN
         event->param == BGMT_TOUCH_2_FINGER ||
         #endif
@@ -5290,8 +5293,18 @@ int handle_ml_menu_erase(struct event * event)
             give_semaphore( gui_sem );
             return 0;
         }
-        //~ else bmp_printf(FONT_LARGE, 100, 100, "%d ", gui_state);
     }
+
+    if (event->param == MLEV_JOYSTICK_LONG && !gui_menu_shown())
+    {
+        /* some cameras will trigger the Q menu (with photo settings) from a joystick press, others will do nothing */
+        if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU)
+        {
+            give_semaphore( gui_sem );
+            return 0;
+        }
+    }
+    
     
 #ifdef CONFIG_JOY_CENTER_ACTIONS
     /* also trigger menu by a long joystick press */
@@ -5662,224 +5675,6 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
     }
 }
 
-#ifdef CONFIG_PICOC
-
-void menu_save_current_config_as_picoc_preset(char* filename)
-{
-    // we will need exclusive access to menu_display_info
-    take_semaphore(menu_sem, 0);
-
-    char* cfg = fio_malloc(CFG_SIZE);
-    cfg[0] = '\0';
-    int cfglen = 0;
-    int lastlen = 0;
-    
-    CFG_APPEND(
-        "/** Configuration preset. **/\n"
-        "/** Feel free to edit or rename it. **/\n"
-        "\n"
-    );
-
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
-    {
-        struct menu_entry * entry = menu->children;
-        if (streq(menu->name, "Scripts")) continue;
-        if (streq(menu->name, "Debug")) continue;
-        if (streq(menu->name, "Help")) continue;
-        if (streq(menu->name, "MyMenu")) continue;
-        if (streq(menu->name, "FlexInfo Settings")) continue;
-        
-        int header_printed = 0;
-        
-        int i;
-        for(i = 0 ; entry ; entry = entry->next, i++ )
-        {
-            // this will also update icon_type
-            char* value = menu_get_str_value_from_script((char*)menu->name, (char*)entry->name);
-            
-            if (strlen(value) == 0)
-                continue;
-            
-            if (entry->icon_type == IT_ACTION)
-                continue;
-            
-            // skip troublesome menus
-            if (streq(entry->name, "Battery Level")) continue;
-            
-            if (!header_printed)
-            {
-                CFG_APPEND("\n/** %s %s**/\n", menu->name, IS_SUBMENU(menu) ? "- submenu " : "");
-                header_printed = 1;
-            }
-            
-            if (!entry->select && IS_ML_PTR(entry->priv))
-                CFG_APPEND("menu_set(\"%s\", \"%s\", %d);", menu->name, entry->name, CURRENT_VALUE);
-            else
-                CFG_APPEND("menu_set_str(\"%s\", \"%s\", \"%s\");", menu->name, entry->name, value);
-            int len = lastlen;
-
-            if ((IS_ML_PTR(entry->priv) && entry->min != entry->max) || (entry->choices)) // we'll have comments
-            {
-                // pad with spaces and add "// "
-                for (i = 0; i < 60-len; i++)
-                    CFG_APPEND(" ");
-                CFG_APPEND("// ");
-            
-                if (IS_ML_PTR(entry->priv) && entry->min != entry->max)
-                {
-                    if (IS_BOOL(entry))
-                        CFG_APPEND("%d or %d. ", entry->min, entry->max);
-                    else
-                        CFG_APPEND("%d...%d. ", entry->min, entry->max);
-                }
-
-                if (entry->choices)
-                {
-                    CFG_APPEND("Choices: ");
-                    for (int i = entry->min; i <= entry->max; i++)
-                    {
-                        CFG_APPEND("\"%s\"%s", pickbox_string(entry, i), i < entry->max ? ", " : ".");
-                    }
-                }
-            }
-            
-            CFG_APPEND("\n");
-        }
-    }
-    
-    //~ ASSERT(cfglen == strlen(cfg)); // seems OK
-    
-    FILE * file = FIO_CreateFile(filename);
-    if (!file)
-        goto end;
-    
-    FIO_WriteFile(file, cfg, strlen(cfg));
-
-    FIO_CloseFile( file );
-
-end:
-    fio_free(cfg);
-    give_semaphore(menu_sem);
-}
-
-#ifdef CONFIG_STRESS_TEST
-
-static void menu_duplicate_test()
-{
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
-    {
-        if (menu == my_menu) continue;
-        if (menu == mod_menu) continue;
-        
-        struct menu_entry * entry = menu->children;
-        for( ; entry ; entry = entry->next )
-        {
-            if (!entry->name) continue;
-            if (entry->shidden) continue;
-            
-            struct menu_entry * e = entry_find_by_name(0, entry->name);
-            
-            if (e != entry)
-            {
-                console_printf("Duplicate: %s->%s\n", menu->name, entry->name);
-            }
-        }
-    }
-}
-
-// for menu entries with custom toggle: check if it wraps around in both directions
-static int entry_check_wrap(const char* name, const char* entry_name, int dir)
-{
-    struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    ASSERT(entry);
-    ASSERT(entry->select);
-
-    // we will need exclusive access to menu_display_info
-    take_semaphore(menu_sem, 0);
-    
-    // if it doesn't seem to cycle, cancel earlier
-    char first[MENU_MAX_VALUE_LEN];
-    char last[MENU_MAX_VALUE_LEN];
-    snprintf(first, sizeof(first), "%s", menu_get_str_value_from_script(name, entry_name));
-    snprintf(last, sizeof(last), "%s", menu_get_str_value_from_script(name, entry_name));
-    
-    if (entry->icon_type == IT_ACTION)
-        goto ok; // don't check actions
-    
-    if (strlen(first)==0)
-        goto ok; // no value field, skip it
-    
-    for (int i = 0; i < 500; i++) // cycle until it returns to initial value
-    {
-        bmp_printf(FONT_MED, 0, 0, "%s->%s: %s (%s)                  ", name, entry_name, last, dir > 0 ? "+" : "-");
-
-        // next value
-        entry->select( entry->priv, dir);
-        msleep(20); // we may need to wait for property handlers to update
-
-        char* current = menu_get_str_value_from_script(name, entry_name);
-        
-        if (streq(current, last)) // value not changing? not good
-        {
-            console_printf("Value not changing: %s, %s -> %s (%s).\n", current, name, entry_name, dir > 0 ? "+" : "-");
-            goto err;
-        }
-        
-        if (streq(current, first)) // back to first value? success!
-            goto ok;
-
-        snprintf(last, sizeof(last), "%s", current);
-    }
-    console_printf("'Infinite' range: %s -> %s (%s)\n", name, entry_name, dir > 0 ? "+" : "-");
-
-err:
-    give_semaphore(menu_sem);
-    return 0; // boo :(
-
-ok:
-    give_semaphore(menu_sem);
-    return 1; // :)
-}
-
-void menu_check_wrap()
-{
-    int ok = 0;
-    int bad = 0;
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
-    {
-        struct menu_entry * entry = menu->children;
-        for( ; entry ; entry = entry->next )
-        {
-            if (entry->shidden) continue;
-            if (!entry->select) continue;
-            
-            int r = entry_check_wrap(menu->name, entry->name, 1);
-            if (r) ok++; else bad++;
-
-            r = entry_check_wrap(menu->name, entry->name, -1);
-            if (r) ok++; else bad++;
-            
-            msleep(100);
-        }
-    }
-    console_printf("Wrap test: %d OK, %d bad\n", ok, bad);
-}
-
-void menu_self_test()
-{
-    msleep(2000);
-    console_show();
-    menu_duplicate_test();
-    console_printf("\n");
-    menu_check_wrap();
-}
-
-#endif // CONFIG_STRESS_TEST
-#endif // CONFIG_PICOC
-
 /* returns 1 if the backend is ready to use, 0 if caller should call this one again to re-check */
 int menu_request_image_backend()
 {
@@ -5898,11 +5693,19 @@ int menu_request_image_backend()
         return 0;
     }
 
-    if (t > last_guimode_request + 500 && DISPLAY_IS_ON && get_yuv422_vram()->vram)
+    if (t > last_guimode_request + 500 && DISPLAY_IS_ON)
     {
-        /* ready to draw on the YUV buffer! */
-        clrscr();
-        return 1;
+        if (get_yuv422_vram()->vram)
+        {
+            /* ready to draw on the YUV buffer! */
+            clrscr();
+            return 1;
+        }
+        else
+        {
+            /* something might be wrong */
+            yuv422_buffer_check();
+        }
     }
     
     /* not yet ready, please retry */

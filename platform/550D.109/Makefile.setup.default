@@ -1,11 +1,6 @@
 #Makefile for 550D
 
-CONFIG_RELOC = y
-
 ML_PICSTYLE_AUTO = n
 
-ML_SRC_EXTRA_OBJS = \
-	raw.o \
-	chdk-dng.o \
-	edmac-memcpy.o
+CONFIG_LVAPP_HACK_RELOC = y
 

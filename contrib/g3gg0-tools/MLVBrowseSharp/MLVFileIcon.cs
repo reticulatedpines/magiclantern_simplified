@@ -144,7 +144,7 @@ namespace MLVBrowseSharp
                                             pictureBox.Refresh();
                                         }
 
-                                        textLabel.Text = FileInfo.Name + Environment.NewLine + "(Frame " + (Handler.VidfHeader.frameNumber + 1) + "/" + Reader.TotalFrameCount + ")";
+                                        textLabel.Text = FileInfo.Name + Environment.NewLine + "(Frame " + (Handler.VidfHeader.frameNumber + 1) + "/" + (Reader.HighestVideoFrameNumber + 1) + ")";
 
                                         if (Reader.FrameErrors > 0)
                                         {

@@ -17,14 +17,6 @@
 #include <af_patterns.h>
 #endif
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
-#define CONFIG_LVAPP_HACK_RELOC
-#elif defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
-#define CONFIG_LVAPP_HACK_DEBUGMSG
-#elif defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME)
-#define CONFIG_LVAPP_HACK_FBUFF
-#endif
-
 #if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK_FBUFF)
 #define CONFIG_LVAPP_HACK
 #endif
@@ -445,10 +437,6 @@ int handle_common_events_by_feature(struct event * event)
 
     if (handle_module_keys(event) == 0) return 0;
     if (handle_flexinfo_keys(event) == 0) return 0;
-    
-    #ifdef CONFIG_PICOC
-    if (handle_picoc_keys(event) == 0) return 0;
-    #endif
 
     #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
     if (handle_digital_zoom_shortcut(event) == 0) return 0;
@@ -534,22 +522,7 @@ int handle_common_events_by_feature(struct event * event)
     #endif
     
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
-    #ifdef BGMT_Q
-    if (MENU_MODE && (event->param == BGMT_Q
-        #ifdef BGMT_Q_ALT
-        || event->param == BGMT_Q_ALT
-        #endif
-    ))
-    #elif defined(BGMT_FUNC)
-    if (MENU_MODE && event->param == BGMT_FUNC)
-    #elif defined(BGMT_PICSTYLE)
-    if (MENU_MODE && event->param == BGMT_PICSTYLE)
-    #elif defined(BGMT_LV)
-    if (MENU_MODE && event->param == BGMT_LV)
-    #else
-    if (0)
-    #endif
-         return handle_keep_ml_after_format_toggle();
+    if (handle_keep_ml_after_format_toggle(event) == 0) return 0;
 #endif
         
     #ifdef FEATURE_FPS_OVERRIDE

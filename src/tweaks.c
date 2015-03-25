@@ -436,6 +436,11 @@ int is_play_or_qr_mode()
     return PLAY_OR_QR_MODE;
 }
 
+int is_play_mode()
+{
+    return PLAY_MODE;
+}
+
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)
@@ -998,10 +1003,14 @@ static void play_zoom_center_pos_update()
 
 #endif // FEATURE_QUICK_ZOOM
 
+static int joke_mode = 0;
+
 static void
 tweak_task( void* unused)
 {
-    //~ do_movie_mode_remap();
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    joke_mode = (now.tm_mday == 1 && now.tm_mon == 3);
     
     extern void movtweak_task_init();
     movtweak_task_init();
@@ -2357,8 +2366,6 @@ static int is_adjusting_wb()
 }
 #endif
 
-int joke_mode = 0;
-
 static void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
@@ -2370,6 +2377,31 @@ static void preview_contrast_n_saturation_step()
     if (play_dirty) play_dirty--; else return;
     msleep(100);
 #else
+    if (joke_mode && (get_seconds_clock() - get_last_time_active() < 2 || RECORDING))
+    {
+        /* this should be obvious for anyone with basic web browsing skills :) */
+        uint32_t magic_reg = 0xC0238064;
+        #ifdef CONFIG_7D
+        magic_reg = 0xC0238004;
+        #endif
+        
+        int x = MEM(magic_reg);
+        if (x && rand() % 10 < 3)
+        {
+            if (rand() % 100 != 13)
+            {
+                /* uuuuu, what does this button do? */
+                MEM(magic_reg) = rand() % 10 == 1 ? 0xFF : rand() % x;
+                msleep(20);
+                MEM(magic_reg) = x;
+            }
+            else
+            {
+                /* no, DeeDee, no!!! */
+                MEM(magic_reg) = 0;
+            }
+        }
+    }
     if (!lv) return;
 #endif
 
@@ -2410,17 +2442,6 @@ static void preview_contrast_n_saturation_step()
     else if (preview_peaking == 3 && !preview_peaking_force_normal_image)
         desired_saturation = 0x40;
     #endif
-
-    if (joke_mode)
-    {
-        static int cor = 0;
-        static int dir = 0;
-        if (rand()%20 == 1) dir = !dir;
-        if (dir) cor++; else cor--;
-        int altered_saturation = COERCE(desired_saturation + cor, 0, 255);
-        cor = altered_saturation - desired_saturation;
-        desired_saturation = altered_saturation;
-    }
 
 #ifdef FEATURE_LV_CRAZY_COLORS
     if (preview_crazy == 2)
@@ -3052,6 +3073,7 @@ void defish_draw_play()
 
     uint32_t * lvram = (uint32_t *)vram->vram;
     uint32_t * aux_buf = (void*)YUV422_HD_BUFFER_2;
+    if (!lvram) return;
 
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
