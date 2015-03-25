@@ -67,11 +67,6 @@ static char image_file_name[100];
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 static int mlv_file_frame_number = 0;
 
-/* FA test image code only looks at these 3 properties - doesn't know about auto ISO & stuff */
-/* lens_info data may not be in sync, e.g. when using expo override */
-/* so, check these props directly before taking a picture */
-static PROP_INT(PROP_ISO, prop_iso);
-static PROP_INT(PROP_SHUTTER, prop_shutter);
 
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 {
@@ -79,21 +74,8 @@ static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
     MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This option is only for slit-scan pictures.");
 }
 
-static MENU_UPDATE_FUNC(silent_pic_check_warnings)
+static MENU_UPDATE_FUNC(silent_pic_check_mlv)
 {
-    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && shooting_mode != SHOOTMODE_M)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) mode.");
-    }
-    
-    if (!lv)
-    {
-        if (silent_pic_mode != SILENT_PIC_MODE_FULLRES)
-        {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Low-res modes (non-fullres) will only work in LiveView.");
-        }
-    }
-
     if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV && !silent_pic_mlv_available)
     {
         if (info->warning_level == MENU_WARN_NOT_WORKING)
@@ -155,13 +137,18 @@ static MENU_UPDATE_FUNC(silent_pic_display)
         MENU_SET_HELP("File format: 14-bit DNG, individual files.");
         MENU_APPEND_VALUE(", DNG");
     }
-
-    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && !lv)
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && shooting_mode != SHOOTMODE_M)
     {
-        MENU_SET_HELP("Outside LiveView, you can take dark or bias frames.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) mode.");
     }
+    
+    silent_pic_check_mlv(entry, info);
+}
 
-    silent_pic_check_warnings(entry, info);
+static MENU_UPDATE_FUNC(silent_pic_file_format_display)
+{
+    silent_pic_check_mlv(entry, info);
 }
 
 static char* silent_pic_get_name()
@@ -180,23 +167,16 @@ static char* silent_pic_get_name()
     int file_number = get_shooting_card()->file_number;
     
     int is_mlv = (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV);
-
-    char pattern[100];
     
-    if (!lv && !LV_PAUSED)
+    if (is_intervalometer_running() && !is_mlv)
     {
-        /* this must be a dark frame or a bias frame */
-        char* frame_type = (prop_shutter > SHUTTER_1_1000) ? "BIAS" : "DARK";
-        snprintf(pattern, sizeof(pattern), "%s/%s%%04d.%s", get_dcim_dir(), frame_type, 0, extension);
-        get_numbered_file_name(pattern, 9999, image_file_name, sizeof(image_file_name));
-    }
-    else if (is_intervalometer_running() && !is_mlv)
-    {
+        char pattern[100];
         snprintf(pattern, sizeof(pattern), "%s/%%08d.%s", get_dcim_dir(), 0, extension);
         get_numbered_file_name(pattern, 99999999, image_file_name, sizeof(image_file_name));
     }
     else
     {
+        char pattern[100];
         snprintf(pattern, sizeof(pattern), "%s/%04d%%04d.%s", get_dcim_dir(), file_number, 0, extension);
         get_numbered_file_name(pattern, 9999, image_file_name, sizeof(image_file_name));
     }
@@ -1073,46 +1053,17 @@ static void show_battery_status()
     );
 }
 
+/* FA test image code only looks at these 3 properties - doesn't know about auto ISO & stuff */
+/* lens_info data may not be in sync, e.g. when using expo override */
+/* so, check these props directly before taking a picture */
+static PROP_INT(PROP_ISO, prop_iso);
+static PROP_INT(PROP_SHUTTER, prop_shutter);
+
 static void display_off_if_qr_mode()
 {
     if (is_play_or_qr_mode())
     {
         display_off();
-    }
-}
-
-static void FAST dark_frame_preview()
-{
-    int black = raw_info.black_level;
-
-    /* display +/- 50 units around black level */
-    int min = black - 50;
-    int max = black + 50;
-    uint8_t gamma[101];
-    for (int i = 0; i < 101; i++)
-    {
-        int p = black + i - 50;
-        int g = 100 * (p - min) / (max - min);
-        int c = COLOR_GRAY(g);
-        gamma[i] = c;
-    }
-
-    struct raw_pixblock * raw = CACHEABLE(raw_info.buffer);
-
-    for (int by = os.y0; by < os.y_max; by++)
-    {
-        int ry = BM2RAW_Y(by);
-        struct raw_pixblock * row = (void*)raw + ry * raw_info.pitch;
-
-        for (int bx = os.x0; bx < os.x_max; bx++)
-        {
-            int rx = BM2RAW_X(bx);
-            struct raw_pixblock * p = row + (rx/8);
-            int c = p->a;
-
-            c = COERCE(c, min, max);
-            bmp_putpixel(bx, by, gamma[c - black + 50]);
-        }
     }
 }
 
@@ -1122,8 +1073,6 @@ static int
 silent_pic_take_fullres(int interactive)
 {
     int ok = 1;
-    
-    int started_in_lv = lv;
     
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
@@ -1172,7 +1121,7 @@ silent_pic_take_fullres(int interactive)
     }
     
     /* Are we still in paused LV mode? (QR is also allowed) */
-    if (started_in_lv && !LV_PAUSED && gui_state != GUISTATE_QR)
+    if (!LV_PAUSED && gui_state != GUISTATE_QR)
     {
         goto err;
     }
@@ -1248,14 +1197,7 @@ silent_pic_take_fullres(int interactive)
         show_battery_status();
     }
 
-    if (started_in_lv)
-    {
-        raw_preview_fast();
-    }
-    else
-    {
-        dark_frame_preview();
-    }
+    raw_preview_fast();
 
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
@@ -1368,8 +1310,9 @@ silent_pic_take(unsigned int interactive) // for remote release, set interactive
 
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES)
     {
-        /* in fullres mode, we can take regular pictures in LiveView
-         * and dark frames outside it, so... nothing else to do here */
+        /* in fullres mode, go to LiveView only if in normal photo mode */
+        /* if it's in QR (most likely from previous silent picture), just stay there */
+        if (!lv && gui_state != GUISTATE_QR) force_liveview();
         ok = silent_pic_take_fullres(interactive);
     }
     else
@@ -1426,26 +1369,6 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
         
         silent_pic_take(1);
     }
-    
-    if (!lv && silent_pic_mode == SILENT_PIC_MODE_FULLRES && get_halfshutter_pressed())
-    {
-        /* outside LiveView, in full-res mode, we can take dark frames (or bias frames) */
-
-        /* hold the shutter pressed halfway for 1 second */
-        for (int i = 0; i < 10; i++)
-        {
-            bmp_printf(FONT_MED, 0, 0, "Half-shutter...");
-            msleep(100);
-            if (!get_halfshutter_pressed())
-            {
-                redraw();
-                return 0;
-            }
-        }
-        
-        silent_pic_take(1);
-    }
-    
     return 0;
 }
 
@@ -1455,15 +1378,14 @@ static struct menu_entry silent_menu[] = {
         .priv = &silent_pic_enabled,
         .update = silent_pic_display,
         .max  = 1,
-        .depends_on = DEP_CFN_AF_BACK_BUTTON,
-        .help  = "Take pics without moving the shutter mechanism (press half-shutter).",
+        .depends_on = DEP_LIVEVIEW | DEP_CFN_AF_BACK_BUTTON,
+        .help  = "Take pics in LiveView without moving the shutter mechanism.",
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Silent Mode",
                 .priv = &silent_pic_mode,
-                .update = silent_pic_check_warnings,
                 .max = 5,
                 .help = "Choose the silent picture mode:",
                 .help2 = 
@@ -1472,7 +1394,7 @@ static struct menu_entry silent_menu[] = {
                     "Take pictures continuously, save the last few pics to card.\n"
                     "Take pictures continuously, save the best (focused) images.\n"
                     "Distorted pictures for funky effects.\n"
-                    "Full-resolution pictures (only for exposures slower than 1/10s).\n",
+                    "Experimental full-resolution pictures.\n",
                 .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan", "Full-res"),
                 .icon_type = IT_DICE,
             },
@@ -1493,7 +1415,7 @@ static struct menu_entry silent_menu[] = {
             },
             {
                 .name = "File Format",
-                .update = silent_pic_check_warnings,
+                .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
                 .max = 1,
                 .help = "File format to save the image as:",
