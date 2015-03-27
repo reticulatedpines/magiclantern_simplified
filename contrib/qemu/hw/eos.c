@@ -1321,7 +1321,7 @@ unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
         {
             delay = 1;
         }
-        ws->irq_schedule[id] = delay;
+        ws->irq_schedule[id] = MAX(delay, 1);
     }
     return 0;
 }
