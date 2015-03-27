@@ -115,7 +115,7 @@ static void eos_dump_vram(uint32_t address)
     fclose(f);
 }
 
-static void reverse_bytes_order(char* buf, int count)
+static void reverse_bytes_order(uint8_t* buf, int count)
 {
     short* buf16 = (short*) buf;
     int i;
