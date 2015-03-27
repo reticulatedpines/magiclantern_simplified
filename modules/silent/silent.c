@@ -138,9 +138,9 @@ static MENU_UPDATE_FUNC(silent_pic_display)
         MENU_APPEND_VALUE(", DNG");
     }
     
-    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && shooting_mode != SHOOTMODE_M)
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && (shooting_mode != SHOOTMODE_M || is_movie_mode()))
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) mode.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) photo mode.");
     }
     
     silent_pic_check_mlv(entry, info);
@@ -1327,7 +1327,12 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
 {
     if (!silent_pic_enabled)
         return 0;
-    
+
+    /* fullres silent pics only work in M mode, 
+     * and they may screw up things if triggered while recording. */
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && (shooting_mode != SHOOTMODE_M || is_movie_mode()))
+        return 0;
+
     static int silent_pic_countdown;
     if (!display_idle())
     {
