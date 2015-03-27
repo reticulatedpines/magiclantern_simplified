@@ -1523,8 +1523,8 @@ unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *ws, unsigned in
 
 unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
+    const char * msg = 0;
     unsigned int ret = 0;
-    unsigned int log = 1;
     static unsigned int srcAddr = 0;
     static unsigned int dstAddr = 0;
     static unsigned int count = 0;
@@ -1558,7 +1558,9 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
                     printf("[DMA%i] OK\n", parm);
 
                     eos_trigger_int(ws, interruptId[parm], 0);
-                    log = 0;
+                    
+                    /* quiet */
+                    return 0;
                 }
             }
             else
@@ -1568,10 +1570,10 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
             break;
 
         case 0x18:
+            msg = "srcAddr";
             if(type & MODE_WRITE)
             {
                 srcAddr = value;
-                log = 1;
             }
             else
             {
@@ -1580,10 +1582,10 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
             break;
 
         case 0x1C:
+            msg = "dstAddr";
             if(type & MODE_WRITE)
             {
                 dstAddr = value;
-                log = 1;
             }
             else
             {
@@ -1592,10 +1594,10 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
             break;
 
         case 0x20:
+            msg = "count";
             if(type & MODE_WRITE)
             {
                 count = value;
-                log = 1;
             }
             else
             {
@@ -1604,12 +1606,9 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
             break;
     }
 
-    if(log)
-    {
-        char dma_name[5];
-        snprintf(dma_name, sizeof(dma_name), "DMA%i", parm);
-        io_log(dma_name, ws, address, type, value, ret, 0, 0, 0);
-    }
+    char dma_name[5];
+    snprintf(dma_name, sizeof(dma_name), "DMA%i", parm);
+    io_log(dma_name, ws, address, type, value, ret, msg, 0, 0);
 
     return 0;
 }
