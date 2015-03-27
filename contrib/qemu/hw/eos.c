@@ -21,7 +21,7 @@ EOSRegionHandler eos_handlers[] =
     { "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
     { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
-    { "RTC??",        0xC0242014, 0xC0242014, eos_handle_unk, 0 },
+    { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic1",       0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
     { "Basic2",       0xC022F000, 0xC022FFFF, eos_handle_basic, 2 },
@@ -537,7 +537,10 @@ static void *eos_interrupt_thread(void *parm)
     {
         uint32_t pos;
 
-        usleep(100);
+        usleep(0x100);
+
+        s->digic_timer += 0x100;
+        s->digic_timer &= 0xFFF00;
 
         /* go through all interrupts and check if they are pending/scheduled */
         for(pos = 0; pos < INT_ENTRIES; pos++)
@@ -551,7 +554,8 @@ static void *eos_interrupt_thread(void *parm)
                     /* timer interrupt will re-fire periodically */
                     if(pos == 0x0A)
                     {
-                        s->irq_schedule[pos] = 100;
+                        //~ printf("[EOS] trigger int 0x%02X (delayed)\n", pos);
+                        s->irq_schedule[pos] = s->dryos_timer_reload_value>>8;
                     }
                     else
                     {
@@ -1390,28 +1394,41 @@ unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *ws, unsigned int 
 
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    const char * msg = 0;
     unsigned int ret = 0;
+    const char * msg = 0;
+    int msg_arg1 = 0;
 
-    switch(address & 0xFF)
+    switch(address & 0xFFF)
     {
-        case 0x00:
+        case 0x200:
             if(type & MODE_WRITE)
             {
                 if(value & 1)
                 {
                     msg = "Starting triggering";
-                    eos_trigger_int(ws, 0x0A, 5000);
+                    eos_trigger_int(ws, 0x0A, ws->dryos_timer_reload_value>>8);   /* digic timer */
+                }
+                else
+                {
+                    msg = "Not triggering";
                 }
             }
             else
             {
-                ret = 0;
+                msg = "Timer ready";
             }
             break;
+        
+        case 0x208:
+            if(type & MODE_WRITE)
+            {
+                ws->dryos_timer_reload_value = value;
+                msg = "Will trigger every %d us";
+                msg_arg1 = value + 1;
+            }
     }
 
-    io_log("TIMER", ws, address, type, value, ret, msg, 0, 0);
+    io_log("TIMER", ws, address, type, value, ret, msg, msg_arg1, 0);
     return ret;
 }
 
@@ -1843,35 +1860,22 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *ws, unsigned int addr
     return 0;
 }
 
-unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    unsigned int pc = ws->cpu->env.regs[15];
     unsigned int ret = 0;
-    static unsigned val = 0;
-
-    switch(parm)
-    {
-        case 0:
-            if(type & MODE_WRITE)
-            {
-                ret = 0;
-            }
-            else
-            {
-                ret = val;
-                val += 1000;
-            }
-            break;
-    }
+    const char * msg = 0;
 
     if(type & MODE_WRITE)
     {
-        printf("[Timer] at [0x%08X] [0x%08X] -> [0x%08X]\r\n", pc, value, address);
     }
     else
     {
-        //printf("[Timer] at [0x%08X] [0x%08X] <- [0x%08X]\r\n", pc, ret, address);
+        ret = ws->digic_timer;
+        msg = "DIGIC clock";
+        return ret; /* be quiet */
     }
+
+    io_log("TIMER", ws, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 

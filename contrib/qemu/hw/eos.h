@@ -123,6 +123,8 @@ typedef struct
     uint32_t irq_enabled[INT_ENTRIES];
     uint32_t irq_schedule[INT_ENTRIES];
     uint32_t irq_id;
+    uint32_t digic_timer;
+    uint32_t dryos_timer_reload_value;
     uint32_t flash_state_machine;
     QemuConsole *con;
     int display_invalidate;
@@ -177,6 +179,7 @@ unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *ws, unsigned in
 unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
