@@ -1646,7 +1646,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int addr
             {
                 if((value == 0x08 || value == 0x0A || value == 0x0D || (value >= 0x20 && value <= 0x7F)))
                 {
-                    printf("%c", value);
+                    printf("\x1B[31m%c\x1B[30m", value);
                     return 0;
                 }
             }
@@ -1661,6 +1661,10 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int addr
             msg_arg1 = ws->tio_rxbyte & 0xFF;
             ret = ws->tio_rxbyte & 0xFF;
             break;
+        
+        case 0x08:
+            /* quiet */
+            return 0;
 
         case 0x14:
             if(type & MODE_WRITE)
