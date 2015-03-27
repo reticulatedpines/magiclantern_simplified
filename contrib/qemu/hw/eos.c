@@ -1115,7 +1115,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_ml_100D);
     qemu_register_machine(&canon_eos_machine_ml_7D);
     qemu_register_machine(&canon_eos_machine_ml_550D);
-	qemu_register_machine(&canon_eos_machine_ml_6D);
+    qemu_register_machine(&canon_eos_machine_ml_6D);
     qemu_register_machine(&canon_eos_machine_50D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
@@ -1126,7 +1126,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_100D);
     qemu_register_machine(&canon_eos_machine_7D);
     qemu_register_machine(&canon_eos_machine_550D);
-	qemu_register_machine(&canon_eos_machine_6D);
+    qemu_register_machine(&canon_eos_machine_6D);
 }
 
 machine_init(eos_machine_init);
