@@ -1173,10 +1173,34 @@ uint8_t eos_get_mem_b ( EOSState *ws, uint32_t addr )
     return buf;
 }
 
+static void io_log(const char * module_name, EOSState *ws, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, int msg_arg1, int msg_arg2)
+{
+    unsigned int pc = ws->cpu->env.regs[15];
+    if (!module_name) module_name = "???";
+    if (!msg) msg = "???";
+    
+    char mod_name[50];
+    char mod_name_and_pc[50];
+    snprintf(mod_name, sizeof(mod_name), "[%s]", module_name);
+    snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-10s at 0x%08X", mod_name, pc);
+    
+    /* description may have two optional integer arguments */
+    char desc[200];
+    snprintf(desc, sizeof(desc), msg, msg_arg1, msg_arg2);
+    
+    printf("%-28s [0x%08X] %s 0x%-8X%s%s\n",
+        mod_name_and_pc,
+        address,
+        type & MODE_WRITE ? "<-" : "->",
+        type & MODE_WRITE ? in_value : out_value,
+        strlen(msg) ? ": " : "",
+        desc
+    );
+}
+
 unsigned int eos_default_handle ( EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int data = 0;
-    unsigned int pc = ws->cpu->env.regs[15];
 
     switch ( type & WIDTH_MASK )
     {
@@ -1212,7 +1236,7 @@ unsigned int eos_default_handle ( EOSState *ws, unsigned int address, unsigned c
     {
         if(ws->verbosity & 1)
         {
-            printf("Write: at [0x%08X] [0x%08X] -> [0x%08X]\r\n", pc, value, address);
+            io_log("MEM", ws, address, type, value, 0, "", 0, 0);
         }
     }
     else
@@ -1227,7 +1251,7 @@ unsigned int eos_default_handle ( EOSState *ws, unsigned int address, unsigned c
         }
         if(ws->verbosity & 1)
         {
-            printf("Read: at [0x%08X] [0x%08X] <- [0x%08X]\r\n", pc, data, address);
+            io_log("MEM", ws, address, type, 0, data, "", 0, 0);
         }
     }
     return data;
@@ -1272,14 +1296,7 @@ unsigned int eos_handler ( EOSState *ws, unsigned int address, unsigned char typ
                 repeats = 0;
             }
 
-            if(type & MODE_WRITE)
-            {
-                printf("[???] [0x%08X] -> [0x%08X] PC: 0x%08X\r\n", value, address, ws->cpu->env.regs[15]);
-            }
-            else
-            {
-                printf("[???] [0x%08X] <- [0x%08X] PC: 0x%08X\r\n", value, address, ws->cpu->env.regs[15]);
-            }
+            io_log("*unk*", ws, address, type, value, 0, 0, 0, 0);
         }
     }
     return 0;
@@ -1307,55 +1324,53 @@ unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
 
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    unsigned int pc = ws->cpu->env.regs[15];
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    unsigned int ret = 0;
 
     switch(address & 0xFFF)
     {
         case 0x04:
             if(type & MODE_WRITE)
             {
-                printf("[Int] Wrote int reason [0x%08X] -> [0x%08X] PC: [0x%08X]\r\n", address, value, pc);
-                return 0;
+                msg = "Wrote int reason ???";
             }
             else
             {
-                if(ws->irq_id != 0x0A)
+                msg = "Requested int reason %x (INT %02Xh)";
+                msg_arg1 = ws->irq_id << 2;
+                msg_arg2 = ws->irq_id;
+                ret = ws->irq_id << 2;
+
+                if(ws->irq_id == 0x0A)
                 {
-                    printf("[Int] Requested int reason [0x%08X] <- [0x%08X] PC: [0x%08X]\r\n", ws->irq_id << 2, address, pc);
+                    /* timer interrupt, quiet */
+                    return ret;
                 }
-                return ws->irq_id << 2;
             }
             break;
 
         case 0x10:
             if(type & MODE_WRITE)
             {
-                if(!ws->irq_enabled[value] || (value != 0x0A && value != 0x2F && value != 0x74 && value != 0x75))
-                {
-                    printf("[Int] Enabled interrupt ID 0x%02X PC: [0x%08X]\r\n", value, pc);
-                }
-
+                msg = "Enabled interrupt %02Xh";
+                msg_arg1 = value;
                 cpu_reset_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
                 ws->irq_id = 0;
                 ws->irq_enabled[value] = 1;
-                return 0;
-            }
-            else
-            {
-                return 0;
+
+                if (value == 0x0A)
+                {
+                    /* timer interrupt, quiet */
+                    return 0;
+                }
             }
             break;
     }
 
-    if(type & MODE_WRITE)
-    {
-        printf("[Int] Write to Int space [0x%08X] -> [0x%08X] PC: [0x%08X]\r\n", value, address, pc);
-    }
-    else
-    {
-        return 0;
-    }
-    return 0;
+    io_log("INT", ws, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
 }
 
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
@@ -1375,6 +1390,7 @@ unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *ws, unsigned int 
 
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
+    const char * msg = 0;
     unsigned int ret = 0;
 
     switch(address & 0xFF)
@@ -1384,7 +1400,7 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int a
             {
                 if(value & 1)
                 {
-                    printf("[Timer] at [0x%08X] Starting triggering\r\n", ws->cpu->env.regs[15]);
+                    msg = "Starting triggering";
                     eos_trigger_int(ws, 0x0A, 5000);
                 }
             }
@@ -1395,145 +1411,113 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int a
             break;
     }
 
-    if(type & MODE_WRITE)
-    {
-        unsigned int pc = ws->cpu->env.regs[15];
-        printf("[Timer] at [0x%08X] [0x%08X] -> [0x%08X]\r\n", pc, value, address);
-    }
-    else
-    {
-        return ret;
-    }
-    return 0;
+    io_log("TIMER", ws, address, type, value, ret, msg, 0, 0);
+    return ret;
 }
 
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 1;
+    const char * msg = 0;
 
-    switch(parm)
+    switch (address & 0xFFFF)
     {
-        case 0:
-            if((address & 0xFFF) == 0xB6C)
-            {
-                /* 5D3 expects this one to be 0x10 in bootloader */
-                ret = 0x10;
-            }
-            if((address & 0xFFF) == 0x0DC)
-            {
-                /* abort situation for FROMUTIL on 600D */
-                ret = 0;
-            }
-            if((address & 0xFFF) == 0x0B0)
-            {
-                /* FUNC SW OFF on 7D */
-                ret = 0;
-            }
-            if((address & 0xFFF) == 0x024)
-            {
-                /* master woke up on 7D */
-                ret = 0;
-            }
+        case 0x0B6C:
+            /* 5D3 expects this one to be 0x10 in bootloader */
+            ret = 0x10;
+            break;
 
-            if((address & 0xFFF) == 0x070)
+        case 0x00DC:
+            /* abort situation for FROMUTIL on 600D */
+            ret = 0;
+            break;
+
+        case 0x00B0:
+            /* FUNC SW OFF on 7D */
+            ret = 0;
+            break;
+            
+        case 0x0024:
+            /* master woke up on 7D */
+            ret = 0;
+            break;
+
+        case 0x0070:
+            /* VIDEO on 600D */
+            msg = "VIDEO CONNECT";
+            ret = 0;
+            break;
+        
+        case 0x0108:
+            /* ERASE SW OFF on 600D */
+            msg = "ERASE SW OFF";
+            ret = 0;
+            break;
+
+        case 0x00E8:
+            /* MIC on 600D */
+            msg = "MIC CONNECT";
+            ret = 1;
+            break;
+        
+        case 0x0034:
+            /* USB on 600D */
+            msg = "USB CONNECT";
+            ret = 1;
+            break;
+        
+        case 0x0138:
+            /* HDMI on 600D */
+            msg = "HDMI CONNECT";
+            ret = 0;
+            break;
+
+        case 0x014:
+            /* /VSW_ON on 600D */
+            msg = "/VSW_ON";
+            ret = 0;
+            break;
+
+        case 0x0128:
+            /* CS for RTC on 600D */
+            if(type & MODE_WRITE)
             {
-                /* VIDEO on 600D */
-                printf("[GPIO] VIDEO CONNECT read at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                return 0;
-            }
-            if((address & 0xFFF) == 0x108)
-            {
-                /* ERASE SW OFF on 600D */
-                printf("[GPIO] ERASE SW OFF read at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                return 0;
-            }
-            if((address & 0xFFF) == 0x0E8)
-            {
-                /* MIC on 600D */
-                printf("[GPIO] MIC CONNECT read at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                return 1;
-            }
-            if((address & 0xFFF) == 0x034)
-            {
-                /* USB on 600D */
-                printf("[GPIO] USB CONNECT read at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                return 0;
-            }
-            if((address & 0xFFF) == 0x138)
-            {
-                /* HDMI on 600D */
-                printf("[GPIO] HDMI CONNECT read at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                return 0;
-            }
-            if((address & 0xFFF) == 0x014)
-            {
-                /* /VSW_ON on 600D */
-                printf("[GPIO] /VSW_ON read at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                return 0;
-            }
-            if((address & 0xFFF) == 0x128)
-            {
-                /* CS for RTC on 600D */
-                if(type & MODE_WRITE)
+                if((value & 0x06) == 0x06)
                 {
-                    if((value & 0x06) == 0x06)
-                    {
-                        printf("[RTC] CS set at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                        ws->rtc.transfer_format = 0xFF;
-                    }
-                    else
-                    {
-                        printf("[RTC] CS reset at [0x%08X]\r\n", ws->cpu->env.regs[15]);
-                    }
+                    msg = "[RTC] CS set";
+                    ws->rtc.transfer_format = 0xFF;
                 }
-                ret = 0;
+                else
+                {
+                    msg = "[RTC] CS reset";
+                }
             }
+            ret = 0;
             break;
-        case 3:
-            if((address & 0xFFF) == 0x01C)
-            {
-                /* 40D CF Detect -> set low, so there is no CF */
-                ret = 0;
-            }
+
+        case 0x301C:
+            /* 40D CF Detect -> set low, so there is no CF */
+            ret = 0;
             break;
     }
 
-        unsigned int pc = ws->cpu->env.regs[15];
-    if(type & MODE_WRITE)
-    {
-        printf("[GPIO] at [0x%08X] [0x%08X] -> [0x%08X]\r\n", pc, value, address);
-    }
-    else
-    {
-        printf("[GPIO] at [0x%08X] [0x%08X] <- [0x%08X]\r\n", pc, ret, address);
-        return ret;
-    }
-    return 0;
+    io_log("GPIO", ws, address, type, value, ret, msg, 0, 0);
+    return ret;
 }
 
 unsigned int eos_handle_ram ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    if(type & MODE_WRITE)
-    {
-        printf("[RAM] [0x%08X] -> [0x%08X]\r\n", value, address);
-    }
-    else
-    {
-        printf("[RAM] [0x%08X] <- [0x%08X]\r\n", value, address);
-    }
-    return eos_default_handle ( ws, address, type, value );
+    int ret = eos_default_handle ( ws, address, type, value );
+
+    /* not tested; appears unused */
+    io_log("RAM", ws, address, type, value, ret, 0, 0, 0);
+
+    return ret;
 }
 
 unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    if(type & MODE_WRITE)
-    {
-        printf("[Cartridge] [0x%08X] -> [0x%08X]\r\n", value, address);
-    }
-    else
-    {
-        return 0;
-    }
+    io_log("Cartridge", ws, address, type, value, 0, 0, 0, 0);
     return 0;
 }
 
@@ -1622,14 +1606,9 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
 
     if(log)
     {
-        if(type & MODE_WRITE)
-        {
-            printf("[DMA%i] [0x%08X] -> [0x%08X]\r\n", parm, value, address);
-        }
-        else
-        {
-            printf("[DMA%i] [0x%08X] <- [0x%08X]\r\n", parm, ret, address);
-        }
+        char dma_name[5];
+        snprintf(dma_name, sizeof(dma_name), "DMA%i", parm);
+        io_log(dma_name, ws, address, type, value, ret, 0, 0, 0);
     }
 
     return 0;
@@ -1638,14 +1617,19 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
 
 unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
+    unsigned int ret = 1;
+    const char * msg = 0;
+    int msg_arg1 = 0;
+
     switch(address & 0xFF)
     {
         case 0x00:
             if(type & MODE_WRITE)
             {
-                if((value == 0x08 || value == 0x0A || (value >= 0x20 && value <= 0x7F)))
+                if((value == 0x08 || value == 0x0A || value == 0x0D || (value >= 0x20 && value <= 0x7F)))
                 {
                     printf("%c", value);
+                    return 0;
                 }
             }
             else
@@ -1655,8 +1639,9 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int addr
             break;
 
         case 0x04:
-            printf("[TIO] Read byte: 0x%02X\r\n", ws->tio_rxbyte & 0xFF);
-            return ws->tio_rxbyte & 0xFF;
+            msg = "Read byte: 0x%02X";
+            msg_arg1 = ws->tio_rxbyte & 0xFF;
+            ret = ws->tio_rxbyte & 0xFF;
             break;
 
         case 0x14:
@@ -1664,23 +1649,33 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int addr
             {
                 if(value & 1)
                 {
-                    printf("[TIO] Reset RX indicator\r\n");
+                    msg = "Reset RX indicator";
                     ws->tio_rxbyte |= 0x100;
+                }
+                else
+                {
+                    /* quiet */
+                    return 0;
                 }
             }
             else
             {
                 if((ws->tio_rxbyte & 0x100) == 0)
                 {
-                    printf("[TIO] Signalling RX indicator\r\n");
-                    return 3;
+                    msg = "Signalling RX indicator";
+                    ret = 3;
                 }
-                return 2;
+                else
+                {
+                    /* quiet */
+                    return 2;
+                }
             }
             break;
     }
 
-    return 0;
+    io_log("TIO", ws, address, type, value, ret, msg, 0, 0);
+    return ret;
 }
 
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
@@ -1860,7 +1855,6 @@ unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int addr
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    unsigned int pc = ws->cpu->env.regs[15];
     unsigned int ret = 0;
 
     switch(address & 0xFFF)
@@ -1875,22 +1869,15 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             break;
     }
 
-    if(type & MODE_WRITE)
-    {
-        printf("[Basic] at [0x%08X] [0x%08X] -> [0x%08X]\r\n", pc, value, address);
-    }
-    else
-    {
-        printf("[Basic] at [0x%08X] [0x%08X] <- [0x%08X]\r\n", pc, ret, address);
-    }
+    io_log("SDIO", ws, address, type, value, ret, 0, 0, 0);
     return ret;
 }
 
 unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
-    unsigned int pc = ws->cpu->env.regs[15];
     static int unk = 0;
+    const char * msg = 0;
 
     switch(parm)
     {
@@ -1969,23 +1956,15 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int ad
                     else
                     {
                         ret = 0x40000 | 0x80000;
-                        printf("[Basic] VSW_STATUS at [0x%08X] [0x%08X] <- [0x%08X]\r\n", pc, ret, address);
-                        return ret;
+                        msg = "VSW_STATUS";
                     }
                     break;
 
             }
             break;
     }
-    if(type & MODE_WRITE)
-    {
-        printf("[Basic] at [0x%08X] [0x%08X] -> [0x%08X]\r\n", pc, value, address);
-    }
-    else
-    {
-        printf("[Basic] at [0x%08X] [0x%08X] <- [0x%08X]\r\n", pc, ret, address);
-    }
 
+    io_log("BASIC", ws, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
@@ -1995,7 +1974,6 @@ unsigned int eos_handle_asif ( unsigned int parm, EOSState *ws, unsigned int add
 
     if(type & MODE_WRITE)
     {
-        printf("[ASIF] [0x%08X] -> [0x%08X]\r\n", value, address);
     }
     else
     {
@@ -2006,9 +1984,9 @@ unsigned int eos_handle_asif ( unsigned int parm, EOSState *ws, unsigned int add
                 /* audio meters; don't print messages, since it will flood the console */
                 return 0;
         }
-        printf("[ASIF] [0x%08X] <- [0x%08X]\r\n", value, address);
     }
 
+    io_log("ASIF", ws, address, type, value, ret, 0, 0, 0);
     return ret;
 }
 
@@ -2310,7 +2288,7 @@ unsigned int eos_handle_rom ( unsigned int rom, EOSState *ws, unsigned int addre
 
 unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
-    unsigned int pc = ws->cpu->env.regs[15];
+    const char * msg = 0;
     unsigned int ret = 0;
 
     switch(address & 0x1FF)
@@ -2320,15 +2298,15 @@ unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *ws, unsigned in
             {
                 if(((value | (value >> 16)) & 0xFFFF) == 0xD9C5)
                 {
-                    printf("[FlashIF] at [0x%08X]: 'Write enable' enabled\r\n", pc);
+                    msg = "'Write enable' enabled";
                 }
                 else if(value == 0x0)
                 {
-                    printf("[FlashIF] at [0x%08X]: 'Write enable' disabled\r\n", pc);
+                    msg = "'Write enable' disabled";
                 }
                 else
                 {
-                    printf("[FlashIF] at [0x%08X]: unknown command\r\n", pc);
+                    msg = "unknown command";
                 }
             }
             else
@@ -2337,6 +2315,8 @@ unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *ws, unsigned in
             }
             break;
     }
+
+    io_log("FlashIF", ws, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
