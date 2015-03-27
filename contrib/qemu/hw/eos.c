@@ -1495,6 +1495,25 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
             ret = 0;
             break;
 
+        case 0x00BC:
+        {
+            /* 5D2 CF LED */
+            static int last_value = 0;
+            if(type & MODE_WRITE)
+            {
+                last_value = value;
+                msg = value == 0x46 ? "CF LED ON"  :
+                      value == 0x44 ? "CF LED OFF" :
+                                      "CF LED ???" ;
+            }
+            else
+            {
+                ret = last_value;
+                return ret; /* quiet */
+            }
+            break;
+        }
+
         case 0x301C:
             /* 40D CF Detect -> set low, so there is no CF */
             ret = 0;
