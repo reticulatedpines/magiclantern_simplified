@@ -1350,7 +1350,7 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
             /* try to ignore the AF button, and only take pictures on plain half-shutter */
             /* problem: lv_focus_status is not updated right away :( */
             bmp_printf(FONT_MED, 0, 37, "Hold on...");
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 10; i++)
             {
                 wait_lv_frames(1);
                 
