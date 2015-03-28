@@ -387,6 +387,10 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     }
     
     /* no, create file and store data */
+
+    void* buf = malloc(BACKUP_BLOCKSIZE);
+    if (!buf) return;
+
     handle = FIO_CreateFile(file);
     if (handle)
     {
@@ -398,15 +402,17 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
           {
               blocksize = length - pos;
           }
-        
-          FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+          
+          /* copy to RAM before saving, because ROM is slow and may interfere with LiveView */
+          memcpy(buf, &((uint8_t*)base)[pos], blocksize);
+          
+          FIO_WriteFile(handle, buf, blocksize);
           pos += blocksize;
-        
-          /* to make sure lower prio tasks can also run */
-          msleep(20);
       }
       FIO_CloseFile(handle);
     }
+    
+    free(buf);
 }
 
 static void backup_task()
