@@ -432,7 +432,7 @@ static int install(void)
     y += 60;
     gui_uilock(UILOCK_SHUTTER);
     
-    for (int i = 30; i > 0; i--)
+    for (int i = 60; i > 0; i--)
     {
         if (CURRENT_DIALOG_MAYBE != DLG_MENU || !DISPLAY_IS_ON)
         {
