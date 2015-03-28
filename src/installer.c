@@ -334,15 +334,50 @@ int my_init_task(int a, int b, int c, int d)
     return ans;
 }
 
+/* for printing messages */
 static int normal_font = FONT_LARGE;
 static int error_font = FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK);
 static int warning_font = FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK);
+static int y = 0;
+
+static int backup_region(char *file, uint32_t base, uint32_t length)
+{
+    /* already backed up that region? */
+    uint32_t size = 0;
+    if((FIO_GetFileSize( file, &size ) == 0) && (size == length) )
+    {
+        return 1;
+    }
+
+    bmp_printf(FONT_LARGE, 0, y+=30, "Backing up ROM%d...", file[11] - '0');
+    
+    /* no, create file and store data */
+    FILE* handle = FIO_CreateFile(file);
+    if (handle)
+    {
+        FIO_WriteFile(handle, (void*)base, length);
+        FIO_CloseFile(handle);
+    }
+    else
+    {
+        bmp_printf(error_font, 0, y+=30, "Could not backup ROM%d.", file[11] - '0');
+        return 0;
+    }
+    
+    return 1;
+}
+
+static int rom_backup()
+{
+    int ok0 = backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+    int ok1 = backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    return ok0 && ok1;
+}
 
 /** Perform an initial install and configuration */
 /** Return 1 on success, 0 on failure */
 static int install(void)
 {
-    int y = 0;
     bmp_printf(normal_font, 0, y, "Magic Lantern install");
     print_bootflags();
 
@@ -354,6 +389,8 @@ static int install(void)
         msleep(5000);
         return 0;
     }
+
+    rom_backup();
 
     if (boot_flags->firmware)
     {
@@ -405,6 +442,11 @@ static int install(void)
 
         print_bootflags();
         bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
+
+        int fnt = FONT_MED | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720);
+        bmp_printf(fnt, 0, 300, "After restart, please copy ML/LOGS/ROM*.BIN to your PC, in a safe place.");
+        bmp_printf(fnt, 0, 325, "We may need these files in case of emergency (if anything goes wrong).");
+
         bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
             "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
