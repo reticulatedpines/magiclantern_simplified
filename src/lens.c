@@ -2563,7 +2563,7 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
     {
         snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
         
-        if (dof_display)
+        if (dof_display && lens_info.dof_far && lens_info.dof_near)
         {
             int xw = item->x + item->width/2 - 25;  /* do not center it, because it may overlap with the histogram */
             
