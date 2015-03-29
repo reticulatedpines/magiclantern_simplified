@@ -22,7 +22,7 @@
 #define T_FLOAT     11
 #define T_DOUBLE    12
 
-static int tif_parse_ifd(int id, char* buf, int off)
+static int tif_parse_ifd(int id, char* buf, int off, int* strip_offset)
 {
     int entries = *(short*)(buf+off); off += 2;
     //~ printf("ifd %d: (%d)\n", id, entries);
@@ -43,7 +43,7 @@ static int tif_parse_ifd(int id, char* buf, int off)
             
             case 0x14A: /* SubIFD */
                 //~ printf("subifd: %x\n", data);
-                tif_parse_ifd(id+10, buf, data);
+                tif_parse_ifd(id+10, buf, data, strip_offset);
                 break;
         }
         
@@ -61,7 +61,7 @@ static int tif_parse_ifd(int id, char* buf, int off)
                     break;
                 case 0x111: /* StripOffset */
                     //~ printf("buffer offset: %d\n", data);
-                    raw_info.buffer = buf + data;
+                    *strip_offset = data;
                     break;
                 case 0xC61A: /* BlackLevel */
                     //~ printf("black: %d\n", data);
@@ -101,14 +101,19 @@ static int dng_show(char* filename)
 {
     uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
-    char* buf = fio_malloc(size);
-    if (!buf) return 0;
 
-    size_t rc = read_file( filename, buf, size );
-    if( rc != size ) goto err;
+    FILE* f = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
+    void* buf = 0;
 
-    int* buf32 = (int*) buf;
-    if (buf32[0] != 0x002A4949 && buf32[1] != 0x00000008)
+    /* should be big enough for the header */
+    int header_maxsize = 65536;
+    int* header = fio_malloc(header_maxsize);
+    if (!header) return 0;
+
+    int rc = FIO_ReadFile(f, header, header_maxsize);
+    if( rc != header_maxsize ) goto err;
+
+    if (header[0] != 0x002A4949 && header[1] != 0x00000008)
     {
         bmp_printf(FONT_MED, 0, 0, "Not a CHDK DNG");
         goto err;
@@ -117,27 +122,47 @@ static int dng_show(char* filename)
     raw_info.width = 0;
     raw_info.height = 0;
     
+    int strip_offset = 0;
+
     int off = 8;
     for (int ifd = 0; off; ifd++)
-        off = tif_parse_ifd(ifd, buf, off);
-    
+        off = tif_parse_ifd(ifd, (void*)header, off, &strip_offset);
+
+    fio_free(header); header = 0;
+
+    if (!strip_offset) goto err;
     if (!raw_info.width) goto err;
     if (!raw_info.height) goto err;
+
+    int raw_size = raw_info.width * raw_info.height * 14/8;
+    buf = fio_malloc(raw_size);
+    if (!buf) goto err;
+    
+    FIO_SeekSkipFile(f, strip_offset, SEEK_SET);
+    rc = FIO_ReadFile(f, buf, raw_size);
+    if (rc != raw_size) goto err;
+    FIO_CloseFile(f); f = 0;
+
+    info_led_on();
+    /* fixme: this step is really slow */
+    reverse_bytes_order(buf, raw_size);
+    info_led_off();
+    raw_info.buffer = buf;
 
     raw_set_geometry(raw_info.width, raw_info.height, raw_info.active_area.x1, raw_info.width - raw_info.active_area.x2, raw_info.active_area.y1, raw_info.height - raw_info.active_area.y2);
     raw_force_aspect_ratio_1to1();
 
-    reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
-
     vram_clear_lv();
     raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
-    fio_free(buf);
+    fio_free(buf); buf = 0;
     raw_set_dirty();
     
     bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.jpeg.width, raw_info.jpeg.height);
     return 1;
 err:
-    fio_free(buf);
+    if (f) FIO_CloseFile(f);
+    if (header) fio_free(header);
+    if (buf) fio_free(buf);
     raw_set_dirty();
     return 0;
 }

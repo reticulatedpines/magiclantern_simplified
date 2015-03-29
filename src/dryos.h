@@ -160,7 +160,7 @@ extern uint32_t _ml_base_address;
 
 // main DryOs commands
 extern void msleep( int amount );
-extern void call( const char* name, ... );
+extern int call( const char* name, ... );
 
 // stdio
 extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it

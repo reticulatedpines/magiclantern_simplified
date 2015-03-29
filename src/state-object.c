@@ -262,65 +262,6 @@ static int stateobj_em_spy(struct state_object * self, int x, int input, int z, 
 }
 #endif
 
-#ifdef SCS_STATE
-static int stateobj_scs_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    int ans = StateTransition(self, x, input, z, t);
-    //scs_iso_override_step(); todo
-    return ans;
-}
-#endif
-
-#ifdef SSS_STATE
-static int stateobj_sss_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    int old_state = self->current_state;
-    int ans = StateTransition(self, x, input, z, t);
-    int new_state = self->current_state;
-
-    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
-    if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
-        raw_buffer_intercept_from_stateobj();
-    #endif
-
-    #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONIFG_100D) //TODO: Check 700D and 100D
-    if (old_state == 10 && input == 11 && new_state == 2) // delayCompleteRawtoSraw
-        raw_buffer_intercept_from_stateobj();
-    #endif
-
-    return ans;
-}
-#endif
-
-#ifdef SDS_FRONT3_STATE
-static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    int old_state = self->current_state;
-    int ans = StateTransition(self, x, input, z, t);
-    int new_state = self->current_state;
-	
-    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
-    // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
-    // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
-    if (old_state == 0 && input == 3 && new_state == 1)
-	{
-        raw_buffer_intercept_from_stateobj();
-    }   
-    #elif defined(CONFIG_50D)
-    //~ FrontState - There are only 2
-    //~ * FF882F00 - Mem1toJpeg
-    //~ * FF882C5C - Mem1 to raw
-    //~ * 9 -> Raw (3) -> 10 -> Jpeg(3) -> 8
-    if (old_state == 9 && input == 3 && new_state == 10)
-    {
-        raw_buffer_intercept_from_stateobj();
-    }
-	#endif
-
-    return ans;
-}
-#endif
-
 static int stateobj_start_spy(struct state_object * stateobj, void* spy)
 {
     if (!StateTransition)
@@ -356,18 +297,6 @@ static void state_init(void* unused)
         stateobj_start_spy(EMState, stateobj_em_spy);
     #endif
 
-    #ifdef SCS_STATE
-        stateobj_start_spy(SCS_STATE, stateobj_scs_spy);
-    #endif
-    
-    #ifdef SSS_STATE
-        stateobj_start_spy(SSS_STATE, stateobj_sss_spy);
-    #endif
-    
-    #ifdef SDS_FRONT3_STATE
-        stateobj_start_spy(SDS_FRONT3_STATE, stateobj_sdsf3_spy);
-    #endif
-    
     #ifdef CONFIG_550D
     display_is_on_550D = (DISPLAY_STATEOBJ->current_state != 0);
     #endif
