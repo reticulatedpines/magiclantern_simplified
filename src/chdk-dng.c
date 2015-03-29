@@ -43,6 +43,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #include "stdint.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "unistd.h"
 #include "string.h"
 #include "math.h"
 #include <sys/types.h>
@@ -54,6 +55,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define FIO_CreateFile(name) fopen(name, "wb")
 #define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
 #define FIO_CloseFile(f) fclose(f)
+#define FIO_RemoveFile(f) unlink(f)
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
