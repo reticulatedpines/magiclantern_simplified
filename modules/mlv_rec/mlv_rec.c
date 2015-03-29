@@ -3632,7 +3632,7 @@ PROP_HANDLER( PROP_APERTURE )
     mlv_update_lens = 1;
 }
 
-PROP_HANDLER( PROP_APERTURE2 )
+PROP_HANDLER( PROP_APERTURE_AUTO )
 {
     mlv_update_lens = 1;
 }
@@ -3642,7 +3642,7 @@ PROP_HANDLER( PROP_SHUTTER )
     mlv_update_lens = 1;
 }
 
-PROP_HANDLER( PROP_SHUTTER_ALSO )
+PROP_HANDLER( PROP_SHUTTER_AUTO )
 {
     mlv_update_lens = 1;
 }

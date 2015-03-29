@@ -1242,10 +1242,13 @@ PROP_HANDLER( PROP_SHUTTER )
 }
 
 static int aperture_ack = -1;
-PROP_HANDLER( PROP_APERTURE2 )
+PROP_HANDLER( PROP_APERTURE )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    if (!CONTROL_BV)
+    {
+        lensinfo_set_aperture(buf[0]);
+    }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
         #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
@@ -1261,22 +1264,50 @@ PROP_HANDLER( PROP_APERTURE2 )
     aperture_ack = buf[0];
 }
 
-PROP_HANDLER( PROP_APERTURE ) // for Tv mode
+PROP_HANDLER( PROP_APERTURE_AUTO )
 {
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    /* this gets updated in Tv mode (where PROP_APERTURE is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_AV)
+    {
+        /* in these modes, aperture is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+
+    if (!CONTROL_BV)
+    {
+        /* expo override turned off? */
+        lensinfo_set_aperture(buf[0]);
+    }
+
     lens_display_set_dirty();
 }
 
-static int shutter_also_ack = -1;
-PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
+PROP_HANDLER( PROP_SHUTTER_AUTO )
 {
+    /* this gets updated in Av mode (where PROP_SHUTTER is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+    
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_TV)
+    {
+        /* in these modes, shutter is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+    
     if (!CONTROL_BV)
     {
+        /* expo override turned off? */
+        /* todo: double-check if it's still needed */
         if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
             lensinfo_set_shutter(buf[0]);
     }
+    
     lens_display_set_dirty();
-    shutter_also_ack = buf[0];
 }
 
 static int ae_ack = 12345;
