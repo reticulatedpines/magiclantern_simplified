@@ -25,6 +25,9 @@ MODULES_DIR=$(TOP_DIR)/modules
 BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
 CF_CARD_ML_DIR = $(CF_CARD)/ML
 
+BUILD_TOOLS_DIR=$(TOP_DIR)/build_tools
+XOR_CHK=$(BUILD_TOOLS_DIR)/xor_chk
+
 INSTALL_DIR ?= $(CF_CARD)
 INSTALL_ML_DIR = $(INSTALL_DIR)/ML
 INSTALL_FONTS_DIR= $(INSTALL_ML_DIR)/fonts

@@ -105,6 +105,7 @@ extern char copyright_info[64];
 extern int date_format;
 extern int auto_power_off_time;
 extern int video_system_pal;
+extern int lv_focus_status;
 #endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
