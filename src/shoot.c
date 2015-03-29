@@ -2776,7 +2776,7 @@ void ensure_bulb_mode()
             set_shooting_mode(SHOOTMODE_M);
         int shutter = SHUTTER_BULB;
         prop_request_change( PROP_SHUTTER, &shutter, 4 );
-        prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
+        prop_request_change( PROP_SHUTTER_AUTO, &shutter, 4 );  /* todo: is this really needed? */
     #endif
     
     SetGUIRequestMode(0);
@@ -2954,7 +2954,7 @@ bulb_take_pic(int duration)
     lens_cleanup_af();
     if (d0 >= 0) lens_set_drivemode(d0);
     prop_request_change( PROP_SHUTTER, &s0r, 4 );
-    prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
+    prop_request_change( PROP_SHUTTER_AUTO, &s0r, 4);
     set_shooting_mode(m0r);
     msleep(200);
     
