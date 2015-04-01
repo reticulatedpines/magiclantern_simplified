@@ -41,6 +41,7 @@ struct script_entry
     struct script_entry * next;
     lua_State * L;
     struct menu_entry * menu_entry;
+    int submenu_index;
 };
 static struct script_entry * scripts = NULL;
 static struct script_entry * running_script = NULL;
@@ -63,10 +64,12 @@ if(index > lua_gettop(L) || !lua_isstring(L, index))\
    lua_pushliteral(L, "Invalid or missing parameter: " #name);\
    lua_error(L);\
 }\
-const char * name = lua_tostring(L, index);
+const char * name = lua_tostring(L, index)
 
 #define LUA_PARAM_STRING_OPTIONAL(name, index, default) const char * name = (index <= lua_gettop(L) && lua_isstring(L, index)) ? lua_tostring(L, index) : default
 
+#define LUA_FIELD_STRING(field, default) lua_getfield(L, -1, field) == LUA_TSTRING ? lua_tostring(L, -1) : default; lua_pop(L, 1)
+#define LUA_FIELD_INT(field, default) lua_getfield(L, -1, field) == LUA_TNUMBER ? lua_tointeger(L, -1) : default; lua_pop(L, 1)
 /**
  * Determines if a string ends in some string
  */
@@ -151,12 +154,7 @@ static void lua_run_task(int unused)
     if(running_script && running_script->L)
     {
         lua_State * L = running_script->L;
-        lua_getglobal(L, "main");
-        if(!lua_isfunction(L, -1))
-        {
-            console_printf("script error: no main function\n");
-        }
-        else
+        if(lua_isfunction(L, -1))
         {
             console_printf("running script...\n");
             if(lua_pcall(L, 0, LUA_MULTRET, 0))
@@ -168,6 +166,7 @@ static void lua_run_task(int unused)
                 console_printf("script finished\n");
             }
         }
+        if(running_script->submenu_index) lua_pop(L, 1);
     }
     lua_running = 0;
 }
@@ -178,16 +177,168 @@ static MENU_SELECT_FUNC(run_script)
     {
         lua_running = 1;
         running_script = priv;
-        task_create("lua_task", 0x1c, 0x4000, lua_run_task, (void*) 0);
+        lua_State * L = running_script->L;
+        lua_getglobal(L, "main");
+        if(!lua_isfunction(L, -1))
+        {
+            console_printf("script error: no main function\n");
+            lua_running = 0;
+        }
+        else
+        {
+            task_create("lua_task", 0x1c, 0x4000, lua_run_task, (void*) 0);
+        }
     }
 }
 
-static MENU_UPDATE_FUNC(script_update)
+static MENU_SELECT_FUNC(script_menu_select)
 {
-    MENU_SET_VALUE("");
+    struct script_entry * script_entry = priv;
+    if(script_entry)
+    {
+        lua_State * L = script_entry->L;
+        if(L)
+        {
+            lua_getglobal(L, "menu");
+            if(lua_istable(L, -1))
+            {
+                if(script_entry->submenu_index)
+                {
+                    if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
+                    {
+                        console_printf("script error: could not find submenu\n");
+                        lua_pop(L, 2);
+                        return;
+                    }
+                    if(lua_geti(L, -1, script_entry->submenu_index) != LUA_TTABLE)
+                    {
+                        console_printf("script error: could not find submenu '%d'\n", script_entry->submenu_index);
+                        lua_pop(L, 3);
+                        return;
+                    }
+                }
+                
+                if(lua_getfield(L, -1, "select") == LUA_TFUNCTION)
+                {
+                    if (!lua_running)
+                    {
+                        running_script = script_entry;
+                        lua_running = 1;
+                        task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
+                    }
+                    else
+                    {
+                        console_printf("script error: another script is currently running\n");
+                        lua_pop(L, 1);
+                        if(script_entry->submenu_index) lua_pop(L, 2);
+                    }
+                }
+            }
+        }
+    }
 }
 
-static int add_script(const char * filename)
+static MENU_UPDATE_FUNC(script_menu_update)
+{
+    struct script_entry * script_entry = entry->priv;
+    if(script_entry)
+    {
+        lua_State * L = script_entry->L;
+        if(L)
+        {
+            lua_getglobal(L, "menu");
+            if(lua_istable(L, -1))
+            {
+                if(script_entry->submenu_index)
+                {
+                    if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
+                    {
+                        console_printf("script error: could not find submenu\n");
+                        MENU_SET_VALUE("");
+                        lua_pop(L, 2);
+                        return;
+                    }
+                    if(lua_geti(L, -1, script_entry->submenu_index) != LUA_TTABLE)
+                    {
+                        console_printf("script error: could not find submenu '%d'\n", script_entry->submenu_index);
+                        MENU_SET_VALUE("");
+                        lua_pop(L, 3);
+                        return;
+                    }
+                }
+                
+                if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
+                {
+                    if(!lua_pcall(L, 0, 1, -1))
+                    {
+                        MENU_SET_VALUE("%s", lua_tostring(L, -1));
+                    }
+                }
+                else if(lua_isstring(L, -1))
+                {
+                    MENU_SET_VALUE("%s", lua_tostring(L, -1));
+                }
+                else
+                {
+                    MENU_SET_VALUE("");
+                }
+                lua_pop(L, 1);
+                
+                if(script_entry->submenu_index) lua_pop(L, 2);
+            }
+            lua_pop(L, 1);
+        }
+    }
+    else
+    {
+        MENU_SET_VALUE("");
+    }
+}
+
+static struct script_entry * create_script_entry(lua_State * L, struct menu_entry * existing_menu_entry)
+{
+    struct script_entry * script_entry = malloc(sizeof(struct script_entry));
+    
+    if(script_entry)
+    {
+        if(existing_menu_entry)
+        {
+            script_entry->menu_entry = existing_menu_entry;
+        }
+        else
+        {
+            script_entry->menu_entry = malloc(sizeof(struct menu_entry));
+            if(!script_entry->menu_entry)
+            {
+                free(script_entry);
+                lua_close(L);
+                return NULL;
+            }
+        }
+        script_entry->next = scripts;
+        scripts = script_entry;
+        script_entry->L = L;
+        memset(script_entry->menu_entry, 0, sizeof(struct menu_entry));
+        script_entry->menu_entry->priv = script_entry;
+        return script_entry;
+    }
+    return NULL;
+}
+
+static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const char * default_name)
+{
+    menu_entry->name = LUA_FIELD_STRING("name", default_name);
+    menu_entry->help = LUA_FIELD_STRING("help", "");
+    menu_entry->depends_on = LUA_FIELD_INT("depends_on", 0);
+    menu_entry->icon_type = LUA_FIELD_INT("icon_type", IT_ACTION);
+    menu_entry->unit = LUA_FIELD_INT("unit", 0);
+    menu_entry->min = LUA_FIELD_INT("min", 0);
+    menu_entry->max = LUA_FIELD_INT("max", 0);
+    menu_entry->select = script_menu_select;
+    menu_entry->update = script_menu_update;
+}
+
+static void add_script(const char * filename)
 {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
@@ -198,61 +349,77 @@ static int add_script(const char * filename)
     luaL_setfuncs(L, globallib, 0);
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
-    console_printf("loading script: %s\n", filename, lua_tostring(L, -1));
+    console_printf("loading script: %s\n", filename);
     if(luaL_dofile(L, full_path))
     {
         console_printf("load script '%s' failed:\n %s\n", filename, lua_tostring(L, -1));
     }
     else
     {
-        struct script_entry * script_entry = malloc(sizeof(struct script_entry));
-        if(script_entry)
+        lua_getglobal(L, "menu");
+        if(lua_istable(L, -1))
         {
-            script_entry->menu_entry = malloc(sizeof(struct menu_entry));
-            if(!script_entry->menu_entry)
+            //script that defines it's own menu structure
+            struct script_entry * script_entry = create_script_entry(L, NULL);
+            if(script_entry)
             {
-                free(script_entry);
-                lua_close(L);
-                return 0;
-            }
-            script_entry->next = scripts;
-            scripts = script_entry;
-            script_entry->L = L;
-            memset(script_entry->menu_entry, 0, sizeof(struct menu_entry));
-            lua_getglobal(L, "script_name");
-            script_entry->menu_entry->name = lua_isstring(L, -1) ? lua_tostring(L, -1) : "no name";
-            lua_getglobal(L, "script_help");
-            script_entry->menu_entry->help = lua_isstring(L, -1) ? lua_tostring(L, -1) : "";
-            
-            lua_getglobal(L, "script_parameters");
-            if(lua_istable(L, -1))
-            {
-                script_entry->menu_entry->select = menu_open_submenu;
-                int params_count = luaL_len(L, -1);
-                script_entry->menu_entry->children = malloc(sizeof(struct menu_entry) * (2 + params_count));
-                memset(script_entry->menu_entry->children, 0, sizeof(struct menu_entry) * (2 + params_count));
-                script_entry->menu_entry->children[0].name = "Run";
-                script_entry->menu_entry->children[0].help = script_entry->menu_entry->help;
-                int param_index = 1;
-                for (lua_pushnil(L); lua_next(L, -1) != 0 && param_index <= params_count; lua_pop(L, 1))
+                const char * parent = LUA_FIELD_STRING("parent", "LUA");
+                load_menu_entry(L, script_entry->menu_entry, filename);
+                
+                //submenu
+                if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
                 {
-                    script_entry->menu_entry->children[param_index].name = lua_tostring(L, -2);
-                    script_entry->menu_entry->children[param_index].unit = UNIT_DEC;
+                    int submenu_count = luaL_len(L, -1);
+                    if(submenu_count > 0)
+                    {
+                        int submenu_index = 0;
+                        script_entry->menu_entry->select = menu_open_submenu;
+                        script_entry->menu_entry->children = malloc(sizeof(struct menu_entry) * (1 + submenu_count));
+                        memset(script_entry->menu_entry->children, 0, sizeof(struct menu_entry) * (1 + submenu_count));
+                        for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
+                        {
+                            if(lua_geti(L, -1, submenu_index + 1) == LUA_TTABLE) //lua arrays are 1 based
+                            {
+                                struct script_entry * submenu_entry = create_script_entry(L, &(script_entry->menu_entry->children[submenu_index]));
+                                if(submenu_entry)
+                                {
+                                    load_menu_entry(L, submenu_entry->menu_entry, "unknown");
+                                    submenu_entry->submenu_index = submenu_index + 1;
+                                }
+                            }
+                            else
+                            {
+                                console_printf("invalid submenu[%d]\n", submenu_index);
+                            }
+                            lua_pop(L, 1);
+                        }
+                        script_entry->menu_entry->children[submenu_index].priv = MENU_EOL_PRIV;
+                    }
                 }
-                script_entry->menu_entry->children[params_count + 1].priv = MENU_EOL_PRIV;
+                lua_pop(L, 1);
+                
+                menu_add(parent, script_entry->menu_entry, 1);
             }
-            else
-            {
-                script_entry->menu_entry->select = run_script;
-            }
-            script_entry->menu_entry->update = script_update;
-            script_entry->menu_entry->priv = script_entry;
-            script_entry->menu_entry->icon_type = IT_ACTION;
-            menu_add("LUA", script_entry->menu_entry, 1);
-            return 1;
         }
+        else
+        {
+            //simple script w/o menu
+            struct script_entry * script_entry = create_script_entry(L, NULL);
+            if(script_entry)
+            {
+                lua_getglobal(L, "script_name");
+                script_entry->menu_entry->name = lua_isstring(L, -1) ? lua_tostring(L, -1) : filename;
+                lua_getglobal(L, "script_help");
+                script_entry->menu_entry->help = lua_isstring(L, -1) ? lua_tostring(L, -1) : "";
+                script_entry->menu_entry->select = run_script;
+                script_entry->menu_entry->update = script_menu_update;
+                script_entry->menu_entry->icon_type = IT_ACTION;
+                menu_add("LUA", script_entry->menu_entry, 1);
+            }
+        }
+        
+        console_printf("loading finished: %s\n", filename);
     }
-    return 0;
 }
 
 static void lua_load_task(int unused)
@@ -279,7 +446,7 @@ static void lua_load_task(int unused)
 static unsigned int lua_init()
 {
     lua_running = 1;
-    task_create("lua_load_task", 0x1c, 0x4000, lua_load_task, (void*) 0);
+    task_create("lua_load_task", 0x1c, 0x8000, lua_load_task, (void*) 0);
     return 0;
 }
 
