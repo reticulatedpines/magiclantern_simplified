@@ -98,6 +98,32 @@ static const luaL_Reg cameralib[] =
     { NULL, NULL }
 };
 
+static int lua_console_show(lua_State * L)
+{
+    console_show();
+    return 0;
+}
+
+static int lua_console_hide(lua_State * L)
+{
+    console_hide();
+    return 0;
+}
+
+static int lua_console_write(lua_State * L)
+{
+    if(lua_isstring(L, 1)) console_puts(lua_tostring(L, 1));
+    return 0;
+}
+
+static const luaL_Reg consolelib[] =
+{
+    { "show", lua_console_show },
+    { "hide", lua_console_hide },
+    { "write", lua_console_write },
+    { NULL, NULL }
+};
+
 static int global_beep(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(times, 1, 1);
@@ -150,6 +176,21 @@ static const luaL_Reg globallib[] =
     { "shoot", camera_shoot },
     { NULL, NULL }
 };
+
+static lua_State * load_lua_state()
+{
+    lua_State* L = luaL_newstate();
+    luaL_openlibs(L);
+    lua_newtable(L);
+    luaL_setfuncs(L, cameralib, 0);
+    lua_setglobal(L, "camera");
+    lua_newtable(L);
+    luaL_setfuncs(L, consolelib, 0);
+    lua_setglobal(L, "console");
+    lua_getglobal(L, "_G");
+    luaL_setfuncs(L, globallib, 0);
+    return L;
+}
 
 static void lua_run_task(int unused)
 {
@@ -385,13 +426,7 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
 
 static void add_script(const char * filename)
 {
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-    lua_newtable(L);
-    luaL_setfuncs(L, cameralib, 0);
-    lua_setglobal(L, "camera");
-    lua_getglobal(L, "_G");
-    luaL_setfuncs(L, globallib, 0);
+    lua_State* L = load_lua_state();
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
     console_printf("loading script: %s\n", filename);
