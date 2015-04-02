@@ -2,6 +2,7 @@
 #include "bmp.h"
 #include "tasks.h"
 #include "debug.h"
+#include "math.h"
 #include "menu.h"
 #include "property.h"
 #include "config.h"
@@ -34,21 +35,54 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
     memcpy(&level_data, buf, 6);
 }
 
-static void draw_electronic_level(int angle, int prev_angle, int force_redraw)
+static void draw_level_lines(int angle, int pitch, int show)
 {
-    if (!force_redraw && angle == prev_angle) return;
-
     int x0 = os.x0 + os.x_ex/2;
     int y0 = os.y0 + os.y_ex/2;
     int r = 200;
-    int prev_dx = (prev_angle % 1800 >= 450 && prev_angle % 1800 < 1350);
-    int prev_dy = 1 - prev_dx;
+
+    #define MUL 16384
+    #define PI_1800 0.00174532925
+
+    // Compute roll line parameters
+    int s = sinf(angle * PI_1800) * MUL;
+    int c = cosf(angle * PI_1800) * MUL;
+    int x_offset = r * c / MUL;
+    int y_offset = r * s / MUL;
     int dx = (angle % 1800 >= 450 && angle % 1800 < 1350);
     int dy = 1 - dx;
-    draw_angled_line(x0, y0, r, prev_angle, 0);
-    draw_angled_line(x0 + prev_dx, y0 + prev_dy, r, prev_angle, 0);
-    draw_angled_line(x0, y0, r, angle, (angle % 900) ? COLOR_BLACK : COLOR_GREEN1);
-    draw_angled_line(x0 + dx, y0 + dy, r, angle, (angle % 900) ? COLOR_WHITE : COLOR_GREEN2);
+
+    int color1 = show ? ((angle % 900) ? COLOR_BLACK : COLOR_GREEN1) : 0;
+    int color2 = show ? ((angle % 900) ? COLOR_WHITE : COLOR_GREEN2) : 0;
+
+    // Draw or erase the roll line
+    draw_line(x0 - x_offset, y0 - y_offset, x0 + x_offset, y0 + y_offset, color1);
+    draw_line(x0 - x_offset + dx, y0 - y_offset + dy, x0 + x_offset + dx, y0 + y_offset + dy, color2);
+
+    // Compute pitch line parameters
+    int pitch_s = sinf(pitch * PI_1800) * MUL;
+    int pitch_c = cosf(pitch * PI_1800) * MUL;
+
+    r = 120;
+    x0 -= (r * pitch_s / MUL) * s / MUL;
+    y0 += (r * pitch_s / MUL) * c / MUL;
+    x_offset /= 2;
+    y_offset /= 2;
+
+    color1 = show ? ((pitch % 900) ? COLOR_BLACK : COLOR_GREEN1) : 0;
+    color2 = show ? ((pitch % 900) ? COLOR_WHITE : COLOR_GREEN2) : 0;
+
+    // Draw or erase the pitch line
+    draw_line(x0 - x_offset, y0 - y_offset, x0 + x_offset, y0 + y_offset, color1);
+    draw_line(x0 - x_offset + dx, y0 - y_offset + dy, x0 + x_offset + dx, y0 + y_offset + dy, color2);
+}
+
+static void draw_electronic_level(int angle, int prev_angle, int pitch, int prev_pitch, int force_redraw)
+{
+    if (!force_redraw && angle == prev_angle && pitch == prev_pitch) return;
+
+    draw_level_lines(prev_angle, prev_pitch, 0);
+    draw_level_lines(angle, pitch, 1);
 }
 
 void disable_electronic_level()
@@ -63,6 +97,7 @@ void disable_electronic_level()
 void show_electronic_level()
 {
     static int prev_angle10 = 0;
+    static int prev_pitch10 = 0;
     int force_redraw = 0;
     if (level_data.status != 2)
     {
@@ -77,9 +112,11 @@ void show_electronic_level()
 
     int angle100 = level_data.roll_sensor1 * 256 + level_data.roll_sensor2;
     int angle10 = angle100/10;
-    draw_electronic_level(angle10, prev_angle10, force_redraw);
-    draw_electronic_level(angle10 + 1800, prev_angle10 + 1800, force_redraw);
+    int pitch100 = level_data.pitch_sensor1 * 256 + level_data.pitch_sensor2;
+    int pitch10 = pitch100/10;
+    draw_electronic_level(angle10, prev_angle10, pitch10, prev_pitch10, force_redraw);
     prev_angle10 = angle10;
+    prev_pitch10 = pitch10;
 }
 
 #define FMT_FIXEDPOINT1E(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "=", ABS(x)/10, ABS(x)%10
