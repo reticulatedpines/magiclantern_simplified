@@ -153,6 +153,7 @@ static const luaL_Reg globallib[] =
 
 static void lua_run_task(int unused)
 {
+    lua_running = 1;
     if(running_script && running_script->L)
     {
         lua_State * L = running_script->L;
@@ -290,8 +291,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
                 
                 if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
                 {
-                    //TODO: this needs to run in a separate task, getting stackoverflows on gui task
-                    if(!lua_pcall(L, 0, 1, -1))
+                    if(!lua_pcall(L, 0, 1, 0))
                     {
                         MENU_SET_VALUE("%s", lua_tostring(L, -1));
                     }
@@ -304,8 +304,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
                 
                 if(lua_getfield(L, -1, "info") == LUA_TFUNCTION)
                 {
-                    //TODO: this needs to run in a separate task, getting stackoverflows on gui task
-                    if(!lua_pcall(L, 0, 1, -1))
+                    if(!lua_pcall(L, 0, 1, 0))
                     {
                         if(lua_isstring(L, -1))
                         {
@@ -317,8 +316,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
                 
                 if(lua_getfield(L, -1, "warning") == LUA_TFUNCTION)
                 {
-                    //TODO: this needs to run in a separate task, getting stackoverflows on gui task
-                    if(!lua_pcall(L, 0, 1, -1))
+                    if(!lua_pcall(L, 0, 1, 0))
                     {
                         if(lua_isstring(L, -1))
                         {
