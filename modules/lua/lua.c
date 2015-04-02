@@ -38,6 +38,7 @@
 
 struct script_entry
 {
+    int menu_value;
     struct script_entry * next;
     lua_State * L;
     struct menu_entry * menu_entry;
@@ -155,17 +156,14 @@ static void lua_run_task(int unused)
     if(running_script && running_script->L)
     {
         lua_State * L = running_script->L;
-        if(lua_isfunction(L, -1))
+        console_printf("running script...\n");
+        if(lua_pcall(L, lua_run_arg_count, 0, 0))
         {
-            console_printf("running script...\n");
-            if(lua_pcall(L, lua_run_arg_count, 0, 0))
-            {
-                console_printf("script failed:\n %s\n", lua_tostring(L, -1));
-            }
-            else
-            {
-                console_printf("script finished\n");
-            }
+            console_printf("script failed:\n %s\n", lua_tostring(L, -1));
+        }
+        else
+        {
+            console_printf("script finished\n");
         }
         if(running_script->submenu_index) lua_pop(L, 1);
     }
@@ -237,6 +235,25 @@ static MENU_SELECT_FUNC(script_menu_select)
                         if(script_entry->submenu_index) lua_pop(L, 2);
                     }
                 }
+                else
+                {
+                    lua_pop(L, 1);
+                    
+                    lua_getfield(L, -1, "value");
+                    int current_value = lua_isinteger(L, -1) ? lua_tointeger(L, -1) : 0;
+                    lua_pop(L, 1);
+                    
+                    current_value += delta;
+                    if(current_value > script_entry->menu_entry->max) current_value = script_entry->menu_entry->min;
+                    else if(current_value < script_entry->menu_entry->min) current_value = script_entry->menu_entry->max;
+                    lua_pushinteger(L, current_value);
+                    lua_setfield(L, -2, "value");
+                    
+                    script_entry->menu_value = current_value;
+                    
+                    lua_pop(L, 1);
+                    if(script_entry->submenu_index) lua_pop(L, 2);
+                }
             }
         }
     }
@@ -273,6 +290,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
                 
                 if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
                 {
+                    //TODO: this needs to run in a separate task, getting stackoverflows on gui task
                     if(!lua_pcall(L, 0, 1, -1))
                     {
                         MENU_SET_VALUE("%s", lua_tostring(L, -1));
@@ -282,9 +300,31 @@ static MENU_UPDATE_FUNC(script_menu_update)
                 {
                     MENU_SET_VALUE("%s", lua_tostring(L, -1));
                 }
-                else
+                lua_pop(L, 1);
+                
+                if(lua_getfield(L, -1, "info") == LUA_TFUNCTION)
                 {
-                    MENU_SET_VALUE("");
+                    //TODO: this needs to run in a separate task, getting stackoverflows on gui task
+                    if(!lua_pcall(L, 0, 1, -1))
+                    {
+                        if(lua_isstring(L, -1))
+                        {
+                            MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
+                        }
+                    }
+                }
+                lua_pop(L, 1);
+                
+                if(lua_getfield(L, -1, "warning") == LUA_TFUNCTION)
+                {
+                    //TODO: this needs to run in a separate task, getting stackoverflows on gui task
+                    if(!lua_pcall(L, 0, 1, -1))
+                    {
+                        if(lua_isstring(L, -1))
+                        {
+                            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
+                        }
+                    }
                 }
                 lua_pop(L, 1);
                 
@@ -333,11 +373,14 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
 {
     menu_entry->name = LUA_FIELD_STRING("name", default_name);
     menu_entry->help = LUA_FIELD_STRING("help", "");
+    menu_entry->help2 = LUA_FIELD_STRING("help2", "");
     menu_entry->depends_on = LUA_FIELD_INT("depends_on", 0);
-    menu_entry->icon_type = LUA_FIELD_INT("icon_type", IT_ACTION);
+    menu_entry->icon_type = LUA_FIELD_INT("icon_type", 0);
     menu_entry->unit = LUA_FIELD_INT("unit", 0);
     menu_entry->min = LUA_FIELD_INT("min", 0);
     menu_entry->max = LUA_FIELD_INT("max", 0);
+    menu_entry->works_best_in = LUA_FIELD_INT("works_best_in", 0);
+    //TODO: choices
     menu_entry->select = script_menu_select;
     menu_entry->update = script_menu_update;
 }
@@ -377,6 +420,8 @@ static void add_script(const char * filename)
                     if(submenu_count > 0)
                     {
                         int submenu_index = 0;
+                        script_entry->menu_value = 1;
+                        script_entry->menu_entry->icon_type = IT_SUBMENU;
                         script_entry->menu_entry->select = menu_open_submenu;
                         script_entry->menu_entry->children = malloc(sizeof(struct menu_entry) * (1 + submenu_count));
                         memset(script_entry->menu_entry->children, 0, sizeof(struct menu_entry) * (1 + submenu_count));
@@ -388,6 +433,7 @@ static void add_script(const char * filename)
                                 if(submenu_entry)
                                 {
                                     load_menu_entry(L, submenu_entry->menu_entry, "unknown");
+                                    submenu_entry->menu_value = LUA_FIELD_INT("value", 0);
                                     submenu_entry->submenu_index = submenu_index + 1;
                                 }
                             }
