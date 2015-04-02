@@ -47,6 +47,7 @@ static struct script_entry * scripts = NULL;
 static struct script_entry * running_script = NULL;
 static int lua_running = 0;
 static int lua_loaded = 0;
+static int lua_run_arg_count = 0;
 
 #define LUA_PARAM_INT(name, index)\
 if(index > lua_gettop(L) || !lua_isinteger(L, index))\
@@ -157,7 +158,7 @@ static void lua_run_task(int unused)
         if(lua_isfunction(L, -1))
         {
             console_printf("running script...\n");
-            if(lua_pcall(L, 0, LUA_MULTRET, 0))
+            if(lua_pcall(L, lua_run_arg_count, 0, 0))
             {
                 console_printf("script failed:\n %s\n", lua_tostring(L, -1));
             }
@@ -176,6 +177,7 @@ static MENU_SELECT_FUNC(run_script)
     if (!lua_running)
     {
         lua_running = 1;
+        lua_run_arg_count = 0;
         running_script = priv;
         lua_State * L = running_script->L;
         lua_getglobal(L, "main");
@@ -222,6 +224,8 @@ static MENU_SELECT_FUNC(script_menu_select)
                 {
                     if (!lua_running)
                     {
+                        lua_run_arg_count = 1;
+                        lua_pushinteger(L, delta);
                         running_script = script_entry;
                         lua_running = 1;
                         task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
