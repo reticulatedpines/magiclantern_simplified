@@ -83,7 +83,7 @@ static int string_ends_with(const char *source, const char *ending)
     return !strcmp(source + strlen(source) - strlen(ending), ending);
 }
 
-static int camera_shoot(lua_State * L)
+static int luaCB_camera_shoot(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
     LUA_PARAM_INT_OPTIONAL(should_af, 2, 1);
@@ -94,23 +94,24 @@ static int camera_shoot(lua_State * L)
 
 static const luaL_Reg cameralib[] =
 {
-    { "shoot", camera_shoot },
+    { "shoot", luaCB_camera_shoot },
     { NULL, NULL }
 };
 
-static int lua_console_show(lua_State * L)
+
+static int luaCB_console_show(lua_State * L)
 {
     console_show();
     return 0;
 }
 
-static int lua_console_hide(lua_State * L)
+static int luaCB_console_hide(lua_State * L)
 {
     console_hide();
     return 0;
 }
 
-static int lua_console_write(lua_State * L)
+static int luaCB_console_write(lua_State * L)
 {
     if(lua_isstring(L, 1)) console_puts(lua_tostring(L, 1));
     return 0;
@@ -118,20 +119,20 @@ static int lua_console_write(lua_State * L)
 
 static const luaL_Reg consolelib[] =
 {
-    { "show", lua_console_show },
-    { "hide", lua_console_hide },
-    { "write", lua_console_write },
+    { "show", luaCB_console_show },
+    { "hide", luaCB_console_hide },
+    { "write", luaCB_console_write },
     { NULL, NULL }
 };
 
-static int global_beep(lua_State * L)
+static int luaCB_beep(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(times, 1, 1);
     beep_times(times);
     return 0;
 }
 
-static int global_call(lua_State * L)
+static int luaCB_call(lua_State * L)
 {
     LUA_PARAM_STRING(function_name, 1);
     int result = 0;
@@ -161,7 +162,7 @@ static int global_call(lua_State * L)
     return 1;
 }
 
-static int global_msleep(lua_State * L)
+static int luaCB_msleep(lua_State * L)
 {
     LUA_PARAM_INT(amount, 1);
     msleep(amount);
@@ -170,23 +171,23 @@ static int global_msleep(lua_State * L)
 
 static const luaL_Reg globallib[] =
 {
-    { "msleep", global_msleep },
-    { "beep", global_beep },
-    { "call", global_call },
-    { "shoot", camera_shoot },
+    { "msleep", luaCB_msleep },
+    { "beep", luaCB_beep },
+    { "call", luaCB_call },
+    { "shoot", luaCB_camera_shoot },
     { NULL, NULL }
 };
+
+#define LOAD_LUA_LIB(name) lua_newtable(L); luaL_setfuncs(L, name##lib, 0); lua_setglobal(L, "name")
 
 static lua_State * load_lua_state()
 {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
-    lua_newtable(L);
-    luaL_setfuncs(L, cameralib, 0);
-    lua_setglobal(L, "camera");
-    lua_newtable(L);
-    luaL_setfuncs(L, consolelib, 0);
-    lua_setglobal(L, "console");
+    
+    LOAD_LUA_LIB(camera);
+    LOAD_LUA_LIB(console);
+    
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
     return L;
