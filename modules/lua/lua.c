@@ -467,6 +467,32 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
     menu_entry->min = LUA_FIELD_INT("min", 0);
     menu_entry->max = LUA_FIELD_INT("max", 0);
     menu_entry->works_best_in = LUA_FIELD_INT("works_best_in", 0);
+    if(lua_getfield(L, -1, "choices") == LUA_TTABLE)
+    {
+        int choices_count = luaL_len(L, -1);
+        const char ** choices = malloc(sizeof(char*) * choices_count);
+        if(choices)
+        {
+            int choice_index = 0;
+            for (choice_index = 0; choice_index < choices_count; choice_index++)
+            {
+                if(lua_geti(L, -1, choice_index + 1) == LUA_TSTRING) //lua arrays are 1 based
+                {
+                    choices[choice_index] = lua_tostring(L, -1);
+                }
+                else
+                {
+                    console_printf("invalid choice[%d]\n", choice_index);
+                    choices[choice_index] = NULL;
+                    choices_count = choice_index;
+                }
+                lua_pop(L, 1);
+            }
+            menu_entry->min = 0;
+            menu_entry->max = choices_count - 1;
+        }
+    }
+    lua_pop(L, 1);
     //TODO: choices
     menu_entry->select = lua_hasfield(L, -1, "select", LUA_TFUNCTION) ? script_menu_select : NULL;
     menu_entry->update =
