@@ -193,6 +193,44 @@ static lua_State * load_lua_state()
     return L;
 }
 
+static void update_lua_menu_values(lua_State * L)
+{
+    struct script_entry * current;
+    for(current = scripts; current; current = current->next)
+    {
+        //only update values for entries related to the current lua state, and that don't already have a select function
+        if(current->L == L && current->menu_entry && !current->menu_entry->select)
+        {
+            if(lua_getglobal(L, "menu") == LUA_TTABLE)
+            {
+                if(current->submenu_index)
+                {
+                    if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
+                    {
+                        console_printf("script error: could not find submenu\n");
+                        lua_pop(L, 2);
+                        continue;
+                    }
+                    if(lua_geti(L, -1, current->submenu_index) != LUA_TTABLE)
+                    {
+                        console_printf("script error: could not find submenu '%d'\n", current->submenu_index);
+                        lua_pop(L, 3);
+                        continue;
+                    }
+                }
+                lua_pushinteger(L, current->menu_value);
+                lua_setfield(L, -1, "value");
+                
+                if(current->submenu_index)
+                {
+                    lua_pop(L, 2);
+                }
+            }
+            lua_pop(L, 1);
+        }
+    }
+}
+
 static void lua_run_task(int unused)
 {
     lua_running = 1;
@@ -242,6 +280,7 @@ static MENU_SELECT_FUNC(script_menu_select)
         lua_State * L = script_entry->L;
         if(L)
         {
+            update_lua_menu_values(L);
             lua_getglobal(L, "menu");
             if(lua_istable(L, -1))
             {
@@ -310,6 +349,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         lua_State * L = script_entry->L;
         if(L)
         {
+            update_lua_menu_values(L);
             lua_getglobal(L, "menu");
             if(lua_istable(L, -1))
             {
@@ -409,6 +449,13 @@ static struct script_entry * create_script_entry(lua_State * L, struct menu_entr
     return NULL;
 }
 
+static int lua_hasfield(lua_State * L, int idx, const char * name, int expected_type)
+{
+    int result = lua_getfield(L, -1, name) == expected_type;
+    lua_pop(L, 1);
+    return result;
+}
+
 static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const char * default_name)
 {
     menu_entry->name = LUA_FIELD_STRING("name", default_name);
@@ -421,8 +468,11 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
     menu_entry->max = LUA_FIELD_INT("max", 0);
     menu_entry->works_best_in = LUA_FIELD_INT("works_best_in", 0);
     //TODO: choices
-    menu_entry->select = script_menu_select;
-    menu_entry->update = script_menu_update;
+    menu_entry->select = lua_hasfield(L, -1, "select", LUA_TFUNCTION) ? script_menu_select : NULL;
+    menu_entry->update =
+        lua_hasfield(L, -1, "update", LUA_TFUNCTION) ||
+        lua_hasfield(L, -1, "warning", LUA_TFUNCTION) ||
+        lua_hasfield(L, -1, "info", LUA_TFUNCTION) ? script_menu_update : NULL;
 }
 
 static void add_script(const char * filename)
