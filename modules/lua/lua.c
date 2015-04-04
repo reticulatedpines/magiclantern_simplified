@@ -66,6 +66,16 @@ int name = lua_tointeger(L, index)
 
 #define LUA_PARAM_INT_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && lua_isinteger(L, index)) ? lua_tointeger(L, index) : default
 
+#define LUA_PARAM_BOOL(name, index)\
+if(index > lua_gettop(L) || !lua_isboolean(L, index))\
+{\
+    lua_pushliteral(L, "Invalid or missing parameter: " #name);\
+    lua_error(L);\
+}\
+int name = lua_toboolean(L, index)
+
+#define LUA_PARAM_BOOL_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && lua_isboolean(L, index)) ? lua_toboolean(L, index) : default
+
 #define LUA_PARAM_NUMBER(name, index)\
 if(index > lua_gettop(L) || !lua_isnumber(L, index))\
 {\
@@ -268,7 +278,7 @@ static int luaCB_lv_newindex(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "enabled"))
     {
-        LUA_PARAM_INT(value, 3);
+        LUA_PARAM_BOOL(value, 3);
         if(value && !lv && !LV_PAUSED) force_liveview();
         else if(lv) close_liveview();
     }
@@ -409,7 +419,7 @@ static int luaCB_movie_newindex(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "recording"))
     {
-        LUA_PARAM_INT(value, 3);
+        LUA_PARAM_BOOL(value, 3);
         if(value) luaCB_movie_start(L);
         else luaCB_movie_stop(L);
     }
