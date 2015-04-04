@@ -197,6 +197,15 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "aperture")) lua_pushinteger(L, RAW2AV(lens_info.raw_aperture));
     else if(!strcmp(key, "iso")) lua_pushinteger(L, RAW2SV(lens_info.raw_iso));
     else if(!strcmp(key, "ec")) lua_pushinteger(L, RAW2EC(lens_info.ae));
+    else if(!strcmp(key, "flash_ec")) lua_pushinteger(L, RAW2EC(lens_info.flash_ae));
+    else if(!strcmp(key, "mode")) lua_pushinteger(L, shooting_mode);
+    else if(!strcmp(key, "af_mode")) lua_pushinteger(L, metering_mode);
+    else if(!strcmp(key, "metering_mode")) lua_pushinteger(L, metering_mode);
+    else if(!strcmp(key, "drive_mode")) lua_pushinteger(L, drive_mode);
+    else if(!strcmp(key, "model")) lua_pushstring(L, camera_model);
+    else if(!strcmp(key, "firmware")) lua_pushstring(L, firmware_version);
+    else if(!strcmp(key, "temperature")) lua_pushinteger(L, efic_temp);
+    else if(!strcmp(key, "state")) lua_pushinteger(L, gui_state);
     else lua_rawget(L, 1);
     return 1;
 }
@@ -224,6 +233,15 @@ static int luaCB_camera_newindex(lua_State * L)
         LUA_PARAM_NUMBER(value, 3);
         lens_set_ae(EC2RAW(value));
     }
+    else if(!strcmp(key, "flash_ec"))
+    {
+        LUA_PARAM_NUMBER(value, 3);
+        lens_set_flash_ae(EC2RAW(value));
+    }
+    else if(!strcmp(key, "model") || !strcmp(key, "firmware") || !strcmp(key, "mode") || !strcmp(key, "af_mode") || !strcmp(key, "metering_mode") || !strcmp(key, "drive_mode") || !strcmp(key, "temperature") || !strcmp(key, "state"))
+    {
+        lua_pushstring(L, "property is readonly!"); lua_error(L);
+    }
     else
     {
         lua_rawset(L, 1);
@@ -240,7 +258,7 @@ static const luaL_Reg cameralib[] =
 static int luaCB_lv_index(lua_State * L)
 {
     LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "isenabled")) lua_pushboolean(L, lv);
+    if(!strcmp(key, "enabled")) lua_pushboolean(L, lv);
     else lua_rawget(L, 1);
     return 1;
 }
@@ -248,7 +266,7 @@ static int luaCB_lv_index(lua_State * L)
 static int luaCB_lv_newindex(lua_State * L)
 {
     LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "isenabled"))
+    if(!strcmp(key, "enabled"))
     {
         LUA_PARAM_INT(value, 3);
         if(value && !lv && !LV_PAUSED) force_liveview();
@@ -354,7 +372,7 @@ static int luaCB_movie_start(lua_State* L)
     }
     else
     {
-        call("MovieStart");
+        movie_start();
     }
     return 0;
 }
@@ -373,7 +391,7 @@ static int luaCB_movie_stop(lua_State* L)
     }
     else
     {
-        call("MovieEnd");
+        movie_end();
     }
     return 0;
 }
