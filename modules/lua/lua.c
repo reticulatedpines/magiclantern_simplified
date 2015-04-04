@@ -49,8 +49,22 @@ struct script_entry
     struct menu_entry * menu_entry;
     int submenu_index;
 };
+struct script_event_entry
+{
+    struct script_event_entry * next;
+    struct script_entry * script_entry;
+};
 static struct script_entry * scripts = NULL;
 static struct script_entry * running_script = NULL;
+static struct script_event_entry * pre_shoot_cbr_scripts = NULL;
+static struct script_event_entry * post_shoot_cbr_scripts = NULL;
+static struct script_event_entry * display_filter_cbr_scripts = NULL;
+static struct script_event_entry * seconds_clock_cbr_scripts = NULL;
+static struct script_event_entry * vsync_cbr_scripts = NULL;
+static struct script_event_entry * keypress_cbr_scripts = NULL;
+static struct script_event_entry * vsync_setparam_cbr_scripts = NULL;
+static struct script_event_entry * custom_picture_taking_cbr_scripts = NULL;
+static struct script_event_entry * intervalometer_cbr_scripts = NULL;
 static int lua_running = 0;
 static int lua_loaded = 0;
 static int lua_run_arg_count = 0;
@@ -570,6 +584,66 @@ static void update_lua_menu_values(lua_State * L)
     }
 }
 
+static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * event_entries, const char * event_name)
+{
+    //no events registered by lua scripts
+    if(!event_entries) return CBR_RET_CONTINUE;
+    
+    //something is currently running
+    if(lua_running)
+    {
+        console_printf("lua cbr error: another script is currently running\n");
+        return CBR_RET_CONTINUE;
+    }
+    lua_running = 1;
+    struct script_event_entry * current;
+    for(current = event_entries; current; current = current->next)
+    {
+        lua_State * L = current->script_entry->L;
+        if(lua_getglobal(L, "events") == LUA_TTABLE)
+        {
+            if(lua_getfield(L, -1, event_name) == LUA_TFUNCTION)
+            {
+                lua_pushinteger(L, ctx);
+                if(!lua_pcall(L, 1, 1, 0))
+                {
+                    console_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
+                    lua_pop(L, 1);
+                    lua_running = 0;
+                    return CBR_RET_ERROR;
+                }
+                else
+                {
+                    if(!lua_isboolean(L, -1) || !lua_toboolean(L, -1))
+                    {
+                        lua_pop(L, 1);
+                        lua_running = 0;
+                        return CBR_RET_STOP;
+                    }
+                }
+            }
+            lua_pop(L, 1);
+        }
+        lua_pop(L, 1);
+    }
+    lua_running = 0;
+    return CBR_RET_CONTINUE;
+}
+
+#define LUA_CBR_FUNC(name) static unsigned int lua_##name##_cbr(unsigned int ctx) {\
+    return lua_do_cbr(ctx, name##_cbr_scripts, #name);\
+}\
+
+LUA_CBR_FUNC(pre_shoot)
+LUA_CBR_FUNC(post_shoot)
+LUA_CBR_FUNC(display_filter)
+LUA_CBR_FUNC(seconds_clock)
+LUA_CBR_FUNC(vsync)
+LUA_CBR_FUNC(keypress)
+LUA_CBR_FUNC(vsync_setparam)
+LUA_CBR_FUNC(custom_picture_taking)
+LUA_CBR_FUNC(intervalometer)
+
 static void lua_run_task(int unused)
 {
     lua_running = 1;
@@ -841,6 +915,18 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
         lua_hasfield(L, -1, "info", LUA_TFUNCTION) ? script_menu_update : NULL;
 }
 
+#define SCRIPT_CBR(event) if(lua_getfield(L, -1, #event) == LUA_TFUNCTION) add_event_script_entry(event##_cbr_scripts, script_entry); lua_pop(L, 1)
+
+static void add_event_script_entry(struct script_event_entry * root, struct script_entry * script_entry)
+{
+    struct script_event_entry * new_entry = malloc(sizeof(struct script_event_entry));
+    if(new_entry)
+    {
+        new_entry->next = root;
+        new_entry->script_entry = script_entry;
+    }
+}
+
 static void add_script(const char * filename)
 {
     lua_State* L = load_lua_state();
@@ -853,13 +939,12 @@ static void add_script(const char * filename)
     }
     else
     {
-        lua_getglobal(L, "menu");
-        if(lua_istable(L, -1))
+        struct script_entry * script_entry = create_script_entry(L, NULL);
+        if(script_entry)
         {
-            //script that defines it's own menu structure
-            struct script_entry * script_entry = create_script_entry(L, NULL);
-            if(script_entry)
+            if(lua_getglobal(L, "menu") == LUA_TTABLE)
             {
+                //script that defines it's own menu structure
                 const char * parent = LUA_FIELD_STRING("parent", "LUA");
                 load_menu_entry(L, script_entry->menu_entry, filename);
                 
@@ -900,13 +985,9 @@ static void add_script(const char * filename)
                 
                 menu_add(parent, script_entry->menu_entry, 1);
             }
-        }
-        else
-        {
-            //simple script w/o menu
-            struct script_entry * script_entry = create_script_entry(L, NULL);
-            if(script_entry)
+            else
             {
+                //simple script w/o menu
                 lua_getglobal(L, "script_name");
                 script_entry->menu_entry->name = lua_isstring(L, -1) ? lua_tostring(L, -1) : filename;
                 lua_getglobal(L, "script_help");
@@ -916,8 +997,22 @@ static void add_script(const char * filename)
                 script_entry->menu_entry->icon_type = IT_ACTION;
                 menu_add("LUA", script_entry->menu_entry, 1);
             }
+            lua_pop(L, 1);
+            
+            if(lua_getfield(L, -1, "events") == LUA_TTABLE)
+            {
+                SCRIPT_CBR(pre_shoot);
+                SCRIPT_CBR(post_shoot);
+                SCRIPT_CBR(display_filter);
+                SCRIPT_CBR(seconds_clock);
+                SCRIPT_CBR(vsync);
+                SCRIPT_CBR(keypress);
+                SCRIPT_CBR(vsync_setparam);
+                SCRIPT_CBR(custom_picture_taking);
+                SCRIPT_CBR(intervalometer);
+            }
+            lua_pop(L, 1);
         }
-        
         console_printf("loading finished: %s\n", filename);
     }
 }
@@ -961,6 +1056,15 @@ MODULE_INFO_START()
 MODULE_INFO_END()
 
 MODULE_CBRS_START()
+    MODULE_CBR(CBR_PRE_SHOOT, lua_pre_shoot_cbr, 0)
+    MODULE_CBR(CBR_POST_SHOOT, lua_post_shoot_cbr, 0)
+    MODULE_CBR(CBR_DISPLAY_FILTER, lua_display_filter_cbr, 0)
+    MODULE_CBR(CBR_SECONDS_CLOCK, lua_seconds_clock_cbr, 0)
+    MODULE_CBR(CBR_VSYNC, lua_vsync_cbr, 0)
+    MODULE_CBR(CBR_KEYPRESS, lua_keypress_cbr, 0)
+    MODULE_CBR(CBR_VSYNC_SETPARAM, lua_vsync_setparam_cbr, 0)
+    MODULE_CBR(CBR_CUSTOM_PICTURE_TAKING, lua_custom_picture_taking_cbr, 0)
+    MODULE_CBR(CBR_INTERVALOMETER, lua_intervalometer_cbr, 0)
 MODULE_CBRS_END()
 
 
