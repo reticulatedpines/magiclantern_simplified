@@ -81,6 +81,7 @@
 #define PROP_LV_FOCUS_STOP      0x80050003 // LVCAF_LensDriveStop
 #define PROP_LV_FOCUS_BAD       0x80050029 // true if camera couldn't focus?
 #define PROP_LV_FOCUS_STATE     0x80050009 // 1 OK, 101 bad, 201 not done?
+#define PROP_LV_FOCUS_STATUS    0x80050023 // 1 = idle, 3 = focusing in LiveView
 #define PROP_LV_FOCUS_CMD       0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
 #define PROP_LV_FOCUS_DATA      0x80050026 // 8 integers; updates quickly when AF is active
 #define PROP_LVAF_0003          0x80050003
@@ -95,8 +96,6 @@
 #define PROP_LV_FOCAL_DISTANCE 0x80050045
 #endif
 
-#define PROP_APERTURE2          0x8000002d
-#define PROP_APERTURE3          0x80000036
 #define PROP_LIVE_VIEW_VIEWTYPE 0x80000034
 
 #define PROP_MODE               0x80000001 // maybe; set in FA_DISP_COM
@@ -127,8 +126,7 @@
     #define DRIVE_CONTINUOUS 1
 #endif
 #define PROP_SHUTTER            0x80000005
-#define PROP_SHUTTER_ALSO       0x8000002c
-#define PROP_SHUTTER_RANGE		0x80000035 // Len=4, 6D:100098 30" & 1/4k
+#define PROP_SHUTTER_RANGE      0x80000035 // Len=4, 6D:100098 30" & 1/4k
 #define PROP_APERTURE           0x80000006
 #define PROP_ISO                        0x80000007
 #ifndef CONFIG_NO_AUTO_ISO_LIMITS
@@ -136,7 +134,12 @@
 #endif
 #define PROP_AE                         0x80000008 // signed 8-bit value
 #define PROP_UILOCK                     0x8000000b // maybe?
+
 #define PROP_ISO_AUTO           0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO; in movie mode, is 0 unless you half-press shutter
+#define PROP_SHUTTER_AUTO       0x8000002c // computed in Av mode
+#define PROP_APERTURE_AUTO      0x8000002d // computed in Tv mode
+
+#define PROP_APERTURE3          0x80000036
 
 #define PROP_SHUTTER_RELEASE    0x8003000A
 #define PROP_AVAIL_SHOT         0x80030005
@@ -157,7 +160,6 @@
 #define PROP_LV_OUTPUT_DEVICE   0x80050011      // 1 == LCD?
 #define PROP_HOUTPUT_TYPE       0x80030030      // 0 = no info displayed in LV, 1 = info displayed (this is toggled with DISP)
 #define PROP_MIRROR_DOWN        0x8005001C
-#define PROP_LV_EXPSIM          0x80050023
 #define PROP_MYMENU_LISTING     0x80040009
 
 #define PROP_LV_MOVIE_SELECT    0x8004001C      // 0=DisableMovie, 1=? or 2=EnableMovie

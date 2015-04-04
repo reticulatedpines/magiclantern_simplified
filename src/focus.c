@@ -21,6 +21,8 @@
 #include "lcdsensor.h"
 #endif
 
+CONFIG_INT( "dof.display", dof_display, 0);
+
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
@@ -1064,6 +1066,12 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
+    {
+        .name = "DOF Display",
+        .priv = &dof_display, 
+        .max  = 1,
+        .help = "Display DOF above Focus distance.",
+    },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
         .name = "Focus Settings",

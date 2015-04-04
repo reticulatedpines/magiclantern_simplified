@@ -79,6 +79,18 @@
 #include "mlv.h"
 #include "mlv_rec.h"
 
+/* an alternative tracing method that embeds the logs into the MLV file itself */
+#define EMBEDDED_LOGGING
+
+#if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
+#define trace_write                                 mlv_debg_printf
+#define trace_available()                           1
+#define trace_start(name, file_name)                (uint32_t)(file_name)
+#define trace_stop(trace, wait)                     (void)0
+#define trace_format(context, format, separator)    (void)0
+#define trace_set_flushrate(context, timeout)       (void)0
+#endif
+
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -227,53 +239,111 @@ static int32_t mlv_file_count = 0;
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
 
+#if defined(EMBEDDED_LOGGING)
+/* START: helper code for logging into MLV files */
+static uint8_t *mlv_debg_buffer = NULL;
+static uint32_t mlv_debg_size = 0;
+static uint32_t mlv_debg_used = 0;
 
-/* START: helper code for a post mortem dump */
-static void *mlv_dmp_ptr = NULL;
-static uint32_t mlv_dmp_size = 0;
-static uint32_t mlv_dmp_used = 0;
-
-static void mlv_rec_err_addbin(void *data, uint32_t length)
+static void mlv_debg_addbin(void *data, uint32_t length)
 {
-    if(!mlv_dmp_ptr)
+    if(!mlv_debg_buffer)
     {
-        mlv_dmp_size = 8192;
-        mlv_dmp_ptr = malloc(mlv_dmp_size);
+        mlv_debg_size = 8192;
+        mlv_debg_buffer = malloc(mlv_debg_size);
     }
     
-    if(mlv_dmp_used + length > mlv_dmp_size)
+    if(mlv_debg_used + length > mlv_debg_size)
     {
-        mlv_dmp_size += 8192 + length;
-        mlv_dmp_ptr = realloc(mlv_dmp_ptr, mlv_dmp_size);
+        mlv_debg_size += 8192 + length;
+        mlv_debg_buffer = realloc(mlv_debg_buffer, mlv_debg_size);
     }
-    memcpy((void *)((uint32_t)mlv_dmp_ptr + mlv_dmp_used), data, length);
-    mlv_dmp_used += length;
+    
+    memcpy(&mlv_debg_buffer[mlv_debg_used], data, length);
+    mlv_debg_used += length;
+    mlv_debg_buffer[mlv_debg_used] = '\000';
 }
 
-static void mlv_rec_err_printf(const char* format, ... )
+static void mlv_rec_requeue_debg(mlv_debg_hdr_t *hdr)
+{
+    uint8_t *str_pos = (uint8_t *)((uint32_t)hdr + sizeof(mlv_debg_hdr_t));
+    
+    uint32_t old_int = cli();
+    mlv_debg_addbin(str_pos, hdr->length);
+    sei(old_int);
+    
+    free(hdr);
+}
+
+static mlv_debg_hdr_t *mlv_rec_queue_debg()
+{
+    if(!mlv_debg_used)
+    {
+        return NULL;
+    }
+    
+    uint32_t old_int = cli();
+    
+    /* locked because mlv_debg_used is read and altered here */
+    uint32_t size = mlv_debg_used + sizeof(mlv_debg_hdr_t);
+    
+    /* pad size to 32 bits */
+    if(size % 4)
+    {
+        size += 4;
+        size &= ~3;
+    }
+    
+    mlv_debg_hdr_t *hdr = malloc(size);
+    
+    uint8_t *str_pos = (uint8_t *)((uint32_t)hdr + sizeof(mlv_debg_hdr_t));
+    memcpy(str_pos, mlv_debg_buffer, mlv_debg_used);
+    
+    /* set block size and payload size (they may differ due to padding) */
+    hdr->blockSize = size;
+    hdr->length = mlv_debg_used;
+    hdr->type = 0;
+    
+    mlv_debg_used = 0;
+    
+    /* end of locking area */
+    sei(old_int);
+
+    mlv_set_type((mlv_hdr_t *)hdr, "DEBG");
+    mlv_set_timestamp((mlv_hdr_t *)hdr, mlv_start_timestamp);
+    
+    return hdr;
+}
+
+static void mlv_debg_printf(uint32_t ctx, const char* format, ... )
 {
     va_list args;
     va_start( args, format );
     
-    uint32_t size = strlen(format) + 64;
+    uint32_t size = strlen(format) + 128;
     char *fmt_str = malloc(size);
 
     vsnprintf(fmt_str, size, format, args);
-    mlv_rec_err_addbin(fmt_str, strlen(fmt_str));
+
+    /* here we can check if logging is enabled and if not, skip further logging */
+    if(enable_tracing)
+    {
+        uint32_t old_int = cli();
+        mlv_debg_addbin(fmt_str, strlen(fmt_str));
+        mlv_debg_addbin("\n", 1);
+        sei(old_int);
+    }
     
     free(fmt_str);
     va_end( args );
 }
-/* END: helper code for a post mortem dump */
-
+/* END: helper code for logging into MLV files */
+#endif
 
 /* helpers for reserving disc space */
-static uint32_t mlv_rec_alloc_dummy(uint32_t size)
+static uint32_t mlv_rec_alloc_dummy(char *filename, uint32_t size)
 {
-    char filename[32];
-    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
-
-    /* add an megabyte extra */
+    /* add a megabyte extra */
     size += 1024 * 1024;
     
     uint32_t file_size = 0;
@@ -292,30 +362,66 @@ static uint32_t mlv_rec_alloc_dummy(uint32_t size)
     FILE *dummy_file = FIO_CreateFile(filename);
     if(!dummy_file)
     {
-        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file", filename);
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to create dummy file '%s'", filename);
         return 0;
     }
     
     bmp_printf(FONT_MED, 30, 90, "Allocating %d MiB backup...", size / 1024 / 1024);
+    trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Allocating %d MiB backup: '%s'", size / 1024 / 1024, filename);
+    
     FIO_WriteFile(dummy_file, (void*)0x40000000, size);
     uint32_t new_pos = FIO_SeekSkipFile(dummy_file, 0, SEEK_CUR);
     FIO_CloseFile(dummy_file);
     
     if(new_pos < size)
     {
-        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to write to dummy file", filename);
+        trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummy: Failed to write to dummy file '%s'", filename);
         return 0;
     }
     
     return 1;
 }
 
-static void mlv_rec_release_dummy()
+static uint32_t mlv_rec_alloc_dummies(uint32_t total_size)
+{
+    /* now allocate a dummy file that is going to be released when disk runs full */
+    uint32_t ret = 0;
+    char filename[MAX_PATH];
+    
+    trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummies: allocating...");
+    
+    snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
+
+    /* do one for the "main" card */
+    ret = mlv_rec_alloc_dummy(filename, total_size);
+    
+    /* do the same for the other cards, if needed */
+    if(card_spanning)
+    {
+        filename[0] = 'B';
+        
+        ret |= mlv_rec_alloc_dummy(filename, total_size);
+    }
+    
+    trace_write(raw_rec_trace_ctx, "mlv_rec_alloc_dummies: allocating returns %d", ret);
+    return ret;
+}
+
+
+static void mlv_rec_release_dummies()
 {
     char filename[32];
     snprintf(filename, sizeof(filename), "%s/%s", get_dcim_dir(), MLV_DUMMY_FILENAME);
 
-    FIO_RemoveFile(filename);
+    /* delete the one for the "main" card */
+    
+    /* do the same for the other cards, if needed */
+    if(card_spanning)
+    {
+        filename[0] = 'B';
+        
+        FIO_RemoveFile(filename);
+    }
 }
 
 /* calc required padding for given address */
@@ -437,9 +543,11 @@ static void update_resolution_params()
     if ( (cam_eos_m && !video_mode_crop) ? (lv_dispsize == 1) : (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) ) /* 720p, image squeezed */
     {
         /* assume the raw image should be 16:9 when de-squeezed */
-        int32_t correct_height = max_res_x * 9 / 16;
+        //int32_t correct_height = max_res_x * 9 / 16;
         //int32_t correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
-        squeeze_factor = (float)correct_height / max_res_y;
+        //squeeze_factor = (float)correct_height / max_res_y;
+        /* 720p mode uses 5x3 binning (5DMK3) or horizontal binning + vertical skipping (other cameras) */
+        squeeze_factor = 1.6666f; // 5.0/3.0
     }
     else squeeze_factor = 1.0f;
 
@@ -616,11 +724,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
     refresh_cropmarks();
 
     refresh_raw_settings(0);
-
-    if (auto_power_off_time)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
-    }
 
     if (!RAW_IS_IDLE)
     {
@@ -1051,8 +1154,7 @@ static int32_t setup_buffers()
     
     if(create_dummy)
     {
-        /* now allocate a dummy file that is going to be released when disk runs full */
-        return mlv_rec_alloc_dummy(total_size);
+        return mlv_rec_alloc_dummies(total_size);
     }
     
     return 1;
@@ -2378,8 +2480,8 @@ static uint32_t raw_get_next_filenum()
     uint32_t fileNum = 0;
 
     uint32_t old_int = cli();
-    mlv_file_hdr.fileCount++;
     fileNum = mlv_file_hdr.fileCount;
+    mlv_file_hdr.fileCount++;
     sei(old_int);
 
     return fileNum;
@@ -2510,6 +2612,28 @@ static void raw_writer_task(uint32_t writer)
             /* ToDo: ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
             if(1)
             {
+#if defined(EMBEDDED_LOGGING)
+                if(writer == 0)
+                {
+                    /* instantly embed DEBG messages, if any */
+                    mlv_debg_hdr_t *debg_hdr = mlv_rec_queue_debg();
+                    
+                    if(debg_hdr)
+                    {
+                        int32_t debg_written = FIO_WriteFile(f, debg_hdr, debg_hdr->blockSize);
+                        
+                        if(debg_written != (int32_t)debg_hdr->blockSize)
+                        {
+                            mlv_rec_requeue_debg(debg_hdr);
+                        }
+                        else
+                        {
+                           free(debg_hdr);
+                        }
+                    }
+                }
+#endif
+
                 if(!large_file_support)
                 {
                     /* check if we will reach the 4GiB boundary with this write */
@@ -2636,8 +2760,8 @@ static void raw_writer_task(uint32_t writer)
                         trace_write(raw_rec_trace_ctx, "   --> WRITER#%d: write error: write failed, wrote only partially (%d/%d bytes)", writer, written, job->block_size);
                     }
 
-                    /* okay, writing failed. now try to save what we have by reelasing the dummy file */
-                    mlv_rec_release_dummy();
+                    /* okay, writing failed. now try to save what we have by relasing the dummy file */
+                    mlv_rec_release_dummies();
 
                     /* if the whole write call failed, nothing would have been saved */
                     if(written < 0)
@@ -2757,7 +2881,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
 
         /* check if there is a block that should get embedded */
         msg_queue_count(mlv_block_queue, &msg_count);
-
+        
         /* embed what is possible */
         for(uint32_t msg = 0; msg < msg_count; msg++)
         {
@@ -2997,6 +3121,10 @@ static void raw_video_rec_task()
     update_resolution_params();
 
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
+    
+    /* disable powersave timer */
+    const int powersave_prohibit = 2;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
@@ -3076,7 +3204,8 @@ static void raw_video_rec_task()
                 beep_times(2);
                 return;
             }
-
+            
+            mlv_file_hdr.fileCount++;
             trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_CUR), FIO_SeekSkipFile(mlv_handles[writer], 0, SEEK_END));
         }
 
@@ -3114,40 +3243,6 @@ static void raw_video_rec_task()
 
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
-            /* create a post mortem dump */
-            if(mlv_dmp_ptr)
-            {
-                char filename[64]; 
-                
-                strncpy(filename, mlv_movie_filename, sizeof(filename));
-                strncpy(&filename[strlen(filename) - 3], "ERR", 4);
-
-                FILE *file = FIO_CreateFile(filename);
-                
-                if(file)
-                {
-                    FIO_WriteFile(file, mlv_dmp_ptr, mlv_dmp_used);
-                    FIO_CloseFile(file);       
-                    beep();
-                    bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 100, "ERROR: Please send us %s", filename);
-                    ASSERT(0 && "ERROR: Please send us the generated .ERR file");
-                }
-                else
-                {
-                    ASSERT(0 && "ERROR: Some error occurred, but could not create error dump");
-                }
-                
-                /* reset to defaults */
-                free(mlv_dmp_ptr);
-                mlv_dmp_ptr = NULL;
-                mlv_dmp_size = 0;
-                mlv_dmp_used = 0;
-                
-                /* stop recording */
-                raw_recording_state = RAW_FINISHING;
-                raw_rec_cbr_stopping();
-            }
-            
             /* on shutdown or writers that aborted, abort even if there are unwritten slots */
             if(ml_shutdown_requested || !mlv_rec_threads)
             {
@@ -3282,11 +3377,21 @@ static void raw_video_rec_task()
                     handle->file_handle = FIO_OpenFile(handle->filename, O_RDWR | O_SYNC);
 
                     /* failed to open? */
-                    if (!handle->file_handle)
+                    if(!handle->file_handle)
                     {
-                        NotifyBox(5000, "Failed to open file. Card full?");
-                        trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
-                        break;
+                        /* we probably ran out of precreated files, create one now which is a bit more expensive */
+                        handle->file_handle = FIO_CreateFile(handle->filename);
+                        if(!handle->file_handle)
+                        {
+                            NotifyBox(5000, "Failed to create new file. Card full?");
+                            trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: prepare new file: '%s'  FAILED", handle->writer, handle->filename);
+                            
+                            /* try to free up some space and exit */
+                            mlv_rec_release_dummies();
+                            raw_recording_state = RAW_FINISHING;
+                            raw_rec_cbr_stopping();
+                        }
+                        raw_prepare_chunk(handle->file_handle, &handle->file_header);
                     }
 
                     trace_write(raw_rec_trace_ctx, "  (CUR 0x%08X, END 0x%08X)", FIO_SeekSkipFile(handle->file_handle, 0, SEEK_CUR), FIO_SeekSkipFile(handle->file_handle, 0, SEEK_END));
@@ -3463,6 +3568,11 @@ cleanup:
 
     hack_liveview(1);
     redraw();
+
+    /* re-enable powersave timer */
+    const int powersave_permit = 1;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+
     raw_recording_state = RAW_IDLE;
 }
 
@@ -3522,7 +3632,7 @@ PROP_HANDLER( PROP_APERTURE )
     mlv_update_lens = 1;
 }
 
-PROP_HANDLER( PROP_APERTURE2 )
+PROP_HANDLER( PROP_APERTURE_AUTO )
 {
     mlv_update_lens = 1;
 }
@@ -3532,7 +3642,7 @@ PROP_HANDLER( PROP_SHUTTER )
     mlv_update_lens = 1;
 }
 
-PROP_HANDLER( PROP_SHUTTER_ALSO )
+PROP_HANDLER( PROP_SHUTTER_AUTO )
 {
     mlv_update_lens = 1;
 }
@@ -3749,7 +3859,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Debug trace",
                 .priv = &enable_tracing,
                 .max = 1,
-                .help = "Write an execution trace to memory card. Causes perfomance drop.",
+                .help = "Write an execution trace. Causes perfomance drop.",
                 .help2 = "You have to restart camera before setting takes effect.",
             },
             {
@@ -4088,9 +4198,9 @@ MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_ISO)
     MODULE_PROPHANDLER(PROP_LV_LENS)
     MODULE_PROPHANDLER(PROP_APERTURE)
-    MODULE_PROPHANDLER(PROP_APERTURE2)
+    MODULE_PROPHANDLER(PROP_APERTURE_AUTO)
     MODULE_PROPHANDLER(PROP_SHUTTER)
-    MODULE_PROPHANDLER(PROP_SHUTTER_ALSO)
+    MODULE_PROPHANDLER(PROP_SHUTTER_AUTO)
     MODULE_PROPHANDLER(PROP_BV)
     MODULE_PROPHANDLER(PROP_AE)
     MODULE_PROPHANDLER(PROP_PICTURE_STYLE)

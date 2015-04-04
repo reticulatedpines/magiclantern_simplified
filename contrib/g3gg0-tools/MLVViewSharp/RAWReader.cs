@@ -13,6 +13,7 @@ using int32_t = System.Int32;
 using int64_t = System.Int64;
 using System.Runtime.InteropServices;
 using System.Collections;
+using System.IO;
 
 namespace mlv_view_sharp
 {
@@ -80,21 +81,20 @@ namespace mlv_view_sharp
 
             if (FileNames == null)
             {
-                throw new ArgumentException();
+                throw new FileNotFoundException("File '" + fileName + "' does not exist.");
             }
 
             RawiHeader = ReadFooter();
             BuildIndex();
 
             /* fill with dummy values */
+            FileHeader.fileMagic = "MLVI";
             FileHeader.audioClass = 0;
             FileHeader.videoClass = 1;
-
-            Handler("MLVI", FileHeader, FrameBuffer, 0, 0);
-            Handler("RAWI", RawiHeader, FrameBuffer, 0, 0);
+            FileHeader.blockSize = (uint)Marshal.SizeOf(FileHeader);
         }
 
-        private void BuildIndex()
+        public override void BuildIndex()
         {
             ArrayList list = new ArrayList();
             Dictionary<uint, xrefEntry> frameXrefList = new Dictionary<uint, xrefEntry>();
@@ -109,6 +109,7 @@ namespace mlv_view_sharp
 
                 xref.fileNumber = fileNum;
                 xref.position = currentFileOffset;
+                xref.size = 0;
                 xref.timestamp = (ulong)(block * (1000000000.0d / Footer.sourceFpsx1000));
 
                 list.Add(xref);
@@ -133,10 +134,34 @@ namespace mlv_view_sharp
                 }
             }
 
-            TotalFrameCount = (uint)block;
-
             BlockIndex = ((xrefEntry[])list.ToArray(typeof(xrefEntry))).OrderBy(x => x.timestamp).ToArray<xrefEntry>();
-            FrameXrefList = frameXrefList;
+
+            FileHeader.videoFrameCount = (uint)BlockIndex.Length;
+        }
+
+        public override void BuildFrameIndex()
+        {
+            Dictionary<uint, frameXrefEntry> vidfXrefList = new Dictionary<uint, frameXrefEntry>();
+
+            for (int blockIndexPos = 0; blockIndexPos < BlockIndex.Length; blockIndexPos++)
+            {
+                var block = BlockIndex[blockIndexPos];
+
+                if (!vidfXrefList.ContainsKey((uint)blockIndexPos))
+                {
+                    frameXrefEntry entry = new frameXrefEntry();
+                    entry.blockIndexPos = blockIndexPos;
+                    entry.metadata = new object[] { FileHeader, RawiHeader };
+                    entry.timestamp = (ulong)(blockIndexPos + 1);
+                    vidfXrefList.Add((uint)blockIndexPos, entry);
+                }
+            }
+
+            VidfXrefList = vidfXrefList;
+        }
+
+        public override void SaveIndex()
+        {
         }
 
         private MLVTypes.mlv_rawi_hdr_t ReadFooter()
@@ -170,6 +195,9 @@ namespace mlv_view_sharp
 
             FrameBuffer = new byte[Footer.frameSize];
 
+            rawi.blockType = "RAWI";
+            rawi.blockSize = (uint)Marshal.SizeOf(rawi);
+
             return rawi;
         }
 
@@ -179,6 +207,12 @@ namespace mlv_view_sharp
             if (Reader == null)
             {
                 return false;
+            }
+
+            if (CurrentBlockNumber == 0)
+            {
+                Handler("MLVI", FileHeader, FrameBuffer, 0, 0);
+                Handler("RAWI", RawiHeader, FrameBuffer, 0, 0);
             }
 
             int fileNum = BlockIndex[CurrentBlockNumber].fileNumber;
@@ -204,8 +238,10 @@ namespace mlv_view_sharp
                 }
             }
 
+            VidfHeader.blockType = "VIDF";
             VidfHeader.frameSpace = 0;
             VidfHeader.frameNumber = (uint)CurrentBlockNumber;
+            VidfHeader.blockSize = (uint)Marshal.SizeOf(VidfHeader);
 
             Handler("VIDF", VidfHeader, FrameBuffer, 0, Footer.frameSize);
 

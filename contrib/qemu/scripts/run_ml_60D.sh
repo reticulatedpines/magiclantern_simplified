@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sh run_ml.sh 60D 111
+`dirname $0`/run_ml.sh 60D 111 $*

@@ -185,7 +185,7 @@ copy_and_restart( )
 
     //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
 #ifndef CONFIG_6D
-#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
@@ -259,6 +259,29 @@ my_task_dispatch_hook(
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
     struct task_mapping * mapping = _task_overrides_start;
+
+#ifdef CONFIG_QEMU
+    char* task_name = get_task_name_from_id(get_current_task());
+    
+    if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
+        (   /* only start some whitelisted Canon tasks */
+            #ifndef CONFIG_550D
+            !streq(task_name, "Startup") &&
+            #endif
+            !streq(task_name, "TaskMain") &&
+            !streq(task_name, "PowerMgr") &&
+            !streq(task_name, "EventMgr") &&
+            //~ !streq(task_name, "PropMgr") &&
+        1))
+    {
+        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, task_name);
+        task->entry = &ret_0;
+    }
+    else
+    {
+        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
+    }
+#endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
@@ -364,6 +387,10 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     }
     
     /* no, create file and store data */
+
+    void* buf = malloc(BACKUP_BLOCKSIZE);
+    if (!buf) return;
+
     handle = FIO_CreateFile(file);
     if (handle)
     {
@@ -375,15 +402,17 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
           {
               blocksize = length - pos;
           }
-        
-          FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+          
+          /* copy to RAM before saving, because ROM is slow and may interfere with LiveView */
+          memcpy(buf, &((uint8_t*)base)[pos], blocksize);
+          
+          FIO_WriteFile(handle, buf, blocksize);
           pos += blocksize;
-        
-          /* to make sure lower prio tasks can also run */
-          msleep(20);
       }
       FIO_CloseFile(handle);
     }
+    
+    free(buf);
 }
 
 static void backup_task()
@@ -409,12 +438,17 @@ static void my_big_init_task()
         info_led_blink(1, 500, 500);
     }
 #endif
+
 #ifdef CONFIG_DUMPER_BOOTFLAG
     msleep(5000);
-    SetGUIRequestMode(2);
+    SetGUIRequestMode(DLG_PLAY);
+    msleep(1000);
+    update_vram_params();
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+    bmp_printf(FONT_LARGE, 50, 200, "Please wait...");
     msleep(2000);
 
-    if (CURRENT_DIALOG_MAYBE != 2)
+    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
     {
         bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
         return;
@@ -427,13 +461,16 @@ static void my_big_init_task()
     
     msleep(500);
     FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f) {
-        len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
+    if (f)
+    {
+        FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
         bmp_printf(FONT_LARGE, 50, 250, ":)");    
     }
     else
+    {
         bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
+    }
     info_led_blink(1, 500, 500);
     return;
 #endif
@@ -453,14 +490,6 @@ static void my_big_init_task()
         batt_display(0, 0, 0, 0);
     }
     return;
-    #endif
-    
-    #ifdef CONFIG_QEMU
-        #ifdef CONFIG_QEMU_MENU_SCREENSHOTS
-        qemu_menu_screenshots();
-        #else
-        qemu_hello(); // see qemu-util.c
-        #endif
     #endif
 
     #if defined(CONFIG_AUTOBACKUP_ROM)
@@ -817,6 +846,11 @@ my_init_task(int a, int b, int c, int d)
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
+        #ifdef CONFIG_QEMU
+        qprintf("Out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+        call("shutdown");
+        #endif
+        
         while(1)
         {
             info_led_blink(3, 500, 500);
@@ -881,6 +915,10 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
+#ifdef CONFIG_QEMU
+    qemu_cam_init();
+#endif
+
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
     
@@ -918,6 +956,11 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
+
+#ifdef CONFIG_QEMU  /* fixme: Canon GUI task is not started */
+    extern void ml_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
+#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT

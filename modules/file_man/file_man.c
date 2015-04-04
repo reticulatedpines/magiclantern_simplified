@@ -79,6 +79,7 @@ static struct semaphore * mfile_sem = 0; /* exclusive access to the list of sele
 static int fileman_filetype_registered = 0;
 
 //Prototypes
+static MENU_UPDATE_FUNC(main_update);
 static MENU_SELECT_FUNC(select_dir);
 static MENU_UPDATE_FUNC(update_dir);
 static MENU_SELECT_FUNC(select_file);
@@ -125,11 +126,21 @@ static struct filetype_handler *fileman_find_filetype(char *extension)
     return NULL;
 }
 
+static MENU_UPDATE_FUNC(main_update)
+{
+    if (!is_submenu_or_edit_mode_active())
+    {
+        /* close the viewer if we are at top level (e.g. if we exit the viewer via half-shutter) */
+        view_file = 0;
+    }
+}
+
 static struct menu_entry fileman_menu[] =
 {
     {
         .name = "File Manager",
         .select = menu_open_submenu,
+        .update = main_update,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             MENU_EOL,

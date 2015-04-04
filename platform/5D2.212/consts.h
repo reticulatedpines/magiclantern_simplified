@@ -8,10 +8,6 @@
 #define LEDON 0x46
 #define LEDOFF 0x44
 
-//~ Format dialog consts
-#define FORMAT_BTN "[PicSty]"
-#define STR_LOC 6
-
 // thanks Indy
 #define HIJACK_INSTR_BL_CSTART  0xFF812AE8
 #define HIJACK_INSTR_BSS_END 0xFF81093C
@@ -155,6 +151,9 @@ int get_lv_stopped_by_user();
 
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
+#define FORMAT_BTN_NAME "[PicStyle]"
+#define FORMAT_BTN BGMT_PICSTYLE
+#define FORMAT_STR_LOC 6
 
 #define BULB_MIN_EXPOSURE 500
 

@@ -544,7 +544,7 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
 void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 {
     uint32_t index = 0;
-    if(vignetting_correction_enable && lvmgr)
+    if(vignetting_correction_enable && lvmgr && is_movie_mode())
     {
         uint32_t *vign = &lvmgr[0x83];
 
@@ -751,9 +751,9 @@ static MENU_UPDATE_FUNC(shutter_finetune_display)
         
         MENU_SET_VALUE("%s%d.%02d ms", delta > 0 ? "+" : "-", ABS(delta)/100, ABS(delta)%100);
         if (orig_shutter/1000 < 1000)
-            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000);
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d (%s%d units)", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000, delta > 0 ? "+" : "", shutter_finetune);
         else
-            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d", orig_shutter/1000, adjusted_shutter/1000);
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d (%s%d units)", orig_shutter/1000, adjusted_shutter/1000, delta > 0 ? "+" : "", shutter_finetune);
     }
     else
     {

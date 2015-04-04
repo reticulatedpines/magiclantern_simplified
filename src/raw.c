@@ -103,6 +103,13 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /**
  * Photo-mode raw buffer address
+ * To find it, lookup CCDWriteEDmacCompleteCBR in ASM code, and find the corresponding EDMAC channnel.
+ * 
+ * example for 5D2:
+ * ffa3763c:    e24f1f6f    sub r1, pc, #444                    ; @str:CCDWriteEDmacCompleteCBR
+ * ffa37640:    e3a00002    mov r0, #2                          ; so, it uses EDMAC channel #2 => RAW_PHOTO_EDMAC 0xc0f04208
+ * ffa37644:    ebfdb453    bl  @EDMAC_RegisterCompleteCBR
+ * 
  * On old cameras, it can be intercepted from SDSf3 state object, right after sdsMem1toRAWcompress.
  * On new cameras, use the SSS state, sssCompleteMem1ToRaw.
  * 
@@ -110,35 +117,13 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
-#define RAW_PHOTO_EDMAC 0xc0f04A08
-#endif
-
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)
-#define RAW_PHOTO_EDMAC 0xc0f04808
-#endif
-
-#if defined(CONFIG_60D) || defined (CONFIG_550D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_7D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
-static uint32_t raw_buffer_photo = 0;
-
-/* called from state-object.c, SDSf3 or SSS state */
-void raw_buffer_intercept_from_stateobj()
-{
-    /**
-     * will grab the RAW image buffer address and hope it doesn't change
-     * 
-     * with dm-spy log:
-     * 5D2: [TTJ] START RD1:0x4000048 RD2:0x64d1864
-     * 5D3: [TTL] START RD1:0x8602914 RD2:0xad24490
-     * 
-     * don't use the value from debug logs, since it will change after a few pics;
-     * look it up on the EDMAC registers and use that one instead.
-     */
-    raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
-}
+#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#define RAW_PHOTO_EDMAC 0xc0f04008
+#endif
 
 /** 
  * Raw type (optional)
@@ -384,7 +369,9 @@ static int raw_lv_get_resolution(int* width, int* height)
     int mv640 = mv && video_mode_resolution == 2;
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
-    int zoom = lv_dispsize > 1;
+    
+    /* note: 6D reports 129 = 0x81 for zoom x1, and it behaves just like plain (unzoomed) LiveView) */
+    int zoom = (lv_dispsize & 0xF) > 1;
 
     /* silence warnings; not all cameras have all these modes */
     (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
@@ -515,11 +502,10 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_6D
-        //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
-        skip_top        = zoom ? 30 : mv720 ? 28 : 28; //28
-        skip_left       = zoom ? 84 : mv720 ? 86: 86; //86
-        skip_right      = zoom ? 0  : mv720 ? 12 : 10;
-        //~ skip_bottom = 1;
+        /* same skip offsets in 1080p and 720p; top/left bar is the same in x5 zoom as well */
+        skip_top        = 28;
+        skip_left       = 80;
+        skip_right      = zoom ? 0  : 10;
         #endif
 
         #ifdef CONFIG_500D
@@ -584,12 +570,8 @@ static int raw_update_params_work()
         {
             return 0;
         }
-
-        raw_info.buffer = (void*) raw_buffer_photo;
         
-        #if defined(CONFIG_60D) || defined(CONFIG_500D)
         raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
-        #endif
         
         if (!raw_info.buffer)
         {
@@ -597,141 +579,79 @@ static int raw_update_params_work()
             return 0;
         }
         
+        /* autodetect image size from EDMAC */
+        width  = shamem_read(RAW_PHOTO_EDMAC + 8) * 8 / 14; /* size B */
+        height = shamem_read(RAW_PHOTO_EDMAC + 4) + 1;     /* size N */
+        
+        /* in photo mode, raw buffer size is from ~12 Mpix (1100D) to ~24 Mpix (5D3) */
+        /* (this EDMAC may be reused for something else, usually smaller, or with a different size encoding - refuse to run if this happens) */
+        if ((width & 0xFFFFE000) || (height & 0xFFFFE000) || (width*height < 10e6) || (width*height > 30e6))
+        {
+            dbg_printf("Photo raw size error\n");
+            return 0;
+        }
+        
         /**
-         * Raw buffer size for photos
-         * Usually it's slightly larger than what raw converters will tell you.
+         * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
-         * Width value is critical (if incorrect, the image will be heavily distorted).
-         * Height is not critical.
-         *
-         * I've guessed the image width by dumping the raw buffer, and then using FFT to guess the period of the image stream.
+         * To check the skip offsets, load raw_diag.mo (from the CMOS/ADTG ISO research thread),
+         * select the "OB zones" option, and adjust the skip offsets until the picture looks like this:
+         * https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/iso50/ob/ob-zones-5d3-6400.png
          * 
-         * 1) define RAW_DEBUG_DUMP
-         * 
-         * 2) load raw.buf into img.py and run guesspitch, details here: http://magiclantern.wikia.com/wiki/VRAM/550D 
-         * 
-         *          In [4]: s = readseg("raw.buf", 0, 30000000)
-         * 
-         *          In [5]: guesspitch(s)
-         *          3079
-         *          9743.42318935
-         * 
-         *          In [6]: 9743*8/14
-         *          Out[6]: 5567
-         * 
-         *          Then, trial and error => 5568.
-         *
-         * Also, the RAW file has unused areas, usually black; we need to skip them.
-         * 
-         * Start with 0, then load the RAW in your favorite photo editor (e.g. ufraw+gimp),
-         * then find the usable area, read the coords and plug the skip values here.
-         * 
-         * Try to use even offsets only, otherwise the colors will be screwed up.
+         * Use even offsets only, otherwise the colors will be screwed up.
          */
         
         #ifdef CONFIG_5D2
-        /* from debug log: [TTJ][150,27089,0] RAW(5792,3804,0,14) */
-        width = 5792;
-        height = 3804;
         skip_left = 160;
-        skip_top = 54;
-        /* first pixel should be red, but here it isn't, so we'll skip one line */
-        /* also we have a 16-pixel border on the left that contains image data */
-        raw_info.buffer += width * 14/8 + 16*14/8;
+        skip_top = 52;
         #endif
 
         #ifdef CONFIG_5D3
-        /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
-        width = 5936;       /* note: CR2 size, at least from dcraw, exiftool and adobedng->dcraw, is 5920 */
-        height = 3950+2;    /* add 2 pixels just to make sure there's no useful data after our buffer */
-        skip_left = 122;    /* this gives a tight fit; dcraw uses 124 */
-        skip_right = 18;    /* this part seems to be the beginning of OB, but doesn't end up in the CR2 (or if it does, I don't know how to read it) */
+        skip_left = 138;    /* this gives a tight fit */
+        skip_right = 2;
         skip_top = 80;      /* matches dcraw */
-        skip_bottom = 2;    /* don't use these 2 pixels */
         #endif
 
         #ifdef CONFIG_500D
-        /* from debug log: [TTJ][150,5401,0] RAW(4832,3204,0,14) */
-        width = 4832;
-        height = 3204;
         skip_left = 62;
-        skip_top = 26;
-        /* also we have a 40-pixel border on the right that contains image data */
-        /* for some reason, we need to go back by 28 lines to find the top OB area */
-        raw_info.buffer -= 40*14/8 + 28*width*14/8;
+        skip_top = 24;
+        /* skip one line */
+        raw_info.buffer += width * 14/8;
+        height--;
         #endif
 
-        #ifdef CONFIG_550D
-        width = 5344;
-        height = 3516;
+        #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
         skip_left = 142;
-        skip_right = 18;
-        skip_top = 58;
-        skip_bottom = 10;
-        #endif
-
-        #ifdef CONFIG_600D
-        width = 5344; //From Guess Py
-        height = 3465;
-        skip_left = 152;
-        skip_right = 10;
-        skip_top = 56;
+        skip_top = 52;
         #endif
 
         #ifdef CONFIG_1100D
-        //  from debug log: [TTJ][150,2551,0] RAW(4352,2874,0,14)
-        width = 4352; //From TTJ Log
-        height = 2874;
         skip_top = 16;
         skip_left = 62;
-        /* 16-pixel border on the left that contains image data */
-        /* skip four lines */
-        raw_info.buffer += 4 * width * 14/8 + 16*14/8;
+        raw_info.buffer += width * 14/8;
+        height--;
         #endif
 
-        #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
-        width = 5568;
-        height = 3708;
-        skip_left = 84; //Meta Data
-        skip_right = 14;
-        skip_top = 50; // Meta Data
-        #endif
-
-        #if defined(CONFIG_60D)
-        width = 5344;
-        height = 3516;
-        skip_left = 142;
+        #ifdef CONFIG_6D
+        skip_left = 72;
         skip_right = 0;
-        skip_top = 50;
+        skip_top = 52;
         #endif
-
       
         #if defined(CONFIG_50D)
-        width = 4832;
-        height = 3228;
         skip_left = 64;
         skip_top = 54;
-        /* 16-pixel border on the left that contains image data */
-        /* skip three lines */
-        raw_info.buffer += 3 * width * 14/8 + 16*14/8;
         #endif 
 
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
-        width = 5280;
-        height = 3528;
         skip_left = 72;
         skip_top = 52;
         #endif
 
         #ifdef CONFIG_7D /* very similar to 5D2 */
-        width = 5360;
-        height = 3516;
         skip_left = 158;
-        skip_top = 52;
-        /* first pixel should be red, but here it isn't, so we'll skip one line */
-        /* also we have a 16-pixel border on the left that contains image data */
-        raw_info.buffer += width * 14/8 + 16*14/8;
+        skip_top = 50;
         #endif
 
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
@@ -1100,7 +1020,7 @@ int FAST raw_get_pixel_ex(void* raw_buffer, int x, int y) {
     return p->a;
 }
 
-int FAST raw_set_pixel(int x, int y, int value)
+void FAST raw_set_pixel(int x, int y, int value)
 {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
     switch (x%8) {
@@ -1113,7 +1033,6 @@ int FAST raw_set_pixel(int x, int y, int value)
         case 6: p->g_lo = value; p->g_hi = value >> 2; break;
         case 7: p->h = value; break;
     }
-    return p->a;
 }
 
 int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
@@ -1628,6 +1547,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
 
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
 {
+    yuv422_buffer_check();
+
     if (raw_buffer == (void*)-1)
         raw_buffer = (void*)raw_info.buffer;
     

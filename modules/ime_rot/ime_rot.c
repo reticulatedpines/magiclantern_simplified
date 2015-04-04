@@ -55,20 +55,21 @@ static uint32_t ime_font_caret = 0;
 #define IME_FUNC_CHARSET          7
 
 /* should that be located in files? */
-static char ime_charset_alpha_upper[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
-static char ime_charset_alpha_lower[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
-static char ime_charset_hex[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'x'};
-static char ime_charset_numeric[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-static char ime_charset_punctuation[] = {'.', ',', ':', ';', '!', '?', '`', '\'', '\"'};
-static char ime_charset_math[] = { '+', '-', '*', '/', '^' };
-static char ime_charset_file[] = { '.', ' ', '-', '_' };
-static char ime_charset_mail[] = { '@', '.', '-', '_', '!', '#', '$', '%', '&', '\'', '*', '+', '-', '/', '=', '?', '^', '_', '`', '{', '|', '}' };
-static char ime_charset_func[] = { CHAR_DEL, CHAR_OK, CHAR_CANCEL };
+static unsigned char ime_charset_alpha_upper[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+static unsigned char ime_charset_alpha_lower[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+static unsigned char ime_charset_numeric[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+static unsigned char ime_charset_punctuation[] = {'.', ',', ':', ';', '!', '?', '`', '\'', '\"'};
+static unsigned char ime_charset_hex[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+static unsigned char ime_charset_math[] = { '+', '-', '*', '/', '^' };
+static unsigned char ime_charset_file[] = { '.', ' ', '-', '_' };
+static unsigned char ime_charset_mail[] = { '@', '.', '-', '_', '!', '#', '$', '%', '&', '\'', '*', '+', '-', '/', '=', '?', '^', '_', '`', '{', '|', '}' };
+static unsigned char ime_charset_func[] = { CHAR_DEL, CHAR_OK, CHAR_CANCEL };
 
 /* number of characters in specific sets */
-static uint32_t ime_charset_types[] = { IME_CHARSET_ALPHA | IME_CHARSET_FILENAME, IME_CHARSET_ALPHA, IME_CHARSET_NUMERIC | IME_CHARSET_FILENAME, IME_CHARSET_PUNCTUATION, IME_CHARSET_MATH, IME_CHARSET_MAIL, IME_CHARSET_HEX, IME_CHARSET_ANY };
-static char *ime_charsets[] = { ime_charset_alpha_upper, ime_charset_alpha_lower, ime_charset_numeric, ime_charset_punctuation, ime_charset_math, ime_charset_mail, ime_charset_hex, ime_charset_func };
-static uint32_t ime_charcounts[] = { sizeof(ime_charset_alpha_upper), sizeof(ime_charset_alpha_lower), sizeof(ime_charset_numeric), sizeof(ime_charset_punctuation), sizeof(ime_charset_math), sizeof(ime_charset_mail), sizeof(ime_charset_hex), sizeof(ime_charset_func) };
+static unsigned int ime_charset_types[] = { IME_CHARSET_ALPHA | IME_CHARSET_FILENAME, IME_CHARSET_ALPHA, IME_CHARSET_NUMERIC | IME_CHARSET_FILENAME, IME_CHARSET_PUNCTUATION, IME_CHARSET_HEX, IME_CHARSET_MATH, IME_CHARSET_MAIL, IME_CHARSET_ANY };
+static unsigned char *ime_charsets[] = { ime_charset_alpha_upper, ime_charset_alpha_lower, ime_charset_numeric, ime_charset_punctuation, ime_charset_hex, ime_charset_math, ime_charset_mail, ime_charset_func };
+static int ime_charcounts[] = { sizeof(ime_charset_alpha_upper), sizeof(ime_charset_alpha_lower), sizeof(ime_charset_numeric), sizeof(ime_charset_punctuation), sizeof(ime_charset_hex), sizeof(ime_charset_math), sizeof(ime_charset_mail), sizeof(ime_charset_func) };
+static unsigned char *ime_charsetnames[] = { (unsigned char *)"upper", (unsigned char *)"lower", (unsigned char *)"num", (unsigned char *)"punct", (unsigned char *)"hex", (unsigned char *)"math", (unsigned char *)"var" };
 
 
 typedef struct
