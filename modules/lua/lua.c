@@ -49,6 +49,7 @@ static struct script_entry * running_script = NULL;
 static int lua_running = 0;
 static int lua_loaded = 0;
 static int lua_run_arg_count = 0;
+static int script_entry_count = 0;
 
 #define LUA_PARAM_INT(name, index)\
 if(index > lua_gettop(L) || !lua_isinteger(L, index))\
@@ -178,7 +179,7 @@ static const luaL_Reg globallib[] =
     { NULL, NULL }
 };
 
-#define LOAD_LUA_LIB(name) lua_newtable(L); luaL_setfuncs(L, name##lib, 0); lua_setglobal(L, "name")
+#define LOAD_LUA_LIB(name) lua_newtable(L); luaL_setfuncs(L, name##lib, 0); lua_setglobal(L, #name)
 
 static lua_State * load_lua_state()
 {
@@ -199,7 +200,7 @@ static void update_lua_menu_values(lua_State * L)
     for(current = scripts; current; current = current->next)
     {
         //only update values for entries related to the current lua state, and that don't already have a select function
-        if(current->L == L && current->menu_entry && !current->menu_entry->select)
+        if(current->L == L && current->menu_entry && current->menu_entry->select == NULL)
         {
             if(lua_getglobal(L, "menu") == LUA_TTABLE)
             {
@@ -218,8 +219,16 @@ static void update_lua_menu_values(lua_State * L)
                         continue;
                     }
                 }
-                lua_pushinteger(L, current->menu_value);
-                lua_setfield(L, -1, "value");
+                
+                if(current->menu_entry->choices)
+                {
+                    lua_pushstring(L, current->menu_entry->choices[COERCE(current->menu_value, 0, current->menu_entry->max)]);
+                }
+                else
+                {
+                    lua_pushinteger(L, current->menu_value);
+                }
+                lua_setfield(L, -2, "value");
                 
                 if(current->submenu_index)
                 {
@@ -439,11 +448,13 @@ static struct script_entry * create_script_entry(lua_State * L, struct menu_entr
                 return NULL;
             }
         }
+        script_entry_count++;
         script_entry->next = scripts;
         scripts = script_entry;
         script_entry->L = L;
         memset(script_entry->menu_entry, 0, sizeof(struct menu_entry));
         script_entry->menu_entry->priv = script_entry;
+        script_entry->submenu_index = 0;
         return script_entry;
     }
     return NULL;
