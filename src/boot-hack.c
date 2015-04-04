@@ -826,7 +826,7 @@ my_init_task(int a, int b, int c, int d)
 
     #ifdef CONFIG_6D
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
-    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+    cache_fake(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, BL_INSTR(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
     #endif
 #endif // HIJACK_CACHE_HOOK
 
