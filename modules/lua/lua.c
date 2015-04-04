@@ -32,6 +32,7 @@
 #include <bmp.h>
 #include <shoot.h>
 #include <zebra.h>
+#include <focus.h>
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 #include "lua/lualib.h"
@@ -293,6 +294,50 @@ static const luaL_Reg lvlib[] =
     { NULL, NULL }
 };
 
+static int luaCB_lens_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "name")) lua_pushstring(L, lens_info.name);
+    else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
+    else if(!strcmp(key, "focal_distance")) lua_pushinteger(L, lens_info.focus_dist);
+    else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
+    else if(!strcmp(key, "dof_near")) lua_pushinteger(L, lens_info.dof_near);
+    else if(!strcmp(key, "dof_far")) lua_pushinteger(L, lens_info.dof_far);
+    else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_lens_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focal_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af"))
+    {
+        lua_pushstring(L, "property is readonly!"); lua_error(L);
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static int luaCB_lens_focus(lua_State * L)
+{
+    LUA_PARAM_INT(num_steps, 1);
+    LUA_PARAM_INT_OPTIONAL(step_size, 1, 1);
+    LUA_PARAM_INT_OPTIONAL(wait, 1, 0);
+    LUA_PARAM_INT_OPTIONAL(extra_delay, 1, 0);
+    lua_pushboolean(L, lens_focus(num_steps, step_size, wait, extra_delay));
+    return 1;
+}
+
+static const luaL_Reg lenslib[] =
+{
+    { "focus", luaCB_lens_focus },
+    { NULL, NULL }
+};
+
 #define LOAD_LUA_LIB(name) lua_newtable(L);luaL_setfuncs(L, name##lib, 0);lua_pushvalue(L,-1);lua_setglobal(L, #name);lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex");lua_setmetatable(L, -2);lua_pop(L,1)
 
 static lua_State * load_lua_state()
@@ -303,6 +348,7 @@ static lua_State * load_lua_state()
     LOAD_LUA_LIB(console);
     LOAD_LUA_LIB(camera);
     LOAD_LUA_LIB(lv);
+    LOAD_LUA_LIB(lens);
     
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
