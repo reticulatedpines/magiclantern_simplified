@@ -338,6 +338,77 @@ static const luaL_Reg lenslib[] =
     { NULL, NULL }
 };
 
+
+static int luaCB_movie_start(lua_State* L)
+{
+    if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
+    {
+        lua_pushstring(L, "Not in movie mode");
+        lua_error(L);
+    }
+    else if (RECORDING)
+    {
+        
+        lua_pushstring(L, "Already recording");
+        lua_error(L);
+    }
+    else
+    {
+        call("MovieStart");
+    }
+    return 0;
+}
+
+static int luaCB_movie_stop(lua_State* L)
+{
+    if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
+    {
+        lua_pushstring(L, "Not in movie mode");
+        lua_error(L);
+    }
+    else if (!RECORDING)
+    {
+        lua_pushstring(L, "Not recording");
+        lua_error(L);
+    }
+    else
+    {
+        call("MovieEnd");
+    }
+    return 0;
+}
+
+static int luaCB_movie_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "recording")) lua_pushboolean(L, RECORDING);
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_movie_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "recording"))
+    {
+        LUA_PARAM_INT(value, 3);
+        if(value) luaCB_movie_start(L);
+        else luaCB_movie_stop(L);
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+const luaL_Reg movielib[] =
+{
+    {"start", luaCB_movie_start},
+    {"stop", luaCB_movie_stop},
+    {NULL, NULL}
+};
+
 #define LOAD_LUA_LIB(name) lua_newtable(L);luaL_setfuncs(L, name##lib, 0);lua_pushvalue(L,-1);lua_setglobal(L, #name);lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex");lua_setmetatable(L, -2);lua_pop(L,1)
 
 static lua_State * load_lua_state()
@@ -349,6 +420,7 @@ static lua_State * load_lua_state()
     LOAD_LUA_LIB(camera);
     LOAD_LUA_LIB(lv);
     LOAD_LUA_LIB(lens);
+    LOAD_LUA_LIB(movie);
     
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
