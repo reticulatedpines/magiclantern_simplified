@@ -36,6 +36,7 @@
 
 #define MAX_PATH_LEN 0x80
 #define SCRIPTS_DIR "ML/SCRIPTS"
+#define EC2RAW(ec) ec * 8 / 10
 
 struct script_entry
 {
@@ -113,6 +114,9 @@ static int luaCB_console_write(lua_State * L)
     return 0;
 }
 
+static int luaCB_console_index(lua_State * L) { lua_rawget(L, 1); return 1; }
+static int luaCB_console_newindex(lua_State * L) { lua_rawset(L, 1); return 0; }
+
 static const luaL_Reg consolelib[] =
 {
     { "show", luaCB_console_show },
@@ -183,76 +187,39 @@ static const luaL_Reg globallib[] =
     { NULL, NULL }
 };
 
-static int luaCB_shutter_index(lua_State * L)
+static int luaCB_camera_index(lua_State * L)
 {
     LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "raw")) lua_pushinteger(L, lens_info.shutter);
-    else if(!strcmp(key, "apex")) lua_pushnumber(L, (RAW2TV(lens_info.shutter)) / 10.0);
-    else if(!strcmp(key, "value")) lua_pushnumber(L, raw2shutterf(lens_info.shutter));
-    else { lua_pushstring(L, "invalid property"); lua_error(L); }
-    return 1;
-}
-
-static int luaCB_shutter_newindex(lua_State * L)
-{
-    LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "raw"))
-    {
-        LUA_PARAM_INT(value, 3);
-        lens_set_rawshutter(value);
-    }
-    else if(!strcmp(key, "apex"))
-    {
-        LUA_PARAM_NUMBER(value, 3);
-        int apex10 = (int)value * 10;
-        lens_set_rawshutter(TV2RAW(apex10));
-    }
-    else if(!strcmp(key, "value"))
-    {
-        LUA_PARAM_NUMBER(value, 3);
-        lens_set_rawshutter(shutterf_to_raw(value));
-    }
-    else
-    {
-        lua_rawset(L, 1);
-    }
-    return 0;
-}
-
-static int luaCB_shutter_format(lua_State * L)
-{
-    lua_pushstring(L, lens_format_shutter(lens_info.shutter));
-    return 1;
-}
-
-static int luaCB_iso_index(lua_State * L)
-{
-    LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "raw")) lua_pushinteger(L, lens_info.iso_equiv_raw);
-    else if(!strcmp(key, "apex")) lua_pushnumber(L, (RAW2SV(lens_info.iso_equiv_raw)) / 10.0);
-    else if(!strcmp(key, "value")) lua_pushnumber(L, lens_info.iso);
+    if(!strcmp(key, "shutter")) lua_pushinteger(L, RAW2TV(lens_info.raw_shutter));
+    else if(!strcmp(key, "aperture")) lua_pushinteger(L, RAW2AV(lens_info.raw_aperture));
+    else if(!strcmp(key, "iso")) lua_pushinteger(L, RAW2SV(lens_info.raw_iso));
+    else if(!strcmp(key, "ec")) lua_pushinteger(L, RAW2EC(lens_info.ae));
     else lua_rawget(L, 1);
     return 1;
 }
 
-static int luaCB_iso_newindex(lua_State * L)
+static int luaCB_camera_newindex(lua_State * L)
 {
     LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "raw"))
+    if(!strcmp(key, "shutter"))
     {
         LUA_PARAM_INT(value, 3);
-        lens_set_rawiso(value);
+        lens_set_rawshutter(TV2RAW(value));
     }
-    else if(!strcmp(key, "apex"))
+    else if(!strcmp(key, "aperture"))
+    {
+        LUA_PARAM_INT(value, 3);
+        lens_set_rawaperture(AV2RAW(value));
+    }
+    else if(!strcmp(key, "iso"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        int apex10 = (int)value * 10;
-        lens_set_rawiso(SV2RAW(apex10));
+        lens_set_rawiso(SV2RAW(value));
     }
-    else if(!strcmp(key, "value"))
+    else if(!strcmp(key, "ec"))
     {
-        LUA_PARAM_INT(value, 3);
-        //TODO: not implemented
+        LUA_PARAM_NUMBER(value, 3);
+        lens_set_ae(EC2RAW(value));
     }
     else
     {
@@ -261,60 +228,13 @@ static int luaCB_iso_newindex(lua_State * L)
     return 0;
 }
 
-static int luaCB_iso_format(lua_State * L)
+static const luaL_Reg cameralib[] =
 {
-    lua_pushinteger(L, lens_info.iso);
-    return 1;
-}
+    { "shoot", luaCB_shoot },
+    { NULL, NULL }
+};
 
-static int luaCB_aperture_index(lua_State * L)
-{
-    LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "raw")) lua_pushinteger(L, lens_info.aperture);
-    else if(!strcmp(key, "apex")) lua_pushnumber(L, (RAW2AV(lens_info.aperture)) / 10.0);
-    else if(!strcmp(key, "value")) lua_pushnumber(L, lens_info.aperture);
-    else lua_rawget(L, 1);
-    return 1;
-}
-
-static int luaCB_aperture_newindex(lua_State * L)
-{
-    LUA_PARAM_STRING(key, 2);
-    if(!strcmp(key, "raw"))
-    {
-        LUA_PARAM_INT(value, 3);
-        lens_set_rawaperture(value);
-    }
-    else if(!strcmp(key, "apex"))
-    {
-        LUA_PARAM_NUMBER(value, 3);
-        int apex10 = (int)value * 10;
-        lens_set_rawaperture(AV2RAW(apex10));
-    }
-    else if(!strcmp(key, "value"))
-    {
-        LUA_PARAM_NUMBER(value, 3);
-        //TODO: not implemented
-    }
-    else
-    {
-        lua_rawset(L, 1);
-    }
-    return 0;
-}
-
-static int luaCB_aperture_format(lua_State * L)
-{
-    static char aperture[128];
-    int a = lens_info.aperture;
-    if (!lens_info.name[0]) a = 0;
-    snprintf(aperture, 128, SYM_F_SLASH"%d.%d", a / 10,a % 10);
-    lua_pushstring(L, aperture);
-    return 1;
-}
-
-#define LOAD_LUA_LIB(name) lua_newtable(L); luaL_setfuncs(L, name##lib, 0); lua_setglobal(L, #name)
-#define LUA_PROP(name) lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_format);lua_setfield(L, -2, "format");lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex"); lua_setglobal(L, #name)
+#define LOAD_LUA_LIB(name) lua_newtable(L);luaL_setfuncs(L, name##lib, 0);lua_pushvalue(L,-1);lua_setglobal(L, #name);lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex");lua_setmetatable(L, -2);lua_pop(L,1)
 
 static lua_State * load_lua_state()
 {
@@ -322,10 +242,7 @@ static lua_State * load_lua_state()
     luaL_openlibs(L);
     
     LOAD_LUA_LIB(console);
-    
-    LUA_PROP(shutter);
-    LUA_PROP(iso);
-    LUA_PROP(aperture);
+    LOAD_LUA_LIB(camera);
     
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
