@@ -3795,10 +3795,10 @@ static struct menu_entry raw_video_menu[] =
                 .max =  4,
                 .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD", "Hacked No Prev"),
                 .help2 = "Auto: ML chooses what's best for each video mode.\n"
-                "Canon: Plain old LiveView. Framing is not always correct.\n"
-                "ML Grayscale: Looks ugly, but at least framing is correct.\n"
-                "HaCKeD: Try to squeeze a little speed by killing LiveView.\n"
-                "HaCKeD2: No preview. Disables Global draw while recording.\n"
+                         "Canon: Plain old LiveView. Framing is not always correct.\n"
+                         "ML Grayscale: Looks ugly, but at least framing is correct.\n"
+                         "HaCKeD: Try to squeeze a little speed by killing LiveView.\n"
+                         "HaCKeD2: No preview. Disables Global draw while recording.\n"
             },
             {
                 .name = "Status When Recording",
@@ -3891,7 +3891,7 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &card_spanning,
                 .max = 1,
                 .help  = "Span video file over cards to use SD+CF write speed.",
-                .help2 = "Increases performance.",
+                .help2 = "May increase performance.",
             },
             {
                 .name = "Reserve Card Space",
