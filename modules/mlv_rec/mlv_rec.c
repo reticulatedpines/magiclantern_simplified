@@ -1688,7 +1688,8 @@ static void hack_liveview(int32_t unhack)
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
-            cam_6d  ? 0xFF52BE94 :
+            (cam_6d == 113) ? 0xFF52BE94 :
+            (cam_6d == 116) ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
             cam_700d ? 0xFF52BA7C :
             cam_7d  ? 0xFF345788 :
@@ -4105,7 +4106,7 @@ static unsigned int raw_rec_init()
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
-    cam_6d    = is_camera("6D",   "1.1.3");
+    cam_6d    = is_camera("6D",   "1.1.3") ? 113 : (is_camera("6D",   "1.1.6") ? 116 : 0);
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
