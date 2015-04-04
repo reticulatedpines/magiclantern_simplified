@@ -1,0 +1,7 @@
+#Makefile for 6D
+
+ML_BITRATE_OBJ = bitrate-6d.o
+
+ML_SRC_EXTRA_OBJS = \
+	afma.o \
+	gps.o
