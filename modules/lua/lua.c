@@ -29,6 +29,7 @@
 #include <fps.h>
 #include <beep.h>
 #include <fio-ml.h>
+#include <bmp.h>
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 #include "lua/lualib.h"
@@ -61,6 +62,16 @@ int name = lua_tointeger(L, index)
 
 #define LUA_PARAM_INT_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && lua_isinteger(L, index)) ? lua_tointeger(L, index) : default
 
+#define LUA_PARAM_NUMBER(name, index)\
+if(index > lua_gettop(L) || !lua_isnumber(L, index))\
+{\
+    lua_pushliteral(L, "Invalid or missing parameter: " #name);\
+    lua_error(L);\
+}\
+float name = lua_tonumber(L, index)
+
+#define LUA_PARAM_NUMBER_OPTIONAL(name, index, default) float name = (index <= lua_gettop(L) && lua_isnumber(L, index)) ? lua_tonumber(L, index) : default
+
 #define LUA_PARAM_STRING(name, index)\
 if(index > lua_gettop(L) || !lua_isstring(L, index))\
 {\
@@ -83,22 +94,6 @@ static int string_ends_with(const char *source, const char *ending)
     if(strlen(source) < strlen(ending)) return 0;
     return !strcmp(source + strlen(source) - strlen(ending), ending);
 }
-
-static int luaCB_camera_shoot(lua_State * L)
-{
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_INT_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
-    lua_pushinteger(L, result);
-    return 1;
-}
-
-static const luaL_Reg cameralib[] =
-{
-    { "shoot", luaCB_camera_shoot },
-    { NULL, NULL }
-};
-
 
 static int luaCB_console_show(lua_State * L)
 {
@@ -163,6 +158,15 @@ static int luaCB_call(lua_State * L)
     return 1;
 }
 
+static int luaCB_shoot(lua_State * L)
+{
+    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
+    LUA_PARAM_INT_OPTIONAL(should_af, 2, 1);
+    int result = lens_take_picture(wait, should_af);
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 static int luaCB_msleep(lua_State * L)
 {
     LUA_PARAM_INT(amount, 1);
@@ -175,19 +179,153 @@ static const luaL_Reg globallib[] =
     { "msleep", luaCB_msleep },
     { "beep", luaCB_beep },
     { "call", luaCB_call },
-    { "shoot", luaCB_camera_shoot },
+    { "shoot", luaCB_shoot },
     { NULL, NULL }
 };
 
+static int luaCB_shutter_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "raw")) lua_pushinteger(L, lens_info.shutter);
+    else if(!strcmp(key, "apex")) lua_pushnumber(L, (RAW2TV(lens_info.shutter)) / 10.0);
+    else if(!strcmp(key, "value")) lua_pushnumber(L, raw2shutterf(lens_info.shutter));
+    else { lua_pushstring(L, "invalid property"); lua_error(L); }
+    return 1;
+}
+
+static int luaCB_shutter_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "raw"))
+    {
+        LUA_PARAM_INT(value, 3);
+        lens_set_rawshutter(value);
+    }
+    else if(!strcmp(key, "apex"))
+    {
+        LUA_PARAM_NUMBER(value, 3);
+        int apex10 = (int)value * 10;
+        lens_set_rawshutter(TV2RAW(apex10));
+    }
+    else if(!strcmp(key, "value"))
+    {
+        LUA_PARAM_NUMBER(value, 3);
+        lens_set_rawshutter(shutterf_to_raw(value));
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static int luaCB_shutter_format(lua_State * L)
+{
+    lua_pushstring(L, lens_format_shutter(lens_info.shutter));
+    return 1;
+}
+
+static int luaCB_iso_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "raw")) lua_pushinteger(L, lens_info.iso_equiv_raw);
+    else if(!strcmp(key, "apex")) lua_pushnumber(L, (RAW2SV(lens_info.iso_equiv_raw)) / 10.0);
+    else if(!strcmp(key, "value")) lua_pushnumber(L, lens_info.iso);
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_iso_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "raw"))
+    {
+        LUA_PARAM_INT(value, 3);
+        lens_set_rawiso(value);
+    }
+    else if(!strcmp(key, "apex"))
+    {
+        LUA_PARAM_NUMBER(value, 3);
+        int apex10 = (int)value * 10;
+        lens_set_rawiso(SV2RAW(apex10));
+    }
+    else if(!strcmp(key, "value"))
+    {
+        LUA_PARAM_INT(value, 3);
+        //TODO: not implemented
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static int luaCB_iso_format(lua_State * L)
+{
+    lua_pushinteger(L, lens_info.iso);
+    return 1;
+}
+
+static int luaCB_aperture_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "raw")) lua_pushinteger(L, lens_info.aperture);
+    else if(!strcmp(key, "apex")) lua_pushnumber(L, (RAW2AV(lens_info.aperture)) / 10.0);
+    else if(!strcmp(key, "value")) lua_pushnumber(L, lens_info.aperture);
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_aperture_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "raw"))
+    {
+        LUA_PARAM_INT(value, 3);
+        lens_set_rawaperture(value);
+    }
+    else if(!strcmp(key, "apex"))
+    {
+        LUA_PARAM_NUMBER(value, 3);
+        int apex10 = (int)value * 10;
+        lens_set_rawaperture(AV2RAW(apex10));
+    }
+    else if(!strcmp(key, "value"))
+    {
+        LUA_PARAM_NUMBER(value, 3);
+        //TODO: not implemented
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static int luaCB_aperture_format(lua_State * L)
+{
+    static char aperture[128];
+    int a = lens_info.aperture;
+    if (!lens_info.name[0]) a = 0;
+    snprintf(aperture, 128, SYM_F_SLASH"%d.%d", a / 10,a % 10);
+    lua_pushstring(L, aperture);
+    return 1;
+}
+
 #define LOAD_LUA_LIB(name) lua_newtable(L); luaL_setfuncs(L, name##lib, 0); lua_setglobal(L, #name)
+#define LUA_PROP(name) lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_format);lua_setfield(L, -2, "format");lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex"); lua_setglobal(L, #name)
 
 static lua_State * load_lua_state()
 {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
     
-    LOAD_LUA_LIB(camera);
     LOAD_LUA_LIB(console);
+    
+    LUA_PROP(shutter);
+    LUA_PROP(iso);
+    LUA_PROP(aperture);
     
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
