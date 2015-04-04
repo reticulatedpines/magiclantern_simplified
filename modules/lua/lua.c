@@ -30,6 +30,8 @@
 #include <beep.h>
 #include <fio-ml.h>
 #include <bmp.h>
+#include <shoot.h>
+#include <zebra.h>
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 #include "lua/lualib.h"
@@ -234,6 +236,63 @@ static const luaL_Reg cameralib[] =
     { NULL, NULL }
 };
 
+static int luaCB_lv_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "isenabled")) lua_pushboolean(L, lv);
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_lv_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "isenabled"))
+    {
+        LUA_PARAM_INT(value, 3);
+        if(value && !lv && !LV_PAUSED) force_liveview();
+        else if(lv) close_liveview();
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static int luaCB_lv_start(lua_State * L)
+{
+    force_liveview();
+    return 0;
+}
+
+static int luaCB_lv_pause(lua_State * L)
+{
+    PauseLiveView();
+    return 0;
+}
+
+static int luaCB_lv_resume(lua_State * L)
+{
+    ResumeLiveView();
+    return 0;
+}
+
+static int luaCB_lv_stop(lua_State * L)
+{
+    close_liveview();
+    return 0;
+}
+
+static const luaL_Reg lvlib[] =
+{
+    { "start", luaCB_lv_start },
+    { "pause", luaCB_lv_pause },
+    { "resume", luaCB_lv_resume },
+    { "stop", luaCB_lv_stop },
+    { NULL, NULL }
+};
+
 #define LOAD_LUA_LIB(name) lua_newtable(L);luaL_setfuncs(L, name##lib, 0);lua_pushvalue(L,-1);lua_setglobal(L, #name);lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex");lua_setmetatable(L, -2);lua_pop(L,1)
 
 static lua_State * load_lua_state()
@@ -243,6 +302,7 @@ static lua_State * load_lua_state()
     
     LOAD_LUA_LIB(console);
     LOAD_LUA_LIB(camera);
+    LOAD_LUA_LIB(lv);
     
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
