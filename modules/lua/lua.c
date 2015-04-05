@@ -223,7 +223,7 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "ec")) lua_pushinteger(L, RAW2EC(lens_info.ae));
     else if(!strcmp(key, "flash_ec")) lua_pushinteger(L, RAW2EC(lens_info.flash_ae));
     else if(!strcmp(key, "mode")) lua_pushinteger(L, shooting_mode);
-    else if(!strcmp(key, "af_mode")) lua_pushinteger(L, metering_mode);
+    else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
     else if(!strcmp(key, "metering_mode")) lua_pushinteger(L, metering_mode);
     else if(!strcmp(key, "drive_mode")) lua_pushinteger(L, drive_mode);
     else if(!strcmp(key, "model")) lua_pushstring(L, camera_model);
