@@ -173,7 +173,6 @@ Lens Library
 =================================================  =============================
 Field                                              Description
 =================================================  =============================
-
 lens.focus(steps,[step_size],[wait],[extra_delay]  Moves the focus motor a specified number of steps. Only works in LV.
 lens.name                                          get the name of the lens.
 lens.focal_length                                  get the focal length of the lens (in mm)
