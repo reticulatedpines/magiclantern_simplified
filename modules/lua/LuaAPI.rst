@@ -124,123 +124,165 @@ intervalometer         called after a picture is taken with the intervalometer
 Global functions
 --------------------------------------------------------------------------------
 
-:msleep(ms): Pauses for ms miliseconds and allows other tasks to run.
-:shoot([wait],[af]): Takes a picture.
-:call(funcname, [arg]): Calls an eventproc (a function from the camera firmware which can be called by name). See Eventprocs. Dangerous.
-:beep([numtimes]): Plays a beep through the camera speaker
+=========================  =====================================================
+Function                   Description
+=========================  =====================================================
+msleep(ms)                 Pauses for ms miliseconds and allows other tasks to run.
+shoot([wait],[af])         Takes a picture.
+call(funcname, [arg])      Calls an eventproc (a function from the camera firmware which can be called by name). See Eventprocs. Dangerous.
+beep([numtimes])           Plays a beep through the camera speaker
+=========================  =====================================================
 
 Console Library
 --------------------------------------------------------------------------------
 
-:console.show(): Shows the console.
-:console.hide(): Hides the console.
-:console.write(text): Writes some text to the console.
+
+==================   ===========================================================
+Field                Description
+===================  ===========================================================
+console.show()       Shows the console.
+console.hide()       Hides the console.
+console.write(text)  Writes some text to the console.
+===================  ===========================================================
 
 Camera Library
 --------------------------------------------------------------------------------
 
-:camera.shoot([wait],[af]): Takes a picture.
-:camera.shutter: get/set the shutter speed in apex units x10.
-:camera.aperture: get/set the aperture in apex units x10.
-:camera.iso: get/set the ISO in apex units x10.
-:camera.ec: get/set the expsosure compensation in apex units x10.
-:camera.flash_ec: get/set the flash expsosure compensation in apex units x10.
-:camera.mode: get the current camera mode. Possible values defined in MODE global.
-:camera.af_mode: get the current auto focus mode.
-:camera.metering_mode: get the current metering mode.
-:camera.drive_mode: get the current drive mode.
-:camera.model: get the model name of the camera.
-:camera.firmware: get the Canon firmware version string.
-:camera.temperature: get the temperature from the efic chip in raw units
-:camera.state: get the current Canon GUI state of the camera (PLAY, QR, LV, etc)
+=========================  =====================================================
+Field                      Description
+=========================  =====================================================
+camera.shoot([wait],[af])  Takes a picture.
+camera.shutter             get/set the shutter speed in apex units x10.
+camera.aperture            get/set the aperture in apex units x10.
+camera.iso                 get/set the ISO in apex units x10.
+camera.ec                  get/set the expsosure compensation in apex units x10.
+camera.flash_ec            get/set the flash expsosure compensation in apex units x10.
+camera.mode get            the current camera mode. Possible values defined in MODE global.
+camera.af_mode             get the current auto focus mode.
+camera.metering_mode       get the current metering mode.
+camera.drive_mode          get the current drive mode.
+camera.model               get the model name of the camera.
+camera.firmware            get the Canon firmware version string.
+camera.temperature         get the temperature from the efic chip in raw units
+camera.state               get the current Canon GUI state of the camera (PLAY, QR, LV, etc)
+=========================  =====================================================
 
 Lens Library
 --------------------------------------------------------------------------------
 
-:lens.focus(steps,[step_size],[wait],[extra_delay]: Moves the focus motor a specified number of steps. Only works in LV.
-:lens.name: get the name of the lens.
-:lens.focal_length: get the focal length of the lens (in mm)
-:lens.focal_distance: get the current focal distance (in cm)
-:lens.hyperfocal: get the hyperfocal distance of the lens (in cm)
-:lens.dof_near: get the distance to the DOF near (in cm)
-:lens.dof_far: get the distance to the DOF far (in cm)
-:lens.af: true => auto focus; false => manual focus
+=================================================  =============================
+Field                                              Description
+=================================================  =============================
+
+lens.focus(steps,[step_size],[wait],[extra_delay]  Moves the focus motor a specified number of steps. Only works in LV.
+lens.name                                          get the name of the lens.
+lens.focal_length                                  get the focal length of the lens (in mm)
+lens.focal_distance                                get the current focal distance (in cm)
+lens.hyperfocal                                    get the hyperfocal distance of the lens (in cm)
+lens.dof_near                                      get the distance to the DOF near (in cm)
+lens.dof_far                                       get the distance to the DOF far (in cm)
+lens.af                                            true => auto focus; false => manual focus
+=================================================  =============================
 
 LiveView Library
 --------------------------------------------------------------------------------
 
-:lv.start(): Enter LiveView.
-:lv.pause(): Pause LiveView (but leave shutter open).
-:lv.resume(): Resume LiveView (if paused)
-:lv.stop(): Exit LiveView.
-:enabled: get/set whether or not LV is running.
+===============  ===============================================================
+Field            Description
+===============  ===============================================================
+lv.start()       Enter LiveView.
+lv.pause()       Pause LiveView (but leave shutter open).
+lv.resume()      Resume LiveView (if paused)
+lv.stop()        Exit LiveView.
+lv.enabled       get/set whether or not LV is running.
+===============  ===============================================================
 
 Movie Library
 --------------------------------------------------------------------------------
 
-:movie.start(): Start recording a movie.
-:movie.stop(): Stops recording a movie.
-:recording: get/set whether or not a movie is currently recording
+===============  ===============================================================
+Field            Description
+===============  ===============================================================
+movie.start()    Start recording a movie.
+movie.stop()     Stops recording a movie.
+movie.recording  get/set whether or not a movie is currently recording
+===============  ===============================================================
 
 Constants
 --------------------------------------------------------------------------------
 
-:MODE.P: Program Mode
-:MODE.TV: Shutter Priority Mode
-:MODE.AV: Aperture Priority Mode
-:MODE.M: Manual Mode
-:MODE.BULB: Bulb Mode
-:MODE.ADEP: ADEP Mode
-:MODE.C: Custom Mode
-:MODE.C2: C2
-:MODE.C3: C3
-:MODE.CA: Creative Auto Mode
-:MODE.AUTO: Full Auto Mode
-:MODE.NOFLASH: No flash Mode
-:MODE.PORTRAIT: Portrait Mode
-:MODE.LANDSCAPE: Landscape Mode
-:MODE.MACRO: Macro Mode
-:MODE.SPORTS: Sports Mode
-:MODE.NIGHT: Night Mode
-:MODE.MOVIE: Movie Mode
-    
-:UNIT.EV: 1/8 EV units
-:UNIT.x10: x10 Fixed Point
-:UNIT.PERCENT: Percentage
-:UNIT.PERCENT_x10: x10 fixed point percentage
-:UNIT.ISO: ISO
-:UNIT.HEX: Hexadecimal
-:UNIT.DEC: Decimal
-:UNIT.TIME: Time
-    
-:ICON_TYPE.AUTO:
-:ICON_TYPE.BOOL:
-:ICON_TYPE.DICE:
-:ICON_TYPE.PERCENT:
-:ICON_TYPE.ALWAYS_ON:
-:ICON_TYPE.ACTION:
-:ICON_TYPE.BOOL_NEG:
-:ICON_TYPE.DISABLE_SOME_FEATURE:
-:ICON_TYPE.SUBMENU:
-:ICON_TYPE.DICE_OFF:
-:ICON_TYPE.PERCENT_OFF:
-:ICON_TYPE.PERCENT_LOG:
-:ICON_TYPE.PERCENT_LOG_OFF:
-    
-:DEPENDS_ON.GLOBAL_DRAW:
-:DEPENDS_ON.LIVEVIEW:
-:DEPENDS_ON.NOT_LIVEVIEW:
-:DEPENDS_ON.MOVIE_MODE:
-:DEPENDS_ON.PHOTO_MODE:
-:DEPENDS_ON.AUTOFOCUS:
-:DEPENDS_ON.MANUAL_FOCUS:
-:DEPENDS_ON.CFN_AF_HALFSHUTTER:
-:DEPENDS_ON.CFN_AF_BACK_BUTTON:
-:DEPENDS_ON.EXPSIM:
-:DEPENDS_ON.NOT_EXPSIM:
-:DEPENDS_ON.CHIPPED_LENS:
-:DEPENDS_ON.M_MODE:
-:DEPENDS_ON.MANUAL_ISO:
-:DEPENDS_ON.SOUND_RECORDING:
-:DEPENDS_ON.NOT_SOUND_RECORDING:
+==============  ================================================================
+Constant        Description
+==============  ================================================================
+MODE.P          Program Mode
+MODE.TV         Shutter Priority Mode
+MODE.AV         Aperture Priority Mode
+MODE.M Manual   Mode
+MODE.BULB Bulb  Mode
+MODE.ADEP ADEP  Mode
+MODE.C          Custom Mode
+MODE.C2         C2
+MODE.C3         C3
+MODE.CA         Creative Auto Mode
+MODE.AUTO Full  Auto Mode
+MODE.NOFLASH    No flash Mode
+MODE.PORTRAIT   Portrait Mode
+MODE.LANDSCAPE  Landscape Mode
+MODE.MACRO      Macro Mode
+MODE.SPORTS     Sports Mode
+MODE.NIGHT      Night Mode
+MODE.MOVIE      Movie Mode
+==============  ================================================================
+
+================  ==============================================================
+Constant          Description
+================  ==============================================================
+UNIT.EV           1/8 EV units
+UNIT.x10 x10      Fixed Point
+UNIT.PERCENT      Percentage
+UNIT.PERCENT_x10  x10 fixed point percentage
+UNIT.ISO          ISO
+UNIT.HEX          Hexadecimal
+UNIT.DEC          Decimal
+UNIT.TIME         Time
+================  ==============================================================
+
+==============================  ================================================
+Constant                        Description
+==============================  ================================================
+ICON_TYPE.AUTO
+ICON_TYPE.BOOL
+ICON_TYPE.DICE
+ICON_TYPE.PERCENT
+ICON_TYPE.ALWAYS_ON
+ICON_TYPE.ACTION
+ICON_TYPE.BOOL_NEG
+ICON_TYPE.DISABLE_SOME_FEATURE
+ICON_TYPE.SUBMENU
+ICON_TYPE.DICE_OFF
+ICON_TYPE.PERCENT_OFF
+ICON_TYPE.PERCENT_LOG
+ICON_TYPE.PERCENT_LOG_OFF
+==============================  ================================================
+
+==============================  ================================================
+Constant                        Description
+==============================  ================================================
+DEPENDS_ON.GLOBAL_DRAW
+DEPENDS_ON.LIVEVIEW
+DEPENDS_ON.NOT_LIVEVIEW
+DEPENDS_ON.MOVIE_MODE
+DEPENDS_ON.PHOTO_MODE
+DEPENDS_ON.AUTOFOCUS
+DEPENDS_ON.MANUAL_FOCUS
+DEPENDS_ON.CFN_AF_HALFSHUTTER
+DEPENDS_ON.CFN_AF_BACK_BUTTON
+DEPENDS_ON.EXPSIM
+DEPENDS_ON.NOT_EXPSIM
+DEPENDS_ON.CHIPPED_LENS
+DEPENDS_ON.M_MODE
+DEPENDS_ON.MANUAL_ISO
+DEPENDS_ON.SOUND_RECORDING
+DEPENDS_ON.NOT_SOUND_RECORDING
+==============================  ================================================
 
