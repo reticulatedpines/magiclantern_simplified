@@ -3761,52 +3761,56 @@ static struct menu_entry raw_video_menu[] =
                 .choices = RESOLUTION_CHOICES_X,
             },
             {
-                .name = "Aspect ratio",
+                .name = "Aspect Ratio",
                 .priv = &aspect_ratio_index,
                 .max = COUNT(aspect_ratio_presets_num) - 1,
                 .update = aspect_ratio_update,
                 .choices = aspect_ratio_choices,
             },
             {
-                .name = "Create directory",
+                .name = "Create Directory",
                 .priv = &create_dirs,
                 .max = 1,
-                .help = "Save video chunks in separate folders",
+                .help = "Save video chunks in separate folders.",
             },
             {
                 .name = "Global Draw",
                 .priv = &kill_gd,
                 .max = 1,
                 .choices = CHOICES("Allow", "OFF"),
-                .help = "Disable global draw while recording.\n Some previews depend on GD",
+                .help = "Disable global draw while recording.",
+                .help2 = "May help with performance. Some previews depend on GD.",
             },
             {
-                .name = "Frame skipping",
+                .name = "Frame Skipping",
                 .priv = &allow_frame_skip,
                 .max = 1,
                 .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+                .help2 = "Be careful of stuttering footage.",
             },
             {
-                .name = "Preview",
+                .name = "Preview Options",
                 .priv = &preview_mode,
                 .max =  4,
                 .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD", "Hacked No Prev"),
-                .help2 = "Auto: ML chooses what's best for each video mode\n"
-                         "Canon: plain old LiveView. Framing is not always correct.\n"
-                         "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+                .help2 = "Auto: ML chooses what's best for each video mode.\n"
+                         "Canon: Plain old LiveView. Framing is not always correct.\n"
+                         "ML Grayscale: Looks ugly, but at least framing is correct.\n"
+                         "HaCKeD: Try to squeeze a little speed by killing LiveView.\n"
                          "HaCKeD2: No preview. Disables Global draw while recording.\n"
             },
             {
-                .name = "Status when recording",
+                .name = "Status When Recording",
                 .priv = &display_rec_info,
                 .max = 2,
                 .choices = CHOICES("None", "Icon", "Debug"),
-                .help = "Display status when recording.",
+                .help = "Display status while recording.",
+                .help2 = "Display a small recording icon with basic information.\n"
+                         "Display more information useful for debugging.\n"
             },
             {
-                .name = "Start delay",
+                .name = "Start Delay",
                 .priv = &start_delay_idx,
                 .max = 3,
                 .choices = CHOICES("OFF", "2 sec.", "4 sec.", "10 sec."),
@@ -3818,18 +3822,18 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Files > 4GiB (exFAT)",
                 .priv = &large_file_support,
                 .max = 1,
-                .help = "Don't split files on 4GiB margins, not supported on all models.",
-                .help2 = "Ensure you formatted your card as exFAT!"
+                .help = "Don't split files on 4GiB margins.",
+                .help2 = "Ensure your card is formatted as exFAT!"
             },
             {
-                .name = "Digital dolly",
+                .name = "Digital Dolly",
                 .priv = &dolly_mode,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
                 .help2 = "Use arrow keys (joystick) to move the window."
             },
             {
-                .name = "Card warm-up",
+                .name = "Card Warm-up",
                 .priv = &warm_up,
                 .max = 7,
                 .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
@@ -3837,67 +3841,71 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Some cards seem to get a bit faster after this.",
             },
             {
-                .name = "Use SRM job memory",
+                .name = "Use SRM Job Memory",
                 .priv = &use_srm_memory,
                 .max = 1,
-                .help = "Allocate memory from SRM job buffers",
+                .help = "Allocate memory from SRM job buffers.",
             },
             {
                 .name = "Extra Hacks",
                 .priv = &small_hacks,
                 .max = 1,
-                .help  = "Slow down Canon GUI, Lock digital expo while recording...",
+                .help = "Slow down Canon GUI, lock digital expo while recording.",
+                .help2 = "May help with performance.",
             },
             {
-                .name = "Fix black level",
+                .name = "Fix Black Level",
                 .priv = &black_fix,
                 .max = 1,
                 .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
-                .help2  = "Try this to fix green casts.",
+                .help2  = "Try this to fix green/magenta casts.",
             },
             {
-                .name = "Debug trace",
+                .name = "Debug Trace",
                 .priv = &enable_tracing,
                 .max = 1,
                 .help = "Write an execution trace. Causes perfomance drop.",
                 .help2 = "You have to restart camera before setting takes effect.",
             },
             {
-                .name = "Show buffer graph",
+                .name = "Show Buffer Graph",
                 .priv = &show_graph,
                 .max = 1,
                 .help = "Displays a graph of the current buffer usage and expected frames.",
             },
             {
-                .name = "Buffer fill method",
+                .name = "Buffer Fill Method",
                 .priv = &buffer_fill_method,
                 .max = 4,
-                .help  = "Method for filling buffers. Will affect write speed.",
+                .help = "Method for filling buffers. Will affect write speed.",
+                .help2 = "Try different options for the best performance.",
             },
             {
-                .name = "CF-only buffers",
+                .name = "CF-only Buffers",
                 .priv = &fast_card_buffers,
                 .max = 9,
                 .help  = "How many of the largest buffers are for CF writing.",
             },
             {
-                .name = "Card spanning",
+                .name = "Card Spanning",
                 .priv = &card_spanning,
                 .max = 1,
-                .help  = "Span video file over cards to use SD+CF write speed",
+                .help  = "Span video file over cards to use SD+CF write speed.",
+                .help2 = "May increase performance.",
             },
             {
-                .name = "Reserve card space",
+                .name = "Reserve Card Space",
                 .priv = &create_dummy,
                 .max = 1,
-                .help  = "Write a file before recording to prevent data loss on full card",
+                .help = "Write a file to the card before recording.",
+                .help2 = "Use this to prevent data loss at card full.",
             },
             {
                 .name = "Tag: Text",
                 .priv = raw_tag_str,
                 .select = raw_tag_str_start,
                 .update = raw_tag_str_update,
-                .help  = "Free text field",
+                .help  = "Free text field.",
             },
             {
                 .name = "Tag: Take",
@@ -3905,7 +3913,7 @@ static struct menu_entry raw_video_menu[] =
                 .min = 0,
                 .max = 99,
                 .update = raw_tag_take_update,
-                .help  = "Auto-Counting take number",
+                .help  = "Auto-counting take number.",
             },
             MENU_EOL,
         },
