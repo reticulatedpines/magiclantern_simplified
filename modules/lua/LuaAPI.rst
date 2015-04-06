@@ -217,6 +217,7 @@ Field                                    Description
 display.on()                             Turn the display on.
 display.off()                            Turn the display off.
 display.screenshot([filename],[mode])    Take a screenshot.
+display.clear()                          Clear the screen.
 display.print(str,x,y,[font],[fg],[bg])  Print text on the screen.
 display.pixel(x,y,color)                 Sets a pixel to a color.
 display.line(x1,y1,x2,y2,color)          Draws a line on the screen.
@@ -306,40 +307,40 @@ DEPENDS_ON.NOT_SOUND_RECORDING
 ==============================  ================================================
 FONT                            Description
 ==============================  ================================================
-MONO_12
-MONO_20
-SANS_23
-SANS_28
-SANS_32
-CANON
-SMALL
-MED
-MED_LARGE
+FONT.MONO_12
+FONT.MONO_20
+FONT.SANS_23
+FONT.SANS_28
+FONT.SANS_32
+FONT.CANON
+FONT.SMALL
+FONT.MED
+FONT.MED_LARGE
 ==============================  ================================================
 
 ==============================  ================================================
 COLOR                           Description
 ==============================  ================================================
-TRANSPARENT
-WHITE
-BLACK
-TRANSPARENT_BLACK
-CYAN
-GREEN1
-GREEN2
-RED
-LIGHT_BLUE
-BLUE
-DARK_RED
-MAGENTA
-YELLOW
-ORANGE
-ALMOST_BLACK
-ALMOST_WHITE
-DARK_GREEN1_MOD
-DARK_GREEN2_MOD
-DARK_ORANGE_MOD
-DARK_CYAN1_MOD
-DARK_CYAN2_MOD
+COLOR.TRANSPARENT
+COLOR.WHITE
+COLOR.BLACK
+COLOR.TRANSPARENT_BLACK
+COLOR.CYAN
+COLOR.GREEN1
+COLOR.GREEN2
+COLOR.RED
+COLOR.LIGHT_BLUE
+COLOR.BLUE
+COLOR.DARK_RED
+COLOR.MAGENTA
+COLOR.YELLOW
+COLOR.ORANGE
+COLOR.ALMOST_BLACK
+COLOR.ALMOST_WHITE
+COLOR.DARK_GREEN1_MOD
+COLOR.DARK_GREEN2_MOD
+COLOR.DARK_ORANGE_MOD
+COLOR.DARK_CYAN1_MOD
+COLOR.DARK_CYAN2_MOD
 ==============================  ================================================
 
