@@ -46,24 +46,21 @@ asm(
     "LDM   R4, {R1-R3}\n"
     "LDR   R0, [R2]\n"
     "CMP   R0, R1\n"
-    "BEQ   skip_fir_header\n"
+    "BEQ   load_ok\n"
     
     /* reset */
     "reset:\n"
     "BX    R3\n"                    /* -> R1 (magic 0xE12FFF13) */
     ".word   autoexec_bin_footer\n" /* -> R2 (footer address) */
     ".word   "STR(ROMBASEADDR)"\n"  /* -> R3 (reset address) */
-
     
-    /* if used in a .fir file, there is a 0x120 byte address offset.
-       so cut the first 0x120 bytes off autoexec.bin before embedding into .fir
-     */
-     
-    /* as we dont want to waste too much space, embed the version information here. must have exactly 0x100 bytes. */
+    /* embed some human-readable version info */
+    /* (visible if you open autoexec.bin in e.g. Notepad or ML file manager) */
     ".incbin \"version.bin\"\n"
-    
+
     /* ok our code starts here */
-    "skip_fir_header:\n"
+    ".align 2\n"
+    "load_ok:\n"
     "MRS     R0, CPSR\n"
     "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
     "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
