@@ -574,6 +574,65 @@ const luaL_Reg displaylib[] =
     {NULL, NULL}
 };
 
+static int last_keypress = 0;
+
+static int luaCB_key_press(lua_State * L)
+{
+    LUA_PARAM_INT(key, 1);
+    module_send_keypress(key);
+    return 0;
+}
+
+static int luaCB_key_wait(lua_State * L)
+{
+    LUA_PARAM_INT_OPTIONAL(key, 1, 0);
+    LUA_PARAM_INT_OPTIONAL(timeout, 1, 0);
+    timeout *= 10;
+    last_keypress = 0;
+    int time = 0;
+    //TODO: probably better to use a semaphore
+    while((key && last_keypress != key) || (!key && !last_keypress))
+    {
+        msleep(100);
+        if(timeout && time++ > timeout)
+        {
+            lua_pushinteger(L, 0);
+            return 1;
+        }
+    }
+    lua_pushinteger(L, last_keypress);
+    return 1;
+}
+
+static int luaCB_key_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "last")) lua_pushinteger(L, last_keypress);
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_key_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "last"))
+    {
+        lua_pushstring(L, "property is readonly!"); lua_error(L);
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+const luaL_Reg keylib[] =
+{
+    {"press", luaCB_key_press},
+    {"wait", luaCB_key_wait},
+    {NULL, NULL}
+};
+
 #define LOAD_LUA_LIB(name) lua_newtable(L);luaL_setfuncs(L, name##lib, 0);lua_pushvalue(L,-1);lua_setglobal(L, #name);lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex");lua_setmetatable(L, -2);lua_pop(L,1)
 #define LUA_CONSTANT(name, value) lua_pushinteger(L, value); lua_setfield(L, -2, #name)
 
@@ -587,6 +646,7 @@ static lua_State * load_lua_state()
     LOAD_LUA_LIB(lv);
     LOAD_LUA_LIB(lens);
     LOAD_LUA_LIB(movie);
+    LOAD_LUA_LIB(key);
     
     //constants
     lua_newtable(L);
@@ -692,6 +752,47 @@ static lua_State * load_lua_state()
     LUA_CONSTANT(DARK_CYAN2_MOD, COLOR_DARK_CYAN2_MOD);
     lua_setglobal(L, "COLOR");
     
+    lua_newtable(L);
+    LUA_CONSTANT(HALFSHUTTER, MODULE_KEY_PRESS_HALFSHUTTER);
+    LUA_CONSTANT(UNPRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER);
+    LUA_CONSTANT(FULLSHUTTER, MODULE_KEY_PRESS_FULLSHUTTER);
+    LUA_CONSTANT(UNPRESS_FULLSHUTTER, MODULE_KEY_UNPRESS_FULLSHUTTER);
+    LUA_CONSTANT(WHEEL_UP, MODULE_KEY_WHEEL_UP);
+    LUA_CONSTANT(WHEEL_DOWN, MODULE_KEY_WHEEL_DOWN);
+    LUA_CONSTANT(WHEEL_LEFT, MODULE_KEY_WHEEL_LEFT);
+    LUA_CONSTANT(WHEEL_RIGHT, MODULE_KEY_WHEEL_RIGHT);
+    LUA_CONSTANT(SET, MODULE_KEY_PRESS_SET);
+    LUA_CONSTANT(UNPRESS_SET, MODULE_KEY_UNPRESS_SET);
+    LUA_CONSTANT(JOY_CENTER, MODULE_KEY_JOY_CENTER);
+    LUA_CONSTANT(UP, MODULE_KEY_PRESS_UP);
+    LUA_CONSTANT(UP_RIGHT, MODULE_KEY_PRESS_UP_RIGHT);
+    LUA_CONSTANT(UP_LEFT, MODULE_KEY_PRESS_UP_LEFT);
+    LUA_CONSTANT(RIGHT, MODULE_KEY_PRESS_RIGHT);
+    LUA_CONSTANT(LEFT, MODULE_KEY_PRESS_LEFT);
+    LUA_CONSTANT(DOWN_RIGHT, MODULE_KEY_PRESS_DOWN_RIGHT);
+    LUA_CONSTANT(DOWN_LEFT, MODULE_KEY_PRESS_DOWN_LEFT);
+    LUA_CONSTANT(DOWN, MODULE_KEY_PRESS_DOWN);
+    LUA_CONSTANT(UNPRESS_UDLR, MODULE_KEY_UNPRESS_UDLR);
+    LUA_CONSTANT(ZOOMIN, MODULE_KEY_PRESS_ZOOMIN);
+    LUA_CONSTANT(MENU, MODULE_KEY_MENU);
+    LUA_CONSTANT(INFO, MODULE_KEY_INFO);
+    LUA_CONSTANT(PLAY, MODULE_KEY_PLAY);
+    LUA_CONSTANT(TRASH, MODULE_KEY_TRASH);
+    LUA_CONSTANT(RATE, MODULE_KEY_RATE);
+    LUA_CONSTANT(REC, MODULE_KEY_REC);
+    LUA_CONSTANT(LV, MODULE_KEY_LV);
+    LUA_CONSTANT(Q, MODULE_KEY_Q);
+    LUA_CONSTANT(PICSTYLE, MODULE_KEY_PICSTYLE);
+    LUA_CONSTANT(FLASH_MOVIE, MODULE_KEY_PRESS_FLASH_MOVIE);
+    LUA_CONSTANT(UNPRESS_FLASH_MOVIE, MODULE_KEY_UNPRESS_FLASH_MOVIE);
+    LUA_CONSTANT(DP, MODULE_KEY_PRESS_DP);
+    LUA_CONSTANT(UNPRESS_DP, MODULE_KEY_UNPRESS_DP);
+    LUA_CONSTANT(TOUCH_1_FINGER, MODULE_KEY_TOUCH_1_FINGER);
+    LUA_CONSTANT(UNTOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER);
+    LUA_CONSTANT(TOUCH_2_FINGER, MODULE_KEY_TOUCH_2_FINGER);
+    LUA_CONSTANT(UNTOUCH_2_FINGER, MODULE_KEY_UNTOUCH_2_FINGER);
+    lua_setglobal(L, "KEY");
+    
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, globallib, 0);
     return L;
@@ -765,6 +866,7 @@ LUA_CBR_FUNC(vsync_setparam)
 static struct script_event_entry * keypress_cbr_scripts = NULL;
 static unsigned int lua_keypress_cbr(unsigned int ctx)
 {
+    last_keypress = ctx;
     //keypress cbr interprets things backwards from other CBRs
     return lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
 }
