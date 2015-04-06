@@ -60,19 +60,6 @@ struct script_event_entry
 };
 static struct script_entry * scripts = NULL;
 static struct script_entry * running_script = NULL;
-static struct script_event_entry * pre_shoot_cbr_scripts = NULL;
-static struct script_event_entry * post_shoot_cbr_scripts = NULL;
-static struct script_event_entry * seconds_clock_cbr_scripts = NULL;
-static struct script_event_entry * keypress_cbr_scripts = NULL;
-static struct script_event_entry * custom_picture_taking_cbr_scripts = NULL;
-static struct script_event_entry * intervalometer_cbr_scripts = NULL;
-
-#ifdef CONFIG_VSYNC_EVENTS
-static struct script_event_entry * display_filter_cbr_scripts = NULL;
-static struct script_event_entry * vsync_cbr_scripts = NULL;
-static struct script_event_entry * vsync_setparam_cbr_scripts = NULL;
-#endif
-
 static int lua_running = 0;
 static int lua_loaded = 0;
 static int lua_run_arg_count = 0;
@@ -796,21 +783,26 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
     return sucess;
 }
 
-#define LUA_CBR_FUNC(name) static unsigned int lua_##name##_cbr(unsigned int ctx) {\
+#define LUA_CBR_FUNC(name)\
+static struct script_event_entry * name##_cbr_scripts = NULL;\
+static unsigned int lua_##name##_cbr(unsigned int ctx) {\
     return lua_do_cbr(ctx, name##_cbr_scripts, #name, CBR_RET_CONTINUE, CBR_RET_STOP);\
 }\
 
 LUA_CBR_FUNC(pre_shoot)
 LUA_CBR_FUNC(post_shoot)
+LUA_CBR_FUNC(shoot_task)
 LUA_CBR_FUNC(seconds_clock)
+LUA_CBR_FUNC(custom_picture_taking)
+LUA_CBR_FUNC(intervalometer)
+
 #ifdef CONFIG_VSYNC_EVENTS
 LUA_CBR_FUNC(vsync)
 LUA_CBR_FUNC(display_filter)
 LUA_CBR_FUNC(vsync_setparam)
 #endif
-LUA_CBR_FUNC(custom_picture_taking)
-LUA_CBR_FUNC(intervalometer)
 
+static struct script_event_entry * keypress_cbr_scripts = NULL;
 static unsigned int lua_keypress_cbr(unsigned int ctx)
 {
     //keypress cbr interprets things backwards from other CBRs
@@ -1177,6 +1169,7 @@ static void add_script(const char * filename)
             {
                 SCRIPT_CBR(pre_shoot);
                 SCRIPT_CBR(post_shoot);
+                SCRIPT_CBR(shoot_task);
                 SCRIPT_CBR(seconds_clock);
                 SCRIPT_CBR(keypress);
                 SCRIPT_CBR(custom_picture_taking);
@@ -1234,6 +1227,7 @@ MODULE_INFO_END()
 MODULE_CBRS_START()
     MODULE_CBR(CBR_PRE_SHOOT, lua_pre_shoot_cbr, 0)
     MODULE_CBR(CBR_POST_SHOOT, lua_post_shoot_cbr, 0)
+    MODULE_CBR(CBR_SHOOT_TASK, lua_shoot_task_cbr, 0)
     MODULE_CBR(CBR_SECONDS_CLOCK, lua_seconds_clock_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, lua_keypress_cbr, 0)
     MODULE_CBR(CBR_CUSTOM_PICTURE_TAKING, lua_custom_picture_taking_cbr, 0)
