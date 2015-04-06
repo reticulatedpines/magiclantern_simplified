@@ -176,9 +176,9 @@ lens.focus(steps,[step_size],[wait],[extra_delay]  Moves the focus motor a speci
 lens.name                                          get the name of the lens.
 lens.focal_length                                  get the focal length of the lens (in mm)
 lens.focal_distance                                get the current focal distance (in cm)
-lens.hyperfocal                                    get the hyperfocal distance of the lens (in cm)
-lens.dof_near                                      get the distance to the DOF near (in cm)
-lens.dof_far                                       get the distance to the DOF far (in cm)
+lens.hyperfocal                                    get the hyperfocal distance of the lens (in mm)
+lens.dof_near                                      get the distance to the DOF near (in mm)
+lens.dof_far                                       get the distance to the DOF far (in mm)
 lens.af                                            true => auto focus; false => manual focus
 =================================================  =============================
 
@@ -203,50 +203,67 @@ Field            Description
 ===============  ===============================================================
 movie.start()    Start recording a movie.
 movie.stop()     Stops recording a movie.
-movie.recording  get/set whether or not a movie is currently recording
+movie.recording  get/set whether or not a movie is currently recording.
 ===============  ===============================================================
+
+Display Library
+--------------------------------------------------------------------------------
+
+=======================================  =======================================
+Field                                    Description
+=======================================  =======================================
+display.on()                             Turn the display on.
+display.off()                            Turn the display off.
+display.screenshot([filename],[mode])    Take a screenshot.
+display.print(str,x,y,[font],[fg],[bg])  Print text on the screen.
+display.pixel(x,y,color)                 Sets a pixel to a color.
+display.line(x1,y1,x2,y2,color)          Draws a line on the screen.
+display.rect(x,y,w,h,stroke,[fill])      Draws a rectange on the screen.
+display.cirle(x,y,r,stroke,[fill])       Draws a circle on the screen.
+display.idle                             
+=======================================  =======================================
 
 Constants
 --------------------------------------------------------------------------------
 
-==============  ================================================================
-Constant        Description
-==============  ================================================================
-MODE.P          Program Mode
-MODE.TV         Shutter Priority Mode
-MODE.AV         Aperture Priority Mode
-MODE.M Manual   Mode
-MODE.BULB Bulb  Mode
-MODE.ADEP ADEP  Mode
-MODE.C          Custom Mode
-MODE.C2         C2
-MODE.C3         C3
-MODE.CA         Creative Auto Mode
-MODE.AUTO Full  Auto Mode
-MODE.NOFLASH    No flash Mode
-MODE.PORTRAIT   Portrait Mode
-MODE.LANDSCAPE  Landscape Mode
-MODE.MACRO      Macro Mode
-MODE.SPORTS     Sports Mode
-MODE.NIGHT      Night Mode
-MODE.MOVIE      Movie Mode
-==============  ================================================================
-
-================  ==============================================================
-Constant          Description
-================  ==============================================================
-UNIT.EV           1/8 EV units
-UNIT.x10 x10      Fixed Point
-UNIT.PERCENT      Percentage
-UNIT.PERCENT_x10  x10 fixed point percentage
-UNIT.ISO          ISO
-UNIT.HEX          Hexadecimal
-UNIT.DEC          Decimal
-UNIT.TIME         Time
-================  ==============================================================
+==============================  ================================================
+MODE                            Description
+==============================  ================================================
+MODE.P                          Program Mode
+MODE.TV                         Shutter Priority Mode
+MODE.AV                         Aperture Priority Mode
+MODE.M Manual                   Mode
+MODE.BULB Bulb                  Mode
+MODE.ADEP ADEP                  Mode
+MODE.C                          Custom Mode
+MODE.C2                         C2
+MODE.C3                         C3
+MODE.CA                         Creative Auto Mode
+MODE.AUTO Full                  Auto Mode
+MODE.NOFLASH                    No flash Mode
+MODE.PORTRAIT                   Portrait Mode
+MODE.LANDSCAPE                  Landscape Mode
+MODE.MACRO                      Macro Mode
+MODE.SPORTS                     Sports Mode
+MODE.NIGHT                      Night Mode
+MODE.MOVIE                      Movie Mode
+==============================  ================================================
 
 ==============================  ================================================
-Constant                        Description
+UNIT                            Description
+==============================  ================================================
+UNIT.EV                         1/8 EV units
+UNIT.x10 x10                    Fixed Point
+UNIT.PERCENT                    Percentage
+UNIT.PERCENT_x10                x10 fixed point percentage
+UNIT.ISO                        ISO
+UNIT.HEX                        Hexadecimal
+UNIT.DEC                        Decimal
+UNIT.TIME                       Time
+==============================  ================================================
+
+==============================  ================================================
+ICON_TYPE                       Description
 ==============================  ================================================
 ICON_TYPE.AUTO
 ICON_TYPE.BOOL
@@ -264,7 +281,7 @@ ICON_TYPE.PERCENT_LOG_OFF
 ==============================  ================================================
 
 ==============================  ================================================
-Constant                        Description
+DEPENDS_ON                      Description
 ==============================  ================================================
 DEPENDS_ON.GLOBAL_DRAW
 DEPENDS_ON.LIVEVIEW
@@ -282,5 +299,45 @@ DEPENDS_ON.M_MODE
 DEPENDS_ON.MANUAL_ISO
 DEPENDS_ON.SOUND_RECORDING
 DEPENDS_ON.NOT_SOUND_RECORDING
+==============================  ================================================
+
+==============================  ================================================
+FONT                            Description
+==============================  ================================================
+MONO_12
+MONO_20
+SANS_23
+SANS_28
+SANS_32
+CANON
+SMALL
+MED
+MED_LARGE
+==============================  ================================================
+
+==============================  ================================================
+COLOR                           Description
+==============================  ================================================
+TRANSPARENT
+WHITE
+BLACK
+TRANSPARENT_BLACK
+CYAN
+GREEN1
+GREEN2
+RED
+LIGHT_BLUE
+BLUE
+DARK_RED
+MAGENTA
+YELLOW
+ORANGE
+ALMOST_BLACK
+ALMOST_WHITE
+DARK_GREEN1_MOD
+DARK_GREEN2_MOD
+DARK_ORANGE_MOD
+DARK_CYAN1_MOD
+DARK_CYAN2_MOD
 ==============================  ================================================
 
