@@ -108,18 +108,18 @@ Event handlers will not run if there's already a script or another event handler
 
 The table below describes the events you can respond to.
 
-=====================  =========================================================
-Event                  Description
-=====================  =========================================================
-pre_shoot              called before image is taken
-post_shoot             called after image is taken
-seconds_clock          called every second
-vsync                  called for every LiveView frame; can do display tricks; must not do any heavy processing!!!
-keypress               when a key was pressed, this cbr gets the translated key as ctx 
-vsync_setparam         called from every LiveView frame; can change FRAME_ISO, FRAME_SHUTTER_TIMER, just like for HDR video 
-custom_picture_taking  special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics
-intervalometer         called after a picture is taken with the intervalometer
-=====================  =========================================================
+=========================  =====================================================
+Event                      Description
+=========================  =====================================================
+pre_shoot                  called before image is taken
+post_shoot                 called after image is taken
+seconds_clock              called every second
+vsync                      called for every LiveView frame; can do display tricks; must not do any heavy processing!!!
+keypress                   when a key was pressed, this cbr gets the translated key as ctx 
+vsync_setparam             called from every LiveView frame; can change FRAME_ISO, FRAME_SHUTTER_TIMER, just like for HDR video 
+custom_picture_taking      special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics
+intervalometer             called after a picture is taken with the intervalometer
+=========================  =====================================================
 
 Global functions
 --------------------------------------------------------------------------------
@@ -136,13 +136,13 @@ beep([numtimes])           Plays a beep through the camera speaker
 Console Library
 --------------------------------------------------------------------------------
 
-===================  ===========================================================
-Field                Description
-===================  ===========================================================
-console.show()       Shows the console.
-console.hide()       Hides the console.
-console.write(text)  Writes some text to the console.
-===================  ===========================================================
+=========================  =====================================================
+Field                      Description
+=========================  =====================================================
+console.show()             Shows the console.
+console.hide()             Hides the console.
+console.write(text)        Writes some text to the console.
+=========================  =====================================================
 
 Camera Library
 --------------------------------------------------------------------------------
@@ -151,6 +151,7 @@ Camera Library
 Field                      Description
 =========================  =====================================================
 camera.shoot([wait],[af])  Takes a picture.
+camera.bulb(duration)      Takes a picture in bulb mode.
 camera.shutter             get/set the shutter speed in apex units x10.
 camera.aperture            get/set the aperture in apex units x10.
 camera.iso                 get/set the ISO in apex units x10.
@@ -161,6 +162,7 @@ camera.af_mode             get the current auto focus mode.
 camera.metering_mode       get the current metering mode.
 camera.drive_mode          get the current drive mode.
 camera.model               get the model name of the camera.
+camera.model_short         get the shortened model name of the camera (e.g. 5D3).
 camera.firmware            get the Canon firmware version string.
 camera.temperature         get the temperature from the efic chip in raw units
 camera.state               get the current Canon GUI state of the camera (PLAY, QR, LV, etc)
