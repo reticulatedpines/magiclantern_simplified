@@ -77,7 +77,8 @@ NSTUB(0xFF0DF59C,  gui_main_task)
 
 /** ASIF **/
 NSTUB(0xFF142D68,  PowerAudioOutput)                        // sub_FF142D54 Same Actions
-NSTUB(0xFF11E9F4,  SetAudioVolumeIn)                        // SetVolumeIn(alc, L, R)
+//~ the following is not defined for a reason: bitrate-6d.c
+///NSTUB(0xFF11E9F4,  SetAudioVolumeIn)                        // SetVolumeIn(alc, L, R)
 NSTUB(0xFF142B70,  SetAudioVolumeOut)                       // 1 <= int volume <= ASIF_MAX_VOL
 NSTUB(0xFF11D0EC,  SetNextASIFADCBuffer)
 NSTUB(0xFF11D2D4,  SetNextASIFDACBuffer)                    // From Event Generating Functions
