@@ -646,6 +646,7 @@ static lua_State * load_lua_state()
     LOAD_LUA_LIB(lv);
     LOAD_LUA_LIB(lens);
     LOAD_LUA_LIB(movie);
+    LOAD_LUA_LIB(display);
     LOAD_LUA_LIB(key);
     
     //constants
