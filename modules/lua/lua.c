@@ -209,6 +209,13 @@ static const luaL_Reg globallib[] =
     { NULL, NULL }
 };
 
+static int luaCB_camera_bulb(lua_State * L)
+{
+    LUA_PARAM_INT(duration, 1);
+    bulb_take_pic(duration);
+    return 0;
+}
+
 static int luaCB_camera_index(lua_State * L)
 {
     LUA_PARAM_STRING(key, 2);
@@ -222,6 +229,7 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "metering_mode")) lua_pushinteger(L, metering_mode);
     else if(!strcmp(key, "drive_mode")) lua_pushinteger(L, drive_mode);
     else if(!strcmp(key, "model")) lua_pushstring(L, camera_model);
+    else if(!strcmp(key, "model_short")) lua_pushstring(L, __camera_model_short);
     else if(!strcmp(key, "firmware")) lua_pushstring(L, firmware_version);
     else if(!strcmp(key, "temperature")) lua_pushinteger(L, efic_temp);
     else if(!strcmp(key, "state")) lua_pushinteger(L, gui_state);
@@ -271,6 +279,7 @@ static int luaCB_camera_newindex(lua_State * L)
 static const luaL_Reg cameralib[] =
 {
     { "shoot", luaCB_shoot },
+    { "bulb", luaCB_camera_bulb },
     { NULL, NULL }
 };
 
