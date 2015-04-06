@@ -697,52 +697,6 @@ static lua_State * load_lua_state()
     return L;
 }
 
-static void update_lua_menu_values(lua_State * L)
-{
-    struct script_entry * current;
-    for(current = scripts; current; current = current->next)
-    {
-        //only update values for entries related to the current lua state, and that don't already have a select function
-        if(current->L == L && current->menu_entry && current->menu_entry->select == NULL)
-        {
-            if(lua_getglobal(L, "menu") == LUA_TTABLE)
-            {
-                if(current->submenu_index)
-                {
-                    if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
-                    {
-                        console_printf("script error: could not find submenu\n");
-                        lua_pop(L, 2);
-                        continue;
-                    }
-                    if(lua_geti(L, -1, current->submenu_index) != LUA_TTABLE)
-                    {
-                        console_printf("script error: could not find submenu '%d'\n", current->submenu_index);
-                        lua_pop(L, 3);
-                        continue;
-                    }
-                }
-                
-                if(current->menu_entry->choices)
-                {
-                    lua_pushstring(L, current->menu_entry->choices[COERCE(current->menu_value, 0, current->menu_entry->max)]);
-                }
-                else
-                {
-                    lua_pushinteger(L, current->menu_value);
-                }
-                lua_setfield(L, -2, "value");
-                
-                if(current->submenu_index)
-                {
-                    lua_pop(L, 2);
-                }
-            }
-            lua_pop(L, 1);
-        }
-    }
-}
-
 static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * event_entries, const char * event_name, int sucess, int failure)
 {
     //no events registered by lua scripts
@@ -759,9 +713,6 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
     for(current = event_entries; current; current = current->next)
     {
         lua_State * L = current->script_entry->L;
-        //TODO: figure out a better way to do this that updates menu values more "on demand" rather than just always like this
-        //one possibility is via __index metamethod
-        update_lua_menu_values(L);
         if(lua_getglobal(L, "events") == LUA_TTABLE)
         {
             if(lua_getfield(L, -1, event_name) == LUA_TFUNCTION)
@@ -867,7 +818,6 @@ static MENU_SELECT_FUNC(script_menu_select)
         lua_State * L = script_entry->L;
         if(L)
         {
-            update_lua_menu_values(L);
             lua_getglobal(L, "menu");
             if(lua_istable(L, -1))
             {
@@ -936,7 +886,6 @@ static MENU_UPDATE_FUNC(script_menu_update)
         lua_State * L = script_entry->L;
         if(L)
         {
-            update_lua_menu_values(L);
             lua_getglobal(L, "menu");
             if(lua_istable(L, -1))
             {
@@ -1045,8 +994,87 @@ static int lua_hasfield(lua_State * L, int idx, const char * name, int expected_
     return result;
 }
 
-static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const char * default_name)
+static int get_index_for_choices(struct menu_entry * menu_entry, const char * value)
 {
+    int i;
+    for(i = 0; i < menu_entry->max; i++)
+    {
+        if(!strcmp(menu_entry->choices[i], value))
+        {
+            return i;
+        }
+    }
+    return 0;
+}
+
+static int luaCB_menu_index(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "value"))
+    {
+        //get the script_entry reference from the _private field of the table
+        if(lua_getfield(L, 1, "_private") == LUA_TLIGHTUSERDATA)
+        {
+            struct script_entry * script_entry = lua_touserdata(L, -1);
+            if(script_entry && script_entry->menu_entry)
+            {
+                if(script_entry->menu_entry->choices)
+                {
+                    lua_pushstring(L, script_entry->menu_entry->choices[script_entry->menu_value]);
+                }
+                else
+                {
+                    lua_pushinteger(L, script_entry->menu_value);
+                }
+            }
+        }
+        else
+        {
+            lua_pushstring(L, "error reading menu value"); lua_error(L);
+        }
+    }
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_menu_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING(key, 2);
+    if(!strcmp(key, "value"))
+    {
+        //get the script_entry reference from the _private field of the table
+        if(lua_getfield(L, 1, "_private") == LUA_TLIGHTUSERDATA)
+        {
+            struct script_entry * script_entry = lua_touserdata(L, -1);
+            if(script_entry && script_entry->menu_entry)
+            {
+                if(script_entry->menu_entry->choices)
+                {
+                    LUA_PARAM_STRING(value, 3);
+                    script_entry->menu_value = get_index_for_choices(script_entry->menu_entry, value);
+                }
+                else
+                {
+                    LUA_PARAM_INT(value, 3);
+                    script_entry->menu_value = value;
+                }
+            }
+        }
+        else
+        {
+            lua_pushstring(L, "error reading menu value"); lua_error(L);
+        }
+    }
+    else
+    {
+        lua_rawset(L, 1);
+    }
+    return 0;
+}
+
+static void load_menu_entry(lua_State * L, struct script_entry * script_entry, const char * default_name)
+{
+    struct menu_entry * menu_entry = script_entry->menu_entry;
     menu_entry->name = LUA_FIELD_STRING("name", default_name);
     menu_entry->help = LUA_FIELD_STRING("help", "");
     menu_entry->help2 = LUA_FIELD_STRING("help2", "");
@@ -1080,6 +1108,13 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
             menu_entry->min = 0;
             menu_entry->max = choices_count - 1;
         }
+        const char * str_value = LUA_FIELD_STRING("value", "");
+        script_entry->menu_value = get_index_for_choices(menu_entry, str_value);
+    }
+    else
+    {
+        script_entry->menu_value = LUA_FIELD_INT("value", 0);
+        
     }
     lua_pop(L, 1);
     menu_entry->select = lua_hasfield(L, -1, "select", LUA_TFUNCTION) ? script_menu_select : NULL;
@@ -1087,6 +1122,21 @@ static void load_menu_entry(lua_State * L, struct menu_entry * menu_entry, const
         lua_hasfield(L, -1, "update", LUA_TFUNCTION) ||
         lua_hasfield(L, -1, "warning", LUA_TFUNCTION) ||
         lua_hasfield(L, -1, "info", LUA_TFUNCTION) ? script_menu_update : NULL;
+    
+    //delete 'value' so our index metamethod works
+    lua_pushnil(L);
+    lua_setfield(L, -2, "value");
+    
+    lua_pushlightuserdata(L, script_entry);
+    lua_setfield(L, -2, "_private");
+    
+    //add a metatable to the menu for value lookups
+    lua_newtable(L);
+    lua_pushcfunction(L, luaCB_menu_index);
+    lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, luaCB_menu_newindex);
+    lua_setfield(L, -2, "__newindex");
+    lua_setmetatable(L, -2);
 }
 
 #define SCRIPT_CBR(event) if(lua_getfield(L, -1, #event) == LUA_TFUNCTION) add_event_script_entry(&(event##_cbr_scripts), script_entry); lua_pop(L, 1)
@@ -1121,7 +1171,7 @@ static void add_script(const char * filename)
             {
                 //script that defines it's own menu structure
                 const char * parent = LUA_FIELD_STRING("parent", "LUA");
-                load_menu_entry(L, script_entry->menu_entry, filename);
+                load_menu_entry(L, script_entry, filename);
                 
                 //submenu
                 if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
@@ -1142,7 +1192,7 @@ static void add_script(const char * filename)
                                 struct script_entry * submenu_entry = create_script_entry(L, &(script_entry->menu_entry->children[submenu_index]));
                                 if(submenu_entry)
                                 {
-                                    load_menu_entry(L, submenu_entry->menu_entry, "unknown");
+                                    load_menu_entry(L, submenu_entry, "unknown");
                                     submenu_entry->menu_value = LUA_FIELD_INT("value", 0);
                                     submenu_entry->submenu_index = submenu_index + 1;
                                 }
