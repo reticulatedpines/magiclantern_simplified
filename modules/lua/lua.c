@@ -45,25 +45,26 @@
 #define CBR_RET_KEYPRESS_HANDLED 0
 //#define CONFIG_VSYNC_EVENTS
 
-struct script_entry
+struct script_menu_entry
 {
     int menu_value;
-    struct script_entry * next;
     lua_State * L;
     struct menu_entry * menu_entry;
-    int submenu_index;
+    int select_ref;
+    int update_ref;
+    int warning_ref;
+    int info_ref;
+    int submenu_ref;
 };
 struct script_event_entry
 {
     struct script_event_entry * next;
-    struct script_entry * script_entry;
+    lua_State * L;
 };
-static struct script_entry * scripts = NULL;
-static struct script_entry * running_script = NULL;
+static lua_State * running_script = NULL;
 static int lua_running = 0;
 static int lua_loaded = 0;
 static int lua_run_arg_count = 0;
-static int script_entry_count = 0;
 
 #define LUA_PARAM_INT(name, index)\
 if(index > lua_gettop(L) || !lua_isinteger(L, index))\
@@ -814,7 +815,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
     struct script_event_entry * current;
     for(current = event_entries; current; current = current->next)
     {
-        lua_State * L = current->script_entry->L;
+        lua_State * L = current->L;
         if(lua_getglobal(L, "events") == LUA_TTABLE)
         {
             if(lua_getfield(L, -1, event_name) == LUA_TFUNCTION)
@@ -875,9 +876,9 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
 static void lua_run_task(int unused)
 {
     lua_running = 1;
-    if(running_script && running_script->L)
+    if(running_script)
     {
-        lua_State * L = running_script->L;
+        lua_State * L = running_script;
         console_printf("running script...\n");
         if(lua_pcall(L, lua_run_arg_count, 0, 0))
         {
@@ -887,207 +888,91 @@ static void lua_run_task(int unused)
         {
             console_printf("script finished\n");
         }
-        if(running_script->submenu_index) lua_pop(L, 1);
     }
     lua_running = 0;
 }
 
-static MENU_SELECT_FUNC(run_script)
+static MENU_SELECT_FUNC(script_menu_select)
 {
-    if (!lua_running)
+    if(lua_running)
     {
-        lua_running = 1;
-        lua_run_arg_count = 0;
-        running_script = priv;
-        lua_State * L = running_script->L;
-        lua_getglobal(L, "main");
-        if(!lua_isfunction(L, -1))
+        console_printf("script error: another script is currently running\n");
+        return;
+    }
+    
+    struct script_menu_entry * script_entry = priv;
+    if(script_entry && script_entry->L && script_entry->select_ref != LUA_NOREF)
+    {
+        lua_State * L = script_entry->L;
+        if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref) == LUA_TFUNCTION)
         {
-            console_printf("script error: no main function\n");
-            lua_running = 0;
+            lua_run_arg_count = 1;
+            lua_pushinteger(L, delta);
+            running_script = L;
+            lua_running = 1;
+            task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
         }
         else
         {
-            task_create("lua_task", 0x1c, 0x4000, lua_run_task, (void*) 0);
-        }
-    }
-}
-
-static MENU_SELECT_FUNC(script_menu_select)
-{
-    struct script_entry * script_entry = priv;
-    if(script_entry)
-    {
-        lua_State * L = script_entry->L;
-        if(L)
-        {
-            lua_getglobal(L, "menu");
-            if(lua_istable(L, -1))
-            {
-                if(script_entry->submenu_index)
-                {
-                    if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
-                    {
-                        console_printf("script error: could not find submenu\n");
-                        lua_pop(L, 2);
-                        return;
-                    }
-                    if(lua_geti(L, -1, script_entry->submenu_index) != LUA_TTABLE)
-                    {
-                        console_printf("script error: could not find submenu '%d'\n", script_entry->submenu_index);
-                        lua_pop(L, 3);
-                        return;
-                    }
-                }
-                
-                if(lua_getfield(L, -1, "select") == LUA_TFUNCTION)
-                {
-                    if (!lua_running)
-                    {
-                        lua_run_arg_count = 1;
-                        lua_pushinteger(L, delta);
-                        running_script = script_entry;
-                        lua_running = 1;
-                        task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
-                    }
-                    else
-                    {
-                        console_printf("script error: another script is currently running\n");
-                        lua_pop(L, 1);
-                        if(script_entry->submenu_index) lua_pop(L, 2);
-                    }
-                }
-                else
-                {
-                    lua_pop(L, 1);
-                    
-                    lua_getfield(L, -1, "value");
-                    int current_value = lua_isinteger(L, -1) ? lua_tointeger(L, -1) : 0;
-                    lua_pop(L, 1);
-                    
-                    current_value += delta;
-                    if(current_value > script_entry->menu_entry->max) current_value = script_entry->menu_entry->min;
-                    else if(current_value < script_entry->menu_entry->min) current_value = script_entry->menu_entry->max;
-                    lua_pushinteger(L, current_value);
-                    lua_setfield(L, -2, "value");
-                    
-                    script_entry->menu_value = current_value;
-                    
-                    lua_pop(L, 1);
-                    if(script_entry->submenu_index) lua_pop(L, 2);
-                }
-            }
+            lua_pushstring(L, "error: select was not a function"); lua_error(L);
         }
     }
 }
 
 static MENU_UPDATE_FUNC(script_menu_update)
 {
-    struct script_entry * script_entry = entry->priv;
-    if(script_entry)
+    if(lua_running)
+    {
+        console_printf("script error: another script is currently running\n");
+        return;
+    }
+    
+    struct script_menu_entry * script_entry = entry->priv;
+    if(script_entry && script_entry->L)
     {
         lua_State * L = script_entry->L;
-        if(L)
+        if(script_entry->update_ref != LUA_NOREF)
         {
-            lua_getglobal(L, "menu");
-            if(lua_istable(L, -1))
+            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
             {
-                if(script_entry->submenu_index)
-                {
-                    if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
-                    {
-                        console_printf("script error: could not find submenu\n");
-                        MENU_SET_VALUE("");
-                        lua_pop(L, 2);
-                        return;
-                    }
-                    if(lua_geti(L, -1, script_entry->submenu_index) != LUA_TTABLE)
-                    {
-                        console_printf("script error: could not find submenu '%d'\n", script_entry->submenu_index);
-                        MENU_SET_VALUE("");
-                        lua_pop(L, 3);
-                        return;
-                    }
-                }
-                
-                if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
-                {
-                    if(!lua_pcall(L, 0, 1, 0))
-                    {
-                        MENU_SET_VALUE("%s", lua_tostring(L, -1));
-                    }
-                }
-                else if(lua_isstring(L, -1))
+                if(!lua_pcall(L, 0, 1, 0))
                 {
                     MENU_SET_VALUE("%s", lua_tostring(L, -1));
                 }
-                lua_pop(L, 1);
-                
-                if(lua_getfield(L, -1, "info") == LUA_TFUNCTION)
-                {
-                    if(!lua_pcall(L, 0, 1, 0))
-                    {
-                        if(lua_isstring(L, -1))
-                        {
-                            MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
-                        }
-                    }
-                }
-                lua_pop(L, 1);
-                
-                if(lua_getfield(L, -1, "warning") == LUA_TFUNCTION)
-                {
-                    if(!lua_pcall(L, 0, 1, 0))
-                    {
-                        if(lua_isstring(L, -1))
-                        {
-                            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
-                        }
-                    }
-                }
-                lua_pop(L, 1);
-                
-                if(script_entry->submenu_index) lua_pop(L, 2);
             }
-            lua_pop(L, 1);
-        }
-    }
-    else
-    {
-        MENU_SET_VALUE("");
-    }
-}
-
-static struct script_entry * create_script_entry(lua_State * L, struct menu_entry * existing_menu_entry)
-{
-    struct script_entry * script_entry = malloc(sizeof(struct script_entry));
-    
-    if(script_entry)
-    {
-        if(existing_menu_entry)
-        {
-            script_entry->menu_entry = existing_menu_entry;
-        }
-        else
-        {
-            script_entry->menu_entry = malloc(sizeof(struct menu_entry));
-            if(!script_entry->menu_entry)
+            else if(lua_isstring(L, -1))
             {
-                free(script_entry);
-                lua_close(L);
-                return NULL;
+                MENU_SET_VALUE("%s", lua_tostring(L, -1));
             }
+            lua_pop(L,1);
         }
-        script_entry_count++;
-        script_entry->next = scripts;
-        scripts = script_entry;
-        script_entry->L = L;
-        memset(script_entry->menu_entry, 0, sizeof(struct menu_entry));
-        script_entry->menu_entry->priv = script_entry;
-        script_entry->submenu_index = 0;
-        return script_entry;
+        if(script_entry->info_ref != LUA_NOREF)
+        {
+            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref) == LUA_TFUNCTION)
+            {
+                if(!lua_pcall(L, 0, 1, 0))
+                {
+                    MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
+                }
+            }
+            else if(lua_isstring(L, -1))
+            {
+                MENU_SET_VALUE("%s", lua_tostring(L, -1));
+            }
+            lua_pop(L,1);
+        }
+        if(script_entry->warning_ref != LUA_NOREF)
+        {
+            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref) == LUA_TFUNCTION)
+            {
+                if(!lua_pcall(L, 0, 1, 0))
+                {
+                    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
+                }
+            }
+            lua_pop(L,1);
+        }
     }
-    return NULL;
 }
 
 static int lua_hasfield(lua_State * L, int idx, const char * name, int expected_type)
@@ -1115,10 +1000,9 @@ static int luaCB_menu_index(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "value"))
     {
-        //get the script_entry reference from the _private field of the table
-        if(lua_istable(L, 1) && lua_getfield(L, 1, "_private") == LUA_TLIGHTUSERDATA)
+        if(lua_isuserdata(L, 1))
         {
-            struct script_entry * script_entry = lua_touserdata(L, -1);
+            struct script_menu_entry * script_entry = lua_touserdata(L, 1);
             if(script_entry && script_entry->menu_entry)
             {
                 if(script_entry->menu_entry->choices)
@@ -1136,7 +1020,10 @@ static int luaCB_menu_index(lua_State * L)
             lua_pushstring(L, "error reading menu value"); lua_error(L);
         }
     }
-    else lua_rawget(L, 1);
+    else
+    {
+        lua_pushnil(L); //return nil
+    }
     return 1;
 }
 
@@ -1145,10 +1032,9 @@ static int luaCB_menu_newindex(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "value"))
     {
-        //get the script_entry reference from the _private field of the table
-        if(lua_istable(L, 1) && lua_getfield(L, 1, "_private") == LUA_TLIGHTUSERDATA)
+        if(lua_isuserdata(L, 1))
         {
-            struct script_entry * script_entry = lua_touserdata(L, -1);
+            struct script_menu_entry * script_entry = lua_touserdata(L, 1);
             if(script_entry && script_entry->menu_entry)
             {
                 if(script_entry->menu_entry->choices)
@@ -1170,14 +1056,26 @@ static int luaCB_menu_newindex(lua_State * L)
     }
     else
     {
-        lua_rawset(L, 1);
+        lua_pushstring(L, "property is read only!"); lua_error(L);
     }
     return 0;
 }
 
-static void load_menu_entry(lua_State * L, struct script_entry * script_entry, const char * default_name)
+static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name)
 {
-    struct menu_entry * menu_entry = script_entry->menu_entry;
+    if(!menu_entry)
+    {
+        menu_entry = malloc(sizeof(struct menu_entry));
+        if(!menu_entry)
+        {
+            lua_pushstring(L, "malloc error creating menu_entry");
+            lua_error(L);
+        }
+    }
+    memset(menu_entry, 0, sizeof(struct menu_entry));
+    script_entry->L = L;
+    script_entry->menu_entry = menu_entry;
+    menu_entry->priv = script_entry;
     menu_entry->name = LUA_FIELD_STRING("name", default_name);
     menu_entry->help = LUA_FIELD_STRING("help", "");
     menu_entry->help2 = LUA_FIELD_STRING("help2", "");
@@ -1213,13 +1111,86 @@ static void load_menu_entry(lua_State * L, struct script_entry * script_entry, c
         }
     }
     lua_pop(L, 1);
-    menu_entry->select = lua_hasfield(L, -1, "select", LUA_TFUNCTION) ? script_menu_select : NULL;
-    menu_entry->update =
-        lua_hasfield(L, -1, "update", LUA_TFUNCTION) ||
-        lua_hasfield(L, -1, "warning", LUA_TFUNCTION) ||
-        lua_hasfield(L, -1, "info", LUA_TFUNCTION) ? script_menu_update : NULL;
     
-    //load and then delete 'value' so our index metamethod works
+    if(lua_getfield(L, -1, "select") == LUA_TFUNCTION)
+    {
+        script_entry->select_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        menu_entry->select = script_menu_select;
+    }
+    else
+    {
+        script_entry->select_ref = LUA_NOREF;
+        lua_pop(L,1);
+    }
+    
+    if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
+    {
+        script_entry->update_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        menu_entry->update = script_menu_update;
+    }
+    else
+    {
+        script_entry->update_ref = LUA_NOREF;
+        lua_pop(L,1);
+    }
+    
+    if(lua_getfield(L, -1, "warning") == LUA_TFUNCTION)
+    {
+        script_entry->warning_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        menu_entry->update = script_menu_update;
+    }
+    else
+    {
+        script_entry->warning_ref = LUA_NOREF;
+        lua_pop(L,1);
+    }
+    
+    if(lua_getfield(L, -1, "info") == LUA_TFUNCTION)
+    {
+        script_entry->info_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        menu_entry->update = script_menu_update;
+    }
+    else
+    {
+        script_entry->info_ref = LUA_NOREF;
+        lua_pop(L,1);
+    }
+    
+    /*
+    //submenu
+    if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
+    {
+        int submenu_count = luaL_len(L, -1);
+        if(submenu_count > 0)
+        {
+            int submenu_index = 0;
+            script_entry->menu_value = 1;
+            script_entry->menu_entry->icon_type = IT_SUBMENU;
+            script_entry->menu_entry->select = menu_open_submenu;
+            script_entry->menu_entry->children = malloc(sizeof(struct menu_entry) * (1 + submenu_count));
+            memset(script_entry->menu_entry->children, 0, sizeof(struct menu_entry) * (1 + submenu_count));
+            for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
+            {
+                if(lua_geti(L, -1, submenu_index + 1) == LUA_TTABLE) //lua arrays are 1 based
+                {
+                    struct script_entry * submenu_entry = create_script_entry(L, &(script_entry->menu_entry->children[submenu_index]));
+                    if(submenu_entry)
+                    {
+                        load_menu_entry(L, submenu_entry, &(script_entry->menu_entry->children[submenu_index]), "unknown");
+                    }
+                }
+                else
+                {
+                    console_printf("invalid submenu[%d]\n", submenu_index);
+                }
+                lua_pop(L, 1);
+            }
+            script_entry->menu_entry->children[submenu_index].priv = MENU_EOL_PRIV;
+        }
+    }
+    lua_pop(L, 1);
+    */
+    //load default 'value' so our index metamethod works
     if(menu_entry->choices)
     {
         const char * str_value = LUA_FIELD_STRING("value", "");
@@ -1229,31 +1200,50 @@ static void load_menu_entry(lua_State * L, struct script_entry * script_entry, c
     {
         script_entry->menu_value = LUA_FIELD_INT("value", 0);
     }
-    lua_pushnil(L);
-    lua_setfield(L, -2, "value");
+     
+}
+
+static int luaCB_menu_new(lua_State * L)
+{
+    if(!lua_istable(L, 1))
+    {
+        lua_pushstring(L, "Invalid or missing parameter to menu.new()");
+        lua_error(L);
+    }
+    struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
     
-    lua_pushlightuserdata(L, script_entry);
-    lua_setfield(L, -2, "_private");
-    
-    //add a metatable to the menu for value lookups
+    //add a metatable to the userdata object for value lookups and to store submenu
     lua_newtable(L);
     lua_pushcfunction(L, luaCB_menu_index);
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_menu_newindex);
     lua_setfield(L, -2, "__newindex");
     lua_setmetatable(L, -2);
-     
+    
+    lua_pushvalue(L, 1);
+    const char * parent = LUA_FIELD_STRING("parent", "LUA");
+    load_menu_entry(L, new_entry, NULL, "unknown");
+    menu_add(parent, new_entry->menu_entry, 1);
+    lua_pop(L, 1);
+    
+    return 1; //return the userdata object
 }
 
-#define SCRIPT_CBR(event) if(lua_getfield(L, -1, #event) == LUA_TFUNCTION) add_event_script_entry(&(event##_cbr_scripts), script_entry); lua_pop(L, 1)
+const luaL_Reg menulib[] =
+{
+    {"new", luaCB_menu_new},
+    {NULL, NULL}
+};
 
-static void add_event_script_entry(struct script_event_entry ** root, struct script_entry * script_entry)
+#define SCRIPT_CBR(event) if(lua_getfield(L, -1, #event) == LUA_TFUNCTION) add_event_script_entry(&(event##_cbr_scripts), L); lua_pop(L, 1)
+
+static void add_event_script_entry(struct script_event_entry ** root, lua_State * L)
 {
     struct script_event_entry * new_entry = malloc(sizeof(struct script_event_entry));
     if(new_entry)
     {
         new_entry->next = *root;
-        new_entry->script_entry = script_entry;
+        new_entry->L = L;
         *root = new_entry;
     }
 }
@@ -1261,6 +1251,10 @@ static void add_event_script_entry(struct script_event_entry ** root, struct scr
 static void add_script(const char * filename)
 {
     lua_State* L = load_lua_state();
+    
+    //load menu table
+    lua_newtable(L); luaL_setfuncs(L, menulib, 0); lua_setglobal(L, "menu");
+    
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
     console_printf("loading script: %s\n", filename);
@@ -1270,83 +1264,22 @@ static void add_script(const char * filename)
     }
     else
     {
-        struct script_entry * script_entry = create_script_entry(L, NULL);
-        if(script_entry)
+        if(lua_getglobal(L, "events") == LUA_TTABLE)
         {
-            if(lua_getglobal(L, "menu") == LUA_TTABLE)
-            {
-                //script that defines it's own menu structure
-                const char * parent = LUA_FIELD_STRING("parent", "LUA");
-                load_menu_entry(L, script_entry, filename);
-                
-                //submenu
-                if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
-                {
-                    console_printf("loading submenu\n");
-                    int submenu_count = luaL_len(L, -1);
-                    if(submenu_count > 0)
-                    {
-                        int submenu_index = 0;
-                        script_entry->menu_value = 1;
-                        script_entry->menu_entry->icon_type = IT_SUBMENU;
-                        script_entry->menu_entry->select = menu_open_submenu;
-                        script_entry->menu_entry->children = malloc(sizeof(struct menu_entry) * (1 + submenu_count));
-                        memset(script_entry->menu_entry->children, 0, sizeof(struct menu_entry) * (1 + submenu_count));
-                        for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
-                        {
-                            if(lua_geti(L, -1, submenu_index + 1) == LUA_TTABLE) //lua arrays are 1 based
-                            {
-                                struct script_entry * submenu_entry = create_script_entry(L, &(script_entry->menu_entry->children[submenu_index]));
-                                if(submenu_entry)
-                                {
-                                    load_menu_entry(L, submenu_entry, "unknown");
-                                    submenu_entry->submenu_index = submenu_index + 1;
-                                }
-                            }
-                            else
-                            {
-                                console_printf("invalid submenu[%d]\n", submenu_index);
-                            }
-                            lua_pop(L, 1);
-                        }
-                        script_entry->menu_entry->children[submenu_index].priv = MENU_EOL_PRIV;
-                    }
-                }
-                lua_pop(L, 1);
-                
-                menu_add(parent, script_entry->menu_entry, 1);
-            }
-            else
-            {
-                //simple script w/o menu
-                lua_getglobal(L, "script_name");
-                script_entry->menu_entry->name = lua_isstring(L, -1) ? lua_tostring(L, -1) : filename;
-                lua_getglobal(L, "script_help");
-                script_entry->menu_entry->help = lua_isstring(L, -1) ? lua_tostring(L, -1) : "";
-                script_entry->menu_entry->select = run_script;
-                script_entry->menu_entry->update = script_menu_update;
-                script_entry->menu_entry->icon_type = IT_ACTION;
-                menu_add("LUA", script_entry->menu_entry, 1);
-            }
-            lua_pop(L, 1);
-            
-            if(lua_getglobal(L, "events") == LUA_TTABLE)
-            {
-                SCRIPT_CBR(pre_shoot);
-                SCRIPT_CBR(post_shoot);
-                SCRIPT_CBR(shoot_task);
-                SCRIPT_CBR(seconds_clock);
-                SCRIPT_CBR(keypress);
-                SCRIPT_CBR(custom_picture_taking);
-                SCRIPT_CBR(intervalometer);
+            SCRIPT_CBR(pre_shoot);
+            SCRIPT_CBR(post_shoot);
+            SCRIPT_CBR(shoot_task);
+            SCRIPT_CBR(seconds_clock);
+            SCRIPT_CBR(keypress);
+            SCRIPT_CBR(custom_picture_taking);
+            SCRIPT_CBR(intervalometer);
 #ifdef CONFIG_VSYNC_EVENTS
-                SCRIPT_CBR(display_filter);
-                SCRIPT_CBR(vsync);
-                SCRIPT_CBR(vsync_setparam);
+            SCRIPT_CBR(display_filter);
+            SCRIPT_CBR(vsync);
+            SCRIPT_CBR(vsync_setparam);
 #endif
-            }
-            lua_pop(L, 1);
         }
+        lua_pop(L, 1);
         console_printf("loading finished: %s\n", filename);
     }
 }
