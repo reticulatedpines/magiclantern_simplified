@@ -252,7 +252,7 @@ static int luaCB_camera_newindex(lua_State * L)
     }
     else if(!strcmp(key, "model") || !strcmp(key, "firmware") || !strcmp(key, "mode") || !strcmp(key, "af_mode") || !strcmp(key, "metering_mode") || !strcmp(key, "drive_mode") || !strcmp(key, "temperature") || !strcmp(key, "state"))
     {
-        lua_pushstring(L, "property is readonly!"); lua_error(L);
+        return luaL_error(L, "'%s' is readonly!", key);
     }
     else
     {
@@ -344,7 +344,7 @@ static int luaCB_lens_newindex(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focal_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af"))
     {
-        lua_pushstring(L, "property is readonly!"); lua_error(L);
+        return luaL_error(L, "'%s' is readonly!", key);
     }
     else
     {
@@ -374,14 +374,11 @@ static int luaCB_movie_start(lua_State* L)
 {
     if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
     {
-        lua_pushstring(L, "Not in movie mode");
-        lua_error(L);
+        return luaL_error(L, "Not in movie mode");
     }
     else if (RECORDING)
     {
-        
-        lua_pushstring(L, "Already recording");
-        lua_error(L);
+        return luaL_error(L, "Already recording");
     }
     else
     {
@@ -394,13 +391,11 @@ static int luaCB_movie_stop(lua_State* L)
 {
     if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
     {
-        lua_pushstring(L, "Not in movie mode");
-        lua_error(L);
+        return luaL_error(L, "Not in movie mode");
     }
     else if (!RECORDING)
     {
-        lua_pushstring(L, "Not recording");
-        lua_error(L);
+        return luaL_error(L, "Not recording");
     }
     else
     {
@@ -536,7 +531,7 @@ static int luaCB_display_newindex(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "idle"))
     {
-        lua_pushstring(L, "property is readonly!"); lua_error(L);
+        return luaL_error(L, "'%s' is readonly!", key);
     }
     else
     {
@@ -602,7 +597,7 @@ static int luaCB_key_newindex(lua_State * L)
     LUA_PARAM_STRING(key, 2);
     if(!strcmp(key, "last"))
     {
-        lua_pushstring(L, "property is readonly!"); lua_error(L);
+        return luaL_error(L, "'%s' is readonly!", key);
     }
     else
     {
@@ -898,7 +893,7 @@ static MENU_SELECT_FUNC(script_menu_select)
         }
         else
         {
-            lua_pushstring(L, "error: select was not a function"); lua_error(L);
+            luaL_error(L, "select is not a function");
         }
     }
 }
@@ -1153,8 +1148,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
         menu_entry = malloc(sizeof(struct menu_entry));
         if(!menu_entry)
         {
-            lua_pushstring(L, "malloc error creating menu_entry");
-            lua_error(L);
+            luaL_error(L, "malloc error creating menu_entry");
             return;
         }
     }
@@ -1299,11 +1293,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
 
 static int luaCB_menu_new(lua_State * L)
 {
-    if(!lua_istable(L, 1))
-    {
-        lua_pushstring(L, "Invalid or missing parameter to menu.new()");
-        lua_error(L);
-    }
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
     //add a metatable to the userdata object for value lookups and to store submenu
     lua_newtable(L);
