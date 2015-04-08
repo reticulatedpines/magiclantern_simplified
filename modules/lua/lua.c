@@ -203,7 +203,7 @@ static int luaCB_camera_bulb(lua_State * L)
 
 static int luaCB_camera_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "shutter")) lua_pushinteger(L, RAW2TV(lens_info.raw_shutter));
     else if(!strcmp(key, "aperture")) lua_pushinteger(L, RAW2AV(lens_info.raw_aperture));
     else if(!strcmp(key, "iso")) lua_pushinteger(L, RAW2SV(lens_info.raw_iso));
@@ -224,7 +224,7 @@ static int luaCB_camera_index(lua_State * L)
 
 static int luaCB_camera_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "shutter"))
     {
         LUA_PARAM_INT(value, 3);
@@ -270,7 +270,7 @@ static const luaL_Reg cameralib[] =
 
 static int luaCB_lv_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "enabled")) lua_pushboolean(L, lv);
     else lua_rawget(L, 1);
     return 1;
@@ -278,7 +278,7 @@ static int luaCB_lv_index(lua_State * L)
 
 static int luaCB_lv_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "enabled"))
     {
         LUA_PARAM_BOOL(value, 3);
@@ -327,7 +327,7 @@ static const luaL_Reg lvlib[] =
 
 static int luaCB_lens_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "name")) lua_pushstring(L, lens_info.name);
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
     else if(!strcmp(key, "focal_distance")) lua_pushinteger(L, lens_info.focus_dist);
@@ -341,7 +341,7 @@ static int luaCB_lens_index(lua_State * L)
 
 static int luaCB_lens_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focal_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
@@ -406,7 +406,7 @@ static int luaCB_movie_stop(lua_State* L)
 
 static int luaCB_movie_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "recording")) lua_pushboolean(L, RECORDING);
     else lua_rawget(L, 1);
     return 1;
@@ -414,7 +414,7 @@ static int luaCB_movie_index(lua_State * L)
 
 static int luaCB_movie_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "recording"))
     {
         LUA_PARAM_BOOL(value, 3);
@@ -520,7 +520,7 @@ static int luaCB_display_circle(lua_State * L)
 
 static int luaCB_display_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "idle")) lua_pushboolean(L, display_idle());
     else lua_rawget(L, 1);
     return 1;
@@ -528,7 +528,7 @@ static int luaCB_display_index(lua_State * L)
 
 static int luaCB_display_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "idle"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
@@ -586,7 +586,7 @@ static int luaCB_key_wait(lua_State * L)
 
 static int luaCB_key_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "last")) lua_pushinteger(L, last_keypress);
     else lua_rawget(L, 1);
     return 1;
@@ -594,7 +594,7 @@ static int luaCB_key_index(lua_State * L)
 
 static int luaCB_key_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "last"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
@@ -612,6 +612,31 @@ const luaL_Reg keylib[] =
     {"wait", luaCB_key_wait},
     {NULL, NULL}
 };
+
+//copied from lua.c
+static int msghandler (lua_State *L) {
+    const char *msg = lua_tostring(L, 1);
+    if (msg == NULL) {  /* is error object not a string? */
+        if (luaL_callmeta(L, 1, "__tostring") &&  /* does it have a metamethod */
+            lua_type(L, -1) == LUA_TSTRING)  /* that produces a string? */
+            return 1;  /* that is the message */
+        else
+            msg = lua_pushfstring(L, "(error object is a %s value)",
+                                  luaL_typename(L, 1));
+    }
+    luaL_traceback(L, L, msg, 1);  /* append a standard traceback */
+    return 1;  /* return the traceback */
+}
+
+static int docall (lua_State *L, int narg, int nres) {
+    int status;
+    int base = lua_gettop(L) - narg;  /* function index */
+    lua_pushcfunction(L, msghandler);  /* push message handler */
+    lua_insert(L, base);  /* put it under function and args */
+    status = lua_pcall(L, narg, nres, base);
+    lua_remove(L, base);  /* remove message handler from the stack */
+    return status;
+}
 
 #define LOAD_LUA_LIB(name) lua_newtable(L);luaL_setfuncs(L, name##lib, 0);lua_pushvalue(L,-1);lua_setglobal(L, #name);lua_newtable(L);lua_pushcfunction(L, luaCB_##name##_index);lua_setfield(L, -2, "__index");lua_pushcfunction(L, luaCB_##name##_newindex);lua_setfield(L, -2, "__newindex");lua_setmetatable(L, -2);lua_pop(L,1)
 #define LUA_CONSTANT(name, value) lua_pushinteger(L, value); lua_setfield(L, -2, #name)
@@ -800,7 +825,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             if(lua_getfield(L, -1, event_name) == LUA_TFUNCTION)
             {
                 lua_pushinteger(L, ctx);
-                if(lua_pcall(L, 1, 1, 0))
+                if(docall(L, 1, 1))
                 {
                     console_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
                     lua_pop(L, 1);
@@ -859,7 +884,7 @@ static void lua_run_task(int unused)
     {
         lua_State * L = running_script;
         console_printf("running script...\n");
-        if(lua_pcall(L, lua_run_arg_count, 0, 0))
+        if(docall(L, lua_run_arg_count, 0))
         {
             console_printf("script failed:\n %s\n", lua_tostring(L, -1));
         }
@@ -914,7 +939,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
             {
-                if(!lua_pcall(L, 0, 1, 0))
+                if(!docall(L, 0, 1))
                 {
                     MENU_SET_VALUE("%s", lua_tostring(L, -1));
                 }
@@ -929,7 +954,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref) == LUA_TFUNCTION)
             {
-                if(!lua_pcall(L, 0, 1, 0))
+                if(!docall(L, 0, 1))
                 {
                     MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
                 }
@@ -944,7 +969,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref) == LUA_TFUNCTION)
             {
-                if(!lua_pcall(L, 0, 1, 0))
+                if(!docall(L, 0, 1))
                 {
                     MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
                 }
@@ -1341,7 +1366,7 @@ static void add_script(const char * filename)
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
     console_printf("loading script: %s\n", filename);
-    if(luaL_dofile(L, full_path))
+    if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
     {
         console_printf("load script '%s' failed:\n %s\n", filename, lua_tostring(L, -1));
     }
