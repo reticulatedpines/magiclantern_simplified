@@ -997,84 +997,154 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
 
 static int luaCB_menu_index(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
+    struct script_menu_entry * script_entry = lua_touserdata(L, 1);
+    if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
+    
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "value"))
     {
-        if(lua_isuserdata(L, 1))
+        if(script_entry->menu_entry->choices)
         {
-            struct script_menu_entry * script_entry = lua_touserdata(L, 1);
-            if(script_entry && script_entry->menu_entry)
-            {
-                if(script_entry->menu_entry->choices)
-                {
-                    lua_pushstring(L, script_entry->menu_entry->choices[script_entry->menu_value]);
-                }
-                else
-                {
-                    lua_pushinteger(L, script_entry->menu_value);
-                }
-            }
+            lua_pushstring(L, script_entry->menu_entry->choices[script_entry->menu_value]);
         }
         else
         {
-            lua_pushstring(L, "error reading menu value"); lua_error(L);
+            lua_pushinteger(L, script_entry->menu_value);
         }
     }
-    else if(!strcmp(key, "submenu"))
-    {
-        //we store the submenu table in the metatable
-        if(lua_getmetatable(L, 1))
-        {
-            if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
-            {
-                console_printf("warning: submenu not found in metatable\n");
-            }
-        }
-        else
-        {
-            lua_pushstring(L, "could not get metatable for menu");
-            lua_error(L);
-        }
-    }
-    //TODO: allow reading other menu properties
+    else if(!strcmp(key, "name")) lua_pushstring(L, script_entry->menu_entry->name);
+    else if(!strcmp(key, "help")) lua_pushstring(L, script_entry->menu_entry->help);
+    else if(!strcmp(key, "help2")) lua_pushstring(L, script_entry->menu_entry->help2);
+    else if(!strcmp(key, "advanced")) lua_pushinteger(L, script_entry->menu_entry->advanced);
+    else if(!strcmp(key, "depends_on")) lua_pushinteger(L, script_entry->menu_entry->depends_on);
+    else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
+    else if(!strcmp(key, "hidden")) lua_pushinteger(L, script_entry->menu_entry->hidden);
+    else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
+    else if(!strcmp(key, "jhidden")) lua_pushinteger(L, script_entry->menu_entry->jhidden);
+    else if(!strcmp(key, "max")) lua_pushinteger(L, script_entry->menu_entry->max);
+    else if(!strcmp(key, "min")) lua_pushinteger(L, script_entry->menu_entry->min);
+    else if(!strcmp(key, "selected")) lua_pushinteger(L, script_entry->menu_entry->selected);
+    else if(!strcmp(key, "shidden")) lua_pushinteger(L, script_entry->menu_entry->shidden);
+    else if(!strcmp(key, "starred")) lua_pushinteger(L, script_entry->menu_entry->starred);
+    else if(!strcmp(key, "submenu_height")) lua_pushinteger(L, script_entry->menu_entry->submenu_height);
+    else if(!strcmp(key, "submenu_width")) lua_pushinteger(L, script_entry->menu_entry->submenu_width);
+    else if(!strcmp(key, "unit")) lua_pushinteger(L, script_entry->menu_entry->unit);
+    else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
+    else if(!strcmp(key, "select")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref);
+    else if(!strcmp(key, "update")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref);
+    else if(!strcmp(key, "info")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref);
+    else if(!strcmp(key, "warning")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref);
     else
     {
-        lua_pushnil(L); //return nil
+        //retrieve the key from the metatable
+        if(lua_getmetatable(L, 1))
+        {
+            lua_pushvalue(L, 2);
+            lua_rawget(L, -2);
+        }
+        else
+        {
+            lua_pushnil(L);
+        }
     }
     return 1;
 }
 
 static int luaCB_menu_newindex(lua_State * L)
 {
-    LUA_PARAM_STRING(key, 2);
+    if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
+    struct script_menu_entry * script_entry = lua_touserdata(L, 1);
+    if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
+    
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key, "value"))
     {
-        if(lua_isuserdata(L, 1))
+        if(script_entry->menu_entry->choices)
         {
-            struct script_menu_entry * script_entry = lua_touserdata(L, 1);
-            if(script_entry && script_entry->menu_entry)
-            {
-                if(script_entry->menu_entry->choices)
-                {
-                    LUA_PARAM_STRING(value, 3);
-                    script_entry->menu_value = get_index_for_choices(script_entry->menu_entry, value);
-                }
-                else
-                {
-                    LUA_PARAM_INT(value, 3);
-                    script_entry->menu_value = value;
-                }
-            }
+            LUA_PARAM_STRING(value, 3);
+            script_entry->menu_value = get_index_for_choices(script_entry->menu_entry, value);
         }
         else
         {
-            lua_pushstring(L, "error reading menu value"); lua_error(L);
+            LUA_PARAM_INT(value, 3);
+            script_entry->menu_value = value;
         }
     }
-    //TODO: allow setting other menu properties
+    else if(!strcmp(key, "name")) { LUA_PARAM_STRING(value, 3); script_entry->menu_entry->name = value; }
+    else if(!strcmp(key, "help")) { LUA_PARAM_STRING(value, 3); script_entry->menu_entry->help = value; }
+    else if(!strcmp(key, "help2")) { LUA_PARAM_STRING(value, 3); script_entry->menu_entry->help2 = value; }
+    else if(!strcmp(key, "advanced")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->advanced = value; }
+    else if(!strcmp(key, "depends_on")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->depends_on = value; }
+    else if(!strcmp(key, "edit_mode")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->edit_mode = value; }
+    else if(!strcmp(key, "hidden")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->hidden = value; }
+    else if(!strcmp(key, "icon_type")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->icon_type = value; }
+    else if(!strcmp(key, "jhidden")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->jhidden = value; }
+    else if(!strcmp(key, "max")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->max = value; }
+    else if(!strcmp(key, "min")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->min = value; }
+    else if(!strcmp(key, "selected")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->selected = value; }
+    else if(!strcmp(key, "shidden")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->shidden = value; }
+    else if(!strcmp(key, "starred")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->starred = value; }
+    else if(!strcmp(key, "submenu_height")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_height = value; }
+    else if(!strcmp(key, "submenu_width")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_width = value; }
+    else if(!strcmp(key, "unit")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->unit = value; }
+    else if(!strcmp(key, "works_best_in")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->works_best_in = value; }
+    else if(!strcmp(key, "select"))
+    {
+        if(script_entry->select_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->select_ref);
+        if(!lua_isfunction(L, 3))
+        {
+            script_entry->select_ref = LUA_NOREF;
+            script_entry->menu_entry->select = NULL;
+        }
+        else
+        {
+            script_entry->select_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            script_entry->menu_entry->select = script_menu_select;
+        }
+    }
+    else if(!strcmp(key, "update"))
+    {
+        if(script_entry->update_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->update_ref);
+        if(!lua_isfunction(L, 3)) script_entry->update_ref = LUA_NOREF;
+        else
+        {
+            script_entry->update_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            script_entry->menu_entry->update = script_menu_update;
+        }
+    }
+    else if(!strcmp(key, "info"))
+    {
+        if(script_entry->info_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->info_ref);
+        if(!lua_isfunction(L, 3)) script_entry->info_ref = LUA_NOREF;
+        else
+        {
+            script_entry->info_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            script_entry->menu_entry->update = script_menu_update;
+        }
+    }
+    else if(!strcmp(key, "warning"))
+    {
+        if(script_entry->warning_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->warning_ref);
+        if(!lua_isfunction(L, 3)) script_entry->warning_ref = LUA_NOREF;
+        else
+        {
+            script_entry->warning_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            script_entry->menu_entry->update = script_menu_update;
+        }
+    }
     else
     {
-        lua_pushfstring(L, "property is read only: %s", key); lua_error(L);
+        //set the key in the metatable
+        if(lua_getmetatable(L, 1))
+        {
+            lua_pushvalue(L, 2);
+            lua_rawget(L, -2);
+        }
+        else
+        {
+            lua_pushnil(L);
+        }
     }
     return 0;
 }
@@ -1117,6 +1187,12 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     menu_entry->min = LUA_FIELD_INT("min", 0);
     menu_entry->max = LUA_FIELD_INT("max", 0);
     menu_entry->works_best_in = LUA_FIELD_INT("works_best_in", 0);
+    menu_entry->submenu_width = LUA_FIELD_INT("submenu_width", 0);
+    menu_entry->submenu_height = LUA_FIELD_INT("submenu_height", 0);
+    menu_entry->hidden = LUA_FIELD_INT("hidden", 0);
+    menu_entry->jhidden = LUA_FIELD_INT("jhidden", 0);
+    menu_entry->shidden = LUA_FIELD_INT("shidden", 0);
+    menu_entry->starred = LUA_FIELD_INT("starred", 0);
     if(lua_getfield(L, -1, "choices") == LUA_TTABLE)
     {
         int choices_count = luaL_len(L, -1);
