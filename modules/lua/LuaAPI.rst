@@ -5,25 +5,15 @@ The scripting engine looks for scripts in ML/SCRIPTS. Scripts should end with .L
 
 The scripting engine will maintain your script's global state from run to run. So any global variables you declare will persist until the camera is turned off.
 
-There are two ways to *define* the script's behavior. For simple scripts that don't need any menu options, simply declare a 'main' function, and optionally define two global variables 'script_name' and 'script_help'. If you don't define 'script_name', then the script's name is simply the filename of the script.
-
-::
-    
-    script_name = "My Lua Script"
-    script_help = "Run my awesome lua script"
-    function main()
-        print("Hello World!")
-    end
 
 Menu API
 --------------------------------------------------------------------------------
 
-In a more complex scenario you can define your script's menu by declaring a table named 'menu'
+Use the menu.new function to set up your script's menu items
 
 ::
     
-    menu =
-    {
+    mymenu = menu.new{
         parent = "LUA",
         name = "Run Test Script",
         help = "Run the test script.",
@@ -34,6 +24,13 @@ In a more complex scenario you can define your script's menu by declaring a tabl
                 help = "Run this script.",
                 icon_type = ICON_TYPE.ACTION,
                 update = "",
+                select = function()
+					console.show()
+					print("param1="..mymenu.submenu["param1"].value)
+					print("param2="..mymenu.submenu["param2"].value)
+					print("choices test="..mymenu.submenu["choices test"].value)
+					print("script run finished!")
+				end
             },
             {
                 name = "param1",
@@ -62,20 +59,10 @@ In a more complex scenario you can define your script's menu by declaring a tabl
                 choices = { "choice1", "choice2", "choice3" },
             }
         },
-        update = function() return menu.submenu[5].value end,
+        update = function() return mymenu.submenu["choices test"].value end,
     }
     
-    menu.submenu[1].select = function()
-        console.show()
-        for i = 1, #(menu.submenu), 1 do
-            if menu.submenu[i].value ~= nil then
-                print(menu.submenu[i].name.." = "..menu.submenu[i].value)
-            end
-        end
-        print("script run finished!")
-    end
-    
-The following table describes all the fields you can define in your 'menu' table
+The following table describes all the fields you can define in a 'menu' table
 
 ===============  ========  =====================================================
 Field            Type      Description 
