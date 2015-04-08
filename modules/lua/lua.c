@@ -1020,6 +1020,23 @@ static int luaCB_menu_index(lua_State * L)
             lua_pushstring(L, "error reading menu value"); lua_error(L);
         }
     }
+    else if(!strcmp(key, "submenu"))
+    {
+        //we store the submenu table in the metatable
+        if(lua_getmetatable(L, 1))
+        {
+            if(lua_getfield(L, -1, "submenu") != LUA_TTABLE)
+            {
+                console_printf("warning: submenu not found in metatable\n");
+            }
+        }
+        else
+        {
+            lua_pushstring(L, "could not get metatable for menu");
+            lua_error(L);
+        }
+    }
+    //TODO: allow reading other menu properties
     else
     {
         lua_pushnil(L); //return nil
@@ -1054,11 +1071,25 @@ static int luaCB_menu_newindex(lua_State * L)
             lua_pushstring(L, "error reading menu value"); lua_error(L);
         }
     }
+    //TODO: allow setting other menu properties
     else
     {
-        lua_pushstring(L, "property is read only!"); lua_error(L);
+        lua_pushfstring(L, "property is read only: %s", key); lua_error(L);
     }
     return 0;
+}
+
+static int get_function_ref(lua_State * L, const char * name)
+{
+    if(lua_getfield(L, -1, name) == LUA_TFUNCTION)
+    {
+        return luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+    else
+    {
+        lua_pop(L,1);
+        return LUA_NOREF;
+    }
 }
 
 static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name)
@@ -1070,6 +1101,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
         {
             lua_pushstring(L, "malloc error creating menu_entry");
             lua_error(L);
+            return;
         }
     }
     memset(menu_entry, 0, sizeof(struct menu_entry));
@@ -1112,51 +1144,11 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     }
     lua_pop(L, 1);
     
-    if(lua_getfield(L, -1, "select") == LUA_TFUNCTION)
-    {
-        script_entry->select_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        menu_entry->select = script_menu_select;
-    }
-    else
-    {
-        script_entry->select_ref = LUA_NOREF;
-        lua_pop(L,1);
-    }
+    if((script_entry->select_ref = get_function_ref(L, "select")) != LUA_NOREF) menu_entry->select = script_menu_select;
+    if((script_entry->update_ref = get_function_ref(L, "update")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->warning_ref = get_function_ref(L, "warning")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->info_ref = get_function_ref(L, "info")) != LUA_NOREF) menu_entry->update = script_menu_update;
     
-    if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
-    {
-        script_entry->update_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        menu_entry->update = script_menu_update;
-    }
-    else
-    {
-        script_entry->update_ref = LUA_NOREF;
-        lua_pop(L,1);
-    }
-    
-    if(lua_getfield(L, -1, "warning") == LUA_TFUNCTION)
-    {
-        script_entry->warning_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        menu_entry->update = script_menu_update;
-    }
-    else
-    {
-        script_entry->warning_ref = LUA_NOREF;
-        lua_pop(L,1);
-    }
-    
-    if(lua_getfield(L, -1, "info") == LUA_TFUNCTION)
-    {
-        script_entry->info_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        menu_entry->update = script_menu_update;
-    }
-    else
-    {
-        script_entry->info_ref = LUA_NOREF;
-        lua_pop(L,1);
-    }
-    
-    /*
     //submenu
     if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
     {
@@ -1169,15 +1161,57 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
             script_entry->menu_entry->select = menu_open_submenu;
             script_entry->menu_entry->children = malloc(sizeof(struct menu_entry) * (1 + submenu_count));
             memset(script_entry->menu_entry->children, 0, sizeof(struct menu_entry) * (1 + submenu_count));
+            
+            if(lua_getmetatable(L, -3))
+            {
+                //create a new submenu table
+                lua_newtable(L);
+                lua_setfield(L, -2, "submenu");
+                lua_pop(L, 1);
+            }
+            else
+            {
+                console_printf("warning: could not create metatable submenu");
+            }
+            
             for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
             {
                 if(lua_geti(L, -1, submenu_index + 1) == LUA_TTABLE) //lua arrays are 1 based
                 {
-                    struct script_entry * submenu_entry = create_script_entry(L, &(script_entry->menu_entry->children[submenu_index]));
-                    if(submenu_entry)
+                    struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
+                    
+                    //add a metatable to the userdata object for value lookups and to store submenu
+                    lua_newtable(L);
+                    lua_pushcfunction(L, luaCB_menu_index);
+                    lua_setfield(L, -2, "__index");
+                    lua_pushcfunction(L, luaCB_menu_newindex);
+                    lua_setfield(L, -2, "__newindex");
+                    lua_setmetatable(L, -2);
+                    
+                    lua_pushvalue(L, -2);
+                    load_menu_entry(L, new_entry, &(script_entry->menu_entry->children[submenu_index]), "unknown");
+                    lua_pop(L, 1);
+                    
+                    //add the new userdata object to the submenu table of the parent metatable, using the menu name as a key
+                    if(lua_getmetatable(L, -5))
                     {
-                        load_menu_entry(L, submenu_entry, &(script_entry->menu_entry->children[submenu_index]), "unknown");
+                        if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
+                        {
+                            lua_pushvalue(L, -3);
+                            lua_setfield(L, -2, script_entry->menu_entry->children[submenu_index].name);
+                        }
+                        else
+                        {
+                            console_printf("warning: could not get metatable submenu");
+                        }
+                        lua_pop(L, 2);
                     }
+                    else
+                    {
+                        console_printf("warning: could not get parent metatable");
+                    }
+                    
+                    lua_pop(L, 1);//userdata
                 }
                 else
                 {
@@ -1189,7 +1223,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
         }
     }
     lua_pop(L, 1);
-    */
+    
     //load default 'value' so our index metamethod works
     if(menu_entry->choices)
     {
@@ -1211,7 +1245,6 @@ static int luaCB_menu_new(lua_State * L)
         lua_error(L);
     }
     struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
-    
     //add a metatable to the userdata object for value lookups and to store submenu
     lua_newtable(L);
     lua_pushcfunction(L, luaCB_menu_index);
