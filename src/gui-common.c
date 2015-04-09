@@ -633,9 +633,9 @@ int display_is_on()
     return DISPLAY_IS_ON;
 }
 
-void delayed_call(int delay_ms, void(*function)(void))
+void delayed_call(int delay_ms, void(*function)(), void* arg)
 {
-    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, 0);
+    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, arg);
 }
 
 static void redraw_after_cbr()
@@ -645,7 +645,7 @@ static void redraw_after_cbr()
 
 void redraw_after(int msec)
 {
-    delayed_call(msec, redraw_after_cbr);
+    delayed_call(msec, redraw_after_cbr, 0);
 }
 
 int get_gui_mode()
