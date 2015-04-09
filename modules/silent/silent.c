@@ -1059,11 +1059,24 @@ static void show_battery_status()
 static PROP_INT(PROP_ISO, prop_iso);
 static PROP_INT(PROP_SHUTTER, prop_shutter);
 
-static void display_off_if_qr_mode()
+/* this will check (poll) if we are still in QR (or paused LV) mode, every 100ms,
+ * until preview_time expires or until you get out of QR, whichever happens first
+ * if we didn't leave QR mode, it will turn off the display
+ */
+static void display_off_if_qr_mode(int unused, int preview_time)
 {
     if (is_play_or_qr_mode() || LV_PAUSED)
     {
-        display_off();
+        if (preview_time > 0)
+        {
+            /* OK for now, re-check after 100ms */
+            delayed_call(100, display_off_if_qr_mode, (void*)(preview_time - 100));
+        }
+        else
+        {
+            /* preview_time expired */
+            display_off();
+        }
     }
 }
 
@@ -1277,8 +1290,8 @@ silent_pic_take_fullres(int interactive)
         int preview_delay = 
             image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000 - save_time) 
                               : 0;
-        delayed_call(preview_delay, display_off_if_qr_mode);
-        
+        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
+
         /* attempt to reset the powersave timer */
         int prolong = 3; /* AUTO_POWEROFF_PROLONG */
         prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
@@ -1287,7 +1300,7 @@ silent_pic_take_fullres(int interactive)
     {
         bmp_printf(FONT_MED, 0, 106, "Long half-shutter will take another picture.");
         int preview_delay = MAX(1000, image_review_time * 1000 - save_time);
-        delayed_call(preview_delay, display_off_if_qr_mode);
+        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
     }
 
 cleanup:
