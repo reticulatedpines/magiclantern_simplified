@@ -1316,9 +1316,31 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
      
 }
 
+static int luaCB_menu_remove(lua_State * L)
+{
+    if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
+    struct script_menu_entry * script_entry = lua_touserdata(L, 1);
+    if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
+    if(lua_getmetatable(L, 1))
+    {
+        const char * parent = LUA_FIELD_STRING("parent", "LUA");
+        menu_remove(parent, script_entry->menu_entry, 1);
+    }
+    else
+    {
+        return luaL_error(L, "could not get metatable for userdata");
+    }
+    return 0;
+}
+
 static int luaCB_menu_new(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    
+    lua_pushvalue(L, 1);
+    const char * parent = LUA_FIELD_STRING("parent", "LUA");
+    lua_pop(L, 1);
+    
     struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
     //add a metatable to the userdata object for value lookups and to store submenu
     lua_newtable(L);
@@ -1326,10 +1348,13 @@ static int luaCB_menu_new(lua_State * L)
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_menu_newindex);
     lua_setfield(L, -2, "__newindex");
+    lua_pushcfunction(L, luaCB_menu_remove);
+    lua_setfield(L, -2, "remove");
+    lua_pushstring(L, parent);
+    lua_setfield(L, -2, "parent");
     lua_setmetatable(L, -2);
     
     lua_pushvalue(L, 1);
-    const char * parent = LUA_FIELD_STRING("parent", "LUA");
     load_menu_entry(L, new_entry, NULL, "unknown");
     menu_add(parent, new_entry->menu_entry, 1);
     lua_pop(L, 1);
