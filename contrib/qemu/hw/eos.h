@@ -55,6 +55,8 @@
 
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
+#define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
+
 #define BMPPITCH 960
 #define BM(x,y) ((x) + (y) * BMPPITCH)
 
@@ -125,6 +127,7 @@ typedef struct
     uint32_t irq_id;
     uint32_t digic_timer;
     uint32_t dryos_timer_reload_value;
+    uint32_t clock_enable;
     uint32_t flash_state_machine;
     QemuConsole *con;
     int display_invalidate;

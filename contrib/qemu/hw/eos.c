@@ -1899,6 +1899,31 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
     return ret;
 }
 
+static char* format_clock_enable(int value)
+{
+    const char* clock_modules[] = {
+        "???",  "LCLK", "ASIF?", "SD1",     // 1 2 4 8
+        "???",  "???",  "???",   "???",     // 10 20 40 80
+        "PWM",  "???",  "Tmr0",  "Tmr1",    // 100 200 400 800
+        "Tmr2", "???",  "???",   "???",     // ...
+        "???",  "???",  "???",   "???",
+        "???",  "SIO",  "???",   "???",
+        "DMA0", "ASIF", "???",   "???",
+        "SD2",  "???",  "???",   "???"
+    };
+    static char clock_msg[100];
+    snprintf(clock_msg, sizeof(clock_msg), "CLOCK_ENABLE: ");
+    int i;
+    for (i = 0; i < 32; i++)
+    {
+        if (value & (1 << i))
+        {
+            STR_APPEND(clock_msg, "%s ", clock_modules[i]);
+        }
+    }
+    return clock_msg;
+}
+
 unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
@@ -1910,6 +1935,19 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int ad
         case 1:
             switch(address & 0xFFF)
             {
+                case 0x008: /* CLOCK_ENABLE */
+                    if(type & MODE_WRITE)
+                    {
+                        ws->clock_enable = value;
+                        msg = format_clock_enable(value);
+                    }
+                    else
+                    {
+                        ret = ws->clock_enable;
+                        msg = format_clock_enable(ret);
+                    }
+                    break;
+                
                 case 0xA4:
                     if(type & MODE_WRITE)
                     {
