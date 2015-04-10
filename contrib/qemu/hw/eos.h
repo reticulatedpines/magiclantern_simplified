@@ -83,6 +83,11 @@
 #define IO_MEM_START  0xC0000000
 #define IO_MEM_LEN    0x10000000
 
+/* define those for logging RAM access (reads + writes) */
+/* caveat: this area will be marked as IO, so you can't execute anything from there */
+//~ #define TRACE_MEM_START  0x00000000
+//~ #define TRACE_MEM_LEN    0x00800000
+
 #define Q_HELPER_ADDR 0x30000000
 
 /* defines for memory/register access */
@@ -118,6 +123,8 @@ typedef struct
     uint8_t *rom0_data;
     uint8_t *rom1_data;
     MemoryRegion iomem;
+    MemoryRegion tracemem;
+    MemoryRegion tracemem_uncached;
     qemu_irq interrupt;
     QemuThread interrupt_thread_id;
     uint32_t verbosity;

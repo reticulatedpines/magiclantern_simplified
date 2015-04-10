@@ -88,6 +88,61 @@ static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
     eos_handler ( opaque, addr, type, val );
 }
 
+static const MemoryRegionOps iomem_ops = {
+    .read = eos_io_read,
+    .write = eos_io_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
+
+#ifdef TRACE_MEM_START
+/* memory trace */
+static uint8_t trace_mem[TRACE_MEM_LEN];
+
+static uint64_t eos_mem_read(void * base_addr, hwaddr addr, uint32_t size)
+{
+    uint32_t ret = 0;
+    
+    switch(size)
+    {
+        case 1:
+            ret = *(uint8_t*)(trace_mem + addr);
+            break;
+        case 2:
+            ret = *(uint16_t*)(trace_mem + addr);
+            break;
+        case 4:
+            ret = *(uint32_t*)(trace_mem + addr);
+            break;
+    }
+    
+    printf("MEM(0x%08x) => 0x%x\n", (uint32_t)addr + (uint32_t)(uintptr_t)base_addr, ret);
+    return ret;
+}
+
+static void eos_mem_write(void * base_addr, hwaddr addr, uint64_t val, uint32_t size)
+{
+    printf("MEM(0x%08x) = 0x%x\n", (uint32_t)addr + (uint32_t)(uintptr_t)base_addr, (uint32_t)val);
+    switch(size)
+    {
+        case 1:
+            *(uint8_t*)(trace_mem + addr) = val;
+            break;
+        case 2:
+            *(uint16_t*)(trace_mem + addr) = val;
+            break;
+        case 4:
+            *(uint32_t*)(trace_mem + addr) = val;
+            break;
+    }
+}
+
+static const MemoryRegionOps mem_ops = {
+    .read = eos_mem_read,
+    .write = eos_mem_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
+#endif
+
 /* used to dump bmp vram */
 static int R[] = {128, 234, 0, 0, 163, 31, 0, 1, 234, 0, 185, 27, 200, 0, 201, 209, 232, 216, 0, 231, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 231, 9, 18, 27, 36, 41, 46, 50, 55, 59, 64, 69, 73, 82, 92, 101, 109, 117, 119, 124, 129, 133, 138, 142, 147, 152, 156, 161, 165, 170, 175, 179, 184, 188, 193, 198, 202, 207, 211, 216, 221, 225, 229, 220, 206, 193, 177, 162, 160, 156, 150, 140, 132, 125, 119, 106, 92, 76, 62, 49, 36, 22, 108, 101, 95, 89, 81, 72, 64, 55, 49, 42, 39, 233, 199, 192, 147, 102, 57, 16, 8, 6, 5, 6, 6, 3, 6, 3, 6, 4, 4, 2, 2, 1, 51, 48, 41, 39, 35, 31, 26, 26, 23, 18, 16, 14, 11, 221, 206, 196, 185, 173, 172, 163, 155, 146, 140, 133, 121, 108, 93, 80, 72, 60, 44, 30, 113, 108, 102, 94, 87, 78, 67, 56, 46, 37, 28, 233, 230, 222, 211, 198, 188, 174, 174, 168, 164, 152, 141, 130, 121, 109, 93, 80, 71, 62, 46, 28, 115, 106, 97, 83, 73, 62, 52, 45, 37, 24, 12, 232, 231, 192, 149, 102, 53, 8, 0, 0, 23, 24, 24, 24, 90, 72, 0, 24, 0, 0, 1, 0, 26, 23, 21, 20, 18, 17, 13, 10, 7, 4, 1, 1, 1, 25, 29, 29, 33, 35, 38, 40, 42, 43, 43, 45, 45, 54, 65, 79, 90};
 static int G[] = {128, 235, 0, 0, 56, 187, 153, 172, 0, 66, 186, 34, 0, 0, 0, 191, 0, 94, 62, 109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 18, 27, 36, 41, 46, 50, 55, 59, 64, 69, 73, 82, 92, 101, 110, 117, 119, 124, 129, 133, 138, 142, 147, 152, 156, 161, 165, 170, 175, 178, 184, 188, 192, 198, 202, 206, 210, 216, 221, 225, 230, 193, 148, 101, 53, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 34, 31, 29, 26, 25, 20, 17, 17, 13, 12, 1, 0, 212, 186, 164, 139, 117, 111, 107, 102, 101, 94, 87, 81, 74, 66, 60, 52, 40, 29, 20, 97, 90, 82, 74, 67, 60, 52, 47, 42, 36, 33, 220, 179, 214, 193, 172, 151, 128, 127, 119, 114, 108, 103, 99, 90, 79, 69, 59, 55, 45, 33, 24, 93, 90, 86, 80, 72, 64, 56, 47, 40, 32, 24, 230, 184, 206, 175, 141, 108, 78, 73, 71, 69, 64, 61, 55, 51, 46, 39, 34, 29, 26, 20, 11, 71, 64, 59, 50, 46, 39, 33, 28, 22, 15, 9, 140, 109, 210, 190, 165, 139, 118, 113, 110, 104, 25, 24, 24, 25, 67, 31, 24, 25, 37, 29, 23, 75, 70, 66, 60, 51, 46, 39, 31, 24, 14, 4, 222, 179, 29, 33, 35, 39, 43, 46, 48, 51, 52, 56, 57, 57, 67, 81, 95, 110};
@@ -523,12 +578,6 @@ static void eos_load_image(EOSState *s, const char* file, int offset, int max_si
 
     free(buf);
 }
-
-static const MemoryRegionOps iomem_ops = {
-    .read = eos_io_read,
-    .write = eos_io_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-};
 
 static void *eos_interrupt_thread(void *parm)
 {
@@ -1051,6 +1100,15 @@ static EOSState *eos_init_cpu(void)
     /* set up io space */
     memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", IO_MEM_LEN);
     memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
+
+#ifdef TRACE_MEM_START
+    /* optional memory access logging */
+    memory_region_init_io(&s->tracemem, NULL, &mem_ops, (void*)TRACE_MEM_START, "eos.tracemem", TRACE_MEM_LEN);
+    memory_region_add_subregion(s->system_mem, TRACE_MEM_START, &s->tracemem);
+
+    memory_region_init_io(&s->tracemem_uncached, NULL, &mem_ops, (void*)(TRACE_MEM_START | CACHING_BIT), "eos.tracemem_u", TRACE_MEM_LEN);
+    memory_region_add_subregion(s->system_mem, TRACE_MEM_START | CACHING_BIT, &s->tracemem_uncached);
+#endif
 
     /*ROMState *rom0 = eos_rom_register(0xF8000000, NULL, "ROM1", ROM1_SIZE,
                                 NULL,
