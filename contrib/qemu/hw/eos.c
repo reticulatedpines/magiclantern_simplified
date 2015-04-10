@@ -37,6 +37,7 @@ EOSRegionHandler eos_handlers[] =
     { "DMA4",         0xC0A40000, 0xC0A400FF, eos_handle_dma, 4 },
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
+    { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
     { "FIO wrapper",  0xCF123F00, 0xCF123FFF, eos_handle_ml_fio, 0 },
@@ -700,6 +701,37 @@ static void draw_line8_32(void *opaque,
     } while (-- width != 0);
 }
 
+static void draw_line4_32(void *opaque,
+                uint8_t *d, const uint8_t *s, int width, int deststep)
+{
+    uint8_t v, r, g, b;
+
+    static int R[] = {128, 255,  0,   0,   0, 255, 255, 255, 0, 0, 128, 255};
+    static int G[] = {128, 0,  255,   0, 255,   0, 255, 128, 0, 0, 128, 255};
+    static int B[] = {128, 0,    0, 255, 255, 255,   0,   0, 0, 0, 128, 255};
+    
+    do {
+        v = ldub_raw((void *) s);
+        v = ((uintptr_t)d/4 % 2) ? (v >> 4) & 0xF : v & 0xF;
+        
+        if (v)
+        {
+            r = R[v];
+            g = G[v];
+            b = B[v];
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        }
+        else
+        {
+            r = g = b = rand();
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+        }
+
+        if ((uintptr_t)d/4 % 2) s ++;
+        d += 4;
+    } while (-- width != 0);
+}
+
 static void draw_line8_32_bmp_yuv(void *opaque,
                 uint8_t *d, const uint8_t *bmp, const uint8_t *yuv, int width, int deststep, int yuvstep)
 {
@@ -898,7 +930,19 @@ static void eos_update_display(void *parm)
     first = 0;
     int linesize = surface_stride(surface);
     
-    if (s->img_vram)
+    if (0)  /* bootloader config, 4 bpp */
+    {
+        framebuffer_update_display(
+            surface,
+            s->system_mem,
+            s->bmp_vram,
+            width, height,
+            360, linesize, 0, 1,
+            draw_line4_32, 0,
+            &first, &last
+        );
+    }
+    else if (s->img_vram)
     {
         framebuffer_update_display_bmp_yuv(
             surface,
@@ -2096,6 +2140,34 @@ unsigned int eos_handle_asif ( unsigned int parm, EOSState *ws, unsigned int add
     }
 
     io_log("ASIF", ws, address, type, value, ret, 0, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_display ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    switch (address & 0xFFF)
+    {
+        case 0x0D0:
+            if(type & MODE_WRITE)
+            {
+                msg = "BMP VRAM";
+                ws->bmp_vram = value;
+            }
+            break;
+
+        case 0x0E0:
+            if(type & MODE_WRITE)
+            {
+                msg = "YUV VRAM";
+                ws->img_vram = value;
+            }
+            break;
+    }
+
+    io_log("Display", ws, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
