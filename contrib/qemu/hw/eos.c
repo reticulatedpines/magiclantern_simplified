@@ -1048,7 +1048,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     /* populate ROM1 */
     eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
 
-    eos_load_image(s, "autoexec.bin", 0, -1, 0x00800000, 0);
+    eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
 
     /* we will replace Canon stubs with our own implementations */
     /* see qemu-helper.c, stub_mappings[] */
@@ -1077,7 +1077,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     }
 
     // set entry point
-    s->cpu->env.regs[15] = 0x800000;
+    s->cpu->env.regs[15] = 0x40800000;
     s->cpu->env.regs[13] = 0x8000000;
     
     precompute_yuv2rgb(1);
