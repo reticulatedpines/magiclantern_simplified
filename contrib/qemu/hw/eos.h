@@ -126,7 +126,9 @@ typedef struct
     uint32_t irq_schedule[INT_ENTRIES];
     uint32_t irq_id;
     uint32_t digic_timer;
-    uint32_t dryos_timer_reload_value;
+    uint32_t timer_reload_value[3];
+    uint32_t timer_current_value[3];
+    uint32_t timer_enabled[3];
     uint32_t clock_enable;
     uint32_t flash_state_machine;
     QemuConsole *con;

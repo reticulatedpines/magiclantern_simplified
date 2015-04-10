@@ -541,6 +541,14 @@ static void *eos_interrupt_thread(void *parm)
 
         s->digic_timer += 0x100;
         s->digic_timer &= 0xFFF00;
+        
+        for (pos = 0; pos < 3; pos++)
+        {
+            if (s->timer_enabled[pos])
+            {
+                s->timer_current_value[pos] += 0x100;
+            }
+        }
 
         /* go through all interrupts and check if they are pending/scheduled */
         for(pos = 0; pos < INT_ENTRIES; pos++)
@@ -555,7 +563,7 @@ static void *eos_interrupt_thread(void *parm)
                     if(pos == 0x0A)
                     {
                         //~ printf("[EOS] trigger int 0x%02X (delayed)\n", pos);
-                        s->irq_schedule[pos] = s->dryos_timer_reload_value>>8;
+                        s->irq_schedule[pos] = s->timer_reload_value[2] >> 8;
                     }
                     else
                     {
@@ -1397,38 +1405,75 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int a
     unsigned int ret = 0;
     const char * msg = 0;
     int msg_arg1 = 0;
+    int msg_arg2 = 0;
 
-    switch(address & 0xFFF)
+    int timer_id = (address & 0xF00) >> 8;
+    msg_arg1 = timer_id;
+    
+    if (timer_id < 3)
     {
-        case 0x200:
-            if(type & MODE_WRITE)
-            {
-                if(value & 1)
+        switch(address & 0xFF)
+        {
+            case 0x00:
+                if(type & MODE_WRITE)
                 {
-                    msg = "Starting triggering";
-                    eos_trigger_int(ws, 0x0A, ws->dryos_timer_reload_value>>8);   /* digic timer */
+                    if(value & 1)
+                    {
+                        if (timer_id == 2)
+                        {
+                            msg = "Timer #%d: starting triggering";
+                            eos_trigger_int(ws, 0x0A, ws->timer_reload_value[timer_id] >> 8);   /* digic timer */
+                        }
+                        else
+                        {
+                            msg = "Timer #%d: starting";
+                        }
+
+                        ws->timer_enabled[timer_id] = 1;
+                    }
+                    else
+                    {
+                        msg = "Timer #%d: stopped";
+                        ws->timer_enabled[timer_id] = 0;
+                        ws->timer_current_value[timer_id] = 0;
+                    }
                 }
                 else
                 {
-                    msg = "Not triggering";
+                    msg = "Timer #%d: ready";
                 }
-            }
-            else
-            {
-                msg = "Timer ready";
-            }
-            break;
-        
-        case 0x208:
-            if(type & MODE_WRITE)
-            {
-                ws->dryos_timer_reload_value = value;
-                msg = "Will trigger every %d us";
-                msg_arg1 = value + 1;
-            }
+                break;
+            
+            case 0x08:
+                if(type & MODE_WRITE)
+                {
+                    ws->timer_reload_value[timer_id] = value;
+                    msg = "Timer #%d: will trigger every %d ms";
+                    msg_arg2 = ((uint64_t)value + 1) / 1000;
+                }
+                break;
+            
+            case 0x0C:
+                if(type & MODE_WRITE)
+                {
+                }
+                else
+                {
+                    msg = "Timer #%d: current value";
+                    ret = ws->timer_current_value[timer_id];
+                }
+                break;
+            
+            case 0x10:
+                if(type & MODE_WRITE)
+                {
+                    msg = "Timer #%d: interrupt enable?";
+                }
+                break;
+        }
     }
 
-    io_log("TIMER", ws, address, type, value, ret, msg, msg_arg1, 0);
+    io_log("TIMER", ws, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
 
