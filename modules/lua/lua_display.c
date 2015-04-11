@@ -99,13 +99,13 @@ static int luaCB_display_pixel(lua_State * L)
 }
 
 /***
- Set a pixel to a color
+ Draw a line
  @tparam integer x1
  @tparam integer y1
  @tparam integer x2
  @tparam integer y2
  @tparam integer @{constants.COLOR}
- @function pixel
+ @function line
  */
 static int luaCB_display_line(lua_State * L)
 {
@@ -119,14 +119,14 @@ static int luaCB_display_line(lua_State * L)
 }
 
 /***
- Set a pixel to a color
+ Draw a rect
  @tparam integer x
  @tparam integer y
  @tparam integer w
  @tparam integer h
  @tparam integer stroke outline @{constants.COLOR}
  @tparam[opt] integer fill fill @{constants.COLOR}
- @function pixel
+ @function rect
  */
 static int luaCB_display_rect(lua_State * L)
 {
@@ -148,7 +148,7 @@ static int luaCB_display_rect(lua_State * L)
  @tparam integer r radius
  @tparam integer stroke outline @{constants.COLOR}
  @tparam[opt] integer fill fill @{constants.COLOR}
- @function pixel
+ @function circle
  */
 static int luaCB_display_circle(lua_State * L)
 {
