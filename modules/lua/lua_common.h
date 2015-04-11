@@ -88,6 +88,7 @@ struct script_menu_entry
 
 int docall(lua_State *L, int narg, int nres);
 
+int luaopen_globals(lua_State * L);
 int luaopen_console(lua_State * L);
 int luaopen_camera(lua_State * L);
 int luaopen_lv(lua_State * L);

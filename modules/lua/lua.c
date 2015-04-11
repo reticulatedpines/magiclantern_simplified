@@ -36,6 +36,7 @@
 struct script_event_entry
 {
     struct script_event_entry * next;
+    int function_ref;
     lua_State * L;
 };
 static int lua_loaded = 0;
@@ -53,100 +54,6 @@ static int string_ends_with(const char *source, const char *ending)
     if(strlen(source) < strlen(ending)) return 0;
     return !strcmp(source + strlen(source) - strlen(ending), ending);
 }
-
-/***
- Global Functions
- 
- @author Magic Lantern Team
- @copyright 2014
- @license GPL
- @module global
- */
-
-/***
- Beep
- @tparam[opt=1] integer times number of times to beep
- @function beep
- */
-static int luaCB_beep(lua_State * L)
-{
-    LUA_PARAM_INT_OPTIONAL(times, 1, 1);
-    beep_times(times);
-    return 0;
-}
-
-/***
- Calls an eventproc (a function from the camera firmware which can be called by name). 
- See Eventprocs. Dangerous.
- @tparam string function the name of the function to call
- @param[opt] arg argument to pass to the call
- @function call
- */
-static int luaCB_call(lua_State * L)
-{
-    LUA_PARAM_STRING(function_name, 1);
-    int result = 0;
-    int argc = lua_gettop(L);
-    
-    if(argc <= 1)
-    {
-        result = call(function_name);
-    }
-    else if(lua_isinteger(L, 2))
-    {
-        int arg = lua_tointeger(L, 2);
-        result = call(function_name, arg);
-    }
-    else if(lua_isnumber(L, 2))
-    {
-        float arg = lua_tonumber(L, 2);
-        result = call(function_name, arg);
-    }
-    else if(lua_isstring(L, 2))
-    {
-        const char * arg = lua_tostring(L, 2);
-        result = call(function_name, arg);
-    }
-    
-    lua_pushinteger(L, result);
-    return 1;
-}
-
-/***
- Take a picture
- @tparam[opt=64] integer wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] boolean should_af whether or not to use auto focus
- @function shoot
- */
-static int luaCB_shoot(lua_State * L)
-{
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_INT_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
-    lua_pushinteger(L, result);
-    return 1;
-}
-
-/***
- Pauses for ms miliseconds and allows other tasks to run.
- @tparam integer amount number of milliseconds to sleep
- @function msleep
- */
-static int luaCB_msleep(lua_State * L)
-{
-    LUA_PARAM_INT(amount, 1);
-    msleep(amount);
-    return 0;
-}
-
-static const luaL_Reg globallib[] =
-{
-    { "msleep", luaCB_msleep },
-    { "beep", luaCB_beep },
-    { "call", luaCB_call },
-    { "shoot", luaCB_shoot },
-    { NULL, NULL }
-};
 
 int luaopen_KEY(lua_State * L)
 {
@@ -192,32 +99,22 @@ int luaopen_KEY(lua_State * L)
     return 1;
 }
 
-static lua_State * load_lua_state()
-{
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-    
-    luaL_requiref(L, "console", luaopen_console, 1);
-    luaL_requiref(L, "camera", luaopen_camera, 1);
-    luaL_requiref(L, "lv", luaopen_lv, 1);
-    luaL_requiref(L, "lens", luaopen_lens, 1);
-    luaL_requiref(L, "movie", luaopen_movie, 1);
-    luaL_requiref(L, "display", luaopen_display, 1);
-    luaL_requiref(L, "key", luaopen_key, 1);
-    luaL_requiref(L, "menu", luaopen_menu, 1);
-    
-    luaL_requiref(L, "MODE", luaopen_MODE, 1);
-    luaL_requiref(L, "ICON_TYPE", luaopen_ICON_TYPE, 1);
-    luaL_requiref(L, "UNIT", luaopen_UNIT, 1);
-    luaL_requiref(L, "DEPENDS_ON", luaopen_DEPENDS_ON, 1);
-    luaL_requiref(L, "FONT", luaopen_FONT, 1);
-    luaL_requiref(L, "COLOR", luaopen_COLOR, 1);
-    luaL_requiref(L, "KEY", luaopen_KEY, 1);
-    
-    lua_getglobal(L, "_G");
-    luaL_setfuncs(L, globallib, 0);
-    return L;
-}
+/*** 
+ Event Handlers.
+ 
+ Scripts can repsond to events by setting the functions in the 'event' table.
+ Event handler functions can take one integer parameter, and must return a boolean
+ that specifies whether or not the backend should continue executing event handlers
+ for this particular event.
+ 
+ Event handlers will not run if there's already a script or another event handler 
+ actively executing at the same time.
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module event
+ */
 
 static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * event_entries, const char * event_name, int sucess, int failure)
 {
@@ -235,9 +132,9 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
     for(current = event_entries; current; current = current->next)
     {
         lua_State * L = current->L;
-        if(lua_getglobal(L, "events") == LUA_TTABLE)
+        if(current->function_ref != LUA_NOREF)
         {
-            if(lua_getfield(L, -1, event_name) == LUA_TFUNCTION)
+            if(lua_rawgeti(L, LUA_REGISTRYINDEX, current->function_ref) == LUA_TFUNCTION)
             {
                 lua_pushinteger(L, ctx);
                 if(docall(L, 1, 1))
@@ -255,11 +152,11 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                         lua_running = 0;
                         return failure;
                     }
+                    
                 }
             }
-            lua_pop(L, 1);
+            lua_pop(L,1);
         }
-        lua_pop(L, 1);
     }
     lua_running = 0;
     return sucess;
@@ -292,7 +189,13 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
     return lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
 }
 
-#define SCRIPT_CBR(event) if(lua_getfield(L, -1, #event) == LUA_TFUNCTION) add_event_script_entry(&(event##_cbr_scripts), L); lua_pop(L, 1)
+#define SCRIPT_CBR_SET(event) \
+if(!strcmp(key, #event))\
+{\
+    if(event##_cbr_scripts->function_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, event##_cbr_scripts->function_ref);\
+    event##_cbr_scripts->function_ref = lua_isfunction(L, 3) ? luaL_ref(L, LUA_REGISTRYINDEX) : LUA_NOREF;\
+    return 0;\
+}\
 
 static void add_event_script_entry(struct script_event_entry ** root, lua_State * L)
 {
@@ -303,6 +206,96 @@ static void add_event_script_entry(struct script_event_entry ** root, lua_State 
         new_entry->L = L;
         *root = new_entry;
     }
+}
+
+static int luaCB_event_index(lua_State * L)
+{
+    //LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_event_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    
+    /// Called before a picture is taken
+    // @param arg
+    // @return whether or not to continue executing CBRs for this event
+    // @function pre_shoot
+    SCRIPT_CBR_SET(pre_shoot);
+    /// Called after a picture is taken
+    // @param arg
+    // @return whether or not to continue executing CBRs for this event
+    // @function post_shoot
+    SCRIPT_CBR_SET(post_shoot);
+    /// Called periodicaly from shoot_task
+    // @param arg
+    // @return whether or not to continue executing CBRs for this event
+    // @function shoot_task
+    SCRIPT_CBR_SET(shoot_task);
+    /// Called each second
+    // @param arg
+    // @return whether or not to continue executing CBRs for this event
+    // @function seconds_clock
+    SCRIPT_CBR_SET(seconds_clock);
+    /// Called when a key is pressed
+    // @param key the key that was pressed, see @{constants.KEY}
+    // @return whether or not to continue executing CBRs for this event
+    // @function keypress
+    SCRIPT_CBR_SET(keypress);
+    /// Special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics
+    // @param arg
+    // @return whether or not to continue executing CBRs for this event
+    // @function custom_picture_taking
+    SCRIPT_CBR_SET(custom_picture_taking);
+    /// called after a picture is taken with the intervalometer
+    // @param arg
+    // @return whether or not to continue executing CBRs for this event
+    // @function intervalometer
+    SCRIPT_CBR_SET(intervalometer);
+#ifdef CONFIG_VSYNC_EVENTS
+    SCRIPT_CBR_SET(display_filter);
+    SCRIPT_CBR_SET(vsync);
+    SCRIPT_CBR_SET(vsync_setparam);
+#endif
+    
+    lua_rawset(L, 1);
+    return 0;
+}
+
+static const luaL_Reg eventlib[] =
+{
+    { NULL, NULL }
+};
+
+LUA_LIB(event)
+
+static lua_State * load_lua_state()
+{
+    lua_State* L = luaL_newstate();
+    luaL_openlibs(L);
+    
+    luaL_requiref(L, "globals", luaopen_globals, 0);
+    luaL_requiref(L, "console", luaopen_console, 1);
+    luaL_requiref(L, "camera", luaopen_camera, 1);
+    luaL_requiref(L, "lv", luaopen_lv, 1);
+    luaL_requiref(L, "lens", luaopen_lens, 1);
+    luaL_requiref(L, "movie", luaopen_movie, 1);
+    luaL_requiref(L, "display", luaopen_display, 1);
+    luaL_requiref(L, "key", luaopen_key, 1);
+    luaL_requiref(L, "menu", luaopen_menu, 1);
+    luaL_requiref(L, "event", luaopen_event, 1);
+    
+    luaL_requiref(L, "MODE", luaopen_MODE, 1);
+    luaL_requiref(L, "ICON_TYPE", luaopen_ICON_TYPE, 1);
+    luaL_requiref(L, "UNIT", luaopen_UNIT, 1);
+    luaL_requiref(L, "DEPENDS_ON", luaopen_DEPENDS_ON, 1);
+    luaL_requiref(L, "FONT", luaopen_FONT, 1);
+    luaL_requiref(L, "COLOR", luaopen_COLOR, 1);
+    luaL_requiref(L, "KEY", luaopen_KEY, 1);
+    
+    return L;
 }
 
 static void add_script(const char * filename)
@@ -320,18 +313,6 @@ static void add_script(const char * filename)
     {
         if(lua_getglobal(L, "events") == LUA_TTABLE)
         {
-            SCRIPT_CBR(pre_shoot);
-            SCRIPT_CBR(post_shoot);
-            SCRIPT_CBR(shoot_task);
-            SCRIPT_CBR(seconds_clock);
-            SCRIPT_CBR(keypress);
-            SCRIPT_CBR(custom_picture_taking);
-            SCRIPT_CBR(intervalometer);
-#ifdef CONFIG_VSYNC_EVENTS
-            SCRIPT_CBR(display_filter);
-            SCRIPT_CBR(vsync);
-            SCRIPT_CBR(vsync_setparam);
-#endif
         }
         lua_pop(L, 1);
         console_printf("loading finished: %s\n", filename);
