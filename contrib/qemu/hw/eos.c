@@ -756,26 +756,18 @@ static void draw_line4_32(void *opaque,
 {
     uint8_t v, r, g, b;
 
-    static int R[] = {128, 255,  0,   0,   0, 255, 255, 255, 0, 0, 128, 255};
-    static int G[] = {128, 0,  255,   0, 255,   0, 255, 128, 0, 0, 128, 255};
-    static int B[] = {128, 0,    0, 255, 255, 255,   0,   0, 0, 0, 128, 255};
+    static int R[] = {0, 255,  0,   0,   0, 255, 255, 255, 0, 0, 128, 0, 0, 0, 0, 255};
+    static int G[] = {0, 0,  255,   0, 255,   0, 255, 128, 0, 0, 128, 0, 0, 0, 0, 255};
+    static int B[] = {0, 0,    0, 255, 255, 255,   0,   0, 0, 0, 128, 0, 0, 0, 0, 255};
     
     do {
         v = ldub_raw((void *) s);
         v = ((uintptr_t)d/4 % 2) ? (v >> 4) & 0xF : v & 0xF;
         
-        if (v)
-        {
-            r = R[v];
-            g = G[v];
-            b = B[v];
-            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
-        }
-        else
-        {
-            r = g = b = rand();
-            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
-        }
+        r = R[v];
+        g = G[v];
+        b = B[v];
+        ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
 
         if ((uintptr_t)d/4 % 2) s ++;
         d += 4;
