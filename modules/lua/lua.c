@@ -311,10 +311,6 @@ static void add_script(const char * filename)
     }
     else
     {
-        if(lua_getglobal(L, "events") == LUA_TTABLE)
-        {
-        }
-        lua_pop(L, 1);
         console_printf("loading finished: %s\n", filename);
     }
 }
