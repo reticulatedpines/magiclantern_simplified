@@ -1587,23 +1587,28 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
 
     switch (address & 0xFFFF)
     {
-        case 0x0B6C:
-            /* 5D3 expects this one to be 0x10 in bootloader */
+        case 0xCB6C: /* 5D3/6D expect this one to be 0x10 in bootloader (6D:FFFF0544) */
+            msg = "5D3/6D expected to be 0x10";
             ret = 0x10;
+            break;
+        
+        case 0xFA04:
+            msg = "6D expected to be 0";
+            ret = 0;
             break;
 
         case 0x00DC:
-            /* abort situation for FROMUTIL on 600D */
+            msg = "abort situation for FROMUTIL on 600D";
             ret = 0;
             break;
 
         case 0x00B0:
-            /* FUNC SW OFF on 7D */
+            msg = "FUNC SW OFF on 7D";
             ret = 0;
             break;
             
         case 0x0024:
-            /* master woke up on 7D */
+            msg = "master woke up on 7D";
             ret = 0;
             break;
 
