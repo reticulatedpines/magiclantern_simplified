@@ -65,9 +65,9 @@ static int luaCB_display_clear(lua_State * L)
  @tparam string text
  @tparam integer x
  @tparam integer y
- @tparam[opt] integer font
- @tparam[opt] integer fg foreground color
- @tparam[opt] integer bg background color
+ @tparam[opt] integer font @{constants.FONT}
+ @tparam[opt] integer fg foreground @{constants.COLOR}
+ @tparam[opt] integer bg background @{constants.COLOR}
  @function print
  */
 static int luaCB_display_print(lua_State * L)
@@ -86,7 +86,7 @@ static int luaCB_display_print(lua_State * L)
  Set a pixel to a color
  @tparam integer x
  @tparam integer y
- @tparam integer color
+ @tparam integer @{constants.COLOR}
  @function pixel
  */
 static int luaCB_display_pixel(lua_State * L)
@@ -104,7 +104,7 @@ static int luaCB_display_pixel(lua_State * L)
  @tparam integer y1
  @tparam integer x2
  @tparam integer y2
- @tparam integer color
+ @tparam integer @{constants.COLOR}
  @function pixel
  */
 static int luaCB_display_line(lua_State * L)
@@ -124,8 +124,8 @@ static int luaCB_display_line(lua_State * L)
  @tparam integer y
  @tparam integer w
  @tparam integer h
- @tparam integer stroke outline color
- @tparam[opt] integer fill fill color
+ @tparam integer stroke outline @{constants.COLOR}
+ @tparam[opt] integer fill fill @{constants.COLOR}
  @function pixel
  */
 static int luaCB_display_rect(lua_State * L)
@@ -146,8 +146,8 @@ static int luaCB_display_rect(lua_State * L)
  @tparam integer x center x
  @tparam integer y center y
  @tparam integer r radius
- @tparam integer stroke outline color
- @tparam[opt] integer fill fill color
+ @tparam integer stroke outline @{constants.COLOR}
+ @tparam[opt] integer fill fill @{constants.COLOR}
  @function pixel
  */
 static int luaCB_display_circle(lua_State * L)

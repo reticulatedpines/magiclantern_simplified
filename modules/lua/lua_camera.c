@@ -32,7 +32,7 @@ static int luaCB_camera_index(lua_State * L)
     /// Flash exposure compensation in apex units x10
     // @tfield integer flash_ec
     else if(!strcmp(key, "flash_ec")) lua_pushinteger(L, RAW2EC(lens_info.flash_ae));
-    /// The current camera mode, possible values defined in MODE global
+    /// The current camera mode, possible values defined in @{constants.MODE}
     // @tfield integer mode
     else if(!strcmp(key, "mode")) lua_pushinteger(L, shooting_mode);
     /// The current auto focus mode

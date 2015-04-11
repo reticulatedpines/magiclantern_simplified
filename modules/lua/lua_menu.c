@@ -18,6 +18,11 @@ extern int lua_running;
 static int lua_run_arg_count = 0;
 static lua_State * running_script = NULL;
 
+static int luaCB_menu_index(lua_State * L);
+static int luaCB_menu_newindex(lua_State * L);
+static int luaCB_menu_remove(lua_State * L);
+static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name);
+
 static void lua_run_task(int unused)
 {
     lua_running = 1;
@@ -233,9 +238,9 @@ static int luaCB_menu_index(lua_State * L)
     /// Advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
     // @tfield boolean advanced
     else if(!strcmp(key, "advanced")) lua_pushinteger(L, script_entry->menu_entry->advanced);
-    /// Dependencies for this menu item. Possible values are specified in the 'DEPENDS_ON' global.
+    /// Dependencies for this menu item.
     // If the dependecies are not met, the item will be greyed out and a warning will appear at the bottom of the screen.
-    // @tfield integer depends_on
+    // @tfield integer depends_on @{constants.DEPENDS_ON}
     else if(!strcmp(key, "depends_on")) lua_pushinteger(L, script_entry->menu_entry->depends_on);
     /// Editing mode for the menu item
     // @tfield integer edit_mode
@@ -243,8 +248,8 @@ static int luaCB_menu_index(lua_State * L)
     /// Hidden from main menu
     // @tfield integer hidden
     else if(!strcmp(key, "hidden")) lua_pushinteger(L, script_entry->menu_entry->hidden);
-    /// The type of icon to use for this menu item. Possible values are specified in the 'ICON_TYPE' global
-    // @tfield integer icon_type
+    /// The type of icon to use for this menu item
+    // @tfield integer icon_type @{constants.ICON_TYPE}
     else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
     /// Hidden from junkie menu
     // @tfield boolean jhidden
@@ -270,11 +275,11 @@ static int luaCB_menu_index(lua_State * L)
     /// Submenu Width
     // @tfield integer submenu_width
     else if(!strcmp(key, "submenu_width")) lua_pushinteger(L, script_entry->menu_entry->submenu_width);
-    /// The unit for the menu item's value. Possible values are specified in the 'UNIT' global
-    // @tfield integer unit
+    /// The unit for the menu item's value
+    // @tfield integer unit @{constants.UNIT}
     else if(!strcmp(key, "unit")) lua_pushinteger(L, script_entry->menu_entry->unit);
-    /// Suggested operating mode for this menu item. Possible values are specified in the "WORKS_BEST_IN' global.
-    // @tfield integer works_best_in
+    /// Suggested operating mode for this menu item
+    // @tfield integer works_best_in @{constants.DEPENDS_ON}
     else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
     /// Function called when menu is toggled
     // @tparam integer delta

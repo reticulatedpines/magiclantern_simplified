@@ -1,3 +1,11 @@
+/***
+ Constants
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module constants
+ */
 
 #include <dryos.h>
 #include <bmp.h>
@@ -6,6 +14,26 @@
 
 #include "lua_common.h"
 
+/// Camera shooting mode
+// @field P
+// @field TV
+// @field AV
+// @field M
+// @field BULB
+// @field ADEP
+// @field C
+// @field C2
+// @field C3
+// @field CA
+// @field AUTO
+// @field NOFLASH
+// @field PORTRAIT
+// @field LANDSCAPE
+// @field MACRO
+// @field SPORTS
+// @field NIGHT
+// @field MOVIE
+// @table MODE
 int luaopen_MODE(lua_State * L)
 {
     lua_newtable(L);
@@ -30,6 +58,21 @@ int luaopen_MODE(lua_State * L)
     return 1;
 }
 
+/// Menu icon type
+// @field AUTO
+// @field BOOL
+// @field DICE
+// @field PERCENT
+// @field ALWAYS_ON
+// @field ACTION
+// @field BOOL_NEG
+// @field DISABLE_SOME_FEATURE
+// @field SUBMENU
+// @field DICE_OFF
+// @field PERCENT_OFF
+// @field PERCENT_LOG
+// @field PERCENT_LOG_OFF
+// @table ICON_TYPE
 int luaopen_ICON_TYPE(lua_State * L)
 {
     lua_newtable(L);
@@ -49,6 +92,16 @@ int luaopen_ICON_TYPE(lua_State * L)
     return 1;
 }
 
+/// Menu value unit
+// @field EV
+// @field x10
+// @field PERCENT
+// @field PERCENT_x10
+// @field ISO
+// @field HEX
+// @field DEC
+// @field TIME
+// @table UNIT
 int luaopen_UNIT(lua_State * L)
 {
     lua_newtable(L);
@@ -63,6 +116,24 @@ int luaopen_UNIT(lua_State * L)
     return 1;
 }
 
+/// Dependency for a menu item
+// @field GLOBAL_DRAW
+// @field LIVEVIEW
+// @field NOT_LIVEVIEW
+// @field MOVIE_MODE
+// @field PHOTO_MODE
+// @field AUTOFOCUS
+// @field MANUAL_FOCUS
+// @field CFN_AF_HALFSHUTTER
+// @field CFN_AF_BACK_BUTTON
+// @field EXPSIM
+// @field NOT_EXPSIM
+// @field CHIPPED_LENS
+// @field M_MODE
+// @field MANUAL_ISO
+// @field SOUND_RECORDING
+// @field NOT_SOUND_RECORDING
+// @table DEPENDS_ON
 int luaopen_DEPENDS_ON(lua_State * L)
 {
     lua_newtable(L);
@@ -85,6 +156,17 @@ int luaopen_DEPENDS_ON(lua_State * L)
     return 1;
 }
 
+/// Fonts
+// @field MONO_12
+// @field MONO_20
+// @field SANS_23
+// @field SANS_28
+// @field SANS_32
+// @field CANON
+// @field SMALL
+// @field MED
+// @field MED_LARGE
+// @table FONT
 int luaopen_FONT(lua_State * L)
 {
     lua_newtable(L);
@@ -100,6 +182,29 @@ int luaopen_FONT(lua_State * L)
     return 1;
 }
 
+/// Color palatte
+// @field TRANSPARENT
+// @field WHITE
+// @field BLACK
+// @field TRANSPARENT_BLACK
+// @field CYAN
+// @field GREEN1
+// @field GREEN2
+// @field RED
+// @field LIGHT_BLUE
+// @field BLUE
+// @field DARK_RED
+// @field MAGENTA
+// @field YELLOW
+// @field ORANGE
+// @field ALMOST_BLACK
+// @field ALMOST_WHITE
+// @field DARK_GREEN1_MOD
+// @field DARK_GREEN2_MOD
+// @field DARK_ORANGE_MOD
+// @field DARK_CYAN1_MOD
+// @field DARK_CYAN2_MOD
+// @table COLOR
 int luaopen_COLOR(lua_State * L)
 {
     lua_newtable(L);
