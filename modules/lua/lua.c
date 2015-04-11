@@ -79,7 +79,7 @@ static int luaCB_beep(lua_State * L)
  Calls an eventproc (a function from the camera firmware which can be called by name). 
  See Eventprocs. Dangerous.
  @tparam string function the name of the function to call
- @param[opt=1] arg argument to pass to the call
+ @param[opt] arg argument to pass to the call
  @function call
  */
 static int luaCB_call(lua_State * L)
@@ -115,7 +115,7 @@ static int luaCB_call(lua_State * L)
 /***
  Take a picture
  @tparam[opt=64] integer wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] boolean should_af whether ot not to us auto focus
+ @tparam[opt=true] boolean should_af whether or not to use auto focus
  @function shoot
  */
 static int luaCB_shoot(lua_State * L)
