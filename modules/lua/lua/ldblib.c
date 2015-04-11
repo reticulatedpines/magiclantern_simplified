@@ -346,7 +346,7 @@ static int db_sethook (lua_State *L) {
     lua_pushvalue(L, -1);
     lua_rawsetp(L, LUA_REGISTRYINDEX, &HOOKKEY);  /* set it in position */
     lua_pushstring(L, "k");
-    lua_setfield(L, -2, "__mode");  /** hooktable.__mode = "k" */
+    lua_setfield(L, -2, "__mode");  /* hooktable.__mode = "k" */
     lua_pushvalue(L, -1);
     lua_setmetatable(L, -2);  /* setmetatable(hooktable) = hooktable */
   }
