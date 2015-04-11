@@ -1138,6 +1138,22 @@ static EOSState *eos_init_cpu(void)
     return s;
 }
 
+static void patch_bootloader_autoexec(EOSState *s)
+{
+    /* on 6D, patch bootdisk_check and file_read so it will believe it can read autoexec.bin */
+    if (eos_get_mem_w(s, 0xFFFEA10C) != 0xE92D41F0 ||
+        eos_get_mem_w(s, 0xFFFE23CC) != 0xE92D41F0)
+    {
+        printf("This ROM doesn't look like a 6D\n");
+        return;
+    }
+    uint32_t ret_0[2] = { 0xe3a00000, 0xe12fff1e };
+    cpu_physical_memory_write_rom(0xFFFEA10C, (uint8_t*) ret_0, 8);
+    cpu_physical_memory_write_rom(0xFFFE23CC, (uint8_t*) ret_0, 8);
+    eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
+    s->cpu->env.regs[15] = 0xFFFF0000;
+}
+
 static void eos_init_common(const char *rom_filename, uint32_t rom_start)
 {
     EOSState *s = eos_init_cpu();
@@ -1161,6 +1177,13 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
         }
     }
     
+    if (0)
+    {
+        /* 6D bootloader experiment */
+        patch_bootloader_autoexec(s);
+        return;
+    }
+
     s->cpu->env.regs[15] = rom_start;
 }
 
