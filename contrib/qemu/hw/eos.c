@@ -598,6 +598,11 @@ static void *eos_interrupt_thread(void *parm)
             if (s->timer_enabled[pos])
             {
                 s->timer_current_value[pos] += 0x100;
+
+                if (s->timer_current_value[pos] > s->timer_reload_value[pos])
+                {
+                    s->timer_current_value[pos] = 0;
+                }
             }
         }
 
