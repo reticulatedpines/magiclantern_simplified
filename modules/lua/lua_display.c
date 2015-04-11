@@ -1,3 +1,11 @@
+/***
+ Display and bmp drawing functions functions
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module display
+ */
 
 #include <dryos.h>
 #include <string.h>
@@ -8,18 +16,32 @@
 #include "lua_common.h"
 
 
+/***
+ Turn the display on
+ @function on
+ */
 static int luaCB_display_on(lua_State * L)
 {
     display_on();
     return 0;
 }
 
+/***
+ Turn the display off
+ @function off
+ */
 static int luaCB_display_off(lua_State * L)
 {
     display_off();
     return 0;
 }
 
+/***
+ Take a screenshot
+ @tparam[opt] string filename
+ @tparam[opt] integer mode
+ @function screenshot
+ */
 static int luaCB_display_screenshot(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(filename, 1, SCREENSHOT_FILENAME_AUTO);
@@ -28,12 +50,26 @@ static int luaCB_display_screenshot(lua_State * L)
     return 0;
 }
 
+/***
+ Clear the screen
+ @function clear
+ */
 static int luaCB_display_clear(lua_State * L)
 {
     clrscr();
     return 0;
 }
 
+/***
+ Print text to the screen.
+ @tparam string text
+ @tparam integer x
+ @tparam integer y
+ @tparam[opt] integer font
+ @tparam[opt] integer fg foreground color
+ @tparam[opt] integer bg background color
+ @function print
+ */
 static int luaCB_display_print(lua_State * L)
 {
     LUA_PARAM_STRING(str, 1);
@@ -46,6 +82,13 @@ static int luaCB_display_print(lua_State * L)
     return 0;
 }
 
+/***
+ Set a pixel to a color
+ @tparam integer x
+ @tparam integer y
+ @tparam integer color
+ @function pixel
+ */
 static int luaCB_display_pixel(lua_State * L)
 {
     LUA_PARAM_INT(x, 1);
@@ -55,6 +98,15 @@ static int luaCB_display_pixel(lua_State * L)
     return 0;
 }
 
+/***
+ Set a pixel to a color
+ @tparam integer x1
+ @tparam integer y1
+ @tparam integer x2
+ @tparam integer y2
+ @tparam integer color
+ @function pixel
+ */
 static int luaCB_display_line(lua_State * L)
 {
     LUA_PARAM_INT(x1, 1);
@@ -66,6 +118,16 @@ static int luaCB_display_line(lua_State * L)
     return 0;
 }
 
+/***
+ Set a pixel to a color
+ @tparam integer x
+ @tparam integer y
+ @tparam integer w
+ @tparam integer h
+ @tparam integer stroke outline color
+ @tparam[opt] integer fill fill color
+ @function pixel
+ */
 static int luaCB_display_rect(lua_State * L)
 {
     LUA_PARAM_INT(x, 1);
@@ -79,6 +141,15 @@ static int luaCB_display_rect(lua_State * L)
     return 0;
 }
 
+/***
+ Draw a circle
+ @tparam integer x center x
+ @tparam integer y center y
+ @tparam integer r radius
+ @tparam integer stroke outline color
+ @tparam[opt] integer fill fill color
+ @function pixel
+ */
 static int luaCB_display_circle(lua_State * L)
 {
     LUA_PARAM_INT(x, 1);

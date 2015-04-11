@@ -1,3 +1,11 @@
+/***
+ Movie functions
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module movie
+ */
 
 #include <dryos.h>
 #include <string.h>
@@ -7,6 +15,10 @@
 
 #include "lua_common.h"
 
+/***
+ Start recording a movie.
+ @function start
+ */
 static int luaCB_movie_start(lua_State* L)
 {
     if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
@@ -24,6 +36,10 @@ static int luaCB_movie_start(lua_State* L)
     return 0;
 }
 
+/***
+ Stop recording a movie.
+ @function stop
+ */
 static int luaCB_movie_stop(lua_State* L)
 {
     if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
@@ -44,6 +60,8 @@ static int luaCB_movie_stop(lua_State* L)
 static int luaCB_movie_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// Whether or not the camera is recording a movie
+    // @tfield boolean recording
     if(!strcmp(key, "recording")) lua_pushboolean(L, RECORDING);
     else lua_rawget(L, 1);
     return 1;

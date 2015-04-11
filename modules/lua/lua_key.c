@@ -1,3 +1,11 @@
+/***
+ Key functions
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module key
+ */
 
 #include <dryos.h>
 #include <string.h>
@@ -7,6 +15,11 @@
 extern int last_keypress;
 int module_send_keypress(int module_key);
 
+/***
+ Send a keypress.
+ @tparam integer key the key to press
+ @function press
+ */
 static int luaCB_key_press(lua_State * L)
 {
     LUA_PARAM_INT(key, 1);
@@ -14,6 +27,13 @@ static int luaCB_key_press(lua_State * L)
     return 0;
 }
 
+/***
+ Wait for a key to be pressed.
+ @tparam[opt] integer key
+ @tparam[opt] integer timeout
+ @return the key that was pressed
+ @function wait
+ */
 static int luaCB_key_wait(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(key, 1, 0);
@@ -38,6 +58,8 @@ static int luaCB_key_wait(lua_State * L)
 static int luaCB_key_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// The last key that was pressed.
+    // @tfield integer last
     if(!strcmp(key, "last")) lua_pushinteger(L, last_keypress);
     else lua_rawget(L, 1);
     return 1;

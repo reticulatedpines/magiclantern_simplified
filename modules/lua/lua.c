@@ -43,8 +43,8 @@ static int lua_loaded = 0;
 int lua_running = 0;
 int last_keypress = 0;
 
-/**
- * Determines if a string ends in some string
+/*
+ Determines if a string ends in some string
  */
 static int string_ends_with(const char *source, const char *ending)
 {
@@ -54,6 +54,20 @@ static int string_ends_with(const char *source, const char *ending)
     return !strcmp(source + strlen(source) - strlen(ending), ending);
 }
 
+/***
+ Global Functions
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module global
+ */
+
+/***
+ Beep
+ @tparam[opt=1] integer times number of times to beep
+ @function beep
+ */
 static int luaCB_beep(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(times, 1, 1);
@@ -61,6 +75,13 @@ static int luaCB_beep(lua_State * L)
     return 0;
 }
 
+/***
+ Calls an eventproc (a function from the camera firmware which can be called by name). 
+ See Eventprocs. Dangerous.
+ @tparam string function the name of the function to call
+ @param[opt=1] arg argument to pass to the call
+ @function call
+ */
 static int luaCB_call(lua_State * L)
 {
     LUA_PARAM_STRING(function_name, 1);
@@ -91,6 +112,12 @@ static int luaCB_call(lua_State * L)
     return 1;
 }
 
+/***
+ Take a picture
+ @tparam[opt=64] integer wait how long to wait for camera to be ready to take a picture
+ @tparam[opt=true] boolean should_af whether ot not to us auto focus
+ @function shoot
+ */
 static int luaCB_shoot(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
@@ -100,6 +127,11 @@ static int luaCB_shoot(lua_State * L)
     return 1;
 }
 
+/***
+ Pauses for ms miliseconds and allows other tasks to run.
+ @tparam integer amount number of milliseconds to sleep
+ @function msleep
+ */
 static int luaCB_msleep(lua_State * L)
 {
     LUA_PARAM_INT(amount, 1);

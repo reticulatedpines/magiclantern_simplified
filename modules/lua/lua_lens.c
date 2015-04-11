@@ -1,3 +1,11 @@
+/***
+ Lens functions
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module lens
+ */
 
 #include <dryos.h>
 #include <string.h>
@@ -9,12 +17,26 @@
 static int luaCB_lens_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// The name of the lens (reported by the lens)
+    // @tfield string name readonly
     if(!strcmp(key, "name")) lua_pushstring(L, lens_info.name);
+    /// The focal length of the lens (in mm)
+    // @tfield integer focal_length readonly
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
+    /// The current focal distance (in cm)
+    // @tfield integer focal_distance readonly
     else if(!strcmp(key, "focal_distance")) lua_pushinteger(L, lens_info.focus_dist);
+    /// The hyperfocal distance of the lens (in mm)
+    // @tfield integer hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
+    /// The distance to the DOF near (in mm)
+    // @tfield integer dof_near readonly
     else if(!strcmp(key, "dof_near")) lua_pushinteger(L, lens_info.dof_near);
+    /// The distance to the DOF far (in mm)
+    // @tfield integer dof_far readonly
     else if(!strcmp(key, "dof_far")) lua_pushinteger(L, lens_info.dof_far);
+    /// Whether or not auto focus is enabled
+    // @tfield boolean af readonly
     else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
     else lua_rawget(L, 1);
     return 1;
@@ -34,6 +56,14 @@ static int luaCB_lens_newindex(lua_State * L)
     return 0;
 }
 
+/***
+ Moves the focus motor a specified number of steps. Only works in LV.
+ @tparam integer num_steps
+ @tparam[opt=1] integer step_size
+ @tparam[opt=1] integer wait
+ @tparam[opt=0] integer extra_delay
+ @function focus
+ */
 static int luaCB_lens_focus(lua_State * L)
 {
     LUA_PARAM_INT(num_steps, 1);

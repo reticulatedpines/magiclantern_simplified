@@ -1,21 +1,42 @@
+/***
+ Functions for writing data to the console
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module console
+ */
 
 #include <dryos.h>
 #include <string.h>
 #include <console.h>
 #include "lua_common.h"
 
+/***
+ Show the console
+ @function show
+ */
 static int luaCB_console_show(lua_State * L)
 {
     console_show();
     return 0;
 }
 
+/***
+ Hide the console
+ @function hide
+ */
 static int luaCB_console_hide(lua_State * L)
 {
     console_hide();
     return 0;
 }
 
+/***
+ Write some text to the console
+ @tparam string text the text to write
+ @function write
+ */
 static int luaCB_console_write(lua_State * L)
 {
     if(lua_isstring(L, 1)) console_puts(lua_tostring(L, 1));

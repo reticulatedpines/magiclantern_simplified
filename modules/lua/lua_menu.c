@@ -1,3 +1,11 @@
+/***
+ Functions for interacting with the ML menu
+ 
+ @author Magic Lantern Team
+ @copyright 2014
+ @license GPL
+ @module menu
+ */
 
 #include <dryos.h>
 #include <string.h>
@@ -157,6 +165,42 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
     return 0;
 }
 
+/// Creates a new menu item
+// @tparam table definition
+// @function new
+// @return a menu object
+static int luaCB_menu_new(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    
+    lua_pushvalue(L, 1);
+    const char * parent = LUA_FIELD_STRING("parent", "LUA");
+    lua_pop(L, 1);
+    
+    struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
+    //add a metatable to the userdata object for value lookups and to store submenu
+    lua_newtable(L);
+    lua_pushcfunction(L, luaCB_menu_index);
+    lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, luaCB_menu_newindex);
+    lua_setfield(L, -2, "__newindex");
+    lua_pushcfunction(L, luaCB_menu_remove);
+    lua_setfield(L, -2, "remove");
+    lua_pushstring(L, parent);
+    lua_setfield(L, -2, "parent");
+    lua_setmetatable(L, -2);
+    
+    lua_pushvalue(L, 1);
+    load_menu_entry(L, new_entry, NULL, "unknown");
+    menu_add(parent, new_entry->menu_entry, 1);
+    lua_pop(L, 1);
+    
+    return 1; //return the userdata object
+}
+
+/// Represents a menu item
+// @type menu
+
 static int luaCB_menu_index(lua_State * L)
 {
     if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
@@ -164,6 +208,8 @@ static int luaCB_menu_index(lua_State * L)
     if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
     
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// current value of the menu item
+    // @tfield integer value
     if(!strcmp(key, "value"))
     {
         if(script_entry->menu_entry->choices)
@@ -175,27 +221,76 @@ static int luaCB_menu_index(lua_State * L)
             lua_pushinteger(L, script_entry->menu_value);
         }
     }
+    /// Name for the menu item
+    // @tfield string name
     else if(!strcmp(key, "name")) lua_pushstring(L, script_entry->menu_entry->name);
+    /// Help text for the menu item (line 1)
+    // @tfield string help
     else if(!strcmp(key, "help")) lua_pushstring(L, script_entry->menu_entry->help);
+    /// Help text for the menu item (line 2)
+    // @tfield string help2
     else if(!strcmp(key, "help2")) lua_pushstring(L, script_entry->menu_entry->help2);
+    /// Advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
+    // @tfield boolean advanced
     else if(!strcmp(key, "advanced")) lua_pushinteger(L, script_entry->menu_entry->advanced);
+    /// Dependencies for this menu item. Possible values are specified in the 'DEPENDS_ON' global.
+    // If the dependecies are not met, the item will be greyed out and a warning will appear at the bottom of the screen.
+    // @tfield integer depends_on
     else if(!strcmp(key, "depends_on")) lua_pushinteger(L, script_entry->menu_entry->depends_on);
+    /// Editing mode for the menu item
+    // @tfield integer edit_mode
     else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
+    /// Hidden from main menu
+    // @tfield integer hidden
     else if(!strcmp(key, "hidden")) lua_pushinteger(L, script_entry->menu_entry->hidden);
+    /// The type of icon to use for this menu item. Possible values are specified in the 'ICON_TYPE' global
+    // @tfield integer icon_type
     else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
-    else if(!strcmp(key, "jhidden")) lua_pushinteger(L, script_entry->menu_entry->jhidden);
+    /// Hidden from junkie menu
+    // @tfield boolean jhidden
+    else if(!strcmp(key, "jhidden")) lua_pushboolean(L, script_entry->menu_entry->jhidden);
+    /// The maximum value the menu item can have
+    // @tfield integer max
     else if(!strcmp(key, "max")) lua_pushinteger(L, script_entry->menu_entry->max);
+    /// The minimum value the menu item can have
+    // @tfield integer min
     else if(!strcmp(key, "min")) lua_pushinteger(L, script_entry->menu_entry->min);
-    else if(!strcmp(key, "selected")) lua_pushinteger(L, script_entry->menu_entry->selected);
-    else if(!strcmp(key, "shidden")) lua_pushinteger(L, script_entry->menu_entry->shidden);
-    else if(!strcmp(key, "starred")) lua_pushinteger(L, script_entry->menu_entry->starred);
+    /// Whether or not the menu is selected
+    // @tfield integer selected
+    else if(!strcmp(key, "selected")) lua_pushboolean(L, script_entry->menu_entry->selected);
+    /// Special hide, not toggleable by user
+    // @tfield boolean shidden
+    else if(!strcmp(key, "shidden")) lua_pushboolean(L, script_entry->menu_entry->shidden);
+    /// Present in "my menu"
+    // @tfield boolean starred
+    else if(!strcmp(key, "starred")) lua_pushboolean(L, script_entry->menu_entry->starred);
+    /// Submenu Height
+    // @tfield integer submenu_height
     else if(!strcmp(key, "submenu_height")) lua_pushinteger(L, script_entry->menu_entry->submenu_height);
+    /// Submenu Width
+    // @tfield integer submenu_width
     else if(!strcmp(key, "submenu_width")) lua_pushinteger(L, script_entry->menu_entry->submenu_width);
+    /// The unit for the menu item's value. Possible values are specified in the 'UNIT' global
+    // @tfield integer unit
     else if(!strcmp(key, "unit")) lua_pushinteger(L, script_entry->menu_entry->unit);
+    /// Suggested operating mode for this menu item. Possible values are specified in the "WORKS_BEST_IN' global.
+    // @tfield integer works_best_in
     else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
+    /// Function called when menu is toggled
+    // @tparam integer delta
+    // @function select
     else if(!strcmp(key, "select")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref);
+    /// Function called when menu is displayed. Return a string to be displayed.
+    // @return string
+    // @function update
     else if(!strcmp(key, "update")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref);
+    /// Function called when menu is displayed. Return a string to be displayed in the info area (in green).
+    // @return string
+    // @function info
     else if(!strcmp(key, "info")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref);
+    /// Function called when menu is displayed. Return a string when there is a warning (menu will be greyed out).
+    // @return string
+    // @function select
     else if(!strcmp(key, "warning")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref);
     else
     {
@@ -354,6 +449,8 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     menu_entry->jhidden = LUA_FIELD_INT("jhidden", 0);
     menu_entry->shidden = LUA_FIELD_INT("shidden", 0);
     menu_entry->starred = LUA_FIELD_INT("starred", 0);
+    /// List of strings to display as choices in the menu item
+    // @tfield table choices
     if(lua_getfield(L, -1, "choices") == LUA_TTABLE)
     {
         int choices_count = luaL_len(L, -1);
@@ -386,7 +483,8 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     if((script_entry->warning_ref = get_function_ref(L, "warning")) != LUA_NOREF) menu_entry->update = script_menu_update;
     if((script_entry->info_ref = get_function_ref(L, "info")) != LUA_NOREF) menu_entry->update = script_menu_update;
     
-    //submenu
+    /// Table of more menu tables that define a submenu
+    // @tfield table submenu
     if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
     {
         int submenu_count = luaL_len(L, -1);
@@ -474,6 +572,8 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     
 }
 
+/// Removes this menu entry
+// @function remove
 static int luaCB_menu_remove(lua_State * L)
 {
     if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
@@ -489,35 +589,6 @@ static int luaCB_menu_remove(lua_State * L)
         return luaL_error(L, "could not get metatable for userdata");
     }
     return 0;
-}
-
-static int luaCB_menu_new(lua_State * L)
-{
-    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
-    
-    lua_pushvalue(L, 1);
-    const char * parent = LUA_FIELD_STRING("parent", "LUA");
-    lua_pop(L, 1);
-    
-    struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
-    //add a metatable to the userdata object for value lookups and to store submenu
-    lua_newtable(L);
-    lua_pushcfunction(L, luaCB_menu_index);
-    lua_setfield(L, -2, "__index");
-    lua_pushcfunction(L, luaCB_menu_newindex);
-    lua_setfield(L, -2, "__newindex");
-    lua_pushcfunction(L, luaCB_menu_remove);
-    lua_setfield(L, -2, "remove");
-    lua_pushstring(L, parent);
-    lua_setfield(L, -2, "parent");
-    lua_setmetatable(L, -2);
-    
-    lua_pushvalue(L, 1);
-    load_menu_entry(L, new_entry, NULL, "unknown");
-    menu_add(parent, new_entry->menu_entry, 1);
-    lua_pop(L, 1);
-    
-    return 1; //return the userdata object
 }
 
 const luaL_Reg menulib[] =
