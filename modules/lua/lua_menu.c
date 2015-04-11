@@ -170,10 +170,62 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
     return 0;
 }
 
-/// Creates a new menu item
-// @tparam table definition
-// @function new
-// @return a menu object
+/*** Creates a new menu item
+ @tparam table definition
+ @function new
+ @return a menu object
+ @usage
+mymenu = menu.new
+{
+    parent = "LUA",
+    name = "Run Test Script",
+    help = "Run the test script.",
+    submenu =
+    { 
+        {
+            name = "Run",
+            help = "Run this script.",
+            icon_type = 5,
+            update = "",
+        },
+        {
+            name = "param1",
+            help = "help for param1",
+            min = 0,
+            max = 100,
+            warning = function() return "this param doesn't work right :P" end,
+        },
+        {
+            name = "param2",
+            help = "help for param2",
+            min = 0,
+            max = 10,
+            value = 5,
+            info = function() return "click it baby!" end,
+        },
+        {
+            name = "dec test",
+            min = 0,
+            max = 10000,
+            unit = 7,
+        },
+        {
+            name = "choices test",
+            choices = { "choice1", "choice2", "choice3" },
+        }
+    },
+    update = function() return mymenu.submenu["choices test"].value end,
+}
+
+mymenu.submenu["Run"].select = function()
+    console.show()
+    print("param1= "..mymenu.submenu["param1"].value)
+    print("param2= "..mymenu.submenu["param2"].value)
+    print("dec test= "..mymenu.submenu["dec test"].value)
+    print("choices test= "..mymenu.submenu["choices test"].value)
+    print("script run finished!")
+end
+*/
 static int luaCB_menu_new(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
@@ -235,7 +287,7 @@ static int luaCB_menu_index(lua_State * L)
     /// Help text for the menu item (line 2)
     // @tfield string help2
     else if(!strcmp(key, "help2")) lua_pushstring(L, script_entry->menu_entry->help2);
-    /// Advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
+    /// Advanced setting in submenus
     // @tfield boolean advanced
     else if(!strcmp(key, "advanced")) lua_pushinteger(L, script_entry->menu_entry->advanced);
     /// Dependencies for this menu item.
