@@ -1187,7 +1187,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     }
 
     // set entry point
-    s->cpu->env.regs[15] = 0x40800000;
+    s->cpu->env.regs[15] = 0x800000;
     s->cpu->env.regs[13] = 0x1900;
     
     precompute_yuv2rgb(1);
