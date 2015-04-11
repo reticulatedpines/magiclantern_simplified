@@ -1147,6 +1147,20 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     /* populate ROM1 */
     eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
 
+    /* patch all occurences of "MCR p15, 0, R0,c9,c1, 0" (0xEE090F11) in the bootloader */
+    /* these can't be executed by emulator */
+    uint32_t nop = 0xe1a00000;
+    uint32_t addr;
+    for (addr = 0xFFFE0000; addr < 0xFFFFFFFC; addr++)
+    {
+        uint32_t old = eos_get_mem_w(s, addr);
+        if (old == 0xEE090F11 || old == 0xEE090F31)
+        {
+            printf("Patching %X (MCR p15,0,R0,c9,c1,x -> NOP)\n", addr);
+            cpu_physical_memory_write_rom(addr, (uint8_t*) &nop, 4);
+        }
+    }
+    
     s->cpu->env.regs[15] = rom_start;
 }
 
