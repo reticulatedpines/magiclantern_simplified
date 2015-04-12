@@ -70,7 +70,13 @@ static int string_ends_with(const char *source, const char *ending)
  @copyright 2014
  @license GPL
  @module event
+ @usage
+event.keypress = function(key)
+    print("You pressed a key: "..key)
+    return false
+end
  */
+
 
 static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * event_entries, const char * event_name, int sucess, int failure)
 {
@@ -176,22 +182,22 @@ static int luaCB_event_newindex(lua_State * L)
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     
     /// Called before a picture is taken
-    // @param arg
+    // @param arg unused
     // @return whether or not to continue executing CBRs for this event
     // @function pre_shoot
     SCRIPT_CBR_SET(pre_shoot);
     /// Called after a picture is taken
-    // @param arg
+    // @param arg unused
     // @return whether or not to continue executing CBRs for this event
     // @function post_shoot
     SCRIPT_CBR_SET(post_shoot);
     /// Called periodicaly from shoot_task
-    // @param arg
+    // @param arg unused
     // @return whether or not to continue executing CBRs for this event
     // @function shoot_task
     SCRIPT_CBR_SET(shoot_task);
     /// Called each second
-    // @param arg
+    // @param arg unused
     // @return whether or not to continue executing CBRs for this event
     // @function seconds_clock
     SCRIPT_CBR_SET(seconds_clock);
@@ -201,12 +207,12 @@ static int luaCB_event_newindex(lua_State * L)
     // @function keypress
     SCRIPT_CBR_SET(keypress);
     /// Special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics
-    // @param arg
+    // @param arg unused
     // @return whether or not to continue executing CBRs for this event
     // @function custom_picture_taking
     SCRIPT_CBR_SET(custom_picture_taking);
-    /// called after a picture is taken with the intervalometer
-    // @param arg
+    /// Called after a picture is taken with the intervalometer
+    // @param arg unused
     // @return whether or not to continue executing CBRs for this event
     // @function intervalometer
     SCRIPT_CBR_SET(intervalometer);
