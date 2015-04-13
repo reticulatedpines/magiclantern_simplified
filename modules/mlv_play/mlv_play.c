@@ -1082,7 +1082,7 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
             }
             
             /* unexpected block header size? */
-            if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 10 * 1024 * 1024)
+            if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
             {
                 bmp_printf(FONT_MED, 30, 190, "Invalid header size: %d bytes at 0x%08X", buf.blockSize, position);
                 beep();
@@ -2005,7 +2005,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             buffer->frameSize = frame_size;
-            buffer->frameBuffer = malloc(buffer->frameSize);
+            buffer->frameBuffer = fio_malloc(buffer->frameSize);
         }
 
         if(!buffer->frameBuffer)

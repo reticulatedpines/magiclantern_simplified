@@ -14,9 +14,13 @@ char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
 
+/* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
+/* is_camera("5D3", "*") - will accept all firmware versions */
 int is_camera(const char * model, const char * firmware)
 {
-    return streq(__camera_model_short, model) && streq(firmware_version, firmware);
+    return 
+        streq(__camera_model_short, model) &&                           /* check camera model */
+        (streq(firmware_version, firmware) || streq(firmware, "*"));    /* check firmware version */
 }
 
 PROP_HANDLER(PROP_CAM_MODEL)
@@ -48,11 +52,11 @@ volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
-//~ int battery_level_bars = 0;
-PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+volatile PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
 volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
+volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;

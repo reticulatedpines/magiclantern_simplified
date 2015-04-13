@@ -47,7 +47,6 @@
 static char* mvr_logfile_buffer = 0;
 /* delay to be waited after mirror is locked */
 CONFIG_INT("mlu.lens.delay", lens_mlu_delay, 7);
-
 static void update_stuff();
 
 //~ extern struct semaphore * bv_sem;
@@ -55,7 +54,6 @@ void bv_update_lensinfo();
 void bv_auto_update();
 static void lensinfo_set_aperture(int raw);
 static void bv_expsim_shift();
-
 
 static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
@@ -1244,10 +1242,13 @@ PROP_HANDLER( PROP_SHUTTER )
 }
 
 static int aperture_ack = -1;
-PROP_HANDLER( PROP_APERTURE2 )
+PROP_HANDLER( PROP_APERTURE )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    if (!CONTROL_BV)
+    {
+        lensinfo_set_aperture(buf[0]);
+    }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
         #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
@@ -1263,22 +1264,50 @@ PROP_HANDLER( PROP_APERTURE2 )
     aperture_ack = buf[0];
 }
 
-PROP_HANDLER( PROP_APERTURE ) // for Tv mode
+PROP_HANDLER( PROP_APERTURE_AUTO )
 {
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    /* this gets updated in Tv mode (where PROP_APERTURE is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_AV)
+    {
+        /* in these modes, aperture is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+
+    if (!CONTROL_BV)
+    {
+        /* expo override turned off? */
+        lensinfo_set_aperture(buf[0]);
+    }
+
     lens_display_set_dirty();
 }
 
-static int shutter_also_ack = -1;
-PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
+PROP_HANDLER( PROP_SHUTTER_AUTO )
 {
+    /* this gets updated in Av mode (where PROP_SHUTTER is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+    
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_TV)
+    {
+        /* in these modes, shutter is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+    
     if (!CONTROL_BV)
     {
+        /* expo override turned off? */
+        /* todo: double-check if it's still needed */
         if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
             lensinfo_set_shutter(buf[0]);
     }
+    
     lens_display_set_dirty();
-    shutter_also_ack = buf[0];
 }
 
 static int ae_ack = 12345;
@@ -2559,10 +2588,29 @@ static LVINFO_UPDATE_FUNC(wb_update)
 static LVINFO_UPDATE_FUNC(focus_dist_update)
 {
     LVINFO_BUFFER(16);
+    extern int dof_display; /* in focus.c */
     
     if(lens_info.focus_dist)
     {
         snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+        
+        if (dof_display && lens_info.dof_far && lens_info.dof_near)
+        {
+            int xw = item->x + item->width/2 - 25;  /* do not center it, because it may overlap with the histogram */
+            
+            static int prev_xw = 0;
+            if (xw != prev_xw)
+            {
+                /* erase when graphic changes position. */
+                bmp_fill(COLOR_EMPTY, prev_xw-70, item->y-36, 140, 26);
+                prev_xw = xw;
+            }
+            
+            bmp_fill(COLOR_BG, xw-70, item->y-36, 140, 26);
+            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
+            bmp_fill(COLOR_WHITE, xw, item->y-32, 1, 19);
+        }
     }
 }
 

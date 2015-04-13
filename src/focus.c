@@ -21,6 +21,8 @@
 #include "lcdsensor.h"
 #endif
 
+CONFIG_INT( "dof.display", dof_display, 0);
+
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
@@ -141,17 +143,20 @@ display_lens_hyperfocal()
         lens_info.aperture % 10
     );
     
-    if (!lv || !lens_info.focus_dist)
+    if (!lv)
     {
         y += height;
         bmp_printf( font, x, y,
-            "Hyperfocal: %s",
-            lens_info.hyperfocal ? lens_format_dist( lens_info.hyperfocal ) : 
-            "unknown, go to LiveView to get focal length"
+            "Focus distance info is only available in LiveView."
         );
+        return;
+    }
+    
+    if (!lens_info.focus_dist)
+    {
         y += height;
         bmp_printf( font, x, y,
-            "Your lens did not report focus distance"
+            "Your lens does not report focus distance."
         );
         return;
     }
@@ -1064,6 +1069,12 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
+    {
+        .name = "DOF Display",
+        .priv = &dof_display, 
+        .max  = 1,
+        .help = "Display DOF above Focus distance.",
+    },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
         .name = "Focus Settings",

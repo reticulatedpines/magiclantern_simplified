@@ -2006,9 +2006,9 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
     else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
-        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
+        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl), or use MF.");
     else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
-        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
+        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl), or use MF.");
     else if (DEPENDS_ON(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
     //~ else if (DEPENDS_ON(DEP_NOT_EXPSIM) && lv && lv_luma_is_accurate())
@@ -5223,7 +5223,7 @@ static void joystick_longpress_check()
     if (joystick_pressed)
     {
         joystick_longpress++;
-        delayed_call(100, joystick_longpress_check);
+        delayed_call(100, joystick_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
@@ -5255,7 +5255,7 @@ static void erase_longpress_check()
     if (erase_pressed)
     {
         erase_longpress++;
-        delayed_call(100, erase_longpress_check);
+        delayed_call(100, erase_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
@@ -5326,7 +5326,7 @@ int handle_ml_menu_erase(struct event * event)
             /* if we can make use of a long joystick press, check it */
             joystick_pressed = 1;
             joystick_longpress = 0;
-            delayed_call(100, joystick_longpress_check);
+            delayed_call(100, joystick_longpress_check, 0);
             if (gui_menu_shown()) return 0;
         }
     }
@@ -5353,7 +5353,7 @@ int handle_ml_menu_erase(struct event * event)
         {
             erase_pressed = 1;
             erase_longpress = 0;
-            delayed_call(100, erase_longpress_check);
+            delayed_call(100, erase_longpress_check, 0);
             return 0;
         }
     }
