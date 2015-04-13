@@ -154,19 +154,40 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
 #define SCRIPT_CBR_SET(event) \
 if(!strcmp(key, #event))\
 {\
-    if(event##_cbr_scripts->function_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, event##_cbr_scripts->function_ref);\
-    event##_cbr_scripts->function_ref = lua_isfunction(L, 3) ? luaL_ref(L, LUA_REGISTRYINDEX) : LUA_NOREF;\
+    lua_pushvalue(L, 3);\
+    set_event_script_entry(&event##_cbr_scripts, L, lua_isfunction(L, -1) ? luaL_ref(L, LUA_REGISTRYINDEX) : LUA_NOREF); \
     return 0;\
 }\
 
-static void add_event_script_entry(struct script_event_entry ** root, lua_State * L)
+static void set_event_script_entry(struct script_event_entry ** root, lua_State * L, int function_ref)
 {
-    struct script_event_entry * new_entry = malloc(sizeof(struct script_event_entry));
-    if(new_entry)
+    struct script_event_entry * current;
+    for(current = *root; current; current = current->next)
     {
-        new_entry->next = *root;
-        new_entry->L = L;
-        *root = new_entry;
+        if(current->L == L)
+        {
+            if(current->function_ref != LUA_NOREF)
+            {
+                luaL_unref(L, LUA_REGISTRYINDEX, current->function_ref);
+            }
+            current->function_ref = function_ref;
+            return;
+        }
+    }
+    if(function_ref != LUA_NOREF)
+    {
+        struct script_event_entry * new_entry = malloc(sizeof(struct script_event_entry));
+        if(new_entry)
+        {
+            new_entry->next = *root;
+            new_entry->L = L;
+            new_entry->function_ref = function_ref;
+            *root = new_entry;
+        }
+        else
+        {
+            luaL_error(L, "malloc error creating script event");
+        }
     }
 }
 
