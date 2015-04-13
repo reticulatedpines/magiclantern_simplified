@@ -143,17 +143,20 @@ display_lens_hyperfocal()
         lens_info.aperture % 10
     );
     
-    if (!lv || !lens_info.focus_dist)
+    if (!lv)
     {
         y += height;
         bmp_printf( font, x, y,
-            "Hyperfocal: %s",
-            lens_info.hyperfocal ? lens_format_dist( lens_info.hyperfocal ) : 
-            "unknown, go to LiveView to get focal length"
+            "Focus distance info is only available in LiveView."
         );
+        return;
+    }
+    
+    if (!lens_info.focus_dist)
+    {
         y += height;
         bmp_printf( font, x, y,
-            "Your lens did not report focus distance"
+            "Your lens does not report focus distance."
         );
         return;
     }
