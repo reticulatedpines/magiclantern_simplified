@@ -83,6 +83,7 @@ struct script_menu_entry
     int update_ref;
     int warning_ref;
     int info_ref;
+    int rinfo_ref;
     int submenu_ref;
 };
 

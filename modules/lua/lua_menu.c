@@ -132,7 +132,22 @@ static MENU_UPDATE_FUNC(script_menu_update)
             }
             else if(lua_isstring(L, -1))
             {
-                MENU_SET_VALUE("%s", lua_tostring(L, -1));
+                MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
+            }
+            lua_pop(L,1);
+        }
+        if(script_entry->rinfo_ref != LUA_NOREF)
+        {
+            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref) == LUA_TFUNCTION)
+            {
+                if(!docall(L, 0, 1))
+                {
+                    MENU_SET_RINFO("%s", lua_tostring(L, -1))
+                }
+            }
+            else if(lua_isstring(L, -1))
+            {
+                MENU_SET_RINFO("%s", lua_tostring(L, -1));
             }
             lua_pop(L,1);
         }
@@ -345,6 +360,10 @@ static int luaCB_menu_index(lua_State * L)
     // @return string
     // @function info
     else if(!strcmp(key, "info")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref);
+    /// Function called when menu is displayed. Return a string to be displayed on the right side of the menu item
+    // @return string
+    // @function rinfo
+    else if(!strcmp(key, "rinfo")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref);
     /// Function called when menu is displayed. Return a string when there is a warning (menu will be greyed out).
     // @return string
     // @function warning
@@ -434,6 +453,16 @@ static int luaCB_menu_newindex(lua_State * L)
         else
         {
             script_entry->info_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            script_entry->menu_entry->update = script_menu_update;
+        }
+    }
+    else if(!strcmp(key, "rinfo"))
+    {
+        if(script_entry->rinfo_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref);
+        if(!lua_isfunction(L, 3)) script_entry->rinfo_ref = LUA_NOREF;
+        else
+        {
+            script_entry->rinfo_ref = luaL_ref(L, LUA_REGISTRYINDEX);
             script_entry->menu_entry->update = script_menu_update;
         }
     }
