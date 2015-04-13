@@ -406,7 +406,10 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
         );
     }
     
-    memcheck_mallocbuf[entry].failed |= failed;
+    if (entry < COUNT(memcheck_mallocbuf))
+    {
+        memcheck_mallocbuf[entry].failed |= failed;
+    }
     
     return failed;
 }
