@@ -45,12 +45,9 @@ extern int cf_card_workaround;
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (bottom_bar_hack && class == 131 && level == 1)
-    #if defined(CONFIG_5D3)
-        MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
-    #elif defined(CONFIG_6D)
-        MEM(0x841C0) = 0;
-    #elif defined(CONFIG_EOSM)
-        MEM(0x5D43C) = 0;
+    
+    #if defined(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE)
+        MEM(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE) = 0;
     #endif
 
     #ifdef CONFIG_5D3
