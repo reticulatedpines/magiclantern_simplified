@@ -347,7 +347,7 @@ static int luaCB_menu_index(lua_State * L)
     else if(!strcmp(key, "info")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref);
     /// Function called when menu is displayed. Return a string when there is a warning (menu will be greyed out).
     // @return string
-    // @function select
+    // @function warning
     else if(!strcmp(key, "warning")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref);
     else
     {
