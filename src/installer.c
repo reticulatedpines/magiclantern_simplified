@@ -390,7 +390,7 @@ static int install(void)
         return 0;
     }
 
-    rom_backup();
+    int rom_backup_done = rom_backup();
 
     if (boot_flags->firmware)
     {
@@ -428,8 +428,20 @@ static int install(void)
 
     bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
-
     y += 60;
+
+    print_bootflags();
+    bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
+    y += 60;
+
+    if (rom_backup_done)
+    {
+        int fnt2 = FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK);
+        int fnt1 = fnt2 | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720-32);
+        bmp_printf(fnt1, 0, y+=25, "After restart, please copy ML/LOGS/ROM*.BIN to PC, in a safe place.");
+        bmp_printf(fnt2, 0, y+=25, "We may need these files in case of emergency.");
+    }
+
     gui_uilock(UILOCK_SHUTTER);
     
     for (int i = 60; i > 0; i--)
@@ -439,13 +451,6 @@ static int install(void)
             /* abort if user gets out of Canon menu */
             return 0;
         }
-
-        print_bootflags();
-        bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
-
-        int fnt = FONT_MED | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720);
-        bmp_printf(fnt, 0, 300, "After restart, please copy ML/LOGS/ROM*.BIN to your PC, in a safe place.");
-        bmp_printf(fnt, 0, 325, "We may need these files in case of emergency (if anything goes wrong).");
 
         bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
             "To uninstall Magic Lantern, please wait for %d seconds.  ", i
