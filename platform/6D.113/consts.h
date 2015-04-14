@@ -26,6 +26,7 @@
 #define ASIF_MAX_VOL 10
 
 #define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C6C
+#define HIJACK_CACHE_HACK_GUITASK_6D_ADDR 0xFF0DF6DC
 
 // load ML in the AllocateMemory pool
 #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xff0c3470
@@ -308,3 +309,6 @@ Output size: 5496 x 3670
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 85 / 100 - 102)
+
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x841C0
