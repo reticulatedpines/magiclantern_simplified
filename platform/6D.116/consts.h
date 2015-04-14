@@ -297,4 +297,4 @@ Output size: 5496 x 3670
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 85 / 100 - 102)
 
-#define JUDGEBOTTOMINFODISPTIMERSTATE  0x84210
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE  0x84210
