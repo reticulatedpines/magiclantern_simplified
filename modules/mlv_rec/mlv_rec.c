@@ -142,6 +142,7 @@ static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.black_fix", black_fix, 0);
 static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
+static CONFIG_INT("mlv.res_x_fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
@@ -552,7 +553,7 @@ static void update_resolution_params()
     else squeeze_factor = 1.0f;
 
     /* res X */
-    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+    res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
 
     /* res Y */
     int32_t num = aspect_ratio_presets_num[aspect_ratio_index];
@@ -713,6 +714,26 @@ static void refresh_raw_settings(int32_t force)
     }
 }
 
+static int32_t calc_crop_factor()
+{
+
+    int32_t camera_crop = 162;
+    int32_t sensor_x = 1;
+    int32_t sampling_x = 3;
+    
+    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
+    
+    if (cam_500d || cam_50d) sensor_x = 4752;
+    if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_x = 5184;
+    if (cam_6d) sensor_x = 5472;
+    if (cam_5d2) sensor_x = 5616;
+    if (cam_5d3) sensor_x = 5760;
+    
+    if (video_mode_crop) sampling_x = 1;
+    
+    return camera_crop * (sensor_x / sampling_x) / res_x;
+}
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!mlv_video_enabled)
@@ -732,7 +753,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
     }
     else
     {
-        MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        MENU_SET_VALUE("ON, %dx%d  %s%d.%02dx", res_x, res_y, FMT_FIXEDPOINT2(calc_crop_factor()));
     }
 
     write_speed_update(entry, info);
@@ -764,11 +785,14 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
 
+    
+    res_x = resolution_presets_x[resolution_index_x] + res_x_fine;
+    
     refresh_raw_settings(1);
 
-    int32_t selected_x = resolution_presets_x[resolution_index_x];
+    int32_t selected_x = res_x;
 
-    MENU_SET_VALUE("%dx%d", res_x, res_y);
+    MENU_SET_VALUE("%dx%d  %s%d.%02dx", res_x, res_y, FMT_FIXEDPOINT2(calc_crop_factor()));
 
     if (selected_x > max_res_x)
     {
@@ -3742,6 +3766,40 @@ static MENU_UPDATE_FUNC(raw_tag_take_update)
     }
 }
 
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!mlv_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if ((delta > 0)) {
+        if (resolution_presets_x[resolution_index_x] + res_x_fine <= max_res_x - 32) res_x_fine += 32;
+
+        if ((resolution_index_x < COUNT(resolution_presets_x) - 1) && (resolution_presets_x[resolution_index_x] + res_x_fine >= resolution_presets_x[resolution_index_x + 1])) {
+            resolution_index_x += 1;
+            res_x_fine = 0;
+        }
+        
+    } else {
+        if (resolution_presets_x[resolution_index_x] + res_x_fine >= 640 + 32) res_x_fine -= 32;
+
+        if ((resolution_index_x > 0) && (resolution_presets_x[resolution_index_x] + res_x_fine <= resolution_presets_x[resolution_index_x - 1])) {
+            resolution_index_x -= 1;
+            res_x_fine = 0;
+        }
+
+    }
+}
+static MENU_UPDATE_FUNC(resolution_change_fine_value_update)    
+{
+    refresh_raw_settings(1);
+
+    aspect_ratio_update_info(entry, info);
+    
+    write_speed_update(entry, info);
+}
+
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -3754,11 +3812,20 @@ static struct menu_entry raw_video_menu[] =
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Resolution",
+                .name = "Resolution presets",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
+            },
+            {
+                .name = "Resolution fine control",
+                .priv       = &res_x_fine,
+                .min = -960,
+                .max = +960,
+                .select = resolution_change_fine_value,
+                .update = resolution_change_fine_value_update,
+                .help = "Fine tune resolution in 32px steps on top of preset.",
             },
             {
                 .name = "Aspect Ratio",
@@ -4222,6 +4289,7 @@ MODULE_PROPHANDLERS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_video_enabled)
     MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(res_x_fine)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
