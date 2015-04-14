@@ -142,7 +142,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
             {
                 if(!docall(L, 0, 1))
                 {
-                    MENU_SET_RINFO("%s", lua_tostring(L, -1))
+                    MENU_SET_RINFO("%s", lua_tostring(L, -1));
                 }
             }
             else if(lua_isstring(L, -1))
