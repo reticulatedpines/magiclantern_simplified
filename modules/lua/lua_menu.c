@@ -277,6 +277,42 @@ static int luaCB_menu_new(lua_State * L)
     return 1; //return the userdata object
 }
 
+/// Set the value of some existing ML menu entry
+// @param menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @param entry name of the menu entry
+// @param value the value to set
+// @return whether or not the call was sucessful
+// @function set
+static int luaCB_menu_set(lua_State * L)
+{
+    LUA_PARAM_STRING(menu, 1);
+    LUA_PARAM_STRING(entry, 2);
+    if(lua_isinteger(L, 3))
+    {
+        LUA_PARAM_INT(value, 3);
+        lua_pushboolean(L, menu_set_value_from_script(menu, entry, value));
+    }
+    else
+    {
+        LUA_PARAM_STRING(value, 3);
+        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, value, -1));
+    }
+    return 1;
+}
+
+/// Get the value of some existing ML menu entry
+// @param menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @param entry name of the menu entry
+// @return the value of the menu entry
+// @function get
+static int luaCB_menu_get(lua_State * L)
+{
+    LUA_PARAM_STRING(menu, 1);
+    LUA_PARAM_STRING(entry, 2);
+    lua_pushinteger(L, menu_get_value_from_script(menu, entry));
+    return 1;
+}
+
 /// Represents a menu item
 // @type menu
 
@@ -689,6 +725,8 @@ static int luaCB_menu_remove(lua_State * L)
 const luaL_Reg menulib[] =
 {
     {"new", luaCB_menu_new},
+    {"set", luaCB_menu_set},
+    {"get", luaCB_menu_get},
     {NULL, NULL}
 };
 
