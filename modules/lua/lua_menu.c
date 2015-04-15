@@ -112,7 +112,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
             {
                 lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1))
+                if(!docall(L, 1, 1) && lua_isstring(L, -1))
                 {
                     MENU_SET_VALUE("%s", lua_tostring(L, -1));
                 }
@@ -128,7 +128,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref) == LUA_TFUNCTION)
             {
                 lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1))
+                if(!docall(L, 1, 1) && lua_isstring(L, -1))
                 {
                     MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
                 }
@@ -144,7 +144,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref) == LUA_TFUNCTION)
             {
                 lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1))
+                if(!docall(L, 1, 1) && lua_isstring(L, -1))
                 {
                     MENU_SET_RINFO("%s", lua_tostring(L, -1));
                 }
@@ -160,7 +160,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref) == LUA_TFUNCTION)
             {
                 lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1))
+                if(!docall(L, 1, 1) && lua_isstring(L, -1))
                 {
                     MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
                 }
