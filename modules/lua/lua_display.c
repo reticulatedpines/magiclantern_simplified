@@ -1,5 +1,5 @@
 /***
- Display and bmp drawing functions functions
+ Display and bmp drawing functions
  
  @author Magic Lantern Team
  @copyright 2014
