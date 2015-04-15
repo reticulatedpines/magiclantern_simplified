@@ -340,8 +340,8 @@ static int luaCB_menu_index(lua_State * L)
     // @tfield integer edit_mode
     else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
     /// Hidden from main menu
-    // @tfield integer hidden
-    else if(!strcmp(key, "hidden")) lua_pushinteger(L, script_entry->menu_entry->hidden);
+    // @tfield boolean hidden
+    else if(!strcmp(key, "hidden")) lua_pushboolean(L, script_entry->menu_entry->hidden);
     /// The type of icon to use for this menu item
     // @tfield integer icon_type @{constants.ICON_TYPE}
     else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
@@ -437,14 +437,14 @@ static int luaCB_menu_newindex(lua_State * L)
     else if(!strcmp(key, "advanced")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->advanced = value; }
     else if(!strcmp(key, "depends_on")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->depends_on = value; }
     else if(!strcmp(key, "edit_mode")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->edit_mode = value; }
-    else if(!strcmp(key, "hidden")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->hidden = value; }
+    else if(!strcmp(key, "hidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->hidden = value; }
     else if(!strcmp(key, "icon_type")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->icon_type = value; }
-    else if(!strcmp(key, "jhidden")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->jhidden = value; }
+    else if(!strcmp(key, "jhidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->jhidden = value; }
     else if(!strcmp(key, "max")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->max = value; }
     else if(!strcmp(key, "min")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->min = value; }
-    else if(!strcmp(key, "selected")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->selected = value; }
-    else if(!strcmp(key, "shidden")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->shidden = value; }
-    else if(!strcmp(key, "starred")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->starred = value; }
+    else if(!strcmp(key, "selected")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->selected = value; }
+    else if(!strcmp(key, "shidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->shidden = value; }
+    else if(!strcmp(key, "starred")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->starred = value; }
     else if(!strcmp(key, "submenu_height")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_height = value; }
     else if(!strcmp(key, "submenu_width")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_width = value; }
     else if(!strcmp(key, "unit")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->unit = value; }
