@@ -198,52 +198,36 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
 mymenu = menu.new
 {
     parent = "LUA",
-    name = "Run Test Script",
-    help = "Run the test script.",
+    name = "Lua Test Script",
+    help = "Some help for this script",
+    value = 1,
     submenu =
     { 
         {
             name = "Run",
             help = "Run this script.",
-            icon_type = 5,
+            icon_type = ICON_TYPE.ACTION,
             update = "",
         },
         {
-            name = "param1",
-            help = "help for param1",
+            name = "Parameter Example",
+            help = "Help for Parameter Example",
             min = 0,
             max = 100,
-            warning = function() return "this param doesn't work right :P" end,
+            unit = UNIT.DEC,
+            warning = function(this) if this.value == 5 then return "this value is not supported" end end,
         },
         {
-            name = "param2",
-            help = "help for param2",
-            min = 0,
-            max = 10,
-            value = 5,
-            info = function() return "click it baby!" end,
-        },
-        {
-            name = "dec test",
-            min = 0,
-            max = 10000,
-            unit = 7,
-        },
-        {
-            name = "choices test",
+            name = "Choices Example",
             choices = { "choice1", "choice2", "choice3" },
         }
     },
-    update = function() return mymenu.submenu["choices test"].value end,
+    update = function(this) return this.submenu["Choices Example"].value end,
 }
 
 mymenu.submenu["Run"].select = function()
-    console.show()
-    print("param1= "..mymenu.submenu["param1"].value)
-    print("param2= "..mymenu.submenu["param2"].value)
-    print("dec test= "..mymenu.submenu["dec test"].value)
-    print("choices test= "..mymenu.submenu["choices test"].value)
-    print("script run finished!")
+    print("Parameter Example= "..mymenu.submenu["Parameter Example"].value)
+    print("Choices Example= "..mymenu.submenu["Choices Example"].value)
 end
 */
 static int luaCB_menu_new(lua_State * L)
