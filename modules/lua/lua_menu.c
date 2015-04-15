@@ -81,7 +81,8 @@ static MENU_SELECT_FUNC(script_menu_select)
         lua_State * L = script_entry->L;
         if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref) == LUA_TFUNCTION)
         {
-            lua_run_arg_count = 1;
+            lua_run_arg_count = 2;
+            lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
             lua_pushinteger(L, delta);
             running_script = L;
             lua_running = 1;
@@ -110,7 +111,8 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
             {
-                if(!docall(L, 0, 1))
+                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref)
+                if(!docall(L, 1, 1))
                 {
                     MENU_SET_VALUE("%s", lua_tostring(L, -1));
                 }
@@ -125,7 +127,8 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref) == LUA_TFUNCTION)
             {
-                if(!docall(L, 0, 1))
+                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref)
+                if(!docall(L, 1, 1))
                 {
                     MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
                 }
@@ -140,7 +143,8 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref) == LUA_TFUNCTION)
             {
-                if(!docall(L, 0, 1))
+                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref)
+                if(!docall(L, 1, 1))
                 {
                     MENU_SET_RINFO("%s", lua_tostring(L, -1));
                 }
@@ -155,7 +159,8 @@ static MENU_UPDATE_FUNC(script_menu_update)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref) == LUA_TFUNCTION)
             {
-                if(!docall(L, 0, 1))
+                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref)
+                if(!docall(L, 1, 1))
                 {
                     MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
                 }
@@ -250,6 +255,8 @@ static int luaCB_menu_new(lua_State * L)
     lua_pop(L, 1);
     
     struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
+    lua_pushvalue(L, -1);
+    new_entry->self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     //add a metatable to the userdata object for value lookups and to store submenu
     lua_newtable(L);
     lua_pushcfunction(L, luaCB_menu_index);
@@ -600,6 +607,8 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                 if(lua_geti(L, -1, submenu_index + 1) == LUA_TTABLE) //lua arrays are 1 based
                 {
                     struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
+                    lua_pushvalue(L, -1);
+                    new_entry->self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
                     
                     //add a metatable to the userdata object for value lookups and to store submenu
                     lua_newtable(L);

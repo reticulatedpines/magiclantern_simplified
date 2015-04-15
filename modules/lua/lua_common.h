@@ -79,6 +79,7 @@ struct script_menu_entry
     int menu_value;
     lua_State * L;
     struct menu_entry * menu_entry;
+    int self_ref;
     int select_ref;
     int update_ref;
     int warning_ref;
