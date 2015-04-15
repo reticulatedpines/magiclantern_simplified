@@ -58,6 +58,7 @@ const char * name = lua_tostring(L, index)
 
 #define LUA_FIELD_STRING(field, default) lua_getfield(L, -1, field) == LUA_TSTRING ? lua_tostring(L, -1) : default; lua_pop(L, 1)
 #define LUA_FIELD_INT(field, default) lua_getfield(L, -1, field) == LUA_TNUMBER ? lua_tointeger(L, -1) : default; lua_pop(L, 1)
+#define LUA_FIELD_BOOL(field, default) lua_getfield(L, -1, field) == LUA_TBOOLEAN ? lua_toboolean(L, -1) : default; lua_pop(L, 1)
 
 #define LUA_CONSTANT(name, value) lua_pushinteger(L, value); lua_setfield(L, -2, #name)
 
@@ -86,6 +87,7 @@ struct script_menu_entry
     int info_ref;
     int rinfo_ref;
     int submenu_ref;
+    int run_in_separate_task;
 };
 
 int docall(lua_State *L, int narg, int nres);

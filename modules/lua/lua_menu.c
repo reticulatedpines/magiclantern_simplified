@@ -81,12 +81,23 @@ static MENU_SELECT_FUNC(script_menu_select)
         lua_State * L = script_entry->L;
         if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref) == LUA_TFUNCTION)
         {
-            lua_run_arg_count = 2;
+            lua_running = 1;
             lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
             lua_pushinteger(L, delta);
-            running_script = L;
-            lua_running = 1;
-            task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
+            if(script_entry->run_in_separate_task)
+            {
+                lua_run_arg_count = 2;
+                running_script = L;
+                task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
+            }
+            else
+            {
+                if(docall(L, 2, 0))
+                {
+                    console_printf("script error:\n %s\n", lua_tostring(L, -1));
+                }
+                lua_running = 0;
+            }
         }
         else
         {
@@ -375,6 +386,9 @@ static int luaCB_menu_index(lua_State * L)
     /// Suggested operating mode for this menu item
     // @tfield integer works_best_in @{constants.DEPENDS_ON}
     else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
+    /// Whether or not the backend should run 'select' in it's own task
+    // @tfield boolean run_in_separate_task
+    else if(!strcmp(key, "run_in_separate_task")) lua_pushinteger(L, script_entry->run_in_separate_task);
     /// Function called when menu is toggled
     // @tparam integer delta
     // @function select
@@ -449,6 +463,7 @@ static int luaCB_menu_newindex(lua_State * L)
     else if(!strcmp(key, "submenu_width")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_width = value; }
     else if(!strcmp(key, "unit")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->unit = value; }
     else if(!strcmp(key, "works_best_in")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->works_best_in = value; }
+    else if(!strcmp(key, "run_in_separate_task")) { LUA_PARAM_BOOL(value, 3); script_entry->run_in_separate_task = value; }
     else if(!strcmp(key, "select"))
     {
         if(script_entry->select_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->select_ref);
@@ -546,6 +561,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     memset(menu_entry, 0, sizeof(struct menu_entry));
     script_entry->L = L;
     script_entry->menu_entry = menu_entry;
+    script_entry->run_in_separate_task = LUA_FIELD_BOOL("run_in_separate_task", 0);
     menu_entry->priv = script_entry;
     menu_entry->name = LUA_FIELD_STRING("name", default_name);
     menu_entry->help = LUA_FIELD_STRING("help", "");
