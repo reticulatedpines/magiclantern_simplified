@@ -611,6 +611,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     if((script_entry->update_ref = get_function_ref(L, "update")) != LUA_NOREF) menu_entry->update = script_menu_update;
     if((script_entry->warning_ref = get_function_ref(L, "warning")) != LUA_NOREF) menu_entry->update = script_menu_update;
     if((script_entry->info_ref = get_function_ref(L, "info")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->rinfo_ref = get_function_ref(L, "rinfo")) != LUA_NOREF) menu_entry->update = script_menu_update;
     
     /// Table of more menu tables that define a submenu
     // @tfield table submenu
