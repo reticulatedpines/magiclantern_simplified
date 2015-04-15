@@ -715,6 +715,7 @@ static int luaCB_menu_remove(lua_State * L)
     {
         const char * parent = LUA_FIELD_STRING("parent", "LUA");
         menu_remove(parent, script_entry->menu_entry, 1);
+        luaL_unref(L, LUA_REGISTRYINDEX, script_entry->self_ref);
     }
     else
     {
