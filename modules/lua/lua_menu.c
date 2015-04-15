@@ -574,10 +574,10 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     menu_entry->works_best_in = LUA_FIELD_INT("works_best_in", 0);
     menu_entry->submenu_width = LUA_FIELD_INT("submenu_width", 0);
     menu_entry->submenu_height = LUA_FIELD_INT("submenu_height", 0);
-    menu_entry->hidden = LUA_FIELD_INT("hidden", 0);
-    menu_entry->jhidden = LUA_FIELD_INT("jhidden", 0);
-    menu_entry->shidden = LUA_FIELD_INT("shidden", 0);
-    menu_entry->starred = LUA_FIELD_INT("starred", 0);
+    menu_entry->hidden = LUA_FIELD_BOOL("hidden", 0);
+    menu_entry->jhidden = LUA_FIELD_BOOL("jhidden", 0);
+    menu_entry->shidden = LUA_FIELD_BOOL("shidden", 0);
+    menu_entry->starred = LUA_FIELD_BOOL("starred", 0);
     /// List of strings to display as choices in the menu item
     // @tfield table choices
     if(lua_getfield(L, -1, "choices") == LUA_TTABLE)
