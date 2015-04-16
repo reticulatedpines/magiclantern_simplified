@@ -269,6 +269,7 @@ static lua_State * load_lua_state()
     luaL_requiref(L, "key", luaopen_key, 1);
     luaL_requiref(L, "menu", luaopen_menu, 1);
     luaL_requiref(L, "event", luaopen_event, 1);
+    luaL_requiref(L, "dryos", luaopen_dryos, 1);
     
     luaL_requiref(L, "MODE", luaopen_MODE, 1);
     luaL_requiref(L, "ICON_TYPE", luaopen_ICON_TYPE, 1);

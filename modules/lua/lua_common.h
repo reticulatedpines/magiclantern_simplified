@@ -101,6 +101,7 @@ int luaopen_movie(lua_State * L);
 int luaopen_display(lua_State * L);
 int luaopen_key(lua_State * L);
 int luaopen_menu(lua_State * L);
+int luaopen_dryos(lua_State * L);
 
 int luaopen_MODE(lua_State * L);
 int luaopen_ICON_TYPE(lua_State * L);
