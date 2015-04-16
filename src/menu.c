@@ -190,6 +190,7 @@ static int redraw_in_progress = 0;
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
 int is_submenu_or_edit_mode_active() { return gui_menu_shown() && SUBMENU_OR_EDIT; }
+int get_edit_mode() { return edit_mode; }
 
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 

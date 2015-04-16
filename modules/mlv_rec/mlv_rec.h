@@ -185,7 +185,6 @@ static MENU_UPDATE_FUNC(raw_main_update);
 static MENU_UPDATE_FUNC(aspect_ratio_update_info);
 static MENU_UPDATE_FUNC(resolution_update);
 static MENU_SELECT_FUNC(resolution_change_fine_value);
-static MENU_UPDATE_FUNC(resolution_change_fine_value_update);
 static int32_t calc_crop_factor();
 static MENU_UPDATE_FUNC(aspect_ratio_update);
 static MENU_UPDATE_FUNC(start_delay_update);

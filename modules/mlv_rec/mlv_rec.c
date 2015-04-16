@@ -3773,6 +3773,18 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
         return;
     }
     
+    if (get_edit_mode()) {
+        if ((delta > 0) && (resolution_index_x < COUNT(resolution_presets_x) - 1)) resolution_index_x += 1;
+        if ((delta < 0) && (resolution_index_x > 0)) resolution_index_x -= 1;
+        res_x_fine = 0;
+        return;
+    }
+    
+    if (resolution_presets_x[resolution_index_x] + res_x_fine > max_res_x) {
+        while(resolution_presets_x[resolution_index_x] > max_res_x) resolution_index_x -= 1;
+        res_x_fine = max_res_x - resolution_presets_x[resolution_index_x];
+    }
+    
     if ((delta > 0)) {
         if (resolution_presets_x[resolution_index_x] + res_x_fine <= max_res_x - 32) res_x_fine += 32;
 
@@ -3791,14 +3803,6 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
 
     }
 }
-static MENU_UPDATE_FUNC(resolution_change_fine_value_update)    
-{
-    refresh_raw_settings(1);
-
-    aspect_ratio_update_info(entry, info);
-    
-    write_speed_update(entry, info);
-}
 
 static struct menu_entry raw_video_menu[] =
 {
@@ -3815,17 +3819,9 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Resolution presets",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
+                .select = resolution_change_fine_value,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
-            },
-            {
-                .name = "Resolution fine control",
-                .priv       = &res_x_fine,
-                .min = -960,
-                .max = +960,
-                .select = resolution_change_fine_value,
-                .update = resolution_change_fine_value_update,
-                .help = "Fine tune resolution in 32px steps on top of preset.",
             },
             {
                 .name = "Aspect Ratio",
