@@ -13,6 +13,9 @@
 
 #include "lua_common.h"
 
+static int luaCB_card_index(lua_State * L);
+static int luaCB_card_newindex(lua_State * L);
+
 /***
  Calls an eventproc (a function from the camera firmware which can be called by name).
  See Eventprocs. Dangerous.
@@ -77,6 +80,34 @@ static int luaCB_dryos_index(lua_State * L)
     /// Get the path to the DCIM directory
     // @tfield string dcim_dir
     else if(!strcmp(key, "dcim_dir")) lua_pushstring(L, get_dcim_dir());
+    /// Get the card ML started from
+    // @tfield card ml_card
+    else if(!strcmp(key, "ml_card"))
+    {
+        lua_newtable(L);
+        lua_pushlightuserdata(L, get_ml_card());
+        lua_setfield(L, -2, "_card_ptr");
+        lua_pushcfunction(L, luaCB_card_index);
+        lua_setfield(L, -2, "__index");
+        lua_pushcfunction(L, luaCB_card_newindex);
+        lua_setfield(L, -2, "__newindex");
+        lua_pushvalue(L, -1);
+        lua_setmetatable(L, -2);
+    }
+    /// Get the shooting card
+    // @tfield card shooting_card
+    else if(!strcmp(key, "shooting_card"))
+    {
+        lua_newtable(L);
+        lua_pushlightuserdata(L, get_shooting_card());
+        lua_setfield(L, -2, "_card_ptr");
+        lua_pushcfunction(L, luaCB_card_index);
+        lua_setfield(L, -2, "__index");
+        lua_pushcfunction(L, luaCB_card_newindex);
+        lua_setfield(L, -2, "__newindex");
+        lua_pushvalue(L, -1);
+        lua_setmetatable(L, -2);
+    }
     /// Gets a table representing the current date/time
     // @tfield table date
     else if(!strcmp(key, "date"))
@@ -115,6 +146,46 @@ static int luaCB_dryos_newindex(lua_State * L)
         lua_rawset(L, 1);
     }
     return 0;
+}
+
+/// Represents a card (storage media)
+// @type card
+
+static int luaCB_card_index(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
+    {
+        struct card_info * card = lua_touserdata(L, -1);
+        /// The cluster size
+        // @tfield integer cluster_size
+        if(!strcmp(key, "cluster_size")) lua_pushinteger(L, card->cluster_size);
+        /// The drive letter
+        // @tfield string drive_letter
+        else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
+        /// The current Canon file number
+        // @tfield integer file_number
+        else if(!strcmp(key, "file_number")) lua_pushinteger(L, card->file_number);
+        /// The current Canon folder number
+        // @tfield integer folder_number
+        else if(!strcmp(key, "folder_number")) lua_pushinteger(L, card->folder_number);
+        /// The current free space (in MiB)
+        // @tfield integer free_space
+        else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 1024 / 32);
+        /// The type of card
+        // @tfield string type
+        else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
+    }
+    else
+    {
+        return luaL_error(L, "could not get lightuserdata for card");
+    }
+    return 1;
+}
+static int luaCB_card_newindex(lua_State * L)
+{
+    return luaL_error(L, "'card' type is readonly");
 }
 
 const luaL_Reg dryoslib[] =
