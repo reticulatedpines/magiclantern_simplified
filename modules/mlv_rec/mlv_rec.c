@@ -3816,7 +3816,7 @@ static struct menu_entry raw_video_menu[] =
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Resolution presets",
+                .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
                 .select = resolution_change_fine_value,
