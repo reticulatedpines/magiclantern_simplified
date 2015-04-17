@@ -89,13 +89,28 @@ static int luaCB_display_print(lua_State * L)
  @tparam integer color @{constants.COLOR}
  @function pixel
  */
-static int luaCB_display_pixel(lua_State * L)
+static int luaCB_display_set_pixel(lua_State * L)
 {
     LUA_PARAM_INT(x, 1);
     LUA_PARAM_INT(y, 2);
     LUA_PARAM_INT(color, 3);
     bmp_putpixel(x, y, (uint8_t)color);
     return 0;
+}
+
+/***
+ Get a pixel's color
+ @tparam integer x
+ @tparam integer y
+ @return color @{constants.COLOR}
+ @function pixel
+ */
+static int luaCB_display_get_pixel(lua_State * L)
+{
+    LUA_PARAM_INT(x, 1);
+    LUA_PARAM_INT(y, 2);
+    lua_pushinteger(L, bmp_getpixel(x, y));
+    return 1;
 }
 
 /***
@@ -191,7 +206,8 @@ const luaL_Reg displaylib[] =
     {"screenshot", luaCB_display_screenshot},
     {"clear", luaCB_display_clear},
     {"print", luaCB_display_print},
-    {"pixel", luaCB_display_pixel},
+    {"get_pixel", luaCB_display_get_pixel},
+    {"set_pixel", luaCB_display_set_pixel},
     {"line", luaCB_display_line},
     {"rect", luaCB_display_rect},
     {"circle", luaCB_display_circle},
