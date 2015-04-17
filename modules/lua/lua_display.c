@@ -87,7 +87,7 @@ static int luaCB_display_print(lua_State * L)
  @tparam integer x
  @tparam integer y
  @tparam integer color @{constants.COLOR}
- @function pixel
+ @function set_pixel
  */
 static int luaCB_display_set_pixel(lua_State * L)
 {
@@ -103,7 +103,7 @@ static int luaCB_display_set_pixel(lua_State * L)
  @tparam integer x
  @tparam integer y
  @return color @{constants.COLOR}
- @function pixel
+ @function get_pixel
  */
 static int luaCB_display_get_pixel(lua_State * L)
 {
