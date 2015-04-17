@@ -92,6 +92,8 @@ struct script_menu_entry
 
 int docall(lua_State *L, int narg, int nres);
 
+int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore);
+
 int luaopen_globals(lua_State * L);
 int luaopen_console(lua_State * L);
 int luaopen_camera(lua_State * L);

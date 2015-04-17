@@ -39,10 +39,47 @@ struct script_event_entry
     int function_ref;
     lua_State * L;
 };
-static int lua_loaded = 0;
 
-int lua_running = 0;
+struct script_semaphore
+{
+    struct script_semaphore * next;
+    lua_State * L;
+    struct semaphore * semaphore;
+};
+
+static int lua_loaded = 0;
 int last_keypress = 0;
+
+static struct script_semaphore * script_semaphores = NULL;
+
+int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore)
+{
+    struct script_semaphore * current;
+    for(current = script_semaphores; current; current = current->next)
+    {
+        if(current->L == L)
+        {
+            *assoc_semaphore = current->semaphore;
+            return take_semaphore(current->semaphore, timeout);
+        }
+    }
+    console_printf("error: could not find semaphore for lua state");
+    return -1;
+}
+
+static struct semaphore * new_script_semaphore(lua_State * L, const char * filename)
+{
+    struct script_semaphore * new_semaphore = malloc(sizeof(struct script_semaphore));
+    if (new_semaphore)
+    {
+        new_semaphore->next = script_semaphores;
+        script_semaphores = new_semaphore;
+        new_semaphore->L = L;
+        new_semaphore->semaphore = create_named_semaphore(filename, 0);
+        return new_semaphore->semaphore;
+    }
+    return NULL;
+}
 
 /*
  Determines if a string ends in some string
@@ -78,64 +115,65 @@ end
  */
 
 
-static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * event_entries, const char * event_name, int sucess, int failure)
+static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * event_entries, const char * event_name, int timeout, int sucess, int failure)
 {
     //no events registered by lua scripts
-    if(!event_entries) return sucess;
+    if(!event_entries || !lua_loaded) return sucess;
     
-    //something is currently running
-    if(lua_running)
-    {
-        console_printf("lua cbr error: another script is currently running\n");
-        return sucess;
-    }
-    lua_running = 1;
+    unsigned int result = sucess;
     struct script_event_entry * current;
     for(current = event_entries; current; current = current->next)
     {
         lua_State * L = current->L;
         if(current->function_ref != LUA_NOREF)
         {
-            if(lua_rawgeti(L, LUA_REGISTRYINDEX, current->function_ref) == LUA_TFUNCTION)
+            struct semaphore * sem = NULL;
+            if(!lua_take_semaphore(L, timeout, &sem) && sem)
             {
-                lua_pushinteger(L, ctx);
-                if(docall(L, 1, 1))
+                if(lua_rawgeti(L, LUA_REGISTRYINDEX, current->function_ref) == LUA_TFUNCTION)
                 {
-                    console_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
-                    lua_pop(L, 1);
-                    lua_running = 0;
-                    return CBR_RET_ERROR;
-                }
-                else
-                {
-                    if(lua_isboolean(L, -1) && !lua_toboolean(L, -1))
+                    lua_pushinteger(L, ctx);
+                    if(docall(L, 1, 1))
                     {
-                        lua_pop(L, 1);
-                        lua_running = 0;
-                        return failure;
+                        console_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
+                        result = CBR_RET_ERROR;
+                        break;
                     }
-                    
+                    else
+                    {
+                        if(lua_isboolean(L, -1) && !lua_toboolean(L, -1))
+                        {
+                            lua_pop(L, 1);
+                            result = failure;
+                            break;
+                        }
+                        
+                    }
                 }
+                lua_pop(L,1);
+                give_semaphore(sem);
             }
-            lua_pop(L,1);
+            else
+            {
+                console_printf("lua semaphore timeout (another task is running this script)");
+            }
         }
     }
-    lua_running = 0;
-    return sucess;
+    return result;
 }
 
-#define LUA_CBR_FUNC(name)\
+#define LUA_CBR_FUNC(name, timeout)\
 static struct script_event_entry * name##_cbr_scripts = NULL;\
 static unsigned int lua_##name##_cbr(unsigned int ctx) {\
-    return lua_do_cbr(ctx, name##_cbr_scripts, #name, CBR_RET_CONTINUE, CBR_RET_STOP);\
+    return lua_do_cbr(ctx, name##_cbr_scripts, #name, timeout, CBR_RET_CONTINUE, CBR_RET_STOP);\
 }\
 
-LUA_CBR_FUNC(pre_shoot)
-LUA_CBR_FUNC(post_shoot)
-LUA_CBR_FUNC(shoot_task)
-LUA_CBR_FUNC(seconds_clock)
-LUA_CBR_FUNC(custom_picture_taking)
-LUA_CBR_FUNC(intervalometer)
+LUA_CBR_FUNC(pre_shoot, 500)
+LUA_CBR_FUNC(post_shoot, 500)
+LUA_CBR_FUNC(shoot_task, 500)
+LUA_CBR_FUNC(seconds_clock, 100)
+LUA_CBR_FUNC(custom_picture_taking, 1000)
+LUA_CBR_FUNC(intervalometer, 1000)
 
 #ifdef CONFIG_VSYNC_EVENTS
 LUA_CBR_FUNC(vsync)
@@ -148,7 +186,7 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
 {
     last_keypress = ctx;
     //keypress cbr interprets things backwards from other CBRs
-    return lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
+    return lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", 500, CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
 }
 
 #define SCRIPT_CBR_SET(event) \
@@ -285,17 +323,25 @@ static lua_State * load_lua_state()
 static void add_script(const char * filename)
 {
     lua_State* L = load_lua_state();
-    
-    char full_path[MAX_PATH_LEN];
-    snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
-    console_printf("loading script: %s\n", filename);
-    if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
+    struct semaphore * sem = new_script_semaphore(L, filename);
+    if(sem)
     {
-        console_printf("load script '%s' failed:\n %s\n", filename, lua_tostring(L, -1));
+        char full_path[MAX_PATH_LEN];
+        snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
+        console_printf("loading script: %s\n", filename);
+        if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
+        {
+            console_printf("load script '%s' failed:\n %s\n", filename, lua_tostring(L, -1));
+        }
+        else
+        {
+            console_printf("loading finished: %s\n", filename);
+        }
+        give_semaphore(sem);
     }
     else
     {
-        console_printf("loading finished: %s\n", filename);
+        console_printf("load script failed: could not create semaphore");
     }
 }
 
@@ -316,13 +362,11 @@ static void lua_load_task(int unused)
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
     }
-    lua_running = 0;
     lua_loaded = 1;
 }
 
 static unsigned int lua_init()
 {
-    lua_running = 1;
     task_create("lua_load_task", 0x1c, 0x8000, lua_load_task, (void*) 0);
     return 0;
 }

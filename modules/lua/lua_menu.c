@@ -14,7 +14,7 @@
 
 #include "lua_common.h"
 
-extern int lua_running;
+int lua_running;
 static int lua_run_arg_count = 0;
 static lua_State * running_script = NULL;
 
@@ -29,14 +29,23 @@ static void lua_run_task(int unused)
     if(running_script)
     {
         lua_State * L = running_script;
-        console_printf("running script...\n");
-        if(docall(L, lua_run_arg_count, 0))
+        struct semaphore * sem = NULL;
+        if(!lua_take_semaphore(L, 0, &sem) && sem)
         {
-            console_printf("script failed:\n %s\n", lua_tostring(L, -1));
+            console_printf("running script...\n");
+            if(docall(L, lua_run_arg_count, 0))
+            {
+                console_printf("script failed:\n %s\n", lua_tostring(L, -1));
+            }
+            else
+            {
+                console_printf("script finished\n");
+            }
+            give_semaphore(sem);
         }
         else
         {
-            console_printf("script finished\n");
+            console_printf("lua semaphore timeout (another task is running this script)");
         }
     }
     lua_running = 0;
@@ -69,114 +78,125 @@ int docall (lua_State *L, int narg, int nres) {
 
 static MENU_SELECT_FUNC(script_menu_select)
 {
-    if(lua_running)
-    {
-        console_printf("script error: another script is currently running\n");
-        return;
-    }
-    
     struct script_menu_entry * script_entry = priv;
     if(script_entry && script_entry->L && script_entry->select_ref != LUA_NOREF)
     {
         lua_State * L = script_entry->L;
-        if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref) == LUA_TFUNCTION)
+        struct semaphore * sem = NULL;
+        if(!lua_take_semaphore(L, 500, &sem) && sem)
         {
-            lua_running = 1;
-            lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-            lua_pushinteger(L, delta);
-            if(script_entry->run_in_separate_task)
+            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref) == LUA_TFUNCTION)
             {
-                lua_run_arg_count = 2;
-                running_script = L;
-                task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
+                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
+                lua_pushinteger(L, delta);
+                if(script_entry->run_in_separate_task)
+                {
+                    //give the semaphore back (the task will take it)
+                    give_semaphore(sem);
+                    if(!lua_running)
+                    {
+                        lua_running = 1;
+                        lua_run_arg_count = 2;
+                        running_script = L;
+                        task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
+                    }
+                }
+                else
+                {
+                    if(docall(L, 2, 0))
+                    {
+                        console_printf("script error:\n %s\n", lua_tostring(L, -1));
+                    }
+                    give_semaphore(sem);
+                }
             }
             else
             {
-                if(docall(L, 2, 0))
-                {
-                    console_printf("script error:\n %s\n", lua_tostring(L, -1));
-                }
-                lua_running = 0;
+                console_printf("select is not a function");
+                give_semaphore(sem);
             }
         }
         else
         {
-            luaL_error(L, "select is not a function");
+            console_printf("lua semaphore timeout (another task is running this script)");
         }
     }
 }
 
 static MENU_UPDATE_FUNC(script_menu_update)
 {
-    if(lua_running)
-    {
-        console_printf("script error: another script is currently running\n");
-        return;
-    }
-    
     struct script_menu_entry * script_entry = entry->priv;
     if(script_entry && script_entry->L)
     {
         lua_State * L = script_entry->L;
-        if(script_entry->update_ref != LUA_NOREF)
+        struct semaphore * sem = NULL;
+        if(!lua_take_semaphore(L, 100, &sem) && sem)
         {
-            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
+            if(script_entry->update_ref != LUA_NOREF)
             {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
+                {
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
+                    if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                    {
+                        MENU_SET_VALUE("%s", lua_tostring(L, -1));
+                    }
+                }
+                else if(lua_isstring(L, -1))
                 {
                     MENU_SET_VALUE("%s", lua_tostring(L, -1));
                 }
+                lua_pop(L,1);
             }
-            else if(lua_isstring(L, -1))
+            if(script_entry->info_ref != LUA_NOREF)
             {
-                MENU_SET_VALUE("%s", lua_tostring(L, -1));
-            }
-            lua_pop(L,1);
-        }
-        if(script_entry->info_ref != LUA_NOREF)
-        {
-            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref) == LUA_TFUNCTION)
-            {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref) == LUA_TFUNCTION)
+                {
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
+                    if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                    {
+                        MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
+                    }
+                }
+                else if(lua_isstring(L, -1))
                 {
                     MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
                 }
+                lua_pop(L,1);
             }
-            else if(lua_isstring(L, -1))
+            if(script_entry->rinfo_ref != LUA_NOREF)
             {
-                MENU_SET_WARNING(MENU_WARN_INFO, "%s", lua_tostring(L, -1));
-            }
-            lua_pop(L,1);
-        }
-        if(script_entry->rinfo_ref != LUA_NOREF)
-        {
-            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref) == LUA_TFUNCTION)
-            {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref) == LUA_TFUNCTION)
+                {
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
+                    if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                    {
+                        MENU_SET_RINFO("%s", lua_tostring(L, -1));
+                    }
+                }
+                else if(lua_isstring(L, -1))
                 {
                     MENU_SET_RINFO("%s", lua_tostring(L, -1));
                 }
+                lua_pop(L,1);
             }
-            else if(lua_isstring(L, -1))
+            if(script_entry->warning_ref != LUA_NOREF)
             {
-                MENU_SET_RINFO("%s", lua_tostring(L, -1));
-            }
-            lua_pop(L,1);
-        }
-        if(script_entry->warning_ref != LUA_NOREF)
-        {
-            if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref) == LUA_TFUNCTION)
-            {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
-                if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->warning_ref) == LUA_TFUNCTION)
                 {
-                    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
+                    if(!docall(L, 1, 1) && lua_isstring(L, -1))
+                    {
+                        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", lua_tostring(L, -1));
+                    }
                 }
+                lua_pop(L,1);
             }
-            lua_pop(L,1);
+            give_semaphore(sem);
+        }
+        else
+        {
+            console_printf("lua semaphore timeout (another task is running this script)");
         }
     }
 }
