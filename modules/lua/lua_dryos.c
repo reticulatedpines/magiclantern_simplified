@@ -109,20 +109,41 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setmetatable(L, -2);
     }
     /// Gets a table representing the current date/time
-    // @tfield table date
+    // @tfield date date
     else if(!strcmp(key, "date"))
     {
+        
+        /// Represents a date/time
+        // @type date
         struct tm tm;
         LoadCalendarFromRTC(&tm);
         lua_newtable(L);
+        /// Second
+        // @tfield integer sec
         setfield(L, "sec", tm.tm_sec);
+        /// Minute
+        // @tfield integer min
         setfield(L, "min", tm.tm_min);
+        /// Hour
+        // @tfield integer hour
         setfield(L, "hour", tm.tm_hour);
+        /// Day
+        // @tfield integer day
         setfield(L, "day", tm.tm_mday);
+        /// Month
+        // @tfield integer month
         setfield(L, "month", tm.tm_mon+1);
+        /// Year
+        // @tfield integer year
         setfield(L, "year", tm.tm_year+1900);
+        /// Day of week
+        // @tfield integer wday
         setfield(L, "wday", tm.tm_wday+1);
+        /// Day of year
+        // @tfield integer yday
         setfield(L, "yday", tm.tm_yday+1);
+        /// Daylight Savings
+        // @tfield boolean isdst
         setboolfield(L, "isdst", tm.tm_isdst);
     }
     else lua_rawget(L, 1);
