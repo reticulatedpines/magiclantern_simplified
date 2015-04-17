@@ -1,5 +1,5 @@
 /*
- *  700D 1.1.3 consts
+ *  700D 1.1.4 consts
  */
 
 #define CANON_SHUTTER_RATING 100000
@@ -54,7 +54,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF7FA714 //dec gui_main_task
+#define GMT_FUNCTABLE 0xFF7FA7F8 //dec gui_main_task
 
     #define SENSOR_RES_X 5184
     #define SENSOR_RES_Y 3456
