@@ -84,7 +84,7 @@ static int luaCB_display_print(lua_State * L)
 
 /***
  Set a pixel to a color 
- (omit the color param to read the current color of a pixe)
+ (omit color param to read the current color)
  @tparam integer x
  @tparam integer y
  @tparam[opt] integer color @{constants.COLOR}
