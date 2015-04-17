@@ -18,8 +18,8 @@ extern int lua_running;
 static int lua_run_arg_count = 0;
 static lua_State * running_script = NULL;
 
-static int luaCB_menu_index(lua_State * L);
-static int luaCB_menu_newindex(lua_State * L);
+static int luaCB_menu_instance_index(lua_State * L);
+static int luaCB_menu_instance_newindex(lua_State * L);
 static int luaCB_menu_remove(lua_State * L);
 static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name);
 
@@ -254,9 +254,9 @@ static int luaCB_menu_new(lua_State * L)
     new_entry->self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     //add a metatable to the userdata object for value lookups and to store submenu
     lua_newtable(L);
-    lua_pushcfunction(L, luaCB_menu_index);
+    lua_pushcfunction(L, luaCB_menu_instance_index);
     lua_setfield(L, -2, "__index");
-    lua_pushcfunction(L, luaCB_menu_newindex);
+    lua_pushcfunction(L, luaCB_menu_instance_newindex);
     lua_setfield(L, -2, "__newindex");
     lua_pushcfunction(L, luaCB_menu_remove);
     lua_setfield(L, -2, "remove");
@@ -308,10 +308,28 @@ static int luaCB_menu_get(lua_State * L)
     return 1;
 }
 
+static int luaCB_menu_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// Get whether or not the ML menu is visible
+    //@tfield boolean visible
+    if(!strcmp(key, "visible")) lua_pushboolean(L, gui_menu_shown());
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_menu_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    if(!strcmp(key, "visible")) return luaL_error(L, "'%s' is readonly!", key);
+    else lua_rawset(L, 1);
+    return 0;
+}
+
 /// Represents a menu item
 // @type menu
 
-static int luaCB_menu_index(lua_State * L)
+static int luaCB_menu_instance_index(lua_State * L)
 {
     if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
     struct script_menu_entry * script_entry = lua_touserdata(L, 1);
@@ -425,7 +443,7 @@ static int luaCB_menu_index(lua_State * L)
     return 1;
 }
 
-static int luaCB_menu_newindex(lua_State * L)
+static int luaCB_menu_instance_newindex(lua_State * L)
 {
     if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
     struct script_menu_entry * script_entry = lua_touserdata(L, 1);
@@ -649,9 +667,9 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                     
                     //add a metatable to the userdata object for value lookups and to store submenu
                     lua_newtable(L);
-                    lua_pushcfunction(L, luaCB_menu_index);
+                    lua_pushcfunction(L, luaCB_menu_instance_index);
                     lua_setfield(L, -2, "__index");
-                    lua_pushcfunction(L, luaCB_menu_newindex);
+                    lua_pushcfunction(L, luaCB_menu_instance_newindex);
                     lua_setfield(L, -2, "__newindex");
                     lua_setmetatable(L, -2);
                     
@@ -732,9 +750,4 @@ const luaL_Reg menulib[] =
     {NULL, NULL}
 };
 
-int luaopen_menu(lua_State * L)
-{
-    lua_newtable(L);
-    luaL_setfuncs(L, menulib, 0);
-    return 1;
-}
+LUA_LIB(menu)
