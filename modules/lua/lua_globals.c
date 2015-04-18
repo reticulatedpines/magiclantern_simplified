@@ -53,11 +53,50 @@ static int luaCB_msleep(lua_State * L)
     return 0;
 }
 
+/***
+ Turns the LED on
+ @function led_on
+ */
+static int luaCB_led_on(lua_State * L)
+{
+    info_led_on();
+    return 0;
+}
+
+/***
+ Turns the LED off
+ @function led_off
+ */
+static int luaCB_led_off(lua_State * L)
+{
+    info_led_off();
+    return 0;
+}
+
+/***
+ Blinks the LED
+ @tparam[opt=1] integer times Number of times to blink.
+ @tparam[opt=50] integer delay_on How long the LED is on (in ms)
+ @tparam[opt=50] integer delay_off How long the LED is off (in ms)
+ @function led_blink
+ */
+static int luaCB_led_blink(lua_State * L)
+{
+    LUA_PARAM_INT_OPTIONAL(times, 1, 1);
+    LUA_PARAM_INT_OPTIONAL(delay_on, 1, 50);
+    LUA_PARAM_INT_OPTIONAL(delay_off, 1, 50);
+    info_led_blink(times, delay_on, delay_off);
+    return 0;
+}
+
 static const luaL_Reg globallib[] =
 {
     { "msleep", luaCB_msleep },
     { "beep", luaCB_beep },
     { "shoot", luaCB_shoot },
+    { "led_on", luaCB_led_on },
+    { "led_off", luaCB_led_off },
+    { "led_blink", luaCB_led_blink },
     { NULL, NULL }
 };
 
