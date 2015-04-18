@@ -313,6 +313,7 @@ static const luaL_Reg alllibs[] =
     {"menu", luaopen_menu},
     {"event", luaopen_event},
     {"dryos", luaopen_dryos},
+    {"interval", luaopen_interval},
     {"constants", luaopen_constants},
     {"MODE", luaopen_MODE},
     {"ICON_TYPE", luaopen_ICON_TYPE},
