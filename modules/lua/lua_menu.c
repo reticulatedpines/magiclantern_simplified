@@ -45,7 +45,7 @@ static void lua_run_task(int unused)
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)");
+            console_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
     lua_running = 0;
@@ -112,13 +112,13 @@ static MENU_SELECT_FUNC(script_menu_select)
             }
             else
             {
-                console_printf("select is not a function");
+                console_printf("select is not a function\n");
                 give_semaphore(sem);
             }
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)");
+            console_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
 }
@@ -196,7 +196,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)");
+            console_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
 }

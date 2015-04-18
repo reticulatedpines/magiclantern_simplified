@@ -63,7 +63,7 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
             return take_semaphore(current->semaphore, timeout);
         }
     }
-    console_printf("error: could not find semaphore for lua state");
+    console_printf("error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -137,6 +137,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     {
                         console_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
                         result = CBR_RET_ERROR;
+                        give_semaphore(sem);
                         break;
                     }
                     else
@@ -145,6 +146,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                         {
                             lua_pop(L, 1);
                             result = failure;
+                            give_semaphore(sem);
                             break;
                         }
                         
@@ -155,7 +157,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             }
             else
             {
-                console_printf("lua semaphore timeout (another task is running this script)");
+                console_printf("lua semaphore timeout (another task is running this script)\n");
             }
         }
     }
@@ -341,7 +343,7 @@ static void add_script(const char * filename)
     }
     else
     {
-        console_printf("load script failed: could not create semaphore");
+        console_printf("load script failed: could not create semaphore\n");
     }
 }
 
