@@ -33,10 +33,10 @@
 //#define CONFIG_VSYNC_EVENTS
 
 #define LUA_PARAM_INT(name, index)\
-if(index > lua_gettop(L) || !lua_isinteger(L, index)) return luaL_argerror(L, index, "expected integer for param '" #name "'");\
+if(index > lua_gettop(L) || !(lua_isinteger(L, index) || lua_isnumber(L,index))) return luaL_argerror(L, index, "expected integer for param '" #name "'");\
 int name = lua_tointeger(L, index)
 
-#define LUA_PARAM_INT_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && lua_isinteger(L, index)) ? lua_tointeger(L, index) : default
+#define LUA_PARAM_INT_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && (lua_isinteger(L, index) || lua_isnumber(L,index))) ? lua_tointeger(L, index) : default
 
 #define LUA_PARAM_BOOL(name, index)\
 if(index > lua_gettop(L) || !lua_isboolean(L, index)) return luaL_argerror(L, index, "expected boolean for param '" #name "'");\
@@ -45,10 +45,10 @@ int name = lua_toboolean(L, index)
 #define LUA_PARAM_BOOL_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && lua_isboolean(L, index)) ? lua_toboolean(L, index) : default
 
 #define LUA_PARAM_NUMBER(name, index)\
-if(index > lua_gettop(L) || !lua_isnumber(L, index)) return luaL_argerror(L, index, "expected number for param '" #name "'");\
+if(index > lua_gettop(L) || !(lua_isinteger(L, index) || lua_isnumber(L,index))) return luaL_argerror(L, index, "expected number for param '" #name "'");\
 float name = lua_tonumber(L, index)
 
-#define LUA_PARAM_NUMBER_OPTIONAL(name, index, default) float name = (index <= lua_gettop(L) && lua_isnumber(L, index)) ? lua_tonumber(L, index) : default
+#define LUA_PARAM_NUMBER_OPTIONAL(name, index, default) float name = (index <= lua_gettop(L) && (lua_isinteger(L, index) || lua_isnumber(L,index))) ? lua_tonumber(L, index) : default
 
 #define LUA_PARAM_STRING(name, index)\
 if(index > lua_gettop(L) || !lua_isstring(L, index)) return luaL_argerror(L, index, "expected string for param '" #name "'");\
