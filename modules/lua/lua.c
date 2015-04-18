@@ -164,18 +164,18 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
     return result;
 }
 
-#define LUA_CBR_FUNC(name, timeout)\
+#define LUA_CBR_FUNC(name, arg, timeout)\
 static struct script_event_entry * name##_cbr_scripts = NULL;\
 static unsigned int lua_##name##_cbr(unsigned int ctx) {\
-    return lua_do_cbr(ctx, name##_cbr_scripts, #name, timeout, CBR_RET_CONTINUE, CBR_RET_STOP);\
+    return lua_do_cbr(arg, name##_cbr_scripts, #name, timeout, CBR_RET_CONTINUE, CBR_RET_STOP);\
 }\
 
-LUA_CBR_FUNC(pre_shoot, 500)
-LUA_CBR_FUNC(post_shoot, 500)
-LUA_CBR_FUNC(shoot_task, 500)
-LUA_CBR_FUNC(seconds_clock, 100)
-LUA_CBR_FUNC(custom_picture_taking, 1000)
-LUA_CBR_FUNC(intervalometer, 1000)
+LUA_CBR_FUNC(pre_shoot, ctx, 500)
+LUA_CBR_FUNC(post_shoot, ctx, 500)
+LUA_CBR_FUNC(shoot_task, ctx, 500)
+LUA_CBR_FUNC(seconds_clock, ctx, 100)
+LUA_CBR_FUNC(custom_picture_taking, ctx, 1000)
+LUA_CBR_FUNC(intervalometer, get_interval_count(), 1000)
 
 #ifdef CONFIG_VSYNC_EVENTS
 LUA_CBR_FUNC(vsync)
@@ -273,7 +273,7 @@ static int luaCB_event_newindex(lua_State * L)
     // @function custom_picture_taking
     SCRIPT_CBR_SET(custom_picture_taking);
     /// Called after a picture is taken with the intervalometer
-    // @param arg unused
+    // @param interval_count the current interval count
     // @return whether or not to continue executing CBRs for this event
     // @function intervalometer
     SCRIPT_CBR_SET(intervalometer);
