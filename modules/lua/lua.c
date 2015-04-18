@@ -294,30 +294,73 @@ static const luaL_Reg eventlib[] =
 
 LUA_LIB(event)
 
+static const luaL_Reg alllibs[] =
+{
+    {LUA_COLIBNAME, luaopen_coroutine},
+    {LUA_TABLIBNAME, luaopen_table},
+    {LUA_IOLIBNAME, luaopen_io},
+    {LUA_STRLIBNAME, luaopen_string},
+    {LUA_MATHLIBNAME, luaopen_math},
+    {LUA_UTF8LIBNAME, luaopen_utf8},
+    {LUA_DBLIBNAME, luaopen_debug},
+    {"console", luaopen_console},
+    {"camera", luaopen_camera},
+    {"lv", luaopen_lv},
+    {"lens", luaopen_lens},
+    {"movie", luaopen_movie},
+    {"display", luaopen_display},
+    {"key", luaopen_key},
+    {"menu", luaopen_menu},
+    {"event", luaopen_event},
+    {"dryos", luaopen_dryos},
+    {"constants", luaopen_constants},
+    {"MODE", luaopen_MODE},
+    {"ICON_TYPE", luaopen_ICON_TYPE},
+    {"UNIT", luaopen_UNIT},
+    {"DEPENDS_ON", luaopen_DEPENDS_ON},
+    {"FONT", luaopen_FONT},
+    {"COLOR", luaopen_COLOR},
+    {"KEY", luaopen_KEY},
+    {NULL,NULL}
+};
+
+static int luaCB_global_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    const luaL_Reg *lib;
+    for (lib = alllibs; lib->func; lib++)
+    {
+        if(!strcmp(key, lib->name))
+        {
+            luaL_requiref(L, lib->name, lib->func, 1);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static lua_State * load_lua_state()
 {
     lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-    
+    luaL_requiref(L, "_G", luaopen_base, 1);
+    luaL_requiref(L, LUA_LOADLIBNAME, luaopen_package, 1);
     luaL_requiref(L, "globals", luaopen_globals, 0);
-    luaL_requiref(L, "console", luaopen_console, 1);
-    luaL_requiref(L, "camera", luaopen_camera, 1);
-    luaL_requiref(L, "lv", luaopen_lv, 1);
-    luaL_requiref(L, "lens", luaopen_lens, 1);
-    luaL_requiref(L, "movie", luaopen_movie, 1);
-    luaL_requiref(L, "display", luaopen_display, 1);
-    luaL_requiref(L, "key", luaopen_key, 1);
-    luaL_requiref(L, "menu", luaopen_menu, 1);
-    luaL_requiref(L, "event", luaopen_event, 1);
-    luaL_requiref(L, "dryos", luaopen_dryos, 1);
     
-    luaL_requiref(L, "MODE", luaopen_MODE, 1);
-    luaL_requiref(L, "ICON_TYPE", luaopen_ICON_TYPE, 1);
-    luaL_requiref(L, "UNIT", luaopen_UNIT, 1);
-    luaL_requiref(L, "DEPENDS_ON", luaopen_DEPENDS_ON, 1);
-    luaL_requiref(L, "FONT", luaopen_FONT, 1);
-    luaL_requiref(L, "COLOR", luaopen_COLOR, 1);
-    luaL_requiref(L, "KEY", luaopen_KEY, 1);
+    luaL_getsubtable(L, LUA_REGISTRYINDEX, "_PRELOAD");
+    const luaL_Reg *lib;
+    for (lib = alllibs; lib->func; lib++)
+    {
+        lua_pushcfunction(L, lib->func);
+        lua_setfield(L, -2, lib->name);
+    }
+    lua_pop(L, 1);
+    
+    lua_getglobal(L, "_G");
+    lua_newtable(L);
+    lua_pushcfunction(L, luaCB_global_index);
+    lua_setfield(L, -2, "__index");
+    lua_setmetatable(L, -2);
+    lua_pop(L, 1);
     
     return L;
 }

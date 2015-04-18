@@ -168,6 +168,7 @@ int luaopen_DEPENDS_ON(lua_State * L)
 // @field SMALL
 // @field MED
 // @field MED_LARGE
+// @field LARGE
 // @table FONT
 int luaopen_FONT(lua_State * L)
 {
@@ -316,5 +317,20 @@ int luaopen_KEY(lua_State * L)
     LUA_CONSTANT(UNTOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER);
     LUA_CONSTANT(TOUCH_2_FINGER, MODULE_KEY_TOUCH_2_FINGER);
     LUA_CONSTANT(UNTOUCH_2_FINGER, MODULE_KEY_UNTOUCH_2_FINGER);
+    return 1;
+}
+
+int luaopen_constants(lua_State *L)
+{
+    luaL_requiref(L, "MODE", luaopen_MODE, 1);
+    luaL_requiref(L, "ICON_TYPE", luaopen_ICON_TYPE, 1);
+    luaL_requiref(L, "UNIT", luaopen_UNIT, 1);
+    luaL_requiref(L, "DEPENDS_ON", luaopen_DEPENDS_ON, 1);
+    luaL_requiref(L, "FONT", luaopen_FONT, 1);
+    luaL_requiref(L, "COLOR", luaopen_COLOR, 1);
+    luaL_requiref(L, "KEY", luaopen_KEY, 1);
+    
+    //just return true
+    lua_pushboolean(L, 1);
     return 1;
 }
