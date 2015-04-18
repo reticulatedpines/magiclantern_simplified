@@ -32,6 +32,9 @@ static int luaCB_camera_index(lua_State * L)
     /// Flash exposure compensation in apex units x10
     // @tfield integer flash_ec
     else if(!strcmp(key, "flash_ec")) lua_pushinteger(L, RAW2EC(lens_info.flash_ae));
+    /// Kelvin white balance
+    // @tfield integer kelvin
+    else if(!strcmp(key, "kelvin")) lua_pushinteger(L, lens_info.kelvin);
     /// The current camera mode, possible values defined in @{constants.MODE}
     // @tfield integer mode
     else if(!strcmp(key, "mode")) lua_pushinteger(L, shooting_mode);
@@ -90,6 +93,11 @@ static int luaCB_camera_newindex(lua_State * L)
     {
         LUA_PARAM_NUMBER(value, 3);
         lens_set_flash_ae(EC2RAW(value));
+    }
+    else if(!strcmp(key, "kelvin"))
+    {
+        LUA_PARAM_INT(value, 3);
+        lens_set_kelvin(value);
     }
     else if(!strcmp(key, "model") || !strcmp(key, "firmware") || !strcmp(key, "mode") || !strcmp(key, "af_mode") || !strcmp(key, "metering_mode") || !strcmp(key, "drive_mode") || !strcmp(key, "temperature") || !strcmp(key, "state"))
     {
