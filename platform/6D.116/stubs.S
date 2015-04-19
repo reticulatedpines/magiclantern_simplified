@@ -86,12 +86,12 @@ NSTUB(0xFF11C5C8,  StartASIFDMAADC)
 NSTUB(0xFF11C99C,  StartASIFDMADAC)
 NSTUB(0xFF11C874,  StopASIFDMAADC)
 NSTUB(0xFF11CC1C,  StopASIFDMADAC)
-// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
+NSTUB(0xFF11CD44,  SetASIFMode)
 
 /** Audio **/
 NSTUB(   0x75330,  sounddev)
-NSTUB(0xFF1424EC, _audio_ic_read)
-NSTUB(0xFF1422A8, _audio_ic_write)                          // SerialCommanSend(int *array)
+NSTUB(0xFF142608, _audio_ic_read)
+NSTUB(0xFF1422A8, _audio_ic_write_bulk)                     // SerialCommanSend(int *array)
 NSTUB(0xFF9D08A4,  audio_thresholds)
 NSTUB(0xFF11E244,  sounddev_task)
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
