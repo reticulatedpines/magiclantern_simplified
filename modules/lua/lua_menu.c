@@ -14,26 +14,24 @@
 
 #include "lua_common.h"
 
-int lua_running;
-static int lua_run_arg_count = 0;
-static lua_State * running_script = NULL;
-
 static int luaCB_menu_instance_index(lua_State * L);
 static int luaCB_menu_instance_newindex(lua_State * L);
 static int luaCB_menu_remove(lua_State * L);
 static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name);
 
-static void lua_run_task(int unused)
+static void lua_run_task(lua_State * L)
 {
-    lua_running = 1;
-    if(running_script)
+    if(L)
     {
-        lua_State * L = running_script;
         struct semaphore * sem = NULL;
         if(!lua_take_semaphore(L, 0, &sem) && sem)
         {
+            int isnum = 0;
+            int arg_count = lua_tointegerx(L, -1, &isnum);
+            if(isnum) lua_pop(L,1);
+            else arg_count = 0;
             console_printf("running script...\n");
-            if(docall(L, lua_run_arg_count, 0))
+            if(docall(L, arg_count, 0))
             {
                 console_printf("script failed:\n %s\n", lua_tostring(L, -1));
             }
@@ -48,7 +46,6 @@ static void lua_run_task(int unused)
             console_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
-    lua_running = 0;
 }
 
 //copied from lua.c
@@ -91,15 +88,12 @@ static MENU_SELECT_FUNC(script_menu_select)
                 lua_pushinteger(L, delta);
                 if(script_entry->run_in_separate_task)
                 {
-                    //give the semaphore back (the task will take it)
-                    give_semaphore(sem);
-                    if(!lua_running)
-                    {
-                        lua_running = 1;
-                        lua_run_arg_count = 2;
-                        running_script = L;
-                        task_create("lua_task", 0x1c, 0x8000, lua_run_task, (void*) 0);
-                    }
+                    static int lua_task_id = 0;
+                    char task_name[24];
+                    snprintf(task_name,24,"lua_task[%d]",lua_task_id++);
+                    lua_pushinteger(L, 2); //push the arg count onto the stack
+                    give_semaphore(sem); //give the semaphore back (the task will take it)
+                    task_create(task_name, 0x1c, 0x8000, lua_run_task, L);
                 }
                 else
                 {
