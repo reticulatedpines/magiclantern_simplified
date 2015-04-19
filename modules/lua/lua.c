@@ -59,8 +59,23 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
     {
         if(current->L == L)
         {
-            *assoc_semaphore = current->semaphore;
+            if(assoc_semaphore) *assoc_semaphore = current->semaphore;
             return take_semaphore(current->semaphore, timeout);
+        }
+    }
+    console_printf("error: could not find semaphore for lua state\n");
+    return -1;
+}
+
+int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
+{
+    struct script_semaphore * current;
+    for(current = script_semaphores; current; current = current->next)
+    {
+        if(current->L == L)
+        {
+            if(assoc_semaphore) *assoc_semaphore = current->semaphore;
+            return give_semaphore(current->semaphore);
         }
     }
     console_printf("error: could not find semaphore for lua state\n");
@@ -315,6 +330,7 @@ static const luaL_Reg alllibs[] =
     {"dryos", luaopen_dryos},
     {"interval", luaopen_interval},
     {"battery", luaopen_battery},
+    {"task", luaopen_task},
     {"constants", luaopen_constants},
     {"MODE", luaopen_MODE},
     {"ICON_TYPE", luaopen_ICON_TYPE},

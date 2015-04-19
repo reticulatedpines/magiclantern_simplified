@@ -93,6 +93,7 @@ struct script_menu_entry
 int docall(lua_State *L, int narg, int nres);
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore);
+int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore);
 
 int luaopen_globals(lua_State * L);
 int luaopen_console(lua_State * L);
@@ -106,6 +107,7 @@ int luaopen_menu(lua_State * L);
 int luaopen_dryos(lua_State * L);
 int luaopen_interval(lua_State * L);
 int luaopen_battery(lua_State * L);
+int luaopen_task(lua_State * L);
 int luaopen_constants(lua_State *L);
 
 int luaopen_MODE(lua_State * L);

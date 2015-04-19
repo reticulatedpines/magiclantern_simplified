@@ -19,7 +19,7 @@ static int luaCB_menu_instance_newindex(lua_State * L);
 static int luaCB_menu_remove(lua_State * L);
 static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name);
 
-static void lua_run_task(lua_State * L)
+static void lua_menu_task(lua_State * L)
 {
     if(L)
     {
@@ -89,11 +89,11 @@ static MENU_SELECT_FUNC(script_menu_select)
                 if(script_entry->run_in_separate_task)
                 {
                     static int lua_task_id = 0;
-                    char task_name[24];
-                    snprintf(task_name,24,"lua_task[%d]",lua_task_id++);
+                    char task_name[32];
+                    snprintf(task_name,32,"lua_menu_task[%d]",lua_task_id++);
                     lua_pushinteger(L, 2); //push the arg count onto the stack
                     give_semaphore(sem); //give the semaphore back (the task will take it)
-                    task_create(task_name, 0x1c, 0x8000, lua_run_task, L);
+                    task_create(task_name, 0x1c, 0x8000, lua_menu_task, L);
                 }
                 else
                 {
