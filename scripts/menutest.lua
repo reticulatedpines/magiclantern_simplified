@@ -5,6 +5,7 @@ mymenu = menu.new
     parent = "Debug",
     name = "Lua Menu Test",
     help = "Test of the lua menu API",
+    value = 1,
     submenu =
     { 
         {
@@ -42,26 +43,32 @@ mymenu = menu.new
             help = "help for warning test",
             min = 0,
             max = 100,
-            warning = function() return "this is a warning" end,
+            warning = function(this) if this.value == 0 then return "this value is not supported" end end,
         },
         {
             name = "info test",
             help = "help for info test",
             min = 0,
             max = 10,
-            info = function() return "this is some information" end,
+            info = function(this) if this.value == 0 then return "'0' is selected" end end,
+            rinfo = function(this) if this.value == 1 then return "*" end end,
         },
         {
             name = "dec test",
             min = 0,
             max = 10000,
-            unit = 7,
+            unit = UNIT.DEC,
         },
         {
             name = "hex test",
             min = 0,
             max = 1024,
             unit = UNIT.HEX
+        },
+        {
+            name = "hide test",
+            icon_type = ICON_TYPE.ACTION,
+            select = function(this) this.hidden = true end,
         },
         {
             name = "choices test",
@@ -72,17 +79,17 @@ mymenu = menu.new
             help = "values should jump by 2",
             min = 0,
             max = 10,
-            select = function(delta)
-                mymenu.submenu["select test"].value = mymenu.submenu["select test"].value + delta * 2
-                if mymenu.submenu["select test"].value < mymenu.submenu["select test"].min then mymenu.submenu["select test"].value = mymenu.submenu["select test"].max
-                elseif mymenu.submenu["select test"].value > mymenu.submenu["select test"].max then mymenu.submenu["select test"].value = mymenu.submenu["select test"].min end
+            select = function(this, delta)
+                this.value = this.value + delta * 2
+                if this.value < this.min then this.value = this.max
+                elseif this.value > this.max then this.value = this.min end
             end
         }
     },
-    update = function() return mymenu.submenu["choices test"].value end,
+    update = function(this) return this.submenu["choices test"].value end,
 }
 
-mymenu.submenu["Run"].select = function()
+mymenu.submenu["Run"].select = function(this)
     console.show()
     print("dec test= "..mymenu.submenu["dec test"].value)
     print("choices test= "..mymenu.submenu["choices test"].value)
