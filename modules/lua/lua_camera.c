@@ -113,7 +113,7 @@ static int luaCB_camera_newindex(lua_State * L)
 /***
  Take a picture
  @tparam[opt=64] integer wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] boolean should_af whether ot not to us auto focus
+ @tparam[opt=true] boolean should_af whether or not to use auto focus
  @function shoot
  */
 static int luaCB_camera_shoot(lua_State * L)
