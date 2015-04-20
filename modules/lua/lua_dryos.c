@@ -179,22 +179,22 @@ static int luaCB_card_index(lua_State * L)
     if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
     {
         struct card_info * card = lua_touserdata(L, -1);
-        /// The cluster size
+        /// Get the cluster size
         // @tfield integer cluster_size
         if(!strcmp(key, "cluster_size")) lua_pushinteger(L, card->cluster_size);
-        /// The drive letter
+        /// Get the drive letter
         // @tfield string drive_letter
         else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
-        /// The current Canon file number
+        /// Get the current Canon file number
         // @tfield integer file_number
         else if(!strcmp(key, "file_number")) lua_pushinteger(L, card->file_number);
-        /// The current Canon folder number
+        /// Get the current Canon folder number
         // @tfield integer folder_number
         else if(!strcmp(key, "folder_number")) lua_pushinteger(L, card->folder_number);
-        /// The current free space (in MiB)
+        /// Get the current free space (in MiB)
         // @tfield integer free_space
         else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 1024 / 32);
-        /// The type of card
+        /// Get the type of card
         // @tfield string type
         else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
     }

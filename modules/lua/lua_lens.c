@@ -17,25 +17,25 @@
 static int luaCB_lens_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// The name of the lens (reported by the lens)
+    /// Get the name of the lens (reported by the lens)
     // @tfield string name readonly
     if(!strcmp(key, "name")) lua_pushstring(L, lens_info.name);
-    /// The focal length of the lens (in mm)
+    /// Get the focal length of the lens (in mm)
     // @tfield integer focal_length readonly
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
-    /// The current focal distance (in cm)
+    /// Get the current focal distance (in cm)
     // @tfield integer focal_distance readonly
     else if(!strcmp(key, "focal_distance")) lua_pushinteger(L, lens_info.focus_dist);
-    /// The hyperfocal distance of the lens (in mm)
+    /// Get the hyperfocal distance of the lens (in mm)
     // @tfield integer hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
-    /// The distance to the DOF near (in mm)
+    /// Get the distance to the DOF near (in mm)
     // @tfield integer dof_near readonly
     else if(!strcmp(key, "dof_near")) lua_pushinteger(L, lens_info.dof_near);
-    /// The distance to the DOF far (in mm)
+    /// Get the distance to the DOF far (in mm)
     // @tfield integer dof_far readonly
     else if(!strcmp(key, "dof_far")) lua_pushinteger(L, lens_info.dof_far);
-    /// Whether or not auto focus is enabled
+    /// Get whether or not auto focus is enabled
     // @tfield boolean af readonly
     else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
     else lua_rawget(L, 1);
