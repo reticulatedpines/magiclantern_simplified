@@ -528,6 +528,10 @@ static void stub_test_task(void* arg)
         msleep(100);
         TEST_TRY_FUNC_CHECK(test_task_created, == 1);
         TEST_TRY_FUNC_CHECK_STR(get_task_name_from_id(get_current_task()), "run_test");
+        
+        extern int task_max;
+        TEST_TRY_FUNC_CHECK(task_max, >= 104);    /* so far, task_max is 104 on most cameras */
+        TEST_TRY_FUNC_CHECK(task_max, <= 512);    /* I guess it's not higher than that */
 
         // mq
         static struct msg_queue * mq = 0;
