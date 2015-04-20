@@ -342,6 +342,7 @@ int luaopen_KEY(lua_State * L)
 
 /***
  Gets the width of some text in this font
+ @tparam string text
  @function width
  */
 static int luaCB_font_width(lua_State * L)
