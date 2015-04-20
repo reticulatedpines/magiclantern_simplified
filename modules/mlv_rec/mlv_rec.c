@@ -4136,9 +4136,9 @@ static unsigned int raw_rec_init()
         if (cam_eos_m && streq(e->name, "Digital dolly") )
             e->shidden = 1;
 
-        if (!cam_5d3 && streq(e->name, "CF-only buffers") )
+        if (!cam_5d3 && streq(e->name, "CF-only Buffers") )
             e->shidden = 1;
-        if (!cam_5d3 && streq(e->name, "Card spanning") )
+        if (!cam_5d3 && streq(e->name, "Card Spanning") )
             e->shidden = 1;
         if (!exFAT && streq(e->name, "Files > 4GiB (exFAT)") )
             e->shidden = 1;
