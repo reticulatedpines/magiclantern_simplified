@@ -59,9 +59,14 @@ static void draw_level_lines(int angle, int pitch, int show)
     draw_line(x0 - x_offset, y0 - y_offset, x0 + x_offset, y0 + y_offset, color1);
     draw_line(x0 - x_offset + dx, y0 - y_offset + dy, x0 + x_offset + dx, y0 + y_offset + dy, color2);
 
+    // Don't draw the pitch line until we see the pitch value change. This prevents it
+    // ever being drawn on cameras that don't report pitch, such as the 60D.
+    static int pitch_changed = 0;
+    if (pitch != 0) pitch_changed = 1;
+    if (!pitch_changed) return;
+
     // Compute pitch line parameters
     int pitch_s = sinf(pitch * PI_1800) * MUL;
-    int pitch_c = cosf(pitch * PI_1800) * MUL;
 
     r = 120;
     x0 -= (r * pitch_s / MUL) * s / MUL;
