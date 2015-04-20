@@ -158,31 +158,46 @@ int luaopen_DEPENDS_ON(lua_State * L)
     return 1;
 }
 
+static int luaCB_font_index(lua_State * L);
+static int luaCB_font_newindex(lua_State * L);
+
+#define LUA_FONT(name, value) \
+lua_newtable(L);\
+lua_pushinteger(L, value);\
+lua_setfield(L, -2, "_spec");\
+lua_pushcfunction(L, luaCB_font_index);\
+lua_setfield(L, -2, "__index");\
+lua_pushcfunction(L, luaCB_font_newindex);\
+lua_setfield(L, -2, "__newindex");\
+lua_pushvalue(L, -1);\
+lua_setmetatable(L, -2);\
+lua_setfield(L, -2, #name);
+
 /// Fonts
-// @field MONO_12
-// @field MONO_20
-// @field SANS_23
-// @field SANS_28
-// @field SANS_32
-// @field CANON
-// @field SMALL
-// @field MED
-// @field MED_LARGE
-// @field LARGE
+// @tfield font MONO_12
+// @tfield font MONO_20
+// @tfield font SANS_23
+// @tfield font SANS_28
+// @tfield font SANS_32
+// @tfield font CANON
+// @tfield font SMALL
+// @tfield font MED
+// @tfield font MED_LARGE
+// @tfield font LARGE
 // @table FONT
 int luaopen_FONT(lua_State * L)
 {
     lua_newtable(L);
-    LUA_CONSTANT(MONO_12, FONT_MONO_12);
-    LUA_CONSTANT(MONO_20, FONT_MONO_20);
-    LUA_CONSTANT(SANS_23, FONT_SANS_23);
-    LUA_CONSTANT(SANS_28, FONT_SANS_28);
-    LUA_CONSTANT(SANS_32, FONT_SANS_32);
-    LUA_CONSTANT(CANON, FONT_CANON);
-    LUA_CONSTANT(SMALL, FONT_SMALL);
-    LUA_CONSTANT(MED, FONT_MED);
-    LUA_CONSTANT(MED_LARGE, FONT_MED_LARGE);
-    LUA_CONSTANT(LARGE, FONT_LARGE);
+    LUA_FONT(MONO_12, FONT_MONO_12);
+    LUA_FONT(MONO_20, FONT_MONO_20);
+    LUA_FONT(SANS_23, FONT_SANS_23);
+    LUA_FONT(SANS_28, FONT_SANS_28);
+    LUA_FONT(SANS_32, FONT_SANS_32);
+    LUA_FONT(CANON, FONT_CANON);
+    LUA_FONT(SMALL, FONT_SMALL);
+    LUA_FONT(MED, FONT_MED);
+    LUA_FONT(MED_LARGE, FONT_MED_LARGE);
+    LUA_FONT(LARGE, FONT_LARGE);
     return 1;
 }
 
@@ -318,6 +333,40 @@ int luaopen_KEY(lua_State * L)
     LUA_CONSTANT(TOUCH_2_FINGER, MODULE_KEY_TOUCH_2_FINGER);
     LUA_CONSTANT(UNTOUCH_2_FINGER, MODULE_KEY_UNTOUCH_2_FINGER);
     return 1;
+}
+
+/***
+ Font
+ @type font
+ */
+
+/***
+ Gets the width of some text in this font
+ @function width
+ */
+static int luaCB_font_width(lua_State * L)
+{
+    int spec = lua_rawgetp(L, 1, "_spec");
+    LUA_PARAM_STRING(text, 2);
+    lua_pushinteger(L, bmp_string_width(spec, text));
+    return 1;
+}
+
+static int luaCB_font_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    int spec = lua_rawgetp(L, 1, "_spec");
+    /// The height of this font in pixels
+    // @tparam integer height
+    if(!strcmp(key,"height")) lua_pushinteger(L, fontspec_height(spec));
+    if(!strcmp(key,"width")) lua_pushcfunction(L, luaCB_font_width);
+    else return 0;
+    return 1;
+}
+
+static int luaCB_font_newindex(lua_State * L)
+{
+    return luaL_error(L, "font type is readonly");
 }
 
 int luaopen_constants(lua_State *L)

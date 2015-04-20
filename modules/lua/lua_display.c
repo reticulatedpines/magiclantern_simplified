@@ -65,7 +65,7 @@ static int luaCB_display_clear(lua_State * L)
  @tparam string text
  @tparam integer x
  @tparam integer y
- @tparam[opt] integer font @{constants.FONT}
+ @tparam[opt] font font @{constants.FONT}
  @tparam[opt] integer fg foreground @{constants.COLOR}
  @tparam[opt] integer bg background @{constants.COLOR}
  @function print
@@ -75,7 +75,7 @@ static int luaCB_display_print(lua_State * L)
     LUA_PARAM_STRING(str, 1);
     LUA_PARAM_INT(x, 2);
     LUA_PARAM_INT(y, 3);
-    LUA_PARAM_INT_OPTIONAL(font, 4, (int)FONT_MED);
+    int font = lua_istable(L, 4) ? lua_rawgetp(L, 4, "_spec") : (int)FONT_MED;
     LUA_PARAM_INT_OPTIONAL(fg, 5, COLOR_WHITE);
     LUA_PARAM_INT_OPTIONAL(bg, 6, COLOR_BLACK);
     bmp_printf(FONT(font, fg, bg), x, y, "%s", str);
