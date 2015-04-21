@@ -85,6 +85,8 @@ static void call_bootflag_eventproc(char* eventproc)
     }
 }
 
+extern void _prop_request_change(unsigned property, const void* addr, size_t len);
+
 static void
 call_init_funcs()
 {
@@ -456,6 +458,10 @@ static int install(void)
             "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
         info_led_blink(1,50,950);
+
+        /* attempt to reset the powersave timer */
+        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
+        _prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
     }
     return 1;
 }
@@ -544,9 +550,6 @@ void redraw() { clrscr(); }
 
 void gui_uilock(int x)
 {
-    /* call Canon stub */
-    extern void _prop_request_change(unsigned property, const void* addr, size_t len);
-
     int unlocked = 0x41000000;
     _prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(200);
