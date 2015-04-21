@@ -105,10 +105,10 @@ static int luaCB_dryos_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// Get the value of the seconds clock
-    // @tfield integer clock
+    // @tfield int clock
     if(!strcmp(key, "clock")) lua_pushinteger(L, get_seconds_clock());
     /// Get the value of the milliseconds clock
-    // @tfield integer ms_clock
+    // @tfield int ms_clock
     else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock_value());
     /// Get/Set the image filename prefix
     // @tfield string prefix
@@ -163,31 +163,31 @@ static int luaCB_dryos_index(lua_State * L)
         LoadCalendarFromRTC(&tm);
         lua_newtable(L);
         /// Second
-        // @tfield integer sec
+        // @tfield int sec
         setfield(L, "sec", tm.tm_sec);
         /// Minute
-        // @tfield integer min
+        // @tfield int min
         setfield(L, "min", tm.tm_min);
         /// Hour
-        // @tfield integer hour
+        // @tfield int hour
         setfield(L, "hour", tm.tm_hour);
         /// Day
-        // @tfield integer day
+        // @tfield int day
         setfield(L, "day", tm.tm_mday);
         /// Month
-        // @tfield integer month
+        // @tfield int month
         setfield(L, "month", tm.tm_mon+1);
         /// Year
-        // @tfield integer year
+        // @tfield int year
         setfield(L, "year", tm.tm_year+1900);
         /// Day of week
-        // @tfield integer wday
+        // @tfield int wday
         setfield(L, "wday", tm.tm_wday+1);
         /// Day of year
-        // @tfield integer yday
+        // @tfield int yday
         setfield(L, "yday", tm.tm_yday+1);
         /// Daylight Savings
-        // @tfield boolean isdst
+        // @tfield bool isdst
         setboolfield(L, "isdst", tm.tm_isdst);
     }
     else lua_rawget(L, 1);
@@ -218,7 +218,7 @@ static int luaCB_dryos_newindex(lua_State * L)
 
 /***
  Creates a directory
- @treturn boolean whether or not the directory was sucessfully created
+ @treturn bool whether or not the directory was sucessfully created
  @function create
  */
 static int luaCB_directory_create(lua_State * L)
@@ -313,7 +313,7 @@ static int luaCB_directory_index(lua_State * L)
     // @tfield string path
     if(!strcmp(key, "path")) lua_pushstring(L, path);
     /// Get whether or not the directory exists
-    // @tfield boolean exists
+    // @tfield bool exists
     else if(!strcmp(key, "exists")) lua_pushboolean(L, is_dir(path));
     else if(!strcmp(key, "create")) lua_pushcfunction(L, luaCB_directory_create);
     else if(!strcmp(key, "children")) lua_pushcfunction(L, luaCB_directory_children);
@@ -339,19 +339,19 @@ static int luaCB_card_index(lua_State * L)
     {
         struct card_info * card = lua_touserdata(L, -1);
         /// Get the cluster size
-        // @tfield integer cluster_size
+        // @tfield int cluster_size
         if(!strcmp(key, "cluster_size")) lua_pushinteger(L, card->cluster_size);
         /// Get the drive letter
         // @tfield string drive_letter
         else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
         /// Get the current Canon file number
-        // @tfield integer file_number
+        // @tfield int file_number
         else if(!strcmp(key, "file_number")) lua_pushinteger(L, card->file_number);
         /// Get the current Canon folder number
-        // @tfield integer folder_number
+        // @tfield int folder_number
         else if(!strcmp(key, "folder_number")) lua_pushinteger(L, card->folder_number);
         /// Get the current free space (in MiB)
-        // @tfield integer free_space
+        // @tfield int free_space
         else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 1024 / 32);
         /// Get the type of card
         // @tfield string type

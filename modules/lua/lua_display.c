@@ -39,7 +39,7 @@ static int luaCB_display_off(lua_State * L)
 /***
  Take a screenshot
  @tparam[opt] string filename
- @tparam[opt] integer mode
+ @tparam[opt] int mode
  @function screenshot
  */
 static int luaCB_display_screenshot(lua_State * L)
@@ -63,11 +63,11 @@ static int luaCB_display_clear(lua_State * L)
 /***
  Print text to the screen.
  @tparam string text
- @tparam integer x
- @tparam integer y
+ @tparam int x
+ @tparam int y
  @tparam[opt] font font @{constants.FONT}
- @tparam[opt] integer fg foreground @{constants.COLOR}
- @tparam[opt] integer bg background @{constants.COLOR}
+ @tparam[opt] int fg foreground @{constants.COLOR}
+ @tparam[opt] int bg background @{constants.COLOR}
  @function print
  */
 static int luaCB_display_print(lua_State * L)
@@ -85,9 +85,9 @@ static int luaCB_display_print(lua_State * L)
 /***
  Set a pixel to a color 
  (omit color param to read the current color)
- @tparam integer x
- @tparam integer y
- @tparam[opt] integer color @{constants.COLOR}
+ @tparam int x
+ @tparam int y
+ @tparam[opt] int color @{constants.COLOR}
  @return color @{constants.COLOR}
  @function pixel
  */
@@ -110,11 +110,11 @@ static int luaCB_display_pixel(lua_State * L)
 
 /***
  Draw a line
- @tparam integer x1
- @tparam integer y1
- @tparam integer x2
- @tparam integer y2
- @tparam integer color @{constants.COLOR}
+ @tparam int x1
+ @tparam int y1
+ @tparam int x2
+ @tparam int y2
+ @tparam int color @{constants.COLOR}
  @function line
  */
 static int luaCB_display_line(lua_State * L)
@@ -130,12 +130,12 @@ static int luaCB_display_line(lua_State * L)
 
 /***
  Draw a rect
- @tparam integer x
- @tparam integer y
- @tparam integer w
- @tparam integer h
- @tparam integer stroke outline @{constants.COLOR}
- @tparam[opt] integer fill fill @{constants.COLOR}
+ @tparam int x
+ @tparam int y
+ @tparam int w
+ @tparam int h
+ @tparam int stroke outline @{constants.COLOR}
+ @tparam[opt] int fill fill @{constants.COLOR}
  @function rect
  */
 static int luaCB_display_rect(lua_State * L)
@@ -153,11 +153,11 @@ static int luaCB_display_rect(lua_State * L)
 
 /***
  Draw a circle
- @tparam integer x center x
- @tparam integer y center y
- @tparam integer r radius
- @tparam integer stroke outline @{constants.COLOR}
- @tparam[opt] integer fill fill @{constants.COLOR}
+ @tparam int x center x
+ @tparam int y center y
+ @tparam int r radius
+ @tparam int stroke outline @{constants.COLOR}
+ @tparam[opt] int fill fill @{constants.COLOR}
  @function circle
  */
 static int luaCB_display_circle(lua_State * L)

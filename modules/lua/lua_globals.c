@@ -16,7 +16,7 @@
 
 /***
  Beep
- @tparam[opt=1] integer times number of times to beep
+ @tparam[opt=1] int times number of times to beep
  @function beep
  */
 static int luaCB_beep(lua_State * L)
@@ -28,8 +28,8 @@ static int luaCB_beep(lua_State * L)
 
 /***
  Take a picture
- @tparam[opt=64] integer wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] boolean should_af whether or not to use auto focus
+ @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
+ @tparam[opt=true] bool should_af whether or not to use auto focus
  @function shoot
  */
 static int luaCB_shoot(lua_State * L)
@@ -43,7 +43,7 @@ static int luaCB_shoot(lua_State * L)
 
 /***
  Pauses for ms miliseconds and allows other tasks to run.
- @tparam integer amount number of milliseconds to sleep
+ @tparam int amount number of milliseconds to sleep
  @function msleep
  */
 static int luaCB_msleep(lua_State * L)
@@ -75,9 +75,9 @@ static int luaCB_led_off(lua_State * L)
 
 /***
  Blinks the LED
- @tparam[opt=1] integer times Number of times to blink.
- @tparam[opt=50] integer delay_on How long the LED is on (in ms)
- @tparam[opt=50] integer delay_off How long the LED is off (in ms)
+ @tparam[opt=1] int times Number of times to blink.
+ @tparam[opt=50] int delay_on How long the LED is on (in ms)
+ @tparam[opt=50] int delay_off How long the LED is off (in ms)
  @function led_blink
  */
 static int luaCB_led_blink(lua_State * L)

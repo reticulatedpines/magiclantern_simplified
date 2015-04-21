@@ -21,22 +21,22 @@ static int luaCB_lens_index(lua_State * L)
     // @tfield string name readonly
     if(!strcmp(key, "name")) lua_pushstring(L, lens_info.name);
     /// Get the focal length of the lens (in mm)
-    // @tfield integer focal_length readonly
+    // @tfield int focal_length readonly
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
     /// Get the current focal distance (in cm)
-    // @tfield integer focal_distance readonly
+    // @tfield int focal_distance readonly
     else if(!strcmp(key, "focal_distance")) lua_pushinteger(L, lens_info.focus_dist);
     /// Get the hyperfocal distance of the lens (in mm)
-    // @tfield integer hyperfocal readonly
+    // @tfield int hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
     /// Get the distance to the DOF near (in mm)
-    // @tfield integer dof_near readonly
+    // @tfield int dof_near readonly
     else if(!strcmp(key, "dof_near")) lua_pushinteger(L, lens_info.dof_near);
     /// Get the distance to the DOF far (in mm)
-    // @tfield integer dof_far readonly
+    // @tfield int dof_far readonly
     else if(!strcmp(key, "dof_far")) lua_pushinteger(L, lens_info.dof_far);
     /// Get whether or not auto focus is enabled
-    // @tfield boolean af readonly
+    // @tfield bool af readonly
     else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
     else lua_rawget(L, 1);
     return 1;
@@ -58,10 +58,10 @@ static int luaCB_lens_newindex(lua_State * L)
 
 /***
  Moves the focus motor a specified number of steps. Only works in LV.
- @tparam integer num_steps
- @tparam[opt=1] integer step_size
- @tparam[opt=1] integer wait
- @tparam[opt=0] integer extra_delay
+ @tparam int num_steps
+ @tparam[opt=1] int step_size
+ @tparam[opt=1] int wait
+ @tparam[opt=0] int extra_delay
  @function focus
  */
 static int luaCB_lens_focus(lua_State * L)

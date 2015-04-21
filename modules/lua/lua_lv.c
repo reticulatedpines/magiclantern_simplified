@@ -19,7 +19,7 @@ static int luaCB_lv_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// Whether or not LV is running.
-    // @tfield boolean enabled
+    // @tfield bool enabled
     if(!strcmp(key, "enabled")) lua_pushboolean(L, lv);
     else lua_rawget(L, 1);
     return 1;

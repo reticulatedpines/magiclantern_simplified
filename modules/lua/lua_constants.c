@@ -358,7 +358,7 @@ static int luaCB_font_index(lua_State * L)
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     int spec = lua_rawgetp(L, 1, "_spec");
     /// The height of this font in pixels
-    // @tparam integer height
+    // @tparam int height
     if(!strcmp(key,"height")) lua_pushinteger(L, fontspec_height(spec));
     if(!strcmp(key,"width")) lua_pushcfunction(L, luaCB_font_width);
     else return 0;

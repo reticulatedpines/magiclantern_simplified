@@ -18,34 +18,34 @@ static int luaCB_camera_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// Get/Set shutter speed in apex units x10
-    // @tfield integer shutter
+    // @tfield int shutter
     if(!strcmp(key, "shutter")) lua_pushinteger(L, RAW2TV(lens_info.raw_shutter));
     /// Get/Set lens aperture in apex units x10
-    // @tfield integer aperture
+    // @tfield int aperture
     else if(!strcmp(key, "aperture")) lua_pushinteger(L, RAW2AV(lens_info.raw_aperture));
     /// Get/Set ISO in apex units x10
-    // @tfield integer iso
+    // @tfield int iso
     else if(!strcmp(key, "iso")) lua_pushinteger(L, RAW2SV(lens_info.raw_iso));
     /// Get/Set exposure compensation in apex units x10
-    // @tfield integer ec
+    // @tfield int ec
     else if(!strcmp(key, "ec")) lua_pushinteger(L, RAW2EC(lens_info.ae));
     /// Get/Set flash exposure compensation in apex units x10
-    // @tfield integer flash_ec
+    // @tfield int flash_ec
     else if(!strcmp(key, "flash_ec")) lua_pushinteger(L, RAW2EC(lens_info.flash_ae));
     /// Get/Set kelvin white balance
-    // @tfield integer kelvin
+    // @tfield int kelvin
     else if(!strcmp(key, "kelvin")) lua_pushinteger(L, lens_info.kelvin);
     /// Get the current camera mode, possible values defined in @{constants.MODE}
-    // @tfield integer mode
+    // @tfield int mode
     else if(!strcmp(key, "mode")) lua_pushinteger(L, shooting_mode);
     /// Get the current auto focus mode
-    // @tfield integer af_mode readonly
+    // @tfield int af_mode readonly
     else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
     /// Get the current metering mode
-    // @tfield integer metering_mode readonly
+    // @tfield int metering_mode readonly
     else if(!strcmp(key, "metering_mode")) lua_pushinteger(L, metering_mode);
     /// Get the current drive mode
-    // @tfield integer drive_mode readonly
+    // @tfield int drive_mode readonly
     else if(!strcmp(key, "drive_mode")) lua_pushinteger(L, drive_mode);
     /// Get the model name of the camera
     // @tfield string model readonly
@@ -57,10 +57,10 @@ static int luaCB_camera_index(lua_State * L)
     // @tfield string firmware readonly
     else if(!strcmp(key, "firmware")) lua_pushstring(L, firmware_version);
     /// Get the temperature from the efic chip in raw units
-    // @tfield integer temperature readonly
+    // @tfield int temperature readonly
     else if(!strcmp(key, "temperature")) lua_pushinteger(L, efic_temp);
     /// Get the current Canon GUI state of the camera (PLAY, QR, LV, etc)
-    // @tfield integer state readonly
+    // @tfield int state readonly
     else if(!strcmp(key, "state")) lua_pushinteger(L, gui_state);
     else lua_rawget(L, 1);
     return 1;
@@ -112,8 +112,8 @@ static int luaCB_camera_newindex(lua_State * L)
 
 /***
  Take a picture
- @tparam[opt=64] integer wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] boolean should_af whether or not to use auto focus
+ @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
+ @tparam[opt=true] bool should_af whether or not to use auto focus
  @function shoot
  */
 static int luaCB_camera_shoot(lua_State * L)
@@ -127,7 +127,7 @@ static int luaCB_camera_shoot(lua_State * L)
 
 /***
  Take a picture in bulb mode
- @tparam integer duration bulb duration in seconds
+ @tparam int duration bulb duration in seconds
  @function bulb
  */
 static int luaCB_camera_bulb(lua_State * L)

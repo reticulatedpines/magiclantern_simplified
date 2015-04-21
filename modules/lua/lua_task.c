@@ -55,8 +55,8 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
 /***
  Creates a new task. It will begin executing when you return or call task.yield()
  @tparam function f the function to run
- @tparam[opt] integer priority
- @tparam[opt] integer stack_size
+ @tparam[opt] int priority
+ @tparam[opt] int stack_size
  @function create
  */
 static int luaCB_task_create(lua_State * L)
@@ -79,7 +79,7 @@ static int luaCB_task_create(lua_State * L)
 
 /***
  Yields execution of this script to other tasks and event handlers
- @tparam integer duration how long to sleep for in ms
+ @tparam int duration how long to sleep for in ms
  @function yield
  */
 static int luaCB_task_yield(lua_State * L)

@@ -24,35 +24,35 @@ static int luaCB_battery_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// Get battery level in percentage (0-100)
-    // @tfield integer level
+    // @tfield int level
     if(!strcmp(key, "level"))
     {
         if((void*)&GetBatteryLevel == (void*)&ret_0) return luaL_error(L, NOT_AVAILABLE);
         lua_pushinteger(L, GetBatteryLevel());
     }
     /// Get battery ID, as registered in Canon menu
-    // @tfield integer id
+    // @tfield int id
     else if(!strcmp(key, "id"))
     {
         if((void*)&GetBatteryHist == (void*)&ret_0) return luaL_error(L, NOT_AVAILABLE);
         lua_pushinteger(L, GetBatteryHist());
     }
     /// Get how many "green dots" (3 for a new battery, less for a used battery)
-    // @tfield integer performance
+    // @tfield int performance
     else if(!strcmp(key, "performance"))
     {
         if((void*)&GetBatteryPerformance == (void*)&ret_0) return luaL_error(L, NOT_AVAILABLE);
         lua_pushinteger(L, GetBatteryPerformance());
     }
     /// Get estimated time remaining
-    // @tfield integer time
+    // @tfield int time
     else if(!strcmp(key, "time"))
     {
         if((void*)&GetBatteryTimeRemaining == (void*)&ret_0) return luaL_error(L, NOT_AVAILABLE);
         lua_pushinteger(L, GetBatteryTimeRemaining());
     }
     /// Get estimated battery drain rate
-    // @tfield integer drain_rate
+    // @tfield int drain_rate
     else if(!strcmp(key, "drain_rate"))
     {
         if((void*)&GetBatteryDrainRate == (void*)&ret_0) return luaL_error(L, NOT_AVAILABLE);

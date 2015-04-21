@@ -17,7 +17,7 @@ int module_send_keypress(int module_key);
 
 /***
  Send a keypress.
- @tparam integer key the key to press
+ @tparam int key the key to press
  @function press
  */
 static int luaCB_key_press(lua_State * L)
@@ -29,9 +29,9 @@ static int luaCB_key_press(lua_State * L)
 
 /***
  Wait for a key to be pressed.
- @tparam[opt] integer key
- @tparam[opt] integer timeout
- @return the key that was pressed
+ @tparam[opt] int key
+ @tparam[opt] int timeout
+ @treturn int the key that was pressed
  @function wait
  */
 static int luaCB_key_wait(lua_State * L)
@@ -59,7 +59,7 @@ static int luaCB_key_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// The last key that was pressed.
-    // @tfield integer last
+    // @tfield int last
     if(!strcmp(key, "last")) lua_pushinteger(L, last_keypress);
     else lua_rawget(L, 1);
     return 1;

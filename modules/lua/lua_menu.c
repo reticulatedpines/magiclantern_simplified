@@ -326,7 +326,7 @@ static int luaCB_menu_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// Get whether or not the ML menu is visible
-    //@tfield boolean visible
+    //@tfield bool visible
     if(!strcmp(key, "visible")) lua_pushboolean(L, gui_menu_shown());
     else lua_rawget(L, 1);
     return 1;
@@ -351,7 +351,7 @@ static int luaCB_menu_instance_index(lua_State * L)
     
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// current value of the menu item
-    // @tfield integer value
+    // @tfield ?int|string value
     if(!strcmp(key, "value"))
     {
         if(script_entry->menu_entry->choices)
@@ -373,56 +373,56 @@ static int luaCB_menu_instance_index(lua_State * L)
     // @tfield string help2
     else if(!strcmp(key, "help2")) lua_pushstring(L, script_entry->menu_entry->help2);
     /// Advanced setting in submenus
-    // @tfield boolean advanced
+    // @tfield bool advanced
     else if(!strcmp(key, "advanced")) lua_pushinteger(L, script_entry->menu_entry->advanced);
     /// Dependencies for this menu item.
     // If the dependecies are not met, the item will be greyed out and a warning will appear at the bottom of the screen.
-    // @tfield integer depends_on @{constants.DEPENDS_ON}
+    // @tfield int depends_on @{constants.DEPENDS_ON}
     else if(!strcmp(key, "depends_on")) lua_pushinteger(L, script_entry->menu_entry->depends_on);
     /// Editing mode for the menu item
-    // @tfield integer edit_mode
+    // @tfield int edit_mode
     else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
     /// Hidden from main menu
-    // @tfield boolean hidden
+    // @tfield bool hidden
     else if(!strcmp(key, "hidden")) lua_pushboolean(L, script_entry->menu_entry->hidden);
     /// The type of icon to use for this menu item
-    // @tfield integer icon_type @{constants.ICON_TYPE}
+    // @tfield int icon_type @{constants.ICON_TYPE}
     else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
     /// Hidden from junkie menu
-    // @tfield boolean jhidden
+    // @tfield bool jhidden
     else if(!strcmp(key, "jhidden")) lua_pushboolean(L, script_entry->menu_entry->jhidden);
     /// The maximum value the menu item can have
-    // @tfield integer max
+    // @tfield int max
     else if(!strcmp(key, "max")) lua_pushinteger(L, script_entry->menu_entry->max);
     /// The minimum value the menu item can have
-    // @tfield integer min
+    // @tfield int min
     else if(!strcmp(key, "min")) lua_pushinteger(L, script_entry->menu_entry->min);
     /// Whether or not the menu is selected
-    // @tfield integer selected
+    // @tfield int selected
     else if(!strcmp(key, "selected")) lua_pushboolean(L, script_entry->menu_entry->selected);
     /// Special hide, not toggleable by user
-    // @tfield boolean shidden
+    // @tfield bool shidden
     else if(!strcmp(key, "shidden")) lua_pushboolean(L, script_entry->menu_entry->shidden);
     /// Present in "my menu"
-    // @tfield boolean starred
+    // @tfield bool starred
     else if(!strcmp(key, "starred")) lua_pushboolean(L, script_entry->menu_entry->starred);
     /// Submenu Height
-    // @tfield integer submenu_height
+    // @tfield int submenu_height
     else if(!strcmp(key, "submenu_height")) lua_pushinteger(L, script_entry->menu_entry->submenu_height);
     /// Submenu Width
-    // @tfield integer submenu_width
+    // @tfield int submenu_width
     else if(!strcmp(key, "submenu_width")) lua_pushinteger(L, script_entry->menu_entry->submenu_width);
     /// The unit for the menu item's value
-    // @tfield integer unit @{constants.UNIT}
+    // @tfield int unit @{constants.UNIT}
     else if(!strcmp(key, "unit")) lua_pushinteger(L, script_entry->menu_entry->unit);
     /// Suggested operating mode for this menu item
-    // @tfield integer works_best_in @{constants.DEPENDS_ON}
+    // @tfield int works_best_in @{constants.DEPENDS_ON}
     else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
     /// Whether or not the backend should run 'select' in it's own task
-    // @tfield boolean run_in_separate_task
+    // @tfield bool run_in_separate_task
     else if(!strcmp(key, "run_in_separate_task")) lua_pushinteger(L, script_entry->run_in_separate_task);
     /// Function called when menu is toggled
-    // @tparam integer delta
+    // @tparam int delta
     // @function select
     else if(!strcmp(key, "select")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref);
     /// Function called when menu is displayed. Return a string to be displayed.

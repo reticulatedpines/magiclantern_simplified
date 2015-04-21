@@ -17,13 +17,13 @@ static int luaCB_interval_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     /// Get/Set the interval time (in seconds)
-    // @tfield integer time
+    // @tfield int time
     if(!strcmp(key, "time")) lua_pushinteger(L, get_interval_time());
     /// Get the current number of pictures that have been taken
-    // @tfield integer count
+    // @tfield int count
     else if(!strcmp(key, "count")) lua_pushinteger(L, get_interval_count());
     /// Get whether or not the intervalometer is currently running
-    // @tfield boolean running
+    // @tfield bool running
     else if(!strcmp(key, "running")) lua_pushinteger(L, is_intervalometer_running());
     else lua_rawget(L, 1);
     return 1;

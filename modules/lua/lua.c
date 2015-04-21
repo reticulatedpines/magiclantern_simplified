@@ -259,37 +259,37 @@ static int luaCB_event_newindex(lua_State * L)
     
     /// Called before a picture is taken
     // @param arg unused
-    // @return whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function pre_shoot
     SCRIPT_CBR_SET(pre_shoot);
     /// Called after a picture is taken
     // @param arg unused
-    // @return whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function post_shoot
     SCRIPT_CBR_SET(post_shoot);
     /// Called periodicaly from shoot_task
     // @param arg unused
-    // @return whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function shoot_task
     SCRIPT_CBR_SET(shoot_task);
     /// Called each second
     // @param arg unused
-    // @return whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function seconds_clock
     SCRIPT_CBR_SET(seconds_clock);
     /// Called when a key is pressed
-    // @param key the key that was pressed, see @{constants.KEY}
-    // @return whether or not to continue executing CBRs for this event
+    // @tparam int key the key that was pressed, see @{constants.KEY}
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function keypress
     SCRIPT_CBR_SET(keypress);
     /// Special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics
     // @param arg unused
-    // @return whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function custom_picture_taking
     SCRIPT_CBR_SET(custom_picture_taking);
     /// Called after a picture is taken with the intervalometer
-    // @param interval_count the current interval count
-    // @return whether or not to continue executing CBRs for this event
+    // @tparam int interval_count the current interval count
+    // @treturn bool whether or not to continue executing CBRs for this event
     // @function intervalometer
     SCRIPT_CBR_SET(intervalometer);
 #ifdef CONFIG_VSYNC_EVENTS
