@@ -286,12 +286,18 @@ static void hook_on_canon_menu()
     {
         SetGUIRequestMode(DLG_MENU);
         
+        /* Canon menu may draw on the screen for a while, but we'll try to be faster */ 
         for (int i = 0; i < 10; i++)
         {
             msleep(100);
             bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
             bmp_printf(FONT_LARGE, 0, 0, "Magic Lantern install");
         }
+    }
+    else
+    {
+        /* we are already in Canon menu - just clear the screen */
+        bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
     }
 }
 
@@ -533,7 +539,7 @@ void install_task()
     
     if (ok)
     {
-        /* install successful, user waited for 30 seconds => uninstall */
+        /* install successful, user waited for 60 seconds => uninstall */
         info_led_on();
         hook_on_canon_menu();
         uninstall();
