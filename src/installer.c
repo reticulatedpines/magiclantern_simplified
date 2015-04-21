@@ -278,18 +278,6 @@ copy_and_restart( int offset )
         ;
 }
 
-// check if autoexec.bin is present on the card
-int check_autoexec()
-{
-    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
-    if (f)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
 static void hook_on_canon_menu()
 {
     gui_uilock(UILOCK_EVERYTHING);
@@ -392,10 +380,25 @@ static int install(void)
     bmp_printf(normal_font, 0, y, "Magic Lantern install");
     print_bootflags();
 
-    int autoexec_ok = check_autoexec();
-    if (!autoexec_ok)
+    if (!is_file("AUTOEXEC.BIN"))
     {
         bmp_printf(warning_font, 0, y+=FH, "AUTOEXEC.BIN not found!");
+        bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
+        msleep(5000);
+        return 0;
+    }
+
+    if (!is_dir("ML"))
+    {
+        bmp_printf(warning_font, 0, y+=FH, "ML directory not found!");
+        bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
+        msleep(5000);
+        return 0;
+    }
+
+    if (!is_dir("ML/FONTS"))
+    {
+        bmp_printf(warning_font, 0, y+=FH, "FONTS directory not found!");
         bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
         msleep(5000);
         return 0;
