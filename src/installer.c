@@ -289,13 +289,13 @@ static void hook_on_canon_menu()
     if (CURRENT_DIALOG_MAYBE != DLG_MENU)
     {
         SetGUIRequestMode(DLG_MENU);
-    }
-    
-    for (int i = 0; i < 10; i++)
-    {
-        msleep(100);
-        bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-        bmp_printf(FONT_LARGE, 0, 0, "Magic Lantern install");
+        
+        for (int i = 0; i < 10; i++)
+        {
+            msleep(100);
+            bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+            bmp_printf(FONT_LARGE, 0, 0, "Magic Lantern install");
+        }
     }
 }
 
