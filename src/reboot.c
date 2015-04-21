@@ -151,7 +151,7 @@ static void fail()
     char* camera_model_line =  "Please try installing ML for 70D " STR(CONFIG_FW_VERSION) ".";
     camera_model_line[36] = (camera_model_line[36] == 'A') ? 'B' : 'A';
     print_line(COLOR_WHITE, 2, camera_model_line);
-    print_line(COLOR_WHITE, 2, "If that doesn't work, you are out of luck.");
+    print_line(COLOR_WHITE, 2, "");
   #else
     print_line(COLOR_WHITE, 2, "Please reinstall Canon firmware " STR(CONFIG_FW_VERSION) ",");
     print_line(COLOR_WHITE, 2, "even if you already have this version.");
