@@ -161,11 +161,11 @@ static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;
 
 static void print_bootflags()
 {
-    bmp_printf( FONT_SMALL, 600, 0,
-        "Firmware  %d \n"
-        "Bootdisk  %d \n"
-        "RAM_EXE   %d \n"
-        "Update    %d \n",
+    bmp_printf( FONT_SMALL | FONT_ALIGN_RIGHT, 710, 0,
+        "Firmware  %2d \n"
+        "Bootdisk  %2d \n"
+        "RAM_EXE   %2d \n"
+        "Update    %2d \n",
         boot_flags->firmware,
         boot_flags->bootdisk,
         boot_flags->ram_exe,
@@ -341,6 +341,7 @@ static int normal_font = FONT_LARGE;
 static int error_font = FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK);
 static int warning_font = FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK);
 static int y = 0;
+static int FH = 30; /* font height */
 
 static int backup_region(char *file, uint32_t base, uint32_t length)
 {
@@ -351,7 +352,7 @@ static int backup_region(char *file, uint32_t base, uint32_t length)
         return 1;
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Backing up ROM%d...", file[11] - '0');
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Backing up ROM%d...", file[11] - '0');
     
     /* no, create file and store data */
     FILE* handle = FIO_CreateFile(file);
@@ -362,7 +363,7 @@ static int backup_region(char *file, uint32_t base, uint32_t length)
     }
     else
     {
-        bmp_printf(error_font, 0, y+=30, "Could not backup ROM%d.", file[11] - '0');
+        bmp_printf(error_font, 0, y+=FH, "Could not backup ROM%d.", file[11] - '0');
         return 0;
     }
     
@@ -380,14 +381,16 @@ static int rom_backup()
 /** Return 1 on success, 0 on failure */
 static int install(void)
 {
+    FH = fontspec_font(normal_font)->height;
+    
     bmp_printf(normal_font, 0, y, "Magic Lantern install");
     print_bootflags();
 
     int autoexec_ok = check_autoexec();
     if (!autoexec_ok)
     {
-        bmp_printf(warning_font, 0, y+=30, "AUTOEXEC.BIN not found!");
-        bmp_printf(warning_font, 0, y+=30, "Please copy all ML files.");
+        bmp_printf(warning_font, 0, y+=FH, "AUTOEXEC.BIN not found!");
+        bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
         msleep(5000);
         return 0;
     }
@@ -396,39 +399,39 @@ static int install(void)
 
     if (boot_flags->firmware)
     {
-        bmp_printf(error_font, 0, y+=30, "MAIN_FIRMWARE flag is DISABLED!");
-        bmp_printf(error_font, 0, y+=30, "Please contact ML developers for a fix.");
+        bmp_printf(error_font, 0, y+=FH, "MAIN_FIRMWARE flag is DISABLED!");
+        bmp_printf(error_font, 0, y+=FH, "Please contact ML developers for a fix.");
         msleep(5000);
         return 0;
     }
 
     if (!boot_flags->bootdisk )
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Setting boot flag...");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Setting boot flag...");
         call_bootflag_eventproc( "EnableBootDisk" );
         if (!boot_flags->bootdisk )
         {
-            bmp_printf(error_font, 0, y+=30, "Could not enable boot flag.");
+            bmp_printf(error_font, 0, y+=FH, "Could not enable boot flag.");
             msleep(5000);
             return 0;
         }
     }
     else
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Boot flag is already set.");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Boot flag is already set.");
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Making card bootable...");
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Making card bootable...");
     extern int bootflag_write_bootblock();
     int bootflag_written = bootflag_write_bootblock();
     if (!bootflag_written)
     {
-        bmp_printf(warning_font, 0, y+=30, "Could not make the card bootable.");
-        bmp_printf(warning_font, 0, y+=30, "You need to run EOSCard or MacBoot.");
+        bmp_printf(warning_font, 0, y+=FH, "Could not make the card bootable.");
+        bmp_printf(warning_font, 0, y+=FH, "You need to run EOSCard or MacBoot.");
         msleep(5000);
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Done!");
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
     y += 60;
 
@@ -440,8 +443,9 @@ static int install(void)
     {
         int fnt2 = FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK);
         int fnt1 = fnt2 | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720-32);
-        bmp_printf(fnt1, 0, y+=25, "After restart, please copy ML/LOGS/ROM*.BIN to PC, in a safe place.");
-        bmp_printf(fnt2, 0, y+=25, "We may need these files in case of emergency.");
+        int fh = fontspec_font(fnt1)->height;
+        bmp_printf(fnt1, 0, y+=fh, "After restart, please copy ML/LOGS/ROM*.BIN to PC, in a safe place.");
+        bmp_printf(fnt2, 0, y+=fh, "We may need these files in case of emergency.");
     }
 
     gui_uilock(UILOCK_SHUTTER);
@@ -475,29 +479,29 @@ static int uninstall(void)
 
     if (boot_flags->firmware)
     {
-        bmp_printf(error_font, 0, y+=30, "MAIN_FIRMWARE flag is DISABLED!");
-        bmp_printf(error_font, 0, y+=30, "Please contact ML developers for a fix.");
+        bmp_printf(error_font, 0, y+=FH, "MAIN_FIRMWARE flag is DISABLED!");
+        bmp_printf(error_font, 0, y+=FH, "Please contact ML developers for a fix.");
         msleep(5000);
         return 0;
     }
 
     if (boot_flags->bootdisk )
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Disabling boot flag...");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Disabling boot flag...");
         call_bootflag_eventproc( "DisableBootDisk" );
         if (boot_flags->bootdisk )
         {
-            bmp_printf(error_font, 0, y+=30, "Could not disable boot flag.");
+            bmp_printf(error_font, 0, y+=FH, "Could not disable boot flag.");
             msleep(5000);
             return 0;
         }
     }
     else
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Boot flag is not set.");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Boot flag is not set.");
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Done!");
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
     return 1;
 }
