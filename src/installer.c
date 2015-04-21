@@ -161,16 +161,22 @@ static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;
 
 static void print_bootflags()
 {
-    bmp_printf( FONT_SMALL | FONT_ALIGN_RIGHT, 710, 0,
-        "Firmware  %2d \n"
-        "Bootdisk  %2d \n"
-        "RAM_EXE   %2d \n"
-        "Update    %2d \n",
+    int values_w = bmp_printf( FONT_SMALL | FONT_ALIGN_RIGHT, 710, 0,
+        "%d\n%d\n%d\n%d\n",
         boot_flags->firmware,
         boot_flags->bootdisk,
         boot_flags->ram_exe,
         boot_flags->update
     );
+    
+    char* labels =
+        "Firmware\n"
+        "Bootdisk\n"
+        "RAM_EXE\n"
+        "Update\n";
+    
+    int labels_w = bmp_string_width(FONT_SMALL, labels);
+    bmp_printf( FONT_SMALL, 700 - values_w - labels_w, 0, labels);
 }
 
 /** These are called when new tasks are created */
