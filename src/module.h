@@ -8,7 +8,6 @@
 /* module info structures */
 #define MODULE_INFO_PREFIX            __module_info_
 #define MODULE_STRINGS_PREFIX         __module_strings_
-#define MODULE_PARAMS_PREFIX          __module_params_
 #define MODULE_PROPHANDLERS_PREFIX    __module_prophandlers_
 #define MODULE_CBR_PREFIX             __module_cbr_
 #define MODULE_CONFIG_PREFIX          __module_config_
@@ -129,19 +128,6 @@ typedef struct
     unsigned int (*deinit) ();
 } module_info_t;
 
-/* modules can have parameters - optional */
-typedef struct
-{
-    /* pointer to parameter in memory */
-    const void *parameter;
-    /* stringified type like "uint32_t", "int32_t". restrict to stdint.h types */
-    const char *type;
-    /* name of the parameter, must match to variable name */
-    const char *name;
-    /* description for the user */
-    const char *desc;
-} module_parminfo_t;
-
 /* this struct supplies additional information like license, author etc - optional */
 typedef struct
 {
@@ -186,7 +172,6 @@ typedef struct
     char long_status[MODULE_LONG_STATUS_LENGTH+1];
     module_info_t *info;
     module_strpair_t *strings;
-    module_parminfo_t *params;
     module_prophandler_t **prop_handlers;
     module_cbr_t *cbr;
     module_config_t *config;
@@ -233,13 +218,6 @@ typedef struct
 #define MODULE_CONFIGS_END()                                        { (void *)0, (void *)0 }\
                                                                 };
                                                                 
-#define MODULE_PARAMS_START()                                   MODULE_PARAMS_START_(MODULE_PARAMS_PREFIX,MODULE_NAME)
-#define MODULE_PARAMS_START_(prefix,modname)                    MODULE_PARAMS_START__(prefix,modname)
-#define MODULE_PARAMS_START__(prefix,modname)                   module_parminfo_t prefix##modname[] = {
-#define MODULE_PARAM(var,typestr,descr)                             { .parameter = &var, .name = #var, .type = typestr, .desc = descr },
-#define MODULE_PARAMS_END()                                         { (void *)0, (const char *)0, (const char *)0, (const char *)0 }\
-                                                                };
-
 #define MODULE_PROPHANDLERS_START()                             MODULE_PROPHANDLERS_START_(MODULE_PROPHANDLERS_PREFIX,MODULE_NAME,MODULE_PROPHANDLER_PREFIX)
 #define MODULE_PROPHANDLERS_START_(prefix,modname,ph_prefix)    MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)
 #define MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)   module_prophandler_t *prefix##modname[] = {

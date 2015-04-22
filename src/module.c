@@ -397,8 +397,6 @@ static void _module_load_all(uint32_t list_only)
             module_list[mod].info = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_STRINGS_PREFIX), module_list[mod].name);
             module_list[mod].strings = tcc_get_symbol(state, module_info_name);
-            snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PARAMS_PREFIX), module_list[mod].name);
-            module_list[mod].params = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PROPHANDLERS_PREFIX), module_list[mod].name);
             module_list[mod].prop_handlers = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_CBR_PREFIX), module_list[mod].name);
@@ -470,7 +468,6 @@ static void _module_load_all(uint32_t list_only)
             {
                 console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
                 console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
-                console_printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
                 console_printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
                 console_printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
                 console_printf("  [i] config  at: 0x%08X\n", (uint32_t)module_list[mod].config);
@@ -564,7 +561,6 @@ static void _module_unload_all(void)
             module_list[mod].error = 0;
             module_list[mod].info = NULL;
             module_list[mod].strings = NULL;
-            module_list[mod].params = NULL;
             module_list[mod].prop_handlers = NULL;
             module_list[mod].cbr = NULL;
             strcpy(module_list[mod].name, "");
@@ -1327,7 +1323,6 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
     if(module_list[mod_number].valid && !module_list[mod_number].error)
     {
         module_strpair_t *strings = module_list[mod_number].strings;
-        module_parminfo_t *parms = module_list[mod_number].params;
         module_cbr_t *cbr = module_list[mod_number].cbr;
         module_prophandler_t **props = module_list[mod_number].prop_handlers;
 
@@ -1369,20 +1364,6 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
                     int new_x = MAX(x, 710 - strlen(strings->value) * font_med.width);
                     bmp_printf(FONT_MED, new_x, y, "%s", strings->value);
                 }
-                y += font_med.height;
-            }
-        }
-
-        if (parms)
-        {
-            y += 10;
-            bmp_printf(FONT_MED, x - 32, y, "Parameters:");
-            y += font_med.height;
-
-            for (; parms->name != NULL; parms++)
-            {
-                bmp_printf(FONT_MED, x, y, "%s", parms->name);
-                bmp_printf(FONT_MED, x_val, y, "%s", parms->type);
                 y += font_med.height;
             }
         }
