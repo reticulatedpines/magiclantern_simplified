@@ -2,6 +2,7 @@
 
 recdelay_running = false
 recdelay_stop = false
+recdelay_countdown = 0
 
 function recdelay_main()
     if recdelay_running then recdelay_stop = true return end
@@ -10,7 +11,11 @@ function recdelay_main()
         recdelay_stop = false
         local i
         for i = recdelay_menu.submenu["Delay Amount"].value, 0, -1 do
-            display.print(string.format("Movie Start in %ds", i), 20, 20)
+            recdelay_countdown = i
+            if menu.visible then
+                display.print(string.format("Movie Start in %ds", i), 20, 20)
+                -- else we'll just let lvinfo item take care of notification
+            end
             task.yield(1000)
             if movie.recording or recdelay_stop then
                 display.print(string.format("Movie Start Canceled", i), 20, 20)
@@ -22,7 +27,7 @@ function recdelay_main()
         movie.start()
         if recdelay_menu.submenu["Stop After"].value > 0 then
             for i = recdelay_menu.submenu["Stop After"].value, 0, -1 do
-                display.print(string.format("Movie Stop in %ds", i), 20, 20)
+                recdelay_countdown = -i
                 task.yield(1000)
                 if movie.recording == false or recdelay_stop then
                     display.print(string.format("Movie Stop Canceled", i), 20, 20)
@@ -82,3 +87,23 @@ event.keypress = function(key)
         end
     end
 end
+
+lv.info
+{
+    name = "Delayed Start Info",
+    value = "",
+    priority = 100,
+    update = function(this)
+        if recdelay_running then
+            this.background = COLOR.RED
+            this.foreground = COLOR.WHITE
+            if recdelay_countdown > 0 then
+                this.value = string.format("Start in %ds",recdelay_countdown)
+            else
+                this.value = string.format("Stop in %ds",-recdelay_countdown)
+            end
+        else
+            this.value = ""
+        end
+    end
+}
