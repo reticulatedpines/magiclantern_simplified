@@ -12,6 +12,7 @@
 #include <bmp.h>
 #include <zebra.h>
 #include <screenshot.h>
+#include <notify_box.h>
 
 #include "lua_common.h"
 
@@ -172,6 +173,20 @@ static int luaCB_display_circle(lua_State * L)
     return 0;
 }
 
+/***
+ Prints a message on the screen for a period of time
+ @tparam string text
+ @tparam[opt=1000] int timeout in ms
+ @function circle
+ */
+static int luaCB_display_notify_box(lua_State * L)
+{
+    LUA_PARAM_STRING(text, 1);
+    LUA_PARAM_INT_OPTIONAL(timeout, 2, 1000);
+    NotifyBox(timeout, "%s", text);
+    return 0;
+}
+
 static int luaCB_display_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
@@ -205,6 +220,7 @@ const luaL_Reg displaylib[] =
     {"line", luaCB_display_line},
     {"rect", luaCB_display_rect},
     {"circle", luaCB_display_circle},
+    {"notify_box", luaCB_display_notify_box},
     {NULL, NULL}
 };
 

@@ -13,12 +13,12 @@ function recdelay_main()
         for i = recdelay_menu.submenu["Delay Amount"].value, 0, -1 do
             recdelay_countdown = i
             if menu.visible then
-                display.print(string.format("Movie Start in %ds", i), 20, 20)
+                display.notify_box(string.format("Movie Start in %ds", i))
                 -- else we'll just let lvinfo item take care of notification
             end
             task.yield(1000)
             if movie.recording or recdelay_stop then
-                display.print(string.format("Movie Start Canceled", i), 20, 20)
+                display.notify_box(string.format("Movie Start Canceled", i))
                 recdelay_running = false
                 recdelay_stop = false
                 return 
@@ -30,7 +30,7 @@ function recdelay_main()
                 recdelay_countdown = -i
                 task.yield(1000)
                 if movie.recording == false or recdelay_stop then
-                    display.print(string.format("Movie Stop Canceled", i), 20, 20)
+                    display.notify_box(string.format("Movie Stop Canceled", i))
                     recdelay_running = false
                     recdelay_stop = false
                     return 
