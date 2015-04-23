@@ -83,6 +83,7 @@ event.keypress = function(key)
         if recdelay_running then 
             recdelay_stop = true
         elseif recdelay_menu.submenu["Delay Amount"].value > 0 then
+            display.notify_box("Movie Start Trggered")
             task.create(recdelay_main)
         end
     end
