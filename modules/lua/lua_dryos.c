@@ -251,8 +251,8 @@ static int luaCB_directory_children(lua_State * L)
             if (file.mode & ATTR_DIRECTORY)
             {
                 //call the directory constructor
-                lua_pushfstring(L, "%s/%s", path, file.name);
                 lua_pushcfunction(L, luaCB_dryos_directory);
+                lua_pushfstring(L, "%s/%s", path, file.name);
                 lua_call(L, 1, 1);
                 lua_seti(L, -2, index++);
             }
@@ -296,7 +296,7 @@ static int luaCB_directory_files(lua_State * L)
     }
     else
     {
-        return luaL_error(L, "error reading directory");
+        return luaL_error(L, "error reading directory: '%s'", path);
     }
     
     return 1;
