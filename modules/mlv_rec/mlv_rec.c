@@ -124,8 +124,8 @@ uint32_t raw_rec_trace_ctx = TRACE_ERROR;
  * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
-static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
+static uint32_t resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
+#define  RESOLUTION_CHOICES_X CHOICES(     "640","960","1280","1600","1920","2240","2560","2880","3200","3520")
 
 static uint32_t aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -729,7 +729,7 @@ static int32_t calc_crop_factor()
     if (cam_5d2) sensor_x = 5616;
     if (cam_5d3) sensor_x = 5760;
     
-    if (video_mode_crop) sampling_x = 1;
+    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
     
     return camera_crop * (sensor_x / sampling_x) / res_x;
 }
@@ -753,7 +753,8 @@ static MENU_UPDATE_FUNC(raw_main_update)
     }
     else
     {
-        MENU_SET_VALUE("ON, %dx%d  %s%d.%02dx", res_x, res_y, FMT_FIXEDPOINT2(calc_crop_factor()));
+        MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2(calc_crop_factor()));
     }
 
     write_speed_update(entry, info);
@@ -792,7 +793,8 @@ static MENU_UPDATE_FUNC(resolution_update)
 
     int32_t selected_x = res_x;
 
-    MENU_SET_VALUE("%dx%d  %s%d.%02dx", res_x, res_y, FMT_FIXEDPOINT2(calc_crop_factor()));
+    MENU_SET_VALUE("%dx%d", res_x, res_y);
+    MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2(calc_crop_factor()));
 
     if (selected_x > max_res_x)
     {
@@ -3773,35 +3775,33 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
         return;
     }
     
-    if (get_edit_mode()) {
+    
+    
+    if (get_menu_edit_mode()) {
         if ((delta > 0) && (resolution_index_x < COUNT(resolution_presets_x) - 1)) resolution_index_x += 1;
         if ((delta < 0) && (resolution_index_x > 0)) resolution_index_x -= 1;
         res_x_fine = 0;
         return;
     }
     
-    if (resolution_presets_x[resolution_index_x] + res_x_fine > max_res_x) {
-        while(resolution_presets_x[resolution_index_x] > max_res_x) resolution_index_x -= 1;
-        res_x_fine = max_res_x - resolution_presets_x[resolution_index_x];
+    uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    
+    if (cur_res > (uint32_t)max_res_x) {
+        cur_res = max_res_x;
+        if (delta < 0) cur_res -= 32;
+    } else if (cur_res < resolution_presets_x[0]) {
+        cur_res = resolution_presets_x[0];
+        if (delta > 0) cur_res += 32;
+    } else {
+        cur_res += delta * 32;
     }
     
-    if ((delta > 0)) {
-        if (resolution_presets_x[resolution_index_x] + res_x_fine <= max_res_x - 32) res_x_fine += 32;
-
-        if ((resolution_index_x < COUNT(resolution_presets_x) - 1) && (resolution_presets_x[resolution_index_x] + res_x_fine >= resolution_presets_x[resolution_index_x + 1])) {
-            resolution_index_x += 1;
-            res_x_fine = 0;
-        }
-        
-    } else {
-        if (resolution_presets_x[resolution_index_x] + res_x_fine >= 640 + 32) res_x_fine -= 32;
-
-        if ((resolution_index_x > 0) && (resolution_presets_x[resolution_index_x] + res_x_fine <= resolution_presets_x[resolution_index_x - 1])) {
-            resolution_index_x -= 1;
-            res_x_fine = 0;
-        }
-
+    resolution_index_x = 0;
+    while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
+        resolution_index_x += 1;
     }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
+    
 }
 
 static struct menu_entry raw_video_menu[] =
@@ -3816,7 +3816,7 @@ static struct menu_entry raw_video_menu[] =
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Resolution presets",
+                .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
                 .select = resolution_change_fine_value,
