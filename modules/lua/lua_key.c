@@ -41,16 +41,19 @@ static int luaCB_key_wait(lua_State * L)
     timeout *= 10;
     last_keypress = 0;
     int time = 0;
+    lua_give_semaphore(L, NULL);
     //TODO: probably better to use a semaphore
     while((key && last_keypress != key) || (!key && !last_keypress))
     {
         msleep(100);
         if(timeout && time++ > timeout)
         {
+            lua_take_semaphore(L, 0, NULL);
             lua_pushinteger(L, 0);
             return 1;
         }
     }
+    lua_take_semaphore(L, 0, NULL);
     lua_pushinteger(L, last_keypress);
     return 1;
 }
