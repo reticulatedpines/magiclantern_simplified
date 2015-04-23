@@ -360,7 +360,7 @@ static int luaCB_font_index(lua_State * L)
     /// The height of this font in pixels
     // @tparam int height
     if(!strcmp(key,"height")) lua_pushinteger(L, fontspec_height(spec));
-    if(!strcmp(key,"width")) lua_pushcfunction(L, luaCB_font_width);
+    else if(!strcmp(key,"width")) lua_pushcfunction(L, luaCB_font_width);
     else return 0;
     return 1;
 }
