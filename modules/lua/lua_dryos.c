@@ -224,7 +224,7 @@ static int luaCB_dryos_newindex(lua_State * L)
 static int luaCB_directory_create(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
-    lua_rawgetp(L, 1, "path");
+    lua_getfield(L, 1, "path");
     const char * path = lua_tostring(L, -1);
     lua_pushinteger(L, FIO_CreateDirectory(path));
     return 1;
@@ -238,7 +238,7 @@ static int luaCB_directory_create(lua_State * L)
 static int luaCB_directory_children(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
-    lua_rawgetp(L, 1, "path");
+    if(lua_getfield(L, 1, "path") != LUA_TSTRING) return luaL_error(L, "invalid directory path");
     const char * path = lua_tostring(L, -1);
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx(path, &file);
@@ -275,7 +275,7 @@ static int luaCB_directory_children(lua_State * L)
 static int luaCB_directory_files(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
-    lua_rawgetp(L, 1, "path");
+    if(lua_getfield(L, 1, "path") != LUA_TSTRING) return luaL_error(L, "invalid directory path");
     const char * path = lua_tostring(L, -1);
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx(path, &file);
@@ -287,7 +287,6 @@ static int luaCB_directory_files(lua_State * L)
         {
             if (!(file.mode & ATTR_DIRECTORY))
             {
-                //call the directory constructor
                 lua_pushfstring(L, "%s/%s", path, file.name);
                 lua_seti(L, -2, index++);
             }
@@ -306,15 +305,16 @@ static int luaCB_directory_index(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    lua_rawgetp(L, 1, "path");
-    const char * path = lua_tostring(L, -1);
-    lua_pop(L, 1);
     /// Get the full path of the directory
     // @tfield string path
-    if(!strcmp(key, "path")) lua_pushstring(L, path);
+    if(!strcmp(key, "path")) return lua_rawget(L, 1);
+    
+    if(lua_getfield(L, 1, "path") != LUA_TSTRING) return luaL_error(L, "invalid directory path");
+    const char * path = lua_tostring(L, -1);
+    lua_pop(L, 1);
     /// Get whether or not the directory exists
     // @tfield bool exists
-    else if(!strcmp(key, "exists")) lua_pushboolean(L, is_dir(path));
+    if(!strcmp(key, "exists")) lua_pushboolean(L, is_dir(path));
     else if(!strcmp(key, "create")) lua_pushcfunction(L, luaCB_directory_create);
     else if(!strcmp(key, "children")) lua_pushcfunction(L, luaCB_directory_children);
     else if(!strcmp(key, "files")) lua_pushcfunction(L, luaCB_directory_files);
