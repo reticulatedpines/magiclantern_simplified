@@ -347,7 +347,9 @@ int luaopen_KEY(lua_State * L)
  */
 static int luaCB_font_width(lua_State * L)
 {
-    int spec = lua_rawgetp(L, 1, "_spec");
+    lua_getfield(L, 1, "_spec");
+    uint32_t spec = (uint32_t)lua_tointeger(L, -1);
+    lua_pop(L, 1);
     LUA_PARAM_STRING(text, 2);
     lua_pushinteger(L, bmp_string_width(spec, text));
     return 1;
@@ -356,7 +358,11 @@ static int luaCB_font_width(lua_State * L)
 static int luaCB_font_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    int spec = lua_rawgetp(L, 1, "_spec");
+    if(!strcmp(key, "_spec")) return lua_rawget(L, 1);
+    
+    lua_getfield(L, 1, "_spec");
+    uint32_t spec = (uint32_t)lua_tointeger(L, -1);
+    lua_pop(L, 1);
     /// The height of this font in pixels
     // @tparam int height
     if(!strcmp(key,"height")) lua_pushinteger(L, fontspec_height(spec));
