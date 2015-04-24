@@ -14,6 +14,7 @@
 
 #include "lua_common.h"
 
+extern int menu_redraw_blocked;
 static int luaCB_menu_instance_index(lua_State * L);
 static int luaCB_menu_instance_newindex(lua_State * L);
 static int luaCB_menu_remove(lua_State * L);
@@ -320,6 +321,16 @@ static int luaCB_menu_get(lua_State * L)
     LUA_PARAM_STRING(entry, 2);
     lua_pushinteger(L, menu_get_value_from_script(menu, entry));
     return 1;
+}
+
+/// Block the ML menu from redrawing (if you wand to do custom drawing)
+// @tparam bool enaabled
+// @function block
+static int luaCB_menu_block(lua_State * L)
+{
+    LUA_PARAM_BOOL(enabled, 1);
+    menu_redraw_blocked = enabled;
+    return 0;
 }
 
 static int luaCB_menu_index(lua_State * L)
@@ -761,6 +772,7 @@ const luaL_Reg menulib[] =
     {"new", luaCB_menu_new},
     {"set", luaCB_menu_set},
     {"get", luaCB_menu_get},
+    {"block", luaCB_menu_block},
     {NULL, NULL}
 };
 
