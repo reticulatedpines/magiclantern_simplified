@@ -134,8 +134,8 @@ editor = {}
 
 editor.running = false
 editor.first_run = true
-editor.min_char = string.byte("A",1)
-editor.max_char = string.byte("z",1)
+editor.min_char = 32
+editor.max_char = 127
 
 editor.mlmenu = menu.new
 {
@@ -157,10 +157,9 @@ function editor:run()
             self.menu = {"New","Open","Save","Save As","Exit"}
             self.menu_index = 1
             self.menu_open = true
-            self.title = "Text Editor"
             self.font = FONT.MONO_20
             self.show_line_numbers = true
-            self:draw_title()
+            self:new()
             self.first_run = false
         else
             self.menu_open = false
@@ -209,6 +208,7 @@ function editor:handle_key(k)
         self:draw()
     elseif k == KEY.WHEEL_LEFT then
         --mod char
+        self:update_title(true)
         local l = self.lines[self.line]
         if self.col < #l then
             local ch = l:byte(self.col)
@@ -220,6 +220,7 @@ function editor:handle_key(k)
         self:draw()
     elseif k == KEY.WHEEL_RIGHT then
         --mod char
+        self:update_title(true)
         local l = self.lines[self.line]
         if self.col < #l then
             local ch = l:byte(self.col)
@@ -231,6 +232,7 @@ function editor:handle_key(k)
         self:draw()
     elseif k == KEY.TRASH then
         --delete
+        self:update_title(true)
         local l = self.lines[self.line]
         if #l == 0 then
             table.remove(self.lines,self.line)
@@ -243,18 +245,33 @@ function editor:handle_key(k)
         self:draw()
     elseif k == KEY.SET then
         --insert char
+        self:update_title(true)
         local l = self.lines[self.line]
-        self.lines[self.line] = string.format("%sA%s",l:sub(1,self.col),l:sub(self.col + 1))
+        self.lines[self.line] = string.format("%s %s",l:sub(1,self.col),l:sub(self.col + 1))
         self.col = self.col + 1
         self:draw()
     elseif k == KEY.PLAY then
         --insert line return
+        self:update_title(true)
         local l = self.lines[self.line]
         self.lines[self.line] = l:sub(1,self.col)
         table.insert(self.lines, self.line + 1, l:sub(self.col + 1))
         self.line = self.line + 1
         self.col = 1
         self:draw()
+    end
+end
+
+function editor:update_title(mod, force)
+    if self.mod ~= mod or force == true then
+        self.mod = mod
+        local name = self.filename
+        if name == nil then name = "untitled" end
+        if mod then
+            self.title = string.format("Text Editor [%s*]",name)
+        else
+            self.title = string.format("Text Editor [%s]",name)
+        end
     end
 end
 
@@ -283,7 +300,7 @@ function editor:open()
     local f = filedialog:open()
     if f ~= nil then
         self.filename = f
-        self.title = string.format("Text Editor [%s]",f)
+        self:update_title(false, true)
         self.lines = {}
         self:draw_status("Loading...")
         for line in io.lines(f) do
@@ -293,19 +310,37 @@ function editor:open()
         self.line = 1
         self.col = 1
         self.scroll = 1
+        self.mod = false
         self:draw()
     end
 end
 
 function editor:new()
     self.filename = nil
-    self.title = "Text Editor [untitled*]"
-    self.lines = {}
+    self:update_title(false, true)
+    self.lines = {""}
     self.menu_open = false
     self.line = 1
     self.col = 1
     self.scroll = 1
+    self.mod = true
     self:draw()
+end
+
+function editor:save(filename)
+    if filename == nil then
+        --todo: save file dialog
+    else
+        self:draw_status("Saving...")
+        local f = io.open(filename,"w")
+        for i,v in ipairs(self.lines) do
+            f:write(v,"\n")
+        end
+        f:close()
+        self:update_title(false, true)
+        self.menu_open = false
+        self:draw()
+    end
 end
 
 function editor:draw_status(msg)
