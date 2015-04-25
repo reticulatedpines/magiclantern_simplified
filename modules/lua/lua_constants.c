@@ -201,11 +201,21 @@ int luaopen_FONT(lua_State * L)
     return 1;
 }
 
+static int luaCB_color_gray(lua_State * L)
+{
+    LUA_PARAM_INT(percent, 1);
+    lua_pushinteger(L, COLOR_GRAY(percent));
+    return 1;
+}
+
 /// Color palatte
 // @field TRANSPARENT
 // @field WHITE
 // @field BLACK
 // @field TRANSPARENT_BLACK
+// @field LIGHT_GRAY
+// @field GRAY
+// @field DARK_GRAY
 // @field CYAN
 // @field GREEN1
 // @field GREEN2
@@ -223,6 +233,7 @@ int luaopen_FONT(lua_State * L)
 // @field DARK_ORANGE_MOD
 // @field DARK_CYAN1_MOD
 // @field DARK_CYAN2_MOD
+// @tfield func gray converts integer percentage to shade of gray
 // @table COLOR
 int luaopen_COLOR(lua_State * L)
 {
@@ -231,6 +242,9 @@ int luaopen_COLOR(lua_State * L)
     LUA_CONSTANT(WHITE, COLOR_WHITE);
     LUA_CONSTANT(BLACK, COLOR_BLACK);
     LUA_CONSTANT(TRANSPARENT_BLACK, COLOR_TRANSPARENT_BLACK);
+    LUA_CONSTANT(LIGHT_GRAY, COLOR_GRAY(80));
+    LUA_CONSTANT(GRAY, COLOR_GRAY(50));
+    LUA_CONSTANT(DARK_GRAY, COLOR_GRAY(20));
     LUA_CONSTANT(CYAN, COLOR_CYAN);
     LUA_CONSTANT(GREEN1, COLOR_GREEN1);
     LUA_CONSTANT(GREEN2, COLOR_GREEN2);
@@ -248,6 +262,8 @@ int luaopen_COLOR(lua_State * L)
     LUA_CONSTANT(DARK_ORANGE_MOD, COLOR_DARK_ORANGE_MOD);
     LUA_CONSTANT(DARK_CYAN1_MOD, COLOR_DARK_CYAN1_MOD);
     LUA_CONSTANT(DARK_CYAN2_MOD, COLOR_DARK_CYAN2_MOD);
+    lua_pushcfunction(L, luaCB_color_gray);
+    lua_setfield(L, -2, "gray");
     return 1;
 }
 
