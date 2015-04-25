@@ -11,6 +11,11 @@ function dec(val,min,max)
 end
 
 filedialog = {}
+filedialog.font = FONT.MED_LARGE
+filedialog.top = 60
+filedialog.height = 380
+filedialog.left = 100
+filedialog.width = 520
 
 event.keypress = function(key)
     if editor.running then
@@ -47,17 +52,21 @@ function filedialog:open()
         lastkey = 0
         if k == KEY.Q then return nil -- cancel
         elseif k == KEY.UP then
-            self.selected = self.selected - 1
-            if self.selected <= self.scroll then
-                self.scroll = self.selected
+            if self.selected > 0 then
+                self.selected = self.selected - 1
+                if self.selected <= self.scroll then
+                    self.scroll = self.selected
+                end
+                self:draw()
             end
-            self:draw()
         elseif k == KEY.DOWN then 
-            self.selected = self.selected + 1
-            if self.selected >= self.scroll + (480 - 20 - FONT.LARGE.height) / FONT.MED_LARGE.height - 1  then
-                self.scroll = self.scroll + 1
+            if self.selected < #(self.files) then
+                self.selected = self.selected + 1
+                if self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 1  then
+                    self.scroll = self.scroll + 1
+                end
+                self:draw()
             end
-            self:draw()
         elseif k == KEY.SET then
             if self.selected == 0 then
                 self.current = dryos.directory(string.gsub(self.current.path,"/.+$",""))
@@ -81,10 +90,13 @@ function filedialog:open()
 end
 
 function filedialog:draw()
-    display.rect(0, 0, 720, 480, COLOR.BLACK, COLOR.BLACK)
-    display.print("Please Select A File", 10, 10, FONT.LARGE)
-    local pos = 20 + FONT.LARGE.height
-    display.line(0, pos, 720, pos, COLOR.WHITE)
+    display.rect(self.left, self.top, self.width, self.height, COLOR.WHITE, COLOR.BLACK)
+    display.rect(self.left, self.top, self.width, 20 + FONT.LARGE.height, COLOR.WHITE, COLOR.gray(5))
+    display.print("Select File", self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(5))
+    local pos = self.top + 20 + FONT.LARGE.height
+    display.line(self.left, pos, self.width - self.left, pos, COLOR.WHITE)
+    local x = self.left + 10
+    local r = self.left + self.width
     pos = pos + 10
     local dir_count = 0
     local status,items
@@ -92,11 +104,12 @@ function filedialog:draw()
     if self.current.exists ~= true then return end
     if self.scroll <= 0 then
         if self.selected == 0 then
-            display.print("..", 10, pos, FONT.MED_LARGE, COLOR.WHITE, COLOR.BLUE)
+            display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
+            display.print("..", x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
         else
-            display.print("..", 10, pos, FONT.MED_LARGE)
+            display.print("..", x, pos, self.font)
         end
-        pos = pos + FONT.MED_LARGE.height
+        pos = pos + self.font.height
     end
     if self.children ~= nil then
         for i,v in ipairs(self.children) do
@@ -104,13 +117,14 @@ function filedialog:draw()
                 if i == self.selected then
                     self.is_dir_selected = true
                     self.selected_value = v
-                    display.print(v.path, 10, pos, FONT.MED_LARGE, COLOR.WHITE, COLOR.BLUE)
+                    display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
+                    display.print(v.path, x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
                 else
-                    display.print(v.path, 10, pos, FONT.MED_LARGE)
+                    display.print(v.path, x, pos, self.font)
                 end
-                pos = pos + FONT.MED_LARGE.height
+                pos = pos + self.font.height
                 dir_count = i
-                if pos > 480 then return end
+                if (pos + self.font.height) > (self.top + self.height) then return end
             end
         end
     end
@@ -119,12 +133,13 @@ function filedialog:draw()
             if dir_count + i > self.scroll then
                 if dir_count + i == self.selected then
                     self.selected_value = v
-                    display.print(v, 10, pos, FONT.MED_LARGE, COLOR.WHITE, COLOR.BLUE)
+                    display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
+                    display.print(v, x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
                 else
-                    display.print(v, 10, pos, FONT.MED_LARGE)
+                    display.print(v, x, pos, self.font)
                 end
-                pos = pos + FONT.MED_LARGE.height
-                if pos > 480 then return end
+                pos = pos + self.font.height
+                if (pos + self.font.height) > (self.top + self.height) then return end
             end
         end
     end
@@ -306,13 +321,12 @@ function editor:open()
         for line in io.lines(f) do
             table.insert(self.lines,line)
         end
-        self.menu_open = false
         self.line = 1
         self.col = 1
         self.scroll = 1
-        self.mod = false
-        self:draw()
     end
+    self.menu_open = false
+    self:draw()
 end
 
 function editor:new()
@@ -337,10 +351,10 @@ function editor:save(filename)
             f:write(v,"\n")
         end
         f:close()
-        self:update_title(false, true)
-        self.menu_open = false
-        self:draw()
     end
+    self:update_title(false, true)
+    self.menu_open = false
+    self:draw()
 end
 
 function editor:draw_status(msg)
