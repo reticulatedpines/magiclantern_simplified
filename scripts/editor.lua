@@ -208,6 +208,7 @@ function editor:handle_key(k)
         self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
         self:draw()
     elseif k == KEY.WHEEL_LEFT then
+        --mod char
         local l = self.lines[self.line]
         if self.col < #l then
             local ch = l:byte(self.col)
@@ -218,6 +219,7 @@ function editor:handle_key(k)
         end
         self:draw()
     elseif k == KEY.WHEEL_RIGHT then
+        --mod char
         local l = self.lines[self.line]
         if self.col < #l then
             local ch = l:byte(self.col)
@@ -226,6 +228,32 @@ function editor:handle_key(k)
         else
             self.lines[self.line] = l..string.char(self.max_char)
         end
+        self:draw()
+    elseif k == KEY.TRASH then
+        --delete
+        local l = self.lines[self.line]
+        if #l == 0 then
+            table.remove(self.lines,self.line)
+        elseif self.col > #l and self.line < #(self.lines) then
+            self.lines[self.line] = l..self.lines[self.line + 1]
+            table.remove(self.lines,self.line + 1)
+        else
+            self.lines[self.line] = string.format("%s%s",l:sub(1,self.col - 1),l:sub(self.col + 1))
+        end
+        self:draw()
+    elseif k == KEY.SET then
+        --insert char
+        local l = self.lines[self.line]
+        self.lines[self.line] = string.format("%sA%s",l:sub(1,self.col),l:sub(self.col + 1))
+        self.col = self.col + 1
+        self:draw()
+    elseif k == KEY.PLAY then
+        --insert line return
+        local l = self.lines[self.line]
+        self.lines[self.line] = l:sub(1,self.col)
+        table.insert(self.lines, self.line + 1, l:sub(self.col + 1))
+        self.line = self.line + 1
+        self.col = 1
         self:draw()
     end
 end
