@@ -133,8 +133,11 @@ end
 editor = {}
 
 editor.running = false
+editor.first_run = true
+editor.min_char = string.byte("A",1)
+editor.max_char = string.byte("z",1)
 
-editor.menu = menu.new
+editor.mlmenu = menu.new
 {
     parent = "Debug",
     name = "Text Editor",
@@ -149,13 +152,19 @@ function editor:run()
     local status, error = xpcall(function()
         self.running = true
         menu.block(true)
-        self.menu = {"New","Open","Save","Save As","Exit"}
-        self.menu_index = 1
-        self.menu_open = true
-        self.title = "Text Editor"
-        self.font = FONT.MONO_20
-        self.show_line_numbers = true
-        self:draw_title()
+        display.clear()
+        if self.first_run then
+            self.menu = {"New","Open","Save","Save As","Exit"}
+            self.menu_index = 1
+            self.menu_open = true
+            self.title = "Text Editor"
+            self.font = FONT.MONO_20
+            self.show_line_numbers = true
+            self:draw_title()
+            self.first_run = false
+        else
+            self.menu_open = false
+        end
         self:draw()
         while true do
             local k = lastkey
@@ -180,11 +189,43 @@ function editor:handle_key(k)
     if k == KEY.Q then
         self.menu_open = true
         self:draw()
-    elseif k == KEY.WHEEL_RIGHT then
+    elseif k == KEY.WHEEL_DOWN then
         self.scroll = inc(self.scroll,1,#(self.lines))
         self:draw()
-    elseif k == KEY.WHEEL_LEFT then
+    elseif k == KEY.WHEEL_UP then
         self.scroll = dec(self.scroll,1,#(self.lines))
+        self:draw()
+    elseif k ==  KEY.DOWN then
+        self.line = inc(self.line,1,#(self.lines))
+        self:draw()
+    elseif k ==  KEY.UP then
+        self.line = dec(self.line,1,#(self.lines))
+        self:draw()
+    elseif k ==  KEY.RIGHT then
+        self.col = inc(self.col,1,#(self.lines[self.line]) + 1)
+        self:draw()
+    elseif k ==  KEY.LEFT then
+        self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
+        self:draw()
+    elseif k == KEY.WHEEL_LEFT then
+        local l = self.lines[self.line]
+        if self.col < #l then
+            local ch = l:byte(self.col)
+            ch = inc(ch,self.min_char,self.max_char)
+            self.lines[self.line] = string.format("%s%s%s",l:sub(1,self.col - 1),string.char(ch),l:sub(self.col + 1))
+        else
+            self.lines[self.line] = l..string.char(self.min_char)
+        end
+        self:draw()
+    elseif k == KEY.WHEEL_RIGHT then
+        local l = self.lines[self.line]
+        if self.col < #l then
+            local ch = l:byte(self.col)
+            ch = dec(ch,self.min_char,self.max_char)
+            self.lines[self.line] = string.format("%s%s%s",l:sub(1,self.col - 1),string.char(ch),l:sub(self.col + 1))
+        else
+            self.lines[self.line] = l..string.char(self.max_char)
+        end
         self:draw()
     end
 end
@@ -249,21 +290,32 @@ function editor:draw_status(msg)
 end
 
 function editor:draw_title()
-    display.rect(0, 0, 720, 480, COLOR.BLACK, COLOR.BLACK)
-    display.print(self.title, 10, 10, FONT.LARGE)
-    local pos = 20 + FONT.LARGE.height
-    display.line(0, pos, 720, pos, COLOR.WHITE)
-    return pos + 10
+    local w = FONT.LARGE:width("Q") + 20
+    local h = 20 + FONT.LARGE.height
+    local bg = COLOR.gray(5)
+    local fg = COLOR.GRAY
+    display.rect(0,0,720,h,fg,bg)
+    if self.menu_open then
+        display.rect(0,0,w,h,fg,COLOR.BLUE)
+        display.print("Q",10,10,FONT.LARGE,COLOR.WHITE,COLOR.BLUE)
+    else
+        display.rect(0,0,w,h,fg,bg)
+        display.print("Q",10,10,FONT.LARGE,COLOR.WHITE,bg)
+    end
+    display.print(self.title,w + 10,10,FONT.LARGE,COLOR.WHITE,bg)
+    return h + 10
 end
 
 function editor:draw()
     if self.menu_open then
+        local bg = COLOR.gray(5)
+        local fg = COLOR.GRAY
         local f = FONT.LARGE
         local h = #(self.menu) * f.height + 10
         local w = 180
-        local x = 360 - w / 2
-        local y = 240 - h / 2
-        display.rect(x,y,w,h, COLOR.WHITE, COLOR.BLACK)
+        local x = 0
+        local y = self:draw_title() - 10
+        display.rect(x,y,w,h, fg, bg)
         x = x + 5
         y = y + 5
         for i,v in ipairs(self.menu) do
@@ -271,12 +323,13 @@ function editor:draw()
                 display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
                 display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
             else
-                display.print(v,x,y,f)
+                display.print(v,x,y,f,COLOR.WHITE,bg)
             end
             y = y + f.height
         end
         
     else
+        display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
         local pos = self:draw_title()
         local pad = 10
         if self.show_line_numbers then
@@ -290,6 +343,17 @@ function editor:draw()
                     display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
                 end
                 display.print(v,pad,pos,self.font)
+                if i == self.line then
+                    if self.col > #v then
+                        local x = pad + self.font:width(v)
+                        display.print(" ",x,pos,self.font,COLOR.BLACK,COLOR.WHITE)
+                    else
+                        local x = pad
+                        if self.col > 1 then x = x + self.font:width(string.sub(v,1,self.col - 1)) end
+                        local ch = string.sub(v,self.col,self.col)
+                        display.print(ch,x,pos,self.font,COLOR.BLACK,COLOR.WHITE)
+                    end
+                end
                 pos = pos + self.font.height
                 if pos > 480 then return end
             end
