@@ -68,26 +68,6 @@ struct state_object
 
 SIZE_CHECK_STRUCT( state_object, 0x20 );
 
-
-extern struct state_object *
-CreateStateObject(
-        const char *            name,
-        int                     auto_sequence,
-        struct state_transition *       state_matrix,
-        int                     max_inputs,
-        int                     max_states
-);
-
-
-extern void
-state_object_dispatchc(
-        struct state_object *   self,
-        int                     input,
-        int                     arg0,
-        int                     arg1,
-        int                     arg2
-);
-
 #define STATE_FUNC(stateobj,input,state) stateobj->state_matrix[(state) + (input) * stateobj->max_states].state_transition_function
 
 /* waits for N LiveView frames (using state object vsync) */
