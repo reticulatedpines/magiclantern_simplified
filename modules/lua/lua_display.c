@@ -69,6 +69,8 @@ static int luaCB_display_clear(lua_State * L)
  @tparam[opt] font font @{constants.FONT}
  @tparam[opt] int fg foreground @{constants.COLOR}
  @tparam[opt] int bg background @{constants.COLOR}
+ @tparam[opt] int max_width
+ @treturn string any remaining characters that wouldn't fit on the screen
  @function print
  */
 static int luaCB_display_print(lua_State * L)
@@ -76,11 +78,35 @@ static int luaCB_display_print(lua_State * L)
     LUA_PARAM_STRING(str, 1);
     LUA_PARAM_INT(x, 2);
     LUA_PARAM_INT(y, 3);
-    int font = lua_istable(L, 4) ? lua_rawgetp(L, 4, "_spec") : (int)FONT_MED;
+    uint32_t font = FONT_MED;
+    if(lua_istable(L, 4))
+    {
+        if(lua_getfield(L, 4, "_spec") == LUA_TNUMBER)
+        {
+            font = lua_tointeger(L, -1);
+        }
+        lua_pop(L,1);
+    }
     LUA_PARAM_INT_OPTIONAL(fg, 5, COLOR_WHITE);
     LUA_PARAM_INT_OPTIONAL(bg, 6, COLOR_BLACK);
-    bmp_printf(FONT(font, fg, bg), x, y, "%s", str);
-    return 0;
+    LUA_PARAM_INT_OPTIONAL(max_width, 7, 720 - x);
+    int actual_width = bmp_string_width(font, str);
+    uint32_t max_chars = (uint32_t)bmp_strlen_clipped(font, str, max_width);
+    if(actual_width > max_width && max_chars < strlen(str))
+    {
+        lua_pushstring(L, str + max_chars);
+        char * temp = malloc(sizeof(char) * max_chars + 1);
+        strncpy(temp,str,max_chars);
+        temp[max_chars] = 0;
+        bmp_printf(FONT(font, fg, bg), x, y, "%s", temp);
+        free(temp);
+        return 1;
+    }
+    else
+    {
+        bmp_printf(FONT(font, fg, bg), x, y, "%s", str);
+        return 0;
+    }
 }
 
 /***

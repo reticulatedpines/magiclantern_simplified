@@ -2,11 +2,13 @@
 
 function inc(val,min,max)
     if val == max then return min end
+    if val < min then return min end
     return val + 1
 end
 
 function dec(val,min,max)
     if val == min then return max end
+    if val > max then return max end
     return val - 1
 end
 
@@ -155,7 +157,7 @@ editor =
     font = FONT.MONO_20
 }
 
-editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height
+editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height - 1
 
 editor.mlmenu = menu.new
 {
@@ -222,7 +224,7 @@ function editor:handle_key(k)
         self:scroll_into_view()
         self:draw()
     elseif k ==  KEY.LEFT then
-        if self.col == 1 then dec(self.line,1,#(self.lines)) end
+        if self.col == 1 then self.line = dec(self.line,1,#(self.lines)) end
         self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
         self:scroll_into_view()
         self:draw()
@@ -288,8 +290,8 @@ function editor:handle_key(k)
 end
 
 function editor:scroll_into_view()
-    if self.scroll < self.line then self.scroll = self.line end
-    if self.line > self.scroll + self.lines_per_page then self.scroll = self.line - self.lines_per_page  + 1 end
+    if self.line < self.scroll then self.scroll = self.line
+    elseif self.line > (self.scroll + self.lines_per_page) then self.scroll = self.line - self.lines_per_page  + 1 end
 end
 
 function editor:update_title(mod, force)
@@ -432,16 +434,43 @@ function editor:draw()
                 if self.show_line_numbers then
                     display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
                 end
-                display.print(v,pad,pos,self.font)
+                local clipped = display.print(v,pad,pos,self.font)
+                local actual_pos = pos
+                local sublines = {}
+                if clipped ~= nil then table.insert(sublines,v:sub(1,#v - #clipped)) end
+                while clipped ~= nil do
+                    pos = pos + self.font.height
+                    local prev = clipped
+                    clipped = display.print(clipped,pad,pos,self.font)
+                    if clipped ~= nil then
+                        table.insert(sublines,prev:sub(1,#prev - #clipped))
+                    else
+                        table.insert(sublines,prev)
+                    end
+                end
                 if i == self.line then
                     if self.col > #v then
                         local x = pad + self.font:width(v)
+                        if #sublines > 0 then
+                            x = pad + self.font:width(sublines[#sublines])
+                        end
                         display.print(" ",x,pos,self.font,COLOR.BLACK,COLOR.WHITE)
                     else
                         local x = pad
-                        if self.col > 1 then x = x + self.font:width(string.sub(v,1,self.col - 1)) end
-                        local ch = string.sub(v,self.col,self.col)
-                        display.print(ch,x,pos,self.font,COLOR.BLACK,COLOR.WHITE)
+                        local actual_col = self.col
+                        local actual_line = v
+                        if #sublines > 0 then
+                            --figure out what subline we should be on
+                            for si,sv in ipairs(sublines) do
+                                if actual_col <= #sv then break end
+                                actual_pos = actual_pos + self.font.height
+                                actual_col = actual_col - #sv
+                                actual_line = sv
+                            end
+                        end
+                        if actual_col > 1 then x = x + self.font:width(actual_line:sub(1,actual_col - 1)) end
+                        local ch = v:sub(self.col,self.col)
+                        display.print(ch,x,actual_pos,self.font,COLOR.BLACK,COLOR.WHITE)
                     end
                 end
                 pos = pos + self.font.height
@@ -453,9 +482,18 @@ end
 
 function handle_error(error)
     if error == nil then error = "Unknown Error!\n" end
+    local f = FONT.MONO_20
     print(error)
     display.rect(0,0,720,480,COLOR.RED,COLOR.BLACK)
-    display.print(error,10,10,FONT.MED_LARGE)
+    local pos = 10
+    for line in error:gmatch("[^\r\n]+") do
+        local clipped = display.print(line,10,pos,f)
+        while clipped ~= nil do
+            pos = pos + f.height
+            clipped = display.print(clipped,10,pos,f)
+        end
+        pos = pos + f.height
+    end
     task.yield(1000)
     lastkey = 0
     while lastkey == 0 do
