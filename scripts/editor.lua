@@ -29,14 +29,12 @@ end
 function filedialog:updatefiles()
     local status,items = xpcall(self.current.children,debug.traceback,self.current)
     if status == false then
-        print(items)
-        display.notify_box(items, 8000)
+        handle_error(items)
     end
     if status then self.children = items else self.children = nil end
     status,items = xpcall(self.current.files,debug.traceback,self.current)
     if status == false then
-        print(items)
-        display.notify_box(items, 8000)
+        handle_error(items)
     end
     if status then self.files = items else self.children = nil end
 end
@@ -145,12 +143,19 @@ function filedialog:draw()
     end
 end
 
-editor = {}
+editor =
+{
+    running = false,
+    first_run = true,
+    min_char = 32,
+    max_char = 127,
+    show_line_numbers = true,
+    menu = {"New","Open","Save","Save As","Exit"},
+    menu_index = 1,
+    font = FONT.MONO_20
+}
 
-editor.running = false
-editor.first_run = true
-editor.min_char = 32
-editor.max_char = 127
+editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height
 
 editor.mlmenu = menu.new
 {
@@ -169,11 +174,6 @@ function editor:run()
         menu.block(true)
         display.clear()
         if self.first_run then
-            self.menu = {"New","Open","Save","Save As","Exit"}
-            self.menu_index = 1
-            self.menu_open = true
-            self.font = FONT.MONO_20
-            self.show_line_numbers = true
             self:new()
             self.first_run = false
         else
@@ -192,8 +192,7 @@ function editor:run()
         end
     end, debug.traceback)
     if status == false then
-        print(error)
-        display.notify_box(error, 8000)
+        handle_error(error)
     end
     menu.block(false)
     self.running = false
@@ -211,15 +210,21 @@ function editor:handle_key(k)
         self:draw()
     elseif k ==  KEY.DOWN then
         self.line = inc(self.line,1,#(self.lines))
+        self:scroll_into_view()
         self:draw()
     elseif k ==  KEY.UP then
         self.line = dec(self.line,1,#(self.lines))
+        self:scroll_into_view()
         self:draw()
     elseif k ==  KEY.RIGHT then
         self.col = inc(self.col,1,#(self.lines[self.line]) + 1)
+        if self.col == 1 then self.line = inc(self.line,1,#(self.lines)) end
+        self:scroll_into_view()
         self:draw()
     elseif k ==  KEY.LEFT then
+        if self.col == 1 then dec(self.line,1,#(self.lines)) end
         self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
+        self:scroll_into_view()
         self:draw()
     elseif k == KEY.WHEEL_LEFT then
         --mod char
@@ -232,6 +237,7 @@ function editor:handle_key(k)
         else
             self.lines[self.line] = l..string.char(self.min_char)
         end
+        self:scroll_into_view()
         self:draw()
     elseif k == KEY.WHEEL_RIGHT then
         --mod char
@@ -244,6 +250,7 @@ function editor:handle_key(k)
         else
             self.lines[self.line] = l..string.char(self.max_char)
         end
+        self:scroll_into_view()
         self:draw()
     elseif k == KEY.TRASH then
         --delete
@@ -257,6 +264,7 @@ function editor:handle_key(k)
         else
             self.lines[self.line] = string.format("%s%s",l:sub(1,self.col - 1),l:sub(self.col + 1))
         end
+        self:scroll_into_view()
         self:draw()
     elseif k == KEY.SET then
         --insert char
@@ -264,6 +272,7 @@ function editor:handle_key(k)
         local l = self.lines[self.line]
         self.lines[self.line] = string.format("%s %s",l:sub(1,self.col),l:sub(self.col + 1))
         self.col = self.col + 1
+        self:scroll_into_view()
         self:draw()
     elseif k == KEY.PLAY then
         --insert line return
@@ -273,8 +282,14 @@ function editor:handle_key(k)
         table.insert(self.lines, self.line + 1, l:sub(self.col + 1))
         self.line = self.line + 1
         self.col = 1
+        self:scroll_into_view()
         self:draw()
     end
+end
+
+function editor:scroll_into_view()
+    if self.scroll < self.line then self.scroll = self.line end
+    if self.line > self.scroll + self.lines_per_page then self.scroll = self.line - self.lines_per_page  + 1 end
 end
 
 function editor:update_title(mod, force)
@@ -331,13 +346,12 @@ end
 
 function editor:new()
     self.filename = nil
-    self:update_title(false, true)
+    self:update_title(true, true)
     self.lines = {""}
     self.menu_open = false
     self.line = 1
     self.col = 1
     self.scroll = 1
-    self.mod = true
     self:draw()
 end
 
@@ -404,7 +418,6 @@ function editor:draw()
             end
             y = y + f.height
         end
-        
     else
         display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
         local pos = self:draw_title()
@@ -435,5 +448,17 @@ function editor:draw()
                 if pos > 480 then return end
             end
         end
+    end
+end
+
+function handle_error(error)
+    if error == nil then error = "Unknown Error!\n" end
+    print(error)
+    display.rect(0,0,720,480,COLOR.RED,COLOR.BLACK)
+    display.print(error,10,10,FONT.MED_LARGE)
+    task.yield(1000)
+    lastkey = 0
+    while lastkey == 0 do
+        task.yield(100)
     end
 end
