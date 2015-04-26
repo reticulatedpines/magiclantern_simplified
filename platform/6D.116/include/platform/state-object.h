@@ -3,8 +3,8 @@
 
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 23
-#define EVF_STATE (*(struct state_object**)0x76D1C) //Sub 4 for for 112
-#define SSS_STATE (*(struct state_object **)0x76B78)
-#define MOVREC_STATE (*(struct state_object **)0x787EC)
+#define EVF_STATE (*(struct state_object**)0x76D6C)
+#define SSS_STATE (*(struct state_object **)0x76BC8)
+#define MOVREC_STATE (*(struct state_object **)0x7883C)
 
 #endif
