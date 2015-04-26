@@ -168,7 +168,7 @@ static void twocard_benchmark_task()
 
     while (twocard_done < 2) msleep(100);
 
-    call("dispcheck");
+    take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(0);
 }
