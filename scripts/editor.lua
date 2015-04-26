@@ -12,21 +12,68 @@ function dec(val,min,max)
     return val - 1
 end
 
+keyhandler = {}
+keyhandler.halfshutter = false
+keyhandler.runnning = false
+
+--starts the keyhandler if not already running, returns whether or not it was started
+function keyhandler:start()
+    if keyhandler.running then self:reset() return false end
+    --save any previous keypress handler so we can restore it when finished
+    self.old_keypress = event.keypress
+    self.halfshutter = false
+    self.keys = {}
+    self.key_count = 0
+    self.running = true
+    event.keypress = function(key)
+        if key == KEY.HALFSHUTTER then keyhandler.halfshutter = true end
+        if key == KEY.UNPRESS_HALFSHUTTER then keyhandler.halfshutter = false end
+        if key ~= 0 then
+            keyhandler.key_count = keyhandler.key_count + 1
+            keyhandler.keys[keyhandler.key_count] = key
+        end
+        return false
+    end
+    return true
+end
+
+-- returns a table of all the keys that have been pressed since the last time getkeys was called
+function keyhandler:getkeys()
+    if self.key_count == 0 then 
+        return nil
+    else
+        local result = self.keys
+        self:reset()
+        return result
+    end
+end
+
+function keyhandler:reset()
+    self.key_count = 0
+    self.keys = {}
+end
+
+function keyhandler:stop()
+    self:reset()
+    self.running = false
+    event.keypress = self.old_keypress
+end
+
+--blocks until any key is pressed
+function keyhandler:anykey()
+    local started = self:start()
+    while self:getkeys() == nil do
+        task.yield(100)
+    end
+    if started then self:stop() end
+end
+
 filedialog = {}
 filedialog.font = FONT.MED_LARGE
 filedialog.top = 60
 filedialog.height = 380
 filedialog.left = 100
 filedialog.width = 520
-
-event.keypress = function(key)
-    if editor.running then
-        if key ~= 0 and lastkey == 0 then
-            lastkey = key
-        end
-        return false
-    end
-end
 
 function filedialog:updatefiles()
     local status,items = xpcall(self.current.children,debug.traceback,self.current)
@@ -41,51 +88,62 @@ function filedialog:updatefiles()
     if status then self.files = items else self.children = nil end
 end
 
+function filedialog:handle_key(k)
+    if k == KEY.Q then return "cancel"
+    elseif k == KEY.UP or k == KEY.WHEEL_UP or k == KEY.WHEEL_LEFT then
+        if self.selected > 0 then
+            self.selected = self.selected - 1
+            if self.selected <= self.scroll then
+                self.scroll = self.selected
+            end
+        end
+    elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN or k == KEY.WHEEL_RIGHT then 
+        if self.selected < #(self.files) then
+            self.selected = self.selected + 1
+            if self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 1  then
+                self.scroll = self.scroll + 1
+            end
+        end
+    elseif k == KEY.SET then
+        if self.selected == 0 then
+            self.current = dryos.directory(string.gsub(self.current.path,"/.+$",""))
+            self.selected = 1
+            self.scroll = 0
+            self:updatefiles()
+        elseif self.is_dir_selected and self.selected_value ~= nil then
+            self.current = self.selected_value
+            self.selected = 1
+            self.scroll = 0
+            self:updatefiles()
+        else
+            return self.selected_value
+        end
+    end
+end
+
 function filedialog:open()
     self.current = dryos.directory("ML/SCRIPTS")
     self.selected = 1
     self.scroll = 0
     self:updatefiles()
     self:draw()
+    local started = keyhandler:start()
     while true do
-        local k = lastkey
-        lastkey = 0
-        if k == KEY.Q then return nil -- cancel
-        elseif k == KEY.UP then
-            if self.selected > 0 then
-                self.selected = self.selected - 1
-                if self.selected <= self.scroll then
-                    self.scroll = self.selected
+        local keys = keyhandler:getkeys()
+        if keys ~= nil then
+            for i,v in ipairs(keys) do
+                local result = self:handle_key(v)
+                if result == "cancel" then 
+                    if started then keyhandler:stop() end
+                    return nil
+                elseif result ~= nil then
+                    if started then keyhandler:stop() end
+                    return result
                 end
-                self:draw()
             end
-        elseif k == KEY.DOWN then 
-            if self.selected < #(self.files) then
-                self.selected = self.selected + 1
-                if self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 1  then
-                    self.scroll = self.scroll + 1
-                end
-                self:draw()
-            end
-        elseif k == KEY.SET then
-            if self.selected == 0 then
-                self.current = dryos.directory(string.gsub(self.current.path,"/.+$",""))
-                self.selected = 1
-                self.scroll = 0
-                self:updatefiles()
-                self:draw()
-            elseif self.is_dir_selected and self.selected_value ~= nil then
-                self.current = self.selected_value
-                self.selected = 1
-                self.scroll = 0
-                self:updatefiles()
-                self:draw()
-            else
-                return self.selected_value
-            end
-        else
-            task.yield(100)
+            self:draw()
         end
+        task.yield(100)
     end
 end
 
@@ -152,8 +210,19 @@ editor =
     min_char = 32,
     max_char = 127,
     show_line_numbers = true,
-    menu = {"New","Open","Save","Save As","Exit"},
+    menu = 
+    {
+        {
+            name = "File",
+            items = {"New","Open","Save","Save As","Exit"},
+        },
+        {
+            name = "Edit",
+            items = {"Cut","Copy","Paste","Select All"},
+        }
+    },
     menu_index = 1,
+    submenu_index = 1,
     font = FONT.MONO_20
 }
 
@@ -182,13 +251,24 @@ function editor:run()
             self.menu_open = false
         end
         self:draw()
+        keyhandler:start()
         while true do
-            local k = lastkey
-            lastkey = 0
-            if self.menu_open then
-                if self:handle_menu_key(k) == false then return end
-            else
-                self:handle_key(k)
+            local keys = keyhandler:getkeys()
+            if keys ~= nil then
+                local exit = false
+                local redraw = false
+                for i,v in ipairs(keys) do
+                    if self.menu_open then
+                        if self:handle_menu_key(v) == false then
+                            exit = true
+                            break
+                        end
+                    else
+                        self:handle_key(v)
+                    end
+                end
+                if exit then break end
+                self:draw()
             end
             task.yield(100)
         end
@@ -196,6 +276,7 @@ function editor:run()
     if status == false then
         handle_error(error)
     end
+    keyhandler:stop()
     menu.block(false)
     self.running = false
 end
@@ -203,31 +284,24 @@ end
 function editor:handle_key(k)
     if k == KEY.Q then
         self.menu_open = true
-        self:draw()
     elseif k == KEY.WHEEL_DOWN then
         self.scroll = inc(self.scroll,1,#(self.lines))
-        self:draw()
     elseif k == KEY.WHEEL_UP then
         self.scroll = dec(self.scroll,1,#(self.lines))
-        self:draw()
     elseif k ==  KEY.DOWN then
         self.line = inc(self.line,1,#(self.lines))
         self:scroll_into_view()
-        self:draw()
     elseif k ==  KEY.UP then
         self.line = dec(self.line,1,#(self.lines))
         self:scroll_into_view()
-        self:draw()
     elseif k ==  KEY.RIGHT then
         self.col = inc(self.col,1,#(self.lines[self.line]) + 1)
         if self.col == 1 then self.line = inc(self.line,1,#(self.lines)) end
         self:scroll_into_view()
-        self:draw()
     elseif k ==  KEY.LEFT then
         if self.col == 1 then self.line = dec(self.line,1,#(self.lines)) end
         self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
         self:scroll_into_view()
-        self:draw()
     elseif k == KEY.WHEEL_LEFT then
         --mod char
         self:update_title(true)
@@ -240,7 +314,6 @@ function editor:handle_key(k)
             self.lines[self.line] = l..string.char(self.min_char)
         end
         self:scroll_into_view()
-        self:draw()
     elseif k == KEY.WHEEL_RIGHT then
         --mod char
         self:update_title(true)
@@ -253,7 +326,6 @@ function editor:handle_key(k)
             self.lines[self.line] = l..string.char(self.max_char)
         end
         self:scroll_into_view()
-        self:draw()
     elseif k == KEY.TRASH then
         --delete
         self:update_title(true)
@@ -267,7 +339,6 @@ function editor:handle_key(k)
             self.lines[self.line] = string.format("%s%s",l:sub(1,self.col - 1),l:sub(self.col + 1))
         end
         self:scroll_into_view()
-        self:draw()
     elseif k == KEY.SET then
         --insert char
         self:update_title(true)
@@ -275,7 +346,6 @@ function editor:handle_key(k)
         self.lines[self.line] = string.format("%s %s",l:sub(1,self.col),l:sub(self.col + 1))
         self.col = self.col + 1
         self:scroll_into_view()
-        self:draw()
     elseif k == KEY.PLAY then
         --insert line return
         self:update_title(true)
@@ -285,7 +355,6 @@ function editor:handle_key(k)
         self.line = self.line + 1
         self.col = 1
         self:scroll_into_view()
-        self:draw()
     end
 end
 
@@ -310,15 +379,20 @@ end
 function editor:handle_menu_key(k)
     if k == KEY.Q then
         self.menu_open = false
-        self:draw()
-    elseif k == KEY.DOWN or k == KEY.WHEEL_LEFT then
-        self.menu_index = inc(self.menu_index, 1, #(self.menu))
-        self:draw()
-    elseif k == KEY.UP or k == KEY.WHEEL_RIGHT then
+    elseif k == KEY.LEFT or k == KEY.WHEEL_LEFT then
         self.menu_index = dec(self.menu_index, 1, #(self.menu))
-        self:draw()
-    elseif k == KEY.SET then
+        self.submenu_index = 1
+    elseif k == KEY.RIGHT or k == KEY.WHEEL_RIGHT then
+        self.menu_index = inc(self.menu_index, 1, #(self.menu))
+        self.submenu_index = 1
+    elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN then
         local m = self.menu[self.menu_index]
+        self.submenu_index = inc(self.submenu_index,1,#(m.items))
+    elseif k == KEY.UP or k == KEY.WHEEL_UP then
+        local m = self.menu[self.menu_index]
+        self.submenu_index = dec(self.submenu_index,1,#(m.items))
+    elseif k == KEY.SET then
+        local m = self.menu[self.menu_index].items[self.submenu_index]
         if m == "Exit" then return false
         elseif m == "Save" then self:save(self.filename)
         elseif m == "Save As" then self:save()
@@ -343,7 +417,6 @@ function editor:open()
         self.scroll = 1
     end
     self.menu_open = false
-    self:draw()
 end
 
 function editor:new()
@@ -354,7 +427,6 @@ function editor:new()
     self.line = 1
     self.col = 1
     self.scroll = 1
-    self:draw()
 end
 
 function editor:save(filename)
@@ -370,7 +442,6 @@ function editor:save(filename)
     end
     self:update_title(false, true)
     self.menu_open = false
-    self:draw()
 end
 
 function editor:draw_status(msg)
@@ -399,83 +470,109 @@ function editor:draw_title()
     return h + 10
 end
 
+function editor:draw_submenu(m,x,y)
+    local bg = COLOR.gray(5)
+    local fg = COLOR.GRAY
+    local f = FONT.LARGE
+    local h = #m * f.height + 10
+    local w = 180
+    display.rect(x,y,w,h, fg, bg)
+    x = x + 5
+    y = y + 5
+    for i,v in ipairs(m) do
+        if i == self.submenu_index then
+            display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
+            display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
+        else
+            display.print(v,x,y,f,COLOR.WHITE,bg)
+        end
+        y = y + f.height
+    end
+end
+
+function editor:draw_menu()
+    local bg = COLOR.gray(5)
+    local fg = COLOR.GRAY
+    local f = FONT.LARGE
+    local h = f.height + 10
+    local x = 0
+    local y = self:draw_title() - 10
+    for i,v in ipairs(self.menu) do
+        local w = f:width(v.name) + 20
+        if i == self.menu_index then
+            display.rect(x,y,w,h,fg,COLOR.BLUE)
+            display.print(v.name,x + 10,y + 5,f,COLOR.WHITE,COLOR.BLUE)
+            self:draw_submenu(v.items,x,y+h)
+        else
+            display.rect(x,y,w,h,fg,bg)
+            display.print(v.name,x + 10,y + 5,f,COLOR.WHITE,bg)
+        end
+        x = x + w
+    end
+end
+
 function editor:draw()
+    self:draw_main()
     if self.menu_open then
-        local bg = COLOR.gray(5)
-        local fg = COLOR.GRAY
-        local f = FONT.LARGE
-        local h = #(self.menu) * f.height + 10
-        local w = 180
-        local x = 0
-        local y = self:draw_title() - 10
-        display.rect(x,y,w,h, fg, bg)
-        x = x + 5
-        y = y + 5
-        for i,v in ipairs(self.menu) do
-            if i == self.menu_index then
-                display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
-                display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
-            else
-                display.print(v,x,y,f,COLOR.WHITE,bg)
+        self:draw_menu()
+    end
+end
+
+function editor:draw_main()
+    display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
+    local pos = self:draw_title()
+    local pad = 10
+    if self.show_line_numbers then
+        pad = pad + self.font:width("0000")
+        display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
+    end
+    if self.lines == nil then return end
+    for i,v in ipairs(self.lines) do
+        if i >= self.scroll then
+            if self.show_line_numbers then
+                display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
             end
-            y = y + f.height
-        end
-    else
-        display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
-        local pos = self:draw_title()
-        local pad = 10
-        if self.show_line_numbers then
-            pad = pad + self.font:width("0000")
-            display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
-        end
-        if self.lines == nil then return end
-        for i,v in ipairs(self.lines) do
-            if i >= self.scroll then
-                if self.show_line_numbers then
-                    display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
-                end
-                local clipped = display.print(v,pad,pos,self.font)
-                local actual_pos = pos
-                local sublines = {}
-                if clipped ~= nil then table.insert(sublines,v:sub(1,#v - #clipped)) end
-                while clipped ~= nil do
-                    pos = pos + self.font.height
-                    local prev = clipped
-                    clipped = display.print(clipped,pad,pos,self.font)
-                    if clipped ~= nil then
-                        table.insert(sublines,prev:sub(1,#prev - #clipped))
-                    else
-                        table.insert(sublines,prev)
-                    end
-                end
-                if i == self.line then
-                    if self.col > #v then
-                        local x = pad + self.font:width(v)
-                        if #sublines > 0 then
-                            x = pad + self.font:width(sublines[#sublines])
-                        end
-                        display.print(" ",x,pos,self.font,COLOR.BLACK,COLOR.WHITE)
-                    else
-                        local x = pad
-                        local actual_col = self.col
-                        local actual_line = v
-                        if #sublines > 0 then
-                            --figure out what subline we should be on
-                            for si,sv in ipairs(sublines) do
-                                if actual_col <= #sv then break end
-                                actual_pos = actual_pos + self.font.height
-                                actual_col = actual_col - #sv
-                                actual_line = sv
-                            end
-                        end
-                        if actual_col > 1 then x = x + self.font:width(actual_line:sub(1,actual_col - 1)) end
-                        local ch = v:sub(self.col,self.col)
-                        display.print(ch,x,actual_pos,self.font,COLOR.BLACK,COLOR.WHITE)
-                    end
-                end
+            local clipped = display.print(v,pad,pos,self.font)
+            local actual_pos = pos
+            local sublines = {}
+            if clipped ~= nil then table.insert(sublines,v:sub(1,#v - #clipped)) end
+            while clipped ~= nil do
                 pos = pos + self.font.height
-                if pos > 480 then return end
+                local prev = clipped
+                clipped = display.print(clipped,pad,pos,self.font)
+                if clipped ~= nil then
+                    table.insert(sublines,prev:sub(1,#prev - #clipped))
+                else
+                    table.insert(sublines,prev)
+                end
             end
+            if i == self.line then
+                if self.col > #v then
+                    local x = pad + self.font:width(v)
+                    if #sublines > 0 then
+                        x = pad + self.font:width(sublines[#sublines])
+                    end
+                    display.print(" ",x,pos,self.font,COLOR.BLACK,COLOR.WHITE)
+                else
+                    local x = pad
+                    local actual_col = self.col
+                    local actual_line = v
+                    if #sublines > 0 then
+                        --figure out what subline we should be on
+                        for si,sv in ipairs(sublines) do
+                            if actual_col <= #sv then break end
+                            actual_pos = actual_pos + self.font.height
+                            actual_col = actual_col - #sv
+                            actual_line = sv
+                        end
+                    end
+                    if actual_col > 1 then x = x + self.font:width(actual_line:sub(1,actual_col - 1)) end
+                    local ch = v:sub(self.col,self.col)
+                    display.print(ch,x,actual_pos,self.font,COLOR.BLACK,COLOR.WHITE)
+                end
+            end
+            pos = pos + self.font.height
+            if pos > 480 then return end
         end
     end
 end
@@ -495,8 +592,5 @@ function handle_error(error)
         pos = pos + f.height
     end
     task.yield(1000)
-    lastkey = 0
-    while lastkey == 0 do
-        task.yield(100)
-    end
+    keyhandler:anykey()
 end
