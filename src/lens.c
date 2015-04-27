@@ -83,20 +83,21 @@ struct lens_info lens_info = {
 };
 
 
-/** 	Compute the depth of field, accounting for diffraction.
+/**
+ * Compute the depth of field, accounting for diffraction.
  *
- * 	See:
- *     	http://www.largeformatphotography.info/articles/DoFinDepth.pdf
- *		
- * 	Assumes a ‘generic’ FF or Crop sensor, ie pixel density
- *		
- *	Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
- *	as this only introduces a very small correction for non-macro imaging (hence what follows does
- *	not apply for close in macro where dof is around a (few) mm), ie approx 2NC(1+M/p)/M^2,
- *	where N = aperture, c = blur dia (ie coc), M = magnification and p = pupillary ratio.
- *		
- * 	Hint: best to use cm in ML, rather than ft, ie more refined feedback
- *														
+ * See:
+ *      http://www.largeformatphotography.info/articles/DoFinDepth.pdf
+ * 
+ * Assumes a ‘generic’ FF or Crop sensor, ie pixel density
+ *
+ * Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
+ * as this only introduces a very small correction for non-macro imaging (hence what follows does
+ * not apply for close in macro where dof is around a (few) mm), ie approx 2NC(1+M/p)/M^2,
+ * where N = aperture, c = blur dia (ie coc), M = magnification and p = pupillary ratio.
+ *
+ * Hint: best to use cm in ML, rather than ft, ie more refined feedback
+ *
  */
 
 static void
@@ -104,78 +105,72 @@ calc_dof(
     struct lens_info * const info
 )
 {
-    	#ifdef CONFIG_FULLFRAME
-    	const uint64_t        coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
-    	#else
-    	const uint64_t        coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
-   	 #endif
+    #ifdef CONFIG_FULLFRAME
+    const uint64_t  coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
+    const uint64_t  sen = 13; // sensor Airy limit test in microns
+    #else
+    const uint64_t  coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
+    const uint64_t  sen = 9;  // sensor Airy limit test in microns
+    #endif
 
-// Note change 29 or 19 to more exacting standard if required. Alternatively create a user input menu
+    // Note: change 29 or 19 to more exacting standard if required. Alternatively create a user input menu.
 
-	const uint64_t        fd = info->focus_dist * 10; // into mm
-   	const uint64_t        fl = info->focal_len; // already in mm
-			
-// If we have no aperture value then we can't compute any of this
-// Also not all lenses report the focus length or distance
-    	if( fl == 0 || info->aperture == 0 || fd == 0 )
-    	{
-        	info->dof_near      	= 0;
-       		info->dof_far       	= 0;
-       		info->hyperfocal        = 0;
-        		return;
-    	}
+    const uint64_t  fd = info->focus_dist * 10; // into mm
+    const uint64_t  fl = info->focal_len; // already in mm
+    
+    // If we have no aperture value then we can't compute any of this
+    // Also not all lenses report the focus length or distance
+    if (fl == 0 || info->aperture == 0 || fd == 0)
+    {
+        info->dof_near      = 0;
+        info->dof_far       = 0;
+        info->hyperfocal    = 0;
+        return;
+    }
 
-// Set up some dof info
+    // Set up some dof info
+    const uint64_t  freq = 550;         // mid vis diffraction freq in nm (use 850 if IR)
+    const uint64_t  imag = (fd-fl)/fl;  // inverse of magnification (to keep as integer)
+    const uint64_t  diff = (244*freq*info->aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
 
-	const uint64_t   	    freq = 550; // mid vis diffraction freq in nm (use 850 if IR)
-	const uint64_t        	imag = (fd-fl)/fl; // inverse of magnification (to keep as integer)
+    // Test if large aperture diffraction limit reached 
+    if (diff >= coc)
+    {
+        // set dof_near at 1mm to show 0 in LV
+        info->dof_near       = 1;
+        info->dof_far        = 1;
+        return;
+    }
 
-	#ifdef CONFIG_FULLFRAME
-   	 const uint64_t           sen = 13; // sensor Airy limit test in microns
-    	#else
-    	const uint64_t       sen = 9; // sensor Airy limit test in microns
-    	#endif
+    // calculate defocus only blur in microns
+    const uint64_t sq = (coc*coc - diff*diff);
+    const uint64_t coc2 = (int) sqrtf(sq); // Defocus only blur
 
-	const uint64_t       diff = (244*freq*info->aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
+    // check if sensor Airy limit reached
+    if(coc2 < sen)
+    {
+        // set dof_near at 1mm to show 0 in LV 
+        info->dof_near       = 1;
+        info->dof_far        = 1;
+        return;
+    }  
 
-// Test if large aperture diffraction limit reached 
-    	if(diff >= coc)
-	{
+    const uint64_t        fl2 = fl * fl;
 
-// set dof_near at 1mm to show 0 in LV
-        		info->dof_near       = 1;
-        		info->dof_far        = 1;
-        		return;
-	}
-
-// calculate defocus only blur in microns
-	const uint64_t sq = (coc*coc - diff*diff);
-	const uint64_t coc2 = (int) sqrtf(sq); //Defocus only blur
-
-// check if sensor Airy limit reached
-	if(coc2 < sen)
-	{
-
-// set dof_near at 1mm to show 0 in LV 
- 	        info->dof_near       = 1;
-        	info->dof_far        = 1;
-        	return;
-   	 }  
-
-	const uint64_t        fl2 = fl * fl;
-
-// Calculate hyperfocal distance H 
-	const uint64_t H = fl + ((10000 * fl2) / (info->aperture  * coc2));
-	info->hyperfocal = H;
+    // Calculate hyperfocal distance H 
+    const uint64_t H = fl + ((10000 * fl2) / (info->aperture  * coc2));
+    info->hyperfocal = H;
   
-// Calculate near and far dofs
-    	info->dof_near = (fd*fl*10000)/(10000*fl + imag*info->aperture*coc2); // in mm
-    	if( fd >= H )
-        	info->dof_far = 1000 * 1000; // infinity
-    	else
-    	{
-	info->dof_far = (fd*fl*10000)/(10000*fl - imag*info->aperture*coc2); // in mm
-      	}
+    // Calculate near and far dofs
+    info->dof_near = (fd*fl*10000)/(10000*fl + imag*info->aperture*coc2); // in mm
+    if( fd >= H )
+    {
+        info->dof_far = 1000 * 1000; // infinity
+    }
+    else
+    {
+        info->dof_far = (fd*fl*10000)/(10000*fl - imag*info->aperture*coc2); // in mm
+    }
 }
 
 /*
