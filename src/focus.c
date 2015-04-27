@@ -176,7 +176,7 @@ display_lens_hyperfocal()
         lens_format_dist( lens_info.hyperfocal )
     );
 
-    x += 300;
+    x += 270;
     y -= height;
     bmp_printf( font, x, y,
         "DOF Near:   %s",
@@ -190,6 +190,21 @@ display_lens_hyperfocal()
             ? " Infty"
             : lens_format_dist( lens_info.dof_far )
     );
+
+    x += 260;
+    y -= 2 * height;
+
+    if (lens_info.dof_flags & DOF_DIFFRACTION_LIMIT_REACHED)
+    {
+        y += height;
+        bmp_printf( font, x, y, "Diffraction limit");
+    }
+
+    if (lens_info.dof_flags & DOF_AIRY_LIMIT_REACHED)
+    {
+        y += height;
+        bmp_printf( font, x, y, "Airy limit");
+    }
 }
 
 static void wait_notify(int seconds, char* msg)
@@ -1074,6 +1089,7 @@ static struct menu_entry focus_menu[] = {
         .priv = &dof_display, 
         .max  = 1,
         .help = "Display DOF above Focus distance.",
+        .depends_on = DEP_LIVEVIEW,
     },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {

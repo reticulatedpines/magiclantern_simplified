@@ -83,98 +83,101 @@ struct lens_info lens_info = {
 };
 
 
-/** Compute the depth of field for the current lens parameters.
+/**
+ * Compute the depth of field, accounting for diffraction.
  *
- * This relies heavily on:
- *     http://en.wikipedia.org/wiki/Circle_of_confusion
- * The CoC value given there is 0.019 mm, but we need to scale things
+ * See:
+ *      http://www.largeformatphotography.info/articles/DoFinDepth.pdf
+ * 
+ * Assumes a ‘generic’ FF or Crop sensor, ie pixel density
+ *
+ * Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
+ * as this only introduces a very small correction for non-macro imaging (hence what follows does
+ * not apply for close in macro where dof is around a (few) mm), ie approx 2NC(1+M/p)/M^2,
+ * where N = aperture, c = blur dia (ie coc), M = magnification and p = pupillary ratio.
+ *
+ * Hint: best to use cm in ML, rather than ft, ie more refined feedback
+ *
  */
+
 static void
 calc_dof(
     struct lens_info * const info
 )
 {
     #ifdef CONFIG_FULLFRAME
-    const uint64_t        coc = 29; // 1/1000 mm
+    uint64_t        coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
+    const uint64_t  sen = 13; // sensor Airy limit test in microns
     #else
-    const uint64_t        coc = 19; // 1/1000 mm
+    uint64_t        coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
+    const uint64_t  sen = 9;  // sensor Airy limit test in microns
     #endif
-    const uint64_t        fd = info->focus_dist * 10; // into mm
-    const uint64_t        fl = info->focal_len; // already in mm
 
+    // Note: change 29 or 19 to more exacting standard if required. Alternatively create a user input menu.
+
+    const uint64_t  fd = info->focus_dist * 10; // into mm
+    const uint64_t  fl = info->focal_len; // already in mm
+    
     // If we have no aperture value then we can't compute any of this
-    // Not all lenses report the focus distance
-    if( fl == 0 || info->aperture == 0 )
+    // Also not all lenses report the focus length or distance
+    if (fl == 0 || info->aperture == 0 || fd == 0)
     {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
+        info->dof_near      = 0;
+        info->dof_far       = 0;
         info->hyperfocal    = 0;
         return;
     }
 
+    // Set up some dof info
+    const uint64_t  freq = 550;         // mid vis diffraction freq in nm (use 850 if IR)
+    const uint64_t  imag = (fd-fl)/fl;  // inverse of magnification (to keep as integer)
+    const uint64_t  diff = (244*freq*info->aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
+
+    int dof_flags = 0;
+
+    // Test if large aperture diffraction limit reached 
+    if (diff >= coc)
+    {
+        // note: in this case, DOF info will not account for diffraction
+        dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+    }
+    else
+    {
+        // calculate defocus only blur in microns
+        const uint64_t sq = (coc*coc - diff*diff);
+        coc = (int) sqrtf(sq); // Defocus only blur
+    }
+
+    // check if sensor Airy limit reached
+    if(coc < sen)
+    {
+        dof_flags |= DOF_AIRY_LIMIT_REACHED;
+    }  
+
     const uint64_t        fl2 = fl * fl;
 
-    // The aperture is scaled by 10 and the CoC by 1000,
-    // so scale the focal len, too.  This results in a mm measurement
-    const uint64_t H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
+    // Calculate hyperfocal distance H 
+    const uint64_t H = fl + ((10000 * fl2) / (info->aperture  * coc));
     info->hyperfocal = H;
-
-    // If we do not have the focus distance, then we can not compute
-    // near and far parameters
-    if( fd == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        return;
-    }
-
-    // fd is in mm, H is in mm, but the product of H * fd can
-    // exceed 2^32, so we scale it back down before processing
-    info->dof_near = (H * fd) / ( H + fd ); // in mm
+  
+    // Calculate near and far dofs
+    info->dof_near = (fd*fl*10000)/(10000*fl + imag*info->aperture*coc); // in mm
     if( fd >= H )
+    {
         info->dof_far = 1000 * 1000; // infinity
+    }
     else
     {
-        info->dof_far = (H * fd) / ( H - fd ); // in mm
+        info->dof_far = (fd*fl*10000)/(10000*fl - imag*info->aperture*coc); // in mm
     }
+
+    // update DOF flags
+    info->dof_flags = dof_flags;
+    
+    // make sure we have nonzero DOF values, so they are always displayed
+    info->dof_near = MAX(info->dof_near, 1);
+    info->dof_far = MAX(info->dof_far, 1);
 }
-
-/*
-const char *
-lens_format_dist(
-    unsigned        mm
-)
-{
-    static char dist[ 32 ];
-
-    if( mm > 100000 ) // 100 m
-        snprintf( dist, sizeof(dist),
-            "%d.%1dm",
-            mm / 1000,
-            (mm % 1000) / 100
-        );
-    else
-    if( mm > 10000 ) // 10 m
-        snprintf( dist, sizeof(dist),
-            "%2d.%02dm",
-            mm / 1000,
-            (mm % 1000) / 10
-        );
-    else
-    if( mm >  1000 ) // 1 m
-        snprintf( dist, sizeof(dist),
-            "%1d.%03dm",
-            mm / 1000,
-            (mm % 1000)
-        );
-    else
-        snprintf( dist, sizeof(dist),
-            "%dcm",
-            mm / 10
-        );
-
-    return dist;
-}*/
 
 const char * lens_format_dist( unsigned mm)
 {
@@ -198,17 +201,17 @@ const char * lens_format_dist( unsigned mm)
     }
     else
     {
-        if( mm > 10000 ) // 10 m
+        if ( mm >= 10000 ) // 10 m
         {
-            snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
+            snprintf( dist, sizeof(dist), "%d"SYM_SMALL_M, mm / 1000);
         }
-        else    if( mm >  1000 ) // 1 m
+        else if( mm >= 1000 ) // 1 m
         {
-            snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+            snprintf( dist, sizeof(dist), "%d.%d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
         }
         else
         {
-            snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+            snprintf( dist, sizeof(dist),"%d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
         }
     }
 
@@ -2606,10 +2609,11 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
                 prev_xw = xw;
             }
             
+            int fg = lens_info.dof_flags ? COLOR_YELLOW : COLOR_WHITE;
             bmp_fill(COLOR_BG, xw-70, item->y-36, 140, 26);
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
-            bmp_fill(COLOR_WHITE, xw, item->y-32, 1, 19);
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
+            bmp_fill(fg, xw, item->y-32, 1, 19);
         }
     }
 }
