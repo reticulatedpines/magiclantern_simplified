@@ -190,12 +190,12 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned i
     {
         switch (address)
         {
-            case REG_PRINT_CHAR:
-                printf("%c", (uint8_t)value);
+            case REG_PRINT_CHAR:    /* print in blue */
+                printf("\x1B[34m%c\x1B[0m", (uint8_t)value);
                 return 0;
 
-            case REG_PRINT_NUM:
-                printf("%x (%d)\n", (uint32_t)value, (uint32_t)value);
+            case REG_PRINT_NUM:     /* print in green */
+                printf("\x1B[32m%x (%d)\x1B[0m\n", (uint32_t)value, (uint32_t)value);
                 return 0;
 
             case REG_DUMP_VRAM:
