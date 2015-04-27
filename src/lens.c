@@ -179,43 +179,6 @@ calc_dof(
     info->dof_far = MAX(info->dof_far, 1);
 }
 
-/*
-const char *
-lens_format_dist(
-    unsigned        mm
-)
-{
-    static char dist[ 32 ];
-
-    if( mm > 100000 ) // 100 m
-        snprintf( dist, sizeof(dist),
-            "%d.%1dm",
-            mm / 1000,
-            (mm % 1000) / 100
-        );
-    else
-    if( mm > 10000 ) // 10 m
-        snprintf( dist, sizeof(dist),
-            "%2d.%02dm",
-            mm / 1000,
-            (mm % 1000) / 10
-        );
-    else
-    if( mm >  1000 ) // 1 m
-        snprintf( dist, sizeof(dist),
-            "%1d.%03dm",
-            mm / 1000,
-            (mm % 1000)
-        );
-    else
-        snprintf( dist, sizeof(dist),
-            "%dcm",
-            mm / 10
-        );
-
-    return dist;
-}*/
-
 const char * lens_format_dist( unsigned mm)
 {
    static char dist[ 32 ];
@@ -238,17 +201,17 @@ const char * lens_format_dist( unsigned mm)
     }
     else
     {
-        if( mm > 10000 ) // 10 m
+        if ( mm >= 10000 ) // 10 m
         {
-            snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
+            snprintf( dist, sizeof(dist), "%d"SYM_SMALL_M, mm / 1000);
         }
-        else    if( mm >  1000 ) // 1 m
+        else if( mm >= 1000 ) // 1 m
         {
-            snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+            snprintf( dist, sizeof(dist), "%d.%d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
         }
         else
         {
-            snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+            snprintf( dist, sizeof(dist),"%d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
         }
     }
 
