@@ -83,60 +83,99 @@ struct lens_info lens_info = {
 };
 
 
-/** Compute the depth of field for the current lens parameters.
+/** 	Compute the depth of field, accounting for diffraction.
  *
- * This relies heavily on:
- *     http://en.wikipedia.org/wiki/Circle_of_confusion
- * The CoC value given there is 0.019 mm, but we need to scale things
+ * 	See:
+ *     	http://www.largeformatphotography.info/articles/DoFinDepth.pdf
+ *		
+ * 	Assumes a ‘generic’ FF or Crop sensor, ie pixel density
+ *		
+ *	Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
+ *	as this only introduces a very small correction for non-macro imaging (hence what follows does
+ *	not apply for close in macro where dof is around a (few) mm), ie approx 2NC(1+M/p)/M^2,
+ *	where N = aperture, c = blur dia (ie coc), M = magnification and p = pupillary ratio.
+ *		
+ * 	Hint: best to use cm in ML, rather than ft, ie more refined feedback
+ *														
  */
+
 static void
 calc_dof(
     struct lens_info * const info
 )
 {
-    #ifdef CONFIG_FULLFRAME
-    const uint64_t        coc = 29; // 1/1000 mm
-    #else
-    const uint64_t        coc = 19; // 1/1000 mm
-    #endif
-    const uint64_t        fd = info->focus_dist * 10; // into mm
-    const uint64_t        fl = info->focal_len; // already in mm
+    	#ifdef CONFIG_FULLFRAME
+    	const uint64_t        coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
+    	#else
+    	const uint64_t        coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
+   	 #endif
 
-    // If we have no aperture value then we can't compute any of this
-    // Not all lenses report the focus distance
-    if( fl == 0 || info->aperture == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        info->hyperfocal    = 0;
-        return;
-    }
+// Note change 29 or 19 to more exacting standard if required. Alternatively create a user input menu
 
-    const uint64_t        fl2 = fl * fl;
+	const uint64_t        fd = info->focus_dist * 10; // into mm
+   	const uint64_t        fl = info->focal_len; // already in mm
+			
+// If we have no aperture value then we can't compute any of this
+// Also not all lenses report the focus length or distance
+    	if( fl == 0 || info->aperture == 0 || fd == 0 )
+    	{
+        	info->dof_near      	= 0;
+       		info->dof_far       	= 0;
+       		info->hyperfocal        = 0;
+        		return;
+    	}
 
-    // The aperture is scaled by 10 and the CoC by 1000,
-    // so scale the focal len, too.  This results in a mm measurement
-    const uint64_t H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
-    info->hyperfocal = H;
+// Set up some dof info
 
-    // If we do not have the focus distance, then we can not compute
-    // near and far parameters
-    if( fd == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        return;
-    }
+	const uint64_t   	    freq = 550; // mid vis diffraction freq in nm (use 850 if IR)
+	const uint64_t        	imag = (fd-fl)/fl; // inverse of magnification (to keep as integer)
 
-    // fd is in mm, H is in mm, but the product of H * fd can
-    // exceed 2^32, so we scale it back down before processing
-    info->dof_near = (H * fd) / ( H + fd ); // in mm
-    if( fd >= H )
-        info->dof_far = 1000 * 1000; // infinity
-    else
-    {
-        info->dof_far = (H * fd) / ( H - fd ); // in mm
-    }
+	#ifdef CONFIG_FULLFRAME
+   	 const uint64_t           sen = 13; // sensor Airy limit test in microns
+    	#else
+    	const uint64_t       sen = 9; // sensor Airy limit test in microns
+    	#endif
+
+	const uint64_t       diff = (244*freq*info->aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
+
+// Test if large aperture diffraction limit reached 
+    	if(diff >= coc)
+	{
+
+// set dof_near at 1mm to show 0 in LV
+        		info->dof_near       = 1;
+        		info->dof_far        = 1;
+        		return;
+	}
+
+// calculate defocus only blur in microns
+	const uint64_t sq = (coc*coc - diff*diff);
+	const uint64_t coc2 = (int) sqrtf(sq); //Defocus only blur
+
+// check if sensor Airy limit reached
+	if(coc2 < sen)
+	{
+
+// set dof_near at 1mm to show 0 in LV 
+ 	        info->dof_near       = 1;
+        	info->dof_far        = 1;
+        	return;
+   	 }  
+
+	const uint64_t        fl2 = fl * fl;
+
+// Calculate hyperfocal distance H 
+	const uint64_t H = fl + ((10000 * fl2) / (info->aperture  * coc2));
+	info->hyperfocal = H;
+  
+// Calculate near and far dofs
+    	info->dof_near = (fd*fl*10000)/(10000*fl + imag*info->aperture*coc2); // in mm
+    	if( fd >= H )
+        	info->dof_far = 1000 * 1000; // infinity
+    	else
+    	{
+	info->dof_far = (fd*fl*10000)/(10000*fl - imag*info->aperture*coc2); // in mm
+      	}
 }
 
 /*
