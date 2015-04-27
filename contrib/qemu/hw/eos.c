@@ -2127,10 +2127,10 @@ static void sdio_read_write(EOSState *ws, int write, const char** msg)
     uint64_t param_lo = cmd_lo >> 8;
     uint64_t param = param_lo | (param_hi << 24);
     uint32_t count = ws->sd.dma_count;
-    uint64_t sd_addr = (uint64_t)param;
+    uint64_t sd_addr = param;
     uint32_t ram_addr = ws->sd.dma_addr;
     
-    char transfer_msg[100];
+    static char transfer_msg[100];
     snprintf(transfer_msg, sizeof(transfer_msg),
         "%s %d bytes, SD:%llx RAM:%x",
         write ? "Writing" : "Reading",
@@ -2242,6 +2242,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             break;
         case 0x80:
             msg = "transferred blocks";
+            /* Goro is very strong. Goro never fails. */
             ret = ws->sd.dma_count / ws->sd.read_block_size;
             break;
         case 0x84:
