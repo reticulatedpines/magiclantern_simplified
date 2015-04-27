@@ -978,7 +978,7 @@ static void eos_update_display(void *parm)
     first = 0;
     int linesize = surface_stride(surface);
     
-    if (0)  /* bootloader config, 4 bpp */
+    if (1)  /* bootloader config, 4 bpp */
     {
         framebuffer_update_display(
             surface,
@@ -1186,6 +1186,13 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     {
         /* 6D bootloader experiment */
         patch_bootloader_autoexec(s);
+        return;
+    }
+    
+    if (1)
+    {
+        /* emulate the bootloader, not the main firmware */
+        s->cpu->env.regs[15] = 0xFFFF0000;
         return;
     }
 
