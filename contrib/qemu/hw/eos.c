@@ -1175,6 +1175,13 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
         }
     }
     
+    /* load a SD card image */
+    s->sd.card_image = fopen("sd.img", "rb+");
+    if (!s->sd.card_image)
+    {
+        printf("Failed to open SD card image sd.img\n");
+    }
+    
     if (0)
     {
         /* 6D bootloader experiment */
@@ -1323,7 +1330,7 @@ uint8_t eos_get_mem_b ( EOSState *ws, uint32_t addr )
     return buf;
 }
 
-static void io_log(const char * module_name, EOSState *ws, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, int msg_arg1, int msg_arg2)
+static void io_log(const char * module_name, EOSState *ws, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     unsigned int pc = ws->cpu->env.regs[15];
     if (!module_name) module_name = "???";
@@ -2067,10 +2074,89 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *ws, unsigned 
     return ret;
 }
 
+static const char* sd_get_cmd_name(SDIOState* sd)
+{
+    int cmd = (sd->cmd_hi >> 8) & ~0x40;
+    
+    if (sd->app_cmd)
+    {
+        switch (cmd)
+        {
+            case  6: return "SET_BUS_WIDTH";
+            case 13: return "SD_STATUS";
+            case 42: return "SET_CLR_CARD_DETECT";
+        }
+    }
+    else
+    {
+        switch (cmd)
+        {
+            case  0: return "GO_IDLE_STATE";
+            case  2: return "ALL_SEND_CID";
+            case  3: return "SEND_RELATIVE_ADDR";
+            case  6: return "SWITCH_FUNC";
+            case  7: return "SELECT_CARD";
+            case  8: return "SDHC_TEST";
+            case  9: return "SEND_CSD";
+            case 10: return "SEND_CID";
+            case 12: return "STOP_TRANSMISSION";
+            case 13: return "SEND_STATUS";
+            case 17: return "READ_SINGLE_BLOCK";
+            case 18: return "READ_MULTIPLE_BLOCK";
+            case 24: return "WRITE_BLOCK";
+            case 25: return "WRITE_MULTIPLE";
+            case 55: return "APP_CMD";
+        }
+    }
+    
+    return "???";
+}
+
+static void sdio_read_write(EOSState *ws, int write, const char** msg)
+{
+    uint32_t cmd_hi = ws->sd.cmd_hi;
+    uint32_t cmd_lo = ws->sd.cmd_lo;
+    uint64_t param_hi = cmd_hi & 0xFF;
+    uint64_t param_lo = cmd_lo >> 8;
+    uint64_t param = param_lo | (param_hi << 24);
+    uint32_t count = ws->sd.dma_count;
+    uint64_t sd_addr = (uint64_t)param;
+    uint32_t ram_addr = ws->sd.dma_addr;
+    
+    char transfer_msg[100];
+    snprintf(transfer_msg, sizeof(transfer_msg),
+        "%s %d bytes, SD:%llx RAM:%x",
+        write ? "Writing" : "Reading",
+        count, (long long unsigned int)sd_addr, ram_addr
+    );
+    *msg = transfer_msg;
+    
+    uint8_t* buf = malloc(count);
+    if (!buf) exit(1);
+
+    fseeko(ws->sd.card_image, sd_addr, SEEK_SET);
+    
+    if (write)
+    {
+        cpu_physical_memory_read(ram_addr & ~0x40000000, buf, count);
+        int r = fwrite(buf, 1, count, ws->sd.card_image);
+        assert(r == count);
+    }
+    else
+    {
+        int r = fread(buf, 1, count, ws->sd.card_image);
+        assert(r == count);
+        cpu_physical_memory_write(ram_addr, buf, count);
+    }
+    free(buf);
+}
+
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
     const char * msg = 0;
+    intptr_t msg_arg1 = 0;
+    intptr_t msg_arg2 = 0;
 
     switch(address & 0xFFF)
     {
@@ -2078,12 +2164,22 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             msg = "DMA?";
             break;
         case 0x0C:
-            msg = "transfer start?";
+            msg = "Transfer start";
+            if (ws->sd.card_image)
+            {
+                /* DMA transfer? */
+                uint32_t cmd_hi = ws->sd.cmd_hi;
+                uint32_t cmd = (cmd_hi >> 8) & ~0x40;
+                if (value == 0x14 && (cmd == 17 || cmd == 18)) /* READ_SINGLE_BLOCK or READ_MULTIPLE_BLOCK */
+                {
+                    sdio_read_write(ws, 0, &msg);
+                }
+            }
             break;
         case 0x10:
             /* code is waiting for bit0 getting high, bit1 is an error flag */
             msg = "status?";
-            ret = 3;
+            ret = 0x200001;
             break;
         case 0x14:
             msg = "transfer start? irq?";
@@ -2093,9 +2189,16 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             break;
         case 0x20:
             msg = "cmd_lo";
+            ws->sd.cmd_lo = value;
             break;
         case 0x24:
-            msg = "cmd_hi";
+            msg = ws->sd.app_cmd ? "cmd_hi, ACMD%d %s" 
+                                 : "cmd_hi, CMD%d %s" ;
+            uint32_t cmd = (value >> 8) & ~0x40;
+            ws->sd.cmd_hi = value;
+            msg_arg1 = cmd;
+            msg_arg2 = (intptr_t) sd_get_cmd_name(&ws->sd);
+            ws->sd.app_cmd = (cmd == 55);
             break;
         case 0x28:
             msg = "before cmd?";
@@ -2115,12 +2218,14 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             break;
         case 0x5c:
             msg = "write block size";
+            ws->sd.write_block_size = value;
             break;
         case 0x64:
             msg = "bus width";
             break;
         case 0x68:
             msg = "read block size";
+            ws->sd.read_block_size = value;
             break;
         case 0x70:
             msg = "transfer status?";
@@ -2130,6 +2235,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             break;
         case 0x80:
             msg = "transferred blocks";
+            ret = ws->sd.dma_count / ws->sd.read_block_size;
             break;
         case 0x84:
             msg = "SDREP: Status register/error codes";
@@ -2139,7 +2245,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int add
             break;
     }
 
-    io_log("SDIO", ws, address, type, value, ret, msg, 0, 0);
+    io_log("SDIO", ws, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
 
@@ -2152,15 +2258,26 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *ws, unsigned int ad
     {
         case 0x60:
             msg = "Transfer memory address";
+            ws->sd.dma_addr = value;
             break;
         case 0x64:
             msg = "Transfer byte count";
+            ws->sd.dma_count = value;
             break;
         case 0x70:
             msg = "Flags/Status";
             break;
         case 0x78:
             msg = "Transfer start?";
+
+            /* DMA transfer? */
+            uint32_t cmd_hi = ws->sd.cmd_hi;
+            uint32_t cmd = (cmd_hi >> 8) & ~0x40;
+            if (cmd == 24 || cmd == 25) /* WRITE_BLOCK or WRITE_MULTIPLE */
+            {
+                sdio_read_write(ws, 1, &msg);
+            }
+
             break;
     }
 

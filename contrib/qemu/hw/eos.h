@@ -112,6 +112,18 @@ typedef struct
 
 typedef struct
 {
+    FILE* card_image;
+    uint32_t cmd_hi;
+    uint32_t cmd_lo;
+    uint8_t app_cmd;
+    uint32_t read_block_size;
+    uint32_t write_block_size;
+    uint32_t dma_addr;
+    uint32_t dma_count;
+} SDIOState;
+
+typedef struct
+{
     ARMCPU *cpu;
     MemoryRegion *system_mem;
     MemoryRegion tcm_code;
@@ -148,6 +160,7 @@ typedef struct
     int key_index_r;
     int key_index_w;
     RTCState rtc;
+    SDIOState sd;
 } EOSState;
 
 typedef struct
