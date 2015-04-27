@@ -62,6 +62,9 @@ end
 --blocks until any key is pressed
 function keyhandler:anykey()
     local started = self:start()
+    --ignore any immediate keys
+    task.yield(100)
+    self:getkeys()
     while self:getkeys() == nil do
         task.yield(100)
     end
@@ -284,6 +287,7 @@ end
 function editor:handle_key(k)
     if k == KEY.Q then
         self.menu_open = true
+        self.full_redraw = true
     elseif k == KEY.WHEEL_DOWN then
         self.scroll = inc(self.scroll,1,#(self.lines))
     elseif k == KEY.WHEEL_UP then
@@ -329,14 +333,18 @@ function editor:handle_key(k)
     elseif k == KEY.TRASH then
         --delete
         self:update_title(true)
-        local l = self.lines[self.line]
-        if #l == 0 then
-            table.remove(self.lines,self.line)
-        elseif self.col > #l and self.line < #(self.lines) then
-            self.lines[self.line] = l..self.lines[self.line + 1]
-            table.remove(self.lines,self.line + 1)
+        if self.selection_start ~= nil and self.selection_end ~= nil then
+            self:delete_selection()
         else
-            self.lines[self.line] = string.format("%s%s",l:sub(1,self.col - 1),l:sub(self.col + 1))
+            local l = self.lines[self.line]
+            if #l == 0 then
+                table.remove(self.lines,self.line)
+            elseif self.col > #l and self.line < #(self.lines) then
+                self.lines[self.line] = l..self.lines[self.line + 1]
+                table.remove(self.lines,self.line + 1)
+            else
+                self.lines[self.line] = string.format("%s%s",l:sub(1,self.col - 1),l:sub(self.col + 1))
+            end
         end
         self:scroll_into_view()
     elseif k == KEY.SET then
@@ -355,6 +363,20 @@ function editor:handle_key(k)
         self.line = self.line + 1
         self.col = 1
         self:scroll_into_view()
+    elseif k == KEY.INFO then
+        if self.selection_start == nil or self.selection_end ~= nil then
+            self.selection_start = {self.line,self.col}
+            self.selection_end = nil
+            print(string.format("sel start %d,%d", self.line, self.col))
+        else
+            if self.selection_start[1] > self.line or (self.selection_start[1] == self.line and self.selection_start[2] > self.col) then
+                self.selection_end = self.selection_start
+                self.selection_start = {self.line,self.col}
+            else
+                self.selection_end = {self.line,self.col}
+            end
+            print(string.format("sel end %d,%d", self.line, self.col))
+        end
     end
 end
 
@@ -377,14 +399,17 @@ function editor:update_title(mod, force)
 end
 
 function editor:handle_menu_key(k)
+    self.full_redraw = false
     if k == KEY.Q then
         self.menu_open = false
     elseif k == KEY.LEFT or k == KEY.WHEEL_LEFT then
         self.menu_index = dec(self.menu_index, 1, #(self.menu))
         self.submenu_index = 1
+        self.full_redraw = true
     elseif k == KEY.RIGHT or k == KEY.WHEEL_RIGHT then
         self.menu_index = inc(self.menu_index, 1, #(self.menu))
         self.submenu_index = 1
+        self.full_redraw = true
     elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN then
         local m = self.menu[self.menu_index]
         self.submenu_index = inc(self.submenu_index,1,#(m.items))
@@ -397,7 +422,11 @@ function editor:handle_menu_key(k)
         elseif m == "Save" then self:save(self.filename)
         elseif m == "Save As" then self:save()
         elseif m == "New" then self:new()
-        elseif m == "Open" then self:open() end
+        elseif m == "Open" then self:open()
+        elseif m == "Cut" then self:copy() self:delete_selection()
+        elseif m == "Copy" then self:copy()
+        elseif m == "Paste" then self:paste()
+        end
     end
     return true
 end
@@ -444,6 +473,75 @@ function editor:save(filename)
     self.menu_open = false
 end
 
+function editor:copy()
+    if self.selection_start ~= nil and self.selection_end ~= nil then
+        self.clipboard = {}
+        if self.selection_start[1] == self.selection_end[1] then
+            --single line selection
+            self.clipboard[1] = self.lines[self.selection_start[1]]:sub(self.selection_start[2], self.selection_end[2])
+        else
+            --multiline selection
+            self.clipboard[1] = self.lines[self.selection_start[1]]:sub(self.selection_start[2])
+            for i = self.selection_start[1] + 1,self.selection_end[1] - 1,1 do
+                table.insert(self.clipboard,self.lines[i])
+            end
+            table.insert(self.clipboard,self.lines[self.selection_end[1]]:sub(1,self.selection_end[2]))
+        end
+    else
+        editor:message("Error: Nothing Selected!")
+    end
+    self.menu_open = false
+end
+
+function editor:paste()
+    if self.clipboard ~= nil and #(self.clipboard) > 0 then
+        local c = #(self.clipboard)
+        if c == 1 then
+            local l = self.lines[self.line]
+            self.lines[self.line] = string.format("%s%s%s",l:sub(1,self.col),self.clipboard[1],l:sub(self.col + 1))
+        else
+            local l = self.lines[self.line]
+            self.lines[self.line] = string.format("%s%s",l:sub(1,self.col),self.clipboard[1])
+            for i = 2,c - 1,1 do
+                table.insert(self.lines,self.line + i - 1,self.clipboard[i])
+            end
+            table.insert(self.lines,self.line + c - 1, string.format("%s%s",self.clipboard[c],l:sub(self.col + 1)))
+        end
+        self:update_title(true)
+    else
+        editor:message("Error: Clipboard Empty!")
+    end
+    self.menu_open = false
+end
+
+function editor:delete_selection()
+    if self.selection_start ~= nil and self.selection_end ~= nil then
+        if self.selection_start[1] == self.selection_end[1] then
+            --single line selection
+            self.lines[self.selection_start[1]] = 
+                self.lines[self.selection_start[1]]:sub(1,self.selection_start[2] - 1)..
+                self.lines[self.selection_start[1]]:sub(self.selection_end[2] + 1)
+        else
+            --multiline selection
+            self.lines[self.selection_start[1]] =  self.lines[self.selection_start[1]]:sub(1,self.selection_start[2] - 1)
+            self.lines[self.selection_end[1]] = self.lines[self.selection_end[1]]:sub(self.selection_end[2] + 1)
+            for i = self.selection_start[1] + 1,self.selection_end[1] - 1,1 do
+                table.remove(self.lines,self.selection_start[1] + 1)
+            end
+        end
+        self:update_title(true)
+        self.line = self.selection_start[1]
+        self.selection_start = nil
+        self.selection_end = nil
+    end
+end
+
+function editor:message(msg)
+    self:draw_status(msg)
+    beep()
+    keyhandler:anykey()
+end
+
 function editor:draw_status(msg)
     local h = FONT.LARGE.height + 40
     local w = FONT.LARGE:width(msg) + 40
@@ -451,6 +549,17 @@ function editor:draw_status(msg)
     local y = 240 - h / 2
     display.rect(x,y,w,h,COLOR.WHITE,COLOR.BLACK)
     display.print(msg,x+20,y+20,FONT.LARGE,COLOR.WHITE,COLOR.BLACK)
+end
+
+function editor:draw()
+    if self.menu_open then
+        if self.full_redraw then
+            self:draw_main()
+        end
+        self:draw_menu()
+    else
+        self:draw_main()
+    end
 end
 
 function editor:draw_title()
@@ -467,7 +576,7 @@ function editor:draw_title()
         display.print("Q",10,10,FONT.LARGE,COLOR.WHITE,bg)
     end
     display.print(self.title,w + 10,10,FONT.LARGE,COLOR.WHITE,bg)
-    return h + 10
+    return h
 end
 
 function editor:draw_submenu(m,x,y)
@@ -476,7 +585,7 @@ function editor:draw_submenu(m,x,y)
     local f = FONT.LARGE
     local h = #m * f.height + 10
     local w = 180
-    display.rect(x,y,w,h, fg, bg)
+    if self.full_redraw then display.rect(x,y,w,h,fg,bg) end
     x = x + 5
     y = y + 5
     for i,v in ipairs(m) do
@@ -484,6 +593,7 @@ function editor:draw_submenu(m,x,y)
             display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
             display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
         else
+            display.rect(x,y,w-10,f.height,bg,bg)
             display.print(v,x,y,f,COLOR.WHITE,bg)
         end
         y = y + f.height
@@ -496,7 +606,7 @@ function editor:draw_menu()
     local f = FONT.LARGE
     local h = f.height + 10
     local x = 0
-    local y = self:draw_title() - 10
+    local y = self:draw_title()
     for i,v in ipairs(self.menu) do
         local w = f:width(v.name) + 20
         if i == self.menu_index then
@@ -511,41 +621,62 @@ function editor:draw_menu()
     end
 end
 
-function editor:draw()
-    self:draw_main()
-    if self.menu_open then
-        self:draw_menu()
+function editor:draw_selection(line_num,line,x,y,sublines)
+    if self.selection_start ~= nil and self.selection_end ~= nil then
+        if self.selection_start[1] <= line_num and self.selection_end[1] >=line_num then
+            local start_offset = 1
+            if self.selection_start[1] == line_num then start_offset = self.selection_start[2] end
+            local end_offset = #line
+            if self.selection_end[1] == line_num then end_offset = self.selection_end[2] end
+            if start_offset > 1 then
+                x = x + self.font:width(line:sub(1,start_offset - 1))
+            end
+            local s = line:sub(start_offset,end_offset)
+            display.print(s,x,y,self.font,COLOR.WHITE,COLOR.BLUE)
+        end
     end
 end
 
 function editor:draw_main()
-    display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
     local pos = self:draw_title()
+    display.rect(0,pos,720,pos + 10,COLOR.BLACK,COLOR.BLACK)
+    pos = pos + 10
     local pad = 10
+    local h = self.font.height
     if self.show_line_numbers then
         pad = pad + self.font:width("0000")
-        display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
     end
     if self.lines == nil then return end
     for i,v in ipairs(self.lines) do
         if i >= self.scroll then
             if self.show_line_numbers then
                 display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
+                display.rect(pad-10,pos,pad,h,COLOR.BLACK,COLOR.BLACK)
+                display.line(pad-5,pos,pad-5,pos + h,COLOR.BLUE)
             end
             local clipped = display.print(v,pad,pos,self.font)
             local actual_pos = pos
             local sublines = {}
-            if clipped ~= nil then table.insert(sublines,v:sub(1,#v - #clipped)) end
+            if clipped ~= nil then 
+                table.insert(sublines,v:sub(1,#v - #clipped))
+            else
+                local w = self.font:width(v)
+                display.rect(pad + w,pos,720 - pad - w,h,COLOR.BLACK,COLOR.BLACK)
+            end
             while clipped ~= nil do
-                pos = pos + self.font.height
+                pos = pos + h
                 local prev = clipped
+                display.rect(0,pos,720,h,COLOR.BLACK,COLOR.BLACK)
                 clipped = display.print(clipped,pad,pos,self.font)
                 if clipped ~= nil then
                     table.insert(sublines,prev:sub(1,#prev - #clipped))
                 else
                     table.insert(sublines,prev)
+                    local w = self.font:width(prev)
+                    display.rect(pad + w,pos,720 - pad - w,h,COLOR.BLACK,COLOR.BLACK)
                 end
             end
+            self:draw_selection(i,v,pad,pos,sublines)
             if i == self.line then
                 if self.col > #v then
                     local x = pad + self.font:width(v)
@@ -571,9 +702,13 @@ function editor:draw_main()
                     display.print(ch,x,actual_pos,self.font,COLOR.BLACK,COLOR.WHITE)
                 end
             end
-            pos = pos + self.font.height
-            if pos > 480 then return end
+            pos = pos + h
+            if pos >= 480 then return end
         end
+    end
+    if pos < 480 then 
+        display.rect(0,pos,720,480 - pos,COLOR.BLACK,COLOR.BLACK)
+        display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
     end
 end
 
@@ -591,6 +726,5 @@ function handle_error(error)
         end
         pos = pos + f.height
     end
-    task.yield(1000)
     keyhandler:anykey()
 end
