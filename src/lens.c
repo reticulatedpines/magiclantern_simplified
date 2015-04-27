@@ -106,10 +106,10 @@ calc_dof(
 )
 {
     #ifdef CONFIG_FULLFRAME
-    const uint64_t  coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
+    uint64_t        coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
     const uint64_t  sen = 13; // sensor Airy limit test in microns
     #else
-    const uint64_t  coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
+    uint64_t        coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
     const uint64_t  sen = 9;  // sensor Airy limit test in microns
     #endif
 
@@ -133,44 +133,50 @@ calc_dof(
     const uint64_t  imag = (fd-fl)/fl;  // inverse of magnification (to keep as integer)
     const uint64_t  diff = (244*freq*info->aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
 
+    int dof_flags = 0;
+
     // Test if large aperture diffraction limit reached 
     if (diff >= coc)
     {
-        // set dof_near at 1mm to show 0 in LV
-        info->dof_near       = 1;
-        info->dof_far        = 1;
-        return;
+        // note: in this case, DOF info will not account for diffraction
+        dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+    }
+    else
+    {
+        // calculate defocus only blur in microns
+        const uint64_t sq = (coc*coc - diff*diff);
+        coc = (int) sqrtf(sq); // Defocus only blur
     }
 
-    // calculate defocus only blur in microns
-    const uint64_t sq = (coc*coc - diff*diff);
-    const uint64_t coc2 = (int) sqrtf(sq); // Defocus only blur
-
     // check if sensor Airy limit reached
-    if(coc2 < sen)
+    if(coc < sen)
     {
-        // set dof_near at 1mm to show 0 in LV 
-        info->dof_near       = 1;
-        info->dof_far        = 1;
-        return;
+        dof_flags |= DOF_AIRY_LIMIT_REACHED;
     }  
 
     const uint64_t        fl2 = fl * fl;
 
     // Calculate hyperfocal distance H 
-    const uint64_t H = fl + ((10000 * fl2) / (info->aperture  * coc2));
+    const uint64_t H = fl + ((10000 * fl2) / (info->aperture  * coc));
     info->hyperfocal = H;
   
     // Calculate near and far dofs
-    info->dof_near = (fd*fl*10000)/(10000*fl + imag*info->aperture*coc2); // in mm
+    info->dof_near = (fd*fl*10000)/(10000*fl + imag*info->aperture*coc); // in mm
     if( fd >= H )
     {
         info->dof_far = 1000 * 1000; // infinity
     }
     else
     {
-        info->dof_far = (fd*fl*10000)/(10000*fl - imag*info->aperture*coc2); // in mm
+        info->dof_far = (fd*fl*10000)/(10000*fl - imag*info->aperture*coc); // in mm
     }
+
+    // update DOF flags
+    info->dof_flags = dof_flags;
+    
+    // make sure we have nonzero DOF values, so they are always displayed
+    info->dof_near = MAX(info->dof_near, 1);
+    info->dof_far = MAX(info->dof_far, 1);
 }
 
 /*
@@ -2640,10 +2646,11 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
                 prev_xw = xw;
             }
             
+            int fg = lens_info.dof_flags ? COLOR_YELLOW : COLOR_WHITE;
             bmp_fill(COLOR_BG, xw-70, item->y-36, 140, 26);
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
-            bmp_fill(COLOR_WHITE, xw, item->y-32, 1, 19);
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
+            bmp_fill(fg, xw, item->y-32, 1, 19);
         }
     }
 }
