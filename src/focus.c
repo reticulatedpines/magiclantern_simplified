@@ -1089,6 +1089,7 @@ static struct menu_entry focus_menu[] = {
         .priv = &dof_display, 
         .max  = 1,
         .help = "Display DOF above Focus distance.",
+        .depends_on = DEP_LIVEVIEW,
     },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
