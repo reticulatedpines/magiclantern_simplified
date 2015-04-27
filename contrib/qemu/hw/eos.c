@@ -27,6 +27,7 @@ EOSRegionHandler eos_handlers[] =
     { "Basic2",       0xC022F000, 0xC022FFFF, eos_handle_basic, 2 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
+    { "SDIO2",        0xC0510000, 0xC0510FFF, eos_handle_sddma, 0 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
@@ -2069,20 +2070,101 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *ws, unsigned 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
+    const char * msg = 0;
 
     switch(address & 0xFFF)
     {
+        case 0x08:
+            msg = "DMA?";
+            break;
+        case 0x0C:
+            msg = "transfer start?";
+            break;
         case 0x10:
             /* code is waiting for bit0 getting high, bit1 is an error flag */
+            msg = "status?";
             ret = 3;
             break;
+        case 0x14:
+            msg = "transfer start? irq?";
+            break;
+        case 0x18:
+            msg = "init?";
+            break;
+        case 0x20:
+            msg = "cmd_lo";
+            break;
+        case 0x24:
+            msg = "cmd_hi";
+            break;
+        case 0x28:
+            msg = "before cmd?";
+            break;
+        case 0x2c:
+            msg = "before cmd?";
+            break;
         case 0x34:
-            /* code is waiting for transfer status */
+            msg = "data_lo";
             ret = 0xFFFFFF;
+            break;
+        case 0x38:
+            msg = "data_hi";
+            break;
+        case 0x58:
+            msg = "bus width";
+            break;
+        case 0x5c:
+            msg = "write block size";
+            break;
+        case 0x64:
+            msg = "bus width";
+            break;
+        case 0x68:
+            msg = "read block size";
+            break;
+        case 0x70:
+            msg = "transfer status?";
+            break;
+        case 0x7c:
+            msg = "transfer block count";
+            break;
+        case 0x80:
+            msg = "transferred blocks";
+            break;
+        case 0x84:
+            msg = "SDREP: Status register/error codes";
+            break;
+        case 0x88:
+            msg = "SDBUFCTR: Set to 0x03 before reading";
             break;
     }
 
-    io_log("SDIO", ws, address, type, value, ret, 0, 0, 0);
+    io_log("SDIO", ws, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_sddma ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    switch(address & 0xFFF)
+    {
+        case 0x60:
+            msg = "Transfer memory address";
+            break;
+        case 0x64:
+            msg = "Transfer byte count";
+            break;
+        case 0x70:
+            msg = "Flags/Status";
+            break;
+        case 0x78:
+            msg = "Transfer start?";
+            break;
+    }
+
+    io_log("SDDMA", ws, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 

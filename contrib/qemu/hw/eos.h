@@ -197,6 +197,7 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int ad
 unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_sddma ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_asif ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_display ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 
