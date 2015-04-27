@@ -200,6 +200,30 @@ static int luaCB_display_circle(lua_State * L)
 }
 
 /***
+ Draw to the idle buffer (for double buffered drawing)
+ @function draw_start
+ */
+static int luaCB_display_draw_start(lua_State * L)
+{
+    AcquireRecursiveLock(bmp_lock, 0);
+    bmp_idle_copy(0,0);
+    bmp_draw_to_idle(1);
+    return 0;
+}
+
+/***
+ Copy the idle buffer to the main buffer (for double buffered drawing)
+ @function draw_end
+ */
+static int luaCB_display_draw_end(lua_State * L)
+{
+    bmp_draw_to_idle(0);
+    bmp_idle_copy(1,0);
+    ReleaseRecursiveLock(bmp_lock);
+    return 0;
+}
+
+/***
  Prints a message on the screen for a period of time
  @tparam string text
  @tparam[opt=1000] int timeout in ms
@@ -246,6 +270,8 @@ const luaL_Reg displaylib[] =
     {"line", luaCB_display_line},
     {"rect", luaCB_display_rect},
     {"circle", luaCB_display_circle},
+    {"draw_start", luaCB_display_draw_start},
+    {"draw_end", luaCB_display_draw_end},
     {"notify_box", luaCB_display_notify_box},
     {NULL, NULL}
 };

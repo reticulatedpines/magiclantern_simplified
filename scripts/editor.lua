@@ -151,6 +151,12 @@ function filedialog:open()
 end
 
 function filedialog:draw()
+    display.draw_start()
+    self:draw_main()
+    display.draw_end()
+end
+
+function filedialog:draw_main()
     display.rect(self.left, self.top, self.width, self.height, COLOR.WHITE, COLOR.BLACK)
     display.rect(self.left, self.top, self.width, 20 + FONT.LARGE.height, COLOR.WHITE, COLOR.gray(5))
     display.print("Select File", self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(5))
@@ -287,7 +293,6 @@ end
 function editor:handle_key(k)
     if k == KEY.Q then
         self.menu_open = true
-        self.full_redraw = true
     elseif k == KEY.WHEEL_DOWN then
         self.scroll = inc(self.scroll,1,#(self.lines))
     elseif k == KEY.WHEEL_UP then
@@ -399,17 +404,14 @@ function editor:update_title(mod, force)
 end
 
 function editor:handle_menu_key(k)
-    self.full_redraw = false
     if k == KEY.Q then
         self.menu_open = false
     elseif k == KEY.LEFT or k == KEY.WHEEL_LEFT then
         self.menu_index = dec(self.menu_index, 1, #(self.menu))
         self.submenu_index = 1
-        self.full_redraw = true
     elseif k == KEY.RIGHT or k == KEY.WHEEL_RIGHT then
         self.menu_index = inc(self.menu_index, 1, #(self.menu))
         self.submenu_index = 1
-        self.full_redraw = true
     elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN then
         local m = self.menu[self.menu_index]
         self.submenu_index = inc(self.submenu_index,1,#(m.items))
@@ -552,14 +554,12 @@ function editor:draw_status(msg)
 end
 
 function editor:draw()
+    display.draw_start()
+    self:draw_main()
     if self.menu_open then
-        if self.full_redraw then
-            self:draw_main()
-        end
         self:draw_menu()
-    else
-        self:draw_main()
     end
+    display.draw_end()
 end
 
 function editor:draw_title()
@@ -585,7 +585,7 @@ function editor:draw_submenu(m,x,y)
     local f = FONT.LARGE
     local h = #m * f.height + 10
     local w = 180
-    if self.full_redraw then display.rect(x,y,w,h,fg,bg) end
+    display.rect(x,y,w,h,fg,bg)
     x = x + 5
     y = y + 5
     for i,v in ipairs(m) do
@@ -593,7 +593,6 @@ function editor:draw_submenu(m,x,y)
             display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
             display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
         else
-            display.rect(x,y,w-10,f.height,bg,bg)
             display.print(v,x,y,f,COLOR.WHITE,bg)
         end
         y = y + f.height
@@ -638,42 +637,35 @@ function editor:draw_selection(line_num,line,x,y,sublines)
 end
 
 function editor:draw_main()
+    display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
     local pos = self:draw_title()
-    display.rect(0,pos,720,pos + 10,COLOR.BLACK,COLOR.BLACK)
     pos = pos + 10
     local pad = 10
     local h = self.font.height
     if self.show_line_numbers then
         pad = pad + self.font:width("0000")
+        display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
     end
     if self.lines == nil then return end
     for i,v in ipairs(self.lines) do
         if i >= self.scroll then
             if self.show_line_numbers then
                 display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
-                display.rect(pad-10,pos,pad,h,COLOR.BLACK,COLOR.BLACK)
-                display.line(pad-5,pos,pad-5,pos + h,COLOR.BLUE)
             end
             local clipped = display.print(v,pad,pos,self.font)
             local actual_pos = pos
             local sublines = {}
             if clipped ~= nil then 
                 table.insert(sublines,v:sub(1,#v - #clipped))
-            else
-                local w = self.font:width(v)
-                display.rect(pad + w,pos,720 - pad - w,h,COLOR.BLACK,COLOR.BLACK)
             end
             while clipped ~= nil do
                 pos = pos + h
                 local prev = clipped
-                display.rect(0,pos,720,h,COLOR.BLACK,COLOR.BLACK)
                 clipped = display.print(clipped,pad,pos,self.font)
                 if clipped ~= nil then
                     table.insert(sublines,prev:sub(1,#prev - #clipped))
                 else
                     table.insert(sublines,prev)
-                    local w = self.font:width(prev)
-                    display.rect(pad + w,pos,720 - pad - w,h,COLOR.BLACK,COLOR.BLACK)
                 end
             end
             self:draw_selection(i,v,pad,pos,sublines)
@@ -705,10 +697,6 @@ function editor:draw_main()
             pos = pos + h
             if pos >= 480 then return end
         end
-    end
-    if pos < 480 then 
-        display.rect(0,pos,720,480 - pos,COLOR.BLACK,COLOR.BLACK)
-        display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
     end
 end
 
