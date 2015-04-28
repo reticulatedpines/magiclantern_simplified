@@ -76,9 +76,22 @@ static int luaCB_dryos_call(lua_State * L)
  */
 static int luaCB_dryos_directory(lua_State * L)
 {
-    if(!lua_isstring(L, 1)) return luaL_argerror(L, 1, "expected string");
+    LUA_PARAM_STRING(path, 1);
     lua_newtable(L);
-    lua_pushvalue(L, 1);
+    if (strlen(path) == 0 || !strcmp(path, "/"))
+    {
+        struct card_info * ml_card = get_ml_card();
+        if (ml_card == NULL) return luaL_error(L, "Could not get ML card");
+        lua_pushfstring(L, "%s:/", ml_card->drive_letter);
+    }
+    else if (path[strlen(path) - 1] != '/')
+    {
+        lua_pushfstring(L, "%s/", path);
+    }
+    else
+    {
+        lua_pushvalue(L, 1);
+    }
     lua_setfield(L, -2, "path");
     lua_pushcfunction(L, luaCB_directory_index);
     lua_setfield(L, -2, "__index");
@@ -125,7 +138,7 @@ static int luaCB_dryos_index(lua_State * L)
         if(!card) return luaL_error(L, "Error getting ml_card");
         lua_pushlightuserdata(L, card);
         lua_setfield(L, -2, "_card_ptr");
-        lua_pushstring(L, card->drive_letter);
+        lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
@@ -143,7 +156,7 @@ static int luaCB_dryos_index(lua_State * L)
         if(!card) return luaL_error(L, "Error getting shooting_card");
         lua_pushlightuserdata(L, card);
         lua_setfield(L, -2, "_card_ptr");
-        lua_pushstring(L, card->drive_letter);
+        lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
@@ -252,16 +265,17 @@ static int luaCB_directory_children(lua_State * L)
             {
                 //call the directory constructor
                 lua_pushcfunction(L, luaCB_dryos_directory);
-                lua_pushfstring(L, "%s/%s", path, file.name);
+                lua_pushfstring(L, "%s%s/", path, file.name);
                 lua_call(L, 1, 1);
                 lua_seti(L, -2, index++);
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
+        FIO_FindClose(dirent);
     }
     else
     {
-        return luaL_error(L, "error reading directory");
+        return luaL_error(L, "error reading directory '%s'", path);
     }
     
     return 1;
@@ -287,11 +301,12 @@ static int luaCB_directory_files(lua_State * L)
         {
             if (!(file.mode & ATTR_DIRECTORY))
             {
-                lua_pushfstring(L, "%s/%s", path, file.name);
+                lua_pushfstring(L, "%s%s", path, file.name);
                 lua_seti(L, -2, index++);
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
+        FIO_FindClose(dirent);
     }
     else
     {
@@ -299,6 +314,14 @@ static int luaCB_directory_files(lua_State * L)
     }
     
     return 1;
+}
+
+static char * copy_string(const char * str)
+{
+    size_t len = strlen(str) + 1;
+    char * copy = malloc(sizeof(char) * len);
+    if(copy) strncpy(copy,str,len);
+    return copy;
 }
 
 static int luaCB_directory_index(lua_State * L)
@@ -318,6 +341,32 @@ static int luaCB_directory_index(lua_State * L)
     else if(!strcmp(key, "create")) lua_pushcfunction(L, luaCB_directory_create);
     else if(!strcmp(key, "children")) lua_pushcfunction(L, luaCB_directory_children);
     else if(!strcmp(key, "files")) lua_pushcfunction(L, luaCB_directory_files);
+    /// Get a @{directory} object that represents the current directory's parent
+    // @tfield directory parent
+    else if(!strcmp(key, "parent"))
+    {
+        size_t len = strlen(path);
+        if (len > 0 && path[len - 1] == '/')
+        {
+            char * parent_path = copy_string(path);
+            parent_path[len - 1] = 0x0;
+            char * last = strrchr(parent_path, '/');
+            if (last) *(last + 1) = 0x0;
+            else parent_path[0] = 0x0;
+            
+            //call the directory constructor
+            lua_pushcfunction(L, luaCB_dryos_directory);
+            lua_pushstring(L, parent_path);
+            lua_call(L, 1, 1);
+            free(parent_path);
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+        
+    }
     else lua_rawget(L, 1);
     return 1;
 }

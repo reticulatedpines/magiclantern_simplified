@@ -79,40 +79,55 @@ filedialog.left = 100
 filedialog.width = 520
 
 function filedialog:updatefiles()
+    self.item_count = 0
     local status,items = xpcall(self.current.children,debug.traceback,self.current)
     if status == false then
         handle_error(items)
     end
-    if status then self.children = items else self.children = nil end
+    if status then 
+        self.children = items
+        self.item_count = #items
+        table.sort(self.children, function(d1,d2) return d1.path < d2.path end)
+    else 
+        self.children = nil 
+    end
     status,items = xpcall(self.current.files,debug.traceback,self.current)
     if status == false then
         handle_error(items)
     end
-    if status then self.files = items else self.children = nil end
+    if status then
+        self.files = items
+        self.item_count = self.item_count + #items
+        table.sort(self.files)
+    else 
+        self.files = nil 
+    end
+end
+
+function filedialog:scroll_into_view()
+    if self.selected < self.scroll then
+        self.scroll = self.selected - 1
+    elseif self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 1  then
+        self.scroll = self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 1)
+    end
 end
 
 function filedialog:handle_key(k)
     if k == KEY.Q then return "cancel"
     elseif k == KEY.UP or k == KEY.WHEEL_UP or k == KEY.WHEEL_LEFT then
-        if self.selected > 0 then
-            self.selected = self.selected - 1
-            if self.selected <= self.scroll then
-                self.scroll = self.selected
-            end
-        end
+        self.selected = dec(self.selected,0,self.item_count)
+        self:scroll_into_view()
     elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN or k == KEY.WHEEL_RIGHT then 
-        if self.selected < #(self.files) then
-            self.selected = self.selected + 1
-            if self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 1  then
-                self.scroll = self.scroll + 1
-            end
-        end
+        self.selected = inc(self.selected,0,self.item_count)
+        self:scroll_into_view()
     elseif k == KEY.SET then
         if self.selected == 0 then
-            self.current = dryos.directory(string.gsub(self.current.path,"/.+$",""))
-            self.selected = 1
-            self.scroll = 0
-            self:updatefiles()
+            if self.current.parent ~= nil then
+                self.current = self.current.parent
+                self.selected = 1
+                self.scroll = 0
+                self:updatefiles()
+            end
         elseif self.is_dir_selected and self.selected_value ~= nil then
             self.current = self.selected_value
             self.selected = 1
@@ -124,10 +139,22 @@ function filedialog:handle_key(k)
     end
 end
 
+function filedialog:save()
+    self.save_mode = true
+    return self:show()
+end
+
 function filedialog:open()
-    self.current = dryos.directory("ML/SCRIPTS")
-    self.selected = 1
-    self.scroll = 0
+    self.save_mode = false
+    return self:show()
+end
+
+function filedialog:show()
+    if self.current == nil then
+        self.current = dryos.directory("ML/SCRIPTS")
+        self.selected = 1
+        self.scroll = 0
+    end
     self:updatefiles()
     self:draw()
     local started = keyhandler:start()
@@ -158,8 +185,8 @@ end
 
 function filedialog:draw_main()
     display.rect(self.left, self.top, self.width, self.height, COLOR.WHITE, COLOR.BLACK)
-    display.rect(self.left, self.top, self.width, 20 + FONT.LARGE.height, COLOR.WHITE, COLOR.gray(5))
-    display.print("Select File", self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(5))
+    display.rect(self.left, self.top, self.width, 20 + FONT.LARGE.height, COLOR.WHITE, COLOR.gray(10))
+    display.print("Select File", self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(10))
     local pos = self.top + 20 + FONT.LARGE.height
     display.line(self.left, pos, self.width - self.left, pos, COLOR.WHITE)
     local x = self.left + 10
@@ -228,6 +255,10 @@ editor =
         {
             name = "Edit",
             items = {"Cut","Copy","Paste","Select All"},
+        },
+        {
+            name = "Debug",
+            items = {"Run"},
         }
     },
     menu_index = 1,
@@ -235,7 +266,7 @@ editor =
     font = FONT.MONO_20
 }
 
-editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height - 1
+editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height / 2
 
 editor.mlmenu = menu.new
 {
@@ -372,7 +403,6 @@ function editor:handle_key(k)
         if self.selection_start == nil or self.selection_end ~= nil then
             self.selection_start = {self.line,self.col}
             self.selection_end = nil
-            print(string.format("sel start %d,%d", self.line, self.col))
         else
             if self.selection_start[1] > self.line or (self.selection_start[1] == self.line and self.selection_start[2] > self.col) then
                 self.selection_end = self.selection_start
@@ -380,7 +410,6 @@ function editor:handle_key(k)
             else
                 self.selection_end = {self.line,self.col}
             end
-            print(string.format("sel end %d,%d", self.line, self.col))
         end
     end
 end
@@ -428,6 +457,12 @@ function editor:handle_menu_key(k)
         elseif m == "Cut" then self:copy() self:delete_selection()
         elseif m == "Copy" then self:copy()
         elseif m == "Paste" then self:paste()
+        elseif m == "Select All" then
+            self.selection_start = {1,1}
+            self.selection_end = {#(self.lines),#(self.lines[self.line])}
+        elseif m == "Run" then
+            self:save(self.filename)
+            self:debug()
         end
     end
     return true
