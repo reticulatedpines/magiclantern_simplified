@@ -71,12 +71,94 @@ function keyhandler:anykey()
     if started then self:stop() end
 end
 
+textbox = {}
+textbox.__index = textbox
+function textbox.create(value,x,y,w,font,h)
+    local tb = {}
+    setmetatable(tb,textbox)
+    tb.font = font
+    if tb.font == nil then
+        tb.font = FONT.MED_LARGE
+    end
+    tb.min_char = 32
+    tb.max_char = 127
+    tb.value = value
+    tb.pad = 5
+    tb.left = x
+    tb.top = y
+    tb.width = w
+    tb.height = h
+    tb.border = COLOR.WHITE
+    tb.foreground = COLOR.WHITE
+    tb.background = COLOR.BLACK
+    tb.col = 1
+    if h == nil then
+        tb.height = tb.font.height + 10
+    end
+    return tb
+end
+
+function textbox:draw()
+    display.rect(self.left,self.top,self.width,self.height,self.border,self.background)
+    display.print(self.value,self.left + self.pad,self.top + self.pad,self.font,self.foreground,self.background)
+    local w = self.font:width(self.value:sub(1,self.col - 1))
+    if self.col == 1 then w = 0 end
+    local ch = self.value:sub(self.col,self.col)
+    display.print(ch,self.left + w + self.pad,self.top + self.pad,self.font,self.background,self.foreground)
+end
+
+function textbox:handle_key(k)
+    if k ==  KEY.RIGHT then
+        self.col = inc(self.col,1,#(self.value) + 1)
+    elseif k ==  KEY.LEFT then
+        self.col = dec(self.col,1,#(self.value) + 1)
+    elseif k == KEY.WHEEL_LEFT then
+        --mod char
+        local l = self.value
+        if self.col < #l then
+            local ch = l:byte(self.col)
+            ch = inc(ch,self.min_char,self.max_char)
+            self.value = string.format("%s%s%s",l:sub(1,self.col - 1),string.char(ch),l:sub(self.col + 1))
+        else
+           self.value = l..string.char(self.min_char)
+        end
+        self:scroll_into_view()
+    elseif k == KEY.WHEEL_RIGHT then
+        --mod char
+        local l = self.value
+        if self.col < #l then
+            local ch = l:byte(self.col)
+            ch = dec(ch,self.min_char,self.max_char)
+            self.value = string.format("%s%s%s",l:sub(1,self.col - 1),string.char(ch),l:sub(self.col + 1))
+        else
+            self.value = l..string.char(self.max_char)
+        end
+    elseif k == KEY.PLAY then
+        --insert
+        local l = self.value
+        self.value = string.format("%s %s",l:sub(1,self.col),l:sub(self.col + 1))
+        self.col = self.col + 1
+    elseif k == KEY.TRASH then
+        --delete
+        local l = self.value
+        if self.col <= #l then
+            self.value = string.format("%s%s",l:sub(1,self.col - 1),l:sub(self.col + 1))
+        end
+    end
+end
+
 filedialog = {}
-filedialog.font = FONT.MED_LARGE
-filedialog.top = 60
-filedialog.height = 380
-filedialog.left = 100
-filedialog.width = 520
+filedialog.__index = filedialog
+function filedialog.create()
+    local fd = {}
+    setmetatable(fd,filedialog)
+    fd.font = FONT.MED_LARGE
+    fd.top = 60
+    fd.height = 380
+    fd.left = 100
+    fd.width = 520
+    return fd
+end
 
 function filedialog:updatefiles()
     self.item_count = 0
@@ -107,17 +189,17 @@ end
 function filedialog:scroll_into_view()
     if self.selected < self.scroll then
         self.scroll = self.selected - 1
-    elseif self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 1  then
-        self.scroll = self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 1)
+    elseif self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 2  then
+        self.scroll = self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 2)
     end
 end
 
 function filedialog:handle_key(k)
     if k == KEY.Q then return "cancel"
-    elseif k == KEY.UP or k == KEY.WHEEL_UP or k == KEY.WHEEL_LEFT then
+    elseif k == KEY.UP or k == KEY.WHEEL_UP then
         self.selected = dec(self.selected,0,self.item_count)
         self:scroll_into_view()
-    elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN or k == KEY.WHEEL_RIGHT then 
+    elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN then 
         self.selected = inc(self.selected,0,self.item_count)
         self:scroll_into_view()
     elseif k == KEY.SET then
@@ -133,14 +215,27 @@ function filedialog:handle_key(k)
             self.selected = 1
             self.scroll = 0
             self:updatefiles()
+        elseif self.save_mode then
+            local result = self.current.path..self.save_box.value
+            self.save_box = nil
+            return result
         else
             return self.selected_value
         end
+    elseif self.save_mode then
+        self.save_box:handle_key(k)
     end
 end
 
-function filedialog:save()
+function filedialog:save(default_name)
     self.save_mode = true
+    if default_name == nil then
+        default_name = "untitled"
+    end
+    self.save_box = textbox.create(default_name,self.left,self.top + self.height - self.font.height - 10,self.width)
+    --limit chars to those needed for filenames
+    self.save_box.min_char = 46
+    self.save_box.max_char = 95
     return self:show()
 end
 
@@ -180,13 +275,20 @@ end
 function filedialog:draw()
     display.draw_start()
     self:draw_main()
+    if self.save_mode then
+        self.save_box:draw()
+    end
     display.draw_end()
 end
 
 function filedialog:draw_main()
     display.rect(self.left, self.top, self.width, self.height, COLOR.WHITE, COLOR.BLACK)
     display.rect(self.left, self.top, self.width, 20 + FONT.LARGE.height, COLOR.WHITE, COLOR.gray(10))
-    display.print("Select File", self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(10))
+    if self.save_mode then
+        display.print(string.format("Save | %s",self.current.path), self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(10))
+    else
+        display.print(string.format("Open | %s",self.current.path), self.left + 10, self.top + 10, FONT.LARGE,COLOR.WHITE,COLOR.gray(10))
+    end
     local pos = self.top + 20 + FONT.LARGE.height
     display.line(self.left, pos, self.width - self.left, pos, COLOR.WHITE)
     local x = self.left + 10
@@ -229,6 +331,8 @@ function filedialog:draw_main()
                     self.selected_value = v
                     display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
                     display.print(v, x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
+                elseif self.save_mode then
+                    display.print(v, x, pos, self.font, COLOR.GRAY, COLOR.BLACK)
                 else
                     display.print(v, x, pos, self.font)
                 end
@@ -261,6 +365,7 @@ editor =
             items = {"Run"},
         }
     },
+    filedialog = filedialog.create(),
     menu_index = 1,
     submenu_index = 1,
     font = FONT.MONO_20
@@ -469,7 +574,7 @@ function editor:handle_menu_key(k)
 end
 
 function editor:open()
-    local f = filedialog:open()
+    local f = self.filedialog:open()
     if f ~= nil then
         self.filename = f
         self:update_title(false, true)
@@ -497,7 +602,10 @@ end
 
 function editor:save(filename)
     if filename == nil then
-        --todo: save file dialog
+        local result = self.filedialog:save("UNTITLED.LUA")
+        if result ~= nil then
+            self:save(result)
+        end
     else
         self:draw_status("Saving...")
         local f = io.open(filename,"w")
@@ -505,8 +613,8 @@ function editor:save(filename)
             f:write(v,"\n")
         end
         f:close()
+        self:update_title(false, true)
     end
-    self:update_title(false, true)
     self.menu_open = false
 end
 
@@ -549,6 +657,22 @@ function editor:paste()
         editor:message("Error: Clipboard Empty!")
     end
     self.menu_open = false
+end
+
+function editor:debug()
+    if self.filename ~= nil then
+        --todo setup debugging stuff, and handle errors (highlight line numbers etc.)
+        keyhandler:stop()
+        menu.block(false)
+        self.running = false
+        local status,error = xpcall(dofile, debug.traceback, self.filename)
+        if status == false then
+            if self.runnning == false then menu.block(true) end
+            beep()
+            handle_error(error)
+            if self.runnning == false then menu.block(false) end
+        end
+    end
 end
 
 function editor:delete_selection()
