@@ -23,8 +23,7 @@ EOSRegionHandler eos_handlers[] =
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
-    { "Basic1",       0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
-    { "Basic2",       0xC022F000, 0xC022FFFF, eos_handle_basic, 2 },
+    { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
     { "SDDMA1",       0xC0510000, 0xC0510FFF, eos_handle_sddma, 1 },
@@ -1636,6 +1635,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
 {
     unsigned int ret = 1;
     const char * msg = 0;
+    static int unk = 0;
 
     switch (address & 0xFFFF)
     {
@@ -1647,6 +1647,46 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
         case 0xFA04:
             msg = "6D expected to be 0";
             ret = 0;
+            break;
+
+        case 0xF100:
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                ret = unk;
+                unk++;
+                unk %= 2;
+            }
+            break;
+
+        case 0xF198:
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                ret = unk;
+                unk++;
+                unk %= 2;
+            }
+            break;
+
+        /*
+        0xC022F480 [32]  Other VSW Status
+           0x40000 /VSW_OPEN Hi
+           0x80000 /VSW_REVO Hi
+        */
+        case 0xF480:
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                ret = 0x40000 | 0x80000;
+                msg = "VSW_STATUS";
+            }
             break;
 
         case 0x00DC:
@@ -2334,103 +2374,51 @@ static char* format_clock_enable(int value)
 unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
-    static int unk = 0;
     const char * msg = 0;
 
-    switch(parm)
+    switch(address & 0xFFF)
     {
-        case 1:
-            switch(address & 0xFFF)
+        case 0x008: /* CLOCK_ENABLE */
+            if(type & MODE_WRITE)
             {
-                case 0x008: /* CLOCK_ENABLE */
-                    if(type & MODE_WRITE)
-                    {
-                        ws->clock_enable = value;
-                        msg = format_clock_enable(value);
-                    }
-                    else
-                    {
-                        ret = ws->clock_enable;
-                        msg = format_clock_enable(ret);
-                    }
-                    break;
-                
-                case 0xA4:
-                    if(type & MODE_WRITE)
-                    {
-                    }
-                    else
-                    {
-                        ret = 1;
-                    }
-                    break;
-                    
-                case 0x244:
-                    if(type & MODE_WRITE)
-                    {
-                    }
-                    else
-                    {
-                        /* idk, expected to be so in 5D3 123 */
-                        ret = 1;
-                    }
-                    break;
-                case 0x204:
-                    if(type & MODE_WRITE)
-                    {
-                    }
-                    else
-                    {
-                        /* idk, expected to be so in 5D3 bootloader */
-                        ret = 2;
-                    }
-                    break;
+                ws->clock_enable = value;
+                msg = format_clock_enable(value);
+            }
+            else
+            {
+                ret = ws->clock_enable;
+                msg = format_clock_enable(ret);
             }
             break;
-
-        case 2:
-            switch(address & 0xFFF)
+        
+        case 0xA4:
+            if(type & MODE_WRITE)
             {
-                case 0x100:
-                    if(type & MODE_WRITE)
-                    {
-                    }
-                    else
-                    {
-                        ret = unk;
-                        unk++;
-                        unk %= 2;
-                    }
-                    break;
-
-                case 0x198:
-                    if(type & MODE_WRITE)
-                    {
-                    }
-                    else
-                    {
-                        ret = unk;
-                        unk++;
-                        unk %= 2;
-                    }
-                    break;
-
-                /*
-                0xC022F480 [32]  Other VSW Status
-                   0x40000 /VSW_OPEN Hi
-                   0x80000 /VSW_REVO Hi
-                */
-                case 0x480:
-                    if(type & MODE_WRITE)
-                    {
-                    }
-                    else
-                    {
-                        ret = 0x40000 | 0x80000;
-                        msg = "VSW_STATUS";
-                    }
-                    break;
-
+            }
+            else
+            {
+                ret = 1;
+            }
+            break;
+            
+        case 0x244:
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                /* idk, expected to be so in 5D3 123 */
+                ret = 1;
+            }
+            break;
+        case 0x204:
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                /* idk, expected to be so in 5D3 bootloader */
+                ret = 2;
             }
             break;
     }
