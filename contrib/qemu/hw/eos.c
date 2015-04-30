@@ -1181,7 +1181,10 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     {
         printf("Failed to open SD card image sd.img\n");
     }
-    
+
+    fseek(s->sd.card_image, 0, SEEK_END);
+    s->sd.card_image_size = ftell(s->sd.card_image);
+
     if (0)
     {
         /* 6D bootloader experiment */
@@ -2129,7 +2132,13 @@ static void sdio_read_write(EOSState *ws, int write, const char** msg)
     uint32_t count = ws->sd.dma_count;
     uint64_t sd_addr = param;
     uint32_t ram_addr = ws->sd.dma_addr;
-    
+
+    if (sd_addr + count > ws->sd.card_image_size)
+    {
+        printf("!!! WARNING !!! card address overflow (%llx)\n", (long long)sd_addr);
+        sd_addr = 0;
+    }
+
     static char transfer_msg[100];
     snprintf(transfer_msg, sizeof(transfer_msg),
         "%s %d bytes, SD:%llx RAM:%x",

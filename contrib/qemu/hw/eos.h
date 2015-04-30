@@ -113,6 +113,7 @@ typedef struct
 typedef struct
 {
     FILE* card_image;
+    long int card_image_size;
     uint32_t cmd_hi;
     uint32_t cmd_lo;
     uint8_t app_cmd;
