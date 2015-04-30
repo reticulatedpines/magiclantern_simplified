@@ -27,7 +27,8 @@ EOSRegionHandler eos_handlers[] =
     { "Basic2",       0xC022F000, 0xC022FFFF, eos_handle_basic, 2 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
-    { "SDIO2",        0xC0510000, 0xC0510FFF, eos_handle_sddma, 0 },
+    { "SDDMA1",       0xC0510000, 0xC0510FFF, eos_handle_sddma, 1 },
+    { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
@@ -2273,17 +2274,21 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *ws, unsigned int ad
     switch(address & 0xFFF)
     {
         case 0x60:
+        case 0x20:
             msg = "Transfer memory address";
             ws->sd.dma_addr = value;
             break;
         case 0x64:
+        case 0x24:
             msg = "Transfer byte count";
             ws->sd.dma_count = value;
             break;
         case 0x70:
+        case 0x30:
             msg = "Flags/Status";
             break;
         case 0x78:
+        case 0x38:
             msg = "Transfer start?";
 
             /* DMA transfer? */
