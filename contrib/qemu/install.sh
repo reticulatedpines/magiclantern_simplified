@@ -72,7 +72,7 @@ echo
 echo "5) Start emulation with:"
 echo
 echo "   cd `pwd`/"
-echo "   ./run_ml_60D.sh"
+echo "   ./run_ml.sh 60D 111"
 echo
 echo "   (this will recompile ML and QEMU - handy if you edit the sources often)"
 echo
