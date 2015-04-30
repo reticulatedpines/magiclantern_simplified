@@ -362,7 +362,7 @@ editor =
         },
         {
             name = "Debug",
-            items = {"Run"},
+            items = {"Run","Detach"},
         }
     },
     filedialog = filedialog.create(),
@@ -395,28 +395,7 @@ function editor:run()
         else
             self.menu_open = false
         end
-        self:draw()
-        keyhandler:start()
-        while true do
-            local keys = keyhandler:getkeys()
-            if keys ~= nil then
-                local exit = false
-                local redraw = false
-                for i,v in ipairs(keys) do
-                    if self.menu_open then
-                        if self:handle_menu_key(v) == false then
-                            exit = true
-                            break
-                        end
-                    else
-                        self:handle_key(v)
-                    end
-                end
-                if exit then break end
-                self:draw()
-            end
-            task.yield(100)
-        end
+        self:main_loop()
     end, debug.traceback)
     if status == false then
         handle_error(error)
@@ -424,6 +403,37 @@ function editor:run()
     keyhandler:stop()
     menu.block(false)
     self.running = false
+end
+
+function editor:main_loop()
+    self:draw()
+    keyhandler:start()
+    while true do
+        local keys = keyhandler:getkeys()
+        if keys ~= nil then
+            local exit = false
+            local redraw = false
+            for i,v in ipairs(keys) do
+                if self.menu_open then
+                    if self:handle_menu_key(v) == false then
+                        exit = true
+                        break
+                    end
+                elseif self.debugging then
+                    if self:handle_debug_key(v) == false then
+                        exit = true
+                        break
+                    end
+                else
+                    self:handle_key(v)
+                end
+            end
+            if exit then break end
+            self:draw()
+        end
+        task.yield(100)
+    end
+    keyhandler:stop()
 end
 
 function editor:handle_key(k)
@@ -566,8 +576,13 @@ function editor:handle_menu_key(k)
             self.selection_start = {1,1}
             self.selection_end = {#(self.lines),#(self.lines[self.line])}
         elseif m == "Run" then
-            self:save(self.filename)
-            self:debug()
+            if self:save(self.filename) then
+                --if debug is sucessful then exit
+                if self:debug() then return false end
+            end
+        elseif m == "Detach" then
+            self.debugging = false
+            debug.sethook()
         end
     end
     return true
@@ -604,7 +619,9 @@ function editor:save(filename)
     if filename == nil then
         local result = self.filedialog:save("UNTITLED.LUA")
         if result ~= nil then
-            self:save(result)
+            return self:save(result)
+        else
+            return false
         end
     else
         self:draw_status("Saving...")
@@ -614,8 +631,9 @@ function editor:save(filename)
         end
         f:close()
         self:update_title(false, true)
+        self.menu_open = false
+        return true
     end
-    self.menu_open = false
 end
 
 function editor:copy()
@@ -661,17 +679,56 @@ end
 
 function editor:debug()
     if self.filename ~= nil then
-        --todo setup debugging stuff, and handle errors (highlight line numbers etc.)
+        self.debugging = true
         keyhandler:stop()
-        menu.block(false)
-        self.running = false
+        debug.sethook(function(event,line) self:debug_step(event,line) end, "l")
         local status,error = xpcall(dofile, debug.traceback, self.filename)
+        debug.sethook()
+        self.debugging = false
+        keyhandler:start()
         if status == false then
-            if self.runnning == false then menu.block(true) end
-            beep()
             handle_error(error)
-            if self.runnning == false then menu.block(false) end
+            return false
         end
+        return true
+    end
+    return false
+end
+
+function editor:debug_step(event,line)
+    local info = debug.getinfo(3,"S")
+    if info.short_src == self.filename then
+        self.line = line
+        self.col = 1
+        self.selection_start = {line,1} 
+        self.selection_end = {line,#(self.lines[line])}
+        self:scroll_into_view()
+        self:main_loop()
+    end
+end
+
+function editor:handle_debug_key(k)
+    if k == KEY.WHEEL_DOWN then
+        self.scroll = inc(self.scroll,1,#(self.lines))
+    elseif k == KEY.WHEEL_UP then
+        self.scroll = dec(self.scroll,1,#(self.lines))
+    elseif k ==  KEY.DOWN then
+        self.line = inc(self.line,1,#(self.lines))
+        self:scroll_into_view()
+    elseif k ==  KEY.UP then
+        self.line = dec(self.line,1,#(self.lines))
+        self:scroll_into_view()
+    elseif k ==  KEY.RIGHT then
+        self.col = inc(self.col,1,#(self.lines[self.line]) + 1)
+        if self.col == 1 then self.line = inc(self.line,1,#(self.lines)) end
+        self:scroll_into_view()
+    elseif k ==  KEY.LEFT then
+        if self.col == 1 then self.line = dec(self.line,1,#(self.lines)) end
+        self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
+        self:scroll_into_view()
+    elseif k == KEY.PLAY then
+        --continue
+        return false
     end
 end
 
@@ -726,6 +783,7 @@ function editor:draw_title()
     local h = 20 + FONT.LARGE.height
     local bg = COLOR.gray(5)
     local fg = COLOR.GRAY
+    if self.debugging then bg = COLOR.DARK_GREEN1_MOD end
     display.rect(0,0,720,h,fg,bg)
     if self.menu_open then
         display.rect(0,0,w,h,fg,COLOR.BLUE)
