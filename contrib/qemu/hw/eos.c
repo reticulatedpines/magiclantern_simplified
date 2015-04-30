@@ -28,6 +28,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
     { "SDDMA1",       0xC0510000, 0xC0510FFF, eos_handle_sddma, 1 },
     { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
+    { "CFDMA",        0xC0620000, 0xC062FFFF, eos_handle_cfdma, 1 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
@@ -1718,6 +1719,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
             msg = "70D/6D SD detect?";
             ret = 0x10C;
             break;
+        
+        case 0x019C:
+            /* 5D3: return 1 to launch "System & Display Check & Adjustment program" */
+            msg = "5D3 system check";
+            ret = 0;
+            break;
 
         case 0x00DC:
             msg = "abort situation for FROMUTIL on 600D";
@@ -1808,6 +1815,13 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
 
         case 0x301C:
             /* 40D CF Detect -> set low, so there is no CF */
+            msg = "40D CF detect";
+            ret = 0;
+            break;
+        
+        case 0x3020:
+            /* 5D3 CF Detect -> set low, so there is no CF */
+            msg = "5D3 CF detect";
             ret = 0;
             break;
     }
@@ -2377,6 +2391,23 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *ws, unsigned int ad
     }
 
     io_log("SDDMA", ws, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    switch(address & 0xFFFF)
+    {
+        case 0x8104:
+        case 0x21F7:
+            msg = "5D3 unknown (trying random)";
+            ret = rand();
+            break;
+    }
+    io_log("CFDMA", ws, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
