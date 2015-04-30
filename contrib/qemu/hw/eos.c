@@ -1193,6 +1193,10 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     
     if (1)
     {
+        /* make sure the boot flag is enabled */
+        uint32_t flag = 0xFFFFFFFF;
+        cpu_physical_memory_write_rom(0xF8000004, (uint8_t*) &flag, 4);
+
         /* emulate the bootloader, not the main firmware */
         s->cpu->env.regs[15] = 0xFFFF0000;
         return;
