@@ -1713,6 +1713,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *ws, unsigned int add
             }
             break;
 
+        case 0xF48C:
+            /* 6D: return -1 here to launch "System & Display Check & Adjustment program" */
+            msg = "70D/6D SD detect?";
+            ret = 0x10C;
+            break;
+
         case 0x00DC:
             msg = "abort situation for FROMUTIL on 600D";
             ret = 0;
@@ -2337,6 +2343,10 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *ws, unsigned int ad
 
     switch(address & 0xFFF)
     {
+        case 0x14:
+            msg = "70D ???";
+            ret = 1;
+            break;
         case 0x60:
         case 0x20:
             msg = "Transfer memory address";
