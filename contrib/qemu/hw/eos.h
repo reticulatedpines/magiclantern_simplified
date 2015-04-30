@@ -123,6 +123,14 @@ typedef struct
     uint32_t dma_count;
 } SDIOState;
 
+struct palette_entry
+{
+    uint8_t R;
+    uint8_t G;
+    uint8_t B;
+    uint8_t opacity;
+};
+
 typedef struct
 {
     ARMCPU *cpu;
@@ -157,6 +165,7 @@ typedef struct
     uint32_t bmp_vram;
     uint32_t img_vram;
     uint32_t raw_buff;
+    struct palette_entry palette_4bit[16];
     int keybuf[16];
     int key_index_r;
     int key_index_w;

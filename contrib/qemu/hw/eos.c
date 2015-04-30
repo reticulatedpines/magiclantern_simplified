@@ -761,18 +761,15 @@ static void draw_line4_32(void *opaque,
                 uint8_t *d, const uint8_t *s, int width, int deststep)
 {
     uint8_t v, r, g, b;
-
-    static int R[] = {0, 255,  0,   0,   0, 255, 255, 255, 0, 0, 128, 0, 0, 0, 0, 255};
-    static int G[] = {0, 0,  255,   0, 255,   0, 255, 128, 0, 0, 128, 0, 0, 0, 0, 255};
-    static int B[] = {0, 0,    0, 255, 255, 255,   0,   0, 0, 0, 128, 0, 0, 0, 0, 255};
+    EOSState* ws = (EOSState*) opaque;
     
     do {
         v = ldub_raw((void *) s);
         v = ((uintptr_t)d/4 % 2) ? (v >> 4) & 0xF : v & 0xF;
         
-        r = R[v];
-        g = G[v];
-        b = B[v];
+        r = ws->palette_4bit[v].R;
+        g = ws->palette_4bit[v].G;
+        b = ws->palette_4bit[v].B;
         ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
 
         if ((uintptr_t)d/4 % 2) s ++;
@@ -986,7 +983,7 @@ static void eos_update_display(void *parm)
             s->bmp_vram,
             width, height,
             360, linesize, 0, 1,
-            draw_line4_32, 0,
+            draw_line4_32, s,
             &first, &last
         );
     }
@@ -1154,6 +1151,8 @@ static void patch_bootloader_autoexec(EOSState *s)
 
 static void eos_init_common(const char *rom_filename, uint32_t rom_start)
 {
+    precompute_yuv2rgb(1);
+
     EOSState *s = eos_init_cpu();
 
     /* populate ROM0 */
@@ -1204,6 +1203,8 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
 
 static void ml_init_common(const char *rom_filename, uint32_t rom_start)
 {
+    precompute_yuv2rgb(1);
+
     EOSState *s = eos_init_cpu();
 
     /* populate ROM0 */
@@ -1242,8 +1243,6 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     // set entry point
     s->cpu->env.regs[15] = 0x800000;
     s->cpu->env.regs[13] = 0x1900;
-    
-    precompute_yuv2rgb(1);
 }
 
 ML_MACHINE(50D,   0xFF010000);
@@ -2479,6 +2478,45 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *ws, unsigned int 
                 ws->img_vram = value;
             }
             break;
+        
+        case 0x80 ... 0xBC:
+            msg = "4-bit palette";
+            if(type & MODE_WRITE)
+            {
+                int entry = ((address & 0xFFF) - 0x80) / 4;
+                uint32_t pal = value;
+
+                int opacity = (pal >> 24) & 0xFF;
+                uint8_t Y = (pal >> 16) & 0xFF;
+                int8_t  U = (pal >>  8) & 0xFF;
+                int8_t  V = (pal >>  0) & 0xFF;
+                int R, G, B;
+                yuv2rgb(Y, U, V, &R, &G, &B);
+                
+                static char msg_pal[50];
+                
+                if (value)
+                {
+                    snprintf(msg_pal, sizeof(msg_pal), 
+                        "Palette[%X] -> R%03d G%03d B%03d %s",
+                        entry, R, G, B,
+                        opacity != 3 ? "transparent?" : ""
+                    );
+                }
+                else
+                {
+                    snprintf(msg_pal, sizeof(msg_pal), 
+                        "Palette[%X] -> empty",
+                        entry
+                    );
+                }
+                msg = msg_pal;
+
+                ws->palette_4bit[entry].R = R;
+                ws->palette_4bit[entry].G = G;
+                ws->palette_4bit[entry].B = B;
+                ws->palette_4bit[entry].opacity = opacity;
+            }
     }
 
     io_log("Display", ws, address, type, value, ret, msg, 0, 0);
