@@ -1,15 +1,3 @@
-From 46fc68bee63cd8385b6db86a7d81d20237f241ce Mon Sep 17 00:00:00 2001
-From: Antony Pavlov <antonynpavlov@gmail.com>
-Date: Sat, 24 Aug 2013 21:59:29 +0400
-Subject: [PATCH] qemu-1.6.0 eos support patch
-
-Signed-off-by: Antony Pavlov <antonynpavlov@gmail.com>
----
- hw/arm/Makefile.objs |  1 +
- memory.c             |  5 ++++-
- target-arm/cpu.c     | 13 +++++++++++++
- 3 files changed, 18 insertions(+), 1 deletion(-)
-
 diff --git a/hw/arm/Makefile.objs b/hw/arm/Makefile.objs
 index 9e3a06f..b6a67b0 100644
 --- a/hw/arm/Makefile.objs
@@ -76,6 +64,27 @@ index 5a7566b..46e347c 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
--- 
-1.8.3.2
-
+diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
+index a918e5b..95484a0 100644
+--- a/target-arm/op_helper.c
++++ b/target-arm/op_helper.c
+@@ -276,6 +276,9 @@ void HELPER(set_user_reg)(CPUARMState *env, uint32_t regno, uint32_t val)
+ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+ {
+     const ARMCPRegInfo *ri = rip;
++    printf("[CP%02d]     at 0x%08X     [%-10s] <- 0x%X\n",
++        ri->cp, env->regs[15], ri->name, value
++    );
+     int excp = ri->writefn(env, ri, value);
+     if (excp) {
+         raise_exception(env, excp);
+@@ -290,6 +293,9 @@ uint32_t HELPER(get_cp_reg)(CPUARMState *env, void *rip)
+     if (excp) {
+         raise_exception(env, excp);
+     }
++    printf("[CP%02d]     at 0x%08X     [%-10s] -> 0x%X\n",
++        ri->cp, env->regs[15], ri->name, (uint32_t)value
++    );
+     return value;
+ }
+ 
