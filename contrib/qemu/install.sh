@@ -31,6 +31,14 @@ echo
 wget -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
 tar jxf $QEMU_NAME.tar.bz2
 
+# initialize a git repo, to make it easy to track changes to QEMU source
+cd $QEMU_NAME
+git init
+rm */.git       # https://bugs.launchpad.net/qemu/+bug/1224414
+git add .
+git commit -m "$QEMU_NAME vanilla" 
+cd ..
+
 # apply our patch
 cp -v ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
