@@ -1042,6 +1042,7 @@ static void eos_key_event(void *parm, int keycode)
 static EOSState *eos_init_cpu(void)
 {
     EOSState *s = g_new(EOSState, 1);
+    memset(s, 0, sizeof(*s));
 
     s->verbosity = 0xFFFFFFFF;
     s->tio_rxbyte = 0x100;
