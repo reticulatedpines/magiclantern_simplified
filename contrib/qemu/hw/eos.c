@@ -592,6 +592,8 @@ static void *eos_interrupt_thread(void *parm)
 
         usleep(0x100);
 
+        qemu_mutex_lock(&s->irq_lock);
+
         s->digic_timer += 0x100;
         s->digic_timer &= 0xFFF00;
         
@@ -640,6 +642,8 @@ static void *eos_interrupt_thread(void *parm)
                 s->irq_schedule[pos]--;
             }
         }
+
+        qemu_mutex_unlock(&s->irq_lock);
     }
 
     return NULL;
@@ -1126,6 +1130,7 @@ static EOSState *eos_init_cpu(void)
 
     s->rtc.transfer_format = 0xFF;
 
+    qemu_mutex_init(&s->irq_lock);
     qemu_thread_create(&s->interrupt_thread_id, eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
 
     s->con = graphic_console_init(NULL, &eos_display_ops, s);
@@ -1496,6 +1501,8 @@ unsigned int eos_handler ( EOSState *ws, unsigned int address, unsigned char typ
 
 unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
 {
+    qemu_mutex_lock(&ws->irq_lock);
+
     if(!delay && ws->irq_enabled[id] && !ws->irq_id)
     {
         printf("[EOS] trigger int 0x%02X\n", id);
@@ -1511,6 +1518,8 @@ unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
         }
         ws->irq_schedule[id] = MAX(delay, 1);
     }
+
+    qemu_mutex_unlock(&ws->irq_lock);
     return 0;
 }
 

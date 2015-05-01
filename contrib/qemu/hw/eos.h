@@ -153,6 +153,7 @@ typedef struct
     uint32_t irq_enabled[INT_ENTRIES];
     uint32_t irq_schedule[INT_ENTRIES];
     uint32_t irq_id;
+    QemuMutex irq_lock;
     uint32_t digic_timer;
     uint32_t timer_reload_value[3];
     uint32_t timer_current_value[3];
