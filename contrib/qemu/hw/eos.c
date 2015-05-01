@@ -2402,9 +2402,59 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *ws, unsigned int ad
     switch(address & 0xFFFF)
     {
         case 0x8104:
-        case 0x21F7:
             msg = "5D3 unknown (trying random)";
             ret = rand();
+            break;
+
+        case 0x21F0:
+            msg = "ATA data port";
+            break;
+
+        case 0x21F1:
+            if(type & MODE_WRITE)
+            {
+                msg = "ATA features";
+            }
+            else
+            {
+                msg = "ATA error";
+            }
+            break;
+
+        case 0x21F2:
+            msg = "ATA sector count";
+            break;
+
+        case 0x21F3:
+            msg = "ATA LBAlo";
+            break;
+
+        case 0x21F4:
+            msg = "ATA LBAmid";
+            break;
+
+        case 0x21F5:
+            msg = "ATA LBAhi";
+            break;
+
+        case 0x21F6:
+            msg = "ATA drive/head port";
+            break;
+
+        case 0x21F7:
+            if(type & MODE_WRITE)
+            {
+                msg = "ATA command";
+            }
+            else
+            {
+                msg = "ATA status (returning 'drive fault')";
+                ret = (1<<5) | (1<<0);
+            }
+            break;
+        
+        case 0x23F6:
+            msg = "ATA drive address";
             break;
     }
     io_log("CFDMA", ws, address, type, value, ret, msg, 0, 0);
