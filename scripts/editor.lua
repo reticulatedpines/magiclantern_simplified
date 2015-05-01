@@ -362,13 +362,14 @@ editor =
         },
         {
             name = "Debug",
-            items = {"Run","Detach"},
+            items = {"Run","Step Into","Stacktrace","Locals","Detach"},
         }
     },
     filedialog = filedialog.create(),
     menu_index = 1,
     submenu_index = 1,
-    font = FONT.MONO_20
+    font = FONT.MONO_20,
+    debugging = false
 }
 
 editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height / 2
@@ -398,6 +399,8 @@ function editor:run()
         self:main_loop()
     end, debug.traceback)
     if status == false then
+        debug.sethook()
+        self.debugging = false
         handle_error(error)
     end
     keyhandler:stop()
@@ -498,6 +501,8 @@ function editor:handle_key(k)
             end
         end
         self:scroll_into_view()
+    elseif k == KEY.LV or k == KEY.REC then
+        self:toggle_breakpoint(self.line)
     elseif k == KEY.SET then
         --insert char
         self:update_title(true)
@@ -564,28 +569,50 @@ function editor:handle_menu_key(k)
         self.submenu_index = dec(self.submenu_index,1,#(m.items))
     elseif k == KEY.SET then
         local m = self.menu[self.menu_index].items[self.submenu_index]
-        if m == "Exit" then return false
-        elseif m == "Save" then self:save(self.filename)
-        elseif m == "Save As" then self:save()
-        elseif m == "New" then self:new()
-        elseif m == "Open" then self:open()
-        elseif m == "Cut" then self:copy() self:delete_selection()
-        elseif m == "Copy" then self:copy()
-        elseif m == "Paste" then self:paste()
-        elseif m == "Select All" then
-            self.selection_start = {1,1}
-            self.selection_end = {#(self.lines),#(self.lines[self.line])}
-        elseif m == "Run" then
-            if self:save(self.filename) then
-                --if debug is sucessful then exit
-                if self:debug() then return false end
+        if self:menu_enabled(m) then
+            if m == "Exit" then return false
+            elseif m == "Save" then self:save(self.filename)
+            elseif m == "Save As" then self:save()
+            elseif m == "New" then self:new()
+            elseif m == "Open" then self:open()
+            elseif m == "Cut" then self:copy() self:delete_selection()
+            elseif m == "Copy" then self:copy()
+            elseif m == "Paste" then self:paste()
+            elseif m == "Select All" then
+                self.selection_start = {1,1}
+                self.selection_end = {#(self.lines),#(self.lines[self.line])}
+            elseif m == "Run" then
+                if self:save(self.filename) then
+                    self:debug()
+                end
+            elseif m == "Step Into" then
+                if self:save(self.filename) then
+                    self:debug(true)
+                end
+            elseif m == "Detach" then
+                self.debugging = false
+                debug.sethook()
+            elseif m == "Stacktrace" then
+                self:draw_text(self.stacktrace)
+            elseif m == "Locals" then
+                self:draw_text(self.locals)
             end
-        elseif m == "Detach" then
-            self.debugging = false
-            debug.sethook()
         end
     end
     return true
+end
+
+function editor:menu_enabled(m)
+    if self.debugging then
+        if m == "Exit" or m == "Copy" or m == "Detach" or m =="Stacktrace" or m == "Locals" or m == "Globals" then
+            return true
+        else
+            return false
+        end
+    else
+        if m == "Detach" or m =="Stacktrace" or m == "Locals" or m == "Globals" then return false
+        else return true end
+    end
 end
 
 function editor:open()
@@ -601,6 +628,7 @@ function editor:open()
         self.line = 1
         self.col = 1
         self.scroll = 1
+        self.breakpoints = {}
     end
     self.menu_open = false
 end
@@ -613,6 +641,7 @@ function editor:new()
     self.line = 1
     self.col = 1
     self.scroll = 1
+    self.breakpoints = {}
 end
 
 function editor:save(filename)
@@ -677,14 +706,13 @@ function editor:paste()
     self.menu_open = false
 end
 
-function editor:debug()
+function editor:debug(step_into)
     if self.filename ~= nil then
         self.debugging = true
         keyhandler:stop()
+        self.step_over = step_into
         debug.sethook(function(event,line) self:debug_step(event,line) end, "l")
         local status,error = xpcall(dofile, debug.traceback, self.filename)
-        debug.sethook()
-        self.debugging = false
         keyhandler:start()
         if status == false then
             handle_error(error)
@@ -698,17 +726,47 @@ end
 function editor:debug_step(event,line)
     local info = debug.getinfo(3,"S")
     if info.short_src == self.filename then
-        self.line = line
-        self.col = 1
-        self.selection_start = {line,1} 
-        self.selection_end = {line,#(self.lines[line])}
-        self:scroll_into_view()
-        self:main_loop()
+        if self.step_over or self.breakpoints[line] then
+            self.stacktrace = debug.traceback(nil,3)
+            local name,value
+            local i = 1
+            self.locals = ""
+            while true do
+                name,value = debug.getlocal(3,i)
+                if name == nil then break end
+                if value == nil then
+                    self.locals = string.format("%s\n%s=(nil)",self.locals,name)
+                elseif type(value) == "number" then
+                    self.locals = string.format("%s\n%s=%d",self.locals,name,value)
+                elseif type(value) == "string" then
+                    self.locals = string.format("%s\n%s='%s'",self.locals,name,value)
+                else
+                    self.locals = string.format("%s\n%s=%s",self.locals,name,type(value))
+                end
+                i = i + 1
+            end
+            self.line = line
+            self.col = 1
+            self.selection_start = {line,1} 
+            self.selection_end = {line,#(self.lines[line])}
+            self:scroll_into_view()
+            self:main_loop()
+        end
+    end
+end
+
+function editor:toggle_breakpoint(line)
+    if self.breakpoints[line] then
+        self.breakpoints[line] = false
+    else
+        self.breakpoints[line] = true
     end
 end
 
 function editor:handle_debug_key(k)
-    if k == KEY.WHEEL_DOWN then
+    if k == KEY.Q then
+        self.menu_open = true
+    elseif k == KEY.WHEEL_DOWN then
         self.scroll = inc(self.scroll,1,#(self.lines))
     elseif k == KEY.WHEEL_UP then
         self.scroll = dec(self.scroll,1,#(self.lines))
@@ -726,8 +784,15 @@ function editor:handle_debug_key(k)
         if self.col == 1 then self.line = dec(self.line,1,#(self.lines)) end
         self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
         self:scroll_into_view()
+    elseif k == KEY.SET then
+        --step over
+        self.step_over = true
+        return false
+    elseif k == KEY.LV or k == KEY.REC then
+        self:toggle_breakpoint(self.line)
     elseif k == KEY.PLAY then
         --continue
+        self.step_over = false
         return false
     end
 end
@@ -778,6 +843,22 @@ function editor:draw()
     display.draw_end()
 end
 
+function editor:draw_text(text)
+    self.menu_open = false
+    local pos = self:draw_title()
+    display.rect(0,pos,720,480-pos,COLOR.BLACK,COLOR.BLACK)
+    for line in text:gmatch("[^\r\n]+") do
+        local clipped = display.print(line,10,pos,self.font)
+        while clipped ~= nil do
+            pos = pos + self.font.height
+            clipped = display.print(clipped,10,pos,self.font)
+        end
+        pos = pos + self.font.height
+    end
+    keyhandler:anykey()
+    self.menu_open = true
+end
+
 function editor:draw_title()
     local w = FONT.LARGE:width("Q") + 20
     local h = 20 + FONT.LARGE.height
@@ -806,11 +887,20 @@ function editor:draw_submenu(m,x,y)
     x = x + 5
     y = y + 5
     for i,v in ipairs(m) do
-        if i == self.submenu_index then
-            display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
-            display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
+        if self:menu_enabled(v) then
+            if i == self.submenu_index then
+                display.rect(x,y,w-10,f.height,COLOR.BLUE,COLOR.BLUE)
+                display.print(v,x,y,f,COLOR.WHITE,COLOR.BLUE)
+            else
+                display.print(v,x,y,f,COLOR.WHITE,bg)
+            end
         else
-            display.print(v,x,y,f,COLOR.WHITE,bg)
+            if i == self.submenu_index then
+                display.rect(x,y,w-10,f.height,COLOR.DARK_GRAY,COLOR.DARK_GRAY)
+                display.print(v,x,y,f,COLOR.GRAY,COLOR.DARK_GRAY)
+            else
+                display.print(v,x,y,f,COLOR.DARK_GRAY,bg)
+            end
         end
         y = y + f.height
     end
@@ -867,7 +957,12 @@ function editor:draw_main()
     for i,v in ipairs(self.lines) do
         if i >= self.scroll then
             if self.show_line_numbers then
-                display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
+                if self.breakpoints[i] then
+                    display.rect(0,pos,pad - 5,h,COLOR.RED,COLOR.RED)
+                    display.print(string.format("%4d",i),0,pos,self.font,COLOR.WHITE,COLOR.RED)
+                else
+                    display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
+                end
             end
             local clipped = display.print(v,pad,pos,self.font)
             local actual_pos = pos
