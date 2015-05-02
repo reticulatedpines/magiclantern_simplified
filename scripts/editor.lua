@@ -82,6 +82,56 @@ function keyhandler:anykey()
     if started then self:stop() end
 end
 
+button = {}
+button.__index = button
+
+function button.create(caption,x,y,font,w,h)
+    local b = {}
+    setmetatable(b,button)
+    b.font = font
+    if b.font == nil then
+        b.font = FONT.MED_LARGE
+    end
+    b.caption = caption
+    b.pad = 5
+    b.left = x
+    b.top = y
+    b.width = w
+    b.height = h
+    b.border = COLOR.WHITE
+    b.foreground = COLOR.WHITE
+    b.background = COLOR.BLACK
+    b.highlight = COLOR.BLUE
+    b.disabled_color = COLOR.DARK_GRAY
+    b.disabled_background = COLOR.gray(5)
+    b.focused = false
+    b.disabled = false
+    if h == nil then
+        b.height = b.font.height + b.pad * 2
+    end
+    if w == nil then
+        b.width = b.font:width(b.caption) + b.pad * 2
+    end
+    return b
+end
+
+function button:draw()
+    local bg = self.background
+    local fg = self.foreground
+    if self.disabled then fg = self.disabled_color end
+    if self.focused then
+        if self.disabled then bg = self.disabled_background
+        else bg = self.highlight end
+    end
+    display.rect(self.left,self.top,self.width,self.height,self.border,bg)
+    local x =  math.floor(self.width / 2 - self.font:width(self.caption) / 2)
+    display.print(self.caption,self.left + x,self.top + self.pad,self.font,fg,bg)
+end
+
+function button:handle_key(k)
+    if k == KEY.SET and self.focused and self.disabled == false then return self.caption end
+end
+
 textbox = {}
 textbox.__index = textbox
 function textbox.create(value,x,y,w,font,h)
@@ -102,6 +152,7 @@ function textbox.create(value,x,y,w,font,h)
     tb.border = COLOR.WHITE
     tb.foreground = COLOR.WHITE
     tb.background = COLOR.BLACK
+    tb.focused_background = COLOR.BLUE
     tb.col = 1
     if h == nil then
         tb.height = tb.font.height + 10
@@ -110,8 +161,10 @@ function textbox.create(value,x,y,w,font,h)
 end
 
 function textbox:draw()
-    display.rect(self.left,self.top,self.width,self.height,self.border,self.background)
-    display.print(self.value,self.left + self.pad,self.top + self.pad,self.font,self.foreground,self.background)
+    local bg = self.background
+    if self.focused then bg = self.focused_background end
+    display.rect(self.left,self.top,self.width,self.height,self.border,bg)
+    display.print(self.value,self.left + self.pad,self.top + self.pad,self.font,self.foreground,bg)
     local w = self.font:width(self.value:sub(1,self.col - 1))
     if self.col == 1 then w = 0 end
     local ch = self.value:sub(self.col,self.col)
@@ -167,7 +220,18 @@ function filedialog.create()
     fd.height = 380
     fd.left = 100
     fd.width = 520
+    fd:createcontrols()
     return fd
+end
+
+function filedialog:createcontrols()
+    self.save_box = textbox.create("",self.left,self.top + self.height - self.font.height - 10,self.width)
+    --limit chars to those needed for filenames
+    self.save_box.min_char = 46
+    self.save_box.max_char = 95
+    local w = self.width / 2
+    self.ok_button = button.create("OK",self.left,self.top+self.height,self.font,w)
+    self.cancel_button = button.create("Cancel",self.left + w,self.top+self.height,self.font,w)
 end
 
 function filedialog:updatefiles()
@@ -204,8 +268,40 @@ function filedialog:scroll_into_view()
     end
 end
 
+function filedialog:focus_next()
+    if self.save_mode then
+        self.focused_index = inc(self.focused_index,1,4)
+    else
+        self.focused_index = inc(self.focused_index,1,3)
+    end
+    self:update_focus()
+end
+
+function filedialog:update_focus()
+    self.focused = (self.focused_index == 1)
+    if self.save_mode then
+        self.save_box.focused = (self.focused_index == 2)
+        self.ok_button.focused = (self.focused_index == 3)
+        self.cancel_button.focused = (self.focused_index == 4)
+    else
+        self.ok_button.focused = (self.focused_index == 2)
+        self.cancel_button.focused = (self.focused_index == 3)
+    end
+end
+
 function filedialog:handle_key(k)
-    if k == KEY.Q then return "cancel"
+    if k == KEY.Q then
+        self:focus_next()
+    elseif self.save_mode and self.focused_index == 2 then
+        return self.save_box:handle_key(k)
+    elseif self.focused_index == 2 then
+        return self.ok_button:handle_key(k)
+    elseif self.save_mode and self.focused_index == 3 then
+        return self.ok_button:handle_key(k)
+    elseif self.focused_index == 3 then
+        return self.cancel_button:handle_key(k)
+    elseif self.focused_index == 4 then
+        return self.cancel_button:handle_key(k)
     elseif k == KEY.UP or k == KEY.WHEEL_UP then
         self.selected = dec(self.selected,0,self.item_count)
         self:scroll_into_view()
@@ -226,26 +322,22 @@ function filedialog:handle_key(k)
             self.scroll = 0
             self:updatefiles()
         elseif self.save_mode then
-            local result = self.current.path..self.save_box.value
-            self.save_box = nil
-            return result
+            local found = self.current.path:find("/[^/]+$")
+            self.save_box.value = self.current.path:sub(found)
         else
             return self.selected_value
         end
-    elseif self.save_mode then
-        self.save_box:handle_key(k)
     end
 end
 
 function filedialog:save(default_name)
     self.save_mode = true
-    if default_name == nil then
-        default_name = "untitled"
+    if default_name ~= nil then
+        self.save_box.value = default_name
     end
-    self.save_box = textbox.create(default_name,self.left,self.top + self.height - self.font.height - 10,self.width)
-    --limit chars to those needed for filenames
-    self.save_box.min_char = 46
-    self.save_box.max_char = 95
+    if self.save_box.value == nil then
+        self.save_box.value = "UNTITLED"
+    end
     return self:show()
 end
 
@@ -260,6 +352,9 @@ function filedialog:show()
         self.selected = 1
         self.scroll = 0
     end
+    self.focused_index = 1
+    self:update_focus()
+    local w = self.width/2
     self:updatefiles()
     self:draw()
     local started = keyhandler:start()
@@ -268,9 +363,13 @@ function filedialog:show()
         if keys ~= nil then
             for i,v in ipairs(keys) do
                 local result = self:handle_key(v)
-                if result == "cancel" then 
+                if result == "Cancel" then 
                     if started then keyhandler:stop() end
                     return nil
+                elseif result == "OK" then
+                    if started then keyhandler:stop() end
+                    if self.save_mode then return self.current.path..self.save_box.value
+                    else return self.selected_value end
                 elseif result ~= nil then
                     if started then keyhandler:stop() end
                     return result
@@ -285,9 +384,13 @@ end
 function filedialog:draw()
     display.draw_start()
     self:draw_main()
-    if self.save_mode then
+    if self.save_mode then 
         self.save_box:draw()
+    else
+        self.ok_button.disabled = self.is_dir_selected
     end
+    self.ok_button:draw()
+    self.cancel_button:draw()
     display.draw_end()
 end
 
@@ -306,12 +409,14 @@ function filedialog:draw_main()
     pos = pos + 10
     local dir_count = 0
     local status,items
+    local sel_color = COLOR.DARK_GRAY
+    if self.focused then sel_color = COLOR.BLUE end
     self.is_dir_selected = false
     if self.current.exists ~= true then return end
     if self.scroll <= 0 then
         if self.selected == 0 then
-            display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
-            display.print("..", x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
+            display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
+            display.print("..", x, pos, self.font, COLOR.WHITE, sel_color)
         else
             display.print("..", x, pos, self.font)
         end
@@ -323,8 +428,8 @@ function filedialog:draw_main()
                 if i == self.selected then
                     self.is_dir_selected = true
                     self.selected_value = v
-                    display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
-                    display.print(v.path, x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
+                    display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
+                    display.print(v.path, x, pos, self.font, COLOR.WHITE, sel_color)
                 else
                     display.print(v.path, x, pos, self.font)
                 end
@@ -339,8 +444,8 @@ function filedialog:draw_main()
             if dir_count + i > self.scroll then
                 if dir_count + i == self.selected then
                     self.selected_value = v
-                    display.rect(self.left + 1,pos,self.width - 2,self.font.height,COLOR.BLUE,COLOR.BLUE)
-                    display.print(v, x, pos, self.font, COLOR.WHITE, COLOR.BLUE)
+                    display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
+                    display.print(v, x, pos, self.font, COLOR.WHITE, sel_color)
                 elseif self.save_mode then
                     display.print(v, x, pos, self.font, COLOR.GRAY, COLOR.BLACK)
                 else
