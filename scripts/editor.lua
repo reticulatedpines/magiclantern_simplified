@@ -65,7 +65,18 @@ function keyhandler:anykey()
     --ignore any immediate keys
     task.yield(100)
     self:getkeys()
-    while self:getkeys() == nil do
+    while true do
+        local keys = self:getkeys()
+        if keys ~= nil then
+            local exit = false
+            for i,v in ipairs(keys) do
+                if v ~= KEY.UNPRESS_SET then
+                    exit = true
+                    break
+                end
+            end
+            if exit then break end
+        end
         task.yield(100)
     end
     if started then self:stop() end
@@ -122,7 +133,6 @@ function textbox:handle_key(k)
         else
            self.value = l..string.char(self.min_char)
         end
-        self:scroll_into_view()
     elseif k == KEY.WHEEL_RIGHT then
         --mod char
         local l = self.value
@@ -348,7 +358,7 @@ editor =
     running = false,
     first_run = true,
     min_char = 32,
-    max_char = 127,
+    max_char = 126,
     show_line_numbers = true,
     menu = 
     {
@@ -401,6 +411,8 @@ function editor:run()
     if status == false then
         debug.sethook()
         self.debugging = false
+        --if there was an error during a drawing operation, then make sure to free the lock
+        if self.drawing then display.draw_end() end
         handle_error(error)
     end
     keyhandler:stop()
@@ -409,6 +421,7 @@ function editor:run()
 end
 
 function editor:main_loop()
+    menu.block(true)
     self:draw()
     keyhandler:start()
     while true do
@@ -437,6 +450,7 @@ function editor:main_loop()
         task.yield(100)
     end
     keyhandler:stop()
+    if self.running == false then menu.block(false) end
 end
 
 function editor:handle_key(k)
@@ -706,16 +720,38 @@ function editor:paste()
     self.menu_open = false
 end
 
+function editor.traceback(msg)
+    editor.debug_error_msg = msg
+    editor.debug_error_info = debug.getinfo(2,"lS")
+    editor:capture_locals(3)
+    return debug.traceback(msg,2)
+end
+
 function editor:debug(step_into)
     if self.filename ~= nil then
         self.debugging = true
+        self.debug_error = false
+        self.debug_line = -1
+        self:draw()
         keyhandler:stop()
         self.step_over = step_into
-        debug.sethook(function(event,line) self:debug_step(event,line) end, "l")
-        local status,error = xpcall(dofile, debug.traceback, self.filename)
+        self.debug_call = true
+        debug.sethook(function(event,line) self:debug_step(event,line) end, "c")
+        local status,error = xpcall(dofile, editor.traceback, self.filename)
         keyhandler:start()
         if status == false then
-            handle_error(error)
+            debug.sethook()
+            self.debug_error = true
+            self.stacktrace = error
+            if self.debug_error_info ~= nil then
+                if self.filename == self.debug_error_info.short_src then
+                    self.error_line = self.debug_error_info.currentline
+                    if type(self.error_line) == "number" then
+                        self.line = self.error_line
+                        self:scroll_into_view()
+                    end
+                end
+            end
             return false
         end
         return true
@@ -723,35 +759,51 @@ function editor:debug(step_into)
     return false
 end
 
+function editor:capture_locals(level)
+    local name,value
+    local i = 1
+    self.locals = ""
+    while true do
+        name,value = debug.getlocal(level,i)
+        if name == nil then break end
+        if value == nil then
+            self.locals = string.format("%s\n%s=(nil)",self.locals,name)
+        elseif type(value) == "number" then
+            self.locals = string.format("%s\n%s=%d",self.locals,name,value)
+        elseif type(value) == "string" then
+            self.locals = string.format("%s\n%s='%s'",self.locals,name,value)
+        else
+            self.locals = string.format("%s\n%s=%s",self.locals,name,type(value))
+        end
+        i = i + 1
+    end
+ end
+ 
 function editor:debug_step(event,line)
     local info = debug.getinfo(3,"S")
     if info.short_src == self.filename then
-        if self.step_over or self.breakpoints[line] then
+        if self.debug_call then
+            --we've entered user code, switch back to line mode so as to catch breakpoints
+            debug.sethook()
+            debug.sethook(function(event,line) self:debug_step(event,line) end, "l")
+            self.debug_call = false
+        elseif self.step_over or self.breakpoints[line] then
             self.stacktrace = debug.traceback(nil,3)
-            local name,value
-            local i = 1
-            self.locals = ""
-            while true do
-                name,value = debug.getlocal(3,i)
-                if name == nil then break end
-                if value == nil then
-                    self.locals = string.format("%s\n%s=(nil)",self.locals,name)
-                elseif type(value) == "number" then
-                    self.locals = string.format("%s\n%s=%d",self.locals,name,value)
-                elseif type(value) == "string" then
-                    self.locals = string.format("%s\n%s='%s'",self.locals,name,value)
-                else
-                    self.locals = string.format("%s\n%s=%s",self.locals,name,type(value))
-                end
-                i = i + 1
-            end
+            self:capture_locals(4)
             self.line = line
             self.col = 1
-            self.selection_start = {line,1} 
-            self.selection_end = {line,#(self.lines[line])}
+            self.debug_line = line
             self:scroll_into_view()
             self:main_loop()
+            self.debug_line = -1
+            self:draw()
         end
+    elseif self.debug_call == false then
+        --switch to "c" hook mode, so that our own code runs faster
+        --it will never happen that there would be a switch to user code, w/o a function call first
+        debug.sethook()
+        debug.sethook(function(event,line) self:debug_step(event,line) end, "c")
+        self.debug_call = true
     end
 end
 
@@ -836,11 +888,26 @@ end
 
 function editor:draw()
     display.draw_start()
+    self.drawing = true
     self:draw_main()
     if self.menu_open then
         self:draw_menu()
     end
+    if self.debugging then
+        self:draw_debug_error()
+    end
+    self.drawing = false
     display.draw_end()
+end
+
+function editor:draw_debug_error()
+    if self.debug_error and self.debug_error_msg ~= nil then
+        display.rect(0,480 - self.font.height * 2 - 10,720,self.font.height*2 + 10,COLOR.RED,COLOR.BLACK)
+        local clipped = display.print(self.debug_error_msg,10,480 - self.font.height*2 - 5,self.font,COLOR.RED,COLOR.BLACK)
+        if clipped ~= nil then
+            display.print(clipped,10,480 - self.font.height - 5,self.font,COLOR.RED,COLOR.BLACK)
+        end
+    end
 end
 
 function editor:draw_text(text)
@@ -864,7 +931,13 @@ function editor:draw_title()
     local h = 20 + FONT.LARGE.height
     local bg = COLOR.gray(5)
     local fg = COLOR.GRAY
-    if self.debugging then bg = COLOR.DARK_GREEN1_MOD end
+    if self.debugging then 
+        if self.debug_error then
+            bg = COLOR.RED
+        else
+            bg = COLOR.DARK_GREEN1_MOD
+        end
+    end
     display.rect(0,0,720,h,fg,bg)
     if self.menu_open then
         display.rect(0,0,w,h,fg,COLOR.BLUE)
@@ -964,7 +1037,12 @@ function editor:draw_main()
                     display.print(string.format("%4d",i),0,pos,self.font,COLOR.BLUE,COLOR.BLACK)
                 end
             end
-            local clipped = display.print(v,pad,pos,self.font)
+            local bg = COLOR.BLACK
+            if self.debugging then
+                if i == self.error_line then bg = COLOR.RED
+                elseif i == self.debug_line then bg = COLOR.GREEN1 end
+            end
+            local clipped = display.print(v,pad,pos,self.font,COLOR.WHITE,bg)
             local actual_pos = pos
             local sublines = {}
             if clipped ~= nil then 
@@ -973,7 +1051,7 @@ function editor:draw_main()
             while clipped ~= nil do
                 pos = pos + h
                 local prev = clipped
-                clipped = display.print(clipped,pad,pos,self.font)
+                clipped = display.print(clipped,pad,pos,self.font,COLOR.WHITE,bg)
                 if clipped ~= nil then
                     table.insert(sublines,prev:sub(1,#prev - #clipped))
                 else
