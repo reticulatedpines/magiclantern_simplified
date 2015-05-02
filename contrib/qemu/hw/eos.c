@@ -1878,15 +1878,20 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
                     uint32_t blocksize = 8192;
                     uint8_t *buf = malloc(blocksize);
                     uint32_t remain = count;
+                    
+                    uint32_t src = srcAddr;
+                    uint32_t dst = dstAddr;
 
                     while(remain)
                     {
                         uint32_t transfer = (remain > blocksize) ? blocksize : remain;
 
-                        cpu_physical_memory_rw(srcAddr, buf, transfer, 0);
-                        cpu_physical_memory_rw(dstAddr, buf, transfer, 1);
+                        cpu_physical_memory_rw(src, buf, transfer, 0);
+                        cpu_physical_memory_rw(dst, buf, transfer, 1);
 
                         remain -= transfer;
+                        src += transfer;
+                        dst += transfer;
                     }
                     free(buf);
 
