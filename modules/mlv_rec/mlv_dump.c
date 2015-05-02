@@ -1735,6 +1735,9 @@ read_headers:
             /* is this the first file? */
             if(main_header.fileGuid == 0)
             {
+                /* correct header size if needed */
+                file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
 
                 total_vidf_count = main_header.videoFrameCount;
@@ -1742,9 +1745,6 @@ read_headers:
 
                 if(mlv_output)
                 {
-                    /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_file_hdr_t);
-
                     if(average_mode)
                     {
                         file_hdr.videoFrameCount = 1;
