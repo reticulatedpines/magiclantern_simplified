@@ -307,6 +307,7 @@ function filedialog:handle_key(k)
         self:scroll_into_view()
     elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN then 
         self.selected = inc(self.selected,0,self.item_count)
+        print(string.format("fd: %d %d",self.selected,self.item_count))
         self:scroll_into_view()
     elseif k == KEY.SET then
         if self.selected == 0 then
@@ -478,14 +479,24 @@ editor =
         {
             name = "Debug",
             items = {"Run","Step Into","Stacktrace","Locals","Detach"},
+        },
+        {
+            name = "Font",
+            items = {}
         }
     },
     filedialog = filedialog.create(),
     menu_index = 1,
     submenu_index = 1,
     font = FONT.MONO_20,
-    debugging = false
+    debugging = false,
+    time = 0
 }
+
+for k,v in pairs(FONT) do
+    table.insert(editor.menu[4].items,k)
+end
+table.sort(editor.menu[4].items)
 
 editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height / 2
 
@@ -496,6 +507,13 @@ editor.mlmenu = menu.new
     icon_type = ICON_TYPE.ACTION,
     select = function(this)
         task.create(function() editor:run() end)
+    end,
+    update = function(this)
+        if editor.filename ~= nil then
+            return editor.filename
+        else
+            return ""
+        end
     end
 }
 
@@ -552,6 +570,7 @@ function editor:main_loop()
             if exit then break end
             self:draw()
         end
+        editor.time = editor.time + 1
         task.yield(100)
     end
     keyhandler:stop()
@@ -715,6 +734,8 @@ function editor:handle_menu_key(k)
                 self:draw_text(self.stacktrace)
             elseif m == "Locals" then
                 self:draw_text(self.locals)
+            elseif FONT[m] ~= nil then
+                self.font = FONT[m]
             end
         end
     end
@@ -1060,7 +1081,7 @@ function editor:draw_submenu(m,x,y)
     local fg = COLOR.GRAY
     local f = FONT.LARGE
     local h = #m * f.height + 10
-    local w = 180
+    local w = 200
     display.rect(x,y,w,h,fg,bg)
     x = x + 5
     y = y + 5
