@@ -200,26 +200,48 @@ static int luaCB_display_circle(lua_State * L)
 }
 
 /***
- Draw to the idle buffer (for double buffered drawing)
- @function draw_start
+ Runs the given function and double-buffers all the drawing done by the function
+ Then copies the buffer back to the actual screen buffer when the function returns
+ Use this to avoid flickering when drawing
+ @tparam func draw_func
+ @function draw
  */
-static int luaCB_display_draw_start(lua_State * L)
+static int luaCB_display_draw(lua_State *L)
 {
-    AcquireRecursiveLock(bmp_lock, 0);
-    bmp_idle_copy(0,0);
-    bmp_draw_to_idle(1);
-    return 0;
-}
-
-/***
- Copy the idle buffer to the main buffer (for double buffered drawing)
- @function draw_end
- */
-static int luaCB_display_draw_end(lua_State * L)
-{
-    bmp_draw_to_idle(0);
-    bmp_idle_copy(1,0);
-    ReleaseRecursiveLock(bmp_lock);
+    if(!lua_isfunction(L, 1)) return luaL_argerror(L, 1, "expected function");
+    
+    //if not __display_draw_running
+    lua_getglobal(L, "__display_draw_running");
+    if(lua_isboolean(L, -1) && lua_toboolean(L, -1))
+    {
+        //we're already running inside a display.draw call, so just run the function
+        lua_pushvalue(L, 1);
+        lua_call(L,0,0);
+    }
+    else
+    {
+        //__display_draw_running = true
+        lua_pushboolean(L, 1);lua_setglobal(L, "__display_draw_running");
+        int status = 0;
+        
+        BMP_LOCK
+        (
+            bmp_idle_copy(0,0);
+            bmp_draw_to_idle(1);
+         
+            lua_pushvalue(L, 1);
+            status = docall(L, 0, 0);
+        
+            bmp_draw_to_idle(0);
+            bmp_idle_copy(1,0);
+        )
+        
+        //__display_draw_running = false
+        lua_pushboolean(L, 0);lua_setglobal(L, "__display_draw_running");
+        
+        //re-throw the error
+        if(status != LUA_OK) lua_error(L);
+    }
     return 0;
 }
 
@@ -270,8 +292,7 @@ const luaL_Reg displaylib[] =
     {"line", luaCB_display_line},
     {"rect", luaCB_display_rect},
     {"circle", luaCB_display_circle},
-    {"draw_start", luaCB_display_draw_start},
-    {"draw_end", luaCB_display_draw_end},
+    {"draw", luaCB_display_draw},
     {"notify_box", luaCB_display_notify_box},
     {NULL, NULL}
 };

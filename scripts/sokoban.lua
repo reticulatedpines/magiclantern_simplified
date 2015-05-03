@@ -234,7 +234,6 @@ end
 
 function draw_maze()
 
-    display.draw_start()
     display.rect(0, 0, 720, 480, COLOR.BLACK, COLOR.BLACK);
     local a = math.floor(math.min(400 / LINES, 700 / COLUMNS));
     local total_w = a * COLUMNS;
@@ -266,7 +265,6 @@ function draw_maze()
     for i = 1, 5, 1 do
         display.rect(x0-i, y0-i, total_w+2*i, total_h+2*i, COLOR.WHITE);
     end
-    display.draw_end()
 end
 
 function victory()
@@ -388,7 +386,7 @@ function main()
                         return;
                     end
                 end
-                draw_maze();
+                display.draw(draw_maze)
                 if check_solution() ~= 0 then break end
             end
             task.yield(100)

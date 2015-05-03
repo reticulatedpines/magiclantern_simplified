@@ -383,16 +383,16 @@ function filedialog:show()
 end
 
 function filedialog:draw()
-    display.draw_start()
-    self:draw_main()
-    if self.save_mode then 
-        self.save_box:draw()
-    else
-        self.ok_button.disabled = self.is_dir_selected
-    end
-    self.ok_button:draw()
-    self.cancel_button:draw()
-    display.draw_end()
+    display.draw(function()
+        self:draw_main()
+        if self.save_mode then 
+            self.save_box:draw()
+        else
+            self.ok_button.disabled = self.is_dir_selected
+        end
+        self.ok_button:draw()
+        self.cancel_button:draw()
+    end)
 end
 
 function filedialog:draw_main()
@@ -1013,17 +1013,17 @@ function editor:draw_status(msg)
 end
 
 function editor:draw()
-    display.draw_start()
-    self.drawing = true
-    self:draw_main()
-    if self.menu_open then
-        self:draw_menu()
-    end
-    if self.debugging then
-        self:draw_debug_error()
-    end
-    self.drawing = false
-    display.draw_end()
+    display.draw(function()
+        self.drawing = true
+        self:draw_main()
+        if self.menu_open then
+            self:draw_menu()
+        end
+        if self.debugging then
+            self:draw_debug_error()
+        end
+        self.drawing = false
+    end)
 end
 
 function editor:draw_debug_error()
