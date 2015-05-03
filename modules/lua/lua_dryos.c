@@ -216,8 +216,10 @@ static int luaCB_dryos_newindex(lua_State * L)
     }
     else if(!strcmp(key, "prefix"))
     {
+        static char prefix[8];
         LUA_PARAM_STRING(new_prefix, 3);
-        file_prefix_set(new_prefix);
+        strncpy(prefix, new_prefix, 7);
+        file_prefix_set(prefix);
     }
     else
     {
@@ -314,14 +316,6 @@ static int luaCB_directory_files(lua_State * L)
     }
     
     return 1;
-}
-
-static char * copy_string(const char * str)
-{
-    size_t len = strlen(str) + 1;
-    char * copy = malloc(sizeof(char) * len);
-    if(copy) strncpy(copy,str,len);
-    return copy;
 }
 
 static int luaCB_directory_index(lua_State * L)

@@ -237,6 +237,12 @@ static int luaCB_lvinfo_index(lua_State * L)
     return 1;
 }
 
+static void set_string(char ** entry, const char * value)
+{
+    if(*entry) free(*entry);
+    *entry = copy_string(value);
+}
+
 static int luaCB_lvinfo_newindex(lua_State * L)
 {
     if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
@@ -263,12 +269,12 @@ static int luaCB_lvinfo_newindex(lua_State * L)
     else if(!strcmp(key, "name"))
     {
         LUA_PARAM_STRING(value, 3);
-        item->name = value;
+        set_string(&(item->name),value);
     }
     else if(!strcmp(key, "value"))
     {
         LUA_PARAM_STRING(value, 3);
-        item->value = value;
+        set_string(&(item->value),value);
     }
     else if(!strcmp(key, "background"))
     {

@@ -305,7 +305,9 @@ static int luaCB_menu_set(lua_State * L)
     else
     {
         LUA_PARAM_STRING(value, 3);
-        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, value, -1));
+        char * copy = copy_string(value);
+        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, copy, -1));
+        free(copy);
     }
     return 1;
 }
@@ -468,6 +470,14 @@ static int luaCB_menu_instance_index(lua_State * L)
     return 1;
 }
 
+// we can't really maintain const correctness here because of the struct definition, const is discarded to avoid compiler warnings
+// we will only ever put dynamically created non-const strings in our structs for ML backends, so it's okay to discard the const
+static void set_string(const char ** entry, const char * value)
+{
+    if(*entry) free((char *)*entry);
+    *entry = copy_string(value);
+}
+
 static int luaCB_menu_instance_newindex(lua_State * L)
 {
     if(!lua_isuserdata(L, 1)) return luaL_argerror(L, 1, NULL);
@@ -488,9 +498,9 @@ static int luaCB_menu_instance_newindex(lua_State * L)
             script_entry->menu_value = value;
         }
     }
-    else if(!strcmp(key, "name")) { LUA_PARAM_STRING(value, 3); script_entry->menu_entry->name = value; }
-    else if(!strcmp(key, "help")) { LUA_PARAM_STRING(value, 3); script_entry->menu_entry->help = value; }
-    else if(!strcmp(key, "help2")) { LUA_PARAM_STRING(value, 3); script_entry->menu_entry->help2 = value; }
+    else if(!strcmp(key, "name")) { LUA_PARAM_STRING(value, 3); set_string(&(script_entry->menu_entry->name),value); }
+    else if(!strcmp(key, "help")) { LUA_PARAM_STRING(value, 3); set_string(&(script_entry->menu_entry->help),value); }
+    else if(!strcmp(key, "help2")) { LUA_PARAM_STRING(value, 3); set_string(&(script_entry->menu_entry->help2),value); }
     else if(!strcmp(key, "advanced")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->advanced = value; }
     else if(!strcmp(key, "depends_on")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->depends_on = value; }
     else if(!strcmp(key, "edit_mode")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->edit_mode = value; }
@@ -759,6 +769,12 @@ static int luaCB_menu_remove(lua_State * L)
         const char * parent = LUA_FIELD_STRING("parent", "LUA");
         menu_remove(parent, script_entry->menu_entry, 1);
         luaL_unref(L, LUA_REGISTRYINDEX, script_entry->self_ref);
+        if(script_entry->menu_entry->name) free((char*)script_entry->menu_entry->name);
+        script_entry->menu_entry->name = NULL;
+        if(script_entry->menu_entry->help) free((char*)script_entry->menu_entry->help);
+        script_entry->menu_entry->help = NULL;
+        if(script_entry->menu_entry->help2) free((char*)script_entry->menu_entry->help2);
+        script_entry->menu_entry->help2 = NULL;
     }
     else
     {

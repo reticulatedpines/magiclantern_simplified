@@ -107,6 +107,14 @@ static int string_ends_with(const char *source, const char *ending)
     return !strcmp(source + strlen(source) - strlen(ending), ending);
 }
 
+char * copy_string(const char * str)
+{
+    size_t len = strlen(str) + 1;
+    char * copy = malloc(sizeof(char) * len);
+    if(copy) strncpy(copy,str,len);
+    return copy;
+}
+
 /*** 
  Event Handlers.
  

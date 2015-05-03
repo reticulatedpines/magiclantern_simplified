@@ -56,7 +56,7 @@ const char * name = lua_tostring(L, index)
 
 #define LUA_PARAM_STRING_OPTIONAL(name, index, default) const char * name = (index <= lua_gettop(L) && lua_isstring(L, index)) ? lua_tostring(L, index) : default
 
-#define LUA_FIELD_STRING(field, default) lua_getfield(L, -1, field) == LUA_TSTRING ? lua_tostring(L, -1) : default; lua_pop(L, 1)
+#define LUA_FIELD_STRING(field, default) lua_getfield(L, -1, field) == LUA_TSTRING ? copy_string(lua_tostring(L, -1)) : copy_string(default); lua_pop(L, 1)
 #define LUA_FIELD_INT(field, default) lua_getfield(L, -1, field) == LUA_TNUMBER ? lua_tointeger(L, -1) : default; lua_pop(L, 1)
 #define LUA_FIELD_BOOL(field, default) lua_getfield(L, -1, field) == LUA_TBOOLEAN ? lua_toboolean(L, -1) : default; lua_pop(L, 1)
 
@@ -90,6 +90,7 @@ struct script_menu_entry
     int run_in_separate_task;
 };
 
+char * copy_string(const char * str);
 int docall(lua_State *L, int narg, int nres);
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore);
