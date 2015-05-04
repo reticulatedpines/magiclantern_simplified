@@ -1201,13 +1201,16 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     
     /* load a SD card image */
     s->sd.card_image = fopen("sd.img", "rb+");
-    if (!s->sd.card_image)
+    if (s->sd.card_image)
+    {
+        fseek(s->sd.card_image, 0, SEEK_END);
+        s->sd.card_image_size = ftell(s->sd.card_image);
+    }
+    else
     {
         printf("Failed to open SD card image sd.img\n");
+        /* continue without emulating SD access */
     }
-
-    fseek(s->sd.card_image, 0, SEEK_END);
-    s->sd.card_image_size = ftell(s->sd.card_image);
 
     if (0)
     {
