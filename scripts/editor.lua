@@ -307,7 +307,6 @@ function filedialog:handle_key(k)
         self:scroll_into_view()
     elseif k == KEY.DOWN or k == KEY.WHEEL_DOWN then 
         self.selected = inc(self.selected,0,self.item_count)
-        print(string.format("fd: %d %d",self.selected,self.item_count))
         self:scroll_into_view()
     elseif k == KEY.SET then
         if self.selected == 0 then
@@ -408,7 +407,7 @@ function filedialog:draw_main()
     local x = self.left + 10
     local r = self.left + self.width
     pos = pos + 10
-    local dir_count = 0
+    local dir_count = #(self.children)
     local status,items
     local sel_color = COLOR.DARK_GRAY
     if self.focused then sel_color = COLOR.BLUE end
@@ -435,7 +434,6 @@ function filedialog:draw_main()
                     display.print(v.path, x, pos, self.font)
                 end
                 pos = pos + self.font.height
-                dir_count = i
                 if (pos + self.font.height) > (self.top + self.height) then return end
             end
         end
