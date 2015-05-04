@@ -1544,7 +1544,10 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
                 msg_arg2 = ws->irq_id;
                 ret = ws->irq_id << 2;
 
-                if(ws->irq_id == 0x0A)
+                /* this register resets on read (subsequent reads should report 0) */
+                ws->irq_id = 0;
+
+                if(msg_arg2 == 0x0A)
                 {
                     /* timer interrupt, quiet */
                     return ret;
