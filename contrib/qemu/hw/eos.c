@@ -1546,6 +1546,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
 
                 /* this register resets on read (subsequent reads should report 0) */
                 ws->irq_id = 0;
+                cpu_reset_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
 
                 if(msg_arg2 == 0x0A)
                 {
@@ -1560,7 +1561,6 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
             {
                 msg = "Enabled interrupt %02Xh";
                 msg_arg1 = value;
-                cpu_reset_interrupt(CPU(ws->cpu), CPU_INTERRUPT_HARD);
                 ws->irq_id = 0;
                 ws->irq_enabled[value] = 1;
 
