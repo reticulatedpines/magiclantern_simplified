@@ -1051,8 +1051,6 @@ static EOSState *eos_init_cpu(void)
     s->verbosity = 0xFFFFFFFF;
     s->tio_rxbyte = 0x100;
 
-    memset(s->irq_enabled, 0x00, sizeof(s->irq_enabled));
-    memset(s->irq_schedule, 0x00, sizeof(s->irq_schedule));
     s->system_mem = get_system_memory();
 
     memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", TCM_SIZE);
