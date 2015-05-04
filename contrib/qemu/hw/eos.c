@@ -1561,8 +1561,10 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
             {
                 msg = "Enabled interrupt %02Xh";
                 msg_arg1 = value;
-                ws->irq_id = 0;
                 ws->irq_enabled[value] = 1;
+
+                /* we shouldn't reset ws->irq_id here (we already reset it on read) */
+                /* if we reset it here also, it will trigger interrupt 0 incorrectly (on race conditions) */
 
                 if (value == 0x0A)
                 {
