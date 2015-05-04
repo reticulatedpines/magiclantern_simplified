@@ -4,6 +4,7 @@
 #include "property.h"
 #include "raw.h"
 #include "lens.h"
+#include "timer.h"
 
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000
@@ -312,4 +313,40 @@ void qemu_cam_init()
     #endif
     
     pic_quality = PICQ_RAW;
+}
+
+void hptimer_cbr(int a, int b)
+{
+    qprintf("Hello from HPTimer (%d, %d)\n", a, b);
+}
+
+void qemu_hptimer_test()
+{
+    msleep(5000);
+
+    /* one HPTimer is easy to emulate, but getting them to work in multitasking is hard */
+    /* note: configuring 20 timers might cause a few of them to say NOT_ENOUGH_MEMORY */
+    /* this test will stress both the HPTimers and the interrupt engine */
+    SetHPTimerAfterNow(9000, hptimer_cbr, hptimer_cbr, 9);
+    SetHPTimerAfterNow(6000, hptimer_cbr, hptimer_cbr, 6);
+    SetHPTimerAfterNow(8000, hptimer_cbr, hptimer_cbr, 8);
+    SetHPTimerAfterNow(4000, hptimer_cbr, hptimer_cbr, 4);
+    SetHPTimerAfterNow(7000, hptimer_cbr, hptimer_cbr, 7);
+    SetHPTimerAfterNow(9000, hptimer_cbr, hptimer_cbr, 10);
+    SetHPTimerAfterNow(5000, hptimer_cbr, hptimer_cbr, 5);
+    SetHPTimerAfterNow(2000, hptimer_cbr, hptimer_cbr, 2);
+    SetHPTimerAfterNow(3000, hptimer_cbr, hptimer_cbr, 3);
+    SetHPTimerAfterNow(1000, hptimer_cbr, hptimer_cbr, 1);
+
+    SetHPTimerAfterNow(19000, hptimer_cbr, hptimer_cbr, 19);
+    SetHPTimerAfterNow(16000, hptimer_cbr, hptimer_cbr, 16);
+    SetHPTimerAfterNow(18000, hptimer_cbr, hptimer_cbr, 18);
+    SetHPTimerAfterNow(14000, hptimer_cbr, hptimer_cbr, 14);
+    SetHPTimerAfterNow(17000, hptimer_cbr, hptimer_cbr, 17);
+    SetHPTimerAfterNow(19000, hptimer_cbr, hptimer_cbr, 20);
+    SetHPTimerAfterNow(15000, hptimer_cbr, hptimer_cbr, 15);
+    SetHPTimerAfterNow(12000, hptimer_cbr, hptimer_cbr, 12);
+    SetHPTimerAfterNow(13000, hptimer_cbr, hptimer_cbr, 13);
+    SetHPTimerAfterNow(11000, hptimer_cbr, hptimer_cbr, 11);
+    msleep(5000);
 }

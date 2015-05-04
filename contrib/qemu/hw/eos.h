@@ -131,6 +131,13 @@ struct palette_entry
     uint8_t opacity;
 };
 
+struct HPTimer
+{
+    int active;
+    int output_compare;
+    int triggered;
+};
+
 typedef struct
 {
     ARMCPU *cpu;
@@ -158,6 +165,7 @@ typedef struct
     uint32_t timer_reload_value[3];
     uint32_t timer_current_value[3];
     uint32_t timer_enabled[3];
+    struct HPTimer HPTimers[8];
     uint32_t clock_enable;
     uint32_t flash_state_machine;
     QemuConsole *con;
@@ -216,6 +224,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *ws, unsigned int addr
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_basic ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_unk ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );

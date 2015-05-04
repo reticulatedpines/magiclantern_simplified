@@ -910,6 +910,7 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_EARLY_PORT
 
 #ifdef CONFIG_QEMU
+    qemu_hptimer_test();
     qemu_cam_init();
 #endif
 
