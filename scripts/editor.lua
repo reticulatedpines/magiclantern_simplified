@@ -132,6 +132,46 @@ function button:handle_key(k)
     if k == KEY.SET and self.focused and self.disabled == false then return self.caption end
 end
 
+scrollbar = {}
+scrollbar.__index = scrollbar
+
+function scrollbar.create(step,min,max,x,y,w,h)
+    local sb = {}
+    setmetatable(sb,scrollbar)
+    sb.step = step
+    sb.min = min
+    sb.max = max
+    sb.value = min
+    sb.top = y
+    sb.left = x
+    sb.width = w
+    sb.foreground = COLOR.BLUE
+    if width == nil then sb.w = 2 end
+    sb.height = h
+    if h == nil then sb.height = 480 - y end
+    return sb
+end
+
+function scrollbar:draw()
+    --update max automatically from 'table'
+    if self.table ~= nil then self.max = #(self.table) end
+    --don't draw if we are not needed
+    if (self.max - self.min + 1) * self.step <= self.height then return end
+    
+    local total_height = (self.max - self.min + 1) * self.step
+    local thumb_height = math.floor(self.height * self.height / total_height)
+    local offset = math.floor((self.value - self.min) * self.step * self.height / total_height)
+    display.rect(self.left,self.top + offset,self.width,thumb_height,self.foreground,self.foreground)
+end
+
+function scrollbar:up()
+    self.value = dec(self.value,self.min,self.max)
+end
+
+function scrollbar:down()
+    self.value = inc(self.value,self.min,self.max)
+end
+
 textbox = {}
 textbox.__index = textbox
 function textbox.create(value,x,y,w,font,h)
@@ -232,6 +272,8 @@ function filedialog:createcontrols()
     local w = self.width / 2
     self.ok_button = button.create("OK",self.left,self.top+self.height,self.font,w)
     self.cancel_button = button.create("Cancel",self.left + w,self.top+self.height,self.font,w)
+    local title_height = 20 + FONT.LARGE.height
+    self.scrollbar = scrollbar.create(self.font.height,0,1,self.left + self.width - 6,self.top + title_height, 2, self.height - title_height)
 end
 
 function filedialog:updatefiles()
@@ -258,13 +300,14 @@ function filedialog:updatefiles()
     else 
         self.files = nil 
     end
+    self.scrollbar.max = self.item_count
 end
 
 function filedialog:scroll_into_view()
-    if self.selected < self.scroll then
-        self.scroll = self.selected - 1
-    elseif self.selected >= self.scroll + (self.height - 20 - FONT.LARGE.height) / self.font.height - 2  then
-        self.scroll = self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 2)
+    if self.selected < self.scrollbar.value then
+        self.scrollbar.value = self.selected
+    elseif self.selected >= self.scrollbar.value + (self.height - 20 - FONT.LARGE.height) / self.font.height - 2  then
+        self.scrollbar.value = math.floor(self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 2))
     end
 end
 
@@ -313,13 +356,13 @@ function filedialog:handle_key(k)
             if self.current.parent ~= nil then
                 self.current = self.current.parent
                 self.selected = 1
-                self.scroll = 0
+                self.scrollbar.value = 0
                 self:updatefiles()
             end
         elseif self.is_dir_selected and self.selected_value ~= nil then
             self.current = self.selected_value
             self.selected = 1
-            self.scroll = 0
+            self.scrollbar.value = 0
             self:updatefiles()
         elseif self.save_mode then
             local found = self.current.path:find("/[^/]+$")
@@ -350,7 +393,7 @@ function filedialog:show()
     if self.current == nil then
         self.current = dryos.directory("ML/SCRIPTS")
         self.selected = 1
-        self.scroll = 0
+        self.scrollbar.value = 0
     end
     self.focused_index = 1
     self:update_focus()
@@ -384,6 +427,7 @@ end
 function filedialog:draw()
     display.draw(function()
         self:draw_main()
+        self.scrollbar:draw()
         if self.save_mode then 
             self.save_box:draw()
         else
@@ -413,7 +457,7 @@ function filedialog:draw_main()
     if self.focused then sel_color = COLOR.BLUE end
     self.is_dir_selected = false
     if self.current.exists ~= true then return end
-    if self.scroll <= 0 then
+    if self.scrollbar.value <= 0 then
         if self.selected == 0 then
             display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
             display.print("..", x, pos, self.font, COLOR.WHITE, sel_color)
@@ -424,7 +468,7 @@ function filedialog:draw_main()
     end
     if self.children ~= nil then
         for i,v in ipairs(self.children) do
-            if i > self.scroll then
+            if i > self.scrollbar.value then
                 if i == self.selected then
                     self.is_dir_selected = true
                     self.selected_value = v
@@ -440,7 +484,7 @@ function filedialog:draw_main()
     end
     if self.files ~= nil then
         for i,v in ipairs(self.files) do
-            if dir_count + i > self.scroll then
+            if dir_count + i > self.scrollbar.value then
                 if dir_count + i == self.selected then
                     self.selected_value = v
                     display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
@@ -496,7 +540,8 @@ for k,v in pairs(FONT) do
 end
 table.sort(editor.menu[4].items)
 
-editor.lines_per_page = (460 - FONT.LARGE.height) / editor.font.height / 2
+editor.lines_per_page = math.floor((460 - FONT.LARGE.height) / editor.font.height / 2)
+editor.scrollbar = scrollbar.create(editor.font.height,1,1,718,20 + FONT.LARGE.height,2)
 
 editor.mlmenu = menu.new
 {
@@ -532,8 +577,6 @@ function editor:run()
     if status == false then
         debug.sethook()
         self.debugging = false
-        --if there was an error during a drawing operation, then make sure to free the lock
-        if self.drawing then display.draw_end() end
         handle_error(error)
     end
     keyhandler:stop()
@@ -579,9 +622,9 @@ function editor:handle_key(k)
     if k == KEY.Q then
         self.menu_open = true
     elseif k == KEY.WHEEL_DOWN then
-        self.scroll = inc(self.scroll,1,#(self.lines))
+        self.scrollbar:down()
     elseif k == KEY.WHEEL_UP then
-        self.scroll = dec(self.scroll,1,#(self.lines))
+        self.scrollbar:up()
     elseif k ==  KEY.DOWN then
         self.line = inc(self.line,1,#(self.lines))
         self:scroll_into_view()
@@ -671,8 +714,8 @@ function editor:handle_key(k)
 end
 
 function editor:scroll_into_view()
-    if self.line < self.scroll then self.scroll = self.line
-    elseif self.line > (self.scroll + self.lines_per_page) then self.scroll = self.line - self.lines_per_page  + 1 end
+    if self.line < self.scrollbar.value then self.scrollbar.value = self.line
+    elseif self.line > (self.scrollbar.value + self.lines_per_page) then self.scrollbar.value = self.line - self.lines_per_page  + 1 end
 end
 
 function editor:update_title(mod, force)
@@ -734,6 +777,7 @@ function editor:handle_menu_key(k)
                 self:draw_text(self.locals)
             elseif FONT[m] ~= nil then
                 self.font = FONT[m]
+                self.scrollbar.step = self.font.height
             end
         end
     end
@@ -765,7 +809,8 @@ function editor:open()
         end
         self.line = 1
         self.col = 1
-        self.scroll = 1
+        self.scrollbar.table = self.lines
+        self.scrollbar.value = 1
         self.breakpoints = {}
     end
     self.menu_open = false
@@ -778,7 +823,8 @@ function editor:new()
     self.menu_open = false
     self.line = 1
     self.col = 1
-    self.scroll = 1
+    self.scrollbar.table = self.lines
+    self.scrollbar.value = 1
     self.breakpoints = {}
 end
 
@@ -797,6 +843,7 @@ function editor:save(filename)
             f:write(v,"\n")
         end
         f:close()
+        self.filename = filename
         self:update_title(false, true)
         self.menu_open = false
         return true
@@ -943,9 +990,9 @@ function editor:handle_debug_key(k)
     if k == KEY.Q then
         self.menu_open = true
     elseif k == KEY.WHEEL_DOWN then
-        self.scroll = inc(self.scroll,1,#(self.lines))
+        self.scrollbar:down()
     elseif k == KEY.WHEEL_UP then
-        self.scroll = dec(self.scroll,1,#(self.lines))
+        self.scrollbar:up()
     elseif k ==  KEY.DOWN then
         self.line = inc(self.line,1,#(self.lines))
         self:scroll_into_view()
@@ -1014,6 +1061,7 @@ function editor:draw()
     display.draw(function()
         self.drawing = true
         self:draw_main()
+        self.scrollbar:draw()
         if self.menu_open then
             self:draw_menu()
         end
@@ -1151,8 +1199,9 @@ function editor:draw_main()
         display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
     end
     if self.lines == nil then return end
+    local scroll = self.scrollbar.value
     for i,v in ipairs(self.lines) do
-        if i >= self.scroll then
+        if i >= scroll then
             if self.show_line_numbers then
                 if self.breakpoints[i] then
                     display.rect(0,pos,pad - 5,h,COLOR.RED,COLOR.RED)
