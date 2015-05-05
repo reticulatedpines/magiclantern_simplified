@@ -148,7 +148,7 @@ function scrollbar.create(step,min,max,x,y,w,h)
     sb.foreground = COLOR.BLUE
     if width == nil then sb.w = 2 end
     sb.height = h
-    if h == nil then sb.height = 480 - y end
+    if h == nil then sb.height = display.height - y end
     return sb
 end
 
@@ -540,8 +540,8 @@ for k,v in pairs(FONT) do
 end
 table.sort(editor.menu[4].items)
 
-editor.lines_per_page = math.floor((460 - FONT.LARGE.height) / editor.font.height / 2)
-editor.scrollbar = scrollbar.create(editor.font.height,1,1,718,20 + FONT.LARGE.height,2)
+editor.lines_per_page = math.floor((display.height - 20 - FONT.LARGE.height) / editor.font.height / 2)
+editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 + FONT.LARGE.height,2)
 
 editor.mlmenu = menu.new
 {
@@ -1074,10 +1074,10 @@ end
 
 function editor:draw_debug_error()
     if self.debug_error and self.debug_error_msg ~= nil then
-        display.rect(0,480 - self.font.height * 2 - 10,720,self.font.height*2 + 10,COLOR.RED,COLOR.BLACK)
-        local clipped = display.print(self.debug_error_msg,10,480 - self.font.height*2 - 5,self.font,COLOR.RED,COLOR.BLACK)
+        display.rect(0,display.height - self.font.height * 2 - 10,display.width,self.font.height*2 + 10,COLOR.RED,COLOR.BLACK)
+        local clipped = display.print(self.debug_error_msg,10,display.height - self.font.height*2 - 5,self.font,COLOR.RED,COLOR.BLACK)
         if clipped ~= nil then
-            display.print(clipped,10,480 - self.font.height - 5,self.font,COLOR.RED,COLOR.BLACK)
+            display.print(clipped,10,display.height - self.font.height - 5,self.font,COLOR.RED,COLOR.BLACK)
         end
     end
 end
@@ -1085,7 +1085,7 @@ end
 function editor:draw_text(text)
     self.menu_open = false
     local pos = self:draw_title()
-    display.rect(0,pos,720,480-pos,COLOR.BLACK,COLOR.BLACK)
+    display.rect(0,pos,display.width,display.height-pos,COLOR.BLACK,COLOR.BLACK)
     for line in text:gmatch("[^\r\n]+") do
         local clipped = display.print(line,10,pos,self.font)
         while clipped ~= nil do
@@ -1110,7 +1110,7 @@ function editor:draw_title()
             bg = COLOR.DARK_GREEN1_MOD
         end
     end
-    display.rect(0,0,720,h,fg,bg)
+    display.rect(0,0,display.width,h,fg,bg)
     if self.menu_open then
         display.rect(0,0,w,h,fg,COLOR.BLUE)
         display.print("Q",10,10,FONT.LARGE,COLOR.WHITE,COLOR.BLUE)
@@ -1189,14 +1189,14 @@ function editor:draw_selection(line_num,line,x,y,sublines)
 end
 
 function editor:draw_main()
-    display.rect(0,0,720,480,COLOR.BLACK,COLOR.BLACK)
+    display.rect(0,0,display.width,display.height,COLOR.BLACK,COLOR.BLACK)
     local pos = self:draw_title()
     pos = pos + 10
     local pad = 10
     local h = self.font.height
     if self.show_line_numbers then
         pad = pad + self.font:width("0000")
-        display.line(pad-5,pos,pad-5,480,COLOR.BLUE)
+        display.line(pad-5,pos,pad-5,display.height,COLOR.BLUE)
     end
     if self.lines == nil then return end
     local scroll = self.scrollbar.value
@@ -1258,7 +1258,7 @@ function editor:draw_main()
                 end
             end
             pos = pos + h
-            if pos >= 480 then return end
+            if pos >= display.height then return end
         end
     end
 end
@@ -1267,7 +1267,7 @@ function handle_error(error)
     if error == nil then error = "Unknown Error!\n" end
     local f = FONT.MONO_20
     print(error)
-    display.rect(0,0,720,480,COLOR.RED,COLOR.BLACK)
+    display.rect(0,0,display.width,display.height,COLOR.RED,COLOR.BLACK)
     local pos = 10
     for line in error:gmatch("[^\r\n]+") do
         local clipped = display.print(line,10,pos,f)
