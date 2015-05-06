@@ -273,7 +273,7 @@ function filedialog:createcontrols()
     self.ok_button = button.create("OK",self.left,self.top+self.height,self.font,w)
     self.cancel_button = button.create("Cancel",self.left + w,self.top+self.height,self.font,w)
     local title_height = 20 + FONT.LARGE.height
-    self.scrollbar = scrollbar.create(self.font.height,0,1,self.left + self.width - 6,self.top + title_height, 2, self.height - title_height)
+    self.scrollbar = scrollbar.create(self.font.height,0,1,self.left + self.width - 6,self.top + title_height, 2, self.height - title_height - self.save_box.height)
 end
 
 function filedialog:updatefiles()
@@ -306,8 +306,8 @@ end
 function filedialog:scroll_into_view()
     if self.selected < self.scrollbar.value then
         self.scrollbar.value = self.selected
-    elseif self.selected >= self.scrollbar.value + (self.height - 20 - FONT.LARGE.height) / self.font.height - 2  then
-        self.scrollbar.value = math.floor(self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 2))
+    elseif self.selected >= self.scrollbar.value + (self.height - 20 - FONT.LARGE.height) / self.font.height - 3  then
+        self.scrollbar.value = math.floor(self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 3))
     end
 end
 
@@ -457,7 +457,7 @@ function filedialog:draw_main()
     if self.focused then sel_color = COLOR.BLUE end
     self.is_dir_selected = false
     if self.current.exists ~= true then return end
-    if self.scrollbar.value <= 0 then
+    if self.scrollbar.value == 0 then
         if self.selected == 0 then
             display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
             display.print("..", x, pos, self.font, COLOR.WHITE, sel_color)
@@ -468,7 +468,7 @@ function filedialog:draw_main()
     end
     if self.children ~= nil then
         for i,v in ipairs(self.children) do
-            if i > self.scrollbar.value then
+            if i >= self.scrollbar.value then
                 if i == self.selected then
                     self.is_dir_selected = true
                     self.selected_value = v
@@ -484,7 +484,7 @@ function filedialog:draw_main()
     end
     if self.files ~= nil then
         for i,v in ipairs(self.files) do
-            if dir_count + i > self.scrollbar.value then
+            if dir_count + i >= self.scrollbar.value then
                 if dir_count + i == self.selected then
                     self.selected_value = v
                     display.rect(self.left + 1,pos,self.width - 2,self.font.height,sel_color,sel_color)
