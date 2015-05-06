@@ -199,6 +199,32 @@ static int luaCB_display_circle(lua_State * L)
     return 0;
 }
 
+static int luaCB_bitmap_index(lua_State * L);
+static int luaCB_bitmap_newindex(lua_State * L);
+
+/***
+ Loads a bitmap file so it can be drawn on the screen
+ @tparam string filename
+ @treturn bitmap
+ @function load
+ */
+static int luaCB_display_load(lua_State * L)
+{
+    LUA_PARAM_STRING(filename, 1);
+    struct bmp_file_t * bmp_file = bmp_load(filename, 1);
+    if(!bmp_file) return luaL_error(L, "Error loading bitmap file");
+    lua_newtable(L);
+    lua_pushlightuserdata(L, bmp_file);
+    lua_setfield(L, -2, "_ptr");
+    lua_pushcfunction(L, luaCB_bitmap_index);
+    lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, luaCB_bitmap_newindex);
+    lua_setfield(L, -2, "__newindex");
+    lua_pushvalue(L, -1);
+    lua_setmetatable(L, -2);
+    return 1;
+}
+
 /***
  Runs the given function and double-buffers all the drawing done by the function
  Then copies the buffer back to the actual screen buffer when the function returns
@@ -249,7 +275,7 @@ static int luaCB_display_draw(lua_State *L)
  Prints a message on the screen for a period of time
  @tparam string text
  @tparam[opt=1000] int timeout in ms
- @function circle
+ @function notify_box
  */
 static int luaCB_display_notify_box(lua_State * L)
 {
@@ -287,6 +313,81 @@ static int luaCB_display_newindex(lua_State * L)
     return 0;
 }
 
+/// Represents a bitmap file that has been loaded
+// @type bitmap
+
+/***
+ Draws this bitmap image to the screen
+ @tparam int x
+ @tparam int y
+ @tparam[opt] int w
+ @tparam[opt] int h
+ @function draw
+ */
+static int luaCB_bitmap_draw(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    if(lua_getfield(L, 1, "_ptr") == LUA_TLIGHTUSERDATA)
+    {
+        struct bmp_file_t * bmp_file = lua_touserdata(L, -1);
+        LUA_PARAM_INT(x, 2);
+        LUA_PARAM_INT(y, 3);
+        LUA_PARAM_INT_OPTIONAL(w, 4, (int)bmp_file->width);
+        LUA_PARAM_INT_OPTIONAL(h, 5, (int)bmp_file->height);
+        bmp_draw_scaled_ex(bmp_file, x, y, w, h, 0);
+    }
+    else
+    {
+        return luaL_error(L, "Invalid pointer to bitmap file");
+    }
+    return 0;
+}
+
+static int luaCB_bitmap_index(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    if(lua_getfield(L, 1, "_ptr") == LUA_TLIGHTUSERDATA)
+    {
+        struct bmp_file_t * bmp_file = lua_touserdata(L, -1);
+        /// Get the bits per pixel
+        // @tfield int bits_per_pixel
+        if(!strcmp(key, "bits_per_pixel")) lua_pushinteger(L, bmp_file->bits_per_pixel);
+        /// Get the image width
+        // @tfield int width
+        else if(!strcmp(key, "width")) lua_pushinteger(L, bmp_file->width);
+        /// Get the image height
+        // @tfield int height
+        else if(!strcmp(key, "height")) lua_pushinteger(L, bmp_file->height);
+        /// Get the number of colors
+        // @tfield int num_colors
+        else if(!strcmp(key, "num_colors")) lua_pushinteger(L, bmp_file->num_colors);
+        /// Get the image size
+        // @tfield int size
+        else if(!strcmp(key, "size")) lua_pushinteger(L, bmp_file->size);
+        /// Get the image signature
+        // @tfield int signature
+        else if(!strcmp(key, "signature")) lua_pushinteger(L, bmp_file->signature);
+        /// Get the image horizontal resolution
+        // @tfield int hpix_per_meter
+        else if(!strcmp(key, "hpix_per_meter")) lua_pushinteger(L, bmp_file->hpix_per_meter);
+        /// Get the image vertical resolution
+        // @tfield int vpix_per_meter
+        else if(!strcmp(key, "vpix_per_meter")) lua_pushinteger(L, bmp_file->vpix_per_meter);
+        else if(!strcmp(key, "draw")) lua_pushcfunction(L, luaCB_bitmap_draw);
+        else return lua_rawget(L, 1);
+    }
+    else
+    {
+        return luaL_error(L, "could not get lightuserdata for card");
+    }
+    return 1;
+}
+static int luaCB_bitmap_newindex(lua_State * L)
+{
+    return luaL_error(L, "'bitmap' type is readonly");
+}
+
 const luaL_Reg displaylib[] =
 {
     {"on", luaCB_display_on},
@@ -298,6 +399,7 @@ const luaL_Reg displaylib[] =
     {"line", luaCB_display_line},
     {"rect", luaCB_display_rect},
     {"circle", luaCB_display_circle},
+    {"load", luaCB_display_load},
     {"draw", luaCB_display_draw},
     {"notify_box", luaCB_display_notify_box},
     {NULL, NULL}
