@@ -4112,7 +4112,6 @@ menu_redraw_do()
             if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
             {
                 if (is_menu_active("Help")) menu_show_version();
-                if (is_menu_active("Focus")) display_lens_hyperfocal();
             }
             
             if (menu_lv_transparent_mode) 
@@ -4814,7 +4813,7 @@ static void close_canon_menu()
 #endif
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn off for ML menu.
-    if (DISPLAY_IS_ON && !HALFSHUTTER_PRESSED) 
+    if (DISPLAY_IS_ON && !get_halfshutter_pressed()) 
         fake_simple_button(BGMT_MENU);
     msleep(50);
 #endif
