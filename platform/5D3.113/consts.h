@@ -57,7 +57,6 @@
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
 
 // See "cam event metering"
-#define HALFSHUTTER_PRESSED (*(int*)0x251D4)
 
 
 // for gui_main_task

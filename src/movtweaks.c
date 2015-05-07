@@ -146,7 +146,7 @@ static void movie_rec_halfshutter_step()
     if (!movie_rec_key) return;
     if (!is_movie_mode() || !liveview_display_idle() || gui_menu_shown()) return;
 
-    if (HALFSHUTTER_PRESSED)
+    if (get_halfshutter_pressed())
     {
         if (movie_rec_key_long)
         {
@@ -154,14 +154,14 @@ static void movie_rec_halfshutter_step()
             for (int i = 0; i < 10; i++)
             {
                 msleep(100);
-                if (!HALFSHUTTER_PRESSED) break;
+                if (!get_halfshutter_pressed()) break;
             }
-            if (!HALFSHUTTER_PRESSED) return;
+            if (!get_halfshutter_pressed()) return;
             info_led_on();
             NotifyBox(1000, "OK");
         }
         
-        while (HALFSHUTTER_PRESSED) msleep(50);
+        while (get_halfshutter_pressed()) msleep(50);
         if (NOT_RECORDING && ALLOW_MOVIE_START) schedule_movie_start();
         else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }

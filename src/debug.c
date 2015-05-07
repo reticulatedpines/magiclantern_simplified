@@ -1486,9 +1486,9 @@ static void stub_test_task(void* arg)
 
         // sw1
         TEST_TRY_VOID(SW1(1,100));
-        TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+        TEST_TRY_FUNC_CHECK(get_halfshutter_pressed(), == 1);
         TEST_TRY_VOID(SW1(0,100));
-        TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+        TEST_TRY_FUNC_CHECK(get_halfshutter_pressed(), == 0);
 
         beep();
     }
@@ -3813,12 +3813,8 @@ void spy_event(struct event * event)
     }
 }
 
-#ifdef CONFIG_5DC
-static int halfshutter_pressed;
-bool get_halfshutter_pressed() { return halfshutter_pressed; }
-#else
-bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
-#endif
+static int _halfshutter_pressed;
+bool get_halfshutter_pressed() { return _halfshutter_pressed && !dofpreview; }
 
 static int zoom_in_pressed = 0;
 static int zoom_out_pressed = 0;
@@ -3827,10 +3823,9 @@ int get_zoom_out_pressed() { return zoom_out_pressed; }
 int handle_buttons_being_held(struct event * event)
 {
     // keep track of buttons being pressed
-    #ifdef CONFIG_5DC
-    if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
-    if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-    #endif
+    if (event->param == BGMT_PRESS_HALFSHUTTER) _halfshutter_pressed = 1;
+    if (event->param == BGMT_UNPRESS_HALFSHUTTER) _halfshutter_pressed = 0;
+
     #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }

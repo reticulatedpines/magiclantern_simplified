@@ -4814,7 +4814,7 @@ static void close_canon_menu()
 #endif
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn off for ML menu.
-    if (DISPLAY_IS_ON && !HALFSHUTTER_PRESSED) 
+    if (DISPLAY_IS_ON && !get_halfshutter_pressed()) 
         fake_simple_button(BGMT_MENU);
     msleep(50);
 #endif

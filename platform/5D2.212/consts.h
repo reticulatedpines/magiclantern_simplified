@@ -46,7 +46,6 @@
 // used for Trap Focus 
 // To find it, go to MainCtrl task and take the number from the second line minus 4.
 // See also "cam event metering"
-#define HALFSHUTTER_PRESSED (*(int*)0x1c10)
 
 
 
@@ -93,7 +92,7 @@
 
 int get_lv_stopped_by_user();
 
-#define _MOVIE_MODE_NON_LIVEVIEW (!lv && !lv_paused && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0 && !HALFSHUTTER_PRESSED)
+#define _MOVIE_MODE_NON_LIVEVIEW (!lv && !lv_paused && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0 && !get_halfshutter_pressed())
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (_MOVIE_MODE_NON_LIVEVIEW && lens_info.name[0])
 

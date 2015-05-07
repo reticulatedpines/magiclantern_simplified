@@ -42,7 +42,6 @@
 #define FOCUS_CONFIRMATION (*(int*)0x420F0)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
-#define HALFSHUTTER_PRESSED (*(int*)0x3F224)
 
 // for gui_main_task
 #define GMT_NFUNCS 7

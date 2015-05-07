@@ -78,8 +78,6 @@ dofp_update()
     static int old_value = 0;
     int d = dofpreview; // to avoid race condition
     
-    //~ bmp_printf(FONT_MED, 0, 0, "DOFp: btn=%d old=%d state=%d hs=%d ", dofpreview, old_value, state, HALFSHUTTER_PRESSED);
-    
     if (dofpreview_sticky == 1)
     {
         if (d) {bmp_printf(FONT_LARGE, 720-font_large.width*3, 50, "DOF"); info_led_on(); }
@@ -825,7 +823,7 @@ fake_halfshutter_step()
         // 1: allow everything => reset things (second presss)
 
         static int old_value = 0;
-        int hs = HALFSHUTTER_PRESSED;
+        int hs = get_halfshutter_pressed();
         
         if (hs) hs_show();
         else if (old_value) redraw();
@@ -3320,8 +3318,6 @@ void display_filter_step(int k)
     #endif
     
     msleep(20);
-    
-    //~ if (!HALFSHUTTER_PRESSED) return;
     
     #ifdef CONFIG_MODULES
     if (module_display_filter_update())

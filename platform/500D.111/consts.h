@@ -46,7 +46,6 @@
  
 
 #define FOCUS_CONFIRMATION (*(int*)0x3edc) // see "focusinfo" and Wiki:Struct_Guessing
-#define HALFSHUTTER_PRESSED (*(int*)0x1b74) // used for Trap Focus and Magic Off.
 //~ #define AF_BUTTON_PRESSED_LV 0
 // To find it, go to MainCtrl task and take the number from the second line minus 4.
 // See also "cam event metering"
