@@ -2599,21 +2599,25 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
         
         if (dof_display && lens_info.dof_far && lens_info.dof_near)
         {
-            int xw = item->x + item->width/2 - 25;  /* do not center it, because it may overlap with the histogram */
+            /* do not center it, because it may overlap with the histogram */
+            int x = item->x + item->width/2 - 25;
+
+            /* display it above the bottom bar */
+            int y = item->y;
             
-            static int prev_xw = 0;
-            if (xw != prev_xw)
+            static int prev_x = 0;
+            if (x != prev_x)
             {
                 /* erase when graphic changes position. */
-                bmp_fill(COLOR_EMPTY, prev_xw-70, item->y-36, 140, 26);
-                prev_xw = xw;
+                bmp_fill(COLOR_EMPTY, prev_x-70, y-36, 140, 26);
+                prev_x = x;
             }
             
             int fg = lens_info.dof_flags ? COLOR_YELLOW : COLOR_WHITE;
-            bmp_fill(COLOR_BG, xw-70, item->y-36, 140, 26);
-            bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
-            bmp_printf(FONT(FONT_MED, fg, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
-            bmp_fill(fg, xw, item->y-32, 1, 19);
+            bmp_fill(COLOR_BG, x-70, y-36, 140, 26);
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, x-8, y-33, "%s", lens_format_dist(lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG), x+8, y-33, "%s", lens_format_dist(lens_info.dof_far));
+            bmp_fill(fg, x, y-32, 1, 19);
         }
     }
 }
