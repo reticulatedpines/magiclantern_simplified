@@ -57,7 +57,6 @@
 #define LV_BOTTOM_BAR_DISPLAYED (MEM(0x329D8) != 3)
 
 
-//~ #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
 
 
 

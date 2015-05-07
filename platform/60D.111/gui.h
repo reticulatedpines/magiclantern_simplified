@@ -60,13 +60,8 @@
 #define BGMT_METERING_LV (lv && event->type == 0 && event->param == 0x5a && event->arg == 9)
 #define BGMT_PRESS_METERING_LV (BGMT_METERING_LV && (*(int*)(event->obj) & 0x8000000))
 #define BGMT_UNPRESS_METERING_LV (BGMT_METERING_LV && (*(int*)(event->obj) & 0x8000000) == 0)
-#define FLASH_BTN_MOVIE_MODE 0
 
-#define BGMT_EVENTID_METERING_START 0x41
-#define BGMT_EVENTID_METERING_END 0x42
 
-#define BGMT_GUICMD_OPEN_SLOT_COVER 78
-#define BGMT_GUICMD_CLOSE_SLOT_COVER 79
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_UNLOCK // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "UNLOCK"

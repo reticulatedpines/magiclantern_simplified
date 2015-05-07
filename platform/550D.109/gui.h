@@ -55,7 +55,6 @@
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
 
 #define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 0x1b)
 #define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000))

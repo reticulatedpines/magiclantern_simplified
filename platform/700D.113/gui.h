@@ -59,7 +59,6 @@
         #define BGMT_FLASH_MOVIE (0)
         #define BGMT_PRESS_FLASH_MOVIE (0)
         #define BGMT_UNPRESS_FLASH_MOVIE (0)
-        #define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
 
     #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
     #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11

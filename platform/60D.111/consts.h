@@ -61,7 +61,6 @@
 
 
 
-//~ #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
 
 /*
  * From 550D - needs testing / modification
