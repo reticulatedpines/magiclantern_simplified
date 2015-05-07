@@ -63,7 +63,6 @@
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
 
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080) // quick check if x looks like a valid HD buffer
 
     
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x225C)
@@ -80,10 +79,7 @@
 // for gui_main_task
 #define GMT_NFUNCS 8
 #define GMT_FUNCTABLE 0xff51193c
-#define GMT_IDLEHANDLER_TASK (*(int*)0x17084) // dec create_idleHandler_task
 
- #define SENSOR_RES_X 5184
- #define SENSOR_RES_Y 3456
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x93D4) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x93D4) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x93D4) = *(arg2)
@@ -195,10 +191,6 @@
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-//~ #define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-//~ #define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-//~ #define MOVIE_MODE_REMAP_X_STR "A-DEP"
-//~ #define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works

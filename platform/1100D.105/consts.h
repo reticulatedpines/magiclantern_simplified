@@ -36,7 +36,6 @@
 #define YUV422_HD_BUFFER_1 0x468cb600
 #define YUV422_HD_BUFFER_2 0x47465c00
 // maybe there are more
-//#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x2438))
@@ -136,8 +135,6 @@
 
 #define MVR_992_STRUCT (*(void**)0x1DF4)
 
-#define SENSOR_RES_X 4272
-#define SENSOR_RES_Y 2848
 
 //Same as 600D
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308
@@ -235,21 +232,11 @@
 
 // Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
 
-#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
 
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
 
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
 
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
 
 
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
@@ -257,17 +244,12 @@
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
 #define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
 
-#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
-#define AJ_LCD_Palette 0x2CDB0
 
 #define COLOR_FG_NONLV 80
 
-#define MOV_REC_STATEOBJ (*(void**)0x5B34)
-#define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
 //#define AE_VALUE (*(int8_t*)0x7E14)
-#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // these are wrong (just for compiling)
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
@@ -279,10 +261,6 @@
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -5

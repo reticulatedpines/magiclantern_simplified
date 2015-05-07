@@ -51,23 +51,12 @@
 #define YUV422_HD_BUFFER_3 0x48000080
 #define YUV422_HD_BUFFER_4 0x4e000080
 #define YUV422_HD_BUFFER_5 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
 
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
 
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
 
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x41d0) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1bb0) // used for Trap Focus and Magic Off.
@@ -83,16 +72,11 @@
 // for gui_main_task
 #define GMT_NFUNCS 8
 #define GMT_FUNCTABLE 0xFF453E14
-#define GMT_IDLEHANDLER_TASK (*(int*)0x15168) // dec create_idleHandler_task
 
 
-#define SENSOR_RES_X 5202
-#define SENSOR_RES_Y 3465
 
 //~ #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (is_movie_mode()))
-#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
-#define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5780) == 0xF) || ((*(int8_t*)0x20164) != 0x17))
 #define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x14C08) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
@@ -115,8 +99,6 @@
 #define MVR_FRAME_NUMBER  (*(int*)(0xEC + MVR_752_STRUCT)) // in mvrExpStarted
 #define MVR_BYTES_WRITTEN (*(int*)(0xE4 + MVR_752_STRUCT)) // in mvrSMEncodeDone
 
-#define MOV_REC_STATEOBJ (*(void**)0x5B34)
-#define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
 #define MOV_RES_AND_FPS_COMBINATIONS 7
 #define MOV_OPT_NUM_PARAMS 2
@@ -166,7 +148,6 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // for intermediate ISO (move to flexinfo?)
 #define MENU_DISP_ISO_POS_X 470
@@ -181,10 +162,6 @@
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10
