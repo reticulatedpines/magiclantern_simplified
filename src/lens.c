@@ -2603,14 +2603,20 @@ static LVINFO_UPDATE_FUNC(focus_dist_update)
             int x = item->x + item->width/2 - 25;
 
             /* display it above the bottom bar */
+            /* caveat: in some cases, the top bar may be right above the bottom bar */
             int y = item->y;
+            int top_bar_pos = get_ml_topbar_pos();
+            if (top_bar_pos > y - 70) y = top_bar_pos;
             
             static int prev_x = 0;
-            if (x != prev_x)
+            static int prev_y = 0;
+            
+            if (x != prev_x || y != prev_y)
             {
                 /* erase when graphic changes position. */
-                bmp_fill(COLOR_EMPTY, prev_x-70, y-36, 140, 26);
+                bmp_fill(COLOR_EMPTY, prev_x-70, prev_y-36, 140, 26);
                 prev_x = x;
+                prev_y = y;
             }
             
             int fg = lens_info.dof_flags ? COLOR_YELLOW : COLOR_WHITE;
