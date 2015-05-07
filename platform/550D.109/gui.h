@@ -22,9 +22,6 @@
 #define BGMT_PLAY 9
 
 #define BGMT_PRESS_HALFSHUTTER 0x3F
-#define BGMT_UNPRESS_HALFSHUTTER 0x40
-#define BGMT_PRESS_FULLSHUTTER 0x41    // can't return 0 to block this...
-#define BGMT_UNPRESS_FULLSHUTTER 0x42
 
 #define BGMT_LV 0x18
 
