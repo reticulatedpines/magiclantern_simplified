@@ -75,6 +75,7 @@ struct lens_info
         int                     flash_ae;
         uint16_t                lens_id;
         uint16_t                dof_flags;
+        int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
 };
@@ -82,7 +83,6 @@ struct lens_info
 extern struct lens_info lens_info;
 
 #define DOF_DIFFRACTION_LIMIT_REACHED 1
-#define DOF_AIRY_LIMIT_REACHED 2
 
 #if defined(CONFIG_6D)
 struct prop_lv_lens

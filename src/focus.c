@@ -25,6 +25,16 @@
 
 static CONFIG_INT( "dof.display", dof_display, 0);
 
+static CONFIG_INT( "dof.display.formula", dof_display_formula, 0);
+#define DOF_FORMULA_SIMPLE 0
+#define DOF_FORMULA_DIFFRACTION_AWARE 1
+
+#ifdef CONFIG_FULLFRAME
+static CONFIG_INT( "dof.display.coc.ff", dof_display_coc, 29);
+#else
+static CONFIG_INT( "dof.display.coc.apsc", dof_display_coc, 19);
+#endif
+
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
@@ -134,15 +144,8 @@ int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
 void focus_calc_dof()
 {
-    #ifdef CONFIG_FULLFRAME
-    uint64_t        coc = 29; // Total (defocus + diffraction) blur dia in microns (FF)
-    const uint64_t  sen = 13; // sensor Airy limit test in microns
-    #else
-    uint64_t        coc = 19; // Total (defocus + diffraction) blur dia in microns (crop)
-    const uint64_t  sen = 9;  // sensor Airy limit test in microns
-    #endif
-
-    // Note: change 29 or 19 to more exacting standard if required. Alternatively create a user input menu.
+    // Total (defocus + diffraction) blur dia in microns
+    uint64_t        coc = dof_display_coc;
 
     const uint64_t  fd = lens_info.focus_dist * 10; // into mm
     const uint64_t  fl = lens_info.focal_len; // already in mm
@@ -164,29 +167,26 @@ void focus_calc_dof()
 
     int dof_flags = 0;
 
-    // Test if large aperture diffraction limit reached 
-    if (diff >= coc)
+    if (dof_display_formula == DOF_FORMULA_DIFFRACTION_AWARE)
     {
-        // note: in this case, DOF info will not account for diffraction
-        dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+        // Test if large aperture diffraction limit reached 
+        if (diff >= coc)
+        {
+            // note: in this case, DOF info will not account for diffraction
+            dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+        }
+        else
+        {
+            // calculate defocus only blur in microns
+            const uint64_t sq = (coc*coc - diff*diff);
+            coc = (int) sqrtf(sq); // Defocus only blur
+        }
     }
-    else
-    {
-        // calculate defocus only blur in microns
-        const uint64_t sq = (coc*coc - diff*diff);
-        coc = (int) sqrtf(sq); // Defocus only blur
-    }
-
-    // check if sensor Airy limit reached
-    if(coc < sen)
-    {
-        dof_flags |= DOF_AIRY_LIMIT_REACHED;
-    }  
 
     const uint64_t        fl2 = fl * fl;
 
     // Calculate hyperfocal distance H 
-    const uint64_t H = fl + ((10000 * fl2) / (lens_info.aperture  * coc));
+    const uint64_t H = coc ? fl + ((10000 * fl2) / (lens_info.aperture  * coc)) : 1000 * 1000;
     lens_info.hyperfocal = H;
   
     // Calculate near and far dofs
@@ -206,6 +206,8 @@ void focus_calc_dof()
     // make sure we have nonzero DOF values, so they are always displayed
     lens_info.dof_near = MAX(lens_info.dof_near, 1);
     lens_info.dof_far = MAX(lens_info.dof_far, 1);
+
+    lens_info.dof_diffraction_blur = (int) diff;
 }
 
 LVINFO_UPDATE_FUNC(focus_dist_update)
@@ -238,7 +240,7 @@ LVINFO_UPDATE_FUNC(focus_dist_update)
                 prev_y = y;
             }
             
-            int fg = lens_info.dof_flags ? COLOR_YELLOW : COLOR_WHITE;
+            int fg = lens_info.dof_flags ? COLOR_RED : COLOR_WHITE;
             bmp_fill(COLOR_BG, x-70, y-36, 140, 26);
             bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, x-8, y-33, "%s", lens_format_dist(lens_info.dof_near));
             bmp_printf(FONT(FONT_MED, fg, COLOR_BG), x+8, y-33, "%s", lens_format_dist(lens_info.dof_far));
@@ -310,7 +312,7 @@ display_lens_hyperfocal()
         lens_format_dist( lens_info.hyperfocal )
     );
 
-    x += 270;
+    x += 280;
     y -= height;
     bmp_printf( font, x, y,
         "DOF Near:   %s",
@@ -325,20 +327,16 @@ display_lens_hyperfocal()
             : lens_format_dist( lens_info.dof_far )
     );
 
-    x += 260;
+    x = 700;
     y -= 2 * height;
 
-    if (lens_info.dof_flags & DOF_DIFFRACTION_LIMIT_REACHED)
-    {
-        y += height;
-        bmp_printf( font, x, y, "Diffraction limit");
-    }
-
-    if (lens_info.dof_flags & DOF_AIRY_LIMIT_REACHED)
-    {
-        y += height;
-        bmp_printf( font, x, y, "Airy limit");
-    }
+    y += height;
+    int fg = lens_info.dof_flags & DOF_DIFFRACTION_LIMIT_REACHED ? COLOR_YELLOW : COLOR_WHITE;
+    bmp_printf( FONT(font,fg,COLOR_BLACK) | FONT_ALIGN_RIGHT, x, y, 
+        "Diffraction\n"
+        "blur: %d"SYM_MICRO"m",
+        lens_info.dof_diffraction_blur
+    );
 }
 
 static MENU_UPDATE_FUNC(dof_display_update)
@@ -1228,8 +1226,28 @@ static struct menu_entry focus_menu[] = {
         .priv = &dof_display, 
         .max  = 1,
         .update = dof_display_update,
-        .help = "Display DOF above Focus distance.",
+        .help = "Display DOF above Focus distance, in LiveView.",
+        .help2 = "(note: even with this turned off, you still get DOF info in the menu)",
         .depends_on = DEP_LIVEVIEW,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Circle of Confusion",
+                .priv = &dof_display_coc,
+                .min  = 1,
+                .max = 100,
+                .help = "Circle of confusion used for DOF calculations, in " SYM_MICRO"m.",
+            },
+            {
+                .name = "DOF formula",
+                .priv = &dof_display_formula,
+                .max = 1,
+                .choices = CHOICES("Simple", "Diffraction-aware"),
+                .help = "Formula for computing the depth of field:",
+                .help2 = "Simple: only consider defocus blur, ignoring diffraction effects.\n"
+                         "Diffraction-aware: consider both defocus and diffraction blur.\n"
+            },
+            MENU_EOL,
+        },
     },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
