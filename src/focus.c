@@ -23,16 +23,16 @@
 #include "lcdsensor.h"
 #endif
 
-static CONFIG_INT( "dof.display", dof_display_lv, 0);
+static CONFIG_INT( "dof.info.display", dof_info_display_lv, 0);
 
-static CONFIG_INT( "dof.display.formula", dof_display_formula, 0);
+static CONFIG_INT( "dof.info.formula", dof_info_formula, 0);
 #define DOF_FORMULA_SIMPLE 0
 #define DOF_FORMULA_DIFFRACTION_AWARE 1
 
 #ifdef CONFIG_FULLFRAME
-static CONFIG_INT( "dof.display.coc.ff", dof_display_coc, 29);
+static CONFIG_INT( "dof.info.coc.ff", dof_info_coc, 29);
 #else
-static CONFIG_INT( "dof.display.coc.apsc", dof_display_coc, 19);
+static CONFIG_INT( "dof.info.coc.apsc", dof_info_coc, 19);
 #endif
 
 static void trap_focus_toggle_from_af_dlg();
@@ -145,7 +145,7 @@ int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 void focus_calc_dof()
 {
     // Total (defocus + diffraction) blur dia in microns
-    uint64_t        coc = dof_display_coc;
+    uint64_t        coc = dof_info_coc;
 
     const uint64_t  fd = lens_info.focus_dist * 10; // into mm
     const uint64_t  fl = lens_info.focal_len; // already in mm
@@ -167,7 +167,7 @@ void focus_calc_dof()
 
     int dof_flags = 0;
 
-    if (dof_display_formula == DOF_FORMULA_DIFFRACTION_AWARE)
+    if (dof_info_formula == DOF_FORMULA_DIFFRACTION_AWARE)
     {
         // Test if large aperture diffraction limit reached 
         if (diff >= coc)
@@ -218,7 +218,7 @@ LVINFO_UPDATE_FUNC(focus_dist_update)
     {
         snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
         
-        if (dof_display_lv && lens_info.dof_far && lens_info.dof_near)
+        if (dof_info_display_lv && lens_info.dof_far && lens_info.dof_near)
         {
             /* do not center it, because it may overlap with the histogram */
             int x = item->x + item->width/2 - 25;
@@ -339,7 +339,7 @@ display_lens_hyperfocal()
     );
 }
 
-static MENU_UPDATE_FUNC(dof_display_update)
+static MENU_UPDATE_FUNC(dof_info_update)
 {
     display_lens_hyperfocal();
 }
@@ -1224,21 +1224,21 @@ static struct menu_entry focus_menu[] = {
     {
         .name = "DOF Settings",
         .select = menu_open_submenu,
-        .update = dof_display_update,
+        .update = dof_info_update,
         .help = "Settings about Depth of Field info displays.",
         .depends_on = DEP_LIVEVIEW,
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Circle of Confusion",
-                .priv = &dof_display_coc,
+                .priv = &dof_info_coc,
                 .min  = 1,
                 .max = 100,
                 .help = "Circle of confusion used for DOF calculations, in " SYM_MICRO"m.",
             },
             {
                 .name = "DOF formula",
-                .priv = &dof_display_formula,
+                .priv = &dof_info_formula,
                 .max = 1,
                 .choices = CHOICES("Simple", "Diffraction-aware"),
                 .help = "Formula for computing the depth of field:",
@@ -1247,7 +1247,7 @@ static struct menu_entry focus_menu[] = {
             },
             {
                 .name = "DOF info in LiveView",
-                .priv = &dof_display_lv,
+                .priv = &dof_info_display_lv,
                 .max  = 1,
                 .help = "Display DOF above Focus distance, in LiveView.",
             },
