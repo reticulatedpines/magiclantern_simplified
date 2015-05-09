@@ -124,7 +124,7 @@ function button:draw()
         else bg = self.highlight end
     end
     display.rect(self.left,self.top,self.width,self.height,self.border,bg)
-    local x =  math.floor(self.width / 2 - self.font:width(self.caption) / 2)
+    local x =  self.width / 2 - self.font:width(self.caption) / 2
     display.print(self.caption,self.left + x,self.top + self.pad,self.font,fg,bg)
 end
 
@@ -159,8 +159,8 @@ function scrollbar:draw()
     if (self.max - self.min + 1) * self.step <= self.height then return end
     
     local total_height = (self.max - self.min + 1) * self.step
-    local thumb_height = math.floor(self.height * self.height / total_height)
-    local offset = math.floor((self.value - self.min) * self.step * self.height / total_height)
+    local thumb_height = self.height * self.height / total_height
+    local offset = (self.value - self.min) * self.step * self.height / total_height
     display.rect(self.left,self.top + offset,self.width,thumb_height,self.foreground,self.foreground)
 end
 
@@ -307,7 +307,7 @@ function filedialog:scroll_into_view()
     if self.selected < self.scrollbar.value then
         self.scrollbar.value = self.selected
     elseif self.selected >= self.scrollbar.value + (self.height - 20 - FONT.LARGE.height) / self.font.height - 3  then
-        self.scrollbar.value = math.floor(self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 3))
+        self.scrollbar.value = self.selected - ((self.height - 20 - FONT.LARGE.height) / self.font.height - 3)
     end
 end
 
@@ -540,7 +540,7 @@ for k,v in pairs(FONT) do
 end
 table.sort(editor.menu[4].items)
 
-editor.lines_per_page = math.floor((display.height - 20 - FONT.LARGE.height) / editor.font.height / 2)
+editor.lines_per_page = (display.height - 20 - FONT.LARGE.height) / editor.font.height / 2
 editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 + FONT.LARGE.height,2)
 
 editor.mlmenu = menu.new

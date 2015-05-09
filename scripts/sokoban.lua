@@ -182,7 +182,7 @@ function draw_space(x, y, a, on_target)
 
     display.rect(x, y, a, a, COLOR.gray(80), COLOR.gray(80));
     if (on_target) then
-        display.circle(x + math.floor(a/2), y + math.floor(a/2), math.floor(a/4), COLOR.ORANGE);
+        display.circle(x + a//2, y + a//2, a//4, COLOR.ORANGE);
     end
 end
 
@@ -211,22 +211,22 @@ function draw_player(x, y, a, on_target)
 
     draw_space(x, y, a, 0);
     
-    local xc = math.floor(x + a/2);
-    local yc = math.floor(y + a/2);
-    local r = math.floor(a * 3/8);
-    local y_eye = math.floor(yc - r * 3/8);
-    local y_mouth = yc + r * 3/8;
+    local xc = x + a//2;
+    local yc = y + a//2;
+    local r = a * 3//8;
+    local y_eye = yc - r * 3//8;
+    local y_mouth = yc + r * 3//8;
     display.circle(xc, yc, r, COLOR.YELLOW, COLOR.YELLOW);
     display.circle(xc, yc, r, COLOR.BLACK);
     display.circle(xc, yc, r-1, COLOR.BLACK);
-    display.circle(xc - math.floor(r/3), y_eye, math.floor(r/5), COLOR.BLACK, COLOR.BLACK);
-    display.circle(xc + math.floor(r/3), y_eye, math.floor(r/5), COLOR.BLACK, COLOR.BLACK);
+    display.circle(xc - r//3, y_eye, r//5, COLOR.BLACK, COLOR.BLACK);
+    display.circle(xc + r//3, y_eye, r//5, COLOR.BLACK, COLOR.BLACK);
     
-    local r_mouth = r*2/3;
+    local r_mouth = r*2//3;
     for t = 45, 180-45, 2 do
     
-        local xp = math.floor(xc + r_mouth * math.cos(t*math.pi/180));
-        local yp = math.floor(yc - r/8 + r_mouth * math.sin(t*math.pi/180));
+        local xp = xc + r_mouth * math.cos(t*math.pi/180);
+        local yp = yc - r/8 + r_mouth * math.sin(t*math.pi/180);
         display.pixel(xp, yp, COLOR.BLACK);
         display.pixel(xp, yp+1, COLOR.BLACK);
     end
@@ -235,11 +235,11 @@ end
 function draw_maze()
 
     display.rect(0, 0, 720, 480, COLOR.BLACK, COLOR.BLACK);
-    local a = math.floor(math.min(400 / LINES, 700 / COLUMNS));
+    local a = math.min(400 // LINES, 700 // COLUMNS);
     local total_w = a * COLUMNS;
     local total_h = a * LINES;
-    local x0 = 360 - math.floor(total_w / 2);
-    local y0 = 240 - math.floor(total_h / 2);
+    local x0 = 360 - total_w // 2;
+    local y0 = 240 - total_h // 2;
     
     for i = 1, LINES, 1 do
     
