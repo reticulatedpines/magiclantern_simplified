@@ -344,6 +344,11 @@ static MENU_UPDATE_FUNC(dof_info_update)
     display_lens_hyperfocal();
 }
 
+static MENU_UPDATE_FUNC(dof_info_coc_update)
+{
+    MENU_SET_VALUE("%d " SYM_MICRO"m", CURRENT_VALUE);
+}
+
 static void wait_notify(int seconds, char* msg)
 {
     wait_till_next_second();
@@ -1282,14 +1287,16 @@ static struct menu_entry focus_menu[] = {
         .update = dof_info_update,
         .help = "Settings about Depth of Field info displays.",
         .depends_on = DEP_LIVEVIEW,
-        .submenu_width = 700,
+        .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Circle of Confusion",
                 .priv = &dof_info_coc,
+                .update = dof_info_coc_update,
                 .min  = 1,
                 .max = 100,
-                .help = "Circle of confusion used for DOF calculations, in " SYM_MICRO"m.",
+                .help = "Circle of confusion used for DOF calculations.",
+                .help2 = "Default value: 19 for APS-C and 29 for full-frame cameras.",
             },
             {
                 .name = "DOF formula",
