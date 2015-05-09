@@ -126,7 +126,7 @@ static int* trans_to_calib(const short* trans)
     return calib;
 }
 
-int get_raw_info(unsigned model_id, struct raw_info* orig)
+int get_raw_info(unsigned model_id, struct raw_info * raw_info)
 {
     const char* model = NULL;
     int i = 0;
@@ -141,9 +141,9 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
 
     if(model == NULL)
     {
-        printf("No camera model found with id 0x%x\n", model_id);
-        adobe_coeff("Canon", "EOS");
-        return -1;
+        printf("Model ID unknown: 0x%x (assuming 5D Mark III)\n", model_id);
+        adobe_coeff("Canon", "EOS 5D Mark III");
+        model = "EOS 5D Mark III";
     }
     else
     {
@@ -156,7 +156,7 @@ int get_raw_info(unsigned model_id, struct raw_info* orig)
         if(strcmp(model, table[i].prefix) == 0)
         {
             int* calib = trans_to_calib(table[i].trans);
-            memcpy(orig->color_matrix1, calib, 18*sizeof(int));
+            memcpy(raw_info->color_matrix1, calib, 18*sizeof(int));
             free(calib);
             return 0;
         }
