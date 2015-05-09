@@ -110,7 +110,8 @@ const char * lens_format_dist( unsigned mm)
         }
         else if( mm >= 1000 ) // 1 m
         {
-            snprintf( dist, sizeof(dist), "%d.%d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+            int meters_x100 = mm / 10;
+            snprintf( dist, sizeof(dist), "%s%d.%02d"SYM_SMALL_M, FMT_FIXEDPOINT2(meters_x100));
         }
         else
         {
