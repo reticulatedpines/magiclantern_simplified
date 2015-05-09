@@ -52,5 +52,6 @@ FILE * my_tmpfile();
 int my_ungetc(int character, FILE * stream);
 char* my_getenv(const char* name);
 void my_abort();
+int ftoa(char *s, float n);
 
 #endif

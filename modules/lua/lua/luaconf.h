@@ -449,7 +449,7 @@
 
 #define l_floor(x)		(l_mathop(floor)(x))
 
-#define lua_number2str(s,n)	snprintf((s), 65536, LUA_NUMBER_FMT, (n))
+#define lua_number2str(s,n)	ftoa((s), (n))
 
 
 /*
