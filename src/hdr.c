@@ -229,7 +229,7 @@ void hdr_step()
     }
     else
     {   
-        if (!get_halfshutter_pressed())
+        if (!HALFSHUTTER_PRESSED)
         {
             odd_frame = (get_seconds_clock() / 4) % 2;
         }

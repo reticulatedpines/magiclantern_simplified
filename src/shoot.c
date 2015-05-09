@@ -2490,7 +2490,7 @@ void zoom_sharpen_step()
     static int sa = 100;
     static int sh = 100;
     
-    if (zoom_sharpen && lv && lv_dispsize > 1 && (!get_halfshutter_pressed() || zoom_was_triggered_by_halfshutter) && !gui_menu_shown()) // bump contrast/sharpness
+    if (zoom_sharpen && lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown()) // bump contrast/sharpness
     {
         if (co == 100)
         {
@@ -2539,7 +2539,7 @@ static void zoom_auto_exposure_step()
     static int es = -1;
     // static int aem = -1;
     
-    if (lv && lv_dispsize > 1 && (!get_halfshutter_pressed() || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
+    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
     {
         // photo mode: disable ExpSim
         // movie mode 5D2: disable ExpSim
@@ -5024,7 +5024,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     if (!skip0) hdr_shutter_release(0);
     if (hdr_check_cancel(0)) goto end;
     
-    while (get_halfshutter_pressed())
+    while (HALFSHUTTER_PRESSED)
     {
         msleep(100);
     }
@@ -5357,7 +5357,7 @@ void display_trap_focus_info()
     {
         show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
         bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
-        fg = get_halfshutter_pressed() ? COLOR_RED : COLOR_FG_NONLV;
+        fg = HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
         x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
         
@@ -6000,7 +6000,7 @@ shoot_task( void* unused )
                             trap_focus_msg = TRAP_ERR_CFN;
                         }
                     }
-                    else if(get_halfshutter_pressed())
+                    else if(HALFSHUTTER_PRESSED)
                     {
                         /* user requested enabling trap focus */
                         trap_focus_continuous_state = 1;
@@ -6021,7 +6021,7 @@ shoot_task( void* unused )
                 
             case 1:
                 /* wait for user to release his shutter button, then set it on our own */
-                if(!get_halfshutter_pressed())
+                if(!HALFSHUTTER_PRESSED)
                 {
                     trap_focus_continuous_state = 2;
                     SW1(1,50);
@@ -6032,7 +6032,7 @@ shoot_task( void* unused )
                 info_led_off();
                 priority_feature_enabled = 1;
                 /* some abort situation happened? */
-                if(gui_menu_shown() || !display_idle() || !get_halfshutter_pressed() || !tfx || trap_focus != 2)
+                if(gui_menu_shown() || !display_idle() || !HALFSHUTTER_PRESSED || !tfx || trap_focus != 2)
                 {
                     trap_focus_continuous_state = 0;
                     SW1(0,50);
@@ -6073,7 +6073,7 @@ shoot_task( void* unused )
         {
             static int info_led_turned_on = 0;
             
-            if (get_halfshutter_pressed())
+            if (HALFSHUTTER_PRESSED)
             {
                 info_led_on();
                 info_led_turned_on = 1;
@@ -6161,7 +6161,7 @@ shoot_task( void* unused )
             }
             else if (motion_detect_trigger == 2)
             {
-                int hs = get_halfshutter_pressed();
+                int hs = HALFSHUTTER_PRESSED;
                 static int prev_hs = 0;
                 static int prev_d[30];
                 if (hs)

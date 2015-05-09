@@ -47,6 +47,7 @@
 #define FOCUS_CONFIRMATION (*(int*)0x27660)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
+#define HALFSHUTTER_PRESSED (*(int*)0x24884)
 
 #define DISPLAY_SENSOR_POWERED (*(int*)(0x2486C+0x14))
 

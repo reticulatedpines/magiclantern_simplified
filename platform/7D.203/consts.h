@@ -74,6 +74,7 @@
 // used for Trap Focus 
 // To find it, go to MainCtrl task and take the number from the second line minus 4.
 // See also "cam event metering"
+#define HALFSHUTTER_PRESSED (*(int*)0x1B70)
 
 // for gui_main_task
 #define GMT_NFUNCS 8
