@@ -23,7 +23,7 @@
 #include "lcdsensor.h"
 #endif
 
-static CONFIG_INT( "dof.display", dof_display, 0);
+static CONFIG_INT( "dof.display", dof_display_lv, 0);
 
 static CONFIG_INT( "dof.display.formula", dof_display_formula, 0);
 #define DOF_FORMULA_SIMPLE 0
@@ -218,7 +218,7 @@ LVINFO_UPDATE_FUNC(focus_dist_update)
     {
         snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
         
-        if (dof_display && lens_info.dof_far && lens_info.dof_near)
+        if (dof_display_lv && lens_info.dof_far && lens_info.dof_near)
         {
             /* do not center it, because it may overlap with the histogram */
             int x = item->x + item->width/2 - 25;
@@ -1222,13 +1222,12 @@ static struct menu_entry focus_menu[] = {
     },
     #endif
     {
-        .name = "DOF Display",
-        .priv = &dof_display, 
-        .max  = 1,
+        .name = "DOF Settings",
+        .select = menu_open_submenu,
         .update = dof_display_update,
-        .help = "Display DOF above Focus distance, in LiveView.",
-        .help2 = "(note: even with this turned off, you still get DOF info in the menu)",
+        .help = "Settings about Depth of Field info displays.",
         .depends_on = DEP_LIVEVIEW,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Circle of Confusion",
@@ -1245,6 +1244,12 @@ static struct menu_entry focus_menu[] = {
                 .help = "Formula for computing the depth of field:",
                 .help2 = "Simple: only consider defocus blur, ignoring diffraction effects.\n"
                          "Diffraction-aware: consider both defocus and diffraction blur.\n"
+            },
+            {
+                .name = "DOF info in LiveView",
+                .priv = &dof_display_lv,
+                .max  = 1,
+                .help = "Display DOF above Focus distance, in LiveView.",
             },
             MENU_EOL,
         },
