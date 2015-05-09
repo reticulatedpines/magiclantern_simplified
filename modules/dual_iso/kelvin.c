@@ -221,92 +221,21 @@ void CLASS cam_xyz_coeff (double cam_xyz[4][3])
       rgb_cam[i][j] = inverse[j][i];
 }
 
-/* fixme: duplicate code also in dcraw-bridge.c */
-
 /*
    All matrices are from Adobe DNG Converter unless otherwise noted.
  */
 void CLASS adobe_coeff (const char *make, const char *model)
 {
-  static const struct {
-    const char *prefix;
-    short black, maximum, trans[12];
-  } table[] = {
-    { "Canon EOS 5D Mark III", 0, 0x3c80,
-        { 6722,-635,-963,-4287,12460,2028,-908,2162,5668 } },
-    { "Canon EOS 5D Mark II", 0, 0x3cf0,
-        { 4716,603,-830,-7798,15474,2480,-1496,1937,6651 } },
-    { "Canon EOS 5D", 0, 0xe6c,
-        { 6347,-479,-972,-8297,15954,2480,-1968,2131,7649 } },
-    { "Canon EOS 6D", 0, 0x3c82,
-        { 7034,-804,-1014,-4420,12564,2058,-851,1994,5758 } },
-    { "Canon EOS 7D", 0, 0x3510,
-        { 6844,-996,-856,-3876,11761,2396,-593,1772,6198 } },
-    { "Canon EOS 10D", 0, 0xfa0,
-        { 8197,-2000,-1118,-6714,14335,2592,-2536,3178,8266 } },
-    { "Canon EOS 20Da", 0, 0,
-        { 14155,-5065,-1382,-6550,14633,2039,-1623,1824,6561 } },
-    { "Canon EOS 20D", 0, 0xfff,
-        { 6599,-537,-891,-8071,15783,2424,-1983,2234,7462 } },
-    { "Canon EOS 30D", 0, 0,
-        { 6257,-303,-1000,-7880,15621,2396,-1714,1904,7046 } },
-    { "Canon EOS 40D", 0, 0x3f60,
-        { 6071,-747,-856,-7653,15365,2441,-2025,2553,7315 } },
-    { "Canon EOS 50D", 0, 0x3d93,
-        { 4920,616,-593,-6493,13964,2784,-1774,3178,7005 } },
-    { "Canon EOS 60D", 0, 0x2ff7,
-        { 6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
-    { "Canon EOS 300D", 0, 0xfa0,
-        { 8197,-2000,-1118,-6714,14335,2592,-2536,3178,8266 } },
-    { "Canon EOS 350D", 0, 0xfff,
-        { 6018,-617,-965,-8645,15881,2975,-1530,1719,7642 } },
-    { "Canon EOS 400D", 0, 0xe8e,
-        { 7054,-1501,-990,-8156,15544,2812,-1278,1414,7796 } },
-    { "Canon EOS 450D", 0, 0x390d,
-        { 5784,-262,-821,-7539,15064,2672,-1982,2681,7427 } },
-    { "Canon EOS 500D", 0, 0x3479,
-        { 4763,712,-646,-6821,14399,2640,-1921,3276,6561 } },
-    { "Canon EOS 550D", 0, 0x3dd7,
-        { 6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
-    { "Canon EOS 600D", 0, 0x3510,
-        { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
-    { "Canon EOS 650D", 0, 0x354d,
-        { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
-    { "Canon EOS 1000D", 0, 0xe43,
-        { 6771,-1139,-977,-7818,15123,2928,-1244,1437,7533 } },
-    { "Canon EOS 1100D", 0, 0x3510,
-        { 6444,-904,-893,-4563,12308,2535,-903,2016,6728 } },
-    { "Canon EOS M", 0, 0,
-        { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
-    { "Canon EOS-1Ds Mark III", 0, 0x3bb0,
-        { 5859,-211,-930,-8255,16017,2353,-1732,1887,7448 } },
-    { "Canon EOS-1Ds Mark II", 0, 0xe80,
-        { 6517,-602,-867,-8180,15926,2378,-1618,1771,7633 } },
-    { "Canon EOS-1D Mark IV", 0, 0x3bb0,
-        { 6014,-220,-795,-4109,12014,2361,-561,1824,5787 } },
-    { "Canon EOS-1D Mark III", 0, 0x3bb0,
-        { 6291,-540,-976,-8350,16145,2311,-1714,1858,7326 } },
-    { "Canon EOS-1D Mark II N", 0, 0xe80,
-        { 6240,-466,-822,-8180,15825,2500,-1801,1938,8042 } },
-    { "Canon EOS-1D Mark II", 0, 0xe80,
-        { 6264,-582,-724,-8312,15948,2504,-1744,1919,8664 } },
-    { "Canon EOS-1DS", 0, 0xe20,
-        { 4374,3631,-1743,-7520,15212,2472,-2892,3632,8161 } },
-    { "Canon EOS-1D X", 0, 0x3c4e,
-        { 6847,-614,-1014,-4669,12737,2139,-1197,2488,6846 } },
-    { "Canon EOS-1D", 0, 0xe20,
-        { 6806,-179,-1020,-8097,16415,1687,-3267,4236,7690 } },
-    { "Canon EOS", 0, 0,
-        { 8197,-2000,-1118,-6714,14335,2592,-2536,3178,8266 } },
-  };
+  extern const struct {
+      const char *prefix;
+      short black, maximum, trans[12];
+  } table[];
+
   double cam_xyz[4][3];
-  char name[130];
   int i, j;
 
-  sprintf (name, "%s %s", make, model);
-  for (i=0; i < sizeof table / sizeof *table; i++)
-    if (!strncmp (name, table[i].prefix, strlen(table[i].prefix))) {
-      printf("Camera model    : %s\n", table[i].prefix);
+  for (i=0; table[i].prefix; i++)
+    if(strcmp(model, table[i].prefix) == 0) {
       if (table[i].black)   black   = (ushort) table[i].black;
       if (table[i].maximum) maximum = (ushort) table[i].maximum;
       if (table[i].trans[0]) {
@@ -314,6 +243,8 @@ void CLASS adobe_coeff (const char *make, const char *model)
           cam_xyz[j/3][j%3] = table[i].trans[j] / 10000.0;    /* original: cam_xyz[0][j] = table[i].trans[j] / 10000.0; */
         cam_xyz_coeff (cam_xyz);
       }
-      break;
+      return;
     }
+
+  printf("Matrix not found: %s\n", model);
 }

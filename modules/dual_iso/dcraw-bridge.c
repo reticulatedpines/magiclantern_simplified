@@ -13,7 +13,8 @@
 // The follwing two tables are copied straight from dcraw.c
 // Update them as needed :)
 
-static const struct {
+/* also used in kelvin.c */
+const struct {
     const char *prefix;
     short black, maximum, trans[12];
 } table[] = {
@@ -87,6 +88,9 @@ static const struct {
         { 6847,-614,-1014,-4669,12737,2139,-1197,2488,6846 } },
     { "EOS-1D", 0, 0xe20,
         { 6806,-179,-1020,-8097,16415,1687,-3267,4236,7690 } },
+    
+    /* end of list */
+    { NULL, 0, 0, { 0,0,0,0,0,0,0,0,0 } },
 };
 
 static const struct {
@@ -151,7 +155,7 @@ int get_raw_info(unsigned model_id, struct raw_info * raw_info)
         adobe_coeff("Canon", model);
     }
 
-    for(i=0; i<COUNT(table); ++i)
+    for(i=0; table[i].prefix; ++i)
     {
         if(strcmp(model, table[i].prefix) == 0)
         {
