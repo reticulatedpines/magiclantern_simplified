@@ -34,9 +34,9 @@
 
 #define LUA_PARAM_INT(name, index)\
 if(index > lua_gettop(L) || !(lua_isinteger(L, index) || lua_isnumber(L,index))) return luaL_argerror(L, index, "expected integer for param '" #name "'");\
-int name = lua_tointeger(L, index)
+int name = lua_isinteger(L, index) ? lua_tointeger(L, index) : (int)lua_tonumber(L, index)
 
-#define LUA_PARAM_INT_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && (lua_isinteger(L, index) || lua_isnumber(L,index))) ? lua_tointeger(L, index) : default
+#define LUA_PARAM_INT_OPTIONAL(name, index, default) int name = (index <= lua_gettop(L) && (lua_isinteger(L, index) || lua_isnumber(L,index))) ? (lua_isinteger(L, index) ? lua_tointeger(L, index) : (int)lua_tonumber(L, index)) : default
 
 #define LUA_PARAM_BOOL(name, index)\
 if(index > lua_gettop(L) || !lua_isboolean(L, index)) return luaL_argerror(L, index, "expected boolean for param '" #name "'");\
