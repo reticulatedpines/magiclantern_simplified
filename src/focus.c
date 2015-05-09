@@ -172,8 +172,9 @@ void focus_calc_dof()
         // Test if large aperture diffraction limit reached 
         if (diff >= coc)
         {
-            // note: in this case, DOF info will not account for diffraction
+            // note: in this case, DOF near and far will collapse to focus distance
             dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+            coc = 0;
         }
         else
         {
