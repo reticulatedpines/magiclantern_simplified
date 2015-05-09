@@ -1221,39 +1221,6 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
-    {
-        .name = "DOF Settings",
-        .select = menu_open_submenu,
-        .update = dof_info_update,
-        .help = "Settings about Depth of Field info displays.",
-        .depends_on = DEP_LIVEVIEW,
-        .submenu_width = 700,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Circle of Confusion",
-                .priv = &dof_info_coc,
-                .min  = 1,
-                .max = 100,
-                .help = "Circle of confusion used for DOF calculations, in " SYM_MICRO"m.",
-            },
-            {
-                .name = "DOF formula",
-                .priv = &dof_info_formula,
-                .max = 1,
-                .choices = CHOICES("Simple", "Diffraction-aware"),
-                .help = "Formula for computing the depth of field:",
-                .help2 = "Simple: only consider defocus blur, ignoring diffraction effects.\n"
-                         "Diffraction-aware: consider both defocus and diffraction blur.\n"
-            },
-            {
-                .name = "DOF info in LiveView",
-                .priv = &dof_info_display_lv,
-                .max  = 1,
-                .help = "Display DOF above Focus distance, in LiveView.",
-            },
-            MENU_EOL,
-        },
-    },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
         .name = "Focus Settings",
@@ -1309,6 +1276,39 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
+    {
+        .name = "DOF Settings",
+        .select = menu_open_submenu,
+        .update = dof_info_update,
+        .help = "Settings about Depth of Field info displays.",
+        .depends_on = DEP_LIVEVIEW,
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Circle of Confusion",
+                .priv = &dof_info_coc,
+                .min  = 1,
+                .max = 100,
+                .help = "Circle of confusion used for DOF calculations, in " SYM_MICRO"m.",
+            },
+            {
+                .name = "DOF formula",
+                .priv = &dof_info_formula,
+                .max = 1,
+                .choices = CHOICES("Simple", "Diffraction-aware"),
+                .help = "Formula for computing the depth of field:",
+                .help2 = "Simple: only consider defocus blur, ignoring diffraction effects.\n"
+                         "Diffraction-aware: consider both defocus and diffraction blur.\n"
+            },
+            {
+                .name = "DOF info in LiveView",
+                .priv = &dof_info_display_lv,
+                .max  = 1,
+                .help = "Display DOF above Focus distance, in LiveView.",
+            },
+            MENU_EOL,
+        },
+    },
 };
 
 
