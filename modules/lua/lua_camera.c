@@ -419,10 +419,10 @@ static int luaCB_iso_newindex(lua_State * L)
 static int luaCB_ec_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set aperture in Canon raw units
+    /// Get/Set exposure compensation in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.ae);
-    /// Get/Set aperture in apex units x10
+    /// Get/Set exposure compensation in apex units x10
     // @tfield int apex
     else if(!strcmp(key,"apex")) lua_pushinteger(L, RAW2EC(lens_info.ae));
     /// Get/Set exposure compensation in EVs (floating point)
