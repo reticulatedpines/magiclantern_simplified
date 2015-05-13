@@ -3,6 +3,9 @@
  */
 
 #include "dryos.h"
+#include "vram.h"
+#include "bmp.h"
+#include "font_direct.h"
 
 /** These are called when new tasks are created */
 static int my_init_task(int a, int b, int c, int d);
@@ -139,7 +142,16 @@ my_init_task(int a, int b, int c, int d)
         msleep(500);
         MEM(CARD_LED_ADDRESS) = LEDOFF;
         msleep(500);
+        
+        font_draw(100, 75, COLOR_WHITE, 3, "Hello, World!");
     }
     
     return 0;
+}
+
+/* used by font_draw */
+void disp_set_pixel(int x, int y, int c)
+{
+    uint8_t* bmp = bmp_vram_info[1].vram2;
+    bmp[x + y * 960] = c;
 }
