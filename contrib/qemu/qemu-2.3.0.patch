@@ -64,3 +64,23 @@ index 986f04c..f635c85 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+diff --git a/target-arm/translate.c b/target-arm/translate.c
+index 9116529..b902460 100644
+--- a/target-arm/translate.c
++++ b/target-arm/translate.c
+@@ -11363,11 +11363,12 @@ done_generating:
+ 
+ #ifdef DEBUG_DISAS
+     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
+-        qemu_log("----------------\n");
+-        qemu_log("IN: %s\n", lookup_symbol(pc_start));
++        /* just log the ASM code, without extra lines */
++        //~ qemu_log("----------------\n");
++        //~ qemu_log("IN: %s\n", lookup_symbol(pc_start));
+         log_target_disas(env, pc_start, dc->pc - pc_start,
+                          dc->thumb | (dc->bswap_code << 1));
+-        qemu_log("\n");
++        //~ qemu_log("\n");
+     }
+ #endif
+     if (search_pc) {
