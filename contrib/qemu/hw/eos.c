@@ -1149,8 +1149,7 @@ static EOSState *eos_init_cpu(int digic_version)
 
     vmstate_register_ram_global(&s->ram);
 
-    /* for DIGIC 6 we don't know much about the CPU, except it supports Thumb-2 */
-    const char* cpu_name = (digic_version == 6) ? "cortex-a8" : "arm946eos";
+    const char* cpu_name = (digic_version == 6) ? "arm-digic6-eos" : "arm946eos";
     
     s->cpu = cpu_arm_init(cpu_name);
     if (!s->cpu)
@@ -1220,8 +1219,10 @@ static void patch_7D2(EOSState *s)
          || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
          || old == 0x0F11EE19   /* MRC p15, 0, R0,c9,c1, 0 */
          || old == 0x0F11EE09   /* MCR p15, 0, R0,c9,c1, 0 */
-         || old == 0x0F10EE11)  /* MRC p15, 0, R0,c1,c0, 0 */
-        {
+         || old == 0x0F10EE11   /* MRC p15, 0, R0,c1,c0, 0 */
+         || old == 0x0F31EE19   /* MRC p15, 0, R0,c9,c1, 1 */
+         || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
+        ) {
             printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc((old << 16) | (old >> 16)));
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }

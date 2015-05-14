@@ -34,10 +34,10 @@ index ee3f2a8..833a4b9 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 986f04c..f635c85 100644
+index 986f04c..1fcf106 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -580,6 +580,18 @@ static void arm926_initfn(Object *obj)
+@@ -580,6 +580,30 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -53,14 +53,27 @@ index 986f04c..f635c85 100644
 +    cpu->reset_sctlr = 0x00000078;
 +}
 +
++static void arm_digic6_eos_initfn(Object *obj)
++{
++    /* this CPU supports Thumb-2 instructions and also SDIV */
++    ARMCPU *cpu = ARM_CPU(obj);
++    set_feature(&cpu->env, ARM_FEATURE_V8);
++    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
++    cpu->midr = 0x41059461;
++    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
++             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
++    cpu->reset_sctlr = 0x00000078;
++}
++
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1151,6 +1163,7 @@ typedef struct ARMCPUInfo {
+@@ -1151,6 +1175,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
 +    { .name = "arm946eos",   .initfn = arm946eos_initfn },
++    { .name = "arm-digic6-eos",   .initfn = arm_digic6_eos_initfn },
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
