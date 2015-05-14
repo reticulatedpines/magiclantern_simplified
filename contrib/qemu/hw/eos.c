@@ -1186,25 +1186,9 @@ static void patch_bootloader_autoexec(EOSState *s)
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
 
-static char* decode_mcr_mrc(uint32_t insn)
-{
-    /* MCR/MRC{<cond>} <coproc>, <opcode_1>, <Rd>, <CRn>, <CRm>{, <opcode_2>} */
-    const char* ins = insn & (1<<20) ? "MRC" : "MCR";
-    int CRn = (insn >> 16) & 0xF;
-    int CRm = insn & 0xF;
-    int Rd = (insn >> 12) & 0xF;
-    int cp = (insn >> 8) & 0xF;
-    int op1 = (insn >> 21) & 0x7;
-    int op2 = (insn >> 5) & 0x7;
-
-    static char msg[50];
-    snprintf(msg, sizeof(msg), "%s p%d,%d,R%d,c%d,c%d,%d", ins, cp, op1, Rd, CRn, CRm, op2);
-    return msg;
-}
-
 static void patch_7D2(EOSState *s)
 {
-    int is_7d2m = (eos_get_mem_w(s, 0xFE0A003E) == 0x0F12EE06);
+    int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
 
     uint32_t nop = 0;
     uint32_t addr;
@@ -1219,7 +1203,8 @@ static void patch_7D2(EOSState *s)
          || old == 0x0F31EE19   /* MRC p15, 0, R0,c9,c1, 1 */
          || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
         ) {
-            printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc((old << 16) | (old >> 16)));
+            printf("Patching ");
+            target_disas(stdout, &s->cpu->env, addr, 4, 1);
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
@@ -1256,7 +1241,8 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
         uint32_t old = eos_get_mem_w(s, addr);
         if (old == 0xEE090F11 || old == 0xEE090F31)
         {
-            printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc(old));
+            printf("Patching ");
+            target_disas(stdout, &s->cpu->env, addr, 4, 0);
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
