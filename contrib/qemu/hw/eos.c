@@ -42,6 +42,8 @@ EOSRegionHandler eos_handlers[] =
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
+
+    { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
     { "FIO wrapper",  0xCF123F00, 0xCF123FFF, eos_handle_ml_fio, 0 },
@@ -1063,7 +1065,7 @@ static void eos_key_event(void *parm, int keycode)
     s->keybuf[(s->key_index_w++) & 15] = keycode;
 }
 
-static EOSState *eos_init_cpu(void)
+static EOSState *eos_init_cpu(int digic_version)
 {
     EOSState *s = g_new(EOSState, 1);
     memset(s, 0, sizeof(*s));
@@ -1083,6 +1085,12 @@ static EOSState *eos_init_cpu(void)
     memory_region_add_subregion(s->system_mem, TCM_SIZE, &s->ram);
     memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, CACHING_BIT | TCM_SIZE, &s->ram_uncached);
+
+    if (digic_version == 6)
+    {
+        memory_region_init_ram(&s->ram2, NULL, "eos.ram2", RAM2_SIZE);
+        memory_region_add_subregion(s->system_mem, RAM2_ADDR, &s->ram2);
+    }
 
     /* set up ROM0 */
     memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE);
@@ -1118,7 +1126,8 @@ static EOSState *eos_init_cpu(void)
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
     /* set up io space */
-    memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", IO_MEM_LEN);
+    uint32_t io_mem_len = (digic_version == 6 ? IO_MEM_LEN6 : IO_MEM_LEN45);
+    memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", io_mem_len);
     memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
 
 #ifdef TRACE_MEM_START
@@ -1139,7 +1148,10 @@ static EOSState *eos_init_cpu(void)
 
     vmstate_register_ram_global(&s->ram);
 
-    s->cpu = cpu_arm_init("arm946eos");
+    /* for DIGIC 6 we don't know much about the CPU, except it supports Thumb-2 */
+    char* cpu_name = (digic_version == 6) ? "cortex-a8" : "arm946eos";
+    
+    s->cpu = cpu_arm_init(cpu_name);
     if (!s->cpu)
     {
         fprintf(stderr, "Unable to find CPU definition\n");
@@ -1174,11 +1186,56 @@ static void patch_bootloader_autoexec(EOSState *s)
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
 
-static void eos_init_common(const char *rom_filename, uint32_t rom_start)
+static char* decode_mcr_mrc(uint32_t insn)
+{
+    /* MCR/MRC{<cond>} <coproc>, <opcode_1>, <Rd>, <CRn>, <CRm>{, <opcode_2>} */
+    const char* ins = insn & (1<<20) ? "MRC" : "MCR";
+    int CRn = (insn >> 16) & 0xF;
+    int CRm = insn & 0xF;
+    int Rd = (insn >> 12) & 0xF;
+    int cp = (insn >> 8) & 0xF;
+    int op1 = (insn >> 21) & 0x7;
+    int op2 = (insn >> 5) & 0x7;
+
+    static char msg[50];
+    snprintf(msg, sizeof(msg), "%s p%d,%d,R%d,c%d,c%d,%d", ins, cp, op1, Rd, CRn, CRm, op2);
+    return msg;
+}
+
+static void patch_7D2(EOSState *s)
+{
+    if (eos_get_mem_w(s, 0xFE0A003E) != 0x0F12EE06)
+    {
+        printf("This ROM doesn't look like a 7D2\n");
+        return;
+    }
+    
+    uint32_t nop = 0;
+    uint32_t addr;
+    for (addr = 0xFE000000; addr < 0xFE200000; addr += 2)
+    {
+        uint32_t old = eos_get_mem_w(s, addr);
+        if (old == 0x0F12EE06   /* MCR p15, 0, R0,c6,c2, 0 */
+         || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
+         || old == 0x0F11EE19   /* MRC p15, 0, R0,c9,c1, 0 */
+         || old == 0x0F11EE09   /* MCR p15, 0, R0,c9,c1, 0 */
+         || old == 0x0F10EE11)  /* MRC p15, 0, R0,c1,c0, 0 */
+        {
+            printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc((old << 16) | (old >> 16)));
+            cpu_physical_memory_write_rom(addr, (uint8_t*) &nop, 4);
+        }
+    }
+    
+    uint32_t one = 1;
+    printf("Patching 0x%X (enabling TIO)\n", 0xFEC4DCBC);
+    cpu_physical_memory_write_rom(0xFEC4DCBC, (uint8_t*) &one, 4);
+}
+
+static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
 {
     precompute_yuv2rgb(1);
 
-    EOSState *s = eos_init_cpu();
+    EOSState *s = eos_init_cpu(digic_version);
 
     /* populate ROM0 */
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
@@ -1189,12 +1246,12 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
     /* these can't be executed by emulator */
     uint32_t nop = 0xe1a00000;
     uint32_t addr;
-    for (addr = 0xFFFE0000; addr < 0xFFFFFFFC; addr++)
+    for (addr = 0xFFFE0000; addr < 0xFFFFFFFC; addr += 4)
     {
         uint32_t old = eos_get_mem_w(s, addr);
         if (old == 0xEE090F11 || old == 0xEE090F31)
         {
-            printf("Patching %X (MCR p15,0,R0,c9,c1,x -> NOP)\n", addr);
+            printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc(old));
             cpu_physical_memory_write_rom(addr, (uint8_t*) &nop, 4);
         }
     }
@@ -1219,7 +1276,7 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
         return;
     }
     
-    if (1)
+    if (0)
     {
         /* make sure the boot flag is enabled */
         uint32_t flag = 0xFFFFFFFF;
@@ -1229,15 +1286,22 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start)
         s->cpu->env.regs[15] = 0xFFFF0000;
         return;
     }
+    
+    
+    if (1)
+    {
+        /* 7D2 experiments */
+        patch_7D2(s);
+    }
 
     s->cpu->env.regs[15] = rom_start;
 }
 
-static void ml_init_common(const char *rom_filename, uint32_t rom_start)
+static void ml_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
 {
     precompute_yuv2rgb(1);
 
-    EOSState *s = eos_init_cpu();
+    EOSState *s = eos_init_cpu(digic_version);
 
     /* populate ROM0 */
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
@@ -1277,39 +1341,41 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     s->cpu->env.regs[13] = 0x1900;
 }
 
-ML_MACHINE(50D,   0xFF010000);
-ML_MACHINE(60D,   0xFF010000);
-ML_MACHINE(600D,  0xFF010000);
-ML_MACHINE(500D,  0xFF010000);
-ML_MACHINE(5D2,   0xFF810000);
-ML_MACHINE(5D3,   0xFF0C0000);
-ML_MACHINE(650D,  0xFF0C0000);
-ML_MACHINE(100D,  0xFF0C0000);
-ML_MACHINE(7D,    0xFF010000);
-ML_MACHINE(550D,  0xFF010000);
-ML_MACHINE(6D,    0xFF0C0000);
-ML_MACHINE(70D,   0xFF0C0000);
-ML_MACHINE(700D,  0xFF0C0000);
-ML_MACHINE(1100D, 0xFF010000);
-ML_MACHINE(1200D, 0xFF0C0000);
-ML_MACHINE(EOSM,  0xFF0C0000);
+ML_MACHINE(50D,   0xFF010000, 4);
+ML_MACHINE(60D,   0xFF010000, 4);
+ML_MACHINE(600D,  0xFF010000, 4);
+ML_MACHINE(500D,  0xFF010000, 4);
+ML_MACHINE(5D2,   0xFF810000, 4);
+ML_MACHINE(5D3,   0xFF0C0000, 5);
+ML_MACHINE(650D,  0xFF0C0000, 5);
+ML_MACHINE(100D,  0xFF0C0000, 5);
+ML_MACHINE(7D,    0xFF010000, 4);
+ML_MACHINE(550D,  0xFF010000, 4);
+ML_MACHINE(6D,    0xFF0C0000, 5);
+ML_MACHINE(70D,   0xFF0C0000, 5);
+ML_MACHINE(700D,  0xFF0C0000, 5);
+ML_MACHINE(1100D, 0xFF010000, 4);
+ML_MACHINE(1200D, 0xFF0C0000, 4);
+ML_MACHINE(EOSM,  0xFF0C0000, 5);
+ML_MACHINE(7D2,   0xFE0A0000, 6);
 
-EOS_MACHINE(50D,  0xFF010000);
-EOS_MACHINE(60D,  0xFF010000);
-EOS_MACHINE(600D, 0xFF010000);
-EOS_MACHINE(500D, 0xFF010000);
-EOS_MACHINE(5D2,  0xFF810000);
-EOS_MACHINE(5D3,  0xFF0C0000);
-EOS_MACHINE(650D, 0xFF0C0000);
-EOS_MACHINE(100D, 0xFF0C0000);
-EOS_MACHINE(7D,   0xFF010000);
-EOS_MACHINE(550D, 0xFF010000);
-EOS_MACHINE(6D,   0xFF0C0000);
-EOS_MACHINE(70D,  0xFF0C0000);
-EOS_MACHINE(700D, 0xFF0C0000);
-EOS_MACHINE(1100D,0xFF010000);
-EOS_MACHINE(1200D,0xFF0C0000);
-EOS_MACHINE(EOSM, 0xFF0C0000);
+EOS_MACHINE(50D,  0xFF010000, 4);
+EOS_MACHINE(60D,  0xFF010000, 4);
+EOS_MACHINE(600D, 0xFF010000, 4);
+EOS_MACHINE(500D, 0xFF010000, 4);
+EOS_MACHINE(5D2,  0xFF810000, 4);
+EOS_MACHINE(5D3,  0xFF0C0000, 5);
+EOS_MACHINE(650D, 0xFF0C0000, 5);
+EOS_MACHINE(100D, 0xFF0C0000, 5);
+EOS_MACHINE(7D,   0xFF010000, 4);
+EOS_MACHINE(550D, 0xFF010000, 4);
+EOS_MACHINE(6D,   0xFF0C0000, 5);
+EOS_MACHINE(70D,  0xFF0C0000, 5);
+EOS_MACHINE(700D, 0xFF0C0000, 5);
+EOS_MACHINE(1100D,0xFF010000, 4);
+EOS_MACHINE(1200D,0xFF0C0000, 4);
+EOS_MACHINE(EOSM, 0xFF0C0000, 5);
+EOS_MACHINE(7D2,  0xFE0A0000, 6);
 
 static void eos_machine_init(void)
 {
@@ -1329,6 +1395,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_ml_1100D);
     qemu_register_machine(&canon_eos_machine_ml_1200D);
     qemu_register_machine(&canon_eos_machine_ml_EOSM);
+    qemu_register_machine(&canon_eos_machine_ml_7D2);
     qemu_register_machine(&canon_eos_machine_50D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
@@ -1345,6 +1412,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_1100D);
     qemu_register_machine(&canon_eos_machine_1200D);
     qemu_register_machine(&canon_eos_machine_EOSM);
+    qemu_register_machine(&canon_eos_machine_7D2);
 }
 
 machine_init(eos_machine_init);
@@ -3112,6 +3180,23 @@ unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *ws, unsigned in
     return ret;
 }
 
+unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+
+    switch (address)
+    {
+        case 0xD203046C:
+        case 0xD203086C:
+            ret = 1;
+            msg = "7D2 init";
+            break;
+    }
+    
+    io_log("DIGIC6", ws, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
 
 /* its not done yet */
 #if defined(EOS_ROM_DEVICE_IMPLEMENTED)

@@ -3,9 +3,9 @@
 #define HW_EOS_H
 
 /* macros to define CPU types */
-#define ML_MACHINE(cam, addr) \
+#define ML_MACHINE(cam, addr, digic_version) \
     static void ml_init_##cam(QEMUMachineInitArgs *args) \
-    { ml_init_common("ROM-"#cam".BIN", addr); } \
+    { ml_init_common("ROM-"#cam".BIN", addr, digic_version); } \
     \
     QEMUMachine canon_eos_machine_ml_##cam = { \
         .name = "ML-"#cam, 0, \
@@ -13,9 +13,9 @@
         .init = &ml_init_##cam, \
     };
 
-#define EOS_MACHINE(cam, addr) \
+#define EOS_MACHINE(cam, addr, digic_version) \
     static void eos_init_##cam(QEMUMachineInitArgs *args) \
-    { eos_init_common("ROM-"#cam".BIN", addr); } \
+    { eos_init_common("ROM-"#cam".BIN", addr, digic_version); } \
     \
     QEMUMachine canon_eos_machine_##cam = { \
         .name = #cam, 0, \
@@ -80,8 +80,12 @@
 #define RAM_SIZE      0x40000000
 #define CACHING_BIT   0x40000000
 
-#define IO_MEM_START  0xC0000000
-#define IO_MEM_LEN    0x10000000
+#define RAM2_ADDR     0x80000000    /* a second memory block on DIGIC 6? */
+#define RAM2_SIZE     0x40000000
+
+#define IO_MEM_START  0xC0000000    /* common to all DIGICs */
+#define IO_MEM_LEN45  0x10000000    /* for DIGIC 4/5 */
+#define IO_MEM_LEN6   0x20000000    /* for DIGIC 6 */
 
 /* define those for logging RAM access (reads + writes) */
 /* caveat: this area will be marked as IO, so you can't execute anything from there */
@@ -146,6 +150,7 @@ typedef struct
     MemoryRegion tcm_data;
     MemoryRegion ram;
     MemoryRegion ram_uncached;
+    MemoryRegion ram2;
     MemoryRegion rom0;
     MemoryRegion rom1;
     uint8_t *rom0_data;
@@ -237,6 +242,8 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *ws, unsigned int 
 
 unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_ml_fio ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
+
+unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *ws, unsigned int address, unsigned char type, unsigned int value );
 
 void eos_set_mem_w ( EOSState *ws, uint32_t addr, uint32_t val );
 void eos_set_mem_h ( EOSState *ws, uint32_t addr, uint16_t val );
