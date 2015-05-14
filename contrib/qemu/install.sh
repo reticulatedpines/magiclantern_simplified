@@ -1,6 +1,6 @@
 #!/bin/bash
 
-QEMU_NAME=${QEMU_NAME:=qemu-1.6.0}
+QEMU_NAME=${QEMU_NAME:=qemu-2.3.0}
 ML=${ML:=magic-lantern}
 
 echo
@@ -34,7 +34,6 @@ tar jxf $QEMU_NAME.tar.bz2
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
 git init
-rm */.git       # https://bugs.launchpad.net/qemu/+bug/1224414
 git add .
 git commit -m "$QEMU_NAME vanilla" 
 cd ..

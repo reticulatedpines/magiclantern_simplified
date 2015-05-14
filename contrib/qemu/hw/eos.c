@@ -5,6 +5,7 @@
 #include "hw/boards.h"
 #include "exec/address-spaces.h"
 #include "exec/memory-internal.h"
+#include "exec/ram_addr.h"
 #include "hw/sysbus.h"
 #include "qemu/thread.h"
 #include "dirent.h"
@@ -580,7 +581,7 @@ static void eos_load_image(EOSState *s, const char* file, int offset, int max_si
         reverse_bytes_order(buf + offset, size);
     }
 
-    cpu_physical_memory_write_rom(addr, buf + offset, size);
+    MEM_WRITE_ROM(addr, buf + offset, size);
 
     free(buf);
 }
@@ -766,7 +767,7 @@ static void draw_line8_32(void *opaque,
     uint8_t v, r, g, b;
     
     do {
-        v = ldub_raw((void *) s);
+        v = ldub_p((void *) s);
         if (v)
         {
             r = R[v];
@@ -791,7 +792,7 @@ static void draw_line4_32(void *opaque,
     EOSState* ws = (EOSState*) opaque;
     
     do {
-        v = ldub_raw((void *) s);
+        v = ldub_p((void *) s);
         v = ((uintptr_t)d/4 % 2) ? (v >> 4) & 0xF : v & 0xF;
         
         r = ws->palette_4bit[v].R;
@@ -810,7 +811,7 @@ static void draw_line8_32_bmp_yuv(void *opaque,
     uint8_t v, r, g, b;
     
     do {
-        v = ldub_raw((void *) bmp);
+        v = ldub_p((void *) bmp);
         if (v)
         {
             r = R[v];
@@ -820,7 +821,7 @@ static void draw_line8_32_bmp_yuv(void *opaque,
         }
         else
         {
-            uint32_t uyvy =  ldl_raw((uintptr_t)yuv & ~3);
+            uint32_t uyvy =  ldl_p((void*)((uintptr_t)yuv & ~3));
             int Y = (uintptr_t)yuv & 3 ? UYVY_GET_Y2(uyvy) : UYVY_GET_Y1(uyvy);
             int U = UYVY_GET_U(uyvy);
             int V = UYVY_GET_V(uyvy);
@@ -1075,25 +1076,25 @@ static EOSState *eos_init_cpu(int digic_version)
 
     s->system_mem = get_system_memory();
 
-    memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", TCM_SIZE);
+    memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", TCM_SIZE, &error_abort);
     memory_region_add_subregion(s->system_mem, 0x00000000, &s->tcm_code);
-    memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", TCM_SIZE);
+    memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", TCM_SIZE, &error_abort);
     memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->tcm_data);
 
     /* set up RAM, cached and uncached */
-    memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - TCM_SIZE);
+    memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - TCM_SIZE, &error_abort);
     memory_region_add_subregion(s->system_mem, TCM_SIZE, &s->ram);
     memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, CACHING_BIT | TCM_SIZE, &s->ram_uncached);
 
     if (digic_version == 6)
     {
-        memory_region_init_ram(&s->ram2, NULL, "eos.ram2", RAM2_SIZE);
+        memory_region_init_ram(&s->ram2, NULL, "eos.ram2", RAM2_SIZE, &error_abort);
         memory_region_add_subregion(s->system_mem, RAM2_ADDR, &s->ram2);
     }
 
     /* set up ROM0 */
-    memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE);
+    memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE, &error_abort);
     memory_region_add_subregion(s->system_mem, ROM0_ADDR, &s->rom0);
 
     uint64_t offset;
@@ -1108,7 +1109,7 @@ static EOSState *eos_init_cpu(int digic_version)
     }
 
     /* set up ROM1 */
-    memory_region_init_ram(&s->rom1, NULL, "eos.rom1", ROM1_SIZE);
+    memory_region_init_ram(&s->rom1, NULL, "eos.rom1", ROM1_SIZE, &error_abort);
     memory_region_add_subregion(s->system_mem, ROM1_ADDR, &s->rom1);
 
     // uint64_t offset;
@@ -1122,7 +1123,7 @@ static EOSState *eos_init_cpu(int digic_version)
         memory_region_add_subregion(s->system_mem, offset, image);
     }
 
-    //memory_region_init_ram(&s->rom1, "eos.rom", 0x10000000);
+    //memory_region_init_ram(&s->rom1, "eos.rom", 0x10000000, &error_abort);
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
     /* set up io space */
@@ -1149,7 +1150,7 @@ static EOSState *eos_init_cpu(int digic_version)
     vmstate_register_ram_global(&s->ram);
 
     /* for DIGIC 6 we don't know much about the CPU, except it supports Thumb-2 */
-    char* cpu_name = (digic_version == 6) ? "cortex-a8" : "arm946eos";
+    const char* cpu_name = (digic_version == 6) ? "cortex-a8" : "arm946eos";
     
     s->cpu = cpu_arm_init(cpu_name);
     if (!s->cpu)
@@ -1161,9 +1162,9 @@ static EOSState *eos_init_cpu(int digic_version)
     s->rtc.transfer_format = 0xFF;
 
     qemu_mutex_init(&s->irq_lock);
-    qemu_thread_create(&s->interrupt_thread_id, eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
+    qemu_thread_create(&s->interrupt_thread_id, "eos_interrupt", eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
 
-    s->con = graphic_console_init(NULL, &eos_display_ops, s);
+    s->con = graphic_console_init(NULL, 0, &eos_display_ops, s);
     
     qemu_add_kbd_event_handler(eos_key_event, s);
 
@@ -1180,8 +1181,8 @@ static void patch_bootloader_autoexec(EOSState *s)
         return;
     }
     uint32_t ret_0[2] = { 0xe3a00000, 0xe12fff1e };
-    cpu_physical_memory_write_rom(0xFFFEA10C, (uint8_t*) ret_0, 8);
-    cpu_physical_memory_write_rom(0xFFFE23CC, (uint8_t*) ret_0, 8);
+    MEM_WRITE_ROM(0xFFFEA10C, (uint8_t*) ret_0, 8);
+    MEM_WRITE_ROM(0xFFFE23CC, (uint8_t*) ret_0, 8);
     eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
@@ -1222,13 +1223,13 @@ static void patch_7D2(EOSState *s)
          || old == 0x0F10EE11)  /* MRC p15, 0, R0,c1,c0, 0 */
         {
             printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc((old << 16) | (old >> 16)));
-            cpu_physical_memory_write_rom(addr, (uint8_t*) &nop, 4);
+            MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
     
     uint32_t one = 1;
     printf("Patching 0x%X (enabling TIO)\n", 0xFEC4DCBC);
-    cpu_physical_memory_write_rom(0xFEC4DCBC, (uint8_t*) &one, 4);
+    MEM_WRITE_ROM(0xFEC4DCBC, (uint8_t*) &one, 4);
 }
 
 static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
@@ -1252,7 +1253,7 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
         if (old == 0xEE090F11 || old == 0xEE090F31)
         {
             printf("Patching %X (%s -> NOP)\n", addr, decode_mcr_mrc(old));
-            cpu_physical_memory_write_rom(addr, (uint8_t*) &nop, 4);
+            MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
     
@@ -1280,7 +1281,7 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
     {
         /* make sure the boot flag is enabled */
         uint32_t flag = 0xFFFFFFFF;
-        cpu_physical_memory_write_rom(0xF8000004, (uint8_t*) &flag, 4);
+        MEM_WRITE_ROM(0xF8000004, (uint8_t*) &flag, 4);
 
         /* emulate the bootloader, not the main firmware */
         s->cpu->env.regs[15] = 0xFFFF0000;
@@ -1330,7 +1331,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start, uint32_
             old += ram_offset;
         uint32_t jmp[] = {FAR_CALL_INSTR, new};
         printf("[QEMU_HELPER] stub %x -> %x (%x)\n", old, new, eos_get_mem_w(s, old));
-        cpu_physical_memory_write_rom(old, (uint8_t*)jmp, 8);
+        MEM_WRITE_ROM(old, (uint8_t*)jmp, 8);
 
         addr += 8;
         if (addr > 0x30100000) { fprintf(stderr, "stub list error\n"); abort(); }

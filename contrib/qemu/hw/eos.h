@@ -4,7 +4,7 @@
 
 /* macros to define CPU types */
 #define ML_MACHINE(cam, addr, digic_version) \
-    static void ml_init_##cam(QEMUMachineInitArgs *args) \
+    static void ml_init_##cam(MachineState *args) \
     { ml_init_common("ROM-"#cam".BIN", addr, digic_version); } \
     \
     QEMUMachine canon_eos_machine_ml_##cam = { \
@@ -14,7 +14,7 @@
     };
 
 #define EOS_MACHINE(cam, addr, digic_version) \
-    static void eos_init_##cam(QEMUMachineInitArgs *args) \
+    static void eos_init_##cam(MachineState *args) \
     { eos_init_common("ROM-"#cam".BIN", addr, digic_version); } \
     \
     QEMUMachine canon_eos_machine_##cam = { \
@@ -272,5 +272,8 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
                                 uint16_t id0, uint16_t id1,
                                 uint16_t id2, uint16_t id3, int be);
 #endif
+
+#define MEM_WRITE_ROM(addr, buf, size) \
+    cpu_physical_memory_write_rom(&address_space_memory, addr, buf, size)
 
 #endif /* HW_EOS_H */

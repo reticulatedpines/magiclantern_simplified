@@ -3,7 +3,7 @@
 SCRIPTPATH=`dirname $0`
 cd $SCRIPTPATH
 
-QEMU_PATH=${QEMU_PATH:=qemu-1.6.0}
+QEMU_PATH=${QEMU_PATH:=qemu-2.3.0}
 ML=${ML:=magic-lantern}
 # copy and consume parameters, leave the remainder as arguments to qemu
 CAM=$1
