@@ -1204,12 +1204,8 @@ static char* decode_mcr_mrc(uint32_t insn)
 
 static void patch_7D2(EOSState *s)
 {
-    if (eos_get_mem_w(s, 0xFE0A003E) != 0x0F12EE06)
-    {
-        printf("This ROM doesn't look like a 7D2\n");
-        return;
-    }
-    
+    int is_7d2m = (eos_get_mem_w(s, 0xFE0A003E) == 0x0F12EE06);
+
     uint32_t nop = 0;
     uint32_t addr;
     for (addr = 0xFE000000; addr < 0xFE200000; addr += 2)
@@ -1227,10 +1223,17 @@ static void patch_7D2(EOSState *s)
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
-    
-    uint32_t one = 1;
-    printf("Patching 0x%X (enabling TIO)\n", 0xFEC4DCBC);
-    MEM_WRITE_ROM(0xFEC4DCBC, (uint8_t*) &one, 4);
+
+    if (is_7d2m)
+    {
+        uint32_t one = 1;
+        printf("Patching 0x%X (enabling TIO on 7D2M)\n", 0xFEC4DCBC);
+        MEM_WRITE_ROM(0xFEC4DCBC, (uint8_t*) &one, 4);
+    }
+    else
+    {
+        printf("This ROM doesn't look like a 7D2M\n");
+    }
 }
 
 static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
@@ -1359,7 +1362,8 @@ ML_MACHINE(700D,  0xFF0C0000, 5);
 ML_MACHINE(1100D, 0xFF010000, 4);
 ML_MACHINE(1200D, 0xFF0C0000, 4);
 ML_MACHINE(EOSM,  0xFF0C0000, 5);
-ML_MACHINE(7D2,   0xFE0A0000, 6);
+ML_MACHINE(7D2M,  0xFE0A0000, 6);
+ML_MACHINE(7D2S,  0xFE0A0000, 6);
 
 EOS_MACHINE(50D,  0xFF010000, 4);
 EOS_MACHINE(60D,  0xFF010000, 4);
@@ -1377,7 +1381,8 @@ EOS_MACHINE(700D, 0xFF0C0000, 5);
 EOS_MACHINE(1100D,0xFF010000, 4);
 EOS_MACHINE(1200D,0xFF0C0000, 4);
 EOS_MACHINE(EOSM, 0xFF0C0000, 5);
-EOS_MACHINE(7D2,  0xFE0A0000, 6);
+EOS_MACHINE(7D2M, 0xFE0A0000, 6);
+EOS_MACHINE(7D2S, 0xFE0A0000, 6);
 
 static void eos_machine_init(void)
 {
@@ -1397,7 +1402,8 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_ml_1100D);
     qemu_register_machine(&canon_eos_machine_ml_1200D);
     qemu_register_machine(&canon_eos_machine_ml_EOSM);
-    qemu_register_machine(&canon_eos_machine_ml_7D2);
+    qemu_register_machine(&canon_eos_machine_ml_7D2M);
+    qemu_register_machine(&canon_eos_machine_ml_7D2S);
     qemu_register_machine(&canon_eos_machine_50D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
@@ -1414,7 +1420,8 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_1100D);
     qemu_register_machine(&canon_eos_machine_1200D);
     qemu_register_machine(&canon_eos_machine_EOSM);
-    qemu_register_machine(&canon_eos_machine_7D2);
+    qemu_register_machine(&canon_eos_machine_7D2M);
+    qemu_register_machine(&canon_eos_machine_7D2S);
 }
 
 machine_init(eos_machine_init);
