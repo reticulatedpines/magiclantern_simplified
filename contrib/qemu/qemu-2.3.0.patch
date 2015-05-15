@@ -34,10 +34,10 @@ index ee3f2a8..833a4b9 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 986f04c..1fcf106 100644
+index 986f04c..6bd95a1 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -580,6 +580,30 @@ static void arm926_initfn(Object *obj)
+@@ -580,6 +580,31 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -46,6 +46,7 @@ index 986f04c..1fcf106 100644
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    set_feature(&cpu->env, ARM_FEATURE_V5);
 +    set_feature(&cpu->env, ARM_FEATURE_MPU);
++    set_feature(&cpu->env, ARM_FEATURE_XSCALE); /* for MCR p15, 0,R0,c9,c1,0 */
 +    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
 +    cpu->midr = 0x41059461;
 +    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
@@ -68,7 +69,7 @@ index 986f04c..1fcf106 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1151,6 +1175,8 @@ typedef struct ARMCPUInfo {
+@@ -1151,6 +1176,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },

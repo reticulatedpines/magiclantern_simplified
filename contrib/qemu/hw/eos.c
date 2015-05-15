@@ -1231,21 +1231,6 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
     /* populate ROM1 */
     eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
-
-    /* patch all occurences of "MCR p15, 0, R0,c9,c1, 0" (0xEE090F11) in the bootloader */
-    /* these can't be executed by emulator */
-    uint32_t nop = 0xe1a00000;
-    uint32_t addr;
-    for (addr = 0xFFFE0000; addr < 0xFFFFFFFC; addr += 4)
-    {
-        uint32_t old = eos_get_mem_w(s, addr);
-        if (old == 0xEE090F11 || old == 0xEE090F31)
-        {
-            printf("Patching ");
-            target_disas(stdout, &s->cpu->env, addr, 4, 0);
-            MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
-        }
-    }
     
     /* load a SD card image */
     s->sd.card_image = fopen("sd.img", "rb+");
