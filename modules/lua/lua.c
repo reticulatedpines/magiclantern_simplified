@@ -339,6 +339,7 @@ static const luaL_Reg alllibs[] =
     {"interval", luaopen_interval},
     {"battery", luaopen_battery},
     {"task", luaopen_task},
+    {"property", luaopen_property},
     {"constants", luaopen_constants},
     {"MODE", luaopen_MODE},
     {"ICON_TYPE", luaopen_ICON_TYPE},
