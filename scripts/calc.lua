@@ -3,23 +3,29 @@ calc = {}
 calc.value = ""
 calc.buttons =
 {
-    "lep()^/",
-    "sct789*",
-    "dvy456-",
-    "afg123+",
-    "rq,0.C="
+    {"log", "exp",  "pi",  "(",")","^","/"},
+    {"sin", "cos",  "tan", "7","8","9","*"},
+    {"asin","acos", "atan","4","5","6","-"},
+    {"abs", "floor","ceil","1","2","3","+"},
+    {"sqrt","%",    ",",   "0",".","C","="}
 }
 calc.row = 5
-calc.col = 1
+calc.col = 4
 calc.rows = #(calc.buttons)
 calc.cols = #(calc.buttons[1])
 calc.font = FONT.LARGE
+calc.border = COLOR.gray(75)
+calc.background = COLOR.gray(5)
+calc.foreground = COLOR.WHITE
+calc.highlight = COLOR.BLUE
+calc.error_forground = COLOR.RED
 calc.pad = 20
 calc.cell_size = calc.pad * 2 + calc.font.height
 calc.height = (calc.rows + 1) * calc.cell_size
 calc.width = (calc.cols) * calc.cell_size
 calc.left = display.width // 2 - calc.width // 2
 calc.top = display.height // 2 - calc.height // 2
+calc.error = false
 
 calc.mlmenu = menu.new
 {
@@ -83,64 +89,54 @@ function calc:handle_key(key)
     elseif key == KEY.PLAY then
         self:handle_button("=")
     elseif key == KEY.SET then
-        local row = self.buttons[self.row]
-        local c = string.sub(row,self.col,self.col)
-        self:handle_button(c)
+        self:handle_button(self.buttons[self.row][self.col])
     end
 end
 
 function calc:handle_button(c)
+    if self.error then
+        self.value = ""
+    end
+    self.error = false
     if c == "C" then
         self.value = ""
     elseif c == "=" then
         local status,result = pcall(load,"return "..self.value)
         if status == false or result == nil then
+            self.error = true
             self.value = "syntax error"
         else
             status,self.value = pcall(result)
+            if self.status == false then
+                self.error = true
+            end
         end
     else
-        local str = self:c_to_str(c)
-        self.value = self.value..str
-        if str ~= c and str ~= "pi" then
+        self.value = self.value..c
+        if #c > 2 then
             self.value = self.value.."("
         end
     end
 end
 
-function calc:c_to_str(c)
-    if c== "l" then return "log"
-    elseif c == "e" then return "exp"
-    elseif c == "p" then return "pi"
-    elseif c == "s" then return "sin"
-    elseif c == "c" then return "cos"
-    elseif c == "t" then return "tan"
-    elseif c == "d" then return "asin"
-    elseif c == "v" then return "acos"
-    elseif c == "y" then return "atan"
-    elseif c == "a" then return "abs"
-    elseif c == "f" then return "floor"
-    elseif c == "g" then return "ceil"
-    elseif c == "r" then return "rand"
-    elseif c == "q" then return "sqrt"
-    else return c end
-end
-
 function calc:draw()
     display.draw(function()
-        display.rect(self.left,self.top,self.width,self.cell_size,COLOR.WHITE,COLOR.BLACK)
-        display.print(self.value,self.left + self.pad,self.top + self.pad,self.font,COLOR.WHITE,COLOR.BLACK)
+        display.rect(self.left-4,self.top-4,self.width+8,self.height+8,self.border,self.border)
+        display.rect(self.left,self.top,self.width,self.cell_size,self.border,self.background)
+        local fg = self.foreground
+        if self.error then fg = self.error_forground end
+        display.print(self.value,self.left + self.pad,self.top + self.pad,self.font,fg,self.background, self.width - self.pad * 2)
         for i=1,self.rows,1 do
             local row = self.buttons[i]
             for j=1,self.cols,1 do
-                local c = self:c_to_str(string.sub(row,j,j))
+                local c = row[j]
                 local x = self.left + (j - 1) * self.cell_size
                 local y = self.top + i * self.cell_size
-                local bg = COLOR.BLACK
-                if i == self.row and j == self.col then bg = COLOR.BLUE end
-                display.rect(x,y,self.cell_size,self.cell_size,COLOR.WHITE,bg)
+                local bg = self.background
+                if i == self.row and j == self.col then bg = self.highlight end
+                display.rect(x,y,self.cell_size,self.cell_size,self.border,bg)
                 local pad = self.cell_size // 2 - self.font:width(c) // 2
-                display.print(c,x + pad, y + self.pad,self.font,COLOR.WHITE,bg)
+                display.print(c,x + pad, y + self.pad,self.font,self.border,bg)
             end
         end
     end)
