@@ -42,6 +42,9 @@
 #define stdout NULL
 #define stderr NULL
 
+//strerror doesn't work
+#define strerror(a) ""
+
 int my_getc(FILE * stream);
 FILE * my_fopen(const char * filename, const char * mode);
 FILE * my_freopen(const char * filename, const char * mode, FILE * f);
