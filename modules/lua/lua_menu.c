@@ -206,7 +206,7 @@ static int lua_hasfield(lua_State * L, int idx, const char * name, int expected_
 static int get_index_for_choices(struct menu_entry * menu_entry, const char * value)
 {
     int i;
-    for(i = 0; i < menu_entry->max; i++)
+    for(i = 0; i <= menu_entry->max; i++)
     {
         if(!strcmp(menu_entry->choices[i], value))
         {
