@@ -1,3 +1,26 @@
+diff --git a/cpu-exec.c b/cpu-exec.c
+index 2ffeb6e..7152b82 100644
+--- a/cpu-exec.c
++++ b/cpu-exec.c
+@@ -493,8 +493,18 @@ int cpu_exec(CPUArchState *env)
+                     tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
+                 }
+                 if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
++#if defined(TARGET_ARM)
++                    /* rather than logging just PC, also log the disassembled code */
++                    if (!singlestep) {
++                        /* separate translation blocks by newlines */
++                        qemu_log("\n");
++                    }
++                    log_target_disas(env, tb->pc, tb->size,
++                             env->thumb | (env->bswap_code << 1));
++#else
+                     qemu_log("Trace %p [" TARGET_FMT_lx "] %s\n",
+                              tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
++#endif
+                 }
+                 /* see if we can patch the calling TB. When the TB
+                    spans two pages, we cannot safely do a direct
 diff --git a/hw/arm/Makefile.objs b/hw/arm/Makefile.objs
 index 2577f68..a5f3829 100644
 --- a/hw/arm/Makefile.objs
@@ -78,23 +101,3 @@ index 986f04c..6bd95a1 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
-diff --git a/target-arm/translate.c b/target-arm/translate.c
-index 9116529..b902460 100644
---- a/target-arm/translate.c
-+++ b/target-arm/translate.c
-@@ -11363,11 +11363,12 @@ done_generating:
- 
- #ifdef DEBUG_DISAS
-     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
--        qemu_log("----------------\n");
--        qemu_log("IN: %s\n", lookup_symbol(pc_start));
-+        /* just log the ASM code, without extra lines */
-+        //~ qemu_log("----------------\n");
-+        //~ qemu_log("IN: %s\n", lookup_symbol(pc_start));
-         log_target_disas(env, pc_start, dc->pc - pc_start,
-                          dc->thumb | (dc->bswap_code << 1));
--        qemu_log("\n");
-+        //~ qemu_log("\n");
-     }
- #endif
-     if (search_pc) {
