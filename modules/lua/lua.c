@@ -199,6 +199,7 @@ LUA_CBR_FUNC(shoot_task, ctx, 500)
 LUA_CBR_FUNC(seconds_clock, ctx, 100)
 LUA_CBR_FUNC(custom_picture_taking, ctx, 1000)
 LUA_CBR_FUNC(intervalometer, get_interval_count(), 1000)
+LUA_CBR_FUNC(config_save, ctx, 1000)
 
 #ifdef CONFIG_VSYNC_EVENTS
 LUA_CBR_FUNC(vsync)
@@ -300,6 +301,11 @@ static int luaCB_event_newindex(lua_State * L)
     // @treturn bool whether or not to continue executing CBRs for this event
     // @function intervalometer
     SCRIPT_CBR_SET(intervalometer);
+    /// Called when configs are being saved; save any config data for your script here
+    // @param arg unused
+    // @treturn bool whether or not to continue executing CBRs for this event
+    // @function config_save
+    SCRIPT_CBR_SET(config_save);
 #ifdef CONFIG_VSYNC_EVENTS
     SCRIPT_CBR_SET(display_filter);
     SCRIPT_CBR_SET(vsync);
@@ -461,6 +467,7 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_KEYPRESS, lua_keypress_cbr, 0)
     MODULE_CBR(CBR_CUSTOM_PICTURE_TAKING, lua_custom_picture_taking_cbr, 0)
     MODULE_CBR(CBR_INTERVALOMETER, lua_intervalometer_cbr, 0)
+    MODULE_CBR(CBR_CONFIG_SAVE, lua_config_save_cbr, 0)
 
 #ifdef CONFIG_VSYNC_EVENTS
     MODULE_CBR(CBR_VSYNC, lua_vsync_cbr, 0)

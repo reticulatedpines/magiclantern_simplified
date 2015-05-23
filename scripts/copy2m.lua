@@ -76,6 +76,7 @@ use config.data to read/write value(s) you would like to save and restore
 @type config
 ]]
 config = {}
+config.configs = {}
 config.__index = config
 
 --[[---------------------------------------------------------------------------
@@ -88,13 +89,51 @@ function config.create(default)
     --determine the config filename automatically based on the script's filename
     local thisfile = debug.getinfo(1,"S").short_src
     assert(thisfile ~= nil, "Could not determine script filename")
-    cfg.filename = string.gsub(thisfile,"%.[Ll][Uu][Aa]$",".cfg")
-    cfg.filename = string.gsub(cfg.filename,"/SCRIPTS/","/SETTINGS/")
-    print(cfg.filename)
+    --capture between the last '/' and last '.' in the filename
+    local short_name = string.match(thisfile,"/([^/%.]+)%.[^/%.]+$")
+    cfg.filename = string.format("%s%s.cfg", dryos.config_dir.path,short_name)
     assert(thisfile ~= cfg.filename, "Could not determine config filename")
     cfg.default = default
     setmetatable(cfg,config)
     cfg.data = cfg:load()
+    table.insert(config.configs, cfg)
+    if event.config_save == nil then
+        event.config_save = function(unused)
+            for i,v in ipairs(config.configs) do
+                v:saving()
+                v:save()
+            end
+        end
+    end
+    return cfg
+end
+
+--[[---------------------------------------------------------------------------
+Create a new config instance from a menu structure, filename will be determined 
+automagically
+@param m the menu to create a config for
+@function create_from_menu
+]]
+function config.create_from_menu(m)
+    local default = {}
+    --default values are simply the menu's default values
+    default[m.name] = m.value
+    if m.submenu ~= nil then
+        --todo: recurse into sub-submenus
+        for k,v in pairs(m.submenu) do
+            default[k] = v.value
+        end
+    end
+    local cfg = config.create(default)
+    cfg.menu = m
+    --copy back loaded data to the menu structure
+    m.value = cfg.data[m.name]
+    if m.submenu ~= nil then
+        --todo: recurse into sub-submenus
+        for k,v in pairs(m.submenu) do
+             v.value = cfg.data[m.name]
+        end
+    end
     return cfg
 end
 
@@ -107,13 +146,32 @@ function config:load()
     if status and result ~= nil then 
         return result 
     else
-        print("config load failed: "..tostring(result))
+        print(result)
         return self.default 
     end
 end
 
 --[[---------------------------------------------------------------------------
-Save the config data to file
+Called right before config data is saved to file, override this function to
+update your config.data when the config is being saved
+@function saving
+]]
+function config:saving()
+    --default implementation: save menu structure if there is one
+    if self.menu ~= nil then
+        self.data[self.menu.name] = self.menu.value
+        if self.menu.submenu ~= nil then
+            for k,v in pairs(self.menu.submenu) do
+                self.data[k] = v.value
+            end
+        end
+    end
+end
+
+--[[---------------------------------------------------------------------------
+Manually save the config data to file (data is saved automatically when the
+ML backend does it's config saving, so calling this function is unecessary
+unless you want to do a manual save).
 Whatever is in the 'data' field of this instance is saved. Only numbers, 
 strings and tables can be saved (no functions, threads or userdata)
 @function save
@@ -126,6 +184,7 @@ function config:save()
     f:close()
 end
 
+--private
 function config.serialize(f,o)
     if type(o) == "number" then
         f:write(o)
@@ -134,7 +193,9 @@ function config.serialize(f,o)
     elseif type(o) == "table" then
         f:write("{\n")
         for k,v in pairs(o) do
-            f:write("  ", k, " = ")
+            f:write("  [")
+            config.serialize(f,k)
+            f:write("] = ")
             config.serialize(f,v)
             f:write(",\n")
         end
@@ -145,25 +206,18 @@ function config.serialize(f,o)
 end
 
 
-copy2m_config = config.create
-{
-    enabled = "On"
-}
-
 copy2m_menu = menu.new
 {
     parent = "Prefs",
     name = "Copy To M",
     help = "Copy exposure settings when switching to M",
     choices = {"Off","On"},
-    value = copy2m_config.data.enabled
+    value = "Off"
 }
 
 function copy2m_menu:select(delta)
     if self.value == "Off" then self.value = "On" else self.value = "Off" end
     copy2m_update(self.value)
-    copy2m_config.data.enabled = self.value
-    copy2m_config:save()
 end
 
 --start/stop the prop handlers to enable/disable this script's functionality
@@ -181,4 +235,5 @@ function copy2m_update(value)
     end
 end
 
+config.create_from_menu(copy2m_menu)
 copy2m_update(copy2m_menu.value)

@@ -11,6 +11,7 @@
 #include <fio-ml.h>
 #include <fileprefix.h>
 #include <string.h>
+#include <config.h>
 
 #include "lua_common.h"
 
@@ -126,9 +127,22 @@ static int luaCB_dryos_index(lua_State * L)
     /// Get/Set the image filename prefix
     // @tfield string prefix
     else if(!strcmp(key, "prefix")) lua_pushstring(L, get_file_prefix());
-    /// Get the path to the DCIM directory
-    // @tfield string dcim_dir
-    else if(!strcmp(key, "dcim_dir")) lua_pushstring(L, get_dcim_dir());
+    /// Get the DCIM directory
+    // @tfield directory dcim_dir
+    else if(!strcmp(key, "dcim_dir"))
+    {
+        lua_pushstring(L, get_dcim_dir());
+        lua_pushstring(L, get_config_dir());
+        lua_call(L, 1, 1);
+    }
+    /// Get the ML config directory
+    // @tfield directory config_dir
+    else if(!strcmp(key, "config_dir"))
+    {
+        lua_pushcfunction(L, luaCB_dryos_directory);
+        lua_pushstring(L, get_config_dir());
+        lua_call(L, 1, 1);
+    }
     /// Get the card ML started from
     // @tfield card ml_card
     else if(!strcmp(key, "ml_card"))
