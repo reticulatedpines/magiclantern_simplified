@@ -101,12 +101,6 @@
 #define MODE_READ  0x10
 #define MODE_WRITE 0x20
 
-#define WIDTH_MASK 0x0F
-#define WIDTH_BYTE 0x01
-#define WIDTH_HALF 0x02
-#define WIDTH_WORD 0x04
-
-
 typedef struct
 {
     uint8_t transfer_format;

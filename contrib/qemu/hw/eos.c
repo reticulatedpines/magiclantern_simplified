@@ -59,19 +59,6 @@ static uint64_t eos_io_read(void *opaque, hwaddr addr, uint32_t size)
 
     uint32_t type = MODE_READ;
 
-    switch(size)
-    {
-        case 1:
-            type |= WIDTH_BYTE;
-            break;
-        case 2:
-            type |= WIDTH_HALF;
-            break;
-        case 4:
-            type |= WIDTH_WORD;
-            break;
-    }
-
     return eos_handler ( opaque, addr, type, 0 );
 }
 
@@ -81,19 +68,6 @@ static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
 
     uint32_t type = MODE_WRITE;
 
-    switch(size)
-    {
-        case 1:
-            type |= WIDTH_BYTE;
-            break;
-        case 2:
-            type |= WIDTH_HALF;
-            break;
-        case 4:
-            type |= WIDTH_WORD;
-            break;
-    }
-
     eos_handler ( opaque, addr, type, val );
 }
 
@@ -101,6 +75,10 @@ static const MemoryRegionOps iomem_ops = {
     .read = eos_io_read,
     .write = eos_io_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
 };
 
 #ifdef TRACE_MEM_START
@@ -1441,29 +1419,10 @@ unsigned int eos_default_handle ( EOSState *s, unsigned int address, unsigned ch
 {
     unsigned int data = 0;
 
-    switch ( type & WIDTH_MASK )
-    {
-        case WIDTH_WORD:
-            if ( type & MODE_WRITE )
-                eos_set_mem_w ( s, address, value );
-            else
-                data = eos_get_mem_w ( s, address );
-            break;
-
-        case WIDTH_HALF:
-            if ( type & MODE_WRITE )
-                eos_set_mem_h ( s, address, value );
-            else
-                data = eos_get_mem_h ( s, address );
-            break;
-
-        case WIDTH_BYTE:
-            if ( type & MODE_WRITE )
-                eos_set_mem_b ( s, address, value );
-            else
-                data = eos_get_mem_b ( s, address );
-            break;
-    }
+    if ( type & MODE_WRITE )
+        eos_set_mem_w ( s, address, value );
+    else
+        data = eos_get_mem_w ( s, address );
 
     /* do not log ram/flash access */
     if(((address & 0xF0000000) == 0) || ((address & 0xF0000000) == 0xF0000000) || ((address & 0xF0000000) == 0x40000000))
