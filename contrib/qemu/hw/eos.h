@@ -135,6 +135,19 @@ struct palette_entry
     uint8_t opacity;
 };
 
+typedef struct
+{
+    QemuConsole *con;
+    int invalidate;
+    enum {DISPLAY_LCD, DISPLAY_HDMI_1080, DISPLAY_HDMI_480, DISPLAY_SD_PAL, DISPLAY_SD_NTSC} type;
+    uint32_t bmp_vram;
+    uint32_t img_vram;
+    uint32_t raw_buff;
+    struct palette_entry palette_4bit[16];
+    struct palette_entry palette_8bit[256];
+    int is_4bit;
+} DispState;
+
 struct HPTimer
 {
     int active;
@@ -198,15 +211,7 @@ typedef struct
     struct HPTimer HPTimers[8];
     uint32_t clock_enable;
     uint32_t flash_state_machine;
-    QemuConsole *con;
-    int display_invalidate;
-    enum {DISPLAY_LCD, DISPLAY_HDMI_1080, DISPLAY_HDMI_480, DISPLAY_SD_PAL, DISPLAY_SD_NTSC} display_type;
-    uint32_t bmp_vram;
-    uint32_t img_vram;
-    uint32_t raw_buff;
-    struct palette_entry palette_4bit[16];
-    struct palette_entry palette_8bit[256];
-    int display_4bit;
+    DispState disp;
     int keybuf[16];
     int key_index_r;
     int key_index_w;

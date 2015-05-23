@@ -207,7 +207,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 return 0;
 
             case REG_DUMP_VRAM:
-                eos_dump_vram(value ? value : s->bmp_vram);
+                eos_dump_vram(value ? value : s->disp.bmp_vram);
                 return 0;
 
             case REG_SHUTDOWN:
@@ -216,11 +216,11 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 return 0;
             
             case REG_BMP_VRAM:
-                s->bmp_vram = (uint32_t) value;
+                s->disp.bmp_vram = (uint32_t) value;
                 return 0;
 
             case REG_IMG_VRAM:
-                s->img_vram = (uint32_t) value;
+                s->disp.img_vram = (uint32_t) value;
                 if (value)
                 {
                     eos_load_image(s, "LV-000.422", 0, -1, value, 0);
@@ -232,7 +232,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 return 0;
             
             case REG_RAW_BUFF:
-                s->raw_buff = (uint32_t) value;
+                s->disp.raw_buff = (uint32_t) value;
                 if (value)
                 {
                     /* fixme: hardcoded strip offset */
@@ -245,7 +245,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 return 0;
 
             case REG_DISP_TYPE:
-                s->display_type = (uint32_t) value;
+                s->disp.type = (uint32_t) value;
                 return 0;
         }
     }
@@ -268,16 +268,16 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
             }
 
             case REG_BMP_VRAM:
-                return s->bmp_vram;
+                return s->disp.bmp_vram;
 
             case REG_IMG_VRAM:
-                return s->img_vram;
+                return s->disp.img_vram;
             
             case REG_RAW_BUFF:
-                return s->raw_buff;
+                return s->disp.raw_buff;
             
             case REG_DISP_TYPE:
-                return s->display_type;
+                return s->disp.type;
         }
         return 0;
     }
@@ -773,9 +773,9 @@ static void draw_line8_32(void *opaque,
         v = ldub_p((void *) s);
         if (v)
         {
-            r = ws->palette_8bit[v].R;
-            g = ws->palette_8bit[v].G;
-            b = ws->palette_8bit[v].B;
+            r = ws->disp.palette_8bit[v].R;
+            g = ws->disp.palette_8bit[v].G;
+            b = ws->disp.palette_8bit[v].B;
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         else
@@ -798,9 +798,9 @@ static void draw_line4_32(void *opaque,
         v = ldub_p((void *) s);
         v = ((uintptr_t)d/4 % 2) ? (v >> 4) & 0xF : v & 0xF;
         
-        r = ws->palette_4bit[v].R;
-        g = ws->palette_4bit[v].G;
-        b = ws->palette_4bit[v].B;
+        r = ws->disp.palette_4bit[v].R;
+        g = ws->disp.palette_4bit[v].G;
+        b = ws->disp.palette_4bit[v].B;
         ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
 
         if ((uintptr_t)d/4 % 2) s ++;
@@ -818,9 +818,9 @@ static void draw_line8_32_bmp_yuv(void *opaque,
         v = ldub_p((void *) bmp);
         if (v)
         {
-            r = ws->palette_8bit[v].R;
-            g = ws->palette_8bit[v].G;
-            b = ws->palette_8bit[v].B;
+            r = ws->disp.palette_8bit[v].R;
+            g = ws->disp.palette_8bit[v].G;
+            b = ws->disp.palette_8bit[v].B;
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         else
@@ -981,7 +981,7 @@ static void eos_update_display(void *parm)
 {
     EOSState *s = (EOSState *)parm;
 
-    DisplaySurface *surface = qemu_console_surface(s->con);
+    DisplaySurface *surface = qemu_console_surface(s->disp.con);
     
     /* these numbers need double-checking */
     /*                  LCD    HDMI-1080   HDMI-480    SD-PAL      SD-NTSC */
@@ -990,16 +990,16 @@ static void eos_update_display(void *parm)
     int yuv_widths[]  = {   720,  1920,        720,        540,        540     };
     int yuv_heights[] = {   480,  1080,        480,        572,        480     };
     
-    int width       = widths     [s->display_type];
-    int height      = heights    [s->display_type];
-    int yuv_width   = yuv_widths [s->display_type];
-    int yuv_height  = yuv_heights[s->display_type];
+    int width       = widths     [s->disp.type];
+    int height      = heights    [s->disp.type];
+    int yuv_width   = yuv_widths [s->disp.type];
+    int yuv_height  = yuv_heights[s->disp.type];
 
     if (width != surface_width(surface) || height != surface_height(surface))
     {
-        qemu_console_resize(s->con, width, height);
-        surface = qemu_console_surface(s->con);
-        s->display_invalidate = 1;
+        qemu_console_resize(s->disp.con, width, height);
+        surface = qemu_console_surface(s->disp.con);
+        s->disp.invalidate = 1;
     }
     
     int first, last;
@@ -1007,28 +1007,28 @@ static void eos_update_display(void *parm)
     first = 0;
     int linesize = surface_stride(surface);
     
-    if (s->display_4bit)
+    if (s->disp.is_4bit)
     {
         /* bootloader config, 4 bpp */
         framebuffer_update_display(
             surface,
             s->system_mem,
-            s->bmp_vram,
+            s->disp.bmp_vram,
             width, height,
             360, linesize, 0, 1,
             draw_line4_32, s,
             &first, &last
         );
     }
-    else if (s->img_vram)
+    else if (s->disp.img_vram)
     {
         framebuffer_update_display_bmp_yuv(
             surface,
             s->system_mem,
-            s->bmp_vram,
-            s->img_vram,
+            s->disp.bmp_vram,
+            s->disp.img_vram,
             width, height, yuv_height,
-            960, yuv_width*2, linesize, 0, s->display_invalidate,
+            960, yuv_width*2, linesize, 0, s->disp.invalidate,
             draw_line8_32_bmp_yuv, s,
             &first, &last
         );
@@ -1038,7 +1038,7 @@ static void eos_update_display(void *parm)
         framebuffer_update_display(
             surface,
             s->system_mem,
-            s->bmp_vram,
+            s->disp.bmp_vram,
             width, height,
             960, linesize, 0, 1,
             draw_line8_32, s,
@@ -1047,16 +1047,16 @@ static void eos_update_display(void *parm)
     }
     
     if (first >= 0) {
-        dpy_gfx_update(s->con, 0, first, width, last - first + 1);
+        dpy_gfx_update(s->disp.con, 0, first, width, last - first + 1);
     }
     
-    s->display_invalidate = 0;
+    s->disp.invalidate = 0;
 }
 
 static void eos_invalidate_display(void *parm)
 {
     EOSState *s = (EOSState *)parm;
-    s->display_invalidate = 1;
+    s->disp.invalidate = 1;
 }
 
 static const GraphicHwOps eos_display_ops = {
@@ -1168,7 +1168,7 @@ static EOSState *eos_init_cpu(int digic_version)
     qemu_mutex_init(&s->irq_lock);
     qemu_thread_create(&s->interrupt_thread_id, "eos_interrupt", eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
 
-    s->con = graphic_console_init(NULL, 0, &eos_display_ops, s);
+    s->disp.con = graphic_console_init(NULL, 0, &eos_display_ops, s);
     
     qemu_add_kbd_event_handler(eos_key_event, s);
 
@@ -3467,7 +3467,7 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             if(type & MODE_WRITE)
             {
                 msg = "BMP VRAM";
-                s->bmp_vram = value;
+                s->disp.bmp_vram = value;
             }
             break;
 
@@ -3475,7 +3475,7 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             if(type & MODE_WRITE)
             {
                 msg = "YUV VRAM";
-                s->img_vram = value;
+                s->disp.img_vram = value;
             }
             break;
         
@@ -3484,8 +3484,8 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             if(type & MODE_WRITE)
             {
                 int entry = ((address & 0xFFF) - 0x80) / 4;
-                process_palette_entry(value, &s->palette_4bit[entry], entry, &msg);
-                s->display_4bit = 1;
+                process_palette_entry(value, &s->disp.palette_4bit[entry], entry, &msg);
+                s->disp.is_4bit = 1;
             }
             break;
 
@@ -3494,8 +3494,8 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             if(type & MODE_WRITE)
             {
                 int entry = ((address & 0xFFF) - 0x800) / 4;
-                process_palette_entry(value, &s->palette_8bit[entry], entry, &msg);
-                s->display_4bit = 0;
+                process_palette_entry(value, &s->disp.palette_8bit[entry], entry, &msg);
+                s->disp.is_4bit = 0;
             }
             break;
     }
