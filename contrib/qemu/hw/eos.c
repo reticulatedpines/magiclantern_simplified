@@ -255,7 +255,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
         {
             case REG_GET_KEY:
             {
-                if (s->key_index_r == s->key_index_w)
+                if (s->keyb.head == s->keyb.tail)
                 {
                     /* no key in queue */
                     return 0;
@@ -263,7 +263,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 else
                 {
                     /* return a key from the circular buffer */
-                    return s->keybuf[(s->key_index_r++) & 15];
+                    return s->keyb.buf[(s->keyb.head++) & 15];
                 }
             }
 
@@ -1068,7 +1068,7 @@ static void eos_key_event(void *parm, int keycode)
 {
     /* keys sent to guest machine */
     EOSState *s = (EOSState *)parm;
-    s->keybuf[(s->key_index_w++) & 15] = keycode;
+    s->keyb.buf[(s->keyb.tail++) & 15] = keycode;
 }
 
 static EOSState *eos_init_cpu(int digic_version)

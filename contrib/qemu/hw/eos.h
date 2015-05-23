@@ -148,6 +148,13 @@ typedef struct
     int is_4bit;
 } DispState;
 
+typedef struct
+{
+    int buf[16];    /* ring buffer */
+    int head;       /* for extracting keys from the buffer */
+    int tail;       /* for inserting keys into the buffer */
+} KeybState;
+
 struct HPTimer
 {
     int active;
@@ -212,9 +219,7 @@ typedef struct
     uint32_t clock_enable;
     uint32_t flash_state_machine;
     DispState disp;
-    int keybuf[16];
-    int key_index_r;
-    int key_index_w;
+    KeybState keyb;
     RTCState rtc;
     SDIOState sd;
     MPUState mpu;
