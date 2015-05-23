@@ -26,6 +26,7 @@ EOSRegionHandler eos_handlers[] =
     { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
+    { "Basic",        0xC0720000, 0xC0720FFF, eos_handle_basic, 2 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
     { "SDDMA1",       0xC0510000, 0xC0510FFF, eos_handle_sddma, 1 },
@@ -1004,7 +1005,7 @@ static void eos_update_display(void *parm)
     first = 0;
     int linesize = surface_stride(surface);
     
-    if (1)  /* bootloader config, 4 bpp */
+    if (0)  /* bootloader config, 4 bpp */
     {
         framebuffer_update_display(
             surface,
@@ -2556,13 +2557,18 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x0070:
             /* VIDEO on 600D */
             msg = "VIDEO CONNECT";
-            ret = 0;
+            ret = 1;
             break;
         
         case 0x0108:
             /* ERASE SW OFF on 600D */
             msg = "ERASE SW OFF";
-            ret = 0;
+            ret = 1;
+            break;
+
+        case 0x010C:
+            msg = "something from hotplug task on 60D";
+            ret = 1;
             break;
 
         case 0x00E8:
@@ -2574,7 +2580,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x0034:
             /* USB on 600D */
             msg = "USB CONNECT";
-            ret = 1;
+            ret = 0;
             break;
         
         case 0x0138:
@@ -2605,6 +2611,22 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             }
             ret = 0;
             break;
+
+        case 0x0098:
+        {
+            static int last_value = 1;
+            if(type & MODE_WRITE)
+            {
+                last_value = value;
+                msg = (value & 0x02) ? "SRM_SetBusy" 
+                                     : "SRM_ClearBusy" ;
+            }
+            else
+            {
+                ret = last_value;
+            }
+            break;
+        }
 
         case 0x009C:
             return eos_handle_mpu(parm, s, address, type, value);
@@ -3311,6 +3333,17 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
     unsigned int ret = 0;
     const char * msg = 0;
 
+    if (parm == 2)
+    {
+        if ((address & 0xFFF) == 8)
+        {
+            msg = "SUSPEND_BIT";
+            ret = 0x100;
+            io_log("BASIC", s, address, type, value, ret, msg, 0, 0);
+        }
+        return ret;
+    }
+    
     switch(address & 0xFFF)
     {
         case 0x008: /* CLOCK_ENABLE */
