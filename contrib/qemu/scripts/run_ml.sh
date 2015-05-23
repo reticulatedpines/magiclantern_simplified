@@ -21,16 +21,3 @@ cp $ML_PATH/magiclantern .
 cp $ML_PATH/${CAM}_${VER}.sym sdcard/ML/MODULES/${CAM}_${VER}.SYM
 
 $QEMU_PATH/arm-softmmu/qemu-system-arm -M ML-${CAM} $*
-
-# old screenshot code, no longer needed since we have a GUI
-# rm -f vram*.txt
-# rm -f vram*.png
-# 
-# for f in `ls vram*.txt`;
-# do
-#     echo "Processing $f..."
-#     convert $f `basename $f .txt`.png
-# done
-# 
-# eog vram00.png
-
