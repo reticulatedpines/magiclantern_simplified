@@ -101,3 +101,27 @@ index 986f04c..6bd95a1 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+diff --git a/target-arm/helper.c b/target-arm/helper.c
+index d77c6de..2f7c863 100644
+--- a/target-arm/helper.c
++++ b/target-arm/helper.c
+@@ -4827,11 +4827,16 @@ void arm_cpu_do_interrupt(CPUState *cs)
+     /* Switch to the new mode, and to the correct instruction set.  */
+     env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
+     env->daif |= mask;
++
++    /* this code breaks DryOS task scheduler */
++    /* FIXME: only disable it for EOS CPUs */
++
+     /* this is a lie, as the was no c1_sys on V4T/V5, but who cares
+      * and we should just guard the thumb mode on V4 */
+-    if (arm_feature(env, ARM_FEATURE_V4T)) {
+-        env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
+-    }
++    //~ if (arm_feature(env, ARM_FEATURE_V4T)) {
++        //~ env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
++    //~ }
++
+     env->regs[14] = env->regs[15] + offset;
+     env->regs[15] = addr;
+     cs->interrupt_request |= CPU_INTERRUPT_EXITTB;
