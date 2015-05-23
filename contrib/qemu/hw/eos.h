@@ -142,6 +142,31 @@ struct HPTimer
     int triggered;
 };
 
+struct mpu_init_spell
+{
+  unsigned char in_spell[128];
+  unsigned char out_spells[128][128];  
+};
+
+typedef struct
+{
+    int status;                     /* register 0xC022009C */
+    int sending;
+    int receiving;
+    
+    unsigned char recv_buffer[128];
+    int recv_index;
+    
+    int spell_set;              /* used for replaying MPU messages */
+    int out_spell;
+    int out_char;
+
+    struct { short spell_set; short out_spell; } send_queue[0x100];
+    int sq_head;                /* for extracting items */
+    int sq_tail;                /* for inserting (queueing) items */
+
+} MPUState;
+
 typedef struct
 {
     ARMCPU *cpu;
@@ -185,6 +210,7 @@ typedef struct
     int key_index_w;
     RTCState rtc;
     SDIOState sd;
+    MPUState mpu;
 } EOSState;
 
 typedef struct
@@ -224,6 +250,8 @@ unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *s, unsigned int
 unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_ram ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_sio3 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_mreq ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
