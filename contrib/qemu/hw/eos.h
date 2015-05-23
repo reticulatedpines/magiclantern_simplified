@@ -205,6 +205,8 @@ typedef struct
     uint32_t img_vram;
     uint32_t raw_buff;
     struct palette_entry palette_4bit[16];
+    struct palette_entry palette_8bit[256];
+    int display_4bit;
     int keybuf[16];
     int key_index_r;
     int key_index_w;

@@ -767,14 +767,15 @@ static void draw_line8_32(void *opaque,
                 uint8_t *d, const uint8_t *s, int width, int deststep)
 {
     uint8_t v, r, g, b;
+    EOSState* ws = (EOSState*) opaque;
     
     do {
         v = ldub_p((void *) s);
         if (v)
         {
-            r = R[v];
-            g = G[v];
-            b = B[v];
+            r = ws->palette_8bit[v].R;
+            g = ws->palette_8bit[v].G;
+            b = ws->palette_8bit[v].B;
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         else
@@ -811,14 +812,15 @@ static void draw_line8_32_bmp_yuv(void *opaque,
                 uint8_t *d, const uint8_t *bmp, const uint8_t *yuv, int width, int deststep, int yuvstep)
 {
     uint8_t v, r, g, b;
+    EOSState* ws = (EOSState*) opaque;
     
     do {
         v = ldub_p((void *) bmp);
         if (v)
         {
-            r = R[v];
-            g = G[v];
-            b = B[v];
+            r = ws->palette_8bit[v].R;
+            g = ws->palette_8bit[v].G;
+            b = ws->palette_8bit[v].B;
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         else
@@ -1005,8 +1007,9 @@ static void eos_update_display(void *parm)
     first = 0;
     int linesize = surface_stride(surface);
     
-    if (0)  /* bootloader config, 4 bpp */
+    if (s->display_4bit)
     {
+        /* bootloader config, 4 bpp */
         framebuffer_update_display(
             surface,
             s->system_mem,
@@ -1026,7 +1029,7 @@ static void eos_update_display(void *parm)
             s->img_vram,
             width, height, yuv_height,
             960, yuv_width*2, linesize, 0, s->display_invalidate,
-            draw_line8_32_bmp_yuv, 0,
+            draw_line8_32_bmp_yuv, s,
             &first, &last
         );
     }
@@ -1038,7 +1041,7 @@ static void eos_update_display(void *parm)
             s->bmp_vram,
             width, height,
             960, linesize, 0, 1,
-            draw_line8_32, 0,
+            draw_line8_32, s,
             &first, &last
         );
     }
@@ -3417,6 +3420,42 @@ unsigned int eos_handle_asif ( unsigned int parm, EOSState *s, unsigned int addr
     return ret;
 }
 
+static void process_palette_entry(uint32_t value, struct palette_entry * palette_entry, int palette_index, const char** msg)
+{
+    uint32_t pal = value;
+
+    int opacity = (pal >> 24) & 0xFF;
+    uint8_t Y = (pal >> 16) & 0xFF;
+    int8_t  U = (pal >>  8) & 0xFF;
+    int8_t  V = (pal >>  0) & 0xFF;
+    int R, G, B;
+    yuv2rgb(Y, U, V, &R, &G, &B);
+
+    static char msg_pal[50];
+
+    if (value)
+    {
+        snprintf(msg_pal, sizeof(msg_pal), 
+            "Palette[%X] -> R%03d G%03d B%03d %s",
+            palette_index, R, G, B,
+            opacity != 3 ? "transparent?" : ""
+        );
+    }
+    else
+    {
+        snprintf(msg_pal, sizeof(msg_pal), 
+            "Palette[%X] -> empty",
+            palette_index
+        );
+    }
+    *msg = msg_pal;
+
+    palette_entry->R = R;
+    palette_entry->G = G;
+    palette_entry->B = B;
+    palette_entry->opacity = opacity;
+}
+
 unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
@@ -3445,39 +3484,20 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             if(type & MODE_WRITE)
             {
                 int entry = ((address & 0xFFF) - 0x80) / 4;
-                uint32_t pal = value;
-
-                int opacity = (pal >> 24) & 0xFF;
-                uint8_t Y = (pal >> 16) & 0xFF;
-                int8_t  U = (pal >>  8) & 0xFF;
-                int8_t  V = (pal >>  0) & 0xFF;
-                int R, G, B;
-                yuv2rgb(Y, U, V, &R, &G, &B);
-                
-                static char msg_pal[50];
-                
-                if (value)
-                {
-                    snprintf(msg_pal, sizeof(msg_pal), 
-                        "Palette[%X] -> R%03d G%03d B%03d %s",
-                        entry, R, G, B,
-                        opacity != 3 ? "transparent?" : ""
-                    );
-                }
-                else
-                {
-                    snprintf(msg_pal, sizeof(msg_pal), 
-                        "Palette[%X] -> empty",
-                        entry
-                    );
-                }
-                msg = msg_pal;
-
-                s->palette_4bit[entry].R = R;
-                s->palette_4bit[entry].G = G;
-                s->palette_4bit[entry].B = B;
-                s->palette_4bit[entry].opacity = opacity;
+                process_palette_entry(value, &s->palette_4bit[entry], entry, &msg);
+                s->display_4bit = 1;
             }
+            break;
+
+        case 0x800 ... 0xBFC:
+            msg = "8-bit palette";
+            if(type & MODE_WRITE)
+            {
+                int entry = ((address & 0xFFF) - 0x800) / 4;
+                process_palette_entry(value, &s->palette_8bit[entry], entry, &msg);
+                s->display_4bit = 0;
+            }
+            break;
     }
 
     io_log("Display", s, address, type, value, ret, msg, 0, 0);
