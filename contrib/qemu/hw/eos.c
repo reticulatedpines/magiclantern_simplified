@@ -12,6 +12,7 @@
 #include "ui/console.h"
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
+#include "hw/sd.h"
 #include "eos.h"
 
 EOSRegionHandler eos_handlers[] =
@@ -1182,18 +1183,15 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
     /* populate ROM1 */
     eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
-    
-    /* load a SD card image */
-    s->sd.card_image = fopen("sd.img", "rb+");
-    if (s->sd.card_image)
-    {
-        fseek(s->sd.card_image, 0, SEEK_END);
-        s->sd.card_image_size = ftell(s->sd.card_image);
-    }
-    else
-    {
-        printf("Failed to open SD card image sd.img\n");
-        /* continue without emulating SD access */
+
+    /* init SD card */
+    DriveInfo *di;
+    /* FIXME use a qdev drive property instead of drive_get_next() */
+    di = drive_get_next(IF_SD);
+    s->sd.card = sd_init(di ? blk_by_legacy_dinfo(di) : NULL, false);
+    if (!s->sd.card) {
+        printf("SD init failed\n");
+        exit(1);
     }
 
     if (0)
@@ -1854,8 +1852,8 @@ struct mpu_init_spell mpu_init_spells[] = { {
     { 0x06, 0x05, 0x03, 0x40, 0x00, 0x00 }, {                   /* spell #4 */
         { 0x06, 0x05, 0x03, 0x38, 0x95, 0x00 },                 /* reply #4.1 */
         { 0 } } }, {
-    { 0x08, 0x06, 0x01, 0x24, 0x00, 0x04, 0x00 }, {             /* spell #5 */          /* fixme: this message does not match the one from real camera */
-        { 0x08, 0x06, 0x01, 0x24, 0x00, 0x01, 0x00 },           /* reply #5.1 */        /* it appears to be related to SD card */
+    { 0x08, 0x06, 0x01, 0x24, 0x00, 0x01, 0x00 }, {             /* spell #5 */
+        { 0x08, 0x06, 0x01, 0x24, 0x00, 0x01, 0x00 },           /* reply #5.1 */
         { 0 } } }, {
     { 0x06, 0x05, 0x03, 0x0c, 0x00, 0x00 }, {                   /* spell #6 */
         { 0x06, 0x05, 0x01, 0x2c, 0x02, 0x00 },                 /* reply #6.1 */
@@ -2940,88 +2938,167 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
     return ret;
 }
 
-static const char* sd_get_cmd_name(SDIOState* sd)
-{
-    int cmd = (sd->cmd_hi >> 8) & ~0x40;
-    
-    if (sd->app_cmd)
-    {
-        switch (cmd)
-        {
-            case  6: return "SET_BUS_WIDTH";
-            case 13: return "SD_STATUS";
-            case 42: return "SET_CLR_CARD_DETECT";
-        }
-    }
-    else
-    {
-        switch (cmd)
-        {
-            case  0: return "GO_IDLE_STATE";
-            case  2: return "ALL_SEND_CID";
-            case  3: return "SEND_RELATIVE_ADDR";
-            case  6: return "SWITCH_FUNC";
-            case  7: return "SELECT_CARD";
-            case  8: return "SDHC_TEST";
-            case  9: return "SEND_CSD";
-            case 10: return "SEND_CID";
-            case 12: return "STOP_TRANSMISSION";
-            case 13: return "SEND_STATUS";
-            case 17: return "READ_SINGLE_BLOCK";
-            case 18: return "READ_MULTIPLE_BLOCK";
-            case 24: return "WRITE_BLOCK";
-            case 25: return "WRITE_MULTIPLE";
-            case 55: return "APP_CMD";
-        }
-    }
-    
-    return "???";
-}
+/* based on pl181_send_command from hw/sd/pl181.c */
+#define DPRINTF(fmt, ...) do { printf("[SDIO] " fmt , ## __VA_ARGS__); } while (0)
+#define SDIO_STATUS_OK              0x1
+#define SDIO_STATUS_ERROR           0x2
+#define SDIO_STATUS_DATA_AVAILABLE  0x200000
 
-static void sdio_read_write(EOSState *s, int write, const char** msg)
+static void sdio_send_command(SDIOState *sd)
 {
-    uint32_t cmd_hi = s->sd.cmd_hi;
-    uint32_t cmd_lo = s->sd.cmd_lo;
-    uint64_t param_hi = cmd_hi & 0xFF;
-    uint64_t param_lo = cmd_lo >> 8;
+    SDRequest request;
+    uint8_t response[24] = {0};
+    int rlen;
+
+    uint32_t cmd_hi = sd->cmd_hi;
+    uint32_t cmd = (cmd_hi >> 8) & ~0x40;
+    uint64_t param_hi = sd->cmd_hi & 0xFF;
+    uint64_t param_lo = sd->cmd_lo >> 8;
     uint64_t param = param_lo | (param_hi << 24);
-    uint32_t count = s->sd.dma_count;
-    uint64_t sd_addr = param;
-    uint32_t ram_addr = s->sd.dma_addr;
 
-    if (sd_addr + count > s->sd.card_image_size)
-    {
-        printf("!!! WARNING !!! card address overflow (%llx)\n", (long long)sd_addr);
-        sd_addr = 0;
+    request.cmd = cmd;
+    request.arg = param;
+    DPRINTF("Command %d %08x\n", request.cmd, request.arg);
+    rlen = sd_do_command(sd->card, &request, response+4);
+    if (rlen < 0)
+        goto error;
+    if (sd->cmd_flags != 0x11) {
+#define RWORD(n) (((uint32_t)response[n + 5] << 24) | (response[n + 6] << 16) \
+                  | (response[n + 7] << 8) | response[n])
+        if (rlen == 0)
+            goto error;
+        if (rlen != 4 && rlen != 16)
+            goto error;
+        
+        /* response bytes are shifted by one, and something has to fill the gap */
+        /* guess: response length? (no idea, it appears unused) */
+        response[0] = rlen;
+        
+        sd->response[0] = RWORD(0);
+        sd->response[1] = RWORD(4);
+        if (rlen == 4) {
+            sd->response[2] = sd->response[3] = sd->response[4] = 0;
+        } else {
+            sd->response[1] = RWORD(4);
+            sd->response[2] = RWORD(8);
+            sd->response[3] = RWORD(12);
+            sd->response[4] = RWORD(16);
+        }
+        DPRINTF("Response received\n");
+        sd->status |= SDIO_STATUS_OK;
+#undef RWORD
+    } else {
+        DPRINTF("Command sent\n");
+        sd->status |= SDIO_STATUS_OK;
     }
+    return;
 
-    static char transfer_msg[100];
-    snprintf(transfer_msg, sizeof(transfer_msg),
-        "%s %d bytes, SD:%llx RAM:%x",
-        write ? "Writing" : "Reading",
-        count, (long long unsigned int)sd_addr, ram_addr
-    );
-    *msg = transfer_msg;
-    
-    uint8_t* buf = malloc(count);
-    if (!buf) exit(1);
-
-    fseeko(s->sd.card_image, sd_addr, SEEK_SET);
-    
-    if (write)
-    {
-        cpu_physical_memory_read(ram_addr & ~0x40000000, buf, count);
-        int r = fwrite(buf, 1, count, s->sd.card_image);
-        assert(r == count);
-    }
-    else
-    {
-        int r = fread(buf, 1, count, s->sd.card_image);
-        assert(r == count);
-        cpu_physical_memory_write(ram_addr, buf, count);
-    }
-    free(buf);
+error:
+    DPRINTF("Error\n");
+    sd->status |= SDIO_STATUS_ERROR;
 }
+
+/* inspired from pl181_fifo_run from hw/sd/pl181.c */
+/* only DMA transfers implemented */
+static void sdio_read_data(SDIOState *sd)
+{
+    int i;
+
+    if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
+    {
+        DPRINTF("ERROR: read already done (%x)\n", sd->status);
+        return;
+    }
+    
+    if (!sd_data_ready(sd->card))
+    {
+        DPRINTF("ERROR: no data available\n");
+        return;
+    }
+
+    if (!sd->dma_enabled)
+    {
+        DPRINTF("Reading %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
+        for (i = 0; i < sd->transfer_count * sd->read_block_size; i++)
+        {
+            /* dummy read, ignore this data */
+            /* todo: send it on the 0x6C register? */
+            sd_read_data(sd->card);
+        }
+        return;
+    }
+
+    DPRINTF("Reading %d bytes to %x\n", sd->dma_count, sd->dma_addr);
+
+    for (i = 0; i < sd->dma_count/4; i++)
+    {
+        uint32_t value1 = sd_read_data(sd->card);
+        uint32_t value2 = sd_read_data(sd->card);
+        uint32_t value3 = sd_read_data(sd->card);
+        uint32_t value4 = sd_read_data(sd->card);
+        uint32_t value = (value1 << 0) | (value2 << 8) | (value3 << 16) | (value4 << 24);
+        
+        uint32_t addr = sd->dma_addr + i*4; 
+        cpu_physical_memory_write(addr, &value, 4);
+    }
+
+    sd->status |= SDIO_STATUS_DATA_AVAILABLE;
+}
+
+static void sdio_write_data(SDIOState *sd)
+{
+    int i;
+
+    if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
+    {
+        DPRINTF("ERROR: write already done (%x)\n", sd->status);
+        return;
+    }
+
+    if (!sd->dma_enabled)
+    {
+        printf("[SDIO] ERROR!!! Writing %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
+        printf("Cannot continue without risking corruption on the SD card image.\n");
+        exit(1);
+    }
+
+    DPRINTF("Writing %d bytes from %x\n", sd->dma_count, sd->dma_addr);
+
+    for (i = 0; i < sd->dma_count/4; i++)
+    {
+        uint32_t addr = sd->dma_addr + i*4; 
+        uint32_t value;
+        cpu_physical_memory_read(addr, &value, 4);
+        
+        sd_write_data(sd->card, (value >>  0) & 0xFF);
+        sd_write_data(sd->card, (value >>  8) & 0xFF);
+        sd_write_data(sd->card, (value >> 16) & 0xFF);
+        sd_write_data(sd->card, (value >> 24) & 0xFF);
+    }
+
+    /* not sure */
+    sd->status |= SDIO_STATUS_DATA_AVAILABLE;
+}
+
+static void sdio_trigger_interrupt(EOSState *s)
+{
+    /* after a successful operation, trigger int 0xB1 if requested */
+    
+    if ((s->sd.cmd_flags == 0x13 || s->sd.cmd_flags == 0x14)
+        && !(s->sd.status & SDIO_STATUS_DATA_AVAILABLE))
+    {
+        /* if the current command does a data transfer, don't trigger until complete */
+        DPRINTF("Data transfer not yet complete\n");
+        return;
+    }
+    
+    if ((s->sd.status & 3) == 1 && s->sd.irq_flags)
+    {
+        eos_trigger_int(s, 0xB1, 0);
+    }
+}
+
+#undef DPRINTF
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -3033,28 +3110,66 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
     switch(address & 0xFFF)
     {
         case 0x08:
-            msg = "DMA?";
+            msg = "DMA";
+            if(type & MODE_WRITE)
+            {
+                s->sd.dma_enabled = value;
+            }
             break;
         case 0x0C:
-            msg = "Transfer start";
-            if (s->sd.card_image)
+            msg = "Command flags?";
+            s->sd.cmd_flags = value;
+            if(type & MODE_WRITE)
             {
-                /* DMA transfer? */
-                uint32_t cmd_hi = s->sd.cmd_hi;
-                uint32_t cmd = (cmd_hi >> 8) & ~0x40;
-                if (value == 0x14 && (cmd == 17 || cmd == 18)) /* READ_SINGLE_BLOCK or READ_MULTIPLE_BLOCK */
+                /* reset status before doing any command */
+                s->sd.status = 0;
+                
+                /* interpret this command */
+                sdio_send_command(&s->sd);
+                
+                if (value == 0x14)
                 {
-                    sdio_read_write(s, 0, &msg);
+                    sdio_read_data(&s->sd);
                 }
+                
+                sdio_trigger_interrupt(s);
             }
             break;
         case 0x10:
-            /* code is waiting for bit0 getting high, bit1 is an error flag */
-            msg = "status?";
-            ret = 0x200001;
+            msg = "Status";
+            /**
+             * 0x00000001 => command complete
+             * 0x00000002 => error
+             * 0x00200000 => data available?
+             **/
+            if(type & MODE_WRITE)
+            {
+                /* not sure */
+                s->sd.status = value;
+            }
+            else
+            {
+                ret = s->sd.status;
+                ret = 0x200001;
+            }
             break;
         case 0x14:
-            msg = "transfer start? irq?";
+            msg = "irq enable?";
+            s->sd.irq_flags = value;
+
+            /* sometimes, a write command ends with this register
+             * other times, it ends with SDDMA register 0x78/0x38
+             */
+            
+            if (s->sd.cmd_flags == 0x13 && s->sd.dma_enabled && value)
+            {
+                sdio_write_data(&s->sd);
+            }
+
+            /* sometimes this register is configured after the transfer is started */
+            /* since in our implementation, transfers are instant, this would miss the interrupt,
+             * so we trigger it from here too. */
+            sdio_trigger_interrupt(s);
             break;
         case 0x18:
             msg = "init?";
@@ -3064,26 +3179,34 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
             s->sd.cmd_lo = value;
             break;
         case 0x24:
-            msg = s->sd.app_cmd ? "cmd_hi, ACMD%d %s" 
-                                 : "cmd_hi, CMD%d %s" ;
-            uint32_t cmd = (value >> 8) & ~0x40;
+            msg = "cmd_hi";
             s->sd.cmd_hi = value;
-            msg_arg1 = cmd;
-            msg_arg2 = (intptr_t) sd_get_cmd_name(&s->sd);
-            s->sd.app_cmd = (cmd == 55);
             break;
         case 0x28:
-            msg = "before cmd?";
+            msg = "Response size (bits)";
             break;
         case 0x2c:
-            msg = "before cmd?";
+            msg = "response setup?";
             break;
         case 0x34:
-            msg = "data_lo";
-            ret = 0xFFFFFF;
+            msg = "Response[0]";
+            ret = s->sd.response[0];
             break;
         case 0x38:
-            msg = "data_hi";
+            msg = "Response[1]";
+            ret = s->sd.response[1];
+            break;
+        case 0x3C:
+            msg = "Response[2]";
+            ret = s->sd.response[2];
+            break;
+        case 0x40:
+            msg = "Response[3]";
+            ret = s->sd.response[3];
+            break;
+        case 0x44:
+            msg = "Response[4]";
+            ret = s->sd.response[4];
             break;
         case 0x58:
             msg = "bus width";
@@ -3099,11 +3222,15 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
             msg = "read block size";
             s->sd.read_block_size = value;
             break;
+        case 0x6C:
+            msg = "FIFO data?";
+            break;
         case 0x70:
             msg = "transfer status?";
             break;
         case 0x7c:
             msg = "transfer block count";
+            s->sd.transfer_count = value;
             break;
         case 0x80:
             msg = "transferred blocks";
@@ -3152,11 +3279,10 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
             msg = "Transfer start?";
 
             /* DMA transfer? */
-            uint32_t cmd_hi = s->sd.cmd_hi;
-            uint32_t cmd = (cmd_hi >> 8) & ~0x40;
-            if (cmd == 24 || cmd == 25) /* WRITE_BLOCK or WRITE_MULTIPLE */
+            if (s->sd.cmd_flags == 0x13)
             {
-                sdio_read_write(s, 1, &msg);
+                sdio_write_data(&s->sd);
+                sdio_trigger_interrupt(s);
             }
 
             break;

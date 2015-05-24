@@ -110,15 +110,19 @@ typedef struct
 
 typedef struct
 {
-    FILE* card_image;
-    long int card_image_size;
+    SDState *card;
     uint32_t cmd_hi;
     uint32_t cmd_lo;
-    uint8_t app_cmd;
+    uint32_t cmd_flags;
+    uint32_t irq_flags;
     uint32_t read_block_size;
     uint32_t write_block_size;
+    uint32_t transfer_count;
+    uint32_t dma_enabled;
     uint32_t dma_addr;
     uint32_t dma_count;
+    uint32_t response[5];
+    uint32_t status;
 } SDIOState;
 
 struct palette_entry
