@@ -12,6 +12,8 @@
  Enjoy! 
 ]]
 
+require("keyhndlr")
+
 --printf
 function printf(...) console.write(string.format(...)) end
 
@@ -402,49 +404,6 @@ function main()
     end
     menu.block(false);
     keyhandler:stop()
-end
-
-keyhandler = {}
-keyhandler.runnning = false
-
---starts the keyhandler if not already running, returns whether or not it was started
-function keyhandler:start()
-    if keyhandler.running then self:reset() return false end
-    --save any previous keypress handler so we can restore it when finished
-    self.old_keypress = event.keypress
-    self.keys = {}
-    self.key_count = 0
-    self.running = true
-    event.keypress = function(key)
-        if key ~= 0 then
-            keyhandler.key_count = keyhandler.key_count + 1
-            keyhandler.keys[keyhandler.key_count] = key
-        end
-        return false
-    end
-    return true
-end
-
--- returns a table of all the keys that have been pressed since the last time getkeys was called
-function keyhandler:getkeys()
-    if self.key_count == 0 then 
-        return nil
-    else
-        local result = self.keys
-        self:reset()
-        return result
-    end
-end
-
-function keyhandler:reset()
-    self.key_count = 0
-    self.keys = {}
-end
-
-function keyhandler:stop()
-    self:reset()
-    self.running = false
-    event.keypress = self.old_keypress
 end
 
 sokobanmenu = menu.new

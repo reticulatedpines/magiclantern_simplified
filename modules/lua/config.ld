@@ -1,4 +1,5 @@
 project = 'ML Lua API'
+file = { '../lua', '../../scripts/lib'}
 title = 'ML Lua API'
 format = 'markdown'
 description = 'Magic Lantern Lua API Documentation'

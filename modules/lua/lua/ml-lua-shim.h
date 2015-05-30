@@ -30,6 +30,7 @@
 #define abort() my_abort()
 #define strtof(a,b) my_strtof((a),(b))
 #define strpbrk(a,b) my_strpbrk((a),(b))
+#define strstr(a,b) my_strstr((a),(b))
 
 #define EOF -1
 #define BUFSIZ 255
@@ -60,5 +61,6 @@ void my_abort();
 int ftoa(char *s, float n);
 float my_strtof(const char* s, char** endptr);
 char * my_strpbrk(const char * str1, const char * str2);
+char * my_strstr(const char *haystack, const char *needle);
 
 #endif
