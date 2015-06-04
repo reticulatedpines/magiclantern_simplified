@@ -306,6 +306,7 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_TV ?         "Tv" :
         shooting_mode == SHOOTMODE_AV ?         "Av" :
         shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_AP ?         "A+" :
         shooting_mode == SHOOTMODE_ADEP ?       "ADEP" :
         shooting_mode == SHOOTMODE_AUTO ?       "Auto" :
         shooting_mode == SHOOTMODE_LANDSCAPE ?  "Landscape" :
@@ -314,6 +315,8 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "Macro" :
         shooting_mode == SHOOTMODE_SPORTS ?     "Sports" :
         shooting_mode == SHOOTMODE_NIGHT ?      "Night" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "Handheld Night" :
+        shooting_mode == SHOOTMODE_HDR ?        "HDR Backlight" :
         shooting_mode == SHOOTMODE_BULB ?       "Bulb" :
         shooting_mode == SHOOTMODE_C ?          "C1" :
         shooting_mode == SHOOTMODE_C2 ?         "C2" :
@@ -336,6 +339,7 @@ char* get_shootmode_name_short(int shooting_mode)
         shooting_mode == SHOOTMODE_TV ?         "Tv" :
         shooting_mode == SHOOTMODE_AV ?         "Av" :
         shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_AP ?         "A+" :
         shooting_mode == SHOOTMODE_ADEP ?       "AD" :
         shooting_mode == SHOOTMODE_AUTO ?       "[]" :
         shooting_mode == SHOOTMODE_LANDSCAPE ?  "LD" :
@@ -344,6 +348,8 @@ char* get_shootmode_name_short(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "MC" :
         shooting_mode == SHOOTMODE_SPORTS ?     "SP" :
         shooting_mode == SHOOTMODE_NIGHT ?      "NI" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "NH" :
+        shooting_mode == SHOOTMODE_HDR ?        "HB" :
         shooting_mode == SHOOTMODE_BULB ?       "B"  :
         shooting_mode == SHOOTMODE_C ?          "C1" :
         shooting_mode == SHOOTMODE_C2 ?         "C2" :

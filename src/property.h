@@ -222,6 +222,7 @@
 #define SHOOTMODE_C2 0x10
 #define SHOOTMODE_C3 0x11
 #define SHOOTMODE_CA 0x13
+#define SHOOTMODE_AP 0x16
 #define SHOOTMODE_AUTO 9
 #define SHOOTMODE_NOFLASH 0xF
 #define SHOOTMODE_PORTRAIT 0xC
@@ -229,6 +230,8 @@
 #define SHOOTMODE_MACRO 0xE
 #define SHOOTMODE_SPORTS 0xB
 #define SHOOTMODE_NIGHT 0xA
+#define SHOOTMODE_NIGHTH 0x17
+#define SHOOTMODE_HDR 0x18
 #define SHOOTMODE_MOVIE 0x14
 
 // WB in LiveView (and movie) mode
