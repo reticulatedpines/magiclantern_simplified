@@ -127,7 +127,7 @@
 
 #define DIALOG_MnCardFormatBegin (0x60970) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x643F0) // similar
-#define FORMAT_BTN_NAME "[DELETE]"
+#define FORMAT_BTN_NAME "[Trash to change]"
 #define FORMAT_BTN BGMT_PRESS_DOWN
 #define FORMAT_STR_LOC 4
 
