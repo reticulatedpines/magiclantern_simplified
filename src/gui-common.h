@@ -25,7 +25,11 @@
 #define MLEV_AV_LONG -17
 #define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
 #define MLEV_JOYSTICK_LONG -19
- 
+
+/* half-shutter button codes (they are consecutive after BGMT_PRESS_HALFSHUTTER) */
+#define BGMT_UNPRESS_HALFSHUTTER (BGMT_PRESS_HALFSHUTTER+1)
+#define BGMT_PRESS_FULLSHUTTER   (BGMT_PRESS_HALFSHUTTER+2)
+#define BGMT_UNPRESS_FULLSHUTTER (BGMT_PRESS_HALFSHUTTER+3)
 
 /** \file
  * DryOS GUI structures and functions.
