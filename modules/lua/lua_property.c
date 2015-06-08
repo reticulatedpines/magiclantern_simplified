@@ -308,8 +308,180 @@ static int handle_prop_string(lua_State * L, const char * name)
     else if(!strcmp(name, "METERING_MODE")) prop_id = PROP_METERING_MODE;
     /// @tfield property LAST_JOB_ID
     else if(!strcmp(name, "LAST_JOB_ID")) prop_id = PROP_LAST_JOB_ID;
-    /// @tfield property PROP_PICTURE_STYLE
+    /// @tfield property PICTURE_STYLE
     else if(!strcmp(name, "PICTURE_STYLE")) prop_id = PROP_PICTURE_STYLE;
+    /// @tfield property PC_FLAVOR1_PARAM
+    else if(!strcmp(name, "PC_FLAVOR1_PARAM")) prop_id = PROP_PC_FLAVOR1_PARAM;
+    /// @tfield property PC_FLAVOR2_PARAM
+    else if(!strcmp(name, "PC_FLAVOR2_PARAM")) prop_id = PROP_PC_FLAVOR2_PARAM;
+    /// @tfield property PC_FLAVOR3_PARAM
+    else if(!strcmp(name, "PC_FLAVOR3_PARAM")) prop_id = PROP_PC_FLAVOR3_PARAM;
+    /// @tfield property STROBO_FIRING
+    else if(!strcmp(name, "STROBO_FIRING")) prop_id = PROP_STROBO_FIRING;
+    /// @tfield property STROBO_ETTLMETER
+    else if(!strcmp(name, "STROBO_ETTLMETER")) prop_id = PROP_STROBO_ETTLMETER;
+    /// @tfield property STROBO_CURTAIN
+    else if(!strcmp(name, "STROBO_CURTAIN")) prop_id = PROP_STROBO_CURTAIN;
+    /// @tfield property STROBO_AECOMP
+    else if(!strcmp(name, "STROBO_AECOMP")) prop_id = PROP_STROBO_AECOMP;
+    /// @tfield property STROBO_SETTING
+    else if(!strcmp(name, "STROBO_SETTING")) prop_id = PROP_STROBO_SETTING;
+    /// @tfield property STROBO_REDEYE
+    else if(!strcmp(name, "STROBO_REDEYE")) prop_id = PROP_STROBO_REDEYE;
+    /// @tfield property POPUP_BUILTIN_FLASH
+    else if(!strcmp(name, "POPUP_BUILTIN_FLASH")) prop_id = PROP_POPUP_BUILTIN_FLASH;
+    /// @tfield property LCD_BRIGHTNESS
+    else if(!strcmp(name, "LCD_BRIGHTNESS")) prop_id = PROP_LCD_BRIGHTNESS;
+    /// @tfield property LCD_BRIGHTNESS_MODE
+    else if(!strcmp(name, "LCD_BRIGHTNESS_MODE")) prop_id = PROP_LCD_BRIGHTNESS_MODE;
+    /// @tfield property LCD_BRIGHTNESS_AUTO_LEVEL
+    else if(!strcmp(name, "LCD_BRIGHTNESS_AUTO_LEVEL")) prop_id = PROP_LCD_BRIGHTNESS_AUTO_LEVEL;
+    /// @tfield property STROBO_FIRING
+    else if(!strcmp(name, "STROBO_FIRING")) prop_id = PROP_STROBO_FIRING;
+    /// @tfield property DOF_PREVIEW_MAYBE
+    else if(!strcmp(name, "DOF_PREVIEW_MAYBE")) prop_id = PROP_DOF_PREVIEW_MAYBE;
+    /// @tfield property REMOTE_SW1
+    else if(!strcmp(name, "REMOTE_SW1")) prop_id = PROP_REMOTE_SW1;
+    /// @tfield property REMOTE_SW2
+    else if(!strcmp(name, "REMOTE_SW2")) prop_id = PROP_REMOTE_SW2;
+    /// @tfield property PROGRAM_SHIFT
+    else if(!strcmp(name, "PROGRAM_SHIFT")) prop_id = PROP_PROGRAM_SHIFT;
+    /// @tfield property QUICKREVIEW
+    else if(!strcmp(name, "QUICKREVIEW")) prop_id = PROP_QUICKREVIEW;
+    /// @tfield property QUICKREVIEW_MODE
+    else if(!strcmp(name, "QUICKREVIEW_MODE")) prop_id = PROP_QUICKREVIEW_MODE;
+    /// @tfield property REMOTE_AFSTART_BUTTON
+    else if(!strcmp(name, "REMOTE_AFSTART_BUTTON")) prop_id = PROP_REMOTE_AFSTART_BUTTON;
+    /// @tfield property REMOTE_BULB_RELEASE_END
+    else if(!strcmp(name, "REMOTE_BULB_RELEASE_END")) prop_id = PROP_REMOTE_BULB_RELEASE_END;
+    /// @tfield property REMOTE_BULB_RELEASE_START
+    else if(!strcmp(name, "REMOTE_BULB_RELEASE_START")) prop_id = PROP_REMOTE_BULB_RELEASE_START;
+    /// @tfield property REMOTE_RELEASE
+    else if(!strcmp(name, "REMOTE_RELEASE")) prop_id = PROP_REMOTE_RELEASE;
+    /// @tfield property REMOTE_SET_BUTTON
+    else if(!strcmp(name, "REMOTE_SET_BUTTON")) prop_id = PROP_REMOTE_SET_BUTTON;
+    /// @tfield property FA_ADJUST_FLAG
+    else if(!strcmp(name, "FA_ADJUST_FLAG")) prop_id = PROP_FA_ADJUST_FLAG;
+    /// @tfield property CARD_SELECT
+    else if(!strcmp(name, "CARD_SELECT")) prop_id = PROP_CARD_SELECT;
+    /// @tfield property FOLDER_NUMBER_A
+    else if(!strcmp(name, "FOLDER_NUMBER_A")) prop_id = PROP_FOLDER_NUMBER_A;
+    /// @tfield property FILE_NUMBER_A
+    else if(!strcmp(name, "FILE_NUMBER_A")) prop_id = PROP_FILE_NUMBER_A;
+    /// @tfield property CLUSTER_SIZE_A
+    else if(!strcmp(name, "CLUSTER_SIZE_A")) prop_id = PROP_CLUSTER_SIZE_A;
+    /// @tfield property FREE_SPACE_A
+    else if(!strcmp(name, "FREE_SPACE_A")) prop_id = PROP_FREE_SPACE_A;
+    /// @tfield property CARD_RECORD_A
+    else if(!strcmp(name, "CARD_RECORD_A")) prop_id = PROP_CARD_RECORD_A;
+    /// @tfield property FOLDER_NUMBER_B
+    else if(!strcmp(name, "FOLDER_NUMBER_B")) prop_id = PROP_FOLDER_NUMBER_B;
+    /// @tfield property FILE_NUMBER_B
+    else if(!strcmp(name, "FILE_NUMBER_B")) prop_id = PROP_FILE_NUMBER_B;
+    /// @tfield property CLUSTER_SIZE_B
+    else if(!strcmp(name, "CLUSTER_SIZE_B")) prop_id = PROP_CLUSTER_SIZE_B;
+    /// @tfield property FREE_SPACE_B
+    else if(!strcmp(name, "FREE_SPACE_B")) prop_id = PROP_FREE_SPACE_B;
+    /// @tfield property CARD_RECORD_B
+    else if(!strcmp(name, "CARD_RECORD_B")) prop_id = PROP_CARD_RECORD_B;
+    /// @tfield property FOLDER_NUMBER_C
+    else if(!strcmp(name, "FOLDER_NUMBER_C")) prop_id = PROP_FOLDER_NUMBER_C;
+    /// @tfield property FILE_NUMBER_C
+    else if(!strcmp(name, "FILE_NUMBER_C")) prop_id = PROP_FILE_NUMBER_C;
+    /// @tfield property CLUSTER_SIZE_C
+    else if(!strcmp(name, "CLUSTER_SIZE_C")) prop_id = PROP_CLUSTER_SIZE_C;
+    /// @tfield property FREE_SPACE_C
+    else if(!strcmp(name, "FREE_SPACE_C")) prop_id = PROP_FREE_SPACE_C;
+    /// @tfield property CARD_RECORD_C
+    else if(!strcmp(name, "CARD_RECORD_C")) prop_id = PROP_CARD_RECORD_C;
+    /// @tfield property USER_FILE_PREFIX
+    else if(!strcmp(name, "USER_FILE_PREFIX")) prop_id = PROP_USER_FILE_PREFIX;
+    /// @tfield property SELECTED_FILE_PREFIX
+    else if(!strcmp(name, "SELECTED_FILE_PREFIX")) prop_id = PROP_SELECTED_FILE_PREFIX;
+    /// @tfield property CARD_COVER
+    else if(!strcmp(name, "CARD_COVER")) prop_id = PROP_CARD_COVER;
+    /// @tfield property TERMINATE_SHUT_REQ
+    else if(!strcmp(name, "TERMINATE_SHUT_REQ")) prop_id = PROP_TERMINATE_SHUT_REQ;
+    /// @tfield property BUTTON_ASSIGNMENT
+    else if(!strcmp(name, "BUTTON_ASSIGNMENT")) prop_id = PROP_BUTTON_ASSIGNMENT;
+    /// @tfield property PIC_QUALITY
+    else if(!strcmp(name, "PIC_QUALITY")) prop_id = PROP_PIC_QUALITY;
+    /// @tfield property PIC_QUALITY2
+    else if(!strcmp(name, "PIC_QUALITY2")) prop_id = PROP_PIC_QUALITY2;
+    /// @tfield property PIC_QUALITY3
+    else if(!strcmp(name, "PIC_QUALITY3")) prop_id = PROP_PIC_QUALITY3;
+    /// @tfield property IMAGE_REVIEW_TIME
+    else if(!strcmp(name, "IMAGE_REVIEW_TIME")) prop_id = PROP_IMAGE_REVIEW_TIME;
+    /// @tfield property BATTERY_REPORT
+    else if(!strcmp(name, "BATTERY_REPORT")) prop_id = PROP_BATTERY_REPORT;
+    /// @tfield property BATTERY_HISTORY
+    else if(!strcmp(name, "BATTERY_HISTORY")) prop_id = PROP_BATTERY_HISTORY;
+    /// @tfield property BATTERY_CHECK
+    else if(!strcmp(name, "BATTERY_CHECK")) prop_id = PROP_BATTERY_CHECK;
+    /// @tfield property BATTERY_POWER
+    else if(!strcmp(name, "BATTERY_POWER")) prop_id = PROP_BATTERY_POWER;
+    /// @tfield property AE_MODE_MOVIE
+    else if(!strcmp(name, "AE_MODE_MOVIE")) prop_id = PROP_AE_MODE_MOVIE;
+    /// @tfield property WINDCUT_MODE
+    else if(!strcmp(name, "WINDCUT_MODE")) prop_id = PROP_WINDCUT_MODE;
+    /// @tfield property SCREEN_COLOR
+    else if(!strcmp(name, "SCREEN_COLOR")) prop_id = PROP_SCREEN_COLOR;
+    /// @tfield property ROLLING_PITCHING_LEVEL
+    else if(!strcmp(name, "ROLLING_PITCHING_LEVEL")) prop_id = PROP_ROLLING_PITCHING_LEVEL;
+    /// @tfield property VRAM_SIZE_MAYBE
+    else if(!strcmp(name, "VRAM_SIZE_MAYBE")) prop_id = PROP_VRAM_SIZE_MAYBE;
+    /// @tfield property ICU_AUTO_POWEROFF
+    else if(!strcmp(name, "ICU_AUTO_POWEROFF")) prop_id = PROP_ICU_AUTO_POWEROFF;
+    /// @tfield property AUTO_POWEROFF_TIME
+    else if(!strcmp(name, "AUTO_POWEROFF_TIME")) prop_id = PROP_AUTO_POWEROFF_TIME;
+    /// @tfield property REBOOT_MAYBE
+    else if(!strcmp(name, "REBOOT_MAYBE")) prop_id = PROP_REBOOT_MAYBE;
+    /// @tfield property DIGITAL_ZOOM_RATIO
+    else if(!strcmp(name, "DIGITAL_ZOOM_RATIO")) prop_id = PROP_DIGITAL_ZOOM_RATIO;
+    /// @tfield property INFO_BUTTON_FUNCTION
+    else if(!strcmp(name, "INFO_BUTTON_FUNCTION")) prop_id = PROP_INFO_BUTTON_FUNCTION;
+    /// @tfield property CONTINUOUS_AF_MODE
+    else if(!strcmp(name, "CONTINUOUS_AF_MODE")) prop_id = PROP_CONTINUOUS_AF_MODE;
+    /// @tfield property CONTINUOUS_AF_VALID
+    else if(!strcmp(name, "CONTINUOUS_AF_VALID")) prop_id = PROP_CONTINUOUS_AF_VALID;
+    /// @tfield property REGISTRATION_DATA_UPDATE_FUNC
+    else if(!strcmp(name, "REGISTRATION_DATA_UPDATE_FUNC")) prop_id = PROP_REGISTRATION_DATA_UPDATE_FUNC;
+    /// @tfield property MOVIE_REC_AF
+    else if(!strcmp(name, "MOVIE_REC_AF")) prop_id = PROP_MOVIE_REC_AF;
+    /// @tfield property LIMITED_TV_VALUE_AT_AUTOISO
+    else if(!strcmp(name, "LIMITED_TV_VALUE_AT_AUTOISO")) prop_id = PROP_LIMITED_TV_VALUE_AT_AUTOISO;
+    /// @tfield property LOUDNESS_BUILT_IN_SPEAKER
+    else if(!strcmp(name, "LOUDNESS_BUILT_IN_SPEAKER")) prop_id = PROP_LOUDNESS_BUILT_IN_SPEAKER;
+    /// @tfield property LED_LIGHT
+    else if(!strcmp(name, "LED_LIGHT")) prop_id = PROP_LED_LIGHT;
+    /// @tfield property AFSHIFT_LVASSIST_STATUS
+    else if(!strcmp(name, "AFSHIFT_LVASSIST_STATUS")) prop_id = PROP_AFSHIFT_LVASSIST_STATUS;
+    /// @tfield property AFSHIFT_LVASSIST_SHIFT_RESULT
+    else if(!strcmp(name, "AFSHIFT_LVASSIST_SHIFT_RESULT")) prop_id = PROP_AFSHIFT_LVASSIST_SHIFT_RESULT;
+    /// @tfield property MULTIPLE_EXPOSURE_CTRL
+    else if(!strcmp(name, "MULTIPLE_EXPOSURE_CTRL")) prop_id = PROP_MULTIPLE_EXPOSURE_CTRL;
+    /// @tfield property MIRROR_DOWN_IN_MOVIE_MODE
+    else if(!strcmp(name, "MIRROR_DOWN_IN_MOVIE_MODE")) prop_id = PROP_MIRROR_DOWN_IN_MOVIE_MODE;
+    /// @tfield property SHUTTER_COUNTER
+    else if(!strcmp(name, "SHUTTER_COUNTER")) prop_id = PROP_SHUTTER_COUNTER;
+    /// @tfield property AFPOINT
+    else if(!strcmp(name, "AFPOINT")) prop_id = PROP_AFPOINT;
+    /// @tfield property BEEP
+    else if(!strcmp(name, "BEEP")) prop_id = PROP_BEEP;
+    /// @tfield property ELECTRIC_SHUTTER
+    else if(!strcmp(name, "ELECTRIC_SHUTTER")) prop_id = PROP_ELECTRIC_SHUTTER;
+    /// @tfield property LOGICAL_CONNECT
+    else if(!strcmp(name, "LOGICAL_CONNECT")) prop_id = PROP_LOGICAL_CONNECT;
+    /// @tfield property BV
+    else if(!strcmp(name, "BV")) prop_id = PROP_BV;
+    /// @tfield property LV_BV
+    else if(!strcmp(name, "LV_BV")) prop_id = PROP_LV_BV;
+    /// @tfield property STROBO_CHARGE_INFO_MAYBE
+    else if(!strcmp(name, "STROBO_CHARGE_INFO_MAYBE")) prop_id = PROP_STROBO_CHARGE_INFO_MAYBE;
+    /// @tfield property ONESHOT_RAW
+    else if(!strcmp(name, "ONESHOT_RAW")) prop_id = PROP_ONESHOT_RAW;
+    /// @tfield property AEB
+    else if(!strcmp(name, "AEB")) prop_id = PROP_AEB;
     
     if(prop_id)
     {
