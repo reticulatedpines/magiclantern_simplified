@@ -1490,15 +1490,7 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
         msg_queue_post(mlv_play_queue_fps, 0);
     }
 
-    /* use high-precision timer for FPS > 2  */
-    if (offset < 500000)
-    {
-        SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
-    }
-    else
-    {
-        SetTimerAfter(offset / 1000, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
-    }
+    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
 }
 
 static void mlv_play_stop_fps_timer()
@@ -1512,9 +1504,10 @@ static void mlv_play_stop_fps_timer()
 
 static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
-    if (fps_nom == 0)
+    if (fps_nom == 0 || fps_nom < 2 * fps_denom)
     {
-        /* bad metadata? play at 24 fps */
+        /* fps too low or bad metadata? play at 24 fps */
+        fps_denom = MAX(fps_denom, 1);
         fps_nom = 24 * fps_denom;
     }
     
