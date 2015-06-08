@@ -101,7 +101,6 @@ static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
 static uint32_t mlv_play_info = 1;
 static uint32_t mlv_play_timer_stop = 1;
-static uint32_t mlv_play_fps_ticks = 0;
 static uint32_t mlv_play_frames_skipped = 0;
 
 /* this structure is used to build the mlv_xref_t table */
@@ -1490,8 +1489,6 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
     {
         msg_queue_post(mlv_play_queue_fps, 0);
     }
-    
-    mlv_play_fps_ticks++;
 
     /* use high-precision timer for FPS > 2  */
     if (offset < 500000)
@@ -1513,7 +1510,7 @@ static void mlv_play_stop_fps_timer()
     }
 }
 
-static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
+static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
     if (fps_nom == 0)
     {
@@ -1539,20 +1536,16 @@ static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     
     /* reset counters */
     mlv_play_frame_div_pos = 0;
-    mlv_play_fps_ticks = 0;
     mlv_play_timer_stop = 0;
     mlv_play_frames_skipped = 0;
     
     /* and finally start timer in 1 us */
     SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
-    
-    return 1;
 }
 
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
-    uint32_t fps_timer_start_attempted = 0;
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
@@ -1851,11 +1844,10 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             
             if (mlv_play_exact_fps)
             {
-                if (!fps_timer_start_attempted)
+                if (!fps_timer_started)
                 {
-                    /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
-                    fps_timer_started = mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                    fps_timer_start_attempted = 1;
+                    mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                    fps_timer_started = 1;
                 }
                 
                 if (fps_timer_started)
@@ -1869,14 +1861,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                             break;
                         }
                     }
-                }
-            }
-            else
-            {
-                if (!fps_timer_started)
-                {
-                    /* let's give it another chance */
-                    fps_timer_start_attempted = 0;
                 }
             }
             
@@ -1896,7 +1880,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
 static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
-    uint32_t fps_timer_start_attempted = 0;
     uint32_t chunk_num = 0;
     
     /* read footer information and update global variables, will seek automatically */
@@ -2069,11 +2052,10 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         
         if (mlv_play_exact_fps)
         {
-            if (!fps_timer_start_attempted)
+            if (!fps_timer_started)
             {
-                /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
-                fps_timer_started = mlv_play_start_fps_timer(fps1000, 1000);
-                fps_timer_start_attempted = 1;
+                mlv_play_start_fps_timer(fps1000, 1000);
+                fps_timer_started = 1;
             }
 
             if (fps_timer_started)
@@ -2087,14 +2069,6 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
                         break;
                     }
                 }
-            }
-        }
-        else
-        {
-            if (!fps_timer_started)
-            {
-                /* let's give it another chance */
-                fps_timer_start_attempted = 0;
             }
         }
 
