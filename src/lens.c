@@ -315,7 +315,7 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "Macro" :
         shooting_mode == SHOOTMODE_SPORTS ?     "Sports" :
         shooting_mode == SHOOTMODE_NIGHT ?      "Night" :
-        shooting_mode == SHOOTMODE_NIGHTH ?     "Handheld Night" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "Night Handheld" :
         shooting_mode == SHOOTMODE_HDR ?        "HDR Backlight" :
         shooting_mode == SHOOTMODE_BULB ?       "Bulb" :
         shooting_mode == SHOOTMODE_C ?          "C1" :
