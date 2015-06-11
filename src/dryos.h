@@ -197,6 +197,7 @@ extern int iscntrl( int x );
 void str_make_lowercase(char* s);
 
 /** message queue calls **/
+struct msg_queue;
 extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
 extern int32_t msg_queue_post(struct msg_queue * queue, uint32_t msg);
 extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);

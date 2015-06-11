@@ -279,7 +279,7 @@ NSTUB(0xFFA63264 - RAM_OFFSET,  give_semaphore)
 NSTUB(0xFFA63178 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
-NSTUB(   0x247C8,  task_max)
+NSTUB(   0x247B0,  task_max)
 NSTUB(0xFFA5F3CC - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFA6B52C - RAM_OFFSET,  get_obj_attr)
 NSTUB(0xFFA767CC - RAM_OFFSET,  is_taskid_valid)
