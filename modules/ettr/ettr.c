@@ -74,6 +74,49 @@ static void ettr_beep_times(int n)
     }
 }
 
+static int ettr_get_current_raw_shutter()
+{
+    if (is_bulb_mode())
+    {
+        int seconds = menu_get_value_from_script("Bulb Timer", "Exposure duration");
+        return shutterf_to_raw(seconds);
+    }
+    else
+    {
+        return lens_info.raw_shutter;
+    }
+}
+
+static int auto_ettr_get_long_exposure_time(int raw_shutter)
+{
+    /* full-stops will be rounded to minutes, otherwise we get funny times like 91 seconds */
+    int seconds = (int)roundf(30.0 * powf(2.0, (16.0 - raw_shutter)/8.0));
+    
+    /* things like 21 or 19 get rounded */
+    int s = (seconds % 60) % 10;
+    if (s == 1 || s == 3) {
+        seconds--;
+    } else if (s == 7 || s == 9) {
+        seconds++;
+    }
+    
+    return seconds;
+}
+
+static const char * ettr_format_shutter(int raw_shutter)
+{
+    if (raw_shutter >= SHUTTER_30s)
+    {
+        return lens_format_shutter(raw_shutter);
+    }
+    else
+    {
+        int seconds = auto_ettr_get_long_exposure_time(raw_shutter);
+        return format_time_hours_minutes_seconds(seconds);
+    }
+}
+
+
 static char* get_current_exposure_settings()
 {
     static char msg[50];
@@ -84,7 +127,7 @@ static char* get_current_exposure_settings()
     {
         STR_APPEND(msg, "/%d", raw2iso(iso2));
     }
-    STR_APPEND(msg, " %s", lens_format_shutter(lens_info.raw_shutter));
+    STR_APPEND(msg, " %s", ettr_format_shutter(ettr_get_current_raw_shutter()));
     return msg;
 }
 
@@ -438,7 +481,7 @@ int auto_ettr_export_correction(int* out)
 /* returns: 0 = nothing changed, 1 = OK, -1 = exposure limits reached */
 static int auto_ettr_work_m(int corr)
 {
-    int tv = lens_info.raw_shutter;
+    int tv = ettr_get_current_raw_shutter();
     int iso = lens_info.raw_iso;
     
     /* to detect whether it settled or not */
@@ -463,14 +506,14 @@ static int auto_ettr_work_m(int corr)
             auto_ettr_max_shutter = tv;
             if (lv)
             {
-                NotifyBox(2000, "ETTR: Tv <= %s ", lens_format_shutter(tv));
+                NotifyBox(2000, "ETTR: Tv <= %s ", ettr_format_shutter(tv));
                 prev_tv = tv;
                 return 0; /* wait for next iteration */
             }
             else
             {
                 msleep(1000);
-                bmp_printf(FONT_MED, 0, os.y0, "ETTR: Tv <= %s ", lens_format_shutter(tv));
+                bmp_printf(FONT_MED, 0, os.y0, "ETTR: Tv <= %s ", ettr_format_shutter(tv));
             }
         }
     }
@@ -541,12 +584,35 @@ static int auto_ettr_work_m(int corr)
     }
 
     /* apply the new settings */
-    int oki = lens_set_rawiso(isor);    /* for expo overide */
-    int oks = lens_set_rawshutter(tvr);
-    if (!expo_override_active())
+    int oki = 0, oks = 0;
+    if (tvr < SHUTTER_30s)
     {
-        oks = hdr_set_rawshutter(tvr);  /* for confirmation and retrying if needed */
+        /* use BULB for long exposures */
+        ensure_bulb_mode();
+        int seconds = auto_ettr_get_long_exposure_time(tvr);
+        
+        /* configure bulb timer with the new exposure */
+        menu_set_value_from_script("Bulb Timer", "Exposure duration", seconds);
+        oks = 1;
+
+        /* set ISO */
         oki = hdr_set_rawiso(isor);
+    }
+    else
+    {
+        if (is_bulb_mode())
+        {
+            /* back from BULB */
+            set_shooting_mode(SHOOTMODE_M);
+        }
+        
+        oki = lens_set_rawiso(isor);    /* for expo overide */
+        oks = lens_set_rawshutter(tvr);
+        if (!expo_override_active())
+        {
+            oks = hdr_set_rawshutter(tvr);  /* for confirmation and retrying if needed */
+            oki = hdr_set_rawiso(isor);
+        }
     }
 
     /* don't let expo lock undo our changes */
@@ -559,12 +625,12 @@ static int auto_ettr_work_m(int corr)
     }
 
     /* to know when the user changed shutter speed */
-    prev_tv = lens_info.raw_shutter;
+    prev_tv = ettr_get_current_raw_shutter();
     
     /* did it converge or not? */
-    int tv_after = lens_info.raw_shutter;
+    int tv_after = prev_tv;
     int iso_after = lens_info.raw_iso;
-    int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
+    int new_expo = tv_after - iso_after;
 
     if (dual_iso)
     {
@@ -590,9 +656,9 @@ static int auto_ettr_work_m(int corr)
     if (debug_info)
     {
         bmp_printf(FONT_MED, 50, 240, 
-            "iso %d->%d %s\ntv %s->%s %s\nexpo expected %d got %d ",
+            "iso %d->%d %s\ntv %d->%d %s\nexpo expected %d got %d ",
             raw2iso(iso_before), raw2iso(iso_after), oki ? "OK" : "err",
-            lens_format_shutter(tv_before), lens_format_shutter(tv_after), oks ? "OK" : "err",
+            tv_before, tv_after, oks ? "OK" : "err",
             expected_expo, new_expo
         );
         msleep(1000);
@@ -650,7 +716,8 @@ static int auto_ettr_work(int corr)
         expo_override_active() || /* consider this one as a fake manual mode */
         !(shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P);  /* auto ETTR only supports these auto modes */
     
-    if (manual_mode)
+    /* FIXME: auto modes might be broken */
+    if (!is_bulb_mode())
     {
         /* in M mode, wait until shutter speed is reported by Canon firmware */
         int waited = 0;
@@ -725,7 +792,7 @@ static void auto_ettr_step_task(int corr)
     {
         /* take another pic */
         auto_ettr_running = 0;
-        lens_take_picture(0, AF_DISABLE);
+        schedule_remote_shot();
         ettr_pics_took++;
     }
     else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
@@ -746,8 +813,8 @@ static void auto_ettr_step_task(int corr)
 static void auto_ettr_step()
 {
     if (!auto_ettr) return;
-    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE) return;
-    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
+    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && !is_movie_mode() && !is_bulb_mode()) return;
+    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE || is_bulb_mode());
     if (lens_info.raw_iso == 0 && is_m) return;
     if (auto_ettr_running) return;
     if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET) return;
@@ -1361,15 +1428,29 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
 
 static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
 {
-    MENU_SET_VALUE("%s", lens_format_shutter(auto_ettr_max_shutter));
+    MENU_SET_VALUE("%s", ettr_format_shutter(auto_ettr_max_shutter));
+    
+    if (auto_ettr_max_shutter < SHUTTER_30s)
+    {
+        MENU_SET_RINFO("BULB");
+        MENU_SET_WARNING(MENU_WARN_INFO, "For long exposures, enable bulb timer (maybe also intervalometer).");
+    }
+    
     if (auto_ettr_adjust_mode == 1)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Adjust shutter speed from top scrollwheel, outside menu.");
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Adjust shutter speed from top scrollwheel, outside menu.");
+    }
 }
 
 static MENU_SELECT_FUNC(auto_ettr_max_shutter_toggle)
 {
     if (auto_ettr_adjust_mode == 0)
-        auto_ettr_max_shutter = MOD(auto_ettr_max_shutter/4*4 - 16 + delta * 4, 152 - 16 + 4) + 16;
+    {
+        /* adjust in 0.5 EV steps, from 1/4096 to 4096 seconds */
+        const int tv_max = SHUTTER_1_4000;
+        const int tv_min = SHUTTER_1s - EXPO_FULL_STOP * 12;
+        auto_ettr_max_shutter = MOD(auto_ettr_max_shutter/4*4 - tv_min + delta * 4, tv_max - tv_min + 4) + tv_min;
+    }
 }
 
 PROP_HANDLER(PROP_GUI_STATE)
@@ -1393,7 +1474,7 @@ void auto_ettr_intervalometer_wait()
     {
         /* make sure auto ETTR has a chance to run (it's triggered by prop handler on QR mode) */
         /* timeout: a bit more than exposure time, to handle long expo noise reduction */
-        for (int i = 0; i < raw2shutter_ms(lens_info.raw_shutter)/100; i++)
+        for (int i = 0; i < raw2shutter_ms(ettr_get_current_raw_shutter())/100; i++)
         {
             if (gui_state == GUISTATE_PLAYMENU || gui_state == GUISTATE_QR) break;
             msleep(150);
