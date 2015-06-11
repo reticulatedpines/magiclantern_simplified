@@ -233,7 +233,7 @@ void set_interval_time(int seconds)
 }
 #endif
 
-static const char* format_time_hours_minutes_seconds(int seconds)
+const char* format_time_hours_minutes_seconds(int seconds)
 {
     static char msg[50];
     
