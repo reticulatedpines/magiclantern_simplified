@@ -17,12 +17,38 @@
 /***
  Beep
  @tparam[opt=1] int times number of times to beep
+ @tparam[opt] int duration beep duration (ms)
+ @tparam[opt] int frequency beep frequency (Hz)
  @function beep
  */
 static int luaCB_beep(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(times, 1, 1);
-    beep_times(times);
+    LUA_PARAM_INT_OPTIONAL(duration, 2, 0);
+    LUA_PARAM_INT_OPTIONAL(frequency, 3, 440);
+    
+    if (duration && frequency)
+    {
+        if (times == 1)
+        {
+            /* only one beep, no need to block */
+            beep_custom(duration, frequency, 0);
+        }
+        else
+        {
+            /* repeated beeps - easier to implement a blocking routine */
+            for (int i = 0; i < times; i++)
+            {
+                beep_custom(duration, frequency, 1);
+                msleep(duration/2);
+            }
+        }
+    }
+    else
+    {
+        beep_times(times);
+    }
+    
     return 0;
 }
 
