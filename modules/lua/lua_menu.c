@@ -223,7 +223,7 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
  @usage
 mymenu = menu.new
 {
-    parent = "LUA",
+    parent = "Scripts",
     name = "Lua Test Script",
     help = "Some help for this script",
     value = 1,
@@ -261,7 +261,7 @@ static int luaCB_menu_new(lua_State * L)
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     
     lua_pushvalue(L, 1);
-    const char * parent = LUA_FIELD_STRING("parent", "LUA");
+    const char * parent = LUA_FIELD_STRING("parent", "Scripts");
     lua_pop(L, 1);
     
     struct script_menu_entry * new_entry = lua_newuserdata(L, sizeof(struct script_menu_entry));
@@ -766,7 +766,7 @@ static int luaCB_menu_remove(lua_State * L)
     if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
     if(lua_getmetatable(L, 1))
     {
-        const char * parent = LUA_FIELD_STRING("parent", "LUA");
+        const char * parent = LUA_FIELD_STRING("parent", "Scripts");
         menu_remove(parent, script_entry->menu_entry, 1);
         luaL_unref(L, LUA_REGISTRYINDEX, script_entry->self_ref);
         if(script_entry->menu_entry->name) free((char*)script_entry->menu_entry->name);
