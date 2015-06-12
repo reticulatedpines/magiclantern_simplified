@@ -19,6 +19,7 @@
 #include <focus.h>
 #include <beep.h>
 #include <histogram.h>
+#include <console.h>
 
 /* interface with dual ISO */
 #include "../dual_iso/dual_iso.h" 
@@ -255,7 +256,7 @@ static int auto_ettr_get_correction()
             {
                 int gap_med = (ev_median_hi - ev_median_lo) * 100;
                 int gap_shad = (ev_shadow_hi - ev_shadow_lo) * 100;
-                bmp_printf(FONT_MED, 50,  60, "Black delta  : %d (EV gap mid:%s%d.%02d shad:%s%d.%02d)", black_delta, FMT_FIXEDPOINT2(gap_med), FMT_FIXEDPOINT2(gap_shad));
+                printf("Black delta  : %d (EV gap mid:%s%d.%02d shad:%s%d.%02d)\n", black_delta, FMT_FIXEDPOINT2(gap_med), FMT_FIXEDPOINT2(gap_shad));
             }
         }
     }
@@ -301,6 +302,7 @@ static int auto_ettr_get_correction()
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
+    float overexposed_percentage = 0;
     if (ev < -0.1)
     {
         /* cool, we know exactly how much to correct, we'll return "correction" */
@@ -309,12 +311,16 @@ static int auto_ettr_get_correction()
         for (int k = 0; k < COUNT(percentiles)-1; k++)
             diff_from_lower_percentiles[k] = ev - raw_to_ev(raw_values[k+1]);
         
-        //~ bmp_printf(FONT_MED, 0, 100, "overexposure hints: %d %d %d\n", (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
+        if (debug_info) printf("overexposure hints: %d %d %d\n", (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
     }
     else
     {
         /* image is overexposed */
         /* and we don't know how much to go back in order to fix the overexposure */
+
+        /* we can find out how many pixels are clipped, but this doesn't help much in knowing how many stops we should go back */
+        overexposed_percentage = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
+        if (debug_info) printf("overexposure area: %s%d.%d%%\n", FMT_FIXEDPOINT2((int)(overexposed_percentage * 100)));
 
         /* from the previous shot, we know where the highlights were, compared to some lower percentiles */
         /* let's assume this didn't change; meter at those percentiles and extrapolate the result */
@@ -346,7 +352,7 @@ static int auto_ettr_get_correction()
                         sum += corr * (COUNT(percentiles) - k);
                         num += (COUNT(percentiles) - k);
                         //~ msleep(500);
-                        //~ bmp_printf(FONT_MED, 0, 100+20*k, "overexposure fix: k=%d diff=%d ev=%d corr=%d\n", k, (int)(diff_from_lower_percentiles[k] * 100), (int)(ev * 100), (int)(corr * 100));
+                        printf("overexposure fix: k=%d diff=%d ev=%d corr=%d\n", k, (int)(diff_from_lower_percentiles[k] * 100), (int)(ev * 100), (int)(corr * 100));
                     }
                 }
             }
@@ -360,10 +366,8 @@ static int auto_ettr_get_correction()
             /* scene changed? measurements from previous shot not confirmed or vary too much?
              * 
              * we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 13EV */
-            float overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY) / 100.0;
-            //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
-            //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
-            float corr = - log2f(1 + overexposed*overexposed);
+            printf("fail info: (%d %d %d %d) (%d %d %d)\n", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
+            float corr = - log2f(1 + overexposed_percentage*overexposed_percentage);
             
             /* with dual ISO, the cost of underexposing is not that high, so prefer it to improve convergence */
             if (dual_iso)
@@ -396,8 +400,8 @@ static int auto_ettr_get_correction()
             float shadow_snr_hi = dr_hi + ev_shadow_hi;
             int mid_snr_hi = (int)roundf(midtone_snr_hi * 10);
             int shad_snr_hi = (int)roundf(shadow_snr_hi * 10);
-            bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d / %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr_lo), FMT_FIXEDPOINT1(mid_snr_hi));
-            bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d / %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr_lo), FMT_FIXEDPOINT1(shad_snr_hi));
+            printf("Midtone SNR  : %s%d.%d / %s%d.%d EV\n", FMT_FIXEDPOINT1(mid_snr_lo), FMT_FIXEDPOINT1(mid_snr_hi));
+            printf("Shadows SNR  : %s%d.%d / %s%d.%d EV\n", FMT_FIXEDPOINT1(shad_snr_lo), FMT_FIXEDPOINT1(shad_snr_hi));
         }
         else
         {
@@ -405,11 +409,18 @@ static int auto_ettr_get_correction()
             float shadow_snr = dr_lo + ev_shadow_lo;
             int mid_snr = (int)roundf(midtone_snr * 10);
             int shad_snr = (int)roundf(shadow_snr * 10);
-            bmp_printf(FONT_MED, 50,  80, "Midtone SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(mid_snr));
-            bmp_printf(FONT_MED, 50, 100, "Shadows SNR  : %s%d.%d EV ", FMT_FIXEDPOINT1(shad_snr));
+            printf("Midtone SNR  : %s%d.%d EV\n", FMT_FIXEDPOINT1(mid_snr));
+            printf("Shadows SNR  : %s%d.%d EV\n", FMT_FIXEDPOINT1(shad_snr));
         }
         int clipped = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_AVERAGE_RGB | GRAY_PROJECTION_DARK_ONLY);
-        bmp_printf(FONT_MED, 50, 120, "Clipped highs: %s%d.%02d%% ", FMT_FIXEDPOINT2(clipped));
+        printf("Clipped highs: %s%d.%02d%%\n", FMT_FIXEDPOINT2(clipped));
+    }
+
+    if (overexposed_percentage > 0 && (auto_ettr_midtone_snr_limit || auto_ettr_shadow_snr_limit) && !dual_iso)
+    {
+        /* if the image is overexposed and we have SNR limits, we could meter for those instead */
+        /* don't underexpose by more than 2 EV in one step though */
+        correction -= 2;
     }
 
     /* are we underexposing too much? */
@@ -447,7 +458,11 @@ static int auto_ettr_get_correction()
     
     if (debug_info)
     {
-        bmp_printf(FONT_MED, 50, 140, "Expo diff SNR: %s%d.%02d EV ", FMT_FIXEDPOINT2S(expo_delta_snr));
+        int expo_hi = correction0 * 100.0;
+        int expo_snr = correction * 100.0;
+        printf("Expo highlight: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_hi));
+        printf("Expo SNR limit: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_snr));
+        printf("Expo delta SNR: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(expo_delta_snr));
     }
 
     /* exposure correction so it doesn't clip anything more than allowed by highlight ignore */
@@ -467,6 +482,11 @@ static int auto_ettr_get_correction()
         last_value = corr_without_clipping + expo_delta_snr;
         extra_snr_needed = 0;
     }
+    
+    if (debug_info)
+    {
+        printf("Expo correction: %s%d.%02d EV\n", FMT_FIXEDPOINT2S(last_value));
+    }
     return last_value;
 }
 
@@ -483,6 +503,7 @@ static char prev_exposure_settings[50];
 /* returns: 0 = nothing changed, 1 = OK, -1 = exposure limits reached */
 static int auto_ettr_work(int corr)
 {
+    if (debug_info) printf("\nauto_ettr_work_m(%d)\n", corr);
     /* wait until shutter speed is reported by Canon firmware */
     int iter = 0;
     while (lens_info.raw_shutter == 0)
@@ -547,10 +568,20 @@ static int auto_ettr_work(int corr)
     int shutter_lim = auto_ettr_max_shutter;
 
     /* can't go slower than 1/fps in movie mode */
-    if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
+    if (is_movie_mode())
+    {
+        shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
+        if (!expo_override_active())
+        {
+            /* without expo override, in movie mode we can't set exposures longer than 1/30 */
+            shutter_lim = MAX(shutter_lim, SHUTTER_1_30);
+        }
+    }
 
     /* apply exposure correction */
     tv += delta;
+
+    if (debug_info) printf("expo after comp: %d\n", tv - iso);
 
     /* use the lowest ISO for which we can get shutter = shutter_lim or higher */
     int offset = MIN(tv - shutter_lim, iso - MIN_ISO);
@@ -565,6 +596,7 @@ static int auto_ettr_work(int corr)
     /* prefer rounding towards lower ISOs */
     int max_auto_iso = auto_iso_range & 0xFF;
     int isor = COERCE(iso / 8 * 8, MIN_ISO, max_auto_iso);
+    if (debug_info) printf("iso rounding: %d -> %d (expo %d -> %d)\n", iso, isor, tvr - iso, tvr - isor);
     
     /* can we use dual ISO to recover the highlights? (HR = highlight recovery) */
     if (dual_iso)
@@ -638,8 +670,7 @@ static int auto_ettr_work(int corr)
 
     if (debug_info)
     {
-        msleep(1000);
-        bmp_printf(FONT_MED, 50, 160, "Adjusted expo: %s (SNR lost: %s%d.%02d)", get_current_exposure_settings(), FMT_FIXEDPOINT2(extra_snr_needed));
+        printf("Adjusted expo: %s (SNR lost: %s%d.%02d)\n", get_current_exposure_settings(), FMT_FIXEDPOINT2(extra_snr_needed));
     }
 
     /* to know when the user changed shutter speed */
@@ -658,8 +689,8 @@ static int auto_ettr_work(int corr)
 
         if (debug_info)
         {
-            bmp_printf(FONT_MED, 50, 220, 
-                "iso2 %d->%d dr %d->%d ",
+            printf( 
+                "iso2 %d->%d dr %d->%d\n",
                 raw2iso(iso2_before), raw2iso(iso2_after), dr2_before, dr2_after
             );
         }
@@ -673,13 +704,12 @@ static int auto_ettr_work(int corr)
 
     if (debug_info)
     {
-        bmp_printf(FONT_MED, 50, 240, 
-            "iso %d->%d %s\ntv %d->%d %s\nexpo expected %d got %d ",
+        printf(
+            "iso %d->%d %s\ntv %s->%s %s\nexpo expected %d got %d\n",
             raw2iso(iso_before), raw2iso(iso_after), oki ? "OK" : "err",
-            tv_before, tv_after, oks ? "OK" : "err",
+            lens_format_shutter(tv_before), lens_format_shutter(tv_after), oks ? "OK" : "err",
             expected_expo, new_expo
         );
-        msleep(1000);
     }
     
     /* anything changed? consider it OK, better than nothing */
@@ -885,15 +915,90 @@ static int auto_ettr_wait_lv_frames(int num_frames)
         count++;
         if (count > num_frames * frame_duration * 2 / 20)
         {
-            auto_ettr_vsync_delta = 0;
+            /* timeout */
+            if (debug_info) printf("wait_lv_frames: timeout\n");
             return 0;
         }
         if (!lv)
         {
+            /* outside lv */
+            if (debug_info) printf("wait_lv_frames: LV closed\n");
             return 0;
         }
     }
     return 1;
+}
+
+/* wait until LiveView exposure changes from the old values to something else (with timeout on number of frames) */
+static int auto_ettr_wait_lv_expo_change(int max_frames, int old_iso, int old_shutter)
+{
+    /* todo: also look at aperture changes */
+    for (int i = 0; i < max_frames; i++)
+    {
+        int current_iso = get_frame_iso();
+        int current_shutter = get_frame_shutter_timer();
+        if (debug_info) printf("wait lv expo change: %x %x\n", current_iso, current_shutter);
+        if (current_iso != old_iso || current_shutter != old_shutter)
+        {
+            if (debug_info) printf("exposure changed to: %x %x\n", current_iso, current_shutter);
+            /* exposure changed */
+            return 1;
+        }
+        if (!auto_ettr_wait_lv_frames(1))
+        {
+            /* whoops */
+            return 0;
+        }
+    }
+
+    /* timeout */
+    if (debug_info) printf("lv expo change timeout\n");
+    return 0;
+}
+
+/* wait until LiveView exposure settles (identical on two consecutive frames) */
+static int auto_ettr_wait_lv_expo_settle(int max_frames)
+{
+    /* todo: also look at aperture changes */
+    int old_iso = -1;
+    int old_shutter = -1;
+    for (int i = 0; i < max_frames; i++)
+    {
+        int current_iso = get_frame_iso();
+        int current_shutter = get_frame_shutter_timer();
+        if (debug_info) printf("wait lv expo settle: %x %x\n", current_iso, current_shutter);
+        if (current_iso == old_iso && current_shutter == old_shutter)
+        {
+            /* looks like it settled */
+            if (debug_info) printf("lv expo maybe settled at: %x %x\n", current_iso, current_shutter);
+            
+            /* wait one more frame, just in case */
+            if (auto_ettr_wait_lv_frames(2) == 0)
+            {
+                return 0;
+            }
+            
+            current_iso = get_frame_iso();
+            current_shutter = get_frame_shutter_timer();
+            if (current_iso == old_iso && current_shutter == old_shutter)
+            {
+                if (debug_info) printf("lv expo settled at: %x %x\n", current_iso, current_shutter);
+                /* looks like it did settle */
+                return 1;
+            }
+        }
+        if (!auto_ettr_wait_lv_frames(1))
+        {
+            /* whoops */
+            return 0;
+        }
+        old_iso = current_iso;
+        old_shutter = current_shutter;
+    }
+    
+    /* timeout */
+    if (debug_info) printf("lv expo settle timeout\n");
+    return 0;
 }
 
 static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
@@ -1033,12 +1138,18 @@ static void auto_ettr_on_request_task_fast()
     for (int i = 0; i < 5; i++)
     {
         NotifyBox(100000, "ETTR (%d)...", i+1);
+
+        /* make sure the LiveView exposure is settled before reading */
+        if (!auto_ettr_wait_lv_expo_settle(30)) break;
+
         if (fps_get_shutter_speed_shift(160) == 0)
         {
             auto_ettr_vsync_active = 1;
             auto_ettr_vsync_delta = 0;
             for (int k = 0; k < 5; k++)
             {
+                if (debug_info) printf("ETTR (%d.%d)\n", i+1, k+1);
+                
                 /* see how far we are from the ideal exposure */
                 int corr = auto_ettr_get_correction();
                 if (corr == INT_MIN) break;
@@ -1064,6 +1175,8 @@ static void auto_ettr_on_request_task_fast()
 
         /* apply the correction via properties */
         int corr = auto_ettr_vsync_delta * 100 / 8;
+        int old_iso = get_frame_iso();
+        int old_shutter = get_frame_shutter_timer();
         int status = auto_ettr_work(corr);
     
         if (status == ETTR_SETTLED)
@@ -1076,7 +1189,7 @@ static void auto_ettr_on_request_task_fast()
             if (i < 4 && status != ETTR_EXPO_LIMITS_REACHED)
             {
                 /* here we go again... */
-                if (!auto_ettr_wait_lv_frames(15)) goto err;
+                if (!auto_ettr_wait_lv_expo_change(30, old_iso, old_shutter)) goto err;
             }
             else
             {
@@ -1132,6 +1245,10 @@ static void auto_ettr_step_lv_fast()
         goto skip;
     }
 
+    /* make sure the LiveView exposure is settled before reading */
+    if (!auto_ettr_wait_lv_expo_settle(30)) goto skip;
+
+    /* get exposure correction */
     int corr = auto_ettr_get_correction();
     
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
@@ -1166,9 +1283,12 @@ static void auto_ettr_step_lv_fast()
         }
 
         /* apply the final correction via properties */
+        int old_iso = get_frame_iso();
+        int old_shutter = get_frame_shutter_timer();
+
         auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
-        auto_ettr_wait_lv_frames(15);
+        auto_ettr_wait_lv_expo_change(30, old_iso, old_shutter);
     }
 
 skip:
@@ -1440,6 +1560,14 @@ static unsigned int auto_ettr_polling_cbr()
     return 0;
 }
 
+static MENU_SELECT_FUNC(debug_info_toggle)
+{
+    debug_info = !debug_info;
+    /* fixme: kinda ugly */
+    if (debug_info) console_show();
+    else console_hide();
+}
+
 static struct menu_entry ettr_menu[] =
 {
     {
@@ -1549,6 +1677,7 @@ static struct menu_entry ettr_menu[] =
             {
                 .name = "Show debug info",
                 .priv = &debug_info,
+                .select = debug_info_toggle,
                 .max = 1,
                 .help = "For camera nerds.",
                 .advanced = 1,
