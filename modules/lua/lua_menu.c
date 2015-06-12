@@ -654,7 +654,17 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     menu_entry->help = LUA_FIELD_STRING("help", "");
     menu_entry->help2 = LUA_FIELD_STRING("help2", "");
     menu_entry->depends_on = LUA_FIELD_INT("depends_on", 0);
-    menu_entry->icon_type = LUA_FIELD_INT("icon_type", 0);
+
+    /* menu items with a select function, that don't seem to be a value item or a submenu item,
+     * are displayed as actions (ICON_TYPE.ACTION) by default */
+    int has_select  = get_function_ref(L, "select") != LUA_NOREF;
+    int has_value   = lua_getfield(L, -1, "value")  == LUA_TNUMBER; lua_pop(L, 1);
+    int has_min     = lua_getfield(L, -1, "min")    == LUA_TNUMBER; lua_pop(L, 1);
+    int has_max     = lua_getfield(L, -1, "max")    == LUA_TNUMBER; lua_pop(L, 1);
+    int has_submenu = lua_getfield(L, -1, "submenu") == LUA_TTABLE; lua_pop(L, 1);
+    int default_icon_type = !has_select || has_submenu || has_value || has_min || has_max ? 0 : IT_ACTION;
+    menu_entry->icon_type = LUA_FIELD_INT("icon_type", default_icon_type);
+
     menu_entry->unit = LUA_FIELD_INT("unit", 0);
     menu_entry->min = LUA_FIELD_INT("min", 0);
     menu_entry->max = LUA_FIELD_INT("max", 0);
