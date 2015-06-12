@@ -335,6 +335,24 @@ static int luaCB_menu_block(lua_State * L)
     return 0;
 }
 
+/// Open ML menu
+// @function open
+static int luaCB_menu_open(lua_State * L)
+{
+    gui_open_menu();
+    msleep(1000);
+    return 0;
+}
+
+/// Close ML menu
+// @function close
+static int luaCB_menu_close(lua_State * L)
+{
+    gui_stop_menu();
+    msleep(1000);
+    return 0;
+}
+
 static int luaCB_menu_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
@@ -801,6 +819,8 @@ const luaL_Reg menulib[] =
     {"new", luaCB_menu_new},
     {"set", luaCB_menu_set},
     {"get", luaCB_menu_get},
+    {"open", luaCB_menu_open},
+    {"close", luaCB_menu_close},
     {"block", luaCB_menu_block},
     {NULL, NULL}
 };
