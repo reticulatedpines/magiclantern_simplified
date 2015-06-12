@@ -503,7 +503,7 @@ static char prev_exposure_settings[50];
 /* returns: 0 = nothing changed, 1 = OK, -1 = exposure limits reached */
 static int auto_ettr_work(int corr)
 {
-    if (debug_info) printf("\nauto_ettr_work_m(%d)\n", corr);
+    if (debug_info) printf("\nauto_ettr_work(%d)\n", corr);
     /* wait until shutter speed is reported by Canon firmware */
     int iter = 0;
     while (lens_info.raw_shutter == 0)
@@ -705,9 +705,9 @@ static int auto_ettr_work(int corr)
     if (debug_info)
     {
         printf(
-            "iso %d->%d %s\ntv %s->%s %s\nexpo expected %d got %d\n",
+            "iso %d->%d %s\ntv %d->%d %s\nexpo expected %d got %d\n",
             raw2iso(iso_before), raw2iso(iso_after), oki ? "OK" : "err",
-            lens_format_shutter(tv_before), lens_format_shutter(tv_after), oks ? "OK" : "err",
+            tv_before, tv_after, oks ? "OK" : "err",
             expected_expo, new_expo
         );
     }
