@@ -805,7 +805,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     }
     else
     {
-        script_entry->menu_value = LUA_FIELD_INT("value", 0);
+        script_entry->menu_value = LUA_FIELD_INT("value", has_submenu ? 1 : 0);
     }
     
 }
