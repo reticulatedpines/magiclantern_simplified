@@ -33,7 +33,7 @@
 #define strstr(a,b) my_strstr((a),(b))
 
 #define EOF -1
-#define BUFSIZ 255
+#define BUFSIZ 16384        /* allocated on stack; for lua_load_task, we have reserved 32K */
 #define _IONBF 0
 #define _IOFBF 0
 #define _IOLBF 0
