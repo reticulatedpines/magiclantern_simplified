@@ -406,14 +406,11 @@ static void add_script(const char * filename)
     {
         char full_path[MAX_PATH_LEN];
         snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
-        console_printf("loading script: %s\n", filename);
+        console_printf("Loading script: %s\n", filename);
         if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
         {
-            console_printf("load script '%s' failed:\n %s\n", filename, lua_tostring(L, -1));
-        }
-        else
-        {
-            console_printf("loading finished: %s\n", filename);
+            /* error loading script */
+            console_printf("%s\n", lua_tostring(L, -1));
         }
         give_semaphore(sem);
     }
