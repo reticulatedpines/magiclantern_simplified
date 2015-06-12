@@ -17,3 +17,10 @@ MODULE_CFLAGS += -DLUA_32BITS -DLUA_COMPAT_FLOATSTRING
 # include modules environment
 include $(TOP_DIR)/modules/Makefile.modules
 
+# strip all Lua symbols, so we don't export internal Lua routines to other modules
+# (we have nothing interesting to export yet)
+# fixme: how to implement this in a cleaner way?
+lua.sym: lua.mo
+	$(call build,STRIP,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$8;}" | sort > localsyms)
+	$(call build,STRIP,$(OBJCOPY) lua.mo lua.mo --localize-symbols localsyms)
+	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
