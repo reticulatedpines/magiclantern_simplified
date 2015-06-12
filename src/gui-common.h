@@ -164,9 +164,6 @@ extern struct gui_struct gui_struct;
 extern struct gui_task * gui_menu_task;
 
 extern void
-gui_stop_menu( void );
-
-extern void
 gui_hide_menu( int redisplay_time );
 
 //~ 5dc has different gui_state values than DryOS.
