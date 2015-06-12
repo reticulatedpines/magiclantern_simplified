@@ -478,9 +478,27 @@ int auto_ettr_export_correction(int* out)
     return 1;
 }
 
+static char prev_exposure_settings[50];
+
 /* returns: 0 = nothing changed, 1 = OK, -1 = exposure limits reached */
-static int auto_ettr_work_m(int corr)
+static int auto_ettr_work(int corr)
 {
+    /* wait until shutter speed is reported by Canon firmware */
+    int iter = 0;
+    while (lens_info.raw_shutter == 0)
+    {
+        if (iter > 100)
+        {
+            return ETTR_EXPO_PRECOND_TIMEOUT;
+        }
+        msleep(50);
+        iter += 50;
+    }
+    
+    /* save initial exposure settings so we can print them */
+    char* expo_settings = get_current_exposure_settings();
+    snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
+    
     int tv = ettr_get_current_raw_shutter();
     int iso = lens_info.raw_iso;
     
@@ -678,70 +696,6 @@ static int auto_ettr_work_m(int corr)
     return oks && oki ? ETTR_SETTLED : ETTR_EXPO_LIMITS_REACHED;
 }
 
-static int auto_ettr_work_auto(int corr)
-{
-    int ae = lens_info.ae;
-    int ae0 = ae;
-
-    int delta = -corr * 8 / 100;
-
-    /* apply exposure correction */
-    ae = round_expo_comp(ae - delta);
-
-    /* apply the new settings */
-    int ok = hdr_set_ae(ae);
-    
-    if (ok)
-    {
-        if (corr >= -20 && corr <= 100)
-            return ETTR_SETTLED;
-
-        return ETTR_NEED_MORE_SHOTS;
-    }
-    else
-    {
-        if (ABS(lens_info.ae - ae0) >= 3) /* something changed? consider it OK, better than nothing */
-            return ETTR_NEED_MORE_SHOTS;
-        
-        return ETTR_EXPO_LIMITS_REACHED;
-    }
-}
-
-static char prev_exposure_settings[50];
-
-static int auto_ettr_work(int corr)
-{
-    /* will we call auto_ettr_work_m or auto_ettr_work_auto? */
-    int manual_mode = 
-        expo_override_active() || /* consider this one as a fake manual mode */
-        !(shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P);  /* auto ETTR only supports these auto modes */
-    
-    /* FIXME: auto modes might be broken */
-    if (!is_bulb_mode())
-    {
-        /* in M mode, wait until shutter speed is reported by Canon firmware */
-        int waited = 0;
-        while (lens_info.raw_shutter == 0)
-        {
-            if (waited > 2000)
-            {
-                return ETTR_EXPO_PRECOND_TIMEOUT;
-            }
-            msleep(50);
-            waited += 50;
-        }
-    }
-
-    /* save initial exposure settings so we can print them */
-    char* expo_settings = get_current_exposure_settings();
-    snprintf(prev_exposure_settings, sizeof(prev_exposure_settings), "%s", expo_settings);
-    
-    if (manual_mode)
-        return auto_ettr_work_m(corr);
-    else
-        return auto_ettr_work_auto(corr);
-}
-
 static volatile int auto_ettr_running = 0;
 static volatile int ettr_pics_took = 0;
 
@@ -813,9 +767,8 @@ static void auto_ettr_step_task(int corr)
 static void auto_ettr_step()
 {
     if (!auto_ettr) return;
-    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && !is_movie_mode() && !is_bulb_mode()) return;
-    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE || is_bulb_mode());
-    if (lens_info.raw_iso == 0 && is_m) return;
+    if (shooting_mode != SHOOTMODE_M && !is_movie_mode() && !is_bulb_mode()) return;
+    if (lens_info.raw_iso == 0) return;
     if (auto_ettr_running) return;
     if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET) return;
 
@@ -837,10 +790,9 @@ static void auto_ettr_step()
 static int auto_ettr_check_pre_lv()
 {
     if (!auto_ettr) return 0;
-    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE) return 0;
-    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
-    if (lens_info.raw_iso == 0 && is_m) return 0;
-    if (lens_info.raw_shutter == 0 && is_m) return 0;
+    if (shooting_mode != SHOOTMODE_M && !is_movie_mode()) return 0;
+    if (lens_info.raw_iso == 0) return 0;
+    if (lens_info.raw_shutter == 0) return 0;
     if (is_hdr_bracketing_enabled() && !AUTO_ETTR_TRIGGER_BY_SET) return 0;
     int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
     return raw;
@@ -1367,14 +1319,12 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
     if (lv && ((void*)&raw_lv_request == (void*)&ret_0))
-    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR Does not work in LV on this camera.");
-    }
-    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M, Av, Tv, P and RAW MOVIE modes.");
 
-    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
-    if (lens_info.raw_iso == 0 && is_m)
+    if (shooting_mode != SHOOTMODE_M && !is_movie_mode() && !is_bulb_mode())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M, BULB and RAW MOVIE modes.");
+
+    if (lens_info.raw_iso == 0)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR requires manual ISO.");
 
     if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
