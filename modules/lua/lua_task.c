@@ -34,11 +34,11 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
             {
                 if(docall(L, 0, 0))
                 {
-                    console_printf("script failed:\n %s\n", lua_tostring(L, -1));
+                    err_printf("script failed:\n %s\n", lua_tostring(L, -1));
                 }
                 else
                 {
-                    console_printf("script finished\n");
+                    printf("script finished\n");
                 }
                 luaL_unref(L, LUA_REGISTRYINDEX, lua_task_func->function_ref);
             }
@@ -46,7 +46,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)\n");
+            err_printf("lua semaphore timeout (another task is running this script)\n");
         }
         free(lua_task_func);
     }

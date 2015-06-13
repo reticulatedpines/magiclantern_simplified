@@ -63,7 +63,7 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
             return take_semaphore(current->semaphore, timeout);
         }
     }
-    console_printf("error: could not find semaphore for lua state\n");
+    err_printf("error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -78,7 +78,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
             return give_semaphore(current->semaphore);
         }
     }
-    console_printf("error: could not find semaphore for lua state\n");
+    err_printf("error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -158,7 +158,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     lua_pushinteger(L, ctx);
                     if(docall(L, 1, 1))
                     {
-                        console_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
+                        err_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
                         result = CBR_RET_ERROR;
                         give_semaphore(sem);
                         break;
@@ -180,7 +180,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             }
             else
             {
-                console_printf("lua semaphore timeout (another task is running this script)\n");
+                err_printf("lua semaphore timeout (another task is running this script)\n");
             }
         }
     }
@@ -406,17 +406,17 @@ static void add_script(const char * filename)
     {
         char full_path[MAX_PATH_LEN];
         snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
-        console_printf("Loading script: %s\n", filename);
+        printf("Loading script: %s\n", filename);
         if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
         {
             /* error loading script */
-            console_printf("%s\n", lua_tostring(L, -1));
+            err_printf("%s\n", lua_tostring(L, -1));
         }
         give_semaphore(sem);
     }
     else
     {
-        console_printf("load script failed: could not create semaphore\n");
+        err_printf("load script failed: could not create semaphore\n");
     }
 }
 

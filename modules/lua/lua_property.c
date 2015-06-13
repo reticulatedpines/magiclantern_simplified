@@ -70,14 +70,14 @@ static void lua_prop_task(int unused)
                 else lua_pushinteger(L, *((uint8_t*)(lua_prop->prop_value)));
                 if(docall(L, 2, 0))
                 {
-                    console_printf("script prop handler failed:\n %s\n", lua_tostring(L, -1));
+                    err_printf("script prop handler failed:\n %s\n", lua_tostring(L, -1));
                 }
             }
             give_semaphore(sem);
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)\n");
+            err_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
 }

@@ -112,7 +112,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
                 lua_rawgeti(L, LUA_REGISTRYINDEX, entry->self_ref);
                 if(docall(L, 1, 1))
                 {
-                    console_printf("script error:\n %s\n", lua_tostring(L, -1));
+                    err_printf("script error:\n %s\n", lua_tostring(L, -1));
                 }
             }
             lua_pop(L,1);
@@ -121,7 +121,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
     }
     else
     {
-        console_printf("lua semaphore timeout (another task is running this script)\n");
+        err_printf("lua semaphore timeout (another task is running this script)\n");
     }
 }
 

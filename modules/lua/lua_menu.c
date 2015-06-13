@@ -31,20 +31,20 @@ static void lua_menu_task(lua_State * L)
             int arg_count = lua_tointegerx(L, -1, &isnum);
             if(isnum) lua_pop(L,1);
             else arg_count = 0;
-            console_printf("running script...\n");
+            printf("running script...\n");
             if(docall(L, arg_count, 0))
             {
-                console_printf("script failed:\n %s\n", lua_tostring(L, -1));
+                printf("script failed:\n %s\n", lua_tostring(L, -1));
             }
             else
             {
-                console_printf("script finished\n");
+                printf("script finished\n");
             }
             give_semaphore(sem);
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)\n");
+            err_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
 }
@@ -100,20 +100,20 @@ static MENU_SELECT_FUNC(script_menu_select)
                 {
                     if(docall(L, 2, 0))
                     {
-                        console_printf("script error:\n %s\n", lua_tostring(L, -1));
+                        err_printf("script error:\n %s\n", lua_tostring(L, -1));
                     }
                     give_semaphore(sem);
                 }
             }
             else
             {
-                console_printf("select is not a function\n");
+                err_printf("select is not a function\n");
                 give_semaphore(sem);
             }
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)\n");
+            err_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
 }
@@ -198,7 +198,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         }
         else
         {
-            console_printf("lua semaphore timeout (another task is running this script)\n");
+            err_printf("lua semaphore timeout (another task is running this script)\n");
         }
     }
 }
@@ -692,7 +692,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                 }
                 else
                 {
-                    console_printf("invalid choice[%d]\n", choice_index);
+                    err_printf("invalid choice[%d]\n", choice_index);
                     menu_entry->choices[choice_index] = NULL;
                     choices_count = choice_index;
                 }
@@ -742,7 +742,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
             }
             else
             {
-                console_printf("warning: could not create metatable submenu");
+                err_printf("warning: could not create metatable submenu");
             }
             
             for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
@@ -775,20 +775,20 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                         }
                         else
                         {
-                            console_printf("warning: could not get metatable submenu");
+                            err_printf("warning: could not get metatable submenu");
                         }
                         lua_pop(L, 2);
                     }
                     else
                     {
-                        console_printf("warning: could not get parent metatable");
+                        err_printf("warning: could not get parent metatable");
                     }
                     
                     lua_pop(L, 1);//userdata
                 }
                 else
                 {
-                    console_printf("invalid submenu[%d]\n", submenu_index);
+                    err_printf("invalid submenu[%d]\n", submenu_index);
                 }
                 lua_pop(L, 1);
             }

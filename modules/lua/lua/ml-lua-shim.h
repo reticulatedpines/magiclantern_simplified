@@ -6,8 +6,9 @@
 #include <console.h>
 #include <string.h>
 
-#define lua_writestringerror(s,p) (console_printf((s), (p)))
-#define lua_writestring(s,l) (console_printf("%s",(s)))
+#define err_printf(fmt,...) console_show(), printf(fmt, ## __VA_ARGS__)
+#define lua_writestringerror(s,p) (err_printf((s), (p)))
+#define lua_writestring(s,l) (err_printf("%s",(s)))
 #define getc(a) my_getc(a)
 #define fopen(a,b) my_fopen(a,b)
 #define freopen(a,b,c) my_freopen(a,b,c)
