@@ -12,6 +12,7 @@ mymenu = menu.new
             name = "Run",
             help = "Run this script.",
             icon_type = ICON_TYPE.ACTION,
+            update = "",
         },
         {
             name = "sub-submenu test",

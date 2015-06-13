@@ -58,7 +58,7 @@ recdelay_menu = menu.new
             help2 = "You can also use SET to start or cancel the delay",
             icon_type = ICON_TYPE.ACTION,
             run_in_separate_task = true,
-            update = function(this) return "" end,
+            update = "",
             depends_on = DEPENDS_ON.MOVIE_MODE,
             select = recdelay_main
         },

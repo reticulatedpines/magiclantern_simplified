@@ -417,7 +417,7 @@ sokobanmenu = menu.new
         {
             name = "Play",
             icon_type = ICON_TYPE.ACTION,
-            update = function() return "" end,
+            update = "",
             select = function(this) task.create(main) end,
         },
         {

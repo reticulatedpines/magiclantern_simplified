@@ -534,7 +534,7 @@ static int luaCB_menu_instance_newindex(lua_State * L)
     else if(!strcmp(key, "update"))
     {
         if(script_entry->update_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->update_ref);
-        if(!lua_isfunction(L, 3)) script_entry->update_ref = LUA_NOREF;
+        if(lua_isnil(L, 3)) script_entry->update_ref = LUA_NOREF;
         else
         {
             script_entry->update_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -544,7 +544,7 @@ static int luaCB_menu_instance_newindex(lua_State * L)
     else if(!strcmp(key, "info"))
     {
         if(script_entry->info_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->info_ref);
-        if(!lua_isfunction(L, 3)) script_entry->info_ref = LUA_NOREF;
+        if(lua_isnil(L, 3)) script_entry->info_ref = LUA_NOREF;
         else
         {
             script_entry->info_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -554,7 +554,7 @@ static int luaCB_menu_instance_newindex(lua_State * L)
     else if(!strcmp(key, "rinfo"))
     {
         if(script_entry->rinfo_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref);
-        if(!lua_isfunction(L, 3)) script_entry->rinfo_ref = LUA_NOREF;
+        if(lua_isnil(L, 3)) script_entry->rinfo_ref = LUA_NOREF;
         else
         {
             script_entry->rinfo_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -564,7 +564,7 @@ static int luaCB_menu_instance_newindex(lua_State * L)
     else if(!strcmp(key, "warning"))
     {
         if(script_entry->warning_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->warning_ref);
-        if(!lua_isfunction(L, 3)) script_entry->warning_ref = LUA_NOREF;
+        if(lua_isnil(L, 3)) script_entry->warning_ref = LUA_NOREF;
         else
         {
             script_entry->warning_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -590,6 +590,19 @@ static int luaCB_menu_instance_newindex(lua_State * L)
 static int get_function_ref(lua_State * L, const char * name)
 {
     if(lua_getfield(L, -1, name) == LUA_TFUNCTION)
+    {
+        return luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+    else
+    {
+        lua_pop(L,1);
+        return LUA_NOREF;
+    }
+}
+
+static int get_ref(lua_State * L, const char * name)
+{
+    if(lua_getfield(L, -1, name))
     {
         return luaL_ref(L, LUA_REGISTRYINDEX);
     }
@@ -661,10 +674,10 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     lua_pop(L, 1);
     
     if((script_entry->select_ref = get_function_ref(L, "select")) != LUA_NOREF) menu_entry->select = script_menu_select;
-    if((script_entry->update_ref = get_function_ref(L, "update")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    if((script_entry->warning_ref = get_function_ref(L, "warning")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    if((script_entry->info_ref = get_function_ref(L, "info")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    if((script_entry->rinfo_ref = get_function_ref(L, "rinfo")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->update_ref = get_ref(L, "update")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->warning_ref = get_ref(L, "warning")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->info_ref = get_ref(L, "info")) != LUA_NOREF) menu_entry->update = script_menu_update;
+    if((script_entry->rinfo_ref = get_ref(L, "rinfo")) != LUA_NOREF) menu_entry->update = script_menu_update;
     
     /// Table of more menu tables that define a submenu
     // @tfield table submenu
