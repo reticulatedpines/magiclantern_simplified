@@ -359,7 +359,7 @@ end
 
 function main()
 
-    setup(sokobanmenu.submenu["Level"].value)
+    setup(sokoban_menu.submenu["Level"].value)
     
     menu.block(true);
     local status,error = xpcall(function()
@@ -406,18 +406,14 @@ function main()
     keys:stop()
 end
 
-sokobanmenu = menu.new
+sokoban_menu = menu.new
 {
     parent = "Games",
     name = "Sokoban",
-    value = 1,
-    update = function() return "" end,
     submenu = 
     {
         {
             name = "Play",
-            icon_type = ICON_TYPE.ACTION,
-            update = "",
             select = function(this) task.create(main) end,
         },
         {

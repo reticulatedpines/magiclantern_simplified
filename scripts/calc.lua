@@ -34,7 +34,6 @@ calc.mlmenu = menu.new
 {
     parent = "Debug",
     name = "Calculator",
-    icon_type = ICON_TYPE.ACTION,
     select = function(this)
         task.create(function() calc:run() end)
     end,

@@ -5,14 +5,11 @@ mymenu = menu.new
     parent = "Debug",
     name = "Lua Menu Test",
     help = "Test of the lua menu API",
-    value = 1,
     submenu =
     { 
         {
             name = "Run",
             help = "Run this script.",
-            icon_type = ICON_TYPE.ACTION,
-            update = "",
         },
         {
             name = "sub-submenu test",
