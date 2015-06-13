@@ -30,7 +30,10 @@ function keys:start()
             keys.key_count = keys.key_count + 1
             keys.keys[keys.key_count] = key
         end
-        return false
+        if key <= KEY.UNPRESS_FULLSHUTTER then
+            return true -- do not block half-shutter, full-shutter and unknown (non-button) events
+        end
+        return false    -- block regular button events
     end
     return true
 end
