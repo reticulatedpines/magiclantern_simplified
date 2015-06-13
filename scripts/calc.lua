@@ -59,6 +59,7 @@ function calc:main_loop()
     self:draw()
     keys:start()
     while true do
+        if menu.visible == false then break end
         local keyspressed = keys:getkeys()
         if keyspressed ~= nil then
             local exit = false

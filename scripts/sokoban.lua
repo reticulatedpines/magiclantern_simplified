@@ -367,7 +367,7 @@ function main()
         keys:start()
         draw_maze();
         while true do
-        
+            if menu.visible == false then return end
             -- print_maze();
             local keyspressed = keys:getkeys();
             if keyspressed ~= nil then

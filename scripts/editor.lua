@@ -542,6 +542,7 @@ function editor:main_loop()
             if exit then break end
             self:draw()
         end
+        if menu.visible == false then break end
         editor.time = editor.time + 1
         task.yield(100)
     end
