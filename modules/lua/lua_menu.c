@@ -127,6 +127,13 @@ static MENU_UPDATE_FUNC(script_menu_update)
         struct semaphore * sem = NULL;
         if(!lua_take_semaphore(L, 100, &sem) && sem)
         {
+            if (script_entry->menu_entry->children ||
+                script_entry->menu_entry->icon_type == IT_ACTION)
+            {
+                /* by default, menus with submenus do not display a value */
+                /* same for menus with ICON_TYPE.ACTION */
+                MENU_SET_VALUE("");
+            }
             if(script_entry->update_ref != LUA_NOREF)
             {
                 if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->update_ref) == LUA_TFUNCTION)
@@ -556,7 +563,6 @@ static int luaCB_menu_instance_newindex(lua_State * L)
         else
         {
             script_entry->update_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-            script_entry->menu_entry->update = script_menu_update;
         }
     }
     else if(!strcmp(key, "info"))
@@ -566,7 +572,6 @@ static int luaCB_menu_instance_newindex(lua_State * L)
         else
         {
             script_entry->info_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-            script_entry->menu_entry->update = script_menu_update;
         }
     }
     else if(!strcmp(key, "rinfo"))
@@ -576,7 +581,6 @@ static int luaCB_menu_instance_newindex(lua_State * L)
         else
         {
             script_entry->rinfo_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-            script_entry->menu_entry->update = script_menu_update;
         }
     }
     else if(!strcmp(key, "warning"))
@@ -586,7 +590,6 @@ static int luaCB_menu_instance_newindex(lua_State * L)
         else
         {
             script_entry->warning_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-            script_entry->menu_entry->update = script_menu_update;
         }
     }
     else
@@ -691,12 +694,21 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     }
     lua_pop(L, 1);
     
-    if((script_entry->select_ref = get_function_ref(L, "select")) != LUA_NOREF) menu_entry->select = script_menu_select;
-    if((script_entry->update_ref = get_ref(L, "update")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    if((script_entry->warning_ref = get_ref(L, "warning")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    if((script_entry->info_ref = get_ref(L, "info")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    if((script_entry->rinfo_ref = get_ref(L, "rinfo")) != LUA_NOREF) menu_entry->update = script_menu_update;
-    
+    script_entry->select_ref = get_ref(L, "select");
+    script_entry->update_ref = get_ref(L, "update");
+    script_entry->warning_ref = get_ref(L, "warning");
+    script_entry->info_ref = get_ref(L, "info");
+    script_entry->rinfo_ref = get_ref(L, "rinfo");
+
+    if(script_entry->select_ref != LUA_NOREF)
+    {
+        /* optionally, a menu entry can have a select function */
+        menu_entry->select = script_menu_select;
+    }
+
+    /* all menu entries have an update function */
+    menu_entry->update = script_menu_update;
+
     /// Table of more menu tables that define a submenu
     // @tfield table submenu
     if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
