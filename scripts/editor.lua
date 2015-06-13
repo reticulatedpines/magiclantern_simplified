@@ -333,21 +333,19 @@ function filedialog:show()
     self:draw()
     local started = keys:start()
     while true do
-        local keyspressed = keys:getkeys()
-        if keyspressed ~= nil then
-            for i,v in ipairs(keyspressed) do
-                local result = self:handle_key(v)
-                if result == "Cancel" then 
-                    if started then keys:stop() end
-                    return nil
-                elseif result == "OK" then
-                    if started then keys:stop() end
-                    if self.save_mode then return self.current.path..self.save_box.value
-                    else return self.selected_value end
-                elseif result ~= nil then
-                    if started then keys:stop() end
-                    return result
-                end
+        local key = keys:getkey()
+        if key ~= nil then
+            local result = self:handle_key(key)
+            if result == "Cancel" then 
+                if started then keys:stop() end
+                return nil
+            elseif result == "OK" then
+                if started then keys:stop() end
+                if self.save_mode then return self.current.path..self.save_box.value
+                else return self.selected_value end
+            elseif result ~= nil then
+                if started then keys:stop() end
+                return result
             end
             self:draw()
         end
@@ -520,26 +518,20 @@ function editor:main_loop()
     keys:start()
     while true do
         if menu.visible == false then break end
-        local keyspressed = keys:getkeys()
-        if keyspressed ~= nil then
-            local exit = false
+        local key = keys:getkey()
+        if key ~= nil then
             local redraw = false
-            for i,v in ipairs(keyspressed) do
-                if self.menu_open then
-                    if self:handle_menu_key(v) == false then
-                        exit = true
-                        break
-                    end
-                elseif self.debugging then
-                    if self:handle_debug_key(v) == false then
-                        exit = true
-                        break
-                    end
-                else
-                    self:handle_key(v)
+            if self.menu_open then
+                if self:handle_menu_key(key) == false then
+                    break
                 end
+            elseif self.debugging then
+                if self:handle_debug_key(key) == false then
+                    break
+                end
+            else
+                self:handle_key(key)
             end
-            if exit then break end
             self:draw()
         end
         editor.time = editor.time + 1

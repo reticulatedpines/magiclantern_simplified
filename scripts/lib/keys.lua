@@ -19,16 +19,17 @@ started
 @function keys
 ]]
 function keys:start()
-    if keys.running then self:reset() return false end
+    if keys.running then
+        self:reset()
+        return false
+    end
     --save any previous keypress handler so we can restore it when finished
     self.old_keypress = event.keypress
     self.keys = {}
-    self.key_count = 0
     self.running = true
     event.keypress = function(key)
         if key ~= 0 then
-            keys.key_count = keys.key_count + 1
-            keys.keys[keys.key_count] = key
+            table.insert(keys.keys, key)
         end
         if key <= KEY.UNPRESS_FULLSHUTTER then
             return true -- do not block half-shutter, full-shutter and unknown (non-button) events
@@ -39,22 +40,15 @@ function keys:start()
 end
 
 --[[---------------------------------------------------------------------------
-Returns a table of all the keys that have been pressed since the last time 
-getkeys was called
-@function getkeys
+Returns a single key that has been pressed since the last time 
+getkey was called, or nil if no key was pressed.
+@function getkey
 ]]
-function keys:getkeys()
-    if self.key_count == 0 then 
-        return nil
-    else
-        local result = self.keys
-        self:reset()
-        return result
-    end
+function keys:getkey()
+    return table.remove(self.keys, 1)
 end
 
 function keys:reset()
-    self.key_count = 0
     self.keys = {}
 end
 
@@ -76,18 +70,13 @@ function keys:anykey()
     local started = self:start()
     --ignore any immediate keys
     task.yield(100)
-    self:getkeys()
+    self:reset()
     while true do
-        local keys = self:getkeys()
-        if keys ~= nil then
-            local exit = false
-            for i,v in ipairs(keys) do
-                if v ~= KEY.UNPRESS_SET then
-                    exit = true
-                    break
-                end
+        local key = self:getkey()
+        if key ~= nil then
+            if key ~= KEY.UNPRESS_SET then
+                break
             end
-            if exit then break end
         end
         task.yield(100)
     end

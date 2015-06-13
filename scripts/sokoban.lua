@@ -369,28 +369,26 @@ function main()
         while true do
             if menu.visible == false then return end
             -- print_maze();
-            local keyspressed = keys:getkeys();
-            if keyspressed ~= nil then
-                for i,key in ipairs(keyspressed) do
-                    if key == KEY.LEFT or key == KEY.WHEEL_LEFT then
-                        move(0, -1);
-                    elseif key == KEY.RIGHT or key == KEY.WHEEL_RIGHT then
-                        move(0, 1);
-                    elseif key == KEY.UP or key == KEY.WHEEL_UP then
-                        move(-1, 0);
-                    elseif key == KEY.DOWN or key == KEY.WHEEL_DOWN then
-                        move(1, 0);
-                    elseif key == KEY.SET or key == KEY.UNPRESS_SET then
-                    elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU then
-                        printf("Exiting...\n");
-                        menu.block(false);
-                        keys:stop()
-                        return;
-                    end
-                end
-                display.draw(draw_maze)
-                if check_solution() ~= 0 then break end
+            local key = keys:getkey();
+            if key == KEY.LEFT or key == KEY.WHEEL_LEFT then
+                move(0, -1);
+            elseif key == KEY.RIGHT or key == KEY.WHEEL_RIGHT then
+                move(0, 1);
+            elseif key == KEY.UP or key == KEY.WHEEL_UP then
+                move(-1, 0);
+            elseif key == KEY.DOWN or key == KEY.WHEEL_DOWN then
+                move(1, 0);
+            elseif key == KEY.SET or key == KEY.UNPRESS_SET then
+            elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU then
+                printf("Exiting...\n");
+                menu.block(false);
+                keys:stop()
+                return;
             end
+
+            display.draw(draw_maze)
+            if check_solution() ~= 0 then break end
+
             task.yield(100)
         end
         

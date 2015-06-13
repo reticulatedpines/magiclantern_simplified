@@ -58,16 +58,11 @@ function calc:main_loop()
     keys:start()
     while true do
         if menu.visible == false then break end
-        local keyspressed = keys:getkeys()
-        if keyspressed ~= nil then
-            local exit = false
-            for i,v in ipairs(keyspressed) do
-                if self:handle_key(v) == false then
-                    exit = true
-                    break
-                end
+        local key = keys:getkey()
+        if key ~= nil then
+            if self:handle_key(key) == false then
+                break
             end
-            if exit then break end
             self:draw()
         end
         task.yield(100)
