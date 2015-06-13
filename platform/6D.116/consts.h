@@ -84,16 +84,12 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF9CE0F0 // dec gui_main_task
 
-/* 
+/*
 Thumb size:  5472 x 3648
 Full size:   5568 x 3708
 Image size:  5496 x 3670
 Output size: 5496 x 3670
 */
-
-#define SENSOR_RES_X 5568
-#define SENSOR_RES_Y 3680
-
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x7768C)
 
