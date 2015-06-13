@@ -4112,7 +4112,6 @@ menu_redraw_do()
             if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
             {
                 if (is_menu_active("Help")) menu_show_version();
-                if (is_menu_active("Focus")) display_lens_hyperfocal();
             }
             
             if (menu_lv_transparent_mode) 

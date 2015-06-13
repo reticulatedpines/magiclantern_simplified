@@ -37,7 +37,6 @@
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x420F0)
@@ -49,8 +48,6 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7F9624 // dec gui_main_task
 
-#define SENSOR_RES_X 5280
-#define SENSOR_RES_Y 3528
 
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x40FBC)
@@ -127,7 +124,7 @@
 
 #define DIALOG_MnCardFormatBegin (0x60970) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x643F0) // similar
-#define FORMAT_BTN_NAME "[DELETE]"
+#define FORMAT_BTN_NAME "[Trash to change]"
 #define FORMAT_BTN BGMT_PRESS_DOWN
 #define FORMAT_STR_LOC 4
 

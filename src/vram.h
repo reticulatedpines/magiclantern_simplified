@@ -26,10 +26,6 @@
 
 #include "compiler.h"
 
-/** Write the VRAM to a BMP file named "A:/test.bmp" */
-extern void
-dispcheck( void );
-
 /** Canon data structure containing BMP VRAM address.
  * 
  * LCD: it points to a 720x480 cropped area, but the image buffer is actually 960x540.
