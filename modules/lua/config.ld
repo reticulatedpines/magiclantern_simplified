@@ -58,7 +58,7 @@ You can write re-usable script code as a "library" by saving it as a .lua file i
 `ML/SCRIPTS/LIB` The require function will search for libraries (or "packages") here.
 As with regular scripts make sure to use valid 8.3 filenames. For a library called
 `ML/SCRIPTS/LIB/MYLIB.LUA`, load it by calling `require("MYLIB")`. For example, see
-@{config.lua} and @{keyhndlr.lua}, which are 'library' scripts included in this API.
+@{config.lua} and @{keys.lua}, which are 'library' scripts included in this API.
 
 Canon Properties
 ----------------
@@ -97,12 +97,12 @@ All of the standard Lua libraries are available except @{os} (replaced by @{dryo
 --TODO: figure out how to not hardcode these
 examples = { '../../scripts' }
     examples.exclude = {
-    examples[1]..'/brack.c',
-    examples[1]..'/clock.c',
-    examples[1]..'/hello.c',
-    examples[1]..'/hello.py',
-    examples[1]..'/img.c',
-    examples[1]..'/keys.c',
-    examples[1]..'/sokoban.c',
-    examples[1]..'/test.c'
+    examples[1]..'/legacy/brack.c',
+    examples[1]..'/legacy/clock.c',
+    examples[1]..'/legacy/hello.c',
+    examples[1]..'/legacy/hello.py',
+    examples[1]..'/legacy/img.c',
+    examples[1]..'/legacy/keys.c',
+    examples[1]..'/legacy/sokoban.c',
+    examples[1]..'/legacy/test.c'
 }
