@@ -520,6 +520,7 @@ function editor:main_loop()
     self:draw()
     keys:start()
     while true do
+        if menu.visible == false then break end
         local keyspressed = keys:getkeys()
         if keyspressed ~= nil then
             local exit = false
@@ -542,7 +543,6 @@ function editor:main_loop()
             if exit then break end
             self:draw()
         end
-        if menu.visible == false then break end
         editor.time = editor.time + 1
         task.yield(100)
     end
