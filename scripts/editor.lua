@@ -602,7 +602,9 @@ function editor:handle_key(k)
         else
             local l = self.lines[self.line]
             if #l == 0 then
-                table.remove(self.lines,self.line)
+                if #(self.lines) > 1 then
+                    table.remove(self.lines,self.line)
+                end
             elseif self.col > #l and self.line < #(self.lines) then
                 self.lines[self.line] = l..self.lines[self.line + 1]
                 table.remove(self.lines,self.line + 1)
