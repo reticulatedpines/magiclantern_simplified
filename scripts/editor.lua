@@ -1,5 +1,5 @@
 -- a text editor
-require("keyhndlr")
+require("keys")
 
 function inc(val,min,max)
     if val == max then return min end
@@ -331,21 +331,21 @@ function filedialog:show()
     local w = self.width/2
     self:updatefiles()
     self:draw()
-    local started = keyhandler:start()
+    local started = keys:start()
     while true do
-        local keys = keyhandler:getkeys()
-        if keys ~= nil then
-            for i,v in ipairs(keys) do
+        local keyspressed = keys:getkeys()
+        if keyspressed ~= nil then
+            for i,v in ipairs(keyspressed) do
                 local result = self:handle_key(v)
                 if result == "Cancel" then 
-                    if started then keyhandler:stop() end
+                    if started then keys:stop() end
                     return nil
                 elseif result == "OK" then
-                    if started then keyhandler:stop() end
+                    if started then keys:stop() end
                     if self.save_mode then return self.current.path..self.save_box.value
                     else return self.selected_value end
                 elseif result ~= nil then
-                    if started then keyhandler:stop() end
+                    if started then keys:stop() end
                     return result
                 end
             end
@@ -510,7 +510,7 @@ function editor:run()
         self.debugging = false
         handle_error(error)
     end
-    keyhandler:stop()
+    keys:stop()
     menu.block(false)
     self.running = false
 end
@@ -518,13 +518,13 @@ end
 function editor:main_loop()
     menu.block(true)
     self:draw()
-    keyhandler:start()
+    keys:start()
     while true do
-        local keys = keyhandler:getkeys()
-        if keys ~= nil then
+        local keyspressed = keys:getkeys()
+        if keyspressed ~= nil then
             local exit = false
             local redraw = false
-            for i,v in ipairs(keys) do
+            for i,v in ipairs(keyspressed) do
                 if self.menu_open then
                     if self:handle_menu_key(v) == false then
                         exit = true
@@ -545,7 +545,7 @@ function editor:main_loop()
         editor.time = editor.time + 1
         task.yield(100)
     end
-    keyhandler:stop()
+    keys:stop()
     if self.running == false then menu.block(false) end
 end
 
@@ -837,12 +837,12 @@ function editor:debug(step_into)
         self.debug_error = false
         self.debug_line = -1
         self:draw()
-        keyhandler:stop()
+        keys:stop()
         self.step_over = step_into
         self.debug_call = true
         debug.sethook(function(event,line) self:debug_step(event,line) end, "c")
         local status,error = xpcall(dofile, editor.traceback, self.filename)
-        keyhandler:start()
+        keys:start()
         if status == false then
             debug.sethook()
             self.debug_error = true
@@ -978,7 +978,7 @@ end
 function editor:message(msg)
     self:draw_status(msg)
     beep()
-    keyhandler:anykey()
+    keys:anykey()
 end
 
 function editor:draw_status(msg)
@@ -1027,7 +1027,7 @@ function editor:draw_text(text)
         end
         pos = pos + self.font.height
     end
-    keyhandler:anykey()
+    keys:anykey()
     self.menu_open = true
 end
 
@@ -1210,5 +1210,5 @@ function handle_error(error)
         end
         pos = pos + f.height
     end
-    keyhandler:anykey()
+    keys:anykey()
 end

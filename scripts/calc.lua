@@ -1,6 +1,6 @@
 -- a simple calculator
 
-require("keyhndlr")
+require("keys")
 
 calc = {}
 calc.value = ""
@@ -51,18 +51,18 @@ function calc:run()
         handle_error(error)
     end
     menu.block(false)
-    keyhandler:stop()
+    keys:stop()
 end
 
 function calc:main_loop()
     menu.block(true)
     self:draw()
-    keyhandler:start()
+    keys:start()
     while true do
-        local keys = keyhandler:getkeys()
-        if keys ~= nil then
+        local keyspressed = keys:getkeys()
+        if keyspressed ~= nil then
             local exit = false
-            for i,v in ipairs(keys) do
+            for i,v in ipairs(keyspressed) do
                 if self:handle_key(v) == false then
                     exit = true
                     break
@@ -73,7 +73,7 @@ function calc:main_loop()
         end
         task.yield(100)
     end
-    keyhandler:stop()
+    keys:stop()
     if self.running == false then menu.block(false) end
 end
 
@@ -176,5 +176,5 @@ function handle_error(error)
         end
         pos = pos + f.height
     end
-    keyhandler:anykey()
+    keys:anykey()
 end

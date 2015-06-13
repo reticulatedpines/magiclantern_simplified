@@ -1,25 +1,25 @@
 --[[---------------------------------------------------------------------------
 Helper for dealing with keypresses
 
-This module is a lua script (@{keyhndlr.lua}), you need to explicitly load it
-with `require('keyhndlr')`
+This module is a lua script (@{keys.lua}), you need to explicitly load it
+with `require('keys')`
 
-@module keyhandler
+@module keys
 ]]
-keyhandler = {}
-keyhandler.runnning = false
+keys = {}
+keys.runnning = false
 
 --[[---------------------------------------------------------------------------
-@type keyhandler
+@type keys
 ]]
 
 --[[---------------------------------------------------------------------------
-Starts the keyhandler if not already running, returns whether or not it was 
+Starts the key handler if not already running, returns whether or not it was 
 started
-@function keyhandler
+@function keys
 ]]
-function keyhandler:start()
-    if keyhandler.running then self:reset() return false end
+function keys:start()
+    if keys.running then self:reset() return false end
     --save any previous keypress handler so we can restore it when finished
     self.old_keypress = event.keypress
     self.keys = {}
@@ -27,8 +27,8 @@ function keyhandler:start()
     self.running = true
     event.keypress = function(key)
         if key ~= 0 then
-            keyhandler.key_count = keyhandler.key_count + 1
-            keyhandler.keys[keyhandler.key_count] = key
+            keys.key_count = keys.key_count + 1
+            keys.keys[keys.key_count] = key
         end
         return false
     end
@@ -40,7 +40,7 @@ Returns a table of all the keys that have been pressed since the last time
 getkeys was called
 @function getkeys
 ]]
-function keyhandler:getkeys()
+function keys:getkeys()
     if self.key_count == 0 then 
         return nil
     else
@@ -50,16 +50,16 @@ function keyhandler:getkeys()
     end
 end
 
-function keyhandler:reset()
+function keys:reset()
     self.key_count = 0
     self.keys = {}
 end
 
 --[[---------------------------------------------------------------------------
-Stops the keyhandler
+Stops the keys
 @function stop
 ]]
-function keyhandler:stop()
+function keys:stop()
     self:reset()
     self.running = false
     event.keypress = self.old_keypress
@@ -69,7 +69,7 @@ end
 Blocks until any key is pressed
 @function anykey
 ]]
-function keyhandler:anykey()
+function keys:anykey()
     local started = self:start()
     --ignore any immediate keys
     task.yield(100)
@@ -91,4 +91,4 @@ function keyhandler:anykey()
     if started then self:stop() end
 end
 
-return keyhandler
+return keys

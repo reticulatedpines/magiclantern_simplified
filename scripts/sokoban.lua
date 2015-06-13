@@ -12,7 +12,7 @@
  Enjoy! 
 ]]
 
-require("keyhndlr")
+require("keys")
 
 --printf
 function printf(...) console.write(string.format(...)) end
@@ -364,14 +364,14 @@ function main()
     menu.block(true);
     local status,error = xpcall(function()
         split_target();
-        keyhandler:start()
+        keys:start()
         draw_maze();
         while true do
         
             -- print_maze();
-            local keys = keyhandler:getkeys();
-            if keys ~= nil then
-                for i,key in ipairs(keys) do
+            local keyspressed = keys:getkeys();
+            if keyspressed ~= nil then
+                for i,key in ipairs(keyspressed) do
                     if key == KEY.LEFT or key == KEY.WHEEL_LEFT then
                         move(0, -1);
                     elseif key == KEY.RIGHT or key == KEY.WHEEL_RIGHT then
@@ -384,7 +384,7 @@ function main()
                     elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU then
                         printf("Exiting...\n");
                         menu.block(false);
-                        keyhandler:stop()
+                        keys:stop()
                         return;
                     end
                 end
@@ -403,7 +403,7 @@ function main()
         print(error)
     end
     menu.block(false);
-    keyhandler:stop()
+    keys:stop()
 end
 
 sokobanmenu = menu.new
