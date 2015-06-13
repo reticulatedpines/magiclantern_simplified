@@ -32,7 +32,6 @@ calc.error = false
 
 calc.mlmenu = menu.new
 {
-    parent = "Debug",
     name = "Calculator",
     select = function(this)
         task.create(function() calc:run() end)

@@ -2,7 +2,6 @@
 
 scrnshot_menu = menu.new
 {
-    parent = "Debug",
     name = "Screenshot on Keypress",
     choices = { "Off", "On" },
     value = "Off",

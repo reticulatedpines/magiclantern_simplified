@@ -476,7 +476,6 @@ editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 
 
 editor.mlmenu = menu.new
 {
-    parent = "Debug",
     name = "Text Editor",
     icon_type = ICON_TYPE.ACTION,
     select = function(this)
