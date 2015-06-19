@@ -1,5 +1,5 @@
 /*
- * Consts for 6D 113 firmware
+ * Consts for 6D 116 firmware
  */
 
 #define CANON_SHUTTER_RATING 100000
@@ -10,26 +10,14 @@
 
 #define HIJACK_CACHE_HACK
 
-#define HIJACK_ASIF_NEXT_BUFF 0xFF2AC4C8
-#define HIJACK_ASIF_CONT_JUMP_INSTR 0xE1500000
-#define HIJACK_ASIF_DAC_TIMEOUT 0xFF11CD44
-#define HIJACK_ASIF_KILL_SEM_WAIT 0xFF11CCB8
-#define HIJACK_ASIF_ADC_TIMEOUT 0xFF11C99C
-#define HIJACK_ASIF_KILL_SEM_WAIT2 0xFF11C910
-//~ #define HIJACK_ASIF_CONT_JUMP_ADDR 0xFF2AC5E0
-//~ #define HIJACK_ASIF_CONT_JUMP_INSTR 0xEA000009
-#define HIJACK_ASIF_CONT_JUMP_ADDR 0xFF2AC5DC
-#define HIJACK_ASIF_CONT_JUMP_INSTR 0xE1500000
-
-
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 10
 
 #define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C6C
-#define HIJACK_CACHE_HACK_GUITASK_6D_ADDR 0xFF0DF6DC
+#define HIJACK_CACHE_HACK_GUITASK_6D_ADDR 0xFF0DF6D4
 
 // load ML in the AllocateMemory pool
-#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xff0c3470
+#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C3470
 //~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCBC000
 //0xA0000 - 640K Should Be enough for everyone
 #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xC1C000
@@ -50,24 +38,25 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C6C
 #endif
 
-#define HIJACK_TASK_ADDR 0x74BD8
+#define HIJACK_TASK_ADDR 0x74C28
 
-#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0EBEC0
-#define CACHE_HACK_GOP_SIZE_SLAVE   0xFF226724
+#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0EBEB8
+#define CACHE_HACK_GOP_SIZE_SLAVE   0xFF226750
 
 
 // look for LDRNE near 2nd ARM Library runtime error
-#define ARMLIB_OVERFLOWING_BUFFER 0x93b58 // in AJ_armlib_setup_related3
+#define ARMLIB_OVERFLOWING_BUFFER 0x93B80 // in AJ_armlib_setup_related3
 
-#define DRYOS_ASSERT_HANDLER 0x74BB8 // dec TH_assert or assert_0
+#define DRYOS_ASSERT_HANDLER 0x74C08 // dec TH_assert or assert_0
 
+// 6D.116 same as 6D.113
 #define YUV422_LV_BUFFER_1 0x5F227800
 #define YUV422_LV_BUFFER_2 0x5F637800
 #define YUV422_LV_BUFFER_3 0x5EE17800
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x754BC+0xA4))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x7550C+0xA4))
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04008 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
@@ -76,7 +65,7 @@
 
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-//same thing?
+// not checked for 6D.116 (yet?)
 #define YUV422_HD_BUFFER_1 0x13FFF780
 #define YUV422_HD_BUFFER_2 0x0EFFF780
 //#define YUV422_HD_BUFFER_DMA_ADDR 0x54000000
@@ -86,27 +75,23 @@
 
 
 // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION (*(int*)0x78668)
+#define FOCUS_CONFIRMATION (*(int*)0x786B8)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
-#define HALFSHUTTER_PRESSED (*(int*)0x75FD0)
+#define HALFSHUTTER_PRESSED (*(int*)0x76020)
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF9CDB68 // dec gui_main_task
+#define GMT_FUNCTABLE 0xFF9CE0F0 // dec gui_main_task
 
-/* 
+/*
 Thumb size:  5472 x 3648
 Full size:   5568 x 3708
 Image size:  5496 x 3670
 Output size: 5496 x 3670
 */
 
-#define SENSOR_RES_X 5568
-#define SENSOR_RES_Y 3680
-
-
-#define CURRENT_DIALOG_MAYBE (*(int*)0x7763C)
+#define CURRENT_DIALOG_MAYBE (*(int*)0x7768C)
 
 //For Scroll Wheels
 //~ #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
@@ -118,7 +103,7 @@ Output size: 5496 x 3670
 // from a screenshot
 #define COLOR_FG_NONLV 1
 
-#define MVR_516_STRUCT (*(void**)0x74FA0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_516_STRUCT (*(void**)0x74FF0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
 #define div_maybe(a,b) ((a)/(b))
 
@@ -134,14 +119,8 @@ Output size: 5496 x 3670
 #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
 //~ #define MVR_BYTES_WRITTEN (*(int*)(0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
 
-#define AE_STATE (*(int8_t*)(0x7F554 + 0x1C)) 
-#define AE_VALUE (*(int8_t*)(0x7F554 + 0x1D))
-//Metering for LV in Manual Mode
-//FF6C98FC:	ebf28def 	bl	sub_FF36D0C0		⬁
-//FF6C9900:	e5c50007 	strb	r0, [r5, #7]
-// 0xff36c2d8: pointer to 0x7f554
-// return BYTE(*0x7F5B0)
-// SetLvExposureDataToWinSystem
+#define AE_STATE (*(int8_t*)(0x7F5A4 + 0x1C)) 
+#define AE_VALUE (*(int8_t*)(0x7F5A4 + 0x1D))
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -156,8 +135,8 @@ Output size: 5496 x 3670
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220174) & 1)) //NE((*0xC0220174 & 0x1)):
-#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x74C44 
-#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x74c34 //prop_deliver(*0x74C44, 0x74c34, 0x4, 0x0) +*0x74C34 = 1
+#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x74C94 
+#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x74C84 //prop_deliver(*0x74C44, 0x74c34, 0x4, 0x0) +*0x74C34 = 1
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -218,8 +197,8 @@ Output size: 5496 x 3670
 #define FASTEST_SHUTTER_SPEED_RAW 152
 #define MAX_AE_EV 5
 
-#define DIALOG_MnCardFormatBegin (0x8888C) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-#define DIALOG_MnCardFormatExecute (0x8DAF0) // similar
+#define DIALOG_MnCardFormatBegin (0x888B4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x8DB1C) // similar
 #define FORMAT_BTN_NAME "[Q]"
 #define FORMAT_BTN BGMT_Q
 #define FORMAT_STR_LOC 12
@@ -227,10 +206,14 @@ Output size: 5496 x 3670
 #define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
+// todo 6D.116
 #define BFNT_CHAR_CODES    0xf03664d0
+// todo 6D.116
 #define BFNT_BITMAP_OFFSET 0xf0369794
+// todo 6D.116
 #define BFNT_BITMAP_DATA   0xf036ca58
 
+// todo 6D.116
 #define DLG_SIGNATURE 0x6e6144  //~ look in stubs api stability test log: [Pass] MEM(dialog->type) => 0x6e6144
 
 // from CFn
@@ -238,10 +221,10 @@ Output size: 5496 x 3670
 #define AF_BTN_STAR 2
 
     
-#define IMGPLAY_ZOOM_LEVEL_ADDR (0x7F77C) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x7F7CC) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-#define IMGPLAY_ZOOM_POS_X MEM(0xb9a38) // CentrePos
-#define IMGPLAY_ZOOM_POS_Y MEM(0xb9a3C) // '[ImgPlyer] ScrollWidth:%ld ScrollHeight:%ld'
+#define IMGPLAY_ZOOM_POS_X MEM(0xB9A58) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0xB9A5C) // '[ImgPlyer] ScrollWidth:%ld ScrollHeight:%ld'
 
 //#define IMGPLAY_ZOOM_POS_X_CENTER 360
 //#define IMGPLAY_ZOOM_POS_Y_CENTER 240
@@ -253,10 +236,10 @@ Output size: 5496 x 3670
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x82B24)   //~ from string: refresh partly
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x82B74)   //~ from string: refresh partly
 
 // manual exposure overrides
-#define LVAE_STRUCT 0xC4D78
+#define LVAE_STRUCT 0xC4D98
 #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
 #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
 #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
@@ -275,10 +258,10 @@ Output size: 5496 x 3670
 //AF pattern Button
 #define ARROW_MODE_TOGGLE_KEY "Foc Pnts"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x755A0)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x76D00) //76cfc
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x76D50) //76cfc
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
@@ -295,20 +278,20 @@ Output size: 5496 x 3670
 
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
-#define MALLOC_STRUCT 0x94818
+#define MALLOC_STRUCT 0x94838
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 //~ needs fixed to prevent half shutter making canon overlays visible. sub_ff52c568.htm Not Present but probably right.
 //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // 1 All the Time
 //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x8418c) == 0x2) // Between the "17s" find with mem browser
 //~ #define UNAVI (MEM(0x8418c)) // Between the "17s" find with mem browser
-#define UNAVI (MEM(0x8418c) ==2) // Between the "17s" find with mem browser
-#define SCROLLHACK (MEM(0x841C0) !=0)
+#define UNAVI (MEM(0x841DC) ==2) // Between the "17s" find with mem browser
+#define SCROLLHACK (MEM(0x84210) !=0)
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
 
+#define CONFIG_AUDIO_IC_QUEUED 1
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 85 / 100 - 102)
 
-// look for "JudgeBottomInfoDispTimerState(%d)"
-#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x841C0
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE  0x84210

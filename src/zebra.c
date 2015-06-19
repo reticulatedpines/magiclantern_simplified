@@ -4199,7 +4199,7 @@ static void idle_bmp_on()
 static int old_backlight_level = 0;
 static void idle_display_dim()
 {
-    ASSERT(lv);
+    ASSERT(lv || lv_paused);
     #ifdef CONFIG_AUTO_BRIGHTNESS
     int backlight_mode = lcd_brightness_mode;
     if (backlight_mode == 0) // can't restore brightness properly in auto mode
