@@ -1038,13 +1038,6 @@ static unsigned int adtg_gui_init()
         ADTG_WRITE_FUNC = 0xFFA11FDC;
         CMOS_WRITE_FUNC = 0xFFA12190;
     }
-    else if (is_camera("6D", "1.1.3")) // from 1%
-    {
-        CMOS_WRITE_FUNC = 0x2445C; //"[REG] ############ Start CMOS OC_KICK"
-        CMOS2_WRITE_FUNC = 0x2420C; //"[REG] ############ Start CMOS"
-        ADTG_WRITE_FUNC = 0x24108; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
-        CMOS16_WRITE_FUNC = 0x24548; //"[REG] ############ Start CMOS16 OC_KICK"
-    }
     else if (is_camera("6D", "1.1.6")) // from 1% (match 6D.113), JL, checked by Maqs
     {
         CMOS_WRITE_FUNC = 0x2445C; //"[REG] ############ Start CMOS OC_KICK"
