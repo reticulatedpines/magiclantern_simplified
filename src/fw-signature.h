@@ -25,6 +25,7 @@
 // Not supported cameras
 #define SIG_6D_112   0x6D677512
 #define SIG_6D_113   0x6B6A9C6F
+#define SIG_6D_116   0x11cb1ed2
 #define SIG_5D3_113  0x2e2f65f5
 #define SIG_EOSM_106 0x6393A881
 #define SIG_EOSM_202 0x2D7c6dcf
