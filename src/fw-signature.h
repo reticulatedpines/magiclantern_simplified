@@ -34,6 +34,7 @@
 #define SIG_650D_104 0x4B7FC4D0
 #define SIG_700D_111 0x645D8FD5
 #define SIG_700D_113 0x5AE36B51
+#define SIG_700D_114 0x4b35ce13
 // TODO: multiple 100D.100 out there :(
 #define SIG_100D_100 0x34443B7F
 
