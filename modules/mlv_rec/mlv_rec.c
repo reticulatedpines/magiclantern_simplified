@@ -70,6 +70,7 @@
 #include <edmac-memcpy.h>
 #include <cache_hacks.h>
 #include <string.h>
+#include <shoot.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -715,14 +716,6 @@ static void refresh_raw_settings(int32_t force)
     }
 }
 
-PROP_HANDLER( PROP_LV_AFFRAME ) {
-    ASSERT(len <= 128);
-    if(!lv) return;
-    
-    sensor_res_x = ((int32_t*)buf)[0];
-}
-
-
 static int32_t calc_crop_factor()
 {
 
@@ -733,6 +726,7 @@ static int32_t calc_crop_factor()
     
     if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
     
+    get_afframe_sensor_res(&sensor_res_x, NULL);
     if (!sensor_res_x) return 0;
     
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
@@ -4277,7 +4271,6 @@ MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_WBS_BA)
     MODULE_PROPHANDLER(PROP_WB_KELVIN_LV)
     MODULE_PROPHANDLER(PROP_CUSTOM_WB)
-    MODULE_PROPHANDLER(PROP_LV_AFFRAME)
 MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
