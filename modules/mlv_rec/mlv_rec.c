@@ -124,8 +124,8 @@ uint32_t raw_rec_trace_ctx = TRACE_ERROR;
  * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
-static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
+static uint32_t resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
+#define  RESOLUTION_CHOICES_X CHOICES(     "640","960","1280","1600","1920","2240","2560","2880","3200","3520")
 
 static uint32_t aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -142,6 +142,7 @@ static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.black_fix", black_fix, 0);
 static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
+static CONFIG_INT("mlv.res_x_fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
@@ -164,6 +165,7 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
+static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -552,7 +554,7 @@ static void update_resolution_params()
     else squeeze_factor = 1.0f;
 
     /* res X */
-    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+    res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
 
     /* res Y */
     int32_t num = aspect_ratio_presets_num[aspect_ratio_index];
@@ -713,6 +715,35 @@ static void refresh_raw_settings(int32_t force)
     }
 }
 
+PROP_HANDLER( PROP_LV_AFFRAME ) {
+    ASSERT(len <= 128);
+    if(!lv) return;
+    
+    sensor_res_x = ((int32_t*)buf)[0];
+}
+
+
+static int32_t calc_crop_factor()
+{
+
+    int32_t camera_crop = 162;
+    int32_t sampling_x = 3;
+    
+    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
+    
+    //if (cam_500d || cam_50d) sensor_res_x = 4752;
+    //if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_res_x = 5184;
+    //if (cam_6d) sensor_res_x = 5472;
+    //if (cam_5d2) sensor_res_x = 5616;
+    //if (cam_5d3) sensor_res_x = 5760;
+    
+    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
+    
+    if (!sensor_res_x) return 0;
+    
+    return camera_crop * (sensor_res_x / sampling_x) / res_x;
+}
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!mlv_video_enabled)
@@ -733,6 +764,8 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        int32_t crop_factor = calc_crop_factor();
+        if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 
     write_speed_update(entry, info);
@@ -764,11 +797,16 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
 
+    
+    res_x = resolution_presets_x[resolution_index_x] + res_x_fine;
+    
     refresh_raw_settings(1);
 
-    int32_t selected_x = resolution_presets_x[resolution_index_x];
+    int32_t selected_x = res_x;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
+    int32_t crop_factor = calc_crop_factor();
+    if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
 
     if (selected_x > max_res_x)
     {
@@ -3742,6 +3780,40 @@ static MENU_UPDATE_FUNC(raw_tag_take_update)
     }
 }
 
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!mlv_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if (get_menu_edit_mode()) {
+        if ((delta > 0) && (resolution_index_x < COUNT(resolution_presets_x) - 1)) resolution_index_x += 1;
+        if ((delta < 0) && (resolution_index_x > 0)) resolution_index_x -= 1;
+        res_x_fine = 0;
+        return;
+    }
+    
+    uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    
+    if (cur_res >= (uint32_t)max_res_x) {
+        cur_res = max_res_x;
+        if (delta < 0) cur_res -= 32;
+    } else if (cur_res <= resolution_presets_x[0]) {
+        cur_res = resolution_presets_x[0];
+        if (delta > 0) cur_res += 32;
+    } else {
+        cur_res += delta * 32;
+    }
+    
+    resolution_index_x = 0;
+    while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
+        resolution_index_x += 1;
+    }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
+    
+}
+
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -3757,6 +3829,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
+                .select = resolution_change_fine_value,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
             },
@@ -4217,11 +4290,13 @@ MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_WBS_BA)
     MODULE_PROPHANDLER(PROP_WB_KELVIN_LV)
     MODULE_PROPHANDLER(PROP_CUSTOM_WB)
+    MODULE_PROPHANDLER(PROP_LV_AFFRAME)
 MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_video_enabled)
     MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(res_x_fine)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
