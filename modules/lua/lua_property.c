@@ -434,8 +434,8 @@ static int handle_prop_string(lua_State * L, const char * name)
     else if(!strcmp(name, "ICU_AUTO_POWEROFF")) prop_id = PROP_ICU_AUTO_POWEROFF;
     /// @tfield property AUTO_POWEROFF_TIME
     else if(!strcmp(name, "AUTO_POWEROFF_TIME")) prop_id = PROP_AUTO_POWEROFF_TIME;
-    /// @tfield property REBOOT_MAYBE
-    else if(!strcmp(name, "REBOOT_MAYBE")) prop_id = PROP_REBOOT_MAYBE;
+    /// @tfield property REBOOT
+    else if(!strcmp(name, "REBOOT")) prop_id = PROP_REBOOT;
     /// @tfield property DIGITAL_ZOOM_RATIO
     else if(!strcmp(name, "DIGITAL_ZOOM_RATIO")) prop_id = PROP_DIGITAL_ZOOM_RATIO;
     /// @tfield property INFO_BUTTON_FUNCTION
