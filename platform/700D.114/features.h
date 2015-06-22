@@ -16,6 +16,7 @@
 #undef FEATURE_LV_BUTTON_PROTECT
 #undef FEATURE_LV_BUTTON_RATE
 #undef FEATURE_TRAP_FOCUS
+#undef FEATURE_MAGIC_ZOOM_FULL_SCREEN // https://bitbucket.org/hudson/magic-lantern/issue/2272/full-screen-magic-zoom-is-garbled-on-700d
 
 // Glitchy
 #undef FEATURE_STICKY_DOF
