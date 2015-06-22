@@ -82,6 +82,7 @@ void set_shooting_mode(int mode);
 
 /* focus box, to be moved to separate file */
 void get_afframe_pos(int W, int H, int* x, int* y);
+void get_afframe_sensor_res(int* W, int* H);
 void afframe_set_dirty();
 void afframe_clr_dirty();
 void clear_lv_afframe();    /* in tweaks.c */
