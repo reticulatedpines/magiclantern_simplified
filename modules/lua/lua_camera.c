@@ -202,6 +202,19 @@ static int luaCB_camera_bulb(lua_State * L)
     return 0;
 }
 
+/***
+ Restart the camera
+ @function reboot
+ */
+static int luaCB_camera_reboot(lua_State * L)
+{
+    int reboot = 0;
+    prop_request_change(PROP_REBOOT, &reboot, 4);
+    return 0;
+
+    /* shutdown is probably done in a similar way, but I had no success with nearby properties */
+}
+
 /// Represents the camera's shutter speed setting
 //@type shutter
 
@@ -517,6 +530,7 @@ static const luaL_Reg cameralib[] =
 {
     { "shoot", luaCB_camera_shoot },
     { "bulb", luaCB_camera_bulb },
+    { "reboot", luaCB_camera_reboot },
     { NULL, NULL }
 };
 
