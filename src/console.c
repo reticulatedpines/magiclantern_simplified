@@ -150,8 +150,12 @@ void console_puts(const char* str) // don't DebugMsg from here!
         }
         else if (*c == '\b')
         {
-            console_buffer_index--;
-            CONSOLE_BUFFER(console_buffer_index) = ' ';
+            /* only erase on current line */
+            if (MOD(console_buffer_index, CONSOLE_W) != 0)
+            {
+                console_buffer_index--;
+                CONSOLE_BUFFER(console_buffer_index) = ' ';
+            }
         }
         else if (*c == '\r')
         {
