@@ -142,8 +142,8 @@ static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.black_fix", black_fix, 0);
-static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
-static CONFIG_INT("mlv.res_x_fine", res_x_fine, 0);
+static CONFIG_INT("mlv.res.x", resolution_index_x, 4);
+static CONFIG_INT("mlv.res.x.fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
@@ -728,6 +728,7 @@ static int32_t calc_crop_factor()
     
     get_afframe_sensor_res(&sensor_res_x, NULL);
     if (!sensor_res_x) return 0;
+    if (!res_x) return 0;
     
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }
