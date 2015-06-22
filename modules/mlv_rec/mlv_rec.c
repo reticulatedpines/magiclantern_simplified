@@ -731,12 +731,6 @@ static int32_t calc_crop_factor()
     
     if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
     
-    //if (cam_500d || cam_50d) sensor_res_x = 4752;
-    //if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_res_x = 5184;
-    //if (cam_6d) sensor_res_x = 5472;
-    //if (cam_5d2) sensor_res_x = 5616;
-    //if (cam_5d3) sensor_res_x = 5760;
-    
     if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
     
     if (!sensor_res_x) return 0;
@@ -797,12 +791,9 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
 
-    
-    res_x = resolution_presets_x[resolution_index_x] + res_x_fine;
-    
     refresh_raw_settings(1);
 
-    int32_t selected_x = res_x;
+    int32_t selected_x = resolution_presets_x[resolution_index_x] + res_x_fine;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
     int32_t crop_factor = calc_crop_factor();
@@ -3788,24 +3779,20 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
     }
     
     if (get_menu_edit_mode()) {
-        if ((delta > 0) && (resolution_index_x < COUNT(resolution_presets_x) - 1)) resolution_index_x += 1;
-        if ((delta < 0) && (resolution_index_x > 0)) resolution_index_x -= 1;
+        /* preset resolution from pickbox */
+        resolution_index_x = MOD(resolution_index_x + delta, COUNT(resolution_presets_x));
         res_x_fine = 0;
         return;
     }
     
+    /* fine-tune resolution in 32px increments */
     uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    if (delta < 0) cur_res = MIN(cur_res, max_res_x);
+    cur_res += delta * 32;
+    int last = COUNT(resolution_presets_x)-1;
+    cur_res = COERCE(cur_res, resolution_presets_x[0], resolution_presets_x[last]);
     
-    if (cur_res >= (uint32_t)max_res_x) {
-        cur_res = max_res_x;
-        if (delta < 0) cur_res -= 32;
-    } else if (cur_res <= resolution_presets_x[0]) {
-        cur_res = resolution_presets_x[0];
-        if (delta > 0) cur_res += 32;
-    } else {
-        cur_res += delta * 32;
-    }
-    
+    /* pick the closest preset */
     resolution_index_x = 0;
     while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
         resolution_index_x += 1;
