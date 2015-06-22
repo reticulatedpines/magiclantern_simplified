@@ -150,8 +150,12 @@ void console_puts(const char* str) // don't DebugMsg from here!
         }
         else if (*c == '\b')
         {
-            console_buffer_index--;
-            CONSOLE_BUFFER(console_buffer_index) = ' ';
+            /* only erase on current line */
+            if (MOD(console_buffer_index, CONSOLE_W) != 0)
+            {
+                console_buffer_index--;
+                CONSOLE_BUFFER(console_buffer_index) = ' ';
+            }
         }
         else if (*c == '\r')
         {
@@ -304,7 +308,7 @@ static void console_draw(int tiny)
         }
         buf[CONSOLE_W - chopped_columns] = 0;
         int y = yc + fontspec_font(fnt)->height * (i - skipped_lines);
-        printed_width = bmp_printf(fnt | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(w), x0, y, buf);
+        printed_width = bmp_printf(fnt | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(w), x0, y, "%s", buf);
     }
     
     bmp_draw_rect(60, x0-1, yc-1, printed_width+2, h+2);

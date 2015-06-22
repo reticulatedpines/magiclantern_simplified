@@ -1,5 +1,5 @@
 /*
- *  700D 1.1.3 consts
+ *  700D 1.1.4 consts
  */
 
 #define CANON_SHUTTER_RATING 100000
@@ -53,7 +53,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF7FA714 //dec gui_main_task
+#define GMT_FUNCTABLE 0xFF7FA7F8 //dec gui_main_task
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x2658C) // in SetGUIRequestMode
 #define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE

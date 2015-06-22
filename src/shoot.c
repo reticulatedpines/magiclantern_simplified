@@ -665,6 +665,15 @@ void get_afframe_pos(int W, int H, int* x, int* y)
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
+/* get sensor resolution, as specified by PROP_LV_AFFRAME */
+/* (to get valid values, one has to go to LiveView at least once) */
+void get_afframe_sensor_res(int* W, int* H)
+{
+    if (W) *W = afframe[0];
+    if (H) *H = afframe[1];
+}
+
+
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     zoom_sharpen_step();

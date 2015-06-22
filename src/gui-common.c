@@ -214,7 +214,16 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 void reset_pre_shutdown_flag_step() // called every second
 {
     if (pre_shutdown_requested && !sensor_cleaning)
+    {
         pre_shutdown_requested--;
+        
+        if (!pre_shutdown_requested)
+        {
+            /* false shutdown alarm? */
+            info_led_off();
+            _card_led_off();
+        }
+    }
 }
 
 void check_pre_shutdown_flag() // called from ml_shutdown
@@ -404,7 +413,9 @@ int handle_common_events_by_feature(struct event * event)
         event->param == GMT_GUICMD_LOCK_OFF)
     {
         pre_shutdown_requested = 4;
+        info_led_on(); _card_led_on();
         config_save_at_shutdown();
+        info_led_on(); _card_led_on();
         return 1;
     }
 

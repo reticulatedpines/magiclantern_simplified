@@ -372,6 +372,7 @@ extern void mem_menu_init();
 extern void movie_tweak_menu_init();
 extern void afp_menu_init();
 extern int is_submenu_or_edit_mode_active();    /* used in joypress stuff, which should be moved to menu.c */
+int get_menu_edit_mode();
 extern void config_menu_save_flags();
 
 /* call this to confirm the processing of a key-repeated event (when keeping arrow keys pressed in menu) */

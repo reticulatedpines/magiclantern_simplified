@@ -11,6 +11,6 @@ installer:: build_fir
 install:: install_fir
 
 clean::
-	$(call rm_files, updater*)
+	$(call rm_files, *.fir *.FIR)
 
 include $(TOP_DIR)/Makefile.inc
