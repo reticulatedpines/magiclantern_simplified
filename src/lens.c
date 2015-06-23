@@ -948,6 +948,10 @@ bswap16(
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
+    /* there might be a false trigger at startup - issue #1992 */
+    extern int ml_started;
+    if (!ml_started) return;
+
     mvr_rec_start_shoot(buf[0]);
     
     #ifdef FEATURE_MOVIE_LOGGING

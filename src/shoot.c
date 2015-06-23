@@ -2305,6 +2305,10 @@ extern void rec_notify_trigger(int rec);
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
+    /* there might be a false trigger at startup - issue #1992 */
+    extern int ml_started;
+    if (!ml_started) return;
+
     int rec = (shooting_type == 4 ? 2 : 0);
 
     #ifdef FEATURE_REC_NOTIFY
