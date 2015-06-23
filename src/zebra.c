@@ -4989,6 +4989,10 @@ int handle_livev_playback(struct event * event)
             livev_playback_reset();
         }
     }
+    else
+    {
+        livev_playback = 0;
+    }
     return 1;
 }
 #endif
