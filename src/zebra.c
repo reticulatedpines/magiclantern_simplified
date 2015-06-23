@@ -3765,14 +3765,14 @@ int zebra_should_run()
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-static int livev_for_playback_running = 0;
-static void draw_livev_for_playback()
+static int overlays_playback_running = 0;
+static void draw_overlays_playback()
 {
-    livev_for_playback_running = 1;
+    overlays_playback_running = 1;
 
     if (!PLAY_OR_QR_MODE)
     {
-        livev_for_playback_running = 0;
+        overlays_playback_running = 0;
         return;
     }
 
@@ -3786,7 +3786,7 @@ static void draw_livev_for_playback()
     while (!DISPLAY_IS_ON) msleep(100);
     if (!PLAY_OR_QR_MODE)
     {
-        livev_for_playback_running = 0;
+        overlays_playback_running = 0;
         return;
     }
     if (QR_MODE) msleep(300);
@@ -3841,7 +3841,7 @@ BMP_LOCK(
     clean_d_cache(); // to avoid display artifacts
 
     info_led_off();
-    livev_for_playback_running = 0;
+    overlays_playback_running = 0;
 }
 #endif
 
@@ -4522,11 +4522,14 @@ int is_focus_peaking_enabled()
 #ifdef FEATURE_ZEBRA_FAST
 static void digic_zebra_cleanup()
 {
-    if (!DISPLAY_IS_ON) return;
-    EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
-    clrscr_mirror();
-    alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
-    zebra_digic_dirty = 0;
+    if (zebra_digic_dirty)
+    {
+        if (!DISPLAY_IS_ON) return;
+        EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
+        clrscr_mirror();
+        alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
+        zebra_digic_dirty = 0;
+    }
 }
 #endif
 
@@ -4566,7 +4569,7 @@ livev_hipriority_task( void* unused )
 
         #ifdef FEATURE_ZEBRA_FAST
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
-        if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
+        if (!zd) digic_zebra_cleanup();
         #endif
         
 #ifdef CONFIG_RAW_LIVEVIEW
@@ -4580,11 +4583,11 @@ livev_hipriority_task( void* unused )
             if (!zebra_should_run())
             {
 #ifdef FEATURE_ZEBRA_FAST
-                if (zebra_digic_dirty) digic_zebra_cleanup();
+                digic_zebra_cleanup();
 #endif
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
-				if (lv) disable_electronic_level();
+                if (lv) disable_electronic_level();
                 #endif
                 #ifdef CONFIG_RAW_LIVEVIEW
                 if (raw_flag) { raw_lv_release(); raw_flag = 0; }
@@ -4932,33 +4935,39 @@ int handle_disp_preset_key(struct event * event)
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-static int livev_playback = 0;
+static int overlays_playback_displayed = 0;
 
-static void livev_playback_toggle()
+static void overlays_playback_clear()
 {
-    if (livev_for_playback_running)
+    if (overlays_playback_displayed)
+    {
+        clrscr();
+        digic_zebra_cleanup();
+        redraw();
+        overlays_playback_displayed = 0;
+    }
+}
+
+/* called from GUI handler */
+static void overlays_playback_toggle()
+{
+    if (overlays_playback_running)
         return;
     
-    livev_playback = !livev_playback;
-    if (livev_playback)
+    if (!overlays_playback_displayed)
     {
-        livev_for_playback_running = 1;
-        task_create("lv_playback", 0x1a, 0x8000, draw_livev_for_playback, 0);
+        /* this may take about 1 second, so let's run it outside GuiMainTask */
+        overlays_playback_running = 1;
+        task_create("lv_playback", 0x1a, 0x8000, draw_overlays_playback, 0);
+        overlays_playback_displayed = 1;
     }
     else
     {
-        clrscr();
-        if (zebra_digic_dirty) digic_zebra_cleanup();
-        redraw();
+        overlays_playback_clear();
     }
 }
-static void livev_playback_reset()
-{
-    if (livev_playback) redraw();
-    livev_playback = 0;
-}
 
-int handle_livev_playback(struct event * event)
+int handle_overlays_playback(struct event * event)
 {
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
@@ -4967,12 +4976,14 @@ int handle_livev_playback(struct event * event)
         {
 #if defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
             case BTN_ZEBRAS_FOR_PLAYBACK:
-                livev_playback_toggle();
+                /* used in PLAY mode (user pressed button to toggle overlays) */
+                overlays_playback_toggle();
                 return 0;
 #endif
             case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-                livev_playback_reset(); // Soft reset if triggered by HS
-                livev_playback_toggle();
+                /* used in QuickReview mode - always show the overlays, no toggle */
+                overlays_playback_displayed = 0;
+                overlays_playback_toggle();
                 return 0;
         }
         
@@ -4986,12 +4997,14 @@ int handle_livev_playback(struct event * event)
 
         else
         {
-            livev_playback_reset();
+            /* some button pressed in play mode, while ML overlays are active? clear them */
+            overlays_playback_clear();
         }
     }
     else
     {
-        livev_playback = 0;
+        /* got out of play mode? ML overlays are for sure no longer active */
+        overlays_playback_displayed = 0;
     }
     return 1;
 }

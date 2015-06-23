@@ -3879,11 +3879,6 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_REDRAW:
             _redraw_do();   /* todo: move in gui-common.c */
             break;
-        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event); /* todo: move back to zebra.c */
-            #endif
-            break;
     }
     
     return 1;

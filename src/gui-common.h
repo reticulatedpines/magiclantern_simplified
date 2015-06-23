@@ -264,7 +264,7 @@ int handle_ml_menu_erase(struct event * event);
 int handle_zoom_trick_event(struct event * event);
 int handle_intervalometer(struct event * event);
 int handle_transparent_overlay(struct event * event);
-int handle_livev_playback(struct event * event);
+int handle_overlays_playback(struct event * event);
 int handle_set_wheel_play(struct event * event);
 int handle_arrow_keys(struct event * event);
 int handle_trap_focus(struct event * event);
