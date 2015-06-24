@@ -222,7 +222,15 @@
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x245c)
 //~ #define DISPLAY_IS_ON (MEM(0xc022010c) & 2) // from BackLightOn
-#define DISPLAY_IS_ON get_display_is_on_550D() // from state object
+
+#ifdef CONFIG_INSTALLER
+    /* we don't have state object hooks running, so we'll use the good old way */
+    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#else
+    /* this workaround prevents crashes when using custom schemes and related display tricks */
+    /* todo: is this still needed? probably not, since we check LCLK now */
+    #define DISPLAY_IS_ON get_display_is_on_550D() // from state object
+#endif
 
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5e)
