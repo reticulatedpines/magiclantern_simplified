@@ -103,6 +103,7 @@ NSTUB(0xFF339490, _audio_ic_write)                          // str:i2c(int *arra
 NSTUB(0xFF7FBBDC,  audio_thresholds)
 NSTUB(0xFF10CD40,  sounddev_task)
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+NSTUB(0xFF10A920,  SoundDevShutDownIn)                      //Stop ASIF ADC - For MLV_SND
 
 /** Bitmap **/
 NSTUB(   0x6BAB4,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
