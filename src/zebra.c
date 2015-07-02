@@ -2137,7 +2137,6 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-/* org            spotmeter_formula == 2 ? "RGB" : "RAW", */
             spotmeter_formula == 2 ? "RGB" :          
             spotmeter_formula == 3 ? "RAW" : "Percent RGB",
 
@@ -3016,10 +3015,8 @@ struct menu_entry zebra_menus[] = {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 #ifdef FEATURE_RAW_SPOTMETER
-/*                .max = 3, */
                 .max = 4,
                 #else
-/*                .max = 2, */
                 .max = 3,
                 #endif
                 .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)", "RGB (Percent)"},
