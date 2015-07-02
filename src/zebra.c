@@ -2340,7 +2340,6 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-/*    int dx = spotmeter_formula == 2 ? 52 : 26; */
     int dx = spotmeter_formula == 2 ? 52 : (spotmeter_formula == 4 ? 80: 26); 
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
