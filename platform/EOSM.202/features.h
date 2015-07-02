@@ -13,6 +13,7 @@
 
 /* Working */
 #define FEATURE_CROP_MODE_HACK
+#define FEATURE_AUDIO_REMOTE_SHOT
 
 //~ #define FEATURE_VIDEO_HACKS // unclean patching
 
