@@ -64,6 +64,9 @@
 #define MZ_BLACK 0x00120034
 #define MZ_GREEN 0xB68DB69E
 
+// spotmeter_formula modes
+#define SPTMTR_F_RGB_PERCENT 4
+
 #ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
@@ -2340,7 +2343,7 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-    int dx = spotmeter_formula == 2 ? 52 : (spotmeter_formula == 4 ? 80: 26); 
+    int dx = spotmeter_formula == 2 ? 52 : (spotmeter_formula == SPTMTR_F_RGB_PERCENT ? 80: 26); 
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -2572,7 +2575,7 @@ fallback_from_raw:
             R,G,B
         );
     }
-    else if (spotmeter_formula == 4)
+    else if (spotmeter_formula == SPTMTR_F_RGB_PERCENT)
     {
         int uyvy = UYVY_PACK(su,sy,sv,sy);
         int R,G,B,Y;
