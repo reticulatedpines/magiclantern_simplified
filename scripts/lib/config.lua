@@ -16,9 +16,12 @@ Create a new config instance, filename will be determined automagically
 @function create
 ]]
 function config.create(default)
-    local cfg = {}
     --determine the config filename automatically based on the script's filename
-    local thisfile = debug.getinfo(1,"S").short_src
+    return create_internal(default, debug.getinfo(2,"S").short_src)
+end
+
+local create_internal = function(default,thisfile)
+    local cfg = {}
     assert(thisfile ~= nil, "Could not determine script filename")
     --capture between the last '/' and last '.' in the filename
     local short_name = string.match(thisfile,"/([^/%.]+)%.[^/%.]+$")
@@ -64,7 +67,7 @@ function config.create_from_menu(m)
             default[k] = v.value
         end
     end
-    local cfg = config.create(default)
+    local cfg = create_internal(default,debug.getinfo(2,"S").short_src)
     cfg.menu = m
     --copy back loaded data to the menu structure
     m.value = cfg.data[m.name]
