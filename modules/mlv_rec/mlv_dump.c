@@ -568,7 +568,7 @@ uint16_t bitextract(uint16_t *src, int position, int depth)
     return value;
 }
 
-int load_frame(char *filename, uint8_t *frame_buffer)
+int load_frame(char *filename, uint8_t **frame_buffer, uint32_t *frame_buffer_size)
 {
     FILE *in_file = NULL;
     int ret = 0;
@@ -595,6 +595,10 @@ int load_frame(char *filename, uint8_t *frame_buffer)
             goto load_frame_finish;
         }
 
+        print_msg(MSG_INFO, "Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+        print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
+        print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+        
         /* jump back to the beginning of the block just read */
         file_set_pos(in_file, position, SEEK_SET);
 
@@ -634,9 +638,13 @@ int load_frame(char *filename, uint8_t *frame_buffer)
             }
 
             int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+        
+            /* loading the first frame. report frame size and allocate memory for that frame */
+            *frame_buffer_size = frame_size;
+            *frame_buffer = malloc(frame_size);
 
             file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-            if(fread(frame_buffer, frame_size, 1, in_file) != 1)
+            if(fread(*frame_buffer, frame_size, 1, in_file) != 1)
             {
                 print_msg(MSG_ERROR, "File '%s' ends in the middle of a block\n", filename);
                 ret = 4;
@@ -1497,6 +1505,7 @@ int main (int argc, char *argv[])
     uint32_t block_xref_pos = 0;
 
     uint32_t frame_buffer_size = 1*1024*1024;
+    uint32_t subtract_frame_buffer_size = 0;
 
     uint32_t *frame_arith_buffer = NULL;
     uint8_t *frame_sub_buffer = NULL;
@@ -1559,6 +1568,20 @@ int main (int argc, char *argv[])
         }
     }
 
+    /* this block will load an image from a MLV file, so use its reported frame size for future use */
+    if(subtract_mode)
+    {
+        int ret = load_frame(subtract_filename, &frame_sub_buffer, &subtract_frame_buffer_size);
+
+        if(ret)
+        {
+            print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
+            return ERR_FILE;
+        }
+        
+        frame_buffer_size = subtract_frame_buffer_size;
+    }
+
     if(average_mode)
     {
         frame_arith_buffer = malloc(frame_buffer_size * sizeof(uint32_t));
@@ -1568,25 +1591,6 @@ int main (int argc, char *argv[])
             return ERR_MALLOC;
         }
         memset(frame_arith_buffer, 0x00, frame_buffer_size * sizeof(uint32_t));
-    }
-
-    if(subtract_mode)
-    {
-        frame_sub_buffer = malloc(frame_buffer_size);
-        if(!frame_sub_buffer)
-        {
-            print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return ERR_MALLOC;
-        }
-        memset(frame_sub_buffer, 0x00, frame_buffer_size);
-        
-        int ret = load_frame(subtract_filename, (uint8_t*)frame_sub_buffer);
-
-        if(ret)
-        {
-            print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
-            return ERR_FILE;
-        }
     }
 
     /* always allocate, delta decoding also needs this buffer */
@@ -2127,9 +2131,15 @@ read_headers:
                     /* this value changes in this context */
                     int current_depth = old_depth;
 
-                    /* in subtract mode, subtrace reference frame. do that before averaging */
+                    /* in subtract mode, subtract reference frame. do that before averaging */
                     if(subtract_mode)
                     {
+                        if((int)subtract_frame_buffer_size != frame_size)
+                        {
+                            print_msg(MSG_ERROR, "Error: Frame sizes of footage and subtract frame differ (%d, %d)", frame_size, subtract_frame_buffer_size);
+                            break;
+                        }
+                        
                         int pitch = video_xRes * current_depth / 8;
 
                         for(int y = 0; y < video_yRes; y++)
