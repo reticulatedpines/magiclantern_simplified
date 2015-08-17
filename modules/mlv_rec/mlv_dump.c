@@ -996,9 +996,15 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
     print_msg(MSG_INFO, " -n                  write no metadata, only audio and video frames\n");
 
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- Image manipulation --\n");
     print_msg(MSG_INFO, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
+    print_msg(MSG_INFO, " --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
+    print_msg(MSG_INFO, " --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
     print_msg(MSG_INFO, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
 
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- Processing --\n");
     print_msg(MSG_INFO, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
     print_msg(MSG_INFO, " -X type             extract only block type\n");
     print_msg(MSG_INFO, " -I mlv_file         inject data from given MLV file right after MLVI header\n");
@@ -1039,6 +1045,8 @@ int main (int argc, char *argv[])
     int delta_encode_mode = 0;
     int xref_mode = 0;
     int average_mode = 0;
+    int average_vert = 0;
+    int average_hor = 0;
     int subtract_mode = 0;
     int no_metadata_mode = 0;
     int only_metadata_mode = 0;
@@ -1092,6 +1100,8 @@ int main (int argc, char *argv[])
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {"fixcp",  no_argument, &fix_cold_pixels,  1 },
+        {"avg-vertical",  no_argument, &average_vert,  1 },
+        {"avg-horizontal",  no_argument, &average_hor,  1 },
         {0,         0,                 0,  0 }
     };
 
@@ -1441,6 +1451,14 @@ int main (int argc, char *argv[])
             if(average_mode)
             {
                 print_msg(MSG_INFO, "   - Output only one frame with averaged pixel values\n");
+                if(average_vert)
+                {
+                    print_msg(MSG_INFO, "   - Also average the images in vertical direction to extract vertical banding\n");
+                }
+                if(average_hor)
+                {
+                    print_msg(MSG_INFO, "   - Also average the images in horizontal direction to extract horizontal banding\n");
+                }
             }
             if(subtract_mode)
             {
@@ -3217,6 +3235,44 @@ abort:
         else
         {
             int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+            
+            /* average the pixels in vertical direction, so we will extract vertical banding noise */
+            if(average_vert)
+            {
+                for(int x = 0; x < video_xRes; x++)
+                {
+                    uint64_t column = 0;
+                    
+                    for(int y = 0; y < video_yRes; y++)
+                    {
+                        column += frame_arith_buffer[y * video_xRes + x];
+                    }
+                    column /= video_yRes;
+                    for(int y = 0; y < video_yRes; y++)
+                    {
+                        frame_arith_buffer[y * video_xRes + x] = column;
+                    }
+                }
+            }
+            if(average_hor)
+            {
+                for(int y = 0; y < video_yRes; y++)
+                {
+                    uint64_t line = 0;
+                    
+                    for(int x = 0; x < video_xRes; x++)
+                    {
+                        line += frame_arith_buffer[y * video_xRes + x];
+                    }
+                    line /= video_yRes;
+                    for(int x = 0; x < video_xRes; x++)
+                    {
+
+                        frame_arith_buffer[y * video_xRes + x] = line;
+                    }
+                }
+            }
+            
             for(int y = 0; y < video_yRes; y++)
             {
                 uint16_t *dst_line = (uint16_t *)&frame_buffer[y * new_pitch];
@@ -3228,6 +3284,7 @@ abort:
                     bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
                 }
             }
+            
 
             int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
 
