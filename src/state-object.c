@@ -166,10 +166,6 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
         lv_vsync_signal();
     }
-#elif defined(CONFIG_EOSM)
-    if (self == EVF_STATE && input == 15 && old_state == 5) {
-        lv_vsync_signal();
-    }
 #endif
 
     // sync display filters (for these, we need to redirect display buffers
