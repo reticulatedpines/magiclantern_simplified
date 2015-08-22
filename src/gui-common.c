@@ -492,7 +492,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
     #endif
     
-    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE) && defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
+    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE)
     if (handle_overlays_playback(event) == 0) return 0;
     #endif
 
