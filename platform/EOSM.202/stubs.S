@@ -394,5 +394,3 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 
 /* Touchscreen  */
 ///NSTUB(0xFF334A98,  touch_cbr_canon)
-
-
