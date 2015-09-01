@@ -53,7 +53,6 @@ extern WEAK_FUNC(ret_0) void audio_configure(int);
 extern WEAK_FUNC(ret_0) int SetAudioVolumeOut(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevActiveIn(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevShutDownIn();
-extern WEAK_FUNC(ret_0) int StopASIFDMAADC();
 extern void SetSamplingRate(int sample_rate, int channels);
 extern uint64_t get_us_clock_value();
 
@@ -235,7 +234,6 @@ static void mlv_snd_stop()
     }
     
     /* some models may need this */
-    StopASIFDMAADC();
     SoundDevShutDownIn();
     audio_configure(1);
     
