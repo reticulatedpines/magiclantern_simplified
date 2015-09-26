@@ -8,7 +8,7 @@ CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c dcraw-bridge.c exiftool-bridge.c adobedng-brid
 HOST=host
 
 ifdef CROSS
-	HOSTCC=~/mingw-w32/bin/i686-w64-mingw32-gcc
+	HOSTCC=$(MINGW_GCC)
 	CR2HDR_BIN=cr2hdr.exe
 endif
 
