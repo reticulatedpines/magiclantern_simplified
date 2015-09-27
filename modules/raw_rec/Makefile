@@ -24,4 +24,4 @@ raw2dng.exe: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
 	$(call build,MINGW,$(MINGW_GCC) raw2dng.o chdk-dng.o -o raw2dng.exe -lm -m32)
 
 clean::
-	$(call rm_files, raw2dng raw2dng.exe dng2raw)
+	$(call rm_files, raw2dng raw2dng.exe dng2raw dng2raw.exe)
