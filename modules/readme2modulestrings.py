@@ -118,11 +118,7 @@ add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
-# Window can't handle this so run it from a shell script
-if sys.platform == 'win32':
-	last_change_info = run("sh ../last_change_info.sh")
-else:
-	last_change_info = run("LC_TIME=EN hg log . -r 'reverse(ancestors(.))' -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
+last_change_info = run("sh ../last_change_info.sh")
 
 if len(last_change_info):
     last_change_date, last_changeset, author, commit_msg = last_change_info.split("\n")
