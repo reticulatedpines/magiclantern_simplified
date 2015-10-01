@@ -64,7 +64,9 @@ exiftool.exe: exiftool.zip
 
 cr2hdr.zip: cr2hdr dcraw exiftool
 # Use for Mac and Linux
-# Can also can be used with msys2/MinGW-64 and Cygwin if exiftool perl script is preferred - run “make cr2hdr.exe” and “make dcraw.exe” first.
+#
+# Can also can be used with msys2/MinGW-64 and Cygwin/MinGW if exiftool perl script is preferred.
+# - run “make cr2hdr.exe && make dcraw.exe && make cr2hdr.zip”
 ifeq ($(OS),Windows_NT)
 	zip -rq cr2hdr-win_exiftool-perl-script cr2hdr.exe dcraw.exe exiftool lib
 else
@@ -72,6 +74,7 @@ else
 endif
 
 cr2hdr-win.zip: cr2hdr.exe dcraw.exe exiftool.exe
+# Windows
 	zip $@ $< $^
 
 all:: $(CR2HDR_BIN)
