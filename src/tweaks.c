@@ -1909,6 +1909,7 @@ static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
 static CONFIG_INT("warn.wb", warn_wb, 0);
+static CONFIG_INT("warn.mf", warn_mf, 0);
 
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
@@ -1922,6 +1923,8 @@ static char* get_warn_msg(char* separator)
     if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
     if (warn_code & 8) { STR_APPEND(msg, "WB isn't set to auto%s", separator); } 
+    if (warn_code & 16 && warn_mf == 1) { STR_APPEND(msg, "Focus is not auto%s", separator); } 
+    if (warn_code & 16 && warn_mf == 2) { STR_APPEND(msg, "Focus is not manual%s", separator); } 
     return msg;
 }
 
@@ -1993,7 +1996,13 @@ static void warn_step()
 
     if (warn_wb && lens_info.wb_mode)
         warn_code |= 8;
-    
+
+    if (warn_mf == 1 && is_manual_focus())
+        warn_code |= 16;
+        
+    if (warn_mf == 2 && !is_manual_focus())
+        warn_code |= 16;
+
     warn_action(warn_code);
 }
 
@@ -2204,6 +2213,13 @@ static struct menu_entry tweak_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"OFF", "other than AWB"},
                 .help = "Warn if you disable AWB by mistake.",
+            },
+            {
+                .name = "AF/MF warning",
+                .priv = &warn_mf,
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "other than AF", "other than MF"},
+                .help = "Warn on Manual / Automatic Focus",
             },
             MENU_EOL,
         },
