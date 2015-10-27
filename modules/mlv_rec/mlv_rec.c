@@ -4178,7 +4178,7 @@ static unsigned int raw_rec_init()
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
-    if(cam_5d2 || cam_50d || cam_7d)
+    if(cam_5d2 || cam_50d || cam_500d || cam_7d)
     {
         exFAT = 0;
         large_file_support = 0;
