@@ -168,6 +168,4 @@ void ml_gui_main_task()
     }
 } 
 
-#ifndef CONFIG_6D
 TASK_OVERRIDE( gui_main_task, ml_gui_main_task);
-#endif

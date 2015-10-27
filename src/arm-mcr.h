@@ -241,8 +241,10 @@ sei( uint32_t old_irq )
 #define LOOP_INSTR    0xeafffffe    // 1: b 1b
 #define NOP_INSTR    0xe1a00000    // mov r0, r0
 #define MOV_R0_0_INSTR 0xe3a00000
-#define MOV_R1_0xC80000_INSTR 0xe3a01732 // mov r1, 0xc80000 
-#define MOV_R1_0xC60000_INSTR 0xE3A018C6 // mov r1, 0xc60000 
+#define MOV_R0_0x450000_INSTR 0xE3A00845
+#define MOV_R1_0xC80000_INSTR 0xE3A01732
+#define MOV_R1_0xC60000_INSTR 0xE3A018C6
+#define MOV_R1_0xCA0000_INSTR 0xE3A018CA
 
 #define MOV_RD_IMM_INSTR(rd,imm)\
     ( 0xE3A00000 \

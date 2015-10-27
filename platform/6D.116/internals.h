@@ -18,6 +18,9 @@
 /** This camera has a DIGIC V chip */
 #define CONFIG_DIGIC_V
 
+/** This camera loads ML into the AllocateMemory pool **/
+#define CONFIG_ALLOCATE_MEMORY_POOL
+
 /** This camera has an APS-C sensor */
 #define CONFIG_FULLFRAME
 

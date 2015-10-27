@@ -55,7 +55,7 @@
 #endif
 
 /** These are called when new tasks are created */
-static void my_task_dispatch_hook( struct context ** );
+static void my_task_dispatch_hook(struct context **, struct task *, struct task *);
 static int my_init_task(int a, int b, int c, int d);
 static void my_bzero( uint8_t * base, uint32_t size );
 
@@ -93,15 +93,6 @@ zero_bss( void )
     while( bss < _bss_end )
         *(bss++) = 0;
 }
-
-#if defined(CONFIG_6D)
-void hijack_6d_guitask()
-{
-    extern void ml_gui_main_task();
-    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
-}
-#endif
-
 
 /** Copy firmware to RAM, patch it and restart it */
 void
@@ -183,15 +174,12 @@ copy_and_restart( )
     * install our own handlers.
     */
 
-    //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
-#ifndef CONFIG_6D
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
     #endif
-#endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -220,14 +208,26 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
  */
 static void
 my_task_dispatch_hook(
-    struct context **   context
+        struct context ** context_unused,   /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
+        struct task * prev_task_empty,      /* only used on new DryOS, but value is always 0 (?!) */
+        struct task * next_task             /* only used on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
+    #ifdef HIJACK_TASK_ADDR                 /* old DryOS only; undefine this for new DryOS */
+    next_task = *(struct task **)(HIJACK_TASK_ADDR);
+    #endif
+
+    if( !next_task)
+        return;
+
+    /* on old DryOS, context is passed as argument, but can be found in the task structure as well */
+    struct context * context = next_task->context;
+
     if( !context )
         return;
     
     #ifdef CONFIG_TSKMON
-    tskmon_task_dispatch();
+    tskmon_task_dispatch(next_task);
     #endif
     
     if (ml_started)
@@ -237,13 +237,10 @@ my_task_dispatch_hook(
     }
 
     // Do nothing unless a new task is starting via the trampoile
-    if( (*context)->pc != (uint32_t) task_trampoline )
+    if( context->pc != (uint32_t) task_trampoline )
         return;
-    
-    // Determine the task address
-    struct task * const task = *(struct task**) HIJACK_TASK_ADDR;
 
-    thunk entry = (thunk) task->entry;
+    thunk entry = (thunk) next_task->entry;
 
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];
@@ -251,26 +248,7 @@ my_task_dispatch_hook(
     struct task_mapping * mapping = _task_overrides_start;
 
 #ifdef CONFIG_QEMU
-    char* task_name = get_task_name_from_id(get_current_task());
-    
-    if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
-        (   /* only start some whitelisted Canon tasks */
-            #ifndef CONFIG_550D
-            !streq(task_name, "Startup") &&
-            #endif
-            !streq(task_name, "TaskMain") &&
-            !streq(task_name, "PowerMgr") &&
-            !streq(task_name, "EventMgr") &&
-            //~ !streq(task_name, "PropMgr") &&
-        1))
-    {
-        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-        task->entry = &ret_0;
-    }
-    else
-    {
-        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-    }
+    qprintf("[*****] Starting task %x(%x) %s\n", next_task->entry, next_task->arg, next_task->name);
 #endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
@@ -283,40 +261,17 @@ my_task_dispatch_hook(
             continue;
 
 /* -- can't call debugmsg from this context */
-#if 0
-        DebugMsg( DM_SYS, 3, "***** Replacing task %x with %x",
+#ifdef CONFIG_QEMU
+        qprintf("***** Replacing task %x with %x\n",
             original_entry,
             mapping->replacement
         );
 #endif
 
-        task->entry = mapping->replacement;
+        next_task->entry = mapping->replacement;
         break;
     }
 }
-
-
-/** 
- * First task after a fresh rebuild.
- *
- * Try to dump the debug log after ten seconds.
- * This requires the create_task(), dmstart(), msleep() and dumpf()
- * routines to have been found.
- */
-static void
-my_dump_task( void )
-{
-    call("dmstart");
-
-    msleep( 10000 );
-    call("dispcheck");
-
-    call("dumpf");
-    call("dmstop");
-}
-
-static volatile int init_funcs_done;
-
 
 /** Call all of the init functions  */
 static void
@@ -624,14 +579,20 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
-    #if defined(CONFIG_550D)
-    // change end limit to 0xc60000 => reserve 640K for ML
+    #if defined(CONFIG_6D)
+    /* R0: 0x44C000 (start address) */
+    /* R1: 0xD3C000 -> 0xCA0000 (end address, reserve 624K for ML) */
+    *addr_AllocMem_end = MOV_R1_0xCA0000_INSTR;
+    *(addr_AllocMem_end+1) = MOV_R0_0x450000_INSTR;    /* 16K lost, no huge deal */
+    ml_reserved_mem = 0xD3C000 - 0xCA0000;
+    #elif defined(CONFIG_550D)
+    // change end limit from 0xd00000 to 0xc60000 => reserve 640K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
-    ml_reserved_mem = 640 * 1024;
+    ml_reserved_mem = 0xD00000 - 0xC60000;
     #else
-    // change end limit to 0xc80000 => reserve 512K for ML
+    // change end limit from 0xd00000 to 0xc80000 => reserve 512K for ML
     *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
-    ml_reserved_mem = 512 * 1024;
+    ml_reserved_mem = 0xD00000 - 0xC80000;
     #endif
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
@@ -731,18 +692,8 @@ my_init_task(int a, int b, int c, int d)
         /* we are not sure if this is a instruction, so patch data cache also */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
-    
-    //~ fix start of AllocateMemory pool so it actually shrinks in size.
-    #ifdef CONFIG_6D
-        cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
-    #endif
     }
 #endif
-
-    #ifdef CONFIG_6D
-    //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
-    cache_fake(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, BL_INSTR(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
-    #endif
 #endif // HIJACK_CACHE_HOOK
 
     // Prepare to call Canon's init_task
