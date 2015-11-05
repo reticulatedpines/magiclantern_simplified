@@ -190,6 +190,7 @@ static int redraw_in_progress = 0;
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
 int is_submenu_or_edit_mode_active() { return gui_menu_shown() && SUBMENU_OR_EDIT; }
+int get_menu_edit_mode() { return edit_mode; }
 
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
@@ -4112,7 +4113,6 @@ menu_redraw_do()
             if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
             {
                 if (is_menu_active("Help")) menu_show_version();
-                if (is_menu_active("Focus")) display_lens_hyperfocal();
             }
             
             if (menu_lv_transparent_mode) 
@@ -5223,7 +5223,7 @@ static void joystick_longpress_check()
     if (joystick_pressed)
     {
         joystick_longpress++;
-        delayed_call(100, joystick_longpress_check);
+        delayed_call(100, joystick_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
@@ -5255,7 +5255,7 @@ static void erase_longpress_check()
     if (erase_pressed)
     {
         erase_longpress++;
-        delayed_call(100, erase_longpress_check);
+        delayed_call(100, erase_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
@@ -5326,7 +5326,7 @@ int handle_ml_menu_erase(struct event * event)
             /* if we can make use of a long joystick press, check it */
             joystick_pressed = 1;
             joystick_longpress = 0;
-            delayed_call(100, joystick_longpress_check);
+            delayed_call(100, joystick_longpress_check, 0);
             if (gui_menu_shown()) return 0;
         }
     }
@@ -5353,7 +5353,7 @@ int handle_ml_menu_erase(struct event * event)
         {
             erase_pressed = 1;
             erase_longpress = 0;
-            delayed_call(100, erase_longpress_check);
+            delayed_call(100, erase_longpress_check, 0);
             return 0;
         }
     }

@@ -42,7 +42,6 @@
     // http://magiclantern.wikia.com/wiki/ASM_Zedbra
     #define YUV422_HD_BUFFER_1 0x463cc080
     #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  (1) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x275A0)
@@ -56,8 +55,6 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7EFE40 // dec gui_main_task
 
-#define SENSOR_RES_X 5184
-#define SENSOR_RES_Y 3456
 #define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
 #define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31184)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -160,7 +157,6 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 90 : 2) // any from 88...98 ?!
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works

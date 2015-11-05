@@ -45,12 +45,9 @@ extern int cf_card_workaround;
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (bottom_bar_hack && class == 131 && level == 1)
-    #if defined(CONFIG_5D3)
-        MEM(0x332C8) = 0; // LvApp_struct.off_0x60 /*0x332C8*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B7780
-    #elif defined(CONFIG_6D)
-        MEM(0x841C0) = 0;
-    #elif defined(CONFIG_EOSM)
-        MEM(0x5D43C) = 0;
+    
+    #if defined(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE)
+        MEM(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE) = 0;
     #endif
 
     #ifdef CONFIG_5D3
@@ -217,7 +214,16 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 void reset_pre_shutdown_flag_step() // called every second
 {
     if (pre_shutdown_requested && !sensor_cleaning)
+    {
         pre_shutdown_requested--;
+        
+        if (!pre_shutdown_requested)
+        {
+            /* false shutdown alarm? */
+            info_led_off();
+            _card_led_off();
+        }
+    }
 }
 
 void check_pre_shutdown_flag() // called from ml_shutdown
@@ -407,7 +413,9 @@ int handle_common_events_by_feature(struct event * event)
         event->param == GMT_GUICMD_LOCK_OFF)
     {
         pre_shutdown_requested = 4;
+        info_led_on(); _card_led_on();
         config_save_at_shutdown();
+        info_led_on(); _card_led_on();
         return 1;
     }
 
@@ -484,8 +492,8 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
     #endif
     
-    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE) && defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
-    if (handle_livev_playback(event) == 0) return 0;
+    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE)
+    if (handle_overlays_playback(event) == 0) return 0;
     #endif
 
     #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE)
@@ -629,9 +637,9 @@ int display_is_on()
     return DISPLAY_IS_ON;
 }
 
-void delayed_call(int delay_ms, void(*function)(void))
+void delayed_call(int delay_ms, void(*function)(), void* arg)
 {
-    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, 0);
+    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, arg);
 }
 
 static void redraw_after_cbr()
@@ -641,7 +649,7 @@ static void redraw_after_cbr()
 
 void redraw_after(int msec)
 {
-    delayed_call(msec, redraw_after_cbr);
+    delayed_call(msec, redraw_after_cbr, 0);
 }
 
 int get_gui_mode()

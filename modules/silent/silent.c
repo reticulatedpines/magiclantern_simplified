@@ -67,6 +67,8 @@ static char image_file_name[100];
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 static int mlv_file_frame_number = 0;
 
+static int long_exposure_fix_enabled = 0;
+
 
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
 {
@@ -1059,15 +1061,43 @@ static void show_battery_status()
 static PROP_INT(PROP_ISO, prop_iso);
 static PROP_INT(PROP_SHUTTER, prop_shutter);
 
-static void display_off_if_qr_mode()
+/* this will check (poll) if we are still in QR (or paused LV) mode, every 100ms,
+ * until preview_time expires or until you get out of QR, whichever happens first
+ * if we didn't leave QR mode, it will turn off the display
+ */
+static void display_off_if_qr_mode(int unused, int preview_time)
 {
-    if (is_play_or_qr_mode())
+    if (is_play_or_qr_mode() || LV_PAUSED)
     {
-        display_off();
+        if (preview_time > 0)
+        {
+            /* OK for now, re-check after 100ms */
+            delayed_call(100, display_off_if_qr_mode, (void*)(preview_time - 100));
+        }
+        else
+        {
+            /* preview_time expired */
+            display_off();
+        }
     }
 }
 
 static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
+
+static void long_exposure_fix()
+{
+    unsigned shutter_old = lens_info.raw_shutter;
+    if (long_exposure_fix_enabled && shutter_old < SHUTTER_0s8)
+    {
+        unsigned shutter = SHUTTER_1_500;
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+        void* job = (void*) call("FA_CreateTestImage");
+        call("FA_CaptureTestImage", job);
+        call("FA_DeleteTestImage", job);
+        
+        prop_request_change_wait( PROP_SHUTTER, &shutter_old, 4, 100);
+    }
+}
 
 static int
 silent_pic_take_fullres(int interactive)
@@ -1165,39 +1195,63 @@ silent_pic_take_fullres(int interactive)
     info_led_off();
     lens_info.job_state = 0;
 
-    display_on();
-    
-    /* on 60D, without this delay, preview is black (unless you hold half-shutter pressed for a while) */
-    msleep(200);
-    
-    /* GUI changing may fail if half-shutter is pressed, so wait until user de-presses it */
-    while (get_halfshutter_pressed())
+    if (image_review_time)
     {
-        bmp_printf(FONT_MED, 0, 0, "Half-shutter pressed...");
-        msleep(20);
-    }
+        /* only preview if Image Review is enabled in Canon menu */
+        display_on();
+        
+        /* on 60D, without this delay, preview is black (unless you hold half-shutter pressed for a while) */
+        msleep(200);
+        
+        /* GUI changing may fail if half-shutter is pressed, so wait until user de-presses it */
+        while (get_halfshutter_pressed())
+        {
+            bmp_printf(FONT_MED, 0, 0, "Half-shutter pressed...");
+            msleep(20);
+        }
 
-    /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
-    int new_gui = GUISTATE_QR;
-    prop_request_change_wait(PROP_GUI_STATE, &new_gui, 4, 1000);
-    gui_uilock(UILOCK_EVERYTHING);
+        /* go to QR mode to trigger overlays and let the raw backend set the buffer size and offsets */
+        /* some cameras would freeze here if Image Review is disabled in Canon menu */
+        int new_gui = GUISTATE_QR;
+        prop_request_change_wait(PROP_GUI_STATE, &new_gui, 4, 1000);
+        gui_uilock(UILOCK_EVERYTHING);
     
-    /* preview the raw image */
-    raw_set_dirty();
-    if (!raw_update_params())
-    {
-        bmp_printf(FONT_MED, 0, 0, "Raw error");
-        goto cleanup;
-    }
-    clrscr();
+        /* preview the raw image */
+        raw_set_dirty();
+        if (!raw_update_params())
+        {
+            bmp_printf(FONT_MED, 0, 0, "Raw error");
+            goto cleanup;
+        }
+        clrscr();
 
-    if (is_intervalometer_running())
-    {
-        msleep(50);
-        show_battery_status();
-    }
+        if (is_intervalometer_running())
+        {
+            msleep(50);
+            show_battery_status();
+        }
 
-    raw_preview_fast();
+        raw_preview_fast();
+    }
+    else
+    {
+        /* even if we don't preview, we still have to update raw parameters */
+        raw_set_dirty();
+        /* fake a QR mode, so the raw backend knows what parameters to apply */
+        /* but do not notify others (triggering the property would freeze on some cameras) */
+        /* however this won't trigger ETTR & co (but you'll see a warning in the menu) */
+        int old_gui_state = gui_state;
+        gui_state = GUISTATE_QR;
+        int ok = raw_update_params();
+        gui_state = old_gui_state;
+        if (!ok)
+        {
+            display_on();
+            msleep(100);
+            bmp_printf(FONT_MED, 0, 0, "Raw error");
+            goto cleanup;
+        }
+    }
 
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
@@ -1251,13 +1305,19 @@ silent_pic_take_fullres(int interactive)
         int intervalometer_delay = get_interval_time() * 1000;
         int intervalometer_remaining = intervalometer_delay - capture_time - save_time - 2000;
         int preview_delay = 
-            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000) 
+            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000 - save_time) 
                               : 0;
-        delayed_call(preview_delay, display_off_if_qr_mode);
-        
+        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
+
         /* attempt to reset the powersave timer */
         int prolong = 3; /* AUTO_POWEROFF_PROLONG */
         prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
+    }
+    else
+    {
+        bmp_printf(FONT_MED, 0, 106, "Long half-shutter will take another picture.");
+        int preview_delay = MAX(1000, image_review_time * 1000 - save_time);
+        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
     }
 
 cleanup:
@@ -1273,6 +1333,7 @@ cleanup:
         call("FA_DeleteTestImage", copy_job);
     }
     
+    long_exposure_fix();
     gui_uilock(UILOCK_NONE);
     
     return ok;
@@ -1311,8 +1372,8 @@ silent_pic_take(unsigned int interactive) // for remote release, set interactive
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES)
     {
         /* in fullres mode, go to LiveView only if in normal photo mode */
-        /* if it's in QR (most likely from previous silent picture), just stay there */
-        if (!lv && gui_state != GUISTATE_QR) force_liveview();
+        /* if it's in QR or paused LV (most likely from previous silent picture), just stay there */
+        if (!lv && !LV_PAUSED && gui_state != GUISTATE_QR) force_liveview();
         ok = silent_pic_take_fullres(interactive);
     }
     else
@@ -1348,9 +1409,19 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
     {
         /* half-shutter was pressed while in playback mode, for example */
         if (silent_pic_countdown)
-            return 0;
+        {
+            /* in this case, require a long press to trigger a new picture */
+            for (int i = 0; i < 10; i++)
+            {
+                msleep(50);
+                if (!get_halfshutter_pressed())
+                {
+                    return 0;
+                }
+            }
+        }
 
-        if (!is_manual_focus())
+        if (lv && !is_manual_focus())
         {
             /* try to ignore the AF button, and only take pictures on plain half-shutter */
             /* problem: lv_focus_status is not updated right away :( */
@@ -1374,6 +1445,27 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
         
         silent_pic_take(1);
     }
+    
+    if (LV_PAUSED && get_halfshutter_pressed())
+    {
+        /* long press will trigger a second picture */
+        /* short press will go back to LiveView */
+        info_led_on();
+        for (int i = 0; i < 10; i++)
+        {
+            msleep(50);
+            if (!get_halfshutter_pressed())
+            {
+                info_led_off();
+                ResumeLiveView();
+                return 0;
+            }
+        }
+        info_led_off();
+        
+        silent_pic_take(1);
+    }
+    
     return 0;
 }
 
@@ -1448,7 +1540,7 @@ static unsigned int silent_init()
     if (is_camera("500D", "*") || is_camera("550D", "*") || is_camera("600D", "*"))
     {
         /* see http://www.magiclantern.fm/forum/index.php?topic=12523.msg129874#msg129874 */
-        SLOWEST_SHUTTER = SHUTTER_0s8;
+        long_exposure_fix_enabled = 1;
     }
 
     menu_add("Shoot", silent_menu, COUNT(silent_menu));

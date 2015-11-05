@@ -10,4 +10,4 @@ $(XOR_CHK): $(XOR_CHK).c
 	$(call build,XOR_CHK,$(HOST_CC) $< -o $@)
 
 clean::
-	$(call rm_files, $(XOR_CHK))
+	$(call rm_files, $(XOR_CHK) $(XOR_CHK).exe)

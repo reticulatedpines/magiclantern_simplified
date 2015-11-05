@@ -234,6 +234,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN 520
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1970)
+    #error fixme: FPS_TIMER_B_MIN and FPS_TIMER_B_MIN are plain wrong
 #elif defined(CONFIG_6D)
     #define TG_FREQ_BASE 25600000
     #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 22 : MV720 ? 10 : 34) ) //, ZOOM ? 708 : 512)
@@ -272,7 +273,7 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_1100D)
     #define NEW_FPS_METHOD 1
     #undef TG_FREQ_BASE
-    #define TG_FREQ_BASE 32070000
+    // #define TG_FREQ_BASE 32070000 - incorrect, see http://www.magiclantern.fm/forum/index.php?topic=1009.msg146321#msg146321
     #undef FPS_TIMER_A_MIN
     #define FPS_TIMER_A_MIN (ZOOM ? 940 : 872)
     #undef FPS_TIMER_B_MIN

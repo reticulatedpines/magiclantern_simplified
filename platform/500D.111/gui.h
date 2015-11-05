@@ -19,9 +19,6 @@
 //#define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 9
 #define BGMT_PRESS_HALFSHUTTER 0x23
-#define BGMT_UNPRESS_HALFSHUTTER 0x24
-#define BGMT_PRESS_FULLSHUTTER 0x25
-#define BGMT_UNPRESS_FULLSHUTTER 0x26
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
@@ -37,7 +34,6 @@
 /*#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x3f && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
 
 #define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
 #define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0x1000000))
@@ -46,7 +42,6 @@
 #define BGMT_FLASH_MOVIE 0
 #define BGMT_PRESS_FLASH_MOVIE 0
 #define BGMT_UNPRESS_FLASH_MOVIE 0
-#define FLASH_BTN_MOVIE_MODE 0
 
 #define BGMT_ISO_MOVIE 0
 #define BGMT_PRESS_ISO_MOVIE 0

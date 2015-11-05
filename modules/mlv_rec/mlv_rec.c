@@ -70,6 +70,7 @@
 #include <edmac-memcpy.h>
 #include <cache_hacks.h>
 #include <string.h>
+#include <shoot.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -124,8 +125,8 @@ uint32_t raw_rec_trace_ctx = TRACE_ERROR;
  * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
-static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
+static uint32_t resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
+#define  RESOLUTION_CHOICES_X CHOICES(     "640","960","1280","1600","1920","2240","2560","2880","3200","3520")
 
 static uint32_t aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -141,7 +142,8 @@ static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
 static CONFIG_INT("mlv.black_fix", black_fix, 0);
-static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
+static CONFIG_INT("mlv.res.x", resolution_index_x, 4);
+static CONFIG_INT("mlv.res.x.fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
@@ -164,6 +166,7 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
+static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -552,7 +555,7 @@ static void update_resolution_params()
     else squeeze_factor = 1.0f;
 
     /* res X */
-    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+    res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
 
     /* res Y */
     int32_t num = aspect_ratio_presets_num[aspect_ratio_index];
@@ -713,6 +716,23 @@ static void refresh_raw_settings(int32_t force)
     }
 }
 
+static int32_t calc_crop_factor()
+{
+
+    int32_t camera_crop = 162;
+    int32_t sampling_x = 3;
+    
+    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
+    
+    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
+    
+    get_afframe_sensor_res(&sensor_res_x, NULL);
+    if (!sensor_res_x) return 0;
+    if (!res_x) return 0;
+    
+    return camera_crop * (sensor_res_x / sampling_x) / res_x;
+}
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!mlv_video_enabled)
@@ -733,6 +753,8 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        int32_t crop_factor = calc_crop_factor();
+        if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 
     write_speed_update(entry, info);
@@ -766,9 +788,11 @@ static MENU_UPDATE_FUNC(resolution_update)
 
     refresh_raw_settings(1);
 
-    int32_t selected_x = resolution_presets_x[resolution_index_x];
+    int32_t selected_x = resolution_presets_x[resolution_index_x] + res_x_fine;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
+    int32_t crop_factor = calc_crop_factor();
+    if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
 
     if (selected_x > max_res_x)
     {
@@ -1688,9 +1712,9 @@ static void hack_liveview(int32_t unhack)
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
-            cam_6d  ? 0xFF52BE94 :
+            cam_6d   ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
-            cam_700d ? 0xFF52BA7C :
+            cam_700d ? 0xFF52BB60 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_500d ? 0xFF2ABEF8 :
@@ -3742,6 +3766,36 @@ static MENU_UPDATE_FUNC(raw_tag_take_update)
     }
 }
 
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!mlv_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if (get_menu_edit_mode()) {
+        /* preset resolution from pickbox */
+        resolution_index_x = MOD(resolution_index_x + delta, COUNT(resolution_presets_x));
+        res_x_fine = 0;
+        return;
+    }
+    
+    /* fine-tune resolution in 32px increments */
+    uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    if (delta < 0) cur_res = MIN(cur_res, max_res_x);
+    cur_res += delta * 32;
+    int last = COUNT(resolution_presets_x)-1;
+    cur_res = COERCE(cur_res, resolution_presets_x[0], resolution_presets_x[last]);
+    
+    /* pick the closest preset */
+    resolution_index_x = 0;
+    while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
+        resolution_index_x += 1;
+    }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
+    
+}
+
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -3757,56 +3811,61 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
+                .select = resolution_change_fine_value,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
             },
             {
-                .name = "Aspect ratio",
+                .name = "Aspect Ratio",
                 .priv = &aspect_ratio_index,
                 .max = COUNT(aspect_ratio_presets_num) - 1,
                 .update = aspect_ratio_update,
                 .choices = aspect_ratio_choices,
             },
             {
-                .name = "Create directory",
+                .name = "Create Directory",
                 .priv = &create_dirs,
                 .max = 1,
-                .help = "Save video chunks in separate folders",
+                .help = "Save video chunks in separate folders.",
             },
             {
                 .name = "Global Draw",
                 .priv = &kill_gd,
                 .max = 1,
                 .choices = CHOICES("Allow", "OFF"),
-                .help = "Disable global draw while recording.\n Some previews depend on GD",
+                .help = "Disable global draw while recording.",
+                .help2 = "May help with performance. Some previews depend on GD.",
             },
             {
-                .name = "Frame skipping",
+                .name = "Frame Skipping",
                 .priv = &allow_frame_skip,
                 .max = 1,
                 .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+                .help2 = "Be careful of stuttering footage.",
             },
             {
-                .name = "Preview",
+                .name = "Preview Options",
                 .priv = &preview_mode,
                 .max =  4,
                 .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD", "Hacked No Prev"),
-                .help2 = "Auto: ML chooses what's best for each video mode\n"
-                         "Canon: plain old LiveView. Framing is not always correct.\n"
-                         "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+                .help2 = "Auto: ML chooses what's best for each video mode.\n"
+                         "Canon: Plain old LiveView. Framing is not always correct.\n"
+                         "ML Grayscale: Looks ugly, but at least framing is correct.\n"
+                         "HaCKeD: Try to squeeze a little speed by killing LiveView.\n"
                          "HaCKeD2: No preview. Disables Global draw while recording.\n"
             },
             {
-                .name = "Status when recording",
+                .name = "Status When Recording",
                 .priv = &display_rec_info,
                 .max = 2,
                 .choices = CHOICES("None", "Icon", "Debug"),
-                .help = "Display status when recording.",
+                .help = "Display status while recording.",
+                .help2 = "Display a small recording icon with basic information.\n"
+                         "Display more information useful for debugging.\n"
             },
             {
-                .name = "Start delay",
+                .name = "Start Delay",
                 .priv = &start_delay_idx,
                 .max = 3,
                 .choices = CHOICES("OFF", "2 sec.", "4 sec.", "10 sec."),
@@ -3818,18 +3877,18 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Files > 4GiB (exFAT)",
                 .priv = &large_file_support,
                 .max = 1,
-                .help = "Don't split files on 4GiB margins, not supported on all models.",
-                .help2 = "Ensure you formatted your card as exFAT!"
+                .help = "Don't split files on 4GiB margins.",
+                .help2 = "Ensure your card is formatted as exFAT!"
             },
             {
-                .name = "Digital dolly",
+                .name = "Digital Dolly",
                 .priv = &dolly_mode,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
                 .help2 = "Use arrow keys (joystick) to move the window."
             },
             {
-                .name = "Card warm-up",
+                .name = "Card Warm-up",
                 .priv = &warm_up,
                 .max = 7,
                 .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
@@ -3837,67 +3896,71 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Some cards seem to get a bit faster after this.",
             },
             {
-                .name = "Use SRM job memory",
+                .name = "Use SRM Job Memory",
                 .priv = &use_srm_memory,
                 .max = 1,
-                .help = "Allocate memory from SRM job buffers",
+                .help = "Allocate memory from SRM job buffers.",
             },
             {
                 .name = "Extra Hacks",
                 .priv = &small_hacks,
                 .max = 1,
-                .help  = "Slow down Canon GUI, Lock digital expo while recording...",
+                .help = "Slow down Canon GUI, lock digital expo while recording.",
+                .help2 = "May help with performance.",
             },
             {
-                .name = "Fix black level",
+                .name = "Fix Black Level",
                 .priv = &black_fix,
                 .max = 1,
                 .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
-                .help2  = "Try this to fix green casts.",
+                .help2  = "Try this to fix green/magenta casts.",
             },
             {
-                .name = "Debug trace",
+                .name = "Debug Trace",
                 .priv = &enable_tracing,
                 .max = 1,
                 .help = "Write an execution trace. Causes perfomance drop.",
                 .help2 = "You have to restart camera before setting takes effect.",
             },
             {
-                .name = "Show buffer graph",
+                .name = "Show Buffer Graph",
                 .priv = &show_graph,
                 .max = 1,
                 .help = "Displays a graph of the current buffer usage and expected frames.",
             },
             {
-                .name = "Buffer fill method",
+                .name = "Buffer Fill Method",
                 .priv = &buffer_fill_method,
                 .max = 4,
-                .help  = "Method for filling buffers. Will affect write speed.",
+                .help = "Method for filling buffers. Will affect write speed.",
+                .help2 = "Try different options for the best performance.",
             },
             {
-                .name = "CF-only buffers",
+                .name = "CF-only Buffers",
                 .priv = &fast_card_buffers,
                 .max = 9,
                 .help  = "How many of the largest buffers are for CF writing.",
             },
             {
-                .name = "Card spanning",
+                .name = "Card Spanning",
                 .priv = &card_spanning,
                 .max = 1,
-                .help  = "Span video file over cards to use SD+CF write speed",
+                .help  = "Span video file over cards to use SD+CF write speed.",
+                .help2 = "May increase performance.",
             },
             {
-                .name = "Reserve card space",
+                .name = "Reserve Card Space",
                 .priv = &create_dummy,
                 .max = 1,
-                .help  = "Write a file before recording to prevent data loss on full card",
+                .help = "Write a file to the card before recording.",
+                .help2 = "Use this to prevent data loss at card full.",
             },
             {
                 .name = "Tag: Text",
                 .priv = raw_tag_str,
                 .select = raw_tag_str_start,
                 .update = raw_tag_str_update,
-                .help  = "Free text field",
+                .help  = "Free text field.",
             },
             {
                 .name = "Tag: Take",
@@ -3905,7 +3968,7 @@ static struct menu_entry raw_video_menu[] =
                 .min = 0,
                 .max = 99,
                 .update = raw_tag_take_update,
-                .help  = "Auto-Counting take number",
+                .help  = "Auto-counting take number.",
             },
             MENU_EOL,
         },
@@ -4105,17 +4168,17 @@ static unsigned int raw_rec_init()
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.2.3");
     cam_550d  = is_camera("550D", "1.0.9");
-    cam_6d    = is_camera("6D",   "1.1.3");
+    cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.3");
+    cam_700d  = is_camera("700D", "1.1.4");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
-    if(cam_5d2 || cam_50d || cam_7d)
+    if(cam_5d2 || cam_50d || cam_500d || cam_7d)
     {
         exFAT = 0;
         large_file_support = 0;
@@ -4127,9 +4190,9 @@ static unsigned int raw_rec_init()
         if (cam_eos_m && streq(e->name, "Digital dolly") )
             e->shidden = 1;
 
-        if (!cam_5d3 && streq(e->name, "CF-only buffers") )
+        if (!cam_5d3 && streq(e->name, "CF-only Buffers") )
             e->shidden = 1;
-        if (!cam_5d3 && streq(e->name, "Card spanning") )
+        if (!cam_5d3 && streq(e->name, "Card Spanning") )
             e->shidden = 1;
         if (!exFAT && streq(e->name, "Files > 4GiB (exFAT)") )
             e->shidden = 1;
@@ -4214,6 +4277,7 @@ MODULE_PROPHANDLERS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_video_enabled)
     MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(res_x_fine)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)

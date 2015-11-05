@@ -26,7 +26,7 @@ static struct card_info * SHOOTING_CARD = &available_cards[CARD_B];
 // File I/O wrappers for handling the dual card slot on 5D3
 
 static char dcim_dir_suffix[6];
-static char dcim_dir[100];
+static char dcim_dir[FIO_MAX_PATH_LENGTH];
 
 /* enable to slow down the write speed, which improves compatibility with certain cards */
 /* only enable if needed */
@@ -325,7 +325,6 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #define IS_IN_ML_DIR(filename)   (strncmp("ML/", filename, 3) == 0)
 #define IS_IN_ROOT_DIR(filename) (filename[0] == '/' || !strchr(filename, '/'))
 #define IS_DRV_PATH(filename)    (filename[1] == ':')
-
     char* drive_letter = ML_CARD->drive_letter;
 
     if (IS_DRV_PATH(old_filename))
@@ -339,7 +338,7 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
     {
         drive_letter = SHOOTING_CARD->drive_letter;
     }
-    snprintf(new_filename, 100, "%s:/%s", drive_letter, old_filename);
+    snprintf(new_filename, size, "%s:/%s", drive_letter, old_filename);
 #undef IS_IN_ML_DIR
 #undef IS_IN_ROOT_DIR
 #undef IS_DRV_PATH
@@ -352,8 +351,8 @@ FILE* _FIO_OpenFile(const char* filename, unsigned mode );
 /* this one returns 0 on error, just like in plain C */
 FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
-    char new_filename[100];
-    fixup_filename(new_filename, filename, 100);
+    char new_filename[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_filename, filename, sizeof(new_filename));
     
     FILE* f = _FIO_OpenFile(new_filename, mode);
     
@@ -368,32 +367,32 @@ FILE* FIO_OpenFile(const char* filename, unsigned mode )
 int _FIO_GetFileSize(const char * filename, uint32_t * size);
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
-    char new_filename[100];
-    fixup_filename(new_filename, filename, 100);
+    char new_filename[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_filename, filename, sizeof(new_filename));
     return _FIO_GetFileSize(new_filename, size);
 }
 
 int _FIO_RemoveFile(const char * filename);
 int FIO_RemoveFile(const char * filename)
 {
-    char new_filename[100];
-    fixup_filename(new_filename, filename, 100);
+    char new_filename[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_filename, filename, sizeof(new_filename));
     return _FIO_RemoveFile(new_filename);
 }
 
 struct fio_dirent * _FIO_FindFirstEx(const char * dirname, struct fio_file * file);
 struct fio_dirent * FIO_FindFirstEx(const char * dirname, struct fio_file * file)
 {
-    char new_dirname[100];
-    fixup_filename(new_dirname, dirname, 100);
+    char new_dirname[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_dirname, dirname, sizeof(new_dirname));
     return _FIO_FindFirstEx(new_dirname, file);
 }
 
 int _FIO_CreateDirectory(const char * dirname);
 int FIO_CreateDirectory(const char * dirname)
 {
-    char new_dirname[100];
-    fixup_filename(new_dirname, dirname, 100);
+    char new_dirname[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_dirname, dirname, sizeof(new_dirname));
     if (is_dir(new_dirname)) return 0;
     return _FIO_CreateDirectory(new_dirname);
 }
@@ -402,10 +401,10 @@ int FIO_CreateDirectory(const char * dirname)
 int _FIO_RenameFile(char *src,char *dst);
 int FIO_RenameFile(char *src,char *dst)
 {
-    char newSrc[255];
-    char newDst[255];
-    fixup_filename(newSrc, src, 255);
-    fixup_filename(newDst, dst, 255);
+    char newSrc[FIO_MAX_PATH_LENGTH];
+    char newDst[FIO_MAX_PATH_LENGTH];
+    fixup_filename(newSrc, src, FIO_MAX_PATH_LENGTH);
+    fixup_filename(newDst, dst, FIO_MAX_PATH_LENGTH);
     return _FIO_RenameFile(newSrc, newDst);
 }
 #else
@@ -427,8 +426,8 @@ static unsigned _GetFileSize(char* filename)
 
 uint32_t FIO_GetFileSize_direct(const char* filename)
 {
-    char new_filename[100];
-    fixup_filename(new_filename, filename, 100);
+    char new_filename[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_filename, filename, sizeof(new_filename));
     return _GetFileSize(new_filename);
 }
 
@@ -496,8 +495,8 @@ static FILE* _FIO_CreateFileEx(const char* name)
 }
 FILE* FIO_CreateFile(const char* name)
 {
-    char new_name[100];
-    fixup_filename(new_name, name, 100);
+    char new_name[FIO_MAX_PATH_LENGTH];
+    fixup_filename(new_name, name, sizeof(new_name));
     return _FIO_CreateFileEx(new_name);
 }
 

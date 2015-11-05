@@ -4,7 +4,6 @@
 
 #define CANON_SHUTTER_RATING 100000
 
-#include "consts-600d.101.h"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
@@ -37,7 +36,6 @@
 #define YUV422_HD_BUFFER_1 0x468cb600
 #define YUV422_HD_BUFFER_2 0x47465c00
 // maybe there are more
-//#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x2438))
@@ -137,8 +135,6 @@
 
 #define MVR_992_STRUCT (*(void**)0x1DF4)
 
-#define SENSOR_RES_X 4272
-#define SENSOR_RES_Y 2848
 
 //Same as 600D
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308
@@ -209,3 +205,67 @@
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp - 128)
+
+// these were found in ROM, but not tested yet
+
+#define div_maybe(a,b) ((a)/(b))
+
+// see mvrGetBufferUsage, which is not really safe to call => err70
+// macros copied from arm-console
+#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-100*MEM(356 + MVR_992_STRUCT) - 100*MEM(364 + MVR_992_STRUCT) - 100*MEM(952 + MVR_992_STRUCT) - 100*MEM(960 + MVR_992_STRUCT) + 100*MEM(360 + MVR_992_STRUCT) + 100*MEM(368 + MVR_992_STRUCT), -MEM(356 + MVR_992_STRUCT) - MEM(364 + MVR_992_STRUCT) + MEM(360 + MVR_992_STRUCT) + MEM(368 + MVR_992_STRUCT)))
+#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(544 + MVR_992_STRUCT) + 100*MEM(532 + MVR_992_STRUCT), 0xa)
+#define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
+
+#define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
+#define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
+
+#define MOV_RES_AND_FPS_COMBINATIONS 9 // Really, Canon?
+#define MOV_OPT_NUM_PARAMS 2
+#define MOV_GOP_OPT_NUM_PARAMS 5
+#define MOV_OPT_STEP 5
+#define MOV_GOP_OPT_STEP 5
+
+#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
+#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ac4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
+
+// 720x480, changes when external monitor is connected
+
+// Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
+
+
+
+
+// guess
+
+
+
+#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
+#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
+#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
+
+
+
+#define COLOR_FG_NONLV 80
+
+
+//#define AE_VALUE (*(int8_t*)0x7E14)
+
+// these are wrong (just for compiling)
+#define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
+
+#define BGMT_PRESS_ZOOMIN_MAYBE 0xe
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
+
+#define NUM_PICSTYLES 10
+
+
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -5
+#define FASTEST_SHUTTER_SPEED_RAW 152
+#define MAX_AE_EV 5
+
+
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x8490) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+

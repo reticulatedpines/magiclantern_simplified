@@ -192,7 +192,6 @@ static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 static CONFIG_INT("digic.swap-uv", swap_uv, 0);
 static CONFIG_INT("digic.cartoon", cartoon, 0);
-static CONFIG_INT("digic.oilpaint", oilpaint, 0);
 static CONFIG_INT("digic.sharp", sharp, 0);
 static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
@@ -806,7 +805,7 @@ void image_effects_step()
         }
         EngDrvOutLV(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
     }
-    if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
+    //if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
@@ -999,13 +998,6 @@ static struct menu_entry lv_img_menu[] = {
                 .priv = &sharp, 
                 .max = 1,
                 .help = "Darken sharp edges in bright areas.",
-                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-            },
-            {
-                .name = "Noise Reduction", 
-                .priv = &oilpaint, 
-                .max = 1,
-                .help = "Some sort of movie noise reduction, or smearing.",
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             #endif

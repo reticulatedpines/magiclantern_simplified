@@ -63,23 +63,12 @@
 #define YUV422_HD_BUFFER_3 0x48000080
 #define YUV422_HD_BUFFER_4 0x4e000080
 #define YUV422_HD_BUFFER_5 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-/*#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
 
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
 
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
 
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480*/
 
 #define FOCUS_CONFIRMATION (*(int*)0x3ce0) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1c14) // used for Trap Focus and Magic Off.
@@ -91,10 +80,7 @@
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
 #define DISPLAY_SENSOR_POWERED (*(int*)0x3178) // dec AJ_Req_DispSensorStart
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task
 
-#define SENSOR_RES_X 4752
-#define SENSOR_RES_Y 3168
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x6A50) == 0xF)
@@ -114,8 +100,6 @@
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
 #define MVR_BYTES_WRITTEN (*(int*)(212 + MVR_190_STRUCT))
 
- #define MOV_REC_STATEOBJ (*(void**)0x5B34)
- #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
 #define MOV_RES_AND_FPS_COMBINATIONS 2
 #define MOV_OPT_NUM_PARAMS 2
@@ -149,7 +133,6 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 36 : 2)
 
@@ -167,12 +150,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works

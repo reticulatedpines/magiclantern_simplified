@@ -16,3 +16,5 @@
 #undef FEATURE_AF_PATTERNS
 
 #define FEATURE_AUDIO_REMOTE_SHOT
+
+#undef FEATURE_VIGNETTING_CORRECTION // requires master code

@@ -2355,44 +2355,6 @@ static void screenshot_start(void* priv, int delta)
     screenshot_sec = 10;
 }
 
-/*void screenshots_for_menu()
-{
-    msleep(1000);
-    extern struct semaphore * gui_sem;
-    give_semaphore(gui_sem);
-
-    select_menu_by_name("Audio", "AGC");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Expo", "ISO");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Overlay", "Magic Zoom");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Movie", "FPS override");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Shoot", "Motion Detect");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Focus", "Follow Focus");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Display", "LV saturation");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Prefs", "Powersave settings...");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Debug", "Free Memory");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Help", "About Magic Lantern");
-    msleep(1000); call("dispcheck");
-}
-*/
-
 static int draw_event = 0;
 
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
@@ -3916,11 +3878,6 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         case MLEV_REDRAW:
             _redraw_do();   /* todo: move in gui-common.c */
-            break;
-        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event); /* todo: move back to zebra.c */
-            #endif
             break;
     }
     

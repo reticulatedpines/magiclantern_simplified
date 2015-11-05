@@ -146,7 +146,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
 #elif defined(CONFIG_5D2)
@@ -164,10 +164,6 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 	}
 #elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D) //TODO: Check 700D and 100D
     if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
-        lv_vsync_signal();
-    }
-#elif defined(CONFIG_EOSM)
-    if (self == EVF_STATE && input == 15 && old_state == 5) {
         lv_vsync_signal();
     }
 #endif
@@ -264,6 +260,8 @@ static int stateobj_em_spy(struct state_object * self, int x, int input, int z, 
 
 static int stateobj_start_spy(struct state_object * stateobj, void* spy)
 {
+    ASSERT(streq(stateobj->type, "StateObject"));
+
     if (!StateTransition)
         StateTransition = (void *)stateobj->StateTransition_maybe;
     
