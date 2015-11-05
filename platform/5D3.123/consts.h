@@ -67,7 +67,6 @@
 #define YUV422_HD_BUFFER_1 0x54000000
 #define YUV422_HD_BUFFER_2 0x4ee00000
 //~ #define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  (1) // disable the check, it's complicated
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x2763C)
@@ -186,7 +185,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
 #define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
 #define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
@@ -278,3 +276,6 @@
 #define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
 
 #define CANON_SHUTTER_RATING 150000
+
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x332C8
