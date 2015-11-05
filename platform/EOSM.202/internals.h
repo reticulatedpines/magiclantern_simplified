@@ -1,9 +1,9 @@
 /**
- * Camera internals for EOS-M 1.0.6
+ * Camera internals for EOS-M 2.0.2
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The EOS_M port is very young, so we don't enable these for now. **/
+/** The EOS_M port is young, but... let's give it a try! **/
 #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
