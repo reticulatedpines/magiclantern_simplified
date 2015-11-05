@@ -683,12 +683,8 @@ static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-#if defined(CONFIG_6D) || defined(CONFIG_EOSM) 
-ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
-   
-#else
-   ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
-#endif    
+    /* note: 129 is a special screen before zooming in, on newer cameras */
+    ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
     zoom_sharpen_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
