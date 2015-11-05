@@ -1130,10 +1130,12 @@ static void zebra_update_lut()
 
 #endif
 
-
-static int zebra_digic_dirty = 0;
-
 #ifdef FEATURE_ZEBRA
+
+#ifdef FEATURE_ZEBRA_FAST
+static int zebra_digic_dirty = 0;
+#endif
+
 static void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
@@ -4519,9 +4521,9 @@ int is_focus_peaking_enabled()
 #endif
 }
 
-#ifdef FEATURE_ZEBRA_FAST
 static void digic_zebra_cleanup()
 {
+#ifdef FEATURE_ZEBRA_FAST
     if (zebra_digic_dirty)
     {
         if (!DISPLAY_IS_ON) return;
@@ -4530,8 +4532,8 @@ static void digic_zebra_cleanup()
         alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
         zebra_digic_dirty = 0;
     }
-}
 #endif
+}
 
 #ifdef FEATURE_SHOW_OVERLAY_FPS
 void update_lv_fps() // to be called every 10 seconds
@@ -4567,10 +4569,8 @@ livev_hipriority_task( void* unused )
             msleep(100);
         }
 
-        #ifdef FEATURE_ZEBRA_FAST
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
         if (!zd) digic_zebra_cleanup();
-        #endif
         
 #ifdef CONFIG_RAW_LIVEVIEW
         static int raw_flag = 0;
@@ -4582,9 +4582,7 @@ livev_hipriority_task( void* unused )
             while (RECORDING_H264_STARTING) msleep(100);
             if (!zebra_should_run())
             {
-#ifdef FEATURE_ZEBRA_FAST
                 digic_zebra_cleanup();
-#endif
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
                 if (lv) disable_electronic_level();
