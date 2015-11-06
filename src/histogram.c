@@ -261,6 +261,7 @@ void hist_draw_image(
         }
 
 #if defined(FEATURE_HISTOGRAM)
+        /* draw clip warnings */
         if (hist_warn && i == HIST_WIDTH - 1)
         {
             unsigned int thr = histogram.total_px / 100000; // start at 0.0001 with a tiny dot
@@ -297,6 +298,7 @@ void hist_draw_image(
                 draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, (int)i <= underexposed_level ? 4 : COLOR_GRAY(20));
             }
 
+            /* draw full-stop (EV) bars */
             if (i == bar_pos)
             {
                 int dy = (i < font_med.width * 4) ? font_med.height : 0;
@@ -304,6 +306,7 @@ void hist_draw_image(
                 bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
             }
 
+            /* compute a basic ETTR hint */
             unsigned int thr = histogram.total_px / 10000;
             if (histogram.hist_r[i] > thr || histogram.hist_g[i] > thr || histogram.hist_b[i] > thr)
                 stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
@@ -311,7 +314,9 @@ void hist_draw_image(
         #endif
 
     }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
+
+    /* draw histogram border */
+    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+2, hist_height+2);
 
     #ifdef FEATURE_RAW_HISTOGRAM
     if (histogram.is_raw)
