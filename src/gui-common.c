@@ -44,10 +44,11 @@ extern int cf_card_workaround;
 
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
-    if (bottom_bar_hack && class == 131 && level == 1)
-    
     #if defined(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE)
+    if (bottom_bar_hack && class == 131 && level == 1)
+    {
         MEM(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE) = 0;
+    }
     #endif
 
     #ifdef CONFIG_5D3
