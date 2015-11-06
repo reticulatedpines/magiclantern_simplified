@@ -17,7 +17,7 @@
 #include <af_patterns.h>
 #endif
 
-#if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK_FBUFF)
+#if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG)
 #define CONFIG_LVAPP_HACK
 #endif
 
@@ -44,7 +44,7 @@ extern int cf_card_workaround;
 
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
-    #if defined(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE)
+    #if defined(CONFIG_LVAPP_HACK_DEBUGMSG)
     if (bottom_bar_hack && class == 131 && level == 1)
     {
         MEM(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE) = 0;
@@ -126,20 +126,6 @@ int handle_other_events(struct event * event)
             bottom_bar_hack = 1;
 
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
-
-            #ifdef CONFIG_LVAPP_HACK_FBUFF
-            if (!canon_gui_front_buffer_disabled() && LV_BOTTOM_BAR_DISPLAYED)
-            {
-                clrscr();
-                canon_gui_disable_front_buffer();
-                bottom_bar_dirty=0;
-            }
-
-            if (canon_gui_front_buffer_disabled() && !LV_BOTTOM_BAR_DISPLAYED)
-            {
-                canon_gui_enable_front_buffer(0);
-            }
-            #endif
 
             #ifdef UNAVI_FEEDBACK_TIMER_ACTIVE
             /*

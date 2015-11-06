@@ -137,5 +137,5 @@
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** Hide Canon bottom bar by temporarily disabling their front BMP buffer */
-#define CONFIG_LVAPP_HACK_FBUFF
+/** Hide Canon bottom bar from DebugMsg hook */
+#define CONFIG_LVAPP_HACK_DEBUGMSG

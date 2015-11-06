@@ -238,6 +238,9 @@
 
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x41958) != 0x17) // CancelUnaviFeedBackTimer
 
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE 0x419A0
+
 #define DISPLAY_ORIENTATION MEM(0x23C20+0xB8) // read-only; string: UpdateReverseTFT.
 
     /******************************************************************************************************************
