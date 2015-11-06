@@ -3899,7 +3899,7 @@ void draw_histogram_and_waveform(int allow_play)
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
         else if (screen_layout == SCREENLAYOUT_3_2)
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 + 10 : 0) - hist_height - 1, -1); )
         else
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
     }
