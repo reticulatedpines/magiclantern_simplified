@@ -296,9 +296,14 @@ void hist_draw_image(
             if (i == 0) bar_pos = 0;
             int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
 
-            if ((int)i <= underexposed_level + HIST_WIDTH/12)
+            /* mark what's below the noise floor with... noise */
+            if ((int)i <= underexposed_level + HIST_WIDTH/12 && i%2==0)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, (int)i <= underexposed_level ? 4 : COLOR_GRAY(20));
+                for (int y = y_origin + ((i/2)%2)*2; y < (int)y_origin + h; y += 4)
+                {
+                    int noise_color = (int)i <= underexposed_level ? COLOR_GRAY(60) : COLOR_GRAY(30);
+                    bmp_putpixel(x_origin + i, y, noise_color);
+                }
             }
 
             /* draw full-stop (EV) bars */
