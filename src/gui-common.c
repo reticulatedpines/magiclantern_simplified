@@ -128,14 +128,14 @@ int handle_other_events(struct event * event)
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
             #ifdef CONFIG_LVAPP_HACK_FBUFF
-            if (!canon_gui_front_buffer_disabled() && UNAVI_FEEDBACK_TIMER_ACTIVE)
+            if (!canon_gui_front_buffer_disabled() && LV_BOTTOM_BAR_DISPLAYED)
             {
                 clrscr();
                 canon_gui_disable_front_buffer();
                 bottom_bar_dirty=0;
             }
 
-            if (canon_gui_front_buffer_disabled() && !UNAVI_FEEDBACK_TIMER_ACTIVE)
+            if (canon_gui_front_buffer_disabled() && !LV_BOTTOM_BAR_DISPLAYED)
             {
                 canon_gui_enable_front_buffer(0);
             }

@@ -56,7 +56,6 @@
 #define GMT_FUNCTABLE 0xFF7FA7F8 //dec gui_main_task
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x2658C) // in SetGUIRequestMode
-#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31254)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
@@ -235,7 +234,7 @@
 #define UNAVI_BASE (0x41948)
 #define UNAVI (MEM(UNAVI_BASE + 0x24)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
 #define UNAVI_AV (MEM(UNAVI_BASE + 0x58)) //Same as above, but this location is linked to the exp comp button
-#define UNAVI_FEEDBACK_TIMER_ACTIVE ((UNAVI == 2) || (UNAVI_AV != 0))
+#define LV_BOTTOM_BAR_DISPLAYED ((UNAVI == 2) || (UNAVI_AV != 0))
 
 #define DISPLAY_ORIENTATION MEM(0x23C20+0xB8) // read-only; string: UpdateReverseTFT.
 
