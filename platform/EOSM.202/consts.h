@@ -193,6 +193,8 @@
 #define SCROLLHACK (MEM(0x5D43C) != 0) //-450
 #define LV_BOTTOM_BAR_DISPLAYED (UNAVI || SCROLLHACK)
 
+#undef UNAVI_FEEDBACK_TIMER_ACTIVE /* no CancelUnaviFeedBackTimer in the firmware */
+
 /******************************************************************************************************************
  * touch_num_fingers_ptr:
  * --> value=0x11100 when screen isn't being touched, value=0x11101 when 1 finger is held touching the screen

@@ -236,6 +236,8 @@
 #define UNAVI_AV (MEM(UNAVI_BASE + 0x58)) //Same as above, but this location is linked to the exp comp button
 #define LV_BOTTOM_BAR_DISPLAYED ((UNAVI == 2) || (UNAVI_AV != 0))
 
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x41958) != 0x17) // CancelUnaviFeedBackTimer
+
 #define DISPLAY_ORIENTATION MEM(0x23C20+0xB8) // read-only; string: UpdateReverseTFT.
 
     /******************************************************************************************************************
