@@ -205,8 +205,7 @@ static int (*auto_ettr_export_correction)(int* out) = MODULE_FUNCTION(auto_ettr_
  */
 void hist_draw_image(
     unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
+    unsigned        y_origin
 )
 {
     #ifdef FEATURE_RAW_HISTOGRAM
@@ -230,9 +229,6 @@ void hist_draw_image(
 
     unsigned i, y;
 
-    if (highlight_level >= 0)
-        highlight_level = (highlight_level * HIST_WIDTH) >> 8;
-
     int log_max = log_length(histogram.max);
 
     #ifdef FEATURE_RAW_HISTOGRAM
@@ -253,12 +249,7 @@ void hist_draw_image(
         // vertical line up to the hist size
         for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
         {
-            if (highlight_level >= 0)
-            {
-                int hilight = ABS(i-highlight_level) <= 1;
-                *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
-            }
-            else if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
+            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
                 *col = y > size ? COLOR_BG :
@@ -407,15 +398,6 @@ MENU_UPDATE_FUNC(hist_warn_display)
                          "Gradual"
     );
 #endif /* defined(FEATURE_HISTOGRAM) */
-}
-
-
-void hist_highlight(int level)
-{
-#ifdef FEATURE_HISTOGRAM
-    get_yuv422_vram();
-    hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
-#endif
 }
 
 #ifdef FEATURE_RAW_HISTOGRAM

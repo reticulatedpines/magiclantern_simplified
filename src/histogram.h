@@ -40,11 +40,8 @@ void hist_build_raw();
 void
 hist_draw_image(
     unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
+    unsigned        y_origin
 );
-
-void hist_highlight(int level);
 
 int raw_hist_get_percentile_level(int percentile, int gray_projection, int speed);
 int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed);
