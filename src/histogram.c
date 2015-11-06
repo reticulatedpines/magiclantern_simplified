@@ -66,6 +66,9 @@ void FAST hist_build_raw()
             int g = raw_green_pixel_dark(x, y);
             int b = raw_blue_pixel_dark(x, y);
 
+            /* ignore bad pixels */
+            if (r == 0 || g == 0 || b == 0) continue;
+
             int ir = r2ev[r];
             int ig = r2ev[g];
             int ib = r2ev[b];
