@@ -133,32 +133,12 @@ static int* trans_to_calib(const short* trans)
     return calib;
 }
 
-int get_raw_info(unsigned model_id, struct raw_info * raw_info)
+int get_raw_info(const char * model, struct raw_info * raw_info)
 {
-    const char* model = NULL;
-    int i = 0;
-    for(i=0; i<COUNT(unique); ++i)
-    {
-        if(model_id == unique[i].id)
-        {
-            model = unique[i].model;
-            break;
-        }
-    }
+    printf("Camera          : Canon %s\n", model);
+    adobe_coeff("Canon", model);
 
-    if(model == NULL)
-    {
-        printf("Model ID unknown: 0x%x (assuming 5D Mark III)\n", model_id);
-        adobe_coeff("Canon", "EOS 5D Mark III");
-        model = "EOS 5D Mark III";
-    }
-    else
-    {
-        printf("Camera          : Canon %s\n", model);
-        adobe_coeff("Canon", model);
-    }
-
-    for(i=0; table[i].prefix; ++i)
+    for(int i=0; table[i].prefix; ++i)
     {
         if(strcmp(model, table[i].prefix) == 0)
         {

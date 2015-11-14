@@ -678,7 +678,7 @@ int main(int argc, char** argv)
         FILE* t = popen(dcraw_cmd, "r");
         CHECK(t, "%s", filename);
         
-        unsigned int model = get_model_id(filename);
+        const char * model = get_camera_model(filename);
         get_raw_info(model, &raw_info);
 
         int raw_width = 0, raw_height = 0;
