@@ -133,22 +133,38 @@ static int* trans_to_calib(const short* trans)
     return calib;
 }
 
-int get_raw_info(const char * model, struct raw_info * raw_info)
+static int find_camera_id(const char * model)
 {
-    printf("Camera          : Canon %s\n", model);
-    adobe_coeff("Canon", model);
-
     for(int i=0; table[i].prefix; ++i)
     {
         if(strcmp(model, table[i].prefix) == 0)
         {
-            int* calib = trans_to_calib(table[i].trans);
-            memcpy(raw_info->color_matrix1, calib, 18*sizeof(int));
-            free(calib);
-            return 0;
+            return i;
         }
     }
-
-    printf("No table found for camera model: %s\n", model);
+    
     return -1;
+}
+
+int get_raw_info(const char * model, struct raw_info * raw_info)
+{
+    printf("Camera          : Canon %s", model);
+    
+    int i = find_camera_id(model);
+    if (i == -1)
+    {
+        printf(" (unknown, assuming 5D Mark III)");
+        model = "EOS 5D Mark III";
+        i = find_camera_id(model);
+    }
+    
+    printf("\n");
+    
+    adobe_coeff("Canon", model);
+
+    int* calib = trans_to_calib(table[i].trans);
+    memcpy(raw_info->color_matrix1, calib, 18*sizeof(int));
+    free(calib);
+    
+    return 0;
 }
