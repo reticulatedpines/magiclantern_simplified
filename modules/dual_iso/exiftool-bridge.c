@@ -26,7 +26,7 @@ const char * get_camera_model(const char* filename)
     FILE* exif_file = popen(exif_cmd, "r");
     if(exif_file) 
     {
-        if (fscanf(exif_file, "%100[^\n]s", model) <= 0)
+        if (fgets(model, sizeof(model), exif_file) == NULL)
             goto err;
         pclose(exif_file);
     }
