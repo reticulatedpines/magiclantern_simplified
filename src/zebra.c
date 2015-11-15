@@ -338,7 +338,7 @@ int histogram_or_small_waveform_enabled()
         (
             (hist_draw) &&
             #ifdef FEATURE_RAW_OVERLAYS
-            !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu()) &&
+            !(RAW_HISTOBAR_ENABLED && can_use_raw_overlays_menu()) &&
             #endif
             1
         )
@@ -480,7 +480,7 @@ static uint8_t* waveform = 0;
 #ifdef FEATURE_HISTOGRAM
 static void hist_add_pixel(uint32_t pixel, int Y)
 {
-    if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
+    if (histogram.is_rgb)
     {
         int R, G, B;
         //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
@@ -545,11 +545,17 @@ hist_build()
     #endif
     
     #ifdef FEATURE_RAW_HISTOGRAM
-    if (raw_histogram_enable && can_use_raw_overlays())
+    if (RAW_HISTOGRAM_ENABLED && can_use_raw_overlays())
     {
         hist_build_raw();
     }
     #endif
+    
+    histogram.is_rgb =
+        histogram.is_raw ||    /* RAW histogram is always RGB-based */
+        ((hist_type == 1 ||    /* Use YUV RGB histogram if selected */
+          hist_type == 2) &&   /* Fall back to YUV RGB if we can't use the RAW RGB histogram */
+         !EXT_MONITOR_RCA);    /* However, we cannot use YUV RGB histogram on RCA monitors, because they use YUV411 instead of YUV422 */
     
     if (!waveform_draw && !vectorscope_draw && (!hist_draw || histogram.is_raw))
     {
@@ -3092,13 +3098,37 @@ struct menu_entry zebra_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Color space",
-                .priv = &hist_colorspace, 
+                .name = "Histogram type",
+                .priv = &hist_type,
+                .update = raw_histo_update,
+                #ifdef FEATURE_RAW_HISTOGRAM
+                .max = 3,
+                #else
                 .max = 1,
-                .choices = (const char *[]) {"Luma", "RGB"},
+                #endif
+                .choices = (const char *[]) {
+                    "YUV-based, Luma",
+                    "YUV-based, RGB",
+                    "RAW-based (RGB)",
+                    "RAW HistoBar (MAX)",
+                },
                 .icon_type = IT_DICE,
-                .help = "Color space for histogram: Luma channel (YUV) / RGB.",
+                .help  = "Choose between YUV-based (JPG) or RAW-based histogram.",
+                .help2 = "If RAW data is not available, it will fall back to YUV-based.",
             },
+            #ifdef FEATURE_RAW_HISTOGRAM
+            {
+                .name = "RAW EV indicator",
+                .priv = &hist_meter,
+                .max = 2,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
+                .help = "Choose an EV image indicator to display on the histogram.",
+                .help2 = 
+                    " \n"
+                    "Display the dynamic range at current ISO, from noise stdev.\n"
+                    "Show how many stops you can push the exposure to the right.\n"
+            },
+            #endif
             {
                 .name = "Scaling",
                 .priv = &hist_log, 
@@ -3114,27 +3144,6 @@ struct menu_entry zebra_menus[] = {
                 .help = "Display warning dots when one color channel is clipped.",
                 .help2 = "Numbers represent the percentage of pixels clipped.",
             },
-            #ifdef FEATURE_RAW_HISTOGRAM
-            {
-                .name = "Use RAW histogram",
-                .priv = &raw_histogram_enable,
-                .max = 2,
-                .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
-                .update = raw_histo_update,
-                .help = "Use RAW based histogram.",
-            },
-            {
-                .name = "RAW EV indicator",
-                .priv = &hist_meter,
-                .max = 2,
-                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
-                .help = "Choose an EV image indicator to display on the histogram.",
-                .help2 = 
-                    " \n"
-                    "Display the dynamic range at current ISO, from noise stdev.\n"
-                    "Show how many stops you can push the exposure to the right.\n"
-            },
-            #endif
             MENU_EOL
         },
     },
@@ -4646,7 +4655,7 @@ livev_hipriority_task( void* unused )
         {
             /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
             if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
-            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (hist_draw && RAW_HISTOGRAM_ENABLED) raw_needed = 1;          /* raw hisogram (any kind) */
             if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
 

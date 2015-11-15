@@ -25,7 +25,11 @@ extern int nondigic_zoom_overlay_enabled();
 
 
 CONFIG_INT( "hist.draw", hist_draw,  1 );
-CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
+#ifdef FEATURE_RAW_HISTOGRAM
+CONFIG_INT( "hist.type", hist_type,  2 );
+#else
+CONFIG_INT( "hist.type", hist_type,  1 );
+#endif
 CONFIG_INT( "hist.warn", hist_warn,  1 );
 CONFIG_INT( "hist.log",  hist_log,   1 );
 CONFIG_INT( "hist.meter", hist_meter,  2);
@@ -109,24 +113,23 @@ void FAST hist_build_raw()
         histogram.max = MAX(histogram.max, histogram.hist_r[i]);
         histogram.max = MAX(histogram.max, histogram.hist_g[i]);
         histogram.max = MAX(histogram.max, histogram.hist_b[i]);
-        histogram.hist[i] = (histogram.hist_r[i] + histogram.hist_g[i] + histogram.hist_b[i]) / 3;
     }
 
     histobar_refresh();
 }
 
-CONFIG_INT("raw.histo", raw_histogram_enable, 2);
-#define HISTOBAR_ENABLED (hist_draw && raw_histogram_enable == 2)
-
 MENU_UPDATE_FUNC(raw_histo_update)
 {
-    menu_checkdep_raw(entry, info);
+    if (RAW_HISTOGRAM_ENABLED)
+    {
+        menu_checkdep_raw(entry, info);
+    }
 
-    if (HISTOBAR_ENABLED)
+    if (RAW_HISTOBAR_ENABLED)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use Histobar in LiveView, RAW histogram after taking a pic.");
     }
-    else if (raw_histogram_enable)
+    else if (RAW_HISTOGRAM_ENABLED)
     {
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
     }
@@ -212,7 +215,7 @@ void hist_draw_image(
 )
 {
     #ifdef FEATURE_RAW_HISTOGRAM
-    if (HISTOBAR_ENABLED && lv && can_use_raw_overlays_menu())
+    if (RAW_HISTOBAR_ENABLED && lv && can_use_raw_overlays_menu())
         return;
     #endif
     
@@ -252,7 +255,7 @@ void hist_draw_image(
         // vertical line up to the hist size
         for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
         {
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
+            if (histogram.is_rgb)
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
                 *col = y > size ? COLOR_BG :
@@ -271,7 +274,7 @@ void hist_draw_image(
             thr = MAX(thr, 1);
             int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
+            if (histogram.is_rgb)
             {
                 unsigned int over_r = histogram.hist_r[i] + histogram.hist_r[i-1];
                 unsigned int over_g = histogram.hist_g[i] + histogram.hist_g[i-1];
@@ -377,25 +380,18 @@ MENU_UPDATE_FUNC(hist_print)
 #if defined(FEATURE_HISTOGRAM)
     if (hist_draw)
     {
-#ifdef FEATURE_RAW_HISTOGRAM
-        int raw = raw_histogram_enable && can_use_raw_overlays_menu();
-        if (raw && HISTOBAR_ENABLED)
-        {
-            MENU_SET_VALUE("RAW HistoBar");
-        }
-        else
-#endif
-        {
-            MENU_SET_VALUE(
-                "%s%s%s",
-                #ifdef FEATURE_RAW_HISTOGRAM
-                raw ? "RAW RGB" :
-                #endif
-                hist_colorspace == 0 ? "Luma" : "RGB",
-                hist_log ? ", Log" : ", Lin",
-                hist_warn ? ", dots" : ""
-            );
-        }
+        int raw = 0;
+        #ifdef FEATURE_RAW_HISTOGRAM
+        raw = RAW_HISTOGRAM_ENABLED && can_use_raw_overlays_menu();
+        #endif
+        
+        MENU_SET_VALUE(
+            "%s%s",
+            raw ? (RAW_HISTOBAR_ENABLED ? "RAW HistoBar" : "RAW RGB") :
+            hist_type == 0 ? "Luma (YUV)" :
+            hist_type == 1 ? "RGB (YUV)" : "RAW N/A",
+            hist_log ? ", Log" : (raw && RAW_HISTOBAR_ENABLED) ? "" : ", Linear"
+        );
     }
 #endif
 }
@@ -668,7 +664,7 @@ static void histobar_refresh()
 static LVINFO_UPDATE_FUNC(histobar_update)
 {
 #ifdef FEATURE_RAW_HISTOGRAM
-    if (!HISTOBAR_ENABLED)
+    if (!RAW_HISTOBAR_ENABLED)
         return;
 #endif    
     if (!lv_luma_is_accurate())
@@ -739,7 +735,7 @@ static LVINFO_UPDATE_FUNC(histobar_indic_update)
         return;
     
 #ifdef FEATURE_RAW_HISTOGRAM
-    if (!HISTOBAR_ENABLED)
+    if (!RAW_HISTOBAR_ENABLED)
         return;
 #endif
     if (!lv_luma_is_accurate())
