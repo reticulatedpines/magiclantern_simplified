@@ -294,14 +294,18 @@ void hist_draw_image(
         {
             static unsigned bar_pos;
             if (i == 0) bar_pos = 0;
-            int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
+            int H = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
+            int h = hist_height - MIN(MIN(sizeR, sizeG), sizeB) - 1;
 
             /* mark what's below the noise floor with... noise */
-            if ((int)i <= underexposed_level + HIST_WIDTH/12 && i%2==0)
+            if ((int)i <= underexposed_level && i%2==0)
             {
-                for (int y = y_origin + ((i/2)%2)*2; y < (int)y_origin + h; y += 4)
+                for (int y = y_origin + ((i/2)%2)*2; y < (int)y_origin + hist_height; y += 4)
                 {
-                    int noise_color = (int)i <= underexposed_level ? COLOR_GRAY(60) : COLOR_GRAY(30);
+                    int noise_color = 
+                        (y < (int)y_origin + H) ? COLOR_GRAY(60) :      /* noise color on top of histogram */
+                        (y < (int)y_origin + h) ? COLOR_WHITE    :      /* noise color where histogram has a solid color, but not white */
+                                                  COLOR_BLACK    ;      /* noise color where histogram is white */
                     bmp_putpixel(x_origin + i, y, noise_color);
                 }
             }
