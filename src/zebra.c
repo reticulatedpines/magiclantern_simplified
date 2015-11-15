@@ -477,6 +477,44 @@ static uint8_t* waveform = 0;
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
+#ifdef FEATURE_HISTOGRAM
+static void hist_add_pixel(uint32_t pixel, int Y)
+{
+    if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
+    {
+        int R, G, B;
+        //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+        COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+        // YRGB range: 0-255
+        uint32_t R_level = (R * HIST_WIDTH) >> 8;
+        uint32_t G_level = (G * HIST_WIDTH) >> 8;
+        uint32_t B_level = (B * HIST_WIDTH) >> 8;
+        
+        histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
+        histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
+        histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+    }
+    
+    /* luma component is always computed, since we need histogram.max */
+    /* and it's much less expensive than RGB anyway */
+    histogram.total_px++;
+    uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
+
+    // Ignore the 0 bin.  It generates too much noise
+    unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
+    if( hist_level && count > histogram.max )
+        histogram.max = count;
+}
+#endif
+
+#ifdef FEATURE_WAVEFORM
+static inline void waveform_add_pixel(int x, int Y)
+{
+    uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
+    if ((*w) < 250) (*w)++;
+}
+#endif
+
 static void
 hist_build()
 {
@@ -498,8 +536,27 @@ hist_build()
     #endif
     
     #ifdef FEATURE_VECTORSCOPE
-    vectorscope_start();
+    int vectorscope_draw = vectorscope_should_draw();
+    
+    if (vectorscope_draw)
+    {
+        vectorscope_start();
+    }
     #endif
+    
+    #ifdef FEATURE_RAW_HISTOGRAM
+    if (raw_histogram_enable && can_use_raw_overlays())
+    {
+        hist_build_raw();
+    }
+    #endif
+    
+    if (!waveform_draw && !vectorscope_draw && (!hist_draw || histogram.is_raw))
+    {
+        /* optimization: no YUV-based histogram/waveform/scope enabled
+         * => no need to scan the entire image */
+        return;
+    }
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
@@ -513,57 +570,29 @@ hist_build()
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
 
-            int Y;
-
+            int Y = UYVY_GET_AVG_Y(pixel);
+            
             #ifdef FEATURE_HISTOGRAM
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
+            if (hist_draw && !histogram.is_raw)
             {
-                int R, G, B;
-                //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
-                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
-                // YRGB range: 0-255
-                uint32_t R_level = (R * HIST_WIDTH) >> 8;
-                uint32_t G_level = (G * HIST_WIDTH) >> 8;
-                uint32_t B_level = (B * HIST_WIDTH) >> 8;
-                
-                histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
-                histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
-                histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+                hist_add_pixel(pixel, Y);
             }
-            else // luma
-            #endif
-
-            #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM)
-            {
-                uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
-                uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
-                Y = (p1+p2) >> 1; 
-            }
-            #endif
-
-            #ifdef FEATURE_HISTOGRAM
-            histogram.total_px++;
-            uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
-
-            // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
-            if( hist_level && count > histogram.max )
-                histogram.max = count;
             #endif
             
             #ifdef FEATURE_WAVEFORM
-            // Update the waveform plot
             if (waveform_draw) 
             {
-                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
-                if ((*w) < 250) (*w)++;
+                waveform_add_pixel(x, Y);
             }
             #endif
             
             #ifdef FEATURE_VECTORSCOPE
-            int8_t U = (pixel >>  0) & 0xFF;
-            int8_t V = (pixel >> 16) & 0xFF;
-            vectorscope_pixel_step(Y, U, V);
+            if (vectorscope_draw)
+            {
+                int8_t U = (pixel >>  0) & 0xFF;
+                int8_t V = (pixel >> 16) & 0xFF;
+                vectorscope_addpixel(Y, U, V);
+            }
             #endif
         }
     }
@@ -3874,10 +3903,6 @@ void draw_histogram_and_waveform(int allow_play)
         )
     {
         hist_build(); /* also updates waveform and vectorscope */
-        #ifdef FEATURE_RAW_HISTOGRAM
-        if (raw_histogram_enable && can_use_raw_overlays())
-            hist_build_raw();
-        #endif
     }
 #endif
     
