@@ -10,6 +10,7 @@
 #undef FEATURE_VOICE_TAGS // Just to be sure
 //#undef FEATURE_SHUTTER_FINE_TUNING //It works! Timer values are not applied until you press record (this is normal for EOSM)
 
+
 /* Working */
 #define FEATURE_CROP_MODE_HACK
 #define FEATURE_AUDIO_REMOTE_SHOT
