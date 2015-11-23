@@ -2714,7 +2714,7 @@ static int hdr_interpolate()
         int* delta = malloc(w * sizeof(delta[0]));
 
         /* adjust dark lines to match the bright ones */
-        for (int y = 0; y < h; y ++)
+        for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
         {
             /* apply a constant offset (estimated from unclipped areas) */
             int delta_num = 0;
