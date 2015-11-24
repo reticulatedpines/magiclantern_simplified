@@ -2728,14 +2728,14 @@ static int hdr_interpolate()
                 }
             }
 
-            /* compute median difference */
-            int med_delta = median_int_wirth(delta, delta_num);
-            
             if (delta_num < 200)
             {
                 //~ printf("%d: too few points (%d)\n", y, delta_num);
                 continue;
             }
+
+            /* compute median difference */
+            int med_delta = median_int_wirth(delta, delta_num);
 
             if (ABS(med_delta) > 200*16)
             {
