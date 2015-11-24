@@ -78,5 +78,19 @@ static inline unsigned short kth_smallest_ushort(unsigned short a[], int n, int 
     return a[k] ;
 }
 
+/*
 #define median_int_wirth(a,n) kth_smallest_int(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
 #define median_ushort_wirth(a,n) kth_smallest_ushort(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
+*/
+
+static int median_int_wirth(int a[], int n)
+{
+    if (n <= 0)
+    {
+        /* safeguard for invalid calls */
+        printf("error: median_int_wirth(n=%d)\n", n);
+        exit(1);
+    }
+    
+    return kth_smallest_int(a,n,(((n)&1)?((n)/2):(((n)/2)-1)));
+}
