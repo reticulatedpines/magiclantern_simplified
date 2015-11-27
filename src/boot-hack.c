@@ -580,9 +580,9 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
     #if defined(CONFIG_6D)
-    /* R0: 0x44C000 (start address) */
+    /* R0: 0x44C000 -> 0x450000 (start address, round up for simpler ASM code) */
     /* R1: 0xD3C000 -> 0xCA0000 (end address, reserve 624K for ML) */
-    *addr_AllocMem_end = MOV_R1_0xCA0000_INSTR;
+    *(addr_AllocMem_end)   = MOV_R1_0xCA0000_INSTR;
     *(addr_AllocMem_end+1) = MOV_R0_0x450000_INSTR;    /* 16K lost, no huge deal */
     ml_reserved_mem = 0xD3C000 - 0xCA0000;
     #elif defined(CONFIG_550D)
