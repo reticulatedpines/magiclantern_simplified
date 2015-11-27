@@ -208,21 +208,11 @@ copy_and_restart( )
 #endif
 }
 
-
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 #ifndef CONFIG_EARLY_PORT
-
-/** This task does nothing */
-static void
-null_task( void )
-{
-    DebugMsg( DM_SYS, 3, "%s created (and exiting)", __func__ );
-    return;
-}
-
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -454,7 +444,7 @@ static void my_big_init_task()
         return;
     }
 
-    // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
+    // do not try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
     // no check is done here, other than a large delay and doing this while in Canon menu
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
     call("EnableBootDisk");
@@ -522,80 +512,19 @@ static void my_big_init_task()
         task->entry = PIC_RESOLVE(task->entry);
         task->arg = PIC_RESOLVE(task->arg);
 #endif
-        //~ DebugMsg( DM_MAGIC, 3,
-            //~ "Creating task %s(%d) pri=%02x flags=%08x",
-            //~ task->name,
-            //~ task->arg,
-            //~ task->priority,
-            //~ task->flags
-        //~ );
-        
-        // for debugging: uncomment this to start only some specific tasks
-        // tip: use something like grep -nr TASK_CREATE ./ to find all task names
-        #if 0
-        if (
-                //~ streq(task->name, "audio_meter_task") ||
-                //~ streq(task->name, "audio_level_task") ||
-                //~ streq(task->name, "bitrate_task") ||
-                //~ streq(task->name, "cartridge_task") ||
-                //~ streq(task->name, "cls_task") ||
-                //~ streq(task->name, "console_task") ||
-                streq(task->name, "debug_task") ||
-                //~ streq(task->name, "dmspy_task") ||
-                //~ streq(task->name, "focus_task") ||
-                //~ streq(task->name, "focus_misc_task") ||
-                //~ streq(task->name, "fps_task") ||
-                //~ streq(task->name, "iso_adj_task") ||
-                //~ streq(task->name, "joypress_task") ||
-                //~ streq(task->name, "light_sensor_task") ||
-                //~ streq(task->name, "livev_hiprio_task") ||
-                //~ streq(task->name, "livev_loprio_task") ||
-                streq(task->name, "menu_task") ||
-                streq(task->name, "menu_redraw_task") ||
-                //~ streq(task->name, "morse_task") ||
-                //~ streq(task->name, "movtweak_task") ||
-                //~ streq(task->name, "ms100_clock_task") ||
-                //~ streq(task->name, "notifybox_task") ||
-                //~ streq(task->name, "seconds_clock_task") ||
-                //~ streq(task->name, "shoot_task") ||
-                //~ streq(task->name, "tweak_task") ||
-                //~ streq(task->name, "beep_task") ||
-                //~ streq(task->name, "crash_log_task") ||
-            0 )
-        #endif
-        {
-            task_create(
-                task->name,
-                task->priority,
-                task->stack_size,
-                task->entry,
-                task->arg
-            );
-            ml_tasks++;
-        }
-        //~ else
-        //~ {
-            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
-            //~ msleep(1000);
-        //~ }
+        task_create(
+            task->name,
+            task->priority,
+            task->stack_size,
+            task->entry,
+            task->arg
+        );
+        ml_tasks++;
     }
-    //~ bmp_printf( FONT_MED, 0, 85,
-        //~ "Magic Lantern is up and running... %d tasks started.",
-        //~ ml_tasks
-    //~ );
     
     msleep(500);
     ml_started = 1;
-
-    //~ stress_test_menu_dlg_api_task(0);
 }
-
-/*void logo_task(void* unused)
-{
-    show_logo();
-    while (!ml_started) msleep(100);
-    stop_killing_flicker();
-}*/
 
 /** Blocks execution until config is read */
 void hold_your_horses()
@@ -649,14 +578,8 @@ void ml_crash_message(char* msg)
 
 #ifdef CONFIG_ALLOCATE_MEMORY_POOL
 
-#ifndef ITASK_LEN
 #define ITASK_LEN   (ROM_ITASK_END - ROM_ITASK_START)
-#endif
-
-#ifndef CREATETASK_MAIN_LEN
 #define CREATETASK_MAIN_LEN (ROM_CREATETASK_MAIN_END - ROM_CREATETASK_MAIN_START)
-#endif
-
 
 init_task_func init_task_patched(int a, int b, int c, int d)
 {
@@ -717,14 +640,6 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     
     uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset;
     *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
-    
-    
-    /* FIO_RemoveFile("B:/dump.hex");
-    FILE* f = FIO_CreateFile("B:/dump.hex");
-    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
-    FIO_CloseFile(f);
-    
-    NotifyBox(10000, "%x ", new_CreateTaskMain); */
     
     // Well... let's cross the fingers and call the relocated stuff
     return new_init_task;
@@ -879,7 +794,6 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
     dm_names[ DM_MAGIC ] = "[MAGIC] ";
-    //~ dmstart(); // already called by firmware?
 
     DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
         build_version,
