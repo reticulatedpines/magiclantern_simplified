@@ -582,6 +582,18 @@ init_task_func init_task_patched(int a, int b, int c, int d)
 
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
+    uint32_t* addr_B_CreateTaskMain = (void*)(init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset);
+
+    /* check if the patched addresses are, indeed, a BL and a B instruction */
+    if ((((*addr_BL_AllocMem_init) >> 24) != (BL_INSTR(0,0) >> 24)) ||
+        (((*addr_B_CreateTaskMain) >> 24) != (B_INSTR(0,0)  >> 24)))
+    {
+        #ifdef CONFIG_QEMU
+        qprintf("Please check ROM_ALLOCMEM_INIT and ROM_B_CREATETASK_MAIN.\n");
+        #endif
+        _card_led_on();
+        while(1);
+    }
 
     #if defined(CONFIG_6D)
     /* R0: 0x44C000 -> 0x450000 (start address, round up for simpler ASM code) */
@@ -603,7 +615,7 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
     *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, ROM_ALLOCMEM_INIT);
     
-    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset;
+    // replace call to CreateMainTask (last sub in init_task)
     *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
     
     // Well... let's cross the fingers and call the relocated stuff
