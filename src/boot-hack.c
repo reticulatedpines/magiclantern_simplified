@@ -593,15 +593,17 @@ init_task_func init_task_patched(int a, int b, int c, int d)
         #ifdef CONFIG_QEMU
         qprintf("Please check ROM_ALLOCMEM_INIT and ROM_B_CREATETASK_MAIN.\n");
         #endif
-        _card_led_on();
-        while(1);
+        while(1);                                       /* refuse to boot */
     }
 
     #if defined(CONFIG_6D)
-    /* R0: 0x44C000 -> 0x450000 (start address, round up for simpler ASM code) */
+    /* R0: 0x44C000             (start address, unchanged, but we have to patch it, because it's derived from R1) */
     /* R1: 0xD3C000 -> 0xCA0000 (end address, reserve 624K for ML) */
-    *(addr_AllocMem_end)   = MOV_R1_0xCA0000_INSTR;
-    *(addr_AllocMem_end+1) = MOV_R0_0x450000_INSTR;    /* 16K lost, no huge deal */
+    addr_AllocMem_end[1] = MOV_R1_0xCA0000_INSTR;           /* R1 is easy to patch */
+    uint32_t offset = (addr_AllocMem_end[0] & 0xFFF) + 8;   /* PC-relative address to patch for R0 */
+    if (addr_AllocMem_end[offset/4] != 0xD3C000) while(1);  /* do not boot if offset is wrong */
+    addr_AllocMem_end[0] &= 0xFFFF0FFF;                     /* change LDR R1 into LDR R0 */
+    addr_AllocMem_end[offset/4] = 0x44C000;                 /* LDR R0, =0x44C000 */
     ml_reserved_mem = 0xD3C000 - 0xCA0000;
     #elif defined(CONFIG_550D)
     // change end limit from 0xd00000 to 0xc60000 => reserve 640K for ML
