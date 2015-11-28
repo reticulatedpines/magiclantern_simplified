@@ -209,26 +209,30 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
 static void
 my_task_dispatch_hook(
         struct context ** context_unused,   /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
-        struct task * prev_task_empty,      /* only used on new DryOS, but value is always 0 (?!) */
-        struct task * next_task             /* only used on new DryOS; old versions use HIJACK_TASK_ADDR */
+        struct task * prev_task_unused,     /* only present on new DryOS */
+        struct task * next_task             /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-    #ifdef HIJACK_TASK_ADDR                 /* old DryOS only; undefine this for new DryOS */
-    next_task = *(struct task **)(HIJACK_TASK_ADDR);
-    #endif
+#ifdef CONFIG_QEMU
+    qprintf("task_hook(%x) %x(%s) -> %x(%s), from %x\n", context_unused, prev_task_unused, prev_task_unused->name, next_task, next_task->name, read_lr());
+#endif
 
-    if( !next_task)
+#ifdef HIJACK_TASK_ADDR                     /* old DryOS only; undefine this for new DryOS */
+    next_task = *(struct task **)(HIJACK_TASK_ADDR);
+#endif
+
+    if (!next_task)
         return;
 
     /* on old DryOS, context is passed as argument, but can be found in the task structure as well */
     struct context * context = next_task->context;
 
-    if( !context )
+    if (!context )
         return;
     
-    #ifdef CONFIG_TSKMON
+#ifdef CONFIG_TSKMON
     tskmon_task_dispatch(next_task);
-    #endif
+#endif
     
     if (ml_started)
     {
@@ -262,7 +266,7 @@ my_task_dispatch_hook(
 
 /* -- can't call debugmsg from this context */
 #ifdef CONFIG_QEMU
-        qprintf("***** Replacing task %x with %x\n",
+        qprintf("[*****] Replacing task %x with %x\n",
             original_entry,
             mapping->replacement
         );
