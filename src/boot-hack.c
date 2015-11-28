@@ -504,12 +504,14 @@ const char* get_assert_msg() { return assert_msg; }
 
 static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
+    uint32_t lr = read_lr();
+
     snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
-        "at %s:%d, task %s\n"
+        "at %s:%d, %s:%x\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, get_task_name_from_id(get_current_task()), 
+        file, line, get_task_name_from_id(get_current_task()), lr,
         lv, shooting_mode
     );
     request_crash_log(1);
