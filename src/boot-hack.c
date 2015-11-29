@@ -622,6 +622,9 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     // replace call to CreateMainTask (last sub in init_task)
     *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
     
+    /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
+    sync_caches();
+    
     // Well... let's cross the fingers and call the relocated stuff
     return new_init_task;
 
