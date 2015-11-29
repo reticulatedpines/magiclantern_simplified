@@ -2834,15 +2834,17 @@ menu_display(
     int num_visible = get_menu_visible_count(menu);
     int target_height = 370;
     if (is_menu_active("Help")) target_height -= 20;
+    if (is_menu_active("Focus")) target_height -= 70;
     int natural_height = num_visible * font_large.height;
+    int ideal_num_items = target_height / font_large.height;
 
     /* if the menu items does not exceed max count by too much (e.g. 12 instead of 11),
      * prefer to squeeze them vertically in order to avoid scrolling. */
     
     /* but if we can't avoid scrolling, don't squeeze */
-    if (num_visible > MENU_LEN + 1)
+    if (num_visible > ideal_num_items + 1)
     {
-        num_visible = MENU_LEN;
+        num_visible = ideal_num_items;
         natural_height = num_visible * font_large.height;
         /* leave some space for the scroll indicators */
         target_height -= submenu_level ? 16 : 12;
